@@ -1,409 +1,377 @@
-<!DOCTYPE HTML>
-<html>
-<head>
-<title>Colorful Flat Website Template | Home :: </title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="shortcut icon" type="image/x-icon" href="images/fave-icon.png" />
-<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
-</script>
-<link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
-<link href="css/screen.css" media="screen, projection" rel="stylesheet" type="text/css" />
-<script src="js/modernizr.custom.28468.js"></script>
-<link rel="stylesheet" type="text/css" href="css/simptip-mini.css" media="screen,projection" />
-<script type="text/javascript" src="js/jquery.min.js"></script>
-</head>
-<body>
-<!---start-wrap----->
-<!---start-header----->
-<div class="header" id="home">
-  <div class="wrap">
-    <div class="top-header">
-      <div class="logo"> <a href="index.html"><span> </span>Colorful Flat</a> </div>
-      <div class="top-nav">
-        <ul>
-          <li class="active"><a href="#home" class="scroll">Home</a></li>
-          <li><a href="#services" class="scroll">Services</a></li>
-          <li><a href="#portfolio" class="scroll">Portfolio</a></li>
-          <li><a href="#blog" class="scroll">Blog</a></li>
-          <li><a href="#contact" class="scroll">Contact</a></li>
-          <div class="clear"> </div>
-        </ul>
-      </div>
-      <div class="clear"> </div>
-    </div>
-    <!---End-header----->
-    <!----start-content-slider---->
-    <div id="da-slider" class="da-slider">
-      <div id="intro" class="da-slide">
-        <div class="da-title">
-          <h3> the template<br />
-            is a awesome!</h3>
-        </div>
-        <div class="da-img"> <img src="images/slider-pic1.png" alt="Drupal Powered" title="Presenting the Drupalien" /> </div>
-      </div>
-      <div id="user-experience" class="da-slide">
-        <div class="da-title">
-          <h3> the template<br />
-            is a awesome!</h3>
-        </div>
-        <div class="da-img"> <img src="images/slider-pic2.png" alt="Drupal Powered" title="Presenting the Drupalien" /> </div>
-      </div>
-      <div id="design" class="da-slide">
-        <div class="da-title">
-          <h3> the template<br />
-            is a awesome!</h3>
-        </div>
-        <div class="da-img"> <img src="images/slider-pic3.png" alt="Drupal Powered" title="Presenting the Drupalien" /> </div>
-      </div>
-      <div> </div>
-    </div>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="js/jquery.cslider.js"></script>
-    <script>
-					//jQuery(document).ready(function() {
-					$('#da-slider').cslider({
-					  autoplay : true,
-					  interval: 3000,
-					  bgincrement : 10
+<!doctype html>
+<html lang="zh-TW">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>簡易點名系統</title>
+		<meta name="theme-color" content="3B4252" />
+		<style>
+			h1 {
+				/* 標題顏色 */
+				color: var(--nord7);
+			}
+
+			body {
+				/* 背景顏色 */
+				background-color: var(--nord0);
+			}
+
+			body {
+				/* 可選顏色 */
+				--nord0: #2e3440;
+				--nord1: #3b4252;
+				--nord2: #434c5e;
+				--nord3: #4c566a;
+				--nord4: #d8dee9;
+				--nord5: #e5e9f0;
+				--nord6: #eceff4;
+				--nord7: #8fbcbb;
+				--nord8: #88c0d0;
+				--nord9: #81a1c1;
+				--nord10: #5e81ac;
+				--nord11: #bf616a;
+				--nord12: #d08770;
+				--nord13: #ebcb8b;
+				--nord14: #a3be8c;
+				--nord15: #b48ead;
+				--black: #000;
+				--line: #4c566a;
+			}
+
+			main,
+			nav {
+				display: flex;
+			}
+
+			.call button,
+			button:hover {
+				background-color: var(--nord2);
+			}
+
+			button,
+			section > div {
+				background-color: var(--nord1);
+				box-shadow: rgba(0, 0, 0, 0.2) 0 0 0.5rem;
+			}
+
+			main,
+			section > div {
+				padding: 1rem;
+				width: 100%;
+			}
+
+			footer,
+			footer a {
+				color: var(--nord4);
+			}
+
+			.search button,
+			button,
+			input,
+			section > div {
+				box-shadow: rgba(0, 0, 0, 0.2) 0 0 0.5rem;
+			}
+
+			body,
+			button,
+			h2,
+			html {
+				text-align: center;
+			}
+
+			* {
+				padding: 0;
+				margin: 0;
+				box-sizing: border-box;
+				font-family: Arial, "微軟正黑體", Helvetica, sans-serif;
+				color: var(--nord6);
+			}
+
+			body,
+			html {
+				min-height: 100%;
+			}
+
+			main {
+				flex-direction: column;
+				height: 100vh;
+				height: 100dvh;
+				max-width: 500px;
+				margin: 0 auto;
+			}
+
+			nav {
+				justify-content: space-between;
+			}
+
+			button {
+				display: block;
+				height: 50px;
+				width: calc(1 / 3 * 100% - 1rem);
+				line-height: 50px;
+				border-radius: 1rem;
+				text-decoration: none;
+				border: none;
+				cursor: pointer;
+				transition: background-color 0.2s ease-in-out;
+			}
+
+			#call,
+			.search,
+			footer {
+				display: flex;
+			}
+
+			.call button {
+				width: calc(1 / 4 * 100% - 1rem);
+				margin: 0.5rem;
+			}
+
+			button:hover {
+				filter: brightness(1.2);
+			}
+
+			button:active {
+				background-color: var(--nord3);
+				filter: brightness(1.5);
+			}
+
+			section {
+				flex-grow: 1;
+				margin: 1rem 0;
+				position: relative;
+			}
+
+			footer {
+				justify-content: flex-end;
+				align-items: flex-end;
+			}
+
+			section > div {
+				border-radius: 1rem;
+				overflow-x: hidden;
+				overflow-y: auto;
+				position: absolute;
+				height: 100%;
+				transition: opacity 0.5s ease-in-out;
+			}
+
+			#add,
+			#history {
+				opacity: 0;
+			}
+
+			#call {
+				z-index: 2;
+				flex-wrap: wrap;
+				justify-content: space-between;
+			}
+
+			.search {
+				justify-content: center;
+				align-items: center;
+			}
+
+			.search button,
+			input {
+				height: 2rem;
+				width: 50%;
+				border-radius: 0.5rem;
+				border: transparent;
+				padding: 0 1rem;
+				background-color: var(--nord3);
+				color: var(--nord4);
+			}
+
+			h2,
+			table {
+				width: 100%;
+			}
+
+			input:focus {
+				outline: transparent;
+			}
+
+			.search button {
+				margin-left: 1rem;
+				width: auto;
+				line-height: 100%;
+			}
+
+			table {
+				border-collapse: collapse;
+				margin-top: 1rem;
+			}
+
+			tr {
+				border-bottom: 1px solid var(--line);
+			}
+
+			td {
+				padding: 0.5rem;
+			}
+
+			h2 {
+				margin-top: 2rem;
+				font-weight: 600;
+			}
+
+			#status {
+				margin: 0.5rem 0 1rem;
+				color: var(--nord13);
+				font-size: 1.3rem;
+			}
+		</style>
+	</head>
+
+	<body>
+		<main>
+			<h1>簡易點名系統</h1>
+			<h2 id="status">歡迎使用</h2>
+			<nav>
+				<button onclick="searchA()">查詢紀錄</button>
+				<button onclick="callA()">點名</button>
+				<button onclick="addA()">新增學生</button>
+			</nav>
+			<section>
+				<div id="history">
+					<div class="search">
+						<input type="text" />
+						<button>搜尋</button>
+					</div>
+					<table>
+						<thead>
+							<tr>
+								<td>時間</td>
+								<td>剩下課堂</td>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+				<div id="call">
+					<h2>載入中</h2>
+				</div>
+				<div id="add">
+					<div class="search">
+						<input type="text" />
+						<button>新增</button>
+					</div>
+				</div>
+			</section>
+			<footer>
+				<a href="elvisdragonmao.github.io/">毛哥EM</a>
+				製作 |
+				<a href="https://emtech.cc/post/roll-call">教學</a>
+			</footer>
+		</main>
+		<script>
+			//部屬連結放這裡
+			var url = "https://script.google.com/macros/s/AKfycbz_HuYSdU1qTkxnJnUCW0uFTBJBJwrKZUGP922Om1ccnqUDxD572GQZqrCyl4gwXQ/exec";
+			const [history, call, add] = ["history", "call", "add"].map(t => document.getElementById(t)),
+				searchA = () => {
+					((history.style.opacity = 1), (history.style.zIndex = 2), (call.style.opacity = add.style.opacity = 0), (call.style.zIndex = add.style.zIndex = 1));
+				},
+				callA = () => {
+					((history.style.opacity = add.style.opacity = 0), (history.style.zIndex = add.style.zIndex = 1), (call.style.opacity = 1), (call.style.zIndex = 2));
+				},
+				addA = () => {
+					((history.style.opacity = call.style.opacity = 0), (history.style.zIndex = call.style.zIndex = 1), (add.style.opacity = 1), (add.style.zIndex = 2));
+				};
+			fetch(url + "?type=list")
+				.then(t => t.json())
+				.then(t => {
+					let e = document.getElementById("call");
+					((e.innerHTML = ""),
+						t.forEach((t, n) => {
+							let a = document.createElement("button");
+							((a.textContent = t.name),
+								(a.id = `student-${n + 1}`),
+								a.addEventListener("click", () => {
+									rollCall(t.name, t.left, n + 1);
+								}),
+								e.appendChild(a));
+						}));
+				})
+				.catch(t => console.error(t));
+			const status = document.getElementById("status");
+			function rollCall(t, e, n) {
+				status.innerHTML = `${t} 點名中...`;
+				var a = new Date(),
+					a = a
+						.toLocaleString("zh-TW", {
+							year: "numeric",
+							month: "2-digit",
+							day: "2-digit",
+							hour: "numeric",
+							minute: "numeric",
+							second: "numeric",
+							hour12: !0
+						})
+						.replace("-", "/")
+						.replace(" ", " ");
+				fetch(url + `?type=call&name=${t}&time=${a}&remain=${e}`)
+					.then(a => {
+						a.ok
+							? ((status.innerHTML = `${t} 已點名成功！剩餘課堂：${e - 1}`), (document.getElementById("student-" + n).style.backgroundColor = "var(--nord14)"))
+							: ((status.innerHTML = `${t} 已點名失敗！剩餘課堂：${e}`), (document.getElementById("student-" + n).style.backgroundColor = "var(--nord11)"));
+					})
+					.catch(t => {
+						status.innerHTML = `發生錯誤：${t}`;
 					});
-					//});
-					</script>
-    <!----start-content-slider---->
-  </div>
-</div>
-<!---End-header----->
-<!---start-content---->
-<div class="copyrights">Collect from <a href="http://www.cssmoban.com/" >���ģ��</a></div>
-<div class="content">
-  <div class="wrap">
-    <!---start-top-grids---->
-    <div class="top-service-grids" id="services">
-      <div class="top-service-grid"> <a href="#"><img src="images/top-grid-pic1.png" alt="" /></a> <a href="#"><span>Flat Design</span></a>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod temporUt enim ad minim veniam</p>
-      </div>
-      <div class="top-service-grid"> <a href="#"><img src="images/top-grid-pic2.png" alt="" /></a> <a href="#"><span>Great Ideas</span></a>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod temporUt enim ad minim veniam</p>
-      </div>
-      <div class="top-service-grid"> <a href="#"><img src="images/top-grid-pic4.png" alt="" /></a> <a href="#"><span>Browser Compatibility</span></a>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod temporUt enim ad minim veniam</p>
-      </div>
-      <div class="clear"> </div>
-    </div>
-    <!---End-top-grids---->
-  </div>
-  <!---start-recent-works----->
-  <div class="recent-works" id="portfolio">
-    <div class="wrap">
-      <div class="recent-works-head">
-        <h3>Recent works</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod temporUt enim ad minim veniam</p>
-      </div>
-      <!---start-mfp ---->
-      <div id="small-dialog1" class="mfp-hide">
-        <div class="pop_up">
-          <h2>Yours text place Here</h2>
-          <p class="para">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.</p>
-        </div>
-      </div>
-      <!---end-mfp ---->
-      <div class="gallery">
-        <div class="clear"> </div>
-        <div class="container">
-          <ul id="filters" class="clearfix">
-            <li><span class="filter active" data-filter="app card icon logo web">All</span></li>
-            <li><span class="filter" data-filter="app web">Web</span></li>
-            <li><span class="filter" data-filter="icon web card">Mobile</span></li>
-            <li><span class="filter" data-filter="web app icon card">Photography</span></li>
-            <li><span class="filter" data-filter="icon app web logo">Design</span></li>
-          </ul>
-          <div id="portfoliolist" style="     ">
-            <div class="portfolio logo1 mix_all" data-cat="logo" style=" ">
-              <div class="portfolio-wrapper"> <a class="popup-with-zoom-anim" href="#small-dialog1"> <img src="images/p1.jpg" alt="Image 2" style="top: 0px;"> </a>
-                <div class="label" style="bottom: -40px;">
-                  <div class="label-text"> <a class="text-title">Bird Document</a> <span class="text-category">Logo</span> </div>
-                  <div class="label-bg"></div>
-                </div>
-              </div>
-            </div>
-            <div class="portfolio app mix_all" data-cat="app" style="  display: inline-block; opacity: 1;">
-              <div class="portfolio-wrapper"> <a class="popup-with-zoom-anim" href="#small-dialog1"> <img src="images/p2.jpg" alt="Image 2" style="top: 0px;"> </a>
-                <div class="label" style="bottom: -40px;">
-                  <div class="label-text"> <a class="text-title">Visual Infography</a> <span class="text-category">APP</span> </div>
-                  <div class="label-bg"></div>
-                </div>
-              </div>
-            </div>
-            <div class="portfolio web mix_all" data-cat="web" style="  display: inline-block; opacity: 1;">
-              <div class="portfolio-wrapper"> <a class="popup-with-zoom-anim" href="#small-dialog1"> <img src="images/p3.jpg" alt="Image 2" style="top: 0px;"> </a>
-                <div class="label" style="bottom: -40px;">
-                  <div class="label-text"> <a class="text-title">Sonor's Design</a> <span class="text-category">Web design</span> </div>
-                  <div class="label-bg"></div>
-                </div>
-              </div>
-            </div>
-            <div class="portfolio card mix_all" data-cat="card" style="  display: inline-block; opacity: 1;">
-              <div class="portfolio-wrapper"> <a class="popup-with-zoom-anim" href="#small-dialog1"> <img src="images/p4.jpg" alt="Image 2" style="top: 0px;"> </a>
-                <div class="label" style="bottom: -40px;">
-                  <div class="label-text"> <a class="text-title">Typography Company</a> <span class="text-category">Business card</span> </div>
-                  <div class="label-bg"></div>
-                </div>
-              </div>
-            </div>
-            <div class="portfolio app mix_all" data-cat="app" style="  display: inline-block; opacity: 1;">
-              <div class="portfolio-wrapper"> <a class="popup-with-zoom-anim" href="#small-dialog1"> <img src="images/p5.jpg" alt="Image 2" style="top: 0px;"> </a>
-                <div class="label" style="bottom: -40px;">
-                  <div class="label-text"> <a class="text-title">Weatherette</a> <span class="text-category">APP</span> </div>
-                  <div class="label-bg"></div>
-                </div>
-              </div>
-            </div>
-            <div class="portfolio card mix_all" data-cat="card" style="  display: inline-block; opacity: 1;">
-              <div class="portfolio-wrapper"> <a class="popup-with-zoom-anim" href="#small-dialog1"> <img src="images/p6.jpg" alt="Image 2" style="top: 0px;"> </a>
-                <div class="label" style="bottom: -40px;">
-                  <div class="label-text"> <a class="text-title">BMF</a> <span class="text-category">Business card</span> </div>
-                  <div class="label-bg"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- container -->
-        <a class="morebtn popup-with-zoom-anim" href="#small-dialog1">Show More</a>
-        <div class="clear"> </div>
-        <script type="text/javascript" src="js/fliplightbox.min.js"></script>
-        <script type="text/javascript">$('body').flipLightBox()</script>
-        <!---start-gallery-script----->
-        <script type="text/javascript" src="js/jquery.easing.min.js"></script>
-        <script type="text/javascript" src="js/jquery.mixitup.min.js"></script>
-        <script type="text/javascript">
-					$(function () {
-						
-						var filterList = {
-						
-							init: function () {
-							
-								// MixItUp plugin
-								// http://mixitup.io
-								$('#portfoliolist').mixitup({
-									targetSelector: '.portfolio',
-									filterSelector: '.filter',
-									effects: ['fade'],
-									easing: 'snap',
-									// call the hover effect
-									onMixEnd: filterList.hoverEffect()
-								});				
-							
-							},
-							
-							hoverEffect: function () {
-							
-								// Simple parallax effect
-								$('#portfoliolist .portfolio').hover(
-									function () {
-										$(this).find('.label').stop().animate({bottom: 0}, 200, 'easeOutQuad');
-										$(this).find('img').stop().animate({top: -30}, 500, 'easeOutQuad');				
-									},
-									function () {
-										$(this).find('.label').stop().animate({bottom: -40}, 200, 'easeInQuad');
-										$(this).find('img').stop().animate({top: 0}, 300, 'easeOutQuad');								
-									}		
-								);				
-							}
-						};
-						// Run the show!
-						filterList.init();
-					});	
-					</script>
-        <!-- Add fancyBox main JS and CSS files -->
-        <script src="js/jquery.magnific-popup.js" type="text/javascript"></script>
-        <link href="css/magnific-popup.css" rel="stylesheet" type="text/css">
-        <script>
-								$(document).ready(function() {
-									$('.popup-with-zoom-anim').magnificPopup({
-										type: 'inline',
-										fixedContentPos: false,
-										fixedBgPos: true,
-										overflowY: 'auto',
-										closeBtnInside: true,
-										preloader: false,
-										midClick: true,
-										removalDelay: 300,
-										mainClass: 'my-mfp-zoom-in'
-								});
-							});
-							</script>
-        <!---//End-gallery-script----->
-        <div class="clear"> </div>
-      </div>
-    </div>
-  </div>
-  <!---End-recent-works----->
-  <!--- start-blog----->
-  <div class="blog">
-    <div class="wrap">
-      <div class="blog-grids">
-        <div class="blog-grid blog-grid1">
-          <div class="blog-grid-left" onClick="location.href='#';"> <span> </span> </div>
-          <div class="blog-grid-right">
-            <h3><a href="#">Layered Neatly Photoshop Template</a></h3>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est. Mauris faucibus tellus ac auctor posuere. Integer lobortis purus a felis adipiscing, eget ornare justo semper. Etiam commodo tincidunt ante.</p>
-            <a class="blogbtng popup-with-zoom-anim" href="#small-dialog1">Show More</a> </div>
-          <div class="clear"> </div>
-        </div>
-        <!----->
-        <div class="blog-grid2">
-          <div class="blog-grid2-left">
-            <h3><a href="#">Layered Neatly Photoshop Template</a></h3>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est. Mauris faucibus tellus ac auctor posuere. Integer lobortis purus a felis adipiscing, eget ornare justo semper. Etiam commodo tincidunt ante.</p>
-            <a class="blogbtnb popup-with-zoom-anim" href="#small-dialog1">Show More</a> </div>
-          <div class="blog-grid2-right" onClick="location.href='#';"> <span> </span> </div>
-          <div class="clear"> </div>
-        </div>
-        <!----->
-        <div class="clear"> </div>
-      </div>
-    </div>
-  </div>
-  <!--- End-blog----->
-  <!---start-meet-our-team---->
-  <div class="team">
-    <div class="wrap">
-      <div class="team-head">
-        <h3>Meet Our team</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est. Mauris faucibus tellus ac auctor posuere.</p>
-      </div>
-      <div class="team-members">
-        <div class="team-member"> <span><a href="#"> </a></span>
-          <h4><a href="#">John Smith</a></h4>
-          <label>Creative Director</label>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.</p>
-          <ul>
-            <li>
-            <li><a class="facebook simptip-position-bottom simptip-movable" data-tooltip="Facebook" href="#"> </a></li>
-            <li><a class="twitter simptip-position-bottom simptip-movable" data-tooltip="Twitter" href="#"> </a></li>
-            <li><a class="pin simptip-position-bottom simptip-movable" data-tooltip="Pintrest" href="#"> </a></li>
-            <div class="clear"> </div>
-            </li>
-          </ul>
-        </div>
-        <div class="team-member"> <span><a href="#"> </a></span>
-          <h4><a href="#">John Smith</a></h4>
-          <label>Creative Director</label>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.</p>
-          <ul>
-            <li>
-            <li><a class="facebook simptip-position-bottom simptip-movable" data-tooltip="Facebook" href="#"> </a></li>
-            <li><a class="twitter simptip-position-bottom simptip-movable" data-tooltip="Twitter" href="#"> </a></li>
-            <li><a class="pin simptip-position-bottom simptip-movable" data-tooltip="Pintrest" href="#"> </a></li>
-            <div class="clear"> </div>
-            </li>
-          </ul>
-        </div>
-        <div class="team-member"> <span><a href="#"> </a></span>
-          <h4><a href="#">John Smith</a></h4>
-          <label>Creative Director</label>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.</p>
-          <ul>
-            <li>
-            <li><a class="facebook simptip-position-bottom simptip-movable" data-tooltip="Facebook" href="#"> </a></li>
-            <li><a class="twitter simptip-position-bottom simptip-movable" data-tooltip="Twitter" href="#"> </a></li>
-            <li><a class="pin simptip-position-bottom simptip-movable" data-tooltip="Pintrest" href="#"> </a></li>
-            <div class="clear"> </div>
-            </li>
-          </ul>
-        </div>
-        <div class="clear"> </div>
-        <div class="clear"> </div>
-      </div>
-    </div>
-  </div>
-  <!---//End-meet-our-team---->
-  <!--- start-recent-posts----->
-  <div class="recent-posts" id="blog">
-    <div class="wrap">
-      <div class="recent-posts-head">
-        <h3>Recent Posts</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est. Mauris faucibus tellus ac auctor posuere.</p>
-      </div>
-      <div class="post-grids">
-        <div class="post-grid"> <span onClick="location.href='#';"><a href="#"> </a></span>
-          <h4><a href="#">Really Interesting Post</a></h4>
-          <label>October 27</label>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.</p>
-        </div>
-        <div class="post-grid"> <span onClick="location.href='#';"><a href="#"> </a></span>
-          <h4><a href="#">Really Interesting Post</a></h4>
-          <label>October 27</label>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.</p>
-        </div>
-        <div class="post-grid"> <span onClick="location.href='#';"><a href="#"> </a></span>
-          <h4><a href="#">Really Interesting Post</a></h4>
-          <label>October 27</label>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est.</p>
-        </div>
-        <div class="clear"> </div>
-        <a class="morebtn popup-with-zoom-anim" href="#small-dialog1">Show More</a> </div>
-    </div>
-  </div>
-  <!--- //End-recent-posts----->
-  <!---start-contact---->
-  <div class="contact" id="contact">
-    <div class="wrap">
-      <div class="contact-head">
-        <h3>Contact us</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed et quam est. Mauris faucibus tellus ac auctor posuere.</p>
-      </div>
-      <div class="contatct-form">
-        <form>
-          <input type="text" value="Name :" onFocus="this.value = '';" onBlur="if (this.value == '') {this.value = 'Name :';}">
-          <input type="text" value="Email :" onFocus="this.value = '';" onBlur="if (this.value == '') {this.value = 'Email :';}">
-          <textarea rows="2" cols="70" onFocus="if(this.value == 'Message :') this.value='';" onBlur="if(this.value == '') this.value='Message :';" >Message :</textarea>
-          <input type="submit" value="Send" />
-        </form>
-      </div>
-    </div>
-  </div>
-  <!---End-contact---->
-</div>
-<!---End-content---->
-<!----start-footer---->
-<div class="footer">
-  <div class="wrap">
-    <div class="footer-grids">
-      <div class="footer-left">
-        <ul>
-          <li><a class="ftwiter" href="#"> </a></li>
-          <li><a class="fface" href="#"> </a></li>
-          <li><a class="fhtml" href="#"> </a></li>
-          <li><a class="fflick" href="#"> </a></li>
-          <div class="clear"> </div>
-        </ul>
-      </div>
-      <div class="footer-right">
-        <p>More Templates <a href="http://www.cssmoban.com/" target="_blank" title="ģ��֮��">ģ��֮��</a> - Collect from <a href="http://www.cssmoban.com/" title="��ҳģ��" target="_blank">��ҳģ��</a></p>
-        <script type="text/javascript">
-						$(document).ready(function() {
-							$().UItoTop({ easingType: 'easeOutQuart' });
-						});
-					</script>
-        <!----move-top-path---->
-        <script type="text/javascript" src="js/move-top.js"></script>
-        <script type="text/javascript" src="js/easing.js"></script>
-        <script type="text/javascript">
-						jQuery(document).ready(function($) {
-							$(".scroll").click(function(event){		
-								event.preventDefault();
-								$('html,body').animate({scrollTop:$(this.hash).offset().top},1200);
-							});
-						});
-					</script>
-        <!----move-top-path---->
-        <a href="#" id="toTop" style="display: block;"><span id="toTopHover" style="opacity: 1;"></span></a> </div>
-      <div class="clear"> </div>
-    </div>
-  </div>
-</div>
-<!----//End-footer---->
-<!---End-wrap----->
-</body>
+			}
+			const searchBtn = document.querySelector("#history button"),
+				searchInput = document.querySelector("#history input"),
+				historyTableBody = document.querySelector("#history tbody");
+			searchBtn.addEventListener("click", () => {
+				status.innerHTML = "搜尋中...";
+				let t = searchInput.value,
+					e = `${e}?type=search&name=${encodeURIComponent(t)}`;
+				fetch(e)
+					.then(t => t.json())
+					.then(t => {
+						let e = document.querySelector("#history table tbody");
+						((e.innerHTML = ""),
+							t.forEach(t => {
+								let n = document.createElement("tr"),
+									a = document.createElement("td"),
+									l = document.createElement("td");
+								var r = new Date(t.time);
+								((a.textContent = r
+									.toLocaleString("zh-TW", {
+										year: "numeric",
+										month: "2-digit",
+										day: "2-digit",
+										hour: "numeric",
+										minute: "numeric",
+										second: "numeric",
+										hour12: !0
+									})
+									.replace("-", "/")
+									.replace(" ", " ")),
+									(l.textContent = t.left),
+									n.appendChild(a),
+									n.appendChild(l),
+									e.appendChild(n),
+									(status.innerHTML = "搜尋完成"));
+							}));
+					})
+					.catch(t => (status.innerHTML = t));
+			});
+			const addBtn = document.querySelector("#add button"),
+				addInput = document.querySelector("#add input");
+			addBtn.addEventListener("click", () => {
+				let t = addInput.value;
+				t &&
+					((status.innerHTML = "新增中..."),
+					fetch(`${url}?type=new&name=${encodeURIComponent(t)}`)
+						.then(t => (status.innerHTML = "新增成功"))
+						.catch(t => {
+							status.innerHTML = t;
+						}));
+			});
+		</script>
+	</body>
 </html>
+Copy
