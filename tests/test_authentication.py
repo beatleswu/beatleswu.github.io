@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
 from werkzeug.security import check_password_hash
+
+pytestmark = pytest.mark.backend
 
 
 def test_login_accepts_valid_credentials_and_sets_session(client, seeded_user):

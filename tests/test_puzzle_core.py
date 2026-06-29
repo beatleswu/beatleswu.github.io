@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.backend
+
 
 def test_puzzle_list_requires_login(client):
     response = client.get("/api/questions")

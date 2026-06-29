@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
+import importlib
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -32,7 +33,26 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-import app as app_module  # noqa: E402
+_APP_IMPORT_ERROR = None
+app_module = None
+
+try:
+    app_module = importlib.import_module("app")
+except ModuleNotFoundError as exc:
+    if exc.name == "app":
+        _APP_IMPORT_ERROR = exc
+    else:
+        raise
+
+
+def require_backend_app():
+    if app_module is None:
+        pytest.skip(
+            "backend-dependent tests require root-level app.py / app module; "
+            "this GitHub clean clone only contains the static site and isolated SGF engine",
+            allow_module_level=False,
+        )
+    return app_module
 
 
 class SQLiteTestConnection:
@@ -96,15 +116,16 @@ def _create_auth_schema(connection: sqlite3.Connection) -> None:
 
 @pytest.fixture
 def isolated_db(monkeypatch: pytest.MonkeyPatch) -> Iterator[sqlite3.Connection]:
+    backend = require_backend_app()
     connection = sqlite3.connect(":memory:", check_same_thread=False)
     connection.row_factory = sqlite3.Row
     _create_auth_schema(connection)
     wrapper = SQLiteTestConnection(connection)
 
-    monkeypatch.setattr(app_module, "get_db", lambda: wrapper)
-    monkeypatch.setattr(app_module, "_send_email_async", lambda *args, **kwargs: None)
-    monkeypatch.setattr(app_module, "_notify_admin_new_user", lambda *args, **kwargs: None)
-    app_module._auth_fail_log.clear()
+    monkeypatch.setattr(backend, "get_db", lambda: wrapper)
+    monkeypatch.setattr(backend, "_send_email_async", lambda *args, **kwargs: None)
+    monkeypatch.setattr(backend, "_notify_admin_new_user", lambda *args, **kwargs: None)
+    backend._auth_fail_log.clear()
 
     yield connection
     connection.close()
@@ -113,6 +134,7 @@ def isolated_db(monkeypatch: pytest.MonkeyPatch) -> Iterator[sqlite3.Connection]
 @pytest.fixture
 def lightweight_questions(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
     """Small in-memory data; _load_questions never opens questions.json."""
+    backend = require_backend_app()
     questions = [
         {
             "id": 101,
@@ -130,18 +152,19 @@ def lightweight_questions(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
             "sort_order": 1,
         }
     ]
-    monkeypatch.setattr(app_module, "_load_questions", lambda: questions)
+    monkeypatch.setattr(backend, "_load_questions", lambda: questions)
     return questions
 
 
 @pytest.fixture
 def app(isolated_db: sqlite3.Connection, lightweight_questions: list[dict]):
-    app_module.app.config.update(
+    backend = require_backend_app()
+    backend.app.config.update(
         TESTING=True,
         SECRET_KEY="testing-baseline-secret",
         SESSION_COOKIE_SECURE=False,
     )
-    return app_module.app
+    return backend.app
 
 
 @pytest.fixture
