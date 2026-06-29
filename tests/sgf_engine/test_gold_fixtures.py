@@ -88,10 +88,13 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
     assert by_id["GF-001"]["sgf_file"] == by_id["GF-005"]["sgf_file"] == "163.sgf"
     assert by_id["GF-001"]["sha256"] == by_id["GF-005"]["sha256"]
     assert by_id["GF-002"]["coordinate_status"] == (
-        "coordinate_conversion_needs_owner_confirmation"
+        "owner_truth_uses_no_skip_i_coordinate_notation"
     )
     assert by_id["GF-002"]["player_move_owner_coordinate"] == "白 O14"
     assert by_id["GF-002"]["auto_reply_owner_coordinate"] == "黑 N15"
+    assert "no-skip-I" in by_id["GF-002"]["coordinate_note"]
+    assert "白 P14" in by_id["GF-002"]["coordinate_note"]
+    assert "黑 O15" in by_id["GF-002"]["coordinate_note"]
     assert by_id["GF-008"]["encoding"] == "gb18030"
     assert by_id["GF-008"]["encoding_policy"] == (
         "preserve_original_bytes_and_decode_by_manifest_in_future_tests"

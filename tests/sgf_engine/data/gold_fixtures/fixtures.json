@@ -33,8 +33,9 @@
       "player_move_owner_coordinate": "白 O14",
       "auto_reply_sgf": "B[ne]",
       "auto_reply_owner_coordinate": "黑 N15",
-      "coordinate_status": "coordinate_conversion_needs_owner_confirmation",
-      "notes": "Do not rewrite owner truth. Tool conversion appeared inconsistent with owner manifest during audit.",
+      "coordinate_status": "owner_truth_uses_no_skip_i_coordinate_notation",
+      "coordinate_note": "Owner coordinate labels use no-skip-I lettering: W[of] is 白 O14 and B[ne] is 黑 N15. Under standard skip-I board notation these would be 白 P14 and 黑 O15. Engine behavior uses SGF coordinates and is unaffected.",
+      "notes": "Do not rewrite owner truth. Owner-approved coordinates are retained as no-skip-I labels.",
       "expected_behavior": "BRANCH_CONTINUE_AUTO_REPLY",
       "ready_for_next_test_commit": true
     },
