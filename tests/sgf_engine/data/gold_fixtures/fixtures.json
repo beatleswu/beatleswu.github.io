@@ -105,7 +105,18 @@
     {
       "gf_id": "GF-003",
       "status": "CANDIDATE_REQUIRES_OVERRIDE",
-      "reason": "Expected OFF_TREE without active override; excluded from READY fixture batch."
+      "sgf_file": "431.sgf",
+      "fixture_path": "tests/sgf_engine/data/gold_fixtures/431.sgf",
+      "sha256": "0713176F21C7A23133014A5956D935311B9AA8AA5A483A87CCF8100FEA5C7D29",
+      "player_move_sgf": "B[sd]",
+      "player_move_owner_coordinate": "黑 T16",
+      "canonical_move_sgf": "B[sf]",
+      "canonical_move_owner_coordinate": "黑 T14",
+      "expected_without_active_override": "OFF_TREE",
+      "override_required": true,
+      "active_test_added": false,
+      "ready_for_next_test_commit": false,
+      "reason": "Owner-approved equivalent candidate. B[sd] / 黑 T16 is not a native root child; without active override it remains OFF_TREE."
     },
     {
       "gf_id": "GF-004",
