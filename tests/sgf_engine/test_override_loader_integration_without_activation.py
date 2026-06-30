@@ -49,7 +49,7 @@ def test_build_loader_override_index_requires_list_document():
         build_loader_override_index({"puzzle_id": "gf-101"})
 
 
-def test_lookup_loader_runtime_override_returns_payload_for_enabled_matching_record():
+def test_lookup_loader_runtime_override_validates_raw_document_and_returns_payload():
     payload = lookup_loader_runtime_override(
         [
             {
@@ -69,6 +69,27 @@ def test_lookup_loader_runtime_override_returns_payload_for_enabled_matching_rec
     )
 
     assert payload == {"equivalent_moves": {"dd": ["pq"]}}
+
+
+def test_lookup_loader_runtime_override_rejects_source_path_keyed_mapping():
+    wrong_shape_mapping = {
+        "tests/sgf_engine/data/gold_fixtures/431.sgf": {
+            "puzzle_id": "gf-003",
+            "puzzle_version_id": "2026-06-30-gf-003",
+            "sgf_sha256": GF_003_DISABLED_RECORD["sgf_sha256"],
+            "equivalent_moves": {"sf": ["sd"]},
+            "runtime_status": RUNTIME_DISABLED,
+            "apply_automatically": False,
+        }
+    }
+
+    with pytest.raises(ValueError, match="must be a list"):
+        lookup_loader_runtime_override(
+            wrong_shape_mapping,
+            puzzle_id="gf-003",
+            puzzle_version_id="2026-06-30-gf-003",
+            sgf_sha256=GF_003_DISABLED_RECORD["sgf_sha256"],
+        )
 
 
 def test_lookup_loader_runtime_override_uses_canonical_identity_only():
@@ -174,25 +195,22 @@ def test_lookup_loader_runtime_override_requires_apply_automatically():
     assert payload is None
 
 
-def test_lookup_loader_runtime_override_accepts_prebuilt_validated_index():
-    index = build_loader_override_index(
-        [
-            {
-                "puzzle_id": "gf-101",
-                "puzzle_version_id": "v1",
-                "sgf_sha256": "A" * 64,
-                "equivalent_moves": {"dd": ["pq", "qp"]},
-                "runtime_status": RUNTIME_ENABLED,
-                "apply_automatically": True,
-            }
-        ]
-    )
+def test_lookup_loader_runtime_override_does_not_treat_arbitrary_mapping_as_index():
+    arbitrary_mapping = {
+        ("gf-101", "v1"): {
+            "puzzle_id": "gf-101",
+            "puzzle_version_id": "v1",
+            "sgf_sha256": "A" * 64,
+            "equivalent_moves": {"dd": ["pq", "qp"]},
+            "runtime_status": RUNTIME_ENABLED,
+            "apply_automatically": True,
+        }
+    }
 
-    payload = lookup_loader_runtime_override(
-        index,
-        puzzle_id="gf-101",
-        puzzle_version_id="v1",
-        sgf_sha256="a" * 64,
-    )
-
-    assert payload == {"equivalent_moves": {"dd": ["pq", "qp"]}}
+    with pytest.raises(ValueError, match="must be a list"):
+        lookup_loader_runtime_override(
+            arbitrary_mapping,
+            puzzle_id="gf-101",
+            puzzle_version_id="v1",
+            sgf_sha256="a" * 64,
+        )

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from sgf_engine.override.override_identity import (
     CanonicalIdentity,
     build_override_index,
@@ -26,18 +24,14 @@ def build_loader_override_index(
 
 
 def lookup_loader_runtime_override(
-    records: Mapping[CanonicalIdentity, OverrideRecord] | object,
+    records_document: object,
     *,
     puzzle_id: str,
     puzzle_version_id: str,
     sgf_sha256: str,
 ) -> EngineOverridePayload | None:
     """Bridge loader records into the Phase 2 runtime lookup contract."""
-    index = (
-        records
-        if isinstance(records, Mapping)
-        else build_loader_override_index(records)
-    )
+    index = build_loader_override_index(records_document)
     return lookup_active_runtime_override(
         index,
         puzzle_id=puzzle_id,
