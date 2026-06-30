@@ -154,13 +154,16 @@ For `GF-003`, Phase 5B added test-only disabled gold fixture coverage, and Phase
 
 No runtime behavior is changed by this closeout. No production override is activated. No READY promotion is performed. No SGF bytes are changed.
 
-Phase 6C / 6D accelerated inventory backlog review recorded the following documentation-only outcomes:
+## Phase 6E Owner Decision Closeout
 
-- `35.sgf` was reviewed as `POSSIBLE_AUTO_REPLY_PATTERN`.
-- `881.sgf` was reviewed as `HAS_VARIATIONS`.
-- Neither item has an owner decision yet, so both remain `OWNER_TRIAGE_PENDING`.
+Phase 6E records the owner decisions for the Phase 6C / 6D inventory backlog items.
 
-No owner decision is inferred by this closeout. These two items remain inventory-only and require a separate future owner disposition before any repair, cleanup, or promotion work is considered.
+| SGF | Inventory Flag | Owner Decision | Reason | Follow-up |
+| --- | --- | --- | --- | --- |
+| `35.sgf` | `POSSIBLE_AUTO_REPLY_PATTERN` | `FALSE_POSITIVE_VALID_WHITE_TO_PLAY` | Owner confirmed this is a valid white-to-play problem and the answer is correct. | No further action needed. |
+| `881.sgf` | `HAS_VARIATIONS` | `FALSE_POSITIVE_EXPECTED_VARIATIONS` | Owner confirmed the answer is correct. After Black's move, White has two likely and reasonable responses. | No further action needed. |
+
+These decisions do not change SGF bytes, tests, scanner behavior, production override config, READY status, runtime behavior, or SGF engine judging semantics.
 
 ## Recommended Next Actions
 
