@@ -28,5 +28,9 @@ Rules:
 14. This import does not modify puzzle_variation_overrides.json.
 15. This import does not activate GF-003.
 16. This import does not add GF-003 to READY behavior tests.
-17. Do not use docs/testing YAML as active test data.
-18. The next commit should add pytest coverage for READY fixtures only.
+17. GF-003 test-only override validation can use a tmp_path override to map B[sd] / 黑 T16 to canonical B[sf] / 黑 T14.
+18. This validates the override design only; it does not activate production runtime behavior.
+19. Production puzzle_variation_overrides.json remains unchanged.
+20. GF-003 remains CANDIDATE_REQUIRES_OVERRIDE and is not added to READY_IDS.
+21. Do not use docs/testing YAML as active test data.
+22. The next commit should add pytest coverage for READY fixtures only.

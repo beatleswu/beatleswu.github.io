@@ -115,6 +115,17 @@
       "expected_without_active_override": "OFF_TREE",
       "override_required": true,
       "active_test_added": false,
+      "test_only_override_validation": true,
+      "runtime_override_active": false,
+      "ready_activation": false,
+      "proposed_override": {
+        "source_key": "tests/sgf_engine/data/gold_fixtures/431.sgf",
+        "equivalent_moves": {
+          "sf": [
+            "sd"
+          ]
+        }
+      },
       "ready_for_next_test_commit": false,
       "reason": "Owner-approved equivalent candidate. B[sd] / 黑 T16 is not a native root child; without active override it remains OFF_TREE."
     },
