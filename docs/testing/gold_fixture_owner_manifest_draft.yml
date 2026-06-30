@@ -1,0 +1,278 @@
+manifest_version: 1
+source_notes: gold_fixture_candidate_notes.txt
+status: draft_owner_manifest
+created: 2026-06-29
+validation_notes:
+  - Paths were normalized from the attached draft's mojibake text to the matching local real SGF paths.
+  - Core root-child and child-continuation targets were checked with the current SGF parser against the local corpus.
+  - GF-008 source SGF decodes as gb18030, not UTF-8; copying it into a UTF-8-only fixture flow will require an explicit encoding decision.
+
+owner_confirmation:
+  confirmed_ready:
+    - GF-001
+    - GF-002
+    - GF-005
+    - GF-008
+    - GF-009
+    - GF-010
+  confirmed_candidate_requires_override:
+    - GF-003
+  confirmed_pending:
+    - GF-004
+    - GF-006
+    - GF-007
+  scope:
+    - This confirmation records owner manifest draft classification only.
+    - This confirmation does not enter the integration-test phase.
+    - Without explicit owner announcement, do not write tests, copy SGF files, modify overrides, or treat candidate/pending fixtures as active test input.
+
+policy:
+  real_sgf_only: true
+  mutate_sgf: false
+  mutate_variation_overrides: false
+  write_tests_in_this_phase: false
+  scripts_are_read_only_verification_only: true
+  owner_decides_go_meaning: true
+  sgf_moves_must_include_19x19_coord: true
+
+ready_fixtures:
+  - id: GF-001
+    case: BRANCH_CONTINUE_NO_AUTO_REPLY
+    status: READY
+    sgf_file: 163.sgf
+    sgf_path: "SGF題庫/13賢者之塔 ｜ Go - Tower of Sages/做活的要點 ｜ Key Points for Living/163.sgf"
+    player:
+      color: B
+      move_sgf: sb
+      move_coord: T18
+    expected:
+      tree_status: branch
+      result: continue
+      auto_reply: null
+      off_tree_logging: false
+    verification_targets:
+      root_child_exists:
+        color: B
+        move_sgf: sb
+        move_coord: T18
+      opponent_auto_reply_children: []
+    owner_notes:
+      - Real SGF branch.
+      - Expected to continue without auto-reply.
+
+  - id: GF-002
+    case: BRANCH_CONTINUE_WITH_CANONICAL_AUTO_REPLY
+    status: READY
+    sgf_file: 35.sgf
+    sgf_path: "SGF題庫/14大魔法師試煉 ｜ Go - Archmage Trial/寬徵 ｜ Wide Ladder/35.sgf"
+    player:
+      color: W
+      move_sgf: of
+      move_coord: O14
+    expected:
+      tree_status: branch
+      result: continue
+      auto_reply:
+        color: B
+        move_sgf: ne
+        move_coord: N15
+      off_tree_logging: false
+    verification_targets:
+      root_child_exists:
+        color: W
+        move_sgf: of
+        move_coord: O14
+      unique_opponent_auto_reply_child:
+        color: B
+        move_sgf: ne
+        move_coord: N15
+    owner_notes:
+      - Real SGF branch.
+      - Owner accepts B[ne] / N15 as canonical auto-reply.
+
+  - id: GF-005
+    case: OFF_TREE
+    status: READY
+    sgf_file: 163.sgf
+    sgf_path: "SGF題庫/13賢者之塔 ｜ Go - Tower of Sages/做活的要點 ｜ Key Points for Living/163.sgf"
+    player:
+      color: B
+      move_sgf: sa
+      move_coord: T19
+    correct_move:
+      color: B
+      move_sgf: sb
+      move_coord: T18
+    expected:
+      tree_status: off_tree
+      result: off_tree
+      auto_reply: null
+      off_tree_logging: true
+    verification_targets:
+      root_child_absent:
+        color: B
+        move_sgf: sa
+        move_coord: T19
+      known_correct_root_child_exists:
+        color: B
+        move_sgf: sb
+        move_coord: T18
+    owner_notes:
+      - Uses the same real SGF as GF-001.
+      - B[sa] / T19 is intentionally off-tree.
+      - B[sb] / T18 is the known correct root child.
+
+  - id: GF-008
+    case: MISSING_RESULT_DEFAULT_CONTINUE
+    status: READY
+    sgf_file: 186.sgf
+    sgf_path: "SGF題庫/10獸人角鬥場 ｜ Go - Orc Arena/基礎題/186.sgf"
+    player:
+      color: B
+      move_sgf: ea
+      move_coord: E19
+    expected:
+      tree_status: branch
+      result: continue
+      auto_reply: null
+      off_tree_logging: false
+    verification_targets:
+      root_child_only:
+        color: B
+        move_sgf: ea
+        move_coord: E19
+      selected_node_has_children: false
+      selected_node_has_result_metadata: false
+      override_expected: false
+    owner_notes:
+      - Root child is only B[ea] / E19.
+      - Selected node has no child.
+      - No RESULT metadata.
+      - No override.
+      - Missing result should default to continue.
+      - Source file requires gb18030 decoding during verification.
+
+  - id: GF-009
+    case: MULTI_BRANCH_NO_AUTO_REPLY
+    status: READY
+    sgf_file: 881.sgf
+    sgf_path: "SGF題庫/12龍之谷守衛 ｜ Go - Dragon Guard/手筋題/881.sgf"
+    player:
+      color: B
+      move_sgf: gb
+      move_coord: G18
+    expected:
+      tree_status: branch
+      result: continue
+      auto_reply: null
+      off_tree_logging: false
+    verification_targets:
+      root_child_exists:
+        color: B
+        move_sgf: gb
+        move_coord: G18
+      opponent_children:
+        - color: W
+          move_sgf: ga
+          move_coord: G19
+        - color: W
+          move_sgf: dc
+          move_coord: D17
+    owner_notes:
+      - Player move has multiple opponent continuations.
+      - Multiple opponent children means no canonical auto-reply.
+
+  - id: GF-010
+    case: SAME_COLOR_CHILD_NO_AUTO_REPLY
+    status: READY
+    sgf_file: 19.sgf
+    sgf_path: "SGF題庫/初階元素魔法導論 ｜ Go - Basic Element Magic/初级篇（中）/4.布 局/1.守角/19.sgf"
+    player:
+      color: B
+      move_sgf: co
+      move_coord: C5
+    expected:
+      tree_status: branch
+      result: continue
+      auto_reply: null
+      off_tree_logging: false
+    verification_targets:
+      root_child_exists:
+        color: B
+        move_sgf: co
+        move_coord: C5
+      same_color_children:
+        - color: B
+          move_sgf: cj
+          move_coord: C10
+      opponent_auto_reply_children: []
+    owner_notes:
+      - Selected node has same-color child B[cj] / C10.
+      - Owner judges this likely to be a source SGF color typo for C10.
+      - Same-color child must not be treated as auto-reply.
+
+candidate_requires_override:
+  - id: GF-003
+    case: EQUIVALENT_MOVE_SUCCESS
+    status: CANDIDATE_REQUIRES_OVERRIDE
+    sgf_file: 431.sgf
+    sgf_path: "SGF題庫/14大魔法師試煉 ｜ Go - Archmage Trial/分斷 ｜ Cutting/431.sgf"
+    player:
+      color: B
+      move_sgf: sd
+      move_coord: T16
+    canonical_move:
+      color: B
+      move_sgf: sf
+      move_coord: T14
+    expected_if_owner_manifest_or_override_exists:
+      tree_status: equivalent
+      result: success
+      auto_reply: null
+      off_tree_logging: false
+    expected_without_owner_manifest_or_override:
+      tree_status: off_tree
+      result: off_tree
+      auto_reply: null
+      off_tree_logging: true
+    override_required: true
+    verification_targets:
+      canonical_root_child_exists:
+        color: B
+        move_sgf: sf
+        move_coord: T14
+      equivalent_player_move_root_child_absent:
+        color: B
+        move_sgf: sd
+        move_coord: T16
+    owner_notes:
+      - Owner confirmed B[sd] / T16 is acceptable as an equivalent solution.
+      - B[sd] / T16 does not natively appear as a root child.
+      - Keep as candidate until an owner manifest entry or override mechanism is formally introduced.
+
+pending_fixtures:
+  - id: GF-004
+    case: DIRECT_BRANCH_PRIORITY_OVER_OVERRIDE
+    status: PENDING
+    reason: No clean real SGF candidate found.
+    notes:
+      - Slow scan completed.
+      - "Candidates found: 0."
+      - Need active override plus direct SGF branch priority case from real corpus.
+
+  - id: GF-006
+    case: METADATA_RESULT_SUCCESS
+    status: PENDING
+    reason: No RESULT[success] metadata found in current real SGF corpus.
+    notes:
+      - "Scan RESULT[success] = 0."
+      - "Scan RESULT[ = 0."
+      - Do not synthesize SGF.
+
+  - id: GF-007
+    case: METADATA_RESULT_FAIL
+    status: PENDING
+    reason: No RESULT[...] metadata found in current real SGF corpus.
+    notes:
+      - Current corpus has no RESULT[...] metadata.
+      - Do not synthesize SGF.
