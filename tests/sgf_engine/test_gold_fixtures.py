@@ -22,6 +22,7 @@ READY_IDS = {
     "GF-010",
 }
 EXCLUDED_IDS = {"GF-003", "GF-004", "GF-006", "GF-007"}
+GF003_SHA256 = "0713176F21C7A23133014A5956D935311B9AA8AA5A483A87CCF8100FEA5C7D29"
 
 
 @pytest.fixture(scope="module")
@@ -65,16 +66,13 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
     assert all(record["owner_status"] == "READY" for record in records)
     assert all(record["ready_for_next_test_commit"] is True for record in records)
     excluded = {
-        record["gf_id"]: record["status"]
-        for record in gold_manifest["excluded_fixtures"]
+        record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]
     }
     assert set(excluded) == EXCLUDED_IDS
-    assert excluded == {
-        "GF-003": "CANDIDATE_REQUIRES_OVERRIDE",
-        "GF-004": "PENDING",
-        "GF-006": "PENDING",
-        "GF-007": "PENDING",
-    }
+    assert excluded["GF-003"]["status"] == "CANDIDATE_REQUIRES_OVERRIDE"
+    assert excluded["GF-004"]["status"] == "PENDING"
+    assert excluded["GF-006"]["status"] == "PENDING"
+    assert excluded["GF-007"]["status"] == "PENDING"
 
     for record in records:
         fixture = _fixture_path(record)
@@ -83,6 +81,11 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
         assert hashlib.sha256(fixture.read_bytes()).hexdigest().upper() == record[
             "sha256"
         ]
+
+    gf003_fixture = REPO_ROOT / excluded["GF-003"]["fixture_path"]
+    assert gf003_fixture.is_file()
+    assert gf003_fixture.parent == FIXTURE_DIR
+    assert hashlib.sha256(gf003_fixture.read_bytes()).hexdigest().upper() == GF003_SHA256
 
     by_id = {record["gf_id"]: record for record in records}
     assert by_id["GF-001"]["sgf_file"] == by_id["GF-005"]["sgf_file"] == "163.sgf"
@@ -99,6 +102,19 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
     assert by_id["GF-008"]["encoding_policy"] == (
         "preserve_original_bytes_and_decode_by_manifest_in_future_tests"
     )
+    assert excluded["GF-003"]["sgf_file"] == "431.sgf"
+    assert excluded["GF-003"]["fixture_path"] == (
+        "tests/sgf_engine/data/gold_fixtures/431.sgf"
+    )
+    assert excluded["GF-003"]["sha256"] == GF003_SHA256
+    assert excluded["GF-003"]["player_move_sgf"] == "B[sd]"
+    assert excluded["GF-003"]["player_move_owner_coordinate"] == "黑 T16"
+    assert excluded["GF-003"]["canonical_move_sgf"] == "B[sf]"
+    assert excluded["GF-003"]["canonical_move_owner_coordinate"] == "黑 T14"
+    assert excluded["GF-003"]["expected_without_active_override"] == "OFF_TREE"
+    assert excluded["GF-003"]["override_required"] is True
+    assert excluded["GF-003"]["active_test_added"] is False
+    assert excluded["GF-003"]["ready_for_next_test_commit"] is False
 
 
 @pytest.mark.parametrize(
