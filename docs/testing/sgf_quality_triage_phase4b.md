@@ -115,6 +115,16 @@ The Chinese path-hint regression coverage was added in Phase 4A, but this triage
 - production override: `not active`
 - READY promotion: `no`
 
+Phase 5B follow-up:
+
+- Test-only disabled gold fixture coverage added in PR #14.
+- Disabled metadata and fixture-driven assertions now cover GF-003.
+- `B[sd] / T16` remains candidate-only.
+- No runtime override is activated.
+- No production override config is changed.
+- No READY promotion is performed.
+- No SGF bytes are changed.
+
 `B[sd] / T16` remains candidate-only.
 No runtime override is activated.
 No SGF bytes are changed.
