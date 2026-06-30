@@ -45,6 +45,10 @@ def excluded_records_by_id(gold_manifest):
     return {record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]}
 
 
+def _all_manifest_records(gold_manifest):
+    return gold_manifest["fixtures"] + gold_manifest["excluded_fixtures"]
+
+
 def _fixture_path(record):
     return REPO_ROOT / record["fixture_path"]
 
@@ -72,6 +76,7 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
     assert gold_manifest["schema_version"] == 1
 
     records = gold_manifest["fixtures"]
+    all_records = _all_manifest_records(gold_manifest)
     assert {record["gf_id"] for record in records} == READY_IDS
     assert all(record["owner_status"] == "READY" for record in records)
     assert all(record["ready_for_next_test_commit"] is True for record in records)
@@ -148,6 +153,17 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
         "equivalent_moves": {"sf": ["sd"]},
     }
     assert excluded["GF-003"]["ready_for_next_test_commit"] is False
+
+    ids = [record["gf_id"] for record in all_records]
+    assert len(ids) == len(set(ids))
+
+    for record in all_records:
+        fixture_path = record.get("fixture_path")
+        if fixture_path is None:
+            continue
+        fixture = _fixture_path(record)
+        assert fixture.is_file()
+        assert fixture.parent == FIXTURE_DIR
 
 
 @pytest.mark.parametrize(
