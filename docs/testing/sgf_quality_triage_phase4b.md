@@ -47,7 +47,7 @@ This does not prove the full SGF corpus has no missing-answer problems.
 - root_child_moves_go_coords: `B[sb] / T18`
 - setup summary / bounding box: `{'min_x': 15, 'max_x': 18, 'min_y': 0, 'max_y': 7, 'min_go': 'Q19', 'max_go': 'T12', 'stone_count': 14}`
 - scanner reason: `SGF answer line ends at or near the first move.; root answer B[sb] / T18 is on board edge.; root answer B[sb] / T18 is a board crop review candidate.`
-- owner decision: `OWNER_REVIEW_REQUIRED`
+- owner decision: `FALSE_POSITIVE_NORMAL_EDGE_PROBLEM`
 - owner notes:
 - suggested review questions:
   - Is this a confirmed board-crop or coordinate-mismatch issue?
@@ -67,7 +67,7 @@ This does not prove the full SGF corpus has no missing-answer problems.
 - root_child_moves_go_coords: `B[ea] / E19`
 - setup summary / bounding box: `{'min_x': 0, 'max_x': 7, 'min_y': 0, 'max_y': 5, 'min_go': 'A19', 'max_go': 'H14', 'stone_count': 26}`
 - scanner reason: `SGF answer line ends at or near the first move.; root answer B[ea] / E19 is on board edge.; root answer B[ea] / E19 is a board crop review candidate.`
-- owner decision: `OWNER_REVIEW_REQUIRED`
+- owner decision: `FALSE_POSITIVE_NORMAL_EDGE_PROBLEM`
 - owner notes:
 - suggested review questions:
   - Is this a confirmed board-crop or coordinate-mismatch issue?
@@ -87,7 +87,7 @@ This does not prove the full SGF corpus has no missing-answer problems.
 - root_child_moves_go_coords: `B[sf] / T14`
 - setup summary / bounding box: `{'min_x': 14, 'max_x': 17, 'min_y': 1, 'max_y': 6, 'min_go': 'P18', 'max_go': 'S13', 'stone_count': 12}`
 - scanner reason: `SGF answer line ends at or near the first move.; root answer B[sf] / T14 is on board edge.; root answer B[sf] / T14 is a board crop review candidate.`
-- owner decision: `OWNER_REVIEW_REQUIRED`
+- owner decision: `NEEDS_GOLD_FIXTURE`
 - owner notes:
 - suggested review questions:
   - Is this a confirmed board-crop or coordinate-mismatch issue?
