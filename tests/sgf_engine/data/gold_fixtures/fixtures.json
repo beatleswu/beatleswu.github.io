@@ -118,6 +118,26 @@
       "test_only_override_validation": true,
       "runtime_override_active": false,
       "ready_activation": false,
+      "disabled_override_metadata": {
+        "puzzle_id": "gf-003",
+        "puzzle_version_id": "2026-06-30-gf-003",
+        "gold_fixture_id": "GF-003",
+        "source_path": "tests/sgf_engine/data/gold_fixtures/431.sgf",
+        "sgf_sha256": "0713176F21C7A23133014A5956D935311B9AA8AA5A483A87CCF8100FEA5C7D29",
+        "canonical_move_sgf": "B[sf]",
+        "player_move_sgf": "B[sd]",
+        "equivalent_moves": {
+          "sf": [
+            "sd"
+          ]
+        },
+        "runtime_status": "disabled",
+        "apply_automatically": false,
+        "override_required": true,
+        "runtime_override_active": false,
+        "ready_activation": false,
+        "test_only_override_validation": true
+      },
       "proposed_override": {
         "source_key": "tests/sgf_engine/data/gold_fixtures/431.sgf",
         "equivalent_moves": {
