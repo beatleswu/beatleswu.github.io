@@ -165,6 +165,26 @@ Phase 6E records the owner decisions for the Phase 6C / 6D inventory backlog ite
 
 These decisions do not change SGF bytes, tests, scanner behavior, production override config, READY status, runtime behavior, or SGF engine judging semantics.
 
+## Phase 6F Final Closeout
+
+Phase 6F records the final docs-only closeout for the current SGF quality triage cycle.
+
+All currently tracked items in this triage packet are dispositioned:
+
+| SGF | Final Decision | Follow-up Status |
+| --- | --- | --- |
+| `163.sgf` | `FALSE_POSITIVE_NORMAL_EDGE_PROBLEM` | No further action needed. |
+| `186.sgf` | `FALSE_POSITIVE_NORMAL_EDGE_PROBLEM` | No further action needed. |
+| `431.sgf` / `GF-003` | `NEEDS_GOLD_FIXTURE` | Phase 5B test-only disabled fixture coverage and Phase 5C docs status update completed. Remains candidate-only. |
+| `35.sgf` | `FALSE_POSITIVE_VALID_WHITE_TO_PLAY` | No further action needed. |
+| `881.sgf` | `FALSE_POSITIVE_EXPECTED_VARIATIONS` | No further action needed. |
+
+There are no remaining tracked SGF quality triage items in this packet.
+
+This closeout does not change SGF bytes, tests, scanner behavior, production override config, READY status, runtime behavior, or SGF engine judging semantics.
+
+`GF-003` remains candidate-only. No runtime override is activated. No production override is changed. No READY promotion is performed.
+
 ## Recommended Next Actions
 
 - Owner reviews each board-crop candidate.
