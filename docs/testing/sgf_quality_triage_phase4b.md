@@ -130,6 +130,32 @@ No runtime override is activated.
 No SGF bytes are changed.
 No READY promotion is performed.
 
+## Phase 6B Closeout Summary
+
+Phase 6B records the docs-only closeout for the current Phase 4B / 4C / 5B / 5C SGF quality triage packet.
+
+The original Phase 4B owner-decision packet items are fully dispositioned:
+
+- `163.sgf` was classified by the owner as `FALSE_POSITIVE_NORMAL_EDGE_PROBLEM`.
+- `186.sgf` was classified by the owner as `FALSE_POSITIVE_NORMAL_EDGE_PROBLEM`.
+- `431.sgf` / `GF-003` was classified by the owner as `NEEDS_GOLD_FIXTURE`.
+
+For `GF-003`, Phase 5B added test-only disabled gold fixture coverage, and Phase 5C recorded that status in this triage packet.
+
+`GF-003` remains candidate-only:
+
+- canonical answer: `B[sf]` / `T14`
+- owner-approved equivalent candidate: `B[sd]` / `T16`
+- runtime status: disabled
+- `apply_automatically`: false
+- production override: not active
+- READY promotion: no
+- SGF bytes changed: no
+
+No runtime behavior is changed by this closeout. No production override is activated. No READY promotion is performed. No SGF bytes are changed.
+
+Inventory-only quality-flag items such as `35.sgf` (`POSSIBLE_AUTO_REPLY_PATTERN`) and `881.sgf` (`HAS_VARIATIONS`) are not part of this closeout. If the owner wants to review those items, they should be handled in a separate future Phase 6C inventory backlog review.
+
 ## Recommended Next Actions
 
 - Owner reviews each board-crop candidate.
