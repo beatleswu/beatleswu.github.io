@@ -114,6 +114,13 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
     assert excluded["GF-003"]["expected_without_active_override"] == "OFF_TREE"
     assert excluded["GF-003"]["override_required"] is True
     assert excluded["GF-003"]["active_test_added"] is False
+    assert excluded["GF-003"]["test_only_override_validation"] is True
+    assert excluded["GF-003"]["runtime_override_active"] is False
+    assert excluded["GF-003"]["ready_activation"] is False
+    assert excluded["GF-003"]["proposed_override"] == {
+        "source_key": "tests/sgf_engine/data/gold_fixtures/431.sgf",
+        "equivalent_moves": {"sf": ["sd"]},
+    }
     assert excluded["GF-003"]["ready_for_next_test_commit"] is False
 
 
@@ -296,3 +303,61 @@ def test_ready_gold_fixture_behavior(
         assert logged == [(record["fixture_path"], "sa", "B")]
     else:
         assert logged == []
+
+
+def test_gf003_without_override_remains_off_tree(gold_manifest, monkeypatch):
+    excluded = {
+        record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]
+    }
+    record = excluded["GF-003"]
+    text = _fixture_path(record).read_text(encoding="utf-8")
+    root = parse_sgf(text)
+    logged = []
+
+    monkeypatch.setattr(engine.override_loader, "load_override", lambda source: None)
+    monkeypatch.setattr(
+        engine,
+        "log_off_tree",
+        lambda source, move, color: logged.append((source, move, color)),
+    )
+
+    result = engine.apply_move(root, "sd", "B", record["fixture_path"])
+
+    assert result.matched_type == "off_tree"
+    assert result.status == "off_tree"
+    assert result.node is None
+    assert result.auto_reply is None
+    assert logged == [(record["fixture_path"], "sd", "B")]
+
+
+def test_gf003_test_only_override_maps_equivalent_to_canonical(
+    gold_manifest, tmp_path, monkeypatch
+):
+    excluded = {
+        record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]
+    }
+    record = excluded["GF-003"]
+    text = _fixture_path(record).read_text(encoding="utf-8")
+    root = parse_sgf(text)
+    override_path = tmp_path / "puzzle_variation_overrides.json"
+    override_path.write_text(
+        json.dumps(
+            {
+                record["fixture_path"]: {
+                    "equivalent_moves": {
+                        "sf": ["sd"],
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(engine.override_loader, "OVERRIDES_FILE", override_path)
+
+    result = engine.apply_move(root, "sd", "B", record["fixture_path"])
+
+    assert result.matched_type == "equivalent"
+    assert result.status == "continue"
+    assert result.auto_reply is None
+    assert result.node is not None
+    assert result.node.move == Move("B", "sf")
