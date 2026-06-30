@@ -1,2 +1,0 @@
-"""SGF orchestration package."""
-
