@@ -154,7 +154,13 @@ For `GF-003`, Phase 5B added test-only disabled gold fixture coverage, and Phase
 
 No runtime behavior is changed by this closeout. No production override is activated. No READY promotion is performed. No SGF bytes are changed.
 
-Inventory-only quality-flag items such as `35.sgf` (`POSSIBLE_AUTO_REPLY_PATTERN`) and `881.sgf` (`HAS_VARIATIONS`) are not part of this closeout. If the owner wants to review those items, they should be handled in a separate future Phase 6C inventory backlog review.
+Phase 6C / 6D accelerated inventory backlog review recorded the following documentation-only outcomes:
+
+- `35.sgf` was reviewed as `POSSIBLE_AUTO_REPLY_PATTERN`.
+- `881.sgf` was reviewed as `HAS_VARIATIONS`.
+- Neither item has an owner decision yet, so both remain `OWNER_TRIAGE_PENDING`.
+
+No owner decision is inferred by this closeout. These two items remain inventory-only and require a separate future owner disposition before any repair, cleanup, or promotion work is considered.
 
 ## Recommended Next Actions
 
