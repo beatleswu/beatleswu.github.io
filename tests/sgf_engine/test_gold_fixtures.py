@@ -6,6 +6,11 @@ import pytest
 
 from sgf_engine.core.tree import Move, find_child_by_move
 from sgf_engine.engine import engine
+from sgf_engine.override.override_loader_integration import (
+    lookup_loader_runtime_override,
+)
+from sgf_engine.override.override_runtime import lookup_active_runtime_override
+from sgf_engine.override.override_schema import validate_override_record
 from sgf_engine.parser.sgf_parser import parse_sgf
 
 
@@ -33,6 +38,11 @@ def gold_manifest():
 @pytest.fixture(scope="module")
 def records_by_id(gold_manifest):
     return {record["gf_id"]: record for record in gold_manifest["fixtures"]}
+
+
+@pytest.fixture(scope="module")
+def excluded_records_by_id(gold_manifest):
+    return {record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]}
 
 
 def _fixture_path(record):
@@ -117,6 +127,22 @@ def test_gold_fixture_manifest_integrity(gold_manifest):
     assert excluded["GF-003"]["test_only_override_validation"] is True
     assert excluded["GF-003"]["runtime_override_active"] is False
     assert excluded["GF-003"]["ready_activation"] is False
+    assert excluded["GF-003"]["disabled_override_metadata"] == {
+        "puzzle_id": "gf-003",
+        "puzzle_version_id": "2026-06-30-gf-003",
+        "gold_fixture_id": "GF-003",
+        "source_path": "tests/sgf_engine/data/gold_fixtures/431.sgf",
+        "sgf_sha256": GF003_SHA256,
+        "canonical_move_sgf": "B[sf]",
+        "player_move_sgf": "B[sd]",
+        "equivalent_moves": {"sf": ["sd"]},
+        "runtime_status": "disabled",
+        "apply_automatically": False,
+        "override_required": True,
+        "runtime_override_active": False,
+        "ready_activation": False,
+        "test_only_override_validation": True,
+    }
     assert excluded["GF-003"]["proposed_override"] == {
         "source_key": "tests/sgf_engine/data/gold_fixtures/431.sgf",
         "equivalent_moves": {"sf": ["sd"]},
@@ -305,11 +331,91 @@ def test_ready_gold_fixture_behavior(
         assert logged == []
 
 
-def test_gf003_without_override_remains_off_tree(gold_manifest, monkeypatch):
-    excluded = {
-        record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]
+def test_gf003_fixture_metadata_stays_candidate_only(excluded_records_by_id):
+    record = excluded_records_by_id["GF-003"]
+    metadata = record["disabled_override_metadata"]
+
+    assert record["status"] == "CANDIDATE_REQUIRES_OVERRIDE"
+    assert record["sgf_file"] == "431.sgf"
+    assert record["fixture_path"] == metadata["source_path"]
+    assert record["sha256"] == metadata["sgf_sha256"] == GF003_SHA256
+    assert record["canonical_move_sgf"] == metadata["canonical_move_sgf"] == "B[sf]"
+    assert record["player_move_sgf"] == metadata["player_move_sgf"] == "B[sd]"
+    assert metadata["gold_fixture_id"] == "GF-003"
+    assert metadata["runtime_status"] == "disabled"
+    assert metadata["apply_automatically"] is False
+    assert metadata["override_required"] is True
+    assert metadata["runtime_override_active"] is False
+    assert metadata["ready_activation"] is False
+    assert metadata["test_only_override_validation"] is True
+    assert record["active_test_added"] is False
+    assert record["ready_for_next_test_commit"] is False
+    assert "GF-003" not in READY_IDS
+
+
+def test_gf003_disabled_override_metadata_is_schema_valid(excluded_records_by_id):
+    metadata = excluded_records_by_id["GF-003"]["disabled_override_metadata"]
+
+    validated = validate_override_record(
+        {
+            "puzzle_id": metadata["puzzle_id"],
+            "puzzle_version_id": metadata["puzzle_version_id"],
+            "sgf_sha256": metadata["sgf_sha256"],
+            "equivalent_moves": metadata["equivalent_moves"],
+            "runtime_status": metadata["runtime_status"],
+            "apply_automatically": metadata["apply_automatically"],
+            "gold_fixture_id": metadata["gold_fixture_id"],
+            "source_path": metadata["source_path"],
+        }
+    )
+
+    assert validated.puzzle_id == "gf-003"
+    assert validated.puzzle_version_id == "2026-06-30-gf-003"
+    assert validated.sgf_sha256 == GF003_SHA256.lower()
+    assert validated.equivalent_moves == {"sf": ("sd",)}
+    assert validated.runtime_status == "disabled"
+    assert validated.apply_automatically is False
+    assert validated.external_ref == "GF-003"
+    assert validated.source_path == "tests/sgf_engine/data/gold_fixtures/431.sgf"
+
+
+def test_gf003_disabled_override_metadata_does_not_create_runtime_payload(
+    excluded_records_by_id,
+):
+    metadata = excluded_records_by_id["GF-003"]["disabled_override_metadata"]
+    lookup_record = {
+        "puzzle_id": metadata["puzzle_id"],
+        "puzzle_version_id": metadata["puzzle_version_id"],
+        "sgf_sha256": metadata["sgf_sha256"],
+        "equivalent_moves": metadata["equivalent_moves"],
+        "runtime_status": metadata["runtime_status"],
+        "apply_automatically": metadata["apply_automatically"],
+        "gold_fixture_id": metadata["gold_fixture_id"],
+        "source_path": metadata["source_path"],
     }
-    record = excluded["GF-003"]
+
+    assert (
+        lookup_active_runtime_override(
+            [lookup_record],
+            puzzle_id="gf-003",
+            puzzle_version_id="2026-06-30-gf-003",
+            sgf_sha256=GF003_SHA256,
+        )
+        is None
+    )
+    assert (
+        lookup_loader_runtime_override(
+            [lookup_record],
+            puzzle_id="gf-003",
+            puzzle_version_id="2026-06-30-gf-003",
+            sgf_sha256=GF003_SHA256,
+        )
+        is None
+    )
+
+
+def test_gf003_without_override_remains_off_tree(excluded_records_by_id, monkeypatch):
+    record = excluded_records_by_id["GF-003"]
     text = _fixture_path(record).read_text(encoding="utf-8")
     root = parse_sgf(text)
     logged = []
@@ -331,12 +437,9 @@ def test_gf003_without_override_remains_off_tree(gold_manifest, monkeypatch):
 
 
 def test_gf003_test_only_override_maps_equivalent_to_canonical(
-    gold_manifest, tmp_path, monkeypatch
+    excluded_records_by_id, tmp_path, monkeypatch
 ):
-    excluded = {
-        record["gf_id"]: record for record in gold_manifest["excluded_fixtures"]
-    }
-    record = excluded["GF-003"]
+    record = excluded_records_by_id["GF-003"]
     text = _fixture_path(record).read_text(encoding="utf-8")
     root = parse_sgf(text)
     override_path = tmp_path / "puzzle_variation_overrides.json"
@@ -344,9 +447,9 @@ def test_gf003_test_only_override_maps_equivalent_to_canonical(
         json.dumps(
             {
                 record["fixture_path"]: {
-                    "equivalent_moves": {
-                        "sf": ["sd"],
-                    }
+                    "equivalent_moves": record["disabled_override_metadata"][
+                        "equivalent_moves"
+                    ]
                 }
             }
         ),
