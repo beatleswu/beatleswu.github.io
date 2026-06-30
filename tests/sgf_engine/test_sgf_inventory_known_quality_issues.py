@@ -2,6 +2,7 @@ import hashlib
 import json
 
 from sgf_engine.inventory.sgf_inventory import (
+    LOCAL_PROBLEM_PATH_HINTS,
     build_sgf_inventory,
     scan_sgf_file,
     sgf_coord_to_go_coord,
@@ -93,6 +94,62 @@ def test_local_problem_path_with_distant_answer_flags_possible_global_ai_tenuki(
     assert "ANSWER_FAR_FROM_LOCAL_CLUSTER" in item.quality_flags
     assert "ANSWER_OUTSIDE_PROBLEM_REGION" in item.quality_flags
     assert "POSSIBLE_GLOBAL_AI_TENUKI_ANSWER" in item.quality_flags
+
+
+def test_chinese_local_problem_path_hints_are_recognized(tmp_path):
+    for folder_name in ("做活的要點", "死活", "手筋", "對殺"):
+        sgf = _write_sgf(
+            tmp_path / folder_name / "candidate.sgf",
+            "(;AB[dd][de][ed];W[pd])",
+        )
+
+        item = scan_sgf_file(sgf)
+
+        assert "LIFE_AND_DEATH_CATEGORY_WITH_DISTANT_ANSWER" in item.quality_flags
+        assert "POSSIBLE_GLOBAL_AI_TENUKI_ANSWER" in item.quality_flags
+
+
+def test_english_local_problem_path_hints_are_still_recognized(tmp_path):
+    for folder_name in ("life-and-death", "tesuji"):
+        sgf = _write_sgf(
+            tmp_path / folder_name / "candidate.sgf",
+            "(;AB[dd][de][ed];W[pd])",
+        )
+
+        item = scan_sgf_file(sgf)
+
+        assert "LIFE_AND_DEATH_CATEGORY_WITH_DISTANT_ANSWER" in item.quality_flags
+        assert "POSSIBLE_GLOBAL_AI_TENUKI_ANSWER" in item.quality_flags
+
+
+def test_non_local_problem_paths_do_not_trigger_global_tenuki_flags(tmp_path):
+    for folder_name in ("全局", "定石", "綜合測驗", "gold_fixtures"):
+        sgf = _write_sgf(
+            tmp_path / folder_name / "candidate.sgf",
+            "(;AB[dd][de][ed];W[pd])",
+        )
+
+        item = scan_sgf_file(sgf)
+
+        assert "LIFE_AND_DEATH_CATEGORY_WITH_DISTANT_ANSWER" not in item.quality_flags
+        assert "POSSIBLE_GLOBAL_AI_TENUKI_ANSWER" not in item.quality_flags
+
+
+def test_local_problem_path_hints_use_conservative_keyword_set():
+    assert LOCAL_PROBLEM_PATH_HINTS == (
+        "死活",
+        "做活",
+        "殺棋",
+        "杀棋",
+        "手筋",
+        "對殺",
+        "对杀",
+        "眼形",
+        "活棋",
+        "life-and-death",
+        "life_and_death",
+        "tesuji",
+    )
 
 
 def test_other_quality_flags_multiple_variations_auto_reply_and_shallow(tmp_path):

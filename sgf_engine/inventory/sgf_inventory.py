@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -17,6 +17,20 @@ BOARD_LETTERS = "ABCDEFGHJKLMNOPQRST"
 PASS_COORDS = {"", "tt"}
 LOCAL_PADDING = 2
 FAR_DISTANCE = 8
+LOCAL_PROBLEM_PATH_HINTS = (
+    "死活",
+    "做活",
+    "殺棋",
+    "杀棋",
+    "手筋",
+    "對殺",
+    "对杀",
+    "眼形",
+    "活棋",
+    "life-and-death",
+    "life_and_death",
+    "tesuji",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -362,19 +376,7 @@ def _auto_reply_candidates(root: SGFNode) -> list[str]:
 
 def _path_suggests_local_problem(path: str) -> bool:
     lowered = path.lower()
-    hints = (
-        "life",
-        "death",
-        "tesuji",
-        "kill",
-        "alive",
-        "死活",
-        "手筋",
-        "詰碁",
-        "題庫",
-        "problem",
-    )
-    return any(hint in lowered for hint in hints)
+    return any(hint in lowered for hint in LOCAL_PROBLEM_PATH_HINTS)
 
 
 def _replace_flags(
