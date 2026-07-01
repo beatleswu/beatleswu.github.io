@@ -1,10 +1,7 @@
 from pathlib import Path
 
-ADR_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "docs"
-    / "planning"
-    / "phase16_sqlalchemy_alembic_dependency_introduction_adr.md"
+ADR_PATH = Path(__file__).resolve().parents[2] / "docs" / "planning" / (
+    "phase16_sqlalchemy_alembic_dependency_introduction_adr.md"
 )
 
 CURRENT_PERSISTENCE_CONTRACT = {

@@ -19,7 +19,7 @@ Phase 16 preserves the Phase 15A stdlib `sqlite3` in-memory persistence contract
 
 ## Decision Details
 
-Phase 16 is limited to docs/tests contract work only.
+Phase 16 is limited to docs/tests-only contract work.
 No production persistence runtime is added.
 No production dependency stack decision is made.
 No physical `.db` file is introduced.
