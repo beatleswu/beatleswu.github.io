@@ -100,8 +100,7 @@ For enum-driven classifiers:
 ## 10. Windows / Encoding (standing rules)
 
 - UTF-8 without BOM, LF-only, CR=0, no hidden/bidi Unicode controls.
-- Write files via Python pathlib with newline="
-", never PowerShell
+- Write files via Python pathlib with newline="\n", never PowerShell
   redirection or here-string pipes.
 - No git add . ; add files by explicit path only.
 
