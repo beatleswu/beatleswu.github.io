@@ -1,13 +1,13 @@
 # Phase 13B Canonical Puzzle Identity Migration Risk Register
 
-Phase: 13B  
-Status: Risk register contract baseline  
-Scope: Planning / contract baseline only  
-Runtime impact: None  
-Database impact: None  
-API impact: None  
-Frontend impact: None  
-SGF corpus impact: None  
+Phase: 13B
+Status: Risk register contract baseline
+Scope: Planning / contract baseline only
+Runtime impact: None
+Database impact: None
+API impact: None
+Frontend impact: None
+SGF corpus impact: None
 
 ## Purpose
 

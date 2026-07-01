@@ -139,10 +139,7 @@ def test_phase12_guarded_high_risk_transitions_are_preserved() -> None:
 def test_candidate_only_disabled_cannot_directly_become_ready_readonly() -> None:
     assert _is_blocked_direct_transition("candidate_only_disabled", "ready_readonly")
     assert not _is_low_risk_transition("candidate_only_disabled", "ready_readonly")
-    assert not _is_guarded_high_risk_transition(
-        "candidate_only_disabled",
-        "ready_readonly",
-    )
+    assert not _is_guarded_high_risk_transition("candidate_only_disabled", "ready_readonly")
 
 
 def test_unresolved_review_states_cannot_directly_become_ready_readonly() -> None:

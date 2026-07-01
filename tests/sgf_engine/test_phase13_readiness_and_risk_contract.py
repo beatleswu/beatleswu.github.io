@@ -1,18 +1,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-READINESS_DOC = (
-    ROOT
-    / "docs"
-    / "planning"
-    / "phase13_teacher_admin_review_queue_readiness_map.md"
-)
-RISK_DOC = (
-    ROOT
-    / "docs"
-    / "planning"
-    / "phase13_canonical_identity_migration_risk_register.md"
-)
+READINESS_DOC = ROOT / "docs" / "planning" / "phase13_teacher_admin_review_queue_readiness_map.md"
+RISK_DOC = ROOT / "docs" / "planning" / "phase13_canonical_identity_migration_risk_register.md"
 
 
 def _readiness_text() -> str:
@@ -133,9 +123,8 @@ def test_readiness_map_declares_non_implementation_scope() -> None:
 def test_risk_register_protects_owner_identity_decision() -> None:
     text = _risk_text()
 
-    assert (
-        "canonical_puzzle_id = ingestion-generated stable uuid v4" in text
-        or "canonical_puzzle_id is defined as an ingestion-generated stable uuid v4" in text
+    assert "canonical_puzzle_id = ingestion-generated stable uuid v4" in text or (
+        "canonical_puzzle_id is defined as an ingestion-generated stable uuid v4" in text
     )
 
     rejected_identity_sources = [

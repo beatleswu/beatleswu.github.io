@@ -1,13 +1,13 @@
 # Phase 13A Teacher Admin Review Queue Implementation Readiness Map
 
-Phase: 13A  
-Status: Readiness contract baseline  
-Scope: Planning / contract baseline only  
-Runtime impact: None  
-Database impact: None  
-API impact: None  
-Frontend impact: None  
-SGF corpus impact: None  
+Phase: 13A
+Status: Readiness contract baseline
+Scope: Planning / contract baseline only
+Runtime impact: None
+Database impact: None
+API impact: None
+Frontend impact: None
+SGF corpus impact: None
 
 ## Purpose
 
