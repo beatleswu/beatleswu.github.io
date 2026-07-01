@@ -27,6 +27,7 @@ def test_rejects_non_canonical_identity_sources() -> None:
         "source_path",
         "fixture_path",
         "gold_fixture_id",
+        "auto-increment integer",
         "frontend temporary id",
         "runtime state",
         "content hash",

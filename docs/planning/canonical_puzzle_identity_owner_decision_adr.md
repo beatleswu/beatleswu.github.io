@@ -33,6 +33,7 @@ The following must not be used as canonical puzzle identity:
 - `source_path`
 - `fixture_path`
 - `gold_fixture_id`
+- auto-increment integer as the primary canonical identity
 - frontend temporary ID
 - runtime state
 - content hash
