@@ -11,7 +11,9 @@ SGF corpus impact: None
 
 ## Purpose
 
-This risk register identifies known risks before any future migration or implementation that persists `canonical_puzzle_id` or connects teacher admin review queue records to canonical puzzle identity.
+This risk register identifies known risks before any future migration or
+implementation that persists `canonical_puzzle_id` or connects teacher admin
+review queue records to canonical puzzle identity.
 
 Phase 13B is not a DB implementation phase.
 
@@ -44,7 +46,8 @@ auto-increment integer as the primary canonical identity
 Risk:
 
 ```text
-Existing puzzle records may receive duplicate UUIDs or inconsistent UUID assignments during migration.
+Existing puzzle records may receive duplicate UUIDs or inconsistent UUID
+assignments during migration.
 ```
 
 Mitigation:
@@ -67,7 +70,8 @@ Document only. No UUID backfill is performed.
 Risk:
 
 ```text
-Adding a uniqueness constraint too early may fail if duplicate or missing canonical_puzzle_id values exist.
+Adding a uniqueness constraint too early may fail if duplicate or missing
+canonical_puzzle_id values exist.
 ```
 
 Mitigation:
@@ -89,7 +93,8 @@ Document only. No constraint is added.
 Risk:
 
 ```text
-Review queue items, feedback reports, owner decision traces, or future frontend references may point to missing or unstable puzzle records.
+Review queue items, feedback reports, owner decision traces, or future frontend
+references may point to missing or unstable puzzle records.
 ```
 
 Mitigation:
@@ -132,7 +137,8 @@ Document and test contract boundary only.
 Risk:
 
 ```text
-Future implementation may accidentally treat fixture_path or gold_fixture_id as canonical identity.
+Future implementation may accidentally treat fixture_path or gold_fixture_id as
+canonical identity.
 ```
 
 Mitigation:
@@ -153,7 +159,8 @@ Document and test contract boundary only.
 Risk:
 
 ```text
-Future implementation may accidentally treat content hash as the primary canonical identity.
+Future implementation may accidentally treat content hash as the primary
+canonical identity.
 ```
 
 Mitigation:
@@ -174,13 +181,15 @@ Document and test contract boundary only.
 Risk:
 
 ```text
-Future implementation may accidentally use an auto-increment integer as the primary canonical identity.
+Future implementation may accidentally use an auto-increment integer as the
+primary canonical identity.
 ```
 
 Mitigation:
 
 ```text
-Allow database integers only as internal storage implementation details if needed.
+Allow database integers only as internal storage implementation details if
+needed.
 Reject auto-increment integer as the primary canonical puzzle identity.
 ```
 
@@ -195,7 +204,8 @@ Document and test contract boundary only.
 Risk:
 
 ```text
-A teacher admin flow may directly promote candidate_only_disabled to ready_readonly.
+A teacher admin flow may directly promote candidate_only_disabled to
+ready_readonly.
 ```
 
 Mitigation:
@@ -217,7 +227,8 @@ Document and test contract boundary only.
 Risk:
 
 ```text
-GF-003 / 431.sgf B[sd] / T16 may accidentally become active during review queue, migration, or READY promotion work.
+GF-003 / 431.sgf B[sd] / T16 may accidentally become active during review
+queue, migration, or READY promotion work.
 ```
 
 Mitigation:
@@ -239,7 +250,8 @@ Document only. GF-003 remains disabled and candidate-only.
 Risk:
 
 ```text
-Identity migrations may not be cleanly reversible after external references or teacher review records exist.
+Identity migrations may not be cleanly reversible after external references or
+teacher review records exist.
 ```
 
 Mitigation:
@@ -262,7 +274,8 @@ Document only. No rollback script is created.
 Risk:
 
 ```text
-API or frontend work may begin before identity semantics and review queue transition boundaries are stable.
+API or frontend work may begin before identity semantics and review queue
+transition boundaries are stable.
 ```
 
 Mitigation:
@@ -284,7 +297,8 @@ Document only. No API or frontend is created.
 Risk:
 
 ```text
-Teacher admin implementation may accidentally change SGF engine judging behavior.
+Teacher admin implementation may accidentally change SGF engine judging
+behavior.
 ```
 
 Mitigation:
@@ -319,7 +333,8 @@ gf003_candidate_only_safety_check
 
 ## Rollback / Recovery Requirements
 
-Before any future identity migration begins, the implementation plan must answer:
+Before any future identity migration begins, the implementation plan must
+answer:
 
 ```text
 What data is changed?

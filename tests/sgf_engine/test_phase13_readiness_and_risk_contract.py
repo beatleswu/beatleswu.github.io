@@ -1,8 +1,19 @@
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parents[2]
-READINESS_DOC = ROOT / "docs" / "planning" / "phase13_teacher_admin_review_queue_readiness_map.md"
-RISK_DOC = ROOT / "docs" / "planning" / "phase13_canonical_identity_migration_risk_register.md"
+READINESS_DOC = (
+    ROOT
+    / "docs"
+    / "planning"
+    / "phase13_teacher_admin_review_queue_readiness_map.md"
+)
+RISK_DOC = (
+    ROOT
+    / "docs"
+    / "planning"
+    / "phase13_canonical_identity_migration_risk_register.md"
+)
 
 
 def _readiness_text() -> str:
@@ -31,7 +42,10 @@ def test_readiness_map_preserves_phase12_identity_and_transition_baseline() -> N
     text = _readiness_text()
 
     assert "canonical_puzzle_id = ingestion-generated stable uuid v4" in text
-    assert "candidate_only_disabled -> ready_readonly = blocked direct transition" in text
+    assert (
+        "candidate_only_disabled -> ready_readonly = blocked direct transition"
+        in text
+    )
 
 
 def test_readiness_map_requires_expected_gates() -> None:
@@ -123,8 +137,10 @@ def test_readiness_map_declares_non_implementation_scope() -> None:
 def test_risk_register_protects_owner_identity_decision() -> None:
     text = _risk_text()
 
-    assert "canonical_puzzle_id = ingestion-generated stable uuid v4" in text or (
-        "canonical_puzzle_id is defined as an ingestion-generated stable uuid v4" in text
+    assert (
+        "canonical_puzzle_id = ingestion-generated stable uuid v4" in text
+        or "canonical_puzzle_id is defined as an ingestion-generated stable uuid v4"
+        in text
     )
 
     rejected_identity_sources = [
