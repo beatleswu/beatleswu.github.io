@@ -53,6 +53,12 @@ def test_matcher_rejects_invalid_coordinate():
         match_move(SGFNode(), "DD", None)
 
 
+def test_pass_node_never_matches_a_player_coordinate_move():
+    root = SGFNode(children=[SGFNode(move=Move("B", None, is_pass=True))])
+
+    assert match_move(root, "dd", None) == OFF_TREE
+
+
 def test_match_move_does_not_mutate_tree_or_override():
     child = SGFNode(move=Move("B", "dd"), metadata={"result": "success"})
     root = SGFNode(children=[child], metadata={"label": "root"})
