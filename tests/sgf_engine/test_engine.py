@@ -4,6 +4,7 @@ import pytest
 
 from sgf_engine.core.tree import Move, SGFNode
 from sgf_engine.engine import engine
+from sgf_engine.parser.sgf_parser import parse_sgf
 
 
 def _attach(parent, child):
@@ -215,3 +216,17 @@ def test_apply_move_step_order_with_lightweight_spies(monkeypatch):
         "get_auto_reply",
         "find_child_by_move:pp",
     ]
+
+
+def test_autoreply_pass_node_current_behavior_is_characterized(monkeypatch):
+    root = parse_sgf("(;B[dd];W[])")
+    monkeypatch.setattr(engine.override_loader, "load_override", lambda source: None)
+
+    result = engine.apply_move(root, "dd", "B", "SGF/path/pass.sgf")
+
+    assert result == engine.EngineResult(
+        status="continue",
+        node=root.children[0].children[0],
+        matched_type="branch",
+        auto_reply=Move("W", None, is_pass=True),
+    )

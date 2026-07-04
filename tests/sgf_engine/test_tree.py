@@ -17,12 +17,17 @@ def test_find_child_by_move_ignores_metadata_node_and_missing_coord():
     assert find_child_by_move(root, "dd") is None
 
 
+def test_pass_move_is_valid_without_coordinate():
+    assert Move("W", None, is_pass=True) == Move("W", None, is_pass=True)
+
+
 @pytest.mark.parametrize(
     "args",
     [
         ("black", "dd"),
         ("B", "DD"),
         ("W", "tt"),
+        ("B", None),
     ],
 )
 def test_move_rejects_invalid_data(args):
