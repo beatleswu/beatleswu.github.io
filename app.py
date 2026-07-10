@@ -10987,16 +10987,18 @@ def dc_submit():
     try:
         import shadow_judging
         if shadow_judging.is_enabled():
+            qs_map = {q['id']: q for q in _load_questions()}
+            shadow_q = qs_map.get(dc['question_id'], {})
             shadow_judging.observe_answer_route(
                 entry_point='daily_challenge',
                 question_id=dc['question_id'],
                 session_id=f'daily:{uid}:{today}',
                 transform_idx=0,
-                sgf_transformed='',
-                moves=None,
+                sgf_transformed=shadow_q.get('content', ''),
+                moves=data.get('moves') if isinstance(data.get('moves'), list) else None,
                 client_correct=bool(data.get('correct')),
                 final_correct=bool(correct),
-                katago_best_move='',
+                katago_best_move=shadow_q.get('katago_best_move', ''),
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
@@ -14435,16 +14437,18 @@ def friend_challenge_answer(cid):
     try:
         import shadow_judging
         if shadow_judging.is_enabled():
+            qs_map = {q['id']: q for q in _load_questions()}
+            shadow_q = qs_map.get(qid, {})
             shadow_judging.observe_answer_route(
                 entry_point='friend_challenge',
                 question_id=qid,
                 session_id=f'friend:{cid}:{uid}',
                 transform_idx=0,
-                sgf_transformed='',
-                moves=None,
-                client_correct=bool(correct),
+                sgf_transformed=shadow_q.get('content', ''),
+                moves=data.get('moves') if isinstance(data.get('moves'), list) else None,
+                client_correct=bool(data.get('correct')),
                 final_correct=bool(correct),
-                katago_best_move='',
+                katago_best_move=shadow_q.get('katago_best_move', ''),
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
