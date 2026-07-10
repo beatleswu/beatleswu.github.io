@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow Dashboard | Colorful Go</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { background: linear-gradient(180deg, #0f172a 0%, #020617 100%); }
+.detail-row { display: none; }
+.detail-row.open { display: table-row; }
+</style>
+</head>
+<body class="min-h-screen text-slate-100">
+<header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div>
+            <div class="text-xs uppercase tracking-[0.35em] text-sky-300">Admin</div>
+            <h1 class="text-2xl font-black tracking-tight text-white">Shadow Dashboard</h1>
+            <p class="mt-1 text-sm text-slate-400">Read-only view over recent shadow events.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="current-user" class="text-xs font-mono text-slate-500"></span>
+            <a href="/admin" class="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-sky-400 hover:text-sky-200">Admin Home</a>
+            <a href="/" class="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 transition hover:border-amber-400 hover:text-amber-200">Back to Site</a>
+        </div>
+    </div>
+</header>
+
+<main id="shadow-dashboard-app" class="mx-auto max-w-7xl space-y-6 px-6 py-6">
+    <section class="grid gap-4 md:grid-cols-5">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Total Events</div>
+            <div id="summary-total-events" class="mt-2 text-3xl font-black text-white">0</div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Success</div>
+            <div id="summary-success" class="mt-2 text-3xl font-black text-emerald-300">0</div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Parser Failed</div>
+            <div id="summary-parser-failed" class="mt-2 text-3xl font-black text-amber-300">0</div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Exception</div>
+            <div id="summary-exception" class="mt-2 text-3xl font-black text-rose-300">0</div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Average Latency</div>
+            <div id="summary-average-latency" class="mt-2 text-3xl font-black text-sky-300">0 ms</div>
+        </div>
+    </section>
+
+    <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-white">Filters</h2>
+                <p class="text-sm text-slate-400">Client-side filtering over the recent bounded event window.</p>
+            </div>
+            <button id="refresh-button" class="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:border-sky-400 hover:text-sky-200">Refresh</button>
+        </div>
+        <div class="mt-4 grid gap-4 md:grid-cols-3">
+            <label class="block">
+                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Route Filter</span>
+                <select id="route-filter" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-400">
+                    <option value="">All Routes</option>
+                </select>
+            </label>
+            <label class="block">
+                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Status Filter</span>
+                <select id="status-filter" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-400">
+                    <option value="">All Statuses</option>
+                    <option value="ok">OK</option>
+                    <option value="failed">Parser Failed</option>
+                    <option value="exception">Exception</option>
+                </select>
+            </label>
+            <label class="block">
+                <span class="mb-1 block text-xs uppercase tracking-[0.2em] text-slate-500">Request ID Search</span>
+                <input id="request-id-search" type="search" placeholder="request id" class="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-400">
+            </label>
+        </div>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/80">
+            <div class="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Recent Events</h2>
+                    <p class="text-sm text-slate-400">Newest first. Click a row to view details.</p>
+                </div>
+                <div id="recent-window-note" class="text-xs uppercase tracking-[0.2em] text-slate-500"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-950/80 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Timestamp</th>
+                            <th class="px-4 py-3">Route</th>
+                            <th class="px-4 py-3">Request ID</th>
+                            <th class="px-4 py-3">Parser Status</th>
+                            <th class="px-4 py-3">Latency</th>
+                            <th class="px-4 py-3">Exception</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-events-table" class="divide-y divide-slate-800"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <section class="rounded-2xl border border-slate-800 bg-slate-900/80">
+                <div class="border-b border-slate-800 px-4 py-3">
+                    <h2 class="text-lg font-bold text-white">Route Statistics</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-950/80 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Route</th>
+                                <th class="px-4 py-3">Events</th>
+                                <th class="px-4 py-3">Parser Failed</th>
+                                <th class="px-4 py-3">Avg Latency</th>
+                            </tr>
+                        </thead>
+                        <tbody id="route-stats-table" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-800 bg-slate-900/80">
+                <div class="border-b border-slate-800 px-4 py-3">
+                    <h2 class="text-lg font-bold text-white">Parser Failure Table</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-950/80 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Time</th>
+                                <th class="px-4 py-3">Request ID</th>
+                                <th class="px-4 py-3">Route</th>
+                                <th class="px-4 py-3">Failure Reason</th>
+                                <th class="px-4 py-3">Exception</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parser-failures-table" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </section>
+</main>
+
+<script>
+const SHADOW_ROUTE_OPTIONS = [
+    '/api/rating_test/answer',
+    '/api/daily-challenge/submit',
+    '/api/challenges/friend/<int:cid>/answer',
+];
+
+let dashboardState = { recent_events: [], limit: 200 };
+
+function formatTimestamp(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('zh-TW', { hour12: false });
+}
+
+function formatLatency(value) {
+    if (value === null || value === undefined || value === '') return '-';
+    return `${Number(value).toFixed(1)} ms`;
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function parserFailed(event) {
+    return event.parser_status === 'failed' || Boolean(event.parser_failure_reason);
+}
+
+function eventMatchesFilters(event) {
+    const routeValue = document.getElementById('route-filter').value;
+    const statusValue = document.getElementById('status-filter').value;
+    const requestSearch = document.getElementById('request-id-search').value.trim().toLowerCase();
+
+    if (routeValue && event.route !== routeValue) return false;
+    if (statusValue === 'ok' && parserFailed(event)) return false;
+    if (statusValue === 'failed' && !parserFailed(event)) return false;
+    if (statusValue === 'exception' && !event.exception_class) return false;
+    if (requestSearch && !String(event.request_id || '').toLowerCase().includes(requestSearch)) return false;
+    return true;
+}
+
+function filteredEvents() {
+    return (dashboardState.recent_events || []).filter(eventMatchesFilters);
+}
+
+function updateSummary(events) {
+    const latencyValues = events
+        .map(event => event.latency_ms)
+        .filter(value => value !== null && value !== undefined);
+    const success = events.filter(event => !parserFailed(event) && !event.exception_class).length;
+    const parserFailedCount = events.filter(parserFailed).length;
+    const exceptionCount = events.filter(event => Boolean(event.exception_class)).length;
+    const avgLatency = latencyValues.length
+        ? latencyValues.reduce((sum, value) => sum + Number(value), 0) / latencyValues.length
+        : 0;
+
+    document.getElementById('summary-total-events').textContent = String(events.length);
+    document.getElementById('summary-success').textContent = String(success);
+    document.getElementById('summary-parser-failed').textContent = String(parserFailedCount);
+    document.getElementById('summary-exception').textContent = String(exceptionCount);
+    document.getElementById('summary-average-latency').textContent = `${avgLatency.toFixed(1)} ms`;
+}
+
+function updateRouteStats(events) {
+    const tbody = document.getElementById('route-stats-table');
+    const routeStats = {};
+    for (const route of SHADOW_ROUTE_OPTIONS) {
+        routeStats[route] = { event_count: 0, parser_failed: 0, latency: [] };
+    }
+    for (const event of events) {
+        if (!routeStats[event.route]) {
+            routeStats[event.route] = { event_count: 0, parser_failed: 0, latency: [] };
+        }
+        routeStats[event.route].event_count += 1;
+        if (parserFailed(event)) routeStats[event.route].parser_failed += 1;
+        if (event.latency_ms !== null && event.latency_ms !== undefined) {
+            routeStats[event.route].latency.push(Number(event.latency_ms));
+        }
+    }
+
+    const rows = Object.entries(routeStats).map(([route, stats]) => {
+        const avgLatency = stats.latency.length
+            ? (stats.latency.reduce((sum, value) => sum + value, 0) / stats.latency.length).toFixed(1)
+            : '0.0';
+        return `
+            <tr>
+                <td class="px-4 py-3 font-mono text-xs text-slate-300">${escapeHtml(route)}</td>
+                <td class="px-4 py-3 text-slate-200">${stats.event_count}</td>
+                <td class="px-4 py-3 text-amber-300">${stats.parser_failed}</td>
+                <td class="px-4 py-3 text-sky-300">${avgLatency} ms</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = rows.join('') || '<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No data</td></tr>';
+}
+
+function updateParserFailures(events) {
+    const tbody = document.getElementById('parser-failures-table');
+    const failures = events.filter(parserFailed);
+    if (!failures.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">No parser failures in the current window.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = failures.map(event => `
+        <tr>
+            <td class="px-4 py-3 text-slate-300">${escapeHtml(formatTimestamp(event.timestamp))}</td>
+            <td class="px-4 py-3 font-mono text-xs text-slate-300">${escapeHtml(event.request_id || '-')}</td>
+            <td class="px-4 py-3 font-mono text-xs text-slate-300">${escapeHtml(event.route || '-')}</td>
+            <td class="px-4 py-3 text-amber-200">${escapeHtml(event.parser_failure_reason || '-')}</td>
+            <td class="px-4 py-3 text-rose-200">${escapeHtml(event.exception_class || '-')}</td>
+        </tr>
+    `).join('');
+}
+
+function toggleDetail(index) {
+    const detailRow = document.getElementById(`detail-row-${index}`);
+    if (!detailRow) return;
+    detailRow.classList.toggle('open');
+}
+
+function updateRecentEvents(events) {
+    const tbody = document.getElementById('recent-events-table');
+    if (!events.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No recent events match the current filters.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = events.map((event, index) => {
+        const statusClass = parserFailed(event)
+            ? 'text-amber-200'
+            : event.exception_class
+                ? 'text-rose-200'
+                : 'text-emerald-200';
+        return `
+            <tr class="cursor-pointer bg-slate-900/60 transition hover:bg-slate-800/70" onclick="toggleDetail(${index})">
+                <td class="px-4 py-3 text-slate-300">${escapeHtml(formatTimestamp(event.timestamp))}</td>
+                <td class="px-4 py-3 font-mono text-xs text-slate-300">${escapeHtml(event.route || '-')}</td>
+                <td class="px-4 py-3 font-mono text-xs text-slate-300">${escapeHtml(event.request_id || '-')}</td>
+                <td class="px-4 py-3 ${statusClass}">${escapeHtml(event.parser_status || '-')}</td>
+                <td class="px-4 py-3 text-sky-200">${escapeHtml(formatLatency(event.latency_ms))}</td>
+                <td class="px-4 py-3 text-rose-200">${escapeHtml(event.exception_class || '-')}</td>
+            </tr>
+            <tr id="detail-row-${index}" class="detail-row bg-slate-950/80">
+                <td colspan="6" class="px-4 py-4">
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <div>
+                            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Schema Version</div>
+                            <div class="mt-1 font-mono text-sm text-slate-200">${escapeHtml(event.details.schema_version || '-')}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Entry Point</div>
+                            <div class="mt-1 font-mono text-sm text-slate-200">${escapeHtml(event.details.entry_point || '-')}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Parser Failure Reason</div>
+                            <div class="mt-1 text-sm text-slate-200">${escapeHtml(event.details.parser_failure_reason || '-')}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs uppercase tracking-[0.2em] text-slate-500">Exception Message</div>
+                            <div class="mt-1 text-sm text-slate-200">${escapeHtml(event.details.exception_message || '-')}</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderDashboard() {
+    const events = filteredEvents();
+    updateSummary(events);
+    updateRouteStats(events);
+    updateParserFailures(events);
+    updateRecentEvents(events);
+}
+
+function populateRouteFilter() {
+    const select = document.getElementById('route-filter');
+    for (const route of SHADOW_ROUTE_OPTIONS) {
+        const option = document.createElement('option');
+        option.value = route;
+        option.textContent = route;
+        select.appendChild(option);
+    }
+}
+
+async function loadDashboard() {
+    const response = await fetch('/api/admin/shadow/dashboard/recent?limit=200', { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error(`dashboard_recent_failed:${response.status}`);
+    }
+    dashboardState = await response.json();
+    document.getElementById('recent-window-note').textContent = `Window: last ${dashboardState.returned_events} events`;
+    renderDashboard();
+}
+
+async function init() {
+    const me = await fetch('/api/auth/me', { credentials: 'include' }).then(response => response.json());
+    if (!me.logged_in || !me.is_admin) {
+        window.location.href = '/login';
+        return;
+    }
+    document.getElementById('current-user').textContent = `ID ${me.user_id}`;
+    populateRouteFilter();
+    await loadDashboard();
+}
+
+document.getElementById('route-filter').addEventListener('change', renderDashboard);
+document.getElementById('status-filter').addEventListener('change', renderDashboard);
+document.getElementById('request-id-search').addEventListener('input', renderDashboard);
+document.getElementById('refresh-button').addEventListener('click', loadDashboard);
+window.addEventListener('load', () => {
+    init().catch(error => {
+        console.error(error);
+        document.getElementById('recent-events-table').innerHTML =
+            '<tr><td colspan="6" class="px-4 py-8 text-center text-rose-300">Failed to load dashboard data.</td></tr>';
+    });
+});
+</script>
+</body>
+</html>

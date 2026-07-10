@@ -42,6 +42,10 @@ _LATENCY_KEYS = (
     'shadow_latency_ms',
 )
 
+_RECENT_DEFAULT_LIMIT = 200
+_RECENT_MAX_LIMIT = 500
+_RECENT_MAX_BYTES = 512 * 1024
+
 
 def _utc_now():
     return _dt.datetime.now(_dt.timezone.utc)
@@ -211,6 +215,169 @@ def _percentile(values, percentile):
     rank = math.ceil((percentile / 100.0) * len(ordered)) - 1
     index = max(0, min(rank, len(ordered) - 1))
     return float(ordered[index])
+
+
+def _tail_lines(path, limit, max_bytes=_RECENT_MAX_BYTES):
+    if limit <= 0 or not os.path.exists(path):
+        return []
+
+    chunk_size = 8192
+    data = bytearray()
+    with open(path, 'rb') as handle:
+        handle.seek(0, os.SEEK_END)
+        position = handle.tell()
+        newline_target = limit + 1
+
+        while position > 0 and len(data) < max_bytes:
+            read_size = min(chunk_size, position, max_bytes - len(data))
+            position -= read_size
+            handle.seek(position)
+            block = handle.read(read_size)
+            data[:0] = block
+            if data.count(b'\n') >= newline_target:
+                break
+
+    lines = data.decode('utf-8', errors='replace').splitlines()
+    return lines[-limit:]
+
+
+def _normalize_recent_event(event):
+    if not isinstance(event, dict):
+        return None
+
+    parsed_dt = _parse_timestamp(_get_first(event, _TIMESTAMP_KEYS))
+    route = _normalize_route(event.get('route')) or str(event.get('route') or '').strip()
+    parser_failure_reason = str(event.get('parser_failure_reason') or '').strip()
+    parser_status = str(event.get('parser_status') or '').strip().lower()
+    exception_class = str(event.get('exception_class') or '').strip()
+    exception_message = str(event.get('exception_message') or '').strip()
+    latency_ms = _coerce_latency(event)
+    parser_failed = parser_status == 'failed' or bool(parser_failure_reason)
+    if parser_failed and not parser_status:
+        parser_status = 'failed'
+    if not parser_status:
+        parser_status = 'ok'
+    success = not parser_failed and not exception_class
+
+    return {
+        'timestamp': parsed_dt.isoformat() if parsed_dt else '',
+        'route': route,
+        'request_id': str(event.get('request_id') or '').strip(),
+        'parser_status': parser_status,
+        'latency_ms': None if latency_ms is None else round(latency_ms, 3),
+        'exception_class': exception_class,
+        'schema_version': str(event.get('schema_version') or '').strip(),
+        'entry_point': str(event.get('entry_point') or '').strip(),
+        'parser_failure_reason': parser_failure_reason,
+        'exception_message': exception_message,
+        'details': {
+            'schema_version': str(event.get('schema_version') or '').strip(),
+            'entry_point': str(event.get('entry_point') or '').strip(),
+            'parser_failure_reason': parser_failure_reason,
+            'exception_message': exception_message,
+        },
+        'success': success,
+        'parser_failed': parser_failed,
+        'has_exception': bool(exception_class),
+        '_sort_key': parsed_dt.timestamp() if parsed_dt else float('-inf'),
+    }
+
+
+def _route_stats_bucket():
+    return {
+        'event_count': 0,
+        'parser_failed': 0,
+        'average_latency_ms': 0.0,
+    }
+
+
+def _recent_result(path, limit, returned_events):
+    return {
+        'generated_at': _utc_now().isoformat(),
+        'source_path': path,
+        'limit': limit,
+        'returned_events': returned_events,
+        'summary': {
+            'total_events': 0,
+            'success': 0,
+            'parser_failed': 0,
+            'exception': 0,
+            'average_latency_ms': 0.0,
+        },
+        'routes': {route: _route_stats_bucket() for route in EXPECTED_ROUTES},
+        'parser_failures': [],
+        'recent_events': [],
+        'invalid_lines': 0,
+    }
+
+
+def recent_shadow_dashboard_data(path=None, limit=_RECENT_DEFAULT_LIMIT):
+    path = path or DEFAULT_SHADOW_EVENTS_PATH
+    limit = max(1, min(int(limit or _RECENT_DEFAULT_LIMIT), _RECENT_MAX_LIMIT))
+    raw_lines = _tail_lines(path, limit=limit)
+    result = _recent_result(path, limit, 0)
+    normalized_events = []
+    route_latency = defaultdict(list)
+
+    for raw_line in raw_lines:
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            result['invalid_lines'] += 1
+            continue
+        normalized = _normalize_recent_event(event)
+        if normalized is None:
+            result['invalid_lines'] += 1
+            continue
+        normalized_events.append(normalized)
+
+    normalized_events.sort(key=lambda event: event['_sort_key'], reverse=True)
+    result['returned_events'] = len(normalized_events)
+    result['summary']['total_events'] = len(normalized_events)
+
+    latencies = []
+    for event in normalized_events:
+        route = event['route']
+        if route and route not in result['routes']:
+            result['routes'][route] = _route_stats_bucket()
+        route_bucket = result['routes'].get(route)
+        if route_bucket is not None:
+            route_bucket['event_count'] += 1
+
+        if event['success']:
+            result['summary']['success'] += 1
+        if event['parser_failed']:
+            result['summary']['parser_failed'] += 1
+            if route_bucket is not None:
+                route_bucket['parser_failed'] += 1
+            result['parser_failures'].append(event)
+        if event['has_exception']:
+            result['summary']['exception'] += 1
+
+        latency_ms = event['latency_ms']
+        if latency_ms is not None:
+            latencies.append(latency_ms)
+            if route_bucket is not None:
+                route_latency[route].append(latency_ms)
+
+    if latencies:
+        result['summary']['average_latency_ms'] = round(sum(latencies) / len(latencies), 3)
+
+    for route, bucket in result['routes'].items():
+        values = route_latency.get(route, [])
+        if values:
+            bucket['average_latency_ms'] = round(sum(values) / len(values), 3)
+
+    for event in normalized_events:
+        event.pop('_sort_key', None)
+    for event in result['parser_failures']:
+        event.pop('_sort_key', None)
+
+    result['recent_events'] = normalized_events
+    return result
 
 
 def aggregate_shadow_events(path=None, now=None):
