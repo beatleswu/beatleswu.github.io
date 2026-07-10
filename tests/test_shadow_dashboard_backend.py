@@ -1,10 +1,56 @@
 import datetime as dt
 import json
+import sys
+import types
 from pathlib import Path
 
 import pytest
 
 import shadow_dashboard
+
+
+def _install_app_import_stubs():
+    if 'katago_explain' not in sys.modules:
+        module = types.ModuleType('katago_explain')
+        module.KataGoExplainer = type('KataGoExplainer', (), {})
+        sys.modules['katago_explain'] = module
+    if 'explain_overrides' not in sys.modules:
+        module = types.ModuleType('explain_overrides')
+        module.get_override = lambda *args, **kwargs: None
+        sys.modules['explain_overrides'] = module
+    if 'grimoire_api' not in sys.modules:
+        from flask import Blueprint
+        module = types.ModuleType('grimoire_api')
+        module.grimoire_bp = Blueprint('grimoire_stub', __name__)
+        sys.modules['grimoire_api'] = module
+    if 'question_taxonomy' not in sys.modules:
+        module = types.ModuleType('question_taxonomy')
+        module.get_taxonomy = lambda *args, **kwargs: {}
+        sys.modules['question_taxonomy'] = module
+    if 'monster_taxonomy' not in sys.modules:
+        module = types.ModuleType('monster_taxonomy')
+        module.get_monster_taxonomy = lambda *args, **kwargs: {}
+        module.mark_encounters = lambda *args, **kwargs: None
+        sys.modules['monster_taxonomy'] = module
+    if 'chapter_i18n' not in sys.modules:
+        module = types.ModuleType('chapter_i18n')
+        module.localize_topic = lambda *args, **kwargs: ''
+        module.localize_level = lambda *args, **kwargs: ''
+        sys.modules['chapter_i18n'] = module
+    if 'backend_i18n' not in sys.modules:
+        module = types.ModuleType('backend_i18n')
+        module.badge_en = lambda *args, **kwargs: ''
+        module.skill_node_en = lambda *args, **kwargs: ''
+        module.title_en = lambda *args, **kwargs: ''
+        sys.modules['backend_i18n'] = module
+    if 'sgf_engine' not in sys.modules:
+        sys.modules['sgf_engine'] = types.ModuleType('sgf_engine')
+    if 'sgf_engine.parser' not in sys.modules:
+        sys.modules['sgf_engine.parser'] = types.ModuleType('sgf_engine.parser')
+    if 'sgf_engine.parser.sgf_parser' not in sys.modules:
+        module = types.ModuleType('sgf_engine.parser.sgf_parser')
+        module.parse_sgf = lambda *args, **kwargs: None
+        sys.modules['sgf_engine.parser.sgf_parser'] = module
 
 
 def _write_jsonl(path: Path, rows):
@@ -166,6 +212,7 @@ def test_aggregate_shadow_events_latency_percentiles(tmp_path):
 
 @pytest.fixture(scope='module')
 def app_module():
+    _install_app_import_stubs()
     import app as app_module
     return app_module
 
