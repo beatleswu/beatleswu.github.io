@@ -1,0 +1,1 @@
+@docs/planning/shadow_event_envelope_v1.md
