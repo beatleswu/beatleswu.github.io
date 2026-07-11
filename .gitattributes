@@ -1,3 +1,25 @@
-*.py text eol=lf
-*.sh text eol=lf
+# Default: treat everything as text, normalized to LF in the repository
+# and on checkout. Windows checkouts of this repo (core.autocrlf=true)
+# would otherwise reintroduce CRLF into files with no explicit override --
+# confirmed to break a Linux container's #!/bin/bash shebang in
+# entrypoint.sh, and to corrupt content-hash provenance checks on HTML/JS/
+# JSON files recovered in DEPLOY-GOV-2E. LF is this repository's canonical
+# line-ending policy for all text content.
+* text=auto eol=lf
+
+# Explicit binary markers -- never run text normalization or diff on these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.woff binary
+*.eot binary
+*.ttf binary
+*.svg binary
+
 sgf_engine/VENDORED_FROM.txt text eol=lf
