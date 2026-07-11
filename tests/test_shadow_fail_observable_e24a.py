@@ -9,6 +9,7 @@ from __future__ import annotations
 import builtins
 import json
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,93 @@ import shadow_judging
 
 _LEAF_SGF = "(;SZ[19];B[qd](;W[od];B[oc]))"
 _LEAF_MOVES = [{"x": 16, "y": 3}, {"x": 14, "y": 2}]
+
+
+class _FakeNode:
+    """Minimal stand-in for a sgf_engine tree node.
+
+    Only exposes what _shadow_verdict() actually reads (.metadata, .children)
+    — it does not reimplement any SGF parsing or judging logic itself.
+    """
+
+    def __init__(self, metadata=None, children=None):
+        self.metadata = metadata or {}
+        self.children = children or []
+
+
+def _install_fake_sgf_engine(monkeypatch, *, leaf_metadata=None):
+    """Inject a fake sgf_engine package into sys.modules for this test only.
+
+    This lets success-path tests exercise the real control flow inside
+    _shadow_verdict() — parse -> match -> descend -> auto-reply -> leaf check
+    — against the canonical sgf_engine interfaces it imports, without
+    depending on the real (untracked) sgf_engine package being present on
+    disk. It does not reimplement SGF parsing/matching/judging semantics;
+    it only fabricates the specific tree shape a given test needs.
+
+    monkeypatch.setitem() reverts sys.modules automatically at test teardown,
+    so this cannot leak into other tests (including the import-failure ones,
+    which patch builtins.__import__ directly and therefore ignore whatever
+    is cached in sys.modules).
+    """
+    # Exactly two levels below root, matching _LEAF_MOVES' two moves: the
+    # first move descends root -> first_child, the second descends
+    # first_child -> leaf (which has no children, triggering "accept").
+    leaf = _FakeNode(metadata=leaf_metadata or {})
+    first_child = _FakeNode(metadata={"color": "B"}, children=[leaf])
+    root = _FakeNode(metadata={}, children=[first_child])
+
+    fake_pkg = types.ModuleType("sgf_engine")
+    fake_core = types.ModuleType("sgf_engine.core")
+    fake_parser_pkg = types.ModuleType("sgf_engine.parser")
+    fake_parser_mod = types.ModuleType("sgf_engine.parser.sgf_parser")
+    fake_coord_utils = types.ModuleType("sgf_engine.core.coord_utils")
+    fake_matcher = types.ModuleType("sgf_engine.core.matcher")
+    fake_tree = types.ModuleType("sgf_engine.core.tree")
+    fake_autoreply = types.ModuleType("sgf_engine.core.autoreply")
+
+    fake_matcher.BRANCH = object()
+
+    def _match_move(cur, coord, ctx):
+        return fake_matcher.BRANCH if cur.children else None
+
+    def _find_child_by_move(cur, coord):
+        return cur.children[0] if cur.children else None
+
+    def _get_auto_reply(cur, player_color):
+        return None
+
+    def _xy_to_sgf(x, y):
+        return chr(ord("a") + int(x)) + chr(ord("a") + int(y))
+
+    def _parse_sgf(sgf_text):
+        return root
+
+    fake_matcher.match_move = _match_move
+    fake_tree.find_child_by_move = _find_child_by_move
+    fake_autoreply.get_auto_reply = _get_auto_reply
+    fake_coord_utils.xy_to_sgf = _xy_to_sgf
+    fake_parser_mod.parse_sgf = _parse_sgf
+
+    fake_core.autoreply = fake_autoreply
+    fake_core.matcher = fake_matcher
+    fake_core.tree = fake_tree
+    fake_core.coord_utils = fake_coord_utils
+    fake_pkg.core = fake_core
+    fake_pkg.parser = fake_parser_pkg
+    fake_parser_pkg.sgf_parser = fake_parser_mod
+
+    for name, module in {
+        "sgf_engine": fake_pkg,
+        "sgf_engine.core": fake_core,
+        "sgf_engine.core.autoreply": fake_autoreply,
+        "sgf_engine.core.matcher": fake_matcher,
+        "sgf_engine.core.tree": fake_tree,
+        "sgf_engine.core.coord_utils": fake_coord_utils,
+        "sgf_engine.parser": fake_parser_pkg,
+        "sgf_engine.parser.sgf_parser": fake_parser_mod,
+    }.items():
+        monkeypatch.setitem(sys.modules, name, module)
 
 
 def _read_events(path: Path) -> list[dict]:
@@ -125,6 +213,7 @@ def test_fallback_never_invoked_even_when_import_fails(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("entry_point", ["rating_test", "daily_challenge", "friend_challenge"])
 def test_success_path_unchanged_when_engine_available(tmp_path, monkeypatch, entry_point):
+    _install_fake_sgf_engine(monkeypatch)
     events = _run(tmp_path, monkeypatch, entry_point=entry_point)
 
     assert len(events) == 1
