@@ -570,7 +570,20 @@ function Get-RemoteContainerHttpStatus {
         [Parameter(Mandatory = $true)][string]$Path
     )
     $url = "http://127.0.0.1:8080$Path"
-    return (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $ContainerName) curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $url)").Trim()
+    $python = @'
+import sys
+import urllib.error
+import urllib.request
+
+url = sys.argv[1]
+try:
+    with urllib.request.urlopen(url, timeout=5) as response:
+        print(response.getcode())
+except urllib.error.HTTPError as exc:
+    print(exc.code)
+'@
+    $pythonEscaped = $python.Replace("'", "'""'""'")
+    return (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $ContainerName) python -c '$(($pythonEscaped -replace "`r?`n", '; '))' $(Quote-PosixShellArgument $url)").Trim()
 }
 
 function Assert-QuestionsReportSatisfiesGate {

@@ -545,6 +545,17 @@ def test_deploy_script_verifies_exec_form_healthcheck_for_canary_and_app():
         assert token in content
 
 
+def test_container_local_http_probe_uses_python_not_curl():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    assert "docker exec $(Quote-PosixShellArgument $ContainerName) curl" not in content
+    for token in (
+        "docker exec $(Quote-PosixShellArgument $ContainerName) python -c",
+        "urllib.request.urlopen",
+        "urllib.error.HTTPError",
+    ):
+        assert token in content
+
+
 def test_candidate_compose_declares_named_volumes_as_external_runtime_dependencies():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     for token in (
