@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="up.title">弈境奇兵公會通行證 - 弈境奇兵 (Go Odyssey)</title>
+<meta name="description" content="金徽通行證：全卷宗題庫解鎖、無限每日修行、KataGo AI 解析、完整弱點戰報。月繳 NT$299 / 年繳 NT$2,490，隨時取消。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="金徽通行證 — 弈境奇兵 (Go Odyssey)">
+<meta property="og:description" content="全題庫解鎖、無限修行、KataGo AI 解析。月繳 NT$299，隨時取消。">
+<meta property="og:image" content="https://godokoro.com/og-image.jpg">
+<meta property="og:url" content="https://godokoro.com/upgrade">
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Noto+Serif+TC:wght@500;700;900&family=DM+Sans:wght@400;500;700;900&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="/pwa.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#100b07;--ink:#fff3d4;--muted:#d8c5a4;--gold:#f2c86d;--gold2:#b97824;--teal:#3ed6c8;--panel:#24170e;--panel2:#372314;--line:rgba(242,200,109,.27);--shadow:0 22px 62px rgba(0,0,0,.42);--green:#66e2a4;--red:#ff8a7d}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{font-family:'DM Sans','Noto Serif TC',sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.58),transparent 18%,transparent 82%,rgba(0,0,0,.5)),repeating-linear-gradient(0deg,rgba(255,220,140,.035) 0 1px,transparent 1px 44px),repeating-linear-gradient(90deg,rgba(255,220,140,.035) 0 1px,transparent 1px 44px)}
+a{color:inherit;text-decoration:none}button{font:inherit}
+.hero{position:relative;z-index:1;min-height:calc(100vh - 70px);display:grid;align-items:center;padding:72px clamp(18px,5vw,76px);overflow:hidden}.hero-bg{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(13,8,4,.95),rgba(18,10,5,.7) 43%,rgba(16,10,6,.22) 72%),url('/assets/upgrade_page_assets/upgrade_hero_premium_hall.webp') center/cover no-repeat}.hero::after{content:'';position:absolute;inset:auto 0 0;height:190px;background:linear-gradient(transparent,var(--bg));z-index:-1}
+.hero-grid{display:grid;grid-template-columns:minmax(0,760px) minmax(320px,460px);gap:28px;align-items:center;max-width:1240px;margin:0 auto;width:100%}.eyebrow{display:inline-flex;width:max-content;border:1px solid var(--line);border-radius:999px;background:rgba(18,11,6,.68);padding:8px 13px;color:var(--gold);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.7px;text-transform:uppercase}
+.hero h1{margin-top:18px;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:clamp(44px,6vw,82px);line-height:1.03;font-weight:900;text-shadow:0 12px 34px rgba(0,0,0,.58)}.hero h1 em{display:block;font-style:normal;color:var(--gold)}.hero-copy{max-width:640px;margin-top:22px;color:rgba(255,244,220,.82);font-size:18px;line-height:1.8}
+.hero-actions{display:flex;flex-wrap:wrap;gap:13px;margin-top:30px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;border:1px solid var(--line);padding:13px 18px;font-weight:900;cursor:pointer;transition:transform .16s,filter .16s}.btn:hover{transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007;box-shadow:0 10px 26px rgba(242,200,109,.25)}.btn.ghost{background:rgba(255,255,255,.055);color:#f8e8c4}
+.premium-art{position:relative;min-height:520px;display:grid;place-items:center}.pass-card{width:min(92%,380px);filter:drop-shadow(0 28px 34px rgba(0,0,0,.48));animation:float 4s ease-in-out infinite}.npc{position:absolute;right:-4px;bottom:0;width:min(66%,300px);max-height:430px;object-fit:contain;filter:drop-shadow(0 22px 26px rgba(0,0,0,.45))}.speech{position:absolute;left:0;bottom:28px;max-width:260px;border:1px solid rgba(62,214,200,.38);border-radius:16px;background:rgba(12,21,20,.76);padding:15px 16px;box-shadow:var(--shadow)}.speech b{display:block;color:var(--teal);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:6px}.speech p{font-size:13px;line-height:1.65;color:#eefaf6}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-12px) rotate(1deg)}}
+.page{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:24px clamp(18px,5vw,48px) 80px}
+#usage-bar{display:none;margin:0 0 26px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.06);padding:17px 18px}.ub-header{display:flex;justify-content:space-between;gap:12px;margin-bottom:10px}.ub-label{font-family:'DM Mono',monospace;color:var(--gold);font-size:11px;letter-spacing:1.2px;text-transform:uppercase}.ub-nums{color:#fff0c8;font-weight:900}.ub-track{height:9px;border-radius:999px;background:rgba(255,244,220,.14);overflow:hidden}.ub-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal),#198b84);transition:width .8s}.ub-fill.done{background:linear-gradient(90deg,#f2c86d,#ff8a7d)}.ub-caption{margin-top:8px;color:rgba(255,244,220,.66);font-size:13px}
+.section-head{margin:64px 0 24px;max-width:760px}.tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:9px}.section-head h2{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:clamp(34px,4.4vw,56px);line-height:1.08}.section-head p{margin-top:12px;color:rgba(255,244,220,.72);line-height:1.8}
+.billing-toggle{display:flex;width:max-content;margin:0 auto 22px;padding:5px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.28)}.btog-btn{border:0;border-radius:11px;background:transparent;color:rgba(255,244,220,.65);padding:10px 22px;cursor:pointer;font-weight:900}.btog-btn.active{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007}.save-badge{display:inline-flex;margin-left:6px;border-radius:999px;background:rgba(62,214,200,.18);color:#9efff7;padding:2px 7px;font-family:'DM Mono',monospace;font-size:10px}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:20px}.plan-card{border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));padding:26px;box-shadow:var(--shadow)}.plan-card.premium{border-color:rgba(242,200,109,.75);background:linear-gradient(180deg,rgba(85,54,24,.92),rgba(31,20,12,.94));position:relative;overflow:hidden}.plan-card.premium::after{content:'';position:absolute;right:-80px;top:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(242,200,109,.22),transparent 66%)}
+.plan-badge{display:inline-flex;border-radius:999px;padding:6px 11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:16px}.free-b{border:1px solid rgba(255,244,220,.22);color:#d8c5a4;background:rgba(255,255,255,.05)}.pro-b{background:var(--gold);color:#1b1007}.plan-price{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:52px;line-height:1;font-weight:900;color:#fff0c8}.plan-price .cur{font-size:24px;vertical-align:super;color:#d8c5a4}.plan-price .orig{font-family:'DM Sans',sans-serif;font-size:17px;color:rgba(255,244,220,.38);text-decoration:line-through;margin-left:8px}.plan-period{margin:8px 0 22px;color:rgba(255,244,220,.62);font-family:'DM Mono',monospace;font-size:12px}.plan-features{list-style:none;display:grid;gap:11px;margin-bottom:24px}.plan-features li{display:flex;gap:9px;color:rgba(255,244,220,.78);line-height:1.55;font-size:14px}.fi{width:22px;flex-shrink:0}.plan-cta{width:100%;border:1px solid var(--line);border-radius:13px;padding:14px 18px;cursor:pointer;font-weight:900;transition:transform .16s,filter .16s}.plan-cta:hover{transform:translateY(-1px);filter:brightness(1.06)}.cta-free{background:rgba(255,255,255,.06);color:#f4dfb8}.cta-pro{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007;box-shadow:0 12px 24px rgba(242,200,109,.22)}.cta-pro:disabled{background:linear-gradient(135deg,#3ed6c8,#1b8f86);color:#061412;box-shadow:none}
+.unlock-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.unlock-card{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.055);padding:18px;min-height:210px}.unlock-card img{width:86px;height:86px;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(0,0,0,.36));margin-bottom:14px}.unlock-card h3{font-family:'Noto Serif TC',serif;color:#fff0c8;font-size:19px;margin-bottom:8px}.unlock-card p{color:rgba(255,244,220,.68);line-height:1.65;font-size:13px}
+.compare-wrap{border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.055);overflow:hidden;box-shadow:var(--shadow)}.compare-table{width:100%;border-collapse:collapse}.compare-table th,.compare-table td{padding:15px 18px;text-align:center;border-bottom:1px solid rgba(242,200,109,.13);font-size:14px}.compare-table th{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;background:rgba(0,0,0,.22);color:#e7cfaa}.compare-table th:first-child,.compare-table td:first-child{text-align:left;color:#f4dfb8}.compare-table th.pro,.compare-table td.pro{background:rgba(242,200,109,.08);color:#fff0c8}.compare-table tr:last-child td{border-bottom:0}.ck{color:var(--teal);font-weight:900}.cx{color:rgba(255,244,220,.36)}
+.faq{display:grid;gap:10px}.faq-item{border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.05);overflow:hidden}.faq-q{width:100%;border:0;background:transparent;color:#fff0c8;padding:17px 18px;display:flex;align-items:center;justify-content:space-between;text-align:left;font-weight:900;cursor:pointer}.faq-arrow{font-size:11px;color:var(--gold);transition:transform .2s}.faq-q.open .faq-arrow{transform:rotate(90deg)}.faq-body{max-height:0;overflow:hidden;transition:max-height .25s}.faq-body.open{max-height:240px}.faq-body-inner{padding:0 18px 17px;color:rgba(255,244,220,.7);line-height:1.75;font-size:14px}
+.contact{text-align:center;color:rgba(255,244,220,.62);font-size:13px;margin-top:34px}.contact a{color:var(--teal);font-weight:900}#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(70px);z-index:9999;border:1px solid var(--line);border-radius:13px;background:#090604;color:#fff0c8;padding:12px 22px;opacity:0;pointer-events:none;transition:transform .28s,opacity .28s;max-width:90vw;text-align:center}#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#pay-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(7,4,2,.66);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px}#pay-modal.show{display:flex}.modal-box{position:relative;width:min(100%,470px);border:1px solid rgba(242,200,109,.42);border-radius:22px;background:linear-gradient(180deg,#332113,#160f09);box-shadow:var(--shadow);padding:30px}.modal-close{position:absolute;right:14px;top:12px;border:0;border-radius:10px;background:rgba(255,255,255,.08);color:#f3dfb8;width:34px;height:34px;cursor:pointer}.modal-icon{display:grid;place-items:center;margin:0 auto 10px;width:116px;height:116px}.modal-icon img{max-width:116px;max-height:116px;object-fit:contain;filter:drop-shadow(0 12px 18px rgba(0,0,0,.34))}.modal-title{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:34px;text-align:center;color:#fff0c8}.modal-sub{text-align:center;color:rgba(255,244,220,.68);margin:6px 0 20px}.modal-methods{display:grid;gap:10px}.modal-method{display:flex;gap:13px;align-items:center;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.055);padding:14px;color:#fff0c8}.mm-icon{font-size:24px}.mm-text{display:grid;gap:2px}.mm-text strong{font-size:15px}.mm-text small{color:rgba(255,244,220,.6)}.modal-note{margin:18px 0;border:1px solid rgba(62,214,200,.28);border-radius:13px;background:rgba(9,72,68,.18);padding:12px 14px;color:#d9fffb;line-height:1.65;font-size:13px}.modal-ok{width:100%;border:0;border-radius:13px;background:linear-gradient(135deg,#3ed6c8,#1b8f86);color:#061412;padding:13px;font-weight:900;cursor:pointer}
+@media(max-width:980px){.hero-grid,.plans{grid-template-columns:1fr}.premium-art{min-height:430px}.unlock-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{padding-top:42px}}
+@media(max-width:620px){.hero h1{font-size:42px}.speech{position:relative;bottom:auto;left:auto;margin-top:12px}.npc{right:0;width:220px}.pass-card{width:260px}.premium-art{align-items:start}.unlock-grid{grid-template-columns:1fr}.compare-table th,.compare-table td{padding:11px 9px;font-size:12px}.btog-btn{padding:9px 13px}}
+</style>
+<style>
+#pay-modal .modal-box, #pay-modal .modal-system-card{width:min(100%,620px);padding:28px 26px 22px}
+#pay-modal .modal-shell{display:grid;gap:18px}
+#pay-modal .modal-hero{display:grid;grid-template-columns:minmax(0,96px) minmax(0,1fr);gap:16px;align-items:start}
+#pay-modal .modal-icon{margin:0;width:96px;height:96px;border-radius:20px;background:radial-gradient(circle at 50% 35%,rgba(242,200,109,.2),rgba(255,255,255,.03) 65%);border:1px solid rgba(242,200,109,.22);box-shadow:0 14px 22px rgba(0,0,0,.24)}
+#pay-modal .modal-icon img{max-width:82px;max-height:82px}
+#pay-modal .modal-eyebrow, #pay-modal .modal-system-eyebrow{display:inline-flex;align-items:center;gap:7px;width:max-content;border:1px solid rgba(242,200,109,.25);border-radius:999px;background:rgba(255,255,255,.04);padding:7px 11px;color:#f1cc83;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.3px;text-transform:uppercase}
+#pay-modal .modal-title, #pay-modal .modal-system-title{text-align:left;font-size:30px;line-height:1.12;margin-top:9px}
+#pay-modal .modal-sub, #pay-modal .modal-intro, #pay-modal .modal-system-lead{text-align:left;margin:8px 0 0;color:rgba(255,244,220,.72);font-size:15px;line-height:1.7}
+#pay-modal .modal-intro{margin-top:2px;color:#f5ddb0;font-size:13px;font-weight:800;letter-spacing:.2px}
+#pay-modal .modal-benefits, #pay-modal .modal-system-benefits{display:grid;gap:10px}
+#pay-modal .modal-benefit, #pay-modal .modal-system-benefit{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:start;border:1px solid rgba(242,200,109,.18);border-radius:16px;background:rgba(255,255,255,.04);padding:12px 13px}
+#pay-modal .modal-benefit-icon, #pay-modal .modal-system-benefit-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:999px;background:linear-gradient(135deg,rgba(247,209,125,.24),rgba(184,121,36,.22));border:1px solid rgba(242,200,109,.34);color:#fff0c8;font-size:18px;line-height:1}
+#pay-modal .modal-benefit-copy, #pay-modal .modal-system-benefit-copy{display:grid;gap:2px}
+#pay-modal .modal-benefit-copy strong{display:block;color:#fff0c8;font-size:15px;line-height:1.35}
+#pay-modal .modal-benefit-copy span{display:block;color:rgba(255,244,220,.7);font-size:13px;line-height:1.55}
+#pay-modal .modal-methods{display:grid;gap:10px;margin-top:4px}
+#pay-modal .modal-method, #pay-modal .modal-system-cta{display:flex;gap:13px;align-items:center;width:100%;text-align:left;font:inherit;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.055);padding:14px 16px}
+#pay-modal .modal-method-primary{border-color:rgba(242,200,109,.7);background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007;box-shadow:0 12px 24px rgba(242,200,109,.22)}
+#pay-modal .modal-method-primary .mm-text small{color:rgba(27,16,7,.72)}
+#pay-modal .modal-method-secondary{background:rgba(255,255,255,.05);color:#fff0c8}
+#pay-modal .modal-method:disabled{opacity:.56;cursor:not-allowed;filter:saturate(.72);box-shadow:none;transform:none}
+#pay-modal .modal-method:disabled:hover{transform:none;filter:saturate(.72)}
+#pay-modal .modal-method .mm-icon{font-size:24px}
+#pay-modal #paypal-methods{margin-top:2px}
+#pay-modal .modal-guard{margin:14px 0 0;border:1px solid rgba(255,138,125,.28);border-radius:13px;background:rgba(67,21,16,.22);padding:12px 13px;color:#ffd8d3;line-height:1.6;font-size:12.5px}
+#pay-modal .modal-note, #pay-modal .modal-system-note{margin:14px 0 0;border:1px solid rgba(62,214,200,.2);border-radius:13px;background:rgba(9,72,68,.16);padding:11px 13px;color:#d9fffb;line-height:1.6;font-size:12.5px}
+#pay-modal .modal-ok{margin-top:6px}
+@media(max-width:620px){
+  #pay-modal .modal-box{padding:24px 18px 18px}
+  #pay-modal .modal-hero{grid-template-columns:1fr}
+  #pay-modal .modal-icon{width:82px;height:82px}
+  #pay-modal .modal-icon img{max-width:70px;max-height:70px}
+  #pay-modal .modal-title{font-size:28px}
+}
+</style>
+</head>
+<body>
+<div id="lang-switcher-up" style="position:fixed;top:16px;right:18px;z-index:60;"></div>
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid">
+    <div>
+      <div class="eyebrow">Premium Guild Pass</div>
+      <h1 data-i18n-html="up.h1">弈境奇兵公會通行證<em>解鎖高階修行卷宗。</em></h1>
+      <p class="hero-copy" data-i18n="up.heroCopy">金徽通行證會開啟全題庫、無限修行、KataGo 星盤解析與 Premium 專屬獎勵。讓每天練棋不只是刷題，而是一段可持續推進的遠征。</p>
+      <div class="hero-actions">
+        <button class="btn primary" onclick="document.getElementById('plans').scrollIntoView({behavior:'smooth'})" data-i18n="up.viewPass">查看通行證</button>
+        <a class="btn ghost" href="#unlock" data-i18n="up.viewUnlock">查看解鎖內容</a>
+      </div>
+    </div>
+    <div class="premium-art">
+      <img class="pass-card" src="/assets/upgrade_page_assets/premium_pass_card.webp" data-i18n-alt="up.passCardAlt" alt="金徽通行證">
+      <img class="npc" src="/assets/upgrade_page_assets/npc_pass_keeper.webp" data-i18n-alt="up.npcAlt" alt="通行證管理官 莉雅">
+      <div class="speech"><b>Pass Keeper Lia</b><p data-i18n="up.speech">升級後，我會替你打開高階卷宗與星盤解析。別急，真正有用的路線會一頁頁亮起來。</p></div>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div id="usage-bar">
+    <div class="ub-header"><span class="ub-label" data-i18n="up.usageLabel">今日免費委託額度</span><span class="ub-nums"><span id="ub-used">0</span> / <span id="ub-max">20</span> <span data-i18n="up.usageUnit">題</span></span></div>
+    <div class="ub-track"><div class="ub-fill" id="ub-fill" style="width:0%"></div></div>
+    <div class="ub-caption" id="ub-cap"></div>
+  </div>
+
+  <section id="plans">
+    <div class="section-head">
+      <div class="tag">Choose Your Pass</div>
+      <h2 data-i18n="up.plans.h2">選擇你的公會權限</h2>
+      <p data-i18n="up.plans.p">免費版適合穩定起步；金徽通行證則適合想把題庫、AI 解析與成長紀錄全部串起來的棋士。</p>
+    </div>
+
+    <div class="billing-toggle">
+      <button class="btog-btn active" id="btn-monthly" onclick="setBilling('monthly')" data-i18n="up.monthly">按月</button>
+      <button class="btog-btn" id="btn-annual" onclick="setBilling('annual')"><span data-i18n="up.annual">按年</span> <span class="save-badge" id="save-label">省 NT$1,098</span></button>
+    </div>
+
+    <div class="plans">
+      <article class="plan-card">
+        <div class="plan-badge free-b" data-i18n="up.free.badge">見習冒險者</div>
+        <div class="plan-price"><span class="cur" id="cur-free"></span>0</div>
+        <div class="plan-period" id="period-free" data-i18n="up.free.period">永久免費，無需信用卡</div>
+        <ul class="plan-features">
+          <li><span class="fi" data-i18n="up.icon.scroll">卷</span><span data-i18n="up.free.f1">入門至初級路線，適合建立基本手感</span></li>
+          <li><span class="fi">20</span><span data-i18n="up.free.f2">每日 20 題答題額度</span></li>
+          <li><span class="fi">SRS</span><span data-i18n="up.free.f3">基礎間隔複習與錯題回收</span></li>
+          <li><span class="fi">LV</span><span data-i18n="up.free.f4">基本成長紀錄與獎章</span></li>
+          <li><span class="fi" data-i18n="up.icon.map">地圖</span><span data-i18n="up.free.f5">公會主線與新手區域推進</span></li>
+        </ul>
+        <button class="plan-cta cta-free" onclick="location.href='/'" data-i18n="up.free.cta">繼續免費修行</button>
+      </article>
+
+      <article class="plan-card premium">
+        <div class="plan-badge pro-b" data-i18n="up.pro.badge">金徽通行證</div>
+        <div class="plan-price" id="price-display"><span class="cur" id="cur-pro"></span><span id="price-num">—</span></div>
+        <div class="plan-period" id="period-pro" data-i18n="up.pro.loading">載入中…</div>
+        <ul class="plan-features">
+          <li><span class="fi" data-i18n="up.icon.all">全開</span><span data-i18n="up.pro.f1">全卷宗解鎖，從 20k 到高段題庫一路推進</span></li>
+          <li><span class="fi">∞</span><span data-i18n="up.pro.f2">每日無限修行委託，不被額度打斷</span></li>
+          <li><span class="fi">AI</span><span data-i18n="up.pro.f3">KataGo 星盤解析，拆解關鍵落點</span></li>
+          <li><span class="fi" data-i18n="up.icon.report">戰報</span><span data-i18n="up.pro.f4">完整弱點分析、熱力圖與戰績檔案</span></li>
+          <li><span class="fi" data-i18n="up.icon.reward">獎勵</span><span data-i18n="up.pro.f5">Premium 專屬外觀、徽章與收藏獎勵</span></li>
+        </ul>
+        <button class="plan-cta cta-pro" id="upgrade-btn" onclick="handleUpgrade()" data-i18n="up.pro.cta" data-analytics-premium-cta="1" data-analytics-surface="upgrade_plan_card" data-analytics-variant="plan_primary" data-analytics-destination="upgrade_modal">申請開通金徽通行證</button>
+      </article>
+    </div>
+  </section>
+
+  <section id="unlock">
+    <div class="section-head">
+      <div class="tag">Unlocked Rewards</div>
+      <h2 data-i18n="up.unlock.h2">升級後立即解鎖</h2>
+      <p data-i18n="up.unlock.p">這些不是裝飾性權益，而是會直接影響每日修行效率的公會權限。</p>
+    </div>
+    <div class="unlock-grid">
+      <article class="unlock-card"><img src="/assets/upgrade_page_assets/icon_unlock_grimoire.webp" alt=""><h3 data-i18n="up.u1.h3">全卷宗解鎖</h3><p data-i18n="up.u1.p">不再只停在免費題目。所有棋力區、錯題與高階題庫都能納入修行。</p></article>
+      <article class="unlock-card"><img src="/assets/upgrade_page_assets/icon_infinite_training.webp" alt=""><h3 data-i18n="up.u2.h3">無限修行</h3><p data-i18n="up.u2.p">每日答題不受額度限制，想多練一輪時不會被迫停下。</p></article>
+      <article class="unlock-card"><img src="/assets/upgrade_page_assets/icon_ai_oracle.webp" alt=""><h3 data-i18n="up.u3.h3">AI 星盤解析</h3><p data-i18n="up.u3.p">用 KataGo 輔助看清局部價值、勝率變化與更好的候選手。</p></article>
+      <article class="unlock-card"><img src="/assets/upgrade_page_assets/icon_premium_rewards.webp" alt=""><h3 data-i18n="up.u4.h3">專屬獎勵</h3><p data-i18n="up.u4.p">開通後取得 Premium 外觀、徽章與公會收藏，讓 HERO 更有辨識度。</p></article>
+    </div>
+  </section>
+
+  <section class="compare">
+    <div class="section-head">
+      <div class="tag">Permission Scroll</div>
+      <h2 data-i18n="up.cmp.h2">權限對照卷軸</h2>
+    </div>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead><tr><th data-i18n="up.cmp.perm">公會權限</th><th data-i18n="up.free.badge">見習冒險者</th><th class="pro" data-i18n="up.pro.badge">金徽通行證</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="up.cmp.r1">可練習卷宗</td><td data-i18n="up.cmp.r1f">入門與基礎題</td><td class="pro" data-i18n="up.cmp.r1p">全卷宗解鎖</td></tr>
+          <tr><td data-i18n="up.cmp.r2">每日答題上限</td><td data-i18n="up.cmp.r2f">20 題</td><td class="pro" data-i18n="up.cmp.r2p">無限制</td></tr>
+          <tr><td data-i18n="up.cmp.r3">SRS 間隔複習</td><td><span class="ck" data-i18n="up.cmp.on">開啟</span></td><td class="pro"><span class="ck" data-i18n="up.cmp.fullOn">完整開啟</span></td></tr>
+          <tr><td data-i18n="up.cmp.r4">KataGo 星盤解析</td><td><span class="cx" data-i18n="up.cmp.off">未開放</span></td><td class="pro"><span class="ck" data-i18n="up.cmp.on">開啟</span></td></tr>
+          <tr><td data-i18n="up.cmp.r5">錯題卷宗</td><td data-i18n="up.cmp.r5f">免費題目</td><td class="pro" data-i18n="up.cmp.r5p">全部題目</td></tr>
+          <tr><td data-i18n="up.cmp.r6">戰績檔案</td><td data-i18n="up.cmp.r6f">基礎統計</td><td class="pro" data-i18n="up.cmp.r6p">弱點分析與完整紀錄</td></tr>
+          <tr><td data-i18n="up.cmp.r7">英雄收藏</td><td data-i18n="up.cmp.r7f">基礎外觀</td><td class="pro" data-i18n="up.cmp.r7p">Premium 專屬外觀與徽章</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="faq">
+    <div class="section-head">
+      <div class="tag">FAQ</div>
+      <h2 data-i18n="up.faq.h2">通行證常見問題</h2>
+    </div>
+    <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="up.faq1.q">如何開通金徽通行證？</span><span class="faq-arrow">▶</span></button><div class="faq-body"><div class="faq-body-inner" data-i18n="up.faq1.a">目前採人工開通。按下申請後寄送開通卷軸，管理員確認付款後會將 Premium 綁定到你的帳號。</div></div></div>
+    <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="up.faq2.q">升級後，原本的 SRS 與錯題會消失嗎？</span><span class="faq-arrow">▶</span></button><div class="faq-body"><div class="faq-body-inner" data-i18n="up.faq2.a">不會。你的練習紀錄、SRS 卡片、錯題卷宗、英雄收藏和戰績都會保留，升級後會接著原本進度往前走。</div></div></div>
+    <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="up.faq3.q">免費版還能繼續使用嗎？</span><span class="faq-arrow">▶</span></button><div class="faq-body"><div class="faq-body-inner" data-i18n="up.faq3.a">可以。免費版仍可完成每日基礎修行、使用 SRS 與推進主線。Premium 是給想解鎖全卷宗與 AI 解析的棋士。</div></div></div>
+    <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="up.faq4.q">早期訂閱價格之後會調漲嗎？</span><span class="faq-arrow">▶</span></button><div class="faq-body"><div class="faq-body-inner" data-i18n="up.faq4.a">早期加入的會員享有鎖定優惠價。後續若調整方案，現有訂閱者不受影響。</div></div></div>
+  </section>
+
+  <p class="contact"><span data-i18n="up.contact">有其他問題？請聯繫 </span><a href="mailto:support@godokoro.com">support@godokoro.com</a></p>
+  <p class="contact" style="margin-top:6px"><a href="/terms" data-i18n="up.footer.terms">服務條款與隱私權</a> · <a href="/terms#refund" data-i18n="up.footer.refund">退款政策</a> · <a href="/terms#consumer" data-i18n="up.footer.consumer">消費者權益</a></p>
+  <p class="contact" style="margin-top:24px"><a href="/" class="btn ghost" style="display:inline-flex" data-i18n="up.footer.home">← 回公會主頁</a></p>
+</main>
+
+<div id="toast"></div>
+
+<div id="pay-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box modal-shell modal-system-card">
+    <button class="modal-close" onclick="closeModal()">x</button>
+    <div class="modal-hero">
+      <div class="modal-icon"><img src="/assets/upgrade_page_assets/premium_treasure_chest.webp" alt=""></div>
+      <div class="modal-copy">
+        <div class="modal-eyebrow modal-system-eyebrow" data-i18n="up.modal.eyebrow">Premium 進階練習</div>
+        <h2 class="modal-title modal-system-title" data-i18n="up.modal.title">解鎖更完整的圍棋練習</h2>
+        <p class="modal-sub modal-system-lead" data-i18n="up.modal.sub">升級 Premium，讓你在手感正好的時候繼續練習，並用更清楚的提示理解錯題。</p>
+      </div>
+    </div>
+    <p class="modal-intro modal-system-lead" data-i18n="up.modal.intro">升級 Premium，趁現在繼續進步：</p>
+    <div class="modal-benefits modal-system-benefits" aria-label="Premium benefits">
+      <div class="modal-benefit modal-system-benefit">
+        <span class="modal-benefit-icon modal-system-benefit-icon">⚡</span>
+        <div class="modal-benefit-copy modal-system-benefit-copy">
+          <strong data-i18n="up.modal.b1.title">無限練習</strong>
+          <span data-i18n="up.modal.b1.desc">不受每日 20 題限制，想練就能繼續。</span>
+        </div>
+      </div>
+      <div class="modal-benefit modal-system-benefit">
+        <span class="modal-benefit-icon modal-system-benefit-icon">📘</span>
+        <div class="modal-benefit-copy modal-system-benefit-copy">
+          <strong data-i18n="up.modal.b2.title">錯題解析</strong>
+          <span data-i18n="up.modal.b2.desc">看懂錯在哪裡，抓住下一次該注意的重點。</span>
+        </div>
+      </div>
+      <div class="modal-benefit modal-system-benefit">
+        <span class="modal-benefit-icon modal-system-benefit-icon">✦</span>
+        <div class="modal-benefit-copy modal-system-benefit-copy">
+          <strong data-i18n="up.modal.b3.title">重點提示</strong>
+          <span data-i18n="up.modal.b3.desc">用更清楚的學習線索，整理你的常見弱點。</span>
+        </div>
+      </div>
+    </div>
+    <div id="checkout-email-guard" class="modal-guard" hidden role="status" aria-live="polite" data-i18n="up.err.emailRequired">需要先綁定電子郵件，才能建立付款訂單。請到帳號設定補上 email 後再試一次。</div>
+    <div class="modal-methods">
+      <button type="button" class="modal-method modal-method-primary modal-system-cta" style="cursor:pointer;width:100%;text-align:left;font:inherit" data-payment-provider="newebpay" data-payment-plan="monthly">
+        <span class="mm-icon">💳</span>
+        <span class="mm-text"><strong data-i18n="up.modal.cta">升級 Premium</strong><small data-i18n="up.modal.monthlySub">每月自動續訂，隨時取消</small></span>
+      </button>
+      <button type="button" class="modal-method modal-method-secondary modal-system-cta" style="cursor:pointer;width:100%;text-align:left;font:inherit" data-payment-provider="newebpay" data-payment-plan="annual">
+        <span class="mm-icon">🏆</span>
+        <span class="mm-text"><strong data-i18n="up.modal.annual">年繳 NT$2,490</strong><small data-i18n="up.modal.annualSub">現省 NT$1,098，每年自動續訂</small></span>
+      </button>
+      <div id="paypal-methods" style="display:none">
+        <div style="margin:4px 0 10px;display:flex;align-items:center;gap:10px;color:rgba(255,244,220,.45);font-size:11px">
+          <span style="flex:1;height:1px;background:rgba(255,244,220,.18)"></span>
+          <span data-i18n="up.modal.orPaypal">海外用戶 / International</span>
+          <span style="flex:1;height:1px;background:rgba(255,244,220,.18)"></span>
+        </div>
+        <div style="display:grid;gap:10px">
+          <button type="button" class="modal-method modal-method-secondary modal-system-cta" style="cursor:pointer;width:100%;text-align:left;font:inherit" data-payment-provider="paypal" data-payment-plan="monthly">
+            <span class="mm-icon">🅿️</span>
+            <span class="mm-text"><strong data-i18n="up.modal.ppMonthly">PayPal 月繳 US$9.9</strong><small data-i18n="up.modal.ppMonthlySub">每月自動續訂，隨時取消</small></span>
+          </button>
+          <button type="button" class="modal-method modal-method-secondary modal-system-cta" style="cursor:pointer;width:100%;text-align:left;font:inherit" data-payment-provider="paypal" data-payment-plan="annual">
+            <span class="mm-icon">🌐</span>
+            <span class="mm-text"><strong data-i18n="up.modal.ppAnnual">PayPal 年繳 US$84</strong><small data-i18n="up.modal.ppAnnualSub">現省 US$36，每年自動續訂</small></span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-note modal-system-note" data-i18n-html="up.modal.note">Premium 提供更多練習與學習輔助，不改變題目判定。</div>
+    <button class="modal-ok" onclick="closeModal()" data-i18n="up.modal.ok">再想想</button>
+  </div>
+</div>
+
+<script>
+try{
+  const langSlot=document.getElementById('lang-switcher-up');
+  if(langSlot) I18n.renderSwitcher(langSlot);
+}catch(e){}
+
+const PRICES={zh:{monthly:299,annual:2490,currency:'NT$',save:'省 NT$1,098'},en:{monthly:9.9,annual:84,currency:'US$',save:'Save US$34.8'}};
+let _billing='monthly';
+function _getLang(){try{return I18n.getLang&&I18n.getLang()==='en'?'en':'zh'}catch(e){return'zh'}}
+function _p(){return PRICES[_getLang()]||PRICES.zh}
+function setBilling(mode){
+  _billing=mode;
+  document.getElementById('btn-monthly').classList.toggle('active',mode==='monthly');
+  document.getElementById('btn-annual').classList.toggle('active',mode==='annual');
+  updatePrice();
+}
+function updatePrice(){
+  const p=_p(),annual=_billing==='annual';
+  document.getElementById('cur-pro').textContent=p.currency;
+  document.getElementById('cur-free').textContent=p.currency;
+  document.getElementById('price-num').textContent=annual?p.annual.toLocaleString():p.monthly;
+  document.getElementById('period-pro').textContent=annual?I18n.t('up.period.annual'):I18n.t('up.period.monthly');
+  document.getElementById('period-free').textContent=I18n.t('up.free.period');
+  document.getElementById('save-label').textContent=p.save;
+  const orig=document.querySelector('#price-display .orig');
+  if(annual){
+    if(!orig){
+      const s=document.createElement('span');
+      s.className='orig';
+      s.textContent=p.currency+(p.monthly*12).toLocaleString();
+      document.getElementById('price-display').appendChild(s);
+    }else orig.textContent=p.currency+(p.monthly*12).toLocaleString();
+  }else if(orig) orig.remove();
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+async function loadStatus(){
+  try{
+    const r=await fetch('/api/subscription/status',{credentials:'include'});
+    if(!r.ok)return;
+    const s=await r.json();
+    if(s.is_premium){
+      const btn=document.getElementById('upgrade-btn');
+      btn.textContent=I18n.t('up.pro.owned');
+      btn.disabled=true;
+      loadSubscription();
+      return;
+    }
+    if(typeof s.used_today==='number'&&typeof s.free_limit==='number'){
+      const bar=document.getElementById('usage-bar');
+      bar.style.display='block';
+      document.getElementById('ub-used').textContent=s.used_today;
+      document.getElementById('ub-max').textContent=s.free_limit;
+      const pct=Math.min(100,Math.round(s.used_today/s.free_limit*100));
+      const fill=document.getElementById('ub-fill');
+      fill.style.width=pct+'%';
+      fill.classList.toggle('done',pct>=100);
+      document.getElementById('ub-cap').textContent=pct>=100?I18n.t('up.cap.done'):I18n.t('up.cap.left').replace('{n}',Math.max(0,s.free_limit-s.used_today));
+    }
+  }catch(e){}
+}
+async function handleUpgrade(){
+  document.getElementById('pay-modal').classList.add('show');
+  try{ applyEmailGuard(await loadAccountState()); }catch(e){}
+}
+function closeModal(){document.getElementById('pay-modal').classList.remove('show')}
+
+let _accountState=null;
+let _accountStatePromise=null;
+async function loadAccountState(){
+  if(_accountState) return _accountState;
+  if(_accountStatePromise) return _accountStatePromise;
+  _accountStatePromise=(async()=>{
+    try{
+      const r=await fetch('/api/auth/me',{credentials:'include'});
+      if(!r.ok) return null;
+      const d=await r.json().catch(()=>null);
+      if(d) _accountState=d;
+      return d;
+    }catch(e){
+      return null;
+    }finally{
+      _accountStatePromise=null;
+    }
+  })();
+  return _accountStatePromise;
+}
+function applyEmailGuard(account){
+  const blocked=!!(account&&account.logged_in&&!account.has_email);
+  const guard=document.getElementById('checkout-email-guard');
+  if(guard) guard.hidden=!blocked;
+  document.querySelectorAll('#pay-modal .modal-method[data-payment-provider][data-payment-plan]').forEach(btn=>{
+    btn.disabled=blocked;
+    btn.setAttribute('aria-disabled',blocked?'true':'false');
+  });
+  return blocked;
+}
+async function ensureCheckoutEmailReady(){
+  const account=await loadAccountState();
+  if(applyEmailGuard(account)){
+    showToast(I18n.t('up.err.emailRequired'));
+    return false;
+  }
+  return true;
+}
+
+// ── 藍新定期定額結帳 ──
+let _checkoutBusy=false;
+async function startCheckout(plan){
+  if(_checkoutBusy)return;
+  if(!(await ensureCheckoutEmailReady())) return;
+  _checkoutBusy=true;
+  try{
+    const r=await fetch('/api/pay/newebpay/subscribe',{
+      method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plan})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.error){
+      const msgs={
+        email_unverified:I18n.t('up.err.emailUnverified'),
+        already_subscribed:I18n.t('up.err.alreadySubscribed'),
+        not_configured:I18n.t('up.err.notConfigured')
+      };
+      if(r.status===401){location.href='/login.html?next=/upgrade';return;}
+      showToast(msgs[d.error]||d.message||d.error||'Error');
+      return;
+    }
+    // 組表單自動送到藍新付款頁
+    const f=document.createElement('form');
+    f.method='POST';f.action=d.form.action;f.style.display='none';
+    for(const[k,v]of Object.entries(d.form.fields)){
+      const i=document.createElement('input');
+      i.type='hidden';i.name=k;i.value=v;f.appendChild(i);
+    }
+    document.body.appendChild(f);
+    f.submit();
+  }catch(e){
+    showToast('Network error');
+  }finally{
+    _checkoutBusy=false;
+  }
+}
+
+async function startPaypal(plan){
+  if(_checkoutBusy)return;
+  if(!(await ensureCheckoutEmailReady())) return;
+  _checkoutBusy=true;
+  try{
+    const r=await fetch('/api/pay/paypal/subscribe',{
+      method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({plan})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.error){
+      const msgs={
+        email_unverified:I18n.t('up.err.emailUnverified'),
+        already_subscribed:I18n.t('up.err.alreadySubscribed'),
+        not_configured:I18n.t('up.err.notConfigured')
+      };
+      if(r.status===401){location.href='/login.html?next=/upgrade';return;}
+      showToast(msgs[d.error]||d.message||d.error||'Error');
+      return;
+    }
+    location.href=d.approval_url;
+  }catch(e){
+    showToast('Network error');
+  }finally{
+    _checkoutBusy=false;
+  }
+}
+
+(function bindPayModalButtons(){
+  const modal=document.getElementById('pay-modal');
+  if(!modal)return;
+  modal.addEventListener('click',event=>{
+    const btn=event.target.closest('button[data-payment-provider][data-payment-plan]');
+    if(!btn || !modal.contains(btn))return;
+    const provider=btn.dataset.paymentProvider;
+    const plan=btn.dataset.paymentPlan;
+    if(provider==='paypal') startPaypal(plan);
+    else startCheckout(plan);
+  });
+})();
+// PayPal 已設定才顯示入口
+(async function(){
+  try{
+    const r=await fetch('/api/pay/plans');
+    const d=await r.json();
+    if(d.paypal_configured)document.getElementById('paypal-methods').style.display='block';
+  }catch(e){}
+})();
+
+// ── 訂閱狀態 / 取消續訂 ──
+async function loadSubscription(){
+  try{
+    const r=await fetch('/api/pay/subscription',{credentials:'include'});
+    if(!r.ok)return;
+    const s=await r.json();
+    const box=document.getElementById('already-premium');
+    if(!box)return;
+    let extra='';
+    if(s.premium_until){
+      const d=new Date(s.premium_until);
+      if(!isNaN(d))extra+='<div style="margin-top:8px;font-weight:400;font-size:13px;color:#d9fffb">'
+        +I18n.t('up.sub.until').replace('{date}',d.toLocaleDateString())+'</div>';
+    }
+    if(s.subscription&&s.subscription.status==='active'){
+      extra+='<div style="margin-top:10px"><button onclick="cancelSubscription()" '
+        +'style="border:1px solid rgba(255,255,255,.25);border-radius:10px;background:rgba(255,255,255,.07);'
+        +'color:#ffd9d2;padding:8px 14px;cursor:pointer;font-weight:700;font-size:13px">'
+        +I18n.t('up.sub.cancel')+'</button></div>';
+    }else if(s.subscription&&s.subscription.status==='pending'){
+      extra+='<div style="margin-top:8px;font-weight:400;font-size:13px;color:#ffe9b0">'
+        +I18n.t('up.sub.pending')+'</div>';
+    }
+    if(extra)box.insertAdjacentHTML('beforeend',extra);
+  }catch(e){}
+}
+async function cancelSubscription(){
+  if(!confirm(I18n.t('up.sub.cancelConfirm')))return;
+  try{
+    const r=await fetch('/api/pay/subscription/cancel',{method:'POST',credentials:'include'});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||d.error){showToast(d.message||d.error||'Error');return;}
+    showToast(I18n.t('up.sub.cancelled'));
+    setTimeout(()=>location.reload(),1500);
+  }catch(e){showToast('Network error');}
+}
+
+// ── 付款導回結果提示 ──
+(function(){
+  const pay=new URLSearchParams(location.search).get('pay');
+  if(!pay)return;
+  history.replaceState(null,'',location.pathname);
+  setTimeout(()=>{
+    if(pay==='success')showToast(I18n.t('up.pay.success'));
+    else if(pay==='failed')showToast(I18n.t('up.pay.failed'));
+  },350);
+})();
+function toggleFaq(btn){
+  const body=btn.nextElementSibling;
+  const open=btn.classList.toggle('open');
+  body.classList.toggle('open',open);
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+updatePrice();
+void loadAccountState().then(applyEmailGuard).catch(()=>{});
+loadStatus();
+window.onLangChange=()=>{ if(typeof I18n!=='undefined')I18n.apply(); updatePrice(); loadStatus(); };
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>

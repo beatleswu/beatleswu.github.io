@@ -5,6 +5,21 @@ Audit Date: 2026-07-11
 Canonical Git Commit: `4ea3f63e62d8db9ec50815f99e9ccf0ac6780caf` (`origin/master`)
 Production Host: SSH alias `oracle_godoyssey` (instance `instance-20260609-0051`)
 
+> **DEPLOY-GOV-2E status note (2026-07-11):** Gap #1 below ("no
+> deterministic, single-source build") is now resolved for the application
+> image itself — a clean checkout of PR #52 builds successfully. See
+> [canonical_image_build.md](canonical_image_build.md) for the full build
+> source and the "App Image / Content Boundary" documenting what is
+> intentionally kept outside the image (large/mutable content served via
+> runtime mounts) versus what was found to be genuine user data or internal
+> residue and excluded permanently. This does not resolve gap #2
+> ("deployment source is an unmanaged local working directory") — the
+> actual production deployment mechanism (`deploy.ps1`, static-release
+> flow) is unchanged and still PENDING GOVERNANCE AUDIT. This note does not
+> change any finding below — production still runs the pre-E2.4A build, and
+> no deployment
+> mechanism has been validated or executed.
+
 ## Executive Summary
 
 Production is **not** deployed from `origin/master` (`beatleswu.github.io`) directly, and it is **not**

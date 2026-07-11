@@ -226,7 +226,7 @@ def add_no_cache_headers(response):
         response.headers['Cache-Control'] = 'no-cache'
     return response
 
-DATA_FILE = 'questions.json'
+DATA_FILE = os.environ.get('QUESTIONS_JSON_PATH', 'questions.json')
 CACHE_DB  = 'katago_cache.db'
 
 DIFFICULTY_ORDER = [
@@ -21028,9 +21028,19 @@ def rt_claim_sp():
 # （已有的 endpoint 會自動從 users 表讀取 elo_rating，無需修改）
 
 
+def _env_flag_enabled(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    if not normalized:
+        return False
+    return normalized in {'1', 'true', 'yes', 'on'}
+
+
 def _start_premium_weekly_scheduler():
     """Run the idempotent job hourly; generation itself is keyed by report week."""
-    if os.environ.get('PREMIUM_WEEKLY_SCHEDULER_ENABLED', '1') != '1':
+    if not _env_flag_enabled('PREMIUM_WEEKLY_SCHEDULER_ENABLED'):
         return
     def worker():
         from premium_weekly_job import run_once

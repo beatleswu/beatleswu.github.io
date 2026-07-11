@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="inv.title">物品欄 — 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<script src="/community_reward_notifications.js?v=20260706b" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+:root {
+    --cream:    #faf7f2;
+    --cream2:   #f3ede3;
+    --cream3:   #ede4d4;
+    --ink:      #1c1409;
+    --ink2:     #3d2f1a;
+    --ink3:     #6b5740;
+    --ink4:     #a89070;
+    --amber:    #d97706;
+    --amber-bg: #fffbeb;
+    --teal:     #0d9488;
+    --teal-bg:  #f0fdfa;
+    --teal-mid: #99f6e4;
+    --border:   #e5ddd0;
+    --border2:  #d4c9b8;
+    --white:    #ffffff;
+    --surface2: #f6f1ea;
+    --shadow:   0 1px 3px rgba(28,20,9,.06), 0 4px 16px rgba(28,20,9,.06);
+    --shadow-lg:0 8px 40px rgba(28,20,9,.12);
+    --green:    #16a34a;
+    --red:      #dc2626;
+    --red-bg:   #fef2f2;
+    --mono:     'DM Mono', monospace;
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 52px 52px; opacity: .35;
+}
+
+/* ══ HEADER ══════════════════════════════════════════════════ */
+header:not(.cg-nav) {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,247,242,.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 700; color: var(--ink);
+    text-decoration: none; letter-spacing: .5px;
+}
+.logo-mark {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white;
+}
+.header-nav { display: flex; align-items: center; gap: 4px; }
+.nav-link {
+    font-size: 14px; color: var(--ink3); text-decoration: none;
+    padding: 7px 13px; border-radius: 6px; transition: all .15s;
+    display: flex; align-items: center; gap: 4px;
+}
+.nav-link:hover { background: var(--cream2); color: var(--ink); }
+.nav-link.active { background: var(--teal-bg); color: var(--teal); }
+.nav-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.btn-logout {
+    font-size: 11px; color: var(--ink3); background: none; border: none;
+    cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all .15s;
+}
+.btn-logout:hover { background: var(--red-bg); color: var(--red); }
+
+/* ══ STATS STRIP ═════════════════════════════════════════════ */
+.stats-strip {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex; align-items: center; gap: 40px;
+    position: relative; z-index: 10;
+    flex-wrap: wrap;
+}
+.strip-stat { text-align: center; min-width: 70px; }
+.strip-stat .s-val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px; font-weight: 700; line-height: 1;
+}
+.strip-stat .s-val.teal  { color: var(--teal); }
+.strip-stat .s-val.amber { color: var(--amber); }
+.strip-stat .s-val.gold  { color: #b45309; }
+.strip-stat .s-lbl {
+    font-size: 10px; color: var(--ink3); font-family: var(--mono);
+    letter-spacing: .5px; margin-top: 3px;
+}
+
+/* ══ MAIN ════════════════════════════════════════════════════ */
+main {
+    position: relative; z-index: 1;
+    max-width: 900px; margin: 0 auto;
+    padding: 32px 28px 80px;
+}
+.section-label {
+    font-family: var(--mono);
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+}
+.section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.section-wrap { margin-bottom: 40px; }
+
+/* ══ COIN CARD ════════════════════════════════════════════════ */
+.coin-card {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fff9e6 100%);
+    border: 1.5px solid #fbbf24;
+    border-radius: 20px;
+    padding: 32px 36px;
+    display: flex; align-items: center; gap: 32px;
+    box-shadow: 0 4px 24px rgba(217,119,6,.12);
+    position: relative; overflow: hidden;
+}
+.coin-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+        45deg, transparent, transparent 20px,
+        rgba(251,191,36,.06) 20px, rgba(251,191,36,.06) 21px
+    );
+    pointer-events: none;
+}
+.coin-icon-big {
+    font-size: 64px;
+    filter: drop-shadow(0 4px 12px rgba(217,119,6,.4));
+    flex-shrink: 0;
+    animation: coinFloat 3s ease-in-out infinite;
+}
+@keyframes coinFloat {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+}
+.coin-info { flex: 1; }
+.coin-info .coin-label {
+    font-size: 11px; font-family: var(--mono); letter-spacing: 3px;
+    text-transform: uppercase; color: var(--amber); margin-bottom: 8px;
+}
+.coin-info .coin-amount {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 60px; font-weight: 700; line-height: 1;
+    color: #92400e;
+}
+.coin-info .coin-sub {
+    font-size: 13px; color: var(--ink3); margin-top: 6px;
+}
+
+/* ══ HOW TO EARN ══════════════════════════════════════════════ */
+.earn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+}
+.earn-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+    transition: all .15s;
+}
+.earn-card:hover { border-color: var(--amber); box-shadow: var(--shadow); }
+.earn-card .ec-icon { font-size: 28px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+.earn-card .ec-title { font-size: 13px; font-weight: 600; color: var(--ink2); margin-bottom: 4px; }
+.earn-card .ec-desc  { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+.earn-card .ec-rate  {
+    margin-top: 6px; display: inline-block;
+    font-size: 10px; font-family: var(--mono); font-weight: 600;
+    background: var(--amber-bg); color: var(--amber);
+    border: 1px solid #fde68a; border-radius: 99px; padding: 2px 8px;
+}
+
+/* ══ COMING SOON ══════════════════════════════════════════════ */
+.coming-soon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+}
+.cs-card {
+    background: var(--white);
+    border: 1px dashed var(--border2);
+    border-radius: 14px;
+    padding: 20px 12px;
+    text-align: center;
+    opacity: .7;
+    position: relative;
+}
+.cs-card .cs-icon    { font-size: 32px; margin-bottom: 8px; filter: grayscale(.5); }
+.cs-card .cs-name    { font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 4px; }
+.cs-card .cs-tag     {
+    font-size: 9px; font-family: var(--mono); letter-spacing: 1px;
+    background: var(--cream2); color: var(--ink3);
+    border-radius: 99px; padding: 2px 8px; display: inline-block;
+}
+
+/* ══ CHALLENGE STATS ══════════════════════════════════════════ */
+.challenge-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+}
+.cstat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+}
+.cstat-card .cstat-val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px; font-weight: 700; line-height: 1; color: var(--teal);
+    margin-bottom: 6px;
+}
+.cstat-card .cstat-val.amber { color: var(--amber); }
+.cstat-card .cstat-val.gold  { color: #b45309; }
+.cstat-card .cstat-lbl {
+    font-size: 11px; font-family: var(--mono); color: var(--ink3);
+}
+
+/* ══ MOBILE ══════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+    header:not(.cg-nav) { padding: 0 14px; }
+    .header-nav .nav-link { display: none; }
+    main { padding: 20px 16px 72px; }
+    .stats-strip { padding: 12px 16px; gap: 20px; }
+    .coin-card { flex-direction: column; text-align: center; padding: 24px 20px; gap: 16px; }
+    .coin-info .coin-amount { font-size: 48px; }
+    .coin-icon-big { font-size: 48px; }
+}
+
+    /* ── ≤1366px：手機/iPad 用統一 32x32 圖示 nav ── */
+    @media (max-width: 1366px) {
+        header:not(.cg-nav) { padding: 0 10px !important; height: 50px !important; }
+        .logo-name { display: none !important; }
+        .nav-avatar-wrap, .status-pill, .nav-sep { display: none !important; }
+        .header-nav { gap: 3px !important; flex-wrap: nowrap; overflow-x: auto; }
+        #menu-btn { display: flex !important; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0 !important; font-size: 18px !important; flex-shrink: 0; background: none; border: none; cursor: pointer; }
+        #streak-pill { font-size: 10px !important; padding: 2px 8px !important; flex-shrink: 0; }
+        .header-nav .nav-link {
+            display: inline-flex !important;
+            align-items: center; justify-content: center;
+            width: 32px !important; height: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px;
+            font-size: 0 !important;
+            background: transparent;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .header-nav .nav-link::before {
+            content: attr(data-icon);
+            font-size: 18px !important;
+            line-height: 1;
+        }
+        .header-nav .nav-link:hover { background: var(--cream2); }
+        .header-nav .nav-link > span:not(#mistake-badge):not(#coins-nav-count) { display: none !important; }
+        .header-nav .nav-link svg { width: 22px !important; height: 22px !important; display: block !important; }
+        .header-nav .nav-link[href="/play"]::before { content: none !important; }
+        .header-nav #coins-nav-btn { width: auto !important; min-width: 32px; padding: 0 6px !important; gap: 2px; }
+        .header-nav #coins-nav-btn #coins-nav-count {
+            display: inline !important;
+            font-size: 11px !important;
+            font-family: 'DM Mono', monospace;
+            color: var(--amber);
+        }
+        .header-nav .nav-link[href="/mistakes"] { position: relative; }
+        #mistake-badge {
+            position: absolute !important;
+            top: -2px !important; right: -2px !important;
+            font-size: 8px !important;
+            padding: 0 4px !important;
+            line-height: 1.4 !important;
+        }
+        #xp-hud { font-size: 10px !important; gap: 4px !important; padding: 2px 6px !important; flex-shrink: 0; }
+        #xp-bar-wrap { width: 50px !important; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo">
+    <div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>
+    弈境奇兵 (Go Odyssey)
+  </a>
+  <div class="header-nav">
+    <a href="/"             class="nav-link" data-i18n="nav.practice">&#128214; 練習</a>
+    <a href="/community"    class="nav-link" data-i18n="nav.community">&#128101; 社群</a>
+    <a href="/badges"       class="nav-link" data-i18n="nav.badges">&#127941; 獎章</a>
+    <a href="/stats"        class="nav-link" data-i18n="nav.stats">&#128202; 儀表板</a>
+    <a href="/inventory"    class="nav-link active" data-i18n="inv.nav.inventory">&#127890; 物品欄</a>
+    <div class="nav-sep"></div>
+    <span id="username-display" style="font-size:11px;color:var(--ink3);font-family:var(--mono);padding:4px 8px;"></span>
+    <button class="btn-logout" onclick="doLogout()" data-i18n="nav.logout">登出</button>
+  </div>
+</header>
+
+<!-- Stats strip -->
+<div class="stats-strip">
+  <div class="strip-stat">
+    <div class="s-val amber" id="strip-coins">—</div>
+    <div class="s-lbl" data-i18n="inv.coins">&#127890; 金幣</div>
+  </div>
+  <div class="strip-stat">
+    <div class="s-val teal"  id="strip-wins">—</div>
+    <div class="s-lbl" data-i18n="inv.wins">&#9876;&#65039; 挑戰勝場</div>
+  </div>
+  <div class="strip-stat">
+    <div class="s-val gold"  id="strip-streak">—</div>
+    <div class="s-lbl" data-i18n="inv.streak">&#128293; 目前連勝</div>
+  </div>
+  <div class="strip-stat">
+    <div class="s-val teal"  id="strip-maxstreak">—</div>
+    <div class="s-lbl" data-i18n="inv.maxStreak">&#127942; 最高連勝</div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ── 金幣 ── -->
+  <div class="section-wrap">
+    <div class="section-label" data-i18n="inv.myCoins">&#127890; 我的金幣</div>
+    <div class="coin-card">
+      <div class="coin-icon-big">&#127890;</div>
+      <div class="coin-info">
+        <div class="coin-label" data-i18n="inv.balance">金幣餘額</div>
+        <div class="coin-amount" id="coin-main">—</div>
+        <div class="coin-sub" data-i18n="inv.coinSub">可用於未來商城兌換道具、頭像、特效</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 如何獲得 ── -->
+  <div class="section-wrap">
+    <div class="section-label" data-i18n="inv.howTo">&#128281; 如何獲得金幣</div>
+    <div class="earn-grid">
+      <div class="earn-card">
+        <div class="ec-icon">&#9876;&#65039;</div>
+        <div>
+          <div class="ec-title" data-i18n="inv.earn1.t">好友挑戰</div>
+          <div class="ec-desc" data-i18n="inv.earn1.d">完成好友挑戰後有機率隨機掉落寶物</div>
+          <span class="ec-rate" data-i18n="inv.earn1.r">最高 +100 金幣 / 場</span>
+        </div>
+      </div>
+      <div class="earn-card" style="opacity:.55;">
+        <div class="ec-icon">&#128197;</div>
+        <div>
+          <div class="ec-title" data-i18n="inv.earn2.t">每日挑戰</div>
+          <div class="ec-desc" data-i18n="inv.earn2.d">完成每日挑戰獲得獎勵</div>
+          <span class="ec-rate" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;" data-i18n="inv.comingSoon">即將推出</span>
+        </div>
+      </div>
+      <div class="earn-card" style="opacity:.55;">
+        <div class="ec-icon">&#127942;</div>
+        <div>
+          <div class="ec-title" data-i18n="inv.earn3.t">段位進階</div>
+          <div class="ec-desc" data-i18n="inv.earn3.d">達到新段位里程碑獲得慶賀金幣</div>
+          <span class="ec-rate" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;" data-i18n="inv.comingSoon">即將推出</span>
+        </div>
+      </div>
+      <div class="earn-card" style="opacity:.55;">
+        <div class="ec-icon">&#128293;</div>
+        <div>
+          <div class="ec-title" data-i18n="inv.earn4.t">連勝獎勵</div>
+          <div class="ec-desc" data-i18n="inv.earn4.d">累積答題連勝達到里程碑</div>
+          <span class="ec-rate" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;" data-i18n="inv.comingSoon">即將推出</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 挑戰戰績 ── -->
+  <div class="section-wrap">
+    <div class="section-label" data-i18n="inv.challengeStats">&#9876;&#65039; 好友挑戰戰績</div>
+    <div class="challenge-stats-grid">
+      <div class="cstat-card">
+        <div class="cstat-val teal" id="cs-wins">—</div>
+        <div class="cstat-lbl" data-i18n="inv.totalWins">累計勝場</div>
+      </div>
+      <div class="cstat-card">
+        <div class="cstat-val amber" id="cs-streak">—</div>
+        <div class="cstat-lbl" data-i18n="inv.curStreak">目前連勝</div>
+      </div>
+      <div class="cstat-card">
+        <div class="cstat-val gold" id="cs-maxstreak">—</div>
+        <div class="cstat-lbl" data-i18n="inv.maxStreakHist">歷史最高連勝</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 商城道具預告 ── -->
+  <div class="section-wrap">
+    <div class="section-label" data-i18n="inv.shopPreview">&#127873; 未來商城道具預覽</div>
+    <div class="coming-soon-grid">
+      <div class="cs-card">
+        <div class="cs-icon">&#128081;</div>
+        <div class="cs-name" data-i18n="inv.item.hat">特殊帽子</div>
+        <span class="cs-tag">COMING SOON</span>
+      </div>
+      <div class="cs-card">
+        <div class="cs-icon">&#127775;</div>
+        <div class="cs-name" data-i18n="inv.item.boardFx">棋盤特效</div>
+        <span class="cs-tag">COMING SOON</span>
+      </div>
+      <div class="cs-card">
+        <div class="cs-icon">&#128167;</div>
+        <div class="cs-name" data-i18n="inv.item.sound">落子音效</div>
+        <span class="cs-tag">COMING SOON</span>
+      </div>
+      <div class="cs-card">
+        <div class="cs-icon">&#128444;&#65039;</div>
+        <div class="cs-name" data-i18n="inv.item.frame">頭像框</div>
+        <span class="cs-tag">COMING SOON</span>
+      </div>
+      <div class="cs-card">
+        <div class="cs-icon">&#9881;&#65039;</div>
+        <div class="cs-name" data-i18n="inv.item.theme">主題皮膚</div>
+        <span class="cs-tag">COMING SOON</span>
+      </div>
+      <div class="cs-card">
+        <div class="cs-icon">&#128247;</div>
+        <div class="cs-name" data-i18n="inv.item.title">稱號</div>
+        <span class="cs-tag">COMING SOON</span>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink3);margin-top:14px;text-align:center;font-family:var(--mono);">
+      <span data-i18n="inv.shopDev">商城功能正在開發中，敬請期待 ✨</span>
+    </p>
+  </div>
+
+</main>
+
+<script>
+async function doLogout() {
+  await fetch('/api/auth/logout', { method:'POST', credentials:'include' });
+  window.location.href = '/login';
+}
+
+async function loadData() {
+  try {
+    // 金幣 & 挑戰資料
+    const res = await fetch('/api/user/coins', { credentials: 'include' });
+    const d   = await res.json();
+
+    const coins     = d.coins ?? 0;
+    const wins      = d.challenge_wins ?? 0;
+    const streak    = d.challenge_win_streak ?? 0;
+    const maxStreak = d.max_challenge_win_streak ?? 0;
+
+    document.getElementById('strip-coins').textContent     = coins.toLocaleString();
+    document.getElementById('strip-wins').textContent      = wins;
+    document.getElementById('strip-streak').textContent    = streak;
+    document.getElementById('strip-maxstreak').textContent = maxStreak;
+
+    document.getElementById('coin-main').textContent  = coins.toLocaleString();
+    document.getElementById('cs-wins').textContent    = wins;
+    document.getElementById('cs-streak').textContent  = streak;
+    document.getElementById('cs-maxstreak').textContent = maxStreak;
+  } catch(e) {
+    console.warn('load coins error', e);
+  }
+
+  // 使用者名稱
+  try {
+    const r2 = await fetch('/api/auth/me', { credentials: 'include' });
+    const u  = await r2.json();
+    if (u.username) {
+      const el = document.getElementById('username-display');
+      if (el) el.textContent = u.display_name || u.nickname || u.username || 'Player';
+    }
+  } catch(_) {}
+}
+
+loadData();
+</script>
+<script src="/mobile-nav.js?v=20260603mn"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+<script src="/sound.js?v=2"></script>
+</body>
+</html>

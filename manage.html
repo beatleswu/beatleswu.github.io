@@ -1,0 +1,3504 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>題庫管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Noto+Serif+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/wgo/wgo.min.js"></script>
+<link  rel="stylesheet" href="/wgo/wgo.player.css">
+<script src="/i18n.js?v=20260710a"></script>
+<style>
+/* ── CSS 變數（與 index.html 相同的設計 token）── */
+:root {
+  --cream:   #faf7f2;
+  --cream2:  #f3ede3;
+  --cream3:  #ede4d4;
+  --cream4:  #e5d9c8;
+  --ink:     #1c1409;
+  --ink2:    #3d2e1e;
+  --ink3:    #6b5740;
+  --ink4:    #9c7e5e;
+  --border:  #e5ddd0;
+  --border2: #d4c9b8;
+  --teal:    #0d9488;
+  --teal2:   #ccfbf1;
+  --amber:   #d97706;
+  --amber2:  #fef3c7;
+  --red:     #dc2626;
+  --red2:    #fee2e2;
+  --green:   #16a34a;
+  --green2:  #dcfce7;
+  --shadow:  0 2px 12px rgba(28,20,9,.08);
+  --shadow2: 0 4px 24px rgba(28,20,9,.13);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Serif TC', serif;
+  background: var(--cream);
+  color: var(--ink);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── HEADER ── */
+header:not(.cg-nav) {
+  background: var(--cream);
+  border-bottom: 1.5px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.header-logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header-logo strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+#stats {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  background: var(--cream2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+}
+.search-wrap svg {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink4);
+  pointer-events: none;
+}
+#search-input {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: var(--cream2);
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  padding: 6px 10px 6px 30px;
+  border-radius: 8px;
+  width: 200px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+#search-input:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(217,119,6,.1);
+}
+#search-input::placeholder { color: var(--ink4); }
+
+.btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .18s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--ink3); color: var(--ink); background: var(--cream2); }
+.btn-danger:hover { border-color: var(--red); color: var(--red); background: var(--red2); }
+.btn-amber { border-color: var(--amber); color: var(--amber); }
+.btn-amber:hover { background: var(--amber2); color: #92400e; }
+
+/* ── LAYOUT ── */
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 56px);
+}
+
+/* ── LEFT SIDEBAR ── */
+aside {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--cream2);
+  border-right: 1.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.sidebar-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+#book-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--amber);
+}
+
+#tree-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+#tree-list::-webkit-scrollbar { width: 4px; }
+#tree-list::-webkit-scrollbar-track { background: transparent; }
+#tree-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── 難度分組標頭（樹狀列） ── */
+.tree-band-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 10px 3px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  user-select: none;
+  margin-top: 4px;
+}
+.tree-band-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.tier-cover {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 6px 8px 8px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  object-fit: cover;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.tier-cover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+.tree-band-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── 書本節點 ── */
+.book-node { margin-bottom: 4px; }
+
+.book-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background .15s;
+  border: 1.5px solid transparent;
+  user-select: none;
+}
+.book-header:hover { background: var(--cream3); }
+.book-header.active {
+  background: rgba(217,119,6,.1);
+  border-color: rgba(217,119,6,.35);
+}
+
+.book-toggle {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  width: 14px;
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+.book-toggle.open { transform: rotate(90deg); }
+
+.book-icon { font-size: 14px; flex-shrink: 0; }
+
+.book-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.book-stat {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  flex-shrink: 0;
+}
+.book-stat span { color: var(--amber); }
+
+.book-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.book-header:hover .book-actions { opacity: 1; }
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 5px;
+  color: var(--ink4);
+  font-size: 11px;
+  transition: all .15s;
+  line-height: 1;
+}
+.icon-btn:hover { background: var(--cream4); color: var(--ink2); }
+.icon-btn.del:hover { background: var(--red2); color: var(--red); }
+
+/* ── 章節列表 ── */
+.chapter-list {
+  margin-left: 20px;
+  margin-top: 2px;
+  border-left: 1.5px solid var(--border);
+  padding-left: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.chapter-list.open { display: flex; }
+
+.chapter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background .15s;
+  border: 1.5px solid transparent;
+}
+.chapter-item:hover { background: var(--cream3); }
+.chapter-item.active {
+  background: rgba(13,148,136,.08);
+  border-color: rgba(13,148,136,.3);
+}
+
+.chapter-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+.chapter-item.active .chapter-dot { background: var(--teal); }
+
+.chapter-name {
+  flex: 1;
+  font-size: 11.5px;
+  color: var(--ink3);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chapter-item.active .chapter-name { color: var(--teal); font-weight: 600; }
+
+.chapter-stat {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  flex-shrink: 0;
+}
+
+.chapter-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.chapter-item:hover .chapter-actions { opacity: 1; }
+
+/* 章節拖拉把手 */
+.ch-drag-handle {
+  font-size: 11px;
+  color: var(--border2);
+  cursor: grab;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .15s;
+  line-height: 1;
+  padding: 0 1px;
+  user-select: none;
+}
+.chapter-item:hover .ch-drag-handle { opacity: 1; }
+.chapter-item.ch-dragging {
+  opacity: .4;
+  background: var(--cream3);
+}
+.chapter-item.ch-drag-over {
+  border-top: 2px solid var(--amber) !important;
+  border-radius: 0;
+}
+
+/* 章節名稱 inline 編輯 */
+.chapter-name-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  border-bottom: 1.5px solid #d97706;
+  outline: none;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--ink);
+  padding: 0 2px;
+  min-width: 0;
+}
+
+/* 新增章節 inline 列 */
+.chapter-add-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px 4px 20px;
+  border-radius: 7px;
+  margin: 1px 0;
+  background: #fffbeb;
+  border: 1.5px dashed #d97706;
+}
+.chapter-add-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--ink);
+  padding: 0 2px;
+  min-width: 0;
+}
+.chapter-add-input::placeholder { color: #d97706; opacity: .6; }
+
+/* ── MAIN ── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--cream);
+}
+
+.main-toolbar {
+  padding: 12px 24px;
+  border-bottom: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.breadcrumb-book {
+  font-size: 11px;
+  color: var(--ink4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.breadcrumb-sep {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--border2);
+}
+.breadcrumb-chapter {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#q-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  background: var(--cream2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+/* 批次難度 */
+.batch-bar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+.batch-bar.visible { display: flex; }
+
+/* ── 批次勾選操作列 ── */
+#batch-select-bar {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 18px;
+  align-items: center;
+  gap: 10px;
+  border-top: 2px solid var(--amber);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+}
+#batch-select-bar.visible { display: flex; }
+#batch-select-bar .batch-count {
+  flex: 1;
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+.batch-action-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .15s;
+}
+.batch-action-btn.move  { background: var(--teal);  color: #fff; }
+.batch-action-btn.move:hover  { background: #0a7367; }
+.batch-action-btn.del   { background: var(--red);   color: #fff; }
+.batch-action-btn.del:hover   { background: #b91c1c; }
+.batch-action-btn.clear { background: transparent; color: #ccc; border: 1px solid #555; }
+.batch-action-btn.clear:hover { background: #333; }
+
+/* 勾選框樣式 */
+.row-check {
+  width: 16px; height: 16px;
+  cursor: pointer;
+  accent-color: var(--teal);
+}
+thead .row-check { accent-color: var(--amber); }
+
+select.diff-select {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  background: var(--cream2);
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  padding: 5px 8px;
+  border-radius: 7px;
+  outline: none;
+  cursor: pointer;
+}
+select.diff-select:focus { border-color: var(--amber); }
+
+.btn-apply {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: none;
+  background: var(--amber);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background .15s;
+}
+.btn-apply:hover { background: #b45309; }
+
+/* ── 題目表格 ── */
+.table-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+.table-wrap::-webkit-scrollbar { width: 5px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--cream2);
+  border-bottom: 1.5px solid var(--border);
+}
+thead th {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink4);
+  padding: 10px 16px;
+  font-weight: 400;
+  text-align: left;
+}
+thead th.center { text-align: center; }
+thead th.right  { text-align: right; }
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+tbody tr:hover { background: var(--cream2); }
+tbody tr.disabled-row { opacity: .45; }
+
+td {
+  padding: 10px 16px;
+  vertical-align: middle;
+}
+.td-id {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--ink4);
+  width: 56px;
+}
+.td-name {
+  font-size: 13px;
+  color: var(--ink2);
+}
+.td-name .display-name { font-weight: 500; }
+.td-name .source-hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  margin-top: 1px;
+}
+.td-center { text-align: center; }
+.td-right  { text-align: right; }
+
+.player-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink3);
+}
+.stone {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stone-b { background: var(--ink); border: 1px solid var(--ink3); }
+.stone-w { background: #fff; border: 1.5px solid var(--ink4); }
+
+/* 行內難度下拉 */
+select.inline-diff {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  background: var(--cream2);
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  padding: 3px 6px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  max-width: 90px;
+}
+select.inline-diff:focus { border-color: var(--amber); }
+
+/* 行內分類下拉（寬一點放中文） */
+select.inline-disc {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  background: var(--cream2);
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  padding: 3px 6px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  max-width: 80px;
+}
+select.inline-disc:focus { border-color: var(--teal); }
+/* 分類色標（badge 風格） */
+.disc-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  display: inline-block;
+  font-weight: 600;
+}
+.disc-life_death       { background:#fee2e2; color:#dc2626; }
+.disc-tesuji           { background:#fef3c7; color:#d97706; }
+.disc-chase            { background:#fff7ed; color:#ea580c; }
+.disc-shape            { background:#f0fdf4; color:#16a34a; }
+.disc-fuseki           { background:#fce7f3; color:#db2777; }
+.disc-whole_board      { background:#e0e7ff; color:#4338ca; }
+.disc-endgame_counting { background:#ccfbf1; color:#0d9488; }
+/* 向後相容舊代碼（已合併，不再新增） */
+.disc-endgame          { background:#d1fae5; color:#059669; }
+.disc-opening_direction{ background:#fce7f3; color:#db2777; }
+.disc-capture_escape   { background:#fff7ed; color:#ea580c; }
+.disc-connection_cut   { background:#f0fdf4; color:#16a34a; }
+.disc-shape_weakness   { background:#f5f3ff; color:#7c3aed; }
+
+/* enabled toggle */
+.toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.toggle {
+  width: 30px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--border2);
+  position: relative;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--teal); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: left .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.toggle.on::after { left: 16px; }
+
+/* SRS badge */
+.srs-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.srs-new   { background: var(--cream3); color: var(--ink4); }
+.srs-due   { background: var(--red2);   color: var(--red);  }
+.srs-ok    { background: var(--green2); color: var(--green);}
+
+/* 操作按鈕（hover 才顯示）*/
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity .15s;
+}
+tbody tr:hover .row-actions { opacity: 1; }
+
+.row-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.row-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber2); }
+.row-btn.del:hover { border-color: var(--red); color: var(--red); background: var(--red2); }
+
+/* empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 80px 24px;
+  color: var(--ink4);
+}
+.empty-state svg { opacity: .25; }
+.empty-state p { font-family: 'DM Mono', monospace; font-size: 12px; }
+
+/* ── MODALS ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(28,20,9,.45);
+  backdrop-filter: blur(3px);
+  z-index: 50;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: var(--cream);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  width: 380px;
+  box-shadow: var(--shadow2);
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn {
+  from { transform: scale(.96) translateY(6px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.modal-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  margin-bottom: 16px;
+}
+
+.modal-input {
+  width: 100%;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 13px;
+  background: var(--cream2);
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  padding: 8px 12px;
+  border-radius: 8px;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.modal-input:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(217,119,6,.1);
+}
+
+.modal-body-text {
+  font-size: 13px;
+  color: var(--ink3);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.modal-cancel {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all .15s;
+}
+.modal-cancel:hover { border-color: var(--ink3); color: var(--ink); background: var(--cream2); }
+
+.modal-confirm {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--amber);
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+}
+.modal-confirm:hover { background: #b45309; }
+.modal-confirm.danger { background: var(--red); }
+.modal-confirm.danger:hover { background: #b91c1c; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  transition: opacity .25s, transform .25s;
+  z-index: 99;
+  white-space: nowrap;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── DRAG & DROP ── */
+.drag-handle {
+  cursor: grab;
+  color: var(--border2);
+  font-size: 13px;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color .15s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.drag-handle:active { cursor: grabbing; }
+tbody tr:hover .drag-handle { color: var(--ink4); }
+
+tr.drag-over-top    { box-shadow: inset 0 2px 0 var(--amber); }
+tr.drag-over-bottom { box-shadow: inset 0 -2px 0 var(--amber); }
+tr.dragging         { opacity: .35; background: var(--cream3); }
+
+/* move modal – book/chapter selects */
+.move-selects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.move-selects label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink4);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+  display: block;
+}
+.move-selects select {
+  width: 100%;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 13px;
+  background: var(--cream2);
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  padding: 8px 10px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+}
+.move-selects select:focus { border-color: var(--amber); }
+
+.btn-add-q {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+.btn-add-q:hover { background: #0b7c76; border-color: #0b7c76; color: #fff; }
+
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── book-stat diff highlight ── */
+.book-stat .diff-ok  { color: var(--teal); }
+.book-stat .diff-gap { color: var(--amber); }
+
+/* ── search breadcrumb ── */
+.bc-search-crumb {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--ink4); background: var(--cream2);
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px 9px;
+}
+.bc-search-crumb b { color: var(--ink2); font-weight: 600; }
+
+/* ── PREVIEW PANEL ── */
+.preview-panel {
+  position: fixed;
+  top: 0; right: -370px; bottom: 0;
+  width: 355px;
+  background: var(--cream);
+  border-left: 1.5px solid var(--border);
+  box-shadow: -6px 0 28px rgba(28,20,9,.14);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  transition: right .25s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+.preview-panel.open { right: 0; }
+
+.preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  flex-shrink: 0;
+}
+.preview-head-info { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+.preview-qid { font-family:'DM Mono',monospace; font-size:10px; color:var(--ink4); }
+.preview-title-txt { font-size:13px; font-weight:600; color:var(--ink); word-break:break-all; }
+
+.preview-board-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px;
+  background: var(--cream2);
+  flex-shrink: 0;
+  min-height: 60px;
+}
+.preview-meta {
+  padding: 10px 14px 14px;
+  flex: 1;
+  overflow-y: auto;
+}
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.preview-row:last-of-type { border-bottom: none; }
+.preview-label { color:var(--ink4); flex-shrink:0; width:36px; }
+.preview-val   { color:var(--ink2); font-weight:500; }
+.preview-ext-link {
+  display: inline-block; margin-top:10px;
+  font-size:12px; color:var(--teal);
+  text-decoration:none; font-weight:500;
+}
+.preview-ext-link:hover { text-decoration:underline; }
+
+/* 解說編輯區 */
+.expl-section {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.expl-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.expl-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  letter-spacing: .3px;
+}
+.expl-edit-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--cream2);
+  color: var(--ink3);
+  cursor: pointer;
+  transition: background .15s;
+}
+.expl-edit-btn:hover { background: var(--cream3); color: var(--ink); }
+.expl-text-display {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 24px;
+}
+.expl-text-display.empty { color: var(--ink4); font-style: italic; }
+.expl-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 110px;
+  resize: vertical;
+  font-size: 12px;
+  line-height: 1.65;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--cream2);
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.expl-textarea:focus { border-color: var(--teal); }
+.expl-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.expl-save-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: var(--teal);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.expl-save-btn:hover { opacity: .85; }
+.expl-save-btn:disabled { opacity: .45; cursor: default; }
+.expl-cancel-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--cream2);
+  color: var(--ink3);
+  cursor: pointer;
+  transition: background .15s;
+}
+.expl-cancel-btn:hover { background: var(--cream3); }
+
+/* 選中列高亮 */
+tr.previewing { background: rgba(13,148,136,.06) !important; outline: 1.5px solid rgba(13,148,136,.25); }
+
+/* 預覽按鈕 */
+.row-btn.preview { color: var(--teal); }
+.row-btn.preview:hover { background: rgba(13,148,136,.10); }
+
+/* ── ADD DRAWER ── */
+.drawer-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(28,20,9,.38);
+  backdrop-filter: blur(2px);
+  z-index: 60;
+}
+.drawer-overlay.open { display: block; }
+
+.drawer {
+  position: fixed; top: 0; right: -480px; bottom: 0;
+  width: 460px; max-width: 96vw;
+  background: var(--cream);
+  border-left: 1.5px solid var(--border);
+  box-shadow: -8px 0 40px rgba(28,20,9,.13);
+  z-index: 61;
+  display: flex; flex-direction: column;
+  transition: right .28s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+.drawer.open { right: 0; }
+
+.drawer-head {
+  padding: 18px 20px 14px;
+  border-bottom: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.drawer-title {
+  font-size: 15px; font-weight: 700; color: var(--ink);
+}
+.drawer-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--ink4); line-height: 1;
+  padding: 2px 6px; border-radius: 6px;
+  transition: background .15s, color .15s;
+}
+.drawer-close:hover { background: var(--cream3); color: var(--ink); }
+
+.drawer-body {
+  flex: 1; overflow-y: auto; padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.field-label {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--ink4); margin-bottom: 5px; display: block;
+}
+.field-input {
+  width: 100%;
+  font-family: 'Noto Serif TC', serif; font-size: 13px;
+  background: var(--cream2); border: 1.5px solid var(--border);
+  color: var(--ink); padding: 8px 11px;
+  border-radius: 8px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.field-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13,148,136,.12);
+}
+.field-input::placeholder { color: var(--ink4); }
+select.field-input { cursor: pointer; }
+
+.sgf-textarea {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  min-height: 130px; resize: vertical;
+  line-height: 1.5;
+}
+
+.upload-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 10px; padding: 18px;
+  text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: var(--cream2);
+}
+.upload-zone:hover, .upload-zone.drag-active {
+  border-color: var(--teal); background: rgba(13,148,136,.04);
+}
+.upload-zone p {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--ink4); pointer-events: none;
+}
+.upload-zone span { color: var(--teal); }
+
+.sgf-or-sep {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--ink4);
+}
+.sgf-or-sep::before, .sgf-or-sep::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.drawer-foot {
+  padding: 14px 20px;
+  border-top: 1.5px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.drawer-status {
+  flex: 1; font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--teal); min-width: 0;
+}
+.drawer-status.err { color: var(--red); }
+.btn-drawer-save {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  padding: 8px 20px; border-radius: 8px;
+  border: none; background: var(--teal);
+  color: #fff; font-weight: 600; cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.btn-drawer-save:hover { background: #0b7c76; }
+.btn-drawer-save:disabled { background: var(--border2); cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ────────────────────────────────────────────── -->
+<header>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="header-logo">
+      ⬡ <strong>題庫管理</strong>
+    </div>
+    <div id="stats">載入中…</div>
+  </div>
+
+  <div class="header-actions">
+    <div id="lang-switcher-manage" style="display:flex;align-items:center;"></div>
+
+    <div class="search-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input id="search-input" type="text" placeholder="搜尋題目…" oninput="filterQuestions()">
+    </div>
+
+    <button onclick="openAddDrawer()" class="btn btn-add-q">＋ 新增題目</button>
+    <a href="/" class="btn">← 練習</a>
+    <a href="/admin" class="btn">👑 用戶</a>
+    <button onclick="doLogout()" class="btn btn-danger">登出</button>
+  </div>
+</header>
+
+<!-- ── BODY ──────────────────────────────────────────────── -->
+<div class="layout">
+
+  <!-- LEFT: 書本／章節樹 -->
+  <aside>
+    <div class="sidebar-header">
+      <span class="sidebar-label">題庫</span>
+      <span id="book-count">0 本</span>
+    </div>
+    <div id="tree-list">
+      <div class="empty-state"><p>載入中…</p></div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: 題目列表 -->
+  <main>
+    <!-- toolbar -->
+    <div class="main-toolbar">
+      <div class="breadcrumb">
+        <span id="bc-book" class="breadcrumb-book" style="display:none;"></span>
+        <span id="bc-sep" class="breadcrumb-sep" style="display:none;">›</span>
+        <span id="bc-chapter" class="breadcrumb-chapter">請從左側選擇章節</span>
+        <span id="q-count" style="display:none;"></span>
+      </div>
+
+      <!-- 章節操作按鈕 -->
+      <div id="chapter-actions" style="display:none;display:flex;gap:6px;align-items:center;">
+        <button id="btn-rename-chapter" class="btn" onclick="renameChapter()">✏️ 改名</button>
+        <button id="btn-delete-chapter" class="btn btn-danger" onclick="deleteChapter()">🗑 刪整章</button>
+      </div>
+
+      <!-- 批次難度 -->
+      <div id="batch-bar" class="batch-bar">
+        <select id="batch-diff-select" class="diff-select"></select>
+        <button class="btn-apply" onclick="batchSetDifficulty()">✅ 難度套用</button>
+      </div>
+
+      <!-- 批次分類 -->
+      <div id="disc-batch-bar" class="batch-bar" style="display:none;">
+        <select id="batch-disc-select" class="diff-select">
+          <option value="">— 選分類 —</option>
+        </select>
+        <select id="batch-disc-scope" class="diff-select">
+          <option value="chapter">整章節</option>
+          <option value="book">整本書</option>
+        </select>
+        <button class="btn-apply" style="background:var(--teal);" onclick="batchSetDiscipline()">✅ 分類套用</button>
+      </div>
+    </div>
+
+    <!-- 批次操作列（浮動於底部） -->
+    <div id="batch-select-bar">
+      <span class="batch-count" id="batch-count-label">已選 0 題</span>
+      <button class="batch-action-btn move" onclick="batchMove()">✂️ 批次移動</button>
+      <button class="batch-action-btn del"  onclick="batchDelete()">🗑 批次刪除</button>
+      <button class="batch-action-btn clear" onclick="clearSelection()">✕ 取消選取</button>
+    </div>
+
+    <!-- 題目表格 -->
+    <div class="table-wrap">
+      <table id="q-table">
+        <thead>
+          <tr>
+            <th style="width:32px;text-align:center;">
+              <input type="checkbox" class="row-check" id="check-all" onclick="toggleCheckAll(this)" title="全選/取消">
+            </th>
+            <th style="width:52px;">ID</th>
+            <th>題目名稱</th>
+            <th class="center" style="width:72px;">先手</th>
+            <th class="center" style="width:80px;">分類</th>
+            <th class="center" style="width:100px;">難度</th>
+            <th class="center" style="width:90px;">啟用</th>
+            <th class="center" style="width:110px;">SRS</th>
+            <th class="right"  style="width:140px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="q-tbody">
+          <tr>
+            <td colspan="9">
+              <div class="empty-state">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                <p>← 從左側選擇書本 › 章節</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- ── PREVIEW PANEL ─────────────────────────────────────── -->
+<div id="preview-panel" class="preview-panel">
+  <div class="preview-head">
+    <div class="preview-head-info">
+      <span id="preview-qid" class="preview-qid"></span>
+      <span id="preview-title-txt" class="preview-title-txt">題目預覽</span>
+    </div>
+    <button class="icon-btn" onclick="closePreview()" title="關閉預覽">✕</button>
+  </div>
+  <div id="preview-board-wrap" class="preview-board-wrap">
+    <span style="color:var(--ink4);font-size:13px;">點擊題目列的「預覽」</span>
+  </div>
+  <div id="preview-meta" class="preview-meta"></div>
+</div>
+
+<!-- ── RENAME MODAL ───────────────────────────────────────── -->
+<div id="rename-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div id="rename-modal-title" class="modal-title"></div>
+    <div id="rename-modal-sub"   class="modal-sub"></div>
+    <input id="rename-input" type="text" class="modal-input" placeholder="輸入新名稱…">
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeRenameModal()">取消</button>
+      <button id="rename-confirm" class="modal-confirm">✏️ 確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ──────────────────────────────────────── -->
+<div id="confirm-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div id="confirm-title" class="modal-title"></div>
+    <div id="confirm-body"  class="modal-body-text"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeConfirmModal()">取消</button>
+      <button id="confirm-ok" class="modal-confirm danger">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MOVE MODAL ────────────────────────────────────────── -->
+<div id="move-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">移動題目</div>
+    <div id="move-modal-sub" class="modal-sub"></div>
+    <div class="move-selects">
+      <div>
+        <label>書本</label>
+        <select id="move-book-select" onchange="onMoveBookChange()"></select>
+      </div>
+      <div>
+        <label>章節</label>
+        <select id="move-chapter-select"></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeMoveModal()">取消</button>
+      <button id="move-confirm" class="modal-confirm">移動</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD QUESTION DRAWER ────────────────────────────────── -->
+<div id="add-drawer-overlay" class="drawer-overlay" onclick="closeAddDrawer()"></div>
+<div id="add-drawer" class="drawer">
+  <div class="drawer-head">
+    <span class="drawer-title">＋ 新增題目</span>
+    <button class="drawer-close" onclick="closeAddDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+
+    <!-- SGF 上傳 -->
+    <div>
+      <label class="field-label">SGF 檔案（或直接貼入下方）</label>
+      <div id="upload-zone" class="upload-zone"
+           onclick="document.getElementById('sgf-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-active')"
+           ondragleave="this.classList.remove('drag-active')"
+           ondrop="handleSgfDrop(event)">
+        <p>📂 點擊或拖曳 <span>.sgf 檔案</span> 到此處</p>
+        <p id="upload-filename" style="margin-top:5px;color:var(--teal);display:none;"></p>
+      </div>
+      <input id="sgf-file-input" type="file" accept=".sgf" style="display:none" onchange="handleSgfFile(this)">
+    </div>
+
+    <div class="sgf-or-sep">或直接貼入 SGF</div>
+
+    <!-- SGF 文字框 -->
+    <div>
+      <textarea id="sgf-content" class="field-input sgf-textarea"
+                placeholder="(;FF[4]GM[1]SZ[19]GN[黑先活]…"
+                oninput="onSgfInput()"></textarea>
+    </div>
+
+    <!-- 顯示名稱 -->
+    <div>
+      <label class="field-label">顯示名稱</label>
+      <input id="add-display-name" class="field-input" type="text"
+             placeholder="例：黑先活第1題（留空則從 GN[] 抽取）">
+    </div>
+
+    <!-- 書本 / 章節 -->
+    <div class="two-col">
+      <div>
+        <label class="field-label">書本（Topic）</label>
+        <select id="add-book-select" class="field-input" onchange="onAddBookChange()">
+          <option value="" data-i18n="manage.option.book">— 選現有書本 —</option>
+        </select>
+        <input id="add-book-new" class="field-input" type="text"
+               placeholder="或輸入新書名" style="margin-top:6px;"
+               oninput="onAddBookNewInput()">
+      </div>
+      <div>
+        <label class="field-label">章節（Level）</label>
+        <select id="add-chapter-select" class="field-input">
+          <option value="" data-i18n="manage.option.chapter">— 選現有章節 —</option>
+        </select>
+        <input id="add-chapter-new" class="field-input" type="text"
+               placeholder="或輸入新章節名" style="margin-top:6px;">
+      </div>
+    </div>
+
+    <!-- 難度 -->
+    <div>
+      <label class="field-label">難度</label>
+      <select id="add-difficulty" class="field-input">
+        <option value="" data-i18n="manage.option.notSet">— 未設定 —</option>
+      </select>
+    </div>
+
+  </div>
+  <div class="drawer-foot">
+    <span id="drawer-status" class="drawer-status"></span>
+    <button id="btn-drawer-save" class="btn-drawer-save" onclick="submitAddQuestion()">儲存題目</button>
+  </div>
+</div>
+
+<!-- ── TOAST ──────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// 常數
+// ══════════════════════════════════════════════════════════════
+const DISC_TYPES = [
+  // ⚡ 攻擊力
+  { value: 'tesuji',            label: '🗡️ 手筋', labelEn: '🗡️ Tesuji', color: '#d97706' },
+  { value: 'chase',             label: '⚡ 追逃', labelEn: '⚡ Chase & Escape', color: '#ea580c' },
+  // 🛡️ 防禦力
+  { value: 'life_death',        label: '💀 死活', labelEn: '💀 Life & Death', color: '#dc2626' },
+  { value: 'shape',             label: '🔗 棋形', labelEn: '🔗 Shape', color: '#16a34a' },
+  // 🌍 視野
+  { value: 'fuseki',            label: '🧭 布局', labelEn: '🧭 Opening', color: '#db2777' },
+  { value: 'whole_board',       label: '🌐 全局', labelEn: '🌐 Whole Board', color: '#4338ca' },
+  // ⚖️ 精密度
+  { value: 'endgame_counting',  label: '♟️ 官子', labelEn: '♟️ Endgame', color: '#0d9488' },
+];
+
+const DIFF_ORDER = [
+  '30k','29k','28k','27k','26k','25k','24k','23k','22k','21k',
+  '20k','19k','18k','17k','16k','15k','14k','13k','12k','11k',
+  '10k','9k','8k','7k','6k','5k','4k','3k','2k','1k',
+  '1d','2d','3d','4d','5d','6d','7d','8d','9d'
+];
+
+// ── 依書名推算難度在 DIFF_ORDER 中的 index（與 index.html 保持同步）──
+function bookDiffRank(bookName) {
+  const O = DIFF_ORDER;
+  const tryKey = k => { const i = O.indexOf(k); return i >= 0 ? i : null; };
+  const m = bookName.match(/從(\d+)(DK|K|D)到(\d+)(K|D)/i);
+  if (m) {
+    const t1 = m[2].toUpperCase().replace('DK','D');
+    const s1 = `${m[1]}${t1==='K'?'k':'d'}`;
+    const i1 = tryKey(s1); if (i1!==null) return i1;
+    const t2 = m[4].toUpperCase();
+    const s2 = `${m[3]}${t2==='K'?'k':'d'}`;
+    const i2 = tryKey(s2); if (i2!==null) return i2;
+  }
+  // 「XX-YY級」/「XX–YY級」格式（如 入門篇（26-30級）、入門篇（21-25級））
+  const mLvl = bookName.match(/(\d+)[–\-](\d+)\s*級/);
+  if (mLvl) {
+    const lo = parseInt(mLvl[1]), hi = parseInt(mLvl[2]);
+    const maxKyu = Math.max(lo, hi);
+    const r = tryKey(`${maxKyu}k`);
+    if (r !== null) return r;
+    return tryKey(`${Math.min(lo,hi)}k`) ?? 10;
+  }
+  if (bookName.includes('入門')) return tryKey('20k') ?? 10;
+  if (bookName.includes('初級')) return tryKey('15k') ?? 15;
+  if (bookName.includes('中級')) return tryKey('10k') ?? 20;
+  if (bookName.includes('高級')) return tryKey('5k')  ?? 25;
+  // 無難度標注書籍的硬編碼對應
+  if (bookName.includes('前田陳爾'))           return tryKey('1d')  ?? 20;
+  if (bookName.includes('鬼手'))               return tryKey('3d')  ?? 22;
+  if (bookName.includes('吳清源手筋辭典'))     return tryKey('2d')  ?? 21;
+  if (bookName.includes('圍棋妙手百例'))       return tryKey('1k')  ?? 19;
+  if (bookName.includes('圍棋實戰官子'))       return tryKey('1d')  ?? 20;
+  if (bookName.includes('圍棋實用死活'))       return tryKey('1d')  ?? 20;
+  if (bookName.includes('官子譜'))             return tryKey('2d')  ?? 21;
+  if (bookName.includes('棋經眾妙'))           return tryKey('1k')  ?? 19;
+  if (bookName.includes('瀨越') && bookName.includes('妙手筋'))   return tryKey('1d') ?? 20;
+  if (bookName.includes('瀨越') && bookName.includes('死活辭典')) return tryKey('3d') ?? 22;
+  if (bookName.includes('珍瓏'))               return tryKey('5d')  ?? 24;
+  if (bookName.includes('發揚論'))             return tryKey('5d')  ?? 24;
+  if (bookName.includes('褔井正義'))           return tryKey('1d')  ?? 20;
+  if (bookName.includes('角部侵分'))           return tryKey('1k')  ?? 19;
+  if (bookName.includes('關山利夫'))           return tryKey('2d')  ?? 21;
+  if (bookName.includes('韓國經典死活'))       return tryKey('4d')  ?? 23;
+  return 999;
+}
+
+const DIFF_BANDS = [
+  { label:'26–30 級', labelEn:'26–30 kyu', pip:'#93c5fd', min:0, max:4, monster:'史萊姆 / 哥布林', monsterEn:'Slime / Goblin', slug:'26-30' },
+  { label:'21–25 級', labelEn:'21–25 kyu', pip:'#60a5fa', min:5, max:9, monster:'哥布林 / 洞窟蝙蝠', monsterEn:'Goblin / Cave Bat', slug:'21-25' },
+  { label:'16–20 級', labelEn:'16–20 kyu', pip:'#38bdf8', min:10, max:14, monster:'獸人小兵', monsterEn:'Orc Grunt', slug:'16-20' },
+  { label:'11–15 級', labelEn:'11–15 kyu', pip:'#22d3ee', min:15, max:19, monster:'森林精靈', monsterEn:'Forest Spirit', slug:'11-15' },
+  { label:' 6–10 級', labelEn:'6–10 kyu', pip:'#4ade80', min:20, max:24, monster:'部落獸人', monsterEn:'Clan Orc', slug:'6-10' },
+  { label:' 1–5  級', labelEn:'1–5 kyu', pip:'#86efac', min:25, max:29, monster:'飛龍 / 低階神靈', monsterEn:'Wyvern / Lesser Spirit', slug:'1-5' },
+  { label:' 1–2 段', labelEn:'1–2 dan', pip:'#facc15', min:30, max:31, monster:'賢者 / 魔法師 / 亡靈', monsterEn:'Sage / Mage / Undead', slug:'1-2d' },
+  { label:' 3–4 段', labelEn:'3–4 dan', pip:'#fb923c', min:32, max:33, monster:'騎士 / 混沌領主', monsterEn:'Knight / Chaos Lord', slug:'3-4d' },
+  { label:' 5–6 段', labelEn:'5–6 dan', pip:'#ef4444', min:34, max:35, monster:'諸神', monsterEn:'The Gods', slug:'5-6d' },
+  { label:' 7 段＋', labelEn:'7 dan+', pip:'#7f1d1d', min:36, max:998, monster:'上古終焉神殿', monsterEn:'Ancient Final Temple', slug:'7d' },
+  { label:'混合', labelEn:'Mixed', pip:'#9ca3af', min:999, max:999, monster:'👾', monsterEn:'👾', slug:'' },
+];
+function getDiffBand(rank) {
+  return DIFF_BANDS.find(b => rank >= b.min && rank <= b.max) || DIFF_BANDS[DIFF_BANDS.length-1];
+}
+
+// ══════════════════════════════════════════════════════════════
+// 狀態
+// ══════════════════════════════════════════════════════════════
+let allQuestions     = [];
+let _bookBands = {};   // { bookName: band_rank }
+function effectiveRank(bookName) { return _bookBands[bookName] !== undefined ? _bookBands[bookName] : bookDiffRank(bookName); }
+let allSrsCards      = {};   // { [qid]: card }
+let currentBook      = null; // groupLabel 字串
+let currentChapter   = null; // chapterLabel 字串
+let filteredQuestions = [];
+// 暫定空章節：Map<bookName, Set<chapterName>>（僅在頁面記憶體，移入題目後自然消失）
+const pendingChapters = new Map();
+
+function manageIsEn() { return typeof I18n !== 'undefined' && I18n.getLang() === 'en'; }
+function manageHasHan(value) { return /[\u3400-\u9fff]/.test(String(value || '')); }
+function manageBookLabel(bookName) {
+  if (!manageIsEn()) return bookName;
+  const q = allQuestions.find(item => groupLabel(item) === bookName);
+  const translated = (q && q.topic === bookName && q.topic_en) ? q.topic_en : I18n.localizeName(bookName);
+  if (!manageHasHan(translated)) return translated;
+  const books = [...new Set(allQuestions.map(groupLabel))];
+  return `Book ${Math.max(1, books.indexOf(bookName) + 1)}`;
+}
+function manageChapterLabel(bookName, chapterName) {
+  if (!manageIsEn()) return chapterName;
+  const q = allQuestions.find(item => groupLabel(item) === bookName && getChapterOf(item) === chapterName);
+  const common = { '基礎題':'Basics', '對殺題':'Capturing Race', '手筋題':'Tesuji', '死活題':'Life & Death', '其他':'Other' };
+  const translated = common[chapterName] || ((q && q.level === chapterName && q.level_en) ? q.level_en : I18n.localizeName(chapterName));
+  if (!manageHasHan(translated)) return translated;
+  const chapters = [...new Set(allQuestions.filter(item => groupLabel(item) === bookName).map(getChapterOf))];
+  return `Chapter ${Math.max(1, chapters.indexOf(chapterName) + 1)}`;
+}
+function manageDiscLabel(item) { return manageIsEn() ? (item.labelEn || item.label) : item.label; }
+function manageBandLabel(band) { return manageIsEn() ? (band.labelEn || band.label) : band.label; }
+function manageMonsterLabel(band) { return manageIsEn() ? (band.monsterEn || band.monster) : band.monster; }
+
+// 題目移入後清除暫定章節
+function _cleanPendingChapter(bookName, chapterName) {
+  const s = pendingChapters.get(bookName);
+  if (s) { s.delete(chapterName); if (!s.size) pendingChapters.delete(bookName); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 輔助函數（與 index.html 保持一致）
+// ══════════════════════════════════════════════════════════════
+function qName(q) {
+  if (manageIsEn() && q.display_name_en) return q.display_name_en;
+  if (q.display_name) return q.display_name;
+  const m = q.content && q.content.match(/GN\[([^\]]+)\]/);
+  return m ? m[1] : (manageIsEn() ? `Problem ${q.id}` : `第 ${q.id} 題`);
+}
+
+// 書本名稱：優先 topic，次選 level（過濾 Unknown）；支援中英切換
+function groupLabel(q) {
+  const t = q.topic && q.topic !== 'Unknown' ? q.topic : null;
+  const l = q.level && q.level !== 'Unknown' ? q.level : null;
+  return t || l || '未分類';
+}
+
+// 章節名稱：從顯示名稱前段抽取（去掉「第N題/局」後綴）
+function chapterLabel(displayName) {
+  if (!displayName) return '其他';
+  const p = displayName.replace(/第\d+[題局].*/, '').trim();
+  return (!p || p === displayName) ? displayName.slice(0, 15).trim() || '其他' : p;
+}
+
+// 取得題目所屬章節：優先 q.level（非 Unknown），fallback 到 display_name 前綴
+// 移動/新增題目後 q.level 已正確設定，refresh 後仍有效
+function getChapterOf(q) {
+  const lRaw = q.level && q.level !== 'Unknown' ? q.level.trim() : null;
+  if (!lRaw) return chapterLabel(q.display_name || '');
+  return lRaw;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 載入
+// ══════════════════════════════════════════════════════════════
+async function loadAll() {
+  const me = await fetch('/api/auth/me',{credentials:'include'})
+    .then(r=>r.json()).catch(()=>({logged_in:false}));
+  if (!me.logged_in) { location.href='/login'; return; }
+
+  try {
+    const [qRes, srsRes, bandsRes] = await Promise.all([
+      fetch('/api/manage/questions',{credentials:'include'}).then(r=>r.json()),
+      fetch('/api/srs/all',{credentials:'include'}).then(r=>r.json()),
+      fetch('/api/book-bands',{credentials:'include'}).then(r=>r.json()).catch(()=>({}))
+    ]);
+    allQuestions = qRes;
+    _bookBands   = bandsRes;
+    // 相容舊 DB 負值（舊系統 21k–30k 用負值存，新系統 +10 即為正確 index）
+    Object.keys(_bookBands).forEach(k=>{ if(_bookBands[k]<0) _bookBands[k]+=10; });
+    srsRes.forEach(c => { allSrsCards[c.question_id] = c; });
+    renderTree();
+    updateStats();
+  } catch(e) {
+    document.getElementById('stats').textContent = '⚠ 無法連線';
+    document.getElementById('stats').style.color = 'var(--red)';
+  }
+}
+
+function updateStats() {
+  const books    = new Set(allQuestions.map(q => groupLabel(q)));
+  const chapters = new Set(allQuestions.map(q => groupLabel(q) + '§' + getChapterOf(q)));
+  document.getElementById('stats').textContent = manageIsEn()
+    ? `${allQuestions.length} problems · ${books.size} books · ${chapters.size} chapters`
+    : `${allQuestions.length} 題 · ${books.size} 本 · ${chapters.size} 章`;
+  document.getElementById('book-count').textContent = manageIsEn() ? `${books.size} books` : `${books.size} 本`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 樹狀渲染（書本 → 章節）
+// ══════════════════════════════════════════════════════════════
+function buildTree() {
+  // Map<book, Map<chapter, questions[]>>
+  // 章節邏輯與 index.html 完全一致：從 display_name 抽取前綴
+  const tree = new Map();
+  allQuestions.forEach(q => {
+    const b  = groupLabel(q);
+    const c  = getChapterOf(q);
+    if (!tree.has(b)) tree.set(b, new Map());
+    const book = tree.get(b);
+    if (!book.has(c)) book.set(c, []);
+    book.get(c).push(q);
+  });
+  // 套用 localStorage 儲存的章節排序
+  tree.forEach((chapters, bookName) => {
+    const stored = _getChapterOrder(bookName);
+    if (!stored.length) return;
+    const sorted = new Map();
+    stored.forEach(ch => { if (chapters.has(ch)) sorted.set(ch, chapters.get(ch)); });
+    chapters.forEach((v, k) => { if (!sorted.has(k)) sorted.set(k, v); }); // 未在儲存順序內的排最後
+    tree.set(bookName, sorted);
+  });
+
+  // 加入暫定空章節（用 Symbol 標記為 pending，不參與合併）
+  pendingChapters.forEach((chSet, bookName) => {
+    if (!tree.has(bookName)) tree.set(bookName, new Map());
+    chSet.forEach(ch => {
+      if (!tree.get(bookName).has(ch)) {
+        tree.get(bookName).set(ch, []);  // 空陣列 = 暫定章節
+      } else {
+        // 已有題目 → 從 pending 移除（自然消滅）
+        chSet.delete(ch);
+      }
+    });
+    if (chSet.size === 0) pendingChapters.delete(bookName);
+  });
+  // 合併 <5 題的非暫定章節到「其他」
+  tree.forEach((chapters, bookName) => {
+    const pendSet = pendingChapters.get(bookName) || new Set();
+    const otherQs = [];
+    chapters.forEach((qs, ch) => {
+      if (qs.length > 0 && qs.length < 5 && ch !== '其他' && !pendSet.has(ch)) {
+        otherQs.push(...qs);
+        chapters.delete(ch);
+      }
+    });
+    if (otherQs.length) {
+      const existing = chapters.get('其他') || [];
+      chapters.set('其他', [...existing, ...otherQs]);
+    }
+  });
+  return tree;
+}
+
+function renderTree() {
+  const tree = buildTree();
+  const container = document.getElementById('tree-list');
+  container.innerHTML = '';
+
+  // 依難度排序書本
+  const sortedBooks = [...tree.entries()].sort((a, b) => effectiveRank(a[0]) - effectiveRank(b[0]));
+  let curBandLabel = null;
+
+  sortedBooks.forEach(([bookName, chapters]) => {
+    // 插入難度分組標頭
+    const rank = effectiveRank(bookName);
+    const band = getDiffBand(rank);
+    if (band.label !== curBandLabel) {
+      curBandLabel = band.label;
+      const bandLabel = manageBandLabel(band).trim();
+      const monsterLabel = manageMonsterLabel(band);
+      const hdr = document.createElement('div');
+      hdr.className = 'tree-band-header';
+      const pip = document.createElement('span');
+      pip.className = 'tree-band-pip';
+      pip.style.background = band.pip;
+      hdr.appendChild(pip);
+      hdr.appendChild(document.createTextNode(
+        monsterLabel ? `${bandLabel} · ${monsterLabel}` : bandLabel
+      ));
+      container.appendChild(hdr);
+      // 棋力區封面圖（若有）— 載入失敗時自動隱藏
+      if (band.slug) {
+        const img = document.createElement('img');
+        img.className = 'tier-cover';
+        img.src = `/assets/tiers/${band.slug}.jpg`;
+        img.alt = bandLabel;
+        img.loading = 'lazy';
+        img.onerror = () => img.remove();
+        container.appendChild(img);
+      }
+    }
+    const bookNode = document.createElement('div');
+    bookNode.className = 'book-node';
+
+    // ── 書本 header ─────────────────────
+    const totalQ    = [...chapters.values()].reduce((s,qs)=>s+qs.length,0);
+    const diffSet   = [...chapters.values()].flat().filter(q=>q.difficulty).length;
+    const isBookActive = currentBook === bookName && !currentChapter;
+    const isExpanded   = currentBook === bookName;
+
+    const bh = document.createElement('div');
+    bh.className = 'book-header' + (isBookActive ? ' active' : '');
+    bh.dataset.book = bookName;
+    const bookDisplay = manageBookLabel(bookName);
+    bh.innerHTML = `
+      <span class="book-toggle ${isExpanded?'open':''}">▶</span>
+      <span class="book-icon" style="font-size:13px;">${manageMonsterLabel(band)||'📚'}</span>
+      <span class="book-name" title="${bookDisplay}">${bookDisplay}</span>
+      <span class="book-stat"><span class="${diffSet===totalQ?'diff-ok':'diff-gap'}">${diffSet}</span>/${totalQ}</span>
+      <span class="book-actions">
+        <button class="icon-btn" onclick="event.stopPropagation();addChapterInline('${esc(bookName)}')" title="新增章節" style="font-size:13px;color:#d97706;">＋</button>
+        <button class="icon-btn" onclick="event.stopPropagation();changeBookBand('${esc(bookName)}')" title="設定棋力區間" style="font-size:12px;">🎚️</button>
+        <button class="icon-btn" onclick="event.stopPropagation();renameBook('${esc(bookName)}')" title="改書名">✏️</button>
+        <button class="icon-btn del" onclick="event.stopPropagation();deleteBook('${esc(bookName)}')" title="刪書">🗑</button>
+      </span>
+    `;
+    bh.onclick = () => toggleBook(bookName, bh);
+    bookNode.appendChild(bh);
+
+    // ── 章節列表 ────────────────────────
+    const cl = document.createElement('div');
+    cl.className = 'chapter-list' + (isExpanded ? ' open' : '');
+    cl.dataset.book = bookName;
+
+    chapters.forEach((qs, chapterName) => {
+      const diffCnt = qs.filter(q=>q.difficulty).length;
+      const isEmpty = qs.length === 0; // 暫定空章節
+      const isActive = currentBook === bookName && currentChapter === chapterName;
+      const ci = document.createElement('div');
+      ci.className = 'chapter-item' + (isActive ? ' active' : '') + (isEmpty ? ' ch-empty' : '');
+      ci.draggable = true;
+      ci.dataset.book    = bookName;
+      ci.dataset.chapter = chapterName;
+      const chapterDisplay = manageChapterLabel(bookName, chapterName);
+      ci.innerHTML = `
+        <span class="ch-drag-handle" title="拖拽重新排序">⠿</span>
+        <span class="chapter-dot"></span>
+        <span class="chapter-name" title="${chapterDisplay}"
+              ondblclick="event.stopPropagation();inlineRenameChapter(this,'${esc(bookName)}','${esc(chapterName)}')">${chapterDisplay}</span>
+        <span class="chapter-stat" style="${isEmpty?'color:var(--ink4);font-style:italic;':''}">${isEmpty?(manageIsEn()?'Empty ':'空'):''}${diffCnt}/${qs.length}</span>
+        <span class="chapter-actions">
+          <button class="icon-btn" onclick="event.stopPropagation();inlineRenameChapter(this.closest('.chapter-item').querySelector('.chapter-name'),'${esc(bookName)}','${esc(chapterName)}')" title="改章節名（雙擊亦可）">✏️</button>
+          <button class="icon-btn del" onclick="event.stopPropagation();deleteChapterDirect('${esc(bookName)}','${esc(chapterName)}')" title="刪章節">🗑</button>
+        </span>
+      `;
+      ci.onclick = () => isEmpty ? selectEmptyChapter(bookName, chapterName) : selectChapter(bookName, chapterName);
+      cl.appendChild(ci);
+    });
+    bookNode.appendChild(cl);
+    container.appendChild(bookNode);
+  });
+  // 初始化章節拖拉排序
+  initChapterDrag();
+}
+
+function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// ══════════════════════════════════════════════════════════════
+// 章節排序（localStorage）
+// ══════════════════════════════════════════════════════════════
+function _chOrderKey(b)       { return 'ch_order_§' + b; }
+function _getChapterOrder(b)  {
+  try { return JSON.parse(localStorage.getItem(_chOrderKey(b)) || '[]'); } catch { return []; }
+}
+function _setChapterOrder(b, order) {
+  try { localStorage.setItem(_chOrderKey(b), JSON.stringify(order)); } catch {}
+}
+
+let _chDragSrc  = null;   // { book, chapter }
+let _chDragDest = null;   // chapter name 目標
+
+function initChapterDrag() {
+  document.querySelectorAll('.chapter-item[data-chapter]').forEach(item => {
+
+    item.addEventListener('dragstart', e => {
+      e.stopPropagation();      // 防止觸發表格列的拖放
+      _chDragSrc  = { book: item.dataset.book, chapter: item.dataset.chapter };
+      _chDragDest = null;
+      item.classList.add('ch-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', item.dataset.chapter);
+    });
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('ch-dragging');
+      document.querySelectorAll('.chapter-item.ch-drag-over')
+        .forEach(el => el.classList.remove('ch-drag-over'));
+      _chDragSrc = _chDragDest = null;
+    });
+
+    item.addEventListener('dragover', e => {
+      if (!_chDragSrc || _chDragSrc.book !== item.dataset.book) return;
+      if (_chDragSrc.chapter === item.dataset.chapter) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.chapter-item.ch-drag-over')
+        .forEach(el => el.classList.remove('ch-drag-over'));
+      item.classList.add('ch-drag-over');
+      _chDragDest = item.dataset.chapter;
+    });
+
+    item.addEventListener('dragleave', e => {
+      if (!item.contains(e.relatedTarget)) item.classList.remove('ch-drag-over');
+    });
+
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!_chDragSrc || !_chDragDest) return;
+      const { book, chapter: srcCh } = _chDragSrc;
+      const dstCh = _chDragDest;
+      if (srcCh === dstCh) return;
+
+      // 取得當前章節順序
+      const tree     = buildTree();
+      const chapters = [...(tree.get(book) || new Map()).keys()];
+      const srcIdx   = chapters.indexOf(srcCh);
+      const dstIdx   = chapters.indexOf(dstCh);
+      if (srcIdx === -1 || dstIdx === -1) return;
+
+      // 重排
+      chapters.splice(srcIdx, 1);
+      // 放到目標章節的上方
+      const newDstIdx = chapters.indexOf(dstCh);
+      chapters.splice(newDstIdx, 0, srcCh);
+
+      _setChapterOrder(book, chapters);
+      _chDragSrc = _chDragDest = null;
+      renderTree();   // 重繪套用新順序
+    });
+  });
+}
+
+function toggleBook(bookName, headerEl) {
+  const toggle = headerEl.querySelector('.book-toggle');
+  const cl     = headerEl.nextElementSibling;
+  const isOpen = cl.classList.contains('open');
+  if (isOpen) {
+    cl.classList.remove('open');
+    toggle.classList.remove('open');
+  } else {
+    cl.classList.add('open');
+    toggle.classList.add('open');
+    currentBook    = bookName;
+    currentChapter = null;
+  }
+  // 不 selectChapter，只展開/折疊
+  document.querySelectorAll('.book-header').forEach(bh => {
+    bh.classList.toggle('active', bh.dataset.book === bookName && !currentChapter);
+  });
+}
+
+function selectChapter(bookName, chapterName) {
+  currentBook    = bookName;
+  currentChapter = chapterName;
+  renderTree();   // 重繪高亮
+
+  let qs;
+  if (chapterName === '其他') {
+    // 「其他」是虛擬章節：由 buildTree 把 <5 題的小章節合併而成，
+    // 不能用 getChapterOf(q) === '其他' 過濾，需直接從 buildTree 取
+    qs = [...(buildTree().get(bookName)?.get('其他') || [])];
+  } else {
+    qs = allQuestions
+      .filter(q => groupLabel(q) === bookName && getChapterOf(q) === chapterName);
+  }
+  qs = qs.sort((a,b) => {
+    const sa = a.sort_order ?? 999999;
+    const sb = b.sort_order ?? 999999;
+    return sa !== sb ? sa - sb : a.id - b.id;
+  });
+  filteredQuestions = qs;
+
+  // breadcrumb
+  document.getElementById('bc-book').textContent    = manageBookLabel(bookName);
+  document.getElementById('bc-book').style.display  = '';
+  document.getElementById('bc-sep').style.display   = '';
+  document.getElementById('bc-chapter').textContent = manageChapterLabel(bookName, chapterName);
+  document.getElementById('q-count').textContent    = manageIsEn() ? `${qs.length} problems` : `${qs.length} 題`;
+  document.getElementById('q-count').style.display  = '';
+
+  // chapter actions
+  const ca = document.getElementById('chapter-actions');
+  ca.style.display = 'flex';
+
+  // batch bar（難度）
+  const bar = document.getElementById('batch-bar');
+  bar.classList.add('visible');
+  const sel = document.getElementById('batch-diff-select');
+  sel.innerHTML = '<option value="">— 選難度 —</option>' +
+    DIFF_ORDER.map(d => `<option value="${d}">${d}</option>`).join('');
+
+  // batch bar（分類）
+  const discBar = document.getElementById('disc-batch-bar');
+  discBar.style.display = 'flex';
+  const discSel = document.getElementById('batch-disc-select');
+  discSel.innerHTML = '<option value="">— 選分類 —</option>' +
+    DISC_TYPES.map(d => `<option value="${d.value}">${manageDiscLabel(d)}</option>`).join('');
+
+  document.getElementById('search-input').value = '';
+  renderTable(qs);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 搜尋
+// ══════════════════════════════════════════════════════════════
+function filterQuestions() {
+  const kw = document.getElementById('search-input').value.trim().toLowerCase();
+  if (!kw) {
+    if (currentBook && currentChapter) selectChapter(currentBook, currentChapter);
+    return;
+  }
+  // 清除選取狀態
+  currentBook = currentChapter = null;
+  renderTree();
+  document.getElementById('bc-book').style.display  = 'none';
+  document.getElementById('bc-sep').style.display   = 'none';
+  document.getElementById('bc-chapter').textContent = manageIsEn() ? `Search “${kw}”` : `搜尋「${kw}」`;
+  document.getElementById('chapter-actions').style.display = 'none';
+  document.getElementById('batch-bar').classList.remove('visible');
+  document.getElementById('disc-batch-bar').style.display = 'none';
+
+  filteredQuestions = allQuestions.filter(q => {
+    const name = qName(q).toLowerCase();
+    return name.includes(kw)
+        || String(q.id).includes(kw)
+        || (q.topic||'').toLowerCase().includes(kw)
+        || (q.level||'').toLowerCase().includes(kw);
+  });
+  document.getElementById('q-count').textContent = manageIsEn() ? `${filteredQuestions.length} problems` : `${filteredQuestions.length} 題`;
+  document.getElementById('q-count').style.display = '';
+  renderTable(filteredQuestions, true /* showBreadcrumb */);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 渲染題目表格
+// ══════════════════════════════════════════════════════════════
+function renderTable(qs, showBreadcrumb) {
+  const tbody = document.getElementById('q-tbody');
+  if (!qs.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><p>此章節沒有題目</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = qs.map(q => {
+    const name    = qName(q);
+    const pl      = (q.content&&q.content.match(/PL\[([BW])\]/)||[])[1] || '?';
+    const enabled = q.enabled !== false;
+    const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const breadcrumbHtml = showBreadcrumb
+      ? `<div style="margin-top:3px;">
+           <span class="bc-search-crumb">
+             📚 <b>${manageBookLabel(groupLabel(q))}</b> › ${manageChapterLabel(groupLabel(q), getChapterOf(q))}
+           </span>
+         </div>`
+      : '';
+    return `
+    <tr draggable="true" data-id="${q.id}" class="${enabled?'':'disabled-row'}">
+      <td style="padding:0 4px 0 8px;text-align:center;">
+        <input type="checkbox" class="row-check q-checkbox" data-id="${q.id}"
+               onclick="onRowCheck(this)" title="選取此題">
+      </td>
+      <td class="td-id">${q.id}</td>
+      <td class="td-name">
+        <div class="display-name">${name}</div>
+        ${breadcrumbHtml}
+        ${!showBreadcrumb && q.sort_order!=null?`<div class="source-hint">order: ${q.sort_order}</div>`:''}
+      </td>
+      <td class="td-center">
+        <span class="player-badge">
+          <span class="stone ${pl==='B'?'stone-b':'stone-w'}"></span>
+          ${pl==='B'?(manageIsEn()?'Black first':'黑先'):(manageIsEn()?'White first':'白先')}
+        </span>
+      </td>
+      <td class="td-center">${buildDiscSelect(q.id, q.discipline)}</td>
+      <td class="td-center">${buildDiffSelect(q.id, q.difficulty)}</td>
+      <td class="td-center">
+        <label class="toggle-wrap" onclick="toggleEnabled(${q.id}, this)" title="${enabled?'點擊停用':'點擊啟用'}">
+          <span class="toggle ${enabled?'on':''}"></span>
+        </label>
+      </td>
+      <td class="td-center">${srsStatusHtml(q.id)}</td>
+      <td class="td-right">
+        <div class="row-actions">
+          <button class="row-btn preview" onclick="openPreview(${q.id})">預覽</button>
+          <button class="row-btn" onclick="openMoveModal(${q.id},'${safeName}')">移動</button>
+          <button class="row-btn" onclick="renameQuestion(${q.id},'${safeName}')">改名</button>
+          <button class="row-btn del" onclick="confirmDeleteQ(${q.id},'${safeName}')">刪除</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // 每次重繪後重新綁定拖放，並重設全選框
+  initDragDrop();
+  const allCb = document.getElementById('check-all');
+  if (allCb) { allCb.checked = false; allCb.indeterminate = false; }
+  _updateBatchBar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// 拖放排序
+// ══════════════════════════════════════════════════════════════
+let _dragSrcId   = null;   // 正在拖的題目 id
+let _dragSrcIdx  = null;   // 在 filteredQuestions 裡的原始 index
+
+function initDragDrop() {
+  const tbody = document.getElementById('q-tbody');
+  const rows  = [...tbody.querySelectorAll('tr[data-id]')];
+
+  rows.forEach(row => {
+    row.addEventListener('dragstart', e => {
+      _dragSrcId  = parseInt(row.dataset.id);
+      _dragSrcIdx = rows.indexOf(row);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', _dragSrcId);
+    });
+
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      rows.forEach(r => r.classList.remove('drag-over-top','drag-over-bottom'));
+    });
+
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      rows.forEach(r => r.classList.remove('drag-over-top','drag-over-bottom'));
+      const rect   = row.getBoundingClientRect();
+      const isTop  = e.clientY < rect.top + rect.height / 2;
+      row.classList.add(isTop ? 'drag-over-top' : 'drag-over-bottom');
+    });
+
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('drag-over-top','drag-over-bottom');
+    });
+
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      rows.forEach(r => r.classList.remove('drag-over-top','drag-over-bottom'));
+
+      const targetId  = parseInt(row.dataset.id);
+      if (targetId === _dragSrcId) return;
+
+      const targetIdx = rows.indexOf(row);
+      const rect      = row.getBoundingClientRect();
+      const insertAfter = e.clientY >= rect.top + rect.height / 2;
+
+      // ── 在 filteredQuestions 裡重排 ──
+      const arr    = [...filteredQuestions];
+      const [item] = arr.splice(_dragSrcIdx, 1);
+      let newIdx   = arr.indexOf(filteredQuestions[targetIdx]);
+      // splice 後 index 可能偏移
+      const tItem = filteredQuestions[targetIdx];
+      const tIdx  = arr.findIndex(q => q.id === tItem.id);
+      arr.splice(insertAfter ? tIdx + 1 : tIdx, 0, item);
+
+      // 指派新的 sort_order（整數序列，從 1 開始）
+      arr.forEach((q, i) => { q.sort_order = i + 1; });
+      filteredQuestions = arr;
+
+      // 同步到 allQuestions
+      arr.forEach(q => {
+        const orig = allQuestions.find(x => x.id === q.id);
+        if (orig) orig.sort_order = q.sort_order;
+      });
+
+      renderTable(filteredQuestions);
+      saveReorder();
+    });
+  });
+}
+
+// 送出排序到後端
+async function saveReorder() {
+  if (!currentBook || !currentChapter) return;
+  const ordered_ids = filteredQuestions.map(q => q.id);
+  try {
+    const res = await fetch('/api/reorder-questions', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        book:        currentBook,
+        chapter:     currentChapter,
+        ordered_ids: ordered_ids
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      toast('✅ 排序已儲存');
+      renderTree();  // 更新左側統計
+    } else {
+      toast(`排序儲存失敗：${data.error}`);
+    }
+  } catch(e) {
+    toast('排序儲存失敗（網路錯誤）');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 移動題目到其他章節
+// ══════════════════════════════════════════════════════════════
+let _moveQid = null;
+
+function openMoveModal(id, name) {
+  _moveQid = id;
+  document.getElementById('move-modal-sub').textContent = `「${name}」（ID: ${id}）`;
+
+  // 建立書本下拉
+  const tree      = buildTree();
+  const bookSel   = document.getElementById('move-book-select');
+  bookSel.innerHTML = '';
+  tree.forEach((_, bookName) => {
+    const opt = document.createElement('option');
+    opt.value = bookName;
+    opt.textContent = bookName;
+    if (bookName === currentBook) opt.selected = true;
+    bookSel.appendChild(opt);
+  });
+
+  // 依目前選中書本填充章節
+  _fillChapterSelect(tree.get(bookSel.value) || new Map(), bookSel.value);
+
+  document.getElementById('move-confirm').onclick = () => doMoveQuestion(tree);
+  document.getElementById('move-modal').classList.add('open');
+}
+
+function onMoveBookChange() {
+  const tree    = buildTree();
+  const bookSel = document.getElementById('move-book-select');
+  const book    = bookSel.value;
+  _fillChapterSelect(tree.get(book) || new Map(), book);
+}
+
+function _fillChapterSelect(chapters, bookName) {
+  const sel = document.getElementById('move-chapter-select');
+  sel.innerHTML = '';
+  // 已有題目的章節
+  chapters.forEach((_, chapterName) => {
+    const opt = document.createElement('option');
+    opt.value = chapterName;
+    opt.textContent = chapterName;
+    if (chapterName === currentChapter) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  // 暫定空章節（尚無題目，但使用者想移入）
+  const pendSet = bookName ? (pendingChapters.get(bookName) || new Set()) : new Set();
+  pendSet.forEach(ch => {
+    if (!chapters.has(ch)) {
+      const opt = document.createElement('option');
+      opt.value = ch;
+      opt.textContent = ch + ' (新建)';
+      if (ch === currentChapter) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+// doMoveQuestion 已移至「批次勾選功能」區塊（支援單題＋批次）
+
+function closeMoveModal() {
+  document.getElementById('move-modal').classList.remove('open');
+  _moveQid = null;
+}
+document.getElementById('move-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('move-modal')) closeMoveModal();
+});
+
+// ══════════════════════════════════════════════════════════════
+// enabled toggle
+// ══════════════════════════════════════════════════════════════
+async function toggleEnabled(id, labelEl) {
+  const q = allQuestions.find(q=>q.id===id);
+  if (!q) return;
+  const newVal = !(q.enabled !== false);
+  const res = await fetch('/api/toggle-question', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({id, enabled: newVal})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    q.enabled = newVal;
+    const tog = labelEl.querySelector('.toggle');
+    tog.classList.toggle('on', newVal);
+    labelEl.closest('tr').classList.toggle('disabled-row', !newVal);
+    toast(newVal ? `✅ ID ${id} 已啟用` : `⏸ ID ${id} 已停用`);
+  } else {
+    toast(`操作失敗：${data.error}`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 分類（discipline）
+// ══════════════════════════════════════════════════════════════
+function buildDiscSelect(qid, current) {
+  const opts = [['',manageIsEn()?'Not set':'未設定'], ...DISC_TYPES.map(d => [d.value, manageDiscLabel(d)])].map(([v, l]) =>
+    `<option value="${v}" ${v===(current||'')?'selected':''}>${l}</option>`
+  ).join('');
+  return `<select class="inline-disc" onchange="setDiscipline(${qid},this.value)">${opts}</select>`;
+}
+
+async function setDiscipline(id, disc) {
+  const res = await fetch('/api/set-discipline', {
+    method: 'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, discipline: disc})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const q = allQuestions.find(q=>q.id===id);
+    if (q) q.discipline = disc;
+    const d = DISC_TYPES.find(d=>d.value===disc);
+    toast(manageIsEn() ? `ID ${id} discipline → ${d ? manageDiscLabel(d) : disc || 'Not set'}` : `ID ${id} 分類 → ${d ? d.label : disc || '未設定'}`);
+  } else {
+    toast(`設定失敗：${data.error}`);
+  }
+}
+
+async function batchSetDiscipline() {
+  const disc  = document.getElementById('batch-disc-select').value;
+  const scope = document.getElementById('batch-disc-scope').value;
+  if (!disc) { toast('請先選分類'); return; }
+  if (!currentBook) { toast('請先選擇書本'); return; }
+
+  const d = DISC_TYPES.find(d=>d.value===disc);
+  const label = d ? manageDiscLabel(d) : disc;
+  const scopeLabel = scope === 'book'
+    ? `「${currentBook}」全書`
+    : `「${currentChapter}」章節`;
+
+  if (!confirm(`確定將 ${scopeLabel} 所有題目設為【${label}】分類？`)) return;
+
+  const body = { discipline: disc, book: currentBook };
+  if (scope === 'chapter' && currentChapter) body.chapter = currentChapter;
+
+  try {
+    const res  = await fetch('/api/batch-set-discipline', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      // 同步前端資料
+      allQuestions.forEach(q => {
+        if (q.topic !== currentBook) return;
+        if (scope === 'chapter' && currentChapter && getChapterOf(q) !== currentChapter) return;
+        q.discipline = disc;
+      });
+      filteredQuestions.forEach(q => { q.discipline = disc; });
+      renderTable(filteredQuestions);
+      toast(`✅ ${data.updated} 題設為【${label}】分類`);
+    } else {
+      toast(`設定失敗：${data.error}`);
+    }
+  } catch(e) {
+    toast('網路錯誤');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 難度
+// ══════════════════════════════════════════════════════════════
+function buildDiffSelect(qid, current) {
+  const opts = ['', ...DIFF_ORDER].map(d =>
+    `<option value="${d}" ${d===(current||'')?'selected':''}>${d||'未設定'}</option>`
+  ).join('');
+  return `<select class="inline-diff" onchange="setDifficulty(${qid},this.value)">${opts}</select>`;
+}
+
+async function setDifficulty(id, diff) {
+  if (!diff) return;
+  const res = await fetch('/api/set-difficulty', {
+    method: 'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, difficulty: diff})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    const q = allQuestions.find(q=>q.id===id);
+    if (q) q.difficulty = diff;
+    toast(`ID ${id} → ${diff}`);
+    renderTree(); // 更新書本難度統計
+  } else {
+    toast(`設定失敗：${data.error}`);
+  }
+}
+
+async function batchSetDifficulty() {
+  const diff = document.getElementById('batch-diff-select').value;
+  if (!diff) { toast('請先選難度'); return; }
+  const qs = filteredQuestions.length ? filteredQuestions
+    : allQuestions.filter(q => groupLabel(q) === currentBook && getChapterOf(q) === currentChapter);
+  if (!qs.length) { toast('沒有題目'); return; }
+  if (!confirm(`確定將「${currentChapter}」${qs.length} 題全設為 ${diff}？`)) return;
+  let ok=0,fail=0;
+  for (const q of qs) {
+    try {
+      const r = await fetch('/api/set-difficulty',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:q.id,difficulty:diff})});
+      const d = await r.json();
+      if (d.ok){q.difficulty=diff;ok++;}else fail++;
+    } catch{fail++;}
+  }
+  renderTable(filteredQuestions);
+  renderTree();
+  toast(`✅ ${ok} 題設為 ${diff}${fail?`，${fail} 題失敗`:''}`);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SRS 狀態
+// ══════════════════════════════════════════════════════════════
+function srsStatusHtml(qid) {
+  const c = allSrsCards[qid];
+  if (!c) return '<span class="srs-badge srs-new">新題</span>';
+  const today = new Date().toISOString().slice(0,10);
+  const isDue = c.due_date <= today;
+  const label = c.interval <= 1
+    ? (isDue ? '到期' : '明天')
+    : (isDue ? `${c.interval}d 到期` : `${c.interval}d 後`);
+  return `<span class="srs-badge ${isDue?'srs-due':'srs-ok'}" title="ease=${c.ease_factor.toFixed(1)} rep=${c.repetitions}">${label}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 改名
+// ══════════════════════════════════════════════════════════════
+function renameQuestion(id, currentName) {
+  showRenameModal(`改名題目`, `ID: ${id} ｜ 目前：${currentName}`, currentName, async newName => {
+    const res = await fetch('/api/rename-question', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id, name: newName})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const q = allQuestions.find(q=>q.id===id);
+      if (q) q.display_name = newName;
+      toast(`已改名為「${newName}」`);
+      if (currentChapter) selectChapter(currentBook, currentChapter);
+      else filterQuestions();
+    } else { toast(`改名失敗：${data.error}`); }
+  });
+}
+
+// ── 設定書本棋力區間 ────────────────────────────────────────────
+function changeBookBand(bookName) {
+  const curRank = _bookBands[bookName] !== undefined ? _bookBands[bookName] : bookDiffRank(bookName);
+  const curBand = getDiffBand(curRank);
+
+  // 建立 overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:14px;padding:20px 22px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.25);font-family:inherit;';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:13px;font-weight:700;margin-bottom:4px;color:#1c1409;';
+  title.textContent = manageIsEn() ? 'Set Rank Range' : '設定棋力區間';
+
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:11px;color:#6b5740;margin-bottom:14px;word-break:break-all;';
+  sub.textContent = manageBookLabel(bookName);
+
+  const sel = document.createElement('select');
+  sel.style.cssText = 'width:100%;padding:7px 10px;border:1.5px solid #d4c4a8;border-radius:8px;font-size:13px;background:#fffbf5;cursor:pointer;margin-bottom:16px;';
+  DIFF_BANDS.filter(b => b.label !== '混合').forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.min;   // 用該 band 的起始 index 代表該區間
+    const label = manageBandLabel(b).trim();
+    const monster = manageMonsterLabel(b);
+    opt.textContent = monster ? `${label} · ${monster}` : label;
+    if (b.label === curBand.label) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+  const btnCancel = document.createElement('button');
+  btnCancel.textContent = manageIsEn() ? 'Cancel' : '取消';
+  btnCancel.style.cssText = 'padding:6px 16px;border:1.5px solid #d4c4a8;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;';
+
+  const btnOk = document.createElement('button');
+  btnOk.textContent = manageIsEn() ? 'Confirm' : '確定';
+  btnOk.style.cssText = 'padding:6px 16px;border:none;border-radius:8px;background:#d97706;color:#fff;font-size:13px;font-weight:600;cursor:pointer;';
+
+  const close = () => document.body.removeChild(overlay);
+
+  btnCancel.onclick = close;
+  btnOk.onclick = async () => {
+    const newBandMin = parseInt(sel.value);
+    // 取該 band 的起始 index 做為 band_rank（直接用 min，確保落在正確區間）
+    const band = DIFF_BANDS.find(b => b.min === newBandMin);
+    const newRank = band ? band.min : newBandMin;
+    btnOk.disabled = true;
+    btnOk.textContent = '儲存中…';
+    try {
+      const res = await fetch('/api/set-book-band', {
+        credentials: 'include',
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name: bookName, band_rank: newRank })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        _bookBands[bookName] = newRank;
+        close();
+        renderTree();
+      } else {
+        btnOk.textContent = '確定';
+        btnOk.disabled = false;
+        alert(data.error || '儲存失敗');
+      }
+    } catch(e) {
+      btnOk.textContent = '確定';
+      btnOk.disabled = false;
+      alert('網路錯誤：' + e.message);
+    }
+  };
+
+  overlay.onclick = e => { if (e.target === overlay) close(); };
+  btnRow.append(btnCancel, btnOk);
+  box.append(title, sub, sel, btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  sel.focus();
+}
+
+function renameBook(bookName) {
+  showRenameModal(`改書名`, `目前：${bookName}`, bookName, async newName => {
+    const res = await fetch('/api/rename-book', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({old: bookName, new: newName})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      allQuestions.forEach(q => { if (groupLabel(q)===bookName) { q.topic=newName; } });
+      if (currentBook===bookName) currentBook=newName;
+      // 同步前端 bookBands：繼承原書的 rank
+      const inheritedRank = _bookBands[bookName] !== undefined ? _bookBands[bookName] : bookDiffRank(bookName);
+      delete _bookBands[bookName];
+      _bookBands[newName] = inheritedRank;
+      toast(`書名已改為「${newName}」`);
+      renderTree(); updateStats();
+    } else { toast(`改名失敗：${data.error}`); }
+  });
+}
+
+function renameChapter() {
+  if (!currentChapter) return;
+  renameChapterDirect(currentBook, currentChapter);
+}
+
+// ── 章節改名共用核心 ────────────────────────────────────────
+async function _doRenameChapter(bookName, oldName, newName) {
+  const res = await fetch('/api/rename-chapter-prefix', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({book: bookName, old_prefix: oldName, new_prefix: newName})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    allQuestions.forEach(q => {
+      if (groupLabel(q) === bookName && getChapterOf(q) === oldName) {
+        // 同步更新 q.level（讓 getChapterOf 認得新名稱）
+        if (q.level && q.level !== 'Unknown') q.level = newName;
+        // 同步更新 display_name 前綴
+        const dn = q.display_name || '';
+        if (dn.startsWith(oldName)) q.display_name = newName + dn.slice(oldName.length);
+      }
+    });
+    if (currentChapter === oldName) currentChapter = newName;
+    toast(`章節名已改為「${newName}」`);
+    renderTree(); updateStats();
+    if (currentChapter === newName) selectChapter(currentBook, newName);
+  } else {
+    toast(`改名失敗：${data.error}`);
+    renderTree(); // 恢復顯示
+  }
+}
+
+// ── 章節名稱 inline 編輯 ─────────────────────────────────
+function inlineRenameChapter(spanEl, bookName, oldName) {
+  if (!spanEl || spanEl.tagName === 'INPUT') return; // 已在編輯中
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'chapter-name-input';
+  inp.value = oldName;
+  spanEl.replaceWith(inp);
+  inp.focus(); inp.select();
+
+  let committed = false;
+  async function commit() {
+    if (committed) return;
+    committed = true;
+    const newName = inp.value.trim();
+    if (!newName || newName === oldName) { renderTree(); return; }
+    await _doRenameChapter(bookName, oldName, newName);
+  }
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
+    if (e.key === 'Escape') { committed = true; inp.removeEventListener('blur', commit); renderTree(); }
+  });
+}
+
+// ── 新增章節 inline ──────────────────────────────────────
+// 只建立一個「暫定空章節」，讓使用者把其他題目移進來；不強制上傳 SGF
+function addChapterInline(bookName) {
+  // 找到此書的 chapter-list
+  let targetCl = null;
+  document.querySelectorAll('.chapter-list').forEach(cl => {
+    if (cl.dataset.book === bookName) targetCl = cl;
+  });
+  if (!targetCl) return;
+
+  // 展開
+  if (!targetCl.classList.contains('open')) {
+    targetCl.classList.add('open');
+    const bh = targetCl.previousElementSibling;
+    if (bh) bh.querySelector('.book-toggle')?.classList.add('open');
+    currentBook = bookName; currentChapter = null;
+  }
+
+  // 若已有輸入列，直接 focus
+  const existing = targetCl.querySelector('.chapter-add-row');
+  if (existing) { existing.querySelector('.chapter-add-input')?.focus(); return; }
+
+  const row = document.createElement('div');
+  row.className = 'chapter-add-row';
+  row.innerHTML = `
+    <span style="font-size:12px;color:#d97706;line-height:1;flex-shrink:0;">＋</span>
+    <input type="text" class="chapter-add-input" placeholder="輸入章節名稱…">
+    <button class="icon-btn" style="color:#16a34a;font-size:15px;line-height:1;padding:0 2px;" title="確認">✓</button>
+    <button class="icon-btn" style="color:#9ca3af;font-size:13px;padding:0 2px;" title="取消">✕</button>
+  `;
+  targetCl.appendChild(row);
+
+  const inp  = row.querySelector('.chapter-add-input');
+  const [btnOk, btnX] = row.querySelectorAll('.icon-btn');
+  inp.focus();
+
+  function cancel() { row.remove(); }
+  function confirm() {
+    const name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    // 檢查是否已存在同名章節
+    const tree = buildTree();
+    const existingChapters = tree.get(bookName) || new Map();
+    if (existingChapters.has(name)) {
+      toast(`「${name}」已存在，直接點選即可`);
+      row.remove();
+      currentChapter = name;
+      renderTree();
+      selectChapter(bookName, name);
+      return;
+    }
+    row.remove();
+    // 建立暫定章節（僅存在記憶體）
+    if (!pendingChapters.has(bookName)) pendingChapters.set(bookName, new Set());
+    pendingChapters.get(bookName).add(name);
+    // 展開並選取新章節
+    currentBook = bookName; currentChapter = name;
+    renderTree();
+    selectEmptyChapter(bookName, name);
+  }
+
+  btnOk.onclick = e => { e.stopPropagation(); confirm(); };
+  btnX.onclick  = e => { e.stopPropagation(); cancel(); };
+  inp.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter')  confirm();
+    if (e.key === 'Escape') cancel();
+  });
+}
+
+// 顯示空章節提示頁面（新建章節尚無題目）
+function selectEmptyChapter(bookName, chapterName) {
+  filteredQuestions = [];
+  // breadcrumb
+  document.getElementById('bc-book').textContent    = manageBookLabel(bookName);
+  document.getElementById('bc-book').style.display  = '';
+  document.getElementById('bc-sep').style.display   = '';
+  document.getElementById('bc-chapter').textContent = manageChapterLabel(bookName, chapterName);
+  document.getElementById('q-count').textContent    = manageIsEn() ? '0 problems' : '0 題';
+  document.getElementById('q-count').style.display  = '';
+  document.getElementById('chapter-actions').style.display = 'flex';
+  document.getElementById('batch-bar').classList.remove('visible');
+  document.getElementById('disc-batch-bar').style.display = 'none';
+  document.getElementById('search-input').value = '';
+  // 表格顯示引導訊息
+  document.getElementById('q-tbody').innerHTML = `
+    <tr><td colspan="9">
+      <div class="empty-state">
+        <p style="font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:8px;">「${chapterName}」尚無題目</p>
+        <p style="font-size:12px;color:var(--ink4);line-height:1.7;">
+          請至其他章節，勾選想移入的題目，<br>
+          再使用上方「批次移動」選擇此章節。
+        </p>
+        <p style="font-size:11px;color:var(--ink4);margin-top:10px;">
+          ※ 此章節僅暫存於本頁，移入題目後即正式建立。
+        </p>
+      </div>
+    </td></tr>`;
+}
+
+// ── modal 版本（保留相容性） ─────────────────────────────
+function renameChapterDirect(bookName, chapterName) {
+  // 找到畫面上的章節 span，優先 inline 編輯
+  let targetSpan = null;
+  document.querySelectorAll('.chapter-item').forEach(ci => {
+    const bk = ci.closest('.chapter-list')?.dataset.book;
+    if (bk === bookName) {
+      const sp = ci.querySelector('.chapter-name');
+      if (sp && sp.textContent === chapterName) targetSpan = sp;
+    }
+  });
+  if (targetSpan) { inlineRenameChapter(targetSpan, bookName, chapterName); return; }
+  // 若 span 找不到（章節未展開），用 modal
+  showRenameModal(`改章節名`, `${bookName} › ${chapterName}`, chapterName, async newName => {
+    await _doRenameChapter(bookName, chapterName, newName);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 刪除
+// ══════════════════════════════════════════════════════════════
+function confirmDeleteQ(id, name) {
+  showConfirmModal(`刪除題目`, `確定要刪除「${name}」（ID: ${id}）？此操作無法復原。`, async () => {
+    const res = await fetch('/api/delete-question',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+    const data = await res.json();
+    if (data.ok) {
+      allQuestions = allQuestions.filter(q=>q.id!==id);
+      toast(`已刪除：${name}`);
+      if (currentChapter) selectChapter(currentBook, currentChapter);
+      else filterQuestions();
+      updateStats(); renderTree();
+    } else { toast(`刪除失敗：${data.error}`); }
+  });
+}
+
+function deleteChapter() {
+  if (!currentChapter) return;
+  deleteChapterDirect(currentBook, currentChapter);
+}
+
+function deleteChapterDirect(bookName, chapterName) {
+  const ids = allQuestions
+    .filter(q => groupLabel(q) === bookName && getChapterOf(q) === chapterName)
+    .map(q => q.id);
+  const cnt = ids.length;
+  showConfirmModal(`刪除章節「${chapterName}」`, `「${bookName}」下共 ${cnt} 題，刪除後無法復原。`, async () => {
+    const res = await fetch('/api/batch-delete-questions', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ids})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const idSet = new Set(ids);
+      allQuestions = allQuestions.filter(q => !idSet.has(q.id));
+      if (currentBook===bookName && currentChapter===chapterName) {
+        currentChapter=null;
+        document.getElementById('bc-chapter').textContent = bookName;
+        document.getElementById('bc-book').style.display = 'none';
+        document.getElementById('bc-sep').style.display  = 'none';
+        document.getElementById('q-count').style.display = 'none';
+        document.getElementById('chapter-actions').style.display = 'none';
+        document.getElementById('batch-bar').classList.remove('visible');
+        document.getElementById('disc-batch-bar').style.display = 'none';
+        document.getElementById('q-tbody').innerHTML = `<tr><td colspan="9"><div class="empty-state"><p>章節已刪除，請從左側選擇</p></div></td></tr>`;
+      }
+      toast(`已刪除章節「${chapterName}」，共 ${data.deleted||cnt} 題`);
+      updateStats(); renderTree();
+    } else { toast(`刪除失敗：${data.error}`); }
+  });
+}
+
+function deleteBook(bookName) {
+  const cnt = allQuestions.filter(q=>groupLabel(q)===bookName).length;
+  showConfirmModal(`刪除書本「${bookName}」`, `共 ${cnt} 題（含所有章節），刪除後無法復原。`, async () => {
+    const res = await fetch('/api/delete-book',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({book:bookName})});
+    const data = await res.json();
+    if (data.ok) {
+      allQuestions = allQuestions.filter(q=>groupLabel(q)!==bookName);
+      if (currentBook===bookName) { currentBook=currentChapter=null; }
+      toast(`已刪除書本「${bookName}」，共 ${data.deleted||cnt} 題`);
+      updateStats(); renderTree();
+      // 清空右側
+      document.getElementById('bc-book').style.display='none';
+      document.getElementById('bc-sep').style.display='none';
+      document.getElementById('bc-chapter').textContent='請從左側選擇書本 › 章節';
+      document.getElementById('q-count').style.display='none';
+      document.getElementById('chapter-actions').style.display='none';
+      document.getElementById('batch-bar').classList.remove('visible');
+      document.getElementById('disc-batch-bar').style.display = 'none';
+      document.getElementById('q-tbody').innerHTML=`<tr><td colspan="9"><div class="empty-state"><p>書本已刪除</p></div></td></tr>`;
+    } else { toast(`刪除失敗：${data.error}`); }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 批次勾選功能
+// ══════════════════════════════════════════════════════════════
+function _getCheckedIds() {
+  return [...document.querySelectorAll('.q-checkbox:checked')].map(el => parseInt(el.dataset.id));
+}
+
+function _updateBatchBar() {
+  const ids  = _getCheckedIds();
+  const bar  = document.getElementById('batch-select-bar');
+  const lbl  = document.getElementById('batch-count-label');
+  const all  = document.getElementById('check-all');
+  const total = document.querySelectorAll('.q-checkbox').length;
+  lbl.textContent = `已選 ${ids.length} 題`;
+  bar.classList.toggle('visible', ids.length > 0);
+  if (all) all.indeterminate = ids.length > 0 && ids.length < total;
+  if (all) all.checked = total > 0 && ids.length === total;
+}
+
+function onRowCheck(el) { _updateBatchBar(); }
+
+function toggleCheckAll(el) {
+  document.querySelectorAll('.q-checkbox').forEach(cb => { cb.checked = el.checked; });
+  _updateBatchBar();
+}
+
+function clearSelection() {
+  document.querySelectorAll('.q-checkbox').forEach(cb => { cb.checked = false; });
+  const allCb = document.getElementById('check-all');
+  if (allCb) { allCb.checked = false; allCb.indeterminate = false; }
+  _updateBatchBar();
+}
+
+async function batchDelete() {
+  const ids = _getCheckedIds();
+  if (!ids.length) return;
+  showConfirmModal(
+    `批次刪除 ${ids.length} 題`,
+    `確定刪除選取的 ${ids.length} 道題目？此操作無法復原。`,
+    async () => {
+      const res  = await fetch('/api/batch-delete-questions', {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ids})
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const idSet = new Set(ids);
+        allQuestions = allQuestions.filter(q => !idSet.has(q.id));
+        filteredQuestions = filteredQuestions.filter(q => !idSet.has(q.id));
+        clearSelection();
+        renderTable(filteredQuestions, false);
+        updateStats(); renderTree();
+        toast(`已刪除 ${data.deleted} 題`);
+      } else { toast(`刪除失敗：${data.error}`); }
+    }
+  );
+}
+
+function batchMove() {
+  const ids = _getCheckedIds();
+  if (!ids.length) return;
+  // 重用現有 move modal，改標題
+  document.getElementById('move-modal-sub').textContent = `批次移動 ${ids.length} 道題目`;
+  // 填書本選單
+  const sel = document.getElementById('move-book-select');
+  sel.innerHTML = '';
+  const books = [...new Set(allQuestions.map(q => groupLabel(q)))].sort();
+  books.forEach(b => { const o = document.createElement('option'); o.value=b; o.textContent=b; sel.appendChild(o); });
+  onMoveBookChange();
+  document.getElementById('move-confirm').onclick = async () => {
+    await doMoveQuestion({ ids });
+  };
+  document.getElementById('move-modal').classList.add('open');
+}
+
+// ── 擴展 doMoveQuestion 以支援批次 ──
+async function doMoveQuestion(tree) {
+  const book    = document.getElementById('move-book-select').value;
+  const chapter = document.getElementById('move-chapter-select').value;
+  if (!book || !chapter) { toast('請選擇書本和章節'); return; }
+
+  // 批次模式
+  if (tree.ids) {
+    const res  = await fetch('/api/batch-move-questions', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ids: tree.ids, book, chapter})
+    });
+    const data = await res.json();
+    closeMoveModal();
+    if (data.ok) {
+      const idSet  = new Set(tree.ids);
+      const names  = data.updated_names || {};
+      allQuestions.forEach(q => {
+        if (idSet.has(q.id)) {
+          q.topic = book;
+          q.level = chapter;
+          if (names[q.id] !== undefined) q.display_name = names[q.id];
+        }
+      });
+      // 暫定章節已有題目 → 從 pendingChapters 移除
+      _cleanPendingChapter(book, chapter);
+      filteredQuestions = filteredQuestions.filter(q => !idSet.has(q.id));
+      clearSelection();
+      renderTable(filteredQuestions, false);
+      updateStats(); renderTree();
+      toast(`已移動 ${data.moved} 題到「${book} › ${chapter}」`);
+    } else { toast(`移動失敗：${data.error}`); }
+    return;
+  }
+
+  // 單題模式（原有邏輯）
+  const res = await fetch('/api/move-question', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id: tree.id, book, chapter})
+  });
+  const data = await res.json();
+  closeMoveModal();
+  if (data.ok) {
+    const q = allQuestions.find(x=>x.id===tree.id);
+    if (q) {
+      q.topic = book;
+      q.level = chapter;
+      if (data.display_name !== undefined) q.display_name = data.display_name;
+    }
+    _cleanPendingChapter(book, chapter);
+    filteredQuestions = filteredQuestions.filter(x=>x.id!==tree.id);
+    renderTable(filteredQuestions, false);
+    updateStats(); renderTree();
+    toast(`已移動到「${book} › ${chapter}」`);
+  } else { toast(`移動失敗：${data.error}`); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Modal helpers
+// ══════════════════════════════════════════════════════════════
+function showRenameModal(title, sub, currentVal, onConfirm) {
+  document.getElementById('rename-modal-title').textContent = title;
+  document.getElementById('rename-modal-sub').textContent   = sub;
+  const inp = document.getElementById('rename-input');
+  inp.value = currentVal;
+  document.getElementById('rename-confirm').onclick = async () => {
+    const newName = inp.value.trim();
+    if (!newName || newName===currentVal) { closeRenameModal(); return; }
+    closeRenameModal();
+    await onConfirm(newName);
+  };
+  document.getElementById('rename-modal').classList.add('open');
+  setTimeout(()=>{ inp.focus(); inp.select(); }, 60);
+}
+function closeRenameModal() { document.getElementById('rename-modal').classList.remove('open'); }
+
+function showConfirmModal(title, body, onConfirm) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent  = body;
+  document.getElementById('confirm-ok').onclick = async () => { closeConfirmModal(); await onConfirm(); };
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeConfirmModal() { document.getElementById('confirm-modal').classList.remove('open'); }
+
+// 點遮罩關閉
+document.getElementById('rename-modal').onclick = e => { if(e.target===e.currentTarget) closeRenameModal(); };
+document.getElementById('confirm-modal').onclick = e => { if(e.target===e.currentTarget) closeConfirmModal(); };
+document.getElementById('rename-input').addEventListener('keydown', e => {
+  if (e.key==='Enter')  document.getElementById('rename-confirm').click();
+  if (e.key==='Escape') closeRenameModal();
+});
+
+// ══════════════════════════════════════════════════════════════
+// Toast
+// ══════════════════════════════════════════════════════════════
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 其他
+// ══════════════════════════════════════════════════════════════
+function doLogout() {
+  fetch('/api/auth/logout',{method:'POST',credentials:'include'}).then(()=>location.href='/login');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 啟動
+// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// ADD QUESTION DRAWER
+// ══════════════════════════════════════════════════════════════
+
+function openAddDrawer() {
+  // Populate book dropdown from current data
+  const books = [...new Set(allQuestions.map(q => groupLabel(q)))].sort();
+  const bookSel = document.getElementById('add-book-select');
+  bookSel.innerHTML = '<option value="">— 選現有書本 —</option>' +
+    books.map(b => `<option value="${b}"${b===currentBook?' selected':''}>${b}</option>`).join('');
+
+  // Pre-fill chapter if one is selected
+  _fillAddChapterSelect(currentBook || '');
+  if (currentChapter) {
+    const chSel = document.getElementById('add-chapter-select');
+    [...chSel.options].forEach(o => { if (o.value===currentChapter) o.selected=true; });
+  }
+
+  // Populate difficulty
+  const diffSel = document.getElementById('add-difficulty');
+  diffSel.innerHTML = '<option value="">— 未設定 —</option>' +
+    DIFF_ORDER.map(d => `<option value="${d}">${d}</option>`).join('');
+
+  // Reset fields
+  document.getElementById('sgf-content').value = '';
+  document.getElementById('add-display-name').value = '';
+  document.getElementById('add-book-new').value = '';
+  document.getElementById('add-chapter-new').value = '';
+  document.getElementById('upload-filename').style.display = 'none';
+  document.getElementById('upload-filename').textContent = '';
+  document.getElementById('drawer-status').textContent = '';
+  document.getElementById('drawer-status').className = 'drawer-status';
+  document.getElementById('btn-drawer-save').disabled = false;
+
+  document.getElementById('add-drawer-overlay').classList.add('open');
+  document.getElementById('add-drawer').classList.add('open');
+  setTimeout(() => document.getElementById('sgf-content').focus(), 180);
+}
+
+function closeAddDrawer() {
+  document.getElementById('add-drawer-overlay').classList.remove('open');
+  document.getElementById('add-drawer').classList.remove('open');
+}
+
+// Stop overlay click from closing when clicking inside drawer
+document.getElementById('add-drawer').addEventListener('click', e => e.stopPropagation());
+
+function _fillAddChapterSelect(bookName) {
+  const tree = buildTree();
+  const chapters = bookName ? [...(tree.get(bookName)||new Map()).keys()] : [];
+  const sel = document.getElementById('add-chapter-select');
+  sel.innerHTML = '<option value="">— 選現有章節 —</option>' +
+    chapters.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function onAddBookChange() {
+  const val = document.getElementById('add-book-select').value;
+  if (val) document.getElementById('add-book-new').value = '';
+  _fillAddChapterSelect(val);
+}
+
+function onAddBookNewInput() {
+  if (document.getElementById('add-book-new').value.trim()) {
+    document.getElementById('add-book-select').value = '';
+    document.getElementById('add-chapter-select').innerHTML = '<option value="">— 選現有章節 —</option>';
+  }
+}
+
+// Auto-extract GN[] from pasted SGF
+function onSgfInput() {
+  const sgf = document.getElementById('sgf-content').value;
+  const m   = sgf.match(/GN\[([^\]]+)\]/);
+  const nameEl = document.getElementById('add-display-name');
+  if (m && !nameEl.value) nameEl.value = m[1].trim();
+}
+
+// File upload handling
+function handleSgfFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('sgf-content').value = e.target.result;
+    onSgfInput();
+    const fn = document.getElementById('upload-filename');
+    fn.textContent = `✓ ${file.name}`;
+    fn.style.display = '';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function handleSgfDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-active');
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.name.endsWith('.sgf')) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('sgf-content').value = ev.target.result;
+    onSgfInput();
+    const fn = document.getElementById('upload-filename');
+    fn.textContent = `✓ ${file.name}`;
+    fn.style.display = '';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+async function submitAddQuestion() {
+  const sgf       = document.getElementById('sgf-content').value.trim();
+  const bookSel   = document.getElementById('add-book-select').value.trim();
+  const bookNew   = document.getElementById('add-book-new').value.trim();
+  const chSel     = document.getElementById('add-chapter-select').value.trim();
+  const chNew     = document.getElementById('add-chapter-new').value.trim();
+  const dispName  = document.getElementById('add-display-name').value.trim();
+  const diff      = document.getElementById('add-difficulty').value;
+
+  const book    = bookNew  || bookSel;
+  const chapter = chNew   || chSel;
+
+  const status = document.getElementById('drawer-status');
+  const btn    = document.getElementById('btn-drawer-save');
+
+  if (!sgf)     { _drawerErr('請貼入或上傳 SGF 內容');  return; }
+  if (!book)    { _drawerErr('請選擇或輸入書本名稱');    return; }
+  if (!chapter) { _drawerErr('請選擇或輸入章節名稱');    return; }
+
+  btn.disabled = true;
+  status.className = 'drawer-status';
+  status.textContent = '儲存中…';
+
+  try {
+    const res  = await fetch('/api/add-question', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        sgf_content:  sgf,
+        topic:        book,
+        level:        chapter,
+        display_name: dispName || null,
+        difficulty:   diff || null,
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      // Inject into local state
+      allQuestions.push(data.question);
+      status.textContent = `✅ 已新增 ID ${data.question.id}`;
+      renderTree();
+      updateStats();
+      // Navigate to the new chapter
+      setTimeout(() => {
+        closeAddDrawer();
+        selectChapter(book, chapter);
+      }, 700);
+    } else {
+      _drawerErr(data.error || '新增失敗');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    _drawerErr('網路錯誤，請重試');
+    btn.disabled = false;
+  }
+}
+
+function _drawerErr(msg) {
+  const status = document.getElementById('drawer-status');
+  status.className = 'drawer-status err';
+  status.textContent = '⚠ ' + msg;
+}
+
+// ESC to close drawer or preview
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('add-drawer').classList.contains('open')) closeAddDrawer();
+    else if (document.getElementById('preview-panel').classList.contains('open')) closePreview();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// SGF 解析器（與 index.html 同步）
+// ══════════════════════════════════════════════════════════════
+function parseSGF(sgf) {
+    sgf = sgf.replace(/\r?\n|\r/g, ' ').trim();
+    const result = { size:19, pl:'B', black:[], white:[], tree:null };
+    function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
+    function parseCoordList(s){return(s.match(/\[([a-zA-Z]{2})\]/g)||[]).map(m=>({x:m.charCodeAt(1)-97,y:m.charCodeAt(2)-97}));}
+    const rm=sgf.match(/^\(;([\s\S]*?)(?=;|\(|\))/);if(!rm)return null;
+    const rp=rm[1];
+    const sz=rp.match(/SZ\[(\d+)\]/);if(sz)result.size=parseInt(sz[1]);
+    const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
+    (rp.match(/AB((?:\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
+    (rp.match(/AW((?:\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
+    function parseSeq(str){
+        str=str.trim();const ns=[];let i=0;
+        while(i<str.length){
+            if(str[i]===';'){let j=i+1,d=0;while(j<str.length){if(str[j]==='('){if(d===0)break;d++;}else if(str[j]===')'){ if(d===0)break;d--;}else if(str[j]===';'&&d===0)break;j++;}ns.push(str.slice(i,j));i=j;}
+            else if(str[i]==='(')break;else i++;
+        }
+        const bs=i;if(!ns.length)return null;
+        function scanNodeMove(node){
+            node=node.trim();
+            let i=0;
+            while(i<node.length){
+                const ch=node[i];
+                if(ch===';'||ch<=' '){i++;continue;}
+                if(ch<'A'||ch>'Z'){i++;continue;}
+                const propStart=i;
+                while(i<node.length&&node[i]>='A'&&node[i]<='Z')i++;
+                const prop=node.slice(propStart,i);
+                while(i<node.length&&node[i]==='['){
+                    let value='';i++;
+                    while(i<node.length){
+                        const c=node[i];
+                        if(c==='\\'&&i+1<node.length){value+=node[i+1];i+=2;continue;}
+                        if(c===']'){i++;break;}
+                        value+=c;i++;
+                    }
+                    if(prop==='B'||prop==='W'){
+                        return{color:prop,move:value.length===2?{x:value.charCodeAt(0)-97,y:value.charCodeAt(1)-97}:null};
+                    }
+                }
+            }
+            return null;
+        }
+        function pn(s){const m=scanNodeMove(s);if(!m)return null;return{color:m.color,move:m.move,children:[]};}
+        const nodes=ns.map(pn).filter(Boolean);if(!nodes.length)return null;
+        for(let k=0;k<nodes.length-1;k++)nodes[k].children.push(nodes[k+1]);
+        const last=nodes[nodes.length-1];let bi=bs;
+        while(bi<str.length){if(str[bi]==='('){const e=findClosing(str,bi);const c=parseSeq(str.slice(bi+1,e));if(c)last.children.push(c);bi=e+1;}else bi++;}
+        return nodes[0];
+    }
+    const after=sgf.slice(rm[0].length).trim();
+    if(after.startsWith(';')){result.tree=parseSeq(after);}
+    else if(after.startsWith('(')){
+        const root={move:null,color:null,children:[]};let i=0;
+        while(i<after.length){if(after[i]==='('){const e=findClosing(after,i);const c=parseSeq(after.slice(i+1,e));if(c)root.children.push(c);i=e+1;}else i++;}
+        result.tree=root;
+    }
+    // 若 SGF 根節點無 PL 標記，從答案樹第一手顏色推斷先手方
+    if(!pl&&result.tree){const fn=result.tree.move?result.tree:(result.tree.children&&result.tree.children[0]);if(fn&&fn.color)result.pl=fn.color;}
+    // 最後備援：直接搜尋整個 SGF 是否含 PL[W]
+    if(result.pl==='B'&&/PL\[W\]/.test(sgf))result.pl='W';
+    return result;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 題目預覽面板
+// ══════════════════════════════════════════════════════════════
+let _previewBoard = null;
+let _previewQid   = null;
+
+async function openPreview(qid) {
+  // 再次點同題 → 關閉
+  if (_previewQid === qid && document.getElementById('preview-panel').classList.contains('open')) {
+    closePreview(); return;
+  }
+  _previewQid = qid;
+
+  // 移除前一列高亮，標記新列
+  document.querySelectorAll('tr.previewing').forEach(r => r.classList.remove('previewing'));
+  const row = document.querySelector(`tr[data-id="${qid}"]`);
+  if (row) row.classList.add('previewing');
+
+  // 開啟面板
+  const panel = document.getElementById('preview-panel');
+  panel.classList.add('open');
+
+  // 載入狀態
+  document.getElementById('preview-qid').textContent       = `#${qid}`;
+  document.getElementById('preview-title-txt').textContent = '載入中…';
+  document.getElementById('preview-meta').innerHTML        = '';
+  const bw = document.getElementById('preview-board-wrap');
+  bw.innerHTML = '<div style="padding:32px;color:var(--ink4);font-size:13px;text-align:center;">⏳ 載入棋盤…</div>';
+
+  // 清除舊棋盤
+  _destroyPreviewBoard();
+
+  // 取單題完整資料（含 SGF content）
+  let data;
+  try {
+    data = await fetch(`/api/question/${qid}`, {credentials:'include'}).then(r => r.json());
+  } catch(e) {
+    bw.innerHTML = '<div style="padding:20px;color:#dc2626;">⚠ 載入失敗</div>'; return;
+  }
+
+  // 若已切換到其他題，放棄
+  if (_previewQid !== qid) return;
+
+  // 補充本地 allQuestions 資料
+  const qInfo   = allQuestions.find(q => q.id === qid) || {};
+  const srsCard = allSrsCards[qid];
+
+  // 標題
+  const title = data.display_name || qInfo.display_name || `題目 ${qid}`;
+  document.getElementById('preview-title-txt').textContent = title;
+
+  // 解析 SGF → 建立棋盤
+  const parsed = parseSGF((data.content || '').trim());
+  bw.innerHTML = '';
+
+  if (parsed && typeof WGo !== 'undefined') {
+    // 讓 panel 先完成 transition 再建棋盤（確保容器有寬度）
+    await new Promise(r => setTimeout(r, 60));
+    if (_previewQid !== qid) return; // 再次確認未被切換
+    const boardSize = bw.clientWidth - 28;
+    _previewBoard = new WGo.Board(bw, {
+      width: Math.max(200, boardSize),
+      size:  parsed.size,
+      section: { top:-.5, left:-.5, right:-.5, bottom:-.5 }
+    });
+    parsed.black.forEach(s => _previewBoard.addObject({x:s.x, y:s.y, c:WGo.B}));
+    parsed.white.forEach(s => _previewBoard.addObject({x:s.x, y:s.y, c:WGo.W}));
+  } else {
+    bw.innerHTML = '<div style="padding:20px;color:var(--ink4);text-align:center;">無法解析 SGF</div>';
+  }
+
+  // Metadata
+  const pl    = parsed ? parsed.pl : ((data.content||'').match(/PL\[([BW])\]/) || [])[1] || '?';
+  const plTxt = pl === 'B' ? '⚫ 黑先' : pl === 'W' ? '⚪ 白先' : '?';
+  const diff  = data.difficulty || qInfo.difficulty || '';
+  const diffHtml = diff
+    ? `<span style="background:${diff.endsWith('k')?'#3b82f6':'#f59e0b'};color:#fff;
+                  font-size:10px;padding:1px 7px;border-radius:4px;font-weight:bold">${diff}</span>`
+    : '<span style="color:var(--ink4)">未設定</span>';
+
+  let srsHtml = '';
+  if (srsCard) {
+    const next = srsCard.interval === 0 ? '今日' : srsCard.interval === 1 ? '明天' : `${srsCard.interval} 天後`;
+    srsHtml = `
+      <div class="preview-row">
+        <span class="preview-label">複習</span>
+        <span class="preview-val">${next}</span>
+      </div>
+      <div class="preview-row">
+        <span class="preview-label">穩定度</span>
+        <span class="preview-val">${srsCard.ease_factor != null ? srsCard.ease_factor.toFixed(2) : '—'}</span>
+      </div>`;
+  } else {
+    srsHtml = `<div class="preview-row"><span class="preview-label">SRS</span><span class="preview-val" style="color:var(--ink4)">尚未作答</span></div>`;
+  }
+
+  const enabledHtml = qInfo.enabled === false
+    ? '<span style="color:#dc2626;">⊘ 停用</span>'
+    : '<span style="color:var(--teal);">✓ 啟用</span>';
+
+  // 解說文字
+  const commentText = data.comment || '';
+
+  document.getElementById('preview-meta').innerHTML = `
+    <div class="preview-row">
+      <span class="preview-label">先手</span>
+      <span class="preview-val">${plTxt}</span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">難度</span>
+      <span class="preview-val">${diffHtml}</span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-label">狀態</span>
+      <span class="preview-val">${enabledHtml}</span>
+    </div>
+    ${srsHtml}
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="/?preview=${qid}" target="_blank" class="preview-ext-link">在練習頁開啟 ↗</a>
+    </div>
+    <div class="expl-section">
+      <div class="expl-section-head">
+        <span class="expl-section-title">📝 題目解說</span>
+        <button class="expl-edit-btn" id="expl-edit-btn" onclick="_explStartEdit(${qid})">✏️ 編輯</button>
+      </div>
+      <div id="expl-display" class="${commentText ? 'expl-text-display' : 'expl-text-display empty'}">${commentText ? _escHtml(commentText) : '尚無解說文字，點擊「編輯」新增…'}</div>
+      <div id="expl-editor" style="display:none">
+        <textarea id="expl-textarea" class="expl-textarea" placeholder="輸入解說文字…">${_escHtml(commentText)}</textarea>
+        <div class="expl-actions">
+          <button class="expl-save-btn" id="expl-save-btn" onclick="_explSave(${qid})">💾 儲存</button>
+          <button class="expl-cancel-btn" onclick="_explCancelEdit(${qid}, \`${_escTpl(commentText)}\`)">取消</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function _destroyPreviewBoard() {
+  if (_previewBoard) {
+    try { _previewBoard.removeAllObjects(); } catch(e) {}
+    _previewBoard = null;
+  }
+}
+
+// ── 解說文字工具函式 ──────────────────────────────────────────
+function _escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// 反斜線 + backtick 跳脫，讓字串放進 template literal onclick
+function _escTpl(s) {
+  return (s || '').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+}
+
+function _explStartEdit(qid) {
+  const display = document.getElementById('expl-display');
+  const editor  = document.getElementById('expl-editor');
+  const btn     = document.getElementById('expl-edit-btn');
+  if (!display || !editor) return;
+  display.style.display = 'none';
+  editor.style.display  = 'block';
+  if (btn) btn.style.display = 'none';
+  const ta = document.getElementById('expl-textarea');
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+
+function _explCancelEdit(qid, originalText) {
+  const display = document.getElementById('expl-display');
+  const editor  = document.getElementById('expl-editor');
+  const btn     = document.getElementById('expl-edit-btn');
+  if (!display || !editor) return;
+  editor.style.display  = 'none';
+  display.style.display = '';
+  if (btn) btn.style.display = '';
+  // 還原 textarea 內容
+  const ta = document.getElementById('expl-textarea');
+  if (ta) ta.value = originalText;
+}
+
+async function _explSave(qid) {
+  const ta      = document.getElementById('expl-textarea');
+  const saveBtn = document.getElementById('expl-save-btn');
+  if (!ta || !saveBtn) return;
+  const text = ta.value.trim();
+  saveBtn.disabled = true;
+  saveBtn.textContent = '儲存中…';
+
+  try {
+    const res  = await fetch('/api/set-explanation', {
+      credentials: 'include',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: qid, text })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || '儲存失敗');
+
+    // 更新本地 allQuestions 的 has_explanation 旗標
+    const q = allQuestions.find(x => x.id === qid);
+    if (q) q.has_explanation = !!text;
+
+    // 更新顯示
+    const display = document.getElementById('expl-display');
+    const editor  = document.getElementById('expl-editor');
+    const btn     = document.getElementById('expl-edit-btn');
+    if (display) {
+      display.className = text ? 'expl-text-display' : 'expl-text-display empty';
+      display.innerHTML = text ? _escHtml(text) : '尚無解說文字，點擊「編輯」新增…';
+      // 更新 cancel 按鈕的 originalText
+      const cancelBtn = editor ? editor.querySelector('.expl-cancel-btn') : null;
+      if (cancelBtn) cancelBtn.setAttribute('onclick', `_explCancelEdit(${qid}, \`${_escTpl(text)}\`)`);
+    }
+    if (editor)  editor.style.display  = 'none';
+    if (display) display.style.display = '';
+    if (btn)     btn.style.display     = '';
+
+    toast('解說已儲存 ✓');
+  } catch(e) {
+    toast('❌ ' + e.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = '💾 儲存';
+  }
+}
+
+function closePreview() {
+  _previewQid = null;
+  document.getElementById('preview-panel').classList.remove('open');
+  document.querySelectorAll('tr.previewing').forEach(r => r.classList.remove('previewing'));
+  _destroyPreviewBoard();
+  // 稍後清空，避免關閉動畫時看到空白
+  setTimeout(() => {
+    if (!document.getElementById('preview-panel').classList.contains('open')) {
+      document.getElementById('preview-board-wrap').innerHTML =
+        '<span style="color:var(--ink4);font-size:13px;">點擊題目列的「預覽」</span>';
+      document.getElementById('preview-meta').innerHTML = '';
+      document.getElementById('preview-title-txt').textContent = '題目預覽';
+      document.getElementById('preview-qid').textContent = '';
+    }
+  }, 300);
+}
+
+window.onload = loadAll;
+window.onLangChange = () => { I18n.apply(); if(typeof renderTable==='function'&&typeof filteredQuestions!=='undefined'&&filteredQuestions) renderTable(filteredQuestions); };
+document.addEventListener('DOMContentLoaded', () => {
+  I18n.renderSwitcher(document.getElementById('lang-switcher-manage'));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+source_repo: https://github.com/beatleswu/beatleswu.github.io
+source_branch: testing-baseline-test-isolation
+source_commit: d729645c0ae267be6d89a5b49c007bc64284bbcc
+vendored_date: 2026-07-11
+verification_method: extracted directly from the Git object at the recorded
+  commit (git ls-tree / git cat-file blob, no intermediate checkout of any
+  other ref), then compared file-by-file to the source commit by SHA-256
+  after normalizing CRLF/LF to LF on both sides. All 18 tracked implementation
+  files matched exactly; see sgf_engine/PROVENANCE_VERIFICATION.md for the
+  full comparison record.
+line_ending_policy: LF
+rule: never edit engine code here; re-vendor from the testing repo.

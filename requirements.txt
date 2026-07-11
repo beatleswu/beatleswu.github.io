@@ -1,0 +1,15 @@
+Flask==3.0.3
+Flask-Compress==1.15
+Flask-Cors==4.0.1
+Flask-SocketIO==5.3.6
+python-socketio==5.11.4
+python-engineio==4.9.1
+Werkzeug==3.0.3
+psycopg2-binary==2.9.9
+pycryptodome==3.20.0
+# 正式機 WSGI server（C1：單容器多 worker + Redis 訊息佇列）
+gunicorn==23.0.0
+gevent==24.11.1
+gevent-websocket==0.10.1
+psycogreen==1.0.2
+redis==5.0.8

@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="cm.page.title">社群大廳 | 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<script src="/community_reward_notifications.js?v=20260706b" defer></script>
+<script src="/community_reward_rules.js?v=20260706a" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#f8f3ea; --panel:#fffaf2; --paper:#fffdf8; --ink:#17110a; --muted:#746451; --soft:#a19078;
+  --line:rgba(89,65,39,.16); --line2:rgba(89,65,39,.28); --teal:#0f8f88; --teal2:#0b6f69;
+  --gold:#c98216; --gold2:#f2b84b; --red:#dc2626; --green:#16a34a; --blue:#2563eb; --violet:#7c3aed;
+  --shadow:0 14px 38px rgba(50,35,18,.11); --nav-h:var(--cg-nav-h,58px);
+}
+html { min-height:100%; background:var(--bg); }
+body {
+  min-height:100vh; color:var(--ink);
+  font-family:'DM Sans', system-ui, sans-serif;
+  background:
+    linear-gradient(90deg, rgba(23,17,10,.035) 1px, transparent 1px),
+    linear-gradient(rgba(23,17,10,.035) 1px, transparent 1px),
+    radial-gradient(circle at 18% 6%, rgba(15,143,136,.18), transparent 34%),
+    radial-gradient(circle at 82% 0%, rgba(201,130,22,.18), transparent 33%),
+    var(--bg);
+  background-size:42px 42px,42px 42px,auto,auto,auto;
+}
+a { color:inherit; } button,input,textarea,select { font:inherit; }
+.shell { width:min(1440px, calc(100vw - 40px)); margin:0 auto; padding:26px 0 42px; }
+.hero {
+  min-height:238px; border-radius:8px; border:1px solid rgba(44,28,12,.2); overflow:hidden;
+  display:grid; grid-template-columns:minmax(0,1.35fr) minmax(320px,.8fr); gap:0; box-shadow:var(--shadow);
+  background:linear-gradient(135deg, rgba(27,20,13,.94), rgba(56,38,20,.9)); color:#fff7ed;
+}
+.hero-main { position:relative; padding:30px; overflow:hidden; }
+.hero-main::before {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:34px 34px; mask-image:linear-gradient(90deg,#000,transparent 85%);
+}
+.hero-main::after {
+  content:''; position:absolute; right:32px; bottom:-100px; width:300px; height:300px; border-radius:50%;
+  background:radial-gradient(circle,transparent 0 32%,rgba(242,184,75,.6) 33% 34%,transparent 35%), conic-gradient(from 20deg,rgba(15,143,136,.18),transparent 22%,rgba(242,184,75,.18),transparent 50%,rgba(255,255,255,.08),transparent 80%);
+}
+.eyebrow { position:relative; color:#f6d48a; font:700 12px 'DM Mono',monospace; letter-spacing:1px; margin-bottom:14px; }
+.eyebrow::before { content:''; display:inline-block; width:10px; height:10px; border-radius:50%; background:#f6d48a; box-shadow:18px 0 0 #fff7ed; margin-right:28px; }
+h1 { position:relative; font-family:'Cormorant Garamond',serif; font-size:clamp(42px,5vw,72px); line-height:.95; letter-spacing:0; }
+.hero-copy { position:relative; max-width:680px; margin-top:16px; color:rgba(255,247,237,.78); line-height:1.75; font-size:15px; }
+.hero-actions { position:relative; display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
+.btn {
+  min-height:40px; border-radius:7px; border:1px solid var(--line2); padding:0 14px; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  text-decoration:none; cursor:pointer; font-weight:800; white-space:nowrap; transition:.14s ease; background:var(--paper); color:var(--ink);
+}
+.btn:hover { transform:translateY(-1px); }
+.btn-primary { background:linear-gradient(135deg,#f2b84b,#d98a1b); color:#211306; border-color:rgba(255,255,255,.2); box-shadow:0 10px 22px rgba(201,130,22,.25); }
+.btn-dark { background:#26342d; color:#fff7ed; border-color:#26342d; }
+.btn-ghost { background:rgba(255,255,255,.08); color:#fff7ed; border-color:rgba(255,255,255,.22); }
+.btn-danger { color:#b91c1c; background:#fff7f7; border-color:#fecaca; }
+.hero-side { padding:18px; display:grid; gap:10px; background:rgba(255,250,242,.08); border-left:1px solid rgba(255,255,255,.1); }
+.stat-card { border-radius:8px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.08); padding:15px; }
+.stat-label { color:rgba(255,247,237,.68); font:500 11px 'DM Mono',monospace; }
+.stat-value { margin-top:7px; font-size:26px; font-weight:900; }
+.tabs {
+  margin:18px 0; display:flex; gap:8px; overflow-x:auto; padding:4px; border:1px solid var(--line);
+  background:rgba(255,250,242,.82); border-radius:8px; box-shadow:0 8px 24px rgba(50,35,18,.07);
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab {
+  min-height:40px; padding:0 14px; border:0; border-radius:6px; background:transparent; color:var(--muted);
+  cursor:pointer; font-weight:900; white-space:nowrap;
+}
+.tab.active { background:#26342d; color:#fff7ed; }
+.grid { display:grid; grid-template-columns:380px minmax(0,1fr); gap:18px; align-items:start; }
+.panel { border:1px solid var(--line); border-radius:8px; background:rgba(255,250,242,.88); box-shadow:0 8px 24px rgba(50,35,18,.07); overflow:hidden; }
+.panel-head { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.kicker { color:var(--muted); font:700 11px 'DM Mono',monospace; letter-spacing:1px; text-transform:uppercase; }
+.panel-title { margin-top:4px; font-size:20px; font-weight:900; }
+.panel-body { padding:14px; }
+.side-stack { display:grid; gap:12px; }
+.quick-row { display:grid; grid-template-columns:42px 1fr auto; gap:12px; align-items:center; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); text-decoration:none; }
+.quick-icon { width:42px; height:42px; border-radius:7px; display:grid; place-items:center; background:#123d3a; color:#ecfeff; font-weight:900; }
+.quick-title { font-weight:900; }
+.quick-sub { color:var(--muted); font-size:12px; margin-top:3px; }
+.task-list { display:grid; gap:10px; }
+.task-card { display:grid; grid-template-columns:38px 1fr auto; gap:10px; align-items:center; padding:11px; border:1px solid var(--line); border-radius:8px; background:#fffdf8; }
+.task-mark { width:38px; height:38px; border-radius:8px; display:grid; place-items:center; font-weight:900; background:#ecfeff; color:#0f766e; }
+.task-card.warning .task-mark { background:#fffbeb; color:#92400e; }
+.task-card.hot .task-mark { background:#fff1f2; color:#be123c; }
+.task-card.done .task-mark { background:#f0fdf4; color:#15803d; }
+.task-name { font-weight:900; }
+.task-sub { color:var(--muted); font-size:12px; margin-top:3px; line-height:1.45; }
+.toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.search, .input, .select, textarea {
+  min-height:40px; border-radius:7px; border:1px solid var(--line); background:#fffdf8; color:var(--ink);
+  padding:0 12px; outline:none;
+}
+textarea { padding:10px 12px; min-height:78px; resize:vertical; }
+.search { min-width:240px; flex:1; }
+.subtabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.subtab { height:34px; border-radius:99px; border:1px solid var(--line); padding:0 12px; background:#fffdf8; color:var(--muted); cursor:pointer; font-size:12px; font-weight:900; }
+.subtab.active { background:#26342d; color:#fff7ed; border-color:#26342d; }
+.podium { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+.podium-card { min-height:124px; border:1px solid var(--line); border-radius:8px; background:var(--paper); padding:12px; text-align:center; display:grid; align-content:center; gap:7px; }
+.podium-card.first { background:linear-gradient(180deg,#fff7db,#fffdf8); border-color:rgba(201,130,22,.34); }
+.medal { font-size:24px; }
+.name { font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.score { color:var(--teal); font:900 15px 'DM Mono',monospace; }
+.rank-badge { display:inline-flex; min-height:22px; align-items:center; padding:0 8px; border-radius:99px; background:#e0f2fe; color:#0369a1; font:800 10px 'DM Mono',monospace; }
+table { width:100%; border-collapse:collapse; }
+th { color:var(--muted); font:700 10px 'DM Mono',monospace; text-align:left; padding:8px; text-transform:uppercase; }
+td { padding:10px 8px; border-top:1px solid var(--line); vertical-align:middle; }
+tr.me { background:rgba(15,143,136,.08); }
+.rank-num { width:38px; font:900 14px 'DM Mono',monospace; }
+.right { text-align:right; }
+.muted { color:var(--muted); }
+.small { font-size:12px; }
+.empty { min-height:150px; display:grid; place-items:center; text-align:center; color:var(--muted); border:1px dashed var(--line2); border-radius:8px; padding:24px; background:rgba(255,255,255,.45); }
+.cards { display:grid; gap:12px; }
+.item-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); padding:14px; }
+.item-head { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+.item-title { font-size:16px; font-weight:900; }
+.item-meta { color:var(--muted); font:500 12px 'DM Mono',monospace; margin-top:4px; }
+.pill { min-height:26px; border-radius:99px; padding:0 9px; display:inline-flex; align-items:center; font:900 10px 'DM Mono',monospace; background:#eef2ff; color:#3730a3; white-space:nowrap; }
+.pill.pending { background:#fffbeb; color:#92400e; }
+.pill.active { background:#ecfeff; color:#0f766e; }
+.pill.completed { background:#f1f5f9; color:#475569; }
+.progress-pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.progress-box { border:1px solid var(--line); border-radius:7px; padding:10px; background:#fffaf2; }
+.bar { height:7px; border-radius:99px; overflow:hidden; background:rgba(23,17,10,.08); margin-top:8px; }
+.bar span { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--teal),var(--gold2)); }
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; justify-content:flex-end; }
+.btn[disabled], .btn-disabled { opacity:.62; cursor:not-allowed; transform:none !important; background:#f3eee5; color:#8a7b66; border-color:var(--line); box-shadow:none; }
+.challenge-create { display:grid; grid-template-columns:minmax(180px,1fr) 120px auto; gap:8px; align-items:center; }
+.friend-row { display:grid; grid-template-columns:44px 1fr auto; gap:12px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+.friend-row:last-child { border-bottom:0; }
+.avatar { width:44px; height:44px; border-radius:50%; display:grid; place-items:center; overflow:hidden; background:#26342d; color:#fff7ed; font-weight:900; text-decoration:none; }
+.avatar img { width:100%; height:100%; object-fit:cover; }
+.toast { position:fixed; right:22px; bottom:22px; z-index:2000; max-width:340px; padding:12px 14px; border-radius:8px; background:#201306; color:#fff7ed; box-shadow:var(--shadow); transform:translateY(18px); opacity:0; pointer-events:none; transition:.18s ease; }
+.toast.show { transform:translateY(0); opacity:1; }
+.fallback-nav { position:fixed; top:0; left:0; right:0; height:var(--nav-h); z-index:1000; padding:0 18px; background:rgba(250,247,242,.92); border-bottom:1px solid var(--line); backdrop-filter:blur(16px); }
+.fallback-nav .inner { width:min(1440px,100%); height:100%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.fallback-nav a { text-decoration:none; font-weight:900; }
+.fallback-nav .links { display:flex; gap:6px; overflow-x:auto; }
+.fallback-nav .links a { min-height:36px; display:inline-flex; align-items:center; padding:0 11px; border-radius:9px; color:var(--muted); white-space:nowrap; font-size:13px; }
+.fallback-nav .links a.active, .fallback-nav .links a:hover { background:#fff; color:var(--teal); }
+svg { width:18px; height:18px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+@media (max-width:1050px) { .hero,.grid { grid-template-columns:1fr; } .hero-side { grid-template-columns:repeat(3,1fr); border-left:0; border-top:1px solid rgba(255,255,255,.1); } }
+@media (max-width:760px) {
+  .shell { width:min(100vw - 20px,1440px); padding-top:16px; }
+  .hero-main { padding:22px; } .hero-side,.podium,.progress-pair { grid-template-columns:1fr; }
+  .challenge-create { grid-template-columns:1fr; }
+  .friend-row { grid-template-columns:40px 1fr; } .friend-row .actions { grid-column:1/-1; justify-content:flex-start; }
+  .fallback-nav { padding:0 10px; } .fallback-nav .brand { display:none; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   冒險者酒館皮膚（背景 + 木框/羊皮素材）
+   ════════════════════════════════════════════════════════════ */
+body {
+  background:
+    radial-gradient(circle at 50% -10%, rgba(120,70,25,.20), transparent 45%),
+    linear-gradient(180deg, #241710 0%, #160d07 100%) !important;
+  color:#f1e6cd;
+}
+/* Hero → 酒館全景背景（比例對齊底圖 7:3，整張完整放大、不裁老闆的頭）*/
+.hero {
+  aspect-ratio: 7 / 3;
+  grid-template-columns: 1fr !important;
+  min-height:0 !important;
+  background:
+    linear-gradient(180deg, rgba(20,12,6,0) 62%, rgba(16,10,5,.34) 100%),
+    url('assets/community/tavern_bg.webp') center top / cover no-repeat !important;
+  border:1px solid rgba(150,100,50,.55) !important;
+  box-shadow:0 18px 44px rgba(0,0,0,.5) !important;
+}
+@media (max-width:1050px){ .hero { aspect-ratio:auto; min-height:260px !important; } }
+/* 移除火爐前的裝飾光環與格線 */
+.hero-main::after, .hero-main::before { display:none !important; }
+.hero-side { background:transparent !important; border-left:0 !important; }
+.eyebrow { color:#f6d48a !important; }
+.hero h1 { color:#fbe7bd !important; text-shadow:0 3px 12px rgba(0,0,0,.85); }
+.hero-copy { color:rgba(255,244,222,.92) !important; text-shadow:0 1px 4px rgba(0,0,0,.7); }
+
+/* NPC 老闆對話（底圖老闆說話，泡泡在他右側、尾巴朝左下指向他）*/
+.npc-bar { position:relative; margin:10px 0 28px 296px; max-width:290px; }
+.npc-bubble {
+  position:relative; background:linear-gradient(180deg,#fffaf0,#f3e6c8); color:#3a2410;
+  border:3px solid #6b4421; border-radius:20px; padding:14px 18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.55);
+}
+/* 尾巴：邊框色 + 內裡色雙層三角，從左下角朝左下指向老闆 */
+.npc-bubble::before {
+  content:''; position:absolute; left:12px; bottom:-20px; width:0; height:0;
+  border:11px solid transparent; border-top-color:#6b4421; border-right-width:18px;
+}
+.npc-bubble::after {
+  content:''; position:absolute; left:16px; bottom:-12px; width:0; height:0;
+  border:8px solid transparent; border-top-color:#fbf3e0; border-right-width:13px;
+}
+.npc-ico { margin-right:6px; }
+.npc-line { font-size:14px; line-height:1.65; }
+@media (max-width:760px){ .npc-bar { margin-left:0; } }
+
+/* 木牌按鈕（hero 行動鈕）*/
+.hero-actions .btn {
+  background:none !important; box-shadow:none !important;
+  border-style:solid !important; border-width:18px 36px !important;
+  border-image:url('assets/community/btn_plank.webp') 417 205 437 205 fill / 18px 36px / 0 stretch !important;
+  color:#f7e6c0 !important; font-weight:900 !important; text-shadow:0 1px 2px rgba(0,0,0,.75);
+  min-height:0 !important; padding:3px 8px !important;
+}
+.hero-actions .btn:hover { filter:brightness(1.08); }
+
+/* 狀態木牌（移到 hero 下方一橫排）*/
+.tavern-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:0 0 18px; }
+.tavern-stats .stat-card {
+  position:relative;
+  background:none !important; box-shadow:none !important;
+  border-style:solid !important; border-width:24px 18px 24px 46px !important;
+  border-image:url('assets/community/status_plaque.webp') 430 150 458 370 fill / 24px 18px 24px 46px / 0 stretch !important;
+  display:flex; flex-direction:column; justify-content:center; padding:2px 4px !important;
+}
+.tavern-stats .stat-label { color:#6a4518 !important; font-weight:800 !important; }
+.tavern-stats .stat-value { color:#2b170c !important; font-size:24px !important; }
+.tavern-stats .plaque-ic {
+  position:absolute; left:-44px; top:50%; transform:translateY(-50%);
+  width:40px; height:40px; object-fit:contain;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+@media (max-width:760px){ .tavern-stats { grid-template-columns:1fr; } }
+
+/* 火爐右邊：精簡本週賞金榜（縮小卷軸，靠下避開底圖棋盤）*/
+.hero-side { display:flex; align-items:flex-end; justify-content:center; padding:10px 10px 26px !important; }
+.hero-bounty {
+  width:100%; max-width:300px;
+  border-style:solid; border-width:36px 20px;
+  border-image:url('assets/community/scroll_board.webp') 200 110 fill / 36px 20px / 0 stretch;
+}
+.hero-bounty-title { text-align:center; font-weight:900; color:#6b4421; font-size:14px; margin-bottom:8px; }
+.hero-bounty-list { display:flex; flex-direction:column; gap:7px; }
+.hb-row { display:flex; align-items:center; gap:9px; }
+.hb-rank { width:24px; text-align:center; font-size:15px; }
+.hb-name { font-weight:900; color:#3a2410; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hb-score { margin-left:auto; font:900 13px 'DM Mono',monospace; color:#0b6f69; white-space:nowrap; }
+.hb-empty { text-align:center; color:#8a6a3a; font-size:12px; padding:14px 0; }
+
+/* 側欄冒險者名冊：左欄拉長到與右側懸賞榜等高 */
+.grid { align-items:stretch !important; }
+.grid > .side-stack { display:flex; flex-direction:column; }
+.grid > .side-stack > .panel { flex:1; display:flex; flex-direction:column; }
+.grid > .side-stack > .panel > .panel-body { flex:1; }
+.roster-body { display:flex; flex-direction:column; }
+.roster-list { display:flex; flex-direction:column; gap:8px; flex:1; }
+.roster-cta {
+  margin-top:14px; width:100%; padding:11px; border-radius:7px; cursor:pointer;
+  border:1px solid rgba(74,46,18,.5);
+  background:linear-gradient(180deg, rgba(120,78,30,.22), rgba(74,46,18,.16));
+  color:#5a3a16; font-weight:900; letter-spacing:.5px;
+  box-shadow:inset 0 1px 0 rgba(255,235,180,.35); transition:.12s;
+}
+.roster-cta:hover { background:linear-gradient(180deg, rgba(150,98,38,.30), rgba(96,60,24,.22)); color:#3a2410; }
+/* 羊皮帳冊條目（去白卡、用分隔線融入羊皮）*/
+.roster-row {
+  display:flex; align-items:center; gap:10px; padding:9px 6px;
+  border:0; border-bottom:1px solid rgba(120,80,30,.2); border-radius:0;
+  background:transparent; text-decoration:none; transition:background .12s;
+}
+.roster-row:last-of-type { border-bottom:0; }
+.roster-row:hover { background:rgba(201,130,22,.14); }
+.roster-fig { position:relative; flex-shrink:0; display:flex; }
+.roster-fig .avatar { width:42px; height:46px; }
+.roster-fig .hero-figure.sm { width:42px; height:46px; }
+.online-dot {
+  position:absolute; right:-1px; bottom:2px; width:11px; height:11px; border-radius:50%;
+  background:#1f9e4c; border:2px solid #efdcae; box-shadow:0 0 5px rgba(31,158,76,.8);
+}
+.roster-info { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.roster-name { font-weight:900; color:#2b170c; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.roster-meta { font:600 11px 'DM Mono',monospace; color:#6b4a1e; display:flex; align-items:center; gap:6px; }
+.active-tag { color:#16a34a; font-weight:800; }
+/* 排行榜標題 → 高級木牌懸賞榜 */
+#view-leaderboard .panel-head {
+  justify-content:center; position:relative; padding:8px 12px 14px !important;
+}
+#view-leaderboard .kicker { display:none; }
+#view-leaderboard .lb-head-wrap {
+  width:min(620px,100%);
+  display:grid; justify-items:center; gap:8px;
+}
+#view-leaderboard .panel-title {
+  display:inline-flex; align-items:center; justify-content:center; min-height:58px; margin:0 auto;
+  border-style:solid !important; border-width:26px 52px !important;
+  border-image:url('assets/community/banner_board.webp') 456 183 415 183 fill / 26px 52px / 0 stretch !important;
+  color:#ffe27a !important; font-weight:900 !important;
+  text-shadow:0 0 1px #3a2008, 0 1px 0 #3a2008, 0 1px 4px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.6) !important;
+  padding:2px 8px !important; font-size:19px !important; letter-spacing:1px;
+}
+.lb-board-meta {
+  display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;
+  color:#5f3b14; font:900 11px 'DM Mono',monospace; letter-spacing:.6px; text-transform:uppercase;
+}
+.lb-board-meta span {
+  min-height:24px; display:inline-flex; align-items:center; padding:0 10px; border-radius:99px;
+  border:1px solid rgba(95,59,20,.28);
+  background:linear-gradient(180deg,rgba(255,247,221,.72),rgba(186,121,38,.18));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+}
+
+/* 分頁列 + 木框面板 */
+.tabs {
+  background:rgba(30,19,10,.72) !important; border:1px solid rgba(150,100,50,.4) !important;
+  position:relative; z-index:5; margin-top:-110px !important;
+  backdrop-filter:blur(2px);
+}
+.tab { color:#e8cf9b !important; }
+.tab.active { background:#7a4a16 !important; color:#fff7e6 !important; }
+
+.panel {
+  border:0 !important; box-shadow:0 12px 26px rgba(0,0,0,.4) !important;
+  border-style:solid !important; border-width:22px !important;
+  border-image:url('assets/community/panel_wood.webp') 220 fill / 22px / 0 stretch !important;
+  background:linear-gradient(180deg,#fbf2d8,#eedcab) padding-box !important;
+  border-radius:0 !important;
+}
+.panel-head { border-bottom:1px solid rgba(120,80,30,.28) !important; }
+.kicker { color:#9a6a2a !important; }
+.panel-title { color:#3a2410 !important; }
+
+/* 排行榜面板 → 羊皮捲軸 */
+#view-leaderboard {
+  border-style:solid !important; border-width:46px 30px !important;
+  border-image:url('assets/community/scroll_board.webp') 200 110 fill / 46px 30px / 0 stretch !important;
+  background:none !important;
+  position:relative;
+  filter:drop-shadow(0 22px 28px rgba(0,0,0,.34));
+}
+#view-leaderboard .panel-head { border-bottom:1px solid rgba(120,80,30,.22) !important; }
+#view-leaderboard .panel-body { padding:10px 18px 18px !important; }
+#view-leaderboard::before,
+#view-leaderboard::after {
+  content:''; position:absolute; top:28px; width:13px; height:13px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff0a8,#a46418 58%,#4b270b 100%);
+  box-shadow:0 2px 2px rgba(0,0,0,.42), 0 0 0 2px rgba(85,45,12,.24);
+  z-index:1;
+}
+#view-leaderboard::before { left:34px; }
+#view-leaderboard::after { right:34px; }
+
+#view-leaderboard .subtabs {
+  justify-content:center; gap:8px; margin:0 0 16px;
+  padding:8px; border-radius:8px;
+  background:linear-gradient(180deg,rgba(78,45,17,.22),rgba(255,244,205,.22));
+  border:1px solid rgba(93,57,20,.22);
+}
+#view-leaderboard .subtab {
+  height:34px; border-radius:7px; padding:0 13px;
+  border-color:rgba(90,55,18,.28);
+  background:linear-gradient(180deg,#fff3c7,#e2bd72);
+  color:#5f3b14; box-shadow:inset 0 1px 0 rgba(255,255,255,.5);
+}
+#view-leaderboard .subtab.active {
+  background:linear-gradient(180deg,#3e2611,#6d3d12) !important;
+  border-color:#8f6220 !important; color:#ffe9a8 !important;
+  box-shadow:0 6px 14px rgba(76,40,12,.25), inset 0 1px 0 rgba(255,235,170,.25);
+}
+
+/* 英雄榜前段框 */
+/* 頒獎台底圖（三名各站台上）：透明 PNG 釘在底部，上方留站立空間 */
+.podium {
+  position:relative; container-type:inline-size; display:block;
+  width:100%; max-width:350px; aspect-ratio:2560 / 2600; gap:0; margin:0 auto 14px;
+}
+.podium::before {
+  content:''; position:absolute; left:0; right:0; bottom:0; width:100%;
+  aspect-ratio:2560 / 1440;
+  background:url('assets/community/podium_top3.webp') center bottom / contain no-repeat;
+}
+.podium-card {
+  position:absolute; transform:translateX(-50%); z-index:2;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  width:max-content; max-width:46%; text-align:center; color:#2b170c;
+  background:none !important; border:0 !important; border-radius:0 !important;
+  min-height:0 !important; padding:0 !important; filter:none !important;
+}
+/* 台面定位：left=台面水平中心，bottom=從容器底部量起的台面高度（腳底落台面）*/
+.podium-card.first  { left:50.0%; bottom:48.3cqw; }
+.podium-card.rank-2 { left:21.4%; bottom:38.8cqw; }
+.podium-card.rank-3 { left:78.0%; bottom:31.2cqw; }
+/* 頭像放大為主角，cqw 隨底圖等比縮放；上方留間距避免名字蓋頭 */
+.podium-portrait { display:flex; justify-content:center; order:0; margin-top:3cqw; }
+.podium .hero-figure.lg { width:30cqw; height:30cqw; }
+.podium-card.first  .hero-figure.lg { width:35cqw; height:35cqw; }
+.podium-card .name {
+  order:-2; font-weight:800; font-size:clamp(11px, 4cqw, 17px); line-height:1.15;
+  color:#2b170c; text-shadow:0 1px 2px rgba(255,250,235,.95);
+  max-width:46cqw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.podium-card .score {
+  order:-1; align-self:center; padding:2px 9px; border-radius:99px;
+  font:800 clamp(10px, 3.2cqw, 14px)/1 'DM Mono', monospace;
+  color:#123d3a; background:rgba(255,250,235,.92); border:1px solid rgba(15,143,136,.32);
+}
+/* 名次與獎牌已畫進底圖，隱藏 JS 舊元素 */
+.podium-card .medal, .podium-card .rank-badge { display:none !important; }
+
+/* 排行榜表格列：頭像 + 名字 */
+.lb-rowname { display:flex; align-items:center; gap:10px; }
+.lb-rowname .avatar { width:38px; height:38px; flex-shrink:0; }
+.leaderboard-ledger {
+  overflow:hidden; border-radius:8px;
+  border:1px solid rgba(93,57,20,.25);
+  background:
+    linear-gradient(90deg, rgba(94,55,19,.08) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(130,79,28,.08));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -12px 28px rgba(99,55,16,.08);
+}
+/* 全身角色立繪 */
+.hero-figure { position:relative; display:inline-block; }
+.hero-figure img { position:absolute; inset:0; width:100%; height:100%;
+  object-fit:contain; object-position:bottom center; pointer-events:none; }
+.hero-figure .hf-base { position:relative; z-index:2; }
+.hero-figure .hf-aura    { z-index:0; }
+.hero-figure .hf-cape    { z-index:1; }
+.hero-figure .hf-armor   { z-index:3; }
+.hero-figure .hf-offhand { z-index:4; }
+.hero-figure .hf-weapon  { z-index:5; }
+.hero-figure .hf-hat     { z-index:7; }
+.hero-figure .hf-pet     { z-index:7; }
+.hero-figure.lg { width:96px; height:96px; }
+.hero-figure.lg .hf-base { filter:drop-shadow(0 3px 5px rgba(0,0,0,.45)); }
+.hero-figure.sm { width:44px; height:44px; flex-shrink:0; }
+/* Premium 尊榮標記：金色光環 + 皇冠 */
+.hero-figure.premium { border-radius:50%;
+  box-shadow:0 0 0 2px #f59e0b, 0 0 10px 1px rgba(245,158,11,.55); }
+.hero-figure.premium::after { content:''; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(circle at 50% 120%, rgba(245,158,11,.22), transparent 60%); z-index:6; pointer-events:none; }
+.hf-prem-crown { position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+  font-size:14px; z-index:9; filter:drop-shadow(0 1px 1px rgba(0,0,0,.45)); pointer-events:none; line-height:1; }
+.hero-figure.lg .hf-prem-crown { font-size:22px; top:-14px; }
+#view-leaderboard th { color:#8a5a22 !important; }
+#view-leaderboard table { border-collapse:separate; border-spacing:0; }
+#view-leaderboard th {
+  padding:11px 12px !important; background:rgba(91,53,17,.08);
+  border-bottom:1px solid rgba(120,80,30,.18);
+}
+#view-leaderboard td {
+  padding:11px 12px !important; border-top:1px solid rgba(120,80,30,.14) !important;
+}
+#view-leaderboard tbody tr {
+  background:linear-gradient(90deg,rgba(255,249,225,.34),rgba(255,249,225,.08));
+}
+#view-leaderboard tbody tr:hover { background:rgba(201,130,22,.15); }
+#view-leaderboard tr.me {
+  background:linear-gradient(90deg,rgba(15,143,136,.18),rgba(201,130,22,.10)) !important;
+}
+#view-leaderboard .rank-num {
+  width:46px; color:#3a2410; text-align:center;
+}
+#view-leaderboard .rank-num::before {
+  content:'#'; color:#a36b22; font-size:11px; margin-right:1px;
+}
+#view-leaderboard .lb-player-meta {
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px;
+}
+#view-leaderboard .score {
+  color:#123d3a; font-size:15px;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+#view-leaderboard .leaderboard-ledger .name {
+  color:#3a2410; text-shadow:0 1px 0 rgba(255,244,207,.5);
+}
+#view-leaderboard .leaderboard-ledger tr.me .name { color:#2b170c; }
+@media (max-width:760px) {
+  #view-leaderboard { border-width:36px 18px !important; }
+  #view-leaderboard::before, #view-leaderboard::after { display:none; }
+  #view-leaderboard .panel-body { padding:8px 8px 14px !important; }
+  #view-leaderboard .panel-title { font-size:16px !important; border-width:22px 34px !important; }
+  .lb-board-meta { font-size:10px; }
+  /* 頒獎台底圖在手機上整張等比縮小即可，沿用桌面絕對定位（cqw 自動縮放）*/
+  #view-leaderboard th:nth-child(1), #view-leaderboard td:nth-child(1) { display:none; }
+  #view-leaderboard td { padding:10px 8px !important; }
+}
+</style>
+</head>
+<body>
+<header></header>
+<main class="shell">
+  <section class="hero">
+    <div class="hero-main">
+      <!-- 酒館老闆 NPC 對話（底圖老闆說話，泡泡在他右側、尾巴指向他）-->
+      <div class="npc-bar">
+        <div class="npc-bubble">
+          <p class="npc-line"><span class="npc-ico">💬</span><span id="npc-greeting" data-i18n="cm.npc.default_line">「喲！這不是我們的大英雄嗎？今天也來喝杯麥酒、看看佈告欄吧！」</span></p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <nav class="tabs" aria-label="酒館角落" data-i18n-aria-label="cm.tabs.aria">
+    <button class="tab active" data-tab="leaderboard" data-i18n="cm.tab.leaderboard">🏆 英雄懸賞榜</button>
+    <button class="tab" data-tab="challenges" data-i18n="cm.tab.challenges">⚔️ 競技決鬥場</button>
+    <button class="tab" data-tab="reviews" data-i18n="cm.tab.reviews">📖 戰術演繹桌</button>
+    <button class="tab" data-tab="friends" data-i18n="cm.tab.friends">🤝 冒險者名冊</button>
+  </nav>
+
+  <section class="grid">
+    <aside class="side-stack">
+      <section class="panel">
+        <div class="panel-head"><div><div class="kicker">Roster</div><div class="panel-title" data-i18n="cm.roster.title">🤝 冒險者名冊</div></div></div>
+        <div class="panel-body roster-body">
+          <div id="roster-list" class="roster-list">
+            <div class="empty" style="min-height:120px" data-i18n="cm.roster.loading">召集冒險者中...</div>
+          </div>
+          <button class="roster-cta" data-jump="friends" data-i18n="cm.roster.cta">➕ 招募 / 管理冒險者　→</button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="panel" id="view-leaderboard">
+      <div class="panel-head">
+        <div class="lb-head-wrap">
+          <div class="kicker">Bounty Board</div>
+          <div class="panel-title" data-i18n="cm.lb.title">佈告欄：本週賞金榜</div>
+          <div class="lb-board-meta" aria-hidden="true">
+            <span>Guild Notice</span>
+            <span>Weekly Hunt</span>
+          </div>
+          <button type="button" id="reward-rules-btn" class="crr-rules-btn" data-i18n="communityRewards.rules.button">🎁 Reward Rules</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="subtabs" id="lb-tabs">
+          <button class="subtab active" data-lb="weekly" data-i18n="cm.lb.weekly">週榜</button>
+          <button class="subtab" data-lb="monthly" data-i18n="cm.lb.monthly">月榜</button>
+          <button class="subtab" data-lb="alltime" data-i18n="cm.lb.alltime">總 XP</button>
+          <button class="subtab" data-lb="rank" data-i18n="cm.lb.rank">練習等級</button>
+          <button class="subtab" data-lb="combo" data-i18n="cm.lb.combo">連擊</button>
+          <button class="subtab" data-lb="friends" data-i18n="cm.lb.friends">好友榜</button>
+        </div>
+        <div id="podium" class="podium"></div>
+        <div id="leaderboard-table" class="empty" data-i18n="cm.lb.loading">載入排行榜中...</div>
+      </div>
+    </section>
+
+    <section class="panel" id="view-challenges" style="display:none">
+      <div class="panel-head">
+        <div><div class="kicker">Duel</div><div class="panel-title" data-i18n="cm.ch.title">好友挑戰</div></div>
+      </div>
+      <div class="panel-body">
+        <div class="item-card" style="margin-bottom:12px">
+          <div class="item-title" data-i18n="cm.ch.create">建立挑戰</div>
+          <p class="small muted" style="line-height:1.7;margin:6px 0 10px" data-i18n="cm.ch.createDesc">選一位好友與題數，系統會隨機抽題。挑戰送出後，對方接受才開始計時。</p>
+          <div class="challenge-create">
+            <select class="select" id="challenge-friend-select" aria-label="選擇好友">
+              <option value="" data-i18n="cm.ch.loadingFriends">載入好友中...</option>
+            </select>
+            <select class="select" id="challenge-count-select" aria-label="挑戰題數">
+              <option value="5" data-i18n="cm.ch.q5">5 題</option>
+              <option value="10" selected data-i18n="cm.ch.q10">10 題</option>
+              <option value="15" data-i18n="cm.ch.q15">15 題</option>
+              <option value="20" data-i18n="cm.ch.q20">20 題</option>
+            </select>
+            <button class="btn btn-primary" id="create-challenge-btn" data-i18n="cm.ch.send">送出挑戰</button>
+          </div>
+        </div>
+        <div class="item-card" style="margin-bottom:12px">
+          <div class="item-title" data-i18n="cm.ch.rules">規則</div>
+          <p class="small muted" style="line-height:1.7;margin-top:6px" data-i18n="cm.ch.rulesDesc">只能挑戰好友。系統會抽 5-20 題；對方接受後雙方作答，比答對數。挑戰 3 天後自動過期。作答頁還在接線中，這版先把不存在的入口拿掉，避免誤點。</p>
+        </div>
+        <div id="challenge-list" class="cards"><div class="empty" data-i18n="cm.ch.loading">載入挑戰中...</div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="view-reviews" style="display:none">
+      <div class="panel-head">
+        <div><div class="kicker">Review</div><div class="panel-title" data-i18n="cm.rv.title">複盤分享</div></div>
+        <button class="btn btn-dark" id="toggle-review-form" data-i18n="cm.rv.add">新增複盤</button>
+      </div>
+      <div class="panel-body">
+        <div id="review-form" class="item-card" style="display:none;margin-bottom:12px">
+          <div class="toolbar">
+            <input class="input" id="review-title" data-i18n-placeholder="cm.rv.titlePh" placeholder="複盤標題，例如：第 3 手方向錯誤檢討" style="flex:1;min-width:220px">
+          </div>
+          <textarea id="review-desc" data-i18n-placeholder="cm.rv.descPh" placeholder="簡短說明這份複盤想討論什麼"></textarea>
+          <div class="actions"><button class="btn btn-primary" id="submit-review" data-i18n="cm.rv.publish">發布</button></div>
+        </div>
+        <div id="review-list" class="cards"><div class="empty" data-i18n="cm.rv.loading">載入複盤中...</div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="view-friends" style="display:none">
+      <div class="panel-head"><div><div class="kicker">Friends</div><div class="panel-title" data-i18n="cm.fr.title">好友</div></div></div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <input class="search" id="friend-search" data-i18n-placeholder="cm.fr.searchPh" placeholder="輸入用戶名搜尋好友">
+          <button class="btn btn-primary" id="friend-search-btn" data-i18n="cm.fr.search">搜尋</button>
+        </div>
+        <div id="friend-search-result"></div>
+        <div id="pending-wrap" class="item-card" style="display:none;margin:12px 0">
+          <div class="item-title"><span data-i18n="cm.fr.pending">待處理邀請</span> <span id="pending-count" class="muted small"></span></div>
+          <div id="pending-list"></div>
+        </div>
+        <div class="item-card" style="margin:12px 0">
+          <div class="item-title" data-i18n="cm.fr.feed">好友動態</div>
+          <div id="friend-feed" style="margin-top:8px"><div class="empty" data-i18n="cm.fr.feedLoading">載入好友動態中...</div></div>
+        </div>
+        <div class="item-card">
+          <div class="item-title"><span data-i18n="cm.fr.mine">我的好友</span> <span id="friend-count" class="muted small"></span></div>
+          <div id="friend-list" style="margin-top:8px"><div class="empty" data-i18n="cm.fr.loading">載入好友中...</div></div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+const state = {
+  me: null,
+  leaderboard: {},
+  lbKey: 'weekly',
+  friendsLoaded: false,
+  challenges: [],
+  friends: [],
+  requests: [],
+  reviews: []
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const fmt = (n) => Number(n || 0).toLocaleString();
+const pct = (a, b) => b ? Math.round(Number(a || 0) / Number(b || 1) * 100) : 0;
+
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+async function getJSON(url, options = {}) {
+  const res = await fetch(url, { credentials: 'include', ...options });
+  if (res.status === 401) { location.href = '/login'; throw new Error('login required'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+// 全身角色基座 → 裁切立繪
+// 全身正規化底圖（與裝備/配件同骨架，可 1:1 疊圖）
+const CHARACTER_ART = {
+  apprentice:      'chibi_apprentice_normalized.webp',
+  apprentice_girl: 'chibi_apprentice_girl_normalized.webp',
+  swordsman:  'chibi_swordsman_normalized.webp',
+  rogue:      'chibi_rogue_normalized.webp',
+  ranger:     'chibi_ranger_normalized.webp',
+  berserker:  'chibi_berserker_normalized.webp',
+  guardian:   'chibi_guardian_normalized.webp',
+  paladin:    'chibi_paladin_normalized.webp',
+  mage:       'chibi_mage_normalized.webp',
+  sage:       'chibi_sage_normalized.webp',
+};
+const HF_GEAR_ROOT = '/assets/hero/gear_v2/';
+const HF_ACC_ROOT  = '/assets/hero/accessories/';
+// 裝扮圖層：slot → {根目錄, z-index}。空值('' / 'none' / 'cloth')不顯示
+const HF_LAYERS = [
+  ['combat_aura',    HF_ACC_ROOT,  'aura'],
+  ['combat_cape',    HF_GEAR_ROOT, 'cape'],
+  // 角色底圖夾在這裡（z-index:2）
+  ['combat_armor',   HF_GEAR_ROOT, 'armor'],
+  ['combat_offhand', HF_GEAR_ROOT, 'offhand'],
+  ['combat_weapon',  HF_GEAR_ROOT, 'weapon'],
+  ['combat_hat',     HF_ACC_ROOT,  'hat'],
+  ['combat_pet',     HF_ACC_ROOT,  'pet'],
+];
+function hfHasVal(v){ return v && v !== 'none' && v !== 'cloth'; }
+// 顯示玩家全身角色立繪＋穿戴裝備/配件。size: 'lg'（英雄框）| 'sm'（表格列）
+function heroFigure(r, size) {
+  const art = (r && r.character_key && CHARACTER_ART[r.character_key]) || CHARACTER_ART.apprentice;
+  const prem = r && (r.is_premium === 1 || r.is_premium === true);
+  let html = `<span class="hero-figure ${size || 'sm'}${prem ? ' premium' : ''}">`;
+  for (const [field, root, cls] of HF_LAYERS) {
+    if (cls === 'armor') {
+      html += `<img class="hf-base" src="/assets/hero/characters/${art}" alt="" loading="lazy">`;
+    }
+    const v = r && r[field];
+    if (hfHasVal(v)) html += `<img class="hf-layer hf-${cls}" src="${root}${v}.webp" alt="" loading="lazy">`;
+  }
+  if (prem) html += `<span class="hf-prem-crown">👑</span>`;
+  return html + `</span>`;
+}
+
+function rankBadge(rank) {
+  return `<span class="rank-badge">${esc(rank || 'LV1')}</span>`;
+}
+
+// 酒館老闆隨機台詞 key（{name}=玩家名、{count}=今晚留名英雄數）；文案在 i18n.js
+const NPC_KEYS = ['cm.npc.0','cm.npc.1','cm.npc.2','cm.npc.3','cm.npc.4','cm.npc.5'];
+let _npcIdx = -1;   // 記住本次選的台詞，切語言時保持同一句
+async function updateNpcGreeting() {
+  const el = document.getElementById('npc-greeting');
+  if (!el) return;
+  let name = state.me?.nickname || state.me?.username;
+  if (!name) {
+    try { const m = await getJSON('/api/auth/me'); state.me = m; name = m.nickname || m.username; } catch {}
+  }
+  name = name || I18n.t('cm.npc.fallbackName');
+  const count = (state.leaderboard?.weekly || []).length;
+  if (_npcIdx < 0) _npcIdx = Math.floor(Math.random() * NPC_KEYS.length);
+  const line = I18n.t(NPC_KEYS[_npcIdx]).replace('{name}', name).replace('{count}', count);
+  el.textContent = `「${line}」`;
+}
+
+function relTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+  const diff = Math.max(0, Date.now() - d.getTime());
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return I18n.t('cm.time.justNow');
+  if (min < 60) return I18n.t('cm.time.minAgo').replace('{n}', min);
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return I18n.t('cm.time.hrAgo').replace('{n}', hr);
+  const day = Math.floor(hr / 24);
+  if (day < 7) return I18n.t('cm.time.dayAgo').replace('{n}', day);
+  return d.toLocaleDateString('zh-TW');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  ['leaderboard','challenges','reviews','friends'].forEach(id => {
+    $(`view-${id}`).style.display = id === name ? '' : 'none';
+  });
+  if (name === 'challenges') loadChallenges();
+  if (name === 'friends') loadFriends();
+  if (name === 'reviews') loadReviews();
+}
+
+function renderCommunityTasks() {
+  const box = $('community-tasks');
+  if (!box) return;
+  const pendingReq = state.requests.length;
+  const active = (state.challenges || []).filter(c => c.status === 'active');
+  const pendingChallenges = (state.challenges || []).filter(c => c.status === 'pending' && !c.is_challenger);
+  const latestReview = (state.reviews || [])[0];
+  const weeklyRows = state.leaderboard.weekly || [];
+  const myWeekly = weeklyRows.find(r => r.is_you);
+
+  const myIdx = weeklyRows.findIndex(r => r.is_you);
+  const tasks = [];
+
+  // ── 待處理（時效性，放最前）──
+  if (pendingReq) {
+    tasks.push({ cls: 'hot', mark: '🤝', name: I18n.t('cm.task.allies.name').replace('{n}', pendingReq), sub: I18n.t('cm.task.allies.sub'), tab: 'friends' });
+  }
+  if (pendingChallenges.length) {
+    tasks.push({ cls: 'hot', mark: '🔥', name: I18n.t('cm.task.duels.name').replace('{n}', pendingChallenges.length), sub: I18n.t('cm.task.duels.sub'), tab: 'challenges' });
+  }
+  if (active.length) {
+    tasks.push({ cls: 'warning', mark: '⏳', name: I18n.t('cm.task.active.name').replace('{n}', active.length), sub: I18n.t('cm.task.active.sub'), tab: 'challenges' });
+  }
+
+  // ── 爬榜懸賞（主任務，給具體目標）──
+  if (myIdx === 0) {
+    tasks.push({ cls: 'done', mark: '👑', name: I18n.t('cm.task.throne.name'), sub: I18n.t('cm.task.throne.sub').replace('{n}', fmt(weeklyRows[0].score)), tab: 'leaderboard' });
+  } else if (myIdx > 0) {
+    const above = weeklyRows[myIdx - 1];
+    const gap = Math.max(1, (above.score || 0) - (weeklyRows[myIdx].score || 0) + 1);
+    tasks.push({ cls: 'hot', mark: '⚔', name: I18n.t('cm.task.climb.name').replace('{n}', fmt(gap)).replace('{name}', above.display_name || above.username), sub: I18n.t('cm.task.climb.sub').replace('{n}', myIdx), tab: 'leaderboard' });
+  } else {
+    tasks.push({ cls: '', mark: '🏹', name: I18n.t('cm.task.none.name'), sub: I18n.t('cm.task.none.sub'), tab: 'leaderboard' });
+  }
+
+  // ── 向強者下戰書 ──
+  const rival = weeklyRows.find(r => !r.is_you);
+  if (rival) {
+    tasks.push({ cls: '', mark: '🗡', name: I18n.t('cm.task.duel.name').replace('{name}', rival.display_name || rival.username), sub: I18n.t('cm.task.duel.sub'), tab: 'challenges' });
+  }
+
+  // ── 最新戰譜 ──
+  if (latestReview) {
+    tasks.push({ cls: '', mark: '📖', name: I18n.t('cm.task.review.name'), sub: I18n.t('cm.task.review.sub').replace('{name}', latestReview.display_name || latestReview.username).replace('{title}', latestReview.title), tab: 'reviews' });
+  }
+
+  box.innerHTML = tasks.slice(0, 4).map(t => `
+    <button class="task-card ${t.cls}" data-jump="${t.tab}">
+      <span class="task-mark">${esc(t.mark)}</span>
+      <span><span class="task-name">${esc(t.name)}</span><span class="task-sub">${esc(t.sub)}</span></span>
+      <span>→</span>
+    </button>
+  `).join('');
+}
+
+function renderLeaderboard() {
+  const rows = state.leaderboard[state.lbKey] || [];
+  const scoreLabels = {
+    weekly:  ['', I18n.t('cm.lb.u.q')],
+    monthly: ['', I18n.t('cm.lb.u.q')],
+    alltime: ['', I18n.t('cm.lb.u.xp')],
+    rank:    ['', I18n.t('cm.lb.u.xp')],
+    combo:   ['', I18n.t('cm.lb.u.combo')],
+    friends: ['', I18n.t('cm.lb.u.xp')]
+  };
+  const [label, unit] = scoreLabels[state.lbKey] || scoreLabels.weekly;
+
+  const podium = $('podium');
+  const top = rows.slice(0, 3);
+  podium.innerHTML = top.length ? top.map((r, i) => `
+    <div class="podium-card rank-${i + 1} ${i === 0 ? 'first' : ''}">
+      <div class="podium-portrait">${heroFigure(r, 'lg')}</div>
+      <a class="name" href="/profile/${encodeURIComponent(r.username)}">${esc(r.display_name || r.username)}${r.is_you ? I18n.t('cm.js.you') : ''}</a>
+      <div class="score">${fmt(r.score)}${unit}</div>
+    </div>
+  `).join('') : '';
+
+  const body = $('leaderboard-table');
+  if (!rows.length) {
+    body.className = 'empty';
+    body.innerHTML = I18n.t('cm.js.empty.lbData');
+    return;
+  }
+  body.className = 'leaderboard-ledger';
+  body.innerHTML = `
+    <table>
+      <thead><tr><th>${I18n.t("cm.js.col.fame")}</th><th>${I18n.t("cm.js.col.title")}</th><th class="right">${I18n.t("cm.js.col.merit")}</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr class="${r.is_you ? 'me' : ''}">
+            <td class="rank-num">${r.rank}</td>
+            <td>
+              <div class="lb-rowname">
+                <a href="/profile/${encodeURIComponent(r.username)}">${heroFigure(r, 'sm')}</a>
+                <div>
+                  <a class="name" href="/profile/${encodeURIComponent(r.username)}">${esc(r.display_name || r.username)}${r.is_you ? I18n.t('cm.js.you') : ''}</a>
+                  <div class="small muted lb-player-meta">${rankBadge(r.rank_level)} ${r.total_correct != null ? `<span>${I18n.t('cm.js.correctN').replace('{n}', fmt(r.total_correct))}</span>` : ''} ${r.max_combo != null ? `<span>${I18n.t('cm.js.comboN').replace('{n}', fmt(r.max_combo))}</span>` : ''}</div>
+                </div>
+              </div>
+            </td>
+            <td class="right score">${fmt(r.score)}${unit}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderHeroBounty() {
+  const el = document.getElementById('hero-bounty-list');
+  if (!el) return;
+  const rows = (state.leaderboard?.weekly || []).slice(0, 3);
+  if (!rows.length) { el.innerHTML = `<div class="hb-empty">${I18n.t('cm.js.empty.lb')}</div>`; return; }
+  const medals = ['👑', '🥈', '🥉'];
+  el.innerHTML = rows.map((r, i) => `
+    <div class="hb-row">
+      <span class="hb-rank">${medals[i] || (i + 1)}</span>
+      ${heroFigure(r, 'sm')}
+      <span class="hb-name">${esc(r.display_name || r.username)}${r.is_you ? I18n.t('cm.js.you') : ''}</span>
+      <span class="hb-score">${I18n.t('cm.js.killsN').replace('{n}', fmt(r.score))}</span>
+    </div>`).join('');
+}
+
+async function loadLeaderboard() {
+  try {
+    state.leaderboard = await getJSON('/api/community/leaderboard');
+    renderLeaderboard();
+    renderHeroBounty();
+    renderCommunityTasks();
+    updateNpcGreeting();
+  } catch (e) {
+    $('leaderboard-table').className = 'empty';
+    $('leaderboard-table').textContent = I18n.t('cm.js.lbError').replace('{msg}', e.message);
+  }
+}
+
+function renderChallenges() {
+  const list = $('challenge-list');
+  const rows = state.challenges || [];
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty">${I18n.t('cm.js.empty.challenges')}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(ch => {
+    const n = ch.num_questions || 0;
+    const from = ch.from_user || {};
+    const to = ch.to_user || {};
+    const opp = ch.is_challenger ? to : from;
+    const statusText = ch.status === 'pending' ? I18n.t('cm.ch.st.pending') : ch.status === 'active' ? I18n.t('cm.ch.st.active') : ch.status === 'completed' ? I18n.t('cm.ch.st.completed') : ch.status;
+    const result = ch.status === 'completed'
+      ? (ch.my_correct > ch.opp_correct ? `<div class="score">${I18n.t('cm.js.win')}</div>` : ch.my_correct < ch.opp_correct ? `<div class="score" style="color:var(--red)">${I18n.t('cm.js.lose')}</div>` : `<div class="score muted">${I18n.t('cm.js.draw')}</div>`)
+      : '';
+    let action = '';
+    if (ch.status === 'pending' && !ch.is_challenger) {
+      action = `<button class="btn btn-primary" data-accept-challenge="${ch.id}">${I18n.t('cm.ch.accept')}</button><button class="btn btn-danger" data-reject-challenge="${ch.id}">${I18n.t('cm.ch.reject')}</button>`;
+    } else if (ch.status === 'pending' && ch.is_challenger) {
+      action = `<button class="btn btn-danger" data-reject-challenge="${ch.id}">${I18n.t('cm.ch.cancel')}</button>`;
+    } else if (ch.status === 'active' && ch.my_answered < n) {
+      action = `<a class="btn btn-primary" href="/?challenge=${ch.id}">${I18n.t('cm.ch.answering')}</a>`;
+    } else if (ch.status === 'active') {
+      action = `<span class="small muted">${I18n.t('cm.ch.answeredWait')}</span>`;
+    } else if (ch.status === 'completed') {
+      action = `<a class="btn" href="/?challenge=${ch.id}">${I18n.t('cm.ch.viewResult')}</a>`;
+    }
+    return `
+      <article class="item-card">
+        <div class="item-head">
+          <div>
+            <div class="item-title">${esc(from.display_name || from.username)} <span class="muted">VS</span> ${esc(to.display_name || to.username)}</div>
+            <div class="item-meta">${I18n.t('cm.ch.meta').replace('{n}', n).replace('{opp}', esc(opp.display_name || opp.username)).replace('{date}', String(ch.expires_at || '').slice(0,10))}</div>
+          </div>
+          <span class="pill ${ch.status}">${statusText}</span>
+        </div>
+        ${ch.status !== 'pending' ? `
+          <div class="progress-pair">
+            <div class="progress-box"><strong>${I18n.t('cm.ch.youLabel')}</strong><div class="small muted">${I18n.t('cm.ch.correctFrac').replace('{a}', ch.my_correct).replace('{b}', ch.my_answered)}</div><div class="bar"><span style="width:${pct(ch.my_answered,n)}%"></span></div></div>
+            <div class="progress-box"><strong>${esc(opp.display_name || opp.username)}</strong><div class="small muted">${I18n.t('cm.ch.correctFrac').replace('{a}', ch.opp_correct).replace('{b}', ch.opp_answered)}</div><div class="bar"><span style="width:${pct(ch.opp_answered,n)}%"></span></div></div>
+          </div>` : ''}
+        ${result}
+        <div class="actions">${action}</div>
+      </article>`;
+  }).join('');
+}
+
+async function loadChallenges() {
+  try {
+    const data = await getJSON('/api/challenges/friend/list');
+    state.challenges = data.challenges || [];
+    renderChallenges();
+    renderCommunityTasks();
+  } catch (e) {
+    $('challenge-list').innerHTML = `<div class="empty">${I18n.t('cm.ch.loadError').replace('{msg}', esc(e.message))}</div>`;
+  }
+}
+
+function renderReviews() {
+  const list = $('review-list');
+  const rows = state.reviews || [];
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty">${I18n.t('cm.rv.empty')}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(r => `
+    <article class="item-card">
+      <div class="item-head">
+        <div>
+          <div class="item-title">${esc(r.title)}</div>
+          <div class="item-meta">${esc(r.display_name || r.username)} · ${esc(r.created_at)} · ${I18n.t('cm.rv.views').replace('{n}', fmt(r.view_count))}</div>
+        </div>
+        <div class="actions" style="margin-top:0">
+          <button class="btn" data-copy-url="${esc(r.url || '')}">${I18n.t('cm.rv.copyLink')}</button>
+          <a class="btn btn-primary" href="${esc(r.url || '#')}">${I18n.t('cm.rv.view')}</a>
+        </div>
+      </div>
+      ${r.description ? `<p class="small muted" style="line-height:1.7;margin-top:10px">${esc(r.description)}</p>` : ''}
+    </article>`).join('');
+}
+
+async function loadReviews() {
+  try {
+    const data = await getJSON('/api/community/reviews');
+    state.reviews = data.items || [];
+    renderReviews();
+    renderCommunityTasks();
+  } catch (e) {
+    $('review-list').innerHTML = `<div class="empty">${I18n.t('cm.rv.loadError').replace('{msg}', esc(e.message))}</div>`;
+  }
+}
+
+function renderRoster() {
+  const el = document.getElementById('roster-list');
+  if (!el) return;
+  const friends = state.friends || [];
+  if (!friends.length) {
+    el.className = '';
+    el.innerHTML = `<div class="empty" style="min-height:100px">${I18n.t('cm.roster.empty')}</div>`;
+    return;
+  }
+  el.className = 'roster-list';
+  const today = new Date().toISOString().slice(0, 10);
+  el.innerHTML = friends.map(f => {
+    const active = f.last_active === today;
+    return `
+    <a class="roster-row" href="/profile/${encodeURIComponent(f.username)}">
+      <span class="roster-fig">${heroFigure(f, 'sm')}${active ? `<span class="online-dot" title="${I18n.t('cm.fr.activeTag')}"></span>` : ''}</span>
+      <div class="roster-info">
+        <span class="roster-name">${esc(f.display_name || f.username)}</span>
+        <span class="roster-meta">${rankBadge(f.rank_level)} ${active ? `<span class="active-tag">${I18n.t('cm.fr.activeTag')}</span>` : `XP ${fmt(f.xp)}`}</span>
+      </div>
+    </a>`;
+  }).join('');
+}
+
+function renderFriends() {
+  $('friend-count').textContent = I18n.t('cm.fr.countN').replace('{n}', state.friends.length);
+  renderRoster();
+  renderChallengeFriendSelect();
+  const list = $('friend-list');
+  if (!state.friends.length) {
+    list.innerHTML = `<div class="empty">${I18n.t('cm.fr.empty')}</div>`;
+  } else {
+    list.innerHTML = state.friends.map(f => `
+      <div class="friend-row">
+        <a href="/profile/${encodeURIComponent(f.username)}">${heroFigure(f, 'sm')}</a>
+        <div>
+          <a class="name" href="/profile/${encodeURIComponent(f.username)}">${esc(f.display_name || f.username)}</a>
+          <div class="small muted">${rankBadge(f.rank_level)} ${I18n.t('cm.fr.statLine').replace('{xp}', fmt(f.xp)).replace('{c}', fmt(f.total_correct)).replace('{combo}', fmt(f.combo_streak))}</div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="/messages?u=${encodeURIComponent(f.username)}">${I18n.t('cm.fr.message')}</a>
+          <button class="btn btn-primary" data-create-challenge="${esc(f.username)}">${I18n.t('cm.fr.challengeBtn')}</button>
+          <button class="btn btn-danger" data-remove-friend="${f.friendship_id}">${I18n.t('cm.fr.remove')}</button>
+        </div>
+      </div>`).join('');
+  }
+
+  const pendingWrap = $('pending-wrap');
+  const pendingList = $('pending-list');
+  $('pending-count').textContent = state.requests.length ? `(${state.requests.length})` : '';
+  pendingWrap.style.display = state.requests.length ? '' : 'none';
+  pendingList.innerHTML = state.requests.map(r => `
+    <div class="friend-row" id="pending-${r.id}">
+      <a href="/profile/${encodeURIComponent(r.username)}">${heroFigure(r, 'sm')}</a>
+      <div>
+        <a class="name" href="/profile/${encodeURIComponent(r.username)}">${esc(r.display_name || r.username)}</a>
+        <div class="small muted">${rankBadge(r.rank_level)} · ${relTime(r.created_at)}</div>
+      </div>
+      <div class="actions"><button class="btn btn-primary" data-accept-request="${r.id}">${I18n.t('cm.fr.accept')}</button><button class="btn btn-danger" data-reject-request="${r.id}">${I18n.t('cm.fr.reject')}</button></div>
+    </div>`).join('');
+}
+
+function renderChallengeFriendSelect() {
+  const select = $('challenge-friend-select');
+  const btn = $('create-challenge-btn');
+  if (!select || !btn) return;
+  if (!state.friends.length) {
+    select.innerHTML = `<option value="">${I18n.t('cm.ch.selectFriendFirst')}</option>`;
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = false;
+  const old = select.value;
+  select.innerHTML = state.friends.map(f => `<option value="${esc(f.username)}">${esc(f.display_name || f.username)} · ${esc(f.rank_level || '30k')}</option>`).join('');
+  if (old && state.friends.some(f => f.username === old)) select.value = old;
+}
+
+function renderFeed(feed) {
+  feed = feed || state.feed || [];
+  const box = $('friend-feed');
+  if (!feed || !feed.length) {
+    box.innerHTML = `<div class="empty">${I18n.t('cm.feed.empty')}</div>`;
+    return;
+  }
+  box.innerHTML = feed.map(f => `
+    <div class="friend-row">
+      <a href="/profile/${encodeURIComponent(f.username)}">${heroFigure(f, 'sm')}</a>
+      <div>
+        <a class="name" href="/profile/${encodeURIComponent(f.username)}">${esc(f.display_name || f.username)}</a>
+        <div class="small muted">${feedText(f)}</div>
+      </div>
+      <div class="small muted">${relTime(f.created_at)}</div>
+    </div>`).join('');
+}
+
+function feedText(f) {
+  if (f.type === 'badge') {
+    const badgeName = I18n.getLang() === 'en' ? (f.badge_name_en || f.badge_name || '') : (f.badge_name || '');
+    return I18n.t('cm.feed.badge').replace('{icon}', `${f.badge_icon || ''} ${badgeName}`);
+  }
+  if (f.type === 'daily_summary') return I18n.t('cm.feed.completed').replace('{total}', f.total || 0).replace('{correct}', f.correct || 0);
+  return I18n.t('cm.feed.practiced').replace('{qid}', f.question_id || '').replace('{result}', f.correct ? I18n.t('cm.feed.correct') : I18n.t('cm.feed.wrong'));
+}
+
+async function loadFriends(force = false) {
+  if (state.friendsLoaded && !force) return;
+  try {
+    const [list, req] = await Promise.all([
+      getJSON('/api/friends/list'),
+      getJSON('/api/friends/requests')
+    ]);
+    state.friends = list.friends || [];
+    state.requests = req.requests || [];
+    state.friendsLoaded = true;
+    renderFriends();
+    state.feed = list.feed || []; renderFeed(state.feed);
+    renderCommunityTasks();
+  } catch (e) {
+    $('friend-list').innerHTML = `<div class="empty">${I18n.t('cm.fr.feedLoadErr').replace('{msg}', esc(e.message))}</div>`;
+  }
+}
+
+async function searchFriend() {
+  const q = $('friend-search').value.trim();
+  const box = $('friend-search-result');
+  if (!q) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="empty" style="min-height:80px">${I18n.t('cm.fr.searching')}</div>`;
+  try {
+    const [status, profile] = await Promise.all([
+      getJSON(`/api/friends/status/${encodeURIComponent(q)}`),
+      getJSON(`/api/profile/${encodeURIComponent(q)}`)
+    ]);
+    let action = '';
+    if (status.status === 'self') action = `<span class="small muted">${I18n.t('cm.fr.self')}</span>`;
+    else if (status.status === 'friends') action = `<span class="small" style="color:var(--teal);font-weight:900">${I18n.t('cm.fr.already')}</span>`;
+    else if (status.status === 'pending_sent') action = `<span class="small muted">${I18n.t('cm.fr.invited')}</span>`;
+    else if (status.status === 'pending_received') action = `<button class="btn btn-primary" data-accept-request="${status.friendship_id}">${I18n.t('cm.fr.acceptInvite')}</button>`;
+    else action = `<button class="btn btn-primary" data-add-friend="${esc(profile.username)}">${I18n.t('cm.fr.addFriend')}</button>`;
+    box.innerHTML = `
+      <div class="item-card">
+        <div class="friend-row">
+          <a href="/profile/${encodeURIComponent(profile.username)}">${heroFigure(profile, 'sm')}</a>
+          <div><a class="name" href="/profile/${encodeURIComponent(profile.username)}">${esc(profile.display_name || profile.username)}</a><div class="small muted">${rankBadge(profile.rank_level)} XP ${fmt(profile.xp)}</div></div>
+          <div class="actions">${action}</div>
+        </div>
+      </div>`;
+  } catch (e) {
+    box.innerHTML = `<div class="empty" style="min-height:80px">${I18n.t('cm.fr.notFound')}</div>`;
+  }
+}
+
+async function postJSON(url, body = {}) {
+  return getJSON(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+}
+
+async function addFriend(username) {
+  try {
+    const data = await postJSON('/api/friends/request', { username });
+    toast(data.message || I18n.t('cm.toast.inviteSent'));
+    $('friend-search-result').innerHTML = '';
+    state.friendsLoaded = false;
+    loadFriends(true);
+  } catch (e) { toast(e.message); }
+}
+
+async function acceptRequest(id) {
+  try { await postJSON(`/api/friends/accept/${id}`); toast(I18n.t('cm.toast.inviteAccepted')); state.friendsLoaded = false; loadFriends(true); loadLeaderboard(); }
+  catch (e) { toast(e.message); }
+}
+
+async function rejectRequest(id) {
+  try { await postJSON(`/api/friends/reject/${id}`); toast(I18n.t('cm.toast.inviteHandled')); state.friendsLoaded = false; loadFriends(true); }
+  catch (e) { toast(e.message); }
+}
+
+async function createChallenge(username, num = 10) {
+  if (!confirm(I18n.t('cm.confirm.challenge').replace('{username}', username).replace('{num}', num))) return;
+  try {
+    const data = await postJSON('/api/challenges/friend/create', { username, num_questions: num });
+    toast(data.message || I18n.t('cm.toast.challengeSent'));
+    await loadChallenges();
+  } catch (e) { toast(e.message); }
+}
+
+async function rejectChallenge(id) {
+  try { await postJSON(`/api/challenges/friend/reject/${id}`); toast(I18n.t('cm.toast.challengeCancelled')); await loadChallenges(); }
+  catch (e) { toast(e.message); }
+}
+
+async function acceptChallenge(id) {
+  try { await postJSON(`/api/challenges/friend/accept/${id}`); toast(I18n.t('cm.toast.challengeAccepted')); await loadChallenges(); }
+  catch (e) { toast(e.message); }
+}
+
+async function submitReview() {
+  const title = $('review-title').value.trim();
+  const description = $('review-desc').value.trim();
+  if (!title) { toast(I18n.t('cm.toast.reviewTitleNeeded')); return; }
+  try {
+    await postJSON('/api/community/reviews', { title, description });
+    $('review-title').value = '';
+    $('review-desc').value = '';
+    $('review-form').style.display = 'none';
+    toast(I18n.t('cm.toast.reviewPublished'));
+    await loadReviews();
+  } catch (e) { toast(e.message); }
+}
+
+function bindEvents() {
+  document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+  document.querySelectorAll('[data-jump]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.jump)));
+  $('lb-tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lb]');
+    if (!btn) return;
+    state.lbKey = btn.dataset.lb;
+    document.querySelectorAll('[data-lb]').forEach(b => b.classList.toggle('active', b === btn));
+    renderLeaderboard();
+  });
+  $('create-challenge-btn').addEventListener('click', () => {
+    const username = $('challenge-friend-select').value;
+    const num = Number($('challenge-count-select').value || 10);
+    if (!username) { toast(I18n.t('cm.toast.selectFriendFirst')); return; }
+    createChallenge(username, num);
+  });
+  $('toggle-review-form').addEventListener('click', () => {
+    $('review-form').style.display = $('review-form').style.display === 'none' ? '' : 'none';
+  });
+  $('submit-review').addEventListener('click', submitReview);
+  $('friend-search-btn').addEventListener('click', searchFriend);
+  $('friend-search').addEventListener('keydown', e => { if (e.key === 'Enter') searchFriend(); });
+  document.body.addEventListener('click', (e) => {
+    const jump = e.target.closest('[data-jump]');
+    const add = e.target.closest('[data-add-friend]');
+    const accReq = e.target.closest('[data-accept-request]');
+    const rejReq = e.target.closest('[data-reject-request]');
+    const create = e.target.closest('[data-create-challenge]');
+    const remove = e.target.closest('[data-remove-friend]');
+    const accCh = e.target.closest('[data-accept-challenge]');
+    const rejCh = e.target.closest('[data-reject-challenge]');
+    const copy = e.target.closest('[data-copy-url]');
+    if (jump) switchTab(jump.dataset.jump);
+    if (add) addFriend(add.dataset.addFriend);
+    if (accReq) acceptRequest(accReq.dataset.acceptRequest);
+    if (rejReq) rejectRequest(rejReq.dataset.rejectRequest);
+    if (create) createChallenge(create.dataset.createChallenge, 10);
+    if (remove && confirm(I18n.t('cm.confirm.removeFriend'))) rejectRequest(remove.dataset.removeFriend);
+    if (accCh) acceptChallenge(accCh.dataset.acceptChallenge);
+    if (rejCh && confirm(I18n.t('cm.confirm.cancelChallenge'))) rejectChallenge(rejCh.dataset.rejectChallenge);
+    if (copy) {
+      const url = new URL(copy.dataset.copyUrl || '/', location.origin).href;
+      navigator.clipboard?.writeText(url).then(() => toast(I18n.t('cm.toast.linkCopied'))).catch(() => toast(url));
+    }
+  });
+}
+
+async function init() {
+  bindEvents();
+  await Promise.all([loadLeaderboard(), loadReviews(), loadFriends(true), loadChallenges()]);
+}
+
+function installFallbackNav() {
+  setTimeout(() => {
+    if (document.querySelector('.cg-nav')) return;
+    const header = document.querySelector('header');
+    if (!header) return;
+    header.className = 'fallback-nav';
+    header.innerHTML = `<div class="inner"><a class="brand" href="/">弈境奇兵 (Go Odyssey)</a><nav class="links"><a href="/">${I18n.t('nav.label.practice')}</a><a href="/curriculum">${I18n.t('nav.label.curriculum')}</a><a href="/daily-challenge">${I18n.t('nav.daily')}</a><a href="/mistakes">${I18n.t('nav.label.mistakes')}</a><a class="active" href="/community">${I18n.t('nav.label.community')}</a><a href="/hero">${I18n.t('nav.label.skills')}</a><a href="/inventory">${I18n.t('inv.nav.inventory')}</a></nav></div>`;
+    document.body.style.paddingTop = 'var(--nav-h)';  // fallback 是固定式，補回頂部空間
+  }, 250);
+}
+
+// 語言切換時：重套靜態翻譯（i18n 已做）＋ 重繪以 JS 動態產生的內容
+window.onLangChange = () => {
+  [renderCommunityTasks, renderLeaderboard, renderHeroBounty, updateNpcGreeting,
+   renderChallenges, renderReviews, renderRoster, renderFriends, renderFeed,
+   renderChallengeFriendSelect].forEach(fn => { try { fn(); } catch (e) {} });
+};
+
+installFallbackNav();
+document.addEventListener('DOMContentLoaded', init);
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/mobile-nav.js?v=20260620dm"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>

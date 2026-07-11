@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="stats.pageTitle">學習儀表板 — 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+:root {
+    --cream:    #faf7f2;
+    --cream2:   #f3ede3;
+    --cream3:   #ede4d4;
+    --ink:      #1c1409;
+    --ink2:     #3d2f1a;
+    --ink3:     #6b5740;
+    --amber:    #d97706;
+    --amber-bg: #fffbeb;
+    --teal:     #0d9488;
+    --teal-bg:  #f0fdfa;
+    --teal-mid: #99f6e4;
+    --border:   #e5ddd0;
+    --border2:  #d4c9b8;
+    --white:    #ffffff;
+    --shadow:   0 1px 3px rgba(28,20,9,.06), 0 4px 16px rgba(28,20,9,.06);
+    --shadow-lg:0 8px 40px rgba(28,20,9,.10);
+    --green:    #16a34a;
+    --green-bg: #f0fdf4;
+    --red:      #dc2626;
+    --red-bg:   #fef2f2;
+    --mono:     'DM Mono', monospace;
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 52px 52px; opacity: .35;
+}
+
+/* ══ HEADER ═════════════════════════════════════════════════ */
+header:not(.cg-nav) {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,247,242,.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 700; color: var(--ink);
+    text-decoration: none; letter-spacing: .5px;
+}
+.logo-mark {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white;
+}
+.header-nav { display: flex; align-items: center; gap: 4px; }
+.nav-link {
+    font-size: 14px; color: var(--ink3); text-decoration: none;
+    padding: 7px 13px; border-radius: 6px; transition: all .15s;
+    display: flex; align-items: center; gap: 4px;
+}
+.nav-link:hover { background: var(--cream2); color: var(--ink); }
+.nav-link.active { background: var(--teal-bg); color: var(--teal); }
+.nav-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+#username-badge { font-size: 11px; color: var(--ink3); font-family: var(--mono); padding: 4px 10px; }
+.btn-logout {
+    font-size: 11px; color: var(--ink3); background: none; border: none;
+    cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all .15s;
+}
+.btn-logout:hover { background: var(--red-bg); color: var(--red); }
+.nav-avatar-wrap {
+    display: flex; align-items: center; gap: 6px;
+    text-decoration: none; padding: 4px 8px; border-radius: 8px;
+    border: 1px solid transparent; transition: all .15s;
+}
+.nav-avatar-wrap:hover { border-color: var(--teal); background: var(--teal-bg); }
+.nav-avatar-fig { position: relative; width: 26px; height: 26px; }
+.nav-avatar-base {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--cream3); border: 1.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.nav-avatar-hat {
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    font-size: 14px; line-height: 1; opacity: 0;
+}
+.nav-avatar-name { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+
+/* ══ MAIN ════════════════════════════════════════════════════ */
+main {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 36px 28px 72px;
+}
+
+/* ══ PAGE TITLE ══════════════════════════════════════════════ */
+.page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 38px; font-weight: 700; color: var(--ink);
+    letter-spacing: -.5px; line-height: 1.1;
+    margin-bottom: 4px;
+}
+.page-sub {
+    font-size: 13px; color: var(--ink3); font-family: var(--mono);
+    margin-bottom: 36px;
+}
+
+/* ══ SECTION LABEL ═══════════════════════════════════════════ */
+.section-label {
+    font-family: var(--mono);
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+}
+.section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ══ CARD ════════════════════════════════════════════════════ */
+.card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+}
+.card::before {
+    content: ''; position: absolute; inset: 0; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(250,247,242,.5) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* ══ STAT CARDS ══════════════════════════════════════════════ */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+}
+.stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 20px 16px;
+    box-shadow: var(--shadow);
+    transition: transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+.stat-card.c-teal   { border-top: 3px solid var(--teal); }
+.stat-card.c-amber  { border-top: 3px solid var(--amber); }
+.stat-card.c-red    { border-top: 3px solid var(--red); }
+.stat-card.c-green  { border-top: 3px solid var(--green); }
+.stat-card.c-ink    { border-top: 3px solid var(--ink2); }
+
+.stat-icon { font-size: 20px; margin-bottom: 12px; }
+.stat-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 40px; font-weight: 700; line-height: 1; margin-bottom: 4px;
+}
+.stat-card.c-teal  .stat-value { color: var(--teal); }
+.stat-card.c-amber .stat-value { color: var(--amber); }
+.stat-card.c-red   .stat-value { color: var(--red); }
+.stat-card.c-green .stat-value { color: var(--green); }
+.stat-card.c-ink   .stat-value { color: var(--ink2); }
+.stat-label { font-size: 11px; color: var(--ink3); letter-spacing: .3px; }
+.stat-delta {
+    display: inline-block; margin-top: 7px;
+    font-size: 10px; font-family: var(--mono);
+    padding: 2px 8px; border-radius: 99px;
+}
+.delta-up   { background: var(--green-bg); color: var(--green); }
+.delta-down { background: var(--red-bg);   color: var(--red);   }
+.delta-same { background: var(--cream2);   color: var(--ink3);  }
+
+/* ══ LAYOUT GRIDS ════════════════════════════════════════════ */
+.grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+.grid-heatmap { display: grid; grid-template-columns: 1fr 340px; gap: 18px; margin-bottom: 20px; }
+
+@media (max-width: 900px) {
+    .grid-heatmap, .grid-2col { grid-template-columns: 1fr; }
+}
+
+/* ══ WEEK COMPARE ════════════════════════════════════════════ */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.compare-col {
+    text-align: center; padding: 18px 10px; border-radius: 10px;
+    border: 1px solid var(--border);
+}
+.compare-col.this-week { background: var(--teal-bg); border-color: var(--teal-mid); }
+.compare-col.last-week { background: var(--cream2);  }
+.compare-col .c-title {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--ink3); margin-bottom: 10px;
+}
+.compare-col .c-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 44px; font-weight: 700; line-height: 1;
+}
+.compare-col.this-week .c-num { color: var(--teal); }
+.compare-col.last-week .c-num { color: var(--ink3); }
+.compare-col .c-sub { font-size: 11px; color: var(--ink3); margin-top: 4px; }
+
+.delta-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+}
+.delta-row:last-child { border-bottom: none; }
+
+/* ══ HEATMAP ═════════════════════════════════════════════════ */
+#heatmap-wrap { overflow-x: auto; padding-bottom: 6px; }
+.heatmap-months {
+    display: flex; gap: 3px; margin-bottom: 4px;
+    font-size: 9px; font-family: var(--mono); color: var(--ink3);
+    width: max-content;
+}
+.heatmap-grid {
+    display: grid;
+    grid-template-rows: repeat(7, 13px);
+    grid-auto-flow: column;
+    gap: 3px; width: max-content;
+}
+.heatmap-cell {
+    width: 13px; height: 13px; border-radius: 3px;
+    background: var(--cream3);
+    cursor: default; transition: transform .1s;
+}
+.heatmap-cell:hover { transform: scale(1.4); z-index: 10; }
+.h1 { background: rgba(13,148,136,.15); }
+.h2 { background: rgba(13,148,136,.30); }
+.h3 { background: rgba(13,148,136,.50); }
+.h4 { background: rgba(13,148,136,.70); }
+.h5 { background: var(--teal); box-shadow: 0 0 5px rgba(13,148,136,.35); }
+.heatmap-legend {
+    display: flex; align-items: center; gap: 5px; margin-top: 8px;
+    font-size: 10px; color: var(--ink3); font-family: var(--mono);
+}
+.leg-cells { display: flex; gap: 3px; }
+.leg-cells div { width: 13px; height: 13px; border-radius: 3px; }
+
+/* ══ BAR CHART ═══════════════════════════════════════════════ */
+.bar-chart {
+    display: flex; align-items: flex-end; gap: 8px; height: 140px;
+    padding-bottom: 0; position: relative;
+}
+.bar-chart::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 1px; background: var(--border);
+}
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar-outer {
+    width: 100%; border-radius: 5px 5px 0 0;
+    background: var(--cream2);
+    position: relative; min-height: 4px;
+    border: 1px solid var(--border); border-bottom: none;
+}
+.bar-inner {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--teal) 0%, rgba(13,148,136,.35) 100%);
+    transition: height .7s cubic-bezier(.34,1.56,.64,1);
+}
+.bar-pct { font-size: 10px; font-weight: 700; color: var(--teal); font-family: var(--mono); }
+.bar-empty .bar-pct { color: var(--ink3); }
+.bar-labels-row {
+    display: flex; gap: 8px; margin-top: 6px;
+}
+.bar-lbl { flex: 1; text-align: center; font-size: 9px; color: var(--ink3); font-family: var(--mono); }
+.bar-lbl.current { color: var(--teal); font-weight: 700; }
+
+/* ══ WEAKNESS BARS ═══════════════════════════════════════════ */
+.weakness-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.weakness-item:last-child { border-bottom: none; }
+.weakness-label { font-size: 12px; min-width: 80px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink2); }
+.weakness-bar-wrap {
+    flex: 1; height: 7px; background: var(--cream2);
+    border-radius: 99px; overflow: hidden;
+    border: 1px solid var(--border);
+}
+.weakness-bar { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(.34,1.2,.64,1); }
+.weakness-pct { font-family: var(--mono); font-size: 12px; font-weight: 700; min-width: 40px; text-align: right; }
+.acc-high .weakness-bar  { background: var(--green); }
+.acc-mid  .weakness-bar  { background: var(--amber); }
+.acc-low  .weakness-bar  { background: var(--red);   }
+.acc-high .weakness-pct  { color: var(--green); }
+.acc-mid  .weakness-pct  { color: var(--amber); }
+.acc-low  .weakness-pct  { color: var(--red);   }
+
+/* ══ TODAY BAR ═══════════════════════════════════════════════ */
+.today-big {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px; font-weight: 700; color: var(--teal); line-height: 1;
+}
+.today-bar { height: 8px; border-radius: 99px; background: var(--cream2); border: 1px solid var(--border); overflow: hidden; margin: 10px 0 6px; }
+.today-bar-fill { height: 100%; border-radius: 99px; background: var(--teal); transition: width 1s cubic-bezier(.34,1.56,.64,1); }
+
+/* ══ DIFF BADGE ══════════════════════════════════════════════ */
+.diff-badge {
+    font-size: 11px; font-family: var(--mono); font-weight: 700;
+    padding: 2px 8px; border-radius: 6px; min-width: 40px; text-align: center;
+}
+.diff-kyu { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.diff-dan { background: var(--amber-bg); color: var(--amber); border: 1px solid #fde68a; }
+
+/* ══ STREAK BADGE ════════════════════════════════════════════ */
+.streak-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--amber-bg); color: var(--amber);
+    border: 1px solid #fde68a; border-radius: 99px;
+    font-family: var(--mono); font-size: 11px;
+    padding: 3px 10px; margin-top: 6px;
+}
+
+/* ══ SKELETON ════════════════════════════════════════════════ */
+.skeleton {
+    background: linear-gradient(90deg, var(--cream2) 25%, var(--cream3) 50%, var(--cream2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ══ FADE UP ═════════════════════════════════════════════════ */
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.fade-up { animation: fadeUp .4s ease both; }
+.d1 { animation-delay: .05s; }
+.d2 { animation-delay: .10s; }
+.d3 { animation-delay: .15s; }
+.d4 { animation-delay: .20s; }
+.d5 { animation-delay: .25s; }
+
+/* ══ TOOLTIP ═════════════════════════════════════════════════ */
+.tt {
+    position: fixed; z-index: 9999;
+    background: var(--ink); color: var(--cream);
+    border-radius: 7px; padding: 5px 10px;
+    font-size: 11px; font-family: var(--mono);
+    pointer-events: none; white-space: nowrap;
+    opacity: 0; transition: opacity .1s;
+}
+
+/* ══ EMPTY STATE ═════════════════════════════════════════════ */
+.empty-state {
+    text-align: center; padding: 36px 0;
+    color: var(--ink3); font-size: 12px; font-family: var(--mono);
+}
+.empty-state .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+/* ── Nav 角色 mini 頭像 ── */
+.nav-avatar-wrap {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 9px;
+  background: var(--cream2);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: border-color .15s, background .15s;
+  cursor: pointer;
+}
+.nav-avatar-wrap:hover { border-color: var(--teal); background: var(--teal-bg); }
+.nav-avatar-fig {
+  position: relative; width: 24px; height: 24px; flex-shrink: 0;
+}
+.nav-avatar-base {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--cream3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1;
+  transition: background .3s, border-color .3s;
+}
+.nav-avatar-hat {
+  position: absolute; top: -6px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px; line-height: 1;
+  pointer-events: none; z-index: 2; opacity: 0;
+  transition: opacity .3s;
+}
+.nav-avatar-name {
+  font-size: 11px; color: var(--ink3);
+  font-family: 'DM Mono', monospace;
+  max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+
+    /* ── ≤1366px：手機/iPad 用統一 32x32 圖示 nav ── */
+    @media (max-width: 1366px) {
+        header:not(.cg-nav) { padding: 0 10px !important; height: 50px !important; }
+        .logo-name { display: none !important; }
+        .nav-avatar-wrap, .status-pill, .nav-sep { display: none !important; }
+        .header-nav { gap: 3px !important; flex-wrap: nowrap; overflow-x: auto; }
+        #menu-btn { display: flex !important; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0 !important; font-size: 18px !important; flex-shrink: 0; background: none; border: none; cursor: pointer; }
+        #streak-pill { font-size: 10px !important; padding: 2px 8px !important; flex-shrink: 0; }
+        .header-nav .nav-link {
+            display: inline-flex !important;
+            align-items: center; justify-content: center;
+            width: 32px !important; height: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px;
+            font-size: 0 !important;
+            background: transparent;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .header-nav .nav-link::before {
+            content: attr(data-icon);
+            font-size: 18px !important;
+            line-height: 1;
+        }
+        .header-nav .nav-link:hover { background: var(--cream2); }
+        .header-nav .nav-link > span:not(#mistake-badge):not(#coins-nav-count) { display: none !important; }
+        .header-nav .nav-link svg { width: 22px !important; height: 22px !important; display: block !important; }
+        .header-nav .nav-link[href="/play"]::before { content: none !important; }
+        .header-nav #coins-nav-btn { width: auto !important; min-width: 32px; padding: 0 6px !important; gap: 2px; }
+        .header-nav #coins-nav-btn #coins-nav-count {
+            display: inline !important;
+            font-size: 11px !important;
+            font-family: 'DM Mono', monospace;
+            color: var(--amber);
+        }
+        .header-nav .nav-link[href="/mistakes"] { position: relative; }
+        #mistake-badge {
+            position: absolute !important;
+            top: -2px !important; right: -2px !important;
+            font-size: 8px !important;
+            padding: 0 4px !important;
+            line-height: 1.4 !important;
+        }
+        #xp-hud { font-size: 10px !important; gap: 4px !important; padding: 2px 6px !important; flex-shrink: 0; }
+        #xp-bar-wrap { width: 50px !important; }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       石窟風儀表板皮膚（背景 + 木框/羊皮卷軸面板 + 金色標題）
+       ════════════════════════════════════════════════════════════ */
+    body {
+        background:
+            linear-gradient(rgba(8,6,3,.30), rgba(8,6,3,.45)),
+            url('assets/stats/stats_bg.webp') center top / cover fixed no-repeat !important;
+        color: #f1e6cd;
+    }
+    body::before { opacity: 0 !important; }
+    main { max-width: 1200px !important; padding-top: 6px !important; }
+
+    /* 標題 → 木牌橫幅，置中 */
+    main > div:first-child, .page-head { text-align: center !important; }
+    .page-title {
+        display: inline-block !important;
+        font-family: 'Noto Serif TC','Cormorant Garamond',serif !important;
+        font-weight: 900 !important;
+        color: #f6dd92 !important;
+        text-shadow: 0 2px 6px rgba(0,0,0,.7) !important;
+        border: 20px solid transparent !important;
+        border-image: url('assets/stats/scroll_h.png') 26 70 26 70 fill / 16px 48px / 0 stretch !important;
+        padding: 2px 30px !important;
+        margin: 0 auto 4px !important;
+    }
+    .page-sub { color: rgba(241,230,205,.75) !important; text-align:center; }
+
+    /* 區段標題：背景上金色襯線；卡片內則用深褐 */
+    .section-label {
+        color: #f0d488 !important;
+        font-family: 'Noto Serif TC',serif !important;
+        font-weight: 900 !important;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 6px rgba(0,0,0,.55);
+    }
+
+    /* 三欄密集桌面：CSS 多欄，瀏覽器自動平衡欄高，卡片不被切斷 */
+    .stats-3col {
+        column-count: 3;
+        column-gap: 14px;
+        column-fill: balance;
+        margin-bottom: 14px;
+    }
+    .stats-3col > .card {
+        break-inside: avoid;
+        -webkit-column-break-inside: avoid;
+        page-break-inside: avoid;
+        margin: 0 0 14px !important;
+        display: inline-block;   /* 避免欄內卡片被切，並讓 margin 正常 */
+        width: 100%;
+    }
+    @media (max-width: 1000px) { .stats-3col { column-count: 2; } }
+    @media (max-width: 680px)  { .stats-3col { column-count: 1; } }
+
+    /* 整體更密集 */
+    .grid-heatmap, .grid-2col { gap: 14px !important; margin-bottom: 14px !important; }
+    .stat-grid { gap: 12px !important; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)) !important; margin-bottom: 14px !important; }
+    .section-label { margin-bottom: 8px !important; font-size: 13px !important; }
+
+    /* 大區塊 → 木框 + 羊皮內裡（讓既有深色文字仍清晰） */
+    .card {
+        border: 18px solid transparent !important;
+        border-image: url('assets/stats/panel_wood.webp') 74 / 18px / 0 stretch !important;
+        background: linear-gradient(180deg,#f6e8c6,#ead7a8) padding-box !important;
+        border-radius: 0 !important;
+        box-shadow: 0 14px 30px rgba(0,0,0,.5) !important;
+        color: #3a2410;
+        padding: 14px !important;
+    }
+    .card .section-label { color: #5a3a16 !important; text-shadow: none; }
+
+    /* 核心統計 → 各式羊皮卷軸/石板框（縮小框、放大數字） */
+    .stat-card {
+        border: 24px solid transparent !important;
+        background: none !important;
+        border-radius: 0 !important;
+        box-shadow: 0 10px 22px rgba(0,0,0,.42) !important;
+        text-align: center;
+        padding: 8px 6px !important;
+        min-height: 0 !important;
+    }
+    /* 淺奶油攤開卷軸（上下卷軸桿較厚） */
+    .stat-card.f-cream {
+        border-image: url('assets/stats/frame_scroll_cream.webp') 270 165 270 165 fill / 30px 20px / 0 stretch !important;
+    }
+    /* 茶色做舊撕邊羊皮 */
+    .stat-card.f-tan {
+        border-image: url('assets/stats/frame_parchment_tan.webp') 200 190 200 190 fill / 24px 22px / 0 stretch !important;
+    }
+    /* 捲角小卷軸（右上捲角，top/right 切片較大涵蓋捲角） */
+    .stat-card.f-curl {
+        border-image: url('assets/stats/frame_scroll_curl.webp') 210 200 160 150 fill / 24px 22px / 0 stretch !important;
+    }
+    /* 淺色框中央補羊皮底，避免深色數字落在透明處看不見 */
+    .stat-card.f-cream, .stat-card.f-tan, .stat-card.f-curl {
+        background: radial-gradient(circle at 50% 42%, #f7ebc6, #e7d2a0) padding-box !important;
+    }
+    /* 灰石板刻字框 */
+    .stat-card.f-stone {
+        border-image: url('assets/stats/frame_stone_slab.webp') 190 180 190 180 fill / 24px 22px / 0 stretch !important;
+    }
+    .stat-card.f-stone .stat-value { color: #f4ead0 !important; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+    .stat-card.f-stone .stat-label { color: #cbb78f !important; }
+    /* 段位 → 金屬龍紋大徽章（整張圖當背景，不走九宮格框） */
+    .stat-card.f-badge {
+        border: 0 !important;
+        background: url('assets/stats/badge_rank.webp') center / contain no-repeat !important;
+        box-shadow: none !important;
+        min-height: 150px !important;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: 0 !important;
+    }
+    .stat-card.f-badge .stat-icon { display: none !important; }
+    .stat-card.f-badge .stat-value { color: #4a2c0a !important; font-size: 26px !important; text-shadow: 0 1px 1px rgba(255,220,140,.6) !important; margin-top: 6px !important; }
+    .stat-card.f-badge .stat-label { color: #f4d98c !important; text-shadow: 0 1px 3px rgba(0,0,0,.9) !important; margin-top: 28px !important; }
+    /* 累計 XP → 錢袋圖整格，數字寫在皮面上、無外框 */
+    .stat-card.f-pouch {
+        border: 0 !important;
+        background: url('assets/stats/ic_pouch.png') center 40% / contain no-repeat !important;
+        box-shadow: none !important;
+        min-height: 150px !important;
+        display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+        padding: 0 0 6px !important;
+    }
+    .stat-card.f-pouch .stat-icon { display: none !important; }
+    .stat-card.f-pouch .stat-value {
+        color: #fbe8a6 !important; font-size: 22px !important; font-weight: 900 !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.6) !important;
+        position: relative; top: -42px;
+    }
+    .stat-card.f-pouch .stat-label { color: #f4d98c !important; text-shadow: 0 1px 3px rgba(0,0,0,.9) !important; }
+    .stat-card .stat-value { color: #2b170c !important; font-size: 30px !important; font-weight: 800 !important; line-height: 1 !important; }
+    .stat-card .stat-label { color: #6b4a1e !important; font-size: 11px !important; margin-top: 3px !important; }
+    .stat-icon {
+        font-size: 0 !important; margin-bottom: 4px !important;
+        display: flex; justify-content: center;
+    }
+    .stat-icon img { width: 42px; height: 42px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0,0,0,.45)); }
+
+    /* 等級進度條 → 橫向木雕框 + LV 徽章 + 龍頭端飾 + 彩虹填條 */
+    #xp-rank-bar-wrap {
+        position: relative;
+        border-style: solid !important;
+        border-width: 34px 58px !important;
+        border-image: url('assets/stats/bar_frame_h.webp') 300 290 fill / 34px 58px / 0 stretch !important;
+        background: none !important;
+        border-radius: 0 !important;
+        box-shadow: 0 14px 30px rgba(0,0,0,.45) !important;
+        min-height: 30px;
+        align-items: center;
+        padding: 0 116px !important;
+        margin: 6px 0 22px !important;
+    }
+    /* 左端 LV 徽章 */
+    #xp-lv-medallion {
+        position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
+        width: 104px; height: 104px; z-index: 3;
+        background: url('assets/stats/badge_rank.webp') center / contain no-repeat;
+        display: flex; align-items: center; justify-content: center;
+        filter: drop-shadow(0 3px 7px rgba(0,0,0,.55));
+    }
+    #xp-rank-badge-stats {
+        font-family: 'Cormorant Garamond', serif; font-weight: 900;
+        font-size: 18px !important; color: #4a2c0a !important;
+        text-shadow: 0 1px 1px rgba(255,224,150,.7);
+        margin-top: 14px; white-space: nowrap;
+    }
+    /* 右端龍頭 */
+    #xp-dragon-medallion {
+        position: absolute; right: -12px; top: 50%; transform: translateY(-50%);
+        width: 108px; height: 108px; z-index: 3;
+        background: url('assets/stats/bar_emblem_dragon.webp') center / contain no-repeat;
+        filter: drop-shadow(0 3px 7px rgba(0,0,0,.6));
+    }
+    /* 中央槽：說明 + 彩虹條 + XP 數字 */
+    #xp-bar-slot {
+        flex: 1; min-width: 0;
+        display: flex; align-items: center; gap: 10px;
+    }
+    #xp-bar-slot .xp-bar-caption {
+        font-family: 'Noto Serif TC', serif; font-weight: 700;
+        font-size: 11px; color: #f0d488 !important; white-space: nowrap;
+        text-shadow: 0 1px 2px rgba(0,0,0,.8); flex-shrink: 0;
+    }
+    #xp-bar-slot .xp-track {
+        flex: 1; min-width: 0; height: 13px; border-radius: 99px; overflow: hidden;
+        background: rgba(18,11,4,.6);
+        box-shadow: inset 0 1px 3px rgba(0,0,0,.7), 0 1px 0 rgba(255,230,160,.12);
+    }
+    #xp-rank-fill {
+        height: 100%; border-radius: 99px; width: 0%;
+        background: linear-gradient(90deg,#dc2626,#d97706,#eab308,#16a34a,#0d9488,#2563eb,#7c3aed) !important;
+        transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+    #xp-rank-label {
+        font-family: 'DM Mono', monospace; font-size: 11px;
+        color: #f4e3b4 !important; white-space: nowrap; flex-shrink: 0;
+        text-shadow: 0 1px 2px rgba(0,0,0,.85);
+    }
+
+    /* 熱力圖（過去一個月）：日曆式 7 欄，格子放大填滿面板 */
+    #heatmap-wrap { overflow-x: hidden !important; padding-bottom: 0 !important; }
+    .heatmap-dow {
+        display: grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        gap: 5px !important; margin-bottom: 5px !important;
+    }
+    .heatmap-dow > div {
+        text-align: center; font-size: 11px; font-weight: 700;
+        color: #8a6526 !important;
+    }
+    .heatmap-grid {
+        width: 100% !important; gap: 5px !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        grid-auto-rows: 30px !important;
+        grid-auto-flow: row !important;
+    }
+    .heatmap-cell {
+        width: 100% !important; height: 30px !important;
+        background: rgba(74,46,18,.22) !important;
+        box-shadow: inset 0 0 0 1px rgba(74,46,18,.18) !important;
+        border-radius: 4px !important;
+    }
+    .card .h1 { background: rgba(22,150,95,.40) !important; }
+    .card .h2 { background: rgba(22,150,95,.62) !important; }
+    .card .h3 { background: rgba(24,160,92,.82) !important; }
+    .card .h4 { background: rgba(217,160,40,.88) !important; }
+    .card .h5 { background: #e0a83a !important; box-shadow: 0 0 6px rgba(224,168,58,.55) !important; }
+    .heatmap-legend, .heatmap-legend span { color: #6b4a1e !important; }
+    .leg-cells > div { background: rgba(74,46,18,.22) !important; }
+
+    /* 怪物圖示 */
+    .mon-ic { width: 38px; display:flex; justify-content:center; }
+    .mon-ic img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+
+    /* 本週/上週 → 書本背景 */
+    #week-compare { gap: 10px !important; }
+    #week-compare .compare-col {
+        background-color: transparent !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        background-size: contain !important;
+        border: none !important;
+        min-height: 168px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-shadow: 0 2px 4px rgba(0,0,0,.7);
+    }
+    #week-compare .compare-col.this-week { background-image: url('assets/stats/book_green.png') !important; }
+    #week-compare .compare-col.last-week { background-image: url('assets/stats/book_red.png') !important; }
+    #week-compare .c-title { color: #fff4d6 !important; font-weight: 800; }
+    #week-compare .compare-col .c-num { color: #ffffff !important; }
+    #week-compare .c-sub { color: rgba(255,246,224,.92) !important; }
+
+    /* 新版戰報版面：總覽、趨勢、教練分析分層呈現 */
+    body {
+        background:
+            linear-gradient(rgba(10,7,3,.34), rgba(10,7,3,.58)),
+            url('assets/stats/custom_opt/dashboard_background.webp') center top / cover fixed no-repeat !important;
+    }
+    main { max-width: 1280px !important; padding-bottom: 86px !important; }
+    .stats-board {
+        display: grid;
+        grid-template-columns: minmax(0, 1.45fr) minmax(360px, .9fr);
+        gap: 18px;
+        align-items: start;
+    }
+    .stats-left, .stats-right {
+        display: grid;
+        gap: 16px;
+    }
+    .stats-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, .78fr);
+        gap: 16px;
+        align-items: stretch;
+    }
+    .stat-grid {
+        grid-template-columns: repeat(5, minmax(120px, 1fr)) !important;
+        gap: 14px !important;
+        margin-bottom: 18px !important;
+    }
+    .stat-card {
+        background:
+            linear-gradient(rgba(246,232,198,.84), rgba(234,215,168,.9)),
+            url('assets/stats/custom_opt/stat_card_frame.webp') center / cover no-repeat !important;
+        border: 0 !important;
+        border-radius: 18px !important;
+        min-height: 144px !important;
+        padding: 18px 12px !important;
+        box-shadow: 0 14px 26px rgba(0,0,0,.38) !important;
+    }
+    .stat-card.f-badge {
+        background:
+            radial-gradient(circle at 50% 47%, rgba(255,242,190,.78), rgba(110,65,16,.2)),
+            url('assets/stats/custom_opt/rank_badge.webp') center / contain no-repeat !important;
+    }
+    .stat-card .stat-value { font-size: 32px !important; }
+    .stat-card .stat-icon img { width: 34px; height: 34px; }
+    .card.analysis-card {
+        background:
+            linear-gradient(rgba(246,232,198,.78), rgba(234,215,168,.86)),
+            url('assets/stats/custom_opt/analysis_board.webp') center / cover no-repeat !important;
+        min-height: 420px;
+    }
+    .card.coach-card {
+        background:
+            linear-gradient(rgba(246,232,198,.80), rgba(234,215,168,.9)),
+            url('assets/stats/custom_opt/coach_note.webp') center / cover no-repeat !important;
+    }
+    .card .section-hint {
+        font-size: 12px;
+        color: #7a5420;
+        margin: -3px 0 14px;
+        line-height: 1.5;
+    }
+    .weakness-grid {
+        display: grid;
+        gap: 12px;
+    }
+    .weakness-card {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255,250,236,.82);
+        border: 1px solid rgba(117,78,26,.22);
+        box-shadow: 0 8px 18px rgba(74,46,18,.12);
+    }
+    .weakness-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        background: rgba(74,46,18,.08);
+        display: grid; place-items: center;
+        overflow: hidden;
+    }
+    .weakness-icon img { width: 58px; height: 58px; object-fit: cover; }
+    .weakness-main { min-width: 0; }
+    .weakness-band {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: #7a5420;
+        margin-bottom: 3px;
+    }
+    .weakness-skill {
+        font-size: 16px;
+        font-weight: 800;
+        color: #2b170c;
+        margin-bottom: 6px;
+    }
+    .weakness-advice {
+        font-size: 12px;
+        color: #67451a;
+        line-height: 1.45;
+    }
+    .weakness-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(180,83,9,.35);
+        background: linear-gradient(135deg, rgba(255,248,219,.95), rgba(251,191,36,.26));
+        color: #7c2d12;
+        font-size: 11px;
+        font-weight: 800;
+        text-decoration: none;
+        box-shadow: 0 5px 12px rgba(120,53,15,.12);
+        transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+    .weakness-action:hover {
+        transform: translateY(-1px);
+        border-color: rgba(180,83,9,.58);
+        background: linear-gradient(135deg, #fff7d6, rgba(251,191,36,.42));
+    }
+    .weakness-score {
+        min-width: 68px;
+        text-align: right;
+        font-family: var(--mono);
+        color: #4b2c0a;
+    }
+    .weakness-score strong {
+        display: block;
+        font-size: 20px;
+        color: #b45309;
+    }
+    .weakness-meter {
+        grid-column: 2 / 4;
+        height: 10px;
+        border-radius: 99px;
+        background:
+            linear-gradient(rgba(62,36,9,.45), rgba(62,36,9,.45)),
+            url('assets/stats/custom_opt/progress_bar_frame.webp') center / cover no-repeat;
+        overflow: hidden;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,.45);
+    }
+    .weakness-meter > div {
+        height: 100%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #dc2626, #d97706, #16a34a);
+        transition: width .7s ease;
+    }
+    .empty-state {
+        background: url('assets/stats/custom_opt/empty_state_illustration.webp') center 8px / min(320px, 90%) auto no-repeat;
+        padding-top: 250px !important;
+    }
+    @media (max-width: 1060px) {
+        .stats-board, .stats-row { grid-template-columns: 1fr; }
+        .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    }
+    @media (max-width: 620px) {
+        main { padding-left: 14px !important; padding-right: 14px !important; }
+.weakness-card { grid-template-columns: 46px minmax(0, 1fr); }
+        .weakness-score { grid-column: 2; text-align: left; }
+        .weakness-meter { grid-column: 1 / 3; }
+        .weakness-action { width: max-content; max-width: 100%; }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       Phase A — 統一輕量皮膚（保留 RPG 質感、移除厚重木框與雜訊底圖）
+       置於最後：以後源序 + 對應特異性壓過上方多層 !important skin
+       ════════════════════════════════════════════════════════════ */
+    body {
+        background:
+            linear-gradient(rgba(8,6,3,.28), rgba(8,6,3,.42)),
+            url('assets/stats/custom_opt/stats_bg_clean.webp') center top / cover fixed no-repeat !important;
+    }
+    /* 統一卡片：象牙底 + 1.5px 細金邊 + 圓角 + 柔陰影（取代木框/材質框/各卡底圖）*/
+    .card,
+    .card.analysis-card,
+    .card.coach-card,
+    .stat-card,
+    .stat-card.f-cream,
+    .stat-card.f-tan,
+    .stat-card.f-curl,
+    .stat-card.f-stone,
+    .stat-card.f-badge,
+    .stat-card.f-pouch {
+        border: 1.5px solid rgba(173,120,9,.55) !important;
+        border-image: none !important;
+        border-radius: 14px !important;
+        background: linear-gradient(180deg, rgba(252,240,211,.97), rgba(246,232,201,.97)) !important;
+        box-shadow: 0 6px 16px rgba(20,12,4,.26) !important;
+    }
+    .card { padding: 16px !important; }
+    .stat-card {
+        min-height: 0 !important;
+        padding: 14px 12px !important;
+        display: flex !important; flex-direction: column; align-items: center; justify-content: center;
+    }
+    /* 核心卡：統一深色字、恢復圖示、清掉特殊位移 */
+    .stat-card .stat-icon,
+    .stat-card.f-badge .stat-icon,
+    .stat-card.f-pouch .stat-icon { display: flex !important; }
+    .stat-card .stat-value,
+    .stat-card.f-stone .stat-value,
+    .stat-card.f-badge .stat-value,
+    .stat-card.f-pouch .stat-value {
+        color: #5a2f0b !important; font-size: 28px !important; font-weight: 800 !important;
+        text-shadow: none !important; margin-top: 4px !important;
+        position: static !important; top: auto !important;
+    }
+    .stat-card .stat-label,
+    .stat-card.f-stone .stat-label,
+    .stat-card.f-badge .stat-label,
+    .stat-card.f-pouch .stat-label {
+        color: #6b4a1e !important; font-size: 11px !important;
+        text-shadow: none !important; margin-top: 3px !important;
+    }
+    /* 週對比：移除書本底圖，改輕色塊 + 深色數字 */
+    #week-compare .compare-col {
+        background-image: none !important; background-color: rgba(255,250,236,.86) !important;
+        border: 1px solid rgba(173,120,9,.30) !important; border-radius: 12px !important;
+        min-height: 0 !important; padding: 14px 10px !important; text-shadow: none !important;
+    }
+    #week-compare .compare-col.this-week { background-image: none !important; border-color: rgba(17,101,52,.42) !important; }
+    #week-compare .compare-col.last-week { background-image: none !important; border-color: rgba(153,27,27,.34) !important; }
+    #week-compare .c-title { color: #3a2410 !important; }
+    #week-compare .compare-col .c-num { color: #2b170c !important; }
+    #week-compare .c-sub { color: #6b4a1e !important; }
+    /* 對比修正：今日大數字青綠 → 深墨綠 */
+    .today-big { color: #0b6b5e !important; }
+
+    /* XP 練習等級進度條 → 輕量細膠囊（移除木雕框/龍頭，LV 改行內徽章）*/
+    #xp-rank-bar-wrap {
+        border: 1.5px solid rgba(173,120,9,.5) !important;
+        border-image: none !important;
+        border-width: 1.5px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(180deg, rgba(252,240,211,.97), rgba(246,232,201,.97)) !important;
+        box-shadow: 0 6px 16px rgba(20,12,4,.24) !important;
+        min-height: 0 !important;
+        padding: 11px 18px !important;
+        gap: 12px;
+    }
+    #xp-dragon-medallion { display: none !important; }
+    #xp-lv-medallion {
+        position: static !important; transform: none !important;
+        width: auto !important; height: auto !important;
+        background: none !important; filter: none !important;
+        flex: 0 0 auto;
+    }
+    #xp-rank-badge-stats {
+        margin-top: 0 !important; font-size: 15px !important;
+        color: #5a2f0b !important; text-shadow: none !important;
+        padding: 3px 11px; border-radius: 8px;
+        background: rgba(173,120,9,.16); border: 1px solid rgba(173,120,9,.4);
+    }
+    #xp-bar-slot .xp-bar-caption { color: #6b4a1e !important; text-shadow: none !important; }
+    #xp-bar-slot .xp-track { background: rgba(74,46,18,.16) !important; box-shadow: inset 0 1px 2px rgba(0,0,0,.2) !important; }
+    #xp-rank-label { color: #5a3a16 !important; text-shadow: none !important; }
+
+    /* ════════════════════════════════════════════════════════════
+       Phase B — 一頁式版面：英雄狀態條 + 三欄主區（目標：不需滾動）
+       ════════════════════════════════════════════════════════════ */
+    main { max-width: 1340px !important; padding-bottom: 18px !important; }
+
+    /* ❶ 英雄狀態條：左核心三卡 + 右 XP 進度條，一列 */
+    .stats-hero {
+        display: grid;
+        grid-template-columns: 1.7fr 1fr;
+        gap: 14px;
+        align-items: stretch;
+        margin-bottom: 14px;
+    }
+    .stats-hero .stat-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+        margin-bottom: 0 !important;
+    }
+    /* 段位(#4)、累計XP(#5) 已由 XP 進度條呈現 → 隱藏，消除重覆 */
+    .stats-hero .stat-grid .stat-card:nth-child(4),
+    .stats-hero .stat-grid .stat-card:nth-child(5) { display: none !important; }
+    .stats-hero .stat-card { padding: 10px 8px !important; min-height: 0 !important; }
+    .stats-hero .stat-card .stat-icon { margin-bottom: 2px !important; }
+    .stats-hero .stat-card .stat-icon img { width: 28px !important; height: 28px !important; }
+    .stats-hero .stat-card .stat-value { font-size: 22px !important; margin-top: 2px !important; }
+    .stats-hero .stat-card .stat-label { font-size: 10px !important; }
+    .stats-hero #xp-rank-bar-wrap { margin: 0 !important; height: 100%; }
+
+    /* ❷ 三欄主區 */
+    .stats-grid3 {
+        display: grid;
+        grid-template-columns: 1fr 1.15fr 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+    .stats-grid3 > .card { margin: 0 !important; }
+    .stats-col-c { display: grid; gap: 16px; }
+    .stats-grid3 .card { padding: 14px !important; }
+    .stats-grid3 .section-label { margin-bottom: 8px !important; }
+    .card.analysis-card { min-height: 0 !important; }
+    /* 空狀態壓成精簡內嵌（移除 250px 大插圖），避免低活動日撐爆一頁 */
+    .stats-grid3 .empty-state {
+        background: none !important;
+        padding: 16px 10px !important;
+        font-size: 12px; color: #7a5420; text-align: center;
+    }
+    .stats-grid3 .empty-state .empty-icon { font-size: 24px !important; margin-bottom: 6px !important; }
+
+    /* 今日戰況：三段間的小標題 */
+    .today-sub-label {
+        font-family: 'Noto Serif TC', serif; font-weight: 900;
+        font-size: 12px; color: #5a3a16; letter-spacing: 1px;
+        margin: 12px 0 8px; padding-top: 10px;
+        border-top: 1px solid rgba(173,120,9,.22);
+    }
+
+    /* 行動呼籲：實體感按鈕（強化 CTA）*/
+    .stats-cta {
+        display: flex; align-items: center; justify-content: center;
+        margin-top: 12px; padding: 11px 16px; border-radius: 12px;
+        background: linear-gradient(135deg, #8d5a1e, #c79237);
+        color: #fff7e6; font-weight: 800; font-size: 14px; letter-spacing: .04em;
+        text-decoration: none; border: 1px solid rgba(244,210,138,.6);
+        box-shadow: 0 8px 18px rgba(120,70,15,.3);
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    }
+    .stats-cta:hover { transform: translateY(-1px); filter: brightness(1.05); box-shadow: 0 12px 24px rgba(120,70,15,.36); }
+
+    /* Upsell teaser: RPG "unrevealed intel" panel, not a blocking modal.
+       Reuses .card's parchment look + .stats-cta's button style. */
+    .card.locked::after {
+        content: '';
+        position: absolute; inset: 0;
+        background:
+            radial-gradient(circle at 82% 8%, rgba(255,255,255,.4), transparent 52%),
+            repeating-linear-gradient(135deg, rgba(180,102,15,.05) 0 8px, transparent 8px 16px);
+        pointer-events: none;
+    }
+    .upsell-teaser-kicker {
+        position: relative; z-index: 1;
+        display: inline-flex; align-items: center; gap: 6px;
+        font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+        text-transform: uppercase; color: var(--amber);
+        margin-bottom: 8px;
+    }
+    .upsell-teaser-title {
+        position: relative; z-index: 1;
+        font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 6px;
+    }
+    .upsell-teaser-body {
+        position: relative; z-index: 1;
+        font-size: 13px; line-height: 1.6; color: var(--ink2); margin-bottom: 4px;
+    }
+
+    /* 收斂趨勢柱狀圖與熱力圖高度，確保整頁不滾動 */
+    .stats-col-c .bar-chart { height: 92px !important; }
+    .stats-col-c #heatmap-wrap .heatmap-grid { grid-auto-rows: 20px !important; }
+    .stats-col-c #heatmap-wrap .heatmap-cell { height: 20px !important; }
+
+    @media (max-width: 1100px) {
+        .stats-hero { grid-template-columns: 1fr; }
+        .stats-grid3 { grid-template-columns: 1fr; }
+    }
+</style>
+<script src="/i18n.js?v=20260710a"></script>
+<script src="/pwa.js"></script>
+</head>
+<body>
+
+<!-- Tooltip -->
+<div class="tt" id="tooltip"></div>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header>
+  <a href="/" class="logo">
+    <div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>
+    弈境奇兵 (Go Odyssey)
+  </a>
+  <div style="flex:1;"></div>
+  <div class="header-nav">
+    <a href="/" data-icon="📖" class="nav-link" data-i18n="nav.practice">📖 練習</a>
+    <a href="/curriculum" data-icon="🗺" class="nav-link" data-i18n="nav.curriculum">🗺 路線圖</a>
+    <a href="/daily-challenge" data-icon="🎯" class="nav-link" data-i18n="nav.daily">🎯 每日挑戰</a>
+    <a href="/mistakes" data-icon="📕" class="nav-link" data-i18n="nav.mistakes">📕 錯題本</a>
+    <a href="/badges" data-icon="🏅" class="nav-link" data-i18n="nav.badges">🏅 獎章</a>
+    <a href="/stats" data-icon="📊" class="nav-link active" data-i18n="nav.stats">📊 儀表板</a>
+    <a href="/community" data-icon="👥" class="nav-link" data-i18n="nav.community">👥 社群</a>
+    <a href="/hero" data-icon="🧙" class="nav-link" data-i18n="nav.skills">🧙 英雄</a>
+    <div class="nav-sep"></div>
+    <a href="/hero" class="nav-avatar-wrap" id="nav-avatar-link" title="外觀設定">
+      <div class="nav-avatar-fig">
+        <div class="nav-avatar-base" id="nav-avatar-base">🧑</div>
+        <div class="nav-avatar-hat"  id="nav-avatar-hat"></div>
+      </div>
+      <span class="nav-avatar-name" id="username-display"></span>
+    </a>
+    <div id="lang-switcher-stats" style="display:flex;align-items:center;"></div>
+    <button class="btn-logout" onclick="doLogout()" data-i18n="nav.logout">登出</button>
+  </div>
+</header>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════════ -->
+<main>
+
+    <!-- ❶ 英雄狀態條：核心數據（核心卡#4 段位、#5 XP 由下方進度條呈現，CSS 隱藏）+ 練習等級進度 -->
+    <div class="stats-hero fade-up d1">
+        <div class="stat-grid" id="stat-grid">
+            <div class="stat-card"><div class="skeleton" style="height:58px"></div></div>
+            <div class="stat-card"><div class="skeleton" style="height:58px"></div></div>
+            <div class="stat-card"><div class="skeleton" style="height:58px"></div></div>
+            <div class="stat-card"><div class="skeleton" style="height:58px"></div></div>
+            <div class="stat-card"><div class="skeleton" style="height:58px"></div></div>
+        </div>
+        <div id="xp-rank-bar-wrap" style="display:none;">
+            <div id="xp-lv-medallion"><span id="xp-rank-badge-stats"></span></div>
+            <div id="xp-bar-slot">
+                <span class="xp-bar-caption" data-i18n="stats.rank.progress">練習等級進度</span>
+                <div class="xp-track"><div id="xp-rank-fill"></div></div>
+                <span id="xp-rank-label"></span>
+            </div>
+            <div id="xp-dragon-medallion"></div>
+        </div>
+    </div>
+
+    <!-- ❷ 三欄主區 -->
+    <div class="stats-grid3 fade-up d2">
+
+        <!-- A：今日戰況（今日進度 + 今日任務 + 今日怪物三合一）-->
+        <div class="card coach-card stats-col-today">
+            <div class="section-label" data-i18n="stats.sec.today">今日進度</div>
+            <div id="today-content"><div class="skeleton" style="height:78px;border-radius:6px;"></div></div>
+            <div class="today-sub-label" data-i18n="stats.sec.dailyquest">今日任務</div>
+            <div id="quest-stats-list"><div class="skeleton" style="height:84px;border-radius:6px;"></div></div>
+            <div class="today-sub-label" data-i18n="stats.sec.monster">今日怪物戰績</div>
+            <div id="monster-stats-wrap"><div class="skeleton" style="height:72px;border-radius:6px;"></div></div>
+        </div>
+
+        <!-- B：題型弱點分析（主角）+ 行動呼籲 -->
+        <div class="card analysis-card stats-col-weak">
+            <div class="section-label" data-i18n="stats.sec.weakness">題型弱點分析（近 90 天）</div>
+            <div id="weakness-list"><div class="skeleton" style="height:240px;border-radius:6px;"></div></div>
+            <div id="weakness-empty" class="empty-state" style="display:none;"><div class="empty-icon">🎯</div><span data-i18n="stats.weakness.empty">答題累積後才會顯示分析</span></div>
+            <a class="stats-cta" href="/curriculum" data-i18n="stats.cta.train">前往推薦單元 →</a>
+        </div>
+
+        <!-- C：近 8 週趨勢 + 月熱力圖 -->
+        <div class="stats-col-c">
+            <div class="card">
+                <div class="section-label" data-i18n="stats.sec.trend">近 8 週答題趨勢</div>
+                <div class="bar-chart" id="bar-chart"><div class="skeleton" style="width:100%;height:92px;border-radius:6px;"></div></div>
+                <div class="bar-labels-row" id="bar-labels"></div>
+            </div>
+            <div class="card">
+                <div class="section-label" data-i18n="stats.sec.heatmap">過去一個月答題熱力圖</div>
+                <div id="heatmap-wrap"><div class="skeleton" style="height:92px;border-radius:6px;"></div></div>
+                <div class="heatmap-legend" id="heatmap-legend" style="display:none;">
+                    <span data-i18n="stats.legend.less">少</span>
+                    <div class="leg-cells">
+                        <div style="background:var(--cream3)"></div>
+                        <div class="h1"></div><div class="h2"></div>
+                        <div class="h3"></div><div class="h4"></div><div class="h5"></div>
+                    </div>
+                    <span data-i18n="stats.legend.more">多</span>
+                    <span style="margin-left:12px;" id="streak-label"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保留 buildWeekCompare 的容器（本週 vs 上週資訊已由「本週準確率」卡的 delta 呈現），父層隱藏不佔版面 -->
+    <div style="display:none;" aria-hidden="true">
+        <div id="week-compare"></div>
+        <div id="week-deltas"></div>
+    </div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// Tooltip
+// ══════════════════════════════════════════════════════════════
+const ttEl = document.getElementById('tooltip');
+function showTT(e, text) {
+    ttEl.textContent = text;
+    ttEl.style.opacity = '1';
+    ttEl.style.left = (e.clientX + 14) + 'px';
+    ttEl.style.top  = (e.clientY - 32) + 'px';
+}
+function hideTT() { ttEl.style.opacity = '0'; }
+
+// ══════════════════════════════════════════════════════════════
+// 工具函數
+// ══════════════════════════════════════════════════════════════
+function fmt(n) { return (n === null || n === undefined) ? '—' : n.toLocaleString(); }
+function fmtPct(n) { return (n === null || n === undefined) ? '—' : n.toFixed(1) + '%'; }
+function delta(a, b, suffix = '') {
+    if (a === null || b === null) return ['—', 'delta-same'];
+    const d = a - b;
+    if (d > 0) return [`+${d.toFixed(suffix === '%' ? 1 : 0)}${suffix}`, 'delta-up'];
+    if (d < 0) return [`${d.toFixed(suffix === '%' ? 1 : 0)}${suffix}`, 'delta-down'];
+    return [`0${suffix}`, 'delta-same'];
+}
+
+// ══════════════════════════════════════════════════════════════
+// 核心統計卡
+// ══════════════════════════════════════════════════════════════
+function buildStatCards(stats, thisW, lastW, streakDays) {
+    const rankLevel = stats.rank_level || '20k';
+    const isKyu = rankLevel.endsWith('k');
+    const cards = [
+        { type: 'c-teal',  frame: 'f-cream', icon: 'ic_book',   value: fmt(stats.total_correct),  label: _st('stats.card.total_correct2'), delta: null },
+        { type: 'c-red',   frame: 'f-tan',   icon: 'ic_flame',  value: streakDays,                label: _st('stats.card.streak_days2'), delta: null },
+        { type: 'c-green', frame: 'f-stone', icon: 'ic_shield', value: thisW.accuracy !== null ? thisW.accuracy.toFixed(1) + '%' : '—',
+          label: _st('stats.card.week_acc'), delta: delta(thisW.accuracy, lastW.accuracy, '%') },
+        { type: isKyu ? 'c-teal' : 'c-amber', frame: 'f-badge', icon: 'ic_rank',
+          value: rankLevel, label: _st('stats.card.rank'), delta: null },
+        { type: 'c-amber', frame: 'f-pouch', icon: 'ic_pouch',  value: fmt(stats.xp || 0), label: _st('stats.card.xp2'), delta: null },
+    ];
+    document.getElementById('stat-grid').innerHTML = cards.map((c, i) => `
+        <div class="stat-card ${c.type} ${c.frame} fade-up" style="animation-delay:${i * .05}s">
+            <div class="stat-icon"><img src="assets/stats/${c.icon}.png" alt="" loading="lazy"></div>
+            <div class="stat-value">${c.value}</div>
+            <div class="stat-label">${c.label}</div>
+            ${c.delta ? `<span class="stat-delta ${c.delta[1]}">${c.delta[0]}</span>` : ''}
+        </div>
+    `).join('');
+
+    // ── XP 練習等級進度條 ───────────────────────────────────
+    // 從 /api/xp/status 取得精確的 rank_xp / rank_xp_needed
+    fetch('/api/xp/status', { credentials: 'include' }).then(r => r.json()).then(d => {
+        const wrap  = document.getElementById('xp-rank-bar-wrap');
+        const badge = document.getElementById('xp-rank-badge-stats');
+        const fill  = document.getElementById('xp-rank-fill');
+        const label = document.getElementById('xp-rank-label');
+        if (!wrap) return;
+        badge.textContent = d.rank_level || '20k';
+        const pct = d.rank_pct || 0;
+        fill.style.width  = pct + '%';
+        label.textContent = `${(d.rank_xp||0).toLocaleString()} / ${(d.rank_xp_needed||'—').toLocaleString()} XP`;
+        wrap.style.display = 'flex';
+    }).catch(() => {});
+}
+
+// ══════════════════════════════════════════════════════════════
+// 熱力圖
+// ══════════════════════════════════════════════════════════════
+function buildHeatmap(heatmap, streakDays) {
+    const wrap = document.getElementById('heatmap-wrap');
+    wrap.innerHTML = '';
+    const today = new Date();
+    const days  = 29;                 // 過去一個月（含今天共 30 天）
+    const start = new Date(today);
+    start.setDate(start.getDate() - days);
+
+    // 星期標頭（日曆式：欄＝星期，列＝週）
+    const dowRow = document.createElement('div');
+    dowRow.className = 'heatmap-dow';
+    ['stats.dow.sun','stats.dow.mon','stats.dow.tue','stats.dow.wed','stats.dow.thu','stats.dow.fri','stats.dow.sat'].forEach(k => {
+        const c = document.createElement('div');
+        c.textContent = _st(k);
+        dowRow.appendChild(c);
+    });
+
+    const grid = document.createElement('div');
+    grid.className = 'heatmap-grid';
+
+    const allCounts = Object.values(heatmap).map(d => d.total);
+    const max = Math.max(...allCounts, 1);
+
+    for (let i = 0; i <= days; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const key  = d.toISOString().slice(0, 10);
+        const info = heatmap[key] || { total: 0, correct: 0 };
+        const count = info.total;
+        const dow   = d.getDay();
+
+        if (i === 0) {
+            for (let p = 0; p < dow; p++) {
+                const blank = document.createElement('div');
+                blank.style.visibility = 'hidden';
+                grid.appendChild(blank);
+            }
+        }
+
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        if (count > 0) {
+            if      (count <= max * .2) cell.classList.add('h1');
+            else if (count <= max * .4) cell.classList.add('h2');
+            else if (count <= max * .6) cell.classList.add('h3');
+            else if (count <= max * .8) cell.classList.add('h4');
+            else                         cell.classList.add('h5');
+        }
+        const acc = info.total > 0 ? Math.round(info.correct / info.total * 100) : 0;
+        cell.addEventListener('mousemove', e => showTT(e, count > 0
+            ? _st('stats.tip.answered', { d: key, n: count, c: info.correct, p: acc })
+            : _st('stats.tip.none', { d: key })));
+        cell.addEventListener('mouseleave', hideTT);
+        grid.appendChild(cell);
+    }
+
+    wrap.appendChild(dowRow);
+    wrap.appendChild(grid);
+
+    document.getElementById('heatmap-legend').style.display = 'flex';
+    document.getElementById('streak-label').innerHTML =
+        `<span class="streak-pill">${_st('stats.streak.pill', { n: streakDays })}</span>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 本週 vs 上週
+// ══════════════════════════════════════════════════════════════
+function buildWeekCompare(thisW, lastW) {
+    document.getElementById('week-compare').innerHTML = `
+        <div class="compare-col this-week">
+            <div class="c-title">${_st('stats.week.this')}</div>
+            <div class="c-num">${fmt(thisW.correct)}</div>
+            <div class="c-sub">${_st('stats.week.correct_of', { n: fmt(thisW.total) })}</div>
+        </div>
+        <div class="compare-col last-week">
+            <div class="c-title">${_st('stats.week.last')}</div>
+            <div class="c-num">${fmt(lastW.correct)}</div>
+            <div class="c-sub">${_st('stats.week.correct_of', { n: fmt(lastW.total) })}</div>
+        </div>
+    `;
+    const deltas = document.getElementById('week-deltas');
+    deltas.style.display = 'block';
+    const metrics = [
+        { label: _st('stats.metric.total'),    a: thisW.total,       b: lastW.total,       suffix: _st('stats.unit.q') },
+        { label: _st('stats.metric.correct'),  a: thisW.correct,     b: lastW.correct,     suffix: _st('stats.unit.q') },
+        { label: _st('stats.metric.accuracy'), a: thisW.accuracy,    b: lastW.accuracy,    suffix: '%' },
+        { label: _st('stats.metric.days'),     a: thisW.active_days, b: lastW.active_days, suffix: _st('stats.unit.days') },
+    ];
+    deltas.innerHTML = metrics.map(m => {
+        const [dStr, cls] = delta(m.a, m.b, m.suffix);
+        const aStr = m.suffix === '%' ? fmtPct(m.a) : fmt(m.a) + m.suffix;
+        return `<div class="delta-row">
+            <span style="color:var(--ink3);font-family:var(--mono);font-size:11px;">${m.label}</span>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+                <span style="color:var(--ink2);font-weight:500;">${aStr}</span>
+                <span class="stat-delta ${cls}" style="margin-top:0;">${dStr}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 週趨勢柱狀圖
+// ══════════════════════════════════════════════════════════════
+function buildBarChart(weekly) {
+    const chart = document.getElementById('bar-chart');
+    chart.innerHTML = '';
+    const labelsRow = document.getElementById('bar-labels');
+    labelsRow.innerHTML = '';
+    const maxTotal = Math.max(...weekly.map(w => w.total), 1);
+    const outerH = 116;
+
+    weekly.forEach((w, i) => {
+        const isLast = i === weekly.length - 1;
+        const col = document.createElement('div');
+        col.className = 'bar-col' + (w.total === 0 ? ' bar-empty' : '');
+
+        const totalH   = Math.max(w.total / maxTotal * outerH, w.total > 0 ? 4 : 0);
+        const correctH = w.total > 0 ? (w.correct / w.total) * totalH : 0;
+        const pctLabel = w.accuracy !== null ? w.accuracy.toFixed(0) + '%' : '—';
+
+        col.innerHTML = `
+            <div class="bar-pct" style="color:${isLast ? 'var(--teal)' : 'var(--ink3)'}">${pctLabel}</div>
+            <div class="bar-outer" style="height:${outerH}px;flex:1;display:flex;align-items:flex-end;width:100%;">
+                <div style="width:100%;height:${totalH}px;position:relative;border-radius:4px 4px 0 0;overflow:hidden;background:var(--cream2);">
+                    <div style="position:absolute;bottom:0;left:0;right:0;height:${correctH}px;background:linear-gradient(180deg,var(--teal) 0%,rgba(13,148,136,.35) 100%);border-radius:4px 4px 0 0;"></div>
+                </div>
+            </div>
+        `;
+        col.addEventListener('mousemove', e => showTT(e, w.total > 0
+            ? _st('stats.tip.weekAnswered', { l: w.label, n: w.total, c: w.correct, p: pctLabel })
+            : _st('stats.tip.weekNone', { l: w.label })));
+        col.addEventListener('mouseleave', hideTT);
+        chart.appendChild(col);
+
+        const lbl = document.createElement('div');
+        lbl.className = 'bar-lbl' + (isLast ? ' current' : '');
+        lbl.textContent = w.label;
+        labelsRow.appendChild(lbl);
+    });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 弱點分析
+// ══════════════════════════════════════════════════════════════
+function getWeaknessSkills() {
+    return {
+        tesuji:  { key:'tesuji',  discipline:'tesuji',            name: _st('stats.ws.tesuji.name'), icon:'icon_tesuji.webp',        advice: _st('stats.ws.tesuji.adv') },
+        life:    { key:'life',    discipline:'life_death',        name: _st('stats.ws.life.name'),   icon:'icon_life_and_death.webp', advice: _st('stats.ws.life.adv') },
+        yose:    { key:'yose',    discipline:'endgame_counting',  name: _st('stats.ws.yose.name'),   icon:'icon_yose.webp',           advice: _st('stats.ws.yose.adv') },
+        fuseki:  { key:'fuseki',  discipline:'opening_direction', name: _st('stats.ws.fuseki.name'), icon:'icon_fuseki.webp',         advice: _st('stats.ws.fuseki.adv') },
+        attack:  { key:'attack',  discipline:'shape_weakness',    name: _st('stats.ws.attack.name'), icon:'icon_attack_defense.webp', advice: _st('stats.ws.attack.adv') },
+        judge:   { key:'judge',   discipline:'whole_board',       name: _st('stats.ws.judge.name'),  icon:'icon_judgment.webp',       advice: _st('stats.ws.judge.adv') },
+    };
+}
+
+function classifyWeaknessSkill(label) {
+    const s = String(label || '').toLowerCase();
+    const ws = getWeaknessSkills();
+    if (/官子|收官|endgame|yose|邊角|目數/.test(s)) return ws.yose;
+    if (/佈局|布局|opening|fuseki|定石|joseki|序盤/.test(s)) return ws.fuseki;
+    if (/死活|life|death|眼|殺|活|詰碁|tsumego/.test(s)) return ws.life;
+    if (/形勢|判斷|judg|territory|目差|全局|大局/.test(s)) return ws.judge;
+    if (/攻|防|attack|defen|戰鬥|厚|薄|治孤|切斷|包圍/.test(s)) return ws.attack;
+    if (/手筋|tesuji|筋|連絡|斷點|征子|枷|夾/.test(s)) return ws.tesuji;
+    return ws.tesuji;
+}
+
+function weaknessBandFromLabel(label, fallback) {
+    const s = String(label || '');
+    const lv = s.match(/LV\s*(\d+)|(\d+)\s*級|(\d+)\s*k/i);
+    const n = lv ? Number(lv[1] || lv[2] || lv[3]) : NaN;
+    if (Number.isFinite(n)) {
+        if (n <= 5)  return _st('stats.wb.1_5');
+        if (n <= 10) return _st('stats.wb.6_10');
+        if (n <= 15) return _st('stats.wb.11_15');
+        if (n <= 20) return _st('stats.wb.16_20');
+        return _st('stats.wb.21_25');
+    }
+    return fallback || _st('stats.wb.current');
+}
+
+function rankToStage(rank) {
+    const s = String(rank || '').trim().toLowerCase();
+    const m = s.match(/^(\d{1,2})\s*([kd])$/);
+    if (!m) return '';
+    const n = Number(m[1]);
+    if (m[2] === 'd') {
+        if (n >= 7) return 'LV10';
+        if (n >= 5) return 'LV9';
+        if (n >= 3) return 'LV8';
+        return 'LV7';
+    }
+    if (n <= 5) return 'LV6';
+    if (n <= 10) return 'LV5';
+    if (n <= 15) return 'LV4';
+    if (n <= 20) return 'LV3';
+    if (n <= 25) return 'LV2';
+    return 'LV1';
+}
+
+function stageFromWeaknessBand(label, stats = {}) {
+    const s = String(label || '').trim().toLowerCase();
+    if (/7\s*(段|d)|8\s*(段|d)|9\s*(段|d)|7d|8d|9d/.test(s)) return 'LV10';
+    if (/5\s*(段|d)|6\s*(段|d)|5d|6d/.test(s)) return 'LV9';
+    if (/3\s*(段|d)|4\s*(段|d)|3d|4d/.test(s)) return 'LV8';
+    if (/1\s*(段|d)|2\s*(段|d)|1d|2d/.test(s)) return 'LV7';
+    if (/1\s*[–-]\s*5\s*(級|kyu|k)/.test(s)) return 'LV6';
+    if (/6\s*[–-]\s*10\s*(級|kyu|k)/.test(s)) return 'LV5';
+    if (/11\s*[–-]\s*15\s*(級|kyu|k)/.test(s)) return 'LV4';
+    if (/16\s*[–-]\s*20\s*(級|kyu|k)/.test(s)) return 'LV3';
+    if (/21\s*[–-]\s*25\s*(級|kyu|k)/.test(s)) return 'LV2';
+    if (/26\s*[–-]\s*30\s*(級|kyu|k)/.test(s)) return 'LV1';
+    const k = s.match(/(?:^|[^\d])(\d{1,2})\s*(級|kyu|k)(?:$|[^\d])/);
+    if (k) return rankToStage(`${Number(k[1])}k`);
+    return rankToStage(stats.go_rank || stats.rank || stats.rank_level) || '';
+}
+
+function weaknessPracticeUrl(skill, band, stats = {}) {
+    const url = new URL('/', location.origin);
+    url.searchParams.set('discipline', skill.discipline || 'tesuji');
+    const stage = stageFromWeaknessBand(band, stats);
+    if (stage) url.searchParams.set('stage', stage);
+    url.searchParams.set('resume', '1');
+    url.searchParams.set('from', 'stats');
+    return url.pathname + url.search;
+}
+
+function buildWeakness(topics, diffStats = [], stats = {}) {
+    const list  = document.getElementById('weakness-list');
+    const empty = document.getElementById('weakness-empty');
+    topics = topics || [];
+    diffStats = diffStats || [];
+    if (!topics.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    const bands = (diffStats || [])
+        .slice()
+        .sort((a, b) => (a.accuracy ?? 100) - (b.accuracy ?? 100))
+        .map(d => weaknessBandFromLabel(d.label, d.label));
+    const seen = new Set();
+    const cards = topics.map((t, i) => {
+        const skill = classifyWeaknessSkill(t.label);
+        const band = weaknessBandFromLabel(t.label, bands[i] || bands[0] || _st('stats.wb.current'));
+        const practiceUrl = weaknessPracticeUrl(skill, band, stats);
+        return { ...t, skill, band, practiceUrl };
+    }).filter(item => {
+        const key = item.band + '|' + item.skill.name;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).slice(0, 6);
+
+    list.className = 'weakness-grid';
+    list.innerHTML = cards.map(t => {
+        const cls = t.accuracy >= 70 ? 'acc-high' : t.accuracy >= 50 ? 'acc-mid' : 'acc-low';
+        const pct = Math.max(0, Math.min(100, t.accuracy));
+        return `<div class="weakness-card ${cls}">
+            <div class="weakness-icon"><img src="assets/stats/custom_opt/${t.skill.icon}" alt=""></div>
+            <div class="weakness-main">
+                <div class="weakness-band">${t.band}</div>
+                <div class="weakness-skill">${_st('stats.weakness.suggest')}${t.skill.name}</div>
+                <div class="weakness-advice">${t.skill.advice}</div>
+                <a class="weakness-action" href="${t.practiceUrl}">${_st('stats.weakness.practice')} →</a>
+            </div>
+            <div class="weakness-score">
+                <strong>${t.accuracy}%</strong>
+                <span>${t.total}${_st('stats.unit.q')}</span>
+            </div>
+            <div class="weakness-meter">
+                <div style="width:${pct}%"></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 今日進度
+// ══════════════════════════════════════════════════════════════
+function buildToday(today) {
+    const DAILY_GOAL = 20;
+    const pct = Math.min(100, Math.round(today.total / DAILY_GOAL * 100));
+    const acc = today.total > 0 ? Math.round(today.correct / today.total * 100) : 0;
+    document.getElementById('today-content').innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px;">
+            <div>
+                <span class="today-big">${today.total}</span>
+                <span style="font-size:13px;color:var(--ink3);margin-left:6px;">${_st('stats.today.goal', { n: DAILY_GOAL })}</span>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:#15803d;">${acc}%</div>
+                <div style="font-size:10px;color:var(--ink3);font-family:var(--mono);">${_st('stats.today.accuracy')}</div>
+            </div>
+        </div>
+        <div class="today-bar"><div class="today-bar-fill" style="width:${pct}%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-family:var(--mono);">
+            <span>${_st('stats.today.correct', { n: today.correct })}</span>
+            <span>${_st('stats.today.pct', { n: pct })}</span>
+        </div>
+        ${today.total === 0 ? `<p style="color:var(--ink3);font-size:12px;text-align:center;margin-top:16px;font-family:var(--mono);">${_st('stats.today.empty')}</p>` : ''}
+        ${today.total >= DAILY_GOAL ? `<p style="color:var(--teal);font-size:12px;text-align:center;margin-top:10px;font-weight:600;">${_st('stats.today.goal_done')}</p>` : ''}
+    `;
+}
+
+// ── Cached dashboard data for re-render on language change ──
+let _dashboardData = null;
+let _dashboardMe   = null;
+let _isPremiumStats = false;
+
+function _st(key, vars) {
+    let s = typeof I18n !== 'undefined' ? I18n.t(key) : key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+    return s;
+}
+
+// Non-premium: RPG-style locked teaser instead of the real section. Never
+// receives real weakness/heatmap values -- callers must not build them for
+// non-premium users, so there is nothing sensitive to render by mistake.
+function renderUpsellTeaser(mountId, titleKey, bodyKey) {
+    const mount = document.getElementById(mountId);
+    if (!mount) return;
+    const card = mount.closest('.card');
+    if (card) card.classList.add('locked');
+    mount.innerHTML = `
+        <div class="upsell-teaser-kicker">🔒 ${_st('common.upsell.kicker')}</div>
+        <div class="upsell-teaser-title">${_st(titleKey)}</div>
+        <div class="upsell-teaser-body">${_st(bodyKey)}</div>
+        <a class="stats-cta" href="/upgrade" data-analytics-premium-cta="1" data-analytics-surface="stats_${mountId}" data-analytics-variant="locked_teaser" data-analytics-destination="/upgrade">${_st('common.upsell.cta')}</a>
+    `;
+}
+
+function renderWeaknessSection(topics, diffStats, stats) {
+    const card = document.getElementById('weakness-list')?.closest('.card');
+    if (card) card.classList.remove('locked');
+    document.getElementById('weakness-empty').style.display = 'none';
+    if (!_isPremiumStats) {
+        renderUpsellTeaser('weakness-list', 'common.upsell.weakness_title', 'common.upsell.weakness_body');
+        return;
+    }
+    buildWeakness(topics, diffStats, stats);
+}
+
+function renderHeatmapSection(heatmap, streakDays) {
+    const card = document.getElementById('heatmap-wrap')?.closest('.card');
+    if (card) card.classList.remove('locked');
+    if (!_isPremiumStats) {
+        document.getElementById('heatmap-legend').style.display = 'none';
+        renderUpsellTeaser('heatmap-wrap', 'common.upsell.heatmap_title', 'common.upsell.heatmap_body');
+        return;
+    }
+    buildHeatmap(heatmap, streakDays);
+}
+
+function rebuildDynamic() {
+    if (!_dashboardData || !_dashboardMe) return;
+    const d = _dashboardData;
+    buildStatCards(d.stats, d.this_week, d.last_week, d.streak_days);
+    renderHeatmapSection(d.heatmap, d.streak_days);
+    buildWeekCompare(d.this_week, d.last_week);
+    buildBarChart(d.weekly);
+    renderWeaknessSection(d.topic_weakness, d.diff_stats, d.stats || {});
+    buildToday(d.today);
+    loadQuestStats();
+    loadMonsterStats();
+}
+
+// ══════════════════════════════════════════════════════════════
+// 主載入
+// ══════════════════════════════════════════════════════════════
+async function loadDashboard() {
+    I18n.renderSwitcher(document.getElementById('lang-switcher-stats'));
+    const me = await fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.json()).catch(() => ({ logged_in: false }));
+    if (!me.logged_in) { window.location.href = '/login'; return; }
+    document.getElementById('username-display').textContent = me.display_name || me.nickname || me.username || 'Player';
+    _isPremiumStats = !!(me.is_premium || me.is_admin);
+
+    let data;
+    try {
+        const res = await fetch('/api/stats/dashboard', { credentials: 'include' });
+        if (!res.ok) throw new Error('API error ' + res.status);
+        data = await res.json();
+    } catch (e) {
+        document.querySelector('main').insertAdjacentHTML('beforeend', `
+            <div style="text-align:center;padding:60px;color:var(--ink3);">
+                <div style="font-size:40px;margin-bottom:16px;">🔧</div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--ink);margin-bottom:8px;">${_st('stats.err.apiTitle')}</div>
+                <div style="font-size:13px;">${_st('stats.err.apiBody1')}<code style="background:var(--cream2);border:1px solid var(--border);padding:2px 7px;border-radius:5px;font-family:var(--mono);">app_stats_patch.py</code>${_st('stats.err.apiBody2')}</div>
+            </div>`);
+        return;
+    }
+
+    // Cache for language re-render
+    _dashboardData = data;
+    _dashboardMe   = me;
+
+    buildStatCards(data.stats, data.this_week, data.last_week, data.streak_days);
+    renderHeatmapSection(data.heatmap, data.streak_days);
+    buildWeekCompare(data.this_week, data.last_week);
+    buildBarChart(data.weekly);
+    renderWeaknessSection(data.topic_weakness, data.diff_stats, data.stats || {});
+    buildToday(data.today);
+    // ── 每日任務 + 怪物戰績 ────────────────────────────────────
+    loadQuestStats();
+    loadMonsterStats();
+}
+
+window.onLangChange = () => { I18n.apply(); rebuildDynamic(); };
+window.onload = loadDashboard;
+
+// ══════════════════════════════════════════════════════════════
+// 每日任務統計
+// ══════════════════════════════════════════════════════════════
+const QUEST_COLORS_STATS = {
+    amber:  { bg:'#fffbeb', fill:'#d97706', text:'#92400e' },
+    teal:   { bg:'#f0fdfa', fill:'#0d9488', text:'#134e4a' },
+    purple: { bg:'#f5f3ff', fill:'#7c3aed', text:'#4c1d95' },
+    red:    { bg:'#fff1f2', fill:'#dc2626', text:'#7f1d1d' },
+};
+
+async function loadQuestStats() {
+    try {
+        const d = await fetch('/api/quests/today', { credentials:'include' }).then(r => r.json());
+        buildQuestStats(d.quests || []);
+    } catch(e) {
+        document.getElementById('quest-stats-list').innerHTML =
+            `<div class="empty-state"><div class="empty-icon">📋</div>${_st('stats.quest.loadErr')}</div>`;
+    }
+}
+
+function buildQuestStats(quests) {
+    const wrap = document.getElementById('quest-stats-list');
+    if (!wrap) return;
+
+    const completedCount = quests.filter(q => q.completed).length;
+    const totalXp = quests.filter(q => q.completed).reduce((s, q) => s + (q.xp || 0), 0);
+
+    const header = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:var(--amber);">
+                ${completedCount}<span style="font-size:16px;color:var(--ink3);font-family:'DM Sans',sans-serif;font-weight:400;margin-left:4px;">/ ${quests.length}</span>
+            </div>
+            ${totalXp > 0 ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:4px 12px;font-size:12px;font-family:'DM Mono',monospace;color:#92400e;">${_st('stats.quest.xpToday', { n: totalXp })}</div>` : ''}
+        </div>
+    `;
+
+    const items = quests.map(q => {
+        const c   = QUEST_COLORS_STATS[q.color] || QUEST_COLORS_STATS.amber;
+        const pct = Math.min(100, q.target > 0 ? Math.round(q.progress / q.target * 100) : 0);
+        return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div style="width:28px;height:28px;border-radius:8px;background:${c.bg};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">
+                ${q.completed ? '✅' : q.icon}
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                    <span style="font-size:12px;font-weight:600;color:${q.completed ? 'var(--teal)' : 'var(--ink)'};">${I18n.localized(q,'name')}</span>
+                    <span style="font-size:10px;font-family:'DM Mono',monospace;color:${c.text};">${q.progress}/${q.target}</span>
+                </div>
+                <div style="height:4px;background:var(--cream2);border-radius:99px;overflow:hidden;">
+                    <div style="width:${pct}%;height:100%;background:${c.fill};border-radius:99px;"></div>
+                </div>
+            </div>
+            <div style="font-size:10px;font-family:'DM Mono',monospace;color:#16a34a;flex-shrink:0;">+${q.xp}</div>
+        </div>`;
+    }).join('');
+
+    wrap.innerHTML = header + items;
+    if (!quests.length) {
+        wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🎯</div>${_st('stats.quest.empty')}</div>`;
+    }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 怪物戰績（今日實際擊敗清單）
+// ══════════════════════════════════════════════════════════════
+async function loadMonsterStats() {
+    const wrap = document.getElementById('monster-stats-wrap');
+    if (!wrap) return;
+    try {
+        const monsters = await fetch('/api/stats/today-monsters', { credentials:'include' }).then(r => r.json());
+        const total = monsters.reduce((s, m) => s + m.kill_count, 0);
+        if (!total) {
+            wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">⚔️</div>${_st('stats.monster.noneToday')}</div>`;
+            return;
+        }
+        wrap.innerHTML = `
+            <div style="font-family:'Cormorant Garamond',serif;font-size:44px;font-weight:700;line-height:1;color:var(--red);margin-bottom:4px;">${total}</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:16px;">${_st('stats.monster.countLabel')}</div>
+            ${monsters.map(m => {
+              const monsterName = I18n.getLang() === 'en' ? (m.monster_name_en || m.monster_name) : m.monster_name;
+              return `
+            <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);">
+                <img src="${m.image}" alt="${monsterName}" loading="lazy"
+                     style="width:40px;height:40px;object-fit:contain;flex-shrink:0;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${monsterName}</div>
+                    <div style="font-size:10px;color:var(--ink3);font-family:'DM Mono',monospace;">${m.monster_type}</div>
+                </div>
+                <div style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--red);flex-shrink:0;">×${m.kill_count}</div>
+            </div>`;
+            }).join('')}
+        `;
+    } catch(e) {
+        wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">⚔️</div>${_st('stats.monster.loadFail')}</div>`;
+    }
+}
+
+// ── Nav 角色 mini 頭像 ──────────────────────────────────────
+async function loadNavAvatar() {
+  try {
+    const [meRes, appearRes] = await Promise.all([
+      fetch('/api/auth/me',           { credentials:'include' }).then(r=>r.json()),
+      fetch('/api/player/appearance', { credentials:'include' }).then(r=>r.json()),
+    ]);
+    const uname = meRes.display_name || meRes.nickname || meRes.username || 'Player';
+    const el = document.getElementById('username-display');
+    if (el) el.textContent = uname;
+
+    const eq  = appearRes.equipped || {};
+    const byId = Object.fromEntries((appearRes.wardrobe||[]).map(a=>[a.id,a]));
+
+    const base = document.getElementById('nav-avatar-base');
+    const outfitItem = eq.outfit_id ? byId[eq.outfit_id] : null;
+    if (base && outfitItem) { base.style.background = outfitItem.color + '33'; base.style.borderColor = outfitItem.color + '88'; }
+    const hatItem = eq.hat_id ? byId[eq.hat_id] : null;
+    const hatEl   = document.getElementById('nav-avatar-hat');
+    if (hatEl && hatItem) { hatEl.textContent = hatItem.emoji; hatEl.style.opacity = '1'; }
+  } catch(e) {}
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method:'POST', credentials:'include' });
+  location.href = '/login';
+}
+
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/mobile-nav.js?v=20260603mn"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>

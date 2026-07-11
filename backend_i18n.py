@@ -1,0 +1,145 @@
+# -*- coding: utf-8 -*-
+"""
+徽章 / 技能樹節點 / 副稱號 的 中→英 對照（後端 i18n）。
+API 回傳時附上對應 *_en / *En 欄位，前端用 I18n.localized 或 dispName 選語言。
+"""
+
+# ── 徽章（BADGE_DEFS），key = badge id；值 = (name_en, desc_en）─────────
+BADGE_EN = {
+    'newbie_first_bounty': ('First Recruit Bounty', 'Complete your first recruit training bounty'),
+    'streak_3':   ('First Spark',        'Answer 3 in a row'),
+    'streak_5':   ('Five Blaze',         'Answer 5 in a row'),
+    'streak_7':   ('Seven Streak',       'Answer 7 in a row'),
+    'streak_10':  ('Ten Reign',          'Answer 10 in a row'),
+    'streak_15':  ('Fifteen Ace',        'Answer 15 in a row'),
+    'streak_20':  ('Twenty Divine',      'Answer 20 in a row'),
+    'streak_30':  ('Thirty Storm',       'Answer 30 in a row'),
+    'streak_50':  ('Fifty War-God',      'Answer 50 in a row'),
+    'streak_75':  ('Seventy-five Edge',  'Answer 75 in a row'),
+    'streak_100': ('Hundred Grandmaster','Answer 100 in a row'),
+    'best_5':   ('Break Five',       'Reach a max streak of 5'),
+    'best_10':  ('Ten Legend',       'Reach a max streak of 10'),
+    'best_20':  ('Twenty Epic',      'Reach a max streak of 20'),
+    'best_30':  ('Thirty Monument',  'Reach a max streak of 30'),
+    'best_50':  ('Fifty Strongest',  'Reach a max streak of 50'),
+    'best_100': ('Hundred Legend',   'Reach a max streak of 100'),
+    'total_10':   ('Novice',                'Answer 10 total'),
+    'total_25':   ('Budding',               'Answer 25 total'),
+    'total_50':   ('Promising',             'Answer 50 total'),
+    'total_100':  ('Century Adept',         'Answer 100 total'),
+    'total_200':  ('Two-Hundred Veteran',   'Answer 200 total'),
+    'total_300':  ('Three-Hundred Tempered','Answer 300 total'),
+    'total_500':  ('Sea Wanderer',          'Answer 500 total'),
+    'total_750':  ('Valor of 750',          'Answer 750 total'),
+    'total_1000': ('Millennium Master',     'Answer 1000 total'),
+    'total_1500': ('Realm of 1500',         'Answer 1500 total'),
+    'total_2000': ('Two-Thousand Honed',    'Answer 2000 total'),
+    'total_3000': ('Three-Thousand Merit',  'Answer 3000 total'),
+    'total_5000': ('Myriad Grandmaster',    'Answer 5000 total'),
+    'combo_3':  ('First Combo',  'Reach a 3-combo'),
+    'combo_5':  ('Five Combo',   'Reach a 5-combo'),
+    'combo_10': ('Ten Burst',    'Reach a 10-combo'),
+    'combo_15': ('Fifteen Burst','Reach a 15-combo'),
+    'combo_20': ('Twenty Divine','Reach a 20-combo'),
+    'combo_30': ('Combo Master', 'Reach a 30-combo'),
+    'combo_50': ('Fifty Reign',  'Reach a 50-combo'),
+    'mistake_1':      ('First Fix',           'Master 1 mistake'),
+    'mistake_5':      ('Hard Lesson',         'Master 5 mistakes'),
+    'mistake_master': ('Self-correction',     'Master 10 mistakes'),
+    'mistake_20':     ('Unbroken',            'Master 20 mistakes'),
+    'mistake_30':     ('Correction Veteran',  'Master 30 mistakes'),
+    'mistake_50':     ('Gold from Errors',    'Master 50 mistakes'),
+    'mistake_100':    ('Hundred Corrected',   'Master 100 mistakes'),
+    'daily_first': ('First Check-in',       'Join the daily challenge for the first time'),
+    'daily_ace':   ('One-shot',             'Submit a correct daily challenge'),
+    'daily_3':     ('Three-day Streak',     'Complete the daily challenge 3 days in a row'),
+    'daily_7':     ('Seven-day Diligence',  'Complete the daily challenge 7 days in a row'),
+    'daily_14':    ('Two-week Growth',      'Complete the daily challenge 14 days in a row'),
+    'daily_30':    ('Month Unbroken',       'Complete the daily challenge 30 days in a row'),
+    'daily_60':    ('Sixty-day Resolve',    'Complete the daily challenge 60 days in a row'),
+    'daily_100':   ('Hundred-day Forge',    'Complete the daily challenge 100 days in a row'),
+    'daily_200':   ('Two-Hundred Persistence','Complete the daily challenge 200 days in a row'),
+    'daily_365':   ('Year of Practice',     'Complete the daily challenge 365 days in a row'),
+    'rank_19k': ('Journey Begins',   'Reach rank 19k'),
+    'rank_18k': ('First Steps',      'Reach rank 18k'),
+    'rank_17k': ('Early Progress',   'Reach rank 17k'),
+    'rank_15k': ('Foundation',       'Reach rank 15k'),
+    'rank_13k': ('Hitting Stride',   'Reach rank 13k'),
+    'rank_10k': ('Intermediate Gate','Reach rank 10k'),
+    'rank_8k':  ('Solid Strength',   'Reach rank 8k'),
+    'rank_5k':  ('Expert Emerges',   'Reach rank 5k'),
+    'rank_3k':  ('Refined Skill',    'Reach rank 3k'),
+    'rank_1k':  ('Eve of Peak',      'Reach rank 1k'),
+    'rank_1d':  ('First Dan Debut',  'Reach rank 1d'),
+    'rank_2d':  ('Second Dan Glory', 'Reach rank 2d'),
+    'rank_3d':  ('Third Dan Realm',  'Reach rank 3d'),
+    'xp_100':   ('First Taste',     'Earn 100 XP total'),
+    'xp_250':   ('Energy Infusion', 'Earn 250 XP total'),
+    'xp_500':   ('Energy Buildup',  'Earn 500 XP total'),
+    'xp_1000':  ('Rich Experience', 'Earn 1000 XP total'),
+    'xp_2500':  ('Veteran Aura',    'Earn 2500 XP total'),
+    'xp_5000':  ('Veteran Halo',    'Earn 5000 XP total'),
+    'xp_10000': ('Legendary Glow',  'Earn 10000 XP total'),
+    'xp_25000': ('Transcendent',    'Earn 25000 XP total'),
+    'challenge_win_1':    ('First Win',              'Win your first friend challenge'),
+    'challenge_win_3':    ('Three-Win Player',       'Win 3 friend challenges'),
+    'challenge_win_10':   ('Ever-Victorious General','Win 10 friend challenges'),
+    'challenge_win_30':   ('Hundred-Battle Victor',  'Win 30 friend challenges'),
+    'challenge_streak_3': ('Three-Win Streak',       'Win 3 friend challenges in a row'),
+    'challenge_streak_5': ('Five-Win Reign',         'Win 5 friend challenges in a row'),
+    'premium_member':  ('Noble Player',       'Become a Premium member and unlock noble status'),
+    'premium_founder': ('Founding Supporter', 'Join Premium early for a permanent Founder mark'),
+}
+
+# ── 技能樹節點（SKILL_NODES），key = 中文 name；值 = (name_en, bonus_en）──
+SKILL_NODE_EN = {
+    '數氣入門': ('Liberty Counting',        'No timer reset on a wrong answer'),
+    '眼位識別': ('Eye Recognition',         'Daily quota +2'),
+    '石佛禪定': ('Stone Buddha Meditation', 'No HP loss on a wrong answer'),
+    '棄石為劍': ('Sacrifice as Sword',      'XP +5%'),
+    '閃電連擊': ('Lightning Combo',         'Combo multiplier ×1.2'),
+    '破空天斬': ('Sky-cleaving Slash',      'XP +15%'),
+    '疾風刺客': ('Gale Assassin',           'Timer +3s'),
+    '征子煉法': ('Ladder Mastery',          'Liberty markers'),
+    '天羅地網': ('Inescapable Net',         'A correct answer triggers a combo'),
+    '棋形初識': ('Shape Basics',            'XP +5%'),
+    '切斷嗅覺': ('Cut Instinct',            'Weakness hints'),
+    '鋼鐵連環': ('Iron Chain',              'Bonus for 5 correct in a row'),
+    '星象感知': ('Star Sense',              'Timer +5s'),
+    '疆域偵查': ('Territory Scout',         'Direction hints'),
+    '天地神諭': ('Heaven-Earth Oracle',     'XP +15%'),
+    '全局初覽': ('Whole-board Overview',    'Timer +5s'),
+    '大局掌握': ('Big-picture Mastery',     'Strategy scan FX'),
+    '星域領航': ('Star Navigation',         'XP +15%'),
+    '先手感知': ('Sente Sense',             'Coins +10%'),
+    '次序判斷': ('Order Judgment',          'A streak triggers a bonus'),
+    '終局主宰': ('Endgame Dominator',       'Coins +20%'),
+}
+
+# ── 副稱號（APPEARANCE title），key = id；值 = (name_en, flavor_en, hint_en）─
+TITLE_EN = {
+    'title_beginner':    ('Go Learner',        'A tower of ten thousand feet rises from a mound of earth.', 'Obtained by defeating any monster'),
+    'title_scholar':     ('Go Scholar',        "With the classics in hand, Go's principles reveal themselves.", 'Unlock by reviewing 50 mistakes'),
+    'title_wanderer':    ('Sea Wanderer',      'The sea of Go is boundless; wander within it.', 'Unlock with a 7-day check-in streak'),
+    'title_streak':      ('Undefeated Legend', "The victor's name: undefeated in every battle.", 'Unlock with a 15-win streak'),
+    'title_foxwit':      ("Fox's Wit",         'Cunning as a fox, wise as the board.', 'Drops from foxes (rare)'),
+    'title_master':      ('Millennium Master', 'A thousand problems honed make a grandmaster.', 'Unlock by answering 1000 problems'),
+    'title_dragonslayer':('Dragon Slayer',     'A hundred dragons slain; your name echoes far.', 'Unlock by defeating 100 dragons'),
+    'title_godshand':    ('Hand of God',       'The game like poetry; every move divine.', '90% accuracy over 300 problems'),
+    'title_celestial':   ('Heaven-fated Player','Heaven-fated, your Go reaches the divine.', 'Unlock by reaching 5d'),
+    'title_eternity':    ('Eternal Game',      'The paths of Go are endless, without limit.', 'Unlock by answering 5000 problems'),
+    'title_newbie_voyage':('First Voyage',     'Set sail upon the vast sea of Go.', 'Unlock by completing Newcomer Quest Stage 3'),
+    'title_claire_recruit':("Claire's Recruit", 'Claire says you are ready to cross the sea of Go.', 'Unlock by completing all 7 Newcomer Quest stages'),
+    'title_premium':     ('✨ Noble Player',   'Noble player — the singular symbol of status in the Go world.', '💎 Premium-exclusive; unlocked on subscription'),
+}
+
+
+def badge_en(badge_id):
+    return BADGE_EN.get(badge_id)
+
+def skill_node_en(name_zh):
+    return SKILL_NODE_EN.get((name_zh or '').strip())
+
+def title_en(title_id):
+    return TITLE_EN.get(title_id)
+

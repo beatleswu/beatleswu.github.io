@@ -1,0 +1,1666 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="shop.page.title">商城 | Go Odyssey</title>
+<style>header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+:root {
+  --bg: #0b0d10;
+  --panel: rgba(23, 19, 16, .78);
+  --panel-strong: rgba(31, 24, 18, .92);
+  --parchment: #f3dec0;
+  --parchment-2: #d7b77d;
+  --ink: #251708;
+  --text: #fff3d1;
+  --muted: rgba(255, 243, 209, .72);
+  --faint: rgba(255, 243, 209, .48);
+  --gold: #f0bf57;
+  --gold-2: #9f6727;
+  --teal: #56d6c2;
+  --red: #d65b4b;
+  --green: #7bd37a;
+  --border: rgba(240, 191, 87, .28);
+  --shadow: 0 22px 70px rgba(0, 0, 0, .46);
+  --radius: 8px;
+}
+html { min-height: 100%; background: var(--bg); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    linear-gradient(180deg, rgba(4, 6, 8, .5), #090907 72%),
+    url("/assets/shop/shop_bg.webp") center top / cover fixed no-repeat;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .54), rgba(0, 0, 0, .08) 44%, rgba(0, 0, 0, .62));
+  pointer-events: none;
+}
+button, input { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 10px 18px;
+  background: rgba(6, 7, 8, .92);
+  border-bottom: 1px solid var(--border);
+}
+header .logo { color: var(--text); text-decoration: none; font-weight: 900; }
+.page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 22px 0 58px;
+}
+.hero {
+  min-height: calc(100vh - 88px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(330px, .98fr);
+  gap: 24px;
+  align-items: end;
+  padding: 18px 0 22px;
+}
+.hero-copy {
+  align-self: center;
+  max-width: 620px;
+  padding: 24px 0;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(15, 11, 8, .62);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+h1 {
+  margin: 16px 0 10px;
+  font-family: "Cormorant Garamond", "Noto Sans TC", serif;
+  font-size: clamp(45px, 7vw, 88px);
+  line-height: .92;
+  letter-spacing: 0;
+  text-shadow: 0 8px 26px rgba(0, 0, 0, .58);
+}
+.lead {
+  max-width: 560px;
+  margin: 0;
+  color: rgba(255, 243, 209, .82);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.wallet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+.wallet-tile, .status-tile {
+  min-height: 72px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(33, 24, 16, .86), rgba(12, 10, 8, .78));
+  box-shadow: var(--shadow);
+}
+.wallet-tile {
+  min-width: 178px;
+}
+.status-tile {
+  min-width: 152px;
+}
+.tile-label {
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 800;
+}
+.tile-value {
+  margin-top: 4px;
+  color: var(--gold);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+.tile-sub {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.merchant-stage {
+  position: relative;
+  min-height: 620px;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+}
+.shop-sign {
+  position: absolute;
+  top: 0;
+  right: 4%;
+  width: min(280px, 38vw);
+  filter: drop-shadow(0 20px 36px rgba(0, 0, 0, .52));
+  transform: rotate(3deg);
+}
+.merchant {
+  position: relative;
+  width: min(480px, 92%);
+  z-index: 1;
+  filter: drop-shadow(0 30px 36px rgba(0, 0, 0, .62));
+}
+.speech {
+  position: absolute;
+  left: 0;
+  bottom: 28%;
+  width: min(300px, 58%);
+  padding: 14px 16px;
+  border: 1px solid rgba(246, 211, 137, .62);
+  border-radius: var(--radius);
+  background: rgba(21, 14, 9, .84);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  z-index: 2;
+}
+.speech strong { color: var(--gold); display: block; margin-bottom: 5px; }
+.speech span { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.quick-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+  gap: 16px;
+  margin: 8px 0 24px;
+}
+.section {
+  margin-top: 22px;
+}
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.section-kicker {
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 900;
+}
+.section-title {
+  margin-top: 3px;
+  color: #fff7dd;
+  font-size: 20px;
+  font-weight: 900;
+}
+.section-sub {
+  max-width: 580px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.panel-pad { padding: 16px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(226px, 1fr));
+  gap: 12px;
+}
+.item-card {
+  position: relative;
+  min-height: 238px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(243, 222, 192, .16);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 244, 216, .09), rgba(7, 8, 9, .18)),
+    rgba(18, 14, 11, .72);
+  overflow: hidden;
+}
+.item-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(130deg, rgba(240, 191, 87, .12), transparent 38%);
+  pointer-events: none;
+}
+.item-top {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+.item-art {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(240, 191, 87, .25);
+  border-radius: var(--radius);
+  background: radial-gradient(circle, rgba(240, 191, 87, .18), rgba(0, 0, 0, .18));
+  overflow: hidden;
+}
+.item-art img {
+  width: 112%;
+  height: 112%;
+  object-fit: contain;
+}
+.emoji-fallback {
+  font-size: 35px;
+  line-height: 1;
+}
+.item-name {
+  color: #fff7dd;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.32;
+}
+.item-meta {
+  margin-top: 5px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 800;
+}
+.item-desc {
+  position: relative;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.62;
+}
+.card-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.price {
+  color: var(--gold);
+  font-weight: 900;
+  white-space: nowrap;
+}
+.price small {
+  margin-right: 4px;
+  color: var(--faint);
+  text-decoration: line-through;
+  font-size: 11px;
+}
+.tag {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 2;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  background: rgba(214, 91, 75, .92);
+  color: #fff9ed;
+  font-size: 10px;
+  font-weight: 900;
+}
+.tag.common { background: rgba(86, 214, 194, .24); color: #a8fff0; border-color: rgba(86, 214, 194, .32); }
+.tag.uncommon { background: rgba(240, 191, 87, .24); color: #ffe29a; border-color: rgba(240, 191, 87, .42); }
+.btn {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: var(--radius);
+  padding: 8px 13px;
+  background: linear-gradient(180deg, #f1c15f, #a96926);
+  color: #211103;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .28);
+}
+.btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn.secondary {
+  background: rgba(86, 214, 194, .12);
+  color: #bafff3;
+  border-color: rgba(86, 214, 194, .36);
+}
+.btn.ghost {
+  background: rgba(255, 255, 255, .06);
+  color: var(--text);
+}
+.gacha-panel {
+  position: relative;
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 8px;
+  align-items: center;
+  padding: 18px;
+}
+.chest-wrap {
+  position: relative;
+  min-height: 178px;
+  display: grid;
+  place-items: center;
+}
+.chest {
+  width: min(178px, 100%);
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, .48));
+  transition: transform .25s ease;
+}
+.chest.opening { transform: scale(1.06) rotate(-2deg); }
+.gacha-title {
+  color: #fff7dd;
+  font-size: 20px;
+  font-weight: 900;
+}
+.rates {
+  margin: 10px 0 12px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.rate-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 243, 209, .08);
+}
+.collection-meta {
+  display: grid;
+  gap: 7px;
+  margin: 2px 0 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(240, 191, 87, .12);
+}
+.collection-headline,
+.collection-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.collection-headline strong {
+  color: #fff2cc;
+  font-weight: 900;
+}
+.collection-bar {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+.collection-bar span {
+  display: block;
+  width: var(--collect, 0%);
+  height: 100%;
+  background: linear-gradient(90deg, #7eead8, #f0bf57);
+}
+.pity-bar {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+.pity-bar span {
+  display: block;
+  height: 100%;
+  width: var(--pity, 0%);
+  background: linear-gradient(90deg, var(--teal), var(--gold));
+}
+.result {
+  display: none;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(240, 191, 87, .5);
+  border-radius: var(--radius);
+  background: rgba(10, 8, 6, .72);
+}
+.result.show {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  animation: pop .28s ease;
+}
+@keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+.result-art {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius);
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,.08);
+  overflow: hidden;
+}
+.result-art img { width: 118%; height: 118%; object-fit: contain; }
+.result-name { color: #fff7dd; font-weight: 900; }
+.result-type { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.empty {
+  grid-column: 1 / -1;
+  padding: 22px;
+  border: 1px dashed rgba(240, 191, 87, .26);
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-align: center;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 1200;
+  max-width: min(520px, calc(100% - 28px));
+  padding: 12px 16px;
+  border: 1px solid rgba(240, 191, 87, .42);
+  border-radius: var(--radius);
+  background: rgba(15, 10, 7, .94);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  transform: translate(-50%, 18px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.skeleton {
+  min-height: 210px;
+  border-radius: var(--radius);
+  background: linear-gradient(100deg, rgba(255,255,255,.06), rgba(255,255,255,.14), rgba(255,255,255,.06));
+  background-size: 220% 100%;
+  animation: shimmer 1.3s infinite;
+}
+@keyframes shimmer { to { background-position: -220% 0; } }
+@media (max-width: 920px) {
+  .hero, .quick-board { grid-template-columns: 1fr; }
+  .hero { min-height: auto; padding-top: 12px; }
+  .merchant-stage { min-height: 520px; }
+}
+@media (max-width: 640px) {
+  .page { width: min(100% - 22px, 1180px); padding-top: 12px; }
+  h1 { font-size: 44px; }
+  .lead { font-size: 14px; }
+  .merchant-stage { min-height: 430px; }
+  .speech { left: 4px; bottom: 22%; width: 68%; padding: 11px; }
+  .speech span { font-size: 12px; }
+  .shop-sign { width: 160px; }
+  .gacha-panel { grid-template-columns: 1fr; }
+  .chest-wrap { min-height: 148px; }
+  .grid { grid-template-columns: 1fr; }
+  .section-head { display: block; }
+  .section-sub { margin-top: 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">Go Odyssey</a>
+</header>
+
+<main class="page">
+  <section class="hero" aria-labelledby="shop-title">
+    <div class="hero-copy">
+      <div class="eyebrow" data-i18n="shop.eyebrow">棋魂廣場</div>
+      <h1 id="shop-title" data-i18n="shop.h1">商城</h1>
+      <p class="lead" data-i18n="shop.lead">用每天做題掙來的金幣，換取強化修煉的道具與外觀。Premium 會員享折扣優惠，每日輪替不容錯過。</p>
+      <div class="wallet-row">
+        <div class="wallet-tile">
+          <div class="tile-label" data-i18n="shop.coin.label">持有金幣</div>
+          <div class="tile-value" id="coin-bal">...</div>
+          <div class="tile-sub" data-i18n="shop.coin.sub">做題、任務每日賺幣</div>
+        </div>
+        <div class="status-tile">
+          <div class="tile-label" data-i18n="shop.today.label">今日收入</div>
+          <div class="tile-value"><span id="earned-today">0</span>/<span id="daily-cap">500</span></div>
+          <div class="tile-sub" data-i18n="shop.today.sub">每日上限金幣</div>
+        </div>
+        <div class="status-tile">
+          <div class="tile-label" data-i18n="shop.collect.label">收藏圖鑑</div>
+          <div class="tile-value"><span id="collection-now">0</span>/<span id="collection-max">0</span></div>
+          <div class="tile-sub" id="collection-sub" data-i18n="shop.collect.sub">扭蛋外觀收集進度</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="merchant-stage" aria-hidden="true">
+      <img class="shop-sign" src="/assets/shop/shop_sign.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
+      <div class="speech">
+        <strong data-i18n="shop.merchant.name">阿狸老闆</strong>
+        <span id="merchant-line">先看每日折扣，再決定要不要出手。</span>
+      </div>
+      <img class="merchant" id="merchant-img" src="/assets/shop/npc_merchant_idle.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
+    </div>
+  </section>
+
+  <div class="quick-board">
+    <section class="panel" aria-labelledby="daily-title">
+      <div class="panel-pad">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">DAILY ROTATION</div>
+            <div class="section-title" id="daily-title" data-i18n="shop.daily.title">每日輪替</div>
+          </div>
+          <div class="section-sub" data-i18n="shop.daily.sub">每日輪替商品，今天不買明天就換。Premium 會員享有折扣優惠。</div>
+        </div>
+        <div class="grid" id="daily-grid">
+          <div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="gacha-title">
+      <div class="gacha-panel">
+        <div>
+          <div class="section-kicker">GACHA CHEST</div>
+          <div class="gacha-title" id="gacha-title" data-i18n="shop.gachaTitle">星淵扭蛋</div>
+          <div class="rates" id="gacha-rates">
+            <div class="rate-line"><span data-i18n="shop.rate.item">道具</span><strong>60%</strong></div>
+            <div class="rate-line"><span data-i18n="shop.rate.pet_food">寵物食物</span><strong>25%</strong></div>
+            <div class="rate-line"><span data-i18n="shop.rate.common">Common 外觀</span><strong>12%</strong></div>
+            <div class="rate-line"><span data-i18n="shop.rate.uncommon">Uncommon 外觀</span><strong>3%</strong></div>
+          </div>
+          <div class="collection-meta">
+            <div class="collection-headline">
+              <span data-i18n="shop.gacha.collection.title">收藏圖鑑進度</span>
+              <strong id="gacha-collection-percent">0%</strong>
+            </div>
+            <div class="collection-bar" aria-hidden="true"><span id="gacha-collection-bar"></span></div>
+            <div class="collection-note" id="gacha-collection-note" data-i18n="shop.gacha.collection.sub">Common / Uncommon 外觀收集進度</div>
+          </div>
+          <div class="pity-bar" aria-hidden="true"><span id="pity-bar"></span></div>
+          <div class="tile-sub" id="pity-note">距保底還有 30 抽</div>
+          <div style="margin-top:12px">
+            <button class="btn" id="btn-gacha" type="button" data-sfx="purchase" data-i18n="shop.gacha.btn">開箱（150 金幣）</button>
+          </div>
+          <div class="result" id="gacha-result">
+            <div class="result-art" id="gr-art"></div>
+            <div>
+              <div class="result-name" id="gr-name" data-i18n="shop.gacha.result.name">獎勵名稱</div>
+              <div class="result-type" id="gr-type" data-i18n="shop.gacha.result.got">已獲得</div>
+            </div>
+          </div>
+        </div>
+        <div class="chest-wrap">
+          <img class="chest" id="chest-img" src="/assets/shop/gacha_chest_closed.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="section panel" aria-labelledby="weekly-title">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">WEEKLY SHOP</div>
+          <div class="section-title" id="weekly-title" data-i18n="shop.weekly.title">週商店</div>
+        </div>
+        <div class="section-sub" data-i18n="shop.weekly.sub">每週刷新高價值補給，適合中階以上玩家安排花費。</div>
+      </div>
+      <div class="grid" id="weekly-grid">
+        <div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section panel" aria-labelledby="monthly-title">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">MONTHLY COLLECTION</div>
+          <div class="section-title" id="monthly-title" data-i18n="shop.monthly.title">月度收藏</div>
+        </div>
+        <div class="section-sub" data-i18n="shop.monthly.sub">高價收藏包提供長線囤幣目標，讓老玩家有明確消費終點。</div>
+      </div>
+      <div class="grid" id="monthly-grid">
+        <div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section panel" aria-labelledby="items-title">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">TOOLS</div>
+          <div class="section-title" id="items-title" data-i18n="shop.items.title">常規道具</div>
+        </div>
+          <div class="section-sub" data-i18n="shop.items.sub">護盾、XP 藥水、AI 解題券等道具，強化每日修煉效率。</div>
+      </div>
+      <div class="grid" id="items-grid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section panel" aria-labelledby="mine-title">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">BAG</div>
+          <div class="section-title" id="mine-title" data-i18n="shop.mine.title">我的背包</div>
+        </div>
+          <div class="section-sub" data-i18n="shop.mine.sub">已購入的道具在這裡使用，可隨時啟動效果。</div>
+      </div>
+      <div class="grid" id="mine-grid">
+        <div class="empty" data-i18n="shop.mine.empty">背包裡還沒有可用的商店道具。</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+let catalog = null;
+let toastTimer = null;
+
+const ASSET = {
+  hint_ticket: "/assets/shop/small_hint_scroll.webp",
+  premium_hint_bundle: "/assets/shop/premium_hint_bundle.webp",
+  ai_explain_ticket: "/assets/shop/icon_ai_ticket.webp",
+  ai_explain_ticket_bundle: "/assets/shop/ai_explain_ticket_bundle.webp",
+  pet_snack: "/assets/shop/pet_candy_pouch.webp",
+  starfruit_basket: "/assets/shop/star_fruit_basket.webp",
+  moon_dew_vial: "/assets/shop/moon_dew_vial.webp",
+  pet_feast_box: "/assets/shop/pet_feast_box.webp",
+  streak_shield: "/assets/shop/icon_shield.webp",
+  double_streak_shield: "/assets/shop/double_streak_shield.webp",
+  extra_questions_small: "/assets/shop/small_training_pass.webp",
+  extra_questions: "/assets/shop/small_training_pass.webp",
+  grand_training_pass: "/assets/shop/grand_training_pass.webp",
+  small_xp_potion: "/assets/shop/small_xp_potion.webp",
+  xp_potion: "/assets/shop/icon_xp_potion.webp",
+  grand_xp_potion: "/assets/shop/grand_xp_potion.webp",
+  chestClosed: "/assets/shop/gacha_chest_closed.webp",
+  chestOpen: "/assets/shop/gacha_chest_open.webp",
+  merchantIdle: "/assets/shop/npc_merchant_idle.webp",
+  merchantTalk: "/assets/shop/npc_merchant_talk.webp",
+  merchantHappy: "/assets/shop/npc_merchant_happy.webp"
+};
+const MERCHANT_LINES = {
+  zh: {
+    idle: [
+      "先看每日折扣，再決定要不要出手。",
+      "今天的貨很新，錢包也要跟著精打細算。",
+      "如果要省資源，就先從每日特價開始看。",
+      "不用急，貨我幫你留著，先看看再說。",
+      "每天都有新輪替，今天來對了。",
+      "眼神告訴我你已經看中什麼了。",
+      "好的道具不便宜，但買對了划算。",
+      "保底快到了，今天考慮開一箱嗎？",
+      "學習路上需要補給，這裡都有。",
+      "今日特賣不等人，看好就手快。",
+      "沒有急著買也沒關係，先了解一下價格。",
+      "道具要用在刀口上，不要亂花金幣。",
+      "我的店每天都開，但輪替商品只到今天。",
+      "有什麼想找的嗎？告訴我，我幫你看。",
+      "常客都知道，每日商品才是最划算的。",
+      "今天手頭緊就先逛逛，不買也歡迎。",
+      "積累金幣要有耐心，花金幣要謹慎。",
+      "這道具我自己也用過，效果不錯。",
+      "要搭配著用才有效，別單打獨鬥。",
+      "店裡的每樣東西都是我親自挑的。"
+    ],
+    talk: [
+      "這一件很適合現在的你，考慮一下？",
+      "我幫你算過了，今天買這個不虧。",
+      "要買要快，庫存不等人。",
+      "這個性價比很高，很多人都在問。",
+      "你問的這個，今天有折扣，難得。",
+      "這件道具我推薦，效果立竿見影。",
+      "你現在的段位，買這個很合適。",
+      "考慮一下，買錯我會幫你換。",
+      "這個跟你平常的習慣搭配起來很順。",
+      "這個組合最近很受歡迎，你試試。",
+      "這個價格不高，但效果很實際。",
+      "我也不是要你全買，看需要再說。",
+      "你問的這個賣得很快，建議先拿。",
+      "新進的貨，品質我掛保證。",
+      "這個買了你不會後悔。",
+      "我給你算個帳，今天買划算。",
+      "這件放著遲早會用到。",
+      "想多了就會買，不想就不買，我不催。",
+      "剛進的貨，你是頭一個問的。",
+      "這個搭配護盾一起用效果最好。"
+    ],
+    happy: [
+      "成交，這筆生意漂亮。",
+      "眼光不錯，這單我喜歡。",
+      "謝謝惠顧，下一步也會越來越順。",
+      "這件道具買對了，好好用。",
+      "你做了個好決定。",
+      "拿去用吧，效果不會讓你失望。",
+      "聰明的選擇，這個值。",
+      "好的開始，繼續這樣。",
+      "收好，這可是你用汗水換來的。",
+      "我就知道你眼光好。",
+      "這趟沒虧，下次再來。",
+      "金幣用得漂亮，我欣賞。",
+      "買對了東西才叫消費，你買對了。",
+      "這個配上你的實力，穩了。",
+      "很好，這件你絕對用得上。",
+      "交易完成，歡迎下次再來。",
+      "我喜歡和懂貨的客人做生意。",
+      "放心，這個值這個價。",
+      "走了要好好用喔，別浪費。",
+      "謝謝你的信任，今後有需要再來。"
+    ],
+    gacha: [
+      "要開箱了，記得深呼吸。",
+      "祝你好手氣，今天別把保底浪費掉。",
+      "開之前先想清楚，別讓箱子看笑話。",
+      "保底快到了，這次開很值。",
+      "星淵的箱子很公道，相信我。",
+      "每一次開箱都是緣分。",
+      "手氣這東西，誰也說不準。",
+      "深吸一口氣，準備好了嗎？",
+      "今天手氣感覺不錯，開吧。",
+      "這箱子從不說謊，開了再說。",
+      "手氣好壞都有價值，繼續積累保底。",
+      "150 金幣的期待，開箱！",
+      "我見過大風大浪，這次看你的了。",
+      "箱子裡有驚喜，但我不能說。",
+      "你的保底還剩幾抽，算一算。",
+      "這批貨我幫你把關了，放心開。",
+      "開箱是一種心情，享受這個過程。",
+      "好運氣要配合好時機，現在就是。",
+      "別想太多，開了再後悔也不遲。",
+      "每一箱都有機會，就看今天了。"
+    ],
+    use: [
+      "這件道具現在用剛剛好。",
+      "好的，幫你把道具安排上。",
+      "道具上場，效果會比較立刻。",
+      "時機很重要，你選的這個時間點不錯。",
+      "用吧，這個就是為了現在準備的。",
+      "道具最怕放著不用，拿出來吧。",
+      "這個用在現在這個階段最有效率。",
+      "用得好，效果加倍。",
+      "好的，幫你啟動了。",
+      "道具就是要在需要的時候用。",
+      "眼光準，這個現在用很對。",
+      "啟動中，稍等一下。",
+      "這個用了會有感覺的，放心。",
+      "決定了就用，別猶豫。",
+      "我幫你把這個排上去了。",
+      "資源用在刀口上，這次用對了。",
+      "這件就等你用，現在來了。",
+      "很好，道具最怕閒置。",
+      "這個搭配你現在的狀態很適合。",
+      "好，幫你處理好了。"
+    ],
+    use_done: [
+      "效果發動，接下來看你的操作了。",
+      "已經幫你處理好了，繼續往前吧。",
+      "很好，這次補得很到位。",
+      "道具生效，接下來靠你了。",
+      "效果開始了，好好利用這個機會。",
+      "用完了，感受一下效果。",
+      "這個效果會持續一段時間，放心用。",
+      "我的部分結束了，剩下的靠你。",
+      "補給完成，繼續前進吧。",
+      "道具已入帳，效果即時生效。",
+      "搞定了，接下來是你的主場。",
+      "啟動成功，發揮吧。",
+      "這個效果你會喜歡的。",
+      "好的補給讓你走得更遠。",
+      "完成，下次需要再來找我。",
+      "效果已到位，接下來衝吧。",
+      "我的工作完成了，輪到你表現了。",
+      "補好了，上戰場去吧。",
+      "這次的補給很及時。",
+      "道具已上場，好好把握。"
+    ]
+  },
+  en: {
+    idle: [
+      "Check today's discounts before you spend.",
+      "The shop is fresh today, so keep an eye on your wallet.",
+      "If you want to save resources, start with the daily deals.",
+      "No rush, take your time and look around.",
+      "New rotation every day — you came at the right time.",
+      "Your eyes are telling me you've already spotted something.",
+      "Good items don't come cheap, but the right ones are worth it.",
+      "The pity counter is climbing — maybe consider opening a chest.",
+      "This shop has everything you need for the road ahead.",
+      "Today's deals won't last. If you see something, act on it.",
+      "No pressure to buy, just get familiar with the prices.",
+      "Spend your coins wisely — don't burn them on impulse.",
+      "My shop opens every day, but the rotation only lasts until midnight.",
+      "Looking for something specific? I might have it.",
+      "My regulars know the daily deals are the best value here.",
+      "Tight on coins today? Just browse — you're always welcome.",
+      "Building your stash takes patience. Spending it takes judgment.",
+      "I've tried most of these myself. The quality is solid.",
+      "Use items together for the best effect — don't go it alone.",
+      "I hand-pick every item in this shop."
+    ],
+    talk: [
+      "This one fits your current progress. Interested?",
+      "I ran the numbers. This purchase makes sense today.",
+      "If you want it, better grab it before stock runs out.",
+      "Great value here — plenty of people have been asking.",
+      "You're asking about this one? It's on discount today. Lucky.",
+      "I'd recommend this. The effect is immediate.",
+      "At your current level, this is the right pick.",
+      "Think it over. I'll help you out if you pick the wrong one.",
+      "This fits well with how you usually play.",
+      "This combo's been popular lately. Give it a try.",
+      "The price is modest, but the value is real.",
+      "I'm not saying buy everything — just what you need.",
+      "This one moves fast. I'd grab it while you can.",
+      "Just came in. I'll vouch for the quality myself.",
+      "You won't regret this one.",
+      "Let me work out the math — buying today makes sense.",
+      "Sooner or later you'll need this. Might as well get it now.",
+      "Take your time. I'm not rushing you.",
+      "You're the first one to ask about this. Fresh batch.",
+      "Pair it with a shield and you'll really feel the difference."
+    ],
+    happy: [
+      "Deal done. Nice trade.",
+      "Good choice. I like this one.",
+      "Thanks for your purchase. Keep the momentum going.",
+      "That item was the right call. Use it well.",
+      "You made a good decision.",
+      "Go put it to use. It won't disappoint.",
+      "Smart buy. Solid value.",
+      "Good start. Keep it going.",
+      "Take care of it — you earned that with real effort.",
+      "I knew you had good taste.",
+      "No losses here. Come back anytime.",
+      "Coins well spent. I respect that.",
+      "A purchase worth making — and you made the right one.",
+      "With your skill level, this will go far.",
+      "Great. You'll definitely put that to use.",
+      "Transaction complete. See you next time.",
+      "I like doing business with someone who knows what they want.",
+      "Trust me — it's worth what you paid.",
+      "Use it well. Don't let it sit.",
+      "Thank you for trusting me. Come back whenever you need something."
+    ],
+    gacha: [
+      "Chest time. Take a breath first.",
+      "Good luck. Don't waste the pity today.",
+      "Think twice before you open it.",
+      "Pity's almost there. This pull is worth it.",
+      "The Star Abyss chest plays fair. Trust me.",
+      "Every opening is its own kind of fate.",
+      "Luck is unpredictable. That's what makes it interesting.",
+      "Ready? Let's see what's inside.",
+      "Feeling lucky today? Go for it.",
+      "The chest doesn't lie. Open it and find out.",
+      "Good or bad — every pull builds your pity count.",
+      "150 coins of anticipation. Open the chest!",
+      "I've seen it all. This one's on you.",
+      "There's a surprise in there. I can't say what.",
+      "Check your pity count first. Worth knowing.",
+      "I've checked the stock myself. You're in good hands.",
+      "Opening a chest is a feeling in itself. Enjoy the moment.",
+      "Good luck meets good timing. Now's your chance.",
+      "Don't overthink it. Open first, reflect later.",
+      "Every chest is a chance. Let's see if today's your day."
+    ],
+    use: [
+      "This item is best used right now.",
+      "Got it. I'm activating the item for you.",
+      "Item in play. The effect should kick in soon.",
+      "Timing matters. You picked the right moment.",
+      "Go ahead. This one was built for moments like this.",
+      "Items are meant to be used, not hoarded. Let's go.",
+      "This one does the most good at your current stage.",
+      "Used right, the effect is twice as strong.",
+      "Done. I've set it up for you.",
+      "Items exist to be used when you need them. This is that moment.",
+      "Sharp timing. Using this now is the right move.",
+      "Activating now. One moment.",
+      "You'll feel this one. Don't worry.",
+      "You decided. Now follow through.",
+      "I've queued it up for you.",
+      "Resources should go where they count. You got it right.",
+      "This was waiting for you. Now it's time.",
+      "Good call. Items left sitting are wasted.",
+      "This fits your current state well.",
+      "Done. All set."
+    ],
+    use_done: [
+      "Effect applied. Your move now.",
+      "Done. Keep pushing forward.",
+      "Nice. That should help a lot.",
+      "Item active. What happens next is up to you.",
+      "Effect is running. Make the most of it.",
+      "Used up. Now feel the difference.",
+      "The effect lasts a while. Use the time well.",
+      "My part's done. The rest is yours.",
+      "Supply delivered. Move forward.",
+      "Item logged. Effect active immediately.",
+      "Sorted. The stage is yours now.",
+      "Activated. Show me what you can do.",
+      "You're going to like this effect.",
+      "Good supply helps you go further.",
+      "Done. Come back when you need more.",
+      "Effect confirmed. Now charge ahead.",
+      "My work here is done. Time to show what you've got.",
+      "Stocked up. Get out there.",
+      "That supply came at the right time.",
+      "Item in effect. Make it count."
+    ]
+  }
+};
+const ZH_ITEM = {
+  hint_ticket: { name: "小提示卷", desc: "作答時顯示下一手正解位置。", category: "修行補給" },
+  premium_hint_bundle: { name: "高級提示包", desc: "購買即獲得小提示卷 x5。", category: "修行補給" },
+  ai_explain_ticket: { name: "AI 解說券", desc: "答題後查看 AI 解析時自動使用。", category: "修行補給" },
+  ai_explain_ticket_bundle: { name: "AI 解說券包", desc: "購買即獲得 AI 解說券 x3。", category: "修行補給" },
+  extra_questions_small: { name: "小型修行令", desc: "今日免費題數上限 +5。", category: "修行補給" },
+  extra_questions: { name: "加題券", desc: "今日免費題數上限 +10。", category: "修行補給" },
+  grand_training_pass: { name: "大型修行令", desc: "今日免費題數上限 +20。", category: "修行補給" },
+  small_xp_potion: { name: "小 XP 藥水", desc: "20 分鐘內答題 XP x1.25。", category: "成長藥劑" },
+  xp_potion: { name: "XP 藥水", desc: "30 分鐘內答題 XP x1.5。", category: "成長藥劑" },
+  grand_xp_potion: { name: "大型 XP 藥水", desc: "60 分鐘內答題 XP x1.5。", category: "成長藥劑" },
+  streak_shield: { name: "連勝護盾", desc: "下一次答錯不中斷連擊。", category: "守護道具" },
+  double_streak_shield: { name: "雙層護盾", desc: "可保護 2 次答錯不中斷連擊。", category: "守護道具" },
+  pet_snack: { name: "寵物糖果包", desc: "購買即獲得棋魂糖 x3。", category: "寵物食堂" },
+  starfruit_basket: { name: "星果籃", desc: "購買即獲得星果 x3。", category: "寵物食堂" },
+  moon_dew_vial: { name: "月露瓶", desc: "購買即獲得月露 x3。", category: "寵物食堂" },
+  pet_feast_box: { name: "寵物豪華餐盒", desc: "購買即獲得棋魂糖 x3、星果 x2、月露 x1。", category: "寵物食堂" },
+  rare_appearance_fragment: { name: "稀有外觀碎片", desc: "使用後解鎖一件尚未擁有的 Common / Uncommon 外觀。", category: "收藏補給" },
+  pet_evolution_core: { name: "寵物進化素材", desc: "使用後提供寵物成長經驗，推進寵物升級。", category: "寵物食堂" },
+  ai_analysis_pack: { name: "AI 解析包", desc: "購買即獲得 AI 解說券 x5。", category: "修行補給" },
+  collector_archive_crate: { name: "收藏典藏箱", desc: "購買即獲得稀有外觀碎片 x4、AI 解說券 x8。", category: "收藏補給" },
+  growth_vault: { name: "成長寶庫", desc: "購買即獲得寵物進化素材 x6、稀有外觀碎片 x2。", category: "收藏補給" }
+};
+const EN_ITEM = {
+  hint_ticket: { name: "Hint Scroll", desc: "Shows the correct next move while solving.", category: "Training Supply" },
+  premium_hint_bundle: { name: "Premium Hint Bundle", desc: "Grants 5 Hint Scrolls.", category: "Training Supply" },
+  ai_explain_ticket: { name: "AI Explanation Ticket", desc: "Used automatically when viewing AI analysis after a problem.", category: "Training Supply" },
+  ai_explain_ticket_bundle: { name: "AI Explanation Bundle", desc: "Grants 3 AI Explanation Tickets.", category: "Training Supply" },
+  extra_questions_small: { name: "Small Training Pass", desc: "Adds 5 to today's free problem limit.", category: "Training Supply" },
+  extra_questions: { name: "Extra Problem Pass", desc: "Adds 10 to today's free problem limit.", category: "Training Supply" },
+  grand_training_pass: { name: "Grand Training Pass", desc: "Adds 20 to today's free problem limit.", category: "Training Supply" },
+  small_xp_potion: { name: "Small XP Potion", desc: "Earn ×1.25 problem XP for 20 minutes.", category: "Growth Potion" },
+  xp_potion: { name: "XP Potion", desc: "Earn ×1.5 problem XP for 30 minutes.", category: "Growth Potion" },
+  grand_xp_potion: { name: "Grand XP Potion", desc: "Earn ×1.5 problem XP for 60 minutes.", category: "Growth Potion" },
+  streak_shield: { name: "Streak Shield", desc: "Protects your combo from the next wrong answer.", category: "Guardian Tool" },
+  double_streak_shield: { name: "Double Shield", desc: "Protects your combo from two wrong answers.", category: "Guardian Tool" },
+  pet_snack: { name: "Companion Candy Pouch", desc: "Grants 3 Go Spirit Candies.", category: "Companion Pantry" },
+  starfruit_basket: { name: "Starfruit Basket", desc: "Grants 3 Starfruits.", category: "Companion Pantry" },
+  moon_dew_vial: { name: "Moon Dew Vial", desc: "Grants 3 Moon Dews.", category: "Companion Pantry" },
+  pet_feast_box: { name: "Companion Feast Box", desc: "Grants 3 Go Spirit Candies, 2 Starfruits and 1 Moon Dew.", category: "Companion Pantry" },
+  rare_appearance_fragment: { name: "Rare Appearance Fragment", desc: "Unlocks one missing Common / Uncommon appearance.", category: "Collection Supply" },
+  pet_evolution_core: { name: "Pet Evolution Core", desc: "Grants companion growth XP and advances evolution.", category: "Companion Pantry" },
+  ai_analysis_pack: { name: "AI Analysis Pack", desc: "Grants 5 AI Explanation Tickets.", category: "Training Supply" },
+  collector_archive_crate: { name: "Collector Archive Crate", desc: "Grants 4 Rare Appearance Fragments and 8 AI Explanation Tickets.", category: "Collection Supply" },
+  growth_vault: { name: "Growth Vault", desc: "Grants 6 Pet Evolution Cores and 2 Rare Appearance Fragments.", category: "Collection Supply" }
+};
+const EN_SPECIAL_NAMES = {
+  aura_green: "Jade Aura",
+  back_flag: "Battle Standard",
+  go_spirit_candy: "Go Spirit Candy",
+  star_fruit: "Starfruit",
+  moon_dew: "Moon Dew"
+};
+function englishKeyName(key) {
+  if (!key) return "Shop Item";
+  return EN_SPECIAL_NAMES[key] || String(key).split("_").filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+}
+function isEn() {
+  try { return window.I18n && I18n.getLang && I18n.getLang() === "en"; } catch (_) { return false; }
+}
+function money(n) {
+  return Number(n || 0).toLocaleString();
+}
+function nameOf(o) {
+  if (!o) return "";
+  const key = o.key || o.item_key || o.id;
+  if (!isEn() && ZH_ITEM[key]) return ZH_ITEM[key].name;
+  const apiEnglish = /[\u3400-\u9fff]/.test(String(o.name_en || "")) ? "" : o.name_en;
+  return isEn() ? (apiEnglish || EN_ITEM[key]?.name || EN_SPECIAL_NAMES[key] || englishKeyName(key)) : (o.name || ZH_ITEM[key]?.name || key);
+}
+function descOf(o) {
+  if (!o) return "";
+  const key = o.key || o.item_key || o.id;
+  if (!isEn() && ZH_ITEM[key]) return ZH_ITEM[key].desc;
+  return isEn() ? (o.desc_en || EN_ITEM[key]?.desc || "") : (o.desc || ZH_ITEM[key]?.desc || "");
+}
+function categoryOf(o) {
+  const key = o?.key || o?.item_key || o?.id;
+  const fallback = isEn()
+    ? { training: "Training Supply", growth: "Growth Potion", guard: "Guardian Tool", pet: "Pet Pantry", collection: "Collection Supply" }
+    : { training: "修行補給", growth: "成長藥劑", guard: "守護道具", pet: "寵物食堂", collection: "收藏補給" };
+  if (isEn() && EN_ITEM[key]?.category) return EN_ITEM[key].category;
+  if (!isEn() && ZH_ITEM[key]?.category) return ZH_ITEM[key].category;
+  return fallback[o?.category] || o?.category || (isEn() ? "Shop Item" : "商店道具");
+}
+function showToast(message) {
+  const el = document.getElementById("toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
+}
+function merchantLine(group) {
+  const locale = isEn() ? MERCHANT_LINES.en : MERCHANT_LINES.zh;
+  const lines = locale[group] || locale.idle;
+  return lines[Math.floor(Math.random() * lines.length)] || "";
+}
+function setMerchantLine(group) {
+  const el = document.getElementById("merchant-line");
+  if (!el) return;
+  el.textContent = merchantLine(group);
+}
+function setMerchant(mood, lineGroup = mood) {
+  const img = document.getElementById("merchant-img");
+  if (!img) return;
+  img.src = mood === "happy" ? ASSET.merchantHappy : mood === "talk" ? ASSET.merchantTalk : ASSET.merchantIdle;
+  setMerchantLine(lineGroup);
+}
+function itemImage(key) {
+  return ASSET[key] || "";
+}
+function artHtml(key, icon) {
+  const src = itemImage(key);
+  if (src) return `<img src="${src}" alt="">`;
+  return `<span class="emoji-fallback">${icon || "?"}</span>`;
+}
+function resultArt(key, icon) {
+  const src = itemImage(key);
+  const box = document.getElementById("gr-art");
+  box.innerHTML = src ? `<img src="${src}" alt="">` : `<span class="emoji-fallback">${icon || "?"}</span>`;
+}
+function errorMessage(code, fallback) {
+  const map = isEn() ? {
+    insufficient_coins: `Not enough coins — earn more and come back.`,
+    already_owned: "You already own this item.",
+    not_in_rotation: `This item isn't in today's rotation.`,
+    not_owned: "You don't have this item yet.",
+    effect_active: "This effect is already active.",
+    auto_use_only: "This tool can only be used automatically while solving."
+  } : {
+    insufficient_coins: "金幣不足，請先賺一些再回來。",
+    already_owned: "你已經擁有這個項目了。",
+    not_in_rotation: "這個商品今天不在輪替清單中。",
+    not_owned: "你還沒有這個物品。",
+    effect_active: "這個效果已經在生效中。",
+    auto_use_only: "這個道具只能在題目中自動使用。"
+  };
+  return map[code] || fallback || code || (isEn() ? "An unknown error occurred." : "發生未知錯誤。");
+}
+async function api(path, options) {
+  const res = await fetch(path, { credentials: "include", ...options });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
+  return data;
+}
+
+async function loadCatalog() {
+  const res = await api("/api/shop/catalog");
+  catalog = res;
+  if (res.error) {
+    showToast(errorMessage(res.error));
+    return;
+  }
+  document.getElementById("coin-bal").textContent = money(res.coins);
+  document.getElementById("earned-today").textContent = money(res.earned_today);
+  document.getElementById("daily-cap").textContent = money(res.daily_cap || 500);
+  const pity = Number(res.gacha?.pity_count || 0);
+  const pityMax = Number(res.gacha?.pity || 30);
+  document.getElementById("pity-bar").style.setProperty("--pity", `${Math.min(100, pity / pityMax * 100)}%`);
+  document.getElementById("pity-note").textContent = pityMax > pity
+    ? (isEn() ? `${pityMax - pity} pulls to pity` : `距離保底還有 ${pityMax - pity} 抽`)
+    : (isEn() ? "Next pull guaranteed Uncommon" : "下一抽保底 Uncommon");
+  const collection = res.gacha_collection || {};
+  const collectionTotal = Number(collection.total || 0);
+  const collectionOwned = Number(collection.owned || 0);
+  const collectionPercent = Number(collection.percent || 0);
+  document.getElementById("collection-now").textContent = collectionOwned;
+  document.getElementById("collection-max").textContent = collectionTotal;
+  document.getElementById("collection-sub").textContent = collectionTotal
+    ? (isEn()
+        ? `${collectionOwned}/${collectionTotal} appearance album`
+        : `外觀圖鑑 ${collectionOwned}/${collectionTotal}`)
+    : (isEn() ? "No collection data yet." : "目前沒有收藏資料。");
+  document.getElementById("gacha-collection-percent").textContent = `${collectionPercent}%`;
+  document.getElementById("gacha-collection-bar").style.setProperty("--collect", `${Math.max(0, Math.min(100, collectionPercent))}%`);
+  const commonOwned = Number(collection?.rarity_owned?.common || 0);
+  const commonTotal = Number(collection?.rarity_totals?.common || 0);
+  const uncommonOwned = Number(collection?.rarity_owned?.uncommon || 0);
+  const uncommonTotal = Number(collection?.rarity_totals?.uncommon || 0);
+  document.getElementById("gacha-collection-note").textContent = collectionTotal
+    ? (isEn()
+        ? `Common ${commonOwned}/${commonTotal} · Uncommon ${uncommonOwned}/${uncommonTotal}`
+        : `Common ${commonOwned}/${commonTotal} · Uncommon ${uncommonOwned}/${uncommonTotal}`)
+    : (isEn() ? "Collect common and uncommon appearances to fill the album." : "收集 Common / Uncommon 外觀以填滿圖鑑。");
+  setMerchant("idle", "idle");
+  renderDaily(res);
+  renderWeekly(res);
+  renderMonthly(res);
+  renderItems(res);
+  renderMine(res);
+}
+function renderDaily(res) {
+  const grid = document.getElementById("daily-grid");
+  grid.innerHTML = "";
+  const visible = Number(res.daily_slots_visible || 3);
+  const slots = (res.daily_slots || []).slice(0, visible);
+  if (!slots.length) {
+    grid.innerHTML = `<div class="empty">${isEn() ? "No daily deals available today." : "今日沒有可顯示的每日商品。"}</div>`;
+    return;
+  }
+  slots.forEach(slot => grid.appendChild(slot.type === "appearance" ? appearanceCard(slot) : itemCard({
+    ...slot,
+    key: slot.item_key,
+    desc: isEn() ? "Limited daily deal — gone tomorrow if you miss it." : "每日限定商品，錯過就要等下次輪替。"
+  }, { sale: true, badge: isEn() ? "Daily Deal" : "每日特價" })));
+}
+function renderItems(res) {
+  renderCatalogSection("items-grid", res.daily_items || [], isEn()
+    ? "No regular tools available right now."
+    : "目前沒有常規道具可顯示。", isEn() ? "" : "");
+}
+function renderWeekly(res) {
+  renderCatalogSection("weekly-grid", res.weekly_items || [], isEn()
+    ? "No weekly stock this week."
+    : "本週沒有週商店商品。", isEn() ? "Weekly Shop" : "週商店");
+}
+function renderMonthly(res) {
+  renderCatalogSection("monthly-grid", res.monthly_items || [], isEn()
+    ? "No monthly collection items yet."
+    : "本月尚未上架收藏商品。", isEn() ? "Monthly Collection" : "月度收藏");
+}
+function renderCatalogSection(gridId, items, emptyMessage, badgeText) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = "";
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty">${emptyMessage}</div>`;
+    return;
+  }
+  items.forEach(item => {
+    grid.appendChild(itemCard(item, { badge: badgeText }));
+  });
+}
+
+function renderMine(res) {
+  const grid = document.getElementById("mine-grid");
+  const inv = res.inventory || {};
+  const owned = (res.items || []).filter(item => Number(inv[item.key] || 0) > 0);
+  grid.innerHTML = "";
+  if (!owned.length) {
+    grid.innerHTML = `<div class="empty">${isEn() ? "Your bag has no shop tools yet." : "背包裡還沒有可用的商店道具。"}</div>`;
+    return;
+  }
+  owned.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "item-card";
+    const qty = Number(inv[item.key] || 0);
+    const canUse = item.usable === "activate";
+    const usableLabel = canUse
+      ? (isEn() ? "Activatable" : "可使用")
+      : item.usable === "in_question"
+        ? (isEn() ? "Use while solving" : "題目中使用")
+        : (isEn() ? "Collectible" : "收藏品");
+    const ownedLabel = isEn() ? `Owned: ${qty}` : `已擁有 ${qty}`;
+    card.innerHTML = `
+      <div class="item-top">
+      <div class="item-art">${artHtml(item.key, item.icon)}</div>
+      <div>
+        <div class="item-name">${nameOf(item)}</div>
+        <div class="item-meta">${categoryOf(item)} · ${ownedLabel}</div>
+      </div>
+      </div>
+      <div class="item-desc">${descOf(item)}</div>
+      <div class="card-foot">
+        <span class="item-meta">${usableLabel}</span>
+        ${canUse ? `<button class="btn secondary" type="button">${isEn() ? "Activate" : "使用"}</button>` : `<button class="btn ghost" type="button" disabled>${isEn() ? "Waiting" : "待使用"}</button>`}
+      </div>`;
+    if (canUse) card.querySelector("button").addEventListener("click", () => useItem(item.key));
+    grid.appendChild(card);
+  });
+}
+function itemCard(item, saleOrOptions = false) {
+  const card = document.createElement("article");
+  card.className = "item-card";
+  const key = item.key || item.item_key;
+  const owned = Number(catalog?.inventory?.[key] || 0);
+  const opts = typeof saleOrOptions === "object" ? saleOrOptions : { sale: !!saleOrOptions };
+  const sale = !!opts.sale;
+  const badge = opts.badge ?? (sale ? (isEn() ? "Daily Deal" : "每日特價") : "");
+  card.innerHTML = `
+    ${badge ? `<span class="tag">${badge}</span>` : ""}
+    <div class="item-top">
+      <div class="item-art">${artHtml(key, item.icon)}</div>
+      <div>
+        <div class="item-name">${nameOf({ ...item, key })}</div>
+        <div class="item-meta">${categoryOf({ ...item, key })} · ${owned ? (isEn() ? `Owned: ${owned}` : `已擁有 ${owned}`) : (isEn() ? "Not owned" : "未擁有")}</div>
+      </div>
+    </div>
+    <div class="item-desc">${descOf({ ...item, key }) || (isEn() ? "A purchasable tool from the shop." : "這是一個可在商店購買的道具。")}</div>
+    <div class="card-foot">
+      <div class="price">${sale && item.orig_price ? `<small>${money(item.orig_price)}</small>` : ""}${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
+      <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
+    </div>`;
+  card.querySelector("button").addEventListener("click", () => buyItem(key));
+  return card;
+}
+
+function appearanceCard(slot) {
+  const card = document.createElement("article");
+  card.className = "item-card";
+  const rarity = slot.rarity === "uncommon" ? "uncommon" : "common";
+  card.innerHTML = `
+    <span class="tag ${rarity}">${rarity === "uncommon" ? "Uncommon" : "Common"}</span>
+    <div class="item-top">
+      <div class="item-art">${artHtml("", slot.icon)}</div>
+      <div>
+        <div class="item-name">${nameOf(slot)}</div>
+        <div class="item-meta">${isEn() ? "Appearance" : "外觀"}</div>
+      </div>
+    </div>
+    <div class="item-desc">${isEn() ? "Today's rotation cosmetic." : "這是今日輪替的外觀商品。"}</div>
+    <div class="card-foot">
+      <div class="price">${money(slot.price)} ${isEn() ? "coins" : "金幣"}</div>
+      <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
+    </div>`;
+  card.querySelector("button").addEventListener("click", () => buyAppearance(slot.item_key));
+  return card;
+}
+async function buyItem(key) {
+  setMerchant("talk", "talk");
+  const res = await api("/api/shop/buy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item_key: key })
+  });
+  if (res.error) {
+    setMerchant("idle", "idle");
+    showToast(errorMessage(res.error, res.message));
+    return;
+  }
+  setMerchant("happy", "happy");
+  _nqCheckShopPurchase();
+  const itemGrants = Array.isArray(res.granted_items) ? res.granted_items.length : 0;
+  const foodGrants = Array.isArray(res.granted_food) ? res.granted_food.length : 0;
+  showToast(itemGrants || foodGrants
+    ? (isEn() ? "Purchase successful — rewards granted." : "購買成功，獎勵已發放。")
+    : (isEn() ? "Purchase successful." : "購買成功。"));
+  await loadCatalog();
+}
+
+async function buyAppearance(itemId) {
+  setMerchant("talk", "talk");
+  const res = await api("/api/shop/buy_appearance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item_id: itemId })
+  });
+  if (res.error) {
+    setMerchant("idle", "idle");
+    showToast(errorMessage(res.error, res.message));
+    return;
+  }
+  setMerchant("happy", "happy");
+  showToast(isEn() ? "Appearance added to wardrobe." : "外觀已收入衣櫃。");
+  await loadCatalog();
+}
+
+async function useItem(key) {
+  setMerchant("talk", "use");
+  const res = await api("/api/shop/use", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ item_key: key })
+  });
+  if (res.error) {
+    setMerchant("idle", "idle");
+    showToast(errorMessage(res.error, res.message));
+    return;
+  }
+  const messages = isEn() ? {
+    extra_questions: `Extra questions active — today's limit +${res.value || 0}!`,
+    xp_potion: `XP potion active — ×${res.value || 1.5} boost!`,
+    streak_shield: `Streak shield active — protects ${res.value || 1} miss(es).`,
+    hint: "Hint sent.",
+    appearance_fragment: res.reward_name_en
+      ? `Appearance unlocked: ${res.reward_name_en}.`
+      : `${res.reward_coins || 0} coins returned.`,
+    pet_xp: res.pet_level
+      ? `Companion growth +${res.value || 0} XP. Level ${res.pet_level}.`
+      : `Companion growth +${res.value || 0} XP.`
+  } : {
+    extra_questions: `額外題量已啟用，今日上限 +${res.value || 0}。`,
+    xp_potion: `XP 藥水已啟用，倍率 x${res.value || 1.5}。`,
+    streak_shield: `連勝護盾已啟用，可保護 ${res.value || 1} 次。`,
+    hint: "提示已送出。",
+    appearance_fragment: res.reward_name
+      ? `外觀已解鎖：${res.reward_name}。`
+      : `圖鑑已滿，退回 ${res.reward_coins || 0} 金幣。`,
+    pet_xp: res.pet_level
+      ? `寵物成長 +${res.value || 0} XP，目前 Lv.${res.pet_level}。`
+      : `寵物成長 +${res.value || 0} XP。`
+  };
+  setMerchant("happy", "use_done");
+  showToast(messages[res.effect] || (isEn() ? "Tool used." : "道具已使用。"));
+  await loadCatalog();
+}
+
+async function doGacha() {
+  const btn = document.getElementById("btn-gacha");
+  const chest = document.getElementById("chest-img");
+  btn.disabled = true;
+  chest.classList.add("opening");
+  setMerchant("talk", "gacha");
+  try {
+    const res = await api("/api/shop/gacha", { method: "POST" });
+    if (res.error) {
+      chest.src = ASSET.chestClosed;
+      setMerchant("idle", "idle");
+      showToast(errorMessage(res.error, res.message));
+      return;
+    }
+    chest.src = ASSET.chestOpen;
+    setMerchant("happy", "happy");
+    showGachaResult(res);
+    showToast(isEn() ? "Chest opened." : "開箱完成。");
+    await loadCatalog();
+    setTimeout(() => { chest.src = ASSET.chestClosed; }, 1600);
+  } finally {
+    setTimeout(() => {
+      chest.classList.remove("opening");
+      btn.disabled = false;
+    }, 450);
+  }
+}
+function showGachaResult(res) {
+  const box = document.getElementById("gacha-result");
+  const name = document.getElementById("gr-name");
+  const type = document.getElementById("gr-type");
+  let key = res.key;
+  let icon = res.icon;
+  if (res.type === "item") {
+    key = res.key;
+    name.textContent = isEn() ? (res.name_en || EN_ITEM[key]?.name || englishKeyName(key)) : (ZH_ITEM[key]?.name || res.name || key);
+    type.textContent = isEn() ? "Tool" : "道具";
+  } else if (res.type === "pet_food") {
+    icon = "";
+    key = "pet_snack";
+    name.textContent = `${isEn() ? (res.name_en || englishKeyName(res.key)) : (res.name || res.key)} x${res.qty || 1}`;
+    type.textContent = isEn() ? "Pet Food" : "寵物食物";
+  } else if (res.type === "appearance") {
+    name.textContent = isEn() ? (res.name_en || englishKeyName(res.key)) : (res.name || res.key);
+    type.textContent = isEn() ? "Appearance" : "外觀";
+  } else if (res.type === "dup_coins") {
+    name.textContent = `+${money(res.qty)} ${isEn() ? "coins" : "金幣"}`;
+    type.textContent = isEn() ? "Duplicate converted" : "重複外觀轉換";
+  } else if (res.type === "coins") {
+    icon = "🪙";
+    key = "";
+    name.textContent = `+${money(res.qty)} ${isEn() ? "coins" : "金幣"}`;
+    type.textContent = isEn() ? "Coins" : "金幣";
+  } else {
+    name.textContent = isEn() ? (res.name_en || englishKeyName(res.key)) : (res.name || res.key);
+    type.textContent = isEn() ? "Reward" : "獎勵";
+  }
+  resultArt(key, icon);
+  box.classList.add("show");
+}
+document.getElementById("btn-gacha").addEventListener("click", doGacha);
+loadCatalog();
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/mobile-nav.js?v=20260603mn"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+<style>
+#nq-spotlight-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0,0,0,.45);
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+#nq-claire-bubble {
+  position: fixed;
+  z-index: 9001;
+  max-width: 280px;
+  background: linear-gradient(180deg, rgba(30,41,59,.98), rgba(15,23,42,.98));
+  color: #f8fafc;
+  border: 1px solid rgba(148,163,184,.28);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 18px 40px rgba(15,23,42,.35);
+  pointer-events: auto;
+}
+#nq-claire-bubble::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 18px;
+  width: 14px;
+  height: 14px;
+  background: rgba(30,41,59,.98);
+  border-left: 1px solid rgba(148,163,184,.28);
+  border-top: 1px solid rgba(148,163,184,.28);
+  transform: rotate(45deg);
+}
+.nq-bubble-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.nq-bubble-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: 0 0 42px;
+  background: rgba(15,23,42,.45);
+}
+.nq-bubble-copy {
+  min-width: 0;
+}
+.nq-bubble-text {
+  display: block;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #f8fafc;
+}
+.nq-bubble-skip {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+  text-decoration: underline;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+</style>
+<script>
+const SpotlightManager = (() => {
+  let _raf = null;
+  let _target = null;
+
+  function _calcHole(el) {
+    const r = el.getBoundingClientRect();
+    const pad = 8;
+    return { x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
+  }
+
+  function _updateClip() {
+    const overlay = document.getElementById('nq-spotlight-overlay');
+    const bubble = document.getElementById('nq-claire-bubble');
+    if (!overlay || !bubble || !_target) return;
+    const { x, y, w, h } = _calcHole(_target);
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    overlay.style.clipPath =
+      `polygon(evenodd, 0 0, ${W}px 0, ${W}px ${H}px, 0 ${H}px, 0 0, ` +
+      `${x}px ${y}px, ${x}px ${y + h}px, ${x + w}px ${y + h}px, ${x + w}px ${y}px, ${x}px ${y}px)`;
+    bubble.style.left = `${Math.max(8, Math.min(x, W - 288))}px`;
+    bubble.style.top = `${Math.min(H - 120, y + h + 12)}px`;
+  }
+
+  function _tick() {
+    _updateClip();
+    _raf = requestAnimationFrame(_tick);
+  }
+
+  return {
+    show(targetSelector, text, skipKey, onSkip) {
+      if (typeof skipKey === 'function') {
+        onSkip = skipKey;
+        skipKey = 'nq_spotlight_s1_skipped';
+      } else if (!skipKey) {
+        skipKey = 'nq_spotlight_s1_skipped';
+      }
+      _target = typeof targetSelector === 'string' ? document.querySelector(targetSelector) : targetSelector;
+      if (!_target) return;
+      const overlay = document.getElementById('nq-spotlight-overlay');
+      const bubble = document.getElementById('nq-claire-bubble');
+      if (!overlay || !bubble) return;
+      const textEl = bubble.querySelector('.nq-bubble-text');
+      const skipBtn = bubble.querySelector('.nq-bubble-skip');
+      if (textEl) textEl.textContent = text;
+      if (skipBtn) {
+        skipBtn.onclick = () => {
+          try {
+            if (skipKey) localStorage.setItem(skipKey, '1');
+          } catch(e) {}
+          SpotlightManager.hide();
+          if (typeof onSkip === 'function') onSkip();
+        };
+      }
+      overlay.hidden = false;
+      bubble.hidden = false;
+      if (_raf) cancelAnimationFrame(_raf);
+      _raf = requestAnimationFrame(_tick);
+    },
+    hide(onComplete) {
+      if (_raf) {
+        cancelAnimationFrame(_raf);
+        _raf = null;
+      }
+      _target = null;
+      const overlay = document.getElementById('nq-spotlight-overlay');
+      const bubble = document.getElementById('nq-claire-bubble');
+      if (overlay) {
+        overlay.hidden = true;
+        overlay.style.clipPath = '';
+      }
+      if (bubble) bubble.hidden = true;
+      if (typeof onComplete === 'function') onComplete();
+    }
+  };
+})();
+
+async function _nqCheckShopPurchase() {
+  try {
+    SpotlightManager.hide();
+    const res = await fetch('/api/newbie_quest/checkpoint', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_key: 'stage7_shop_purchase' })
+    });
+    const d = await res.json();
+    if (!d.ok || !d.newly_completed?.length) return;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#1e293b;border-radius:16px;padding:36px 44px;text-align:center;color:#f1f5f9;max-width:320px">
+        <img src="/assets/shop/title_badge_recruit.webp" style="width:100px;height:100px;object-fit:contain;margin-bottom:8px">
+        <div style="font-size:1.2rem;font-weight:700;margin:8px 0">${I18n.t('shop.newbie.congrats')}</div>
+        <div style="color:#a78bfa;margin:6px 0">${I18n.t('shop.newbie.title')}</div>
+        <div style="color:#fbbf24;margin:6px 0">${I18n.t('shop.newbie.reward')}</div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+          <button onclick="location.href='/hero?tab=wardrobe'" style="padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer">${I18n.t('shop.newbie.view_title')}</button>
+          <button id="nq-grad-close" style="padding:8px 16px;background:#334155;color:#fff;border:none;border-radius:8px;cursor:pointer">${I18n.t('shop.newbie.close')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('nq-grad-close').onclick = () => overlay.remove();
+  } catch(e) {
+    console.warn('[NQ stage7]', e);
+  }
+}
+
+(async function _nqShopInit() {
+  try {
+    const res = await fetch('/api/auth/newbie_quest', { credentials: 'include' });
+    const data = await res.json();
+    if (!res.ok || !data.eligible) return;
+    if (Number(data.state?.stage || 0) !== 7) return;
+    const scope = `:u:${data.user_id}`;
+    const shownKey = `nq_spotlight_s7_shown${scope}`;
+    const skippedKey = `nq_spotlight_s7_skipped${scope}`;
+    if (localStorage.getItem(shownKey)) return;
+    if (localStorage.getItem(skippedKey)) return;
+    await new Promise(r => setTimeout(r, 800));
+    const selector = '.item-card button';
+    const btn = document.querySelector(selector);
+    if (!btn) return;
+    localStorage.setItem(shownKey, '1');
+    SpotlightManager.show(
+      selector,
+      I18n.t('shop.newbie.spotlight'),
+      skippedKey
+    );
+  } catch(e) {}
+})();
+</script>
+<div id="nq-spotlight-overlay" hidden></div>
+<div id="nq-claire-bubble" hidden>
+  <div class="nq-bubble-body">
+    <img class="nq-bubble-avatar" src="/assets/go_rpg_assets/claire_avatar.webp" alt="Claire">
+    <div class="nq-bubble-copy">
+      <span class="nq-bubble-text"></span>
+      <button class="nq-bubble-skip" type="button" data-i18n="index.tour.skip">&#x7565;&#x904E;&#x5F15;&#x5C0E;</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

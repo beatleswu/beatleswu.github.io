@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="pf.title">Profile — 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:  #faf7f2; --cream2: #f3ede3; --cream3: #ede4d4;
+  --ink:    #1c1409; --ink3:   #6b5740;
+  --teal:   #0d9488; --teal-bg:#f0fdfa; --teal-dark:#0f766e;
+  --amber:  #d97706; --amber-bg:#fffbeb;
+  --border: #e5ddd0;
+  --gold:   #ca8a04;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(var(--border) 1px,transparent 1px),
+                    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size: 52px 52px; opacity: .35;
+}
+.wrap { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 40px 24px 80px; }
+
+/* ── HEADER / NAV ── */
+header:not(.cg-nav) {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(250,247,242,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 700; color: var(--ink);
+  text-decoration: none; letter-spacing: .5px;
+}
+.logo-mark {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: white;
+}
+.back-link {
+  font-size: 13px; color: var(--ink3); text-decoration: none;
+  padding: 7px 13px; border-radius: 6px; transition: all .15s;
+}
+.back-link:hover { background: var(--cream2); color: var(--ink); }
+
+/* ── PROFILE HERO ── */
+.hero {
+  text-align: center; padding: 36px 0 28px;
+}
+.hero-avatar {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: var(--cream2); border: 3px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px; margin: 0 auto 16px;
+  overflow: hidden; position: relative;
+}
+.hero-avatar img {
+  width: 100%; height: 100%; object-fit: contain; object-position: center bottom; border-radius: 50%;
+}
+.hero-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(26px, 4vw, 36px); font-weight: 700; margin-bottom: 6px;
+}
+.hero-rank-badge {
+  display: inline-block; padding: 4px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+  letter-spacing: 1px;
+}
+.hero-rank-dan { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.hero-rank-kyu { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+.hero-meta {
+  margin-top: 10px; font-size: 12px; color: var(--ink3);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── STATS GRID ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; margin-bottom: 28px;
+}
+.stat-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px; text-align: center;
+}
+.stat-value {
+  font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 700;
+  color: var(--teal);
+}
+.stat-label {
+  font-size: 10px; color: var(--ink3); margin-top: 4px;
+  letter-spacing: 2px; text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── XP PROGRESS ── */
+.xp-section {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px; margin-bottom: 20px;
+}
+.xp-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+}
+.xp-title {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  font-family: 'DM Mono', monospace; color: var(--ink3);
+}
+.xp-numbers {
+  font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700;
+}
+.xp-bar-bg {
+  height: 10px; background: var(--cream3); border-radius: 10px; overflow: hidden;
+}
+.xp-bar {
+  height: 100%; background: linear-gradient(90deg, var(--teal), #2dd4bf);
+  border-radius: 10px; transition: width .6s ease;
+}
+.xp-sub {
+  display: flex; justify-content: space-between; margin-top: 6px;
+  font-size: 11px; color: var(--ink3); font-family: 'DM Mono', monospace;
+}
+
+/* ── BADGES SECTION ── */
+.section-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px; margin-bottom: 20px;
+}
+.section-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+}
+.section-title {
+  font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  font-family: 'DM Mono', monospace; color: var(--ink3);
+}
+.section-count {
+  font-size: 12px; font-family: 'DM Mono', monospace; color: var(--teal); font-weight: 700;
+}
+.badges-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px;
+}
+.badge-item {
+  background: var(--cream2); border-radius: 14px; padding: 14px 8px;
+  text-align: center; transition: transform .15s;
+}
+.badge-item:hover { transform: translateY(-2px); }
+.badge-icon { font-size: 32px; margin-bottom: 6px; }
+.badge-name { font-size: 11px; font-weight: 600; line-height: 1.3; }
+.badge-date { font-size: 9px; color: var(--ink3); font-family: 'DM Mono', monospace; margin-top: 3px; }
+.badge-empty {
+  text-align: center; padding: 30px 0; color: var(--ink3); font-size: 13px;
+}
+
+/* ── UNEARNED BADGES ── */
+.badge-locked {
+  background: var(--cream3); opacity: .5;
+}
+.badge-locked .badge-icon { filter: grayscale(.6); }
+
+/* ── FRIEND BUTTON ── */
+.friend-btn {
+  display: inline-block; margin-top: 12px;
+  padding: 9px 24px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .15s; border: 1px solid var(--teal);
+  background: var(--teal); color: #fff;
+}
+.friend-btn:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+.friend-btn:disabled { opacity: .5; cursor: default; }
+.friend-btn.outline {
+  background: transparent; color: var(--teal);
+}
+.friend-btn.outline:hover { background: var(--teal-bg); }
+.friend-btn.danger {
+  background: transparent; color: #dc2626; border-color: #fecaca;
+}
+.friend-btn.danger:hover { background: #fef2f2; }
+
+/* ── GAME RECORDS ── */
+.game-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 4px;
+  border-bottom: 1px solid var(--cream2); cursor: pointer; transition: background .12s;
+}
+.game-row:last-child { border-bottom: none; }
+.game-row:hover { background: var(--cream2); }
+.game-result {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.game-result.win  { background: #dcfce7; color: #15803d; }
+.game-result.loss { background: #fee2e2; color: #b91c1c; }
+.game-info { flex: 1; min-width: 0; }
+.game-opp  { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-meta { font-size: 10px; color: var(--ink3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.game-dl {
+  padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: #fff; font-size: 11px; color: var(--ink3); text-decoration: none; flex-shrink: 0;
+}
+.game-dl:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── REPLAY MODAL ── */
+.replay-overlay {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(28,20,9,.55); backdrop-filter: blur(3px);
+  align-items: center; justify-content: center; padding: 18px;
+}
+.replay-overlay.open { display: flex; }
+.replay-box {
+  background: #fff; border-radius: 16px; max-width: 600px; width: 100%;
+  max-height: 92vh; overflow: auto; padding: 18px; position: relative;
+}
+.replay-close {
+  position: absolute; top: 10px; right: 12px; border: none; background: none;
+  font-size: 20px; cursor: pointer; color: var(--ink3); z-index: 5;
+}
+.replay-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; padding-right: 30px; }
+
+/* ── 404 ── */
+.not-found {
+  text-align: center; padding: 80px 0;
+}
+.not-found h2 {
+  font-family: 'Cormorant Garamond', serif; font-size: 28px; margin-bottom: 12px;
+}
+.not-found p { color: var(--ink3); font-size: 14px; }
+
+/* ── LOADING ── */
+.loading { text-align: center; padding: 80px 0; color: var(--ink3); font-size: 14px; }
+
+@media (max-width: 500px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .badges-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+}
+</style>
+<script src="/pwa.js"></script>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">
+    <div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>
+    弈境奇兵 (Go Odyssey)
+  </a>
+  <div style="flex:1;"></div>
+  <a href="/community" class="back-link" data-i18n="profile.back">&#8592; 返回社群</a>
+</header>
+
+<div class="wrap">
+  <div id="content">
+    <div class="loading" data-i18n="profile.loading">載入中...</div>
+  </div>
+</div>
+
+<!-- 棋譜播放彈窗 -->
+<div class="replay-overlay" id="replay-overlay">
+  <div class="replay-box">
+    <button class="replay-close" onclick="closeReplay()">&#10005;</button>
+    <div class="replay-title" id="replay-title"></div>
+    <div id="replay-player"></div>
+    <div style="margin-top:12px;text-align:right;">
+      <a id="replay-dl" class="game-dl" href="#">&#11015; SGF</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _pr(key, vars) {
+  let s = (typeof I18n !== 'undefined' ? I18n.t(key) : null) || key;
+  if (!vars) return s;
+  return s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+}
+
+// 所有徽章定義（用於顯示未獲得的）
+const ALL_BADGES = [
+  { id:'streak_3',   name:'三連勝',   nameEn:'3 Streak',   icon:'\u{1F525}', desc:'連續答對 3 題',  descEn:'3 correct in a row' },
+  { id:'streak_10',  name:'十連勝',   nameEn:'10 Streak',  icon:'\u{26A1}',  desc:'連續答對 10 題', descEn:'10 correct in a row' },
+  { id:'streak_30',  name:'三十連勝', nameEn:'30 Streak',  icon:'\u{1F32A}️', desc:'連續答對 30 題', descEn:'30 correct in a row' },
+  { id:'total_10',   name:'初出茅廬', nameEn:'First Steps',icon:'\u{1F331}', desc:'累計答對 10 題', descEn:'10 total correct' },
+  { id:'total_50',   name:'小有所成', nameEn:'Getting There',icon:'\u{1F33F}', desc:'累計答對 50 題', descEn:'50 total correct' },
+  { id:'total_100',  name:'百題達人', nameEn:'Century',    icon:'\u{1F333}', desc:'累計答對 100 題', descEn:'100 total correct' },
+  { id:'total_500',  name:'棋海漫遊', nameEn:'Sea Wanderer',icon:'\u{1F30A}', desc:'累計答對 500 題', descEn:'500 total correct' },
+  { id:'total_1000', name:'千題宗師', nameEn:'Grandmaster',icon:'\u{1F451}', desc:'累計答對 1000 題', descEn:'1000 total correct' },
+  { id:'mistake_master', name:'知錯能改', nameEn:'Self-Correcting', icon:'\u{1F504}', desc:'將 10 道錯題練習至答對', descEn:'Fix 10 mistakes to correct' },
+  { id:'daily_first', name:'初戰報到', nameEn:'First Battle', icon:'\u{1F4C5}', desc:'首次參加每日挑戰', descEn:'First daily challenge' },
+  { id:'daily_ace',   name:'一擊即中', nameEn:'Bullseye',  icon:'\u{2B50}',  desc:'每日挑戰答對送出', descEn:'Correct daily challenge submitted' },
+  { id:'daily_7',     name:'七日不怠', nameEn:'7-Day Diligence', icon:'\u{1F5D3}️', desc:'連續 7 天完成每日挑戰', descEn:'7-day daily challenge streak' },
+  { id:'daily_30',    name:'月不間斷', nameEn:'Monthlong', icon:'\u{1F3C6}', desc:'連續 30 天完成每日挑戰', descEn:'30-day daily challenge streak' },
+];
+function _bn(b){ return (typeof I18n!=='undefined' && I18n.getLang && I18n.getLang()==='en' && b.nameEn) ? b.nameEn : b.name; }
+function _bd(b){ return (typeof I18n!=='undefined' && I18n.getLang && I18n.getLang()==='en' && b.descEn) ? b.descEn : b.desc; }
+
+async function loadProfile() {
+  const path = window.location.pathname;
+  const username = decodeURIComponent(path.split('/profile/')[1] || '');
+  if (!username) {
+    renderNotFound();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/profile/${encodeURIComponent(username)}`);
+    if (!res.ok) {
+      renderNotFound();
+      return;
+    }
+    const data = await res.json();
+    if (data.error) {
+      renderNotFound();
+      return;
+    }
+    _profileData = data;
+    renderProfile(data);
+    document.title = `${data.display_name || data.username} — Go Odyssey`;
+  } catch (e) {
+    console.error('profile load error', e);
+    renderNotFound();
+  }
+}
+
+function renderNotFound() {
+  document.getElementById('content').innerHTML = `
+    <div class="not-found">
+      <h2>${_pr('profile.not_found_title')}</h2>
+      <p>${_pr('profile.not_found_sub')}</p>
+      <a href="/community" style="display:inline-block;margin-top:20px;color:var(--teal);font-weight:600;text-decoration:none;">${_pr('profile.not_found_back')}</a>
+    </div>
+  `;
+}
+
+function renderProfile(d) {
+  const isDan = (d.rank_level || '').includes('d');
+  const rankClass = isDan ? 'hero-rank-dan' : 'hero-rank-kyu';
+  const xpPct = d.xp_next ? Math.min(100, Math.round(d.rank_xp / d.xp_next * 100)) : 0;
+
+  // 頭像 HTML（角色小人）
+  const CHAR_ART = {
+    apprentice:'chibi_apprentice_transparent_cropped.webp', apprentice_girl:'chibi_apprentice_girl_transparent_cropped.webp',
+    swordsman:'chibi_swordsman_transparent_cropped.webp', rogue:'chibi_rogue_transparent_cropped.webp',
+    ranger:'chibi_ranger_transparent_cropped.webp', berserker:'chibi_berserker_transparent_cropped.webp',
+    guardian:'chibi_guardian_transparent_cropped.webp', paladin:'chibi_paladin_transparent_cropped.webp',
+    mage:'chibi_mage_transparent_cropped.webp', sage:'chibi_sage_transparent_cropped.webp',
+  };
+  const _cart = (d.character_key && CHAR_ART[d.character_key]) || CHAR_ART.apprentice;
+  const avatarContent = `<img src="/assets/hero/characters/${_cart}" alt="avatar">`;
+
+  // 已獲得徽章 ID set
+  const earnedIds = new Set(d.badges.map(b => b.id));
+
+  // 已獲得的徽章
+  const earnedHtml = d.badges.map(b => `
+    <div class="badge-item" title="${esc(I18n.localized(b, 'desc'))}">
+      <div class="badge-icon">${b.icon}</div>
+      <div class="badge-name">${esc(I18n.localized(b, 'name'))}</div>
+      <div class="badge-date">${esc(b.earned_at)}</div>
+    </div>
+  `).join('');
+
+  // 未獲得的徽章
+  const unearnedHtml = ALL_BADGES
+    .filter(b => !earnedIds.has(b.id))
+    .map(b => `
+      <div class="badge-item badge-locked" title="${esc(_bd(b))}">
+        <div class="badge-icon">${b.icon}</div>
+        <div class="badge-name">${esc(_bn(b))}</div>
+        <div class="badge-date" style="font-size:9px;">${_pr('profile.locked')}</div>
+      </div>
+    `).join('');
+
+  document.getElementById('content').innerHTML = `
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-avatar">${avatarContent}</div>
+      <div class="hero-name">${esc(d.display_name || d.username)}</div>
+      ${d.nickname ? `<div style="font-size:12px;color:var(--ink3);font-family:'DM Mono',monospace;margin-top:2px;">@${esc(d.username)}</div>` : ''}
+      <span class="hero-rank-badge ${rankClass}">${esc(d.rank_level)}</span>
+      <div class="hero-meta">
+        ${_pr('profile.joined', {date: esc(d.join_date), days: d.days})}
+      </div>
+      <div id="friend-action">${friendButtonHtml(d)}</div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">${d.xp.toLocaleString()}</div>
+        <div class="stat-label">${_pr('profile.stat.xp')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${d.total_correct.toLocaleString()}</div>
+        <div class="stat-label">${_pr('profile.stat.correct')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${d.accuracy}%</div>
+        <div class="stat-label">${_pr('profile.stat.accuracy')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${d.max_combo}</div>
+        <div class="stat-label">${_pr('profile.stat.max_combo')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${d.max_streak}</div>
+        <div class="stat-label">${_pr('profile.stat.max_streak')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${d.mistake_corrected}</div>
+        <div class="stat-label">${_pr('profile.stat.mistake_fix')}</div>
+      </div>
+    </div>
+
+    <!-- XP PROGRESS -->
+    <div class="xp-section">
+      <div class="xp-header">
+        <span class="xp-title">${_pr('profile.xp_progress')}</span>
+        <span class="xp-numbers">${d.rank_xp} / ${d.xp_next}</span>
+      </div>
+      <div class="xp-bar-bg">
+        <div class="xp-bar" style="width:${xpPct}%"></div>
+      </div>
+      <div class="xp-sub">
+        <span>${esc(d.rank_level)}</span>
+        <span>${xpPct}%</span>
+      </div>
+    </div>
+
+    <!-- BADGES -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">${_pr('profile.badges')}</span>
+        <span class="section-count">${d.badge_count} / ${d.badge_total}</span>
+      </div>
+      ${d.badges.length > 0 || unearnedHtml
+        ? `<div class="badges-grid">${earnedHtml}${unearnedHtml}</div>`
+        : `<div class="badge-empty">${_pr('profile.no_badges')}</div>`
+      }
+    </div>
+
+    <!-- GAME RECORDS -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">${_gt('對弈棋譜', 'GAME RECORDS')}</span>
+        <span class="section-count" id="games-count"></span>
+      </div>
+      <div id="games-list"><div class="badge-empty">${_gt('載入中…', 'Loading…')}</div></div>
+    </div>
+  `;
+  loadGames(d.username);
+}
+
+// ══ 對弈棋譜 ═══════════════════════════════════════════════
+function _gt(zh, en) {
+  return (typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en') ? en : zh;
+}
+let _gamesCache = [];
+
+async function loadGames(username) {
+  const list = document.getElementById('games-list');
+  if (!list) return;
+  try {
+    const res = await fetch(`/api/profile/${encodeURIComponent(username)}/games`);
+    if (!res.ok) throw new Error('fetch failed');
+    const d = await res.json();
+    _gamesCache = d.games || [];
+    const cnt = document.getElementById('games-count');
+    if (cnt) cnt.textContent = d.total || 0;
+    if (!_gamesCache.length) {
+      list.innerHTML = `<div class="badge-empty">${_gt('還沒有對弈記錄', 'No games yet')}</div>`;
+      return;
+    }
+    list.innerHTML = _gamesCache.map(g => `
+      <div class="game-row" onclick="openReplay(${g.id})">
+        <span class="game-result ${g.result ? 'win' : 'loss'}">${g.result ? _gt('勝', 'W') : _gt('負', 'L')}</span>
+        <div class="game-info">
+          <div class="game-opp">${g.my_color === 'black' ? '●' : '○'} vs ${esc(g.opponent_name)}</div>
+          <div class="game-meta">${g.board_size}×${g.board_size} · ${g.move_count}${_gt(' 手', ' moves')} · ${esc(g.played_at)}</div>
+        </div>
+        <a class="game-dl" href="/api/profile/${encodeURIComponent(username)}/games/${g.id}/sgf?download=1"
+           onclick="event.stopPropagation()" title="${_gt('下載 SGF', 'Download SGF')}">&#11015; SGF</a>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="badge-empty">${_gt('載入失敗', 'Failed to load')}</div>`;
+  }
+}
+
+// WGo 播放器懶載入（只在第一次開棋譜時抓）
+let _wgoReady = null;
+function ensureWgo() {
+  if (_wgoReady) return _wgoReady;
+  _wgoReady = new Promise((resolve, reject) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = '/wgo/wgo.player.css';
+    document.head.appendChild(css);
+    const s1 = document.createElement('script');
+    s1.src = '/wgo/wgo.min.js?v=20260514k';
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = '/wgo/wgo.player.min.js?v=1';
+      s2.onload = resolve; s2.onerror = reject;
+      document.head.appendChild(s2);
+    };
+    s1.onerror = reject;
+    document.head.appendChild(s1);
+  });
+  return _wgoReady;
+}
+
+async function openReplay(rid) {
+  const uname = _profileData?.username;
+  if (!uname) return;
+  const g = _gamesCache.find(x => x.id === rid);
+  const overlay = document.getElementById('replay-overlay');
+  const holder  = document.getElementById('replay-player');
+  overlay.classList.add('open');
+  holder.innerHTML = `<div class="loading">${_gt('載入棋譜中…', 'Loading game…')}</div>`;
+  document.getElementById('replay-title').textContent =
+    g ? `${g.my_color === 'black' ? '●' : '○'} vs ${g.opponent_name} · ${g.board_size}×${g.board_size} · ${g.played_at}` : '';
+  document.getElementById('replay-dl').href =
+    `/api/profile/${encodeURIComponent(uname)}/games/${rid}/sgf?download=1`;
+  try {
+    const [sgf] = await Promise.all([
+      fetch(`/api/profile/${encodeURIComponent(uname)}/games/${rid}/sgf`)
+        .then(r => { if (!r.ok) throw new Error('sgf fetch failed'); return r.text(); }),
+      ensureWgo(),
+    ]);
+    holder.innerHTML = '';
+    new WGo.BasicPlayer(holder, { sgf: sgf });
+  } catch (e) {
+    holder.innerHTML = `<div class="badge-empty">${_gt('棋譜載入失敗', 'Failed to load game')}</div>`;
+  }
+}
+
+function closeReplay() {
+  document.getElementById('replay-overlay').classList.remove('open');
+  document.getElementById('replay-player').innerHTML = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeReplay(); });
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('replay-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeReplay();
+  });
+});
+
+let _profileData = null;
+
+function friendButtonHtml(d) {
+  const s = d.friend_status;
+  if (s === 'self') return '';
+  if (s === 'friends')
+    return `<button class="friend-btn outline" onclick="removeFriend(${d.friendship_id})">${_pr('profile.friend.added')}</button>`;
+  if (s === 'pending_sent')
+    return `<button class="friend-btn outline" disabled>${_pr('profile.friend.sent')}</button>`;
+  if (s === 'pending_received')
+    return `<button class="friend-btn" onclick="acceptFriend(${d.friendship_id})">${_pr('profile.friend.accept')}</button>`;
+  return `<button class="friend-btn" onclick="addFriend('${esc(d.username)}')">${_pr('profile.friend.add')}</button>`;
+}
+
+async function addFriend(username) {
+  const btn = document.querySelector('#friend-action button');
+  if (btn) { btn.disabled = true; btn.textContent = _pr('profile.friend.sending'); }
+  try {
+    const res = await fetch('/api/friends/request', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('friend-action').innerHTML =
+        data.message.includes('已成為')
+          ? `<button class="friend-btn outline">${_pr('profile.friend.added')}</button>`
+          : `<button class="friend-btn outline" disabled>${_pr('profile.friend.sent')}</button>`;
+    } else {
+      alert(data.error || _pr('profile.err.failed'));
+      if (btn) { btn.disabled = false; btn.textContent = _pr('profile.friend.add'); }
+    }
+  } catch(e) {
+    alert(_pr('profile.err.network'));
+    if (btn) { btn.disabled = false; btn.textContent = _pr('profile.friend.add'); }
+  }
+}
+
+async function acceptFriend(fid) {
+  try {
+    const res = await fetch(`/api/friends/accept/${fid}`, {
+      method: 'POST', credentials: 'include'
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('friend-action').innerHTML =
+        `<button class="friend-btn outline">${_pr('profile.friend.added')}</button>`;
+    }
+  } catch(e) { alert(_pr('profile.err.network')); }
+}
+
+async function removeFriend(fid) {
+  if (!confirm(_pr('profile.friend.confirm_remove'))) return;
+  try {
+    const res = await fetch(`/api/friends/reject/${fid}`, {
+      method: 'POST', credentials: 'include'
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('friend-action').innerHTML =
+        `<button class="friend-btn" onclick="addFriend('${esc(_profileData.username)}')">${_pr('profile.friend.add')}</button>`;
+    }
+  } catch(e) { alert(_pr('profile.err.network')); }
+}
+
+window.addEventListener('DOMContentLoaded', loadProfile);
+window.onLangChange = () => {
+  if (typeof I18n !== 'undefined') I18n.apply();
+  if (_profileData) renderProfile(_profileData);   // 重繪以套用徽章與 _pr 文案
+};
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>

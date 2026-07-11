@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="bdg.title">獎章牆 — 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+:root {
+    --cream:    #faf7f2;
+    --cream2:   #f3ede3;
+    --cream3:   #ede4d4;
+    --ink:      #1c1409;
+    --ink2:     #3d2f1a;
+    --ink3:     #6b5740;
+    --amber:    #d97706;
+    --amber-bg: #fffbeb;
+    --teal:     #0d9488;
+    --teal-bg:  #f0fdfa;
+    --teal-mid: #99f6e4;
+    --border:   #e5ddd0;
+    --border2:  #d4c9b8;
+    --white:    #ffffff;
+    --shadow:   0 1px 3px rgba(28,20,9,.06), 0 4px 16px rgba(28,20,9,.06);
+    --shadow-lg:0 8px 40px rgba(28,20,9,.12);
+    --green:    #16a34a;
+    --red:      #dc2626;
+    --red-bg:   #fef2f2;
+    --mono:     'DM Mono', monospace;
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 52px 52px; opacity: .35;
+}
+
+/* ══ HEADER ══════════════════════════════════════════════════ */
+header:not(.cg-nav) {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,247,242,.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 700; color: var(--ink);
+    text-decoration: none; letter-spacing: .5px;
+}
+.logo-mark {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: white;
+}
+.header-nav { display: flex; align-items: center; gap: 4px; }
+.nav-link {
+    font-size: 14px; color: var(--ink3); text-decoration: none;
+    padding: 7px 13px; border-radius: 6px; transition: all .15s;
+    display: flex; align-items: center; gap: 4px;
+}
+.nav-link:hover { background: var(--cream2); color: var(--ink); }
+.nav-link.active { background: var(--teal-bg); color: var(--teal); }
+.nav-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+#badge-username { font-size: 11px; color: var(--ink3); font-family: var(--mono); padding: 4px 10px; }
+.btn-logout {
+    font-size: 11px; color: var(--ink3); background: none; border: none;
+    cursor: pointer; padding: 4px 8px; border-radius: 5px; transition: all .15s;
+}
+.btn-logout:hover { background: var(--red-bg); color: var(--red); }
+
+/* ══ STATS STRIP ═════════════════════════════════════════════ */
+.stats-strip {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 28px;
+    display: flex; align-items: center; gap: 32px;
+    position: relative; z-index: 10;
+}
+.strip-stat { text-align: center; }
+.strip-stat .s-val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px; font-weight: 700; line-height: 1;
+}
+.strip-stat .s-val.teal  { color: var(--teal); }
+.strip-stat .s-val.amber { color: var(--amber); }
+.strip-stat .s-val.red   { color: var(--red); }
+.strip-stat .s-lbl { font-size: 10px; color: var(--ink3); font-family: var(--mono); letter-spacing: .5px; margin-top: 2px; }
+
+/* Progress bar */
+.progress-wrap {
+    flex: 1; padding: 0 8px;
+}
+.progress-label-row {
+    display: flex; justify-content: space-between;
+    font-size: 10px; font-family: var(--mono); color: var(--ink3); margin-bottom: 5px;
+}
+.progress-bar {
+    height: 6px; border-radius: 99px;
+    background: var(--cream2); border: 1px solid var(--border); overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%; border-radius: 99px; background: var(--teal);
+    transition: width .9s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ══ FILTER TABS ═════════════════════════════════════════════ */
+.filter-row {
+    position: relative; z-index: 10;
+    padding: 14px 28px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+}
+.filter-btn {
+    font-size: 11px; font-family: var(--mono); font-weight: 500;
+    padding: 5px 14px; border-radius: 99px; border: 1px solid var(--border);
+    background: var(--white); color: var(--ink3);
+    cursor: pointer; transition: all .15s;
+    min-height: 44px; display: inline-flex; align-items: center;
+}
+.filter-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-bg); }
+.filter-btn.active-filter { background: var(--teal); color: white; border-color: var(--teal); }
+
+/* ══ MAIN ════════════════════════════════════════════════════ */
+main {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    padding: 28px 28px 72px;
+}
+
+/* ══ SECTION LABEL ═══════════════════════════════════════════ */
+.section-label {
+    font-family: var(--mono);
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+}
+.section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.section-wrap { margin-bottom: 36px; }
+
+/* ══ PREMIUM SECTION ════════════════════════════════════════ */
+@keyframes goldShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+@keyframes premPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(217,119,6,.0); }
+    50%      { box-shadow: 0 0 24px 4px rgba(217,119,6,.35); }
+}
+@keyframes shineSlide {
+    0%   { left: -80%; }
+    100% { left: 130%; }
+}
+.premium-section {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 40%, #fff 100%);
+    border: 1.5px solid #fbbf24;
+    border-radius: 18px;
+    padding: 20px 20px 24px;
+    position: relative;
+    overflow: hidden;
+}
+.premium-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent, transparent 18px,
+        rgba(251,191,36,.07) 18px, rgba(251,191,36,.07) 19px
+    );
+    pointer-events: none;
+}
+.premium-label {
+    font-size: 11px !important;
+    background: linear-gradient(90deg, #d97706, #f59e0b, #fbbf24, #f59e0b, #d97706);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: goldShimmer 3s linear infinite;
+    letter-spacing: 2px !important;
+}
+.premium-label::after { background: linear-gradient(90deg, #fbbf24, transparent) !important; }
+.premium-crown { font-size: 16px; filter: drop-shadow(0 2px 4px rgba(217,119,6,.5)); }
+.premium-count {
+    background: linear-gradient(90deg, #d97706, #f59e0b) !important;
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+.premium-badge-card {
+    background: linear-gradient(160deg, #fffbeb 0%, #fff 60%) !important;
+    border-color: #f59e0b !important;
+    position: relative; overflow: hidden;
+}
+.premium-badge-card.earned {
+    animation: premPulse 3s ease-in-out infinite;
+    border-color: #d97706 !important;
+}
+.prem-shine {
+    position: absolute; top: 0; left: -80%; width: 60%; height: 100%;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.7) 50%, transparent 60%);
+    animation: shineSlide 2.4s ease-in-out infinite;
+    pointer-events: none;
+}
+.prem-lock-hint {
+    font-size: 10px; color: #d97706;
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 6px; padding: 3px 8px;
+    margin-top: 6px; text-align: center;
+    cursor: pointer;
+}
+.prem-lock-hint:hover { background: #fef3c7; }
+/* medallion gold override for premium earned */
+.premium-badge-card.earned .badge-medallion-lg[data-rarity="legendary"] {
+    background: linear-gradient(145deg, #fef9c3, #fde68a, #f59e0b, #d97706) !important;
+    border: 2px solid #d97706 !important;
+    box-shadow: 0 4px 20px rgba(217,119,6,.55), inset 0 1px 0 rgba(255,255,255,.6) !important;
+}
+
+/* ══ RARITY TOKENS ═══════════════════════════════════════════ */
+:root {
+    --r-bronze-c:   #b45309; --r-bronze-bg: #fef3c7; --r-bronze-bd: #fbbf24;
+    --r-bronze-g1:  #fef9c3; --r-bronze-g2: #fde68a; --r-bronze-g3: #fbbf24;
+    --r-silver-c:   #374151; --r-silver-bg: #f1f5f9; --r-silver-bd: #94a3b8;
+    --r-silver-g1:  #f8fafc; --r-silver-g2: #e2e8f0; --r-silver-g3: #94a3b8;
+    --r-gold-c:     #92400e; --r-gold-bg:   #fffbeb; --r-gold-bd:   #f59e0b;
+    --r-gold-g1:    #fef9c3; --r-gold-g2:   #fde68a; --r-gold-g3:   #f59e0b;
+    --r-legend-c:   #6b21a8; --r-legend-bg: #faf5ff; --r-legend-bd: #a855f7;
+    --r-legend-g1:  #f5f3ff; --r-legend-g2: #ede9fe; --r-legend-g3: #a855f7;
+}
+
+/* ══ BADGE GRID ══════════════════════════════════════════════ */
+.badge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 16px;
+}
+
+/* ══ BADGE CARD ══════════════════════════════════════════════ */
+.badge-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 14px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    position: relative; cursor: default;
+    box-shadow: var(--shadow);
+    transition: transform .2s, box-shadow .2s;
+    overflow: hidden;
+}
+/* top accent stripe */
+.badge-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    border-radius: 16px 16px 0 0;
+}
+.badge-card:not(.earned) { background: var(--cream2); box-shadow: none; }
+.badge-card:not(.earned)::before { background: var(--border); }
+
+/* rarity stripe colours */
+.badge-card.earned[data-rarity="bronze"]::before   { background: linear-gradient(90deg, var(--r-bronze-g2), var(--r-bronze-g3)); }
+.badge-card.earned[data-rarity="silver"]::before   { background: linear-gradient(90deg, var(--r-silver-g2), var(--r-silver-g3)); }
+.badge-card.earned[data-rarity="gold"]::before     { background: linear-gradient(90deg, var(--r-gold-g2),   var(--r-gold-g3));   }
+.badge-card.earned[data-rarity="legendary"]::before{ background: linear-gradient(90deg, var(--r-legend-g2), var(--r-legend-g3)); }
+
+/* card border per rarity */
+.badge-card.earned[data-rarity="bronze"]   { border-color: var(--r-bronze-bd); }
+.badge-card.earned[data-rarity="silver"]   { border-color: var(--r-silver-bd); }
+.badge-card.earned[data-rarity="gold"]     { border-color: var(--r-gold-bd); }
+.badge-card.earned[data-rarity="legendary"]{ border-color: var(--r-legend-bd); background: linear-gradient(175deg, #faf5ff 0%, #fff 50%); }
+
+/* hover lift per rarity */
+.badge-card.earned[data-rarity="bronze"]:hover   { transform:translateY(-3px); box-shadow: 0 8px 24px rgba(180,83,9,.18); }
+.badge-card.earned[data-rarity="silver"]:hover   { transform:translateY(-3px); box-shadow: 0 8px 24px rgba(100,116,139,.18); }
+.badge-card.earned[data-rarity="gold"]:hover     { transform:translateY(-3px); box-shadow: 0 8px 24px rgba(245,158,11,.22); }
+.badge-card.earned[data-rarity="legendary"]:hover{ transform:translateY(-4px); box-shadow: 0 10px 32px rgba(168,85,247,.28); }
+
+/* NEW pulse */
+@keyframes warmPulse  { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.15),var(--shadow);}  50%{box-shadow:0 0 0 7px rgba(245,158,11,.07),var(--shadow-lg);} }
+@keyframes purpPulse  { 0%,100%{box-shadow:0 0 0 0 rgba(168,85,247,.2),var(--shadow);}   50%{box-shadow:0 0 0 9px rgba(168,85,247,.08),var(--shadow-lg);} }
+.badge-card.new-badge[data-rarity="legendary"] { animation: purpPulse 2s ease-in-out infinite; }
+.badge-card.new-badge:not([data-rarity="legendary"]) { animation: warmPulse 2s ease-in-out infinite; }
+
+.new-pill {
+    position: absolute; top: 7px; right: 8px;
+    background: var(--red); color: #fff;
+    font-size: 7px; font-weight: 700; font-family: var(--mono);
+    padding: 2px 6px; border-radius: 99px; letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* ── 勳章圓 ── */
+.badge-medallion-lg {
+    width: 68px; height: 68px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; transition: transform .2s, box-shadow .2s;
+}
+.badge-medallion-lg::after {
+    content: ''; position: absolute; inset: 4px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.55); pointer-events: none;
+}
+/* rarity colours */
+.badge-medallion-lg[data-rarity="bronze"]   { background:linear-gradient(145deg,#fef9c3,#fde68a,#fbbf24); border:2px solid #fbbf24; box-shadow:0 3px 12px rgba(180,83,9,.25),inset 0 1px 0 rgba(255,255,255,.6); }
+.badge-medallion-lg[data-rarity="silver"]   { background:linear-gradient(145deg,#f8fafc,#e2e8f0,#94a3b8); border:2px solid #94a3b8; box-shadow:0 3px 12px rgba(100,116,139,.2),inset 0 1px 0 rgba(255,255,255,.7); }
+.badge-medallion-lg[data-rarity="gold"]     { background:linear-gradient(145deg,#fef9c3,#fde68a,#f59e0b); border:2px solid #f59e0b; box-shadow:0 3px 14px rgba(245,158,11,.35),inset 0 1px 0 rgba(255,255,255,.6); }
+.badge-medallion-lg[data-rarity="legendary"]{ background:linear-gradient(145deg,#f5f3ff,#ede9fe,#a855f7); border:2px solid #a855f7; box-shadow:0 4px 18px rgba(168,85,247,.38),inset 0 1px 0 rgba(255,255,255,.5); }
+/* locked */
+.badge-card:not(.earned) .badge-medallion-lg { background:var(--cream3); border:2px solid var(--border); filter:grayscale(1); opacity:.3; box-shadow:none; }
+.badge-card:not(.earned) .badge-medallion-lg::after { display:none; }
+
+.badge-medallion-lg:hover { transform:scale(1.1) translateY(-1px); }
+.badge-card:not(.earned) .badge-medallion-lg:hover { transform:none; }
+
+.badge-icon-lg { font-size: 32px; line-height: 1; position: relative; z-index: 1; }
+
+/* ── 稀有度標籤 ── */
+.rarity-pill {
+    font-size: 8px; font-weight: 700; font-family: var(--mono);
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 99px; border: 1px solid;
+}
+.rarity-pill.bronze   { color: var(--r-bronze-c); background: var(--r-bronze-bg); border-color: var(--r-bronze-bd); }
+.rarity-pill.silver   { color: var(--r-silver-c); background: var(--r-silver-bg); border-color: var(--r-silver-bd); }
+.rarity-pill.gold     { color: var(--r-gold-c);   background: var(--r-gold-bg);   border-color: var(--r-gold-bd);   }
+.rarity-pill.legendary{ color: var(--r-legend-c); background: var(--r-legend-bg); border-color: var(--r-legend-bd); }
+.badge-card:not(.earned) .rarity-pill { opacity: .35; }
+
+.badge-name {
+    font-size: 12px; font-weight: 600; color: var(--ink2);
+    text-align: center; line-height: 1.3;
+}
+.badge-card:not(.earned) .badge-name { color: var(--border2); }
+
+.badge-desc {
+    font-size: 10px; color: var(--ink3); text-align: center; line-height: 1.5;
+}
+.badge-card:not(.earned) .badge-desc { color: var(--border2); }
+
+.badge-date {
+    font-size: 9px; font-family: var(--mono);
+    color: var(--amber); letter-spacing: .3px;
+    background: var(--amber-bg); border: 1px solid #fde68a;
+    padding: 2px 8px; border-radius: 99px;
+}
+
+/* ── Section 計數 ── */
+.section-count {
+    font-family: var(--mono); font-size: 9px;
+    color: var(--ink3); margin-left: 8px;
+}
+
+/* ══ CONFETTI ════════════════════════════════════════════════ */
+.confetti-piece {
+    position: fixed; border-radius: 2px;
+    animation: confettiFall 1.8s ease-in forwards;
+    pointer-events: none; z-index: 999;
+}
+@keyframes confettiFall {
+    from { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    to   { transform: translateY(100vh)  rotate(720deg); opacity: 0; }
+}
+
+/* ══ FADE ════════════════════════════════════════════════════ */
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.fade-up { animation: fadeUp .4s ease both; }
+
+/* ══ EMPTY ════════════════════════════════════════════════════ */
+.empty-state {
+    text-align: center; padding: 48px 0; color: var(--ink3);
+    font-size: 12px; font-family: var(--mono);
+}
+.empty-state .e-icon { font-size: 32px; margin-bottom: 10px; }
+
+/* ══ i18n SWITCHER ════════════════════════════════════════════ */
+.i18n-switcher-btn.active-lang {
+    background: var(--white); color: var(--teal);
+    box-shadow: 0 1px 3px rgba(28,20,9,.12);
+}
+
+/* ── Nav 角色 mini 頭像 ── */
+.nav-avatar-wrap {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 9px;
+  background: var(--cream2);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  transition: border-color .15s, background .15s;
+  cursor: pointer;
+}
+.nav-avatar-wrap:hover { border-color: var(--teal); background: var(--teal-bg); }
+.nav-avatar-fig {
+  position: relative; width: 24px; height: 24px; flex-shrink: 0;
+}
+.nav-avatar-base {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--cream3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; line-height: 1;
+  transition: background .3s, border-color .3s;
+}
+.nav-avatar-hat {
+  position: absolute; top: -6px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px; line-height: 1;
+  pointer-events: none; z-index: 2; opacity: 0;
+  transition: opacity .3s;
+}
+.nav-avatar-name {
+  font-size: 11px; color: var(--ink3);
+  font-family: 'DM Mono', monospace;
+  max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+
+    /* ── ≤1366px：手機/iPad 用統一 32x32 圖示 nav ── */
+    @media (max-width: 1366px) {
+        header:not(.cg-nav) { padding: 0 10px !important; height: 50px !important; }
+        .logo-name { display: none !important; }
+        .nav-avatar-wrap, .status-pill, .nav-sep { display: none !important; }
+        .header-nav { gap: 3px !important; flex-wrap: nowrap; overflow-x: auto; }
+        #menu-btn { display: flex !important; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0 !important; font-size: 18px !important; flex-shrink: 0; background: none; border: none; cursor: pointer; }
+        #streak-pill { font-size: 10px !important; padding: 2px 8px !important; flex-shrink: 0; }
+        .header-nav .nav-link {
+            display: inline-flex !important;
+            align-items: center; justify-content: center;
+            width: 32px !important; height: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px;
+            font-size: 0 !important;
+            background: transparent;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .header-nav .nav-link::before {
+            content: attr(data-icon);
+            font-size: 18px !important;
+            line-height: 1;
+        }
+        .header-nav .nav-link:hover { background: var(--cream2); }
+        .header-nav .nav-link > span:not(#mistake-badge):not(#coins-nav-count) { display: none !important; }
+        .header-nav .nav-link svg { width: 22px !important; height: 22px !important; display: block !important; }
+        .header-nav .nav-link[href="/play"]::before { content: none !important; }
+        .header-nav #coins-nav-btn { width: auto !important; min-width: 32px; padding: 0 6px !important; gap: 2px; }
+        .header-nav #coins-nav-btn #coins-nav-count {
+            display: inline !important;
+            font-size: 11px !important;
+            font-family: 'DM Mono', monospace;
+            color: var(--amber);
+        }
+        .header-nav .nav-link[href="/mistakes"] { position: relative; }
+        #mistake-badge {
+            position: absolute !important;
+            top: -2px !important; right: -2px !important;
+            font-size: 8px !important;
+            padding: 0 4px !important;
+            line-height: 1.4 !important;
+        }
+        #xp-hud { font-size: 10px !important; gap: 4px !important; padding: 2px 6px !important; flex-shrink: 0; }
+        #xp-bar-wrap { width: 50px !important; }
+    }
+</style>
+<script src="/pwa.js"></script>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header>
+    <a href="/" class="logo">
+        <div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>
+        弈境奇兵 (Go Odyssey)
+    </a>
+        <div class="header-nav">
+    <a href="/" data-icon="📖" class="nav-link" data-i18n="nav.practice">📖 練習</a>
+    <a href="/curriculum" data-icon="🗺" class="nav-link" data-i18n="nav.curriculum">🗺 路線圖</a>
+    <a href="/daily-challenge" data-icon="🎯" class="nav-link" data-i18n="nav.daily">🎯 每日挑戰</a>
+    <a href="/mistakes" data-icon="📕" class="nav-link" data-i18n="nav.mistakes">📕 錯題本</a>
+    <a href="/badges" data-icon="🏅" class="nav-link active" data-i18n="nav.badges">🏅 獎章</a>
+    <a href="/stats" data-icon="📊" class="nav-link" data-i18n="nav.stats">📊 儀表板</a>
+    <a href="/community" data-icon="👥" class="nav-link" data-i18n="nav.community">👥 社群</a>
+    <a href="/hero" data-icon="🧙" class="nav-link" data-i18n="nav.skills">🧙 英雄</a>
+    <div class="nav-sep"></div>
+    <a href="/hero" class="nav-avatar-wrap" id="nav-avatar-link" data-i18n-title="nav.appearance" title="外觀設定">
+      <div class="nav-avatar-fig">
+        <div class="nav-avatar-base" id="nav-avatar-base">🧑</div>
+        <div class="nav-avatar-hat"  id="nav-avatar-hat"></div>
+      </div>
+      <span class="nav-avatar-name" id="username-display"></span>
+    </a>
+    <div id="lang-switcher-badges" style="display:flex;align-items:center;"></div>
+        <button class="btn-logout" onclick="doLogout()" data-i18n="nav.logout">登出</button>
+  </div>
+</header>
+
+<!-- ══ STATS STRIP ══════════════════════════════════════════════════ -->
+<div class="stats-strip">
+    <div class="strip-stat">
+        <div class="s-val amber" id="stat-earned">—</div>
+        <div class="s-lbl" data-i18n="badges.earned">已獲獎章</div>
+    </div>
+    <div class="strip-stat">
+        <div class="s-val teal" id="stat-total-q">—</div>
+        <div class="s-lbl" data-i18n="badges.correct">累計答對</div>
+    </div>
+    <div class="strip-stat">
+        <div class="s-val red" id="stat-streak">—</div>
+        <div class="s-lbl" data-i18n="badges.streak">最高連勝</div>
+    </div>
+    <div class="strip-stat">
+        <div class="s-val" id="stat-rank-level" style="font-size:18px;font-weight:700">—</div>
+        <div class="s-lbl" data-i18n="bdg.cur_rank">當前段位</div>
+    </div>
+    <div class="strip-stat">
+        <div class="s-val" id="stat-xp" style="color:var(--amber)">—</div>
+        <div class="s-lbl" data-i18n="bdg.total_xp">累計 XP</div>
+    </div>
+
+    <div class="progress-wrap">
+        <div class="progress-label-row">
+            <span data-i18n="badges.progress">整體解鎖進度</span>
+            <span id="progress-label">0 / 0</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progress-bar-fill" style="width:0%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ FILTER TABS ══════════════════════════════════════════════════ -->
+<div class="filter-row">
+    <button onclick="setFilter('all')"        id="f-all"       class="filter-btn active-filter" data-i18n="badges.filter.all">全部</button>
+    <button onclick="setFilter('earned')"     id="f-earned"    class="filter-btn" data-i18n="badges.filter.earned">✅ 已獲得</button>
+    <button onclick="setFilter('locked')"     id="f-locked"    class="filter-btn" data-i18n="badges.filter.locked">🔒 未解鎖</button>
+    <button onclick="setFilter('bronze')"     id="f-bronze"    class="filter-btn" data-i18n="badges.filter.bronze">🥉 銅牌</button>
+    <button onclick="setFilter('silver')"     id="f-silver"    class="filter-btn" data-i18n="badges.filter.silver">🥈 銀牌</button>
+    <button onclick="setFilter('gold')"       id="f-gold"      class="filter-btn" data-i18n="badges.filter.gold">🥇 金牌</button>
+    <button onclick="setFilter('legendary')"  id="f-legendary" class="filter-btn" data-i18n="badges.filter.legendary">💫 傳說</button>
+</div>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════════ -->
+<main id="badge-main"></main>
+
+<script>
+let _defs      = [];
+let _earned    = {};
+let _stats     = {};
+let _filter    = 'all';
+let _unseenIds = [];
+
+window.onLangChange = () => { renderBadges(); renderStats(); };
+
+// ── 載入 ──────────────────────────────────────────────────────
+async function loadAll() {
+    const me = await fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.json()).catch(() => ({ logged_in: false }));
+    if (!me.logged_in) { window.location.href = '/login'; return; }
+    document.getElementById('username-display').textContent = me.display_name || me.nickname || me.username || 'Player';
+
+    const [defs, earnedArr, stats, unseen] = await Promise.all([
+        fetch('/api/badges/definitions').then(r => r.json()),
+        fetch('/api/badges/earned').then(r => r.json()),
+        fetch('/api/srs/stats').then(r => r.json()),
+        fetch('/api/badges/unseen').then(r => r.json()),
+    ]);
+
+    _defs   = defs;
+    _earned = {};
+    earnedArr.forEach(e => { _earned[e.badge_id] = e; });
+    _stats     = stats;
+    _unseenIds = unseen;
+
+    if (unseen.length) {
+        fetch('/api/badges/seen', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: unseen })
+        });
+        setTimeout(launchConfetti, 300);
+    }
+
+    renderStats();
+    renderBadges();
+}
+
+// ── 統計條 ────────────────────────────────────────────────────
+function renderStats() {
+    const earnedCount = Object.keys(_earned).length;
+    document.getElementById('stat-earned').textContent  = earnedCount;
+    document.getElementById('stat-total-q').textContent = _stats.total_correct ?? 0;
+    document.getElementById('stat-streak').textContent  = _stats.max_streak    ?? 0;
+
+    const rankLevel = _stats.rank_level || '20k';
+    const isKyu = rankLevel.endsWith('k');
+    const rankEl = document.getElementById('stat-rank-level');
+    rankEl.textContent = rankLevel;
+    rankEl.style.color = isKyu ? 'var(--teal)' : 'var(--amber)';
+    document.getElementById('stat-xp').textContent = (_stats.xp || 0).toLocaleString();
+
+    const total = _defs.length;
+    const pct   = total > 0 ? Math.round(earnedCount / total * 100) : 0;
+    document.getElementById('progress-label').textContent = `${earnedCount} / ${total}`;
+    setTimeout(() => {
+        document.getElementById('progress-bar-fill').style.width = pct + '%';
+    }, 100);
+}
+
+// ── 篩選 ──────────────────────────────────────────────────────
+function setFilter(f) {
+    _filter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter'));
+    const btn = document.getElementById('f-' + f);
+    if (btn) btn.classList.add('active-filter');
+    renderBadges();
+}
+
+// renderBadges 內根據稀有度篩選
+function _matchFilter(def) {
+    if (_filter === 'all')       return true;
+    if (_filter === 'earned')    return !!_earned[def.id];
+    if (_filter === 'locked')    return !_earned[def.id];
+    // rarity filters
+    return (def.rarity || 'bronze') === _filter;
+}
+
+// ── 稀有度標籤 ───────────────────────────────────────────────
+function RARITY_LABEL(r) { return I18n.t('badge.rarity.' + (r || 'bronze')); }
+
+// ── 分組渲染 ──────────────────────────────────────────────────
+const SECTION_MAP = [
+    { key: 'premium',           icon: '💎', labelKey: 'bdg.sec.premium',   isPremium: true },
+    { key: 'streak',            icon: '🔥', labelKey: 'bdg.sec.streak'            },
+    { key: 'max_streak',        icon: '🏆', labelKey: 'bdg.sec.max_streak'        },
+    { key: 'total_correct',     icon: '✅', labelKey: 'bdg.sec.total_correct'     },
+    { key: 'combo',             icon: '⚡', labelKey: 'bdg.sec.combo'             },
+    { key: 'mistake_corrected', icon: '📖', labelKey: 'bdg.sec.mistake_corrected' },
+    { key: 'daily_challenge',   icon: '🎯', labelKey: 'bdg.sec.daily_challenge'   },
+    { key: 'rank',              icon: '🏅', labelKey: 'bdg.sec.rank'              },
+    { key: 'xp',                icon: '💡', labelKey: 'bdg.sec.xp'               },
+    { key: 'unit_complete',     icon: '📚', labelKey: 'bdg.sec.unit_complete'     },
+];
+
+function renderBadges() {
+    const main = document.getElementById('badge-main');
+    main.innerHTML = '';
+
+    let hasAny = false;
+
+    SECTION_MAP.forEach(({ key, icon, labelKey, isPremium }) => {
+        let defs = _defs.filter(d => d.type === key && _matchFilter(d));
+        if (!defs.length) return;
+
+        hasAny = true;
+        const earnedInSection = defs.filter(d => _earned[d.id]).length;
+        const section = document.createElement('div');
+        section.className = 'section-wrap fade-up' + (isPremium ? ' premium-section' : '');
+        const label = I18n.t(labelKey);
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'section-label' + (isPremium ? ' premium-label' : '');
+        titleEl.innerHTML = isPremium
+            ? `<span class="premium-crown">${icon}</span> ${label}<span class="section-count premium-count">${earnedInSection}/${defs.length}</span>`
+            : `${icon} ${label}<span class="section-count">${earnedInSection}/${defs.length}</span>`;
+        section.appendChild(titleEl);
+
+        const grid = document.createElement('div');
+        grid.className = 'badge-grid';
+
+        defs.forEach(def => {
+            const earnedInfo = _earned[def.id];
+            const isNew      = _unseenIds.includes(def.id);
+            const rarity     = def.rarity || 'bronze';
+            const premBadge  = def.premium_only;
+            const card       = document.createElement('div');
+            card.className   = 'badge-card'
+                + (earnedInfo ? ' earned' : '')
+                + (isNew      ? ' new-badge' : '')
+                + (premBadge  ? ' premium-badge-card' : '');
+            card.dataset.rarity = rarity;
+
+            let dateStr = '';
+            if (earnedInfo) {
+                const d = new Date(earnedInfo.earned_at);
+                dateStr = `<div class="badge-date">${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}</div>`;
+            }
+
+            const lockHint = premBadge && !earnedInfo
+                ? `<div class="prem-lock-hint" onclick="location.href='/upgrade'">${I18n.t('bdg.prem_lock_hint')}</div>` : '';
+
+            card.innerHTML = `
+                ${isNew ? '<div class="new-pill">NEW</div>' : ''}
+                ${premBadge && earnedInfo ? '<div class="prem-shine"></div>' : ''}
+                <div class="badge-medallion-lg" data-rarity="${rarity}">
+                    <span class="badge-icon-lg">${def.icon}</span>
+                </div>
+                <div class="badge-name">${I18n.localized(def, 'name')}</div>
+                <div class="badge-desc">${I18n.localized(def, 'desc')}</div>
+                <div class="rarity-pill ${rarity}">${RARITY_LABEL(rarity) || rarity}</div>
+                ${lockHint}
+                ${dateStr}
+            `;
+            grid.appendChild(card);
+        });
+
+        section.appendChild(grid);
+        main.appendChild(section);
+    });
+
+    if (!hasAny) {
+        main.innerHTML = `
+            <div class="empty-state fade-up">
+                <div class="e-icon">${_filter === 'earned' ? '🏅' : '🔒'}</div>
+                ${_filter === 'earned' ? I18n.t('badges.empty.earned') : I18n.t('badges.empty.other')}
+            </div>`;
+    }
+}
+
+// ── 紙花 ──────────────────────────────────────────────────────
+function launchConfetti() {
+    const colors = ['#d97706','#0d9488','#16a34a','#dc2626','#2563eb','#9333ea'];
+    for (let i = 0; i < 80; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.cssText = `
+            left:${Math.random()*100}vw; top:-20px;
+            background:${colors[Math.floor(Math.random()*colors.length)]};
+            animation-delay:${Math.random()*1}s;
+            animation-duration:${1.4+Math.random()*.8}s;
+            width:${6+Math.random()*8}px; height:${6+Math.random()*8}px;
+            border-radius:${Math.random()>.5?'50%':'2px'};
+        `;
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+    }
+}
+
+// ── 啟動 ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    I18n.renderSwitcher(document.getElementById('lang-switcher-badges'));
+});
+window.onload = loadAll;
+
+// ── Nav 角色 mini 頭像 ──────────────────────────────────────
+async function loadNavAvatar() {
+  try {
+    const [meRes, appearRes] = await Promise.all([
+      fetch('/api/auth/me',           { credentials:'include' }).then(r=>r.json()),
+      fetch('/api/player/appearance', { credentials:'include' }).then(r=>r.json()),
+    ]);
+    const uname = meRes.display_name || meRes.nickname || meRes.username || 'Player';
+    const el = document.getElementById('username-display');
+    if (el) el.textContent = uname;
+
+    const eq  = appearRes.equipped || {};
+    const byId = Object.fromEntries((appearRes.wardrobe||[]).map(a=>[a.id,a]));
+
+    const base = document.getElementById('nav-avatar-base');
+    const outfitItem = eq.outfit_id ? byId[eq.outfit_id] : null;
+    if (base && outfitItem) { base.style.background = outfitItem.color + '33'; base.style.borderColor = outfitItem.color + '88'; }
+    const hatItem = eq.hat_id ? byId[eq.hat_id] : null;
+    const hatEl   = document.getElementById('nav-avatar-hat');
+    if (hatEl && hatItem) { hatEl.textContent = hatItem.emoji; hatEl.style.opacity = '1'; }
+  } catch(e) {}
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method:'POST', credentials:'include' });
+  location.href = '/login';
+}
+
+</script>
+<script src="/mobile-nav.js?v=20260603mn"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>
