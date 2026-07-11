@@ -99,7 +99,7 @@ function Get-RemoteContainerSnapshot {
         [Parameter(Mandatory = $true)][string]$ResponseName
     )
     $script = @"
-docker inspect $ContainerName --format '{{.Id}}|{{.Image}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{end}}|{{.RestartCount}}|{{if .State.Restarting}}true{{else}}false{{end}}|{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}'
+docker inspect $ContainerName --format '{{.Id}}|{{.Image}}|{{.Config.Image}}|{{.State.Status}}|{{with index .State "Health"}}{{index . "Status"}}{{end}}|{{.RestartCount}}|{{if .State.Restarting}}true{{else}}false{{end}}|{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}'
 "@
     $raw = Invoke-RemoteScriptText -Name $ResponseName -ScriptText $script
     $parts = $raw -split '\|', 9

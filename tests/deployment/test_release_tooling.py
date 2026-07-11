@@ -307,6 +307,7 @@ def test_preflight_script_reports_read_only_production_state():
         "database_identity_match",
     ):
         assert token in content
+    assert '{{with index .State "Health"}}{{index . "Status"}}{{end}}' in content
     assert "docker compose up" not in content
     assert "docker push" not in content
 
