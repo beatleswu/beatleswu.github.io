@@ -455,6 +455,12 @@ def test_deploy_script_supports_legacy_readiness_and_automatic_rollback():
         "legacy_fallback",
         "Get-AppReadinessGateReport",
         "Assert-QuestionsReportSatisfiesGate",
+        "Get-RemoteRuntimeContract",
+        "Start-RemoteCandidateCanary",
+        "Get-RemoteContainerHttpStatus",
+        "public_traffic_attached",
+        "scheduler_started",
+        "Remove-RemoteCandidateCanary",
         "rollback-release.ps1",
         "Deployment failed and automatic rollback succeeded",
         "Automatic rollback failed",
@@ -470,10 +476,34 @@ def test_deploy_script_orders_release_mutations_safely():
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
         "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag",
         'Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)"',
+        "$appRuntimeContract = Get-RemoteRuntimeContract -ContainerName $layout.app_service_name",
+        "$schedulerRuntimeContract = Get-RemoteRuntimeContract -ContainerName $layout.scheduler_service_name",
+        "$candidateCanary = Start-RemoteCandidateCanary -SourceContainerName $layout.app_service_name",
+        "if ($candidateCanary.public_traffic_attached -ne $false)",
+        "if ($candidateCanary.scheduler_started -ne $false)",
+        "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
+        "if ($candidateReadinessReport.healthz_status -ne '200'",
         'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"',
         'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
+        "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName",
     )
+
+
+def test_deploy_script_persists_sanitized_runtime_contracts_for_rollback():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    for token in (
+        '"environment_keys"',
+        '"environment_value_fingerprints"',
+        '"source_hash"',
+        '"postgres_compose_keys_required"',
+        "previous_app_runtime_contract = $appRuntimeContract",
+        "previous_scheduler_runtime_contract = $schedulerRuntimeContract",
+        "Runtime-derived compose database values are incomplete.",
+    ):
+        assert token in content
+    for token in ("full DATABASE_URL", "complete .env"):
+        assert token not in content
 
 
 def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():

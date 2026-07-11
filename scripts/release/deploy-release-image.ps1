@@ -164,6 +164,200 @@ function Get-RemoteContainerEnvMap {
     return $map
 }
 
+function Get-RemoteRuntimeContract {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $script = @"
+python3 - <<'PY'
+import hashlib
+import json
+import subprocess
+
+name = "$ContainerName"
+raw = subprocess.check_output(["docker", "inspect", name], text=True)
+item = json.loads(raw)[0]
+config = item.get("Config") or {}
+host = item.get("HostConfig") or {}
+labels = config.get("Labels") or {}
+env_entries = config.get("Env") or []
+env_keys = []
+env_fingerprints = {}
+for entry in env_entries:
+    key, _, value = entry.partition("=")
+    if not key:
+        continue
+    env_keys.append(key)
+    env_fingerprints[key] = hashlib.sha256(value.encode("utf-8")).hexdigest()
+mounts = []
+for mount in item.get("Mounts") or []:
+    mounts.append({
+        "type": mount.get("Type"),
+        "source_hash": hashlib.sha256((mount.get("Source") or "").encode("utf-8")).hexdigest(),
+        "destination": mount.get("Destination"),
+        "mode": mount.get("Mode"),
+        "rw": mount.get("RW"),
+    })
+networks = sorted((item.get("NetworkSettings") or {}).get("Networks") or {})
+report = {
+    "container": name,
+    "image": config.get("Image"),
+    "image_id": item.get("Image"),
+    "environment_keys": sorted(env_keys),
+    "environment_value_fingerprints": env_fingerprints,
+    "required_database_keys": {
+        "DATABASE_URL": "DATABASE_URL" in env_keys,
+        "QUESTIONS_JSON_PATH": "QUESTIONS_JSON_PATH" in env_keys,
+    },
+    "postgres_compose_keys_required": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB"],
+    "questions_json_path_present": "QUESTIONS_JSON_PATH" in env_keys,
+    "mounts": mounts,
+    "networks": networks,
+    "entrypoint": config.get("Entrypoint"),
+    "command": config.get("Cmd"),
+    "working_dir": config.get("WorkingDir"),
+    "user": config.get("User"),
+    "healthcheck_present": bool(config.get("Healthcheck")),
+    "restart_policy": (host.get("RestartPolicy") or {}).get("Name"),
+    "compose_project": labels.get("com.docker.compose.project"),
+    "compose_service": labels.get("com.docker.compose.service"),
+    "compose_config_files": labels.get("com.docker.compose.project.config_files"),
+    "compose_working_dir": labels.get("com.docker.compose.project.working_dir"),
+}
+print(json.dumps(report, ensure_ascii=False))
+PY
+"@
+    return (Invoke-RemoteText $script | ConvertFrom-Json)
+}
+
+function Start-RemoteCandidateCanary {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceContainerName,
+        [Parameter(Mandatory = $true)][string]$CandidateContainerName,
+        [Parameter(Mandatory = $true)][string]$ImageTag
+    )
+    $payload = @{
+        source_container = $SourceContainerName
+        candidate_container = $CandidateContainerName
+        image_tag = $ImageTag
+    } | ConvertTo-Json -Compress
+    $script = @"
+python3 - <<'PY'
+import json
+import re
+import subprocess
+import time
+
+cfg = json.loads(r'''$payload''')
+source = cfg["source_container"]
+candidate = cfg["candidate_container"]
+image = cfg["image_tag"]
+
+def run(args, check=True):
+    proc = subprocess.run(args, text=True, capture_output=True)
+    if check and proc.returncode != 0:
+        raise RuntimeError((proc.stderr or proc.stdout).strip())
+    return proc
+
+def duration_arg(ns):
+    if not ns:
+        return None
+    seconds = max(1, int(round(ns / 1000000000)))
+    return f"{seconds}s"
+
+def sanitize(text):
+    text = re.sub(r"(postgres(?:ql)?://[^:/\s]+:)[^@\s]+(@)", r"\1<redacted>\2", text)
+    text = re.sub(r"(?i)(password|secret|token|key)=([^\\s]+)", r"\1=<redacted>", text)
+    return text
+
+raw = subprocess.check_output(["docker", "inspect", source], text=True)
+item = json.loads(raw)[0]
+config = item.get("Config") or {}
+host = item.get("HostConfig") or {}
+networks = list(((item.get("NetworkSettings") or {}).get("Networks") or {}).keys())
+primary_network = networks[0] if networks else "bridge"
+
+run(["docker", "rm", "-f", candidate], check=False)
+args = ["docker", "create", "--name", candidate, "--network", primary_network, "--restart", "no"]
+for env in config.get("Env") or []:
+    key, _, value = env.partition("=")
+    if key and key != "HOSTNAME":
+        args.extend(["--env", env])
+if config.get("WorkingDir"):
+    args.extend(["--workdir", config["WorkingDir"]])
+if config.get("User"):
+    args.extend(["--user", config["User"]])
+if config.get("Entrypoint"):
+    args.extend(["--entrypoint", config["Entrypoint"][0] if isinstance(config["Entrypoint"], list) else config["Entrypoint"]])
+health = config.get("Healthcheck") or {}
+test = health.get("Test") or []
+if len(test) >= 2 and test[0] != "NONE":
+    if test[0] == "CMD-SHELL":
+        args.extend(["--health-cmd", test[1]])
+    elif test[0] == "CMD":
+        args.extend(["--health-cmd", " ".join(test[1:])])
+    for flag, key in (("--health-interval", "Interval"), ("--health-timeout", "Timeout"), ("--health-start-period", "StartPeriod")):
+        value = duration_arg(health.get(key))
+        if value:
+            args.extend([flag, value])
+    if health.get("Retries"):
+        args.extend(["--health-retries", str(health["Retries"])])
+for mount in item.get("Mounts") or []:
+    mtype = mount.get("Type")
+    source_path = mount.get("Source")
+    dest = mount.get("Destination")
+    if not mtype or not source_path or not dest:
+        continue
+    option = f"type={mtype},src={source_path},dst={dest}"
+    if not mount.get("RW", True):
+        option += ",readonly"
+    args.extend(["--mount", option])
+args.append(image)
+cmd = config.get("Cmd")
+if isinstance(cmd, list):
+    args.extend(cmd)
+elif cmd:
+    args.append(cmd)
+run(args)
+for network in networks[1:]:
+    run(["docker", "network", "connect", network, candidate])
+run(["docker", "start", candidate])
+
+health_status = "no-healthcheck"
+state_status = "unknown"
+for _ in range(60):
+    state_raw = subprocess.check_output(["docker", "inspect", candidate, "--format", "{{json .State}}"], text=True)
+    state = json.loads(state_raw)
+    state_status = state.get("Status", "unknown")
+    health_status = (state.get("Health") or {}).get("Status", "no-healthcheck")
+    if state_status != "running":
+        break
+    if health_status in ("healthy", "no-healthcheck"):
+        break
+    if health_status == "unhealthy":
+        break
+    time.sleep(2)
+
+image_id = subprocess.check_output(["docker", "inspect", candidate, "--format", "{{.Image}}"], text=True).strip()
+logs = subprocess.run(["docker", "logs", "--tail", "120", candidate], text=True, capture_output=True)
+print(json.dumps({
+    "candidate_container": candidate,
+    "source_container": source,
+    "public_traffic_attached": False,
+    "scheduler_started": False,
+    "state": state_status,
+    "health": health_status,
+    "image_id": image_id,
+    "logs_tail": sanitize(logs.stdout + logs.stderr)[-8000:],
+}, ensure_ascii=False))
+PY
+"@
+    return (Invoke-RemoteText $script | ConvertFrom-Json)
+}
+
+function Remove-RemoteCandidateCanary {
+    param([Parameter(Mandatory = $true)][string]$CandidateContainerName)
+    Invoke-RemoteText "docker rm -f $(Quote-PosixShellArgument $CandidateContainerName) >/dev/null 2>&1 || true" | Out-Null
+}
+
 function Test-HelperUnavailableOutput {
     param([string]$Output)
     if ([string]::IsNullOrWhiteSpace($Output)) {
@@ -268,6 +462,15 @@ function Get-RemoteHttpStatus {
     return (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $Url)").Trim()
 }
 
+function Get-RemoteContainerHttpStatus {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+    $url = "http://127.0.0.1:8080$Path"
+    return (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $ContainerName) curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $url)").Trim()
+}
+
 function Assert-QuestionsReportSatisfiesGate {
     param([Parameter(Mandatory = $true)]$QuestionsReport)
     if (-not $QuestionsReport.exists) {
@@ -288,22 +491,30 @@ function Assert-QuestionsReportSatisfiesGate {
 }
 
 function Get-AppReadinessGateReport {
-    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [switch]$UseContainerHttp
+    )
     $readinessMode = Try-Get-RemoteReadinessReport -ContainerName $ContainerName
     $appEnv = Get-RemoteContainerEnvMap -ContainerName $ContainerName
     $expectedQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
     $questionsPath = if (-not [string]::IsNullOrWhiteSpace($appEnv['QUESTIONS_JSON_PATH'])) { $appEnv['QUESTIONS_JSON_PATH'] } else { $expectedQuestionsPath }
     $questionsReport = if ($readinessMode.mode -eq 'helper') { $readinessMode.report.questions } else { Get-RemoteQuestionsReport -ContainerName $ContainerName -QuestionsPath $questionsPath }
+    $healthzStatus = if ($UseContainerHttp) { Get-RemoteContainerHttpStatus -ContainerName $ContainerName -Path '/healthz' } else { Get-RemoteHttpStatus -Url $layout.health_url }
+    $loginStatus = if ($UseContainerHttp) { Get-RemoteContainerHttpStatus -ContainerName $ContainerName -Path '/login' } else { Get-RemoteHttpStatus -Url $layout.login_url }
+    $homeStatus = if ($UseContainerHttp) { Get-RemoteContainerHttpStatus -ContainerName $ContainerName -Path '/' } else { Get-RemoteHttpStatus -Url $layout.homepage_url }
+    $dailyChallengeStatus = if ($UseContainerHttp) { Get-RemoteContainerHttpStatus -ContainerName $ContainerName -Path '/api/daily-challenge/today' } else { Get-RemoteHttpStatus -Url (Get-DailyChallengeUrl -BaseUrl $layout.homepage_url) }
     return [ordered]@{
         helper_available = $readinessMode.helper_available
         readiness_mode = $readinessMode.mode
         readiness = $readinessMode.report
         questions_json_path = $questionsPath
         questions = $questionsReport
-        healthz_status = Get-RemoteHttpStatus -Url $layout.health_url
-        login_status = Get-RemoteHttpStatus -Url $layout.login_url
-        home_status = Get-RemoteHttpStatus -Url $layout.homepage_url
-        daily_challenge_status = Get-RemoteHttpStatus -Url (Get-DailyChallengeUrl -BaseUrl $layout.homepage_url)
+        http_mode = if ($UseContainerHttp) { 'container_local' } else { 'public' }
+        healthz_status = $healthzStatus
+        login_status = $loginStatus
+        home_status = $homeStatus
+        daily_challenge_status = $dailyChallengeStatus
     }
 }
 
@@ -412,6 +623,9 @@ if (-not $Execute) {
             'verify compose resolves exact release image',
             'load the exact image into the remote Docker engine',
             'capture rollback identity from currently running services',
+            'capture sanitized runtime contracts from app and scheduler',
+            'start candidate canary with the live app runtime contract and no public traffic',
+            'verify candidate canary health, image identity, questions, and runtime readiness',
             'switch app to the release image',
             'verify app health and runtime readiness',
             'switch scheduler to the release image',
@@ -481,6 +695,11 @@ $deploymentRecord = $null
 $appAfter = $null
 $schedulerAfter = $null
 $appReadinessReport = $null
+$candidateContainerName = "go-odyssey-candidate-$($artifactBaseName)"
+$appRuntimeContract = $null
+$schedulerRuntimeContract = $null
+$candidateCanary = $null
+$candidateReadinessReport = $null
 $verificationReport = $null
 $rollbackRequired = $false
 
@@ -553,6 +772,16 @@ try {
 
     $appBeforeLabels = Get-RemoteImageLabels -ImageTag $appBefore.image_tag
     $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_tag
+    $appRuntimeContract = Get-RemoteRuntimeContract -ContainerName $layout.app_service_name
+    $schedulerRuntimeContract = Get-RemoteRuntimeContract -ContainerName $layout.scheduler_service_name
+    foreach ($key in @('DATABASE_URL', 'QUESTIONS_JSON_PATH')) {
+        if (-not $appRuntimeContract.required_database_keys.$key) {
+            throw "Live app runtime contract is missing required environment key: $key"
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($databaseComponents.user) -or [string]::IsNullOrWhiteSpace($databaseComponents.password) -or [string]::IsNullOrWhiteSpace($databaseComponents.database)) {
+        throw "Runtime-derived compose database values are incomplete."
+    }
     $rollbackIdentity = [ordered]@{
         previous_app_image_tag = $appBefore.image_tag
         previous_app_image_id = $appBefore.image_id
@@ -565,12 +794,49 @@ try {
         previous_health_state = $appBefore.health
         current_compose_project = $layout.compose_project
         current_compose_directory = $layout.compose_directory
+        previous_app_runtime_contract = $appRuntimeContract
+        previous_scheduler_runtime_contract = $schedulerRuntimeContract
     }
     $deploymentRecord = New-DeploymentRecord -RollbackIdentity $rollbackIdentity -VerificationResult 'deployment in progress'
     Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
     & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed while transferring the deployment record."
+    }
+
+    $candidateCanary = Start-RemoteCandidateCanary -SourceContainerName $layout.app_service_name -CandidateContainerName $candidateContainerName -ImageTag $manifest.image_tag
+    if ($candidateCanary.public_traffic_attached -ne $false) {
+        throw "Candidate canary unexpectedly reports public traffic attachment."
+    }
+    if ($candidateCanary.scheduler_started -ne $false) {
+        throw "Candidate canary unexpectedly reports scheduler startup."
+    }
+    if ($candidateCanary.image_id -ne $ExpectedImageId) {
+        throw "Candidate canary image ID does not match the release image ID."
+    }
+    if ($candidateCanary.state -ne 'running') {
+        throw "Candidate canary is not running. Sanitized logs: $($candidateCanary.logs_tail)"
+    }
+    if ($candidateCanary.health -ne 'healthy' -and $candidateCanary.health -ne 'no-healthcheck') {
+        throw "Candidate canary is not healthy. Sanitized logs: $($candidateCanary.logs_tail)"
+    }
+    $candidateImageSummary = Get-RemoteImageSummary -ImageTag $manifest.image_tag
+    if ($candidateImageSummary.platform -ne 'linux/arm64' -or $candidateImageSummary.revision -ne $ExpectedGitSha) {
+        throw "Candidate canary image metadata does not match the expected platform and revision."
+    }
+    $candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp
+    if ($candidateReadinessReport.readiness_mode -ne 'helper') {
+        throw "Candidate canary requires runtime readiness helper for DB and application readiness validation."
+    }
+    if ($candidateReadinessReport.readiness.ok -ne $true) {
+        throw "Candidate canary runtime readiness check failed."
+    }
+    Assert-QuestionsReportSatisfiesGate -QuestionsReport $candidateReadinessReport.questions
+    if ($candidateReadinessReport.healthz_status -ne '200' -or $candidateReadinessReport.login_status -ne '200' -or $candidateReadinessReport.home_status -ne '200') {
+        throw "Candidate canary container-local HTTP gates failed."
+    }
+    if ($candidateReadinessReport.daily_challenge_status -eq '503') {
+        throw "Daily challenge returned 503 during candidate canary validation."
     }
 
     $rollbackRequired = $true
@@ -628,6 +894,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed while updating the remote deployment record."
     }
+    Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName
 
     [ordered]@{
         dry_run = $false
@@ -650,6 +917,10 @@ try {
         remote_image_platform = $remoteImageSummary.platform
         app_before = $appBefore
         scheduler_before = $schedulerBefore
+        app_runtime_contract = $appRuntimeContract
+        scheduler_runtime_contract = $schedulerRuntimeContract
+        candidate_canary = $candidateCanary
+        candidate_readiness = $candidateReadinessReport
         app_after = $appAfter
         scheduler_after = $schedulerAfter
         app_readiness = $appReadinessReport
@@ -658,6 +929,13 @@ try {
 }
 catch {
     $deploymentFailureMessage = $_.Exception.Message
+    if ($candidateContainerName) {
+        try {
+            Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName
+        }
+        catch {
+        }
+    }
     if ($rollbackRequired -and $deploymentRecordPath -and (Test-Path -LiteralPath $deploymentRecordPath)) {
         try {
             $rollbackOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'rollback-release.ps1') -RollbackManifest $deploymentRecordPath -LayoutFile $LayoutFile -Execute -OwnerGate 'GO_ROLLBACK'
