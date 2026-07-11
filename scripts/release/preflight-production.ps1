@@ -59,7 +59,8 @@ function Invoke-RemoteCommandResult {
     try {
         $ErrorActionPreference = 'Continue'
         if ($PSBoundParameters.ContainsKey('ScriptText')) {
-            $rawOutput = $ScriptText | & ssh $layout.ssh_alias 'sh -s' 2>&1
+            $normalizedScriptText = $ScriptText -replace "`r`n", "`n" -replace "`r", "`n"
+            $rawOutput = $normalizedScriptText | & ssh $layout.ssh_alias 'sh -s' 2>&1
         }
         else {
             $rawOutput = & ssh $layout.ssh_alias $Command 2>&1
