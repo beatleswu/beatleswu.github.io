@@ -549,7 +549,7 @@ def test_container_local_http_probe_uses_python_not_curl():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     assert "docker exec $(Quote-PosixShellArgument $ContainerName) curl" not in content
     for token in (
-        "docker exec $(Quote-PosixShellArgument $ContainerName) python -c",
+        "docker exec -i $(Quote-PosixShellArgument $ContainerName) python - $(Quote-PosixShellArgument $url)",
         "urllib.request.urlopen",
         "urllib.error.HTTPError",
     ):

@@ -582,8 +582,11 @@ try:
 except urllib.error.HTTPError as exc:
     print(exc.code)
 '@
-    $pythonEscaped = $python.Replace("'", "'""'""'")
-    return (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $ContainerName) python -c '$(($pythonEscaped -replace "`r?`n", '; '))' $(Quote-PosixShellArgument $url)").Trim()
+    $result = Invoke-RemoteCommandResult -Name 'container_http_status' -Command "docker exec -i $(Quote-PosixShellArgument $ContainerName) python - $(Quote-PosixShellArgument $url)" -StdinText $python
+    if ($result.exit_code -ne 0) {
+        throw "Remote command failed: $($result.output)"
+    }
+    return $result.output.Trim()
 }
 
 function Assert-QuestionsReportSatisfiesGate {
