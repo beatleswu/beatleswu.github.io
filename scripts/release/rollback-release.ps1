@@ -258,10 +258,27 @@ function New-RollbackVerificationManifest {
         -SGFEngineSourceCommit $manifest.sgf_engine_source_commit
 }
 
+function Get-DatabaseUrlComponents {
+    param([Parameter(Mandatory = $true)][string]$DatabaseUrl)
+    $uri = [Uri]$DatabaseUrl
+    $userInfo = $uri.UserInfo -split ':', 2
+    return [ordered]@{
+        user = if ($userInfo.Count -gt 0) { [Uri]::UnescapeDataString($userInfo[0]) } else { '' }
+        password = if ($userInfo.Count -gt 1) { [Uri]::UnescapeDataString($userInfo[1]) } else { '' }
+        database = $uri.AbsolutePath.TrimStart('/')
+    }
+}
+
 function Get-RemoteComposeEnvironmentPrefix {
-    param([Parameter(Mandatory = $true)][string]$ImageTag)
+    param(
+        [Parameter(Mandatory = $true)][string]$ImageTag,
+        [Parameter(Mandatory = $true)]$DatabaseComponents
+    )
     $pairs = [ordered]@{
         GO_ODYSSEY_IMAGE = $ImageTag
+        POSTGRES_USER = $DatabaseComponents.user
+        POSTGRES_PASSWORD = $DatabaseComponents.password
+        POSTGRES_DB = $DatabaseComponents.database
         QUESTIONS_CONTENT_SOURCE_PATH = $layout.questions_content_source_path
         QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
         ASSET_SOURCE_PATH = $layout.asset_source_path
@@ -331,6 +348,8 @@ if ($rollbackIdentity.previous_app_release_git_sha -and $rollbackIdentity.previo
 
 $appBefore = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+$schedulerEnv = Get-RemoteContainerEnvMap -ContainerName $layout.scheduler_service_name
+$databaseComponents = Get-DatabaseUrlComponents -DatabaseUrl $schedulerEnv['DATABASE_URL']
 $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
 $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
 $appBeforeLabels = Get-RemoteImageLabels -ImageTag $appBefore.image_tag
@@ -338,9 +357,9 @@ $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_
 
 $rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageTag $rollbackImageTag -RollbackGitSha $rollbackGitSha -RollbackImageId $rollbackImageId
 Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerificationManifestPath
-$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag
+$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $appComposeService"
+Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"
 
 $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 if ($appAfter.image_tag -ne $rollbackImageTag) {
@@ -359,7 +378,7 @@ if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.rea
 }
 Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $schedulerComposeService"
+Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
 $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
 if ($schedulerAfter.image_tag -ne $rollbackImageTag) {

@@ -41,7 +41,15 @@ function Get-OriginMasterSha {
 
 function Get-ShortGitSha {
     param([Parameter(Mandatory = $true)][string]$GitSha)
-    return $GitSha.Substring(0, 8)
+    $normalized = $GitSha.Trim()
+    if ($normalized.Length -ge 8) {
+        return $normalized.Substring(0, 8)
+    }
+    $safe = ($normalized -replace '[^0-9A-Za-z_-]', '')
+    if ([string]::IsNullOrWhiteSpace($safe)) {
+        $safe = 'unknown'
+    }
+    return $safe.PadRight(8, '0').Substring(0, 8)
 }
 
 function Get-ReleaseImageTag {
@@ -262,6 +270,7 @@ Export-ModuleMember -Function @(
     'Get-ReleaseImageTag',
     'Get-ReleaseLayout',
     'Get-RepoRoot',
+    'Get-ShortGitSha',
     'Quote-PosixShellArgument',
     'Invoke-Git',
     'New-DetachedWorktree',
