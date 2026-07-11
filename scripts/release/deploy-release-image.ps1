@@ -304,7 +304,7 @@ if len(test) >= 2 and test[0] != "NONE":
         args.extend(["--health-retries", str(health["Retries"])])
 for mount in item.get("Mounts") or []:
     mtype = mount.get("Type")
-    source_path = mount.get("Source")
+    source_path = mount.get("Name") if mtype == "volume" else mount.get("Source")
     dest = mount.get("Destination")
     if not mtype or not source_path or not dest:
         continue
