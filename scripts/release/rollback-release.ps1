@@ -26,6 +26,8 @@ if (-not $Execute) {
             'validate rollback target',
             'restore app first',
             'verify app health',
+            'verify runtime readiness',
+            'verify gameplay gates',
             'restore scheduler',
             'verify both services use the rollback image',
             'preserve PostgreSQL and candidate evidence'

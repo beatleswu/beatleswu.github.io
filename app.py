@@ -3752,6 +3752,11 @@ def admin_shadow_dashboard_recent():
         schema_version=schema_version,
     ))
 
+@app.route('/api/admin/deployment/readiness')
+@admin_required
+def admin_deployment_readiness():
+    return jsonify(_read_runtime_deployment_readiness())
+
 def sm2_update(ef, iv, rp, grade):
     q = grade
     if q < 3:
@@ -3883,6 +3888,178 @@ def _load_questions_fresh():
     if not isinstance(data, list):
         raise ValueError('questions.json must contain a JSON list')
     return [item if isinstance(item, dict) else {} for item in data]
+
+_QUESTIONS_JSON_MAX_BYTES = 128 * 1024 * 1024
+_QUESTIONS_JSON_MAX_RECORDS = 200000
+
+
+def _read_questions_dataset_readiness(path=None):
+    configured_path = (path or DATA_FILE or '').strip()
+    report = {
+        'configured_path': configured_path,
+        'exists': False,
+        'readable': False,
+        'parseable': False,
+        'top_level_type': '',
+        'schema_version': None,
+        'record_count': 0,
+        'record_count_ok': False,
+        'within_byte_bound': False,
+        'content_sha256': None,
+        'structural_record_check': False,
+        'size_bytes': None,
+        'failures': [],
+    }
+    if not configured_path:
+        report['failures'].append('questions path is not configured')
+        return report
+    if not os.path.exists(configured_path):
+        report['failures'].append('questions file is missing')
+        return report
+    report['exists'] = True
+    if not os.access(configured_path, os.R_OK):
+        report['failures'].append('questions file is not readable')
+        return report
+    report['readable'] = True
+    try:
+        report['size_bytes'] = os.path.getsize(configured_path)
+        report['within_byte_bound'] = report['size_bytes'] <= _QUESTIONS_JSON_MAX_BYTES
+        if not report['within_byte_bound']:
+            report['failures'].append('questions file exceeds bounded size limit')
+            return report
+        digest = hashlib.sha256()
+        with open(configured_path, 'rb') as fh:
+            raw = fh.read()
+            digest.update(raw)
+        report['content_sha256'] = digest.hexdigest()
+        text = raw.decode('utf-8')
+        data = json.loads(text)
+    except (UnicodeDecodeError, json.JSONDecodeError, OSError, ValueError) as exc:
+        report['failures'].append(f'questions file parse failed: {exc.__class__.__name__}')
+        return report
+    report['parseable'] = True
+    report['top_level_type'] = type(data).__name__
+    if not isinstance(data, list):
+        report['failures'].append('questions file top-level value must be a JSON list')
+        return report
+    report['record_count'] = len(data)
+    report['record_count_ok'] = 0 < report['record_count'] <= _QUESTIONS_JSON_MAX_RECORDS
+    if not report['record_count_ok']:
+        if report['record_count'] == 0:
+            report['failures'].append('questions file contains no records')
+        else:
+            report['failures'].append('questions file exceeds bounded record limit')
+        return report
+    sample = next((record for record in data[:20] if isinstance(record, dict)), None)
+    if sample:
+        report['structural_record_check'] = bool(
+            any(sample.get(key) not in (None, '') for key in (
+                'id',
+                'question_id',
+                'source',
+                'content',
+                'sgf',
+            ))
+        )
+        schema_version = sample.get('schema_version')
+        if schema_version not in (None, ''):
+            report['schema_version'] = str(schema_version)
+    else:
+        report['failures'].append('questions file does not contain a structural record')
+    if not report['structural_record_check']:
+        report['failures'].append('questions file failed the bounded structural record check')
+    return report
+
+
+def _read_runtime_deployment_readiness():
+    from db import describe_database_url
+
+    app_git_sha = (os.environ.get('APP_GIT_SHA') or os.environ.get('SOURCE_VERSION') or os.environ.get('GIT_COMMIT') or '').strip()
+    image_revision = (os.environ.get('APP_GIT_SHA') or os.environ.get('SOURCE_VERSION') or os.environ.get('GIT_COMMIT') or '').strip()
+    static_root = (os.environ.get('GO_ODYSSEY_LIVE_STATIC_ROOT') or '').strip()
+    shadow_events_path = (os.environ.get('SHADOW_EVENTS_PATH') or shadow_dashboard.DEFAULT_SHADOW_EVENTS_PATH or '').strip()
+    shadow_events_parent = os.path.dirname(shadow_events_path) or '.'
+
+    questions = _read_questions_dataset_readiness()
+    database_identity = describe_database_url(os.environ.get('DATABASE_URL'))
+    database = {
+        'identity': database_identity,
+        'reachable': False,
+        'tables': {},
+        'failures': [],
+    }
+    required_tables = ('review_log', 'srs_cards', 'mistake_log', 'user_stats')
+    try:
+        with get_db() as conn:
+            conn.execute('SELECT 1')
+            database['reachable'] = True
+            for table in required_tables:
+                try:
+                    conn.execute(f'SELECT 1 FROM {table} LIMIT 1')
+                    database['tables'][table] = {'ok': True}
+                except Exception as exc:
+                    database['tables'][table] = {
+                        'ok': False,
+                        'error': exc.__class__.__name__,
+                    }
+                    database['failures'].append(f'{table} unavailable')
+    except Exception as exc:
+        database['failures'].append(f'database connection failed: {exc.__class__.__name__}')
+
+    static_root_ok = bool(static_root) and os.path.isdir(static_root) and os.access(static_root, os.R_OK)
+    shadow_events_exists = os.path.exists(shadow_events_path)
+    shadow_events_valid = False
+    if shadow_events_exists:
+        shadow_events_valid = os.access(shadow_events_path, os.R_OK)
+        if shadow_events_valid:
+            shadow_events_valid = os.access(shadow_events_path, os.W_OK) or os.access(shadow_events_parent, os.W_OK)
+    else:
+        shadow_events_valid = os.access(shadow_events_parent, os.W_OK)
+
+    report = {
+        'ok': False,
+        'app': {
+            'git_sha': app_git_sha,
+            'image_revision': image_revision,
+            'build_date': (os.environ.get('APP_BUILD_DATE') or '').strip(),
+            'questions_json_commit': _get_questions_json_commit(),
+        },
+        'questions': questions,
+        'database': database,
+        'static_root': {
+            'path': static_root,
+            'exists': bool(static_root) and os.path.isdir(static_root),
+            'readable': static_root_ok,
+        },
+        'shadow_events': {
+            'path': shadow_events_path,
+            'exists': shadow_events_exists,
+            'readable': shadow_events_exists and os.access(shadow_events_path, os.R_OK),
+            'writable_or_valid': shadow_events_valid,
+        },
+        'failures': [],
+    }
+
+    if not app_git_sha:
+        report['failures'].append('app git sha is missing')
+    if not image_revision:
+        report['failures'].append('image revision is missing')
+    if not questions['parseable'] or not questions['record_count_ok'] or not questions['structural_record_check']:
+        report['failures'].extend(questions['failures'])
+    if not database['reachable']:
+        report['failures'].extend(database['failures'])
+    else:
+        for table_name, result in database['tables'].items():
+            if not result.get('ok'):
+                report['failures'].append(f'{table_name} unavailable')
+    if not report['static_root']['readable']:
+        report['failures'].append('live static root is not readable')
+    if not report['shadow_events']['writable_or_valid']:
+        report['failures'].append('shadow events path is not writable or valid')
+
+    report['ok'] = len(report['failures']) == 0
+    return report
+
 
 def _question_content_sha256(record):
     content = record.get('content')

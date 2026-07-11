@@ -35,13 +35,14 @@ if (-not $Execute) {
             'load exact image',
             'verify OCI revision',
             'capture rollback identity',
-            'tag rollback image',
-            'write release record',
-            'switch app',
-            'wait for app health',
-            'verify HTTP and container state',
+            'start candidate app',
+            'verify strong runtime readiness',
+            'verify daily challenge and gameplay gates',
+            'run browser board smoke',
+            'run safe SRS review smoke',
             'switch scheduler',
-            'verify scheduler image',
+            'verify scheduler image and database identity',
+            'write drift verification report',
             'stop before Production mutation'
         )
     } | ConvertTo-Json -Depth 12 | Write-Output

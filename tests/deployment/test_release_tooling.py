@@ -162,7 +162,15 @@ def test_package_script_exports_checksum_and_manifest():
 
 def test_preflight_script_reports_read_only_production_state():
     content = read_text(REPO_ROOT / "scripts" / "release" / "preflight-production.ps1")
-    for token in ("docker version", "docker compose version", "df -h", "candidate_release_manifest_exists"):
+    for token in (
+        "docker version",
+        "docker compose version",
+        "df -h",
+        "candidate_release_manifest_exists",
+        "Get-RemoteReadinessReport",
+        "QUESTIONS_JSON_PATH",
+        "database_identity_match",
+    ):
         assert token in content
     assert "docker compose up" not in content
     assert "docker push" not in content
@@ -184,8 +192,37 @@ def test_rollback_script_defaults_to_dry_run_and_requires_owner_gate():
 
 def test_verify_script_includes_e24a_and_premium_weekly_checks():
     content = read_text(REPO_ROOT / "scripts" / "release" / "verify-production-release.ps1")
-    for token in ("SELFTEST OK (10/10)", "premium_weekly_default", "fail_observable_code_present", "shadow_verdict_simple_absent"):
+    for token in (
+        "SELFTEST OK (10/10)",
+        "premium_weekly_default",
+        "fail_observable_code_present",
+        "shadow_verdict_simple_absent",
+        "Get-RemoteReadinessReport",
+        "readiness",
+    ):
         assert token in content
+
+
+def test_env_example_documents_runtime_contract():
+    content = read_text(REPO_ROOT / ".env.production.example")
+    for token in ("GO_ODYSSEY_LIVE_STATIC_ROOT", "QUESTIONS_JSON_PATH", "SHADOW_EVENTS_PATH"):
+        assert token in content
+
+
+def test_project_os_doc_describes_required_workflow():
+    content = read_text(REPO_ROOT / "docs" / "project-os-v2.md")
+    for token in ("risk classes", "standard sprint lifecycle", "mandatory production gates", "gameplay deployment definition", "go deploy"):
+        assert token in content.lower()
+
+
+def test_drift_verification_example_is_secret_free_and_structured():
+    report = load_json(REPO_ROOT / "deploy" / "drift-verification.example.json")
+    assert report["image_tag"].startswith("go-odyssey-app:")
+    assert report["architecture"] == "linux/arm64"
+    assert report["app_scheduler_config_match"] is True
+    serialized = json.dumps(report).lower()
+    assert "password" not in serialized
+    assert "database_url" not in serialized
 
 
 def test_release_artifacts_are_ignored():

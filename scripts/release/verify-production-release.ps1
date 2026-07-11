@@ -35,6 +35,12 @@ function Get-RemoteHealthStatus {
     return 'n/a'
 }
 
+function Get-RemoteReadinessReport {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $json = Invoke-RemoteText "docker exec $ContainerName python -X utf8 -c 'import json, app; print(json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False))'"
+    return ($json | ConvertFrom-Json)
+}
+
 if ($DryRun) {
     [ordered]@{
         dry_run = $true
@@ -46,10 +52,12 @@ if ($DryRun) {
             fail_observable_code_present = $true
             shadow_verdict_simple_absent = $true
         }
+        readiness_gate = 'required'
     } | ConvertTo-Json -Depth 8 | Write-Output
     return
 }
 
+$readiness = Get-RemoteReadinessReport -ContainerName $layout.app_service_name
 $report = [ordered]@{
     release_git_sha = $manifest.release_git_sha
     expected_health_endpoints = $manifest.expected_health_endpoints
@@ -66,6 +74,7 @@ $report = [ordered]@{
         fail_observable_code_present = $true
         shadow_verdict_simple_absent = $true
     }
+    readiness = $readiness
 }
 
 if ($report.release_git_sha -ne $manifest.release_git_sha -or $report.release_git_sha -ne $manifest.oci_revision) {
@@ -82,6 +91,12 @@ if ($report.healthz_status -ne '200' -or $report.login_status -ne '200' -or $rep
 }
 if ($report.shadow_selftest -notmatch 'SELFTEST OK \(10/10\)') {
     throw "Shadow self-test did not report SELFTEST OK (10/10)."
+}
+if ($readiness.ok -ne $true) {
+    throw "Runtime readiness check failed."
+}
+if ($readiness.questions.record_count -le 0) {
+    throw "Questions dataset is empty."
 }
 
 $appLogs = Invoke-RemoteText "docker logs $($layout.app_service_name) 2>&1 | tail -n 400"
