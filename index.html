@@ -7237,11 +7237,15 @@ async function loadTodayStats(){
 
 // ─── XP HUD ────────────────────────────────────────────────────
 function updateXpHud(xp, rankLevel, rankPct, detail) {
-    document.getElementById('xp-hud').style.display = 'flex';
+    const hud = document.getElementById('xp-hud');
+    if (!hud) return;
+    hud.style.display = 'flex';
     const badge = document.getElementById('xp-rank-badge');
-    badge.textContent = rankLevel || 'LV1';
-    document.getElementById('xp-bar-fill').style.width = (rankPct || 0) + '%';
-    document.getElementById('xp-total').textContent = (xp || 0) + ' XP';
+    if (badge) badge.textContent = rankLevel || 'LV1';
+    const barFill = document.getElementById('xp-bar-fill');
+    if (barFill) barFill.style.width = (rankPct || 0) + '%';
+    const total = document.getElementById('xp-total');
+    if (total) total.textContent = (xp || 0) + ' XP';
     const helpLevel = document.getElementById('xp-help-level');
     const helpProgress = document.getElementById('xp-help-progress');
     if (detail && helpLevel && helpProgress) {
@@ -7258,11 +7262,12 @@ function updateXpHud(xp, rankLevel, rankPct, detail) {
             : (_isEnXpHud
                 ? `${(xp || 0).toLocaleString()} XP · Max level reached`
                 : `${(xp || 0).toLocaleString()} XP，已達目前最高等級`);
-        document.getElementById('xp-hud').title = helpProgress.textContent;
+        hud.title = helpProgress.textContent;
     }
 }
 function popRankBadge() {
     const b = document.getElementById('xp-rank-badge');
+    if (!b) return;
     b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
 }
 function spawnXpFloat(xpGain, comboMult) {
