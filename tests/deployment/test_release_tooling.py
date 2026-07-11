@@ -25,6 +25,10 @@ def load_json(path):
     return json.loads(read_text(path))
 
 
+def write_json(path, payload):
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
 def assert_tokens_in_order(content, *tokens):
     cursor = 0
     for token in tokens:
@@ -50,6 +54,125 @@ def assert_powershell_parse_ok(path):
         check=False,
     )
     assert result.returncode == 0, f"{path} did not parse: {result.stdout}\n{result.stderr}"
+
+
+def make_fake_preflight_responses(*, helper_mode="helper"):
+    responses = {
+        "app_container_snapshot": {
+            "stdout": "cid-app|sha256:app-current|go-odyssey-app:current|running|healthy|0|false|go-odyssey|app"
+        },
+        "scheduler_container_snapshot": {
+            "stdout": "cid-scheduler|sha256:scheduler-current|go-odyssey-app:current|running||0|false|go-odyssey|scheduler"
+        },
+        "nginx_container_snapshot": {
+            "stdout": "cid-nginx|sha256:nginx-current|nginx:alpine|running||0|false|go-odyssey|nginx"
+        },
+        "app_env": {
+            "stdout": json.dumps(
+                [
+                    "DATABASE_URL=postgresql://godokoro:super-secret@db.internal:5432/go_odyssey",
+                    "QUESTIONS_JSON_PATH=/app/data/questions.json",
+                    "GO_ODYSSEY_LIVE_STATIC_ROOT=/opt/go-odyssey-static/current",
+                    "SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl",
+                ]
+            )
+        },
+        "scheduler_env": {
+            "stdout": json.dumps(
+                [
+                    "DATABASE_URL=postgresql://godokoro:super-secret@db.internal:5432/go_odyssey",
+                    "QUESTIONS_JSON_PATH=/app/data/questions.json",
+                ]
+            )
+        },
+        "docker_version": {"stdout": "29.5.3"},
+        "compose_version": {"stdout": "2.39.1"},
+        "disk_free_kb": {"stdout": "overlay 4194304 1024 4193280 1% /"},
+        "remote_staging_path_status": {"stdout": "parent-writable"},
+        "healthz_status": {"stdout": "200"},
+        "healthz_body": {"stdout": '{"ok": true}'},
+        "login_status": {"stdout": "200"},
+        "home_status": {"stdout": "200"},
+        "daily_challenge_status": {"stdout": "200"},
+        "questions_report": {
+            "stdout": json.dumps(
+                {
+                    "path": "/app/data/questions.json",
+                    "exists": True,
+                    "readable": True,
+                    "parseable": True,
+                    "top_level_type": "list",
+                    "record_count": 321,
+                    "record_count_ok": True,
+                    "structural_record_check": True,
+                    "failures": [],
+                }
+            )
+        },
+    }
+    if helper_mode == "helper":
+        responses["app_helper_readiness"] = {
+            "stdout": json.dumps(
+                {
+                    "ok": True,
+                    "questions": {
+                        "path": "/app/data/questions.json",
+                        "exists": True,
+                        "readable": True,
+                        "parseable": True,
+                        "record_count": 321,
+                        "record_count_ok": True,
+                        "structural_record_check": True,
+                        "failures": [],
+                    },
+                    "database": {"reachable": True, "tables": {}},
+                }
+            )
+        }
+    elif helper_mode == "legacy":
+        responses["app_helper_readiness"] = {
+            "stdout": "AttributeError: module 'app' has no attribute '_read_runtime_deployment_readiness'",
+            "exit_code": 1,
+        }
+    elif helper_mode == "error":
+        responses["app_helper_readiness"] = {
+            "stdout": "Traceback (most recent call last): RuntimeError: helper crashed unexpectedly",
+            "exit_code": 1,
+        }
+    else:
+        raise AssertionError(f"unknown helper_mode: {helper_mode}")
+    return {"responses": responses}
+
+
+def run_preflight_with_fake_remote(tmp_path, fake_remote_payload):
+    fake_remote_path = tmp_path / "fake-remote.json"
+    archive_path = tmp_path / "release.tar"
+    archive_path.write_bytes(b"artifact")
+    write_json(fake_remote_path, fake_remote_payload)
+    env = os.environ.copy()
+    env["GO_ODYSSEY_PREFLIGHT_FAKE_REMOTE_RESPONSES"] = str(fake_remote_path)
+    result = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(REPO_ROOT / "scripts" / "release" / "preflight-production.ps1"),
+            "-LayoutFile",
+            str(REPO_ROOT / "deploy" / "release-layout.example.json"),
+            "-ReleaseManifest",
+            str(REPO_ROOT / "deploy" / "release-manifest.example.json"),
+            "-ReleaseArchive",
+            str(archive_path),
+        ],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result
 
 
 def test_release_layout_example_has_required_contract_fields():
@@ -173,15 +296,129 @@ def test_preflight_script_reports_read_only_production_state():
     for token in (
         "docker version",
         "docker compose version",
-        "df -h",
+        "df -Pk",
         "candidate_release_manifest_exists",
-        "Get-RemoteReadinessReport",
+        "Try-Get-RemoteReadinessReport",
+        "legacy_fallback",
+        "questions_report",
+        "daily_challenge_status",
+        "remote_staging_path_status",
         "QUESTIONS_JSON_PATH",
         "database_identity_match",
     ):
         assert token in content
     assert "docker compose up" not in content
     assert "docker push" not in content
+
+
+def test_preflight_uses_helper_when_runtime_helper_is_available(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="helper")
+    payload["responses"].pop("questions_report")
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["readiness_mode"] == "helper"
+    assert report["helper_available"] is True
+    assert report["questions"]["record_count"] == 321
+
+
+def test_preflight_uses_legacy_fallback_when_runtime_helper_is_absent(tmp_path):
+    result = run_preflight_with_fake_remote(
+        tmp_path, make_fake_preflight_responses(helper_mode="legacy")
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["readiness_mode"] == "legacy_fallback"
+    assert report["helper_available"] is False
+    assert report["questions"]["record_count"] == 321
+    assert report["daily_challenge_status"] == "200"
+
+
+def test_preflight_fails_closed_on_unexpected_helper_errors(tmp_path):
+    result = run_preflight_with_fake_remote(
+        tmp_path, make_fake_preflight_responses(helper_mode="error")
+    )
+    assert result.returncode != 0
+    assert "helper failed unexpectedly" in (result.stdout + result.stderr)
+
+
+def test_preflight_fails_closed_when_scheduler_is_not_running(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="legacy")
+    payload["responses"]["scheduler_container_snapshot"]["stdout"] = (
+        "cid-scheduler|sha256:scheduler-current|go-odyssey-app:current|exited||0|false|go-odyssey|scheduler"
+    )
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode != 0
+    assert "Scheduler container is not running." in (result.stdout + result.stderr)
+
+
+def test_preflight_detects_restart_loops(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="legacy")
+    payload["responses"]["app_container_snapshot"]["stdout"] = (
+        "cid-app|sha256:app-current|go-odyssey-app:current|running|healthy|4|true|go-odyssey|app"
+    )
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode != 0
+    assert "App container is restarting." in (result.stdout + result.stderr)
+
+
+def test_preflight_requires_valid_questions_report(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="legacy")
+    payload["responses"]["questions_report"]["stdout"] = json.dumps(
+        {
+            "path": "/app/data/questions.json",
+            "exists": True,
+            "readable": True,
+            "parseable": False,
+            "top_level_type": "",
+            "record_count": 0,
+            "record_count_ok": False,
+            "structural_record_check": False,
+            "failures": ["questions file parse failed: JSONDecodeError"],
+        }
+    )
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode != 0
+    assert "Questions file is not parseable JSON." in (result.stdout + result.stderr)
+
+
+def test_preflight_requires_non_empty_daily_challenge(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="legacy")
+    payload["responses"]["daily_challenge_status"]["stdout"] = "503"
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode != 0
+    assert "Daily challenge returned 503." in (result.stdout + result.stderr)
+
+
+def test_preflight_requires_matching_sanitized_database_identity(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="legacy")
+    payload["responses"]["scheduler_env"]["stdout"] = json.dumps(
+        [
+            "DATABASE_URL=postgresql://godokoro:other-secret@db.internal:5432/other_db",
+            "QUESTIONS_JSON_PATH=/app/data/questions.json",
+        ]
+    )
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "App and scheduler database configuration must match." in combined
+    assert "super-secret" not in combined
+    assert "other-secret" not in combined
+
+
+def test_preflight_requires_sufficient_disk_and_rollback_identity(tmp_path):
+    payload = make_fake_preflight_responses(helper_mode="legacy")
+    payload["responses"]["disk_free_kb"]["stdout"] = "overlay 1024 1000 24 99% /"
+    payload["responses"]["scheduler_container_snapshot"]["stdout"] = (
+        "cid-scheduler||go-odyssey-app:current|running||0|false|go-odyssey|scheduler"
+    )
+    result = run_preflight_with_fake_remote(tmp_path, payload)
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert (
+        "Production host does not have enough free disk for the release artifact." in combined
+        or "Scheduler image ID is missing." in combined
+    )
 
 
 def test_deploy_script_defaults_to_dry_run_and_supports_real_image_deploy():
