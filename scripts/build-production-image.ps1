@@ -89,12 +89,12 @@ if ($missing.Count -gt 0) {
 }
 
 # 5. Verify SGF Engine provenance / vendoring state.
-if (-not (Test-Path 'sgf_engine/PROVENANCE_MISMATCH.md')) {
-    Fail "sgf_engine provenance record missing. Do not build without an explicit, documented SGF Engine vendoring state."
+if (-not (Test-Path 'sgf_engine/VENDORED_FROM.txt')) {
+    Fail "sgf_engine provenance record (sgf_engine/VENDORED_FROM.txt) missing. Do not build without an explicit, documented SGF Engine vendoring state."
 }
 $sgfEngineVendored = Test-Path 'sgf_engine/__init__.py'
 if (-not $sgfEngineVendored) {
-    Write-Host "NOTE: sgf_engine/ is not vendored in this checkout (see sgf_engine/PROVENANCE_MISMATCH.md)." -ForegroundColor Yellow
+    Write-Host "NOTE: sgf_engine/ is not vendored in this checkout (see sgf_engine/PROVENANCE_VERIFICATION.md)." -ForegroundColor Yellow
     Write-Host "The Docker build below is EXPECTED TO FAIL at 'COPY sgf_engine ./sgf_engine' until this is resolved." -ForegroundColor Yellow
 }
 
@@ -127,7 +127,7 @@ $buildDate = $env:APP_BUILD_DATE_OVERRIDE
 if (-not $buildDate) {
     Fail "APP_BUILD_DATE_OVERRIDE environment variable must be set to a UTC ISO-8601 timestamp by the caller (this script does not read the system clock, to keep builds reproducible/reviewable)."
 }
-$sgfEngineCommit = 'PENDING-provenance-mismatch'
+$sgfEngineCommit = if ($sgfEngineVendored) { 'd729645c0ae267be6d89a5b49c007bc64284bbcc' } else { 'PENDING-not-vendored' }
 
 Write-Host "Image tag:         $imageTag"
 Write-Host "APP_GIT_SHA:        $GitSha"

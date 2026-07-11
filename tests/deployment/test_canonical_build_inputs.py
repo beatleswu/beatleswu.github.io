@@ -45,7 +45,9 @@ REQUIRED_TRACKED_FILES = [
     "tools/community_leaderboard_rewards_real_grant_commit.py",
     "deploy/build-manifest.json",
     "scripts/build-production-image.ps1",
-    "sgf_engine/PROVENANCE_MISMATCH.md",
+    "sgf_engine/PROVENANCE_VERIFICATION.md",
+    "sgf_engine/VENDORED_FROM.txt",
+    ".gitattributes",
     ".env.production.example",
 ]
 

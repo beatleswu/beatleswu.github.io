@@ -20,8 +20,8 @@
         "source": "resolved by scripts/build-production-image.ps1"
       },
       "SGF_ENGINE_SOURCE_COMMIT": {
-        "description": "sgf_engine vendor source commit; currently unresolved, see sgf_engine/PROVENANCE_MISMATCH.md",
-        "source": "PENDING - blocked, see sgf_engine/PROVENANCE_MISMATCH.md"
+        "description": "sgf_engine vendor source commit, verified and vendored -- see sgf_engine/VENDORED_FROM.txt and sgf_engine/PROVENANCE_VERIFICATION.md",
+        "source": "d729645c0ae267be6d89a5b49c007bc64284bbcc"
       }
     },
     "image_repository": "go-odyssey-app",
@@ -62,17 +62,31 @@
       "monster_taxonomy.py",
       "chapter_i18n.py",
       "backend_i18n.py",
+      "sgf_engine/__init__.py",
+      "sgf_engine/core/__init__.py",
+      "sgf_engine/core/autoreply.py",
+      "sgf_engine/core/coord_utils.py",
+      "sgf_engine/core/matcher.py",
+      "sgf_engine/core/tree.py",
+      "sgf_engine/engine/__init__.py",
+      "sgf_engine/engine/engine.py",
+      "sgf_engine/inventory/__init__.py",
+      "sgf_engine/inventory/sgf_inventory.py",
+      "sgf_engine/override/__init__.py",
+      "sgf_engine/override/override_identity.py",
+      "sgf_engine/override/override_loader.py",
+      "sgf_engine/override/override_loader_integration.py",
+      "sgf_engine/override/override_runtime.py",
+      "sgf_engine/override/override_schema.py",
+      "sgf_engine/parser/__init__.py",
+      "sgf_engine/parser/sgf_parser.py",
+      "sgf_engine/VENDORED_FROM.txt",
       "tools/community_leaderboard_rewards_manual.py",
       "tools/community_leaderboard_rewards_export_entries.py",
       "tools/community_leaderboard_rewards_real_grant_preview.py",
       "tools/community_leaderboard_rewards_real_grant_commit.py"
     ],
     "required_but_not_yet_vendored": [
-      {
-        "path": "sgf_engine/",
-        "reason": "BLOCKED - provenance mismatch, see sgf_engine/PROVENANCE_MISMATCH.md",
-        "required_by": "Dockerfile: COPY sgf_engine ./sgf_engine"
-      },
       {
         "path": "assets/",
         "reason": "PENDING - 757MB of binary assets on production host; out of scope for this Sprint per smallest-evidence-supported-set guidance",
@@ -145,6 +159,16 @@
     "/app/shadow_judging.py",
     "/app/shadow_dashboard.py",
     "/app/scheduler.py",
-    "/app/entrypoint.sh"
-  ]
+    "/app/entrypoint.sh",
+    "/app/sgf_engine/VENDORED_FROM.txt"
+  ],
+  "sgf_engine_vendor": {
+    "source_repo": "https://github.com/beatleswu/beatleswu.github.io",
+    "source_branch": "testing-baseline-test-isolation",
+    "source_commit": "d729645c0ae267be6d89a5b49c007bc64284bbcc",
+    "vendor_metadata_path": "sgf_engine/VENDORED_FROM.txt",
+    "verification_doc": "sgf_engine/PROVENANCE_VERIFICATION.md",
+    "line_ending_policy": "LF",
+    "status": "vendored"
+  }
 }

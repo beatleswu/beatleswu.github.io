@@ -1,10 +1,24 @@
 # Canonical Production Image Build
 
-Status: build-source reconstruction complete for tracked application code; large
-binary/data assets and SGF Engine vendoring remain open (see Limitations).
+Status: build-source reconstruction complete for tracked application code and
+SGF Engine; large binary/data assets remain open (see Limitations).
 Sprint: DEPLOY-GOV-2. This document does not claim deployment has been
 validated — see [canonical_production_deployment_audit.md](canonical_production_deployment_audit.md)
 for deployment-mechanism status, which this Sprint does not change.
+
+> **DEPLOY-GOV-2A status note (2026-07-11):** The SGF Engine "provenance
+> mismatch" described in Phase C below and in the original
+> `sgf_engine/PROVENANCE_MISMATCH.md` has been resolved — it was caused
+> entirely by CRLF/LF line-ending inconsistency across trees, not by any
+> logic divergence. A follow-up read-only audit (SGF-PROV-1) found all 16
+> shared engine files byte-identical across Production, Graph A, and the
+> source commit after normalization, and all three passed the same 109-test
+> corpus. `sgf_engine/` is now vendored from the verified source commit
+> `d729645c0ae267be6d89a5b49c007bc64284bbcc` with LF line endings; see
+> `sgf_engine/PROVENANCE_VERIFICATION.md` and `sgf_engine/VENDORED_FROM.txt`.
+> The rest of this document (Phase C section, Limitations item 1) reflects
+> the original, now-superseded finding and is retained for historical
+> record of what DEPLOY-GOV-2 actually found at the time.
 
 ## Objective
 

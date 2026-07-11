@@ -1,0 +1,2 @@
+sgf_engine/**/*.py text eol=lf
+sgf_engine/VENDORED_FROM.txt text eol=lf
