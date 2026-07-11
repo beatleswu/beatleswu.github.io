@@ -219,3 +219,43 @@ def test_css_module_exists(filename):
 def test_shell_css_defines_skeleton_loading_state():
     shell_css = _read(CSS_DIR / "shell.css")
     assert "e9-component-skeleton" in shell_css
+
+
+# ---------------------------------------------------------------------------
+# 10. ARIA: every fragment root declares a role/label so the shell is
+#    navigable by assistive tech even while still placeholder-only.
+# ---------------------------------------------------------------------------
+
+FRAGMENT_ARIA_MARKERS = {
+    "top_hud.html": ("role=\"region\"", "aria-label="),
+    "left_nav.html": ("aria-label=",),
+    "right_cards.html": ("aria-label=",),
+    "bottom_dock.html": ("role=\"toolbar\"", "aria-label="),
+    "world_stage.html": ("aria-label=",),
+}
+
+
+@pytest.mark.parametrize("filename,markers", sorted(FRAGMENT_ARIA_MARKERS.items()))
+def test_fragment_declares_aria_role_or_label(filename, markers):
+    html = _read(COMPONENTS_DIR / filename)
+    for marker in markers:
+        assert marker in html, f"{filename} must declare {marker} for assistive tech"
+
+
+# ---------------------------------------------------------------------------
+# 11. Fragment isolation: the loader's failure path must only ever touch the
+#    root element passed to it -- never reach into siblings or the document,
+#    so one component's 404 cannot corrupt another component's DOM.
+# ---------------------------------------------------------------------------
+
+def test_loader_failure_path_only_touches_its_own_root():
+    loader_js = _read(JS_DIR / "component_loader.js")
+    # The catch block must operate on `root` only (root.innerHTML / root.setAttribute),
+    # never on document.* or a different element reference.
+    catch_block_match = re.search(r"\.catch\(function \(err\) \{(.*?)\}\);", loader_js, re.S)
+    assert catch_block_match, "component_loader.js must have a .catch() fallback block"
+    catch_body = catch_block_match.group(1)
+    assert "root.innerHTML" in catch_body
+    assert "root.setAttribute" in catch_body
+    assert "document.querySelectorAll" not in catch_body
+    assert "document.getElementById" not in catch_body

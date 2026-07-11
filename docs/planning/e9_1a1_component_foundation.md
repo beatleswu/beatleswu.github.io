@@ -109,13 +109,39 @@ skipped requirements.
 
 ## Automated contract tests
 
-`python -m pytest tests/test_e9_adventure_shell_foundation.py -v` — 31 passed.
+`python -m pytest tests/test_e9_adventure_shell_foundation.py -v` — 37 passed.
 Covers: fragment existence, stable root IDs (Rule #6) and uniqueness, slot↔fragment
 mapping completeness, production flag defaults, debug-gating logic, loader
 fail-safe patterns (`response.ok`, `catch`, fallback render, idempotency),
+fragment isolation (the catch path only ever touches its own `root`, never
+`document.*` or another element), ARIA role/label presence on every fragment,
 shell init try/catch, fragment URL versioning, `ASSET_VERSION` presence and its
 documented `sw.js` coupling, and the E9.1A1 scope boundary (`index.html`/`app.py`
 untouched).
+
+## Known limitations (carried forward into E9.1A2)
+
+- **Path convention**: new assets live at `js/e9/`, `css/e9/`, `components/adventure/`
+  — flat directories at repo root, matching this repo's existing `js/`/`css/`
+  layout. This repo has no `static/` folder at all (confirmed: no `static/`
+  directory exists, `app = Flask(__name__)` uses Flask's default which is unused
+  in practice since every asset route is hand-registered). If a `static/js/e9/`
+  layout is preferred going forward, that's a rename, not a rebuild — flag it
+  before E9.1A2 if wanted.
+- **No production route serves these paths yet.** `app.py` only registers
+  explicit single-file routes for root-level `.js` files (`srs.js`, `i18n.js`,
+  etc.) plus a handful of hardcoded subdirectory routes (`/assets/<path>`,
+  `/wgo/<path>`, `/sound/<path>`, `/shorts/<path>`, `/icons/<path>`). There is
+  **no** existing `/js/<path:subpath>` or `/components/<path:subpath>` route, so
+  `js/e9/*.js`, `css/e9/*.css`, and `components/adventure/*.html` are only
+  reachable today via the repo's local static preview server
+  (`.claude/launch.json` → `python -m http.server`), which is sufficient for
+  E9.1A1's standalone-demo verification but **not** sufficient once these files
+  need to be served by the real Flask app. E9.1A2 will need to add 2-3 new,
+  narrowly-scoped static-asset routes to `app.py` (pure file serving, no
+  business logic) — this is a necessary, minimal exception to "don't touch
+  app.py" and should be called out explicitly when that PR is scoped, not
+  discovered mid-implementation.
 
 ## Not in scope for E9.1A1 (per sprint definition)
 
