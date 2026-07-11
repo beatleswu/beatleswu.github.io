@@ -44,7 +44,8 @@ function Invoke-RemoteCommandResult {
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$Command,
-        [string]$ScriptText
+        [string]$ScriptText,
+        [string]$StdinText
     )
     if ($script:FakeRemoteResponses) {
         $fake = Get-FakeRemoteResponse -Name $Name
@@ -61,6 +62,10 @@ function Invoke-RemoteCommandResult {
         if ($PSBoundParameters.ContainsKey('ScriptText')) {
             $normalizedScriptText = $ScriptText -replace "`r`n", "`n" -replace "`r", "`n"
             $rawOutput = $normalizedScriptText | & ssh $layout.ssh_alias 'sh -s' 2>&1
+        }
+        elseif ($PSBoundParameters.ContainsKey('StdinText')) {
+            $normalizedStdinText = $StdinText -replace "`r`n", "`n" -replace "`r", "`n"
+            $rawOutput = $normalizedStdinText | & ssh $layout.ssh_alias $Command 2>&1
         }
         else {
             $rawOutput = & ssh $layout.ssh_alias $Command 2>&1
@@ -255,7 +260,6 @@ function Get-RemoteQuestionsReport {
         [Parameter(Mandatory = $true)][string]$QuestionsPath
     )
     $script = @"
-docker exec $ContainerName python - <<'PY'
 import json
 import pathlib
 
@@ -301,9 +305,12 @@ else:
             report["failures"].append("questions file is not readable")
         report["failures"].append(f"questions file parse failed: {exc.__class__.__name__}")
 print(json.dumps(report, ensure_ascii=False))
-PY
 "@
-    $json = Invoke-RemoteScriptText -Name 'questions_report' -ScriptText $script
+    $result = Invoke-RemoteCommandResult -Name 'questions_report' -Command "docker exec -i $ContainerName python -X utf8 -" -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Remote command failed [questions_report]: $($result.output)"
+    }
+    $json = $result.output
     return ($json | ConvertFrom-Json)
 }
 
