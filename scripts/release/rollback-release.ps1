@@ -296,14 +296,15 @@ function Get-DatabaseUrlComponents {
 function Get-RemoteComposeEnvironmentPrefix {
     param(
         [Parameter(Mandatory = $true)][string]$ImageTag,
-        [Parameter(Mandatory = $true)]$DatabaseComponents
+        [Parameter(Mandatory = $true)]$DatabaseComponents,
+        [Parameter(Mandatory = $true)][string]$QuestionsVolumeName
     )
     $pairs = [ordered]@{
         GO_ODYSSEY_IMAGE = $ImageTag
         POSTGRES_USER = $DatabaseComponents.user
         POSTGRES_PASSWORD = $DatabaseComponents.password
         POSTGRES_DB = $DatabaseComponents.database
-        QUESTIONS_CONTENT_SOURCE_PATH = $layout.questions_content_source_path
+        QUESTIONS_CONTENT_VOLUME_NAME = $QuestionsVolumeName
         QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
         ASSET_SOURCE_PATH = $layout.asset_source_path
         ASSET_CONTAINER_MOUNT_DESTINATION = $layout.asset_container_mount_destination
@@ -312,6 +313,16 @@ function Get-RemoteComposeEnvironmentPrefix {
     return (($pairs.GetEnumerator() | ForEach-Object {
         "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value))
     }) -join ' ')
+}
+
+function Get-RemoteQuestionsVolumeName {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $mountsJson = Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '{{json .Mounts}}'"
+    $mount = Select-ContainerMountForDestination -MountsJson $mountsJson -Destination $layout.questions_content_mount_destination -Context $ContainerName
+    if ($mount.type -ne 'volume') {
+        throw "Live questions mount for $ContainerName at $($layout.questions_content_mount_destination) is not a named Docker volume (found: $($mount.type)). Refusing to guess a bind path; confirm the live mount and update the release compose contract explicitly for this host."
+    }
+    return $mount.name
 }
 
 $rollbackManifestPath = Join-Path $rollbackArtifactsRoot ("{0}.rollback.json" -f (Get-ReleaseArtifactBaseName -GitSha $manifest.release_git_sha))
@@ -374,6 +385,7 @@ $appBefore = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
 $schedulerEnv = Get-RemoteContainerEnvMap -ContainerName $layout.scheduler_service_name
 $databaseComponents = Get-DatabaseUrlComponents -DatabaseUrl $schedulerEnv['DATABASE_URL']
+$questionsVolumeName = Get-RemoteQuestionsVolumeName -ContainerName $layout.app_service_name
 $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
 $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
 $appBeforeLabels = Get-RemoteImageLabels -ImageTag $appBefore.image_tag
@@ -384,7 +396,7 @@ Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerific
 $rollbackComposeWorkingDir = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_working_dir)) { $layout.compose_directory } else { $schedulerBefore.compose_working_dir }
 $rollbackComposeFile = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_config_files)) { (Join-RemotePath $layout.compose_directory 'docker-compose.release.yml') } else { $schedulerBefore.compose_config_files }
 $useReleaseCompose = $rollbackComposeFile -like '*docker-compose.release.yml'
-$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents
+$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents -QuestionsVolumeName $questionsVolumeName
 $rollbackAppCommand = if ($useReleaseCompose) {
     "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
 } else {
@@ -434,7 +446,7 @@ $verificationOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Joi
 if ($LASTEXITCODE -ne 0) {
     throw "Rollback verification failed with exit code $LASTEXITCODE."
 }
-$verificationReport = $verificationOutput | ConvertFrom-Json
+$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput -Context 'verify-production-release.ps1'
 
 $rollbackRecord = [ordered]@{
     rollback_manifest = $RollbackManifest

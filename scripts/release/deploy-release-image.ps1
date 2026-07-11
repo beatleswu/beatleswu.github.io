@@ -111,14 +111,15 @@ function Get-DatabaseUrlComponents {
 function Get-RemoteComposeEnvironmentPrefix {
     param(
         [Parameter(Mandatory = $true)][string]$ImageTag,
-        [Parameter(Mandatory = $true)]$DatabaseComponents
+        [Parameter(Mandatory = $true)]$DatabaseComponents,
+        [Parameter(Mandatory = $true)][string]$QuestionsVolumeName
     )
     $pairs = [ordered]@{
         GO_ODYSSEY_IMAGE = $ImageTag
         POSTGRES_USER = $DatabaseComponents.user
         POSTGRES_PASSWORD = $DatabaseComponents.password
         POSTGRES_DB = $DatabaseComponents.database
-        QUESTIONS_CONTENT_SOURCE_PATH = $layout.questions_content_source_path
+        QUESTIONS_CONTENT_VOLUME_NAME = $QuestionsVolumeName
         QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
         ASSET_SOURCE_PATH = $layout.asset_source_path
         ASSET_CONTAINER_MOUNT_DESTINATION = $layout.asset_container_mount_destination
@@ -127,6 +128,16 @@ function Get-RemoteComposeEnvironmentPrefix {
     return (($pairs.GetEnumerator() | ForEach-Object {
         "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value))
     }) -join ' ')
+}
+
+function Get-RemoteQuestionsVolumeName {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $mountsJson = Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '{{json .Mounts}}'"
+    $mount = Select-ContainerMountForDestination -MountsJson $mountsJson -Destination $layout.questions_content_mount_destination -Context $ContainerName
+    if ($mount.type -ne 'volume') {
+        throw "Live questions mount for $ContainerName at $($layout.questions_content_mount_destination) is not a named Docker volume (found: $($mount.type)). Refusing to guess a bind path; confirm the live mount and update the release compose contract explicitly for this host."
+    }
+    return $mount.name
 }
 
 function Get-RemoteContainerSnapshot {
@@ -878,10 +889,11 @@ try {
     $nginxBefore = Get-RemoteContainerSnapshot -ContainerName $layout.nginx_service_name
     $schedulerEnv = Get-RemoteContainerEnvMap -ContainerName $layout.scheduler_service_name
     $databaseComponents = Get-DatabaseUrlComponents -DatabaseUrl $schedulerEnv['DATABASE_URL']
+    $questionsVolumeName = Get-RemoteQuestionsVolumeName -ContainerName $layout.app_service_name
     $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
     $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
     $nginxComposeService = if ([string]::IsNullOrWhiteSpace($nginxBefore.compose_service)) { $layout.nginx_service_name } else { $nginxBefore.compose_service }
-    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -DatabaseComponents $databaseComponents
+    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -DatabaseComponents $databaseComponents -QuestionsVolumeName $questionsVolumeName
     $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
     $composeServiceList = [regex]::Split($composeServices, '\r?\n') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     foreach ($serviceName in @($appComposeService, $schedulerComposeService, $nginxComposeService)) {
@@ -1033,7 +1045,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "verify-production-release.ps1 failed with exit code $LASTEXITCODE."
     }
-    $verificationReport = $verificationOutput | ConvertFrom-Json
+    $verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput -Context 'verify-production-release.ps1'
 
     if ($deploymentRecord.Contains('verification_result')) {
         $deploymentRecord['verification_result'] = 'production verified'
@@ -1091,7 +1103,7 @@ catch {
             if ($LASTEXITCODE -ne 0) {
                 throw "rollback-release.ps1 failed with exit code $LASTEXITCODE."
             }
-            $null = $rollbackOutput | ConvertFrom-Json
+            $null = ConvertFrom-NestedPowerShellJson -RawOutput $rollbackOutput -Context 'rollback-release.ps1'
             throw "Deployment failed and automatic rollback succeeded: $deploymentFailureMessage"
         }
         catch {

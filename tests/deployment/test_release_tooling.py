@@ -144,6 +144,24 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
     return {"responses": responses}
 
 
+def run_module_probe(tmp_path, probe_body):
+    """Run a small PowerShell script that imports ReleaseTooling.psm1 and executes probe_body."""
+    script = tmp_path / "probe.ps1"
+    module_path = str(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    script.write_text(
+        "$ErrorActionPreference = 'Stop'\n"
+        f"Import-Module '{module_path}' -Force -DisableNameChecking\n" + probe_body,
+        encoding="utf-8",
+    )
+    return subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
 def run_preflight_with_fake_remote(tmp_path, fake_remote_payload):
     fake_remote_path = tmp_path / "fake-remote.json"
     archive_path = tmp_path / "release.tar"
@@ -263,7 +281,7 @@ def test_release_compose_config_with_fake_values():
             "POSTGRES_PASSWORD": "fake-password",
             "ASSET_SOURCE_PATH": "/opt/fake-assets",
             "ASSET_CONTAINER_MOUNT_DESTINATION": "/opt/fake-assets",
-            "QUESTIONS_CONTENT_SOURCE_PATH": "/opt/fake-data",
+            "QUESTIONS_CONTENT_VOLUME_NAME": "go-odyssey_go-data",
             "QUESTIONS_CONTENT_MOUNT_DESTINATION": "/app/data",
         }
     )
@@ -277,6 +295,14 @@ def test_release_compose_config_with_fake_values():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "go-odyssey-app:deadbeef" in result.stdout
+
+
+def test_release_compose_uses_external_named_volume_for_questions_data():
+    content = read_text(REPO_ROOT / "docker-compose.release.yml")
+    assert "QUESTIONS_CONTENT_SOURCE_PATH" not in content
+    assert "QUESTIONS_CONTENT_VOLUME_NAME" in content
+    assert content.count("go-data:${QUESTIONS_CONTENT_MOUNT_DESTINATION") == 2
+    assert "  go-data:\n    external: true\n    name: ${QUESTIONS_CONTENT_VOLUME_NAME" in content
 
 
 def test_build_script_uses_clean_tree_and_detached_worktree():
@@ -647,6 +673,117 @@ def test_drift_verification_example_is_secret_free_and_structured():
 def test_release_artifacts_are_ignored():
     gitignore = read_text(REPO_ROOT / ".gitignore")
     assert "release-artifacts/" in gitignore
+
+
+def test_select_container_mount_for_destination_identifies_named_volume(tmp_path):
+    mounts_json = json.dumps(
+        [
+            {"Type": "bind", "Source": "/opt/go-odyssey-static", "Destination": "/opt/go-odyssey-static"},
+            {"Type": "volume", "Name": "go-odyssey_go-data", "Destination": "/app/data"},
+        ]
+    )
+    probe = (
+        f"$mounts = '{mounts_json}'\n"
+        "$result = Select-ContainerMountForDestination -MountsJson $mounts -Destination '/app/data' -Context 'probe'\n"
+        "Write-Output ($result.type)\n"
+        "Write-Output ($result.name)\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    assert lines[0] == "volume"
+    assert lines[1] == "go-odyssey_go-data"
+
+
+def test_select_container_mount_for_destination_identifies_bind_mount(tmp_path):
+    mounts_json = json.dumps([{"Type": "bind", "Source": "/opt/go-odyssey-data", "Destination": "/app/data"}])
+    probe = (
+        f"$mounts = '{mounts_json}'\n"
+        "$result = Select-ContainerMountForDestination -MountsJson $mounts -Destination '/app/data' -Context 'probe'\n"
+        "Write-Output ($result.type)\n"
+        "Write-Output ($result.source)\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    assert lines[0] == "bind"
+    assert lines[1] == "/opt/go-odyssey-data"
+
+
+def test_select_container_mount_for_destination_fails_closed_when_missing(tmp_path):
+    mounts_json = json.dumps([{"Type": "volume", "Name": "other", "Destination": "/somewhere/else"}])
+    probe = (
+        f"$mounts = '{mounts_json}'\n"
+        "try { Select-ContainerMountForDestination -MountsJson $mounts -Destination '/app/data' -Context 'probe-container'; Write-Output 'NO_THROW' } "
+        "catch { Write-Output \"THROWN:$($_.Exception.Message)\" }\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "THROWN:" in result.stdout
+    assert "probe-container" in result.stdout
+
+
+def test_convert_from_nested_powershell_json_parses_multiline_array_output(tmp_path):
+    # Regression test for the 2026-07-11 incident: a nested `& powershell -File`
+    # invocation's stdout is captured as an ARRAY of per-line strings, and no
+    # single line of a pretty-printed ConvertTo-Json payload is valid JSON on
+    # its own. The real rollback record legitimately contains the substring
+    # "time" (via build_timestamp/deployment_timestamp keys), which is exactly
+    # what surfaced as "invalid JSON primitive: time" when the array was fed
+    # straight into ConvertFrom-Json without being joined first.
+    probe = (
+        "$payload = @{ a = 1; note = 'time to celebrate'; nested = @{ b = @(1,2,3) } } | ConvertTo-Json -Depth 5\n"
+        "$lines = $payload -split \"`n\"\n"
+        "$parsed = ConvertFrom-NestedPowerShellJson -RawOutput $lines -Context 'probe'\n"
+        "Write-Output ($parsed.a)\n"
+        "Write-Output ($parsed.note)\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    assert lines[0] == "1"
+    assert lines[1] == "time to celebrate"
+
+
+def test_convert_from_nested_powershell_json_fails_closed_on_non_json_output(tmp_path):
+    probe = (
+        "try { ConvertFrom-NestedPowerShellJson -RawOutput @('not json at all', 'still not json') "
+        "-Context 'child-script'; Write-Output 'NO_THROW' } "
+        "catch { Write-Output \"THROWN:$($_.Exception.Message)\" }\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "THROWN:" in result.stdout
+    assert "child-script" in result.stdout
+    assert "NO_THROW" not in result.stdout
+
+
+def test_deploy_and_rollback_scripts_derive_questions_volume_at_runtime():
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    for content in (deploy, rollback):
+        assert "Get-RemoteQuestionsVolumeName" in content
+        assert "Select-ContainerMountForDestination" in content
+        assert "QuestionsVolumeName" in content
+        assert "QUESTIONS_CONTENT_SOURCE_PATH" not in content
+        assert "is not a named Docker volume" in content
+
+
+def test_deploy_and_rollback_scripts_use_safe_nested_json_parsing():
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    assert (
+        "$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput "
+        "-Context 'verify-production-release.ps1'" in deploy
+    )
+    assert "ConvertFrom-NestedPowerShellJson -RawOutput $rollbackOutput -Context 'rollback-release.ps1'" in deploy
+    assert (
+        "$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput "
+        "-Context 'verify-production-release.ps1'" in rollback
+    )
+    assert "$verificationOutput | ConvertFrom-Json" not in deploy
+    assert "$verificationOutput | ConvertFrom-Json" not in rollback
+    assert "$rollbackOutput | ConvertFrom-Json" not in deploy
 
 
 def test_release_scripts_parse_cleanly():
