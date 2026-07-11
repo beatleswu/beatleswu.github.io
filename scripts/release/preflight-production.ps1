@@ -55,16 +55,32 @@ function Invoke-RemoteCommandResult {
             mode = 'fake'
         }
     }
-    if ($PSBoundParameters.ContainsKey('ScriptText')) {
-        $output = $ScriptText | & ssh $layout.ssh_alias 'sh -s' 2>&1
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        if ($PSBoundParameters.ContainsKey('ScriptText')) {
+            $rawOutput = $ScriptText | & ssh $layout.ssh_alias 'sh -s' 2>&1
+        }
+        else {
+            $rawOutput = & ssh $layout.ssh_alias $Command 2>&1
+        }
+        $exitCode = $LASTEXITCODE
     }
-    else {
-        $output = & ssh $layout.ssh_alias $Command 2>&1
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
     }
+    $output = ($rawOutput | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) {
+            $_.ToString()
+        }
+        else {
+            [string]$_
+        }
+    } | Out-String).Trim()
     return [ordered]@{
         name = $Name
-        output = ($output | Out-String).Trim()
-        exit_code = $LASTEXITCODE
+        output = $output
+        exit_code = $exitCode
         mode = 'ssh'
     }
 }
