@@ -63,19 +63,22 @@ function Invoke-RemoteText {
 
 function Get-RemoteContainerSnapshot {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}|{{.Config.Image}}|{{.Image}}|{{.Id}}'"
-    $parts = $raw -split '\|', 4
-    if ($parts.Count -lt 4) {
+    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}|{{.Config.Image}}|{{.Image}}|{{.Id}}|{{json .Config.Labels}}'"
+    $parts = $raw -split '\|', 5
+    if ($parts.Count -lt 5) {
         throw "Unable to read remote container snapshot for $ContainerName."
     }
     $state = $parts[0] | ConvertFrom-Json
     $health = if ($state.PSObject.Properties.Name -contains 'Health' -and $state.Health) { $state.Health.Status } else { 'n/a' }
+    $labels = if ([string]::IsNullOrWhiteSpace($parts[4]) -or $parts[4] -eq 'null') { @{} } else { $parts[4] | ConvertFrom-Json }
     return [ordered]@{
         image_tag = $parts[1]
         image_id = $parts[2]
         container_id = $parts[3]
         state = $state.Status
         health = $health
+        compose_project = $labels.'com.docker.compose.project'
+        compose_service = $labels.'com.docker.compose.service'
     }
 }
 
@@ -328,6 +331,8 @@ if ($rollbackIdentity.previous_app_release_git_sha -and $rollbackIdentity.previo
 
 $appBefore = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
+$schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
 $appBeforeLabels = Get-RemoteImageLabels -ImageTag $appBefore.image_tag
 $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_tag
 
@@ -335,7 +340,7 @@ $rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageT
 Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerificationManifestPath
 $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"
+Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $appComposeService"
 
 $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 if ($appAfter.image_tag -ne $rollbackImageTag) {
@@ -354,7 +359,7 @@ if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.rea
 }
 Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"
+Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $schedulerComposeService"
 
 $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
 if ($schedulerAfter.image_tag -ne $rollbackImageTag) {
