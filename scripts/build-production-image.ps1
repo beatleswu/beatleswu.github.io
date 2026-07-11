@@ -73,6 +73,7 @@ $requiredFiles = @(
     'app.py',
     'shadow_judging.py',
     'shadow_dashboard.py',
+    'shadow_dashboard.html',
     'scheduler.py',
     'katago_explain.py',
     'explain_overrides.py',
