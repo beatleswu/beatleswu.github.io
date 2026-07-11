@@ -34,7 +34,7 @@ from monster_taxonomy import get_monster_taxonomy, mark_encounters
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
-from shadow_dashboard import aggregate_shadow_events
+from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
 
 app = Flask(__name__)
 _site_url_for_cookie = os.environ.get('SITE_URL', 'https://godokoro.com').lower()
@@ -3732,6 +3732,25 @@ def admin_required(f):
 @admin_required
 def admin_shadow_dashboard():
     return jsonify(aggregate_shadow_events())
+
+
+@app.route('/api/admin/shadow/dashboard/recent')
+@admin_required
+def admin_shadow_dashboard_recent():
+    limit = request.args.get('limit', 200)
+    route = request.args.get('route') or None
+    parser_status = request.args.get('parser_status') or request.args.get('status') or None
+    shadow_judgement = request.args.get('shadow_judgement') or request.args.get('judgement') or None
+    request_id = request.args.get('request_id') or request.args.get('request_id_contains') or None
+    schema_version = request.args.get('schema_version') or None
+    return jsonify(recent_shadow_dashboard_data(
+        limit=limit,
+        route=route,
+        parser_status=parser_status,
+        shadow_judgement=shadow_judgement,
+        request_id=request_id,
+        schema_version=schema_version,
+    ))
 
 def sm2_update(ef, iv, rp, grade):
     q = grade
@@ -14572,6 +14591,11 @@ def manage(): return _serve_live_static_or_baked('manage.html')
 @admin_required
 def admin_page(): return _serve_live_static_or_baked('admin.html')
 
+
+@app.route('/admin/shadow-dashboard')
+@admin_required
+def shadow_dashboard_page(): return _serve_live_static_or_baked('shadow_dashboard.html')
+
 # ══════════════════════════════════════════════════════════════
 # GnuGo AI 陪練
 # ══════════════════════════════════════════════════════════════
@@ -17500,7 +17524,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     # public/known HTML pages (explicit allowlist; every one of these is
     # already served today exactly as send_from_directory('.', name))
     'login.html', 'landing.html', 'index.html', 'terms.html',
-    'manage.html', 'admin.html', 'bot.html', 'daily_challenge.html',
+    'manage.html', 'admin.html', 'shadow_dashboard.html', 'bot.html', 'daily_challenge.html',
     'community.html', 'messages.html', 'share_view.html',
     'mistakes.html', 'curriculum.html', 'hero.html', 'rating_test.html',
     'shop.html', 'profile.html', 'premium_weekly.html', 'stats.html',

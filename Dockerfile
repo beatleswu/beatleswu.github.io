@@ -58,6 +58,7 @@ COPY sgf_engine ./sgf_engine
 # Deliberately excludes debug pages, repair reports, backups, and other
 # root-level residue never referenced by app.py's routes.
 COPY login.html landing.html index.html terms.html manage.html admin.html \
+     shadow_dashboard.html \
      bot.html daily_challenge.html community.html messages.html \
      share_view.html mistakes.html curriculum.html hero.html \
      rating_test.html shop.html profile.html premium_weekly.html \
