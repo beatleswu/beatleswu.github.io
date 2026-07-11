@@ -303,6 +303,8 @@ for env in config.get("Env") or []:
         env_map[key] = value
 
 volume_lines = []
+volume_defs = []
+seen_named_volumes = set()
 for mount in item.get("Mounts") or []:
     mtype = mount.get("Type")
     source_path = mount.get("Name") if mtype == "volume" else mount.get("Source")
@@ -311,6 +313,11 @@ for mount in item.get("Mounts") or []:
         continue
     suffix = ":ro" if not mount.get("RW", True) else ""
     volume_lines.append(f'      - {json.dumps(source_path + ":" + dest + suffix)}')
+    if mtype == "volume" and source_path not in seen_named_volumes:
+        seen_named_volumes.add(source_path)
+        volume_defs.append(f"  {source_path}:")
+        volume_defs.append("    external: true")
+        volume_defs.append(f"    name: {source_path}")
 
 network_defs = []
 network_refs = []
@@ -352,6 +359,9 @@ compose_lines.append(f"      retries: {healthcheck['retries']}")
 compose_lines.append(f"      start_period: {healthcheck['start_period']}")
 compose_lines.append("networks:")
 compose_lines.extend(network_defs)
+if volume_defs:
+    compose_lines.append("volumes:")
+    compose_lines.extend(volume_defs)
 
 run(["docker", "rm", "-f", candidate], check=False)
 with open(compose_path, "w", encoding="utf-8") as handle:

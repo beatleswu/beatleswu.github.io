@@ -537,6 +537,20 @@ def test_deploy_script_verifies_exec_form_healthcheck_for_canary_and_app():
         assert token in content
 
 
+def test_candidate_compose_declares_named_volumes_as_external_runtime_dependencies():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    for token in (
+        "volume_defs = []",
+        "seen_named_volumes = set()",
+        'if mtype == "volume" and source_path not in seen_named_volumes:',
+        'volume_defs.append(f"  {source_path}:")',
+        'volume_defs.append("    external: true")',
+        'compose_lines.append("volumes:")',
+        "compose_lines.extend(volume_defs)",
+    ):
+        assert token in content
+
+
 def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
     content = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
     for token in (
