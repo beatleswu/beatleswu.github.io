@@ -486,7 +486,9 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
         "rollback_image_identity",
         "rollback_verification_manifest_path",
         "verify-production-release.ps1",
-        "docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate",
+        "compose_config_files",
+        "compose_working_dir",
+        "docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-deps --force-recreate",
         "image ID does not match the rollback image ID",
     ):
         assert token in content
@@ -499,9 +501,10 @@ def test_rollback_script_restores_app_before_scheduler():
         content,
         "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ROLLBACK'",
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
-        "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
+        "$rollbackComposeFile = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_config_files)) { (Join-RemotePath $layout.compose_directory 'docker-compose.release.yml') } else { $schedulerBefore.compose_config_files }",
+        "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents",
+        "Invoke-RemoteText $rollbackAppCommand",
+        "Invoke-RemoteText $rollbackSchedulerCommand",
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
     )
 
