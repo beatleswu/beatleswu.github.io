@@ -94,6 +94,21 @@ function Join-RemotePath {
     return ($Left.TrimEnd('/') + '/' + $Right.TrimStart('/'))
 }
 
+function Get-RemoteComposeEnvironmentPrefix {
+    param([Parameter(Mandatory = $true)][string]$ImageTag)
+    $pairs = [ordered]@{
+        GO_ODYSSEY_IMAGE = $ImageTag
+        QUESTIONS_CONTENT_SOURCE_PATH = $layout.questions_content_source_path
+        QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
+        ASSET_SOURCE_PATH = $layout.asset_source_path
+        ASSET_CONTAINER_MOUNT_DESTINATION = $layout.asset_container_mount_destination
+        SHADOW_EVENT_LOG_PATH = $layout.shadow_event_log_path
+    }
+    return (($pairs.GetEnumerator() | ForEach-Object {
+        "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value))
+    }) -join ' ')
+}
+
 function Get-RemoteContainerSnapshot {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}|{{.Config.Image}}|{{.Image}}|{{.Id}}'"
@@ -474,14 +489,15 @@ try {
         throw "Remote archive checksum does not match the manifest."
     }
 
-    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml config --services"
+    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag
+    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml config --services"
     foreach ($serviceName in @($layout.app_service_name, $layout.scheduler_service_name, $layout.nginx_service_name)) {
         if ($composeServices -notmatch "(?m)^$([Regex]::Escape($serviceName))$") {
             throw "docker compose config did not expose expected service: $serviceName"
         }
     }
 
-    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml config --images"
+    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml config --images"
     $composeImageMatches = ([regex]::Split($composeImages, '\r?\n') | Where-Object { $_.Trim() -eq $manifest.image_tag }).Count
     if ($composeImageMatches -lt 2) {
         throw "docker compose config did not resolve the exact release image for app and scheduler."
@@ -531,7 +547,7 @@ try {
     }
 
     $rollbackRequired = $true
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"
 
     $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
@@ -556,7 +572,7 @@ try {
         throw "Daily challenge returned 503 after the app image switch."
     }
 
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"
 
     $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
     if ($schedulerAfter.image_tag -ne $manifest.image_tag) {

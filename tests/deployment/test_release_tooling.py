@@ -467,9 +467,10 @@ def test_deploy_script_orders_release_mutations_safely():
     assert_tokens_in_order(
         content,
         "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'",
+        "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag",
         'Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
     )
 
@@ -496,8 +497,9 @@ def test_rollback_script_restores_app_before_scheduler():
     assert_tokens_in_order(
         content,
         "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ROLLBACK'",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"',
+        "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag",
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
     )
 

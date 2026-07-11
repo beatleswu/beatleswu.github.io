@@ -255,6 +255,21 @@ function New-RollbackVerificationManifest {
         -SGFEngineSourceCommit $manifest.sgf_engine_source_commit
 }
 
+function Get-RemoteComposeEnvironmentPrefix {
+    param([Parameter(Mandatory = $true)][string]$ImageTag)
+    $pairs = [ordered]@{
+        GO_ODYSSEY_IMAGE = $ImageTag
+        QUESTIONS_CONTENT_SOURCE_PATH = $layout.questions_content_source_path
+        QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
+        ASSET_SOURCE_PATH = $layout.asset_source_path
+        ASSET_CONTAINER_MOUNT_DESTINATION = $layout.asset_container_mount_destination
+        SHADOW_EVENT_LOG_PATH = $layout.shadow_event_log_path
+    }
+    return (($pairs.GetEnumerator() | ForEach-Object {
+        "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value))
+    }) -join ' ')
+}
+
 $rollbackManifestPath = Join-Path $rollbackArtifactsRoot ("{0}.rollback.json" -f (Get-ReleaseArtifactBaseName -GitSha $manifest.release_git_sha))
 $rollbackVerificationManifestPath = Join-Path $rollbackArtifactsRoot ("{0}.rollback-verify.json" -f (Get-ReleaseArtifactBaseName -GitSha $manifest.release_git_sha))
 
@@ -318,8 +333,9 @@ $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_
 
 $rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageTag $rollbackImageTag -RollbackGitSha $rollbackGitSha -RollbackImageId $rollbackImageId
 Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerificationManifestPath
+$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"
+Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"
 
 $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 if ($appAfter.image_tag -ne $rollbackImageTag) {
@@ -338,7 +354,7 @@ if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.rea
 }
 Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"
+Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"
 
 $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
 if ($schedulerAfter.image_tag -ne $rollbackImageTag) {
