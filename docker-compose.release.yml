@@ -54,7 +54,7 @@ services:
       GO_ODYSSEY_LIVE_STATIC_ROOT: ${ASSET_CONTAINER_MOUNT_DESTINATION:?ASSET_CONTAINER_MOUNT_DESTINATION must be set}
       QUESTIONS_JSON_PATH: ${QUESTIONS_JSON_PATH:-/app/data/questions.json}
     volumes:
-      - ${QUESTIONS_CONTENT_SOURCE_PATH:?QUESTIONS_CONTENT_SOURCE_PATH must be set}:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
+      - go-data:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
       - ${ASSET_SOURCE_PATH:?ASSET_SOURCE_PATH must be set}:${ASSET_CONTAINER_MOUNT_DESTINATION:?ASSET_CONTAINER_MOUNT_DESTINATION must be set}:ro
       - ${KATAGO_CACHE_SOURCE_PATH:-./katago_cache.db}:/app/katago_cache.db:ro
     depends_on:
@@ -107,7 +107,7 @@ services:
       SHADOW_JUDGING_ENABLED: "1"
       PREMIUM_WEEKLY_SCHEDULER_ENABLED: ${PREMIUM_WEEKLY_SCHEDULER_ENABLED:-0}
     volumes:
-      - ${QUESTIONS_CONTENT_SOURCE_PATH:?QUESTIONS_CONTENT_SOURCE_PATH must be set}:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
+      - go-data:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
       - ${KATAGO_CACHE_SOURCE_PATH:-./katago_cache.db}:/app/katago_cache.db:ro
     depends_on:
       postgres:
@@ -134,6 +134,9 @@ services:
 volumes:
   pg-data:
     driver: local
+  go-data:
+    external: true
+    name: ${QUESTIONS_CONTENT_VOLUME_NAME:?QUESTIONS_CONTENT_VOLUME_NAME must be set}
 
 networks:
   go-net:

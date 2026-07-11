@@ -257,6 +257,39 @@ function Ensure-Directory {
     }
 }
 
+function Select-ContainerMountForDestination {
+    param(
+        [Parameter(Mandatory = $true)][string]$MountsJson,
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [string]$Context = 'container'
+    )
+    $parsedMounts = $MountsJson | ConvertFrom-Json
+    $mounts = @($parsedMounts)
+    $match = $mounts | Where-Object { $_.Destination -eq $Destination } | Select-Object -First 1
+    if (-not $match) {
+        throw "No live mount found for destination '$Destination' on $Context."
+    }
+    if ($match.Type -eq 'volume') {
+        return [ordered]@{ type = 'volume'; name = $match.Name }
+    }
+    return [ordered]@{ type = 'bind'; source = $match.Source }
+}
+
+function ConvertFrom-NestedPowerShellJson {
+    param(
+        [Parameter(Mandatory = $true)]$RawOutput,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+    $joined = if ($RawOutput -is [System.Array]) { $RawOutput -join [Environment]::NewLine } else { [string]$RawOutput }
+    try {
+        return ($joined | ConvertFrom-Json)
+    }
+    catch {
+        $preview = if ($joined.Length -gt 2000) { $joined.Substring(0, 2000) + '...' } else { $joined }
+        throw "$Context produced output that could not be parsed as JSON: $($_.Exception.Message)`nRaw output preview:`n$preview"
+    }
+}
+
 function Get-CanonicalAppHealthcheckDefinition {
     return [ordered]@{
         test = @(
@@ -291,6 +324,7 @@ Export-ModuleMember -Function @(
     'Assert-ImageRevisionMatches',
     'Assert-OwnerGate',
     'Assert-TrackedTreeClean',
+    'ConvertFrom-NestedPowerShellJson',
     'Ensure-Directory',
     'Get-CanonicalAppHealthcheckDefinition',
     'Get-BooleanFlag',
@@ -310,6 +344,7 @@ Export-ModuleMember -Function @(
     'Read-JsonFile',
     'Remove-DetachedWorktree',
     'Resolve-RepoPath',
+    'Select-ContainerMountForDestination',
     'Test-TrackedTreeClean',
     'Write-JsonFile'
 )
