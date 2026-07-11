@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Go Odyssey release layout contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ssh_alias",
+    "remote_release_staging_directory",
+    "compose_project",
+    "compose_directory",
+    "app_service_name",
+    "scheduler_service_name",
+    "nginx_service_name",
+    "asset_source_path",
+    "asset_container_mount_destination",
+    "questions_content_source_path",
+    "questions_content_mount_destination",
+    "shadow_event_log_path",
+    "health_url",
+    "login_url",
+    "homepage_url"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "ssh_alias": { "type": "string", "minLength": 1 },
+    "remote_release_staging_directory": { "type": "string", "minLength": 1 },
+    "compose_project": { "type": "string", "minLength": 1 },
+    "compose_directory": { "type": "string", "minLength": 1 },
+    "app_service_name": { "type": "string", "minLength": 1 },
+    "scheduler_service_name": { "type": "string", "minLength": 1 },
+    "nginx_service_name": { "type": "string", "minLength": 1 },
+    "asset_source_path": { "type": "string", "minLength": 1 },
+    "asset_container_mount_destination": { "type": "string", "minLength": 1 },
+    "questions_content_source_path": { "type": "string", "minLength": 1 },
+    "questions_content_mount_destination": { "type": "string", "minLength": 1 },
+    "shadow_event_log_path": { "type": "string", "minLength": 1 },
+    "health_url": { "type": "string", "minLength": 1 },
+    "login_url": { "type": "string", "minLength": 1 },
+    "homepage_url": { "type": "string", "minLength": 1 },
+    "release_artifacts_directory": { "type": "string", "minLength": 1 }
+  }
+}

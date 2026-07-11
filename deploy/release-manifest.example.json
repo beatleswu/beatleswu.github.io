@@ -1,0 +1,39 @@
+{
+  "$schema": "deploy/release-manifest.schema.json",
+  "release_git_sha": "49639f72c45ed82e5554aa9e64406ec65de6b9b0",
+  "image_tag": "go-odyssey-app:49639f72",
+  "image_id": "sha256:86747ed57e5b6d9b5f46af1d9ef6c16ecc28c6653e4b364a71436490bde85bcd",
+  "image_archive_filename": "go-odyssey-app_49639f72.tar",
+  "archive_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "oci_revision": "49639f72c45ed82e5554aa9e64406ec65de6b9b0",
+  "oci_source": "https://github.com/beatleswu/beatleswu.github.io",
+  "sgf_engine_source_commit": "d729645c0ae267be6d89a5b49c007bc64284bbcc",
+  "build_timestamp": "2026-07-11T00:00:00Z",
+  "build_machine_identity_class": "local-release-workstation",
+  "target_service_names": [
+    "go-odyssey-app",
+    "go-odyssey-scheduler"
+  ],
+  "external_content_requirements": {
+    "asset_source_path": "/opt/go-odyssey-static/current",
+    "asset_container_mount_destination": "/opt/go-odyssey-static/current",
+    "questions_content_source_path": "/opt/go-odyssey-data",
+    "questions_content_mount_destination": "/app/data",
+    "shadow_event_log_path": "/app/data/shadow_events.jsonl"
+  },
+  "expected_health_endpoints": [
+    "/healthz",
+    "/login",
+    "/"
+  ],
+  "rollback_image_identity": {
+    "app_image_id": "sha256:3bf7b88a206e7421701f6dc003ac79a6b0e16f8a47f13d99db7791aeb69afbdd",
+    "scheduler_image_id": "sha256:3bf7b88a206e7421701f6dc003ac79a6b0e16f8a47f13d99db7791aeb69afbdd",
+    "app_container_id": "go-odyssey-app",
+    "scheduler_container_id": "go-odyssey-scheduler",
+    "current_compose_project": "go-odyssey-prod",
+    "current_health_state": "healthy"
+  },
+  "deployment_timestamp": null,
+  "verification_result": "candidate manifest example only; not deployed"
+}
