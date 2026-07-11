@@ -530,9 +530,12 @@ def test_deploy_script_verifies_exec_form_healthcheck_for_canary_and_app():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     for token in (
         "Assert-CanonicalExecHealthcheckTest",
-        "if ($HealthcheckTest[0] -ne 'CMD')",
-        "if ($HealthcheckTest[1] -ne 'python')",
-        "if ($HealthcheckTest[2] -ne '-c')",
+        "$normalizedHealthcheckTest = @($HealthcheckTest)",
+        "$normalizedHealthcheckTest.Count -eq 1",
+        "$normalizedHealthcheckTest[0] -is [System.Collections.IEnumerable]",
+        "if ($normalizedHealthcheckTest[0] -ne 'CMD')",
+        "if ($normalizedHealthcheckTest[1] -ne 'python')",
+        "if ($normalizedHealthcheckTest[2] -ne '-c')",
         "127\\.0\\.0\\.1:8080/healthz",
         "Assert-CanonicalExecHealthcheckTest -HealthcheckTest $candidateHealthcheckTest -Context 'Candidate canary'",
         "Assert-CanonicalExecHealthcheckTest -HealthcheckTest $appHealthcheckTest -Context 'App container'",

@@ -164,20 +164,29 @@ function Assert-CanonicalExecHealthcheckTest {
         [Parameter(Mandatory = $true)][object[]]$HealthcheckTest,
         [Parameter(Mandatory = $true)][string]$Context
     )
-    if ($HealthcheckTest.Count -lt 4) {
-        throw "$Context healthcheck is incomplete: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    $normalizedHealthcheckTest = @($HealthcheckTest)
+    if (
+        $normalizedHealthcheckTest.Count -eq 1 -and
+        $null -ne $normalizedHealthcheckTest[0] -and
+        $normalizedHealthcheckTest[0] -is [System.Collections.IEnumerable] -and
+        -not ($normalizedHealthcheckTest[0] -is [string])
+    ) {
+        $normalizedHealthcheckTest = @($normalizedHealthcheckTest[0])
     }
-    if ($HealthcheckTest[0] -ne 'CMD') {
-        throw "$Context healthcheck must use CMD exec form. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    if ($normalizedHealthcheckTest.Count -lt 4) {
+        throw "$Context healthcheck is incomplete: $($normalizedHealthcheckTest | ConvertTo-Json -Compress)"
     }
-    if ($HealthcheckTest[1] -ne 'python') {
-        throw "$Context healthcheck must invoke python. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    if ($normalizedHealthcheckTest[0] -ne 'CMD') {
+        throw "$Context healthcheck must use CMD exec form. Actual: $($normalizedHealthcheckTest | ConvertTo-Json -Compress)"
     }
-    if ($HealthcheckTest[2] -ne '-c') {
-        throw "$Context healthcheck must pass -c to python. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    if ($normalizedHealthcheckTest[1] -ne 'python') {
+        throw "$Context healthcheck must invoke python. Actual: $($normalizedHealthcheckTest | ConvertTo-Json -Compress)"
     }
-    if ([string]$HealthcheckTest[3] -notmatch '127\.0\.0\.1:8080/healthz') {
-        throw "$Context healthcheck must probe http://127.0.0.1:8080/healthz. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    if ($normalizedHealthcheckTest[2] -ne '-c') {
+        throw "$Context healthcheck must pass -c to python. Actual: $($normalizedHealthcheckTest | ConvertTo-Json -Compress)"
+    }
+    if ([string]$normalizedHealthcheckTest[3] -notmatch '127\.0\.0\.1:8080/healthz') {
+        throw "$Context healthcheck must probe http://127.0.0.1:8080/healthz. Actual: $($normalizedHealthcheckTest | ConvertTo-Json -Compress)"
     }
 }
 
