@@ -470,8 +470,8 @@ def test_deploy_script_orders_release_mutations_safely():
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
         "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag",
         'Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $schedulerComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
     )
 
@@ -486,7 +486,7 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
         "rollback_image_identity",
         "rollback_verification_manifest_path",
         "verify-production-release.ps1",
-        "docker compose -f docker-compose.release.yml up -d --no-build --force-recreate",
+        "docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate",
         "image ID does not match the rollback image ID",
     ):
         assert token in content
@@ -500,8 +500,8 @@ def test_rollback_script_restores_app_before_scheduler():
         "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ROLLBACK'",
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
         "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $schedulerComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
     )
 
