@@ -1,0 +1,19 @@
+{
+  "$schema": "deploy/release-layout.schema.json",
+  "ssh_alias": "oracle_godoyssey",
+  "remote_release_staging_directory": "/opt/go-odyssey/releases",
+  "compose_project": "go-odyssey",
+  "compose_directory": "/opt/go-odyssey",
+  "app_service_name": "go-odyssey-app",
+  "scheduler_service_name": "go-odyssey-scheduler",
+  "nginx_service_name": "go-odyssey-nginx",
+  "asset_source_path": "/opt/go-odyssey-static/current",
+  "asset_container_mount_destination": "/opt/go-odyssey-static/current",
+  "questions_content_source_path": "/opt/go-odyssey-data",
+  "questions_content_mount_destination": "/app/data",
+  "shadow_event_log_path": "/app/data/shadow_events.jsonl",
+  "health_url": "https://godokoro.com/healthz",
+  "login_url": "https://godokoro.com/login",
+  "homepage_url": "https://godokoro.com/",
+  "release_artifacts_directory": "release-artifacts"
+}
