@@ -166,13 +166,13 @@ function Get-RemoteContainerEnvMap {
 
 function Get-RemoteRuntimeContract {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $script = @"
+    $script = @'
 python3 - <<'PY'
 import hashlib
 import json
 import subprocess
 
-name = "$ContainerName"
+name = "__CONTAINER_NAME__"
 raw = subprocess.check_output(["docker", "inspect", name], text=True)
 item = json.loads(raw)[0]
 config = item.get("Config") or {}
@@ -224,7 +224,8 @@ report = {
 }
 print(json.dumps(report, ensure_ascii=False))
 PY
-"@
+'@
+    $script = $script.Replace('__CONTAINER_NAME__', $ContainerName)
     return (Invoke-RemoteText $script | ConvertFrom-Json)
 }
 
@@ -239,14 +240,14 @@ function Start-RemoteCandidateCanary {
         candidate_container = $CandidateContainerName
         image_tag = $ImageTag
     } | ConvertTo-Json -Compress
-    $script = @"
+    $script = @'
 python3 - <<'PY'
 import json
 import re
 import subprocess
 import time
 
-cfg = json.loads(r'''$payload''')
+cfg = json.loads(r'''__CANARY_CONFIG__''')
 source = cfg["source_container"]
 candidate = cfg["candidate_container"]
 image = cfg["image_tag"]
@@ -349,7 +350,8 @@ print(json.dumps({
     "logs_tail": sanitize(logs.stdout + logs.stderr)[-8000:],
 }, ensure_ascii=False))
 PY
-"@
+'@
+    $script = $script.Replace('__CANARY_CONFIG__', $payload)
     return (Invoke-RemoteText $script | ConvertFrom-Json)
 }
 
