@@ -307,6 +307,7 @@ def test_preflight_script_reports_read_only_production_state():
         "database_identity_match",
         "[System.Management.Automation.ErrorRecord]",
         '-replace "`r`n", "`n" -replace "`r", "`n"',
+        "docker exec -i $ContainerName python -X utf8 -",
     ):
         assert token in content
     assert '{{with index .State "Health"}}{{index . "Status"}}{{end}}' in content
