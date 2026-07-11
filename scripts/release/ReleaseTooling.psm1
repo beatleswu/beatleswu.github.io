@@ -156,6 +156,16 @@ function Assert-OwnerGate {
     }
 }
 
+function Quote-PosixShellArgument {
+    param([Parameter(Mandatory = $true)][string]$Value)
+    $singleQuote = [char]39
+    if ($Value.Length -eq 0) {
+        return "$singleQuote$singleQuote"
+    }
+    $escaped = $Value -replace "'", ($singleQuote + '"' + $singleQuote + '"' + $singleQuote)
+    return $singleQuote + $escaped + $singleQuote
+}
+
 function Get-BooleanFlag {
     param(
         [string]$Value,
@@ -252,6 +262,7 @@ Export-ModuleMember -Function @(
     'Get-ReleaseImageTag',
     'Get-ReleaseLayout',
     'Get-RepoRoot',
+    'Quote-PosixShellArgument',
     'Invoke-Git',
     'New-DetachedWorktree',
     'New-ReleaseManifestObject',

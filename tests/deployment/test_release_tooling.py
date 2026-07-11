@@ -25,6 +25,14 @@ def load_json(path):
     return json.loads(read_text(path))
 
 
+def assert_tokens_in_order(content, *tokens):
+    cursor = 0
+    for token in tokens:
+        index = content.find(token, cursor)
+        assert index != -1, f"missing ordered token: {token}"
+        cursor = index + len(token)
+
+
 def assert_powershell_parse_ok(path):
     if shutil.which("powershell") is None:
         raise AssertionError("powershell is required for release script parse checks")
@@ -176,18 +184,66 @@ def test_preflight_script_reports_read_only_production_state():
     assert "docker push" not in content
 
 
-def test_deploy_script_defaults_to_dry_run_and_requires_owner_gate():
+def test_deploy_script_defaults_to_dry_run_and_supports_real_image_deploy():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
-    for token in ("GO_DEPLOY", "dry_run = $true", "deployment_plan"):
+    for token in (
+        "GO_DEPLOY",
+        "dry_run = $true",
+        "deployment_plan",
+        "ExpectedImageId",
+        "ExpectedArchiveSha256",
+        "ExpectedPlatform",
+        "docker load",
+        "scp",
+        "verify-production-release.ps1",
+        "rollback_image_identity",
+        "deployment_record_path",
+        "release_archive_size_bytes",
+        "local_image_summary",
+        "linux/arm64",
+    ):
         assert token in content
-    assert "Real deployment execution is not enabled in this Sprint" in content
+    assert "docker build" not in content.lower()
+    assert "Real deployment execution is not enabled in this Sprint" not in content
 
 
-def test_rollback_script_defaults_to_dry_run_and_requires_owner_gate():
+def test_deploy_script_orders_release_mutations_safely():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    assert_tokens_in_order(
+        content,
+        "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'",
+        'Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $manifest.image_tag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"',
+        'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
+    )
+
+
+def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
     content = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
-    for token in ("GO_ROLLBACK", "dry_run = $true", "rollback_plan"):
+    for token in (
+        "GO_ROLLBACK",
+        "dry_run = $true",
+        "rollback_plan",
+        "rollback_image_identity",
+        "rollback_verification_manifest_path",
+        "verify-production-release.ps1",
+        "docker compose -f docker-compose.release.yml up -d --no-build --force-recreate",
+        "image ID does not match the rollback image ID",
+    ):
         assert token in content
-    assert "Real rollback execution is not enabled in this Sprint" in content
+    assert "Real rollback execution is not enabled in this Sprint" not in content
+
+
+def test_rollback_script_restores_app_before_scheduler():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    assert_tokens_in_order(
+        content,
+        "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ROLLBACK'",
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.app_service_name)"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"',
+        'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
+    )
 
 
 def test_verify_script_includes_e24a_and_premium_weekly_checks():
