@@ -19,6 +19,28 @@ if ($ReleaseArchive) {
     $candidateArchiveExists = Test-Path -LiteralPath (Resolve-RepoPath $ReleaseArchive)
 }
 
+function Invoke-RemoteText {
+    param([Parameter(Mandatory = $true)][string]$Command)
+    $output = & ssh $layout.ssh_alias $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "Remote command failed: $Command"
+    }
+    return ($output | Out-String).Trim()
+}
+
+function Get-RemoteHealthStatus {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}'"
+    if ([string]::IsNullOrWhiteSpace($raw) -or $raw -eq 'null') {
+        return 'n/a'
+    }
+    $state = $raw | ConvertFrom-Json
+    if ($state.PSObject.Properties.Name -contains 'Health' -and $state.Health) {
+        return $state.Health.Status
+    }
+    return 'n/a'
+}
+
 if ($DryRun) {
     [ordered]@{
         dry_run = $true
@@ -41,12 +63,12 @@ if ($DryRun) {
 
 $report = [ordered]@{
     ssh_alias = $layout.ssh_alias
-    docker_version = (& ssh $layout.ssh_alias 'docker version --format "{{.Server.Version}}"').Trim()
-    compose_version = (& ssh $layout.ssh_alias 'docker compose version --short').Trim()
-    disk_free = (& ssh $layout.ssh_alias 'df -h --output=avail,target / | tail -n 1').Trim()
-    current_app = (& ssh $layout.ssh_alias "docker inspect $($layout.app_service_name) --format '{{.Id}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}|{{range .Mounts}}{{.Destination}}={{.Source}}={{.RW}};{{end}}'").Trim()
-    current_scheduler = (& ssh $layout.ssh_alias "docker inspect $($layout.scheduler_service_name) --format '{{.Id}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}|{{range .Mounts}}{{.Destination}}={{.Source}}={{.RW}};{{end}}'").Trim()
-    current_nginx = (& ssh $layout.ssh_alias "docker inspect $($layout.nginx_service_name) --format '{{.Id}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'").Trim()
+    docker_version = Invoke-RemoteText 'docker version --format "{{.Server.Version}}"'
+    compose_version = Invoke-RemoteText 'docker compose version --short'
+    disk_free = Invoke-RemoteText 'df -h --output=avail,target / | tail -n 1'
+    current_app = Invoke-RemoteText "docker inspect $($layout.app_service_name) --format '{{.Id}}|{{.Config.Image}}|{{.State.Status}}|{{range .Mounts}}{{.Destination}}={{.Source}}={{.RW}};{{end}}'"
+    current_scheduler = Invoke-RemoteText "docker inspect $($layout.scheduler_service_name) --format '{{.Id}}|{{.Config.Image}}|{{.State.Status}}|{{range .Mounts}}{{.Destination}}={{.Source}}={{.RW}};{{end}}'"
+    current_nginx = Invoke-RemoteText "docker inspect $($layout.nginx_service_name) --format '{{.Id}}|{{.Config.Image}}|{{.State.Status}}'"
     current_project = $layout.compose_project
     current_compose_directory = $layout.compose_directory
     asset_source = $layout.asset_source_path
@@ -54,6 +76,9 @@ $report = [ordered]@{
     questions_source = $layout.questions_content_source_path
     questions_mount_destination = $layout.questions_content_mount_destination
     shadow_log_path = $layout.shadow_event_log_path
+    app_health = Get-RemoteHealthStatus $layout.app_service_name
+    scheduler_health = Get-RemoteHealthStatus $layout.scheduler_service_name
+    nginx_health = Get-RemoteHealthStatus $layout.nginx_service_name
     candidate_release_manifest_exists = $candidateManifestExists
     candidate_release_archive_exists = $candidateArchiveExists
 }

@@ -22,6 +22,19 @@ function Invoke-RemoteText {
     return ($output | Out-String).Trim()
 }
 
+function Get-RemoteHealthStatus {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}'"
+    if ([string]::IsNullOrWhiteSpace($raw) -or $raw -eq 'null') {
+        return 'n/a'
+    }
+    $state = $raw | ConvertFrom-Json
+    if ($state.PSObject.Properties.Name -contains 'Health' -and $state.Health) {
+        return $state.Health.Status
+    }
+    return 'n/a'
+}
+
 if ($DryRun) {
     [ordered]@{
         dry_run = $true
@@ -40,8 +53,8 @@ if ($DryRun) {
 $report = [ordered]@{
     release_git_sha = $manifest.release_git_sha
     expected_health_endpoints = $manifest.expected_health_endpoints
-    app_health = (Invoke-RemoteText "docker inspect $($layout.app_service_name) --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'").Trim()
-    scheduler_health = (Invoke-RemoteText "docker inspect $($layout.scheduler_service_name) --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'").Trim()
+    app_health = Get-RemoteHealthStatus $layout.app_service_name
+    scheduler_health = Get-RemoteHealthStatus $layout.scheduler_service_name
     app_image = (Invoke-RemoteText "docker inspect $($layout.app_service_name) --format '{{.Config.Image}}'").Trim()
     scheduler_image = (Invoke-RemoteText "docker inspect $($layout.scheduler_service_name) --format '{{.Config.Image}}'").Trim()
     healthz_status = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.health_url)").Trim()
