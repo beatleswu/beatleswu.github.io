@@ -1,0 +1,18 @@
+version: "3.8"
+
+# Build-only Compose overlay. Used by scripts/build-production-image.ps1 to
+# build the app/scheduler image locally with explicit OCI build args, without
+# requiring the full docker-compose.prod.yml runtime environment (Postgres,
+# nginx, secrets) to be present. This file never defines a deploy target and
+# is never used with `up`.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_GIT_SHA: ${APP_GIT_SHA}
+        APP_BUILD_DATE: ${APP_BUILD_DATE}
+        SGF_ENGINE_SOURCE_COMMIT: ${SGF_ENGINE_SOURCE_COMMIT}
+    image: ${GO_ODYSSEY_IMAGE}

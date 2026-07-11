@@ -5,6 +5,17 @@ Audit Date: 2026-07-11
 Canonical Git Commit: `4ea3f63e62d8db9ec50815f99e9ccf0ac6780caf` (`origin/master`)
 Production Host: SSH alias `oracle_godoyssey` (instance `instance-20260609-0051`)
 
+> **DEPLOY-GOV-2 status note (2026-07-11):** Gap #1/#2 below ("no
+> deterministic, single-source build" / "deployment source is an unmanaged
+> local working directory") is now partially addressed — see
+> [canonical_image_build.md](canonical_image_build.md) for the reconstructed
+> canonical build source. Application code and small config files are now
+> tracked in `origin/master`; large binary/data assets and `sgf_engine`
+> remain outside the canonical repository (the latter BLOCKED on an
+> unresolved provenance mismatch). This note does not change any finding
+> below — production still runs the pre-E2.4A build, and no deployment
+> mechanism has been validated or executed.
+
 ## Executive Summary
 
 Production is **not** deployed from `origin/master` (`beatleswu.github.io`) directly, and it is **not**

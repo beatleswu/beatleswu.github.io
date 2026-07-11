@@ -1,0 +1,156 @@
+version: "3.8"
+
+# Canonical production Compose template. Image identity is derived from the
+# application Git SHA (see deploy/build-manifest.json and
+# scripts/build-production-image.ps1) — GO_ODYSSEY_IMAGE must never be left
+# at only "latest" for a deployment record; "latest" may exist as a
+# convenience alias only. All secrets are sourced from a host-side .env file
+# that is never committed (see .env.production.example for the required
+# variable names with placeholder values).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: go-odyssey-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-go}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set via .env}
+      - POSTGRES_DB=${POSTGRES_DB:-go_odyssey}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - go-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-go} -d ${POSTGRES_DB:-go_odyssey}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ${GO_ODYSSEY_IMAGE:-go-odyssey-app:latest}
+    container_name: go-odyssey-app
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      - PRODUCTION=1
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-go}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set via .env}@postgres:5432/${POSTGRES_DB:-go_odyssey}
+      - GNUGO_MAX_LEVEL_9=8
+      - GNUGO_MAX_LEVEL_13=6
+      - GNUGO_MAX_LEVEL_19=4
+      - GNUGO_MOVE_TIMEOUT_9=15
+      - GNUGO_MOVE_TIMEOUT_13=30
+      - GNUGO_MOVE_TIMEOUT_19=60
+      # 隱私設定，透過 host 端 /opt/go-odyssey/.env 注入，不寫死在此檔案
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY:-}
+      - TURNSTILE_SECRET=${TURNSTILE_SECRET:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+      - ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL:-}
+      - NEW_USER_NOTIFY_EMAIL=${NEW_USER_NOTIFY_EMAIL:-}
+      - SITE_URL=${SITE_URL:-https://godokoro.com}
+      # Flask session 密鑰，僅由 host 端 .env 注入，絕不寫死在此檔案
+      - SECRET_KEY=${SECRET_KEY:-}
+      # Google 登入 / OpenAI AI 功能，透過 host 端 .env 注入
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # 金流設定，透過 host 端 .env 注入；NEWEBPAY_TEST=1 代表 core 測試模式
+      - NEWEBPAY_MERCHANT_ID=${NEWEBPAY_MERCHANT_ID:-}
+      - NEWEBPAY_HASH_KEY=${NEWEBPAY_HASH_KEY:-}
+      - NEWEBPAY_HASH_IV=${NEWEBPAY_HASH_IV:-}
+      - NEWEBPAY_TEST=${NEWEBPAY_TEST:-1}
+      # PayPal Subscriptions，透過 host 端 .env 注入；PAYPAL_TEST=1 代表 sandbox
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_SECRET=${PAYPAL_SECRET:-}
+      - PAYPAL_TEST=${PAYPAL_TEST:-1}
+      - SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl
+      - SHADOW_JUDGING_ENABLED=1
+      - GO_ODYSSEY_LIVE_STATIC_ROOT=/opt/go-odyssey-static/current
+    volumes:
+      - go-data:/app/data
+      - /opt/go-odyssey-static:/opt/go-odyssey-static:ro
+      # KataGo 答案快取資料庫（約 128MB），不放入 image / 不進 .dockerignore 之外的追蹤範圍，
+      # 由 deploy 端目錄直接掛載 /opt/go-odyssey/katago_cache.db（唯讀）
+      - ./katago_cache.db:/app/katago_cache.db:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - go-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  scheduler:
+    image: ${GO_ODYSSEY_IMAGE:-go-odyssey-app:latest}
+    container_name: go-odyssey-scheduler
+    restart: unless-stopped
+    command: python scheduler.py
+    healthcheck:
+      disable: true
+    environment:
+      - PORT=8080
+      - PRODUCTION=1
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-go}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set via .env}@postgres:5432/${POSTGRES_DB:-go_odyssey}
+      - GNUGO_MAX_LEVEL_9=8
+      - GNUGO_MAX_LEVEL_13=6
+      - GNUGO_MAX_LEVEL_19=4
+      - GNUGO_MOVE_TIMEOUT_9=15
+      - GNUGO_MOVE_TIMEOUT_13=30
+      - GNUGO_MOVE_TIMEOUT_19=60
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY:-}
+      - TURNSTILE_SECRET=${TURNSTILE_SECRET:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+      - ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL:-}
+      - NEW_USER_NOTIFY_EMAIL=${NEW_USER_NOTIFY_EMAIL:-}
+      - SITE_URL=${SITE_URL:-https://godokoro.com}
+      - SECRET_KEY=${SECRET_KEY:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - NEWEBPAY_MERCHANT_ID=${NEWEBPAY_MERCHANT_ID:-}
+      - NEWEBPAY_HASH_KEY=${NEWEBPAY_HASH_KEY:-}
+      - NEWEBPAY_HASH_IV=${NEWEBPAY_HASH_IV:-}
+      - NEWEBPAY_TEST=${NEWEBPAY_TEST:-1}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_SECRET=${PAYPAL_SECRET:-}
+      - PAYPAL_TEST=${PAYPAL_TEST:-1}
+      - SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl
+      - SHADOW_JUDGING_ENABLED=1
+    volumes:
+      - go-data:/app/data
+      - ./katago_cache.db:/app/katago_cache.db:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - go-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: go-odyssey-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - go-net
+
+volumes:
+  go-data:
+    driver: local
+  pg-data:
+    driver: local
+
+networks:
+  go-net:
+    driver: bridge

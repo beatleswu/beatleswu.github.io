@@ -1,0 +1,150 @@
+{
+  "$schema_note": "No secret values are present in this file. It records build-input identity and structure only.",
+  "manifest_version": "1.0.0",
+  "application": {
+    "name": "go-odyssey-app",
+    "repository": "https://github.com/beatleswu/beatleswu.github.io",
+    "canonical_branch": "master"
+  },
+  "build": {
+    "dockerfile": "Dockerfile",
+    "build_compose_template": "docker-compose.build.yml",
+    "deploy_compose_template": "docker-compose.prod.yml",
+    "build_args": {
+      "APP_GIT_SHA": {
+        "description": "git rev-parse HEAD of the commit being built",
+        "source": "resolved by scripts/build-production-image.ps1"
+      },
+      "APP_BUILD_DATE": {
+        "description": "UTC ISO-8601 build timestamp",
+        "source": "resolved by scripts/build-production-image.ps1"
+      },
+      "SGF_ENGINE_SOURCE_COMMIT": {
+        "description": "sgf_engine vendor source commit; currently unresolved, see sgf_engine/PROVENANCE_MISMATCH.md",
+        "source": "PENDING - blocked, see sgf_engine/PROVENANCE_MISMATCH.md"
+      }
+    },
+    "image_repository": "go-odyssey-app",
+    "immutable_tag_format": "go-odyssey-app:<short-git-sha>",
+    "latest_alias_allowed": true,
+    "latest_alias_is_deployment_record": false
+  },
+  "required_services": ["postgres", "app", "scheduler", "nginx"],
+  "required_secret_variables": [
+    "POSTGRES_PASSWORD",
+    "SECRET_KEY",
+    "RESEND_API_KEY",
+    "TURNSTILE_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "OPENAI_API_KEY",
+    "NEWEBPAY_MERCHANT_ID",
+    "NEWEBPAY_HASH_KEY",
+    "NEWEBPAY_HASH_IV",
+    "PAYPAL_CLIENT_ID",
+    "PAYPAL_SECRET"
+  ],
+  "build_inputs": {
+    "tracked_in_canonical_branch_this_sprint": [
+      "Dockerfile",
+      "docker-compose.prod.yml",
+      "docker-compose.build.yml",
+      "requirements.txt",
+      "entrypoint.sh",
+      "scheduler.py",
+      "nginx/default.conf",
+      "app.py",
+      "shadow_judging.py",
+      "shadow_dashboard.py",
+      "katago_explain.py",
+      "explain_overrides.py",
+      "grimoire_api.py",
+      "question_taxonomy.py",
+      "monster_taxonomy.py",
+      "chapter_i18n.py",
+      "backend_i18n.py",
+      "tools/community_leaderboard_rewards_manual.py",
+      "tools/community_leaderboard_rewards_export_entries.py",
+      "tools/community_leaderboard_rewards_real_grant_preview.py",
+      "tools/community_leaderboard_rewards_real_grant_commit.py"
+    ],
+    "required_but_not_yet_vendored": [
+      {
+        "path": "sgf_engine/",
+        "reason": "BLOCKED - provenance mismatch, see sgf_engine/PROVENANCE_MISMATCH.md",
+        "required_by": "Dockerfile: COPY sgf_engine ./sgf_engine"
+      },
+      {
+        "path": "assets/",
+        "reason": "PENDING - 757MB of binary assets on production host; out of scope for this Sprint per smallest-evidence-supported-set guidance",
+        "required_by": "Dockerfile: multiple COPY assets/* lines"
+      },
+      {
+        "path": "questions.json",
+        "reason": "PENDING - 58MB puzzle data file; not a build/deploy artifact, requires a dedicated data-vendoring or object-storage strategy",
+        "required_by": "Dockerfile: COPY questions.json srs.db go_learning.db ./"
+      },
+      {
+        "path": "srs.db",
+        "reason": "PENDING - seed database file (1.5MB); persisted at runtime via entrypoint.sh, not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY questions.json srs.db go_learning.db ./"
+      },
+      {
+        "path": "go_learning.db",
+        "reason": "PENDING - seed database file (124KB); persisted at runtime via entrypoint.sh, not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY questions.json srs.db go_learning.db ./"
+      },
+      {
+        "path": "wgo/",
+        "reason": "PENDING - not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY wgo ./wgo"
+      },
+      {
+        "path": "blog/",
+        "reason": "PENDING - not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY blog ./blog"
+      },
+      {
+        "path": "docs/testing/",
+        "reason": "PENDING - 13MB, not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY docs/testing ./docs/testing"
+      },
+      {
+        "path": "shorts/",
+        "reason": "PENDING - not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY shorts ./shorts"
+      },
+      {
+        "path": "*.html, *.js, *.json, *.png (repository root)",
+        "reason": "RISK - current Dockerfile globs these wildcards indiscriminately (68 files, ~169MB on production host, including debug/report artifacts not part of the application). Not vendored this Sprint; flagged for a future curation Sprint to enumerate the actual intended file set separately from host residue.",
+        "required_by": "Dockerfile: COPY *.html *.js *.json *.png ./"
+      },
+      {
+        "path": "*.py (repository root, remaining files)",
+        "reason": "RISK - current Dockerfile globs COPY *.py indiscriminately (148 files on production host). Verified by transitive import trace from app.py (import app; py_compile; pytest collection against a checkout containing only the tracked files): exactly 11 root .py files are actually imported at runtime -- app.py, shadow_judging.py, shadow_dashboard.py, scheduler.py, katago_explain.py, explain_overrides.py, grimoire_api.py, question_taxonomy.py, monster_taxonomy.py, chapter_i18n.py, backend_i18n.py -- all 11 are tracked this Sprint (see tracked_in_canonical_branch_this_sprint). The remaining ~137 files are not imported by app.py/scheduler.py's import graph and are one-off analysis/debug scripts baked into the image only because of the wildcard; not vendored this Sprint; flagged for a future curation Sprint to either narrow the Dockerfile COPY or explicitly vendor+justify each remaining file.",
+        "required_by": "Dockerfile: COPY *.py ./"
+      },
+      {
+        "path": "robots.txt, sitemap.xml, og-image.jpg",
+        "reason": "PENDING - not yet vendored this Sprint",
+        "required_by": "Dockerfile: COPY robots.txt sitemap.xml og-image.jpg ./"
+      }
+    ],
+    "runtime_only_not_build_inputs": [
+      {
+        "path": "katago_cache.db",
+        "reason": "mounted as a read-only bind volume in docker-compose.prod.yml; never COPYed into the image by the Dockerfile"
+      },
+      {
+        "path": "/opt/go-odyssey-static",
+        "reason": "separate atomic static-release symlink mechanism, mounted read-only; not part of the app image build (see docs/deployment/canonical_image_build.md, Phase E)"
+      }
+    ]
+  },
+  "post_build_verification_files": [
+    "/app/app.py",
+    "/app/shadow_judging.py",
+    "/app/shadow_dashboard.py",
+    "/app/scheduler.py",
+    "/app/entrypoint.sh"
+  ]
+}
