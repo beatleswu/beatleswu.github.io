@@ -306,6 +306,7 @@ def test_preflight_script_reports_read_only_production_state():
         "QUESTIONS_JSON_PATH",
         "database_identity_match",
         "[System.Management.Automation.ErrorRecord]",
+        '-replace "`r`n", "`n" -replace "`r", "`n"',
     ):
         assert token in content
     assert '{{with index .State "Health"}}{{index . "Status"}}{{end}}' in content
