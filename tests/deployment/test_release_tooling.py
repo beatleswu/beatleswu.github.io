@@ -429,6 +429,7 @@ def test_deploy_script_defaults_to_dry_run_and_supports_real_image_deploy():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     for token in (
         "GO_DEPLOY",
+        "GO_ROLLBACK",
         "dry_run = $true",
         "deployment_plan",
         "ExpectedImageId",
@@ -448,6 +449,19 @@ def test_deploy_script_defaults_to_dry_run_and_supports_real_image_deploy():
     assert "Real deployment execution is not enabled in this Sprint" not in content
 
 
+def test_deploy_script_supports_legacy_readiness_and_automatic_rollback():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    for token in (
+        "legacy_fallback",
+        "Get-AppReadinessGateReport",
+        "Assert-QuestionsReportSatisfiesGate",
+        "rollback-release.ps1",
+        "Deployment failed and automatic rollback succeeded",
+        "Automatic rollback failed",
+    ):
+        assert token in content
+
+
 def test_deploy_script_orders_release_mutations_safely():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     assert_tokens_in_order(
@@ -464,6 +478,7 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
     content = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
     for token in (
         "GO_ROLLBACK",
+        "legacy_fallback",
         "dry_run = $true",
         "rollback_plan",
         "rollback_image_identity",
@@ -494,8 +509,12 @@ def test_verify_script_includes_e24a_and_premium_weekly_checks():
         "premium_weekly_default",
         "fail_observable_code_present",
         "shadow_verdict_simple_absent",
-        "Get-RemoteReadinessReport",
+        "Try-Get-RemoteReadinessReport",
+        "legacy_fallback",
         "readiness",
+        "questions",
+        "daily_challenge_status",
+        "exact release image ID",
     ):
         assert token in content
 
