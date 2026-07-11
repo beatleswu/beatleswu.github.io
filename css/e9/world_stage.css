@@ -1,0 +1,28 @@
+/* E9 World Stage component styles. Placeholder grid only — no new map
+   art or animation this sprint. */
+.e9-stage {
+  padding: 16px;
+  overflow: auto;
+}
+.e9-stage__zones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.e9-zone {
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+.e9-zone:focus-visible {
+  outline: 2px solid #6b5b3a;
+  outline-offset: 2px;
+}
+.e9-stage__note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #888;
+}

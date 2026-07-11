@@ -1,0 +1,15 @@
+/* E9 Top HUD component styles. */
+.e9-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #2b2b3d;
+  color: #fff;
+}
+.e9-hud__player,
+.e9-hud__resources {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}

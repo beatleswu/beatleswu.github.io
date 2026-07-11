@@ -1,0 +1,22 @@
+<!--
+  Component: Left Navigation
+  Stable root id: left-nav  (Rule #6)
+  Real routes when wired (already exist today, no new API needed):
+    Adventure Map -> /  (embedded map on index.html)
+    Character/Hero -> /hero.html
+    Equipment -> /hero.html (wardrobe tabs)
+    Backpack/Inventory -> /inventory.html (currently a stub page — see audit)
+    Missions -> daily_challenge.html / curriculum.html
+    Shop -> /shop.html
+  Guild is intentionally NOT listed — does not exist (see E9 audit, Phase F).
+-->
+<nav id="left-nav" class="e9-nav" data-e9-component="left_nav" aria-label="Adventure navigation">
+  <ul class="e9-nav__list">
+    <li><a href="#" data-e9-nav="adventure" class="e9-nav__item is-active" aria-current="page">🗺️ Adventure</a></li>
+    <li><a href="#" data-e9-nav="hero" class="e9-nav__item">🧑 Hero</a></li>
+    <li><a href="#" data-e9-nav="equipment" class="e9-nav__item">🎽 Equipment</a></li>
+    <li><a href="#" data-e9-nav="backpack" class="e9-nav__item">🎒 Backpack</a></li>
+    <li><a href="#" data-e9-nav="missions" class="e9-nav__item">📜 Missions</a></li>
+    <li><a href="#" data-e9-nav="shop" class="e9-nav__item">🛒 Shop</a></li>
+  </ul>
+</nav>
