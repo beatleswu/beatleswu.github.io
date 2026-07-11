@@ -349,24 +349,8 @@ function Get-RemoteDiskReport {
 function Get-RemoteStagingPathStatus {
     param([Parameter(Mandatory = $true)][string]$RemotePath)
     $quotedPath = Quote-PosixShellArgument $RemotePath
-    $script = @'
-path=__REMOTE_PATH__
-if [ -d "$path" ]; then
-  if [ -w "$path" ]; then
-    echo existing-writable
-  else
-    echo existing-not-writable
-  fi
-else
-  parent=$(dirname "$path")
-  if [ -d "$parent" ] && [ -w "$parent" ]; then
-    echo parent-writable
-  else
-    echo unavailable
-  fi
-fi
-'@.Replace('__REMOTE_PATH__', $quotedPath)
-    return (Invoke-RemoteScriptText -Name 'remote_staging_path_status' -ScriptText $script).Trim()
+    $command = 'path=__REMOTE_PATH__; if [ -d "$path" ]; then if [ -w "$path" ]; then echo existing-writable; else echo existing-not-writable; fi; else parent=$(dirname "$path"); if [ -d "$parent" ] && [ -w "$parent" ]; then echo parent-writable; else echo unavailable; fi; fi'.Replace('__REMOTE_PATH__', $quotedPath)
+    return (Invoke-RemoteText -Name 'remote_staging_path_status' -Command $command).Trim()
 }
 
 function Assert-ContainerSnapshotValid {
