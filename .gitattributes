@@ -1,2 +1,3 @@
 *.py text eol=lf
+*.sh text eol=lf
 sgf_engine/VENDORED_FROM.txt text eol=lf
