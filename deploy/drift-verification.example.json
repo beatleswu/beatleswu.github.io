@@ -1,0 +1,18 @@
+{
+  "$schema": "deploy/drift-verification.schema.json",
+  "release_git_sha": "0123456789abcdef0123456789abcdef01234567",
+  "image_tag": "go-odyssey-app:01234567",
+  "image_id": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "architecture": "linux/arm64",
+  "questions_path": "/app/data/questions.json",
+  "questions_record_count": 41591,
+  "static_root_path": "/opt/go-odyssey-static/current",
+  "database_host_classification": "production",
+  "database_name": "go_odyssey",
+  "database_user": "go",
+  "app_scheduler_config_match": true,
+  "app_scheduler_image_match": true,
+  "health_result": "healthy",
+  "gameplay_smoke_result": "passed",
+  "deployment_timestamp": "2026-07-11T00:00:00Z"
+}

@@ -1,10 +1,37 @@
 from psycopg2.extras import DictCursor
 from psycopg2.pool import ThreadedConnectionPool
+from urllib.parse import unquote, urlsplit
 import os
 import re
 import threading
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://go:go@postgres:5432/go_odyssey')
+
+
+def describe_database_url(database_url=None):
+    """Return a secret-safe summary of a PostgreSQL connection string."""
+    url = (database_url or DATABASE_URL or '').strip()
+    if not url:
+        return {
+            'configured': False,
+            'scheme': '',
+            'host': '',
+            'port': None,
+            'database': '',
+            'user': '',
+            'password_present': False,
+        }
+    parsed = urlsplit(url)
+    database = (parsed.path or '').lstrip('/')
+    return {
+        'configured': True,
+        'scheme': parsed.scheme or '',
+        'host': parsed.hostname or '',
+        'port': parsed.port,
+        'database': database,
+        'user': unquote(parsed.username or '') if parsed.username else '',
+        'password_present': bool(parsed.password),
+    }
 
 # ── 連線池：避免每個請求都重新 TCP 連線 + 認證（單行程多執行緒）──
 _pool = None
