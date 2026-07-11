@@ -119,12 +119,6 @@ def _sgf_to_xy(coord: str) -> tuple[int, int]:
     return ord(coord[0]) - ord("a"), ord(coord[1]) - ord("a")
 
 
-def _xy_to_sgf_simple(x: int, y: int) -> str:
-    if x < 0 or y < 0:
-        raise ValueError("negative coordinate")
-    return chr(ord("a") + x) + chr(ord("a") + y)
-
-
 def _node_text(sgf_text: str, start: int) -> tuple[str, int]:
     i = start
     out = []
@@ -290,37 +284,18 @@ def _canonical_moves(sgf_text, moves, final_correct) -> tuple[list[dict[str, int
         return [], f"parse failed: {type(exc).__name__}"
 
 
-def _shadow_verdict_simple(sgf_text, moves):
-    try:
-        expected = _extract_player_moves_from_mainline(sgf_text)
-    except Exception as exc:
-        return "unsupported", f"parse failed: {type(exc).__name__}"
-
-    actual = _normalize_moves(moves)
-    if not expected:
-        return "unsupported", "answer tree has no children"
-    if not actual:
-        return "reject", "empty move list"
-
-    for idx, move in enumerate(actual):
-        if idx >= len(expected):
-            return "reject", "moves ended before reaching a leaf"
-        if move["x"] != expected[idx]["x"] or move["y"] != expected[idx]["y"]:
-            coord = _xy_to_sgf_simple(move["x"], move["y"])
-            return "off_tree", f"move {idx} ({coord}) not in tree"
-
-    if len(actual) == len(expected):
-        return "accept", "reached leaf (fallback leaf semantics)"
-    return "reject", "moves ended before reaching a leaf"
-
-
 def _shadow_verdict(sgf_text, moves):
-    try:
-        from sgf_engine.core import autoreply, matcher, tree
-        from sgf_engine.core.coord_utils import xy_to_sgf
-        from sgf_engine.parser.sgf_parser import parse_sgf
-    except Exception:
-        return _shadow_verdict_simple(sgf_text, moves)
+    """Total-in-behavior only via the caller's own exception handling.
+
+    sgf_engine is the sole correctness authority here. If it cannot be
+    imported or raises, this function does not substitute any alternate
+    parser or verdict logic — the exception is left to propagate so the
+    caller can record an explicit, observable Shadow failure event instead
+    of silently returning a normal-looking verdict.
+    """
+    from sgf_engine.core import autoreply, matcher, tree
+    from sgf_engine.core.coord_utils import xy_to_sgf
+    from sgf_engine.parser.sgf_parser import parse_sgf
 
     try:
         root = parse_sgf(sgf_text)
@@ -429,8 +404,10 @@ def observe_answer_route(
     except Exception as exc:
         exception_class = type(exc).__name__
         exception_message = _sanitize_message(exc)
+        shadow = "error"
+        reason = f"sgf_engine unavailable or failed: {exception_class}"
         classification = "shadow_error"
-        parser_status, parser_failure_reason = _parser_metadata(shadow, reason)
+        parser_status, parser_failure_reason = "failed", reason
     finally:
         if not is_enabled():
             return

@@ -218,7 +218,10 @@ def test_exception_path_records_exception_fields_and_sanitizes_message(tmp_path,
     assert "token=abc" not in event["exception_message"].lower()
     assert "cookie=def" not in event["exception_message"].lower()
     assert "header=ghi" not in event["exception_message"].lower()
-    assert event["parser_status"] == "ok"
+    # E2.4A: a raised exception during Shadow evaluation is an explicit,
+    # observable failure — it must not be reported as parser_status "ok".
+    assert event["parser_status"] == "failed"
+    assert event["shadow_judgement"] == "error"
 
 
 def test_latency_and_request_id_are_present(tmp_path, monkeypatch):
