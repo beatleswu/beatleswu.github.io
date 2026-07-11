@@ -529,8 +529,13 @@ def test_canonical_app_healthcheck_contract_is_exec_form():
 def test_deploy_script_verifies_exec_form_healthcheck_for_canary_and_app():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     for token in (
-        "($candidateHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)",
-        "($appHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)",
+        "Assert-CanonicalExecHealthcheckTest",
+        "if ($HealthcheckTest[0] -ne 'CMD')",
+        "if ($HealthcheckTest[1] -ne 'python')",
+        "if ($HealthcheckTest[2] -ne '-c')",
+        "127\\.0\\.0\\.1:8080/healthz",
+        "Assert-CanonicalExecHealthcheckTest -HealthcheckTest $candidateHealthcheckTest -Context 'Candidate canary'",
+        "Assert-CanonicalExecHealthcheckTest -HealthcheckTest $appHealthcheckTest -Context 'App container'",
         "$remoteHealthcheckOverridePath",
         "docker-compose.release.healthcheck.override.yml",
     ):

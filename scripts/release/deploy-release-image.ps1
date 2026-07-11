@@ -159,6 +159,28 @@ function Get-RemoteContainerHealthcheckTest {
     return @($raw | ConvertFrom-Json)
 }
 
+function Assert-CanonicalExecHealthcheckTest {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$HealthcheckTest,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+    if ($HealthcheckTest.Count -lt 4) {
+        throw "$Context healthcheck is incomplete: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    }
+    if ($HealthcheckTest[0] -ne 'CMD') {
+        throw "$Context healthcheck must use CMD exec form. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    }
+    if ($HealthcheckTest[1] -ne 'python') {
+        throw "$Context healthcheck must invoke python. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    }
+    if ($HealthcheckTest[2] -ne '-c') {
+        throw "$Context healthcheck must pass -c to python. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    }
+    if ([string]$HealthcheckTest[3] -notmatch '127\.0\.0\.1:8080/healthz') {
+        throw "$Context healthcheck must probe http://127.0.0.1:8080/healthz. Actual: $($HealthcheckTest | ConvertTo-Json -Compress)"
+    }
+}
+
 function Get-RemoteContainerEnvMap {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .Config.Env}}'"
@@ -891,9 +913,7 @@ try {
         throw "Candidate canary image ID does not match the release image ID."
     }
     $candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)
-    if (($candidateHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)) {
-        throw "Candidate canary healthcheck is not the canonical exec-form contract."
-    }
+    Assert-CanonicalExecHealthcheckTest -HealthcheckTest $candidateHealthcheckTest -Context 'Candidate canary'
     if ($candidateCanary.state -ne 'running') {
         throw "Candidate canary is not running. Sanitized logs: $($candidateCanary.logs_tail)"
     }
@@ -930,9 +950,7 @@ try {
         throw "App container image ID does not match the release image ID."
     }
     $appHealthcheckTest = Get-RemoteContainerHealthcheckTest -ContainerName $layout.app_service_name
-    if (($appHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)) {
-        throw "App container healthcheck is not the canonical exec-form contract after the image switch."
-    }
+    Assert-CanonicalExecHealthcheckTest -HealthcheckTest $appHealthcheckTest -Context 'App container'
     if ($appAfter.health -ne 'healthy') {
         throw "App container is not healthy after the image switch."
     }
