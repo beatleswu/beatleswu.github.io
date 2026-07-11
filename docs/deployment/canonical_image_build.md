@@ -1,10 +1,60 @@
 # Canonical Production Image Build
 
-Status: build-source reconstruction complete for tracked application code and
-SGF Engine; large binary/data assets remain open (see Limitations).
-Sprint: DEPLOY-GOV-2. This document does not claim deployment has been
+Status: a clean Git checkout of `origin/master` (via PR #52) now builds a
+complete, runnable application image without relying on Production, Graph A,
+or any manually-injected file. Large/mutable content (`assets/`, `shorts/`,
+`questions.json`) is deliberately excluded from the image and served via
+runtime mount contracts instead — see "App Image / Content Boundary" below.
+Sprint: DEPLOY-GOV-2E. This document does not claim deployment has been
 validated — see [canonical_production_deployment_audit.md](canonical_production_deployment_audit.md)
 for deployment-mechanism status, which this Sprint does not change.
+
+> **DEPLOY-GOV-2E status note (2026-07-11):** This Sprint completed the
+> build closure: recovered `db.py` (`app.py`'s `from db import get_db`
+> dependency, exact match to Production, commit `b4bd6506f`) and 55 curated
+> root static files (HTML/JS/JSON/PNG/JPG, `wgo/`, `blog/`) from verified
+> Git commits — see `deploy/runtime-source-provenance.json`. Removed
+> `srs.db` (contains live user-data-shaped tables: `users`, `friendships`,
+> `game_results`, `teacher_student`, ...; unreferenced by any current
+> `sqlite3.connect()` call) and `docs/testing/` (internal QA evidence, zero
+> runtime references) from the Dockerfile and build manifest permanently.
+> Removed `go_learning.db` after confirming its two tables are already
+> created directly in PostgreSQL by `app.py`. Replaced the `COPY *.html
+> *.js *.json *.png ./` and all `COPY assets/...`/`COPY shorts ./shorts`
+> wildcard/bulk instructions with an explicit curated file list plus
+> external mount contracts (`GO_ODYSSEY_LIVE_STATIC_ROOT`,
+> `QUESTIONS_JSON_PATH`) for the large/mutable content that remains
+> intentionally outside the image. See "App Image / Content Boundary"
+> below for the full architecture. Not every curated static file's content
+> byte-matches current Production exactly (some HTML/JS has drifted via
+> cache-busting version bumps since the cited commits) — each file's
+> `deploy/runtime-source-provenance.json` entry records its real,
+> honestly-labeled provenance rather than silently treating "close enough"
+> as "verified."
+
+## App Image / Content Boundary
+
+**Inside the image** (tracked in Git, `COPY`'d explicitly): Python runtime
+source, SGF Engine, `requirements.txt`, `entrypoint.sh`, the curated root
+HTML/JS/JSON/PNG static pages, `wgo/`, `blog/`, build/provenance metadata.
+
+**Outside the image** (never `COPY`'d; served via runtime mount or excluded
+permanently):
+
+| Path | Treatment | Mount contract |
+|---|---|---|
+| `assets/` (757MB) | VERSIONED STATIC ARTIFACT, read-only mount | `GO_ODYSSEY_LIVE_STATIC_ROOT` (docker-compose.prod.yml) |
+| `shorts/` (113MB) | VERSIONED STATIC ARTIFACT, read-only mount, optional | same `GO_ODYSSEY_LIVE_STATIC_ROOT` mechanism |
+| `questions.json` (58MB) | VERSIONED CONTENT BASELINE + persistent runtime storage | `QUESTIONS_JSON_PATH`, defaults to `/app/data/questions.json` in the persistent `go-data` volume |
+| `srs.db` | **excluded permanently** — user-data-shaped, unreferenced | none — must never be baked into an image |
+| `go_learning.db` | **excluded permanently** — obsolete, superseded by PostgreSQL | none |
+| `docs/testing/` | **excluded permanently** — internal QA, zero runtime references | none |
+
+`app.py` already has graceful-degradation handling for all three mount-based
+paths (`_serve_live_static_or_baked*` helpers 404 per-file when a mount is
+absent; `_load_questions*()` return an empty list rather than crash) — this
+Sprint did not need to add new fallback logic, only make the questions path
+configurable (`QUESTIONS_JSON_PATH` env var, one-line change in `app.py`).
 
 > **DEPLOY-GOV-2A status note (2026-07-11):** The SGF Engine "provenance
 > mismatch" described in Phase C below and in the original

@@ -65,9 +65,28 @@ services:
       - PAYPAL_TEST=${PAYPAL_TEST:-1}
       - SHADOW_EVENTS_PATH=/app/data/shadow_events.jsonl
       - SHADOW_JUDGING_ENABLED=1
+      # ── Content/asset boundary (DEPLOY-GOV-2E) ──────────────────────
+      # assets/ and shorts/ are NOT baked into the image; app.py's
+      # /assets/<path:subpath> and /shorts/<filename> routes already read
+      # from GO_ODYSSEY_LIVE_STATIC_ROOT first (read-only mount below),
+      # falling back to a baked copy that does not exist in this image --
+      # individual files 404 if the mount is absent, the app process
+      # itself stays healthy.
       - GO_ODYSSEY_LIVE_STATIC_ROOT=/opt/go-odyssey-static/current
+      # questions.json is NOT baked into the image (58MB, admin-mutable
+      # puzzle content). Pointed at the persistent go-data volume so admin
+      # edits via the question-management API survive container
+      # recreation; the versioned content baseline is copied there once
+      # by the operator, out of band -- see
+      # docs/deployment/canonical_image_build.md. app.py already treats a
+      # missing file at this path as "no puzzles loaded", not a crash.
+      - QUESTIONS_JSON_PATH=/app/data/questions.json
     volumes:
       - go-data:/app/data
+      # Read-only mount for large static assets (game art, marketing
+      # shorts). VERSIONED STATIC ARTIFACT, not tracked in Git -- see
+      # deploy/build-manifest.json's external_content_boundary. Example
+      # host path only; replace with the real artifact location.
       - /opt/go-odyssey-static:/opt/go-odyssey-static:ro
       # KataGo 答案快取資料庫（約 128MB），不放入 image / 不進 .dockerignore 之外的追蹤範圍，
       # 由 deploy 端目錄直接掛載 /opt/go-odyssey/katago_cache.db（唯讀）

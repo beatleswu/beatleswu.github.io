@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日懸賞令 — 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/wgo/wgo.min.js?v=20260513"></script>
+<script src="/wgo/stone_skin.js?v=3"></script>
+<link rel="stylesheet" href="/wgo/wgo.player.css">
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:    #faf7f2; --cream2:  #f3ede3; --cream3: #ede4d4;
+  --ink:      #1c1409; --ink2:    #3d2f1a; --ink3:   #6b5740;
+  --amber:    #d97706; --amber-bg:#fffbeb;
+  --teal:     #0d9488; --teal-bg: #f0fdfa; --teal-dark:#0f766e;
+  --border:   #e5ddd0; --border2: #d4c9b8;
+  --white:    #ffffff;
+  --shadow:   0 1px 3px rgba(28,20,9,.06), 0 4px 16px rgba(28,20,9,.06);
+  --green:    #16a34a; --green-bg:#f0fdf4;
+  --red:      #dc2626; --red-bg:  #fef2f2;
+  --mono:     'DM Mono', monospace;
+}
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream); color: var(--ink);
+  display: flex; flex-direction: column;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 52px 52px; opacity: .35;
+}
+
+/* ── HEADER ── */
+header:not(.cg-nav) {
+  position: relative; z-index: 100; flex-shrink: 0;
+  background: rgba(250,247,242,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 56px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 700; color: var(--ink);
+  text-decoration: none; letter-spacing: .5px; flex-shrink: 0;
+}
+.logo-mark {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: white;
+}
+.header-center { display: flex; align-items: center; gap: 16px; flex: 1; }
+.header-stat { font-family: var(--mono); font-size: 11px; color: var(--ink3); display: flex; align-items: center; gap: 4px; }
+.header-stat strong { color: var(--ink2); font-weight: 500; }
+.header-stat .v-amber { color: var(--amber); }
+.header-stat .v-teal  { color: var(--teal);  }
+.header-stat .v-red   { color: var(--red);   }
+.nav-sep { width: 1px; height: 16px; background: var(--border); }
+.header-nav { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.nav-link {
+  font-size: 14px; color: var(--ink3); text-decoration: none;
+  padding: 7px 13px; border-radius: 6px; transition: all .15s;
+}
+.nav-link:hover { background: var(--cream2); color: var(--ink); }
+.nav-link.active { color: var(--teal); font-weight: 500; }
+.btn-logout {
+  font-size: 11px; color: var(--ink3); background: none; border: 1px solid var(--border);
+  cursor: pointer; padding: 4px 9px; border-radius: 6px; transition: all .15s;
+}
+.btn-logout:hover { background: var(--red-bg); color: var(--red); border-color: #fecaca; }
+.nav-avatar-wrap {
+  display: flex; align-items: center; gap: 6px;
+  text-decoration: none; padding: 4px 8px; border-radius: 8px; transition: background .15s;
+}
+.nav-avatar-wrap:hover { background: var(--cream2); }
+.nav-avatar-fig { position: relative; width: 26px; height: 26px; }
+.nav-avatar-base {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--cream3); border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.nav-avatar-hat {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  font-size: 14px; line-height: 1; opacity: 0;
+}
+.nav-avatar-name { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+
+/* ── BODY LAYOUT ── */
+.body-wrap {
+  flex: 1; display: flex; overflow: hidden; position: relative; z-index: 1;
+}
+
+/* ── LEFT PANEL ── */
+aside {
+  width: 260px; flex-shrink: 0;
+  background: var(--white); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-header {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  background: var(--cream2); flex-shrink: 0;
+}
+.sidebar-label {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--ink3);
+  display: block; margin-bottom: 6px;
+}
+
+/* Streak pill */
+.streak-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--amber-bg); border: 1px solid #fde68a;
+  border-radius: 10px; padding: 8px 12px; margin-bottom: 8px;
+}
+.streak-flame { font-size: 18px; }
+.streak-num {
+  font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--amber); line-height: 1;
+}
+.streak-unit { font-size: 10px; color: var(--ink3); }
+.streak-best { font-family: var(--mono); font-size: 9px; color: var(--ink3); margin-top: 1px; }
+
+/* Countdown */
+.countdown-row {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; color: var(--ink3);
+}
+.countdown-val { font-size: 13px; font-weight: 700; color: var(--ink2); }
+
+/* Global stats */
+.global-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.gstat {
+  background: var(--cream2); border-radius: 8px; padding: 8px 10px; text-align: center;
+}
+.gstat-val { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--teal); }
+.gstat-label { font-size: 9px; color: var(--ink3); margin-top: 2px; letter-spacing: .5px; text-transform: uppercase; font-family: var(--mono); }
+
+/* Status / result area */
+.status-area {
+  padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.status-submitted {
+  background: var(--green-bg); border: 1px solid #86efac; border-radius: 10px;
+  padding: 10px 12px; font-size: 12px; color: var(--green); font-weight: 600;
+  display: none;
+}
+.status-submitted.wrong {
+  background: var(--red-bg); border-color: #fca5a5; color: var(--red);
+}
+.rank-badge {
+  margin-top: 6px; font-family: var(--mono); font-size: 11px;
+  color: var(--amber); font-weight: 700; display: none;
+}
+
+/* New badges */
+.new-badges-area {
+  padding: 0 14px 10px; display: none; flex-direction: column; gap: 4px;
+}
+.badge-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--amber-bg); border: 1px solid #fde68a; border-radius: 8px;
+  padding: 5px 9px; font-size: 11px; color: #92400e; font-weight: 600;
+}
+
+/* History list */
+.history-scroll { flex: 1; overflow-y: auto; }
+.history-scroll::-webkit-scrollbar { width: 4px; }
+.history-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+.history-section-label {
+  padding: 8px 14px 4px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+}
+.history-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .1s; font-size: 11px;
+}
+.history-item:hover { background: var(--cream2); }
+.history-item.locked { opacity: .5; cursor: default; }
+.history-date { font-family: var(--mono); color: var(--ink3); min-width: 60px; }
+.history-result { font-size: 13px; }
+.history-acc { margin-left: auto; font-family: var(--mono); color: var(--teal); font-size: 10px; }
+.history-lock { margin-left: auto; font-size: 11px; color: var(--ink3); }
+
+/* Premium gate */
+.premium-gate {
+  margin: 10px 14px; background: var(--amber-bg);
+  border: 1px dashed #fde68a; border-radius: 12px;
+  padding: 14px; text-align: center;
+}
+.premium-gate p { font-size: 11px; color: var(--ink3); margin-bottom: 8px; line-height: 1.5; }
+.premium-btn {
+  display: inline-block; background: var(--amber); color: #fff;
+  padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+  text-decoration: none; transition: opacity .15s;
+}
+.premium-btn:hover { opacity: .85; }
+
+/* ── PRACTICE AREA ── */
+.practice {
+  flex: 1; overflow-y: auto; padding: 24px 28px 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+.practice::-webkit-scrollbar { width: 4px; }
+.practice::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+/* Hero title */
+.dc-hero {
+  width: 100%; max-width: 520px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.dc-eyebrow {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--ink3);
+}
+.dc-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; font-weight: 700; color: var(--ink); line-height: 1.15;
+}
+.dc-meta { font-size: 12px; color: var(--ink3); display: flex; gap: 8px; align-items: center; }
+.diff-badge {
+  background: var(--teal); color: #fff; font-size: 10px;
+  padding: 1px 8px; border-radius: 4px; font-family: var(--mono); font-weight: 700;
+}
+.diff-badge.kyu { background: #3b82f6; }
+
+.bounty-reward {
+  width: 100%;
+  max-width: 520px;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(217,170,85,.34);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0 0, rgba(244,210,138,.14), transparent 40%),
+    linear-gradient(135deg, rgba(61,43,28,.96), rgba(28,20,14,.98));
+  box-shadow: 0 12px 30px rgba(0,0,0,.18), inset 0 1px rgba(255,255,255,.05);
+}
+.bounty-reward-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,.35));
+}
+.bounty-reward-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bounty-reward-kicker {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--bounty-gold2);
+}
+.bounty-reward-title {
+  color: #fff1c8;
+  font-weight: 700;
+  font-size: 14px;
+}
+.bounty-reward-value {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(244,210,138,.58);
+  background: linear-gradient(135deg, rgba(141,90,30,.92), rgba(217,170,85,.92));
+  color: #1b1208;
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Message box */
+.msg-box {
+  width: 100%; max-width: 520px; min-height: 28px;
+  font-family: var(--mono); font-size: 12px; text-align: center;
+  padding: 6px 12px; border-radius: 8px; transition: all .2s;
+  background: var(--cream2); color: var(--ink3);
+}
+.msg-box.ok   { background: var(--green-bg); color: var(--green); }
+.msg-box.err  { background: var(--red-bg);   color: var(--red);   }
+.msg-box.info { background: var(--teal-bg);  color: var(--teal);  }
+.msg-box.warn { background: var(--amber-bg); color: var(--amber); }
+
+/* Board */
+#board-wrap {
+  width: 100%; max-width: 560px;
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px; box-shadow: var(--shadow);
+}
+#board-container { width: 100%; }
+
+/* Buttons */
+.btn-row {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  width: 100%; max-width: 520px;
+}
+.btn {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  padding: 8px 18px; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--white); color: var(--ink3); cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn:hover { background: var(--cream2); color: var(--ink); border-color: var(--ink3); }
+.btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-primary:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+.btn-amber { background: var(--amber-bg); color: var(--amber); border-color: #fde68a; }
+.btn-amber:hover { background: var(--amber); color: #fff; }
+.btn-done { background: var(--green-bg); color: var(--green); border-color: #86efac; cursor: default; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Submit result panel (shown after answering) */
+.submit-panel {
+  width: 100%; max-width: 520px;
+  background: var(--white); border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px 24px; display: none; flex-direction: column; gap: 14px;
+}
+.submit-panel.show { display: flex; }
+.submit-panel-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 700; color: var(--ink);
+}
+.submit-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+}
+.sstat {
+  text-align: center; background: var(--cream2); border-radius: 10px; padding: 10px;
+}
+.sstat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--teal); }
+.sstat-label { font-size: 9px; color: var(--ink3); text-transform: uppercase; letter-spacing: .5px; font-family: var(--mono); margin-top: 3px; }
+.submit-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.submit-badge-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--amber-bg); border: 1px solid #fde68a;
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; color: #92400e; font-weight: 600;
+}
+
+/* XP float */
+.xp-float {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--green);
+  pointer-events: none; z-index: 999;
+  animation: xpFloat 1.4s ease-out forwards;
+}
+@keyframes xpFloat {
+  0%   { opacity: 1; top: 40%; }
+  80%  { opacity: 1; top: 28%; }
+  100% { opacity: 0; top: 24%; }
+}
+
+/* Loading / empty state */
+.loading-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; gap: 10px;
+  color: var(--ink3); font-size: 13px; font-family: var(--mono); text-align: center;
+  padding: 40px;
+}
+
+    /* ── ≤1366px：手機/iPad 用統一 32x32 圖示 nav ── */
+    @media (max-width: 1366px) {
+        header:not(.cg-nav) { padding: 0 10px !important; height: 50px !important; }
+        .logo-name { display: none !important; }
+        .nav-avatar-wrap, .status-pill, .nav-sep { display: none !important; }
+        .header-nav { gap: 3px !important; flex-wrap: nowrap; overflow-x: auto; }
+        #menu-btn { display: flex !important; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0 !important; font-size: 18px !important; flex-shrink: 0; background: none; border: none; cursor: pointer; }
+        #streak-pill { font-size: 10px !important; padding: 2px 8px !important; flex-shrink: 0; }
+        .header-nav .nav-link {
+            display: inline-flex !important;
+            align-items: center; justify-content: center;
+            width: 32px !important; height: 32px !important;
+            padding: 0 !important;
+            border-radius: 8px;
+            font-size: 0 !important;
+            background: transparent;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .header-nav .nav-link::before {
+            content: attr(data-icon);
+            font-size: 18px !important;
+            line-height: 1;
+        }
+        .header-nav .nav-link:hover { background: var(--cream2); }
+        .header-nav .nav-link > span:not(#mistake-badge):not(#coins-nav-count) { display: none !important; }
+        .header-nav .nav-link svg { width: 22px !important; height: 22px !important; display: block !important; }
+        .header-nav .nav-link[href="/play"]::before { content: none !important; }
+        .header-nav #coins-nav-btn { width: auto !important; min-width: 32px; padding: 0 6px !important; gap: 2px; }
+        .header-nav #coins-nav-btn #coins-nav-count {
+            display: inline !important;
+            font-size: 11px !important;
+            font-family: 'DM Mono', monospace;
+            color: var(--amber);
+        }
+        .header-nav .nav-link[href="/mistakes"] { position: relative; }
+        #mistake-badge {
+            position: absolute !important;
+            top: -2px !important; right: -2px !important;
+            font-size: 8px !important;
+            padding: 0 4px !important;
+            line-height: 1.4 !important;
+        }
+        #xp-hud { font-size: 10px !important; gap: 4px !important; padding: 2px 6px !important; flex-shrink: 0; }
+        #xp-bar-wrap { width: 50px !important; }
+    }
+
+/* ── RPG bounty skin ── */
+:root {
+  --bounty-bg:#130f0b;
+  --bounty-panel:#241a12;
+  --bounty-panel2:#302217;
+  --bounty-gold:#d9aa55;
+  --bounty-gold2:#f4d28a;
+  --bounty-red:#9f2f2f;
+  --bounty-green:#6aa56f;
+  --bounty-line:rgba(217,170,85,.34);
+  --bounty-blue:#8fd8ff;
+}
+body {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(217,170,85,.18), transparent 28%),
+    radial-gradient(circle at 86% 4%, rgba(143,216,255,.12), transparent 26%),
+    linear-gradient(180deg,#120d09 0%,#26180f 48%,#110c08 100%);
+  color:#f8edda;
+}
+body::before {
+  background-image:
+    linear-gradient(rgba(217,170,85,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(217,170,85,.12) 1px, transparent 1px);
+  opacity:.3;
+}
+header:not(.cg-nav) {
+  background: rgba(18,13,9,.94);
+  border-bottom-color: var(--bounty-line);
+  box-shadow: 0 14px 36px rgba(0,0,0,.26);
+}
+.logo, .header-stat strong, .nav-avatar-name { color: var(--bounty-gold2); }
+.header-center > span[style] { color: #fff1c8 !important; }
+.header-stat, .nav-link, .btn-logout { color:#d8c39e; }
+.nav-link:hover, .nav-avatar-wrap:hover { background: rgba(217,170,85,.1); color:#fff7df; }
+.nav-link.active { color: var(--bounty-gold2); background: rgba(217,170,85,.12); }
+.nav-sep { background: rgba(217,170,85,.24); }
+.body-wrap { background: linear-gradient(180deg,rgba(255,255,255,.02),transparent); }
+.bounty-sidebar {
+  width: 320px;
+  flex: 0 0 320px;
+  background: linear-gradient(180deg,rgba(48,34,23,.96),rgba(24,17,12,.98));
+  border-right-color: var(--bounty-line);
+  box-shadow: 14px 0 38px rgba(0,0,0,.18);
+}
+.sidebar-header, .global-stats, .status-area, .history-section-label, .history-item, #stats-teaser {
+  border-color: var(--bounty-line) !important;
+}
+.sidebar-header {
+  background:
+    linear-gradient(135deg,rgba(217,170,85,.12),rgba(159,47,47,.08)),
+    rgba(24,17,12,.72);
+  padding: 14px 15px;
+}
+.sidebar-label, .history-section-label, .gstat-label, .sstat-label, .dc-eyebrow {
+  color: var(--bounty-gold2);
+}
+.sidebar-label {
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  margin-bottom: 9px;
+}
+.bounty-label-icon, .bounty-icon {
+  width: 28px; height: 28px; object-fit: contain; flex-shrink: 0;
+  filter: drop-shadow(0 7px 10px rgba(0,0,0,.35));
+}
+.bounty-icon.lg { width: 54px; height: 54px; }
+.sidebar-label.with-icon, .history-section-label.with-icon {
+  display:flex; align-items:center; gap:9px;
+}
+.streak-pill, .gstat, .status-submitted, .badge-chip, .premium-gate, .submit-panel, #board-wrap, .msg-box {
+  background: linear-gradient(180deg,rgba(48,34,23,.96),rgba(24,17,12,.98));
+  border-color: var(--bounty-line);
+  box-shadow: 0 16px 38px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.05);
+}
+.streak-num, .countdown-val, .gstat-val, .history-acc, .sstat-val {
+  color: var(--bounty-gold2);
+}
+.streak-unit, .streak-best, .countdown-row, .gstat-label, .history-date, .history-lock,
+.dc-meta, #dc-topic, #dc-note, .submit-panel-title, .result-sub, .premium-gate p {
+  color:#d8c39e !important;
+}
+.streak-pill {
+  border-radius: 12px;
+  padding: 12px 14px;
+  gap: 12px;
+}
+.streak-num { font-size: 25px; }
+.streak-unit { font-size: 12px; }
+.streak-best { font-size: 11px; margin-top: 3px; }
+.countdown-row {
+  font-size: 14px;
+  gap: 7px;
+  white-space: nowrap;
+}
+.countdown-val { font-size: 16px; }
+.global-stats {
+  gap: 9px;
+  padding: 12px 14px;
+}
+.gstat {
+  border: 1px solid rgba(217,170,85,.2);
+  border-radius: 12px;
+  padding: 11px 8px;
+}
+.gstat-val { font-size: 22px; }
+.gstat-label {
+  font-size: 11px;
+  letter-spacing: .7px;
+  line-height: 1.3;
+}
+.status-area { padding: 12px 14px; }
+.status-submitted {
+  font-size: 13px;
+  padding: 12px 13px;
+  border-radius: 12px;
+}
+.history-section-label {
+  padding: 12px 14px 9px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  background: rgba(217,170,85,.05);
+}
+.history-scroll {
+  padding: 10px 10px 18px;
+  background:
+    linear-gradient(180deg,rgba(217,170,85,.04),transparent 18%),
+    rgba(0,0,0,.08);
+}
+.history-scroll::-webkit-scrollbar { width: 8px; }
+.history-scroll::-webkit-scrollbar-thumb { background: rgba(217,170,85,.42); }
+.history-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  margin-bottom: 9px;
+  font-size: 13px;
+  min-height: 62px;
+  border: 1px solid rgba(217,170,85,.28) !important;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0 0,rgba(244,210,138,.12),transparent 38%),
+    linear-gradient(135deg,rgba(61,43,28,.96),rgba(28,20,14,.98));
+  box-shadow: 0 10px 24px rgba(0,0,0,.16), inset 0 1px rgba(255,255,255,.04);
+  overflow: hidden;
+}
+.history-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg,var(--bounty-gold2),rgba(159,47,47,.7));
+  opacity: .78;
+}
+.history-date {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color:#ead5ab !important;
+}
+.history-result {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(217,170,85,.38);
+  background: rgba(0,0,0,.2);
+  font-size: 16px;
+  text-align:center;
+  box-shadow: inset 0 1px rgba(255,255,255,.06);
+}
+.history-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.history-title {
+  color: #fff1c8;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-sub {
+  color: #bca887;
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: .3px;
+}
+.history-rewards {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 54px;
+}
+.history-acc {
+  margin-left: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(106,165,111,.36);
+  background: rgba(106,165,111,.1);
+  color: #b9f4c8 !important;
+  font-size: 11px;
+}
+.history-item .diff-badge {
+  font-size: 10px !important;
+  padding: 2px 7px !important;
+  border-radius: 999px;
+}
+.history-item:hover {
+  background:
+    radial-gradient(circle at 0 0,rgba(244,210,138,.2),transparent 42%),
+    linear-gradient(135deg,rgba(74,52,32,.98),rgba(34,24,16,.98));
+  border-color: rgba(244,210,138,.55) !important;
+  transform: translateY(-1px);
+}
+.practice {
+  display:grid;
+  grid-template-columns:minmax(520px, 620px) minmax(280px, 300px);
+  justify-content:center;
+  justify-items:center;
+  align-items:start;
+  gap:22px;
+  padding:26px 24px 44px;
+}
+#main-content {
+  max-width:640px !important;
+}
+.dc-hero {
+  max-width:640px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--bounty-line);
+  border-radius:18px;
+  padding:18px 20px;
+  background:
+    linear-gradient(135deg,rgba(217,170,85,.14),rgba(159,47,47,.08)),
+    linear-gradient(180deg,rgba(48,34,23,.96),rgba(24,17,12,.98));
+  box-shadow: 0 18px 46px rgba(0,0,0,.24);
+}
+.dc-hero::before {
+  content:'';
+  width:90px; height:90px;
+  position:absolute; right:16px; top:10px;
+  background:url('/assets/guild_bounty_assets/daily_bounty_main.webp') center/contain no-repeat;
+  opacity:.28; pointer-events:none;
+}
+.dc-title {
+  color:#fff7df;
+  font-size:34px;
+}
+.diff-badge {
+  background: linear-gradient(135deg,#8d5a1e,#d9aa55);
+  border:1px solid rgba(244,210,138,.8);
+  color:#1b1208;
+}
+.diff-badge.kyu { background: linear-gradient(135deg,#1e5f9d,#8fd8ff); color:#081018; }
+.diff-badge.dan { background: linear-gradient(135deg,#78350f,#f4d28a); color:#1b1208; }
+.msg-box { max-width:640px; color:#d8c39e; }
+.msg-box.ok { background:rgba(45,90,55,.38); color:#b9f4c8; border-color:rgba(106,165,111,.45); }
+.msg-box.err { background:rgba(120,35,35,.34); color:#fecaca; border-color:rgba(248,113,113,.42); }
+.msg-box.info { background:rgba(50,70,100,.34); color:#d8efff; border-color:rgba(143,216,255,.34); }
+.msg-box.warn { background:rgba(130,85,30,.34); color:#ffe2a4; border-color:rgba(217,170,85,.42); }
+.bounty-reward {
+  max-width:640px;
+}
+#board-wrap {
+  max-width:560px;
+  padding:18px;
+  border-radius:18px;
+}
+#board-container canvas {
+  border-radius:8px;
+  box-shadow:0 18px 42px rgba(0,0,0,.35);
+}
+.btn {
+  background:rgba(255,255,255,.06);
+  border-color:rgba(217,170,85,.34);
+  color:#ecd6ab;
+}
+.btn:hover { background:rgba(217,170,85,.12); color:#fff7df; border-color:var(--bounty-gold); }
+.btn-primary {
+  background:linear-gradient(135deg,#8d5a1e,#d9aa55);
+  color:#1b1208;
+  border-color:#f4d28a;
+}
+.btn-primary:hover { background:linear-gradient(135deg,#a66a22,#f4d28a); color:#1b1208; }
+.btn-amber {
+  background:rgba(217,170,85,.14);
+  color:#fff1c8;
+  border-color:rgba(217,170,85,.46);
+}
+.btn img { width:22px; height:22px; object-fit:contain; filter:drop-shadow(0 4px 7px rgba(0,0,0,.3)); }
+.submit-panel { max-width:640px; }
+.submit-panel-title { color:#fff1c8; }
+.bounty-npc {
+  width:100%;
+  max-width:300px;
+  position:sticky;
+  top:18px;
+  background:linear-gradient(180deg,rgba(48,34,23,.96),rgba(24,17,12,.98));
+  border:1px solid var(--bounty-line);
+  border-radius:18px;
+  box-shadow:0 18px 46px rgba(0,0,0,.24);
+  overflow:hidden;
+}
+.bounty-npc-art {
+  min-height:255px;
+  display:flex; align-items:flex-end; justify-content:center;
+  padding:8px 10px 0;
+  background:radial-gradient(circle at 50% 64%,rgba(217,170,85,.2),transparent 42%);
+}
+.bounty-npc-art img {
+  width:min(230px,88%);
+  max-height:300px;
+  object-fit:contain;
+  filter:drop-shadow(0 22px 24px rgba(0,0,0,.42));
+}
+.bounty-npc-copy { padding:16px 18px 18px; }
+.bounty-kicker {
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--bounty-gold2);
+}
+.bounty-npc-name {
+  font-family:'Cormorant Garamond',serif;
+  font-size:26px;
+  font-weight:700;
+  color:#fff1c8;
+  margin-top:6px;
+}
+.bounty-npc-line {
+  color:#d8c39e;
+  font-size:13.5px;
+  line-height:1.7;
+  margin-top:8px;
+}
+.bounty-tip {
+  margin-top:12px;
+  padding:10px 11px;
+  border:1px solid rgba(143,216,255,.3);
+  border-radius:12px;
+  color:#d8efff;
+  background:rgba(143,216,255,.07);
+  font-size:12px;
+  line-height:1.6;
+}
+.premium-btn {
+  background:linear-gradient(135deg,#8d5a1e,#d9aa55);
+  color:#1b1208;
+}
+.loading-state { color:#d8c39e; }
+@media (max-width: 1180px) {
+  .body-wrap { overflow-y:auto; }
+  .bounty-sidebar { width:290px; flex-basis:290px; }
+  .practice { grid-template-columns:1fr; overflow:visible; justify-content:stretch; }
+  .bounty-npc { position:static; order:-1; max-width:640px; margin:0 auto; }
+  .bounty-npc-art { min-height:190px; }
+  .bounty-npc-art img { max-height:230px; }
+}
+@media (max-width: 820px) {
+  html, body { overflow:auto; }
+  .body-wrap { flex-direction:column; overflow:visible; }
+  .bounty-sidebar { width:100%; max-height:none; order:3; border-right:none; border-top:1px solid var(--bounty-line); }
+  aside.bounty-sidebar { overflow:visible; }
+  .history-scroll { max-height:320px; }
+  .practice { order:1; padding:14px 10px 28px; }
+  #main-content, .dc-hero, .msg-box, .submit-panel { max-width:100% !important; }
+  #board-wrap { max-width:min(100%, 560px); padding:10px; }
+  /* 靜態 header 僅為 site-nav 載入前的佔位；手機寬度藏導覽連結防橫向溢出 */
+  header:not(.cg-nav) .nav-link, header:not(.cg-nav) .header-center { display:none; }
+}
+</style>
+<script src="/pwa.js"></script>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <a href="/" class="logo">
+    <div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>
+    弈境奇兵 (Go Odyssey)
+  </a>
+
+  <div class="header-center">
+    <div class="nav-sep"></div>
+    <span style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:var(--ink2);">📜 <span data-i18n="nav.daily">每日懸賞令</span></span>
+    <div class="nav-sep"></div>
+    <span class="header-stat">🔥 <strong class="v-amber" id="hdr-streak">—</strong> <span data-i18n="dc_streak_unit">天</span></span>
+    <span class="header-stat" id="hdr-participants-wrap" style="display:none;">
+      👥 <strong class="v-teal" id="hdr-participants">—</strong> <span data-i18n="daily.stat.participants">人參加</span>
+    </span>
+  </div>
+
+  <div class="header-nav">
+    <a href="/" data-icon="📖" class="nav-link" data-i18n="nav.practice">📖 練習</a>
+    <a href="/curriculum" data-icon="🗺" class="nav-link" data-i18n="nav.curriculum">🗺 路線圖</a>
+    <a href="/daily-challenge" data-icon="📜" class="nav-link active" data-i18n="nav.daily">📜 每日懸賞令</a>
+    <a href="/mistakes" data-icon="📕" class="nav-link" data-i18n="nav.mistakes">📕 錯題本</a>
+    <a href="/badges" data-icon="🏅" class="nav-link" data-i18n="nav.badges">🏅 獎章</a>
+    <a href="/stats" data-icon="📊" class="nav-link" data-i18n="nav.stats">📊 儀表板</a>
+    <a href="/community" data-icon="👥" class="nav-link" data-i18n="nav.community">👥 社群</a>
+    <a href="/hero" data-icon="🧙" class="nav-link" data-i18n="nav.skills">🧙 英雄</a>
+    <div class="nav-sep"></div>
+    <a href="/hero" class="nav-avatar-wrap" id="nav-avatar-link">
+      <div class="nav-avatar-fig">
+        <div class="nav-avatar-base" id="nav-avatar-base">🧑</div>
+        <div class="nav-avatar-hat"  id="nav-avatar-hat"></div>
+      </div>
+      <span class="nav-avatar-name" id="username-display"></span>
+    </a>
+    <div id="lang-switcher-daily" style="display:flex;align-items:center;"></div>
+    <button class="btn-logout" onclick="doLogout()" data-i18n="nav.logout">登出</button>
+  </div>
+</header>
+
+<!-- ── BODY ── -->
+<div class="body-wrap">
+
+  <!-- LEFT PANEL -->
+  <aside class="bounty-sidebar">
+    <!-- Streak + Countdown -->
+    <div class="sidebar-header">
+      <span class="sidebar-label with-icon"><img class="bounty-label-icon" src="/assets/guild_bounty_assets/streak_icon.webp" alt=""><span data-i18n="daily.streak.label">連續接令</span></span>
+      <div class="streak-pill">
+        <img class="bounty-icon" src="/assets/guild_bounty_assets/streak_icon.webp" alt="">
+        <div>
+          <div style="display:flex;align-items:baseline;gap:4px;">
+            <span class="streak-num" id="streak-val">—</span>
+            <span class="streak-unit" data-i18n="dc_streak_unit">天</span>
+          </div>
+          <div class="streak-best">
+            <span data-i18n="dc_streak_best">最佳</span>: <span id="streak-best-val">—</span> <span data-i18n="dc_streak_unit">天</span>
+          </div>
+        </div>
+      </div>
+      <div class="countdown-row">
+        <img class="bounty-label-icon" src="/assets/guild_bounty_assets/refresh_countdown_icon.webp" alt="">
+        <span data-i18n="daily.countdown.label">懸賞刷新倒數</span>：
+        <span class="countdown-val" id="cd-h">—</span>:<span class="countdown-val" id="cd-m">—</span>:<span class="countdown-val" id="cd-s">—</span>
+      </div>
+    </div>
+
+    <!-- Global stats (shown after submission) -->
+    <div class="global-stats" id="global-stats-area" style="display:none;">
+      <div class="gstat">
+        <img class="bounty-label-icon" src="/assets/guild_bounty_assets/daily_report_icon.webp" alt="">
+        <div class="gstat-val" id="gs-total">—</div>
+        <div class="gstat-label" data-i18n="daily.stats.total">今日接令者</div>
+      </div>
+      <div class="gstat">
+        <img class="bounty-label-icon" src="/assets/guild_bounty_assets/pass_rate_icon.webp" alt="">
+        <div class="gstat-val" id="gs-acc">—</div>
+        <div class="gstat-label" data-i18n="daily.stats.accuracy">全站通關率</div>
+      </div>
+    </div>
+
+    <!-- Teaser (before submission) -->
+    <div id="stats-teaser" style="padding:10px 14px;border-bottom:1px solid var(--border);display:none;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ink3);text-align:center;line-height:1.6;">
+        <span id="teaser-count"></span><br>
+        <span data-i18n="daily.teaser.hint">回報公會後查看全站通關率</span>
+      </div>
+    </div>
+
+    <!-- Submission result -->
+    <div class="status-area" id="status-area" style="display:none;">
+      <div class="status-submitted" id="status-submitted"></div>
+      <div class="rank-badge" id="rank-badge"></div>
+    </div>
+
+    <!-- New badges earned -->
+    <div class="new-badges-area" id="new-badges-area"></div>
+
+    <!-- History -->
+    <div class="history-section-label with-icon"><img class="bounty-label-icon" src="/assets/guild_bounty_assets/bounty_archives_icon.webp" alt=""><span data-i18n="daily.history.title">懸賞檔案</span></div>
+    <div class="history-scroll" id="history-list">
+      <div class="loading-state" style="padding:20px;height:auto;">
+        <span data-i18n="daily.loading">載入中…</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: PRACTICE AREA -->
+  <div class="practice" id="practice-area">
+
+    <!-- Loading state -->
+    <div class="loading-state" id="loading-state">
+      <div style="font-size:24px;">🎯</div>
+      <div data-i18n="daily.loading">載入中…</div>
+    </div>
+
+    <!-- Main content (hidden until loaded) -->
+    <div id="main-content" style="display:none;width:100%;max-width:520px;flex-direction:column;align-items:center;gap:14px;">
+
+      <!-- Hero -->
+      <div class="dc-hero">
+        <div class="dc-eyebrow" data-i18n="daily.title">每日懸賞令</div>
+        <div class="dc-title" id="dc-date-title">Daily Bounty</div>
+        <div class="dc-meta">
+          <span id="dc-topic" style="color:var(--ink3);"></span>
+          <span id="dc-diff-badge" class="diff-badge" style="display:none;"></span>
+          <span id="dc-note" style="font-style:italic;color:var(--ink3);display:none;"></span>
+        </div>
+      </div>
+
+      <div class="bounty-reward" id="bounty-reward-card">
+        <img class="bounty-reward-icon" src="/assets/guild_bounty_assets/bounty_completed_icon.webp" alt="">
+        <div class="bounty-reward-label">
+          <div class="bounty-reward-kicker" data-i18n="dc.reward.kicker">Bounty Reward</div>
+          <div class="bounty-reward-title" data-i18n="dc.reward.title">通關賞金</div>
+        </div>
+        <div class="bounty-reward-value">+<span id="bounty-reward-xp">50</span> XP</div>
+      </div>
+
+      <!-- Message -->
+      <div class="msg-box" id="msg-box"></div>
+
+      <!-- Board -->
+      <div id="board-wrap">
+        <div id="board-container"></div>
+      </div>
+
+      <!-- Buttons: during answering -->
+      <div class="btn-row" id="btn-row-answer">
+        <button class="btn btn-amber" id="btn-answer" onclick="showAnswer()" style="display:none;"><img src="/assets/guild_bounty_assets/reveal_solution_icon.webp" alt=""><span data-i18n="daily.btn.answer">揭示解法</span></button>
+        <button class="btn" id="btn-retry" onclick="resetProblem()" style="display:none;"><img src="/assets/guild_bounty_assets/reset_board_icon.webp" alt=""><span data-i18n="daily.btn.retry">重整棋局</span></button>
+        <button class="btn" id="btn-giveup" onclick="doGiveUp()" style="display:none;"><img src="/assets/guild_bounty_assets/abandon_bounty_icon.webp" alt=""><span data-i18n="daily.btn.giveup">放棄懸賞</span></button>
+      </div>
+
+      <!-- Submit panel (shown when ready to submit) -->
+      <div class="submit-panel" id="submit-panel">
+        <div class="submit-panel-title" id="submit-panel-title" data-i18n="dc.submit.panel.title">回報今日懸賞</div>
+        <div class="btn-row" style="margin:0;">
+          <button class="btn btn-primary" id="btn-submit" onclick="submitResult()">
+            <img src="/assets/guild_bounty_assets/report_guild_icon.webp" alt=""><span data-i18n="daily.btn.submit">回報公會</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Post-submit stats panel -->
+      <div class="submit-panel" id="result-panel">
+        <div class="submit-panel-title" id="result-panel-title"></div>
+        <div class="submit-stats" id="result-stats" style="display:none;"></div>
+        <div class="submit-badges" id="result-badges"></div>
+        <div class="btn-row" style="margin:0;">
+          <a href="/" class="btn btn-primary">📖 <span data-i18n="dc.btn.back_map">返回修行地圖</span></a>
+          <a href="/badges" class="btn"><img src="/assets/guild_bounty_assets/medal_vault_icon.webp" alt=""><span data-i18n="dc.btn.medal_vault">查看勳章庫</span></a>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+    <aside class="bounty-npc" aria-label="每日懸賞 NPC" data-i18n-aria-label="dc.npc.aria">
+      <div class="bounty-npc-art">
+        <img src="/assets/guild_bounty_assets/npc_nora.webp" data-i18n-alt="dc.npc.name" alt="懸賞書記官 諾菈">
+      </div>
+      <div class="bounty-npc-copy">
+        <div class="bounty-kicker">Bounty Scribe</div>
+        <div class="bounty-npc-name" data-i18n="dc.npc.name">懸賞書記官 · 諾菈 (Nora)</div>
+        <p class="bounty-npc-line" id="nora-line" data-i18n="dc.npc.default_line">今日懸賞已張貼。請在午夜鐘響前完成，公會會替你記下這一戰。</p>
+        <div class="bounty-tip" data-i18n="dc.npc.tip">提交前，全站通關率與排名會暫時封存；回報公會後才公開。</div>
+      </div>
+    </aside>
+  </div><!-- /practice -->
+</div><!-- /body-wrap -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════════
+let board        = null;
+let logicBoard   = null;
+let boardSize    = 19;
+let koPoint      = null;
+let currentProblem = null;   // parsed SGF tree
+let currentNode  = null;     // 當前走到的 tree node（含 root wrapper）
+let playerColor  = 'B';
+let answering    = false;
+let solved       = false;
+let gaveUp       = false;
+let submitted    = false;
+let todayData    = null;     // /api/daily-challenge/today response
+let isPremium    = false;
+let dailyXpReward = 50;
+
+const NORA_LINES_ZH = [
+  '今日懸賞已張貼。請在午夜鐘響前完成，公會會替你記下這一戰。',
+  '先落下你相信的一手，再把結果交給公會記錄。',
+  '提交後，公會才會公開今日全站通關率與名次。',
+  '連續接令不是為了數字，是為了讓你的手每天都記得棋盤的重量。',
+  '歷史懸賞檔案能看見昨日的你，也能提醒明日的你。',
+  '若第一手看不清，先找最急的棋。懸賞題通常不喜歡猶豫。',
+  '揭示解法前，請再給自己一口氣。很多答案只差一次重新審視。',
+  '放棄懸賞也會留下紀錄，但願那是你下次通關的路標。',
+  '重整棋局不是倒退，是把思路擦亮後再試一次。',
+  '今日接令者越多，戰報越熱鬧；但棋盤前，仍然只有你和那一手。',
+  '全站通關率會晚一點揭曉。先別偷看天氣，自己走進雨裡。',
+  '獎章庫不只收勝利，也收每天沒有缺席的證明。',
+  '難度徽章代表題目的門檻，不代表你的真實段級位。',
+  '若題目像霧，先把已知的氣、眼、斷點一一點亮。',
+  '午夜刷新後，今日懸賞就會封存。別讓好棋留在明天。',
+  '答錯不等於任務失敗。看懂錯在哪裡，才是公會真正想記下的事。',
+  '如果你已經提交，今天的戰報就會展開。請看看其他挑戰者留下的足跡。',
+  '懸賞令每日只發一張。少，但要準；短，但要進心裡。',
+  '公會不急著判斷你強不強，只想知道你今天有沒有坐到棋盤前。',
+  '諾菈已備好封蠟。等你回報，我就把今日戰績收進檔案室。'
+];
+
+const NORA_LINES_EN = [
+  `Today's bounty is posted. Complete it before the midnight bell — the guild will record your stand.`,
+  `Play the move you believe in, then hand the result to the guild.`,
+  `The site-wide clear rate and your rank stay hidden until you report in.`,
+  `A daily streak isn't about numbers — it's about keeping your hands acquainted with the board's weight every day.`,
+  `The bounty archives let you see yesterday's you, and remind tomorrow's you.`,
+  `If the first move isn't clear, find the most urgent play. Bounty problems don't reward hesitation.`,
+  `Before revealing the answer, give yourself one more breath. Many answers need only a fresh look.`,
+  `Abandoning a bounty still leaves a record — let it be a marker for next time.`,
+  `Resetting the board isn't stepping back; it's polishing your thinking before trying again.`,
+  `More hunters today means a livelier battle report — but at the board, it's still just you and that one move.`,
+  `The site-wide clear rate reveals a little later. Don't peek at the weather — walk into the rain yourself.`,
+  `The medal vault holds not just victories, but proof that you showed up every day.`,
+  `The difficulty badge marks the problem's bar — not your true rank.`,
+  `If the position feels like fog, light up the liberties, eyes, and cut points you already know.`,
+  `After midnight the bounty is sealed. Don't leave a good move for tomorrow.`,
+  `A wrong answer isn't mission failure. Understanding where you went wrong is what the guild really wants to record.`,
+  `If you've already reported in, today's battle log will unfold. Take a look at the trail other challengers left.`,
+  `One bounty per day — few, but precise; brief, but meant to land in your mind.`,
+  `The guild isn't in a rush to judge your strength — it just wants to know if you sat down at the board today.`,
+  `Nora has the wax seal ready. Report back and I'll file today's record in the archive room.`
+];
+
+function rotateNoraLine() {
+  const el = document.getElementById('nora-line');
+  if (!el) return;
+  const key = 'cg_daily_nora_line_idx';
+  let last = -1;
+  try { last = parseInt(localStorage.getItem(key) || '-1', 10); } catch(e) {}
+  const lines = I18n.getLang() === 'en' ? NORA_LINES_EN : NORA_LINES_ZH;
+  let next = Math.floor(Math.random() * lines.length);
+  if (lines.length > 1 && next === last) next = (next + 1) % lines.length;
+  el.textContent = lines[next];
+  try { localStorage.setItem(key, String(next)); } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════════════
+window.onLangChange = () => { I18n.apply(); rotateNoraLine(); };
+
+window.onload = async () => {
+  rotateNoraLine();
+  I18n.renderSwitcher(document.getElementById('lang-switcher-daily'));
+  I18n.apply();
+
+  // Auth check
+  try {
+    const me = await fetch('/api/auth/me', {credentials:'include'}).then(r=>r.json());
+    if (!me.logged_in) { location.href = '/login'; return; }
+    document.getElementById('username-display').textContent = me.display_name || me.nickname || me.username || 'Player';
+    isPremium = me.is_premium || false;
+  } catch(e) { location.href = '/login'; return; }
+
+  loadNavAvatar();
+  startCountdown();
+  loadToday();
+  loadHistory();
+};
+
+// ════════════════════════════════════════════════════════════
+// Load today's challenge
+// ════════════════════════════════════════════════════════════
+async function loadToday() {
+  try {
+    const res  = await fetch('/api/daily-challenge/today', {credentials:'include'});
+    const data = await res.json();
+
+    // API 回傳錯誤時顯示實際原因
+    if (!res.ok || data.error) {
+      throw new Error(`API ${res.status}: ${data.error || JSON.stringify(data)}`);
+    }
+
+    todayData = data;
+    dailyXpReward = data.xp_reward || dailyXpReward;
+    const rewardEl = document.getElementById('bounty-reward-xp');
+    if (rewardEl) rewardEl.textContent = dailyXpReward;
+
+    // Header streak (approximate from history; today API doesn't include streak)
+    loadStreak();
+
+    // Date title（用本地時間建立，避免時區造成 Invalid Date）
+    const [y, mo, day] = data.date.split('-').map(Number);
+    const d = new Date(y, mo - 1, day);
+    const opts = { month: 'long', day: 'numeric' };
+    const lang = I18n.getLang();
+    document.getElementById('dc-date-title').textContent =
+      d.toLocaleDateString(lang === 'zh' ? 'zh-TW' : 'en-US', opts) +
+      ' ' + I18n.t('daily.title');
+
+    // Topic / difficulty
+    if (data.topic) {
+      const topic = I18n.getLang() === 'en' ? (data.topic_en || I18n.localizeName(data.topic)) : data.topic;
+      const level = I18n.getLang() === 'en' ? (data.level_en || I18n.localizeName(data.level)) : data.level;
+      document.getElementById('dc-topic').textContent = topic + (level ? ' · ' + level : '');
+    }
+    if (data.difficulty) {
+      const db = document.getElementById('dc-diff-badge');
+      const _ds = String(data.rank || data.difficulty);
+      db.textContent = _ds;
+      db.className   = 'diff-badge' + (_ds.endsWith('k') ? ' kyu' : _ds.endsWith('d') ? ' dan' : ' int-diff');
+      db.style.display = '';
+    }
+    if (data.note) {
+      const n = document.getElementById('dc-note');
+      n.textContent = data.note; n.style.display = '';
+    }
+
+    // Teaser (before submission)
+    if (!data.user_submitted && data.stats === null) {
+      // stats hidden before submission — show participant count teaser only
+      // We'll poll the total from stats after load
+    }
+
+    // Show main content, hide loading
+    document.getElementById('loading-state').style.display    = 'none';
+    const mc = document.getElementById('main-content');
+    mc.style.display       = 'flex';
+
+    if (data.user_submitted) {
+      // Already submitted today
+      submitted = true;
+      solved    = data.user_correct;
+      gaveUp    = !data.user_correct;
+      initBoard(data.content);
+      if (data.user_correct) {
+        setMsg(I18n.t('daily.msg.already_correct'), 'ok');
+      } else {
+        setMsg(I18n.t('daily.msg.already_wrong'), 'err');
+        showBtn('btn-answer');
+      }
+      showBtn('btn-retry');
+      showGlobalStats(data.stats);
+      showStatusArea(data.user_correct);
+    } else {
+      // Fresh start
+      initBoard(data.content);
+      setMsg('', '');
+      showBtn('btn-giveup');
+      showTeaser();
+    }
+
+  } catch(e) {
+    console.error('[loadToday] error:', e);
+    document.getElementById('loading-state').innerHTML =
+      `<div style="font-size:24px;">⚠️</div>
+       <div style="color:var(--red);font-size:13px;">${I18n.t('daily.msg.load_fail')}</div>
+       <div style="color:var(--ink3);font-size:11px;font-family:monospace;margin-top:8px;max-width:340px;word-break:break-all;">${e?.message || e}</div>`;
+  }
+}
+
+async function loadStreak() {
+  try {
+    const res = await fetch('/api/daily-challenge/history', {credentials:'include'});
+
+    if (res.status === 403) {
+      // 非 Premium：無法取得歷史，僅根據今日是否已提交顯示 0 或 1
+      const streak = todayData?.user_submitted ? 1 : 0;
+      document.getElementById('streak-val').textContent      = streak;
+      document.getElementById('streak-best-val').textContent = streak;
+      document.getElementById('hdr-streak').textContent      = streak;
+      return;
+    }
+
+    const data    = await res.json();
+    const history = data.history || [];
+    const dates   = new Set(history.filter(h => h.user_correct !== null).map(h => h.date));
+
+    // 連擊：從昨天往前數連續有紀錄的天數
+    let streak = 0;
+    let d = new Date(); d.setDate(d.getDate() - 1);
+    while (true) {
+      const ds = d.toISOString().slice(0, 10);
+      if (dates.has(ds)) { streak++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    if (todayData?.user_submitted) streak++; // 今天已提交也算入
+
+    // 最佳連擊：掃描完整歷史計算
+    let best = streak, cur = 0, prev = null;
+    [...dates].sort().forEach(ds => {
+      if (prev) {
+        const diff = (new Date(ds) - new Date(prev)) / 86400000;
+        cur = diff === 1 ? cur + 1 : 1;
+      } else { cur = 1; }
+      if (cur > best) best = cur;
+      prev = ds;
+    });
+
+    document.getElementById('streak-val').textContent      = streak;
+    document.getElementById('streak-best-val').textContent = best;
+    document.getElementById('hdr-streak').textContent      = streak;
+  } catch(e) {
+    document.getElementById('streak-val').textContent = '—';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// Board init & SGF parsing（與 index.html 同一套解析器）
+// ════════════════════════════════════════════════════════════
+
+// ── 與 index.html 完全相同的 parseSGF ────────────────────────
+function parseSGF(sgf) {
+  sgf = sgf.replace(/\r?\n|\r/g, ' ').trim();
+  const result = { size:19, pl:'B', black:[], white:[], tree:null };
+  function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
+  function parseCoordList(s){return(s.match(/\[([a-zA-Z]{2})\]/g)||[]).map(m=>({x:m.charCodeAt(1)-97,y:m.charCodeAt(2)-97}));}
+  const rm=sgf.match(/^\(;([\s\S]*?)(?=;|\(|\))/);if(!rm)return null;
+  const rp=rm[1];
+  const sz=rp.match(/SZ\[(\d+)\]/);if(sz)result.size=parseInt(sz[1]);
+  const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
+  (rp.match(/AB((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
+  (rp.match(/AW((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
+    function parseSeq(str){
+        str=str.trim();const ns=[];let i=0;
+        while(i<str.length){
+            if(str[i]===';'){let j=i+1,d=0;while(j<str.length){if(str[j]==='('){if(d===0)break;d++;}else if(str[j]===')'){ if(d===0)break;d--;}else if(str[j]===';'&&d===0)break;j++;}ns.push(str.slice(i,j));i=j;}
+            else if(str[i]==='(')break;else i++;
+        }
+        const bs=i;if(!ns.length)return null;
+        function scanNodeMove(node){
+            node=node.trim();
+            let i=0;
+            while(i<node.length){
+                const ch=node[i];
+                if(ch===';'||ch<=' '){i++;continue;}
+                if(ch<'A'||ch>'Z'){i++;continue;}
+                const propStart=i;
+                while(i<node.length&&node[i]>='A'&&node[i]<='Z')i++;
+                const prop=node.slice(propStart,i);
+                while(i<node.length&&node[i]==='['){
+                    let value='';i++;
+                    while(i<node.length){
+                        const c=node[i];
+                        if(c==='\\'&&i+1<node.length){value+=node[i+1];i+=2;continue;}
+                        if(c===']'){i++;break;}
+                        value+=c;i++;
+                    }
+                    if(prop==='B'||prop==='W'){
+                        return{color:prop,move:value.length===2?{x:value.charCodeAt(0)-97,y:value.charCodeAt(1)-97}:null};
+                    }
+                }
+            }
+            return null;
+        }
+        function pn(s){const m=scanNodeMove(s);if(!m)return null;return{color:m.color,move:m.move,children:[]};}
+        const nodes=ns.map(pn).filter(Boolean);if(!nodes.length)return null;
+        for(let k=0;k<nodes.length-1;k++)nodes[k].children.push(nodes[k+1]);
+        const last=nodes[nodes.length-1];let bi=bs;
+    while(bi<str.length){if(str[bi]==='('){const e=findClosing(str,bi);const c=parseSeq(str.slice(bi+1,e));if(c)last.children.push(c);bi=e+1;}else bi++;}
+    return nodes[0];
+  }
+  const after=sgf.slice(rm[0].length).trim();
+  if(after.startsWith(';')){result.tree=parseSeq(after);}
+  else if(after.startsWith('(')){
+    const root={move:null,color:null,children:[]};let i=0;
+    while(i<after.length){if(after[i]==='('){const e=findClosing(after,i);const c=parseSeq(after.slice(i+1,e));if(c)root.children.push(c);i=e+1;}else i++;}
+    result.tree=root;
+  }
+  // 若 SGF 根節點無 PL 標記，從答案樹第一手顏色推斷先手方
+  if(!pl&&result.tree){const fn=result.tree.move?result.tree:(result.tree.children&&result.tree.children[0]);if(fn&&fn.color)result.pl=fn.color;}
+  // 最後備援：直接搜尋整個 SGF 是否含 PL[W]
+  if(result.pl==='B'&&/PL\[W\]/.test(sgf))result.pl='W';
+  return result;
+}
+
+function initBoard(sgfContent) {
+  const container = document.getElementById('board-container');
+  container.innerHTML = '';
+
+  try {
+    currentProblem = parseSGF(sgfContent);
+    if (!currentProblem) { setMsg(I18n.t('index.parse_err'), 'warn'); return; }
+
+    board = new WGo.Board(container, {
+      width: container.offsetWidth || 380,
+      size: currentProblem.size || 19,
+      section: { top: -0.5, left: -0.5, bottom: -0.5, right: -0.5 },
+      background: '#f0c87a',
+    });
+
+    initLogicBoard();
+    renderInitialStones();
+
+    playerColor = currentProblem.pl;
+    currentNode = makeAnswerRoot(currentProblem.tree);
+    const msgKey = playerColor === 'B' ? 'index.black_first' : 'index.white_first';
+    if (!submitted) setMsg(I18n.t(msgKey) + I18n.t('index.place_stone'), 'info');
+
+    board.addEventListener('click', onBoardClick);
+  } catch(e) {
+    console.error('[initBoard] parse error:', e);
+    setMsg(I18n.t('index.parse_err'), 'warn');
+  }
+}
+
+function makeAnswerRoot(tree) {
+  if (!tree) return { move: null, color: null, children: [] };
+  return tree.move ? { move: null, color: null, children: [tree] } : tree;
+}
+
+function initLogicBoard() {
+  boardSize = currentProblem?.size || 19;
+  koPoint = null;
+  logicBoard = Array.from({length: boardSize}, () => Array(boardSize).fill(null));
+  (currentProblem.black || []).forEach(s => placeStoneLogic(s.x, s.y, 'B'));
+  (currentProblem.white || []).forEach(s => placeStoneLogic(s.x, s.y, 'W'));
+}
+
+function renderInitialStones() {
+  board.removeAllObjects();
+  (currentProblem.black || []).forEach(s => board.addObject({x:s.x, y:s.y, c:WGo.B}));
+  (currentProblem.white || []).forEach(s => board.addObject({x:s.x, y:s.y, c:WGo.W}));
+}
+
+function isOnBoard(x, y) {
+  return x >= 0 && y >= 0 && x < boardSize && y < boardSize;
+}
+
+function placeStoneLogic(x, y, color) {
+  if (isOnBoard(x, y)) logicBoard[x][y] = color;
+}
+
+function getNeighbors(x, y) {
+  return [[1,0],[-1,0],[0,1],[0,-1]]
+    .map(([dx, dy]) => [x + dx, y + dy])
+    .filter(([nx, ny]) => isOnBoard(nx, ny));
+}
+
+function getGroup(x, y, color) {
+  const visited = new Set();
+  const stack = [[x, y]];
+  const group = [];
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    const key = `${cx},${cy}`;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    if (logicBoard[cx][cy] !== color) continue;
+    group.push({x: cx, y: cy});
+    getNeighbors(cx, cy).forEach(([nx, ny]) => {
+      if (!visited.has(`${nx},${ny}`)) stack.push([nx, ny]);
+    });
+  }
+  return group;
+}
+
+function countLiberties(group) {
+  const liberties = new Set();
+  group.forEach(({x, y}) => {
+    getNeighbors(x, y).forEach(([nx, ny]) => {
+      if (logicBoard[nx][ny] === null) liberties.add(`${nx},${ny}`);
+    });
+  });
+  return liberties.size;
+}
+
+function applyCaptures(x, y, color) {
+  const opponent = color === 'B' ? 'W' : 'B';
+  const captured = [];
+  getNeighbors(x, y).forEach(([nx, ny]) => {
+    if (logicBoard[nx][ny] !== opponent) return;
+    const group = getGroup(nx, ny, opponent);
+    if (countLiberties(group) === 0) {
+      group.forEach(stone => {
+        logicBoard[stone.x][stone.y] = null;
+        captured.push(stone);
+      });
+    }
+  });
+  return captured;
+}
+
+function wouldBeSuicide(x, y, color) {
+  if (!isOnBoard(x, y) || logicBoard[x][y] !== null) return false;
+  const opponent = color === 'B' ? 'W' : 'B';
+  for (const [nx, ny] of getNeighbors(x, y)) {
+    const stone = logicBoard[nx][ny];
+    if (stone === null) return false;
+    if (stone === opponent && countLiberties(getGroup(nx, ny, opponent)) === 1) return false;
+    if (stone === color) {
+      const group = getGroup(nx, ny, color);
+      const liberties = new Set();
+      group.forEach(({x: gx, y: gy}) => {
+        getNeighbors(gx, gy).forEach(([lx, ly]) => {
+          if (logicBoard[lx][ly] === null) liberties.add(`${lx},${ly}`);
+        });
+      });
+      liberties.delete(`${x},${y}`);
+      if (liberties.size > 0) return false;
+    }
+  }
+  return true;
+}
+
+function countCapturesIfPlay(x, y, color) {
+  const opponent = color === 'B' ? 'W' : 'B';
+  const original = logicBoard[x][y];
+  logicBoard[x][y] = color;
+  let count = 0;
+  const seen = new Set();
+  for (const [nx, ny] of getNeighbors(x, y)) {
+    if (logicBoard[nx][ny] !== opponent) continue;
+    const key = `${nx},${ny}`;
+    if (seen.has(key)) continue;
+    const group = getGroup(nx, ny, opponent);
+    group.forEach(stone => seen.add(`${stone.x},${stone.y}`));
+    if (countLiberties(group) === 0) count += group.length;
+  }
+  logicBoard[x][y] = original;
+  return count;
+}
+
+function playStone(x, y, color, skipRules = false) {
+  if (!isOnBoard(x, y) || logicBoard[x][y] !== null) return false;
+  if (!skipRules) {
+    if (wouldBeSuicide(x, y, color)) return 'suicide';
+    if (koPoint && koPoint.x === x && koPoint.y === y && countCapturesIfPlay(x, y, color) === 1) {
+      return 'ko';
+    }
+  }
+  placeStoneLogic(x, y, color);
+  const opponent = color === 'B' ? 'W' : 'B';
+  const captured = applyCaptures(x, y, color);
+  koPoint = captured.length === 1 ? {x: captured[0].x, y: captured[0].y} : null;
+  board.addObject({x, y, c: color === 'B' ? WGo.B : WGo.W});
+  captured.forEach(s => board.removeObject({x: s.x, y: s.y, c: opponent === 'B' ? WGo.B : WGo.W}));
+  return true;
+}
+
+function onBoardClick(x, y) {
+  if (!currentProblem || !currentNode || submitted || answering || solved || gaveUp) return;
+  if (!isOnBoard(x, y) || logicBoard[x][y]) return;
+
+  const played = playStone(x, y, playerColor);
+  if (played === 'suicide') { setMsg(I18n.t('dc.msg.suicide'), 'warn'); return; }
+  if (played === 'ko') { setMsg(I18n.t('dc.msg.ko'), 'warn'); return; }
+  if (!played) return;
+
+  // Find matching child in currentNode
+  const match = (currentNode.children || []).find(c => c.move && c.move.x === x && c.move.y === y);
+
+  if (!match) {
+    // Wrong
+    setMsg(I18n.t('index.wrong'), 'err');
+    answering = true;
+    board.removeAllObjects();
+    initLogicBoard();
+    renderInitialStones();
+    setTimeout(() => {
+      answering = false;
+      showBtn('btn-answer');
+      showBtn('btn-retry');
+      setMsg(I18n.t('index.wrong2'), 'err');
+    }, 800);
+    return;
+  }
+
+  // Correct move
+  currentNode = match;
+  const opp = playerColor === 'B' ? 'W' : 'B';
+
+  if (match.children.length === 0) {
+    // Solved!
+    solved = true;
+    setMsg(I18n.t('index.correct'), 'ok');
+    showSubmitPanel(true);
+    return;
+  }
+
+  // Play opponent reply
+  answering = true;
+  setTimeout(() => {
+    const reply = match.children[0];
+    if (reply && reply.move) {
+      playStone(reply.move.x, reply.move.y, opp, true);
+      currentNode = reply;
+      if (reply.children.length === 0) {
+        solved = true;
+        answering = false;
+        setMsg(I18n.t('index.correct'), 'ok');
+        showSubmitPanel(true);
+        return;
+      }
+    }
+    answering = false;
+    setMsg(I18n.t('index.continue'), 'info');
+  }, 400);
+}
+
+function resetProblem() {
+  if (!currentProblem || !todayData) return;
+  // Rebuild tree from original SGF using parseSGF
+  currentProblem = parseSGF(todayData.content);
+  currentNode = makeAnswerRoot(currentProblem.tree);
+  initLogicBoard();
+  renderInitialStones();
+  answering = false; solved = false; gaveUp = false;
+  if (!submitted) {
+    document.getElementById('submit-panel').classList.remove('show');
+    showBtn('btn-giveup'); hideBtn('btn-answer'); hideBtn('btn-retry');
+  }
+  setMsg(I18n.t(currentProblem.pl === 'B' ? 'index.black_first' : 'index.white_first') + I18n.t('index.place_stone'), 'info');
+}
+
+function showAnswer() {
+  if (!currentProblem || !todayData) return;
+  answering = true; solved = true;
+  // 重新解析以取得完整 tree
+  const fresh = parseSGF(todayData.content);
+  board.removeAllObjects();
+  initLogicBoard();
+  renderInitialStones();
+  const moves = [];
+  let node = fresh.tree;
+  if (node && !node.move && node.children && node.children.length) node = node.children[0];
+  while (node && node.move) { moves.push(node); node = node.children[0] || null; }
+  let step = 0;
+  function pn() {
+    if (step >= moves.length) { setMsg(I18n.t('index.answer_done'), 'info'); return; }
+    const n = moves[step++];
+    playStone(n.move.x, n.move.y, n.color, true);
+    setMsg(`${I18n.t('index.answer_step')} ${step}/${moves.length}　${n.color==='B'?'⚫':'⚪'}`, 'info');
+    setTimeout(pn, 700);
+  }
+  setMsg(I18n.t('index.answer_play'), 'info');
+  setTimeout(pn, 300);
+  if (!submitted) showSubmitPanel(false);
+}
+
+function doGiveUp() {
+  if (submitted) return;
+  gaveUp = true;
+  hideBtn('btn-giveup');
+  setMsg(I18n.t('daily.msg.giveup'), 'warn');
+  showAnswer();
+  showSubmitPanel(false);
+}
+
+// ════════════════════════════════════════════════════════════
+// Submit
+// ════════════════════════════════════════════════════════════
+function showSubmitPanel(correct) {
+  if (submitted) return;
+  const panel = document.getElementById('submit-panel');
+  panel.classList.add('show');
+  panel.dataset.correct = correct ? '1' : '0';
+  // Store result for submission
+  panel._correct = correct;
+}
+
+async function submitResult() {
+  if (submitted) return;
+  const correct = document.getElementById('submit-panel')._correct;
+  document.getElementById('btn-submit').disabled = true;
+
+  try {
+    const res  = await fetch('/api/daily-challenge/submit', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({correct: !!correct})
+    });
+    const data = await res.json();
+
+    if (res.status === 409) {
+      setMsg(I18n.t('daily.msg.already_submitted'), 'warn');
+      document.getElementById('submit-panel').classList.remove('show');
+      submitted = true;
+      return;
+    }
+    if (!data.ok) { setMsg(I18n.t('daily.msg.submit_fail'), 'err'); document.getElementById('btn-submit').disabled = false; return; }
+
+    submitted = true;
+    document.getElementById('submit-panel').classList.remove('show');
+
+    // Show result msg
+    if (correct) setMsg(I18n.t('daily.msg.submit_ok_correct'), 'ok');
+    else         setMsg(I18n.t('daily.msg.submit_ok_wrong'),   'err');
+
+    const xpAwarded = data.xp_awarded || 0;
+    if (xpAwarded) spawnXpFloat(xpAwarded);
+
+    // Show global stats
+    showGlobalStats(data.stats);
+    showStatusArea(!!correct, data.stats?.rank);
+
+    // Show result panel
+    showResultPanel(!!correct, data.stats, data.new_badges || [], xpAwarded);
+
+    // Reload streak
+    loadStreak();
+
+  } catch(e) {
+    setMsg(I18n.t('daily.msg.submit_fail'), 'err');
+    document.getElementById('btn-submit').disabled = false;
+  }
+}
+
+function showResultPanel(correct, stats, newBadges, xpAwarded = 0) {
+  const panel = document.getElementById('result-panel');
+  document.getElementById('result-panel-title').textContent =
+    correct ? I18n.t('daily.result.correct') : I18n.t('daily.result.wrong');
+
+  if (stats) {
+    const acc = stats.accuracy ?? 0;
+    document.getElementById('result-stats').innerHTML = `
+      <div class="sstat">
+        <div class="sstat-val">${stats.total ?? 0}</div>
+        <div class="sstat-label" data-i18n="daily.stats.total">今日接令者</div>
+      </div>
+      <div class="sstat">
+        <div class="sstat-val">${stats.correct ?? 0}</div>
+        <div class="sstat-label" data-i18n="daily.stats.correct">通關人數</div>
+      </div>
+      <div class="sstat">
+        <div class="sstat-val">${acc}%</div>
+        <div class="sstat-label" data-i18n="daily.stats.accuracy">全站通關率</div>
+      </div>
+    `;
+    document.getElementById('result-stats').style.display = 'grid';
+    if (stats.rank && correct) {
+      document.getElementById('hdr-participants-wrap').style.display = '';
+      document.getElementById('hdr-participants').textContent = stats.total;
+    }
+  }
+
+  const rewardChips = [];
+  if (xpAwarded) rewardChips.push(`<div class="submit-badge-chip">${I18n.t('dc.reward.chip').replace('{xp}', xpAwarded)}</div>`);
+  if (newBadges.length) {
+    const badgeName = b => I18n.getLang()==='en' ? (b.name_en || b.name) : b.name;
+    rewardChips.push(...newBadges.map(b => `<div class="submit-badge-chip">${b.icon} ${badgeName(b)}</div>`));
+    // Also show in sidebar
+    const area = document.getElementById('new-badges-area');
+    area.style.display = 'flex';
+    area.innerHTML = `<div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);" data-i18n="daily.badges.title">🎉 解鎖徽章</div>` +
+      newBadges.map(b => `<div class="badge-chip">${b.icon} ${badgeName(b)}</div>`).join('');
+  }
+  if (rewardChips.length) {
+    document.getElementById('result-badges').innerHTML = rewardChips.join('');
+  }
+
+  panel.classList.add('show');
+  I18n.apply(); // re-apply for dynamically injected keys
+}
+
+function showGlobalStats(stats) {
+  if (!stats) return;
+  document.getElementById('gs-total').textContent = stats.total ?? 0;
+  document.getElementById('gs-acc').textContent   = (stats.accuracy ?? 0) + '%';
+  document.getElementById('global-stats-area').style.display = 'grid';
+  document.getElementById('stats-teaser').style.display = 'none';
+}
+
+function showStatusArea(correct, rank) {
+  const area = document.getElementById('status-area');
+  const el   = document.getElementById('status-submitted');
+  area.style.display = 'block';
+  el.style.display   = 'block';
+  if (correct) {
+    el.textContent  = I18n.t('daily.result.correct');
+    el.className    = 'status-submitted';
+  } else {
+    el.textContent  = I18n.t('daily.result.wrong');
+    el.className    = 'status-submitted wrong';
+  }
+  if (rank && correct) {
+    const rb = document.getElementById('rank-badge');
+    rb.style.display = 'block';
+    rb.textContent   = I18n.t('daily.rank').replace('{n}', rank);
+  }
+}
+
+function showTeaser() {
+  // Show a teaser before submission (participant count without accuracy)
+  fetch('/api/daily-challenge/today', {credentials:'include'})
+    .then(r=>r.json()).then(d => {
+      if (d.stats) {
+        // Already submitted in another tab
+        showGlobalStats(d.stats);
+      } else {
+        // Show teaser with partial info
+        const teaser = document.getElementById('stats-teaser');
+        teaser.style.display = 'block';
+      }
+    }).catch(()=>{});
+}
+
+// ════════════════════════════════════════════════════════════
+// History
+// ════════════════════════════════════════════════════════════
+async function loadHistory() {
+  const container = document.getElementById('history-list');
+  try {
+    const res = await fetch('/api/daily-challenge/history', {credentials:'include'});
+
+    if (res.status === 403) {
+      // Not premium — show gate
+      container.innerHTML = `
+        <div class="premium-gate">
+          <p data-i18n="daily.gate.text">升級 Premium 後，可回顧 60 天的精選每日懸賞檔案</p>
+          <a href="/upgrade" class="premium-btn" data-i18n="daily.gate.btn">升級 Premium ↗</a>
+        </div>`;
+      I18n.apply();
+      return;
+    }
+
+    const data    = await res.json();
+    const history = data.history || [];
+
+    if (!history.length) {
+      container.innerHTML = `<div class="loading-state" style="height:auto;padding:20px;"><span data-i18n="dc_history_empty">尚無挑戰紀錄</span></div>`;
+      I18n.apply();
+      return;
+    }
+
+    container.innerHTML = history.map(h => {
+      const icon  = h.user_correct === true ? '✅' : h.user_correct === false ? '❌' : '—';
+      const acc   = h.total ? `${h.accuracy}%` : '';
+      const status = h.user_correct === true ? I18n.t('dc.hist.cleared') : h.user_correct === false ? I18n.t('dc.hist.failed') : I18n.t('dc.hist.not_taken');
+      const subRight = h.total ? I18n.t('dc.hist.hunters').replace('{n}', h.total) : I18n.t('dc.hist.sealed');
+      const diff = h.difficulty ? (()=>{ const _s=String(h.rank||h.difficulty); const _c=_s.endsWith('k')?'kyu':_s.endsWith('d')?'dan':'int-diff'; return `<span class="diff-badge ${_c}">${_s}</span>`; })() : '<span class="diff-badge int-diff">?</span>';
+      return `<div class="history-item" onclick="loadHistoryDetail('${h.date}')">
+        <span class="history-result">${icon}</span>
+        <span class="history-main">
+          <span class="history-date">${h.date.slice(5)}</span>
+          <span class="history-title">${status}</span>
+          <span class="history-sub">${I18n.t('dc.hist.guild_file')} · ${subRight}</span>
+        </span>
+        <span class="history-rewards">
+          ${diff}
+          ${acc ? `<span class="history-acc">${acc}</span>` : ''}
+        </span>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    container.innerHTML = `<div class="loading-state" style="height:auto;padding:20px;color:var(--red);">${I18n.t('daily.hist.load_fail')}</div>`;
+  }
+}
+
+async function loadHistoryDetail(dateStr) {
+  try {
+    const res  = await fetch(`/api/daily-challenge/history/${dateStr}`, {credentials:'include'});
+    if (!res.ok) return;
+    const data = await res.json();
+    // Load into board for review
+    todayData = {...data, date: dateStr, user_submitted: true, user_correct: null};
+    initBoard(data.content);
+    const [hy, hmo, hday] = dateStr.split('-').map(Number);
+    const d = new Date(hy, hmo - 1, hday);
+    document.getElementById('dc-date-title').textContent =
+      d.toLocaleDateString(I18n.getLang() === 'zh' ? 'zh-TW' : 'en-US', {month:'long',day:'numeric'})
+      + ' ' + I18n.t('daily.hist.label_suffix');
+    if (data.difficulty) {
+      const db = document.getElementById('dc-diff-badge');
+      const _ds2 = String(data.rank || data.difficulty);
+      db.textContent = _ds2; db.style.display = '';
+      db.className = 'diff-badge' + (_ds2.endsWith('k') ? ' kyu' : _ds2.endsWith('d') ? ' dan' : ' int-diff');
+    }
+    setMsg(I18n.t('daily.hist.label_suffix'), 'info');
+    showBtn('btn-answer'); showBtn('btn-retry');
+    document.getElementById('submit-panel').classList.remove('show');
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+// Countdown
+// ════════════════════════════════════════════════════════════
+function startCountdown() {
+  function tick() {
+    const now  = new Date();
+    const mid  = new Date(now); mid.setHours(24, 0, 0, 0);
+    const diff = Math.floor((mid - now) / 1000);
+    document.getElementById('cd-h').textContent = String(Math.floor(diff / 3600)).padStart(2, '0');
+    document.getElementById('cd-m').textContent = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+    document.getElementById('cd-s').textContent = String(diff % 60).padStart(2, '0');
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+// ════════════════════════════════════════════════════════════
+// UI Helpers
+// ════════════════════════════════════════════════════════════
+function setMsg(text, type) {
+  const el = document.getElementById('msg-box');
+  el.textContent = text;
+  el.className   = 'msg-box' + (type ? ' ' + type : '');
+}
+function showBtn(id) { const el = document.getElementById(id); if(el) el.style.display = ''; }
+function hideBtn(id) { const el = document.getElementById(id); if(el) el.style.display = 'none'; }
+
+function spawnXpFloat(xp) {
+  const el = document.createElement('div');
+  el.className   = 'xp-float';
+  el.textContent = `+${xp} XP`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
+// ════════════════════════════════════════════════════════════
+// Nav avatar
+// ════════════════════════════════════════════════════════════
+async function loadNavAvatar() {
+  try {
+    const [meRes, appearRes] = await Promise.all([
+      fetch('/api/auth/me',           {credentials:'include'}).then(r=>r.json()),
+      fetch('/api/player/appearance', {credentials:'include'}).then(r=>r.json()),
+    ]);
+    const el = document.getElementById('username-display');
+    if (el) el.textContent = meRes.display_name || meRes.nickname || meRes.username || 'Player';
+    const eq   = appearRes.equipped || {};
+    const byId = Object.fromEntries((appearRes.wardrobe || []).map(a => [a.id, a]));
+    const base = document.getElementById('nav-avatar-base');
+    const outfitItem = eq.outfit_id ? byId[eq.outfit_id] : null;
+    if (base && outfitItem) { base.style.background = outfitItem.color + '33'; base.style.borderColor = outfitItem.color + '88'; }
+    const hatItem = eq.hat_id ? byId[eq.hat_id] : null;
+    const hatEl   = document.getElementById('nav-avatar-hat');
+    if (hatEl && hatItem) { hatEl.textContent = hatItem.emoji; hatEl.style.opacity = '1'; }
+  } catch(e) {}
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', {method:'POST', credentials:'include'});
+  location.href = '/login';
+}
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/mobile-nav.js?v=20260603mn"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>

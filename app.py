@@ -226,7 +226,7 @@ def add_no_cache_headers(response):
         response.headers['Cache-Control'] = 'no-cache'
     return response
 
-DATA_FILE = 'questions.json'
+DATA_FILE = os.environ.get('QUESTIONS_JSON_PATH', 'questions.json')
 CACHE_DB  = 'katago_cache.db'
 
 DIFFICULTY_ORDER = [

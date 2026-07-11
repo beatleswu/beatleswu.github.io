@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="lg.title">弈境奇兵 (Go Odyssey) - 弈境奇兵公會入口</title>
+<meta name="description" content="登入弈境奇兵 (Go Odyssey)，繼續你的圍棋修煉旅程。新冒險者可免費註冊，立即開始每日修行。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="弈境奇兵 (Go Odyssey) — 公會入口">
+<meta property="og:description" content="登入或註冊，開始你的圍棋 RPG 修煉旅程。">
+<meta property="og:image" content="https://godokoro.com/og-image.jpg">
+<meta property="og:url" content="https://godokoro.com/login">
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#16100a">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Noto+Serif+TC:wght@500;700;900&family=DM+Sans:wght@400;500;700;900&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="/pwa.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#120d08;--panel:#21170f;--panel2:#2f2115;--ink:#fff3d4;--muted:#d7c3a1;--gold:#f0c66d;--gold2:#b87a24;--teal:#3ed6c8;--red:#ff8a7d;--line:rgba(240,198,109,.26);--shadow:0 22px 60px rgba(0,0,0,.42)}
+html,body{min-height:100%}
+body{font-family:'DM Sans','Noto Serif TC',sans-serif;color:var(--ink);background:var(--bg);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.55),transparent 18%,transparent 82%,rgba(0,0,0,.48)),repeating-linear-gradient(0deg,rgba(255,220,140,.035) 0 1px,transparent 1px 44px),repeating-linear-gradient(90deg,rgba(255,220,140,.035) 0 1px,transparent 1px 44px)}
+a{color:inherit;text-decoration:none}button,input{font:inherit}
+.bg{position:fixed;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(13,8,4,.9),rgba(18,10,5,.58) 48%,rgba(16,10,6,.88)),url('/assets/login_guild_counter.webp') center/cover no-repeat}
+.bg::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 28%,rgba(240,198,109,.18),transparent 34%),radial-gradient(circle at 74% 70%,rgba(62,214,200,.12),transparent 34%)}
+.lang-wrap{position:fixed;top:18px;right:22px;z-index:30;display:flex;gap:6px}.i18n-switcher-btn{border:1px solid var(--line);border-radius:999px;background:rgba(15,10,6,.72);color:#eadbbd;padding:6px 12px;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px}.i18n-switcher-btn.active-lang{background:var(--gold);color:#1b1007}
+.shell{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(430px,.92fr);gap:34px;align-items:center;padding:56px clamp(22px,5vw,76px);width:100%}
+.guild-side{min-height:660px;display:flex;flex-direction:column;justify-content:center;position:relative;padding:28px 0;min-width:0}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:30px}.brand-mark{width:42px;height:42px;border-radius:12px;border:1px solid rgba(255,236,174,.48);background:linear-gradient(135deg,#ffe7a7,#b97821);display:grid;place-items:center;box-shadow:0 10px 28px rgba(0,0,0,.28)}.brand-mark::before{content:'';width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d7cfc0 55%,#25221d 56%,#050505)}.brand-name{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:26px;font-weight:700;color:#ffe8ad}
+.eyebrow{display:inline-flex;width:max-content;border:1px solid var(--line);border-radius:999px;background:rgba(18,11,6,.66);padding:8px 13px;color:var(--gold);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.guild-title{max-width:760px;margin-top:18px;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:clamp(44px,5.5vw,78px);line-height:1.04;font-weight:900;text-shadow:0 12px 32px rgba(0,0,0,.55)}.guild-title em{display:block;font-style:normal;color:var(--gold)}
+.guild-copy{max-width:610px;margin-top:22px;color:rgba(255,244,220,.82);font-size:18px;line-height:1.8}
+.mission-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:760px;margin-top:34px}.mission{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.035));padding:15px;backdrop-filter:blur(10px)}.mission img{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 8px 14px rgba(0,0,0,.32));margin-bottom:8px}.mission b{display:block;color:#fff0c7;font-family:'Noto Serif TC',serif;font-size:16px}.mission span{display:block;margin-top:4px;color:rgba(255,244,220,.66);font-size:12px;line-height:1.5}
+.serena-card{display:grid;grid-template-columns:190px minmax(0,1fr);gap:8px;align-items:end;max-width:680px;margin-top:32px}.serena-card img{width:210px;max-height:280px;object-fit:contain;object-position:bottom;filter:drop-shadow(0 18px 22px rgba(0,0,0,.42))}.speech{align-self:center;border:1px solid rgba(62,214,200,.36);border-radius:16px;background:rgba(12,21,20,.72);padding:17px 18px;box-shadow:var(--shadow);min-width:0}.speech .name{font-family:'DM Mono',monospace;color:var(--teal);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:7px}.speech p{color:#eefaf6;line-height:1.65;font-size:14px}
+.auth-panel{width:min(100%,500px);max-width:500px;min-width:0;justify-self:end;border:1px solid rgba(255,226,151,.34);border-radius:22px;background:linear-gradient(180deg,rgba(49,34,20,.88),rgba(22,14,8,.9));box-shadow:var(--shadow);backdrop-filter:blur(18px);padding:26px}
+.panel-head{text-align:center;margin-bottom:18px}.panel-head .seal{width:70px;height:70px;margin:0 auto 12px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid var(--line);display:grid;place-items:center}.panel-head .seal img{width:56px;height:56px;object-fit:contain}.panel-head .kicker{font-family:'DM Mono',monospace;color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase}.panel-head h2{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:34px;color:#fff0c4;margin-top:6px}.panel-head p{margin-top:7px;color:rgba(255,244,220,.66);font-size:13px}
+.auth-tabs{display:flex;gap:8px;padding:5px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.22);margin-bottom:18px}.auth-tab{flex:1;border:0;border-radius:11px;background:transparent;color:rgba(255,244,220,.58);padding:11px 10px;cursor:pointer;font-weight:900}.auth-tab.active{background:linear-gradient(135deg,#f5cb72,#b87924);color:#1b1007;box-shadow:0 8px 18px rgba(184,122,36,.24)}
+.google-login-block{margin-bottom:8px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.055);padding:20px 22px 16px}.google-login-hint{text-align:center;color:rgba(255,244,220,.82);font-size:15px;font-weight:700;line-height:1.5;margin-bottom:12px}.google-btn-slot{display:flex;justify-content:center;min-height:44px}.google-divider{display:flex;align-items:center;gap:10px;margin:14px 0 12px;color:rgba(255,244,220,.42);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}.google-divider::before,.google-divider::after{content:'';flex:1;height:1px;background:rgba(240,198,109,.14)}
+.form-card{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.055);padding:22px}.field{margin-bottom:16px}.field-label{display:block;margin-bottom:7px;color:#ead8b7;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.2px;text-transform:uppercase}.field-input-wrap{position:relative}input[type=text],input[type=email],input[type=password]{width:100%;border:1px solid rgba(240,198,109,.24);border-radius:12px;background:rgba(255,244,220,.08);color:var(--ink);outline:0;padding:13px 14px;font-size:15px;transition:border-color .15s,box-shadow .15s,background .15s}input[type=password]{padding-right:48px}input:focus{border-color:var(--gold);background:rgba(255,244,220,.12);box-shadow:0 0 0 4px rgba(240,198,109,.12)}input::placeholder{color:rgba(255,244,220,.32)}input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:var(--ink);-webkit-box-shadow:0 0 0 100px #382717 inset;caret-color:var(--gold)}
+.pw-toggle{position:absolute;right:11px;top:50%;transform:translateY(-50%);border:0;background:rgba(255,255,255,.08);color:#f2dcad;width:32px;height:32px;border-radius:9px;cursor:pointer}.field-divider{height:1px;background:rgba(240,198,109,.12);margin:15px 0}
+#login-error,#reg-error,#reg-success,#forgot-error,#forgot-success,#reset-error,#reset-success{display:none;padding:11px 13px;border-radius:11px;margin-bottom:14px;font-size:13px;line-height:1.5}#login-error,#reg-error,#forgot-error,#reset-error{border:1px solid rgba(255,138,125,.42);background:rgba(120,24,22,.22);color:#ffb3a9}#reg-success,#forgot-success,#reset-success{border:1px solid rgba(62,214,200,.42);background:rgba(10,72,68,.22);color:#a8fff5}
+.submit-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:20px;border:0;border-radius:13px;padding:14px 18px;cursor:pointer;font-weight:900;color:#1a1007;transition:transform .15s,filter .15s;position:relative;overflow:hidden}.submit-btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.06)}.submit-btn:active:not(:disabled){transform:scale(.98)}.submit-btn:disabled{opacity:.72;cursor:not-allowed}.submit-btn img{width:28px;height:28px;object-fit:contain}.submit-btn.login{background:linear-gradient(135deg,#f7d17d,#b87924);box-shadow:0 10px 24px rgba(240,198,109,.28)}.submit-btn.register{background:linear-gradient(135deg,#59dcd0,#227e78);color:#071412;box-shadow:0 10px 24px rgba(62,214,200,.22)}.submit-btn.success{background:linear-gradient(135deg,#72e6a5,#20a45f);color:#071207}
+.login-note{text-align:center;margin-top:15px;color:rgba(255,244,220,.58);font-size:13px;line-height:1.6}.login-note a{color:var(--gold);font-weight:900}.feature-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;border-top:1px solid rgba(240,198,109,.13);margin-top:20px;padding-top:18px}.ftag{border:1px solid rgba(240,198,109,.18);border-radius:999px;background:rgba(240,198,109,.06);color:rgba(255,244,220,.68);padding:6px 10px;font-family:'DM Mono',monospace;font-size:11px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}.guild-side{animation:fadeUp .55s .05s both}.auth-panel{animation:fadeUp .55s .12s both}
+@media(max-width:980px){.shell{grid-template-columns:minmax(0,1fr);padding:76px 18px 34px}.shell>*{min-width:0}.guild-side{min-height:auto;padding:0}.mission-grid{grid-template-columns:1fr}.serena-card{grid-template-columns:112px minmax(0,1fr);margin-top:22px}.serena-card img{width:126px}.auth-panel{width:100%;justify-self:center}.guild-title{font-size:clamp(38px,11vw,58px)}}
+@media(max-width:560px){.shell{padding-left:14px;padding-right:14px;gap:22px}.brand{margin-bottom:20px}.guild-copy{font-size:16px}.serena-card{grid-template-columns:1fr}.serena-card img{display:none}.auth-panel{padding:18px;border-radius:18px}.form-card{padding:18px}.lang-wrap{right:12px;top:12px;max-width:calc(100vw - 24px)}.panel-head h2{font-size:30px}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="lang-wrap" id="lang-switcher"></div>
+
+<main class="shell">
+  <section class="guild-side">
+    <a class="brand" href="/">
+      <span class="brand-mark"></span>
+      <span class="brand-name" data-i18n="common.brand">弈境奇兵 (Go Odyssey)</span>
+    </a>
+    <div class="eyebrow">Guild Reception</div>
+    <h1 class="guild-title" data-i18n-html="lg.h1">進入弈境奇兵公會，<em>今天的修行已備妥。</em></h1>
+    <p class="guild-copy" data-i18n="lg.copy">登入後，公會會依照你的棋力、玩家屬性、SRS 到期題與錯題紀錄，整理出最值得完成的修行任務。</p>
+    <div class="mission-grid">
+      <div class="mission"><img src="/assets/landing_page_assets/icon_daily_training_commission.webp" alt=""><b data-i18n="lg.m1.b">每日10題委託</b><span data-i18n="lg.m1.s">用少量高價值題目，維持穩定手感。</span></div>
+      <div class="mission"><img src="/assets/landing_page_assets/icon_mistake_grimoire.webp" alt=""><b data-i18n="lg.m2.b">錯題卷宗</b><span data-i18n="lg.m2.s">把真正卡住的弱點收進複習循環。</span></div>
+      <div class="mission"><img src="/assets/landing_page_assets/icon_monster_trial_arena.webp" alt=""><b data-i18n="lg.m3.b">魔物試煉場</b><span data-i18n="lg.m3.s">用對弈和 AI 分析驗證你的成長。</span></div>
+    </div>
+    <div class="serena-card">
+      <img src="/assets/npc_serena_login.webp" data-i18n-alt="lg.serena.alt" alt="公會接待員賽莉娜">
+      <div class="speech">
+        <div class="name">Guild Receptionist Serena</div>
+        <p id="serena-line" data-i18n="lg.serena.default_line">歡迎回來。今日委託已經整理好了，登入後就能開始。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="panel-head">
+      <div class="seal"><img id="panel-icon" src="/assets/icon_return_guild.webp" alt=""></div>
+      <div class="kicker">Guild Gate</div>
+      <h2 id="panel-title" data-i18n="lg.tabLogin">返回公會</h2>
+      <p id="panel-copy" data-i18n="lg.panel.loginCopy">輸入棋士帳號與通關密語，回到今天的修行路線。</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')" data-i18n="lg.tabLogin">返回公會</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')" data-i18n="lg.tabRegister">建立新角色</button>
+    </div>
+
+    <!-- Google 共用入口（新老玩家通用，放在分頁下方） -->
+    <div class="google-login-block">
+      <div class="google-login-hint" data-i18n="lg.google.hint">使用 Google 一鍵登入或快速創角</div>
+      <div id="google-error" style="display:none;padding:10px 12px;border-radius:10px;margin-bottom:8px;font-size:13px;border:1px solid rgba(255,138,125,.42);background:rgba(120,24,22,.22);color:#ffb3a9"></div>
+      <div id="google-btn-slot" class="google-btn-slot"></div>
+      <div class="google-divider"><span data-i18n="lg.divider.or">或用帳密</span></div>
+    </div>
+
+    <div id="form-login" class="form-card">
+      <div id="login-error"></div>
+      <div class="field">
+        <label class="field-label" for="username" data-i18n="lg.field.username">棋士帳號</label>
+        <input id="username" type="text" data-i18n-placeholder="lg.ph.username" placeholder="輸入你的公會帳號" autocomplete="username" autofocus>
+      </div>
+      <div class="field-divider"></div>
+      <div class="field">
+        <label class="field-label" for="password" data-i18n="lg.field.password">通關密語</label>
+        <div class="field-input-wrap">
+          <input id="password" type="password" data-i18n-placeholder="lg.ph.password" placeholder="輸入密碼" autocomplete="current-password">
+          <button type="button" class="pw-toggle" onclick="togglePw('password','pw-icon')" tabindex="-1"><span id="pw-icon">show</span></button>
+        </div>
+      </div>
+      <button id="login-btn" class="submit-btn login" onclick="doLogin()">
+        <img src="/assets/icon_return_guild.webp" alt="">
+        <span id="login-btn-text" data-i18n="lg.btn.login">進入公會</span>
+      </button>
+      <p style="text-align:center;margin:12px 0 0;font-size:12px;"><a href="#" id="forgot-link" onclick="showForgot();return false;" style="color:inherit;opacity:.75" data-i18n="lg.forgot.link">忘記密碼？</a></p>
+    </div>
+    <p class="login-note" id="note-login"><span data-i18n="lg.note.login">第一次來？</span> <a href="#" onclick="switchTab('register');return false;" data-i18n="lg.note.loginLink">建立棋士檔案</a></p>
+
+    <!-- 忘記密碼 -->
+    <div id="form-forgot" class="form-card" style="display:none;">
+      <div id="forgot-error"></div>
+      <div id="forgot-success"></div>
+      <div class="field">
+        <label class="field-label" for="forgot-email" data-i18n="lg.field.email">E-mail</label>
+        <input id="forgot-email" type="email" data-i18n-placeholder="lg.ph.forgotEmail" placeholder="輸入註冊時填寫的 E-mail" autocomplete="email">
+      </div>
+      <button id="forgot-btn" class="submit-btn login" onclick="doForgot()">
+        <span id="forgot-btn-text" data-i18n="lg.forgot.btn">寄送重設連結</span>
+      </button>
+      <p style="text-align:center;margin:12px 0 0;font-size:12px;"><a href="#" onclick="hideForgot();return false;" style="color:inherit;opacity:.75" data-i18n="lg.forgot.back">返回登入</a></p>
+    </div>
+
+    <!-- 重設密碼（由 email 連結帶 reset_token 進入） -->
+    <div id="form-reset" class="form-card" style="display:none;">
+      <div id="reset-error"></div>
+      <div id="reset-success"></div>
+      <div class="field">
+        <label class="field-label" for="reset-password" data-i18n="lg.reset.newPw">新密碼</label>
+        <div class="field-input-wrap">
+          <input id="reset-password" type="password" data-i18n-placeholder="lg.ph.regPassword" placeholder="至少 8 個字元" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="togglePw('reset-password','reset-pw-icon')" tabindex="-1"><span id="reset-pw-icon">show</span></button>
+        </div>
+      </div>
+      <div class="field-divider"></div>
+      <div class="field">
+        <label class="field-label" for="reset-confirm" data-i18n="lg.field.confirm">確認密碼</label>
+        <div class="field-input-wrap">
+          <input id="reset-confirm" type="password" data-i18n-placeholder="lg.ph.confirm" placeholder="再輸入一次密碼" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="togglePw('reset-confirm','reset-c-icon')" tabindex="-1"><span id="reset-c-icon">show</span></button>
+        </div>
+      </div>
+      <button id="reset-btn" class="submit-btn login" onclick="doReset()">
+        <span id="reset-btn-text" data-i18n="lg.reset.btn">重設密碼</span>
+      </button>
+    </div>
+
+    <div id="form-register" class="form-card" style="display:none;">
+      <div id="reg-error"></div>
+      <div id="reg-success"></div>
+      <div class="field">
+        <label class="field-label" for="reg-username" data-i18n="lg.field.username">棋士帳號</label>
+        <input id="reg-username" type="text" data-i18n-placeholder="lg.ph.regUsername" placeholder="3-20 個英數字或底線" autocomplete="username">
+      </div>
+      <div class="field-divider"></div>
+      <div class="field">
+        <label class="field-label" for="reg-nickname" data-i18n="lg.field.nickname">暱稱</label>
+        <input id="reg-nickname" type="text" data-i18n-placeholder="lg.ph.nickname" placeholder="想在公會裡被怎麼稱呼" autocomplete="nickname">
+      </div>
+      <div class="field-divider"></div>
+      <div class="field">
+        <label class="field-label" for="reg-email" data-i18n="lg.field.email">E-mail</label>
+        <input id="reg-email" type="email" data-i18n-placeholder="lg.ph.email" placeholder="用於帳號找回與重要通知" autocomplete="email">
+      </div>
+      <div class="field-divider"></div>
+      <div class="field">
+        <label class="field-label" for="reg-password" data-i18n="lg.field.setPassword">設定密碼</label>
+        <div class="field-input-wrap">
+          <input id="reg-password" type="password" data-i18n-placeholder="lg.ph.regPassword" placeholder="至少 8 個字元" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="togglePw('reg-password','reg-pw-icon')" tabindex="-1"><span id="reg-pw-icon">show</span></button>
+        </div>
+      </div>
+      <div class="field-divider"></div>
+      <div class="field">
+        <label class="field-label" for="reg-confirm" data-i18n="lg.field.confirm">確認密碼</label>
+        <div class="field-input-wrap">
+          <input id="reg-confirm" type="password" data-i18n-placeholder="lg.ph.confirm" placeholder="再輸入一次密碼" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="togglePw('reg-confirm','reg-c-icon')" tabindex="-1"><span id="reg-c-icon">show</span></button>
+        </div>
+      </div>
+      <div id="turnstile-slot" style="margin:4px 0 12px;display:flex;justify-content:center;"></div>
+      <button id="reg-btn" class="submit-btn register" onclick="doRegister()">
+        <img src="/assets/icon_create_hero_file.webp" alt="">
+        <span id="reg-btn-text" data-i18n="lg.btn.register">建立棋士檔案</span>
+      </button>
+    </div>
+    <p class="login-note" id="note-register" style="display:none;"><span data-i18n="lg.note.register">已經有檔案？</span> <a href="#" onclick="switchTab('login');return false;" data-i18n="lg.note.registerLink">返回登入</a></p>
+
+    <div class="feature-tags">
+      <span class="ftag">DAILY 10</span>
+      <span class="ftag">SRS</span>
+      <span class="ftag">KATAGO</span>
+      <span class="ftag">RPG QUEST</span>
+    </div>
+    <div style="text-align:center;margin-top:14px;font-size:12px;color:rgba(255,244,220,.5)">
+      <a href="/terms" style="color:inherit" data-i18n="lg.footer.terms">服務條款與隱私權政策</a>
+      <span style="margin:0 6px">·</span>
+      <a href="/terms#refund" style="color:inherit" data-i18n="lg.footer.refund">退款政策</a>
+      <span style="margin:0 6px">·</span>
+      <a href="mailto:support@godokoro.com" style="color:inherit">support@godokoro.com</a>
+    </div>
+  </section>
+</main>
+
+<script>
+try{I18n.renderSwitcher(document.getElementById('lang-switcher'));}catch(e){}
+
+const serenaKeys=['lg.serena.0','lg.serena.1','lg.serena.2','lg.serena.3','lg.serena.4','lg.serena.5','lg.serena.6','lg.serena.7','lg.serena.8','lg.serena.9','lg.serena.10','lg.serena.11'];
+let _serenaIdx=Math.floor(Math.random()*serenaKeys.length);
+function renderSerena(){const el=document.getElementById('serena-line');if(el)el.textContent=I18n.t(serenaKeys[_serenaIdx]);}
+renderSerena();
+window.onLangChange=()=>{ if(typeof I18n!=='undefined')I18n.apply(); renderSerena(); switchTab(_currentTab); };
+
+let _currentTab='login';
+function switchTab(tab){
+  _currentTab=tab;
+  const isLogin=tab==='login';
+  document.getElementById('tab-login').classList.toggle('active',isLogin);
+  document.getElementById('tab-register').classList.toggle('active',!isLogin);
+  document.getElementById('form-login').style.display=isLogin?'':'none';
+  document.getElementById('form-register').style.display=isLogin?'none':'';
+  document.getElementById('form-forgot').style.display='none';
+  document.getElementById('form-reset').style.display='none';
+  document.getElementById('note-login').style.display=isLogin?'':'none';
+  document.getElementById('note-register').style.display=isLogin?'none':'';
+  document.getElementById('panel-icon').src=isLogin?'/assets/icon_return_guild.webp':'/assets/icon_create_hero_file.webp';
+  document.getElementById('panel-title').textContent=isLogin?I18n.t('lg.tabLogin'):I18n.t('lg.tabRegister');
+  document.getElementById('panel-copy').textContent=isLogin?I18n.t('lg.panel.loginCopy'):I18n.t('lg.panel.regCopy');
+  clearMsg('login-error');clearMsg('reg-error');clearMsg('reg-success');
+}
+if(new URLSearchParams(location.search).get('tab')==='register')switchTab('register');
+
+// ── Cloudflare Turnstile（site key 由後端提供；未設定時自動跳過）──
+let _turnstileWidget=null,_turnstileSiteKey='';
+let _googleClientId='',_googleReady=false;
+fetch('/api/auth/config').then(r=>r.json()).then(cfg=>{
+  _turnstileSiteKey=cfg.turnstile_site_key||'';
+  _googleClientId=cfg.google_client_id||'';
+  if(_turnstileSiteKey){
+    const s=document.createElement('script');
+    s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_onTurnstileReady';
+    s.async=true;document.head.appendChild(s);
+  }
+  if(_googleClientId){
+    const g=document.createElement('script');
+    g.src='https://accounts.google.com/gsi/client';
+    g.async=true;g.defer=true;
+    g.onload=initGoogleSignin;
+    document.head.appendChild(g);
+  }
+}).catch(()=>{});
+window._onTurnstileReady=function(){
+  _turnstileWidget=turnstile.render('#turnstile-slot',{sitekey:_turnstileSiteKey,theme:'dark'});
+};
+function initGoogleSignin(){
+  if(_googleReady||!_googleClientId||!window.google||!google.accounts||!google.accounts.id)return;
+  _googleReady=true;
+  try{
+    const _fromLogout=new URLSearchParams(location.search).get('from')==='logout';
+    google.accounts.id.initialize({client_id:_googleClientId,callback:handleGoogleCredential,auto_select:false});
+    if(_fromLogout)google.accounts.id.disableAutoSelect();
+    const slot=document.getElementById('google-btn-slot');
+    if(slot){
+      slot.innerHTML='';
+      const googleWidth=Math.max(280, Math.min(360, slot.clientWidth || 360));
+      google.accounts.id.renderButton(slot,{
+        theme:'outline',
+        size:'large',
+        text:'signin_with',
+        shape:'rectangular',
+        width:googleWidth,
+      });
+    }
+  }catch(e){}
+}
+// 試玩認領：若本頁帶 ?from=try&sid=...，登入/註冊/Google 成功後把匿名鑑定結果綁到帳號。
+// 回傳要導向的目的地（成功→帶 after_placement 的首頁；無 sid 或失敗→null，由呼叫端走原導向）。
+async function _claimTrialIfAny(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('from')!=='try') return null;
+  const sid=p.get('sid');
+  if(!sid) return null;
+  try{
+    const r=await fetch('/api/rating_test/claim_anon',{
+      method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session_id:sid})
+    }).then(r=>r.json());
+    return (r&&r.ok)?'/?after_placement=1':null;
+  }catch(e){ return null; }
+}
+function _safeLoginReturn(){
+  const p=new URLSearchParams(location.search);
+  const raw=(p.get('next')||p.get('return_to')||'').trim();
+  if(raw&&raw.startsWith('/')&&!raw.startsWith('//')&&!raw.includes('\\'))return raw;
+  return '';
+}
+async function handleGoogleCredential(response){
+  clearMsg('login-error'); clearMsg('reg-error');
+  const errEl=document.getElementById('google-error');
+  if(errEl){errEl.style.display='none';errEl.textContent='';}
+  try{
+    const res=await fetch('/api/auth/google_login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({credential:response.credential})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.ok){
+      const _dest=await _claimTrialIfAny();
+      location.href=_dest||_safeLoginReturn()||data.redirect||'/';
+      return;
+    }
+    const msg=data.error||I18n.t('lg.google.fail');
+    if(errEl){errEl.textContent=msg;errEl.style.display='';}
+    else showMsg('login-error',msg);
+  }catch(e){
+    const msg=I18n.t('lg.google.fail');
+    if(errEl){errEl.textContent=msg;errEl.style.display='';}
+    else showMsg('login-error',msg);
+  }
+}
+function getCfToken(){
+  if(!_turnstileSiteKey)return '';
+  try{return turnstile.getResponse(_turnstileWidget)||'';}catch(e){return '';}
+}
+
+// ── 忘記密碼 / 重設密碼 ──
+function showForgot(){
+  document.getElementById('form-login').style.display='none';
+  document.getElementById('note-login').style.display='none';
+  document.getElementById('form-forgot').style.display='';
+  clearMsg('forgot-error');clearMsg('forgot-success');
+}
+function hideForgot(){
+  document.getElementById('form-forgot').style.display='none';
+  switchTab('login');
+}
+async function doForgot(){
+  const email=document.getElementById('forgot-email').value.trim();
+  const btn=document.getElementById('forgot-btn');
+  const btnText=document.getElementById('forgot-btn-text');
+  if(!email){showMsg('forgot-error',I18n.t('lg.forgot.fillEmail'));return}
+  clearMsg('forgot-error');clearMsg('forgot-success');
+  btn.disabled=true;btnText.textContent=I18n.t('lg.forgot.sending');
+  try{
+    const res=await fetch('/api/auth/forgot_password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.ok){
+      showMsg('forgot-success',I18n.t('lg.forgot.sent'));
+    }else{
+      showMsg('forgot-error',data.error||I18n.t('lg.err.conn'));
+    }
+  }catch(e){showMsg('forgot-error',I18n.t('lg.err.conn'));}
+  btn.disabled=false;btnText.textContent=I18n.t('lg.forgot.btn');
+}
+const _resetToken=new URLSearchParams(location.search).get('reset_token');
+if(_resetToken){
+  document.getElementById('form-login').style.display='none';
+  document.getElementById('note-login').style.display='none';
+  document.getElementById('form-reset').style.display='';
+}
+async function doReset(){
+  const password=document.getElementById('reset-password').value;
+  const confirm=document.getElementById('reset-confirm').value;
+  const btn=document.getElementById('reset-btn');
+  const btnText=document.getElementById('reset-btn-text');
+  if(password.length<8){showMsg('reset-error',I18n.t('lg.err.pwShort'));return}
+  if(password!==confirm){showMsg('reset-error',I18n.t('lg.err.pwMismatch'));return}
+  clearMsg('reset-error');clearMsg('reset-success');
+  btn.disabled=true;
+  try{
+    const res=await fetch('/api/auth/reset_password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_resetToken,password})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.ok){
+      showMsg('reset-success',I18n.t('lg.reset.success'));
+      setTimeout(()=>{location.href='/login';},1600);
+      return;
+    }
+    showMsg('reset-error',data.error||I18n.t('lg.err.conn'));
+  }catch(e){showMsg('reset-error',I18n.t('lg.err.conn'));}
+  btn.disabled=false;
+}
+
+// ── Email 驗證結果提示（由驗證連結轉址回來）──
+const _verifyResult=new URLSearchParams(location.search).get('verify');
+if(_verifyResult){
+  const el=document.getElementById('login-error');
+  showMsg('login-error',
+    _verifyResult==='ok'?I18n.t('lg.verify.ok')
+    :_verifyResult==='expired'?I18n.t('lg.verify.expired')
+    :I18n.t('lg.verify.fail'));
+  if(_verifyResult==='ok'){ // 成功用綠色樣式
+    el.style.border='1px solid rgba(62,214,200,.42)';
+    el.style.background='rgba(10,72,68,.22)';
+    el.style.color='#a8fff5';
+  }
+}
+
+function togglePw(inputId,iconId){
+  const input=document.getElementById(inputId);
+  const icon=document.getElementById(iconId);
+  const show=input.type==='password';
+  input.type=show?'text':'password';
+  icon.textContent=show?'hide':'show';
+}
+function showMsg(id,msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;
+  el.style.display='block';
+}
+function clearMsg(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent='';
+  el.style.display='none';
+}
+
+async function doLogin(){
+  const username=document.getElementById('username').value.trim();
+  const password=document.getElementById('password').value;
+  const btn=document.getElementById('login-btn');
+  const btnText=document.getElementById('login-btn-text');
+  if(!username||!password){showMsg('login-error',I18n.t('lg.err.fillLogin'));return}
+  clearMsg('login-error');
+  btn.disabled=true;btnText.textContent=I18n.t('lg.btn.loginLoading');
+  try{
+    const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.ok){
+      btn.classList.add('success');btnText.textContent=I18n.t('lg.btn.loginSuccess');
+      const _dest=await _claimTrialIfAny();
+      setTimeout(()=>{location.href=_dest||_safeLoginReturn()||data.redirect||'/';},420);
+    }else{
+      showMsg('login-error',data.error||I18n.t('lg.err.badCreds'));
+      btn.disabled=false;btnText.textContent=I18n.t('lg.btn.login');
+    }
+  }catch(e){
+    showMsg('login-error',I18n.t('lg.err.conn'));
+    btn.disabled=false;btnText.textContent=I18n.t('lg.btn.login');
+  }
+}
+
+async function doRegister(){
+  const username=document.getElementById('reg-username').value.trim();
+  const nickname=document.getElementById('reg-nickname').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const password=document.getElementById('reg-password').value;
+  const confirm=document.getElementById('reg-confirm').value;
+  const btn=document.getElementById('reg-btn');
+  const btnText=document.getElementById('reg-btn-text');
+  if(!username||!password||!email){showMsg('reg-error',I18n.t('lg.err.fillReg'));return}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){showMsg('reg-error',I18n.t('lg.err.badEmail'));return}
+  if(password.length<8){showMsg('reg-error',I18n.t('lg.err.pwShort'));return}
+  if(password!==confirm){showMsg('reg-error',I18n.t('lg.err.pwMismatch'));return}
+  const cf_token=getCfToken();
+  if(_turnstileSiteKey&&!cf_token){showMsg('reg-error',I18n.t('lg.err.turnstile'));return}
+  clearMsg('reg-error');clearMsg('reg-success');
+  btn.disabled=true;btnText.textContent=I18n.t('lg.btn.regLoading');
+  try{
+    const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,nickname,email,password,confirm,cf_token})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.ok){
+      btn.classList.add('success');btnText.textContent=I18n.t('lg.btn.regSuccess');
+      showMsg('reg-success',data.verify_email_sent?I18n.t('lg.reg.successVerify'):I18n.t('lg.reg.success'));
+      const _dest=await _claimTrialIfAny();
+      setTimeout(()=>{location.href=_dest||_safeLoginReturn()||data.redirect||'/';},data.verify_email_sent?1800:650);
+    }else{
+      showMsg('reg-error',data.error||I18n.t('lg.err.regFail'));
+      btn.disabled=false;btnText.textContent=I18n.t('lg.btn.register');
+      if(_turnstileSiteKey){try{turnstile.reset(_turnstileWidget);}catch(e){}}
+    }
+  }catch(e){
+    showMsg('reg-error',I18n.t('lg.err.conn'));
+    btn.disabled=false;btnText.textContent=I18n.t('lg.btn.register');
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(document.getElementById('form-reset').style.display!=='none'&&_resetToken){doReset();return}
+  if(document.getElementById('form-forgot').style.display!=='none'){doForgot();return}
+  if(_currentTab==='login')doLogin();
+  else doRegister();
+});
+</script>
+</body>
+</html>

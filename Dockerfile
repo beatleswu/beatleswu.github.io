@@ -24,14 +24,13 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Explicit root .py COPY list -- deliberately not a `COPY *.py ./` wildcard.
+# ── Explicit root .py COPY list -- deliberately not a `COPY *.py ./` wildcard.
 # Every file here has recorded Git provenance in
-# deploy/runtime-source-provenance.json (app.py/shadow_judging.py/
-# shadow_dashboard.py are tracked directly on origin/master; the rest were
-# recovered from verified local Graph A commits in DEPLOY-GOV-2B-FIX). This
-# list must stay in sync with that provenance file and with
-# deploy/build-manifest.json's build_inputs.tracked_in_canonical_branch_this_sprint.
+# deploy/runtime-source-provenance.json. This list must stay in sync with
+# that provenance file and with deploy/build-manifest.json's
+# build_inputs.tracked_in_canonical_branch_this_sprint.
 COPY app.py ./
+COPY db.py ./
 COPY shadow_judging.py ./
 COPY shadow_dashboard.py ./
 COPY scheduler.py ./
@@ -52,52 +51,63 @@ COPY tools/community_leaderboard_rewards_export_entries.py /app/tools/community_
 COPY tools/community_leaderboard_rewards_real_grant_preview.py /app/tools/community_leaderboard_rewards_real_grant_preview.py
 COPY tools/community_leaderboard_rewards_real_grant_commit.py /app/tools/community_leaderboard_rewards_real_grant_commit.py
 COPY sgf_engine ./sgf_engine
-COPY questions.json srs.db go_learning.db ./
-COPY *.html *.js *.json *.png ./
-COPY robots.txt sitemap.xml og-image.jpg ./
+
+# ── Curated root static pages/scripts (explicit list, not a wildcard).
+# Sourced from the exact commits recorded in
+# deploy/runtime-source-provenance.json -- not copied from Production.
+# Deliberately excludes debug pages, repair reports, backups, and other
+# root-level residue never referenced by app.py's routes.
+COPY login.html landing.html index.html terms.html manage.html admin.html \
+     bot.html daily_challenge.html community.html messages.html \
+     share_view.html mistakes.html curriculum.html hero.html \
+     rating_test.html shop.html profile.html premium_weekly.html \
+     stats.html upgrade.html play.html inventory.html badges.html \
+     games.html ./
+COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
+     site-nav.js community_reward_notifications.js \
+     community_reward_rules.js pwa.js ./
+COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
-COPY docs/testing ./docs/testing
-
-COPY assets/*.png ./assets/
-COPY assets/*.webp ./assets/
-COPY assets/boards ./assets/boards
-COPY assets/community ./assets/community
-COPY assets/go_rpg_assets ./assets/go_rpg_assets
-COPY assets/go_rpg_assets_v3 ./assets/go_rpg_assets_v3
-COPY assets/guild_bounty_assets ./assets/guild_bounty_assets
-COPY assets/guild_ui ./assets/guild_ui
-COPY assets/hero/accessories ./assets/hero/accessories
-COPY assets/hero/accessory_icons ./assets/hero/accessory_icons
-COPY assets/hero/characters ./assets/hero/characters
-COPY assets/hero/gear_v2 ./assets/hero/gear_v2
-COPY assets/hero/gear_v2_icons ./assets/hero/gear_v2_icons
-COPY assets/hero/items ./assets/hero/items
-COPY assets/hero/*.webp ./assets/hero/
-COPY assets/landing_page_assets ./assets/landing_page_assets
-COPY assets/monsters ./assets/monsters
-COPY assets/shop ./assets/shop
-COPY assets/pets/*.webp ./assets/pets/
-COPY assets/pets/dragon_anim_v2/*.webp ./assets/pets/dragon_anim_v2/
-COPY assets/pets/dragon_anim_lv2/*.webp ./assets/pets/dragon_anim_lv2/
-COPY assets/pets/dragon_anim_lv3/*.webp ./assets/pets/dragon_anim_lv3/
-COPY assets/pets/horse_anim_v2/*.webp ./assets/pets/horse_anim_v2/
-COPY assets/pets/horse_anim_lv2/*.webp ./assets/pets/horse_anim_lv2/
-COPY assets/pets/horse_anim_lv3/*.webp ./assets/pets/horse_anim_lv3/
-COPY assets/pets/cat_anim_v2/*.webp ./assets/pets/cat_anim_v2/
-COPY assets/pets/cat_anim_lv2/*.webp ./assets/pets/cat_anim_lv2/
-COPY assets/pets/cat_anim_lv3/*.webp ./assets/pets/cat_anim_lv3/
-COPY assets/play_page_assets ./assets/play_page_assets
-COPY assets/rating_test ./assets/rating_test
-COPY assets/stats ./assets/stats
-COPY assets/stones ./assets/stones
-COPY assets/storyboards ./assets/storyboards
-COPY assets/tiers ./assets/tiers
-COPY assets/upgrade_page_assets ./assets/upgrade_page_assets
-
-COPY shorts ./shorts
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
+
+# ── Content and asset boundary ──────────────────────────────────────
+# The following are deliberately NOT copied into this image. They are
+# served at runtime from external, read-only or persistent mounts (see
+# docker-compose.prod.yml and docs/deployment/canonical_image_build.md,
+# "App Image / Content Boundary"). The application already has
+# graceful-degradation handling for their absence:
+#
+#   assets/       -- VERSIONED STATIC ARTIFACT, mounted read-only at
+#                     GO_ODYSSEY_LIVE_STATIC_ROOT/assets. app.py's
+#                     /assets/<path:subpath> route already falls back to
+#                     this mount before any baked copy (see
+#                     _serve_live_static_or_baked_subpath); with no baked
+#                     copy and no mount, individual files 404, the app
+#                     process stays up.
+#   shorts/       -- optional marketing media, same mount pattern via
+#                     GO_ODYSSEY_LIVE_STATIC_ROOT/shorts. Absence is a
+#                     404 per file, not a startup failure.
+#   questions.json -- VERSIONED CONTENT BASELINE + persistent runtime
+#                     storage. Path is configurable via QUESTIONS_JSON_PATH
+#                     (see app.py); _load_questions()/_load_questions_fresh()
+#                     already guard with os.path.exists() and return an
+#                     empty list rather than crash when absent.
+#   srs.db          -- EXCLUDED. Table inventory shows live user data
+#                     (users, friendships, game_results, teacher_student,
+#                     ...). Never referenced by any sqlite3.connect() call
+#                     in current app.py/scheduler.py -- PostgreSQL is the
+#                     authoritative runtime database. Must never be baked
+#                     into a Git-tracked image.
+#   go_learning.db  -- EXCLUDED. Its two tables (zones, grimoires) are
+#                     already created directly in PostgreSQL by app.py
+#                     (CREATE TABLE IF NOT EXISTS zones/grimoires) --
+#                     confirmed obsolete relative to current runtime code.
+#   docs/testing/   -- EXCLUDED. Internal QA/audit evidence, zero
+#                     references anywhere in app.py/scheduler.py/
+#                     shadow_judging.py. Never belonged in a production
+#                     image.
 
 ENV PORT=8080
 EXPOSE 8080

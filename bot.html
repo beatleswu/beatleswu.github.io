@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="bot.nav.title">魔物試煉場 — 弈境奇兵 (Go Odyssey)</title>
+<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<script src="/i18n.js?v=20260710a"></script>
+<script src="/wgo/wgo.min.js?v=20260514k"></script>
+<script src="/wgo/stone_skin.js?v=3"></script>
+<script src="/monster_trash.js?v=20260622i18n1"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#faf7f2;--cream2:#f3ede3;--cream3:#ede4d4;
+  --ink:#1c1409;--ink2:#3d2f1a;--ink3:#6b5740;--ink4:#a89070;
+  --teal:#0d9488;--teal-bg:#f0fdfa;--teal-dark:#0f766e;
+  --amber:#d97706;--amber-bg:#fffbeb;
+  --border:#e5ddd0;--border2:#d4c9b8;
+  --white:#ffffff;--surface2:#f6f1ea;
+  --shadow:0 1px 3px rgba(28,20,9,.06),0 4px 16px rgba(28,20,9,.06);
+  --shadow-lg:0 8px 40px rgba(28,20,9,.12);
+  --green:#16a34a;--red:#dc2626;--red-bg:#fef2f2;
+  --mono:'DM Mono',monospace;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:52px 52px;opacity:.3;}
+
+/* ── NAV ── */
+.nav{position:relative;z-index:10;display:flex;align-items:center;gap:10px;
+  padding:10px 18px;border-bottom:1px solid var(--border);
+  background:rgba(250,247,242,.95);backdrop-filter:blur(8px);flex-shrink:0;}
+.nav-logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:18px;
+  color:var(--teal);text-decoration:none;display:flex;align-items:center;gap:6px;}
+.nav-badge{font-size:12px;color:var(--ink3);background:var(--cream2);
+  border:1px solid var(--border);padding:3px 10px;border-radius:20px;}
+.nav-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);
+  background:var(--white);color:var(--ink3);font-size:12px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;transition:all .15s;}
+.btn:hover{border-color:var(--teal);color:var(--teal);}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+.btn.primary:hover{background:var(--teal-dark);}
+.btn.danger{background:var(--red-bg);color:var(--red);border-color:#fca5a5;}
+.btn.danger:hover{background:var(--red);color:#fff;}
+.btn:disabled{opacity:.4;cursor:default;}
+
+/* ── LAYOUT ── */
+.page{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.body{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* ── SETUP PANEL ── */
+.setup{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 20px;overflow-y:auto;flex:1;}
+.setup-card{background:var(--white);border:1px solid var(--border);border-radius:20px;
+  padding:32px 36px;max-width:520px;width:100%;box-shadow:var(--shadow-lg);}
+.field{margin-bottom:22px;}
+.field label{display:block;font-size:14px;font-family:var(--mono);letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--ink2);font-weight:700;margin-bottom:10px;}
+.pill-row{display:flex;flex-wrap:wrap;gap:9px;}
+.pill{padding:10px 18px;border-radius:99px;border:1.5px solid var(--border);
+  background:var(--white);font-size:15px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;}
+.pill:hover{border-color:var(--teal);color:var(--teal);}
+.pill.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+.level-slider{width:100%;accent-color:var(--teal);height:6px;}
+.level-labels{display:flex;justify-content:space-between;font-size:13px;
+  color:var(--ink3);font-family:var(--mono);margin-top:6px;}
+.level-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--teal);
+  margin-bottom:8px;text-align:right;}
+/* 怪物預覽（設定畫面） */
+.monster-preview{
+  display:flex;align-items:center;gap:14px;
+  background:var(--cream2);border:1px solid var(--border2);
+  border-radius:14px;padding:12px 16px;margin-top:10px;
+  transition:all .2s;
+}
+.preview-emoji{width:58px;height:58px;display:flex;align-items:center;justify-content:center;line-height:1;} .monster-art{width:100%;height:100%;display:block;}
+.preview-info{flex:1;}
+.preview-name{font-size:19px;font-weight:700;color:var(--ink2);}
+.preview-rank{font-size:14px;font-family:var(--mono);color:var(--ink3);margin-top:3px;}
+.preview-quote{font-size:13px;color:var(--ink3);margin-top:5px;font-style:italic;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
+
+/* ── GAME LAYOUT ── */
+.game{display:none;flex:1;overflow:hidden;align-items:center;}
+.board-center{display:flex;flex-direction:column;align-self:stretch;flex:1;overflow:hidden;min-width:0;}
+.right-panel{width:200px;flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;
+  border-left:1px solid var(--border);background:var(--white);overflow:hidden;}
+
+/* ── STATUS BAR ── */
+.status-bar{padding:10px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--white);}
+.turn-badge{padding:4px 12px;border-radius:99px;font-size:11px;font-family:var(--mono);
+  font-weight:700;transition:all .3s;}
+.turn-badge.my-turn{background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal);}
+.turn-badge.ai-turn{background:var(--cream2);color:var(--ink3);border:1px solid var(--border);}
+.status-msg{flex:1;font-size:12px;color:var(--ink3);}
+.move-count{font-family:var(--mono);font-size:11px;color:var(--ink4);}
+
+/* ── PLAYER CARD（棋盤左右兩側）── */
+.player-card{
+  width:160px;flex-shrink:0;
+  align-self:center;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;
+  padding:24px 14px 20px;
+  background:var(--white);
+  border:1.5px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow-lg);
+  position:relative;
+  transition:border-color .25s,box-shadow .25s;
+  overflow:visible;
+}
+#pbar-ai{margin:0 0 0 14px;}
+#pbar-me{margin:0 14px 0 0;}
+
+/* 大頭像 */
+.pc-avatar{
+  width:72px;height:72px;border-radius:50%;
+  background:var(--cream2);border:2.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:42px;flex-shrink:0;position:relative;
+  transition:border-color .25s,box-shadow .25s;
+  overflow:hidden;
+}
+.pc-avatar img.hero-avatar-img{
+  width:86%;height:86%;object-fit:contain;display:block;
+  transform:translateY(5px);
+  filter:drop-shadow(0 5px 7px rgba(0,0,0,.22));
+}
+.pc-avatar.hero-equipped .hero-avatar-stack{
+  position:absolute;inset:7px 8px 4px;
+  transform:translateY(3px);
+}
+.pc-avatar.hero-equipped .hero-avatar-stack img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;display:block;
+}
+.pc-avatar.hero-equipped .hero-layer-cape{z-index:1;}
+.pc-avatar.hero-equipped .hero-layer-character{z-index:2;}
+.pc-avatar.hero-equipped .hero-layer-armor{z-index:3;}
+.pc-avatar.hero-equipped .hero-layer-weapon{z-index:4;}
+.pc-avatar.hero-equipped .hero-layer-offhand{z-index:5;}
+.pc-avatar .stone-color{
+  position:absolute;bottom:-2px;right:-2px;
+  width:20px;height:20px;border-radius:50%;
+  border:3px solid var(--white);
+  z-index:2;
+}
+.pc-avatar .stone-color.B{background:#1c1409;}
+.pc-avatar .stone-color.W{background:#fff;border-color:#bbb;
+  box-shadow:inset 0 0 0 1px #999;}
+
+/* 名稱 & 段位 */
+.pc-name{font-size:13px;font-weight:700;color:var(--ink2);
+  text-align:center;line-height:1.3;word-break:break-all;}
+.pc-rank{font-size:11px;font-family:var(--mono);color:var(--ink3);
+  background:var(--cream2);padding:3px 10px;border-radius:99px;
+  border:1px solid var(--border);}
+
+/* 吃子計數 */
+.pc-captures{
+  font-size:11px;font-family:var(--mono);color:var(--ink4);
+  display:flex;align-items:center;gap:5px;
+}
+.pc-captures .cap-dot{
+  display:inline-block;width:9px;height:9px;border-radius:50%;
+  border:1px solid currentColor;opacity:.6;
+}
+.pc-captures .cap-num{font-weight:600;color:var(--ink3);}
+
+/* 計時器 */
+.pc-timer{
+  font-family:var(--mono);font-size:16px;font-weight:600;
+  color:var(--ink4);letter-spacing:.05em;
+  transition:color .3s;
+}
+.pc-timer.active{color:var(--teal);}
+
+/* 思考中發光 */
+.player-card.pbar-thinking{
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(13,148,136,.15),var(--shadow-lg);
+}
+.player-card.pbar-thinking .pc-name{color:var(--teal);}
+.player-card.pbar-thinking .pc-avatar{
+  border-color:var(--teal);
+  box-shadow:0 0 0 4px rgba(13,148,136,.2);
+}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.thinking-dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--teal);margin-left:5px;
+  vertical-align:middle;animation:pulse .8s ease-in-out infinite;}
+
+/* ── TRASH TALK 氣泡（浮於 AI card 右側，朝向棋盤）── */
+.talk-bubble{
+  position:absolute;
+  left:calc(100% + 14px);   /* 在 card 右側飄出 */
+  top:50%;transform:translateY(-50%) scale(.92);
+  background:var(--ink);color:#fff;
+  font-size:12px;line-height:1.55;padding:9px 13px;
+  border-radius:4px 12px 12px 12px;
+  width:170px;word-break:break-all;
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+  opacity:0;
+  transition:opacity .25s ease,transform .25s ease;
+  pointer-events:none;
+  z-index:50;
+}
+.talk-bubble.show{opacity:1;transform:translateY(-50%) scale(1);}
+/* 三角形指向左（指向 AI card）*/
+.talk-bubble::before{
+  content:'';position:absolute;
+  right:100%;top:16px;
+  border:7px solid transparent;
+  border-right-color:var(--ink);
+}
+/* 依怪物類型換氣泡顏色（::before 用 border-right-color 朝右的三角） */
+.talk-bubble.caterpillar{background:#4a7c2f;}.talk-bubble.caterpillar::before{border-right-color:#4a7c2f;}
+.talk-bubble.bee{background:#b45309;}       .talk-bubble.bee::before{border-right-color:#b45309;}
+.talk-bubble.turtle{background:#0f766e;}    .talk-bubble.turtle::before{border-right-color:#0f766e;}
+.talk-bubble.rabbit{background:#7c3aed;}    .talk-bubble.rabbit::before{border-right-color:#7c3aed;}
+.talk-bubble.raccoon{background:#6b5740;}   .talk-bubble.raccoon::before{border-right-color:#6b5740;}
+.talk-bubble.goblin{background:#991b1b;}    .talk-bubble.goblin::before{border-right-color:#991b1b;}
+.talk-bubble.fox{background:#581c87;}       .talk-bubble.fox::before{border-right-color:#581c87;}
+.talk-bubble.wolf{background:#1d4ed8;}      .talk-bubble.wolf::before{border-right-color:#1d4ed8;}
+.talk-bubble.golem{background:#374151;}     .talk-bubble.golem::before{border-right-color:#374151;}
+.talk-bubble.dragon{background:#1e1b4b;}    .talk-bubble.dragon::before{border-right-color:#1e1b4b;}
+
+/* ── BOARD ── */
+.board-wrap{flex:1;display:flex;align-items:center;justify-content:center;
+  padding:16px;overflow:hidden;}
+#board-canvas-wrap{
+  touch-action:none;
+  -webkit-tap-highlight-color:transparent;
+}
+#board-canvas-wrap canvas{
+  border-radius:4px;
+  touch-action:none;
+}
+
+/* ── RIGHT PANEL ── */
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);
+  font-size:10px;font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;
+  color:var(--ink3);background:var(--surface2);display:flex;align-items:center;gap:8px;}
+.panel-header .total-time{margin-left:auto;font-size:11px;color:var(--ink4);}
+.move-list{flex:1;overflow-y:auto;padding:8px;}
+.move-item{display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:11px;
+  font-family:var(--mono);color:var(--ink3);align-items:center;}
+.move-item:nth-child(even){background:var(--cream);}
+.move-num{color:var(--ink4);min-width:20px;}
+.stone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.stone-dot.B{background:#1c1409;border:1px solid #000;}
+.stone-dot.W{background:#fff;border:1px solid #999;}
+/* 估分面板 */
+.est-bar{
+  padding:8px 14px;border-top:1px solid var(--border);
+  display:none;align-items:center;gap:8px;
+  background:var(--teal-bg);font-size:11px;
+}
+.est-bar.show{display:flex;}
+.est-label{font-family:var(--mono);color:var(--ink3);}
+.est-val{font-family:var(--mono);font-weight:700;color:var(--teal);font-size:13px;flex:1;}
+.est-close{background:none;border:none;font-size:14px;cursor:pointer;color:var(--ink4);
+  padding:0 2px;line-height:1;}
+/* 操作列 */
+.action-row{padding:10px 12px;border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.action-row .btn-full{grid-column:1/-1;}
+
+/* ── ILLEGAL MOVE TOAST ── */
+.illegal-toast{
+  position:fixed;bottom:72px;left:50%;transform:translateX(-50%);
+  background:#b5352a;color:#fff;
+  padding:9px 22px;border-radius:24px;
+  font-size:13px;font-weight:600;letter-spacing:.02em;
+  white-space:nowrap;pointer-events:none;z-index:400;
+  opacity:0;transition:opacity .18s ease;
+}
+.illegal-toast.show{opacity:1;}
+/* Ko 標記（打劫禁點） */
+@keyframes ko-pulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.9}
+  50%{transform:translate(-50%,-50%) scale(1.3);opacity:.4}
+}
+.ko-marker{
+  position:absolute;pointer-events:none;z-index:150;
+  width:18px;height:18px;border-radius:50%;
+  border:2.5px solid #e05030;
+  transform:translate(-50%,-50%);
+  animation:ko-pulse .7s ease-in-out 2;
+}
+
+/* ── THINKING ── */
+/* 用 opacity 切換取代 display，避免 reflow + backdrop-filter 重合成造成 canvas 閃爍 */
+.thinking{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(250,247,242,.55);
+  /* 不用 backdrop-filter: blur — 會強制全屏 composite，是閃爍元兇 */
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;
+  opacity:0;pointer-events:none;
+  transition:opacity .18s ease;
+  will-change:opacity;          /* 預先提升合成層，不打擾 canvas */
+}
+.thinking.show{opacity:1;pointer-events:auto;}
+.think-ring{width:44px;height:44px;border-radius:50%;
+  border:3px solid var(--teal-bg);border-top-color:var(--teal);
+  animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.think-txt{font-size:13px;color:var(--ink3);
+  background:rgba(255,255,255,.85);padding:4px 12px;border-radius:20px;}
+
+/* ── RESULT MODAL ── */
+.result-modal{display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(28,20,9,.5);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;}
+.result-modal.show{display:flex;}
+.result-box{background:var(--white);border-radius:20px;padding:32px;max-width:340px;
+  width:calc(100% - 40px);text-align:center;box-shadow:var(--shadow-lg);
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.result-icon{font-size:52px;margin-bottom:12px;}
+.result-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;margin-bottom:6px;}
+.result-sub{font-size:13px;color:var(--ink3);margin-bottom:20px;}
+.result-score{font-family:var(--mono);font-size:18px;font-weight:600;
+  color:var(--teal);background:var(--teal-bg);border-radius:10px;
+  padding:8px 18px;margin-bottom:20px;display:inline-block;}
+.result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+
+/* ── MOBILE + iPad (≤1366px)：棋盤吃滿、頭像移到底部、按鈕還原 ── */
+@media(max-width:1366px){
+  /* .game 改用 grid：棋盤頂、雙頭像中、按鈕底 */
+  .game{
+    display:grid !important;
+    grid-template-areas:
+      "board board"
+      "ai me"
+      "actions actions";
+    grid-template-rows: 1fr auto auto;
+    grid-template-columns: 1fr 1fr;
+    gap:6px;
+    padding:6px;
+    align-items:stretch;
+  }
+  .board-center{grid-area:board;align-self:stretch;width:100%;}
+  #pbar-ai{grid-area:ai;margin:0;}
+  #pbar-me{grid-area:me;margin:0;}
+  /* 頭像列改成橫向 row */
+  .player-card{
+    width:auto !important;
+    flex-direction:row !important;
+    align-items:center !important;
+    justify-content:flex-start;
+    gap:10px !important;
+    padding:8px 12px !important;
+    border-radius:12px !important;
+    flex-shrink:0;
+    box-shadow:var(--shadow);
+  }
+  #pbar-me{justify-content:flex-end;}
+  .pc-avatar{width:44px !important;height:44px !important;flex-shrink:0;}
+  .pc-avatar .stone-color{width:14px;height:14px;}
+  .pc-name{font-size:13px;font-weight:600;}
+  .pc-rank{font-size:11px;padding:2px 6px;}
+  .pc-captures{font-size:12px;display:inline-flex !important;}
+  .pc-timer{font-size:11px;display:none;}
+  .talk-bubble{width:130px;font-size:10px;}
+  /* 操作面板還原顯示，放到底部一橫列 */
+  .right-panel{
+    grid-area:actions;
+    display:flex !important;
+    flex-direction:column;
+    width:100% !important;
+    border-left:none !important;
+    border-top:1px solid var(--border);
+    background:var(--white);
+    flex-shrink:0;
+  }
+  .right-panel .panel-header{display:none;}
+  .right-panel > div[style*="flex:1"]{display:none;}
+  .right-panel .est-bar{order:-1;}
+  .right-panel .action-row{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:5px;
+    padding:6px;
+  }
+  .right-panel .action-row .btn{padding:10px 4px;font-size:12px;border-radius:8px;}
+  .right-panel .action-row .btn.danger{background:var(--red);color:#fff;}
+  .board-wrap{padding:4px !important;}
+  .status-bar{padding:6px 12px;}
+  .nav{padding:8px 12px}
+  .monster-preview{padding:10px 12px;gap:10px;}
+}
+@media(max-width:700px){
+  .player-card{padding:6px 10px !important;gap:8px !important;}
+  .pc-avatar{width:38px !important;height:38px !important;}
+  .pc-name{font-size:12px;}
+  .pc-rank{font-size:10px;}
+  .pc-captures{font-size:11px;}
+  .talk-bubble{width:110px;}
+  .setup-card{padding:20px 16px;border-radius:16px}
+  .monster-preview{padding:8px 10px;}
+  .preview-emoji{width:38px;height:38px;}
+  .right-panel .action-row .btn{padding:9px 2px;font-size:11px;}
+}
+
+/* ── RPG trial skin ── */
+:root{
+  --trial-bg:#140f18;--trial-panel:#211827;--trial-panel2:#2b2031;
+  --trial-gold:#d9aa55;--trial-gold2:#f4d28a;--trial-mana:#8fd8ff;
+  --trial-purple:#9b5de5;--trial-line:rgba(217,170,85,.34);
+}
+body{
+  background:
+    radial-gradient(circle at 16% 10%,rgba(155,93,229,.18),transparent 28%),
+    radial-gradient(circle at 78% 0%,rgba(143,216,255,.14),transparent 26%),
+    linear-gradient(180deg,#110c14 0%,#25172d 50%,#120d14 100%);
+  color:#f8edda;
+}
+body::before{
+  background-image:
+    linear-gradient(rgba(217,170,85,.12) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(217,170,85,.12) 1px,transparent 1px);
+  opacity:.3;
+}
+.nav{
+  background:rgba(18,12,20,.92);
+  border-bottom-color:var(--trial-line);
+  box-shadow:0 14px 36px rgba(0,0,0,.28);
+}
+.nav-logo{color:var(--trial-gold2);}
+.nav-badge{
+  background:rgba(217,170,85,.14);
+  border-color:rgba(217,170,85,.42);
+  color:var(--trial-gold2);
+}
+.btn{
+  background:rgba(255,255,255,.06);
+  border-color:rgba(217,170,85,.34);
+  color:#ecd6ab;
+}
+.btn:hover{border-color:var(--trial-gold);color:#fff7df;background:rgba(217,170,85,.12);}
+.btn.primary{
+  background:linear-gradient(135deg,#8b4ec8,#d9aa55);
+  border-color:#f4d28a;
+  color:#160d19;
+  box-shadow:0 14px 28px rgba(155,93,229,.26);
+}
+.btn.primary:hover{background:linear-gradient(135deg,#a46af0,#f4d28a);color:#120d14;}
+.btn.danger{background:rgba(185,35,56,.15);border-color:rgba(248,113,113,.5);color:#fecaca;}
+.btn.danger:hover{background:#b91c1c;color:#fff;}
+.body{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);}
+.setup{align-items:stretch;justify-content:flex-start;padding:24px 18px 60px;}
+.trial-setup-grid{
+  width:min(1260px,100%);
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:310px minmax(420px,1fr) 310px;
+  gap:18px;
+  align-items:start;
+}
+.trial-panel,.setup-card,.monster-preview,.player-card,.right-panel,.status-bar,.result-box{
+  background:linear-gradient(180deg,rgba(43,32,49,.96),rgba(24,17,28,.98));
+  border-color:var(--trial-line);
+  box-shadow:0 18px 48px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.06);
+}
+.trial-panel,.setup-card{
+  border:1px solid var(--trial-line);
+  border-radius:18px;
+  padding:20px;
+}
+.trial-kicker,.field label,.panel-header{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:2.2px;
+  text-transform:uppercase;
+  color:var(--trial-gold2);
+}
+.trial-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(36px,4vw,54px);
+  line-height:1;
+  color:#fff7df;
+  margin:8px 0 10px;
+}
+.trial-copy{color:#d8c39e;font-size:14px;line-height:1.75;}
+.trial-icon{width:32px;height:32px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 8px 12px rgba(0,0,0,.38));}
+.trial-icon.sm{width:23px;height:23px;}
+.trial-icon.lg{width:64px;height:64px;}
+.trial-npc{overflow:hidden;}
+.trial-npc-art{
+  min-height:295px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  margin:-4px -10px 0;
+  background:radial-gradient(circle at 50% 66%,rgba(155,93,229,.2),transparent 44%);
+}
+.trial-npc-art img{
+  width:min(260px,92%);
+  max-height:340px;
+  object-fit:contain;
+  filter:drop-shadow(0 24px 26px rgba(0,0,0,.44));
+}
+.trial-npc-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:27px;
+  font-weight:700;
+  color:#fff1c8;
+  margin-top:10px;
+}
+.trial-npc-line{
+  color:#d8c39e;
+  font-size:14px;
+  line-height:1.75;
+  margin-top:8px;
+}
+.trial-hero{
+  position:relative;
+  overflow:hidden;
+  margin-bottom:16px;
+  padding:22px;
+  border:1px solid var(--trial-line);
+  border-radius:18px;
+  background:
+    linear-gradient(135deg,rgba(155,93,229,.18),rgba(217,170,85,.12)),
+    linear-gradient(180deg,rgba(43,32,49,.96),rgba(24,17,28,.98));
+}
+.trial-hero::after{
+  content:'';
+  position:absolute;
+  inset:auto -10% -35% 20%;
+  height:180px;
+  background:radial-gradient(ellipse at center,rgba(217,170,85,.24),transparent 70%);
+  pointer-events:none;
+}
+.trial-hero-top{display:flex;align-items:center;gap:13px;position:relative;z-index:1;}
+.trial-stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:16px;
+  position:relative;
+  z-index:1;
+}
+.trial-stat{
+  display:flex;align-items:center;gap:9px;min-width:0;
+  padding:10px;border:1px solid rgba(217,170,85,.24);border-radius:12px;
+  background:rgba(255,255,255,.05);
+}
+.trial-stat strong{display:block;color:#fff4d5;font-size:13px;}
+.trial-stat span{display:block;color:#bfae90;font-size:11px;margin-top:2px;}
+.setup-card{max-width:none;width:100%;padding:22px;}
+.field{margin-bottom:20px;}
+.field label{display:flex;align-items:center;gap:9px;margin-bottom:11px;color:var(--trial-gold2);}
+.pill{
+  background:rgba(255,255,255,.05);
+  border-color:rgba(217,170,85,.32);
+  color:#ead7b6;
+}
+.pill:hover{border-color:var(--trial-gold);color:#fff1c8;background:rgba(217,170,85,.1);}
+.pill.active{
+  background:linear-gradient(135deg,#8b4ec8,#d9aa55);
+  border-color:#f4d28a;
+  color:#160d19;
+  box-shadow:0 9px 22px rgba(155,93,229,.22);
+}
+.level-slider{accent-color:var(--trial-purple);}
+.level-labels,.preview-rank,.preview-quote,.pc-rank,.pc-captures,.status-msg,.move-count,.result-sub{color:#d8c39e;}
+.level-val,#level-val-label{color:var(--trial-gold2)!important;}
+.monster-preview{
+  position:relative;
+  flex-direction:column;
+  text-align:center;
+  padding:22px;
+  border-color:rgba(155,93,229,.42);
+  background:
+    radial-gradient(circle at 50% 24%,rgba(155,93,229,.18),transparent 38%),
+    linear-gradient(180deg,rgba(43,32,49,.96),rgba(24,17,28,.98));
+}
+.monster-preview::before{
+  content:'';
+  width:96px;height:96px;
+  position:absolute;
+  top:15px;left:50%;
+  transform:translateX(-50%);
+  border:1px solid rgba(217,170,85,.32);
+  border-radius:50%;
+  box-shadow:0 0 32px rgba(155,93,229,.28);
+  pointer-events:none;
+}
+.preview-emoji{width:96px;height:96px;position:relative;z-index:1;}
+.preview-name{font-family:'Cormorant Garamond',serif;font-size:30px;color:#fff1c8;}
+.preview-quote{white-space:normal;max-width:none;}
+.game{background:radial-gradient(circle at 50% 0%,rgba(155,93,229,.13),transparent 42%);}
+#game-screen:not([style*="display: flex"]){display:none!important;}
+.player-card{background:linear-gradient(180deg,rgba(43,32,49,.95),rgba(24,17,28,.98));}
+.pc-avatar{background:rgba(255,255,255,.07);border-color:rgba(217,170,85,.36);}
+.pc-name{color:#fff1c8;}
+.pc-rank{background:rgba(217,170,85,.12);border-color:rgba(217,170,85,.28);color:#ecd6ab;}
+.player-card.pbar-thinking{
+  border-color:var(--trial-purple);
+  box-shadow:0 0 0 3px rgba(155,93,229,.18),0 18px 48px rgba(0,0,0,.28);
+}
+.player-card.pbar-thinking .pc-name,.pc-timer.active{color:var(--trial-gold2);}
+.thinking-dot{background:var(--trial-gold2);}
+.status-bar{border-bottom-color:var(--trial-line);}
+.turn-badge.my-turn{background:rgba(217,170,85,.14);border-color:rgba(217,170,85,.4);color:#fff1c8;}
+.turn-badge.ai-turn{background:rgba(155,93,229,.14);border-color:rgba(155,93,229,.45);color:#dfc7ff;}
+.board-wrap{background:linear-gradient(180deg,rgba(24,17,28,.96),rgba(10,7,12,.98));}
+#board-canvas-wrap canvas{box-shadow:0 18px 42px rgba(0,0,0,.34);}
+.right-panel{border-left-color:var(--trial-line);}
+.panel-header{background:rgba(217,170,85,.09);border-bottom-color:var(--trial-line);}
+.est-bar{background:rgba(143,216,255,.08);border-top-color:rgba(143,216,255,.28);}
+.est-val{color:var(--trial-mana);}
+.action-row{border-top-color:var(--trial-line);}
+.action-row .btn{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.thinking{background:rgba(15,10,18,.72);}
+.think-ring{
+  width:68px;height:68px;
+  border-color:rgba(217,170,85,.14);
+  border-top-color:var(--trial-gold2);
+  box-shadow:0 0 32px rgba(155,93,229,.38);
+}
+.think-txt{background:rgba(24,17,28,.9);color:#fff1c8;border:1px solid var(--trial-line);}
+.result-modal{background:rgba(10,7,12,.72);}
+.result-box{border:1px solid var(--trial-line);}
+.result-title{color:#fff1c8;}
+.result-score{background:rgba(217,170,85,.12);color:#fff1c8;border:1px solid rgba(217,170,85,.3);}
+#setup-err{background:rgba(185,35,56,.14)!important;border-color:rgba(248,113,113,.45)!important;color:#fecaca!important;}
+@media(max-width:1100px){
+  .trial-setup-grid{grid-template-columns:1fr;}
+  .trial-npc{order:1;}
+  .trial-contract{order:2;}
+  .trial-summon{order:3;}
+  .trial-npc-art{min-height:220px;}
+  .trial-npc-art img{max-height:260px;}
+}
+@media(max-width:700px){
+  .setup{padding:14px 10px 40px;}
+  .trial-panel,.setup-card,.trial-hero{padding:16px;}
+  .trial-stats{grid-template-columns:1fr;}
+  .nav-right{gap:5px;}
+  .nav-right .btn{padding:6px 9px;font-size:11px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- NAV -->
+  <div class="nav">
+    <a href="/" class="nav-logo" data-i18n="bot.brand">&#9679; 弈境奇兵 (Go Odyssey)</a>
+    <span class="nav-badge" data-i18n="bot.nav.badge">魔物試煉場</span>
+    <div class="nav-right">
+      <button class="btn" id="mute-btn" onclick="toggleMute()" title="音效開關" data-i18n-title="bot.nav.mute.title">&#128266;</button>
+      <a href="/play" class="btn" data-i18n="bot.nav.arena">決鬥競技場</a>
+      <a href="/" class="btn" data-i18n="bot.nav.practice">&#128214; 題目練習</a>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- ── 設定畫面 ── -->
+    <div class="setup" id="setup-screen">
+      <div class="trial-setup-grid">
+      <aside class="trial-panel trial-npc">
+        <p class="trial-kicker">Trial Summoner</p>
+        <div class="trial-npc-art">
+          <img src="/assets/go_rpg_assets_v3/npc_merlyn.webp" alt="試煉召喚師 梅琳" data-i18n-alt="bot.npc.imgAlt">
+        </div>
+        <h2 class="trial-npc-name" data-i18n="bot.npc.name">試煉召喚師 · 梅琳 (Merlyn)</h2>
+        <p class="trial-npc-line" id="merlyn-line" data-i18n="bot.npc.default">選好契約，我會替你召喚合適的對手。這裡的魔物階級是 AI 難度，不是你的修行 LV。</p>
+      </aside>
+
+      <main class="trial-contract">
+      <section class="trial-hero">
+        <div class="trial-hero-top">
+          <img class="trial-icon lg" src="/assets/go_rpg_assets_v3/monster_trial_entrance.webp" alt="">
+          <div>
+            <p class="trial-kicker">Monster Trial</p>
+            <h1 class="trial-title" data-i18n="bot.setup.title">魔物試煉場</h1>
+          </div>
+        </div>
+        <p class="trial-copy" data-i18n="bot.setup.copy">召喚一名 AI 魔物陪你實戰。調整棋盤、先攻陣營、魔物階級與勝負契約，進入一場不影響真實段級位的單人試煉。</p>
+        <div class="trial-stats">
+          <div class="trial-stat"><img class="trial-icon" src="/assets/go_rpg_assets_v3/trial_board_icon.webp" alt=""><div><strong data-i18n="bot.stat.board.title">試煉棋盤</strong><span data-i18n="bot.stat.board.sub">9×9 / 13×13 / 19×19</span></div></div>
+          <div class="trial-stat"><img class="trial-icon" src="/assets/go_rpg_assets_v3/monster_rank_icon.webp" alt=""><div><strong data-i18n="bot.stat.rank.title">魔物階級</strong><span data-i18n="bot.stat.rank.sub">I - X AI 難度</span></div></div>
+          <div class="trial-stat"><img class="trial-icon" src="/assets/go_rpg_assets_v3/settlement_flag_icon.webp" alt=""><div><strong data-i18n="bot.stat.settle.title">封盤結算</strong><span data-i18n="bot.stat.settle.sub">形勢、計地、復盤</span></div></div>
+        </div>
+      </section>
+
+      <div class="setup-card">
+        <div class="field">
+          <label><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/trial_board_icon.webp" alt=""><span data-i18n="bot.field.board">試煉棋盤</span></label>
+          <div class="pill-row" id="size-pills">
+            <span class="pill" data-v="9"  onclick="setPill('size',9)">9 &times; 9</span>
+            <span class="pill active" data-v="13" onclick="setPill('size',13)">13 &times; 13</span>
+            <span class="pill" data-v="19" onclick="setPill('size',19)">19 &times; 19</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/first_move_icon.webp" alt=""><span data-i18n="bot.field.color">先攻陣營</span></label>
+          <div class="pill-row" id="color-pills">
+            <span class="pill active" data-v="B" onclick="setPill('color','B')" data-i18n="bot.color.black">&#9679; 黑（先手）</span>
+            <span class="pill" data-v="W" onclick="setPill('color','W')" data-i18n="bot.color.white">&#9675; 白（後手）</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/monster_rank_icon.webp" alt=""><span data-i18n="bot.field.level">魔物階級</span> <span id="level-val-label" style="color:var(--teal);margin-left:4px;">5</span></label>
+          <input type="range" class="level-slider" id="level-slider"
+                 min="1" max="10" value="5"
+                 oninput="onLevelSlider(this.value)">
+          <div class="level-labels"><span data-i18n="bot.level.low">1 入門</span><span data-i18n="bot.level.mid">5 中級</span><span data-i18n="bot.level.high">10 強手</span></div>
+        </div>
+
+        <div class="field">
+          <label><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/handicap_icon.webp" alt=""><span data-i18n="bot.field.handicap">試煉補正（黑方優先）</span></label>
+          <div class="pill-row" id="handicap-pills">
+            <span class="pill active" data-v="0" onclick="setPill('handicap',0)" data-i18n="bot.handi.none">不讓</span>
+            <span class="pill" data-v="2" onclick="setPill('handicap',2)" data-i18n="bot.handi.2">2 子</span>
+            <span class="pill" data-v="4" onclick="setPill('handicap',4)" data-i18n="bot.handi.4">4 子</span>
+            <span class="pill" data-v="6" onclick="setPill('handicap',6)" data-i18n="bot.handi.6">6 子</span>
+            <span class="pill" data-v="9" onclick="setPill('handicap',9)" data-i18n="bot.handi.9">9 子</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/komi_icon.webp" alt=""><span data-i18n="bot.field.komi">勝負契約（貼目）</span></label>
+          <div class="pill-row" id="komi-pills">
+            <span class="pill" data-v="0" onclick="setPill('komi',0)" data-i18n="bot.komi.even">0（均等）</span>
+            <span class="pill" data-v="3.5" onclick="setPill('komi',3.5)">3.5</span>
+            <span class="pill active" data-v="6.5" onclick="setPill('komi',6.5)" data-i18n="bot.komi.std">6.5（標準）</span>
+            <span class="pill" data-v="7.5" onclick="setPill('komi',7.5)">7.5</span>
+          </div>
+        </div>
+
+<button class="btn primary" style="width:100%;padding:18px;font-size:20px;font-weight:700;border-radius:12px;"
+                onclick="startGame()"><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/summon_monster_icon.webp" alt=""><span data-i18n="bot.btn.summon">召喚魔物，開始試煉</span></button>
+
+        <div id="setup-err" style="display:none;margin-top:12px;padding:10px 14px;
+             background:var(--red-bg);border:1px solid #fca5a5;border-radius:10px;
+             font-size:12px;color:var(--red);"></div>
+      </div>
+      </main>
+
+      <aside class="trial-panel trial-summon">
+        <p class="trial-kicker">Summon Preview</p>
+        <div class="monster-preview" id="monster-preview">
+          <span class="preview-emoji" id="preview-emoji"></span>
+          <div class="preview-info">
+            <div class="preview-name" id="preview-name">疾兔</div>
+            <div class="preview-rank" id="preview-rank">V</div>
+            <div class="preview-quote" id="preview-quote"></div>
+          </div>
+        </div>
+        <p class="trial-copy" style="margin-top:14px;" data-i18n="bot.preview.copy">拖曳魔物階級滑桿，召喚陣會預覽即將面對的 AI 對手。</p>
+      </aside>
+      </div>
+    </div>
+
+    <!-- ── 對局畫面 ── -->
+    <div class="game" id="game-screen">
+
+      <!-- AI 卡片（棋盤左側）-->
+      <div class="player-card" id="pbar-ai">
+        <div class="pc-avatar" id="ai-avatar">
+          🤖
+          <span class="stone-color" id="ai-stone-color"></span>
+        </div>
+        <div class="pc-name" id="ai-name">GnuGo</div>
+        <div class="pc-rank" id="ai-rank">Lv.5</div>
+        <div class="pc-captures" id="ai-captures-display">
+          <span class="cap-dot" id="ai-cap-dot" style="background:#1c1409;border-color:#1c1409"></span>
+          <span class="cap-num" id="ai-cap-num">0</span>
+        </div>
+        <div class="pc-timer" id="ai-timer">—</div>
+        <!-- 氣泡浮在卡片右側 -->
+        <div class="talk-bubble" id="talk-bubble"></div>
+      </div>
+
+      <!-- 棋盤中欄 -->
+      <div class="board-center">
+        <div class="status-bar">
+          <span class="turn-badge my-turn" id="turn-badge" data-i18n="bot.turn.mine">挑戰者回合</span>
+          <span class="status-msg" id="status-msg" data-i18n="bot.status.prompt">在棋盤落子，或選擇下方試煉指令</span>
+          <span class="move-count" id="move-count">0 手</span>
+        </div>
+        <div class="board-wrap">
+          <div id="board-canvas-wrap"></div>
+        </div>
+      </div>
+
+      <!-- 玩家卡片（棋盤右側）-->
+      <div class="player-card" id="pbar-me">
+        <div class="pc-avatar" id="me-avatar">
+          🧑
+          <span class="stone-color" id="me-stone-color"></span>
+        </div>
+        <div class="pc-name" id="me-name" data-i18n="bot.player.default">玩家</div>
+        <div class="pc-rank" id="me-rank">—</div>
+        <div class="pc-captures" id="me-captures-display">
+          <span class="cap-dot" id="me-cap-dot" style="background:#fff;border-color:#888"></span>
+          <span class="cap-num" id="me-cap-num">0</span>
+        </div>
+        <div class="pc-timer" id="me-timer">—</div>
+      </div>
+
+      <!-- 操作面板（最右）-->
+      <div class="right-panel">
+        <div class="panel-header">
+          <img class="trial-icon sm" src="/assets/go_rpg_assets_v3/record_scroll_icon.webp" alt=""><span data-i18n="bot.panel.records">試煉紀錄</span>
+          <span class="total-time" id="total-time">0:00</span>
+        </div>
+        <!-- 空白區撐開 -->
+        <div style="flex:1"></div>
+        <!-- 形勢判斷顯示列 -->
+        <div class="est-bar" id="est-bar">
+          <span class="est-label" data-i18n="bot.est.label">占卜形勢</span>
+          <span class="est-val" id="est-val">—</span>
+          <button class="est-close" onclick="closeEstimate()" title="關閉" data-i18n-title="bot.est.close.title">✕</button>
+        </div>
+        <div class="action-row">
+          <button class="btn" id="btn-undo" onclick="doUndo()"><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/undo_move_icon.webp" alt=""><span data-i18n="bot.btn.undo">回溯一手</span></button>
+          <button class="btn" id="btn-est" onclick="doEstimate()"><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/analysis_crystal_icon.webp" alt=""><span data-i18n="bot.btn.estimate">占卜形勢</span></button>
+          <button class="btn" id="btn-pass" onclick="doPass()" data-sfx="pass"><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/pass_turn_icon.webp" alt=""><span data-i18n="bot.btn.pass">略過回合</span></button>
+          <button class="btn" id="btn-count" onclick="doFinalCount()"><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/settlement_flag_icon.webp" alt=""><span data-i18n="bot.btn.count">封盤計地</span></button>
+          <button class="btn danger btn-full" id="btn-resign" onclick="doResign()" data-sfx="ui_danger"><img class="trial-icon sm" src="/assets/go_rpg_assets_v3/retreat_icon.webp" alt=""><span data-i18n="bot.btn.resign">撤退</span></button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .body -->
+</div><!-- .page -->
+
+<!-- 思考中 overlay -->
+<div class="thinking" id="thinking-overlay">
+  <div class="think-ring"></div>
+  <div class="think-txt" data-i18n="bot.think.txt">魔物正在推演下一手…</div>
+</div>
+
+<!-- 違規落子提示 -->
+<div class="illegal-toast" id="illegal-toast"></div>
+
+<!-- 結果 modal -->
+<div class="result-modal" id="result-modal">
+  <div class="result-box">
+    <div class="result-icon" id="r-icon">🏆</div>
+    <div class="result-title" id="r-title" data-i18n="bot.result.pass">試煉通過</div>
+    <div class="result-sub" id="r-sub" data-i18n="bot.result.pass_sub">契約已完成，棋譜會記住這場戰鬥。</div>
+    <div class="result-score" id="r-score" style="display:none;"></div>
+    <div class="result-btns">
+      <button class="btn primary" onclick="location.reload()" data-i18n="bot.result.reload">再召喚一次</button>
+      <a href="/" class="btn" data-i18n="bot.result.back">返回修行地圖</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const botEn = () => window.I18n && I18n.getLang() === 'en';
+const botText = (zh, en) => botEn() ? en : zh;
+const botMoveCount = n => botEn() ? `${n} moves` : `${n} 手`;
+// ── 落子音效 ──────────────────────────────────────────────────
+let _soundEnabled = true;
+
+// 落子音效改走共用引擎 sound.js（原本是 <Audio> Stone.wav）
+function playStoneSound() {
+  if (!_soundEnabled) return;
+  if (window.SFX) SFX.play('stone');
+}
+
+// ── 設定狀態 ──────────────────────────────────────────────────
+const S = { size:13, color:'B', level:5, handicap:0, komi:6.5,
+            gameId:null, myTurn:true, moveCount:0,
+            board:null, lastPass:false,
+            koPoint:  null,   // 打劫禁點 {x,y}
+            stoneMap: {},     // 棋盤石子 key:`${x},${y}` → 'B'|'W'
+            capPlayer: 0,     // 玩家累計提子數
+            capAI:     0,     // AI 累計提子數
+            gameStartTime: null,
+          };
+
+const BOT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+let _botIdleTimer = null;
+
+function clearBotIdleTimer() {
+  clearTimeout(_botIdleTimer);
+  _botIdleTimer = null;
+}
+
+function resetBotIdleTimer() {
+  clearBotIdleTimer();
+  if (!S.gameId) return;
+  _botIdleTimer = setTimeout(() => endBotForIdle(), BOT_IDLE_TIMEOUT_MS);
+}
+
+function endBotForIdle() {
+  if (!S.gameId) return;
+  const gameId = S.gameId;
+  clearBotIdleTimer();
+  S.gameId = null;
+  fetch('/api/bot/end', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ game_id: gameId })
+  }).catch(()=>{});
+  showThinking(false);
+  stopTurnTimer();
+  showResult(false, null, botText('空閒超過 10 分鐘，試煉已自動結束', 'The trial ended automatically after 10 minutes of inactivity.'));
+}
+
+// 最後一手標記位置（獨立於 S，避免混入 stoneMap 邏輯）
+let _lastMovePos = null;
+
+
+
+const MONSTER_ART_BY_NAME = {
+    'LV1 史萊姆 / 哥布林':'slime', 'LV1 提子訓練守衛':'goblin_guard',
+    'LV2 哥布林 / 洞窟蝙蝠':'cave_bat', 'LV2 雙叫吃突襲隊':'goblin_raider',
+    'LV3 獸人小兵':'orc_grunt', 'LV3 做眼厚壁兵':'orc_shield',
+    'LV4 森林精靈':'forest_spirit', 'LV4 霧林手筋師':'mist_dryad',
+    'LV5 部落獸人':'tribal_orc', 'LV5 銀牌懸賞首領':'bounty_warlord',
+    'LV6 飛龍 / 低階神靈':'wyvern', 'LV6 龍谷計算者':'dragon_oracle',
+    'LV7 賢者 / 魔法師 / 亡靈':'lich_mage', 'LV7 高塔術師':'archmage_lich',
+    'LV8 騎士 / 混沌領主':'armored_knight', 'LV8 皇家騎士長':'royal_knight',
+    'LV9 諸神':'storm_deity', 'LV9 命運試煉官':'fate_deity',
+    'LV10 上古終焉神殿':'ancient_idol', 'LV10 終焉神':'omega_idol',
+};
+const MONSTER_ART_BY_TYPE = {
+    caterpillar:'slime', bee:'cave_bat', turtle:'orc_grunt', rabbit:'forest_spirit', raccoon:'tribal_orc',
+    wolf:'wyvern', fox:'lich_mage', goblin:'goblin_guard', golem:'armored_knight', dragon:'storm_deity',
+};
+function monsterArtKey(monster) {
+    if (!monster) return 'unknown';
+    return monster.art_key || MONSTER_ART_BY_NAME[monster.name] || MONSTER_ART_BY_TYPE[monster.type] || 'unknown';
+}
+function monsterArtSrc(monster, defeated=false) {
+    if (defeated || (monster && monster.defeated)) return '/assets/monsters/defeated_chibi.png';
+    if (monster && typeof monster.avatar === 'string' && monster.avatar.startsWith('/assets/')) return monster.avatar;
+    return `/assets/monsters/${monsterArtKey(monster)}_chibi.png`;
+}
+function monsterAvatar(monster) {
+    return `<img class="monster-art" src="${monsterArtSrc(monster)}" alt="" loading="lazy" decoding="async">`;
+}
+function setMonsterAvatar(el, monster, defeated=false) {
+    if (!el) return;
+    el.innerHTML = `<img class="monster-art" src="${monsterArtSrc(monster, defeated)}" alt="" loading="lazy" decoding="async">`;
+}
+
+function setPill(group, val) {
+  const map = { size:'size-pills', color:'color-pills',
+                handicap:'handicap-pills', komi:'komi-pills' };
+  const rowId = map[group];
+  if (rowId) {
+    document.querySelectorAll(`#${rowId} .pill`).forEach(p=>{
+      p.classList.toggle('active', p.dataset.v == val);
+    });
+  }
+  S[group] = val;
+  if (group === 'size')     S.size     = parseInt(val);
+  if (group === 'handicap') S.handicap = parseInt(val);
+  if (group === 'komi')     S.komi     = parseFloat(val);
+}
+
+// ── 難度滑桿 → 怪物預覽 ──────────────────────────────────────
+function onLevelSlider(val) {
+  val = parseInt(val);
+  S.level = val;
+  document.getElementById('level-val-label').textContent = val;
+  const m = _LEVEL_MONSTER[val] || { emoji:'🤖', name:'GnuGo', type:'goblin' };
+  setMonsterAvatar(document.getElementById('preview-emoji'), m);
+  document.getElementById('preview-name').textContent = botEn() ? m.name_en : m.name;
+  document.getElementById('preview-rank').textContent  = _LEVEL_RANK[val] || `Lv.${val}`;
+  // 顯示一句開場台詞預覽
+  const pool  = getMonsterTrash(m.type).enter;
+  const quote = pool && pool.length ? _pick(pool) : '';
+  document.getElementById('preview-quote').textContent = quote ? `「${quote}」` : '';
+}
+
+// ── 初始化 WGo 棋盤 ──────────────────────────────────────────
+function initBoard(size) {
+  const wrap = document.getElementById('board-canvas-wrap');
+  wrap.innerHTML = '';
+
+  // ★ iPad/手機 修正：用 offsetWidth/offsetHeight + window 尺寸作 fallback
+  const boardWrap = document.querySelector('.board-wrap');
+  const ww = boardWrap.clientWidth  || boardWrap.offsetWidth  || window.innerWidth;
+  const wh = boardWrap.clientHeight || boardWrap.offsetHeight ||
+             (window.innerHeight - 46 /* nav */ - 44 /* status-bar */);
+  // 動態 padding 補償：手機/iPad 用 8（與 .board-wrap padding 4*2 一致），桌機用 32
+  const padPx = window.innerWidth <= 1366 ? 8 : 32;
+  const avail = Math.min(ww, wh) - padPx;
+  const boardPx = Math.max(avail, 200);
+
+  // 與 index.html（練習）一致：用 WGo 預設木紋背景與 3D 漸層棋子，
+  // section 留 0.5 線寬作為邊距讓木紋顯露
+  S.board = new WGo.Board(wrap, {
+    size,
+    width: boardPx,
+    section: { top: -.5, left: -.5, bottom: -.5, right: -.5 },
+    theme: {
+      markupBlackColor: '#fff',
+      markupWhiteColor: '#000',
+    }
+  });
+
+  S.board.addEventListener('click', onBoardClick);
+
+  // 棋子皮膚載入完 → 重畫盤面（提子/移除不受影響，仍用 {x,y,c}）
+  window.__stoneSkinRedraw = function(){ try{ S.board.redraw(); }catch(e){} };
+  // 棋盤皮膚：登記 board 實例並套用
+  window.__skinBoardRef = S.board;
+  if (window.applyBoardSkin) window.applyBoardSkin();
+
+  // ── 觸控支援（iPad / 手機）────────────────────────────────────
+  const touchToBoardXY = (touch) => {
+    const rect = S.board.element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const internalX = (touch.clientX - rect.left) * (S.board.width / rect.width);
+    const internalY = (touch.clientY - rect.top) * (S.board.height / rect.height);
+    const x = Math.round((internalX - S.board.left) / S.board.fieldWidth);
+    const y = Math.round((internalY - S.board.top) / S.board.fieldHeight);
+    if (x < 0 || y < 0 || x >= size || y >= size) return null;
+    return { x, y };
+  };
+  let touchStart = null;
+  wrap.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
+  }, { passive: false });
+  wrap.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (!e.changedTouches[0]) return;
+    const t = e.changedTouches[0];
+    if (touchStart && Math.hypot(t.clientX - touchStart.x, t.clientY - touchStart.y) > 14) {
+      touchStart = null;
+      return;
+    }
+    touchStart = null;
+    const xy = touchToBoardXY(t);
+    if (xy) onBoardClick(xy.x, xy.y);
+  }, { passive: false });
+}
+
+// ── 棋盤點擊 ─────────────────────────────────────────────────
+async function onBoardClick(x, y) {
+  if (!S.myTurn || !S.gameId) return;
+
+  // ── 打劫規則：不能立即回提（撲+倒提例外，提多顆子合法）──
+  if (S.koPoint && S.koPoint.x === x && S.koPoint.y === y
+      && _countCapturesIfPlay(x, y, S.color) === 1) {
+    showMoveError('🔥 打劫！不能立即回提');
+    return;
+  }
+
+  if (S.stoneMap[`${x},${y}`]) {
+    showMoveError('此處已經有棋子');
+    return;
+  }
+
+  await sendMove(x, y, false);
+}
+
+// ── 開始對局 ─────────────────────────────────────────────────
+async function startGame(retryAfterEndingActive = false) {
+  const errEl = document.getElementById('setup-err');
+  errEl.style.display = 'none';
+  S.level = parseInt(document.getElementById('level-slider').value);
+
+  try {
+    showThinking(true);
+    const res = await fetch('/api/bot/new', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        size: S.size, color: S.color, level: S.level,
+        handicap: S.handicap, komi: S.komi
+      })
+    });
+    const data = await res.json();
+    showThinking(false);
+
+    if (data.error) {
+      if (data.error_type === 'active_game_exists' && data.game_id && !retryAfterEndingActive) {
+        await fetch('/api/bot/end', {
+          method:'POST', credentials:'include',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ game_id: data.game_id })
+        });
+        return startGame(true);
+      }
+      errEl.textContent = data.error;
+      errEl.style.display='block';
+      return;
+    }
+
+    const currentColor = data.current_color || (data.handicap > 1 ? 'W' : 'B');
+    S.gameId  = data.game_id;
+    if (data.level) S.level = data.level;
+    resetBotIdleTimer();
+    S.myTurn  = (currentColor === S.color);
+    S.koPoint = null;
+    S.stoneMap = {};
+    S.capPlayer = 0;
+    S.capAI     = 0;
+    _lastMovePos = null;
+    S.gameStartTime = Date.now();
+    S.moveCount = 0;
+    _gameStart = Date.now();
+    closeEstimate();
+
+    // 切換畫面
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display  = 'flex';
+
+    // ★ rAF：等瀏覽器 layout 完成後再量棋盤尺寸，確保 iPad 尺寸正確
+    requestAnimationFrame(() => {
+      initBoard(S.size);
+
+      // 頭像列初始化
+      initPlayerBars(S.color, data.ai_color, S.level);
+
+      // 讓子棋子（GnuGo 固定棋位，前端需補畫並追蹤進 stoneMap）
+      if (data.handicap_stones && data.handicap_stones.length) {
+        data.handicap_stones.forEach(s => placeStone(s.x, s.y, 'B'));
+      }
+
+      // 若玩家執白，GnuGo 已先走
+      if (data.ai_first) {
+        const ai = data.ai_first;
+        if (ai.xy) placeStone(ai.xy[0], ai.xy[1], ai.color || data.ai_color);
+        S.moveCount++;
+        S.myTurn = true;
+      }
+
+      updateStatus();
+      updateButtons();
+      if (data.level_capped_message) {
+        setTimeout(() => showMoveError(data.level_capped_message), 300);
+      }
+      startTurnTimer();
+    });
+
+  } catch(e) {
+    showThinking(false);
+    errEl.textContent = botText('連線失敗：', 'Connection failed: ') + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// ── 送出落子 ─────────────────────────────────────────────────
+async function sendMove(x, y, isPass) {
+  if (!S.myTurn) return;
+  resetBotIdleTimer();
+  S.myTurn = false;
+  let optimisticStone = null;
+  if (!isPass && !S.stoneMap[`${x},${y}`]) {
+    placeStone(x, y, S.color);
+    markLastMove(x, y, S.color);
+    optimisticStone = { x, y, c: S.color };
+  }
+  stopTurnTimer();
+  startTurnTimer();   // AI 計時開始
+  updateStatus(I18n.t('bot.think.txt'));
+
+  // 只有超過 600ms 才顯示旋轉遮罩
+  const thinkTimer = setTimeout(() => showThinking(true), 600);
+
+  try {
+    const body = isPass
+      ? { game_id: S.gameId }
+      : { game_id: S.gameId, x, y };
+    const endpoint = isPass ? '/api/bot/pass' : '/api/bot/move';
+    const res  = await fetch(endpoint, {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    clearTimeout(thinkTimer);
+
+    if (data.error) {
+      showThinking(false);
+      if (optimisticStone) {
+        removeStone(optimisticStone.x, optimisticStone.y, optimisticStone.c);
+        optimisticStone = null;
+      }
+      showMoveError(data.error);
+      if (data.error_type === 'gnugo_timeout') {
+        S.gameId = null;
+        S.myTurn = false;
+        stopTurnTimer();
+        updateButtons();
+        updateStatus(botText('此盤已自動結束', 'This game ended automatically.'));
+        return;
+      }
+      S.myTurn = true; updateStatus(); return;
+    }
+
+    // 等遮罩淡出後再畫棋子（遮罩顯示中時才需要等，否則直接畫）
+    const wasShowing = document.getElementById('thinking-overlay').classList.contains('show');
+    showThinking(false);
+
+    // 立即更新打劫點（在 _renderMoves 之前，確保下一手點擊可以即時攔截）
+    S.koPoint = data.ko_point || null;
+
+    const _renderMoves = () => {
+      if (data.game_over) {
+        if (!isPass && !optimisticStone) { placeStone(x, y, S.color); markLastMove(x, y, S.color); }
+        (data.player_captures || []).forEach(cap => removeStone(cap.x, cap.y, cap.c));
+        (data.ai_captures     || []).forEach(cap => removeStone(cap.x, cap.y, cap.c));
+        S.capPlayer += (data.player_captures||[]).length;
+        S.capAI     += (data.ai_captures||[]).length;
+        updateCaptures();
+        S.moveCount++;
+        document.getElementById('move-count').textContent = botMoveCount(S.moveCount);
+        stopTurnTimer();
+        showResult(data.winner === S.color, null, data.reason || '');
+        return;
+      }
+
+      const aiColor = S.color === 'B' ? 'W' : 'B';
+
+      // ── 玩家石頭 + AI 石頭同一 tick 畫，避免兩次 canvas redraw 閃爍 ──
+      if (!isPass && !optimisticStone) {
+        placeStone(x, y, S.color);
+        markLastMove(x, y, S.color);
+      }
+      // 移除玩家這手吃掉的 AI 棋子
+      const pCaps = data.player_captures || [];
+      pCaps.forEach(cap => removeStone(cap.x, cap.y, cap.c));
+      S.capPlayer += pCaps.length;
+      S.moveCount++;
+
+      if (data.ai_xy) {
+        placeStone(data.ai_xy.x, data.ai_xy.y, aiColor);
+        markLastMove(data.ai_xy.x, data.ai_xy.y, aiColor);
+        // 移除 AI 這手吃掉的玩家棋子
+        const aCaps = data.ai_captures || [];
+        aCaps.forEach(cap => removeStone(cap.x, cap.y, cap.c));
+        S.capAI += aCaps.length;
+        S.moveCount++;
+        _talkMoveCount++;
+        if (_talkMoveCount % 2 === 0) _maybeTalk('move');
+      } else {
+        _maybeTalk('pass', true);
+      }
+
+      document.getElementById('move-count').textContent = botMoveCount(S.moveCount);
+      updateCaptures();
+
+      if (data.both_passed) {
+        showResult(null, data.score, botText('雙方略過回合，封盤計地', 'Both sides passed. Proceeding to final score.')); return;
+      }
+
+      S.lastPass = (data.ai_move === 'PASS');
+      S.myTurn = true;
+      startTurnTimer();
+      updateStatus();
+      updateButtons();
+      resetBotIdleTimer();
+    };
+
+    // 若遮罩剛在顯示，等淡出動畫結束（180ms）後再畫，避免重合成干擾
+    if (wasShowing) {
+      setTimeout(_renderMoves, 200);
+    } else {
+      _renderMoves();
+    }
+
+  } catch(e) {
+    clearTimeout(thinkTimer);
+    showThinking(false);
+    if (optimisticStone) {
+      removeStone(optimisticStone.x, optimisticStone.y, optimisticStone.c);
+    }
+    S.myTurn = true;
+    updateStatus(botText('試煉連線發生異常', 'The trial connection encountered an error.'));
+  }
+}
+
+// ── Pass ─────────────────────────────────────────────────────
+async function doPass() {
+  if (!S.myTurn) return;
+  // 玩家 pass，AI 嗆一下
+  setTimeout(() => _maybeTalk('pass', true), 300);
+  await sendMove(0, 0, true);
+}
+
+// ── 撤退 ─────────────────────────────────────────────────────
+async function doResign() {
+  if (!confirm(botText('確定要撤退並結束這場試煉嗎？', 'Resign and end this trial?'))) return;
+  clearBotIdleTimer();
+  await fetch('/api/bot/end', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ game_id: S.gameId })
+  });
+  showResult(false, null, botText('你撤退了，試煉契約已結束', 'You resigned. The trial contract has ended.'));
+}
+
+// ── 最後一手標記 ──────────────────────────────────────────────
+// 使用 WGo 原生 type:'CR' 圓圈標記，確保 removeObject 只移除標記
+// 而不會因 x,y 位置匹配意外移除該點的棋子
+function markLastMove(x, y) {
+  if (!S.board) return;
+  if (_lastMovePos) {
+    try { S.board.removeObject({ x: _lastMovePos.x, y: _lastMovePos.y, type: 'CR' }); } catch(e) {}
+  }
+  _lastMovePos = { x, y };
+  try { S.board.addObject({ x, y, type: 'CR' }); } catch(e) {}
+}
+
+// ── 吃子計數顯示 ──────────────────────────────────────────────
+function updateCaptures() {
+  document.getElementById('me-cap-num').textContent = S.capPlayer;
+  document.getElementById('ai-cap-num').textContent = S.capAI;
+}
+
+// ── 計時器 ────────────────────────────────────────────────────
+let _timerInterval = null;
+let _turnStart     = 0;
+let _gameStart     = 0;
+
+function startTurnTimer() {
+  _turnStart = Date.now();
+  if (!_gameStart) _gameStart = Date.now();
+  clearInterval(_timerInterval);
+  _timerInterval = setInterval(_tickTimer, 500);
+  _tickTimer();
+}
+function stopTurnTimer() {
+  clearInterval(_timerInterval);
+  _timerInterval = null;
+}
+function _tickTimer() {
+  const turnSec  = Math.floor((Date.now() - _turnStart) / 1000);
+  const totalSec = Math.floor((Date.now() - (_gameStart || Date.now())) / 1000);
+  const tStr = _fmtTime(turnSec);
+  if (S.myTurn) {
+    document.getElementById('me-timer').textContent = tStr;
+    document.getElementById('me-timer').classList.add('active');
+    document.getElementById('ai-timer').classList.remove('active');
+  } else {
+    document.getElementById('ai-timer').textContent = tStr;
+    document.getElementById('ai-timer').classList.add('active');
+    document.getElementById('me-timer').classList.remove('active');
+  }
+  document.getElementById('total-time').textContent = _fmtTime(totalSec);
+}
+function _fmtTime(s) {
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2,'0')}`;
+}
+
+// ── 悔棋 ──────────────────────────────────────────────────────
+async function doUndo() {
+  if (!S.myTurn || !S.gameId || S.moveCount < 2) return;
+  resetBotIdleTimer();
+  document.getElementById('btn-undo').disabled = true;
+
+  try {
+    const res  = await fetch('/api/bot/undo', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ game_id: S.gameId })
+    });
+    const data = await res.json();
+    if (data.error) { showMoveError(data.error); return; }
+
+    // 重繪棋盤
+    S.stoneMap   = {};
+    S.koPoint    = null;
+    _lastMovePos = null;
+    initBoard(S.size);  // 重建 WGo 棋盤（含 event listener）
+
+    data.black_stones.forEach(s => placeStone(s.x, s.y, 'B'));
+    data.white_stones.forEach(s => placeStone(s.x, s.y, 'W'));
+
+    S.moveCount = Math.max(0, S.moveCount - 2);
+    document.getElementById('move-count').textContent = botMoveCount(S.moveCount);
+
+    S.myTurn = true;
+    startTurnTimer();
+    updateStatus();
+    updateButtons();
+
+  } finally {
+    document.getElementById('btn-undo').disabled = false;
+  }
+}
+
+// ── 中盤估分 ──────────────────────────────────────────────────
+function formatScoreLeadText(raw) {
+  const text = String(raw || '').trim();
+  if (!text || text === '?' || text === '無法估算') return botText('暫時無法估算', 'Estimate unavailable for now.');
+  const match = text.match(/\b([BW])\s*\+\s*([0-9]+(?:\.[0-9]+)?)/i);
+  if (!match) return text.replace(/\s*\([^)]*\)\s*/g, '').trim() || text;
+  const side = match[1].toUpperCase() === 'B' ? botText('黑方', 'Black') : botText('白方', 'White');
+  const points = Number.parseFloat(match[2]);
+  const pointText = Number.isFinite(points) ? points.toFixed(1).replace(/\.0$/, '') : match[2];
+  return botEn() ? `${side} leads by ${pointText}` : `${side}領先 ${pointText} 目`;
+}
+
+function formatFinalScoreText(raw) {
+  const text = String(raw || '').trim();
+  const match = text.match(/\b([BW])\s*\+\s*([0-9]+(?:\.[0-9]+)?)/i);
+  if (!match) return text.replace(/\s*\([^)]*\)\s*/g, '').trim() || text;
+  const winner = match[1].toUpperCase() === 'B' ? botText('黑', 'Black') : botText('白', 'White');
+  const points = Number.parseFloat(match[2]);
+  const pointText = Number.isFinite(points) ? points.toFixed(1).replace(/\.0$/, '') : match[2];
+  return botEn() ? `${winner} wins by ${pointText}` : `${winner}勝 ${pointText} 目`;
+}
+
+function setTrialActionButton(btn, icon, text) {
+  btn.innerHTML = `<img class="trial-icon sm" src="/assets/go_rpg_assets_v3/${icon}" alt="">${text}`;
+}
+
+async function doEstimate() {
+  if (!S.gameId) return;
+  resetBotIdleTimer();
+  const btn = document.getElementById('btn-est');
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const res  = await fetch('/api/bot/estimate', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ game_id: S.gameId })
+    });
+    const data = await res.json();
+    if (data.error || data.ok === false) {
+      showMoveError(data.error || botText('形勢判斷失敗', 'Position estimate failed.'));
+      return;
+    }
+    const val  = data.estimate || '?';
+    document.getElementById('est-val').textContent = formatScoreLeadText(val);
+    document.getElementById('est-bar').classList.add('show');
+  } catch(e) {
+    showMoveError(botText('形勢判斷失敗', 'Position estimate failed.'));
+  } finally {
+    btn.disabled = false;
+    setTrialActionButton(btn, 'analysis_crystal_icon.png', I18n.t('bot.btn.estimate'));
+  }
+}
+function closeEstimate() {
+  document.getElementById('est-bar').classList.remove('show');
+}
+
+function confirmTrialAction(message) {
+  return new Promise(resolve => {
+    let modal = document.getElementById('confirm-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'result-modal';
+      modal.id = 'confirm-modal';
+      modal.innerHTML = `
+        <div class="result-box" style="max-width:420px">
+          <div class="result-icon">⚑</div>
+          <div class="result-title">${I18n.t('bot.confirm.title')}</div>
+          <div class="result-sub" id="confirm-message"></div>
+          <div class="result-btns">
+            <button class="btn primary" id="confirm-ok">${I18n.t('bot.confirm.ok')}</button>
+            <button class="btn" id="confirm-cancel">${I18n.t('bot.confirm.cancel')}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+    document.getElementById('confirm-message').textContent = message;
+    const finish = ok => {
+      modal.classList.remove('show');
+      resolve(ok);
+    };
+    document.getElementById('confirm-ok').onclick = () => finish(true);
+    document.getElementById('confirm-cancel').onclick = () => finish(false);
+    modal.onclick = e => { if (e.target === modal) finish(false); };
+    modal.classList.add('show');
+  });
+}
+
+// ── 終局計地 ──────────────────────────────────────────────────
+async function doFinalCount() {
+  if (!S.gameId) return;
+  resetBotIdleTimer();
+  if (!(await confirmTrialAction(botText('確定要結束對局並計算終局結果嗎？', 'End the game and calculate the final score?')))) return;
+  const btn = document.getElementById('btn-count');
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const res  = await fetch('/api/bot/score', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ game_id: S.gameId })
+    });
+    const data = await res.json();
+    if (data.error) { showMoveError(data.error); return; }
+    const score = (data.score || '').trim();
+    let playerWon = null;
+    if (score.startsWith('B+'))      playerWon = (S.color === 'B');
+    else if (score.startsWith('W+')) playerWon = (S.color === 'W');
+    stopTurnTimer();
+    showResult(playerWon, score, botText('終局計地', 'Final score'));
+  } catch(e) {
+    showMoveError(botText('計地失敗，請稍後再試', 'Scoring failed. Please try again.'));
+  } finally {
+    btn.disabled = false;
+    setTrialActionButton(btn, 'settlement_flag_icon.png', I18n.t('bot.btn.count'));
+  }
+}
+
+// ── 違規提示 Toast ────────────────────────────────────────────
+let _toastTimer = null;
+function showMoveError(msg) {
+  const el = document.getElementById('illegal-toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── 禁著點偵測（自殺）────────────────────────────────────────
+// 回傳指定棋組的自由度集合（Set of "x,y" 字串）
+function _groupLiberties(startX, startY, color) {
+  const key = (x, y) => `${x},${y}`;
+  const visited = new Set([key(startX, startY)]);
+  const libs    = new Set();
+  const queue   = [[startX, startY]];
+  while (queue.length) {
+    const [cx, cy] = queue.shift();
+    for (const [nx, ny] of [[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]]) {
+      if (nx < 0 || ny < 0 || nx >= S.size || ny >= S.size) continue;
+      const k = key(nx, ny);
+      const s = S.stoneMap[k];
+      if (s === undefined) { libs.add(k); }
+      else if (s === color && !visited.has(k)) { visited.add(k); queue.push([nx, ny]); }
+    }
+  }
+  return libs;
+}
+
+// 模擬在 (x,y) 落 color 後會提多少對手棋子（用於判斷打劫 vs 倒提）
+function _countCapturesIfPlay(x, y, color) {
+  const opp = color === 'B' ? 'W' : 'B';
+  const key = (nx,ny) => `${nx},${ny}`;
+  // 暫時放下棋子（不動畫）
+  const k0 = key(x, y);
+  const orig = S.stoneMap[k0];
+  S.stoneMap[k0] = color;
+  let count = 0;
+  const seen = new Set();
+  const nbrs = [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(
+    ([nx, ny]) => nx >= 0 && ny >= 0 && nx < S.size && ny < S.size
+  );
+  for (const [nx, ny] of nbrs) {
+    if (S.stoneMap[key(nx,ny)] !== opp) continue;
+    if (seen.has(key(nx,ny))) continue;
+    // 找出該對手棋組，並標記已看過
+    const visited = new Set();
+    const stack = [[nx, ny]];
+    const group = [];
+    while (stack.length) {
+      const [cx, cy] = stack.pop();
+      const k = key(cx, cy);
+      if (visited.has(k)) continue;
+      if (S.stoneMap[k] !== opp) continue;
+      visited.add(k);
+      seen.add(k);
+      group.push([cx, cy]);
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const ax = cx + dx, ay = cy + dy;
+        if (ax < 0 || ay < 0 || ax >= S.size || ay >= S.size) continue;
+        if (!visited.has(key(ax,ay))) stack.push([ax, ay]);
+      }
+    }
+    // 算氣
+    const libs = _groupLiberties(nx, ny, opp);
+    if (libs.size === 0) count += group.length;
+  }
+  // 還原
+  if (orig === undefined) delete S.stoneMap[k0];
+  else S.stoneMap[k0] = orig;
+  return count;
+}
+
+// 若在 (x,y) 落 color 子後無氣（自殺），回傳 true
+function wouldBeSuicide(x, y, color) {
+  if (S.stoneMap[`${x},${y}`]) return false;  // 已有棋子（重複落子，由 GnuGo 處理）
+  const opp  = color === 'B' ? 'W' : 'B';
+  const nbrs = [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(
+    ([nx, ny]) => nx >= 0 && ny >= 0 && nx < S.size && ny < S.size
+  );
+  for (const [nx, ny] of nbrs) {
+    const s = S.stoneMap[`${nx},${ny}`];
+    if (s === undefined) return false;          // 有空點 → 有氣
+    if (s === opp) {
+      const libs = _groupLiberties(nx, ny, opp);
+      if (libs.size === 1 && libs.has(`${x},${y}`)) return false;  // 能提子
+    }
+    if (s === color) {
+      const libs = _groupLiberties(nx, ny, color);
+      libs.delete(`${x},${y}`);               // 排除落子點本身
+      if (libs.size > 0) return false;         // 同色棋組還有氣
+    }
+  }
+  return true;  // 落子後無氣 → 禁著點
+}
+
+// ── 畫棋子 ───────────────────────────────────────────────────
+function placeStone(x, y, color) {
+  if (!S.board) return;
+  S.board.addObject({ x, y, c: color === 'B' ? WGo.B : WGo.W });
+  S.stoneMap[`${x},${y}`] = color;
+  playStoneSound();
+}
+
+function removeStone(x, y, color) {
+  if (!S.board) return;
+  S.board.removeObject({ x, y, c: color === 'B' ? WGo.B : WGo.W });
+  delete S.stoneMap[`${x},${y}`];
+}
+
+// ── 座標標示 ─────────────────────────────────────────────────
+const _COLS = 'ABCDEFGHJKLMNOPQRST';
+function coordLabel(x, y, size) {
+  return _COLS[x] + (size - y);
+}
+
+// ── 棋譜列表（保留函式以防外部呼叫，但 move-list 已移除）────
+function addMoveRecord(num, color, label, isPass) {
+  document.getElementById('move-count').textContent = botMoveCount(num);
+}
+
+// ── 狀態更新 ─────────────────────────────────────────────────
+function updateStatus(msg) {
+  const badge = document.getElementById('turn-badge');
+  const msgEl = document.getElementById('status-msg');
+
+  if (msg) { msgEl.textContent = msg; return; }
+
+  if (S.myTurn) {
+    badge.className = 'turn-badge my-turn';
+    badge.textContent = I18n.t('bot.turn.mine');
+    msgEl.textContent = I18n.t('bot.status.prompt');
+    setPbarThinking(false);
+  } else {
+    badge.className = 'turn-badge ai-turn';
+    badge.textContent = I18n.t('bot.turn.ai');
+    msgEl.textContent = '';
+    setPbarThinking(true);
+  }
+}
+
+// ── 結果顯示 ─────────────────────────────────────────────────
+function showResult(win, score, reason) {
+  clearBotIdleTimer();
+  if (S.gameId) {
+    fetch('/api/bot/end',{method:'POST',credentials:'include',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:S.gameId})
+    }).catch(()=>{});
+    S.gameId = null;
+  }
+  const modal = document.getElementById('result-modal');
+  const icon  = document.getElementById('r-icon');
+  const title = document.getElementById('r-title');
+  const sub   = document.getElementById('r-sub');
+  const sc    = document.getElementById('r-score');
+  const showFinalScore = () => {
+    if (!score) {
+      sc.style.display = 'none';
+      sc.textContent = '';
+      return;
+    }
+    sc.style.display = 'inline-block';
+    sc.textContent = formatFinalScoreText(score);
+  };
+
+  if (win === null) {
+    // 計分結束
+    icon.textContent  = '⚑';
+    title.textContent = I18n.t('bot.stat.settle.title');
+    sub.textContent   = reason;
+    showFinalScore();
+    if (score) {
+      if (score.startsWith('B+')) {
+        icon.textContent='♛';
+        const playerWon = (S.color === 'B');
+        setTimeout(() => monsterSay(_pick(getMonsterTrash(_talkType)[playerWon?'die':'taunt']), 5000), 600);
+      } else if (score.startsWith('W+')) {
+        icon.textContent='◆';
+        const playerWon = (S.color === 'W');
+        setTimeout(() => monsterSay(_pick(getMonsterTrash(_talkType)[playerWon?'die':'taunt']), 5000), 600);
+      }
+    }
+  } else if (win) {
+    icon.textContent  = '♛';
+    title.textContent = I18n.t('bot.result.pass');
+    sub.textContent = reason || botText('魔物撤退，試煉通過！', 'The monster retreated. Trial cleared!');
+    showFinalScore();
+    if (_soundEnabled) SFX.play('win');
+    setTimeout(() => monsterSay(_pick(getMonsterTrash(_talkType).die), 5000), 600);
+  } else {
+    if (_soundEnabled) SFX.play('lose');
+    icon.textContent  = '◆';
+    title.textContent = botText('試煉失敗', 'Trial Failed');
+    sub.textContent = reason || botText('整理棋譜，再召喚一次。', 'Review the game, then summon another opponent.');
+    showFinalScore();
+    setTimeout(() => monsterSay(_pick(getMonsterTrash(_talkType).taunt), 5000), 600);
+  }
+  fetch('/api/newbie_quest/progress', {
+    method: 'POST',
+    credentials: 'include',
+    keepalive: true,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task: 'stage3_bot_game' })
+  }).catch(() => {});
+  _nqCheckBotGame();
+  stopTurnTimer();
+  modal.classList.add('show');
+}
+
+async function _nqCheckBotGame() {
+  try {
+    const res = await fetch('/api/newbie_quest/checkpoint', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_key: 'stage6_bot_game' })
+    });
+    const d = await res.json();
+    if (!d.ok || !d.newly_completed?.length) return;
+    const items = [...(d.rewards?.items || []), ...(d.rewards?.food || [])];
+    const rewardNameEn = {'小提示卷':'Hint Scroll','AI 解說券':'AI Explanation Ticket','棋魂糖':'Go Spirit Candy','星果':'Starfruit','月露':'Moon Dew'};
+    const lines = [
+      d.rewards?.coins ? `+${d.rewards.coins} ${botText('金幣', 'coins')}` : '',
+      ...items.map(i => `${i.icon} ${botEn() ? (i.name_en || rewardNameEn[i.name] || i.name) : i.name} \u00d7${i.qty}`),
+    ].filter(Boolean).join(' • ');
+    const t = document.createElement('div');
+    t.textContent = `${botText('✅ 任務完成！', '✅ Quest complete!')}${lines}`;
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0d9488;color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-size:.95rem;white-space:nowrap';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d9488;color:#fff;padding:12px 24px;border-radius:12px;font-size:.95rem;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;';
+    bar.textContent = botText('🛒 去商店，完成最後一步！', '🛒 Visit the shop to finish the final step!');
+    bar.onclick = () => { window.location.href = '/shop'; };
+    document.body.appendChild(bar);
+  } catch(e) {
+    console.warn('[NQ stage6]', e);
+  }
+}
+
+function showThinking(show) {
+  document.getElementById('thinking-overlay').classList.toggle('show', show);
+  // 顯示遮罩時全部禁用；隱藏時由 updateButtons() 依狀態重設
+  if (show) {
+    ['btn-pass','btn-undo','btn-est','btn-count','btn-resign'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.disabled = true;
+    });
+  }
+}
+
+// 根據目前遊戲狀態更新按鈕啟用/禁用
+function updateButtons() {
+  if (!S.gameId) return;
+  const t = S.myTurn;
+  document.getElementById('btn-pass').disabled   = !t;
+  document.getElementById('btn-undo').disabled   = !t || S.moveCount < 2;
+  document.getElementById('btn-est').disabled    = false;
+  document.getElementById('btn-count').disabled  = false;
+  document.getElementById('btn-resign').disabled = false;
+}
+
+// ── 靜音切換 ─────────────────────────────────────────────────
+function toggleMute() {
+  _soundEnabled = !_soundEnabled;
+  SFX.muted = !_soundEnabled;
+  if(_soundEnabled)SFX.play('ui_toggle');
+  const btn = document.getElementById('mute-btn');
+  btn.textContent = _soundEnabled ? '🔊' : '🔇';
+  btn.title = _soundEnabled ? botText('關閉音效', 'Mute sound') : botText('開啟音效', 'Enable sound');
+}
+
+// ── GnuGo 難度 → AI 難度階級（I–X，刻意不對應真實段級位）────────
+// GnuGo 實測最高約 7~8k，碰不到 dan，故不掛 kyu/dan 等值，只標 AI 難度階級。
+const _LEVEL_RANK = {1:'I', 2:'II', 3:'III', 4:'IV', 5:'V',
+                     6:'VI', 7:'VII', 8:'VIII', 9:'IX', 10:'X'};
+
+// ── 難度等級 → 怪物對照 ──────────────────────────────────────
+// 弱：毛毛蟲→蜜蜂→烏龜→兔子 / 中：浣熊→哥布林 / 強：狐狸→狐狸→龍
+const _LEVEL_MONSTER = {
+  1: { emoji:'🟢', name:'LV1 史萊姆 / 哥布林', name_en:'LV1 Slime / Goblin', type:'caterpillar' },
+  2: { emoji:'🦇', name:'LV2 哥布林 / 洞窟蝙蝠', name_en:'LV2 Goblin / Cave Bat', type:'bee' },
+  3: { emoji:'🪓', name:'LV3 獸人小兵', name_en:'LV3 Orc Grunt', type:'turtle' },
+  4: { emoji:'🍃', name:'LV4 森林精靈', name_en:'LV4 Forest Spirit', type:'rabbit' },
+  5: { emoji:'🏹', name:'LV5 部落獸人 / 懸賞首領', name_en:'LV5 Tribal Orc / Bounty Warlord', type:'raccoon' },
+  6: { emoji:'🐲', name:'LV6 飛龍 / 低階神靈', name_en:'LV6 Wyvern / Lesser Deity', type:'wolf' },
+  7: { emoji:'🧙', name:'LV7 賢者 / 魔法師 / 亡靈', name_en:'LV7 Sage / Mage / Lich', type:'fox' },
+  8: { emoji:'⚔️', name:'LV8 騎士 / 混沌領主', name_en:'LV8 Knight / Chaos Lord', type:'golem' },
+  9: { emoji:'⚡', name:'LV9 諸神', name_en:'LV9 Deities', type:'dragon' },
+  10:{ emoji:'🛕', name:'LV10 上古終焉神殿', name_en:'LV10 Ancient Doom Temple', type:'dragon' },
+};
+
+// ── Trash Talk 狀態（台詞庫由 /monster_trash.js 提供 MONSTER_TRASH）──
+let _talkType    = 'goblin';   // 當前怪物類型
+let _talkTimer   = null;       // 隱藏計時器
+let _talkMoveCount = 0;        // 記錄 AI 落子次數，控制頻率
+
+// 事件 → MONSTER_TRASH 欄位對照（棋局語境）
+// enter  → 開局出場
+// taunt  → AI 落子後嘲諷 / 玩家虛手後嘲諷 / AI 嬴局
+// die    → 玩家贏了（怪物「戰敗」）
+// hurt   → 玩家走了一步好棋（不強制使用）
+const _BOT_EVENT_MAP = { move:'taunt', pass:'taunt', win:'die', lose:'taunt', enter:'enter' };
+
+function _pick(arr) { return arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : ''; }
+
+function monsterSay(msg, duration = 3500) {
+  if (!msg) return;
+  const bubble = document.getElementById('talk-bubble');
+  if (!bubble) return;
+
+  if (_talkTimer) { clearTimeout(_talkTimer); _talkTimer = null; }
+
+  bubble.textContent = msg;
+  bubble.className = `talk-bubble ${_talkType}`;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => bubble.classList.add('show'));
+  });
+
+  _talkTimer = setTimeout(() => {
+    bubble.classList.remove('show');
+    _talkTimer = null;
+  }, duration);
+}
+
+function _maybeTalk(botEvent, forceSay = false) {
+  const key   = _BOT_EVENT_MAP[botEvent] || 'taunt';
+  const pool  = getMonsterTrash(_talkType);
+  const lines = pool[key];
+  if (!lines || !lines.length) return;
+  if (!forceSay && Math.random() > 0.40) return;
+  monsterSay(_pick(lines));
+}
+
+
+function setPcAvatar(el, monster, stoneId) {
+  if (!el) return;
+  const stoneClass = document.getElementById(stoneId)?.className || 'stone-color';
+  el.innerHTML = monsterAvatar(monster) + `<span class="${stoneClass}" id="${stoneId}"></span>`;
+}
+
+// ── 頭像列資料 ────────────────────────────────────────────────
+const HERO_CHARACTER_ROOT = '/assets/hero/characters/';
+const BOT_HERO_CHARACTER_ART = {
+  apprentice: 'chibi_apprentice_normalized.webp',
+  apprentice_girl: 'chibi_apprentice_girl_normalized.webp',
+  swordsman: 'chibi_swordsman_normalized.webp',
+  rogue: 'chibi_rogue_normalized.webp',
+  ranger: 'chibi_ranger_normalized.webp',
+  berserker: 'chibi_berserker_normalized.webp',
+  guardian: 'chibi_guardian_normalized.webp',
+  paladin: 'chibi_paladin_normalized.webp',
+  mage: 'chibi_mage_normalized.webp',
+  sage: 'chibi_sage_normalized.webp',
+};
+const BOT_LEGACY_CHARACTER_MAP = {
+  hero_male: 'apprentice',
+  woman: 'apprentice_girl',
+  boy_child: 'apprentice',
+  girl_child: 'apprentice_girl',
+  elder_master: 'sage',
+  elder_woman: 'sage',
+};
+const BOT_HERO_GEAR_ROOT = '/assets/hero/gear_v2/';
+const BOT_HERO_GEAR = {
+  armor: [
+    { key:'cloth', art:null },
+    ...Array.from({ length: 10 }, (_, i) => ({ key:`armor_t${i + 1}`, art:`armor_t${i + 1}.webp` })),
+  ],
+  cape: [
+    { key:'none', art:null },
+    ...Array.from({ length: 10 }, (_, i) => ({ key:`cape_t${i + 1}`, art:`cape_t${i + 1}.webp` })),
+  ],
+  weapon: [
+    { key:'none', art:null },
+    ...Array.from({ length: 10 }, (_, i) => ({ key:`weapon_t${i + 1}`, art:`weapon_t${i + 1}.webp` })),
+  ],
+  offhand: [
+    { key:'none', art:null },
+    ...Array.from({ length: 10 }, (_, i) => ({ key:`offhand_t${i + 1}`, art:`offhand_t${i + 1}.webp` })),
+  ],
+};
+function normalizeBotHeroCharacter(key) {
+  const normalized = BOT_LEGACY_CHARACTER_MAP[key] || key || 'apprentice';
+  return BOT_HERO_CHARACTER_ART[normalized] ? normalized : 'apprentice';
+}
+function botHeroAvatarSrc(characterKey) {
+  return HERO_CHARACTER_ROOT + BOT_HERO_CHARACTER_ART[normalizeBotHeroCharacter(characterKey)];
+}
+function localBotHeroGear() {
+  try {
+    const state = JSON.parse(localStorage.getItem('hero_combat_gear_v1') || '{}');
+    return {
+      character: state.character ? normalizeBotHeroCharacter(state.character) : null,
+      armor: state.armor || null,
+      cape: state.cape || null,
+      weapon: state.weapon || null,
+      offhand: state.offhand || null,
+    };
+  } catch(e) {
+    return { character:null, armor:null, cape:null, weapon:null, offhand:null };
+  }
+}
+function botGearAssetSrc(slot, key) {
+  const item = (BOT_HERO_GEAR[slot] || []).find(g => g.key === key);
+  return item?.art ? BOT_HERO_GEAR_ROOT + item.art : '';
+}
+function botGearLayer(slot, key) {
+  const src = botGearAssetSrc(slot, key);
+  return src ? `<img class="hero-layer-${slot}" src="${src}" alt="">` : '';
+}
+function setMyPcAvatar(playerColor) {
+  const el = document.getElementById('me-avatar');
+  if (!el) return;
+  const localGear = localBotHeroGear();
+  const gear = {
+    armor: (_meInfo.gear && _meInfo.gear.armor) || localGear.armor || 'cloth',
+    cape: (_meInfo.gear && _meInfo.gear.cape) || localGear.cape || 'none',
+    weapon: (_meInfo.gear && _meInfo.gear.weapon) || localGear.weapon || 'none',
+    offhand: (_meInfo.gear && _meInfo.gear.offhand) || localGear.offhand || 'none',
+  };
+  const character = normalizeBotHeroCharacter(_meInfo.character || gear.character || 'apprentice');
+  const src = botHeroAvatarSrc(character);
+  el.classList.add('hero-equipped');
+  el.innerHTML = `<div class="hero-avatar-stack">
+    ${botGearLayer('cape', gear.cape)}
+    <img class="hero-layer-character hero-avatar-img" src="${src}" alt="${_meInfo.name || '玩家'}">
+    ${botGearLayer('armor', gear.armor)}
+    ${botGearLayer('weapon', gear.weapon)}
+    ${botGearLayer('offhand', gear.offhand)}
+  </div><span class="stone-color ${playerColor}" id="me-stone-color"></span>`;
+  const img = el.querySelector('img');
+  if (img) img.onerror = () => {
+    img.onerror = null;
+    el.classList.remove('hero-equipped');
+    el.innerHTML = `${_meInfo.avatar || '🧑'}<span class="stone-color ${playerColor}" id="me-stone-color"></span>`;
+  };
+}
+let _meInfo = { name:'玩家', rank:'—', avatar:'🧑', character:'apprentice', gear:null };
+
+function initPlayerBars(playerColor, aiColor, level) {
+  const monster = _LEVEL_MONSTER[level] || { emoji:'🤖', name:'GnuGo', type:'goblin' };
+  _talkType = monster.type || 'goblin';
+  _talkMoveCount = 0;
+
+  // AI 列
+  document.getElementById('ai-stone-color').className = `stone-color ${aiColor}`;
+  setPcAvatar(document.getElementById('ai-avatar'), monster, 'ai-stone-color');
+  document.getElementById('ai-name').textContent = botEn() ? monster.name_en : monster.name;
+  document.getElementById('ai-rank').textContent  = _LEVEL_RANK[level] || `Lv.${level}`;
+
+  // 玩家列
+  setMyPcAvatar(playerColor);
+  document.getElementById('me-name').textContent  = _meInfo.name;
+  document.getElementById('me-rank').textContent  = _meInfo.rank;
+
+  // 開場挑釁（延遲一點才說，等棋盤出來）
+  const _enterLines = getMonsterTrash(_talkType).enter;
+  setTimeout(() => monsterSay(_pick(_enterLines), 4000), 1200);
+}
+
+function setPbarThinking(isAI) {
+  document.getElementById('pbar-ai').classList.toggle('pbar-thinking', isAI);
+  document.getElementById('pbar-me').classList.toggle('pbar-thinking', !isAI);
+  // 思考中小點
+  const aiName = document.getElementById('ai-name');
+  const dot = aiName.querySelector('.thinking-dot');
+  if (isAI && !dot) {
+    const d = document.createElement('span');
+    d.className = 'thinking-dot';
+    aiName.appendChild(d);
+  } else if (!isAI && dot) {
+    dot.remove();
+  }
+}
+
+// ── 試煉召喚師台詞 ───────────────────────────────────────────
+const MERLYN_LINES=[
+  '選好契約，我會替你召喚合適的對手。這裡的魔物階級是 AI 難度，不是你的修行 LV。',
+  '9 路適合磨快直覺，13 路適合練節奏，19 路會把每個貪心都照出來。',
+  '先攻陣營決定開局語氣。執黑主動出劍，執白則要讀懂對方的第一道影子。',
+  '魔物階級越高，讀秒前的沉默越危險。別怕，棋盤會告訴你下一步。',
+  '讓子不是示弱，是把試煉調到剛好能成長的重量。',
+  '貼目是勝負契約的一行小字，但常常決定整場戰鬥的結尾。',
+  '召喚之前先看清預覽。你不是在找最弱的對手，而是在找今天最適合的磨刀石。',
+  '若局面混亂，就先問自己：哪一塊棋最需要呼吸？',
+  '魔物會嘲諷，但棋子不會說謊。相信棋盤，比相信氣勢更重要。',
+  '輸掉試煉不可怕。可怕的是不打開棋譜，看不見自己在哪裡轉錯了彎。',
+  '回溯一手可以救急，但真正的進步，是下一次不必回溯。',
+  '占卜形勢只能照亮局面，不能替你下出勇敢的一手。',
+  '略過回合也可以是武器。當局面已經足夠，就讓對方先證明還有棋。',
+  '封盤計地前，請再看一次邊角。很多勝負都藏在不起眼的半目裡。',
+  '若你想正式挑戰真人，決鬥競技場在隔壁；這裡則讓你放心練到手熱。',
+  '魔物階級 I 到 X 是試煉難度，不代表你的真實段級位。',
+  '開局別只盯著吃子。厚度、先手、眼位，都是看不見但會收利息的資產。',
+  '中盤像穿越霧林。找不到最大點時，先找最危險的弱點。',
+  '收官是禮節，也是刀工。能穩穩收完的人，才配拿走最後的半目。',
+  '我會守住召喚陣。你只要把每一手，都下得比上一局更清楚。'
+];
+const MERLYN_LINES_EN = [
+  'Choose your contract and I will summon a fitting opponent. Monster Rank is AI difficulty, not your training level.',
+  '9×9 sharpens instinct, 13×13 builds rhythm, and 19×19 exposes every greedy move.',
+  'Your color sets the opening: Black takes the initiative; White must read the first shadow.',
+  'The higher the Monster Rank, the more dangerous the silence before its move.',
+  'Handicap is not weakness. It sets the trial at the right weight for growth.',
+  'Komi is a small line in the contract that often decides the ending.',
+  'Check the preview before summoning. Seek the opponent that will sharpen you today.',
+  'When the board becomes chaotic, ask which group most urgently needs room to breathe.',
+  'Monsters may taunt, but stones never lie. Trust the board over bravado.',
+  'Losing a trial is fine. Refusing to review where the road bent is the real loss.',
+  'Undo can rescue one moment; real progress means not needing it next time.',
+  'A position estimate can light the board, but it cannot play a brave move for you.',
+  'Passing can be a weapon. When the board is settled, make the opponent prove there is more to play.',
+  'Before final scoring, check every corner. Many games hide in half a point.',
+  'The Duel Arena next door is for real opponents. Here you can safely warm up.',
+  'Monster Ranks I–X are trial difficulty, not your official Go rank.',
+  'Do not stare only at captures. Thickness, sente, and eye shape all earn interest.',
+  'The middlegame is a misty forest. If you cannot find the biggest move, find the weakest group.',
+  'Endgame is both courtesy and craft. Finish cleanly to claim the last half-point.',
+  'I will hold the summoning circle. Make every move clearer than in your last game.'
+];
+function rotateMerlynLine(){
+  const el=document.getElementById('merlyn-line');
+  if(!el)return;
+  const key='cg_bot_merlyn_line_idx';
+  let last=-1;
+  try{last=parseInt(localStorage.getItem(key)||'-1',10);}catch(e){}
+  const lines = botEn() ? MERLYN_LINES_EN : MERLYN_LINES;
+  let next=Math.floor(Math.random()*lines.length);
+  if(lines.length>1 && next===last)next=(next+1)%lines.length;
+  el.textContent=lines[next];
+  try{localStorage.setItem(key,String(next));}catch(e){}
+}
+
+// ── 鍵盤快捷鍵 ───────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // 輸入框/textarea 時不觸發
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  // 遊戲中才有效
+  if (!S.gameId) return;
+
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (S.myTurn) doPass();
+  } else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
+    e.preventDefault();
+    if (S.myTurn && S.moveCount >= 2) doUndo();
+  } else if (e.code === 'KeyE') {
+    doEstimate();
+  }
+});
+
+// ── 頁面初始化 ────────────────────────────────────────────────
+window.onLangChange = () => {
+  I18n.apply();
+  rotateMerlynLine();
+  onLevelSlider(S.level);
+  if (S.gameId) updateStatus();
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+  rotateMerlynLine();
+  // 驗證登入 + 取得玩家資訊
+  try {
+    const [me, appear] = await Promise.all([
+      fetch('/api/auth/me',           {credentials:'include'}).then(r=>r.json()),
+      fetch('/api/player/appearance', {credentials:'include'}).then(r=>r.json()),
+    ]);
+    if (!me.logged_in) { location.href = '/login'; return; }
+
+    _meInfo.name = me.nickname || me.username || '玩家';
+    _meInfo.rank = me.go_rank || '30k';
+    const localGear = localBotHeroGear();
+    _meInfo.character = normalizeBotHeroCharacter(localGear.character || appear.character_key || 'apprentice');
+    _meInfo.gear = {
+      armor: localGear.armor || appear.combat_armor || 'cloth',
+      cape: localGear.cape || appear.combat_cape || 'none',
+      weapon: localGear.weapon || appear.combat_weapon || 'none',
+      offhand: localGear.offhand || appear.combat_offhand || 'none',
+    };
+  } catch(e) {
+    fetch('/api/auth/me',{credentials:'include'}).then(r=>r.json()).then(me=>{
+      if (!me.logged_in) location.href='/login';
+    });
+  }
+
+  // 設定畫面：初始化怪物預覽（預設 level 5）
+  onLevelSlider(5);
+});
+</script>
+<script src="/sound.js?v=2"></script>
+<script src="/site-nav.js?v=20260625presence1"></script>
+</body>
+</html>
+

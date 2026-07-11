@@ -63,7 +63,26 @@
       "chapter_i18n.py",
       "backend_i18n.py",
       "community_leaderboard_rewards.py",
+      "db.py",
       "deploy/runtime-source-provenance.json",
+      "login.html", "landing.html", "index.html", "terms.html", "manage.html",
+      "admin.html", "bot.html", "daily_challenge.html", "community.html",
+      "messages.html", "share_view.html", "mistakes.html", "curriculum.html",
+      "hero.html", "rating_test.html", "shop.html", "profile.html",
+      "premium_weekly.html", "stats.html", "upgrade.html", "play.html",
+      "inventory.html", "badges.html", "games.html",
+      "i18n.js", "sw.js", "srs.js", "monster_trash.js", "sound.js",
+      "mobile-nav.js", "site-nav.js", "community_reward_notifications.js",
+      "community_reward_rules.js", "pwa.js",
+      "manifest.json", "robots.txt", "sitemap.xml", "og-image.jpg",
+      "icon-192.png", "icon-512.png",
+      "wgo/stone_skin.js", "wgo/wgo.min.js", "wgo/wgo.player.css",
+      "wgo/wgo.player.min.js", "wgo/wood1.jpg",
+      "blog/go-ai-improve.html", "blog/go-rules-for-beginners.html",
+      "blog/go-scoring-counting.html", "blog/go-vs-chess.html",
+      "blog/how-to-improve-at-go.html", "blog/how-to-play-go.html",
+      "blog/index.html", "blog/kids-learn-go-age.html",
+      "blog/what-is-life-and-death.html", "blog/what-is-tsumego.html",
       "sgf_engine/__init__.py",
       "sgf_engine/core/__init__.py",
       "sgf_engine/core/autoreply.py",
@@ -88,58 +107,49 @@
       "tools/community_leaderboard_rewards_real_grant_preview.py",
       "tools/community_leaderboard_rewards_real_grant_commit.py"
     ],
-    "required_but_not_yet_vendored": [
-      {
-        "path": "assets/",
-        "reason": "PENDING - 757MB of binary assets on production host; out of scope for this Sprint per smallest-evidence-supported-set guidance",
-        "required_by": "Dockerfile: multiple COPY assets/* lines"
-      },
-      {
-        "path": "questions.json",
-        "reason": "PENDING - 58MB puzzle data file; not a build/deploy artifact, requires a dedicated data-vendoring or object-storage strategy",
-        "required_by": "Dockerfile: COPY questions.json srs.db go_learning.db ./"
-      },
-      {
-        "path": "srs.db",
-        "reason": "PENDING - seed database file (1.5MB); persisted at runtime via entrypoint.sh, not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY questions.json srs.db go_learning.db ./"
-      },
-      {
-        "path": "go_learning.db",
-        "reason": "PENDING - seed database file (124KB); persisted at runtime via entrypoint.sh, not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY questions.json srs.db go_learning.db ./"
-      },
-      {
-        "path": "wgo/",
-        "reason": "PENDING - not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY wgo ./wgo"
-      },
-      {
-        "path": "blog/",
-        "reason": "PENDING - not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY blog ./blog"
-      },
-      {
-        "path": "docs/testing/",
-        "reason": "PENDING - 13MB, not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY docs/testing ./docs/testing"
-      },
-      {
-        "path": "shorts/",
-        "reason": "PENDING - not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY shorts ./shorts"
-      },
-      {
-        "path": "*.html, *.js, *.json, *.png (repository root)",
-        "reason": "RISK - current Dockerfile globs these wildcards indiscriminately (68 files, ~169MB on production host, including debug/report artifacts not part of the application). Not vendored this Sprint; flagged for a future curation Sprint to enumerate the actual intended file set separately from host residue.",
-        "required_by": "Dockerfile: COPY *.html *.js *.json *.png ./"
-      },
-      {
-        "path": "robots.txt, sitemap.xml, og-image.jpg",
-        "reason": "PENDING - not yet vendored this Sprint",
-        "required_by": "Dockerfile: COPY robots.txt sitemap.xml og-image.jpg ./"
-      }
-    ],
+    "external_content_boundary": {
+      "description": "Deliberately excluded from the application image as of DEPLOY-GOV-2E. The image builds and starts successfully without any of these being present; app.py already degrades gracefully (404 per missing static file, empty puzzle list) rather than crashing.",
+      "entries": [
+        {
+          "path": "assets/",
+          "size": "757MB",
+          "treatment": "VERSIONED STATIC ARTIFACT, mounted read-only at runtime",
+          "mount_contract": "GO_ODYSSEY_LIVE_STATIC_ROOT env var (docker-compose.prod.yml), read via app.py's _serve_live_static_or_baked_subpath for the /assets/<path:subpath> route",
+          "absent_behavior": "individual asset files return 404; app process stays healthy"
+        },
+        {
+          "path": "shorts/",
+          "size": "113MB",
+          "treatment": "VERSIONED STATIC ARTIFACT (optional marketing media), mounted read-only at runtime",
+          "mount_contract": "same GO_ODYSSEY_LIVE_STATIC_ROOT mechanism as assets/, via the /shorts/<filename> route",
+          "absent_behavior": "individual short files return 404; app process stays healthy"
+        },
+        {
+          "path": "questions.json",
+          "size": "58MB, 41591 records",
+          "treatment": "VERSIONED CONTENT BASELINE + persistent runtime storage (admin-mutable via the question-management API)",
+          "mount_contract": "QUESTIONS_JSON_PATH env var (docker-compose.prod.yml), defaults to /app/data/questions.json inside the persistent go-data volume so admin edits survive container recreation",
+          "absent_behavior": "app.py's _load_questions()/_load_questions_fresh() already guard with os.path.exists() and return an empty list; puzzle-serving routes degrade, app process stays healthy"
+        }
+      ]
+    },
+    "excluded_permanently": {
+      "description": "Removed from the Dockerfile and build manifest in DEPLOY-GOV-2E. Not a content-boundary/mount question -- these should never enter a production image at all.",
+      "entries": [
+        {
+          "path": "srs.db",
+          "reason": "USER DATA -- table inventory includes users, friendships, game_results, teacher_student, teacher_comments, share_links, and player_* progress/inventory tables. Not referenced by any sqlite3.connect() call in current app.py/scheduler.py/shadow_judging.py/grimoire_api.py/db.py -- PostgreSQL is the authoritative runtime database. Must never be committed to Git or baked into an image."
+        },
+        {
+          "path": "go_learning.db",
+          "reason": "OBSOLETE -- confirmed unreferenced by current runtime code; its two tables (zones, grimoires) are already created directly in PostgreSQL by app.py (CREATE TABLE IF NOT EXISTS zones/grimoires)."
+        },
+        {
+          "path": "docs/testing/",
+          "reason": "INTERNAL QA evidence (rwd_batch* reports, tree_null_records, parse_fail_repair_report). Zero references anywhere in app.py/scheduler.py/shadow_judging.py. Never had a runtime purpose in a production image."
+        }
+      ]
+    },
     "runtime_only_not_build_inputs": [
       {
         "path": "katago_cache.db",
@@ -147,12 +157,13 @@
       },
       {
         "path": "/opt/go-odyssey-static",
-        "reason": "separate atomic static-release symlink mechanism, mounted read-only; not part of the app image build (see docs/deployment/canonical_image_build.md, Phase E)"
+        "reason": "external content mount serving assets/ and shorts/, see external_content_boundary above"
       }
     ]
   },
   "post_build_verification_files": [
     "/app/app.py",
+    "/app/db.py",
     "/app/shadow_judging.py",
     "/app/shadow_dashboard.py",
     "/app/scheduler.py",
@@ -171,8 +182,9 @@
   },
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
-    "files_covered": 13,
+    "files_covered": 69,
     "source_status": "local Git provenance -- not previously pushed to canonical origin (Graph A / Codex local branches only)",
-    "status": "recovered from verified Git sources, DEPLOY-GOV-2B-FIX"
+    "status": "recovered from verified Git sources, DEPLOY-GOV-2B-FIX (13 files) + DEPLOY-GOV-2E (db.py + 55 curated static files: 24 HTML, 10 JS/root scripts, wgo/ x5, blog/ x10, + manifest.json/robots.txt/sitemap.xml/og-image.jpg/icon-192.png/icon-512.png)",
+    "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. See deploy/runtime-source-provenance.json entries for exact per-file production_hash_match status."
   }
 }

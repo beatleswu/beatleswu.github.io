@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go vs Chess: Which Is Harder? (The Honest Answer)</title>
+<meta name="description" content="Go vs chess—which is the harder game? We compare the numbers, why AI beat chess 20 years before Go, and the different kind of thinking each demands.">
+<meta name="keywords" content="go vs chess, is go harder than chess, baduk vs chess, hardest board game, go or chess">
+<link rel="canonical" href="https://godokoro.com/blog/go-vs-chess">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go vs Chess: Which Is Harder? (The Honest Answer)">
+<meta property="og:description" content="Go vs chess—which is the harder game? We compare the numbers, why AI beat chess 20 years before Go, and the different kind of thinking each demands.">
+<meta property="og:url" content="https://godokoro.com/blog/go-vs-chess">
+<meta property="og:image" content="https://godokoro.com/og-image.jpg">
+<meta property="og:site_name" content="弈境奇兵 Go Odyssey">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Go vs Chess: Which Is Harder? (The Honest Answer)", "description": "Go vs chess—which is the harder game? We compare the numbers, why AI beat chess 20 years before Go, and the different kind of thinking each demands.", "datePublished": "2026-06-14", "dateModified": "2026-06-14", "author": {"@type": "Organization", "name": "弈境奇兵 Go Odyssey"}, "publisher": {"@type": "Organization", "name": "弈境奇兵 Go Odyssey", "logo": {"@type": "ImageObject", "url": "https://godokoro.com/assets/landing_page_assets/landing_go_stone_badge.webp"}}, "mainEntityOfPage": "https://godokoro.com/blog/go-vs-chess", "image": "https://godokoro.com/og-image.jpg", "inLanguage": "en"}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Noto+Serif+TC:wght@500;700;900&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#100b07;--ink:#fff4dc;--muted:#cdb892;--gold:#f3c66b;--teal:#5fdacf;--line:rgba(243,198,107,.22)}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{font-family:'DM Sans','Noto Serif TC',sans-serif;color:var(--ink);background:var(--bg);line-height:1.85;-webkit-font-smoothing:antialiased}
+a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}
+img{max-width:100%;display:block}
+.nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px clamp(18px,5vw,64px);background:rgba(6,10,11,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:21px;font-weight:700;color:#ffe9b7}.brand img{width:32px;height:32px;object-fit:contain}
+.nav-cta{display:inline-flex;border-radius:999px;background:linear-gradient(135deg,#f7c96f,#b87924);color:#1d1208;padding:9px 16px;font-weight:900;font-size:13px}.nav-cta:hover{text-decoration:none;filter:brightness(1.06)}
+.wrap{max-width:760px;margin:0 auto;padding:54px clamp(18px,5vw,32px) 30px}
+.kicker{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+h1{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:clamp(30px,5vw,46px);line-height:1.15;font-weight:900;margin:14px 0 12px;color:#fff3cf}
+.meta{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;margin-bottom:8px}
+.lede{font-size:19px;color:#efe3c6;margin:22px 0 8px;line-height:1.8}
+article h2{font-family:'Noto Serif TC',serif;font-size:clamp(22px,3.4vw,29px);color:var(--gold);margin:42px 0 14px;line-height:1.3}
+article h3{font-size:19px;color:#fff0c8;margin:28px 0 8px}
+article p{margin:16px 0;color:#ece0c4;font-size:17px}
+article ul,article ol{margin:14px 0 14px 24px;color:#ece0c4}article li{margin:8px 0;font-size:17px}
+article strong{color:#fff3cf}
+.tip{border-left:3px solid var(--teal);background:rgba(95,218,207,.07);padding:14px 18px;border-radius:0 10px 10px 0;margin:24px 0;color:#dff4f0}
+.cta{margin:50px 0 10px;padding:34px;border:1px solid var(--line);border-radius:18px;background:radial-gradient(circle at 30% 20%,rgba(243,198,107,.14),rgba(255,255,255,.03));text-align:center}
+.cta h3{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:27px;color:#fff3cf;margin-bottom:8px}
+.cta p{color:var(--muted);margin-bottom:18px}
+.cta a{display:inline-flex;border-radius:999px;background:linear-gradient(135deg,#f7c96f,#b87924);color:#1d1208;padding:13px 26px;font-weight:900;font-size:15px}.cta a:hover{text-decoration:none;filter:brightness(1.06)}
+.altlang{margin:30px 0 0;font-size:14px;color:var(--muted)}
+footer{border-top:1px solid var(--line);background:#070a0b;padding:30px clamp(18px,5vw,64px);color:rgba(255,244,220,.6);font-size:13px;text-align:center}
+.foot-links{margin-bottom:14px}.foot-links a{color:rgba(255,244,220,.66);margin:0 10px}
+.foot-social{display:flex;gap:16px;justify-content:center;margin:8px 0 14px}.foot-social a{color:rgba(255,244,220,.55)}.foot-social a:hover{color:var(--gold)}.foot-social svg{width:21px;height:21px;fill:currentColor;display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-top:30px}
+.card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));padding:22px;transition:transform .18s,border-color .18s}
+.card:hover{transform:translateY(-3px);border-color:rgba(243,198,107,.5)}
+.card .kicker{font-size:11px}.card h2{font-family:'Noto Serif TC',serif;font-size:21px;color:#fff2c9;margin:8px 0;line-height:1.3}.card p{color:var(--muted);font-size:14px;line-height:1.7}.card a.more{display:inline-block;margin-top:12px;font-weight:700;color:var(--gold)}
+@media(max-width:600px){.wrap{padding-top:36px}article p,article li,.lede{font-size:16px}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="brand" href="/"><img src="/assets/landing_page_assets/landing_go_stone_badge.webp" alt="弈境奇兵 Go Odyssey">弈境奇兵 Go Odyssey</a>
+  <a class="nav-cta" href="/login?tab=register">Start Free</a>
+</nav>
+<div class="wrap">
+<p class="kicker">Go vs Chess</p><h1>Go vs Chess: Which Is Harder? (The Honest Answer)</h1><p class="meta">2026-06-14 · 5 min read · 弈境奇兵 Go Odyssey</p><p class="lede">It's the question every strategy-game fan asks. The short answer: by almost every measurable definition of complexity, Go is harder than chess. Here's why—and what that means for you.</p><article>
+<h2>The numbers are not close</h2>
+<p>The clearest way to compare is raw complexity:</p>
+<ul>
+<li><strong>Possible positions:</strong> chess has roughly 10⁴⁵; Go has about 10¹⁷⁰. That gap is almost unimaginable.</li>
+<li><strong>Choices per turn:</strong> in chess you typically have ~35 legal moves; in Go, often <strong>200+</strong> empty points to choose from.</li>
+<li><strong>Board size:</strong> 64 squares vs 361 intersections.</li>
+</ul>
+<p>More options every turn, over a longer game, means the decision tree explodes far faster in Go.</p>
+
+<h2>Why AI beat chess 20 years before Go</h2>
+<p>A computer (Deep Blue) beat the chess world champion in <strong>1997</strong>. A computer didn't beat a top Go professional until <strong>2016</strong> (AlphaGo). That 19-year gap is the best real-world evidence of the difficulty difference.</p>
+<p>Chess can be brute-forced further with raw calculation. Go has too many branches for that—AlphaGo needed a fundamentally different approach (deep neural networks and intuition-like pattern evaluation) to crack it.</p>
+
+<h2>A different kind of thinking</h2>
+<p>This is the part numbers miss. Chess and Go reward different mental skills:</p>
+<ul>
+<li><strong>Chess</strong> is sharp and tactical—concrete calculation, forcing sequences, checkmate.</li>
+<li><strong>Go</strong> is about <strong>balance and the whole board</strong>—influence vs territory, knowing when to leave a fight and take a big point elsewhere.</li>
+</ul>
+<p>Many players describe Go as more "intuitive" and chess as more "computational." Neither is better—they're different flavors of deep.</p>
+
+<h2>So which should you learn?</h2>
+<p>If you love sharp, decisive tactics, chess is fantastic. If you're drawn to a game where the AI era arrived last, where a single stone can reshape the whole board, and where the learning curve never really ends—<strong>Go is one of the most rewarding games a human can learn</strong>.</p>
+<p>The good news: getting started is easy. You can learn the rules in <a href="/blog/how-to-play-go">about five minutes</a>, then grow for a lifetime. A <a href="/landing">gamified problem library with AI analysis</a> makes the early climb genuinely fun.</p>
+</article><div class="cta"><h3>Curious about the deepest board game?</h3><p>Go Odyssey turns Go (Baduk) into an RPG: 41,000+ problems, AI opponents, evolving pets, rank tests. Free to start.</p><a href="/login?tab=register">Start playing Go free →</a></div>
+</div>
+<footer>
+  <div class="foot-links"><a href="/">Home</a><a href="/blog">Articles</a><a href="/landing">About</a><a href="mailto:support@godokoro.com">Contact</a></div>
+  <div class="foot-social">
+<a href="https://www.facebook.com/godokoro.go" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11.01 10.12 11.93v-8.43H7.08v-3.5h3.04V9.41c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.5h-2.8v8.43C19.61 23.08 24 18.1 24 12.07"/></svg></a>
+<a href="https://www.youtube.com/@godokoro" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2C0 8.07 0 12 0 12s0 3.93.5 5.8a3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.8M9.55 15.57V8.43L15.82 12z"/></svg></a>
+<a href="https://www.instagram.com/godokoro.go" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16M12 0C8.74 0 8.33.01 7.05.07c-1.28.06-2.15.26-2.91.56-.79.3-1.46.72-2.13 1.38A5.9 5.9 0 0 0 .63 4.14c-.3.76-.5 1.63-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.66 1.34 1.08 2.13 1.38.76.3 1.63.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56a5.9 5.9 0 0 0 2.13-1.38 5.9 5.9 0 0 0 1.38-2.13c.3-.76.5-1.63.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.38-2.13A5.9 5.9 0 0 0 19.86.63c-.76-.3-1.63-.5-2.91-.56C15.67.01 15.26 0 12 0m0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84M12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4m6.41-10.85a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44"/></svg></a>
+<a href="https://www.threads.com/@godokoro.go" target="_blank" rel="noopener" aria-label="Threads"><svg viewBox="0 0 24 24"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.362-.218-3.26-.801-1.063-.689-1.685-1.74-1.752-2.964-.065-1.19.408-2.285 1.33-3.082.88-.76 2.119-1.207 3.583-1.291a13.9 13.9 0 0 1 3.02.142c-.126-.742-.375-1.332-.745-1.757-.508-.586-1.291-.883-2.328-.89h-.031c-.832 0-1.954.227-2.67 1.292L7.748 7.51c.96-1.424 2.519-2.211 4.39-2.211h.045c3.129.02 4.992 1.926 5.178 5.213.106.045.21.093.312.141 1.43.674 2.476 1.694 3.024 2.953.764 1.754.834 4.614-1.494 6.93-1.78 1.768-3.94 2.564-7.01 2.586z"/></svg></a>
+<a href="https://discord.gg/g4VdqT8CZW" target="_blank" rel="noopener" aria-label="Discord"><svg viewBox="0 0 24 24"><path d="M20.32 4.37A19.8 19.8 0 0 0 15.45 3c-.21.38-.46.9-.63 1.3a18.3 18.3 0 0 0-5.49 0A12 12 0 0 0 8.7 3a19.7 19.7 0 0 0-4.87 1.37C.73 9 .12 13.5.42 17.95a19.9 19.9 0 0 0 6 3.03c.48-.66.91-1.36 1.28-2.1-.7-.26-1.37-.59-2-.97.17-.13.34-.26.5-.4a14.2 14.2 0 0 0 12.1 0c.16.14.33.27.5.4-.63.38-1.3.71-2 .97.37.74.8 1.44 1.28 2.1a19.9 19.9 0 0 0 6-3.03c.36-5.15-.6-9.6-2.54-13.58M8.02 15.33c-1.18 0-2.15-1.1-2.15-2.42s.95-2.43 2.15-2.43c1.2 0 2.17 1.1 2.15 2.43 0 1.33-.95 2.42-2.15 2.42m7.96 0c-1.18 0-2.15-1.1-2.15-2.42s.95-2.43 2.15-2.43c1.2 0 2.17 1.1 2.15 2.43 0 1.33-.95 2.42-2.15 2.42"/></svg></a>
+</div>
+  <div>© 2026 弈境奇兵 (Go Odyssey) · Made in Taiwan</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practice Report — Go Odyssey</title>
+<script src="/i18n.js?v=20260710a"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:  #faf7f2; --cream2: #f3ede3; --ink: #1c1409; --ink3: #6b5740;
+  --teal:   #0d9488; --teal-bg: #f0fdfa; --border: #e5ddd0;
+  --amber:  #d97706;
+}
+body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: linear-gradient(var(--border) 1px,transparent 1px),
+                    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:52px 52px; opacity:.35;
+}
+.wrap { position:relative; z-index:1; max-width:560px; margin:0 auto; padding:48px 24px 80px; }
+.brand {
+  display:flex; align-items:center; gap:8px; margin-bottom:40px;
+  font-family:'Cormorant Garamond',serif; font-size:18px; font-weight:700; color:var(--ink);
+  text-decoration:none;
+}
+.brand-dot { color:var(--teal); }
+.card { background:#fff; border:1px solid var(--border); border-radius:20px; padding:32px; box-shadow:0 4px 24px rgba(28,20,9,.07); }
+.report-by { font-size:12px; color:var(--ink3); font-family:'DM Mono',monospace; margin-bottom:6px; }
+.report-title { font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:700; margin-bottom:6px; }
+.report-meta { font-size:11px; color:var(--ink3); font-family:'DM Mono',monospace; margin-bottom:28px; }
+.divider { height:1px; background:var(--border); margin:24px 0; }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+.stat-box { background:var(--cream2); border-radius:14px; padding:18px 12px; text-align:center; }
+.stat-num { font-family:'DM Mono',monospace; font-size:28px; font-weight:700; color:var(--teal); }
+.stat-lbl { font-size:10px; color:var(--ink3); margin-top:4px; letter-spacing:.5px; }
+.section-label {
+  font-size:9px; font-family:'DM Mono',monospace; letter-spacing:3px;
+  text-transform:uppercase; color:var(--ink3); margin-bottom:14px;
+  display:flex; align-items:center; gap:10px;
+}
+.section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+.weakness-item {
+  display:flex; align-items:center; gap:10px; margin-bottom:10px;
+}
+.weakness-label { font-size:13px; color:var(--ink); min-width:90px; }
+.weakness-bar-bg { flex:1; height:6px; background:var(--cream2); border-radius:6px; overflow:hidden; }
+.weakness-fill { height:100%; background:var(--teal); border-radius:6px; }
+.weakness-pct { font-size:11px; font-family:'DM Mono',monospace; color:var(--ink3); min-width:36px; text-align:right; }
+.cta {
+  display:block; margin-top:28px; text-align:center;
+  background:var(--teal); color:#fff; border-radius:12px;
+  padding:14px; font-size:14px; font-weight:600; text-decoration:none;
+  transition:background .15s;
+}
+.cta:hover { background:#0f766e; }
+.loading { text-align:center; padding:60px 0; color:var(--ink3); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="brand"><span class="brand-dot">●</span><span data-i18n="common.brand">弈境奇兵 (Go Odyssey)</span></a>
+  <div class="card" id="report-card">
+    <div class="loading" data-i18n="index.loading2">載入中…</div>
+  </div>
+</div>
+<script>
+const shareEn = () => window.I18n && I18n.getLang() === 'en';
+const shareText = (zh, en) => shareEn() ? en : zh;
+const SHARE_TOPICS = {手筋:'Tesuji',死活:'Life & Death',官子:'Endgame',佈局:'Opening',布局:'Opening',吃子:'Capturing',逃子:'Escape',連接:'Connection',切斷:'Cutting',棋形:'Shape',全盤:'Whole-board Play'};
+function shareTopic(label) { return shareEn() ? (SHARE_TOPICS[label] || I18n.localizeName(label)) : label; }
+async function load() {
+  const token = location.pathname.split('/').pop();
+  const r     = await fetch(`/api/share/${token}`).then(res => res.json());
+
+  if (r.error) {
+    document.getElementById('report-card').innerHTML =
+      `<div class="loading">${shareText('😢 找不到這份報告', '😢 This report could not be found')}</div>`;
+    return;
+  }
+
+  const s    = r.stats || {};
+  const week = s.this_week || {};
+  const weak = s.topic_weakness || [];
+  const acc  = week.total > 0 ? Math.round(week.correct / week.total * 100) : 0;
+
+  let weakHtml = '';
+  if (weak.length) {
+    weakHtml = `
+      <div class="divider"></div>
+      <div class="section-label">${shareText('弱點題型（最近 90 天）', 'Focus Areas (Last 90 Days)')}</div>
+      ${weak.map(w => `
+        <div class="weakness-item">
+          <div class="weakness-label">${esc(shareTopic(w.label))}</div>
+          <div class="weakness-bar-bg">
+            <div class="weakness-fill" style="width:${w.accuracy}%"></div>
+          </div>
+          <div class="weakness-pct">${w.accuracy}%</div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  document.getElementById('report-card').innerHTML = `
+    <div class="report-by">${shareEn() ? `Shared by ${esc(r.username)}` : `由 ${esc(r.username)} 分享`}</div>
+    <div class="report-title">${esc(r.title)}</div>
+    <div class="report-meta">${r.created_at} · 👁 ${r.view_count} ${shareText('次瀏覽', 'views')}</div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-num">${week.correct ?? '—'}</div>
+        <div class="stat-lbl">${shareText('本週答對', 'Correct This Week')}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">${acc}%</div>
+        <div class="stat-lbl">${shareText('本週正確率', 'Weekly Accuracy')}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">${s.streak_days ?? '—'}</div>
+        <div class="stat-lbl">${shareText('連續天數', 'Day Streak')}</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-num">${s.total_correct ?? '—'}</div>
+        <div class="stat-lbl">${shareText('累計答對', 'Total Correct')}</div>
+      </div>
+    </div>
+
+    ${weakHtml}
+
+    <a class="cta" href="/">${shareText('➔ 開始練習圍棋', '➔ Start Practicing Go')}</a>
+  `;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+window.onLangChange = () => location.reload();
+load();
+</script>
+</body>
+</html>

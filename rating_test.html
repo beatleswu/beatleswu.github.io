@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="rt.title">棋力測驗 — 弈境奇兵 (Go Odyssey)</title>
+<script src="/i18n.js?v=20260710a"></script>
+<script src="/site-nav.js?v=20260625presence1" defer></script>
+<script src="/wgo/wgo.min.js"></script>
+<script src="/wgo/stone_skin.js?v=3"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- ECharts for radar chart -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:     #faf7f2;
+  --cream2:    #f3ede3;
+  --cream3:    #ede4d4;
+  --parchment: #fff7df;
+  --stone:     #15110c;
+  --stone2:    #241a10;
+  --gold:      #d6a84a;
+  --gold2:     #f0d488;
+  --mana:      #6ee7d8;
+  --ink:       #1c1409;
+  --ink2:      #3d2c1a;
+  --ink3:      #6b5740;
+  --teal:      #0d9488;
+  --teal-bg:   #f0fdfa;
+  --teal-dark: #0f766e;
+  --amber:     #d97706;
+  --red:       #dc2626;
+  --border:    #e5ddd0;
+  --shadow:    0 1px 4px rgba(28,20,9,.07);
+  --shadow-md: 0 4px 16px rgba(28,20,9,.10);
+  --shadow-lg: 0 8px 32px rgba(28,20,9,.14);
+  --purple:    #7c3aed;
+}
+body {
+  font-family: 'DM Sans', sans-serif;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(214,168,74,.22), transparent 28%),
+    radial-gradient(circle at 82% 8%, rgba(110,231,216,.13), transparent 25%),
+    linear-gradient(135deg, #120d08 0%, #21170d 48%, #0f1816 100%);
+  color: var(--ink);
+  min-height: 100vh;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(240,212,136,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240,212,136,.08) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,247,223,.24) 1px, transparent 1.5px);
+  background-size: 52px 52px, 52px 52px, 96px 96px;
+  opacity: .55;
+}
+
+/* ── SCREEN WRAPPER ── */
+.screen {
+  position: relative; z-index: 1;
+  min-height: calc(100vh - 56px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 34px 16px;
+}
+.screen.hidden { display: none; }
+
+/* ══ SCREEN 1: INTRO ══════════════════════════════════ */
+.intro-shell {
+  display: grid; grid-template-columns: minmax(250px, 330px) minmax(360px, 600px);
+  align-items: stretch; gap: 20px; width: min(960px, 100%);
+}
+.npc-panel {
+  position: relative; overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,247,223,.08), rgba(255,247,223,.02)),
+    rgba(21,17,12,.86);
+  border: 1px solid rgba(240,212,136,.42);
+  border-radius: 12px;
+  box-shadow: 0 18px 46px rgba(0,0,0,.32);
+  min-height: 520px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.npc-panel::before {
+  content: ''; position: absolute; inset: 18px 18px 150px;
+  border: 1px solid rgba(240,212,136,.22); border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(110,231,216,.16), transparent 54%),
+    conic-gradient(from 18deg, transparent, rgba(240,212,136,.2), transparent 38%, rgba(110,231,216,.2), transparent 68%);
+  opacity: .75;
+}
+.npc-art-slot {
+  position: relative; z-index: 1; height: 360px;
+  display: grid; place-items: end center;
+  padding-bottom: 4px;
+}
+.npc-art {
+  position: relative; z-index: 1;
+  transform: translateY(-40px);
+  width: min(340px, 98%);
+  max-height: 390px;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 18px 20px rgba(0,0,0,.42));
+}
+.npc-placeholder {
+  width: 188px; height: 252px; border-radius: 92px 92px 28px 28px;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255,255,255,.32), transparent 16%),
+    linear-gradient(160deg, #362616, #172926 55%, #0c1110);
+  border: 2px solid rgba(240,212,136,.5);
+  box-shadow: 0 20px 34px rgba(0,0,0,.32), inset 0 0 32px rgba(110,231,216,.12);
+  color: var(--gold2); font-size: 72px;
+}
+.npc-dialog {
+  position: relative; z-index: 2; margin: 0 16px 16px;
+  background: rgba(255,247,223,.94);
+  border: 1px solid rgba(214,168,74,.65);
+  border-radius: 10px;
+  padding: 16px 16px 15px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.25);
+}
+.npc-name {
+  font-size: 12px; font-weight: 800; color: #7a4f14;
+  letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;
+}
+.npc-line {
+  color: var(--ink2); font-size: 14px; line-height: 1.75;
+}
+.intro-card {
+  background: linear-gradient(180deg, rgba(255,247,223,.98), rgba(250,247,242,.96));
+  border: 1px solid rgba(214,168,74,.55); border-radius: 12px;
+  padding: 36px 36px; width: 100%;
+  box-shadow: 0 18px 46px rgba(0,0,0,.30); text-align: center;
+}
+.intro-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(21,17,12,.9); color: var(--gold2);
+  border: 1px solid rgba(214,168,74,.72); border-radius: 99px;
+  font-size: 12px; font-weight: 600; padding: 4px 14px;
+  margin-bottom: 20px; letter-spacing: .5px;
+}
+.rt-icon {
+  width: 20px; height: 20px; object-fit: contain; flex: 0 0 auto;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.28));
+}
+.rt-icon.sm { width: 16px; height: 16px; }
+.rt-icon.md { width: 24px; height: 24px; }
+.rt-icon.lg { width: 42px; height: 42px; }
+.intro-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 40px; font-weight: 700; color: var(--ink);
+  margin-bottom: 10px; line-height: 1.2;
+}
+.intro-subtitle {
+  font-size: 14px; color: var(--ink3); margin-bottom: 32px; line-height: 1.7;
+}
+.intro-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin-bottom: 36px;
+}
+.intro-stat {
+  background: rgba(255,255,255,.55); border: 1px solid rgba(214,168,74,.32);
+  border-radius: 10px; padding: 16px 8px; text-align: center;
+}
+.intro-stat-icon {
+  width: 38px; height: 38px; object-fit: contain; display: block;
+  margin: 0 auto 7px;
+  filter: drop-shadow(0 4px 7px rgba(58,36,18,.18));
+}
+.intro-stat-val {
+  font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700;
+  color: #8a5a14; display: block; margin-bottom: 4px;
+}
+.intro-stat-lbl { font-size: 11px; color: var(--ink3); }
+.btn-start {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(180deg, #2a2015, #14100c); color: var(--gold2);
+  border: 1px solid rgba(240,212,136,.48); border-radius: 10px;
+  font-size: 16px; font-weight: 700; letter-spacing: .5px;
+  padding: 16px 40px; cursor: pointer; transition: all .2s;
+  width: 100%;
+}
+.btn-icon { width: 24px; height: 24px; object-fit: contain; flex: 0 0 auto; }
+.btn-start:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0,0,0,.22); filter: brightness(1.08); }
+.btn-start:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.intro-hint {
+  font-size: 11px; color: var(--ink3); margin-top: 16px; line-height: 1.6;
+}
+
+/* ══ SCREEN 2: TEST ═══════════════════════════════════ */
+.test-col {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  width: 100%; max-width: 820px;
+}
+.board-panel {
+  width: 100%;
+  background: linear-gradient(180deg, rgba(255,247,223,.98), rgba(243,237,227,.96));
+  border: 1px solid rgba(214,168,74,.58); border-radius: 12px;
+  padding: 18px 20px 20px; box-shadow: 0 16px 40px rgba(0,0,0,.28);
+}
+.board-title {
+  font-size: 13px; font-weight: 800; color: #7a4f14;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+}
+#test-board-wrap {
+  width: 100%; border-radius: 12px; overflow: hidden;
+  border: 2px solid rgba(122,79,20,.5); background: #eed292;
+  line-height: 0;
+}
+#test-board-wrap canvas { display: block; }
+#test-board-wrap > div { line-height: 0; }
+
+/* ── 資訊列（棋盤下方）── */
+.info-bar {
+  width: 100%; display: flex; align-items: center; gap: 0;
+  background: rgba(21,17,12,.9); border: 1px solid rgba(240,212,136,.38); border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.24); overflow: hidden;
+  color: var(--cream);
+}
+.info-section {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 12px 18px; gap: 4px;
+}
+.info-section.info-dots { flex: 1; align-items: flex-start; padding: 12px 20px; }
+.info-sep { width: 1px; height: 44px; background: rgba(240,212,136,.2); flex-shrink: 0; }
+
+/* Progress dots */
+.progress-label { font-size: 10px; color: var(--gold2); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 4px; }
+.progress-num { font-family: 'DM Mono', monospace; font-size: 11px; color: rgba(255,247,223,.68); margin-top: 2px; }
+.progress-dots { display: flex; gap: 5px; flex-wrap: wrap; }
+.progress-dot {
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid rgba(240,212,136,.28); background: rgba(255,247,223,.14);
+  transition: all .2s;
+}
+.progress-dot.correct  { background: var(--teal);  border-color: var(--teal); }
+.progress-dot.wrong    { background: var(--red);   border-color: var(--red); }
+.progress-dot.done     { background: var(--gold2); border-color: var(--gold2); opacity:.72; }
+.progress-dot.current  { background: var(--amber); border-color: var(--amber); animation: pulse-dot .8s ease infinite; }
+.btn-skip {
+  margin-top:3px;padding:3px 8px;border:1px solid rgba(240,212,136,.35);
+  border-radius:999px;background:rgba(20,14,8,.25);color:rgba(255,247,223,.76);
+  font-size:10px;cursor:pointer;
+}
+.btn-skip:disabled { opacity:.45;cursor:default; }
+@keyframes pulse-dot { 0%,100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+
+/* Timer (compact inline ring) */
+.info-timer-wrap { position: relative; flex-shrink: 0; }
+.timer-ring-svg { display: block; transform: rotate(-90deg); }
+.timer-ring-track { fill: none; stroke: rgba(255,247,223,.18); stroke-width: 5; }
+.timer-ring-fill  { fill: none; stroke: var(--mana); stroke-width: 5;
+  stroke-linecap: round; transition: stroke-dashoffset .5s linear, stroke .3s; }
+.timer-num {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 700; color: var(--cream);
+}
+
+/* Rating display */
+.info-rating { flex-shrink: 0; min-width: 90px; }
+.cur-rating-lbl { font-size: 10px; color: var(--gold2); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+.cur-rating-val {
+  font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 700; color: var(--mana);
+}
+.cur-rating-rank { font-size: 11px; color: rgba(255,247,223,.7); }
+
+/* Feedback flash (inline in info bar) */
+.feedback-flash {
+  flex-shrink: 0; padding: 6px 16px; border-radius: 10px;
+  font-weight: 700; font-size: 13px; margin: 8px 12px;
+  opacity: 0; transition: opacity .2s; pointer-events: none;
+  min-width: 80px; text-align: center;
+}
+.feedback-flash.show { opacity: 1; }
+.feedback-flash.correct { background: #dcfce7; color: #15803d; }
+.feedback-flash.wrong   { background: #fee2e2; color: #b91c1c; }
+
+/* ══ SCREEN: LOADING ═══════════════════════════════════ */
+.loading-wrap { text-align: center; }
+.loading-spinner {
+  width: 56px; height: 56px; border: 4px solid var(--cream3);
+  border-top-color: var(--teal); border-radius: 50%;
+  animation: spin 1s linear infinite; margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-size: 14px; color: var(--gold2); }
+
+/* ══ SCREEN 3: RESULT ══════════════════════════════════ */
+.result-layout {
+  max-width: 900px; width: 100%; display: grid;
+  grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;
+}
+
+/* Rating badge */
+.rating-badge-card {
+  background: linear-gradient(180deg, rgba(255,247,223,.98), rgba(250,247,242,.96));
+  border: 1px solid rgba(214,168,74,.55); border-radius: 12px;
+  padding: 16px 18px; text-align: center; box-shadow: var(--shadow-md);
+  grid-column: 1 / -1;
+}
+.rating-badge-title {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 11px; color: var(--ink3); text-transform: uppercase;
+  letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;
+}
+.rating-badge-elo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 58px; font-weight: 700; color: #8a5a14; line-height: 1;
+  margin-bottom: 4px;
+}
+.rating-badge-rank {
+  font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 10px;
+}
+.rating-badges-row {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  flex-wrap: wrap;
+}
+.rating-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600;
+  background: rgba(255,255,255,.55); border: 1px solid rgba(214,168,74,.32); color: var(--ink3);
+}
+.rating-delta { font-family: 'DM Mono', monospace; }
+.rating-delta.up   { color: var(--teal); }
+.rating-delta.down { color: var(--red); }
+
+/* Radar chart */
+.radar-card {
+  background: rgba(255,247,223,.96); border: 1px solid rgba(214,168,74,.45); border-radius: 12px;
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.radar-card-title {
+  font-size: 12px; font-weight: 700; color: var(--ink);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+#radar-chart { width: 100%; height: 190px; }
+
+/* Disc breakdown */
+.disc-card {
+  background: rgba(255,247,223,.96); border: 1px solid rgba(214,168,74,.45); border-radius: 12px;
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.disc-card-title {
+  font-size: 12px; font-weight: 700; color: var(--ink);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.disc-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.disc-row:last-child { border-bottom: none; }
+.disc-icon-sm { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+.disc-row-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--ink); }
+.disc-row-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink3); }
+.disc-row-acc {
+  font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700;
+}
+.acc-high { color: var(--teal); }
+.acc-mid  { color: var(--amber); }
+.acc-low  { color: var(--red); }
+
+/* Result screen layout (mirrors .intro-shell) */
+.result-shell {
+  display: grid;
+  grid-template-columns: minmax(240px, 310px) minmax(360px, 580px);
+  align-items: stretch; gap: 20px; width: min(960px, 100%);
+  /* 56px navbar + 篩掉 .screen 上下 padding，確保整個 shell 不超出可視區 */
+  max-height: calc(100vh - 56px - 48px);
+}
+#screen-result { padding: 24px 16px; }
+.result-cards {
+  display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto; max-height: calc(100vh - 56px - 48px);
+  padding-right: 4px;
+}
+
+/* CTA buttons */
+.cta-card {
+  background: rgba(255,247,223,.96); border: 1px solid rgba(214,168,74,.45); border-radius: 12px;
+  padding: 12px 16px; box-shadow: var(--shadow);
+  grid-column: 1 / -1;
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+}
+.btn-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .2s; border: none; text-decoration: none;
+}
+.btn-cta.primary {
+  background: linear-gradient(180deg, #2a2015, #14100c); color: var(--gold2);
+  border: 1px solid rgba(240,212,136,.48);
+}
+.btn-cta.primary:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.btn-cta.secondary {
+  background: rgba(13,148,136,.11); color: var(--teal-dark);
+  border: 1.5px solid rgba(13,148,136,.5);
+}
+.btn-cta.secondary:hover { background: #ccfbf1; }
+.btn-cta.outline {
+  background: transparent; color: var(--ink3);
+  border: 1.5px solid var(--border);
+}
+.btn-cta.outline:hover { background: var(--cream2); color: var(--ink); }
+.btn-cta:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+/* ── Certificate canvas modal ── */
+.cert-modal {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.cert-modal.hidden { display: none; }
+.cert-modal-inner {
+  background: var(--parchment); border-radius: 12px; padding: 24px;
+  max-width: 840px; width: 100%; box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.cert-modal-inner canvas { width: 100%; border-radius: 12px; }
+.cert-modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.cert-modal-close {
+  position: absolute; top: 10px; right: 14px;
+  font-size: 22px; cursor: pointer; color: var(--ink3);
+}
+
+/* ── Placement mode ── */
+.placement-self-fill {
+  margin-top: 20px; padding-top: 18px;
+  border-top: 1px solid rgba(214,168,74,.3);
+}
+.placement-self-fill-title {
+  font-size: 11px; color: var(--ink3); font-weight: 600; text-align: center;
+  margin-bottom: 12px; letter-spacing: .5px; text-transform: uppercase;
+}
+.rank-options {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin-bottom: 14px;
+}
+.rank-opt {
+  padding: 10px 6px; border-radius: 10px;
+  border: 1.5px solid rgba(214,168,74,.3); background: rgba(255,255,255,.48);
+  cursor: pointer; text-align: center; transition: all .15s;
+}
+.rank-opt:hover { border-color: #8a5a14; background: rgba(240,212,136,.18); }
+.rank-opt.selected { border-color: #8a5a14; background: rgba(240,212,136,.24); box-shadow: inset 0 0 0 1px rgba(138,90,20,.22); }
+.rank-opt .ron { font-size: 14px; font-weight: 700; color: var(--ink2); }
+.rank-opt.selected .ron { color: #8a5a14; }
+.rank-opt .rsub { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+.btn-confirm-rank {
+  width: 100%; padding: 12px; border-radius: 10px;
+  background: linear-gradient(180deg, #2a2015, #14100c); color: var(--gold2); font-size: 14px; font-weight: 700;
+  border: none; cursor: pointer; transition: all .2s; display: none;
+}
+.btn-confirm-rank.show { display: block; }
+.btn-confirm-rank:hover { filter: brightness(1.08); }
+.btn-confirm-rank:disabled { opacity: .5; cursor: not-allowed; }
+/* ── Placement result screen ── */
+.placement-result-card {
+  background: linear-gradient(180deg, rgba(255,247,223,.98), rgba(250,247,242,.96));
+  border: 1px solid rgba(214,168,74,.55); border-radius: 12px;
+  padding: 48px 40px; max-width: 440px; width: 100%;
+  box-shadow: var(--shadow-lg); text-align: center;
+}
+.pr-icon { font-size: 48px; margin-bottom: 16px; }
+.pr-rank {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 38px; font-weight: 700; color: var(--ink); margin-bottom: 6px;
+}
+.pr-elo {
+  font-family: 'DM Mono', monospace; font-size: 18px; color: #8a5a14;
+  margin-bottom: 18px;
+}
+.pr-msg {
+  font-size: 13px; color: var(--ink3); line-height: 1.7; margin-bottom: 28px;
+}
+.btn-goto-home {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(180deg, #2a2015, #14100c); color: var(--gold2); border: 1px solid rgba(240,212,136,.48); border-radius: 10px;
+  font-size: 16px; font-weight: 700; padding: 16px 32px;
+  cursor: pointer; transition: all .2s; width: 100%;
+}
+.btn-goto-home:hover { background: var(--ink2); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+/* ── SP Claimed toast ── */
+.sp-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: var(--ink); color: #fff;
+  padding: 12px 24px; border-radius: 99px; font-size: 13px; font-weight: 700;
+  z-index: 600; transition: transform .3s, opacity .3s; opacity: 0;
+}
+.sp-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+@media (max-width: 600px) {
+  .screen { padding: 20px 12px; justify-content: flex-start; }
+  .intro-shell { grid-template-columns: 1fr; }
+  .npc-panel { min-height: 0; }
+  .npc-art-slot { height: 150px; }
+  .npc-art { max-height: 166px; width: min(190px, 72%); }
+  .npc-placeholder { width: 108px; height: 128px; font-size: 46px; border-radius: 54px 54px 18px 18px; }
+  .npc-panel::before { inset: 12px 20px 98px; }
+  .intro-card { padding: 26px 18px; }
+  .intro-title { font-size: 34px; }
+  .intro-stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .rank-options { grid-template-columns: repeat(2, 1fr); }
+  .rating-badge-elo { font-size: 56px; }
+  .result-shell { grid-template-columns: 1fr; }
+  .result-cards { max-height: none; overflow-y: visible; }
+  /* 資訊列在小螢幕改為兩行 */
+  .info-bar { flex-wrap: wrap; }
+  .info-section.info-dots { width: 100%; border-bottom: 1px solid rgba(240,212,136,.2); }
+  .info-sep:first-of-type { display: none; }
+  .cta-card { justify-content: stretch; }
+  .btn-cta { width: 100%; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<header><!-- site-nav.js will replace this --></header>
+
+<!-- ══ SCREEN 1: INTRO ══ -->
+<div class="screen" id="screen-intro">
+  <div class="intro-shell">
+    <aside class="npc-panel" aria-label="棋力鑑定 NPC" data-i18n-aria-label="rt.npc.aria">
+      <div class="npc-art-slot">
+        <img class="npc-art" src="/assets/rating_test/npc_go_appraiser_chibi_transparent.webp" alt="星盤鑑定官麗茲" data-i18n-alt="rt.npcAlt">
+      </div>
+      <div class="npc-dialog">
+        <div class="npc-name" data-i18n="rt.npcName">星盤鑑定官 · 麗茲 (Lizzy)</div>
+        <p class="npc-line" id="npc-line" data-i18n="rt.npc.default_line">「別擔心，這不是審判。只要落下你相信的一手，聖域就會知道該為你打開哪一扇門。」</p>
+      </div>
+    </aside>
+
+    <div class="intro-card">
+      <div class="intro-badge"><img class="rt-icon sm" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.introBadge">公會棋力鑑定</span></div>
+      <h1 class="intro-title" data-i18n-html="rt.introTitle">接受棋力鑑定<br>校準你的修煉起點</h1>
+      <p class="intro-subtitle" data-i18n-html="rt.introSub">
+        12～16 道自適應試煉，鑑定官會依你的每一手調整下一題難度。<br>
+        約 <strong>3～5 分鐘</strong>，取得你的解題棋力與段級位推定。
+      </p>
+      <div class="intro-stats">
+        <div class="intro-stat">
+          <img class="intro-stat-icon" src="/assets/rating_test/icons/go_stones.png" alt="">
+          <span class="intro-stat-val">12~16</span>
+          <span class="intro-stat-lbl" data-i18n="rt.statTrials">道試煉</span>
+        </div>
+        <div class="intro-stat">
+          <img class="intro-stat-icon" src="/assets/rating_test/icons/hourglass_timer.png" alt="">
+          <span class="intro-stat-val">3~5</span>
+          <span class="intro-stat-lbl" data-i18n="rt.statMinutes">分鐘</span>
+        </div>
+        <div class="intro-stat">
+          <img class="intro-stat-icon" src="/assets/rating_test/icons/brass_astrolabe.png" alt="">
+          <span class="intro-stat-val" id="pool-count">—</span>
+          <span class="intro-stat-lbl" data-i18n="rt.statPool">鑑定題庫</span>
+        </div>
+      </div>
+
+      <!-- 自報段位（一般測驗，選填，加速定位）-->
+      <div id="known-rank-section" style="margin-bottom:24px">
+        <div style="font-size:11px;color:var(--ink3);font-weight:700;text-align:center;margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;" data-i18n="rt.knownTitle">— 登錄既有棋力情報（建議填寫）—</div>
+        <div style="font-size:10px;color:var(--amber);text-align:center;margin-bottom:10px;" data-i18n="rt.knownHint">高手若不登錄，鑑定官會先從較保守的題階開始校準</div>
+        <div class="rank-options" id="known-rank-opts">
+          <div class="rank-opt" data-elo="1150" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.beginner">入門</div><div class="rsub" data-i18n="rt.sub.25kp">25k 以上</div></div>
+          <div class="rank-opt" data-elo="1250" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.novice">初學</div><div class="rsub" data-i18n="rt.sub.15_20k">15~20k</div></div>
+          <div class="rank-opt" data-elo="1400" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.advanced">進階</div><div class="rsub" data-i18n="rt.sub.8_12k">8~12k</div></div>
+          <div class="rank-opt" data-elo="1600" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.highlevel">高級</div><div class="rsub" data-i18n="rt.sub.1_5k">1~5k</div></div>
+          <div class="rank-opt" data-elo="1850" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.lowdan">低段</div><div class="rsub" data-i18n="rt.sub.1_2d">1~2d</div></div>
+          <div class="rank-opt" data-elo="2100" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.middan">中段</div><div class="rsub" data-i18n="rt.sub.3_4d">3~4d</div></div>
+          <div class="rank-opt" data-elo="2250" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.highdan">高段</div><div class="rsub" data-i18n="rt.sub.5_6d">5~6d</div></div>
+          <div class="rank-opt" data-elo="2500" onclick="selectKnownRank(this)"><div class="ron" data-i18n="rt.rk.7danp">7段＋</div><div class="rsub" data-i18n="rt.sub.topPlayer">頂尖強豪</div></div>
+        </div>
+      </div>
+
+      <button class="btn-start" id="btn-start"><img class="btn-icon" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.btnStart">開始棋力鑑定 →</span></button>
+      <p class="intro-hint" id="intro-hint-text" data-i18n-html="rt.introHint">
+        測驗中不顯示對錯提示，點擊即送出，計時結束未落子視為答錯。<br>
+        結束後可領取本次答對題目的技能點獎勵。
+      </p>
+
+      <!-- 自填段位（placement 模式才顯示）-->
+      <div class="placement-self-fill" id="self-fill-section" style="display:none">
+        <div class="placement-self-fill-title" data-i18n="rt.selfFillTitle">— 或直接登錄段位（跳過解題）—</div>
+        <div style="font-size:11px;color:#b45309;text-align:center;margin:4px 0 8px;" data-i18n="rt.selfFillNote">自填棋力為暫定：段位裝備與高段地圖區需通過棋力鑑定後解鎖</div>
+        <div class="rank-options">
+          <div class="rank-opt" data-elo="1150" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.beginner">入門</div><div class="rsub" data-i18n="rt.sub.25kp">25k 以上</div></div>
+          <div class="rank-opt" data-elo="1250" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.novice">初學</div><div class="rsub" data-i18n="rt.sub.15_20k">15~20k</div></div>
+          <div class="rank-opt" data-elo="1400" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.advanced">進階</div><div class="rsub" data-i18n="rt.sub.8_12k">8~12k</div></div>
+          <div class="rank-opt" data-elo="1600" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.highlevel">高級</div><div class="rsub" data-i18n="rt.sub.1_5k">1~5k</div></div>
+          <div class="rank-opt" data-elo="1850" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.lowdan">低段</div><div class="rsub" data-i18n="rt.sub.1_2d">1~2d</div></div>
+          <div class="rank-opt" data-elo="2100" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.middan">中段</div><div class="rsub" data-i18n="rt.sub.3_4d">3~4d</div></div>
+          <div class="rank-opt" data-elo="2250" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.highdan">高段</div><div class="rsub" data-i18n="rt.sub.5_6d">5~6d</div></div>
+          <div class="rank-opt" data-elo="2500" onclick="selectRank(this)"><div class="ron" data-i18n="rt.rk.7danp">7段＋</div><div class="rsub" data-i18n="rt.sub.topPlayer">頂尖強豪</div></div>
+        </div>
+        <button class="btn-confirm-rank" id="btn-confirm-rank" onclick="confirmSelfFillRank()" data-i18n="rt.btnConfirmRank">確認段位 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 4: PLACEMENT RESULT ══ -->
+<div class="screen hidden" id="screen-placement-result">
+  <div class="placement-result-card">
+    <div class="pr-icon">🔭</div>
+    <div class="pr-rank" id="pr-rank-disp" data-i18n="rt.default_rank">業餘初段</div>
+    <div class="pr-elo"  id="pr-elo-disp">Elo 1500</div>
+    <div class="pr-msg"  id="pr-msg" data-i18n="rt.prMsgDefault">棋力確認完成！系統已為你設定初始難度，接下來進行新手教學。</div>
+    <button class="btn-goto-home" onclick="gotoHomeTour()" data-i18n="rt.btnGotoHome">返回弈境奇兵 · 開始修煉</button>
+  </div>
+</div>
+
+<!-- ══ SCREEN 2: TEST ══ -->
+<div class="screen hidden" id="screen-test">
+  <div class="test-col">
+
+    <!-- ── 棋盤 ── -->
+    <div class="board-panel">
+      <div class="board-title">
+        <span id="test-round-label" data-i18n="rt.first_round">第 1 題 / 12</span>
+        <span style="flex:1"></span>
+        <span id="test-player-color" style="font-size:12px;font-weight:700;padding:2px 12px;border-radius:99px;border:1px solid rgba(122,79,20,.26);background:rgba(255,255,255,.45);">—</span>
+        <span id="test-disc-badge" style="font-size:11px;background:rgba(255,255,255,.45);padding:2px 10px;border-radius:99px;border:1px solid rgba(122,79,20,.26);">—</span>
+      </div>
+      <div id="test-board-wrap"></div>
+    </div>
+
+    <!-- ── 資訊列（棋盤下方）── -->
+    <div class="info-bar">
+
+      <!-- 作答進度 -->
+      <div class="info-section info-dots">
+        <div class="progress-label" data-i18n="rt.progress">鑑定進度</div>
+        <div class="progress-dots" id="progress-dots"></div>
+        <div class="progress-num" id="progress-num">0 / 12</div>
+      </div>
+
+      <div class="info-sep"></div>
+
+      <!-- 讀秒（小型圓環）-->
+      <div class="info-section" style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div class="info-timer-wrap">
+          <svg class="timer-ring-svg" width="54" height="54" viewBox="0 0 80 80">
+            <circle class="timer-ring-track" cx="40" cy="40" r="33"/>
+            <circle class="timer-ring-fill" id="timer-ring" cx="40" cy="40" r="33"
+                    stroke-dasharray="207.3" stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-num" id="timer-num">25</div>
+        </div>
+        <span id="timer-limit-label" style="font-size:10px;color:rgba(255,247,223,.55);font-family:'DM Mono',monospace;">/25s</span>
+        <button type="button" class="btn-skip" id="btn-skip" onclick="submitMove('wrong')" data-i18n="rt.skip">不會，跳過</button>
+      </div>
+
+      <div class="info-sep"></div>
+
+      <!-- 當前積分 -->
+      <div class="info-section info-rating">
+        <div class="cur-rating-lbl" data-i18n="rt.starReading">星盤讀數</div>
+        <div class="cur-rating-val" id="cur-rating-disp">1500</div>
+        <div class="cur-rating-rank" id="cur-rank-disp" data-i18n="rt.default_rank">業餘初段</div>
+      </div>
+
+      <!-- 答題反饋 -->
+      <div class="feedback-flash" id="feedback-flash" data-i18n="rt.correct">✦ 答對！</div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCREEN: LOADING ══ -->
+<div class="screen hidden" id="screen-loading">
+  <div class="loading-wrap">
+    <img class="rt-icon lg" src="/assets/rating_test/icons/hourglass_timer.png" alt="">
+    <div class="loading-spinner"></div>
+    <div class="loading-txt" data-i18n="rt.loading">鑑定官正在校準你的棋力星盤…</div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 3: RESULT ══ -->
+<div class="screen hidden" id="screen-result">
+  <div class="result-shell">
+
+    <!-- Left: Lizzy NPC panel (reuses intro's npc-panel styles) -->
+    <aside class="npc-panel" aria-label="星盤鑑定官">
+      <div class="npc-art-slot">
+        <img class="npc-art" src="/assets/rating_test/npc_lizzy_result.webp" alt="星盤鑑定官麗茲" data-i18n-alt="rt.npcAlt">
+      </div>
+      <div class="npc-dialog">
+        <div class="npc-name" data-i18n="rt.npcName">星盤鑑定官 · 麗茲 (Lizzy)</div>
+        <p class="npc-line" id="diag-text">—</p>
+      </div>
+    </aside>
+
+    <!-- Right: result cards -->
+    <div class="result-cards">
+
+      <!-- Rating badge -->
+      <div class="rating-badge-card">
+        <div class="rating-badge-title"><img class="rt-icon sm" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.resTitle">鑑定完成 · 星盤讀數</span></div>
+        <div class="rating-badge-elo" id="res-elo">—</div>
+        <div class="rating-badge-rank" id="res-rank">—</div>
+        <div class="rating-badges-row">
+          <div class="rating-chip"><span data-i18n="rt.resRounds">鑑定輪次</span> <span id="res-rounds" class="rating-delta">12</span></div>
+          <div class="rating-chip"><span data-i18n="rt.resDelta">積分變化</span> <span id="res-delta" class="rating-delta">—</span></div>
+          <div class="rating-chip"><span data-i18n="rt.resAcc">答對率</span> <span id="res-acc" class="rating-delta">—</span></div>
+        </div>
+      </div>
+
+      <!-- Radar chart -->
+      <div class="radar-card">
+        <div class="radar-card-title"><img class="rt-icon md" src="/assets/rating_test/icons/brass_astrolabe.png" alt=""><span data-i18n="rt.radarTitle">能力星盤</span></div>
+        <div id="radar-chart"></div>
+      </div>
+
+      <!-- Disc breakdown -->
+      <div class="disc-card">
+        <div class="disc-card-title"><img class="rt-icon md" src="/assets/rating_test/icons/training_scroll.png" alt=""><span data-i18n="rt.discTitle">試煉紀錄</span></div>
+        <div id="disc-breakdown"></div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="cta-card">
+        <button class="btn-cta primary" id="btn-claim-sp"><img class="rt-icon md" src="/assets/rating_test/icons/skill_point_crystal.png" alt=""><span data-i18n="rt.btnClaim">領取技能點獎勵</span></button>
+        <a class="btn-cta secondary" id="btn-train-weak" href="#"><img class="rt-icon md" src="/assets/rating_test/icons/training_scroll.png" alt=""><span data-i18n="rt.btnTrainWeak">前往弱項修煉</span></a>
+        <button class="btn-cta outline" id="btn-cert"><img class="rt-icon md" src="/assets/rating_test/icons/parchment_certificate.png" alt=""><span data-i18n="rt.btnCert">生成鑑定證書</span></button>
+        <button class="btn-cta outline" id="btn-retry" style="margin-left:auto" data-i18n="rt.btnRetry">重新鑑定</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Certificate Modal -->
+<div class="cert-modal hidden" id="cert-modal">
+  <div class="cert-modal-inner" style="position:relative">
+    <span class="cert-modal-close" id="cert-close">×</span>
+    <canvas id="cert-canvas" width="500" height="300"></canvas>
+    <div class="cert-modal-btns">
+      <button class="btn-cta primary" id="cert-download"><img class="rt-icon md" src="/assets/rating_test/icons/parchment_certificate.png" alt=""><span data-i18n="rt.certDownload">下載鑑定證書</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Google Signup Modal (TRIAL only) -->
+<div class="cert-modal hidden" id="google-signup-modal">
+  <div class="cert-modal-inner" style="position:relative;max-width:380px;padding:32px 28px 28px;text-align:center">
+    <span class="cert-modal-close" onclick="document.getElementById('google-signup-modal').classList.add('hidden')">×</span>
+    <div style="font-size:22px;font-weight:900;color:var(--gold2);margin-bottom:6px" data-i18n="rt.gsTitle">儲存你的棋力檔案</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:22px" data-i18n="rt.gsSub">一鍵存入帳號，追蹤成長軌跡</div>
+    <div id="google-btn-slot-try" style="display:flex;justify-content:center;margin-bottom:16px;min-height:44px"></div>
+    <div style="font-size:11px;color:var(--ink3);margin:0 0 12px">── <span data-i18n="rt.gsOr">或</span> ──</div>
+    <a id="email-signup-fallback" href="#" style="font-size:13px;color:var(--gold2);text-decoration:underline" data-i18n="rt.gsEmail">用 Email 帳號註冊 →</a>
+  </div>
+</div>
+
+<!-- SP Toast -->
+<div class="sp-toast" id="sp-toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// 棋力測驗 前端主控制器
+// ══════════════════════════════════════════════════════════════════════
+let TOTAL_ROUNDS = 16;   // 自適應上限（後端 start 回應會覆寫）
+let MIN_ROUNDS   = 12;   // 標準誤達標才提前結束的最少題數
+
+const NPC_LINES = [
+  { zh: '「別擔心，這不是審判。只要落下你相信的一手，聖域就會知道該為你打開哪一扇門。」', en: '“Don\'t worry, this isn\'t a trial. Just play the move you believe in, and the Sanctum will know which door to open for you.”' },
+  { zh: '「棋力不是稱號，而是你在混亂裡找出秩序的速度。」', en: '“Strength isn\'t a title — it\'s how fast you find order within chaos.”' },
+  { zh: '「第一感很珍貴，但鑑定時，也別忘了問它一句：真的嗎？」', en: '“First instinct is precious, but during the appraisal, don\'t forget to ask it: really?”' },
+  { zh: '「我會看見你的強項，也會看見你還沒磨亮的那一面。兩者都值得珍惜。」', en: '“I\'ll see your strengths, and the side you haven\'t polished yet. Both are worth cherishing.”' },
+  { zh: '「星盤不會嘲笑錯手。它只會把下一道門，調到剛好能讓你成長的位置。」', en: '“The astrolabe never mocks a misstep. It simply sets the next door right where you can grow.”' },
+  { zh: '「如果題目忽然變難，代表你剛剛讓星盤對你刮目相看了。」', en: '“If a problem suddenly gets harder, you just made the astrolabe see you in a new light.”' },
+  { zh: '「每一步都算數。就算沒答對，也會讓鑑定更接近真正的你。」', en: '“Every move counts. Even a wrong one brings the appraisal closer to the real you.”' },
+  { zh: '「不要急著證明自己很強。先讓棋盤說實話，修煉才會有效。」', en: '“Don\'t rush to prove your strength. Let the board tell the truth first — then training works.”' },
+  { zh: '「高手的棋，常常不是最快的棋，而是最少後悔的棋。」', en: '“A master\'s move is often not the fastest, but the one with the least regret.”' },
+  { zh: '「看見要點之前，先看見危險。這是很多升段者共同的轉折。」', en: '“See the danger before the vital point. That\'s the turning point many promotees share.”' },
+  { zh: '「今日的星象很安靜，適合做一場誠實的棋力鑑定。」', en: '“The stars are quiet today — a good time for an honest appraisal.”' },
+  { zh: '「你不用每題都完美。只要每題都真心計算，星盤就能讀懂你。」', en: '“You needn\'t be perfect on every problem. Read each one sincerely and the astrolabe will understand you.”' },
+  { zh: '「有些弱點不是缺陷，是下一段修煉地圖的入口。」', en: '“Some weaknesses aren\'t flaws — they\'re the entrance to your next training map.”' },
+  { zh: '「如果讀秒讓你緊張，就把它當成公會鐘聲：提醒你落下最有把握的一手。」', en: '“If the countdown makes you tense, treat it as the guild bell: a reminder to play your surest move.”' },
+  { zh: '「棋盤上的黑白不會說謊，但它會等你多看一眼。」', en: '“Black and white on the board never lie, but they\'ll wait for one more look.”' },
+  { zh: '「今天的目標不是打敗測驗，而是找到最適合你的題階。」', en: '“Today\'s goal isn\'t to beat the test, but to find the tier that fits you best.”' },
+  { zh: '「星盤會記錄答案，也會記錄你面對未知時的勇氣。」', en: '“The astrolabe records your answers, and your courage facing the unknown.”' },
+  { zh: '「先找活路，再找勝機。很多局部戰鬥都是這樣翻盤的。」', en: '“Find life first, then the winning chance. Many local fights turn around that way.”' },
+  { zh: '「若你覺得題目簡單，就請漂亮地通過；若你覺得題目困難，就請仔細地戰鬥。」', en: '“If a problem feels easy, pass it elegantly; if it feels hard, fight it carefully.”' },
+  { zh: '「鑑定結束後，我會替你指出最值得修煉的方向。那才是真正的寶藏。」', en: '“When the appraisal ends, I\'ll point you to the direction most worth training. That\'s the real treasure.”' }
+];
+
+let _npcIdx = 0;
+function _npcText(idx) {
+  const o = NPC_LINES[idx]; if (!o) return '';
+  return (typeof I18n !== 'undefined' && I18n.getLang() === 'en') ? o.en : o.zh;
+}
+function initNpcLine() {
+  const el = document.getElementById('npc-line');
+  if (!el || !NPC_LINES.length) return;
+  const last = Number(localStorage.getItem('ratingTestNpcLine') || '-1');
+  let idx = Math.floor(Math.random() * NPC_LINES.length);
+  if (NPC_LINES.length > 1 && idx === last) idx = (idx + 1) % NPC_LINES.length;
+  localStorage.setItem('ratingTestNpcLine', String(idx));
+  _npcIdx = idx;
+  el.textContent = _npcText(idx);
+}
+document.addEventListener('DOMContentLoaded', initNpcLine);
+if (document.readyState !== 'loading') initNpcLine();
+
+function setStartButtonLabel(text) {
+  const btn = document.getElementById('btn-start');
+  if (!btn) return;
+  setIconLabel(btn, '/assets/rating_test/icons/brass_astrolabe.png', text, 'btn-icon');
+}
+
+function setIconLabel(el, src, text, cls = 'rt-icon md') {
+  if (!el) return;
+  el.textContent = '';
+  const icon = document.createElement('img');
+  icon.className = cls;
+  icon.src = src;
+  icon.alt = '';
+  el.append(icon, document.createTextNode(text));
+}
+
+// ── Placement mode detection ───────────────────────────────────────────
+// TRIAL：公開試玩入口 /try。冷流量免註冊測棋力，走 placement 短測（7 題），
+// 不呼叫任何需登入的存檔端點；測完導去註冊，由 claim_anon 認領結果。
+const TRIAL = location.pathname.replace(/\/+$/,'') === '/try';
+const _isPlacement = TRIAL || new URLSearchParams(window.location.search).get('placement') === '1';
+const _ratingStorageKey = `ratingTestSid:${TRIAL ? 'trial' : (_isPlacement ? 'placement' : 'manual')}`;
+const _placementLevel = new URLSearchParams(window.location.search).get('level') || '';
+const _placementInitElo = _placementLevel === 'basic' ? 1150
+  : _placementLevel === 'advanced' ? 1800
+  : (new URLSearchParams(window.location.search).get('elo') ? parseFloat(new URLSearchParams(window.location.search).get('elo')) : null);
+let   _selfFillElo  = null;
+let   _knownInitElo = null;   // 一般測驗：自報段位 Elo（選填）
+let   _knownRankName = null;  // 自報段位名稱（用於切語言重繪按鈕）
+if (_isPlacement) {
+  TOTAL_ROUNDS = 7;
+  document.addEventListener('DOMContentLoaded', _initPlacementIntro);
+  if (document.readyState !== 'loading') _initPlacementIntro();
+}
+function _initPlacementIntro() {
+  const badge = document.querySelector('.intro-badge');
+  if (badge) { badge.textContent = I18n.t('rt.plBadge'); badge.setAttribute('data-i18n','rt.plBadge'); }
+  const title = document.querySelector('.intro-title');
+  if (title) { title.innerHTML = I18n.t('rt.plTitle'); title.setAttribute('data-i18n-html','rt.plTitle'); }
+  const sub = document.querySelector('.intro-subtitle');
+  if (sub) { sub.innerHTML = I18n.t('rt.plSub'); sub.setAttribute('data-i18n-html','rt.plSub'); }
+  const vals = document.querySelectorAll('.intro-stat-val');
+  const _plRounds = 7;
+  if (vals[0]) vals[0].textContent = String(_plRounds);
+  if (vals[1]) vals[1].textContent = _plRounds === 8 ? '~3' : '~2';
+  setStartButtonLabel(I18n.t('rt.plStart'));
+  const hint = document.getElementById('intro-hint-text');
+  if (hint) { hint.textContent = I18n.t('rt.plHint'); hint.removeAttribute('data-i18n-html'); hint.setAttribute('data-i18n','rt.plHint'); }
+  const sf = document.getElementById('self-fill-section');
+  if (sf) sf.style.display = '';
+  // placement 模式用「完整跳過」機制，隱藏一般測驗的自報段位選填區
+  const kr = document.getElementById('known-rank-section');
+  if (kr) kr.style.display = 'none';
+  // 試玩：自報段位不是「跳過解題直接登錄」（需登入），而是設定 7 題的起始先驗。
+  if (TRIAL) {
+    const en = (typeof I18n !== 'undefined' && I18n.getLang() === 'en');
+    // 試玩：段位選擇不是「跳過解題」，而是設定 7 題的起始難度。
+    const tt = document.querySelector('[data-i18n="rt.selfFillTitle"]');
+    if (tt) { tt.removeAttribute('data-i18n');
+      tt.textContent = en ? '— Already know your level? Start at the right difficulty —'
+                          : '— 已經知道大概程度？讓出題從對的難度開始 —'; }
+    const cb = document.getElementById('btn-confirm-rank');
+    if (cb) { cb.removeAttribute('data-i18n');
+      cb.textContent = en ? 'Start the 7 problems at this level →' : '從這個程度開始做 7 題 →'; }
+    const nt = document.querySelector('[data-i18n="rt.selfFillNote"]');
+    if (nt) { nt.removeAttribute('data-i18n');
+      nt.textContent = en ? 'Optional — high-dan players start with harder problems, not beginner ones.'
+                          : '選填。選了高段，第一題就從高段出，不會被丟新手題。'; }
+  }
+}
+
+// ── 一般測驗：自報段位（選填，加速定位）─────────────────────────────────
+function selectKnownRank(el) {
+  document.querySelectorAll('#known-rank-opts .rank-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _knownInitElo = parseFloat(el.dataset.elo);
+  const ron = el.querySelector('.ron').textContent;
+  _knownRankName = ron;
+  setStartButtonLabel(I18n.t('rt.knownStart').replace('{r}', ron));
+}
+// ── Placement helper functions ─────────────────────────────────────────
+function selectRank(el) {
+  document.querySelectorAll('.rank-opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  _selfFillElo = parseFloat(el.dataset.elo);
+  const btn = document.getElementById('btn-confirm-rank');
+  if (btn) btn.classList.add('show');
+}
+async function confirmSelfFillRank() {
+  if (!_selfFillElo) return;
+  // 試玩：未登入不能存檔，改成用這個棋力作為 7 題鑑定的先驗。
+  if (TRIAL) { startTest(); return; }
+  const btn = document.getElementById('btn-confirm-rank');
+  btn.disabled = true; btn.textContent = I18n.t('rt.saving');
+  try {
+    const saved = await fetch('/api/user/set_placement_elo', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ elo: _selfFillElo })
+    }).then(r => r.json());
+    if (!saved.ok) throw new Error(saved.error || 'placement_save_failed');
+    window.location.href = '/?after_placement=1';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = I18n.t('rt.btnConfirmRank');
+  }
+}
+let _placementRes = null;
+function handlePlacementDone(res) {
+  _placementRes = res;
+  const rating = res.cur_rating;
+  const rank   = res.rank_label || ratingToRank(rating);
+  const range = Array.isArray(res.rank_range) && res.rank_range.length === 2
+    ? res.rank_range.map(rankToHuman) : null;
+  const rankText = range && range[0] !== range[1]
+    ? `${range[0]} ～ ${range[1]}` : rankToHuman(rank);
+  document.getElementById('pr-rank-disp').textContent =
+    `${I18n.t('rt.provisional')} · ${rankText}`;
+  document.getElementById('pr-elo-disp').textContent  = `Elo ${Math.round(rating)}`;
+  const correct = _answers.filter(a => a.correct).length;
+  document.getElementById('pr-msg').textContent =
+    I18n.t('rt.plDoneMsg').replace('{c}', correct).replace('{t}', TOTAL_ROUNDS);
+  showScreen('screen-placement-result');
+  if (TRIAL) _trialDecorateResult();
+}
+// 試玩結果頁：拉推薦修行起點（匿名安全的 rt_result）、把 CTA 改成誠實的「註冊保存」
+function _trialDecorateResult() {
+  const en = (typeof I18n !== 'undefined' && I18n.getLang() === 'en');
+  const b = document.querySelector('#screen-placement-result .btn-goto-home');
+  if (b) { b.removeAttribute('data-i18n');
+    b.textContent = en ? 'Sign up to save your rank & path →' : '註冊保存棋力與推薦路線 →'; }
+  // 低信心：7 題全錯 → 訊號不穩，提示日後正式鑑定。
+  const _correctN = _answers.filter(a => a.correct).length;
+  const _lowConf  = _answers.length >= 3 && _correctN === 0;
+  fetch(`/api/rating_test/result/${_sid}`, {credentials:'include'})
+    .then(r => r.json())
+    .then(rd => {
+      const msg = document.getElementById('pr-msg');
+      if (!msg || !rd || !rd.recommended_zone) return;
+      msg.removeAttribute('data-i18n');
+      const icon  = rd.recommended_zone_icon || '🗺️';
+      const stage = rd.recommended_stage || '';
+      const label = rd.recommended_zone_label || '';
+      const zone  = rd.recommended_zone;
+      const zimg  = rd.recommended_zone_img || '';
+      const rpg   = en ? 'Your star-chart points to this battlefield'
+                       : '你的星盤指向這片戰場';
+      // 推薦卡：頂部用實際關卡橫幅圖（assets/tiers），抓不到圖才退回 emoji
+      const head = zimg
+        ? `<img src="${zimg}" alt="${zone}" style="width:100%;display:block;border-radius:12px;
+             box-shadow:0 4px 14px rgba(0,0,0,.35)" onerror="this.outerHTML='<div style=&quot;font-size:46px&quot;>${icon}</div>'">`
+        : `<div style="font-size:46px;line-height:1">${icon}</div>`;
+      let html = `
+        <div style="margin:6px auto 0;max-width:340px;border:1px solid rgba(240,198,109,.34);
+             border-radius:16px;padding:14px;background:linear-gradient(180deg,rgba(40,28,12,.84),rgba(20,14,8,.90));
+             box-shadow:0 8px 26px rgba(0,0,0,.28)">
+          ${head}
+          <div style="margin-top:12px;font-size:12px;letter-spacing:2px;color:#e9c478;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.8)">
+             ${stage}${label?(' · '+label):''}</div>
+          <div style="margin-top:2px;font-size:24px;font-weight:900;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8)">${zone}</div>
+          <div style="margin-top:8px;font-size:13px;color:rgba(255,244,220,1);text-shadow:0 1px 3px rgba(0,0,0,.8)">${rpg}</div>
+        </div>`;
+      if (_lowConf) {
+        html += `<div style="margin:12px auto 0;max-width:340px;font-size:13px;line-height:1.6;
+             font-weight:600;color:#9a3412;background:rgba(255,237,213,.92);
+             border:1px solid rgba(154,52,18,.32);border-radius:10px;padding:10px 13px">${en
+               ? 'Signal was unstable this round — sign up and take the full assessment to lock your true rank.'
+               : '本次星盤訊號不穩，建議註冊後再做一次正式鑑定，校準你的真實棋力。'}</div>`;
+      }
+      msg.innerHTML = html;
+    }).catch(()=>{});
+}
+function gotoHomeTour() {
+  if (TRIAL) {
+    showGoogleSignupModal();
+    return;
+  }
+  window.location.href = '/?after_placement=1';
+}
+
+// ── TRIAL：Google 快速入帳 modal ─────────────────────────────────────
+let _googleClientIdTry = null;
+let _googleInitTry = false;
+
+async function showGoogleSignupModal() {
+  const a = document.getElementById('email-signup-fallback');
+  if (a) a.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}`;
+  document.getElementById('google-signup-modal').classList.remove('hidden');
+
+  if (!_googleClientIdTry) {
+    try { const cfg = await fetch('/api/auth/config').then(r => r.json()); _googleClientIdTry = cfg.google_client_id; } catch(e) {}
+  }
+  if (!_googleClientIdTry) return;
+
+  if (!window.google?.accounts?.id) {
+    await new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = resolve; s.onerror = resolve;
+      document.head.appendChild(s);
+    });
+  }
+  if (!window.google?.accounts?.id) return;
+
+  if (!_googleInitTry) {
+    google.accounts.id.initialize({ client_id: _googleClientIdTry, callback: _onGoogleTryCred, auto_select: false });
+    _googleInitTry = true;
+  }
+  const slot = document.getElementById('google-btn-slot-try');
+  if (slot) { slot.innerHTML = ''; google.accounts.id.renderButton(slot, { theme:'outline', size:'large', text:'signup_with', shape:'rectangular', width:280 }); }
+}
+
+async function _onGoogleTryCred(resp) {
+  document.getElementById('google-signup-modal').classList.add('hidden');
+  try {
+    const r = await fetch('/api/auth/google_login', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({credential: resp.credential}),
+    }).then(r => r.json());
+    if (!r.ok) { window.location.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}`; return; }
+    if (_sid) {
+      const claim = await fetch('/api/rating_test/claim_anon', {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({session_id: _sid}),
+      }).then(r => r.json());
+      if (!claim.ok) {
+        window.location.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid)}`;
+        return;
+      }
+    }
+    window.location.href = '/';
+  } catch(e) {
+    window.location.href = `/login?tab=register&from=try&sid=${encodeURIComponent(_sid||'')}`;
+  }
+}
+
+// 依後端題目 rating 設定思考時間；不可拿 "5k" 等字串做數字比較。
+function _ratingToSecs(rating) {
+  const r = Number(rating);
+  if (!Number.isFinite(r) || r <= 1400) return 25;
+  if (r <= 1700) return 35;
+  if (r <= 2100) return 50;
+  return 60;
+}
+let _timerSecs = 25;  // 當前題目的計時秒數（由 loadTestQuestion 依難度設定）
+
+// 8 大學科配置（與 hero.html 一致）
+const DISC_CONFIG = {
+  life_death:        { name:'生死判讀', color:'#e74c3c', icon:'🛡️' },
+  tesuji:            { name:'局部戰術', color:'#e67e22', icon:'⚔️' },
+  capture_escape:    { name:'攻防追擊', color:'#d4ac0d', icon:'🎯' },
+  connection_cut:    { name:'連結切斷', color:'#9b59b6', icon:'🗡️' },
+  opening_direction: { name:'布局方向', color:'#27ae60', icon:'🗺️' },
+  whole_board:       { name:'全局判斷', color:'#1abc9c', icon:'🔮' },
+  endgame_counting:  { name:'官子目數', color:'#3498db', icon:'⚖️' },
+  shape_weakness:    { name:'棋形弱點', color:'#7f8c8d', icon:'◇' },
+};
+// 依當前語言取得學科名稱（zh 用 DISC_CONFIG.name，en 用 i18n 'rt.disc.*'）
+function _discName(disc) {
+  const cfg = DISC_CONFIG[disc];
+  if (typeof I18n !== 'undefined' && I18n.getLang() === 'en') {
+    const t = I18n.t('rt.disc.' + disc);
+    if (t && t !== 'rt.disc.' + disc) return t;
+  }
+  return (cfg && cfg.name) || disc;
+}
+
+// GTP column letters (skipping I)
+const GTP_COLS = 'ABCDEFGHJKLMNOPQRST';
+
+// ── State ──────────────────────────────────────────────────────────────
+let _sid       = null;   // session id
+let _round     = 0;      // 0-based
+let _curQ      = null;   // current question object
+let _curRating = 1500;
+let _answers   = [];     // {correct, disc, q_rating}
+let _timerInt  = null;
+let _timerLeft = 25;
+let _questionStartedAt = 0;
+let _questionHiddenAt = 0;
+let _questionHiddenMs = 0;
+let _answered  = false;  // prevent double-submit
+const _ratingRecentQuestionsKey = 'ratingTestRecentQuestionsV1';
+
+function _recentQuestionIds() {
+  try {
+    const values = JSON.parse(localStorage.getItem(_ratingRecentQuestionsKey) || '[]');
+    if (!Array.isArray(values)) return [];
+    return values.map(Number).filter(Number.isInteger).filter(n => n > 0).slice(0, 200);
+  } catch (_) {
+    return [];
+  }
+}
+
+function _rememberQuestionId(questionId) {
+  const id = Number(questionId);
+  if (!Number.isInteger(id) || id <= 0) return;
+  try {
+    const values = [id, ..._recentQuestionIds().filter(n => n !== id)].slice(0, 200);
+    localStorage.setItem(_ratingRecentQuestionsKey, JSON.stringify(values));
+  } catch (_) {}
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 圍棋規則引擎（與 index.html 相同邏輯）
+// ════════════════════════════════════════════════════════════════════
+
+// ── Board / Logic State ───────────────────────────────────────────
+let _board        = null;
+let _cropInfo     = null;
+let _boardSize    = 19;
+let _playerColor  = 'B';
+let _logicBoard   = [];       // 2D array: null / 'B' / 'W'
+let _koPoint      = null;
+let _lastMoveMarker = null;   // {x, y} in board display coords
+let _currentNode  = null;     // current position in SGF tree
+let _curProblem   = null;
+let _testSolved   = false;
+let _testAnswering = false;   // lock while computer is replying
+let _playerMoves  = [];       // 本題玩家落子序列（送後端重放驗證）
+
+async function resumeRatingTest() {
+  if (!_sid) return false;
+  try {
+    const r = await fetch(`/api/rating_test/resume/${encodeURIComponent(_sid)}`, {
+      credentials:'include'
+    }).then(x => x.json());
+    if (r.error) return false;
+    _round = r.round || 0;
+    _answers = Array.isArray(r.answers) ? r.answers : [];
+    _curRating = r.cur_rating;
+    if (r.total_rounds) TOTAL_ROUNDS = r.total_rounds;
+    if (r.min_rounds) MIN_ROUNDS = r.min_rounds;
+    updateRatingUI(_curRating, r.rank_label);
+    if (r.finished) {
+      sessionStorage.removeItem(_ratingStorageKey);
+      if (_isPlacement) handlePlacementDone(r);
+      else { showScreen('screen-loading'); setTimeout(() => loadResult(), 300); }
+    } else {
+      _curQ = r.question;
+      showScreen('screen-test');
+      requestAnimationFrame(() => requestAnimationFrame(() => loadTestQuestion(_curQ)));
+    }
+    return true;
+  } catch(e) {
+    console.error(e);
+    return false;
+  }
+}
+
+// ── SGF Parser（完整版，與 index.html 相同）───────────────────────
+function parseSGF(sgf) {
+  sgf = sgf.replace(/\r?\n|\r/g, ' ').trim();
+  const result = { size:19, pl:'B', black:[], white:[], tree:null };
+  function findClosing(str,start){let d=0;for(let i=start;i<str.length;i++){if(str[i]==='(')d++;else if(str[i]===')'){ d--;if(d===0)return i;}}return str.length-1;}
+  function parseCoordList(s){return(s.match(/\[([a-zA-Z]{2})\]/g)||[]).map(m=>({x:m.charCodeAt(1)-97,y:m.charCodeAt(2)-97}));}
+  const rm=sgf.match(/^\(;([\s\S]*?)(?=;|\(|\))/);if(!rm)return null;
+  const rp=rm[1];
+  const sz=rp.match(/SZ\[(\d+)\]/);if(sz)result.size=parseInt(sz[1]);
+  const pl=rp.match(/PL\[([BW])\]/);if(pl)result.pl=pl[1];
+  (rp.match(/AB((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.black.push(...parseCoordList(s)));
+  (rp.match(/AW((?:\s*\[[a-zA-Z]{2}\])+)/g)||[]).forEach(s=>result.white.push(...parseCoordList(s)));
+  function parseSeq(str){
+    str=str.trim();const ns=[];let i=0;
+    while(i<str.length){
+      if(str[i]===';'){let j=i+1,d=0;while(j<str.length){if(str[j]==='('){if(d===0)break;d++;}else if(str[j]===')'){ if(d===0)break;d--;}else if(str[j]===';'&&d===0)break;j++;}ns.push(str.slice(i,j));i=j;}
+      else if(str[i]==='(')break;else i++;
+    }
+    const bs=i;if(!ns.length)return null;
+    function pn(s){s=s.trim();let m=s.match(/^;([BW])\[([a-zA-Z]{0,2})\]/);if(!m){const m2=s.match(/(^|[^A-Z])([BW])\[([a-zA-Z]{0,2})\]/);if(m2)m=[m2[0],m2[2],m2[3]];}if(!m)return null;const c=m[2];return{color:m[1],move:c.length===2?{x:c.charCodeAt(0)-97,y:c.charCodeAt(1)-97}:null,children:[]};}
+    const nodes=ns.map(pn).filter(Boolean);if(!nodes.length)return null;
+    for(let k=0;k<nodes.length-1;k++)nodes[k].children.push(nodes[k+1]);
+    const last=nodes[nodes.length-1];let bi=bs;
+    while(bi<str.length){if(str[bi]==='('){const e=findClosing(str,bi);const c=parseSeq(str.slice(bi+1,e));if(c)last.children.push(c);bi=e+1;}else bi++;}
+    return nodes[0];
+  }
+  const after=sgf.slice(rm[0].length).trim();
+  if(after.startsWith(';')){result.tree=parseSeq(after);}
+  else if(after.startsWith('(')){
+    const root={move:null,color:null,children:[]};let i=0;
+    while(i<after.length){if(after[i]==='('){const e=findClosing(after,i);const c=parseSeq(after.slice(i+1,e));if(c)root.children.push(c);i=e+1;}else i++;}
+    result.tree=root;
+  }
+  if(!pl&&result.tree){const fn=result.tree.move?result.tree:(result.tree.children&&result.tree.children[0]);if(fn&&fn.color)result.pl=fn.color;}
+  if(result.pl==='B'&&/PL\[W\]/.test(sgf))result.pl='W';
+  return result;
+}
+
+// ── 棋盤裁切（角落偵測，與 index.html 相同）──────────────────────
+function calcCropSection(problem) {
+  const size=problem.size;
+  const stones=[...problem.black,...problem.white];
+  const full={section:{top:-.5,left:-.5,right:-.5,bottom:-.5},displayLines:size,startX:0,startY:0};
+  if(!stones.length||size<=9)return full;
+  const xs=stones.map(s=>s.x),ys=stones.map(s=>s.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2,th=size*0.40;
+  const inLeft=cx<=th,inRight=cx>=size-1-th,inTop=cy<=th,inBottom=cy>=size-1-th;
+  if((!inLeft&&!inRight)||(!inTop&&!inBottom))return full;
+  const MARGIN=2;
+  const needH=inRight?(size-minX+MARGIN):(maxX+1+MARGIN);
+  const needV=inTop?(maxY+1+MARGIN):(size-minY+MARGIN);
+  const need=Math.max(needH,needV);
+  let displayLines;
+  if(need<=9)displayLines=9;else if(need<=13)displayLines=13;else return full;
+  const crop=size-displayLines,s0=-.5,sC=crop-.5;
+  let startX,startY,section;
+  if(inLeft&&inTop){startX=0;startY=0;section={top:s0,left:s0,right:sC,bottom:sC};}
+  else if(inRight&&inTop){startX=size-displayLines;startY=0;section={top:s0,left:sC,right:s0,bottom:sC};}
+  else if(inLeft&&inBottom){startX=0;startY=size-displayLines;section={top:sC,left:s0,right:sC,bottom:s0};}
+  else{startX=size-displayLines;startY=size-displayLines;section={top:sC,left:sC,right:s0,bottom:s0};}
+  return{section,displayLines,startX,startY};
+}
+
+function _bx(x){return x-(_cropInfo?_cropInfo.startX:0);}
+function _by(y){return y-(_cropInfo?_cropInfo.startY:0);}
+function _ox(bx){return bx+(_cropInfo?_cropInfo.startX:0);}
+function _oy(by){return by+(_cropInfo?_cropInfo.startY:0);}
+
+// ── 邏輯棋盤 & 圍棋規則（與 index.html 完全一致）────────────────
+function initLogicBoard(s){
+  _boardSize=s;_koPoint=null;
+  _logicBoard=Array.from({length:s},()=>Array(s).fill(null));
+}
+function placeStoneLogic(x,y,c){_logicBoard[x][y]=c;}
+function getNeighbors(x,y){return[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[x+dx,y+dy]).filter(([nx,ny])=>nx>=0&&ny>=0&&nx<_boardSize&&ny<_boardSize);}
+function getGroup(x,y,color){const vis=new Set(),stack=[[x,y]],g=[];while(stack.length){const[cx,cy]=stack.pop(),k=cx+','+cy;if(vis.has(k))continue;vis.add(k);if(_logicBoard[cx][cy]!==color)continue;g.push({x:cx,y:cy});getNeighbors(cx,cy).forEach(([nx,ny])=>{if(!vis.has(nx+','+ny))stack.push([nx,ny]);});}return g;}
+function countLiberties(g){const s=new Set();g.forEach(({x,y})=>getNeighbors(x,y).forEach(([nx,ny])=>{if(_logicBoard[nx][ny]===null)s.add(nx+','+ny);}));return s.size;}
+function applyCaptures(x,y,color){const opp=color==='B'?'W':'B',cap=[];getNeighbors(x,y).forEach(([nx,ny])=>{if(_logicBoard[nx][ny]===opp){const g=getGroup(nx,ny,opp);if(countLiberties(g)===0)g.forEach(s=>{_logicBoard[s.x][s.y]=null;cap.push(s);});}});return cap;}
+function _wouldBeSuicide(x,y,color){
+  if(_logicBoard[x][y]!==null)return false;
+  const opp=color==='B'?'W':'B';
+  for(const[nx,ny]of getNeighbors(x,y)){
+    const s=_logicBoard[nx][ny];
+    if(s===null)return false;
+    if(s===opp){if(countLiberties(getGroup(nx,ny,opp))===1)return false;}
+    if(s===color){const g=getGroup(nx,ny,color);const libs=new Set();g.forEach(({x:gx,y:gy})=>getNeighbors(gx,gy).forEach(([lx,ly])=>{if(_logicBoard[lx][ly]===null)libs.add(lx+','+ly);}));libs.delete(x+','+y);if(libs.size>0)return false;}
+  }
+  return true;
+}
+function _countCapturesIfPlay(x,y,color){
+  const opp=color==='B'?'W':'B';const orig=_logicBoard[x][y];_logicBoard[x][y]=color;
+  let count=0;const seen=new Set();
+  for(const[nx,ny]of getNeighbors(x,y)){if(_logicBoard[nx][ny]!==opp)continue;const key=nx+','+ny;if(seen.has(key))continue;const g=getGroup(nx,ny,opp);g.forEach(s=>seen.add(s.x+','+s.y));if(countLiberties(g)===0)count+=g.length;}
+  _logicBoard[x][y]=orig;return count;
+}
+
+function _setLastMoveMarker(bx, by) {
+  if (!_board) return;
+  // 移除舊標記
+  if (_lastMoveMarker) {
+    _board.removeObject({ x: _lastMoveMarker.x, y: _lastMoveMarker.y,
+                          type: WGo.Board.drawHandlers.CR });
+  }
+  // 加上新標記
+  _board.addObject({ x: bx, y: by, type: WGo.Board.drawHandlers.CR });
+  _lastMoveMarker = { x: bx, y: by };
+}
+
+function playStone(x,y,color,skipRules){
+  if(_logicBoard[x][y]!==null)return false;
+  if(!skipRules){
+    if(_wouldBeSuicide(x,y,color))return 'suicide';
+    if(_koPoint&&_koPoint.x===x&&_koPoint.y===y){if(_countCapturesIfPlay(x,y,color)===1)return 'ko';}
+  }
+  placeStoneLogic(x,y,color);
+  const opp=color==='B'?'W':'B',cap=applyCaptures(x,y,color);
+  const newKo=(cap.length===1)?{x:cap[0].x,y:cap[0].y}:null;
+  _koPoint=newKo;
+  // WGo 視覺更新
+  cap.forEach(s=>_board.removeObject({x:_bx(s.x),y:_by(s.y),c:color==='B'?WGo.W:WGo.B}));
+  _board.addObject({x:_bx(x),y:_by(y),c:color==='B'?WGo.B:WGo.W});
+  _setLastMoveMarker(_bx(x), _by(y));  // 最後一手標記
+  return true;
+}
+
+// ── 音效（簡易版）────────────────────────────────────────────────
+function playCorrectSound(){try{const ac=new(window.AudioContext||window.webkitAudioContext)();[523,659,784,1047].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type='sine';o.frequency.value=f;const t=ac.currentTime+i*.1;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.start(t);o.stop(t+.4);});}catch(e){}}
+function playWrongSound(){try{const ac=new(window.AudioContext||window.webkitAudioContext)();[[180,'sawtooth'],[90,'square']].forEach(([f,type],i)=>{const o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type=type;o.frequency.value=f;const t=ac.currentTime+i*.15;g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.start(t);o.stop(t+.35);});}catch(e){}}
+
+// ── 棋盤渲染 ──────────────────────────────────────────────────────
+function renderBoard(problem) {
+  const wrap = document.getElementById('test-board-wrap');
+  wrap.innerHTML = '';
+
+  _curProblem  = problem;
+  _playerColor = problem.pl || 'B';
+  _testSolved  = false;
+  _testAnswering = false;
+  _lastMoveMarker = null;  // 新題目清除上一題的標記狀態
+
+  // 顯示執子顏色
+  const colorBadge = document.getElementById('test-player-color');
+  if (colorBadge) {
+    if (_playerColor === 'B') {
+      colorBadge.textContent = I18n.t('rt.colorBlack');
+      colorBadge.style.background = '#1c1409';
+      colorBadge.style.color = '#fff';
+      colorBadge.style.borderColor = '#1c1409';
+    } else {
+      colorBadge.textContent = I18n.t('rt.colorWhite');
+      colorBadge.style.background = '#fff';
+      colorBadge.style.color = '#1c1409';
+      colorBadge.style.borderColor = '#aaa';
+    }
+  }
+
+  const ci = calcCropSection(problem);
+  _cropInfo   = ci;
+  _boardSize  = problem.size;
+  initLogicBoard(problem.size);
+
+  // 讀取棋盤容器寬度（參考 index.html 做法）
+  let w = wrap.getBoundingClientRect().width || wrap.clientWidth || wrap.offsetWidth;
+  if (!w || w < 80) {
+    // fallback：用視窗寬度估算（單欄佈局，最大 820px panel - 48px padding）
+    const vpW = window.innerWidth;
+    w = Math.min(vpW - 64, 820) - 48;
+  }
+  w = Math.max(w, 280);  // 絕對最小值
+  console.log('[Board] w:', w, 'displayLines:', ci.displayLines, 'startX:', ci.startX, 'startY:', ci.startY);
+
+  // section 永遠用 -.5（與 index.html 相同），裁切靠 _bx/_by 座標偏移完成
+  _board = new WGo.Board(wrap, {
+    width: w, size: ci.displayLines,
+    section: { top: -.5, left: -.5, right: -.5, bottom: -.5 }
+  });
+  _board.addEventListener('click', onBoardClick);
+
+  // 初始棋子
+  problem.black.forEach(s => {
+    placeStoneLogic(s.x, s.y, 'B');
+    _board.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.B });
+  });
+  problem.white.forEach(s => {
+    placeStoneLogic(s.x, s.y, 'W');
+    _board.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.W });
+  });
+
+  // 設定答案樹起點
+  _currentNode = makeAnswerRoot(problem.tree);
+}
+
+function makeAnswerRoot(tree) {
+  if (!tree) return { move:null, color:null, children:[] };
+  return tree.move ? { move:null, color:null, children:[tree] } : tree;
+}
+
+// ── 點擊棋盤（測驗版：答錯直接結算，無探索模式）────────────────
+function onBoardClick(bx, by) {
+  if (_answered || _testSolved || _testAnswering) return;
+  const x = _ox(bx), y = _oy(by);
+  if (_logicBoard[x] && _logicBoard[x][y] !== null) return;  // 已有棋子
+
+  // 禁著點 / 打劫提示（不扣分，只提示）
+  if (_wouldBeSuicide(x, y, _playerColor)) return;
+  if (_koPoint && _koPoint.x===x && _koPoint.y===y &&
+      _countCapturesIfPlay(x,y,_playerColor)===1) return;
+
+  _playerMoves.push({ x, y });   // 記錄玩家落子（後端重放驗證用）
+
+  // 找對應的 SGF 答案子節點
+  const matched = _currentNode.children.find(c => c.move && c.move.x===x && c.move.y===y);
+
+  if (!matched) {
+    // ── 答錯 ──
+    playWrongSound();
+    playStone(x, y, _playerColor, true);   // 視覺上放棋子，skipRules=true
+    _testSolved = true;
+    submitMove('wrong');
+    return;
+  }
+
+  // ── 答對（這步）──
+  playStone(x, y, _playerColor, false);
+  _currentNode = matched;
+
+  if (_currentNode.children.length === 0) {
+    // 題目解完，全部正確
+    playCorrectSound();
+    _testSolved = true;
+    submitMove('correct');
+    return;
+  }
+
+  // 還有後續手：電腦自動回應（400ms 後）
+  _testAnswering = true;
+  stopTimer();  // 電腦思考中暫停計時
+  setTimeout(() => {
+    _testAnswering = false;
+    const reply = _currentNode.children[0];
+    if (!reply || !reply.move) {
+      // 無後續 → 也算答對
+      playCorrectSound();
+      _testSolved = true;
+      submitMove('correct');
+      return;
+    }
+    playStone(reply.move.x, reply.move.y, reply.color, true);
+    _currentNode = reply;
+    if (_currentNode.children.length === 0) {
+      playCorrectSound();
+      _testSolved = true;
+      submitMove('correct');
+    } else {
+      // 還有下一手 → 重置計時，繼續等待用戶點擊
+      startTimer();
+    }
+  }, 400);
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────
+const RING_CIRC = 2 * Math.PI * 33;  // r=33 → ~207.3
+
+function startTimer() {
+  _timerLeft = _timerSecs;
+  _answered  = false;
+  _questionStartedAt = Date.now();
+  _questionHiddenAt = 0;
+  _questionHiddenMs = 0;
+  const skip = document.getElementById('btn-skip');
+  if (skip) skip.disabled = false;
+  updateTimerUI();
+
+  armTimerInterval();
+}
+
+function armTimerInterval() {
+  clearInterval(_timerInt);
+  _timerInt = setInterval(() => {
+    _timerLeft--;
+    updateTimerUI();
+    if (_timerLeft <= 0) {
+      clearInterval(_timerInt);
+      submitMove('wrong');  // timeout → auto-wrong
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(_timerInt);
+}
+
+document.addEventListener('visibilitychange', () => {
+  const testing = !document.getElementById('screen-test').classList.contains('hidden');
+  if (!testing || _answered) return;
+  if (document.hidden) {
+    _questionHiddenAt = Date.now();
+    stopTimer();
+  } else {
+    if (_questionHiddenAt) _questionHiddenMs += Date.now() - _questionHiddenAt;
+    _questionHiddenAt = 0;
+    armTimerInterval();
+  }
+});
+
+function updateTimerUI() {
+  const ring  = document.getElementById('timer-ring');
+  const num   = document.getElementById('timer-num');
+  const limit = document.getElementById('timer-limit-label');
+  const pct   = _timerLeft / _timerSecs;
+  const offset = RING_CIRC * (1 - pct);
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = _timerLeft <= 5 ? '#dc2626' : _timerLeft <= 10 ? '#d97706' : '#0d9488';
+  num.textContent   = Math.max(0, _timerLeft);
+  num.style.color   = _timerLeft <= 5 ? '#dc2626' : '';
+  if (limit) limit.textContent = `/${_timerSecs}s`;
+}
+
+// ── Progress dots ────────────────────────────────────────────────────
+function renderDots() {
+  const wrap = document.getElementById('progress-dots');
+  wrap.innerHTML = '';
+  // 自適應模式：先畫到 MIN_ROUNDS，超過最少題數才逐顆長出（最多 TOTAL_ROUNDS）
+  const dotCount = _isPlacement ? TOTAL_ROUNDS
+    : Math.max(MIN_ROUNDS, Math.min(TOTAL_ROUNDS, _answers.length + 1));
+  for (let i = 0; i < dotCount; i++) {
+    const d = document.createElement('div');
+    d.className = 'progress-dot';
+    if (i < _answers.length) {
+      d.classList.add('done');
+    } else if (i === _round) {
+      d.classList.add('current');
+    }
+    wrap.appendChild(d);
+  }
+  document.getElementById('progress-num').textContent = `${_round} / ${TOTAL_ROUNDS}`;
+}
+
+function updateRatingUI(rating, rankLabel) {
+  _curRating = rating;
+  document.getElementById('cur-rating-disp').textContent = '—';
+  document.getElementById('cur-rank-disp').textContent   = I18n.t('rt.calibratingShort');
+}
+
+// ── Rating → rank label (mirror backend) ─────────────────────────────
+// ── 前端段位換算：與後端 _rating_to_rank 完全同步 ────────────────────
+function ratingToRank(r) {
+  const reps = [
+    [1100,'30k'],[1110,'29k'],[1120,'28k'],[1130,'27k'],[1140,'26k'],
+    [1150,'25k'],[1160,'24k'],[1170,'23k'],[1180,'22k'],[1190,'21k'],
+    [1200,'20k'],[1220,'19k'],[1240,'18k'],[1260,'17k'],[1280,'16k'],
+    [1300,'15k'],[1320,'14k'],[1340,'13k'],[1360,'12k'],[1380,'11k'],
+    [1400,'10k'],[1450,'9k'],[1480,'8k'],[1510,'7k'],[1540,'6k'],
+    [1570,'5k'],[1600,'4k'],[1630,'3k'],[1660,'2k'],[1700,'1k'],
+    [1800,'1d'],[1900,'2d'],[2000,'3d'],[2100,'4d'],[2200,'5d'],
+    [2350,'6d'],[2500,'7d+'],
+  ];
+  if (r < 1105) return '30k';
+  let best = reps[0][1];
+  for (let i=0;i<reps.length;i++) {
+    best = reps[i][1];
+    if (i + 1 < reps.length && r < (reps[i][0] + reps[i+1][0]) / 2) break;
+  }
+  return best;
+}
+
+// ── Main flow ─────────────────────────────────────────────────────────
+function showScreen(id) {
+  ['screen-intro','screen-test','screen-loading','screen-result','screen-placement-result'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.classList.toggle('hidden', s !== id);
+  });
+}
+
+async function startTest() {
+  document.getElementById('btn-start').disabled = true;
+  try {
+    // init_elo 優先順序：placement URL param > 試玩/placement 自報段位 > 一般測驗自報段位 > undefined
+    const _initElo = _isPlacement && _placementInitElo ? _placementInitElo
+                   : (_isPlacement && _selfFillElo) ? _selfFillElo
+                   : (!_isPlacement && _knownInitElo) ? _knownInitElo
+                   : undefined;
+    const res = await fetch('/api/rating_test/start', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        trigger: _isPlacement ? 'placement' : 'manual',
+        init_elo: _initElo,
+        exclude_question_ids: _recentQuestionIds()
+      })
+    }).then(r => r.json());
+
+    if (res.error) { alert(I18n.t('rt.errInit')); document.getElementById('btn-start').disabled=false; return; }
+
+    _sid       = res.session_id;
+    sessionStorage.setItem(_ratingStorageKey, _sid);
+    _round     = 0;
+    _answers   = [];
+    _curRating = res.cur_rating;
+    _curQ      = res.question;
+    if (res.total_rounds) TOTAL_ROUNDS = res.total_rounds;
+    if (res.min_rounds)   MIN_ROUNDS   = res.min_rounds;
+    updateRatingUI(_curRating, res.rank_label);
+
+    // 更新題庫規模顯示（從後端拿真實 pool 大小）
+    if (res.pool_size) {
+      const el = document.getElementById('pool-count');
+      if (el) el.textContent = res.pool_size.toLocaleString();
+    }
+
+    showScreen('screen-test');
+    // 等瀏覽器完成 layout 後再渲染棋盤，避免 offsetWidth=0
+    requestAnimationFrame(() => requestAnimationFrame(() => loadTestQuestion(_curQ)));
+  } catch(e) {
+    console.error(e);
+    document.getElementById('btn-start').disabled = false;
+    alert(I18n.t('rt.errConn'));
+  }
+}
+
+function loadTestQuestion(q) {
+  _answered = false;
+  _curQ     = q;
+  _playerMoves = [];
+  _rememberQuestionId(q.id);
+
+  // Update labels（正式自適應模式顯示最少～最多題數）
+  const dispRound = _round + 1;
+  const tLabel = (_isPlacement || MIN_ROUNDS >= TOTAL_ROUNDS)
+    ? TOTAL_ROUNDS : `${MIN_ROUNDS}~${TOTAL_ROUNDS}`;
+  document.getElementById('test-round-label').textContent =
+    I18n.t('rt.roundLabel').replace('{n}', dispRound).replace('{t}', tLabel);
+  const discCfg = DISC_CONFIG[q.discipline] || {};
+  document.getElementById('test-disc-badge').textContent =
+    (discCfg.icon || '') + ' ' + _discName(q.discipline);
+
+  renderDots();
+
+  // Parse SGF & render board
+  const problem = parseSGF((q.content || '').trim());
+  if (problem) renderBoard(problem);
+
+  // 動態計時：依難度決定秒數
+  _timerSecs = _ratingToSecs(q.rating);
+
+  // Start timer
+  startTimer();
+
+  // Clear feedback
+  const ff = document.getElementById('feedback-flash');
+  ff.className = 'feedback-flash';
+  ff.textContent = '';
+}
+
+async function submitMove(result) {
+  // result = 'correct' | 'wrong' | '' (timeout)
+  if (_answered) return;
+  _answered = true;
+  stopTimer();
+  const skip = document.getElementById('btn-skip');
+  if (skip) skip.disabled = true;
+
+  let correct = (result === 'correct');
+  // moves：玩家落子序列 → 後端在 SGF 樹上重放做權威判定（防作弊 + 多正解容錯）
+  const payload = {
+    session_id: _sid,
+    question_id: _curQ.id,
+    question_token: _curQ.token,
+    correct,
+    moves: _playerMoves,
+    response_ms: Math.max(0, Date.now() - _questionStartedAt - _questionHiddenMs),
+  };
+
+  try {
+    const res = await fetch('/api/rating_test/answer', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+
+    if (res.error) {
+      console.error(res.error);
+      if (!await resumeRatingTest()) {
+        _answered = false;
+        startTimer();
+        alert(I18n.t('rt.errConn'));
+      }
+      return;
+    }
+
+    // 採用後端判定（可能把 KataGo 認可的另一個正解改判為對）
+    if (typeof res.correct === 'boolean') correct = res.correct;
+
+    _answers.push({ correct, discipline: _curQ.discipline, q_rating: _curQ.rating });
+    _round++;
+
+    // ── Placement 前端強制停止（備援：後端若未返回 finished=true，前端自行結束）──
+    // TRIAL 不呼叫 placement_finish（需登入；匿名 session 由 rt_answer 標 completed，
+    // 帳號落地留待註冊後 claim_anon）
+    if (!TRIAL && _isPlacement && _round >= TOTAL_ROUNDS && !res.finished) {
+      // 呼叫專用端點確保 Elo 被寫入 DB，再展示結果畫面
+      try {
+        const fr = await fetch('/api/rating_test/placement_finish', {
+          method: 'POST', credentials: 'include',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({session_id: _sid})
+        }).then(r => r.json());
+        if (fr.ok) {
+          res.cur_rating  = fr.cur_rating;
+          res.rank_label  = fr.rank_label;
+          res.finished    = true;
+        }
+      } catch(e) { console.warn('[Placement] placement_finish 呼叫失敗:', e); }
+    }
+
+    // Show feedback flash with rating_change + streak
+    const ff = document.getElementById('feedback-flash');
+    ff.className = 'feedback-flash show';
+    ff.textContent = I18n.t('rt.recorded');
+
+    updateRatingUI(res.cur_rating, res.rank_label);
+    renderDots();
+
+    if (res.finished) {
+      sessionStorage.removeItem(_ratingStorageKey);
+      if (_isPlacement) {
+        setTimeout(() => handlePlacementDone(res), 900);
+      } else {
+        setTimeout(() => { showScreen('screen-loading'); setTimeout(() => loadResult(), 1200); }, 900);
+      }
+    } else {
+      setTimeout(() => {
+        _curQ = res.question;
+        requestAnimationFrame(() => loadTestQuestion(_curQ));
+      }, 1100);
+    }
+  } catch(e) {
+    console.error(e);
+    if (!await resumeRatingTest()) {
+      _answered = false;
+      startTimer();
+      alert(I18n.t('rt.errConn'));
+    }
+  }
+}
+
+// ── Result rendering ────────────────────────────────────────────────
+let _resultData = null;
+
+async function loadResult() {
+  try {
+    const res = await fetch(`/api/rating_test/result/${_sid}`, {credentials:'include'})
+      .then(r => r.json());
+    _resultData = res;
+    renderResult(res);
+    showScreen('screen-result');
+  } catch(e) {
+    console.error(e);
+    showScreen('screen-result');
+  }
+}
+
+function renderResult(d) {
+  const finalRating = Math.round(d.final_rating);
+  const initRating  = Math.round(d.init_rating);
+  const delta       = finalRating - initRating;
+
+  // Rating badge
+  document.getElementById('res-elo').textContent  = finalRating;
+  document.getElementById('res-rank').textContent =
+    `${d.provisional ? I18n.t('rt.provisional') + ' · ' : ''}${rankToHuman(d.rank_label)}`;
+
+  // 信賴區間 + 收斂提示（自適應測驗回傳 rank_range / converged）
+  let ciEl = document.getElementById('res-ci');
+  if (!ciEl) {
+    ciEl = document.createElement('div');
+    ciEl.id = 'res-ci';
+    ciEl.style.cssText = 'font-size:12px;color:#8a7458;margin-top:4px;';
+    document.getElementById('res-rank').insertAdjacentElement('afterend', ciEl);
+  }
+  if (Array.isArray(d.rank_range) && d.rank_range.length === 2) {
+    const lo = rankToHuman(d.rank_range[0]), hi = rankToHuman(d.rank_range[1]);
+    let txt = (lo === hi)
+      ? I18n.t('rt.ciExact').replace('{r}', lo)
+      : I18n.t('rt.ciRange').replace('{a}', lo).replace('{b}', hi);
+    if (d.converged === false) txt += '　' + I18n.t('rt.ciRetry');
+    ciEl.textContent = txt;
+    ciEl.style.display = '';
+  } else {
+    ciEl.style.display = 'none';
+  }
+
+  // Stats chips
+  const deltaEl = document.getElementById('res-delta');
+  deltaEl.textContent = (delta >= 0 ? '+' : '') + delta + ' ' + I18n.t('rt.eloUnit');
+  deltaEl.className   = 'rating-delta ' + (delta >= 0 ? 'up' : 'down');
+
+  const totalAnswers  = d.answers.length;
+  const correctCount  = d.answers.filter(a => a.correct).length;
+  document.getElementById('res-acc').textContent = `${correctCount}/${totalAnswers} (${Math.round(correctCount/totalAnswers*100)}%)`;
+  document.getElementById('res-rounds').textContent = totalAnswers;
+
+  // Disc breakdown
+  const discBreak = document.getElementById('disc-breakdown');
+  discBreak.innerHTML = '';
+  Object.entries(d.disc_stats).forEach(([disc, s]) => {
+    const cfg = DISC_CONFIG[disc] || { icon:'⚪', color:'#999' };
+    const acc = s.total > 0 ? s.correct / s.total : 0;
+    const accPct = Math.round(acc * 100);
+    const accClass = accPct >= 70 ? 'acc-high' : accPct >= 40 ? 'acc-mid' : 'acc-low';
+    discBreak.innerHTML += `
+      <div class="disc-row">
+        <div class="disc-icon-sm">${cfg.icon || '⚪'}</div>
+        <div class="disc-row-name">${_discName(disc)}</div>
+        <div class="disc-row-count">${s.correct}/${s.total}</div>
+        <div class="disc-row-acc ${accClass}">${accPct}%</div>
+      </div>`;
+  });
+
+  // Radar chart
+  renderRadar(d.radar, d.disc_stats);
+
+  // AI diagnosis
+  renderDiagnosis(d, correctCount, totalAnswers, finalRating);
+
+  // Weak discipline CTA
+  const trainBtn = document.getElementById('btn-train-weak');
+  if (d.weakest_disc) {
+    // 不指定 stage → 練習該學科全部題目，讓 SRS 依棋力自動出題
+    // 傳入 elo 讓練習頁面從對應難度開始，強者不再從新手村開始
+    trainBtn.href = `/?discipline=${d.weakest_disc}&resume=1&elo=${Math.round(finalRating)}`;
+    setIconLabel(trainBtn, '/assets/rating_test/icons/training_scroll.png', I18n.t('rt.trainSuffix').replace('{name}', _discName(d.weakest_disc)));
+    trainBtn.style.display = '';
+  } else {
+    // 全對 → 沒有真正的弱項，改推「挑戰更難題目」
+    trainBtn.href = `/?resume=1&elo=${Math.round(finalRating)}`;
+    setIconLabel(trainBtn, '/assets/rating_test/icons/training_scroll.png', I18n.t('rt.trainAll'));
+    trainBtn.style.display = '';
+  }
+}
+
+function rankToHuman(r) {
+  if (!r) return I18n.t('rt.rankUnknown');
+  if (r.endsWith('k+')) return I18n.t('rt.kyuPlus').replace('{n}', r.replace('k+',''));
+  if (r.endsWith('k'))  return I18n.t('rt.kyu').replace('{n}', r.replace('k',''));
+  if (r.endsWith('d+')) return I18n.t('rt.danPlus').replace('{n}', r.replace('d+',''));
+  if (r.endsWith('d'))  return I18n.t('rt.dan').replace('{n}', r.replace('d',''));
+  return r;
+}
+
+function renderRadar(radar, discStats) {
+  const chart = echarts.init(document.getElementById('radar-chart'));
+  // 雷達圖已在後端合併近 30 天日常答題 → 以 radar 的學科為準（可能多於本場學科）
+  const discs = Object.keys(radar || {}).length ? Object.keys(radar) : Object.keys(discStats);
+  const indicators = discs.map(d => ({
+    name: _discName(d),
+    max: 100
+  }));
+  const values = discs.map(d => radar[d] || 0);
+
+  chart.setOption({
+    radar: {
+      indicator: indicators,
+      shape: 'polygon',
+      splitNumber: 4,
+      axisName: { fontSize: 10, color: '#6b5740' },
+      splitArea: { areaStyle: { color: ['#faf7f2','#f3ede3','#ede4d4','#e5ddd0'] } },
+      splitLine: { lineStyle: { color: '#d4c9b8' } },
+    },
+    series: [{
+      type: 'radar',
+      data: [{
+        value: values,
+        name: I18n.t('rt.radarSeries'),
+        areaStyle: { color: 'rgba(13,148,136,.18)' },
+        lineStyle: { color: '#0d9488', width: 2 },
+        itemStyle: { color: '#0d9488' },
+        symbol: 'circle', symbolSize: 5,
+      }]
+    }],
+    tooltip: { trigger: 'item' },
+  });
+}
+
+function renderDiagnosis(d, correct, total, rating) {
+  const disc_stats = d.disc_stats;
+  const weakest = d.weakest_disc;
+  const strongest = Object.entries(disc_stats).sort((a,b) =>
+    (b[1].total ? b[1].correct/b[1].total : 0) -
+    (a[1].total ? a[1].correct/a[1].total : 0)
+  )[0]?.[0];
+
+  const wName = weakest   ? _discName(weakest)   : '';
+  const sName = strongest ? _discName(strongest) : '';
+
+  const wAcc = weakest && disc_stats[weakest] ?
+    Math.round(disc_stats[weakest].correct / disc_stats[weakest].total * 100) : 0;
+  const sAcc = strongest && disc_stats[strongest] ?
+    Math.round(disc_stats[strongest].correct / disc_stats[strongest].total * 100) : 0;
+
+  // 優先用後端回傳的 rank_label，保持與結果頁面一致
+  const rankLabel = d.rank_label || ratingToRank(rating);
+  const rankHuman = rankToHuman(rankLabel);
+  const eloR = Math.round(rating);
+  let text = '';
+  const accPct = total > 0 ? Math.round(correct / total * 100) : 0;
+
+  if (correct === total) {
+    text = I18n.t('rt.diag.allCorrect').replace('{t}', total).replace('{rank}', rankHuman).replace('{elo}', eloR);
+  } else if (correct === 0) {
+    text = I18n.t('rt.diag.zero');
+  } else {
+    // 根據答對率給不同的激勵語
+    const encKey = accPct >= 75 ? 'rt.diag.enc75' : accPct >= 50 ? 'rt.diag.enc50' : 'rt.diag.encLow';
+    const encouragement = I18n.t(encKey).replace('{c}', correct).replace('{t}', total).replace('{p}', accPct);
+
+    text = I18n.t('rt.diag.main').replace('{rank}', rankHuman).replace('{elo}', eloR).replace('{enc}', encouragement);
+
+    if (strongest && sName) {
+      text += I18n.t('rt.diag.strong').replace('{name}', sName).replace('{acc}', sAcc);
+    }
+    if (weakest && wName && weakest !== strongest) {
+      // 特別處理 0% 的情況（可能題目太難或只有 1 題）
+      const detail = wAcc === 0
+        ? I18n.t('rt.diag.weakZero')
+        : I18n.t('rt.diag.weakAcc').replace('{acc}', wAcc);
+      text += I18n.t('rt.diag.weak').replace('{name}', wName).replace('{detail}', detail);
+    }
+  }
+
+  document.getElementById('diag-text').innerHTML = text;
+}
+
+// ── SP Claim ──────────────────────────────────────────────────────────
+async function claimSP() {
+  if (TRIAL) return;   // 試玩無帳號，不可兌換 SP（claim_sp 需登入）
+  const btn = document.getElementById('btn-claim-sp');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/rating_test/claim_sp', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: _sid})
+    }).then(r => r.json());
+
+    const toast = document.getElementById('sp-toast');
+    if (res.claimed) {
+      toast.textContent = I18n.t('rt.claimDone').replace('{n}', res.sp_added);
+      setIconLabel(btn, '/assets/rating_test/icons/skill_point_crystal.png', I18n.t('rt.btnClaimed'));
+    } else {
+      toast.textContent = I18n.t('rt.claimAlready');
+    }
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  } catch(e) { btn.disabled = false; }
+}
+
+// ── Certificate Canvas ────────────────────────────────────────────────
+async function drawCertificate() {
+  if (!_resultData) return;
+  await document.fonts.ready;
+
+  const canvas = document.getElementById('cert-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W = 800, H = 500;
+  canvas.width = W; canvas.height = H;
+
+  const loadImg = src => new Promise(res => {
+    const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null);
+    img.src = src;
+  });
+  const [bgImg, sealImg] = await Promise.all([
+    loadImg('/assets/rating_test/cert_background.webp'),
+    loadImg('/assets/rating_test/seal_astrolabe.webp'),
+  ]);
+
+  // Background
+  if (bgImg) {
+    ctx.drawImage(bgImg, 0, 0, W, H);
+  } else {
+    const g = ctx.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,'#f5e9c8'); g.addColorStop(1,'#ede0b0');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  }
+
+  const isEn = I18n.getLang() === 'en';
+  ctx.textAlign = 'center';
+
+  // Header title
+  ctx.save();
+  ctx.fillStyle = 'rgba(80,45,10,.65)';
+  ctx.font = `600 ${isEn ? 12 : 13}px "DM Sans", sans-serif`;
+  ctx.letterSpacing = '2px';
+  ctx.fillText(I18n.t('rt.certHeader'), W/2, 108);
+  ctx.restore();
+
+  // Thin rule
+  ctx.save();
+  ctx.strokeStyle = 'rgba(138,90,20,.35)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W*.24, 122); ctx.lineTo(W*.76, 122); ctx.stroke();
+  ctx.restore();
+
+  // ELO number
+  ctx.save();
+  ctx.fillStyle = '#5a320a';
+  ctx.font = 'bold 108px "Cormorant Garamond", serif';
+  ctx.fillText(Math.round(_resultData.final_rating), W/2, 264);
+  ctx.restore();
+
+  // Rank
+  ctx.save();
+  ctx.fillStyle = '#3a2008';
+  ctx.font = 'bold 30px "DM Sans", sans-serif';
+  ctx.fillText(rankToHuman(_resultData.rank_label), W/2, 308);
+  ctx.restore();
+
+  // Divider
+  ctx.save();
+  ctx.strokeStyle = 'rgba(138,90,20,.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W*.30, 330); ctx.lineTo(W*.70, 330); ctx.stroke();
+  ctx.restore();
+
+  // Subtitle
+  ctx.save();
+  ctx.fillStyle = 'rgba(58,32,8,.62)';
+  ctx.font = `400 13px "DM Sans", sans-serif`;
+  ctx.fillText(I18n.t('rt.certSub'), W/2, 360);
+  ctx.restore();
+
+  // Date
+  const today = new Date().toLocaleDateString(isEn ? 'en-US' : 'zh-TW');
+  ctx.save();
+  ctx.fillStyle = 'rgba(58,32,8,.50)';
+  ctx.font = '400 12px "DM Sans", sans-serif';
+  ctx.fillText(I18n.t('rt.certDate').replace('{d}', today), W/2, 386);
+  ctx.restore();
+
+  // Seal — multiply blend so white background disappears over parchment
+  if (sealImg) {
+    const SZ = 130;
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.58;
+    ctx.drawImage(sealImg, W - SZ - 88, H - SZ - 58, SZ, SZ);
+    ctx.restore();
+  }
+
+  document.getElementById('cert-modal').classList.remove('hidden');
+}
+
+function downloadCertificate() {
+  const canvas = document.getElementById('cert-canvas');
+  const link   = document.createElement('a');
+  link.download = I18n.t('rt.certFile').replace('{n}', Math.round(_resultData?.final_rating || 0)) + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ── Event listeners ──────────────────────────────────────────────────
+document.getElementById('btn-start').addEventListener('click', startTest);
+const _savedRatingSid = sessionStorage.getItem(_ratingStorageKey);
+if (_savedRatingSid) {
+  _sid = _savedRatingSid;
+  resumeRatingTest().then(ok => {
+    if (!ok) sessionStorage.removeItem(_ratingStorageKey);
+  });
+}
+document.getElementById('btn-claim-sp').addEventListener('click', claimSP);
+document.getElementById('btn-cert').addEventListener('click', drawCertificate);
+document.getElementById('cert-close').addEventListener('click', () => {
+  document.getElementById('cert-modal').classList.add('hidden');
+});
+document.getElementById('cert-download').addEventListener('click', downloadCertificate);
+document.getElementById('btn-retry').addEventListener('click', () => {
+  _sid = null; _answers = []; _round = 0;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-claim-sp').disabled = false;
+  setIconLabel(document.getElementById('btn-claim-sp'), '/assets/rating_test/icons/skill_point_crystal.png', I18n.t('rt.btnClaim'));
+  showScreen('screen-intro');
+});
+
+// Initialize progress dots
+renderDots();
+
+// ── 切換語言時重繪 JS 動態內容（apply() 已先處理 data-i18n 靜態元素）──
+window.onLangChange = function () {
+  try {
+    // NPC 台詞（維持同一句，換語言版本）
+    const npcEl = document.getElementById('npc-line');
+    if (npcEl) npcEl.textContent = _npcText(_npcIdx);
+
+    // 開始按鈕：placement / 已選自報段位時為動態文字，需重繪
+    if (_isPlacement) {
+      setStartButtonLabel(I18n.t('rt.plStart'));
+    } else if (_knownRankName) {
+      const sel = document.querySelector('#known-rank-opts .rank-opt.selected .ron');
+      const ron = sel ? sel.textContent : _knownRankName;
+      _knownRankName = ron;
+      setStartButtonLabel(I18n.t('rt.knownStart').replace('{r}', ron));
+    }
+
+    // 測驗畫面進行中：重繪題號 / 學科 / 執子顏色
+    if (!document.getElementById('screen-test').classList.contains('hidden') && _curQ) {
+      const rl = document.getElementById('test-round-label');
+      if (rl) rl.textContent = I18n.t('rt.roundLabel').replace('{n}', _round + 1).replace('{t}', TOTAL_ROUNDS);
+      const dc = DISC_CONFIG[_curQ.discipline] || {};
+      const db = document.getElementById('test-disc-badge');
+      if (db) db.textContent = (dc.icon || '') + ' ' + _discName(_curQ.discipline);
+      const cb = document.getElementById('test-player-color');
+      if (cb && (cb.textContent || '').trim() !== '—') {
+        cb.textContent = _playerColor === 'B' ? I18n.t('rt.colorBlack') : I18n.t('rt.colorWhite');
+      }
+    }
+
+    // 結果畫面：整塊重繪
+    if (!document.getElementById('screen-result').classList.contains('hidden') && _resultData) {
+      renderResult(_resultData);
+    }
+    // Placement 結果畫面：重繪段位/訊息
+    if (!document.getElementById('screen-placement-result').classList.contains('hidden') && _placementRes) {
+      handlePlacementDone(_placementRes);
+    }
+  } catch (e) { console.warn('[i18n] onLangChange 重繪失敗:', e); }
+};
+
+// 頁面載入時從後端取得真實題庫規模
+(async () => {
+  try {
+    const res = await fetch('/api/rating_test/pool_info').then(r => r.json());
+    if (res.pool_size) {
+      const el = document.getElementById('pool-count');
+      if (el) el.textContent = res.pool_size.toLocaleString();
+    }
+  } catch(e) { /* 失敗靜默，維持預設數字 */ }
+})();
+</script>
+<script src="/sound.js?v=2"></script>
+</body>
+</html>

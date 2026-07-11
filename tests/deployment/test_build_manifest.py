@@ -56,7 +56,13 @@ def test_manifest_contains_no_secret_values():
         )
 
 
-def test_manifest_pending_inputs_documented_with_reason():
+def test_manifest_external_content_boundary_documented():
     data = load_manifest()
-    for item in data["build_inputs"]["required_but_not_yet_vendored"]:
-        assert "path" in item and "reason" in item and "required_by" in item
+    for item in data["build_inputs"]["external_content_boundary"]["entries"]:
+        assert "path" in item and "treatment" in item and "mount_contract" in item and "absent_behavior" in item
+
+
+def test_manifest_permanent_exclusions_documented_with_reason():
+    data = load_manifest()
+    for item in data["build_inputs"]["excluded_permanently"]["entries"]:
+        assert "path" in item and "reason" in item
