@@ -1,0 +1,27 @@
+/* E9 Adventure Shell — responsive breakpoints. Stacks to a single column
+   below tablet width; desktop keeps the 3-column body (nav / stage / cards). */
+@media (max-width: 1024px) {
+  #e9-adventure-shell .e9-body {
+    flex-direction: column;
+  }
+  .e9-nav,
+  .e9-cards {
+    width: 100%;
+  }
+  .e9-nav__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .e9-hud {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .e9-dock {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E9.1A1 Adventure Shell — Foundation Demo (standalone, not production)</title>
+<link rel="stylesheet" href="css/e9/shell.css">
+<link rel="stylesheet" href="css/e9/top_hud.css">
+<link rel="stylesheet" href="css/e9/navigation.css">
+<link rel="stylesheet" href="css/e9/cards.css">
+<link rel="stylesheet" href="css/e9/world_stage.css">
+<link rel="stylesheet" href="css/e9/rwd.css">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #f4f1ea; color: #222; }
+  .e9-spike-banner { background: #b00020; color: #fff; text-align: center; font-size: 12px; padding: 4px; }
+  #e9-flag-status { position: fixed; bottom: 4px; left: 4px; font: 10px monospace;
+    background: rgba(0,0,0,0.7); color: #0f0; padding: 4px 6px; border-radius: 4px; max-width: 90vw;
+    overflow-wrap: anywhere; z-index: 999; }
+</style>
+</head>
+<body>
+  <div class="e9-spike-banner">
+    STAGE A — standalone foundation demo. Not linked from index.html, not wired to production data.
+    Toggle on a debug host with e.g. ?E9_DEBUG=1&amp;e9RightCards=0 (query overrides only work on localhost/.local/.test hosts)
+  </div>
+
+  <!-- This block matches exactly what E9.1A2 will add to index.html
+       (see shell.js SHELL_SELECTOR / SLOTS). GO_ODYSSEY_FEATURES here
+       stands in for the production static config file. -->
+  <script>
+    window.GO_ODYSSEY_FEATURES = {
+      e9Shell: true,
+      e9TopHud: true,
+      e9LeftNav: true,
+      e9RightCards: true,
+      e9BottomDock: true,
+      e9WorldStage: true
+    };
+  </script>
+
+  <div id="e9-adventure-shell">
+    <div id="e9-top-hud-slot"></div>
+    <div class="e9-body">
+      <div id="e9-left-nav-slot"></div>
+      <main id="e9-world-stage-slot"></main>
+      <aside id="e9-right-cards-slot"></aside>
+    </div>
+    <div id="e9-bottom-dock-slot"></div>
+  </div>
+
+  <div id="e9-flag-status"></div>
+
+  <script src="js/e9/feature_flags.js"></script>
+  <script src="js/e9/component_loader.js"></script>
+  <script src="js/e9/top_hud.js"></script>
+  <script src="js/e9/left_nav.js"></script>
+  <script src="js/e9/right_cards.js"></script>
+  <script src="js/e9/bottom_dock.js"></script>
+  <script src="js/e9/world_stage.js"></script>
+  <script src="js/e9/shell.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var status = document.getElementById('e9-flag-status');
+      if (status && window.E9 && window.E9.getFlags) {
+        status.textContent = 'Flags: ' + JSON.stringify(window.E9.getFlags());
+      }
+    });
+  </script>
+</body>
+</html>

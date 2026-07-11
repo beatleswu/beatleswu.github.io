@@ -1,0 +1,71 @@
+/* E9 Adventure Shell — layout grid. Loaded unconditionally (cheap, inert
+   when #e9-adventure-shell stays hidden). Keeps critical layout available
+   before any component fragment has arrived, to avoid FOUC once the shell
+   flag is on. */
+
+#e9-adventure-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+}
+
+#e9-adventure-shell[hidden] {
+  display: none;
+}
+
+#e9-adventure-shell .e9-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+
+#e9-top-hud-slot,
+#e9-left-nav-slot,
+#e9-right-cards-slot,
+#e9-bottom-dock-slot,
+#e9-world-stage-slot {
+  box-sizing: border-box;
+}
+
+#e9-world-stage-slot {
+  flex: 1;
+  min-width: 0;
+}
+
+.e9-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.e9-component-skeleton {
+  min-height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--e9-skel-a, #e8e4d8) 25%, var(--e9-skel-b, #f5f2e9) 37%, var(--e9-skel-a, #e8e4d8) 63%);
+  background-size: 400% 100%;
+  animation: e9-skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes e9-skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+.e9-component-fallback {
+  padding: 12px;
+  border: 1px dashed var(--e9-border-color, #999);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--e9-muted-color, #888);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e9-component-skeleton {
+    animation: none;
+  }
+}

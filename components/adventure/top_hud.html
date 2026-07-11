@@ -1,0 +1,19 @@
+<!--
+  Component: Top HUD
+  Stable root id: top-hud  (Rule #6 — do not rename)
+  Data contract (placeholder only — no new API this sprint):
+    window.E9_MOCK_DATA.player = { name, rank_level, go_rank, coins, streak, premium }
+  Real sources when wired: /api/skills/profile, /api/user/coins
+-->
+<section id="top-hud" class="e9-hud" data-e9-component="top_hud" role="region" aria-label="Player status">
+  <div class="e9-hud__player">
+    <span class="e9-hud__avatar" id="top-hud-avatar">🧑</span>
+    <span class="e9-hud__name" id="top-hud-name">--</span>
+    <span class="e9-hud__rank" id="top-hud-rank">--</span>
+  </div>
+  <div class="e9-hud__resources">
+    <span class="e9-hud__coins" id="top-hud-coins" title="coins (real currency)">🪙 --</span>
+    <span class="e9-hud__streak" id="top-hud-streak" title="daily streak (status, not currency)">🔥 --</span>
+    <span class="e9-hud__premium" id="top-hud-premium" hidden>✨ Premium</span>
+  </div>
+</section>
