@@ -31,10 +31,13 @@ $archivePath = if ($ReleaseArchive) {
 } else {
     $null
 }
-$composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
-$nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
 $artifactBaseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
+$composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
+$healthcheckOverridePath = Join-Path ([System.IO.Path]::GetTempPath()) ("docker-compose.release.healthcheck.{0}.yml" -f $artifactBaseName)
+$nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
 $deploymentRecordPath = Join-Path (Split-Path -Parent $manifestPath) ("{0}.deployment.json" -f $artifactBaseName)
+$canonicalAppHealthcheck = Get-CanonicalAppHealthcheckDefinition
+Set-Content -LiteralPath $healthcheckOverridePath -Value (New-CanonicalAppHealthcheckOverrideYaml) -Encoding UTF8
 
 function Invoke-RemoteCommandResult {
     param(
@@ -147,6 +150,15 @@ function Get-RemoteContainerSnapshot {
     }
 }
 
+function Get-RemoteContainerHealthcheckTest {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $raw = Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '{{json .Config.Healthcheck.Test}}'"
+    if ([string]::IsNullOrWhiteSpace($raw) -or $raw -eq 'null') {
+        return @()
+    }
+    return @($raw | ConvertFrom-Json)
+}
+
 function Get-RemoteContainerEnvMap {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .Config.Env}}'"
@@ -252,6 +264,9 @@ cfg = json.loads(r'''__CANARY_CONFIG__''')
 source = cfg["source_container"]
 candidate = cfg["candidate_container"]
 image = cfg["image_tag"]
+healthcheck = cfg["healthcheck"]
+compose_path = cfg["compose_path"]
+project_name = cfg["project_name"]
 
 def run(args, check=True):
     proc = subprocess.run(args, text=True, capture_output=True)
@@ -273,55 +288,75 @@ def sanitize(text):
 raw = subprocess.check_output(["docker", "inspect", source], text=True)
 item = json.loads(raw)[0]
 config = item.get("Config") or {}
-host = item.get("HostConfig") or {}
 networks = list(((item.get("NetworkSettings") or {}).get("Networks") or {}).keys())
-primary_network = networks[0] if networks else "bridge"
 
-run(["docker", "rm", "-f", candidate], check=False)
-args = ["docker", "create", "--name", candidate, "--network", primary_network, "--restart", "no"]
+def yaml_scalar(value):
+    return json.dumps("" if value is None else value)
+
+def yaml_list(values, indent):
+    return "\n".join((" " * indent) + "- " + json.dumps(value) for value in values)
+
+env_map = {}
 for env in config.get("Env") or []:
     key, _, value = env.partition("=")
     if key and key != "HOSTNAME":
-        args.extend(["--env", env])
-if config.get("WorkingDir"):
-    args.extend(["--workdir", config["WorkingDir"]])
-if config.get("User"):
-    args.extend(["--user", config["User"]])
-if config.get("Entrypoint"):
-    args.extend(["--entrypoint", config["Entrypoint"][0] if isinstance(config["Entrypoint"], list) else config["Entrypoint"]])
-health = config.get("Healthcheck") or {}
-test = health.get("Test") or []
-if len(test) >= 2 and test[0] != "NONE":
-    if test[0] == "CMD-SHELL":
-        args.extend(["--health-cmd", test[1]])
-    elif test[0] == "CMD":
-        args.extend(["--health-cmd", " ".join(test[1:])])
-    for flag, key in (("--health-interval", "Interval"), ("--health-timeout", "Timeout"), ("--health-start-period", "StartPeriod")):
-        value = duration_arg(health.get(key))
-        if value:
-            args.extend([flag, value])
-    if health.get("Retries"):
-        args.extend(["--health-retries", str(health["Retries"])])
+        env_map[key] = value
+
+volume_lines = []
 for mount in item.get("Mounts") or []:
     mtype = mount.get("Type")
     source_path = mount.get("Name") if mtype == "volume" else mount.get("Source")
     dest = mount.get("Destination")
     if not mtype or not source_path or not dest:
         continue
-    option = f"type={mtype},src={source_path},dst={dest}"
-    if not mount.get("RW", True):
-        option += ",readonly"
-    args.extend(["--mount", option])
-args.append(image)
-cmd = config.get("Cmd")
-if isinstance(cmd, list):
-    args.extend(cmd)
-elif cmd:
-    args.append(cmd)
-run(args)
-for network in networks[1:]:
-    run(["docker", "network", "connect", network, candidate])
-run(["docker", "start", candidate])
+    suffix = ":ro" if not mount.get("RW", True) else ""
+    volume_lines.append(f'      - {json.dumps(source_path + ":" + dest + suffix)}')
+
+network_defs = []
+network_refs = []
+for network in networks:
+    network_refs.append(f"      - {network}")
+    network_defs.append(f"  {network}:")
+    network_defs.append(f"    external: true")
+    network_defs.append(f"    name: {network}")
+
+compose_lines = [
+    "services:",
+    "  candidate:",
+    f"    image: {json.dumps(image)}",
+    f"    container_name: {json.dumps(candidate)}",
+    "    restart: \"no\"",
+    "    environment:",
+]
+for key in sorted(env_map):
+    compose_lines.append(f"      {key}: {yaml_scalar(env_map[key])}")
+if config.get("WorkingDir"):
+    compose_lines.append(f"    working_dir: {yaml_scalar(config['WorkingDir'])}")
+if config.get("User"):
+    compose_lines.append(f"    user: {yaml_scalar(config['User'])}")
+if config.get("Entrypoint"):
+    compose_lines.append("    entrypoint:")
+    compose_lines.extend(yaml_list(config["Entrypoint"], 6).splitlines())
+if config.get("Cmd"):
+    compose_lines.append("    command:")
+    compose_lines.extend(yaml_list(config["Cmd"], 6).splitlines())
+compose_lines.append("    volumes:")
+compose_lines.extend(volume_lines)
+compose_lines.append("    networks:")
+compose_lines.extend(network_refs)
+compose_lines.append("    healthcheck:")
+compose_lines.append(f"      test: {json.dumps(healthcheck['test'])}")
+compose_lines.append(f"      interval: {healthcheck['interval']}")
+compose_lines.append(f"      timeout: {healthcheck['timeout']}")
+compose_lines.append(f"      retries: {healthcheck['retries']}")
+compose_lines.append(f"      start_period: {healthcheck['start_period']}")
+compose_lines.append("networks:")
+compose_lines.extend(network_defs)
+
+run(["docker", "rm", "-f", candidate], check=False)
+with open(compose_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(compose_lines) + "\n")
+run(["docker", "compose", "-p", project_name, "-f", compose_path, "up", "-d", "candidate"])
 
 health_status = "no-healthcheck"
 state_status = "unknown"
@@ -343,14 +378,26 @@ logs = subprocess.run(["docker", "logs", "--tail", "120", candidate], text=True,
 print(json.dumps({
     "candidate_container": candidate,
     "source_container": source,
+    "compose_project": project_name,
+    "compose_path": compose_path,
     "public_traffic_attached": False,
     "scheduler_started": False,
     "state": state_status,
     "health": health_status,
     "image_id": image_id,
+    "healthcheck_test": subprocess.check_output(["docker", "inspect", candidate, "--format", "{{json .Config.Healthcheck.Test}}"], text=True).strip(),
     "logs_tail": sanitize(logs.stdout + logs.stderr)[-8000:],
 }, ensure_ascii=False))
 '@
+    $payloadObject = @{
+        source_container = $SourceContainerName
+        candidate_container = $CandidateContainerName
+        image_tag = $ImageTag
+        healthcheck = $canonicalAppHealthcheck
+        compose_path = "/tmp/$CandidateContainerName.compose.yml"
+        project_name = ($CandidateContainerName -replace '[^a-zA-Z0-9_-]', '-')
+    }
+    $payload = $payloadObject | ConvertTo-Json -Compress -Depth 8
     $script = $script.Replace('__CANARY_CONFIG__', $payload)
     $result = Invoke-RemoteCommandResult -Name 'candidate_canary' -Command 'python3 -' -StdinText $script
     if ($result.exit_code -ne 0) {
@@ -360,7 +407,15 @@ print(json.dumps({
 }
 
 function Remove-RemoteCandidateCanary {
-    param([Parameter(Mandatory = $true)][string]$CandidateContainerName)
+    param(
+        [Parameter(Mandatory = $true)][string]$CandidateContainerName,
+        [string]$ComposeProjectName,
+        [string]$ComposePath
+    )
+    if (-not [string]::IsNullOrWhiteSpace($ComposeProjectName) -and -not [string]::IsNullOrWhiteSpace($ComposePath)) {
+        Invoke-RemoteText "docker compose -p $(Quote-PosixShellArgument $ComposeProjectName) -f $(Quote-PosixShellArgument $ComposePath) down --remove-orphans >/dev/null 2>&1 || true" | Out-Null
+        Invoke-RemoteText "rm -f $(Quote-PosixShellArgument $ComposePath) >/dev/null 2>&1 || true" | Out-Null
+    }
     Invoke-RemoteText "docker rm -f $(Quote-PosixShellArgument $CandidateContainerName) >/dev/null 2>&1 || true" | Out-Null
 }
 
@@ -690,6 +745,7 @@ if ($localImageSummary.sgf_engine_source_commit -ne $manifest.sgf_engine_source_
 $remoteArchivePath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($archivePath))
 $remoteManifestPath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($manifestPath))
 $remoteComposePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
+$remoteHealthcheckOverridePath = Join-RemotePath $layout.compose_directory 'docker-compose.release.healthcheck.override.yml'
 $remoteNginxPath = Join-RemotePath (Join-RemotePath $layout.compose_directory 'nginx') 'default.conf'
 $remoteDeploymentRecordPath = Join-RemotePath $layout.remote_release_staging_directory ([IO.Path]::GetFileName($deploymentRecordPath))
 $remoteArchiveSha = ''
@@ -715,6 +771,10 @@ try {
     & scp $composeFilePath "$($layout.ssh_alias):$remoteComposePath" | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed while transferring docker-compose.release.yml."
+    }
+    & scp $healthcheckOverridePath "$($layout.ssh_alias):$remoteHealthcheckOverridePath" | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        throw "scp failed while transferring docker-compose.release.healthcheck.override.yml."
     }
     & scp $nginxConfigPath "$($layout.ssh_alias):$remoteNginxPath" | Out-Host
     if ($LASTEXITCODE -ne 0) {
@@ -743,7 +803,7 @@ try {
     $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
     $nginxComposeService = if ([string]::IsNullOrWhiteSpace($nginxBefore.compose_service)) { $layout.nginx_service_name } else { $nginxBefore.compose_service }
     $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -DatabaseComponents $databaseComponents
-    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml config --services"
+    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
     $composeServiceList = [regex]::Split($composeServices, '\r?\n') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     foreach ($serviceName in @($appComposeService, $schedulerComposeService, $nginxComposeService)) {
         if ($composeServiceList -notcontains $serviceName) {
@@ -751,7 +811,7 @@ try {
         }
     }
 
-    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml config --images"
+    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --images"
     $composeImageMatches = ([regex]::Split($composeImages, '\r?\n') | Where-Object { $_.Trim() -eq $manifest.image_tag }).Count
     if ($composeImageMatches -lt 2) {
         throw "docker compose config did not resolve the exact release image for app and scheduler."
@@ -820,6 +880,10 @@ try {
     if ($candidateCanary.image_id -ne $ExpectedImageId) {
         throw "Candidate canary image ID does not match the release image ID."
     }
+    $candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)
+    if (($candidateHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)) {
+        throw "Candidate canary healthcheck is not the canonical exec-form contract."
+    }
     if ($candidateCanary.state -ne 'running') {
         throw "Candidate canary is not running. Sanitized logs: $($candidateCanary.logs_tail)"
     }
@@ -846,7 +910,7 @@ try {
     }
 
     $rollbackRequired = $true
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
@@ -854,6 +918,10 @@ try {
     }
     if ($appAfter.image_id -ne $ExpectedImageId) {
         throw "App container image ID does not match the release image ID."
+    }
+    $appHealthcheckTest = Get-RemoteContainerHealthcheckTest -ContainerName $layout.app_service_name
+    if (($appHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)) {
+        throw "App container healthcheck is not the canonical exec-form contract after the image switch."
     }
     if ($appAfter.health -ne 'healthy') {
         throw "App container is not healthy after the image switch."
@@ -871,7 +939,7 @@ try {
         throw "Daily challenge returned 503 after the app image switch."
     }
 
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
     $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
     if ($schedulerAfter.image_tag -ne $manifest.image_tag) {
@@ -900,7 +968,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed while updating the remote deployment record."
     }
-    Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName
+    Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path
 
     [ordered]@{
         dry_run = $false
@@ -937,7 +1005,7 @@ catch {
     $deploymentFailureMessage = $_.Exception.Message
     if ($candidateContainerName) {
         try {
-            Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName
+            Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $(if ($candidateCanary) { $candidateCanary.compose_project } else { '' }) -ComposePath $(if ($candidateCanary) { $candidateCanary.compose_path } else { '' })
         }
         catch {
         }
@@ -956,4 +1024,7 @@ catch {
         }
     }
     throw
+}
+finally {
+    Remove-Item -LiteralPath $healthcheckOverridePath -ErrorAction SilentlyContinue
 }

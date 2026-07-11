@@ -455,6 +455,8 @@ def test_deploy_script_supports_legacy_readiness_and_automatic_rollback():
         "legacy_fallback",
         "Get-AppReadinessGateReport",
         "Assert-QuestionsReportSatisfiesGate",
+        "Get-CanonicalAppHealthcheckDefinition",
+        "New-CanonicalAppHealthcheckOverrideYaml",
         "Get-RemoteRuntimeContract",
         "Start-RemoteCandidateCanary",
         "Get-RemoteContainerHttpStatus",
@@ -481,12 +483,13 @@ def test_deploy_script_orders_release_mutations_safely():
         "$candidateCanary = Start-RemoteCandidateCanary -SourceContainerName $layout.app_service_name",
         "if ($candidateCanary.public_traffic_attached -ne $false)",
         "if ($candidateCanary.scheduler_started -ne $false)",
+        "$candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)",
         "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
         "if ($candidateReadinessReport.healthz_status -ne '200'",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
-        "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName",
+        "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path",
     )
 
 
@@ -504,6 +507,34 @@ def test_deploy_script_persists_sanitized_runtime_contracts_for_rollback():
         assert token in content
     for token in ("full DATABASE_URL", "complete .env"):
         assert token not in content
+
+
+def test_canonical_app_healthcheck_contract_is_exec_form():
+    tooling = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    for token in (
+        "'CMD'",
+        "'python'",
+        "'-c'",
+        "127.0.0.1:8080/healthz",
+        "interval = '10s'",
+        "timeout = '5s'",
+        "retries = 12",
+        "start_period = '30s'",
+    ):
+        assert token in tooling
+    assert "args.extend([\"--health-cmd\", test[3]])" not in deploy
+
+
+def test_deploy_script_verifies_exec_form_healthcheck_for_canary_and_app():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    for token in (
+        "($candidateHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)",
+        "($appHealthcheckTest | ConvertTo-Json -Compress) -ne ($canonicalAppHealthcheck.test | ConvertTo-Json -Compress)",
+        "$remoteHealthcheckOverridePath",
+        "docker-compose.release.healthcheck.override.yml",
+    ):
+        assert token in content
 
 
 def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():

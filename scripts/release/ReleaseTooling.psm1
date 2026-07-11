@@ -257,11 +257,42 @@ function Ensure-Directory {
     }
 }
 
+function Get-CanonicalAppHealthcheckDefinition {
+    return [ordered]@{
+        test = @(
+            'CMD',
+            'python',
+            '-c',
+            "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=5)"
+        )
+        interval = '10s'
+        timeout = '5s'
+        retries = 12
+        start_period = '30s'
+    }
+}
+
+function New-CanonicalAppHealthcheckOverrideYaml {
+    $definition = Get-CanonicalAppHealthcheckDefinition
+    $testJson = ($definition.test | ConvertTo-Json -Compress)
+    return @"
+services:
+  app:
+    healthcheck:
+      test: $testJson
+      interval: $($definition.interval)
+      timeout: $($definition.timeout)
+      retries: $($definition.retries)
+      start_period: $($definition.start_period)
+"@
+}
+
 Export-ModuleMember -Function @(
     'Assert-ImageRevisionMatches',
     'Assert-OwnerGate',
     'Assert-TrackedTreeClean',
     'Ensure-Directory',
+    'Get-CanonicalAppHealthcheckDefinition',
     'Get-BooleanFlag',
     'Get-CurrentGitSha',
     'Get-ImageLabels',
@@ -271,6 +302,7 @@ Export-ModuleMember -Function @(
     'Get-ReleaseLayout',
     'Get-RepoRoot',
     'Get-ShortGitSha',
+    'New-CanonicalAppHealthcheckOverrideYaml',
     'Quote-PosixShellArgument',
     'Invoke-Git',
     'New-DetachedWorktree',
