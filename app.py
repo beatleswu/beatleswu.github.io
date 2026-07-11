@@ -9426,7 +9426,7 @@ def srs_review():
 
     qs_map = {q['id']: q for q in _load_questions()}
     q_info = qs_map.get(qid, {})
-    from premium_weekly import ITEM_RATING_VERSION, rank_to_rating
+    ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
 
     with get_db() as conn:
         player_row = conn.execute(
@@ -17256,7 +17256,7 @@ def admin_premium_weekly_review_metrics():
 @app.route('/api/admin/premium/weekly/reports/<int:report_id>/publish', methods=['POST'])
 @admin_required
 def admin_premium_weekly_publish(report_id):
-    from premium_weekly import MODEL_VERSION
+    _, MODEL_VERSION, _ = _load_premium_weekly_rating_helpers()
     now = datetime.datetime.now().isoformat()
     with get_db() as conn:
         release = conn.execute(
@@ -17288,7 +17288,7 @@ def admin_premium_weekly_publish(report_id):
 @app.route('/api/admin/premium/weekly/model-release', methods=['GET', 'POST'])
 @admin_required
 def admin_premium_weekly_model_release():
-    from premium_weekly import MODEL_VERSION
+    _, MODEL_VERSION, _ = _load_premium_weekly_rating_helpers()
     key = f'premium_weekly_release:{MODEL_VERSION}'
     minimum = max(1, int(os.environ.get('PREMIUM_WEEKLY_HOLDOUT_MIN_REPORTS', '20')))
     with get_db() as conn:
@@ -17498,6 +17498,35 @@ _SOUND_DIR = os.path.join(
     'sound'
 )
 LIVE_STATIC_ROOT_ENV_VAR = 'GO_ODYSSEY_LIVE_STATIC_ROOT'
+
+
+def _load_premium_weekly_rating_helpers():
+    """Load optional premium-weekly rating helpers with a safe fallback.
+
+    The premium-weekly feature is optional in the current production image.
+    If the module is absent, SRS writes should still work using the app's own
+    rank table instead of failing the whole review request.
+    """
+    try:
+        from premium_weekly import ITEM_RATING_VERSION, MODEL_VERSION, rank_to_rating
+        return ITEM_RATING_VERSION, MODEL_VERSION, rank_to_rating
+    except ImportError:
+        def rank_to_rating(rank_or_diff):
+            mapping = globals().get('_RANK_TO_RATING', {})
+            if rank_or_diff is None:
+                return None
+            key = str(rank_or_diff).strip()
+            if not key:
+                return None
+            if key in mapping:
+                return float(mapping[key])
+            try:
+                return float(key)
+            except (TypeError, ValueError):
+                return None
+
+        compat_version = 'premium-weekly-compat-missing-module'
+        return compat_version, compat_version, rank_to_rating
 
 # B9: root-level filenames eligible to be served from the live-static
 # release tree (/opt/go-odyssey-static/current) before falling back to
