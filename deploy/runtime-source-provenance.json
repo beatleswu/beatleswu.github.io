@@ -809,15 +809,15 @@
     },
     {
       "path": "db.py",
-      "source_commit": "b4bd6506f40898c283460b9b1220015aeb6d0d59",
-      "source_branch_or_local_ref": "recovered-production-tip-20260711 (or equivalent Graph A branch reachable from it)",
-      "source_commit_subject": "perf: PostgreSQL 連線池 + 全站靜態檢查死碼清理",
-      "source_date": "Wed Jun 10",
-      "content_sha256": "6b900f68fd57ff31a5b6b27cc4dac72f556e3edbdb8f90f86c7c52e553be947c",
+      "source_commit": "d34302752cf9149b872954a9068f9af9e2929f89",
+      "source_branch_or_local_ref": "codex/e25-shadow-dashboard-fast-track",
+      "source_commit_subject": "harden: add deployment readiness gate and runtime contract",
+      "source_date": "2026-07-11",
+      "content_sha256": "194d969e79f850a7ed74a2b8d3bebfda050dbc159f126e0af6b231b861d5251d",
       "line_ending_policy": "LF",
       "runtime_role": "startup-critical: app.py does `from db import get_db` -- PostgreSQL connection pool",
-      "production_hash_status": "verified byte-identical (LF-normalized) to Production",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "production_hash_status": "diverged from Production in this Sprint to add secret-safe readiness helpers",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; updated in Sprint"
     }
   ]
 }
