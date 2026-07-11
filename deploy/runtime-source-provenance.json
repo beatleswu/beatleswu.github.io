@@ -1,0 +1,151 @@
+{
+  "$schema_note": "No secret values are present in this file. Records Git provenance for runtime files recovered outside of the sgf_engine vendoring line. See sgf_engine/VENDORED_FROM.txt for that separate provenance record.",
+  "manifest_version": "1.0.0",
+  "line_ending_policy": "LF",
+  "source_status_definition": "local Git provenance -- not previously pushed to canonical origin. Every commit cited below exists only on local Graph A / Codex development branches (e.g. recovered-production-tip-20260711); none reached origin/master or any GitHub-reviewed pull request before this Sprint.",
+  "files": [
+    {
+      "path": "backend_i18n.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "51b149b4d0723df656b028eea29933e7d75fa80a570858d57a407807144e7bf7",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 35); runtime-critical -- app fails to start without it",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "chapter_i18n.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "b2fb0705801b5120ed4f986d12bfbc32b6c9f923145e99aa1b2fa1acd04b84b5",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 34); runtime-critical -- app fails to start without it",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "explain_overrides.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "bd54529f935418cb7e9236c31c4d4dfc040bb34fa860b84ddab9c01dc1593991",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 30); runtime-critical -- app fails to start without it",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "grimoire_api.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "f9a57262c0add4805a0c3bbce41abaf329dafe9849d2f6f47ffc5d811490e4d3",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 31, grimoire_bp Flask blueprint); runtime-critical -- app fails to start without it. Earliest identifiable organic development commit for this file is b4ebf529cf24ed3a39170591dcd022d473a33ef4 (2026-05-28, refactor: move tools/ scripts back to root directory), predating this recovery snapshot; content at that commit was superseded by feature work before the 2026-07-02 snapshot, which is the commit whose blob is byte-identical (LF-normalized) to the vendored content.",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "katago_explain.py",
+      "source_commit": "0a4c28677ce31acb58534a9867bdd25430003d99",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "chore: remove inherited conflict-marker-like underlines",
+      "source_date": "2026-07-02",
+      "content_sha256": "3a455d82e1fb3a8df2e5359fa6314f347986c68705190c96f2e3843dae02de82",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 29, KataGoExplainer); runtime-critical -- app fails to start without it. Commit message confirms: \"Replace five inherited top-level docstring underline lines... No app behavior, route, SGF, shadow, deploy, or production logic changes.\" -- a cosmetic-only fix applied after the 3e93104db recovery snapshot.",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "monster_taxonomy.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "c3cafd95a9efa57be5c122ce6b49cd0ce1fa8a544b84f101d1740b49f53058f7",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 33); runtime-critical -- app fails to start without it. Earliest identifiable organic development commit: b4ebf529cf24ed3a39170591dcd022d473a33ef4 (2026-05-28).",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "question_taxonomy.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "0f3121f7c7756b52b31e920f19e97e8d71018bfe09406570d2992b326e1e00bf",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py top-level import (line 32); runtime-critical -- app fails to start without it. Earliest identifiable organic development commit: 56a9a7ac7c5eb20a67ff19c81b4151db6b3e06bc (2026-06-12).",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "scheduler.py",
+      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
+      "source_date": "2026-07-02",
+      "content_sha256": "b318044398b3b4e838d58e18af14372f58d479c0ddf5d70789a135e1456ead7c",
+      "line_ending_policy": "LF",
+      "runtime_role": "docker-compose.prod.yml scheduler service entrypoint (command: python scheduler.py); scheduler-container-critical, not imported by app.py itself",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "tools/community_leaderboard_rewards_export_entries.py",
+      "source_commit": "e6b39a807e31a84f39048823f029e1d26192d004",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "test/tools: make reward operator tools repeatable",
+      "source_date": "2026-07-05",
+      "content_sha256": "fdbb9118730f6dda2ae96a88062fdbdee33ee562c280d5310eb1e22215b9ca2f",
+      "line_ending_policy": "LF",
+      "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "tools/community_leaderboard_rewards_manual.py",
+      "source_commit": "7ef6215e1bac8c3debea27c8ef12bc93c7abe607",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "test/rewards: add single failed weekly claim retry",
+      "source_date": "2026-07-06",
+      "content_sha256": "f381f5c7719eb49b193a892234705909e96b7c96673fae14182c4d8257d1c6ea",
+      "line_ending_policy": "LF",
+      "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "tools/community_leaderboard_rewards_real_grant_commit.py",
+      "source_commit": "8f4427b20af02ce88c799f709ddd38beec7b692a",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "test/rewards: bypass coin cap for leaderboard rewards",
+      "source_date": "2026-07-06",
+      "content_sha256": "2f00ea4800bf396c5f33662750aa4c2991b5ef8469c7d2ff86d1ce5ab1962ba8",
+      "line_ending_policy": "LF",
+      "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "tools/community_leaderboard_rewards_real_grant_preview.py",
+      "source_commit": "8f4427b20af02ce88c799f709ddd38beec7b692a",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "test/rewards: bypass coin cap for leaderboard rewards",
+      "source_date": "2026-07-06",
+      "content_sha256": "7da3180affbacf4beccb8aa05267412f8cba0e892392b3ed754044cea6294f32",
+      "line_ending_policy": "LF",
+      "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "community_leaderboard_rewards.py",
+      "source_commit": "130ac2330b253db5565dac9c5912c89c26ab8bf1",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711",
+      "source_commit_subject": "feat/rewards: add leaderboard reward rules UI",
+      "source_date": "2026-07-06",
+      "content_sha256": "42828b34d428412df466f5869faec1bea44bc5f9c0681ef5c8c2ba8e97ea6034",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all four tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin. This file was newly resolved in DEPLOY-GOV-2B-FIX; it was not part of PR #52's original 12-file candidate set and was previously entirely absent from this repository."
+    }
+  ]
+}

@@ -88,5 +88,7 @@ def test_vendored_files_have_no_cr_bytes():
 
 def test_gitattributes_enforces_lf_for_sgf_engine():
     gitattributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
-    assert "sgf_engine/**/*.py text eol=lf" in gitattributes
+    assert "*.py text eol=lf" in gitattributes, (
+        "a *.py rule (general or sgf_engine-scoped) must enforce LF for vendored engine files"
+    )
     assert "sgf_engine/VENDORED_FROM.txt text eol=lf" in gitattributes

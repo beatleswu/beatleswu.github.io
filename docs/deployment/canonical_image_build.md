@@ -20,6 +20,20 @@ for deployment-mechanism status, which this Sprint does not change.
 > the original, now-superseded finding and is retained for historical
 > record of what DEPLOY-GOV-2 actually found at the time.
 
+> **DEPLOY-GOV-2B-FIX status note (2026-07-11):** The 8 core runtime Python
+> modules and 4 leaderboard tooling scripts originally recovered as
+> "Production-matching copies" in DEPLOY-GOV-2 have been re-extracted
+> directly from their verified Git source commits (all local Graph A/Codex
+> branches; none previously pushed to `origin`) — see
+> `deploy/runtime-source-provenance.json`. The previously-missing
+> `community_leaderboard_rewards.py` dependency (needed by all four
+> `tools/community_leaderboard_rewards_*.py` scripts and by several deferred
+> imports in `app.py`) was also resolved and vendored from a verified commit,
+> content-identical to the file running in Production. The Dockerfile's root
+> `COPY *.py ./` wildcard has been replaced with an explicit per-file `COPY`
+> list; see Phase B below (superseded in this respect) and the Dockerfile
+> itself.
+
 ## Objective
 
 Reconstruct, inside canonical `origin/master`, enough tracked material to (1)

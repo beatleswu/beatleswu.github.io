@@ -24,11 +24,29 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY *.py ./
+# Explicit root .py COPY list -- deliberately not a `COPY *.py ./` wildcard.
+# Every file here has recorded Git provenance in
+# deploy/runtime-source-provenance.json (app.py/shadow_judging.py/
+# shadow_dashboard.py are tracked directly on origin/master; the rest were
+# recovered from verified local Graph A commits in DEPLOY-GOV-2B-FIX). This
+# list must stay in sync with that provenance file and with
+# deploy/build-manifest.json's build_inputs.tracked_in_canonical_branch_this_sprint.
+COPY app.py ./
 COPY shadow_judging.py ./
+COPY shadow_dashboard.py ./
+COPY scheduler.py ./
+COPY katago_explain.py ./
+COPY explain_overrides.py ./
+COPY grimoire_api.py ./
+COPY question_taxonomy.py ./
+COPY monster_taxonomy.py ./
+COPY chapter_i18n.py ./
+COPY backend_i18n.py ./
+COPY community_leaderboard_rewards.py ./
 # Community Leaderboard Rewards operator tools (dry-run/read-only CLIs) --
 # narrow copy, not the whole tools/ directory, since other scripts under
 # tools/ carry unrelated dependencies/production risk not needed here.
+# Depend on community_leaderboard_rewards.py, copied above.
 COPY tools/community_leaderboard_rewards_manual.py /app/tools/community_leaderboard_rewards_manual.py
 COPY tools/community_leaderboard_rewards_export_entries.py /app/tools/community_leaderboard_rewards_export_entries.py
 COPY tools/community_leaderboard_rewards_real_grant_preview.py /app/tools/community_leaderboard_rewards_real_grant_preview.py
