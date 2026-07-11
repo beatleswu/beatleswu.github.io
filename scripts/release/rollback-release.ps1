@@ -16,28 +16,208 @@ $manifest = Read-JsonFile -Path (Resolve-RepoPath $RollbackManifest)
 $rollbackArtifactsRoot = Resolve-RepoPath 'release-artifacts'
 Ensure-Directory -Path $rollbackArtifactsRoot
 
+function Invoke-RemoteCommandResult {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [string]$Command,
+        [string]$StdinText
+    )
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        if ($PSBoundParameters.ContainsKey('StdinText')) {
+            $normalizedStdinText = $StdinText -replace "`r`n", "`n" -replace "`r", "`n"
+            $rawOutput = $normalizedStdinText | & ssh $layout.ssh_alias $Command 2>&1
+        }
+        else {
+            $rawOutput = & ssh $layout.ssh_alias $Command 2>&1
+        }
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    $output = ($rawOutput | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) {
+            $_.ToString()
+        }
+        else {
+            [string]$_
+        }
+    } | Out-String).Trim()
+    return [ordered]@{
+        name = $Name
+        output = $output
+        exit_code = $exitCode
+    }
+}
+
 function Invoke-RemoteText {
     param([Parameter(Mandatory = $true)][string]$Command)
-    $output = & ssh $layout.ssh_alias $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "Remote command failed: $Command"
+    $result = Invoke-RemoteCommandResult -Name 'remote_command' -Command $Command
+    if ($result.exit_code -ne 0) {
+        throw "Remote command failed: $($result.output)"
     }
-    return ($output | Out-String).Trim()
+    return $result.output
 }
 
 function Get-RemoteContainerSnapshot {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{.Config.Image}}|{{.Image}}|{{.Id}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'"
-    $parts = $raw -split '\|', 5
-    if ($parts.Count -lt 5) {
+    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}|{{.Config.Image}}|{{.Image}}|{{.Id}}'"
+    $parts = $raw -split '\|', 4
+    if ($parts.Count -lt 4) {
         throw "Unable to read remote container snapshot for $ContainerName."
     }
+    $state = $parts[0] | ConvertFrom-Json
+    $health = if ($state.PSObject.Properties.Name -contains 'Health' -and $state.Health) { $state.Health.Status } else { 'n/a' }
     return [ordered]@{
-        image_tag = $parts[0]
-        image_id = $parts[1]
-        container_id = $parts[2]
-        state = $parts[3]
-        health = $parts[4]
+        image_tag = $parts[1]
+        image_id = $parts[2]
+        container_id = $parts[3]
+        state = $state.Status
+        health = $health
+    }
+}
+
+function Get-RemoteContainerEnvMap {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .Config.Env}}'"
+    if ([string]::IsNullOrWhiteSpace($raw) -or $raw -eq 'null') {
+        return @{}
+    }
+    $env = $raw | ConvertFrom-Json
+    $map = @{}
+    foreach ($entry in $env) {
+        $pair = $entry -split '=', 2
+        if ($pair.Count -ge 1 -and -not [string]::IsNullOrWhiteSpace($pair[0])) {
+            $map[$pair[0]] = if ($pair.Count -gt 1) { $pair[1] } else { '' }
+        }
+    }
+    return $map
+}
+
+function Test-HelperUnavailableOutput {
+    param([string]$Output)
+    if ([string]::IsNullOrWhiteSpace($Output)) {
+        return $false
+    }
+    return $Output -match '_read_runtime_deployment_readiness' -and (
+        $Output -match 'AttributeError' -or
+        $Output -match 'has no attribute'
+    )
+}
+
+function Try-Get-RemoteReadinessReport {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $result = Invoke-RemoteCommandResult -Name 'app_helper_readiness' -Command "docker exec $ContainerName python -X utf8 -c 'import json, app; print(json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False))'"
+    if ($result.exit_code -eq 0) {
+        return [ordered]@{
+            mode = 'helper'
+            report = ($result.output | ConvertFrom-Json)
+            helper_available = $true
+        }
+    }
+    if (Test-HelperUnavailableOutput -Output $result.output) {
+        return [ordered]@{
+            mode = 'legacy_fallback'
+            report = $null
+            helper_available = $false
+        }
+    }
+    throw "Runtime readiness helper failed unexpectedly: $($result.output)"
+}
+
+function Get-RemoteQuestionsReport {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$QuestionsPath
+    )
+    $script = @"
+import json
+import pathlib
+
+report = {
+    "path": "$QuestionsPath",
+    "exists": False,
+    "readable": False,
+    "parseable": False,
+    "top_level_type": "",
+    "record_count": 0,
+    "record_count_ok": False,
+    "structural_record_check": False,
+    "failures": [],
+}
+path = pathlib.Path("$QuestionsPath")
+report["exists"] = path.exists()
+if not report["exists"]:
+    report["failures"].append("questions file is missing")
+else:
+    try:
+        text = path.read_text(encoding="utf-8")
+        report["readable"] = True
+        payload = json.loads(text)
+        report["parseable"] = True
+        report["top_level_type"] = type(payload).__name__
+        if isinstance(payload, list):
+            report["record_count"] = len(payload)
+            report["record_count_ok"] = report["record_count"] > 0
+            sample = next((row for row in payload[:20] if isinstance(row, dict)), None)
+            if sample is not None:
+                report["structural_record_check"] = any(
+                    sample.get(key) not in (None, "")
+                    for key in ("id", "question_id", "source", "content", "sgf")
+                )
+            if report["record_count"] == 0:
+                report["failures"].append("questions file contains no records")
+            if not report["structural_record_check"]:
+                report["failures"].append("questions file failed the bounded structural record check")
+        else:
+            report["failures"].append("questions file top-level value must be a JSON list")
+    except Exception as exc:
+        if not report["readable"]:
+            report["failures"].append("questions file is not readable")
+        report["failures"].append(f"questions file parse failed: {exc.__class__.__name__}")
+print(json.dumps(report, ensure_ascii=False))
+"@
+    $result = Invoke-RemoteCommandResult -Name 'questions_report' -Command "docker exec -i $ContainerName python -X utf8 -" -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Remote command failed [questions_report]: $($result.output)"
+    }
+    return ($result.output | ConvertFrom-Json)
+}
+
+function Assert-QuestionsReportSatisfiesGate {
+    param([Parameter(Mandatory = $true)]$QuestionsReport)
+    if (-not $QuestionsReport.exists) {
+        throw "Questions file is missing after rollback."
+    }
+    if (-not $QuestionsReport.readable) {
+        throw "Questions file is not readable after rollback."
+    }
+    if (-not $QuestionsReport.parseable) {
+        throw "Questions file is not parseable JSON after rollback."
+    }
+    if (-not $QuestionsReport.record_count_ok -or $QuestionsReport.record_count -le 0) {
+        throw "Questions dataset is empty after rollback."
+    }
+    if (-not $QuestionsReport.structural_record_check) {
+        throw "Questions file failed the structural record gate after rollback."
+    }
+}
+
+function Get-AppReadinessGateReport {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $readinessMode = Try-Get-RemoteReadinessReport -ContainerName $ContainerName
+    $appEnv = Get-RemoteContainerEnvMap -ContainerName $ContainerName
+    $expectedQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
+    $questionsPath = if (-not [string]::IsNullOrWhiteSpace($appEnv['QUESTIONS_JSON_PATH'])) { $appEnv['QUESTIONS_JSON_PATH'] } else { $expectedQuestionsPath }
+    $questionsReport = if ($readinessMode.mode -eq 'helper') { $readinessMode.report.questions } else { Get-RemoteQuestionsReport -ContainerName $ContainerName -QuestionsPath $questionsPath }
+    return [ordered]@{
+        helper_available = $readinessMode.helper_available
+        readiness_mode = $readinessMode.mode
+        readiness = $readinessMode.report
+        questions_json_path = $questionsPath
+        questions = $questionsReport
     }
 }
 
@@ -152,11 +332,11 @@ if ($appAfter.health -ne 'healthy') {
     throw "App container is not healthy after rollback."
 }
 
-$appReadiness = Invoke-RemoteText "docker exec $($layout.app_service_name) python -X utf8 -c 'import json, app; print(json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False))'"
-$appReadinessReport = $appReadiness | ConvertFrom-Json
-if ($appReadinessReport.ok -ne $true) {
+$appReadinessReport = Get-AppReadinessGateReport -ContainerName $layout.app_service_name
+if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.readiness.ok -ne $true) {
     throw "App runtime readiness check failed after rollback."
 }
+Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
 
 Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && GO_ODYSSEY_IMAGE=$(Quote-PosixShellArgument $rollbackImageTag) docker compose -f docker-compose.release.yml up -d --no-build --force-recreate $($layout.scheduler_service_name)"
 
