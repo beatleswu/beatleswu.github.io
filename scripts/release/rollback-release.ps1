@@ -79,6 +79,8 @@ function Get-RemoteContainerSnapshot {
         health = $health
         compose_project = $labels.'com.docker.compose.project'
         compose_service = $labels.'com.docker.compose.service'
+        compose_config_files = $labels.'com.docker.compose.project.config_files'
+        compose_working_dir = $labels.'com.docker.compose.project.working_dir'
     }
 }
 
@@ -357,9 +359,22 @@ $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_
 
 $rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageTag $rollbackImageTag -RollbackGitSha $rollbackGitSha -RollbackImageId $rollbackImageId
 Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerificationManifestPath
+$rollbackComposeWorkingDir = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_working_dir)) { $layout.compose_directory } else { $schedulerBefore.compose_working_dir }
+$rollbackComposeFile = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_config_files)) { (Join-RemotePath $layout.compose_directory 'docker-compose.release.yml') } else { $schedulerBefore.compose_config_files }
+$useReleaseCompose = $rollbackComposeFile -like '*docker-compose.release.yml'
 $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents
+$rollbackAppCommand = if ($useReleaseCompose) {
+    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
+} else {
+    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-deps --force-recreate $appComposeService"
+}
+$rollbackSchedulerCommand = if ($useReleaseCompose) {
+    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+} else {
+    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-deps --force-recreate $schedulerComposeService"
+}
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $appComposeService"
+Invoke-RemoteText $rollbackAppCommand
 
 $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 if ($appAfter.image_tag -ne $rollbackImageTag) {
@@ -378,7 +393,7 @@ if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.rea
 }
 Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questions
 
-Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+Invoke-RemoteText $rollbackSchedulerCommand
 
 $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
 if ($schedulerAfter.image_tag -ne $rollbackImageTag) {
