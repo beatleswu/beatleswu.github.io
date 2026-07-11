@@ -103,14 +103,39 @@ GO MERGE
 GO DEPLOY
 ```
 
-**The actual deployment mechanism is marked PENDING GOVERNANCE AUDIT.** `deploy.ps1` does not exist
-anywhere in Graph B's tracked history (confirmed: `git log --oneline origin/master -- deploy.ps1`
-returns nothing) and does not exist on the production host's container filesystem either
-(confirmed via `docker exec go-odyssey-app sh -lc "test -f /app/deploy.ps1"` → not found). How the
-currently-running production container actually gets built and deployed is **not yet documented**
-anywhere this ADR can cite. This ADR defines policy (the gates above) but does not invent commands,
-does not restore `deploy.ps1` from Graph A, and does not assert any specific deployment procedure
-as canonical. That is the explicit scope of the next Sprint (DEPLOY-GOV-1).
+**`deploy.ps1` is not, and never was, the deployment mechanism.** It does not exist anywhere in
+Graph B's tracked history (confirmed: `git log --oneline origin/master -- deploy.ps1` returns
+nothing) and does not exist on the production host's container filesystem either (confirmed via
+`docker exec go-odyssey-app sh -lc "test -f /app/deploy.ps1"` → not found). Its presence on Graph A
+and absence from Graph B was, at one point during the 2026-07 incident, misread as evidence Graph A
+was canonical — see "Production Runtime Identity" above. It must not be restored, invented, or
+guessed at under any circumstance.
+
+**DEPLOY-GOV-1 audit result: the deployment mechanism is `scripts/release/*.ps1`, and it is
+reviewed.** A separate, independently-built pipeline — `scripts/release/deploy-release-image.ps1`,
+`rollback-release.ps1`, `preflight-production.ps1`, `verify-production-release.ps1`, and the shared
+`ReleaseTooling.psm1` — has 36+ commits of PR-reviewed history on `origin/master` culminating in
+PR #75, backed by `tests/deployment/*.py` (9 test files, 28+ commits: build-manifest, compose
+secret boundaries, image content boundary, runtime dependency provenance, SGF engine vendor
+provenance, and release-tooling behavior itself). This is the canonical deployment mechanism. It is
+owner-gated at execution time via `-OwnerGate GO_DEPLOY` and requires `-Execute` to mutate anything;
+without `-Execute` it dry-runs and only reports identity/readiness.
+
+**Known gap closed by this audit, then fixed:** the scripts were reviewed, but the
+production-specific input that drives them — `deploy/release-layout.production.json` (the
+`-LayoutFile` argument: compose paths, service names, health-check URLs) — was found to be
+untracked, with zero git history, alongside two related planning docs
+(`docs/deployment/pr55_deploy_day_verification_checklist.md`,
+`docs/deployment/TECH_DEBT_BACKLOG.md`). All three were brought under review in the same change
+that added this section (see PR history for this file). Any future edit to the production layout
+file must go through a reviewed PR before a deploy run may reference it — a layout file with no
+review trail is exactly the kind of unaudited artifact this ADR exists to prevent.
+
+**Remaining, explicitly out of scope for DEPLOY-GOV-1 closure:** TECH-DEBT-001 (duplicated
+readiness/DB/compose-env/questions-probe helpers across `scripts/release/*.ps1` instead of living
+once in `ReleaseTooling.psm1`) is tracked and deliberately deferred — it does not block deploy-day
+execution, per the backlog's own priority note. Consolidating it later must not be pulled into any
+production release's main line.
 
 ### SGF Engine Governance
 
@@ -232,18 +257,17 @@ operating:
 
 ### Trade-offs
 
-- This ADR intentionally leaves the deployment mechanism undefined pending a dedicated audit
-  (DEPLOY-GOV-1). Until that lands, there is no documented, verified way to actually ship a merged
-  PR to production — that gap is real and must be closed before PR #49 (or anything else) is
-  deployed.
+- **DEPLOY-GOV-1 is closed.** The deployment mechanism is `scripts/release/*.ps1`, reviewed via
+  PR history through PR #75 and backed by `tests/deployment/*.py`. The production layout input
+  (`deploy/release-layout.production.json`) and deploy-day checklist docs were found untracked and
+  have been brought under review (see "Deployment Governance" above). What remains deferred is
+  TECH-DEBT-001 (helper duplication across the release scripts), which is explicitly non-blocking.
 - The SGF Engine vendoring path (how `sgf_engine/` reaches the production container despite not
   being tracked in `origin/master`) remains an open question this ADR flags but does not resolve.
 
 ### Remaining Unknowns
 
 - The exact mechanism that gets `sgf_engine/` into the running production container.
-- The exact mechanism that currently builds/deploys the production image, now that `deploy.ps1` is
-  confirmed absent from both the canonical git history and the container filesystem.
 - Whether `go-odyssey-production` (referenced only in prior session memory, not in any currently
   reachable Git ref or remote) still exists as a private backup mirror — **historically referenced,
   not currently verified**.
@@ -294,8 +318,10 @@ Before any Git, branch, PR, recovery, or deployment work in this repository:
 4. If you're touching a recovery branch (`recovered-*`), treat it as read-only archive unless a
    specific, reviewed transplant is explicitly requested.
 5. Never treat "merged" as "deployed". Deployment requires its own explicit owner authorization.
-6. If `deploy.ps1` or any deployment procedure question comes up, treat it as unresolved
-   (PENDING GOVERNANCE AUDIT) until DEPLOY-GOV-1 lands — do not restore, invent, or guess at it.
+6. `deploy.ps1` does not exist and must never be restored, invented, or guessed at. The reviewed
+   deployment mechanism is `scripts/release/*.ps1` (see "Deployment Governance" above,
+   DEPLOY-GOV-1). Any edit to `deploy/release-layout.production.json` or the deploy-day docs must
+   go through a reviewed PR before a deploy run references it.
 
 ## References
 
@@ -304,3 +330,8 @@ Before any Git, branch, PR, recovery, or deployment work in this repository:
 - PR #49 — E2.4A: remove silent shadow fallback (merged as `8c077244e05c0a844c66539a6e1e079cee688c6e`)
 - `recovered-optimize-20260711`, `recovered-production-tip-20260711` — Graph A preservation branches
 - `sgf_engine/VENDORED_FROM.txt` (as read from `recovered-production-tip-20260711`)
+- PR #75 — `fix/release: preserve questions volume and parse nested PowerShell JSON`, latest of
+  36+ reviewed commits building `scripts/release/*.ps1` (merged as `efd37caf6013aa3504178371e12ddb4c77b8280c`)
+- DEPLOY-GOV-1 closure — `deploy/release-layout.production.json`,
+  `docs/deployment/pr55_deploy_day_verification_checklist.md`,
+  `docs/deployment/TECH_DEBT_BACKLOG.md` brought under PR review
