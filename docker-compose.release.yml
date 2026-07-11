@@ -1,0 +1,140 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: go-odyssey-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-go}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-go_odyssey}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - go-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-go} -d ${POSTGRES_DB:-go_odyssey}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ${GO_ODYSSEY_IMAGE:?GO_ODYSSEY_IMAGE must be set}
+    container_name: go-odyssey-app
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+      PRODUCTION: "1"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-go}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-go_odyssey}
+      GNUGO_MAX_LEVEL_9: "8"
+      GNUGO_MAX_LEVEL_13: "6"
+      GNUGO_MAX_LEVEL_19: "4"
+      GNUGO_MOVE_TIMEOUT_9: "15"
+      GNUGO_MOVE_TIMEOUT_13: "30"
+      GNUGO_MOVE_TIMEOUT_19: "60"
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+      NEW_USER_NOTIFY_EMAIL: ${NEW_USER_NOTIFY_EMAIL:-}
+      SITE_URL: ${SITE_URL:-https://godokoro.com}
+      SECRET_KEY: ${SECRET_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      NEWEBPAY_MERCHANT_ID: ${NEWEBPAY_MERCHANT_ID:-}
+      NEWEBPAY_HASH_KEY: ${NEWEBPAY_HASH_KEY:-}
+      NEWEBPAY_HASH_IV: ${NEWEBPAY_HASH_IV:-}
+      NEWEBPAY_TEST: ${NEWEBPAY_TEST:-1}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_SECRET: ${PAYPAL_SECRET:-}
+      PAYPAL_TEST: ${PAYPAL_TEST:-1}
+      SHADOW_EVENTS_PATH: ${SHADOW_EVENT_LOG_PATH:-/app/data/shadow_events.jsonl}
+      SHADOW_JUDGING_ENABLED: "1"
+      PREMIUM_WEEKLY_SCHEDULER_ENABLED: ${PREMIUM_WEEKLY_SCHEDULER_ENABLED:-0}
+      GO_ODYSSEY_LIVE_STATIC_ROOT: ${ASSET_CONTAINER_MOUNT_DESTINATION:?ASSET_CONTAINER_MOUNT_DESTINATION must be set}
+      QUESTIONS_JSON_PATH: ${QUESTIONS_JSON_PATH:-/app/data/questions.json}
+    volumes:
+      - ${QUESTIONS_CONTENT_SOURCE_PATH:?QUESTIONS_CONTENT_SOURCE_PATH must be set}:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
+      - ${ASSET_SOURCE_PATH:?ASSET_SOURCE_PATH must be set}:${ASSET_CONTAINER_MOUNT_DESTINATION:?ASSET_CONTAINER_MOUNT_DESTINATION must be set}:ro
+      - ${KATAGO_CACHE_SOURCE_PATH:-./katago_cache.db}:/app/katago_cache.db:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - go-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  scheduler:
+    image: ${GO_ODYSSEY_IMAGE:?GO_ODYSSEY_IMAGE must be set}
+    container_name: go-odyssey-scheduler
+    restart: unless-stopped
+    command: python scheduler.py
+    healthcheck:
+      disable: true
+    environment:
+      PORT: "8080"
+      PRODUCTION: "1"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-go}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-go_odyssey}
+      GNUGO_MAX_LEVEL_9: "8"
+      GNUGO_MAX_LEVEL_13: "6"
+      GNUGO_MAX_LEVEL_19: "4"
+      GNUGO_MOVE_TIMEOUT_9: "15"
+      GNUGO_MOVE_TIMEOUT_13: "30"
+      GNUGO_MOVE_TIMEOUT_19: "60"
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
+      NEW_USER_NOTIFY_EMAIL: ${NEW_USER_NOTIFY_EMAIL:-}
+      SITE_URL: ${SITE_URL:-https://godokoro.com}
+      SECRET_KEY: ${SECRET_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      NEWEBPAY_MERCHANT_ID: ${NEWEBPAY_MERCHANT_ID:-}
+      NEWEBPAY_HASH_KEY: ${NEWEBPAY_HASH_KEY:-}
+      NEWEBPAY_HASH_IV: ${NEWEBPAY_HASH_IV:-}
+      NEWEBPAY_TEST: ${NEWEBPAY_TEST:-1}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_SECRET: ${PAYPAL_SECRET:-}
+      PAYPAL_TEST: ${PAYPAL_TEST:-1}
+      SHADOW_EVENTS_PATH: ${SHADOW_EVENT_LOG_PATH:-/app/data/shadow_events.jsonl}
+      SHADOW_JUDGING_ENABLED: "1"
+      PREMIUM_WEEKLY_SCHEDULER_ENABLED: ${PREMIUM_WEEKLY_SCHEDULER_ENABLED:-0}
+    volumes:
+      - ${QUESTIONS_CONTENT_SOURCE_PATH:?QUESTIONS_CONTENT_SOURCE_PATH must be set}:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
+      - ${KATAGO_CACHE_SOURCE_PATH:-./katago_cache.db}:/app/katago_cache.db:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - go-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: go-odyssey-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - go-net
+
+volumes:
+  pg-data:
+    driver: local
+
+networks:
+  go-net:
+    driver: bridge
