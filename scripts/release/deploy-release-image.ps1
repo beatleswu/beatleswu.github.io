@@ -150,6 +150,28 @@ function Get-RemoteContainerSnapshot {
     }
 }
 
+function Wait-ForRemoteContainerHealth {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [int]$TimeoutSeconds = 120,
+        [int]$PollIntervalSeconds = 2
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $snapshot = Get-RemoteContainerSnapshot -ContainerName $ContainerName
+        if ($snapshot.status -eq 'running' -and $snapshot.health -eq 'healthy') {
+            return $snapshot
+        }
+        if ($snapshot.health -eq 'unhealthy') {
+            return $snapshot
+        }
+        if ((Get-Date) -ge $deadline) {
+            return $snapshot
+        }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
+}
+
 function Get-RemoteContainerHealthcheckTest {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $raw = Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '{{json .Config.Healthcheck.Test}}'"
@@ -967,7 +989,7 @@ try {
     $rollbackRequired = $true
     Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
-    $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
+    $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
         throw "App container is not running the release image."
     }

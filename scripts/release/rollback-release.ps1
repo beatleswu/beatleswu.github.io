@@ -84,6 +84,28 @@ function Get-RemoteContainerSnapshot {
     }
 }
 
+function Wait-ForRemoteContainerHealth {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [int]$TimeoutSeconds = 120,
+        [int]$PollIntervalSeconds = 2
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $snapshot = Get-RemoteContainerSnapshot -ContainerName $ContainerName
+        if ($snapshot.status -eq 'running' -and $snapshot.health -eq 'healthy') {
+            return $snapshot
+        }
+        if ($snapshot.health -eq 'unhealthy') {
+            return $snapshot
+        }
+        if ((Get-Date) -ge $deadline) {
+            return $snapshot
+        }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
+}
+
 function Get-RemoteContainerEnvMap {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .Config.Env}}'"
@@ -376,7 +398,7 @@ $rollbackSchedulerCommand = if ($useReleaseCompose) {
 
 Invoke-RemoteText $rollbackAppCommand
 
-$appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
+$appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
 if ($appAfter.image_tag -ne $rollbackImageTag) {
     throw "App container did not switch to the rollback image."
 }

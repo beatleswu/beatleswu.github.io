@@ -577,6 +577,7 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
         "legacy_fallback",
         "dry_run = $true",
         "rollback_plan",
+        "Wait-ForRemoteContainerHealth",
         "rollback_image_identity",
         "rollback_verification_manifest_path",
         "verify-production-release.ps1",
@@ -598,6 +599,7 @@ def test_rollback_script_restores_app_before_scheduler():
         "$rollbackComposeFile = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_config_files)) { (Join-RemotePath $layout.compose_directory 'docker-compose.release.yml') } else { $schedulerBefore.compose_config_files }",
         "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents",
         "Invoke-RemoteText $rollbackAppCommand",
+        "$appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name",
         "Invoke-RemoteText $rollbackSchedulerCommand",
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
     )
