@@ -167,7 +167,6 @@ function Get-RemoteContainerEnvMap {
 function Get-RemoteRuntimeContract {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $script = @'
-python3 - <<'PY'
 import hashlib
 import json
 import subprocess
@@ -223,10 +222,13 @@ report = {
     "compose_working_dir": labels.get("com.docker.compose.project.working_dir"),
 }
 print(json.dumps(report, ensure_ascii=False))
-PY
 '@
     $script = $script.Replace('__CONTAINER_NAME__', $ContainerName)
-    return (Invoke-RemoteText $script | ConvertFrom-Json)
+    $result = Invoke-RemoteCommandResult -Name 'runtime_contract' -Command 'python3 -' -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Remote command failed [runtime_contract]: $($result.output)"
+    }
+    return ($result.output | ConvertFrom-Json)
 }
 
 function Start-RemoteCandidateCanary {
@@ -241,7 +243,6 @@ function Start-RemoteCandidateCanary {
         image_tag = $ImageTag
     } | ConvertTo-Json -Compress
     $script = @'
-python3 - <<'PY'
 import json
 import re
 import subprocess
@@ -349,10 +350,13 @@ print(json.dumps({
     "image_id": image_id,
     "logs_tail": sanitize(logs.stdout + logs.stderr)[-8000:],
 }, ensure_ascii=False))
-PY
 '@
     $script = $script.Replace('__CANARY_CONFIG__', $payload)
-    return (Invoke-RemoteText $script | ConvertFrom-Json)
+    $result = Invoke-RemoteCommandResult -Name 'candidate_canary' -Command 'python3 -' -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Remote command failed [candidate_canary]: $($result.output)"
+    }
+    return ($result.output | ConvertFrom-Json)
 }
 
 function Remove-RemoteCandidateCanary {
