@@ -41,6 +41,7 @@ BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-production-image.ps1"
 E9_JS_FILES = [
     "bottom_dock.js", "component_loader.js", "feature_flags.js",
     "left_nav.js", "right_cards.js", "shell.js", "top_hud.js", "world_stage.js",
+    "adapters/player_state.js", "adapters/adventure_state.js", "adapters/activity_state.js",
 ]
 E9_CSS_FILES = [
     "cards.css", "navigation.css", "rwd.css", "shell.css", "top_hud.css", "world_stage.css",
