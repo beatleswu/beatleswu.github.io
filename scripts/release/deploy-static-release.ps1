@@ -70,13 +70,60 @@ foreach ($entry in $manifest.files) {
     }
 }
 
+$RemoteCommandTimeoutSeconds = 30
+$RemoteRestartTimeoutSeconds = 45
+$RemoteHealthPollTimeoutSeconds = 20
+$RemoteDirectoryBatchTimeoutSeconds = 30
+$ScpUploadTimeoutSeconds = 90
+
 function Invoke-RemoteText {
-    param([Parameter(Mandatory = $true)][string]$Command)
-    $result = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name 'remote_command' -Command $Command
+    <#
+    .SYNOPSIS
+    Bounded remote command execution -- RELEASE-FIX-A2-STATIC-DEPLOY-FIX1.
+    A hung ssh process is killed after $TimeoutSeconds instead of blocking
+    the deploy indefinitely (confirmed live: a single stuck `mkdir -p`
+    ssh invocation hung for ~15 minutes with no bound at all previously).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [int]$TimeoutSeconds = $RemoteCommandTimeoutSeconds,
+        [string]$OperationLabel = 'remote command'
+    )
+    $result = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -Command $Command -TimeoutSeconds $TimeoutSeconds -OperationLabel $OperationLabel
     if ($result.exit_code -ne 0) {
-        throw "Remote command failed: $($result.output)"
+        throw "Remote command failed ($OperationLabel): $($result.output)"
     }
     return $result.output
+}
+
+function Invoke-RemoteDirectoryBatch {
+    <#
+    .SYNOPSIS
+    Creates every required remote directory (generation root + every
+    nested governed-subtree parent directory) in ONE bounded ssh session,
+    not one ssh invocation per directory.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Directories,
+        [int]$TimeoutSeconds = $RemoteDirectoryBatchTimeoutSeconds
+    )
+    $script = New-RemoteMkdirScriptText -Directories $Directories
+    $result = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -ScriptText $script -TimeoutSeconds $TimeoutSeconds -OperationLabel "batched remote mkdir ($($Directories.Count) directories)"
+    if ($result.exit_code -ne 0) {
+        throw "Remote directory batch creation failed: $($result.output)"
+    }
+}
+
+function Invoke-BoundedFileUpload {
+    param(
+        [Parameter(Mandatory = $true)][string]$LocalPath,
+        [Parameter(Mandatory = $true)][string]$RemotePath,
+        [int]$TimeoutSeconds = $ScpUploadTimeoutSeconds
+    )
+    $result = Invoke-BoundedScpUpload -LocalPath $LocalPath -SshAlias $layout.ssh_alias -RemotePath $RemotePath -TimeoutSeconds $TimeoutSeconds -OperationLabel "scp upload: $RemotePath"
+    if ($result.exit_code -ne 0) {
+        throw "scp failed while uploading to $RemotePath`: $($result.output)"
+    }
 }
 
 function Get-RemoteCurrentTarget {
@@ -159,57 +206,94 @@ $previousCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_rele
 $rollbackPerformed = $false
 
 try {
-    Invoke-RemoteText "mkdir -p $(Quote-PosixShellArgument $remoteReleaseDir)" | Out-Null
+    # Step 2+3: create the generation root and every nested governed-subtree
+    # parent directory in ONE bounded ssh session (RELEASE-FIX-A2-STATIC-
+    # DEPLOY-FIX1) -- not one ssh mkdir invocation per unique directory,
+    # which is what hung in production during the first attempt.
+    $relativePaths = @($manifest.files | ForEach-Object { $_.path })
+    $requiredDirectories = Get-RemoteParentDirectorySet -RelativePaths $relativePaths -RemoteReleaseDir $remoteReleaseDir
+    Invoke-RemoteDirectoryBatch -Directories $requiredDirectories
 
+    # Step 4: upload every governed file. Each scp call is individually
+    # bounded (Invoke-BoundedFileUpload) -- a hung transfer is killed and
+    # fails the deploy instead of hanging it.
     foreach ($entry in $manifest.files) {
         $localFile = Join-Path $bundlePath $entry.path
         $remoteFile = "$remoteReleaseDir/$($entry.path)"
-        & scp $localFile "$($layout.ssh_alias):$remoteFile" | Out-Host
-        if ($LASTEXITCODE -ne 0) {
-            throw "scp failed while uploading $($entry.path)."
-        }
-    }
-    & scp $manifestPath "$($layout.ssh_alias):$remoteReleaseDir/manifest.json" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while uploading manifest.json."
+        Invoke-BoundedFileUpload -LocalPath $localFile -RemotePath $remoteFile
     }
 
+    # Step 5: validate uploaded file count before trusting anything else.
+    $uploadedCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f | wc -l" -OperationLabel 'count uploaded files').Trim()
+    if ($uploadedCount -ne $manifest.files.Count) {
+        throw "Uploaded file count mismatch: expected $($manifest.files.Count), remote has $uploadedCount (manifest.json not yet uploaded, so these must match exactly)."
+    }
+
+    # Step 6: validate uploaded total byte size.
+    $expectedBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
+    $uploadedBytes = [long](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f -exec stat -c%s {} \; | awk '{s+=`$1} END{print s+0}'" -OperationLabel 'sum uploaded bytes').Trim()
+    if ($uploadedBytes -ne $expectedBytes) {
+        throw "Uploaded byte size mismatch: expected $expectedBytes, remote has $uploadedBytes."
+    }
+
+    # Step 7: validate every uploaded file's SHA-256 individually.
     foreach ($entry in $manifest.files) {
         $remoteFile = "$remoteReleaseDir/$($entry.path)"
-        $remoteHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $remoteFile)").Split(' ')[0].Trim().ToLowerInvariant()
+        $remoteHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $remoteFile)" -OperationLabel "sha256sum: $($entry.path)").Split(' ')[0].Trim().ToLowerInvariant()
         if ($remoteHash -ne $entry.sha256) {
             throw "Remote hash mismatch for $($entry.path) after upload."
         }
     }
 
-    # Atomic switch: sudo is required because /opt/go-odyssey-static itself
+    # Step 8: manifest.json uploads LAST, only after every governed file has
+    # passed count/size/hash verification -- a partial or corrupted
+    # generation never gets a manifest, so it can never be mistaken for a
+    # complete, deployable release (see rollback-static-release.ps1 and
+    # preflight-production.ps1, which both treat manifest.json as the sole
+    # source of truth for "this generation is real").
+    Invoke-BoundedFileUpload -LocalPath $manifestPath -RemotePath "$remoteReleaseDir/manifest.json"
+
+    # Step 9: re-read and validate the now-complete remote generation.
+    $finalCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f | wc -l" -OperationLabel 'final count including manifest').Trim()
+    if ($finalCount -ne ($manifest.files.Count + 1)) {
+        throw "Final remote file count mismatch after manifest upload: expected $($manifest.files.Count + 1), observed $finalCount."
+    }
+    $remoteManifestHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument "$remoteReleaseDir/manifest.json")" -OperationLabel 'sha256sum: manifest.json').Split(' ')[0].Trim().ToLowerInvariant()
+    $localManifestHash = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($remoteManifestHash -ne $localManifestHash) {
+        throw "Remote manifest.json hash does not match the local manifest after upload."
+    }
+
+    # Step 10: atomic switch. sudo is required because /opt/go-odyssey-static itself
     # (the parent of current/previous) is more tightly permissioned than
     # releases/ -- matching deploy-static.ps1's own proven pattern.
     $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
     $quotedRelease = Quote-PosixShellArgument $remoteReleaseDir
-    Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedRelease current.next && sudo mv -Tf current.next current" | Out-Null
+    Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedRelease current.next && sudo mv -Tf current.next current" -OperationLabel 'atomic symlink switch' | Out-Null
 
     $newCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
     if ($newCurrentTarget -ne $remoteReleaseDir) {
         throw "Remote current does not point to the new release after switch. Expected '$remoteReleaseDir', observed '$newCurrentTarget'."
     }
 
-    # The bind-mounted app/scheduler containers resolved the OLD symlink
-    # target at their own start time -- restart them so their mount
-    # namespace re-resolves against the new "current" target. See the
-    # module docstring above for how this was discovered.
-    Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" | Out-Null
+    # Step 11: restart app+scheduler. The bind-mounted containers resolved
+    # the OLD symlink target at their own start time -- restart them so
+    # their mount namespace re-resolves against the new "current" target.
+    # See the module docstring above for how this was discovered.
+    Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" -TimeoutSeconds $RemoteRestartTimeoutSeconds -OperationLabel 'docker restart app+scheduler' | Out-Null
     $deadline = (Get-Date).AddSeconds(60)
     $appHealthy = $false
     do {
         Start-Sleep -Seconds 2
-        $health = (Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $layout.app_service_name) --format '{{.State.Health.Status}}'").Trim()
+        $health = (Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $layout.app_service_name) --format '{{.State.Health.Status}}'" -TimeoutSeconds $RemoteHealthPollTimeoutSeconds -OperationLabel 'poll app health').Trim()
         if ($health -eq 'healthy') { $appHealthy = $true }
     } while (-not $appHealthy -and (Get-Date) -lt $deadline)
     if (-not $appHealthy) {
         throw "App container did not become healthy after restart following the static release switch."
     }
-    $containerServedHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/i18n.js")").Split(' ')[0].Trim().ToLowerInvariant()
+    # Step 12 (part 1 of 2): container-internal verification, before the
+    # public HTTPS check below.
+    $containerServedHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/i18n.js")" -OperationLabel 'container-internal i18n.js hash').Split(' ')[0].Trim().ToLowerInvariant()
     $expectedI18nHash = ($manifest.files | Where-Object { $_.path -eq 'i18n.js' }).sha256
     if ($containerServedHash -ne $expectedI18nHash) {
         throw "Container-internal i18n.js hash still does not match the new release after restart. Expected '$expectedI18nHash', observed '$containerServedHash'."
@@ -251,13 +335,13 @@ catch {
         try {
             $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
             $quotedPrevious = Quote-PosixShellArgument $previousCurrentTarget
-            Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedPrevious current.next && sudo mv -Tf current.next current" | Out-Null
+            Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedPrevious current.next && sudo mv -Tf current.next current" -OperationLabel 'rollback: symlink switch' | Out-Null
             # The containers may already have been restarted onto the failed
             # release's mount target (see the restart step above) -- restart
             # again so they actually pick up the reverted symlink too, or the
             # rollback would be filesystem-real but functionally inert, same
             # as the original bug.
-            Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" | Out-Null
+            Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" -TimeoutSeconds $RemoteRestartTimeoutSeconds -OperationLabel 'rollback: docker restart' | Out-Null
             $rollbackPerformed = $true
         }
         catch {
