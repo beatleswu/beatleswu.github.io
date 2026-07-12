@@ -227,6 +227,18 @@ def test_preflight_reports_static_generation_drift_when_manifest_provided():
     assert "drift_checked" in content
 
 
+def test_preflight_drift_is_judged_by_content_not_generation_id():
+    # Live-discovered while verifying this Sprint's own fix: a later commit
+    # that never touches i18n.js/sw.js legitimately produces a new
+    # static_generation_id with byte-identical content -- that must NOT be
+    # reported as drift. Only a per-file SHA-256 mismatch is real drift.
+    content = _read(PREFLIGHT_SCRIPT)
+    assert "static_generation_id" not in content or "notmatch" not in content, (
+        "drift must not be judged by comparing the generation directory name/timestamp -- "
+        "only by comparing served file content (SHA-256)"
+    )
+
+
 def test_preflight_static_drift_check_is_optional_backward_compatible():
     content = _read(PREFLIGHT_SCRIPT)
     # must not require StaticManifest -- existing non-static-release deploys
