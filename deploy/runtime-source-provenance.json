@@ -173,15 +173,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "a455d05a03987a5aa8861b6138f34f9606dd0beb",
-      "source_branch_or_local_ref": "feature/e9-1b-real-data-contract",
-      "source_commit_subject": "feat(e9): wire adventure shell to canonical runtime data",
+      "source_commit": "d942a19a56bbe3ba7167d45d9c8d008430b94283",
+      "source_branch_or_local_ref": "feature/release-fix-b-e9-i18n-fallback",
+      "source_commit_subject": "fix(e9): harden missing translation fallback",
       "source_date": "Sun Jul 12",
-      "content_sha256": "d551c63713e9a13db05b305932f75272aa1d3719cc2470cdbc63d328aebb76ea",
+      "content_sha256": "07269c51a95074256489eb31e27de44aad3a7801aefb41d1c1476f699d943494",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin (E9.1B update: adapter script tags added, E9 asset ?v= cache-bust bump)"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin (RELEASE-FIX-B update: added js/e9/i18n_fallback.js script tag, bumped ?v= cache-bust for the four hardened E9 files)"
     },
     {
       "path": "terms.html",
@@ -449,15 +449,15 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "a455d05a03987a5aa8861b6138f34f9606dd0beb",
-      "source_branch_or_local_ref": "feature/e9-1b-real-data-contract",
-      "source_commit_subject": "feat(e9): wire adventure shell to canonical runtime data",
+      "source_commit": "d942a19a56bbe3ba7167d45d9c8d008430b94283",
+      "source_branch_or_local_ref": "feature/release-fix-b-e9-i18n-fallback",
+      "source_commit_subject": "fix(e9): harden missing translation fallback",
       "source_date": "Sun Jul 12",
-      "content_sha256": "84637e4229c0cf7daf97f7f81e6440fce53d5b3947a0bb13d355b57f694d57d6",
+      "content_sha256": "1bb41ef18c0c404ce1fb1c274645c0ebf4b5b2fb76474ad0f9b65ad840733979",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin (E9.1B update: VERSION bump for the real-data adapter wiring)"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin (RELEASE-FIX-B update: VERSION bump since E9 JS bytes changed)"
     },
     {
       "path": "srs.js",
