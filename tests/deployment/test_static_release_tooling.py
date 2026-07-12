@@ -170,6 +170,38 @@ def test_deploy_script_auto_rolls_back_on_post_switch_failure():
     assert "Automatic rollback" in content
 
 
+def test_deploy_script_restarts_containers_after_switch():
+    # Discovered live during this Sprint's own production deploy: the
+    # app/scheduler containers' bind mount of /opt/go-odyssey-static/current
+    # resolves the symlink target ONCE at container start -- a symlink
+    # switch alone is filesystem-real but functionally inert until the
+    # containers restart. Confirmed directly: `sha256sum` on the host
+    # showed the new file immediately after switching, while `docker exec
+    # go-odyssey-app sha256sum` on the same path still showed the OLD file
+    # until `docker restart` ran.
+    content = _read(DEPLOY_SCRIPT)
+    assert re.search(r"docker restart .*app_service_name.*scheduler_service_name", content)
+    assert "did not become healthy after restart" in content
+
+
+def test_deploy_script_verifies_container_internal_hash_after_restart():
+    content = _read(DEPLOY_SCRIPT)
+    assert "containerServedHash" in content
+    assert "Container-internal i18n.js hash still does not match" in content
+
+
+def test_deploy_script_rollback_path_also_restarts_containers():
+    content = _read(DEPLOY_SCRIPT)
+    catch_block = content[content.index("catch {"):]
+    assert re.search(r"docker restart .*app_service_name.*scheduler_service_name", catch_block)
+
+
+def test_rollback_script_restarts_containers_after_switch():
+    content = _read(ROLLBACK_SCRIPT)
+    assert re.search(r"docker restart .*app_service_name.*scheduler_service_name", content)
+    assert "did not become healthy after restart" in content
+
+
 def test_deploy_script_requires_go_deploy_owner_gate():
     content = _read(DEPLOY_SCRIPT)
     assert "Assert-OwnerGate" in content

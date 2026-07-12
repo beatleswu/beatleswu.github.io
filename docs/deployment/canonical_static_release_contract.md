@@ -4,9 +4,40 @@
 Sprint: RELEASE-FIX-A
 Branch: feature/release-fix-a-static-integrity
 Base: master @ f621a5ccff329b3b5ef4bf08f2e8260843ed01d9
-Production mutation target: static generation switch only (no app/scheduler
-image change, no DB change, no E9 code change)
+Production mutation target: static generation switch, plus an app/scheduler
+container RESTART (not an image change -- same image, same tag; see
+"Second discovery" below for why the restart turned out to be required)
 ```
+
+## Second discovery, made live during this Sprint's own production deploy
+
+The atomic symlink switch (`ln -sfnT` + `mv -Tf`) is filesystem-correct
+immediately -- `sha256sum` on the HOST showed the new file the instant the
+switch completed. But the running `go-odyssey-app` container, reading the
+exact same bind-mounted path, kept serving the OLD content:
+
+```
+$ sha256sum /opt/go-odyssey-static/current/i18n.js         # host
+0f21f945...   (new)
+$ docker exec go-odyssey-app sha256sum /opt/go-odyssey-static/current/i18n.js
+bf84cca2...   (still old!)
+```
+
+The container's bind mount resolves the `current` symlink's target **once,
+at container start** -- changing what the symlink points to on the host
+afterward has zero effect on the running container's view until it
+restarts. `deploy-static-release.ps1`'s own public-HTTP verification step
+correctly caught this (it fetches the real, external `https://godokoro.com/`
+response, not the host filesystem) and auto-rolled the symlink back exactly
+as designed -- proving the safety net works, at the cost of revealing that
+the switch alone was insufficient. Both `deploy-static-release.ps1` and
+`rollback-static-release.ps1` now restart `app`+`scheduler` (with a health-check
+wait and a container-internal hash re-check) immediately after every
+symlink switch, before the public verification step. This means a static
+release deploy is **not** the zero-container-impact operation the untracked
+`deploy-static.ps1` claimed ("App/scheduler container rebuild: none") --
+that claim was never actually validated against this host's real bind-mount
+behavior. The image itself is unchanged; only a restart is required.
 
 ## Root cause (confirmed, not assumed)
 
