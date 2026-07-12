@@ -1,26 +1,21 @@
 """E9.1A2 — Legacy Adventure Shell Integration contract tests.
 
-Like tests/test_e9_adventure_shell_foundation.py, these are structural/
-source-level contract tests. This repo has no existing test that imports
-app.py and calls Flask's test_client() -- app.py connects to a real
-Postgres DSN at import/request time (see db.py DATABASE_URL), which is
-why every existing test file in this repo (deployment/*, premium_weekly,
-xp_hud_guard, etc.) verifies behavior via source-level assertions instead
-of booting the live app. This file follows that same established
-convention for consistency and to avoid introducing a new, heavier test
-dependency (a real Postgres instance) never required by any other test
-in the suite.
+Most of this file is structural/source-level, matching the convention in
+tests/test_e9_adventure_shell_foundation.py. The static-route section below
+is a real Flask request contract test: tests/test_admin_anchor_sidebar_phase_a_plus.py
+already demonstrated (via a stubbed-heavy-import fixture) that app.py can be
+imported and exercised with test_client() without a live Postgres connection
+-- the E9 static routes never touch the database, so the same
+`_install_app_import_stubs` + `app_module` fixture pattern is reused here
+rather than repeating the (superseded) claim that this requires Postgres.
 
-Live HTTP verification (200/404/traversal/extension-rejection on the new
-static routes, and full browser behavioral checks) was performed
-separately via the Browser pane against python -m http.server for the
-frontend assets, and is recorded in
-docs/planning/e9_1a2_legacy_shell_integration.md. Booting the real Flask
-app locally was not attempted, since it requires a Postgres connection
-not available in this environment -- this is reported explicitly rather
-than silently skipped or falsely claimed as tested.
+Browser-based behavioral checks (component load/bind/i18n/render, failure
+isolation, the 8-viewport RWD matrix, flag ON/OFF parity) are recorded
+separately in docs/planning/e9_1a2_legacy_shell_integration.md.
 """
 import re
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -34,7 +29,7 @@ JS_DIR = REPO_ROOT / "js" / "e9"
 COMPONENTS_DIR = REPO_ROOT / "components" / "adventure"
 
 OLD_SW_VERSION = "v177-sgf-fe-hotfix1a-node-parser"
-NEW_SW_VERSION = "v178-e9-1a2-adventure-shell-integration"
+NEW_SW_VERSION = "v179-e9-1a2-rev2-i18n-stale-rescan-fix"
 
 
 def _read(path):
@@ -127,8 +122,7 @@ def test_no_duplicate_init_or_double_binding_guard_present():
 
 
 # ---------------------------------------------------------------------------
-# Static routes (source-level; see module docstring for why no live
-# Flask test_client() is used)
+# Static routes (source-level)
 # ---------------------------------------------------------------------------
 
 def test_abort_is_imported():
@@ -163,6 +157,111 @@ def test_static_routes_delegate_to_reviewed_helper_not_reimplemented():
             f"{route} must reuse the already-reviewed traversal-safe helper, "
             f"not a new path-resolution implementation"
         )
+
+
+# ---------------------------------------------------------------------------
+# Static routes (live Flask request contract -- 200 / 404 / traversal reject)
+# ---------------------------------------------------------------------------
+
+def _install_app_import_stubs():
+    """Same stub set as tests/test_admin_anchor_sidebar_phase_a_plus.py.
+    The E9 static routes never touch the database, so app.py can be
+    imported and driven with test_client() without a live Postgres DSN."""
+    if 'katago_explain' not in sys.modules:
+        module = types.ModuleType('katago_explain')
+        module.KataGoExplainer = type('KataGoExplainer', (), {})
+        sys.modules['katago_explain'] = module
+    if 'explain_overrides' not in sys.modules:
+        module = types.ModuleType('explain_overrides')
+        module.get_override = lambda *args, **kwargs: None
+        sys.modules['explain_overrides'] = module
+    if 'grimoire_api' not in sys.modules:
+        from flask import Blueprint
+        module = types.ModuleType('grimoire_api')
+        module.grimoire_bp = Blueprint('grimoire_stub', __name__)
+        sys.modules['grimoire_api'] = module
+    if 'question_taxonomy' not in sys.modules:
+        module = types.ModuleType('question_taxonomy')
+        module.get_taxonomy = lambda *args, **kwargs: {}
+        sys.modules['question_taxonomy'] = module
+    if 'monster_taxonomy' not in sys.modules:
+        module = types.ModuleType('monster_taxonomy')
+        module.get_monster_taxonomy = lambda *args, **kwargs: {}
+        module.mark_encounters = lambda *args, **kwargs: None
+        sys.modules['monster_taxonomy'] = module
+    if 'chapter_i18n' not in sys.modules:
+        module = types.ModuleType('chapter_i18n')
+        module.localize_topic = lambda *args, **kwargs: ''
+        module.localize_level = lambda *args, **kwargs: ''
+        sys.modules['chapter_i18n'] = module
+    if 'backend_i18n' not in sys.modules:
+        module = types.ModuleType('backend_i18n')
+        module.badge_en = lambda *args, **kwargs: ''
+        module.skill_node_en = lambda *args, **kwargs: ''
+        module.title_en = lambda *args, **kwargs: ''
+        sys.modules['backend_i18n'] = module
+    if 'sgf_engine' not in sys.modules:
+        sys.modules['sgf_engine'] = types.ModuleType('sgf_engine')
+    if 'sgf_engine.parser' not in sys.modules:
+        sys.modules['sgf_engine.parser'] = types.ModuleType('sgf_engine.parser')
+    if 'sgf_engine.parser.sgf_parser' not in sys.modules:
+        module = types.ModuleType('sgf_engine.parser.sgf_parser')
+        module.parse_sgf = lambda *args, **kwargs: None
+        sys.modules['sgf_engine.parser.sgf_parser'] = module
+
+
+@pytest.fixture(scope='module')
+def app_module():
+    _install_app_import_stubs()
+    import app as app_module
+    return app_module
+
+
+@pytest.fixture()
+def client(app_module):
+    return app_module.app.test_client()
+
+
+@pytest.mark.parametrize("path", [
+    "/js/e9/feature_flags.js",
+    "/js/e9/shell.js",
+    "/css/e9/shell.css",
+    "/components/adventure/top_hud.html",
+])
+def test_e9_static_route_returns_200_for_real_file(client, path):
+    response = client.get(path)
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize("path", [
+    "/js/e9/feature_flags.css",   # real file, wrong extension for this route
+    "/js/e9/does_not_exist.js",   # right extension, file absent
+    "/css/e9/shell.js",           # real file, wrong extension for this route
+    "/components/adventure/top_hud.js",  # right dir, wrong extension
+])
+def test_e9_static_route_returns_404_for_invalid_extension_or_missing_file(client, path):
+    response = client.get(path)
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("path", [
+    "/js/e9/../app.py",
+    "/js/e9/../../app.py",
+    "/js/e9/%2e%2e/app.py",
+    "/css/e9/../../secret_key.txt",
+    "/components/adventure/../../app.py",
+])
+def test_e9_static_route_rejects_traversal(client, path):
+    response = client.get(path)
+    # Never 200, and never a redirect that would land on the traversal
+    # target -- either Werkzeug's own path normalization 404s before the
+    # view even runs, or the view runs and _resolve_live_static_path /
+    # send_from_directory reject it. Both are acceptable; a 200 is not.
+    assert response.status_code != 200
+    assert response.status_code in (301, 302, 404)
+    if response.status_code in (301, 302):
+        location = response.headers.get('Location', '')
+        assert 'app.py' not in location and 'secret_key' not in location
 
 
 # ---------------------------------------------------------------------------
@@ -332,3 +431,29 @@ def test_boss_progress_and_srs_and_weakness_use_real_endpoints():
     assert "/api/srs/due" in right_cards_js
     assert "/api/mistakes/stats" in right_cards_js
     assert "/api/daily-challenge/today" in right_cards_js
+
+
+# ---------------------------------------------------------------------------
+# i18n stale-rescan regression (E9.1A2 Rev2 — live-verified during browser
+# verification: I18n.apply() is a global rescan of every [data-i18n] element.
+# top_hud.js / right_cards.js / world_stage.js each dynamically overwrite an
+# element that starts with a static data-i18n loading placeholder. Without
+# removing that attribute once real content is set, ANY later, unrelated
+# I18n.apply() call elsewhere on the page (site-nav.js, a language switch)
+# silently reverts the element back to "Loading…" forever, since
+# data-e9-inited already blocks re-fetching.
+# ---------------------------------------------------------------------------
+
+def test_top_hud_removes_data_i18n_after_setting_dynamic_text():
+    js = _read(JS_DIR / "top_hud.js")
+    assert "removeAttribute('data-i18n')" in js
+
+
+def test_right_cards_removes_data_i18n_after_setting_dynamic_text():
+    js = _read(JS_DIR / "right_cards.js")
+    assert "removeAttribute('data-i18n')" in js
+
+
+def test_world_stage_removes_data_i18n_after_setting_dynamic_text():
+    js = _read(JS_DIR / "world_stage.js")
+    assert "removeAttribute('data-i18n')" in js

@@ -94,6 +94,12 @@
       var clearedCount = zones.filter(function (z) { return z.status === 'completed'; }).length;
       statusEl.textContent = t('index.adv.summary', '{n} / {t} areas cleared')
         .replace('{n}', clearedCount).replace('{t}', zones.length);
+      // #e9-world-stage-status starts with a static data-i18n="e9.world_stage.loading"
+      // placeholder; remove it once real summary text is set so a later,
+      // unrelated I18n.apply() elsewhere on the page cannot silently revert
+      // it back to "Loading…" (same class of bug fixed in top_hud.js /
+      // right_cards.js, live-verified during E9.1A2 Rev2).
+      statusEl.removeAttribute('data-i18n');
     }
   }
 

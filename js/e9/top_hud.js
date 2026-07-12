@@ -11,7 +11,17 @@
   'use strict';
 
   function applyText(el, text) {
-    if (el) el.textContent = text;
+    if (!el) return;
+    el.textContent = text;
+    // This element (e.g. #top-hud-name) starts with a static data-i18n
+    // loading placeholder. Once JS has set its real content (player name
+    // or a translated error), the attribute must go -- otherwise any LATER,
+    // unrelated I18n.apply() call elsewhere on the page (site-nav.js,
+    // a language switch, etc.) would silently re-rescan the whole document
+    // and revert this element back to "Loading…" forever, since
+    // data-e9-inited already blocks re-fetching. Live-verified regression
+    // during E9.1A2 Rev2 browser verification.
+    el.removeAttribute('data-i18n');
   }
 
   function t(key, fallback) {

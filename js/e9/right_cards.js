@@ -21,7 +21,14 @@
 
   function setBody(root, cardKey, text) {
     var el = root.querySelector('[data-e9-card-body="' + cardKey + '"]');
-    if (el) el.textContent = text;
+    if (!el) return;
+    el.textContent = text;
+    // Each card body starts with a static data-i18n="e9.right_cards.loading"
+    // placeholder. Remove it once real content/empty/error text is set, so
+    // a later, unrelated I18n.apply() elsewhere on the page cannot silently
+    // revert it back to "Loading…" (see js/e9/top_hud.js for the same fix
+    // and the live-verified regression this addresses).
+    el.removeAttribute('data-i18n');
   }
 
   function loadDailyChallenge(root) {
