@@ -513,6 +513,152 @@ services:
 "@
 }
 
+function Get-StaticAssetInventory {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A: reads deploy/live-static-asset-inventory.json, the single
+    tracked source of truth for which root-level files app.py's
+    _LIVE_STATIC_ELIGIBLE_FILES allowlist permits to be served from the
+    live-static override root, and which of those this Sprint's static
+    release tooling actually manages (required_in_generation).
+    #>
+    param([string]$Path = (Resolve-RepoPath 'deploy\live-static-asset-inventory.json'))
+    return Read-JsonFile -Path $Path
+}
+
+function Get-SwVersionFromText {
+    <#
+    .SYNOPSIS
+    Parses `const VERSION = '...'` out of sw.js source text.
+    .DESCRIPTION
+    Mirrors the pattern already proven by the untracked, host-only
+    /opt/go-odyssey/deploy-static.ps1 (see
+    docs/deployment/canonical_static_release_contract.md) -- re-implemented
+    here as tracked, tested code.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SwText,
+        [string]$SourceLabel = 'sw.js'
+    )
+    $match = [regex]::Match($SwText, "const VERSION\s*=\s*'([^']+)'")
+    if (-not $match.Success) {
+        throw "Could not find sw.js VERSION in $SourceLabel."
+    }
+    return $match.Groups[1].Value
+}
+
+function Assert-SafeStaticRelativePath {
+    <#
+    .SYNOPSIS
+    Fail-closed path safety check for static release files, independent of
+    (and in addition to) the declarative allowlist in
+    deploy/live-static-asset-inventory.json.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)]$Inventory
+    )
+    $normalized = $RelativePath.Replace('\', '/')
+    if ($normalized -match '^[A-Za-z]:') {
+        throw "Absolute drive paths are not allowed: $RelativePath"
+    }
+    if ($normalized.StartsWith('/')) {
+        throw "Absolute paths are not allowed: $RelativePath"
+    }
+    if ($normalized.Contains('..')) {
+        throw "Path traversal is not allowed: $RelativePath"
+    }
+    foreach ($pattern in $Inventory.forbidden_patterns.path_patterns) {
+        if ($normalized -match $pattern) {
+            throw "Forbidden path for static release: $RelativePath"
+        }
+    }
+    if ($Inventory.eligible_files.entries -notcontains $normalized) {
+        throw "Path is not in the live-static eligible_files allowlist: $RelativePath"
+    }
+}
+
+function Get-StaticReleaseGenerationName {
+    <#
+    .SYNOPSIS
+    Builds the release generation directory name, reusing the exact naming
+    convention already established by the 93 pre-existing generations under
+    /opt/go-odyssey-static/releases/ on the production host:
+    <YYYYMMDD-HHMMSS>-<short-git-sha>-<sw-version-label>
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$GitSha,
+        [Parameter(Mandatory = $true)][string]$SwVersion,
+        [Parameter(Mandatory = $true)][DateTime]$TimestampUtc
+    )
+    $shortSha = Get-ShortGitSha -GitSha $GitSha
+    $safeLabel = ($SwVersion -replace '[^0-9A-Za-z_-]', '-')
+    $stamp = $TimestampUtc.ToString('yyyyMMdd-HHmmss')
+    return "{0}-{1}-{2}" -f $stamp, $shortSha, $safeLabel
+}
+
+function New-StaticReleaseBundle {
+    <#
+    .SYNOPSIS
+    Stages the required_in_generation files from an exact source checkout
+    into a local staging directory, computing SHA-256/size for each.
+    .DESCRIPTION
+    Source files must come from the exact release git SHA's own worktree
+    (see New-DetachedWorktree) -- never from the current working directory,
+    production's live-static current, or an unrelated prior release bundle.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceRoot,
+        [Parameter(Mandatory = $true)][string]$StagePath,
+        [Parameter(Mandatory = $true)]$Inventory
+    )
+    if (Test-Path -LiteralPath $StagePath) {
+        Remove-Item -LiteralPath $StagePath -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $StagePath -Force | Out-Null
+
+    $files = @()
+    foreach ($relativePath in $Inventory.required_in_generation.entries) {
+        Assert-SafeStaticRelativePath -RelativePath $relativePath -Inventory $Inventory
+        $sourceFile = Join-Path $SourceRoot $relativePath
+        if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+            throw "Static release source file missing: $sourceFile"
+        }
+        $targetFile = Join-Path $StagePath $relativePath
+        Copy-Item -LiteralPath $sourceFile -Destination $targetFile -Force
+        $hash = (Get-FileHash -LiteralPath $targetFile -Algorithm SHA256).Hash.ToLowerInvariant()
+        $size = (Get-Item -LiteralPath $targetFile).Length
+        if ($size -le 0) {
+            throw "Staged static release file is empty: $relativePath"
+        }
+        $files += [ordered]@{
+            path = $relativePath
+            sha256 = $hash
+            size = $size
+        }
+    }
+    return $files
+}
+
+function New-StaticReleaseManifestObject {
+    param(
+        [Parameter(Mandatory = $true)][string]$GitSha,
+        [Parameter(Mandatory = $true)][string]$GenerationId,
+        [Parameter(Mandatory = $true)][string]$SwVersion,
+        [Parameter(Mandatory = $true)][object[]]$Files,
+        [Parameter(Mandatory = $true)][string]$CreatedAtUtc
+    )
+    return [ordered]@{
+        release_git_sha = $GitSha
+        static_generation_id = $GenerationId
+        static_root = '/opt/go-odyssey-static'
+        service_worker_version = $SwVersion
+        asset_count = @($Files).Count
+        files = @($Files)
+        created_at = $CreatedAtUtc
+    }
+}
+
 Export-ModuleMember -Function @(
     'Assert-ImageRevisionMatches',
     'Assert-OwnerGate',
@@ -543,5 +689,11 @@ Export-ModuleMember -Function @(
     'Resolve-RepoPath',
     'Select-ContainerMountForDestination',
     'Test-TrackedTreeClean',
-    'Write-JsonFile'
+    'Write-JsonFile',
+    'Get-StaticAssetInventory',
+    'Get-SwVersionFromText',
+    'Assert-SafeStaticRelativePath',
+    'Get-StaticReleaseGenerationName',
+    'New-StaticReleaseBundle',
+    'New-StaticReleaseManifestObject'
 )
