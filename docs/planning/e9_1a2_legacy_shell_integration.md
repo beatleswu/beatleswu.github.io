@@ -308,3 +308,126 @@ E9.1A2: READY FOR REVIEW
 
 Do not deploy. Do not flip `e9Shell` to `true` in production. Do not begin
 E9.1B until this PR is reviewed and merged.
+
+---
+
+## Revision 2 (E9.1A2 Rev2)
+
+Re-run per a stricter task book after production moved on: `#82`
+(Premium Upsell), `#80` (Admin sidebar), `#83`/`#84` (release-tooling
+hotfixes) all merged to `master` after this branch was first cut.
+
+### Rebase
+
+Rebased cleanly onto `master` @ `ede2f657c` (base commit
+`2026f47c2` -> `ede2f657c`). Only conflict: `deploy/runtime-source-provenance.json`
+(both this branch and `#82` touched the `index.html` entry) — resolved by
+hand, recomputing `content_sha256` from the actual post-rebase file and
+pointing `source_commit` at the rebased commit hash (the pre-rebase hash is
+dangling, not reachable from any branch, once rebase recreates commits).
+`index.html` itself auto-merged with zero conflicts (this branch's changes
+sit near lines 5975/6237/15325; `#82`'s CSS-only fix sits at line ~463 —
+non-overlapping). No other file conflicted.
+
+### New: live Flask static-route contract tests (200 / 404 / traversal reject)
+
+The original Rev1 static-route tests were source-level only, with a
+docstring claiming a live `test_client()` "requires a Postgres connection
+not available in this environment." That claim was false:
+`tests/test_admin_anchor_sidebar_phase_a_plus.py` already demonstrates
+(via a stubbed-heavy-import fixture) that `app.py` imports and runs under
+`test_client()` with zero DB connection for routes that never touch the
+database — which the three new E9 static routes never do. Reused that
+exact stub pattern and added real, live request tests in
+`tests/test_e9_adventure_shell_integration.py`:
+- `test_e9_static_route_returns_200_for_real_file` — 4 real files across
+  all 3 routes.
+- `test_e9_static_route_returns_404_for_invalid_extension_or_missing_file`
+  — wrong extension on a real file, and a missing file.
+- `test_e9_static_route_rejects_traversal` — `../`, `../../`, URL-encoded
+  `%2e%2e`, and a traversal target outside the served subtree
+  (`secret_key.txt`); asserts never `200`, and if a redirect is returned,
+  its `Location` never names the traversal target.
+
+All 13 parametrized cases pass against the real Flask app (verified with
+`-v`, not just aggregate pass count).
+
+### Live-discovered and fixed: I18n.apply() stale-rescan bug
+
+Browser verification (flag ON, via the repo's `static` `python -m
+http.server` preview config — no local Postgres available, matching Rev1's
+documented limitation) surfaced a real defect, not present in the Rev1
+report: `I18n.apply()` (this repo's only i18n API) is a **full-document
+rescan** — it resets the `textContent` of every element still carrying a
+`data-i18n` attribute, unconditionally. `top_hud.js`, `right_cards.js`, and
+`world_stage.js` each overwrite an element that starts with a static
+`data-i18n="...loading"` placeholder (`#top-hud-name`, each
+`.e9-card__body`, `#e9-world-stage-status`) via direct `textContent`
+assignment, but never removed the `data-i18n` attribute. Any **later,
+unrelated** call to `I18n.apply()` anywhere on the page — `site-nav.js`
+calls it twice, and the legacy page's own `onLangChange` calls it on every
+language switch — silently reverted these elements back to `"Loading…"`
+forever, since `data-e9-inited` already blocks re-fetching. This would have
+affected the *success* path too (a real player name/coins/zone-count
+getting silently wiped back to a loading spinner on language switch), not
+just the error path.
+
+**Fix**: `applyText()` (top_hud.js), `setBody()` (right_cards.js), and the
+status-line assignment in `world_stage.js`'s `renderZones()` now call
+`el.removeAttribute('data-i18n')` immediately after setting the element's
+real text. Live-reverified in the browser: forced an extra `I18n.apply()`
+call after each component settled (simulating `site-nav.js`/a language
+switch) and confirmed the text no longer reverts, for both the error state
+(Top HUD, all 4 Right Cards) and would apply identically to the success
+path (same code path, not fetch-outcome-dependent). `left_nav.js` and
+`bottom_dock.js` were checked and do not have this issue (they don't
+`textContent =` anything). 3 new regression tests added
+(`test_{top_hud,right_cards,world_stage}_removes_data_i18n_after_setting_dynamic_text`).
+Bumped `sw.js` VERSION (`v178...` -> `v179-e9-1a2-rev2-i18n-stale-rescan-fix`),
+`feature_flags.js`'s `ASSET_VERSION` (`e9-1a2-0` -> `e9-1a2-1`), and the
+`index.html` E9 asset `?v=` tags (`20260712e9b` -> `20260712e9c`), since this
+is a genuine runtime-behavior change to already-shipped JS, not a
+cosmetic edit.
+
+### Expanded browser verification (both flag states, full 8-viewport matrix)
+
+- **Flag OFF**: re-confirmed zero `/components/adventure/*` requests, legacy
+  `#skill-map` visible, `#e9-adventure-shell` hidden, and — new this
+  revision — all 8 viewports (1440/1366/1280/1024/768/640/480/320) checked
+  individually via `scrollWidth === clientWidth` (previously only asserted
+  as a blanket claim; now confirmed one width at a time).
+- **Flag ON**: with `e9WorldStage=0` (to keep the shell mounted instead of
+  recovering to legacy, since World Stage's data fetch always 404s without
+  a backend), re-ran the full 8-viewport matrix against the *actual
+  rendered* Top HUD / Left Nav / Right Cards / Bottom Dock — zero overflow
+  at every width, and `getBoundingClientRect()` cross-checked at the two
+  extremes (1440: 2-column nav/cards side-by-side with a real gap, no
+  overlap; 320: all 4 stacked vertically, sequential non-overlapping
+  y-ranges).
+- **Failure isolation, live-simulated**: temporarily removed
+  `components/adventure/right_cards.html` from disk, reloaded with the flag
+  on, confirmed the fetch 404'd, the slot rendered the existing
+  `e9-component-fallback` ("right_cards unavailable"), Left Nav and Bottom
+  Dock still loaded and rendered normally, and no uncaught page error —
+  then restored the file and verified `git diff` was clean before
+  committing anything else.
+- World Stage's own critical-recovery path (already live-verified in Rev1)
+  re-confirmed unchanged after rebase: fetch 404 -> `recoverToLegacy()` ->
+  legacy `#skill-map` visible again, `#e9-adventure-shell` hidden again, no
+  reload.
+
+### Still not verified live (same honest gap as Rev1, unchanged)
+
+The happy-path with real backend data (real zone tiles, real name/coins,
+real card counts, clicking a zone to start an adventure end-to-end) still
+requires a running Postgres + Flask backend not available in this
+environment. This was the same limitation reported in Rev1 and remains
+true in Rev2 — reported explicitly rather than silently assumed passing.
+
+### Status
+
+```
+E9.1A2 Rev2: READY FOR FINAL REVIEW
+```
+
+Deployment: NO. Merge: NO. Production mutation: NONE.
