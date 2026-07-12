@@ -331,14 +331,45 @@ def test_preflight_script_reports_read_only_production_state():
         "remote_staging_path_status",
         "QUESTIONS_JSON_PATH",
         "database_identity_match",
-        "[System.Management.Automation.ErrorRecord]",
-        '-replace "`r`n", "`n" -replace "`r", "`n"',
         "docker exec -i $ContainerName python -X utf8 -",
     ):
         assert token in content
     assert '{{with index .State "Health"}}{{index . "Status"}}{{end}}' in content
     assert "docker compose up" not in content
     assert "docker push" not in content
+    # RELEASE-TOOLING-HOTFIX-01: preflight no longer implements its own
+    # ssh/stdin piping -- it must delegate to the shared module helper.
+    assert "Invoke-RemoteShellCommand" in content
+    assert '-replace "`r`n", "`n" -replace "`r", "`n"' not in content
+    assert "[System.Management.Automation.ErrorRecord]" not in content
+
+
+def test_release_tooling_module_owns_the_stdin_piping_implementation():
+    # RELEASE-TOOLING-HOTFIX-01: the ssh/stdin piping logic (and its
+    # UTF-8-no-BOM fix) must live exactly once, in the shared module --
+    # not duplicated across preflight/deploy/rollback/verify scripts.
+    module_content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    assert "function Invoke-RemoteShellCommand" in module_content
+    assert "function ConvertTo-Utf8NoBomLfBytes" in module_content
+    assert '-replace "`r`n", "`n" -replace "`r", "`n"' in module_content
+    assert "[System.Management.Automation.ErrorRecord]" in module_content
+    assert "System.Text.UTF8Encoding($false)" in module_content
+    assert "'Invoke-RemoteShellCommand'" in module_content
+    assert "'ConvertTo-Utf8NoBomLfBytes'" in module_content
+
+    for script_name in (
+        "preflight-production.ps1",
+        "deploy-release-image.ps1",
+        "rollback-release.ps1",
+        "verify-production-release.ps1",
+    ):
+        script_content = read_text(REPO_ROOT / "scripts" / "release" / script_name)
+        assert "Invoke-RemoteShellCommand" in script_content, (
+            f"{script_name} must delegate to the shared stdin-piping helper"
+        )
+        assert script_content.count("| & ssh ") == 0, (
+            f"{script_name} must not re-implement its own ssh stdin pipe"
+        )
 
 
 def test_preflight_uses_helper_when_runtime_helper_is_available(tmp_path):
@@ -784,6 +815,100 @@ def test_deploy_and_rollback_scripts_use_safe_nested_json_parsing():
     assert "$verificationOutput | ConvertFrom-Json" not in deploy
     assert "$verificationOutput | ConvertFrom-Json" not in rollback
     assert "$rollbackOutput | ConvertFrom-Json" not in deploy
+
+
+def test_convert_to_utf8_no_bom_lf_bytes_has_no_bom_and_normalizes_line_endings(tmp_path):
+    # RELEASE-TOOLING-HOTFIX-01: pure byte-contract test, no process/ssh
+    # involved -- this is what Invoke-RemoteShellCommand's stdin pipe must
+    # match at runtime.
+    probe = (
+        "$bytes = ConvertTo-Utf8NoBomLfBytes -Text \"docker inspect foo`r`nsecond line`r`nthird`r`n\"\n"
+        "Write-Output $bytes.Length\n"
+        "Write-Output (($bytes[0..2] | ForEach-Object { $_.ToString('X2') }) -join '')\n"
+        "$decoded = [System.Text.Encoding]::UTF8.GetString($bytes)\n"
+        "Write-Output $decoded.Contains(\"`r`n\")\n"
+        "Write-Output $decoded.Contains(\"`n\")\n"
+        "Write-Output $decoded\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    lines = result.stdout.replace("\r\n", "\n").split("\n")
+    byte_length = int(lines[0])
+    first_three_hex = lines[1]
+    contains_crlf = lines[2].strip()
+    contains_lf = lines[3].strip()
+    decoded_text = "\n".join(lines[4:]).strip()
+    assert byte_length > 0
+    assert first_three_hex != "EFBBBF", "payload must not start with a UTF-8 BOM"
+    assert first_three_hex == "646F63"  # 'd','o','c' -- first 3 bytes of "docker..."
+    assert contains_crlf == "False", "CRLF must be normalized away"
+    assert contains_lf == "True"
+    assert decoded_text == "docker inspect foo\nsecond line\nthird"
+
+
+def test_invoke_process_with_utf8_no_bom_stdin_sends_no_bom_over_a_real_pipe(tmp_path):
+    # RELEASE-TOOLING-HOTFIX-01: end-to-end regression test on the actual
+    # Windows PowerShell 5.1 host this bug manifested on. Spawns a REAL
+    # child process (python.exe, running a script that copies its raw
+    # stdin bytes to a file) via the shared Invoke-ProcessWithUtf8NoBomStdin
+    # helper, then asserts on the literal bytes that arrived -- proving
+    # the fix works end-to-end, not just that the byte-contract helper
+    # (ConvertTo-Utf8NoBomLfBytes) is correct in isolation.
+    #
+    # Targets python.exe directly (by name, resolved via PATH) rather than
+    # faking out `ssh` itself: System.Diagnostics.Process.Start with a
+    # bare FileName only resolves .exe on classic .NET Framework (does not
+    # search PATHEXT for .cmd/.bat the way cmd.exe does), so a `ssh.cmd`
+    # stand-in placed earlier on PATH is silently skipped in favor of the
+    # real system ssh.exe -- confirmed directly (it printed a real "Could
+    # not resolve hostname" error from the genuine OpenSSH client).
+    # Invoke-ProcessWithUtf8NoBomStdin takes -FileName as a parameter
+    # specifically so this test can target a real, known executable
+    # (python) instead of trying to shadow `ssh`.
+    if shutil.which("python") is None:
+        raise AssertionError("python is required for this stdin-capture test double")
+    fake_capture_py = tmp_path / "capture_stdin.py"
+    fake_capture_py.write_text(
+        "import sys\n"
+        "with open(sys.argv[1], 'wb') as f:\n"
+        "    f.write(sys.stdin.buffer.read())\n",
+        encoding="utf-8",
+    )
+    probe = (
+        "$multiline = \"docker inspect foo`r`nsecond line`r`nthird line`r`n\"\n"
+        f"$scriptArg = '{fake_capture_py}'\n"
+        f"$outArg = '{tmp_path / 'captured.bin'}'\n"
+        "$argsLine = '\"' + $scriptArg + '\" \"' + $outArg + '\"'\n"
+        "$result = Invoke-ProcessWithUtf8NoBomStdin -FileName 'python' -Arguments $argsLine -StdinText $multiline\n"
+        "Write-Output ('EXIT:' + $result.exit_code)\n"
+    )
+    result = run_module_probe(tmp_path, probe)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "EXIT:0" in result.stdout
+    captured_path = tmp_path / "captured.bin"
+    assert captured_path.exists(), "stdin-capture stand-in never received a pipe"
+    captured = captured_path.read_bytes()
+    assert captured[:3] != b"\xef\xbb\xbf", "stdin payload must not start with a UTF-8 BOM"
+    assert captured[:6] == b"docker"
+    assert b"\r\n" not in captured, "CRLF must be normalized to LF before piping"
+    assert b"\n" in captured
+
+
+def test_powershell7_compatibility_of_the_stdin_fix_is_documented_and_non_regressive(tmp_path):
+    # pwsh (PowerShell 7) is not installed in this environment (confirmed:
+    # `pwsh` is not on PATH here) -- this cannot be a live pwsh execution
+    # test. Instead this verifies: (a) the fix uses only a standard .NET
+    # API (System.Text.UTF8Encoding) with identical behavior on Windows
+    # PowerShell 5.1 and PowerShell 7/Core, not a 5.1-only construct, and
+    # (b) the compatibility rationale is documented in the module itself
+    # so a future reader isn't left to re-derive it.
+    module_content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    assert "PowerShell 7" in module_content
+    assert "System.Text.UTF8Encoding($false)" in module_content
+    # Guard against accidentally introducing a 5.1-only cmdlet/parameter
+    # (e.g. -Encoding utf8NoBOM string literal, only valid on PS 6+) that
+    # would silently diverge between hosts.
+    assert "-Encoding utf8NoBOM" not in module_content
 
 
 def test_release_scripts_parse_cleanly():

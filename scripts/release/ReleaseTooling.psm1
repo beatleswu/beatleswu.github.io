@@ -189,6 +189,184 @@ function Get-BooleanFlag {
     return $normalized -in @('1', 'true', 'yes', 'on')
 }
 
+function ConvertTo-Utf8NoBomLfBytes {
+    <#
+    .SYNOPSIS
+    Normalizes text to LF-only line endings and returns UTF-8 (no BOM) bytes.
+    .DESCRIPTION
+    RELEASE-TOOLING-HOTFIX-01: pulled out of the SSH stdin-piping helper so
+    the exact byte payload that would be written to a remote shell's stdin
+    can be unit-tested without spawning ssh or any process at all. This is
+    the byte-level contract that Invoke-RemoteShellCommand's stdin pipe
+    must match at runtime.
+    #>
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Text)
+    $normalized = $Text -replace "`r`n", "`n" -replace "`r", "`n"
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    return $utf8NoBom.GetBytes($normalized)
+}
+
+function Invoke-ProcessWithUtf8NoBomStdin {
+    <#
+    .SYNOPSIS
+    Spawns a native process and writes LF-normalized, UTF-8-no-BOM stdin
+    to it -- byte-for-byte, with no trailing terminator added.
+    .DESCRIPTION
+    RELEASE-TOOLING-HOTFIX-01. Split out of Invoke-RemoteShellCommand so it
+    can be exercised directly in tests against a stand-in executable (by
+    full path) instead of only ever against the real `ssh` -- this is what
+    makes the fix's actual byte-level behavior testable end-to-end.
+
+    Does NOT use the `|` pipe operator (which always appends a trailing
+    NewLine after the payload, regardless of encoding) -- writes via
+    Process.StandardInput.Write() instead, so the exact normalized text is
+    sent with nothing added or rewritten.
+
+    [Console]::InputEncoding is what actually controls the encoding .NET
+    assigns to a redirected child process's StandardInput StreamWriter on
+    classic .NET Framework (confirmed by direct experiment -- setting
+    $OutputEncoding or [Console]::OutputEncoding instead had no effect on
+    the emitted bytes). Saved and restored around the call so it never
+    leaks into the caller's session.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$FileName,
+        [Parameter(Mandatory = $true)][string]$Arguments,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$StdinText
+    )
+    $normalized = $StdinText -replace "`r`n", "`n" -replace "`r", "`n"
+    $previousConsoleInputEncoding = [Console]::InputEncoding
+    try {
+        [Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $FileName
+        $psi.Arguments = $Arguments
+        $psi.RedirectStandardInput = $true
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.UseShellExecute = $false
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo = $psi
+        $proc.Start() | Out-Null
+        $proc.StandardInput.Write($normalized)
+        $proc.StandardInput.Close()
+        $stdout = $proc.StandardOutput.ReadToEnd()
+        $stderr = $proc.StandardError.ReadToEnd()
+        $proc.WaitForExit()
+        return [ordered]@{
+            output = ($stdout + $stderr).Trim()
+            exit_code = $proc.ExitCode
+        }
+    }
+    finally {
+        [Console]::InputEncoding = $previousConsoleInputEncoding
+    }
+}
+
+function Invoke-RemoteShellCommand {
+    <#
+    .SYNOPSIS
+    Single shared implementation of "run a command over ssh, optionally
+    piping a script/stdin payload" used by preflight-production.ps1,
+    deploy-release-image.ps1, rollback-release.ps1, and
+    verify-production-release.ps1.
+    .DESCRIPTION
+    RELEASE-TOOLING-HOTFIX-01: root cause of the preflight "docker: not
+    found" failure. On classic .NET Framework (what Windows PowerShell 5.1
+    runs on), piping a string to a native executable's stdin
+    (`$text | & someexe`) goes through a StreamWriter whose Encoding
+    defaults to [Console]::InputEncoding at the moment the child process's
+    stdin is set up -- and that default is a UTF-8 encoding WITH a byte-
+    order mark (BOM) in this environment. The BOM lands as the first bytes
+    of the remote command, so the remote shell sees `<BOM>docker ...`
+    instead of `docker ...` and fails to resolve it.
+
+    Note this is [Console]::InputEncoding, NOT the $OutputEncoding
+    preference variable -- $OutputEncoding was tried first during
+    diagnosis and did not change the emitted bytes at all (confirmed by
+    direct experiment); only [Console]::InputEncoding actually controls
+    the encoding .NET uses to construct the redirected child process's
+    stdin writer here.
+
+    Fixed here, once, by explicitly setting [Console]::InputEncoding to a
+    no-BOM UTF8Encoding for the duration of the pipe (saved and restored
+    immediately after in a finally block, so it never leaks into the
+    caller's session or any other process this session spawns). This is a
+    code-level fix, not a per-session workaround -- every script that
+    calls this function gets it for free, and none of them may
+    re-implement their own stdin-piping path.
+
+    Once the BOM was fixed, a second, separate artifact surfaced: piping a
+    string to a native command via `$text | & someexe` always terminates
+    it with the StreamWriter's NewLine (`\r\n` on Windows), appended AFTER
+    the (already LF-normalized) payload, regardless of $Console]::InputEncoding.
+    A trailing CRLF is harmless to `sh -s`/`python -` reading a script from
+    stdin in practice, but the acceptance contract for this hotfix is
+    exact LF-only bytes with nothing rewritten -- so the stdin-carrying
+    branches (ScriptText/StdinText) do not use the `|` pipe operator at
+    all. They spawn ssh via System.Diagnostics.Process and write the
+    normalized payload directly with StandardInput.Write() (not
+    WriteLine()), giving byte-for-byte control over exactly what is sent.
+    The plain -Command-only branch (no stdin payload) is unaffected by
+    either issue and is left as a simple `& ssh` call.
+
+    PowerShell 7/Core compatibility: not executed against a live pwsh in
+    this environment (pwsh is not installed here). [Console]::InputEncoding
+    and System.Diagnostics.Process are both standard, cross-version .NET
+    APIs with identical semantics on both hosts; PowerShell 7/Core's own
+    default pipe-to-native-process encoding is already UTF-8 without BOM,
+    so this fix is expected to be a no-op behavior-wise there, not a
+    regression. See docs/deployment/release_tooling_hotfix_01_ssh_stdin_bom.md
+    for the full root-cause writeup and the experiments that ruled out
+    $OutputEncoding and [Console]::OutputEncoding before landing on
+    [Console]::InputEncoding, and ruled out the `|` pipe operator entirely
+    for stdin payloads because of the trailing-CRLF artifact.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [string]$Command,
+        [string]$ScriptText,
+        [string]$StdinText
+    )
+    if ($PSBoundParameters.ContainsKey('ScriptText') -and $PSBoundParameters.ContainsKey('StdinText')) {
+        throw "Invoke-RemoteShellCommand: specify only one of -ScriptText or -StdinText, not both."
+    }
+    if ($PSBoundParameters.ContainsKey('ScriptText') -or $PSBoundParameters.ContainsKey('StdinText')) {
+        $remoteCommandArg = if ($PSBoundParameters.ContainsKey('ScriptText')) { 'sh -s' } else { $Command }
+        $payload = if ($PSBoundParameters.ContainsKey('ScriptText')) { $ScriptText } else { $StdinText }
+        $invokeResult = Invoke-ProcessWithUtf8NoBomStdin -FileName 'ssh' -Arguments "$SshAlias `"$remoteCommandArg`"" -StdinText $payload
+        return [ordered]@{
+            name = $Name
+            output = $invokeResult.output
+            exit_code = $invokeResult.exit_code
+        }
+    }
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $rawOutput = & ssh $SshAlias $Command 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    $output = ($rawOutput | ForEach-Object {
+        if ($_ -is [System.Management.Automation.ErrorRecord]) {
+            $_.ToString()
+        }
+        else {
+            [string]$_
+        }
+    } | Out-String).Trim()
+    return [ordered]@{
+        name = $Name
+        output = $output
+        exit_code = $exitCode
+    }
+}
+
 function Get-ImageLabels {
     param([Parameter(Mandatory = $true)][string]$ImageTag)
     $raw = & docker image inspect $ImageTag --format '{{json .Config.Labels}}'
@@ -325,7 +503,10 @@ Export-ModuleMember -Function @(
     'Assert-OwnerGate',
     'Assert-TrackedTreeClean',
     'ConvertFrom-NestedPowerShellJson',
+    'ConvertTo-Utf8NoBomLfBytes',
     'Ensure-Directory',
+    'Invoke-ProcessWithUtf8NoBomStdin',
+    'Invoke-RemoteShellCommand',
     'Get-CanonicalAppHealthcheckDefinition',
     'Get-BooleanFlag',
     'Get-CurrentGitSha',
