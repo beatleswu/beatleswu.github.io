@@ -173,7 +173,7 @@
     },
     {
       "path": "index.html",
-      "source_commit": "e0a4652728cb198f0c272a8d0608515416ca3a49",
+      "source_commit": "9325525c9a242496a98024cab8993c2bd3c6031b",
       "source_branch_or_local_ref": "feature/e9-1a2-legacy-shell-integration",
       "source_commit_subject": "fix(e9): stop I18n.apply() from reverting live E9 component text",
       "source_date": "Sun Jul 12",
@@ -449,7 +449,7 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "e0a4652728cb198f0c272a8d0608515416ca3a49",
+      "source_commit": "9325525c9a242496a98024cab8993c2bd3c6031b",
       "source_branch_or_local_ref": "feature/e9-1a2-legacy-shell-integration",
       "source_commit_subject": "fix(e9): stop I18n.apply() from reverting live E9 component text",
       "source_date": "Sun Jul 12",
