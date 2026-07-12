@@ -632,6 +632,66 @@ function New-RemoteMkdirScriptText {
     return "mkdir -p " + ($quoted -join ' ')
 }
 
+function New-RemoteBatchShaVerificationScript {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A2-STATIC-DEPLOY-FIX2: builds a single POSIX `sh -s` script
+    that verifies every manifest file's SHA-256 in ONE remote
+    `sha256sum --check --strict` invocation, instead of one ssh session per
+    file. The expected-hash data is embedded as a quoted heredoc inside the
+    same script text (not a second stdin channel) -- `sh -s` receives one
+    stdin stream carrying both the `cd && sha256sum --check` command and the
+    heredoc data for it.
+    .DESCRIPTION
+    Root cause this replaces: 182 sequential ssh sessions, one per file,
+    each individually bounded but collectively far more likely to hit a
+    slow/contended SSH channel -- confirmed live in production: one such
+    session (verifying a small, already-hashed-in-under-a-second file)
+    exceeded a 30s bound while 181 others succeeded. A single batched
+    verification measured 1.13s wall-clock for the same 182 files, 53MB
+    total, during this Sprint's own read-only diagnostic.
+
+    File order is preserved exactly as given (the caller passes
+    manifest.files in on-disk manifest order) -- this is what makes the
+    check deterministic and reproducible run to run.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RemoteReleaseDir,
+        [Parameter(Mandatory = $true)][object[]]$Files
+    )
+    $delimiter = '___RELEASE_FIX_A2_SHA256_CHECK_EOF___'
+    $lines = foreach ($f in $Files) {
+        Assert-SafeRemoteRelativeFilePath -RelativePath $f.path
+        "$($f.sha256)  $($f.path)"
+    }
+    $quotedDir = Quote-PosixShellArgument $RemoteReleaseDir
+    $checkBody = ($lines -join "`n")
+    return "cd $quotedDir && sha256sum --check --strict - <<'$delimiter'`n$checkBody`n$delimiter`n"
+}
+
+function Get-BatchVerificationTimeoutSeconds {
+    <#
+    .SYNOPSIS
+    Size-aware timeout for the single batched SHA-256 verification
+    operation, with documented min/max bounds -- not a blind reuse of the
+    30s quick-command timeout that a large asset closure could plausibly
+    exceed even in a single session under real-world load.
+    .DESCRIPTION
+    Assumes a deliberately pessimistic 1 MB/s remote throughput floor (real
+    measured throughput during RELEASE-FIX-A2's diagnostic was roughly
+    47 MB/s -- 53MB in 1.13s -- so this bound carries a large safety
+    margin, not a tight fit to the measurement).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][long]$TotalBytes,
+        [int]$MinSeconds = 60,
+        [int]$MaxSeconds = 300,
+        [long]$AssumedBytesPerSecond = 1MB
+    )
+    $sizeBasedSeconds = [Math]::Ceiling($TotalBytes / [double]$AssumedBytesPerSecond)
+    return [Math]::Min($MaxSeconds, [Math]::Max($MinSeconds, $sizeBasedSeconds))
+}
+
 function Get-ImageLabels {
     param([Parameter(Mandatory = $true)][string]$ImageTag)
     $raw = & docker image inspect $ImageTag --format '{{json .Config.Labels}}'
@@ -1030,5 +1090,7 @@ Export-ModuleMember -Function @(
     'Invoke-BoundedScpUpload',
     'Assert-SafeRemoteRelativeFilePath',
     'Get-RemoteParentDirectorySet',
-    'New-RemoteMkdirScriptText'
+    'New-RemoteMkdirScriptText',
+    'New-RemoteBatchShaVerificationScript',
+    'Get-BatchVerificationTimeoutSeconds'
 )

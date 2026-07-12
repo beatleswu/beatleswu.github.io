@@ -147,9 +147,15 @@ def test_deploy_script_never_overwrites_existing_generation():
 
 
 def test_deploy_script_verifies_remote_hash_after_upload():
-    content = _read(DEPLOY_SCRIPT)
-    assert "sha256sum" in content
-    assert "Remote hash mismatch" in content
+    # RELEASE-FIX-A2-STATIC-DEPLOY-FIX2: per-file "sha256sum <path>" checks
+    # (one ssh session per file) were replaced with a single batched
+    # `sha256sum --check --strict` verification -- see
+    # tests/deployment/test_static_deploy_fix2.py for the full coverage.
+    deploy_content = _read(DEPLOY_SCRIPT)
+    assert "New-RemoteBatchShaVerificationScript" in deploy_content
+    assert "Batch SHA-256 verification failed" in deploy_content
+    psm1_content = _read(PSM1)
+    assert "sha256sum --check --strict" in psm1_content
 
 
 def test_deploy_script_uses_atomic_symlink_switch_pattern():

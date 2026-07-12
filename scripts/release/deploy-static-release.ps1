@@ -184,7 +184,7 @@ if (-not $Execute) {
             'verify remote release directory does not already exist',
             'create remote release directory',
             'upload each staged file + manifest.json',
-            'verify remote sha256 for each uploaded file',
+            'verify remote sha256 for all uploaded files in one batched remote operation',
             'record previous current symlink target',
             'atomically switch current -> new release directory (ln -sfnT + mv -Tf)',
             'verify remote current now points to the new release directory',
@@ -236,13 +236,18 @@ try {
         throw "Uploaded byte size mismatch: expected $expectedBytes, remote has $uploadedBytes."
     }
 
-    # Step 7: validate every uploaded file's SHA-256 individually.
-    foreach ($entry in $manifest.files) {
-        $remoteFile = "$remoteReleaseDir/$($entry.path)"
-        $remoteHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $remoteFile)" -OperationLabel "sha256sum: $($entry.path)").Split(' ')[0].Trim().ToLowerInvariant()
-        if ($remoteHash -ne $entry.sha256) {
-            throw "Remote hash mismatch for $($entry.path) after upload."
-        }
+    # Step 7: validate every uploaded file's SHA-256 in ONE batched remote
+    # operation (RELEASE-FIX-A2-STATIC-DEPLOY-FIX2) -- not one ssh session
+    # per file. Confirmed live in production: with 182 separate sessions,
+    # one otherwise-instant verification exceeded a 30s bound while 181
+    # others succeeded; a single batched check of the same 182 files
+    # measured 1.13s wall-clock during this Sprint's own diagnostic.
+    $batchTimeoutSeconds = Get-BatchVerificationTimeoutSeconds -TotalBytes $expectedBytes
+    $verificationScript = New-RemoteBatchShaVerificationScript -RemoteReleaseDir $remoteReleaseDir -Files $manifest.files
+    $verificationResult = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -ScriptText $verificationScript -TimeoutSeconds $batchTimeoutSeconds -OperationLabel "batch SHA-256 verification ($($manifest.files.Count) files)"
+    if ($verificationResult.exit_code -ne 0) {
+        $failedLines = ($verificationResult.output -split "`n" | Where-Object { $_ -match 'FAILED' }) -join '; '
+        throw "Batch SHA-256 verification failed (exit $($verificationResult.exit_code)): $failedLines"
     }
 
     # Step 8: manifest.json uploads LAST, only after every governed file has

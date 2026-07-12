@@ -75,6 +75,36 @@ switch ($Scenario) {
         $sshOptions = Get-BoundedSshOptionArguments
         Emit @{ scenario = $Scenario; options = @($sshOptions) }
     }
+    'BatchVerificationScriptTextHang' {
+        # RELEASE-FIX-A2-STATIC-DEPLOY-FIX2: the batched sha256 verification
+        # call also goes through Invoke-BoundedSshCommand -ScriptText, so it
+        # must be killed the same way a hung directory-batch call is.
+        $files = @([pscustomobject]@{ path = 'i18n.js'; sha256 = 'deadbeef' })
+        $script = New-RemoteBatchShaVerificationScript -RemoteReleaseDir '/root/gen1' -Files $files
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        try {
+            Invoke-BoundedSshCommand -SshAlias 'fake-host' -ScriptText $script -TimeoutSeconds 2 -OperationLabel 'test: batch verification hang' -SshExecutable $fakeSshExe | Out-Null
+            Emit @{ scenario = $Scenario; result = 'UNEXPECTED_SUCCESS' }
+        }
+        catch {
+            $sw.Stop()
+            Emit @{
+                scenario = $Scenario
+                result = 'TIMED_OUT_AS_EXPECTED'
+                error_message = $_.Exception.Message
+                elapsed_seconds = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
+            }
+        }
+    }
+    'BatchVerificationTimeoutForRealManifest' {
+        $manifestPath = Join-Path $PSScriptRoot '..\..\release-artifacts\go-odyssey-app_1b0e5836.static.json'
+        $text = Get-Content -Raw -Encoding UTF8 $manifestPath
+        $text = $text -replace [char]0xFEFF, ''
+        $manifest = $text | ConvertFrom-Json
+        $totalBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
+        $timeout = Get-BatchVerificationTimeoutSeconds -TotalBytes $totalBytes
+        Emit @{ scenario = $Scenario; total_bytes = $totalBytes; batch_timeout_seconds = $timeout }
+    }
     'BoundedSshScriptTextSuccess' {
         # Mirrors the real directory-batch-creation call: one ssh session,
         # a multi-line script piped over stdin, not a per-directory command.
