@@ -382,6 +382,256 @@ function Invoke-RemoteShellCommand {
     }
 }
 
+function Invoke-BoundedNativeCommand {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A2-STATIC-DEPLOY-FIX1: run a native executable with a hard
+    process-level timeout, killing it (and its process tree) if it does not
+    exit in time.
+    .DESCRIPTION
+    Confirmed live during RELEASE-FIX-A2's own production deploy: a single
+    `ssh ... "mkdir -p ..."` invocation hung for ~15 minutes with an
+    established TCP connection and near-zero CPU activity. SSH protocol
+    keepalive options (ServerAliveInterval/ServerAliveCountMax) did not
+    detect or end that hang -- they depend on the remote side failing to
+    answer a keepalive request, which is a different failure mode than a
+    client-side process that never returns control. A process-level
+    WaitForExit(timeout) + Kill() is the only mechanism that bounds this
+    class of hang unconditionally.
+
+    Never includes ArgumentList or StdinText in a thrown error message --
+    only FileName, OperationLabel, exit code, and timeout status, so SSH
+    command payloads (which may reference internal paths or tokens) are
+    never echoed into logs or exceptions.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$FileName,
+        [Parameter(Mandatory = $true)][string[]]$ArgumentList,
+        [AllowEmptyString()][string]$StdinText,
+        [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
+        [Parameter(Mandatory = $true)][string]$OperationLabel
+    )
+    if ($TimeoutSeconds -le 0) {
+        throw "Invoke-BoundedNativeCommand: TimeoutSeconds must be a positive number of seconds for '$OperationLabel'."
+    }
+    $hasStdin = $PSBoundParameters.ContainsKey('StdinText')
+    $previousConsoleInputEncoding = $null
+    if ($hasStdin) {
+        $previousConsoleInputEncoding = [Console]::InputEncoding
+        [Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
+    }
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $FileName
+        # .NET Framework 4.x under Windows PowerShell 5.1 does not expose
+        # ProcessStartInfo.ArgumentList (added later in .NET) -- build a
+        # correctly quoted Windows command-line string instead. None of
+        # this Sprint's arguments (ssh -o options, POSIX paths, host
+        # aliases) contain embedded double quotes, so simple
+        # space-triggered double-quoting is sufficient and exact.
+        $psi.Arguments = (($ArgumentList | ForEach-Object {
+            if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+        }) -join ' ')
+        $psi.RedirectStandardInput = $hasStdin
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.UseShellExecute = $false
+
+        $proc = New-Object System.Diagnostics.Process
+        $proc.StartInfo = $psi
+        $proc.Start() | Out-Null
+
+        if ($hasStdin) {
+            $normalized = $StdinText -replace "`r`n", "`n" -replace "`r", "`n"
+            $proc.StandardInput.Write($normalized)
+            $proc.StandardInput.Close()
+        }
+
+        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+        $stderrTask = $proc.StandardError.ReadToEndAsync()
+        $exited = $proc.WaitForExit([Math]::Max(1, $TimeoutSeconds) * 1000)
+
+        if (-not $exited) {
+            # Process.Kill(bool entireProcessTree) is not available on the
+            # .NET Framework runtime Windows PowerShell 5.1 uses -- calling
+            # it throws MethodException, which a bare try/catch swallowed
+            # silently in an earlier version of this function, leaving the
+            # hung process running as an orphan (confirmed live: repeated
+            # test runs left multiple orphaned `Start-Sleep` processes
+            # behind). taskkill /T /F reliably kills the process tree on
+            # every supported Windows/PowerShell version; a plain
+            # single-process Kill() is a fallback in case taskkill itself
+            # is ever unavailable.
+            try { & taskkill /F /T /PID $proc.Id 2>&1 | Out-Null } catch {}
+            try { $proc.Kill() } catch {}
+            throw "Timed out after ${TimeoutSeconds}s waiting for: $OperationLabel (process was terminated)"
+        }
+
+        $stdout = $stdoutTask.GetAwaiter().GetResult()
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+
+        return [ordered]@{
+            exit_code = $proc.ExitCode
+            output = ($stdout + $stderr).Trim()
+            timed_out = $false
+            operation = $OperationLabel
+        }
+    }
+    finally {
+        if ($hasStdin) { [Console]::InputEncoding = $previousConsoleInputEncoding }
+    }
+}
+
+function Get-BoundedSshOptionArguments {
+    <#
+    .SYNOPSIS
+    Standard non-interactive, bounded ssh/scp connection options shared by
+    every bounded remote invocation this Sprint adds.
+    #>
+    param(
+        [int]$ConnectTimeoutSeconds = 10,
+        [int]$ServerAliveIntervalSeconds = 5,
+        [int]$ServerAliveCountMax = 2
+    )
+    return @(
+        '-o', 'BatchMode=yes',
+        '-o', "ConnectTimeout=$ConnectTimeoutSeconds",
+        '-o', 'ConnectionAttempts=1',
+        '-o', "ServerAliveInterval=$ServerAliveIntervalSeconds",
+        '-o', "ServerAliveCountMax=$ServerAliveCountMax"
+    )
+}
+
+function Invoke-BoundedSshCommand {
+    <#
+    .SYNOPSIS
+    Runs a single remote command (or a script piped to `sh -s` over stdin)
+    with standard non-interactive/keepalive ssh options AND a hard
+    process-level timeout. Use -ScriptText for a multi-statement script
+    (e.g. creating many directories in one session); use -Command for a
+    single simple remote command line.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [string]$Command,
+        [string]$ScriptText,
+        [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
+        [Parameter(Mandatory = $true)][string]$OperationLabel,
+        # Test-only override -- production code never sets this, so the
+        # real 'ssh' on PATH is always used outside tests. Lets tests point
+        # at a fake executable by exact path, avoiding Windows CreateProcess
+        # .cmd/.bat PATH-resolution quirks that a bare-name PATH override
+        # does not reliably trigger.
+        [string]$SshExecutable = 'ssh'
+    )
+    if ($PSBoundParameters.ContainsKey('Command') -and $PSBoundParameters.ContainsKey('ScriptText')) {
+        throw "Invoke-BoundedSshCommand: specify only one of -Command or -ScriptText, not both."
+    }
+    if (-not $PSBoundParameters.ContainsKey('Command') -and -not $PSBoundParameters.ContainsKey('ScriptText')) {
+        throw "Invoke-BoundedSshCommand: one of -Command or -ScriptText is required."
+    }
+    $sshOptions = Get-BoundedSshOptionArguments
+    if ($PSBoundParameters.ContainsKey('ScriptText')) {
+        $argumentList = @($sshOptions) + @($SshAlias, 'sh -s')
+        return Invoke-BoundedNativeCommand -FileName $SshExecutable -ArgumentList $argumentList -StdinText $ScriptText -TimeoutSeconds $TimeoutSeconds -OperationLabel $OperationLabel
+    }
+    $argumentList = @($sshOptions) + @($SshAlias, $Command)
+    return Invoke-BoundedNativeCommand -FileName $SshExecutable -ArgumentList $argumentList -TimeoutSeconds $TimeoutSeconds -OperationLabel $OperationLabel
+}
+
+function Invoke-BoundedScpUpload {
+    <#
+    .SYNOPSIS
+    Uploads a single local file to a remote destination via scp, with the
+    same bounded/non-interactive connection options as
+    Invoke-BoundedSshCommand plus a hard process-level timeout.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$LocalPath,
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$RemotePath,
+        [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
+        [string]$OperationLabel,
+        # Test-only override -- see Invoke-BoundedSshCommand's -SshExecutable.
+        [string]$ScpExecutable = 'scp'
+    )
+    if (-not $OperationLabel) { $OperationLabel = "scp upload to $RemotePath" }
+    $sshOptions = Get-BoundedSshOptionArguments
+    $argumentList = @($sshOptions) + @($LocalPath, "${SshAlias}:${RemotePath}")
+    return Invoke-BoundedNativeCommand -FileName $ScpExecutable -ArgumentList $argumentList -TimeoutSeconds $TimeoutSeconds -OperationLabel $OperationLabel
+}
+
+function Assert-SafeRemoteRelativeFilePath {
+    <#
+    .SYNOPSIS
+    Fail-closed safety check for a single manifest file path before it is
+    used to derive a remote directory or upload destination.
+    #>
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    if ([string]::IsNullOrWhiteSpace($RelativePath)) {
+        throw "Empty or whitespace-only file path is not allowed in a static release manifest."
+    }
+    $normalized = $RelativePath.Replace('\', '/')
+    if ($normalized.StartsWith('/')) {
+        throw "Absolute path is not allowed in a static release manifest: $RelativePath"
+    }
+    if ($normalized -match '^[A-Za-z]:') {
+        throw "Drive-absolute path is not allowed in a static release manifest: $RelativePath"
+    }
+    $segments = $normalized.Split('/')
+    if ($segments -contains '..') {
+        throw "Path traversal ('..') is not allowed in a static release manifest: $RelativePath"
+    }
+    if ($segments -contains '') {
+        throw "Path contains an empty segment (e.g. a doubled slash), which is not allowed: $RelativePath"
+    }
+}
+
+function Get-RemoteParentDirectorySet {
+    <#
+    .SYNOPSIS
+    Given the relative file paths from a static release manifest, returns
+    the deterministic, deduplicated, sorted set of remote directories (the
+    generation root itself, plus every nested parent directory) that must
+    exist before any file is uploaded.
+    .DESCRIPTION
+    Computed once, up front, entirely as local string logic (no network) --
+    this is what lets every required remote directory be created in a
+    single bounded remote operation instead of one ssh invocation per
+    unique directory (the RELEASE-FIX-A2 defect this Sprint fixes).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string[]]$RelativePaths,
+        [Parameter(Mandatory = $true)][string]$RemoteReleaseDir
+    )
+    $dirs = New-Object System.Collections.Generic.HashSet[string]
+    $dirs.Add($RemoteReleaseDir) | Out-Null
+    foreach ($relativePath in $RelativePaths) {
+        Assert-SafeRemoteRelativeFilePath -RelativePath $relativePath
+        $normalized = $relativePath.Replace('\', '/')
+        $segments = $normalized.Split('/')
+        if ($segments.Count -gt 1) {
+            $parentSegments = $segments[0..($segments.Count - 2)]
+            $parentRelative = [string]::Join('/', $parentSegments)
+            $dirs.Add("$RemoteReleaseDir/$parentRelative") | Out-Null
+        }
+    }
+    return @($dirs) | Sort-Object
+}
+
+function New-RemoteMkdirScriptText {
+    <#
+    .SYNOPSIS
+    Builds a single POSIX `sh -s` script that creates every directory in
+    the given set via one `mkdir -p` invocation -- so all of them can be
+    created over one bounded ssh session, regardless of how many unique
+    directories a manifest's governed subtrees introduce.
+    #>
+    param([Parameter(Mandatory = $true)][string[]]$Directories)
+    $quoted = $Directories | ForEach-Object { Quote-PosixShellArgument $_ }
+    return "mkdir -p " + ($quoted -join ' ')
+}
+
 function Get-ImageLabels {
     param([Parameter(Mandatory = $true)][string]$ImageTag)
     $raw = & docker image inspect $ImageTag --format '{{json .Config.Labels}}'
@@ -773,5 +1023,12 @@ Export-ModuleMember -Function @(
     'Get-CanonicalAssetClosureManifest',
     'Get-StaticReleaseGenerationName',
     'New-StaticReleaseBundle',
-    'New-StaticReleaseManifestObject'
+    'New-StaticReleaseManifestObject',
+    'Invoke-BoundedNativeCommand',
+    'Get-BoundedSshOptionArguments',
+    'Invoke-BoundedSshCommand',
+    'Invoke-BoundedScpUpload',
+    'Assert-SafeRemoteRelativeFilePath',
+    'Get-RemoteParentDirectorySet',
+    'New-RemoteMkdirScriptText'
 )
