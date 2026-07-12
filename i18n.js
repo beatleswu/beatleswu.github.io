@@ -2928,6 +2928,43 @@ const I18n = (() => {
             en: 'Reward details may change by event or season. Please refer to the leaderboard page for the latest rules.',
             zh: '獎勵內容可能依活動或賽季調整，實際規則以排行榜頁面公告為準。',
         },
+
+        // ── E9 Adventure Shell (feature-flagged, default off — see js/e9/*) ──
+        // Zone/boss state text reuses the existing index.adv.* keys above by
+        // design (e.g. index.adv.zone_locked, index.adv.boss_ready,
+        // index.adv.summary, index.adv.load_fail) — no second dictionary for
+        // adventure-progress semantics, only new keys for the shell's own
+        // chrome that has no existing equivalent.
+        'e9.shell.critical_error':      { en: 'Adventure Shell unavailable — showing classic view', zh: '新版介面暫時無法使用，已切換回原版介面' },
+        'e9.top_hud.aria_label':        { en: 'Player status', zh: '玩家狀態' },
+        'e9.top_hud.loading':           { en: 'Loading player status…', zh: '載入玩家狀態中…' },
+        'e9.top_hud.error':             { en: 'Player status unavailable', zh: '玩家狀態暫時無法取得' },
+        'e9.top_hud.level_label':       { en: 'Lv.', zh: '等級' },
+        'e9.left_nav.aria_label':       { en: 'Adventure navigation', zh: '冒險導覽' },
+        'e9.left_nav.adventure':        { en: 'Adventure', zh: '冒險' },
+        'e9.left_nav.hero':             { en: 'Hero', zh: '英雄' },
+        'e9.left_nav.equipment':        { en: 'Equipment', zh: '裝備' },
+        'e9.left_nav.backpack':         { en: 'Backpack', zh: '背包' },
+        'e9.left_nav.missions':         { en: 'Missions', zh: '任務' },
+        'e9.left_nav.shop':             { en: 'Shop', zh: '商店' },
+        'e9.right_cards.aria_label':    { en: 'Mission and progress cards', zh: '任務與進度卡片' },
+        'e9.right_cards.daily_challenge_title': { en: 'Daily Challenge', zh: '每日挑戰' },
+        'e9.right_cards.boss_progress_title':   { en: 'Boss Progress', zh: '首領進度' },
+        'e9.right_cards.srs_due_title':         { en: 'SRS Due', zh: '複習到期' },
+        'e9.right_cards.weakness_title':        { en: 'Weakness Summary', zh: '弱點總覽' },
+        'e9.right_cards.loading':       { en: 'Loading…', zh: '載入中…' },
+        'e9.right_cards.empty':         { en: 'No data yet', zh: '尚無資料' },
+        'e9.right_cards.error':         { en: 'Unavailable', zh: '暫時無法取得' },
+        'e9.bottom_dock.aria_label':    { en: 'Utility dock', zh: '功能列' },
+        'e9.bottom_dock.leaderboard':   { en: 'Leaderboard', zh: '排行榜' },
+        'e9.bottom_dock.achievements':  { en: 'Achievements', zh: '成就' },
+        'e9.bottom_dock.records':       { en: 'Game Records', zh: '對局紀錄' },
+        'e9.bottom_dock.friends':       { en: 'Friends', zh: '好友' },
+        'e9.bottom_dock.settings':      { en: 'Settings', zh: '設定' },
+        'e9.world_stage.aria_label':    { en: 'Adventure world map', zh: '冒險世界地圖' },
+        'e9.world_stage.loading':       { en: 'Loading adventure map…', zh: '載入冒險地圖中…' },
+        'e9.world_stage.error':         { en: 'Adventure map unavailable', zh: '冒險地圖暫時無法取得' },
+        'e9.world_stage.note':          { en: 'Tap a zone to continue your adventure', zh: '點選區域繼續你的冒險' },
     };
 
     // Known legacy UI literals that are still emitted by older templates or

@@ -1,19 +1,24 @@
 <!--
-  Component: Top HUD
+  Component: Top HUD (non-critical slot)
   Stable root id: top-hud  (Rule #6 — do not rename)
-  Data contract (placeholder only — no new API this sprint):
-    window.E9_MOCK_DATA.player = { name, rank_level, go_rank, coins, streak, premium }
-  Real sources when wired: /api/skills/profile, /api/user/coins
+  Real data sources (no new API):
+    GET /api/skills/profile -> display_name, rank_level
+    GET /api/user/coins     -> coins
+  Deliberately does NOT show Stars/HP/SP -- Stars is a per-zone 0-3 rating
+  (belongs on World Stage, not a global player stat), HP/SP only exist as
+  transient in-battle state with no persistence API. Showing 0/0 for those
+  here would be fabricated data. See docs/planning/e9_1a2_legacy_shell_integration.md.
 -->
-<section id="top-hud" class="e9-hud" data-e9-component="top_hud" role="region" aria-label="Player status">
+<section id="top-hud" class="e9-hud" data-e9-component="top_hud" role="region" data-i18n-aria-label="e9.top_hud.aria_label">
   <div class="e9-hud__player">
     <span class="e9-hud__avatar" id="top-hud-avatar">🧑</span>
-    <span class="e9-hud__name" id="top-hud-name">--</span>
-    <span class="e9-hud__rank" id="top-hud-rank">--</span>
+    <span class="e9-hud__name" id="top-hud-name" data-i18n="e9.top_hud.loading">Loading player status…</span>
+    <span class="e9-hud__level" id="top-hud-level" hidden>
+      <span data-i18n="e9.top_hud.level_label">Lv.</span>
+      <span id="top-hud-level-value">--</span>
+    </span>
   </div>
   <div class="e9-hud__resources">
-    <span class="e9-hud__coins" id="top-hud-coins" title="coins (real currency)">🪙 --</span>
-    <span class="e9-hud__streak" id="top-hud-streak" title="daily streak (status, not currency)">🔥 --</span>
-    <span class="e9-hud__premium" id="top-hud-premium" hidden>✨ Premium</span>
+    <span class="e9-hud__coins" id="top-hud-coins" hidden>🪙 --</span>
   </div>
 </section>

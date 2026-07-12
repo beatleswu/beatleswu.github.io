@@ -1,22 +1,19 @@
 <!--
-  Component: Adventure World Stage
+  Component: Adventure World Stage (CRITICAL slot — see js/e9/shell.js)
   Stable root id: adventure-stage  (Rule #6)
-  Placeholder only this sprint — no avatar animation, no monster animation,
-  no new world map art. Zone list matches the canonical 10 zones confirmed
-  in docs/planning/e9_zone_monster_matrix.csv (real IDs, not invented).
+  Real data source: GET /api/adventure/bootstrap (same endpoint the legacy
+  Adventure Map uses) -- response.zones[] with {key,label,name,icon,status,
+  can_enter,completed,stars,boss:{available,name,name_en}}. No new API.
+  Zone-state text reuses the EXISTING index.adv.* i18n keys (zone_locked,
+  boss_ready, boss_cleared, summary, load_fail, start_challenge) -- no
+  second translation dictionary for adventure semantics. Zone display
+  names (zone.name) are passed through verbatim, same as legacy, since
+  the API has no separate English zone-name field today.
+  No Avatar, Monster, Boss art, or Fog of War -- placeholder tiles only,
+  per E9.1A2 scope.
 -->
-<main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" aria-label="Adventure world map">
-  <div class="e9-stage__zones" role="list">
-    <div class="e9-zone" data-zone="k26_30" role="listitem" tabindex="0">1. Beginner Village</div>
-    <div class="e9-zone" data-zone="k21_25" role="listitem" tabindex="0">2. Slime Plains</div>
-    <div class="e9-zone" data-zone="k16_20" role="listitem" tabindex="0">3. Goblin Cave</div>
-    <div class="e9-zone" data-zone="k11_15" role="listitem" tabindex="0">4. Misty Forest</div>
-    <div class="e9-zone" data-zone="k6_10" role="listitem" tabindex="0">5. Orc Tribe</div>
-    <div class="e9-zone" data-zone="k1_5" role="listitem" tabindex="0">6. Dragon Valley</div>
-    <div class="e9-zone" data-zone="d1_2" role="listitem" tabindex="0">7. Sage Tower</div>
-    <div class="e9-zone" data-zone="d3_4" role="listitem" tabindex="0">8. Demon Castle</div>
-    <div class="e9-zone" data-zone="d5_6" role="listitem" tabindex="0">9. Ragnarök</div>
-    <div class="e9-zone" data-zone="d7_plus" role="listitem" tabindex="0">10. Ancient Doom Temple</div>
-  </div>
-  <p class="e9-stage__note">placeholder — avatar/monster art and animation are out of scope for E9.1A</p>
+<main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-i18n-aria-label="e9.world_stage.aria_label">
+  <div class="e9-stage__status" id="e9-world-stage-status" data-i18n="e9.world_stage.loading">Loading adventure map…</div>
+  <div class="e9-stage__zones" id="e9-world-stage-zones" role="list" hidden></div>
+  <p class="e9-stage__note" data-i18n="e9.world_stage.note">Tap a zone to continue your adventure</p>
 </main>
