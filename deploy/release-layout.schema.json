@@ -37,6 +37,11 @@
     "health_url": { "type": "string", "minLength": 1 },
     "login_url": { "type": "string", "minLength": 1 },
     "homepage_url": { "type": "string", "minLength": 1 },
-    "release_artifacts_directory": { "type": "string", "minLength": 1 }
+    "release_artifacts_directory": { "type": "string", "minLength": 1 },
+    "static_release_root": {
+      "type": "string",
+      "minLength": 1,
+      "description": "RELEASE-FIX-A: remote root directory containing releases/<generation>/ and the current/previous symlinks that GO_ODYSSEY_LIVE_STATIC_ROOT points into. Optional (defaults are not assumed) -- only required by scripts/release/{package,deploy,rollback}-static-release.ps1."
+    }
   }
 }

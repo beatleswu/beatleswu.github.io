@@ -91,6 +91,17 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
         "compose_version": {"stdout": "2.39.1"},
         "disk_free_kb": {"stdout": "overlay 4194304 1024 4193280 1% /"},
         "remote_staging_path_status": {"stdout": "parent-writable"},
+        "static_current_target": {
+            "stdout": "/opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser"
+        },
+        "static_current_files": {
+            "stdout": (
+                "bf84cca277addbdc408e83c55e93559cdb94e710b0a68fe8e43a9ea64c6e672a  "
+                "/opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/i18n.js\n"
+                "150e0ecbef379637c48d53a6e43c20a6610dc384e1adf782a674e8775f9b4aed  "
+                "/opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/sw.js"
+            )
+        },
         "healthz_status": {"stdout": "200"},
         "healthz_body": {"stdout": '{"ok": true}'},
         "login_status": {"stdout": "200"},

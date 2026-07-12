@@ -4,6 +4,7 @@ param(
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [string]$ReleaseManifest = 'deploy\release-manifest.example.json',
     [string]$ReleaseArchive,
+    [string]$StaticManifest,
     [switch]$DryRun
 )
 
@@ -338,6 +339,74 @@ function Get-RemoteStagingPathStatus {
     return (Invoke-RemoteText -Name 'remote_staging_path_status' -Command $command).Trim()
 }
 
+function Get-RemoteStaticGenerationReport {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A: reports the identity of whatever /opt/go-odyssey-static/current
+    actually points at today, and (if -StaticManifest was given) whether it
+    matches the declared release -- so a stale live-static generation is a
+    visible, fail-closed preflight fact, never silently ignored the way it
+    was before this Sprint (see docs/deployment/canonical_static_release_contract.md).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$StaticRoot,
+        $ExpectedManifest
+    )
+    $currentTarget = (Invoke-RemoteText -Name 'static_current_target' -Command "readlink -f $(Quote-PosixShellArgument "$StaticRoot/current") 2>/dev/null || true").Trim()
+    if ([string]::IsNullOrWhiteSpace($currentTarget)) {
+        return [ordered]@{
+            current_target = $null
+            files = @()
+            drift_checked = $false
+            drift = $null
+        }
+    }
+    $script = @"
+for f in i18n.js sw.js; do
+  path="$currentTarget/`$f"
+  if [ -f "`$path" ]; then
+    sha256sum "`$path"
+  else
+    echo "MISSING `$f"
+  fi
+done
+"@
+    $raw = Invoke-RemoteScriptText -Name 'static_current_files' -ScriptText $script
+    $files = @()
+    foreach ($line in ($raw -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+        if ($line -match '^MISSING\s+(.+)$') {
+            $files += [ordered]@{ path = $Matches[1].Trim(); sha256 = $null; present = $false }
+        }
+        else {
+            $parts = $line -split '\s+', 2
+            $files += [ordered]@{ path = (Split-Path -Leaf $parts[1].Trim()); sha256 = $parts[0].Trim().ToLowerInvariant(); present = $true }
+        }
+    }
+
+    $drift = $null
+    $driftChecked = $false
+    if ($ExpectedManifest) {
+        $driftChecked = $true
+        $drift = $false
+        foreach ($entry in $ExpectedManifest.files) {
+            $observed = $files | Where-Object { $_.path -eq $entry.path } | Select-Object -First 1
+            if (-not $observed -or -not $observed.present -or $observed.sha256 -ne $entry.sha256) {
+                $drift = $true
+            }
+        }
+        if ($currentTarget -notmatch [regex]::Escape($ExpectedManifest.static_generation_id)) {
+            $drift = $true
+        }
+    }
+
+    return [ordered]@{
+        current_target = $currentTarget
+        files = $files
+        drift_checked = $driftChecked
+        drift = $drift
+    }
+}
+
 function Assert-ContainerSnapshotValid {
     param(
         [Parameter(Mandatory = $true)]$Snapshot,
@@ -388,6 +457,8 @@ if ($DryRun) {
             'DATABASE_URL',
             'SHADOW_EVENTS_PATH'
         )
+        static_release_root = $(if ($layout.PSObject.Properties.Name -contains 'static_release_root') { $layout.static_release_root } else { $null })
+        static_manifest_provided = -not [string]::IsNullOrWhiteSpace($StaticManifest)
     } | ConvertTo-Json -Depth 8 | Write-Output
     return
 }
@@ -414,6 +485,14 @@ $healthzBody = Get-RemoteHttpBody -Name 'healthz_body' -Url $layout.health_url
 $loginStatus = Get-RemoteHttpStatus -Name 'login_status' -Url $layout.login_url
 $homeStatus = Get-RemoteHttpStatus -Name 'home_status' -Url $layout.homepage_url
 $dailyChallengeStatus = Get-RemoteHttpStatus -Name 'daily_challenge_status' -Url $dailyChallengeUrl
+$staticExpectedManifest = $null
+if (-not [string]::IsNullOrWhiteSpace($StaticManifest)) {
+    $staticExpectedManifest = Read-JsonFile -Path (Resolve-RepoPath $StaticManifest)
+}
+$staticGenerationReport = $null
+if ($layout.PSObject.Properties.Name -contains 'static_release_root' -and -not [string]::IsNullOrWhiteSpace($layout.static_release_root)) {
+    $staticGenerationReport = Get-RemoteStaticGenerationReport -StaticRoot $layout.static_release_root -ExpectedManifest $staticExpectedManifest
+}
 $archiveSizeBytes = if ($candidateArchiveExists -and $ReleaseArchive) { (Get-Item -LiteralPath (Resolve-RepoPath $ReleaseArchive)).Length } else { 0 }
 $requiredFreeBytes = [Math]::Max([int64]1073741824, [int64]($archiveSizeBytes * 4))
 $requiredFreeKb = [int64][Math]::Ceiling($requiredFreeBytes / 1024.0)
@@ -470,6 +549,7 @@ $report = [ordered]@{
     home_status = $homeStatus
     daily_challenge_status = $dailyChallengeStatus
     remote_staging_path_status = $remoteStagingStatus
+    static_generation = $staticGenerationReport
     rollback_identity_available = (
         -not [string]::IsNullOrWhiteSpace($appSnapshot.image_id) -and
         -not [string]::IsNullOrWhiteSpace($schedulerSnapshot.image_id) -and
@@ -538,6 +618,9 @@ if (-not $report.rollback_identity_available) {
 }
 if ($report.readiness_mode -eq 'helper' -and $report.readiness.ok -ne $true) {
     throw "Runtime readiness helper reported a failing state."
+}
+if ($report.static_generation -and $report.static_generation.drift_checked -and $report.static_generation.drift -eq $true) {
+    throw "STATIC GENERATION DRIFT: production's live-static current ($($report.static_generation.current_target)) does not match the declared static release manifest ($($staticExpectedManifest.static_generation_id)). This is exactly the RELEASE-FIX-A class of defect -- do not proceed without deploying the matching static release first."
 }
 
 Write-Output ($report | ConvertTo-Json -Depth 8)

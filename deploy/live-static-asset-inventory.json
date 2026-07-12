@@ -1,0 +1,41 @@
+{
+  "$schema_note": "Declarative allowlist of root-level runtime files that app.py's _LIVE_STATIC_ELIGIBLE_FILES (app.py, ~line 17721) permits to be served from the live-static override root (GO_ODYSSEY_LIVE_STATIC_ROOT / /opt/go-odyssey-static/current) before falling back to the file baked into the Docker image. This file is the single tracked source of truth for that allowlist's contents -- tests/deployment/test_static_release_inventory.py asserts it stays byte-for-byte in sync with app.py's own frozenset so the two can never silently drift apart.",
+  "manifest_version": "1.0.0",
+  "root_cause_reference": "docs/deployment/canonical_static_release_contract.md",
+  "eligible_files": {
+    "description": "Every filename app.py will check the live-static root for. Not all of these are part of every static release generation -- see required_in_generation below for which ones this Sprint's tooling actually manages.",
+    "entries": [
+      "i18n.js", "sw.js",
+      "srs.js", "monster_trash.js", "sound.js", "mobile-nav.js",
+      "site-nav.js", "community_reward_notifications.js",
+      "community_reward_rules.js", "pwa.js",
+      "manifest.json", "robots.txt", "sitemap.xml",
+      "login.html", "landing.html", "index.html", "terms.html",
+      "manage.html", "admin.html", "shadow_dashboard.html", "bot.html", "daily_challenge.html",
+      "community.html", "messages.html", "share_view.html",
+      "mistakes.html", "curriculum.html", "hero.html", "rating_test.html",
+      "shop.html", "profile.html", "premium_weekly.html", "stats.html",
+      "upgrade.html", "play.html", "inventory.html", "badges.html",
+      "games.html"
+    ]
+  },
+  "required_in_generation": {
+    "description": "The subset of eligible_files this Sprint's static release tooling (scripts/release/package-static-release.ps1 / deploy-static-release.ps1) actually stages, ships, and verifies in every generation. Root cause of RELEASE-FIX-A: production's /opt/go-odyssey-static/current/{i18n.js,sw.js} were the only two files physically present there (confirmed via `ls -la` on the host), stuck at a 2026-07-10 generation, while every other eligible_files entry was absent from that directory and therefore already correctly falling back to the Docker image's baked copy the whole time. This Sprint's tooling manages exactly the files that were found drifted, not the full eligible_files list, to keep the fix narrowly scoped to the confirmed problem -- widening required_in_generation to cover the other 36 HTML pages is a separate, future decision (see docs/deployment/canonical_static_release_contract.md, 'Deferred scope').",
+    "entries": ["i18n.js", "sw.js"]
+  },
+  "excluded_prefixes": {
+    "description": "Subdirectory trees app.py also serves live-static-aware (via _serve_live_static_or_baked_subpath), deliberately OUT OF SCOPE for this Sprint's static release generation -- these are externally-versioned content with their own separate lifecycle (see Dockerfile's 'Content and asset boundary' comment), not git-tracked application code with a canonical source commit the way i18n.js/sw.js are.",
+    "entries": ["assets/", "icons/"]
+  },
+  "forbidden_patterns": {
+    "description": "Defense-in-depth reject list enforced by the static release tooling, independent of the allowlist check above -- even a typo'd or maliciously-crafted eligible_files entry could never pass these.",
+    "path_patterns": [
+      "^\\.env.*$", "^secrets?/.*$", "^.*\\.py$", "^.*\\.db$",
+      "^Dockerfile$", "^docker-compose.*$", "^entrypoint\\.sh$",
+      "^questions\\.json$", "^sgf_engine/.*$", "^requirements.*$"
+    ],
+    "reject_traversal": true,
+    "reject_absolute_paths": true,
+    "reject_symlink_escape": true
+  }
+}

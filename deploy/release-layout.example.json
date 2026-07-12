@@ -9,6 +9,7 @@
   "nginx_service_name": "go-odyssey-nginx",
   "asset_source_path": "/opt/go-odyssey-static/current",
   "asset_container_mount_destination": "/opt/go-odyssey-static/current",
+  "static_release_root": "/opt/go-odyssey-static",
   "questions_content_source_path": "/opt/go-odyssey-data",
   "questions_content_mount_destination": "/app/data",
   "shadow_event_log_path": "/app/data/shadow_events.jsonl",
