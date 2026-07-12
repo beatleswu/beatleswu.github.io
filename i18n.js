@@ -2936,9 +2936,12 @@ const I18n = (() => {
         // adventure-progress semantics, only new keys for the shell's own
         // chrome that has no existing equivalent.
         'e9.shell.critical_error':      { en: 'Adventure Shell unavailable — showing classic view', zh: '新版介面暫時無法使用，已切換回原版介面' },
+        'e9.common.retry':              { en: 'Retry', zh: '重試' },
+        'e9.common.unauthorized':       { en: 'Please log in again', zh: '請重新登入' },
         'e9.top_hud.aria_label':        { en: 'Player status', zh: '玩家狀態' },
         'e9.top_hud.loading':           { en: 'Loading player status…', zh: '載入玩家狀態中…' },
         'e9.top_hud.error':             { en: 'Player status unavailable', zh: '玩家狀態暫時無法取得' },
+        'e9.top_hud.unauthorized':      { en: 'Please log in again', zh: '請重新登入' },
         'e9.top_hud.level_label':       { en: 'Lv.', zh: '等級' },
         'e9.left_nav.aria_label':       { en: 'Adventure navigation', zh: '冒險導覽' },
         'e9.left_nav.adventure':        { en: 'Adventure', zh: '冒險' },
@@ -2955,6 +2958,9 @@ const I18n = (() => {
         'e9.right_cards.loading':       { en: 'Loading…', zh: '載入中…' },
         'e9.right_cards.empty':         { en: 'No data yet', zh: '尚無資料' },
         'e9.right_cards.error':         { en: 'Unavailable', zh: '暫時無法取得' },
+        'e9.right_cards.unauthorized':  { en: 'Please log in again', zh: '請重新登入' },
+        'e9.right_cards.daily_challenge_done':      { en: 'Completed today', zh: '今日已完成' },
+        'e9.right_cards.daily_challenge_available': { en: 'Available now', zh: '尚未完成' },
         'e9.bottom_dock.aria_label':    { en: 'Utility dock', zh: '功能列' },
         'e9.bottom_dock.leaderboard':   { en: 'Leaderboard', zh: '排行榜' },
         'e9.bottom_dock.achievements':  { en: 'Achievements', zh: '成就' },
@@ -2964,6 +2970,7 @@ const I18n = (() => {
         'e9.world_stage.aria_label':    { en: 'Adventure world map', zh: '冒險世界地圖' },
         'e9.world_stage.loading':       { en: 'Loading adventure map…', zh: '載入冒險地圖中…' },
         'e9.world_stage.error':         { en: 'Adventure map unavailable', zh: '冒險地圖暫時無法取得' },
+        'e9.world_stage.unauthorized':  { en: 'Please log in again', zh: '請重新登入' },
         'e9.world_stage.note':          { en: 'Tap a zone to continue your adventure', zh: '點選區域繼續你的冒險' },
     };
 

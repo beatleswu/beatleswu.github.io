@@ -1,11 +1,13 @@
 /*
  * E9 Top HUD — component init (non-critical).
- * Operates only on its own root. Real data sources only:
+ * Reads canonical player state via js/e9/adapters/player_state.js (single
+ * source of truth -- no second copy of name/level/coins is ever stored
+ * here). Real data sources only:
  *   GET /api/skills/profile -> display_name, rank_level
  *   GET /api/user/coins     -> coins
  * No Stars/HP/SP here by design (see components/adventure/top_hud.html).
- * A fetch failure shows a translated error state, never a fabricated
- * number, and never affects any other component.
+ * A fetch failure shows a translated error/unauthorized state, never a
+ * fabricated number, and never affects any other component.
  */
 (function (document) {
   'use strict';
@@ -41,29 +43,37 @@
     var levelValueEl = root.querySelector('#top-hud-level-value');
     var coinsEl = root.querySelector('#top-hud-coins');
 
-    Promise.all([
-      fetch('/api/skills/profile', { credentials: 'same-origin' }).then(function (r) {
-        if (!r.ok) throw new Error('profile HTTP ' + r.status);
-        return r.json();
-      }),
-      fetch('/api/user/coins', { credentials: 'same-origin' }).then(function (r) {
-        if (!r.ok) throw new Error('coins HTTP ' + r.status);
-        return r.json();
-      })
-    ]).then(function (results) {
-      var profile = results[0] || {};
-      var coinsRes = results[1] || {};
+    var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.PlayerState;
+    if (!adapter) {
+      console.error('[E9] top_hud: PlayerState adapter not loaded');
+      applyText(nameEl, t('e9.top_hud.error', 'Player status unavailable'));
+      return;
+    }
 
-      applyText(nameEl, profile.display_name || t('e9.top_hud.error', 'Player status unavailable'));
+    adapter.fetchPlayerState().then(function (result) {
+      if (!result.ok) {
+        if (result.kind === 'unauthorized') {
+          applyText(nameEl, t('e9.top_hud.unauthorized', 'Please log in again'));
+        } else {
+          applyText(nameEl, t('e9.top_hud.error', 'Player status unavailable'));
+        }
+        return;
+      }
 
-      if (profile.rank_level) {
-        if (levelValueEl) levelValueEl.textContent = profile.rank_level;
+      var data = result.data;
+      applyText(nameEl, data.name || t('e9.top_hud.error', 'Player status unavailable'));
+
+      // level is a plain number (adapter already stripped the 'LV' prefix
+      // from rank_level) -- rendered next to the existing "Lv." label, so
+      // this never produces a doubled "Lv. LV12".
+      if (data.level !== null) {
+        if (levelValueEl) levelValueEl.textContent = String(data.level);
         if (levelWrap) levelWrap.hidden = false;
       }
 
-      if (typeof coinsRes.coins === 'number') {
+      if (data.coins !== null) {
         if (coinsEl) {
-          coinsEl.textContent = '🪙 ' + coinsRes.coins.toLocaleString();
+          coinsEl.textContent = '🪙 ' + data.coins.toLocaleString();
           coinsEl.hidden = false;
         }
       }
