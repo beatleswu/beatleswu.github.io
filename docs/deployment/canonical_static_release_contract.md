@@ -39,6 +39,38 @@ release deploy is **not** the zero-container-impact operation the untracked
 that claim was never actually validated against this host's real bind-mount
 behavior. The image itself is unchanged; only a restart is required.
 
+## Third discovery, RELEASE-FIX-A2 (2026-07-12, the day after this Sprint's own deploy)
+
+This Sprint's "Deferred scope" section originally claimed `assets/` was
+"already absent from the drifted `/opt/go-odyssey-static/current` directory
+the whole time" and therefore out of scope. **That claim was wrong.** Direct
+host inspection during RELEASE-FIX-A2 found that the generation this
+Sprint's own switch replaced —
+`20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser` — physically
+contained a complete, undocumented, untracked 757MB `assets/` tree (1,391
+files) alongside the stale `i18n.js`/`sw.js` this Sprint was correctly
+fixing. Only that one generation, out of 94 historical ones, ever carried
+an `assets/` subtree — evidence of a manual, out-of-band host copy at some
+prior point, never part of any tracked release process.
+
+Because this Sprint's own contract scoped `required_in_generation` to just
+`i18n.js`/`sw.js` (a correct, narrow fix for the confirmed i18n drift), the
+new generation it created had no `assets/` subdirectory. Switching `current`
+to it — the exact operation this Sprint's tooling exists to perform safely —
+silently orphaned every image on the site (see
+`docs/incidents/2026-07-12-full-site-asset-outage.md` for the full RCA: 180
+of 184 referenced images returned 404 immediately after this Sprint's
+deploy).
+
+**Lesson**: "confirmed absent" must mean confirmed by direct inspection of
+the specific generation being replaced, not inferred from what the
+tooling's own contract happens to manage. RELEASE-FIX-A2 moves `assets/`
+into `required_subtrees` (see `deploy/live-static-asset-inventory.json`),
+staged from a declarative closure manifest
+(`deploy/canonical-asset-closure-manifest.json`) covering exactly the 180
+files a live runtime-reference scan found in use — not the full 757MB
+historical tree, and not a wholesale directory copy.
+
 ## Root cause (confirmed, not assumed)
 
 `app.py`'s `_serve_live_static_or_baked` / `_serve_live_static_or_baked_subpath`
@@ -135,12 +167,11 @@ already a proven pattern on this exact host.
   back to the Docker image's baked copy, unaffected by this bug. Widening
   static-release management to cover those 36 files is a separate, future
   decision, not silently bundled into this fix.
-- **`assets/` and `icons/` are explicitly excluded** (see
-  `deploy/live-static-asset-inventory.json`'s `excluded_prefixes`) — these
-  are externally-versioned media content (757MB+) with their own separate
-  lifecycle, matching the Dockerfile's own "Content and asset boundary"
-  philosophy; they are not git-tracked application code with a canonical
-  source commit the way `i18n.js`/`sw.js` are.
+- **`icons/` is explicitly excluded** (see
+  `deploy/live-static-asset-inventory.json`'s `excluded_prefixes`) — no
+  current runtime reference resolves to it.
+- **`assets/` was excluded here, and that was wrong** — see "Third
+  discovery" below. RELEASE-FIX-A2 moved it to `required_subtrees`.
 - **`E9.1B`'s `t(key, fallback)` fallback-helper defect is NOT fixed here**
   — that is `RELEASE-FIX-B / E9-I18N-FALLBACK`, an independent code-level
   defect in `js/e9/{top_hud,right_cards,world_stage}.js`, deliberately kept

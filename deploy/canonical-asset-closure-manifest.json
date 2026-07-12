@@ -1,0 +1,1813 @@
+{
+  "$schema_note": "Declarative canonical closure for every currently-referenced /assets/** file (RELEASE-FIX-A2). This is the source of truth for what the static-release tooling stages under assets/** -- see docs/deployment/canonical_static_release_contract.md. Do not add files here that are not referenced by a runtime scan (see docs/incidents/2026-07-12-full-site-asset-outage.md Phase 1); do not blindly package the full historical asset tree.",
+  "manifest_version": "1.0.0",
+  "generated_for_incident": "RELEASE-FIX-A2 / 2026-07-12-full-site-asset-outage",
+  "total_files": 180,
+  "total_bytes": 53045226,
+  "provenance_summary": {
+    "historical-git-verified": 178,
+    "production-host-recovered": 2
+  },
+  "files": [
+    {
+      "path": "assets/community/panel_wood.webp",
+      "size": 106860,
+      "sha256": "a414129dd0291ec6987a875906723e7889181d5dc3ef6c2604fa2b3f830b2ee8",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/battle_record_icon.webp",
+      "size": 215970,
+      "sha256": "2444e41cc420cdbc43a5cd087b0c67d0e1665e998845261852e604dda03f69a2",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/claire_avatar.webp",
+      "size": 18606,
+      "sha256": "657b85bb6edaefef3caa697f8a24906f6e73b6016077b0b7d5641707090ebec9",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "production-host-recovered",
+      "source_evidence": "Recovered read-only from production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/ (RELEASE-FIX-A2 incident); absent from C:\\go-website and unresolved to any Git blob -- provenance is the production host copy itself, honestly recorded as such."
+    },
+    {
+      "path": "assets/go_rpg_assets/daily_bounty_icon.webp",
+      "size": 233808,
+      "sha256": "86bf8a5cd3faea4f0159a13c87a2328dccb04b1017b5dc66ee11705d21f69344",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/daily_commission_icon.webp",
+      "size": 152042,
+      "sha256": "d39bb8ef3d4fdc3461e5390eec42b04ae418ad8f86df4c72b213026648ca4669",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/guild_hall_main.webp",
+      "size": 179582,
+      "sha256": "f479ed3ce7de701c4682279d50eb26eb3e70df8124688b3ea5fcf156fd288175",
+      "mime": "image/webp",
+      "width": 1600,
+      "height": 900,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/hero_status_icon.webp",
+      "size": 182298,
+      "sha256": "7136acbcd978050bcc718b7b1d7d382edff0f149ef1745423133ec9c433dda79",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/monster_battle_icon.webp",
+      "size": 164622,
+      "sha256": "e110af510ed2328f45bb21720f9d1a46ae0310fbfd01eba2b4fbc87a69f2ec27",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/npc_elina.webp",
+      "size": 165266,
+      "sha256": "71bdc410866357222b475e607d91dc41b09605de166bba98805bb5f12df7dfdc",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/recommended_training_icon.webp",
+      "size": 241280,
+      "sha256": "64622cf3e8ded44fe5d4dd53b184d1457f6cb2e68d327f9a7570cb7dbb78fa8a",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/route_map_icon.webp",
+      "size": 242014,
+      "sha256": "c7b021b442da1615190ff455351512a48b366767e89be5b7b56bbde5a4f85027",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/start_training_icon.webp",
+      "size": 132394,
+      "sha256": "2359d6693c84fb63a30935a779ea48c0659aa7388debd84e0a824d252eb706c3",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets/streak_flame_icon.webp",
+      "size": 147158,
+      "sha256": "12558c0c9239878c653d4b7a3ebfd1a0110ab27d216aa96e890f8f856c6b439d",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/analysis_crystal_icon.webp",
+      "size": 128578,
+      "sha256": "8aae0de36844db3695aeaace782a022d311c44d589df1783536d4351c77fb754",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/first_move_icon.webp",
+      "size": 178342,
+      "sha256": "454fd65f6242cd757856fed616ec60380cb4736c79c0a75d0e1c96cfe3dca617",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/handicap_icon.webp",
+      "size": 187702,
+      "sha256": "d4c96375271f9245342fbdeaa7b6b8a75170398a8e92c42efb401f17ee4100e4",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/komi_icon.webp",
+      "size": 176216,
+      "sha256": "355ffe74f81208d1877c71d504c72469cbea647fdf2a1753437d7aca26ebc753",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/monster_rank_icon.webp",
+      "size": 172110,
+      "sha256": "380172df8f10f6ae75650cb75e160ec0fbe28c342eb9433fbef53b9cbbbedf39",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/monster_trial_entrance.webp",
+      "size": 227020,
+      "sha256": "374233497e7c2187a1e74e46e8f87a3d3dbb31df0c56af40abbe172297c46f47",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/npc_merlyn.webp",
+      "size": 209270,
+      "sha256": "b5df7b16a9cdeb6e122db43a4d9d08a25b7b82df9daa518ef14f0a4438a8ad11",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/pass_turn_icon.webp",
+      "size": 144476,
+      "sha256": "6def4670ec5dace847c3e8dca55714ceb3f8f2bd99440aba1db92dafb441ecef",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/record_scroll_icon.webp",
+      "size": 150478,
+      "sha256": "5a364662e5bc7b261971c5cb4c86b09213a58b8ae61f64a60602ac4758cae21b",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/retreat_icon.webp",
+      "size": 126016,
+      "sha256": "76f84e36f5648934a43df5fc0d7cda13ce53c6a0edcade8d4293ecaaf0dd8846",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/settlement_flag_icon.webp",
+      "size": 157192,
+      "sha256": "30f3f14a19e8bc7760a66eae94002e96e699968965ba09698c5f5fa024d16f8b",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/summon_monster_icon.webp",
+      "size": 183454,
+      "sha256": "b19bae0c3326141da5e7ca90efce9d0362cff4688e814c5b527c1fdd42a9f37e",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/trial_board_icon.webp",
+      "size": 177674,
+      "sha256": "a577123cec1e8eccf5cab93bec7aa69125cf571b3372309c2afeb46ed0dbd159",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/go_rpg_assets_v3/undo_move_icon.webp",
+      "size": 113190,
+      "sha256": "72454cb5d1baa5643e473a9abfc345f094a99c59d4f191752b01b257ea4e2554",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/abandon_bounty_icon.webp",
+      "size": 105816,
+      "sha256": "58fbb8e730d4d6fb7f1f1a6b9aceba2cbd36786a890aad510e43d120fe6f6b89",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/bounty_archives_icon.webp",
+      "size": 177070,
+      "sha256": "fc771ec5e15317efc1cb8cc41432c1fe3df7677a6c0ffea2f88833dcc0a844d3",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/bounty_completed_icon.webp",
+      "size": 154370,
+      "sha256": "7507dbd8c1c41ca0cec185992420246e5f0b86515b800e41a8532d8bda767795",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/daily_bounty_main.webp",
+      "size": 195970,
+      "sha256": "6dd9979d71b9033ec8e25903a6934ec89f852b1cfe2483f8053be1cd9c5e5b6c",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/daily_report_icon.webp",
+      "size": 121096,
+      "sha256": "9ec671078c2bb7450c851b7ee7986b1954e6f2b7b25bd20a103847f23c911355",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/medal_vault_icon.webp",
+      "size": 153404,
+      "sha256": "726eac1e21b6738bf14bf5f2ef45ab98cf5f05b639093edfc3d50313a7ff6a60",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/npc_nora.webp",
+      "size": 147306,
+      "sha256": "fb201533f8098c33ba67e48ed14d9a85f31862d5c66bc7bee1a999a90986f505",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/pass_rate_icon.webp",
+      "size": 97578,
+      "sha256": "e20946cf52856adb0d38dffc677c6be4cf61c0dd02c82d2399d32627095d1510",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/refresh_countdown_icon.webp",
+      "size": 178104,
+      "sha256": "0b6479abd4c3443ed41d5062695f082ede79d9024201d3aadb177c23efaa4bb4",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/report_guild_icon.webp",
+      "size": 142458,
+      "sha256": "6daff2599f7cf5e878a58fbcbf76c551a6c864fe53c6d3d90ba97ab74a74db48",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/reset_board_icon.webp",
+      "size": 133772,
+      "sha256": "994aa9583af87b207956211b1bdb87e4244df4c51f230313c8df441482989711",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/reveal_solution_icon.webp",
+      "size": 134674,
+      "sha256": "c7480a7892b149132ab27026252dcc22e94bb676381a931415015cbe7edd4fba",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/guild_bounty_assets/streak_icon.webp",
+      "size": 129914,
+      "sha256": "0c34ac985613cfbba25f3672319cea01a30640f1ee3e85e0421ee30af722b38f",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/hero/characters/chibi_reference_normalized.webp",
+      "size": 38308,
+      "sha256": "293076028f1914b1f4ebb2f31cdd546feaa47113fdb9f880128d270f592a27b9",
+      "mime": "image/webp",
+      "width": 640,
+      "height": 960,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/hero/hero_bg.webp",
+      "size": 2756009,
+      "sha256": "e26bbc4d60744152e74ea37a19e22f3f3bd45f55ec4b9bd36731690b414b1ef7",
+      "mime": "image/png",
+      "width": 1920,
+      "height": 700,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/hero/npc_blacksmith_tall.webp",
+      "size": 148016,
+      "sha256": "a4e073614c888cf7a5333a3c502ae674194b763ef64dc14ff974730683fc0f43",
+      "mime": "image/webp",
+      "width": 800,
+      "height": 1400,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/icon_create_hero_file.webp",
+      "size": 200582,
+      "sha256": "9aaa254639ecb82a806577e36e3d5c43926665d1b19913a1af2f11ec697da711",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/icon_return_guild.webp",
+      "size": 219650,
+      "sha256": "0a17e11b849820d529457bc08f21fd035f2f38cfcc72ff616993c08c43976860",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/icon_daily_training_commission.webp",
+      "size": 161332,
+      "sha256": "757a45fac82a993f4a77310f66bed1789bb356ce6cced0458e2ed9548ef39b78",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/icon_mistake_grimoire.webp",
+      "size": 181406,
+      "sha256": "a13613a4ef6c1af5e9fdd73a57f85bc77cda8cd76494d011a205ebcad269e1a8",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/icon_monster_trial_arena.webp",
+      "size": 156314,
+      "sha256": "bf7e54fd44352d85eb2234379ac10cc4cd767b35e6012a4c2c4f2180a29c4ee7",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/landing_go_stone_badge.webp",
+      "size": 131884,
+      "sha256": "4dfb94da3e3fedf33b84c5f9500de669267879cbbeaad523439080bb08584ed7",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/landing_growth_path_map.webp",
+      "size": 188520,
+      "sha256": "61f734a444858228e75c621c6be3d00c870861f571abd17cae67327d381d298a",
+      "mime": "image/webp",
+      "width": 1600,
+      "height": 900,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/landing_hero_guild_hall.webp",
+      "size": 182038,
+      "sha256": "55378359eb384d8d39f2b038129196a12d358f97ac0b10b5fb091167bc09c9b3",
+      "mime": "image/webp",
+      "width": 1600,
+      "height": 900,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/landing_page_assets/landing_premium_pass.webp",
+      "size": 281026,
+      "sha256": "bd68950cbc511760da12bc9ee0c1c5bbf587253213b1541871e712df315852c9",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/login_guild_counter.webp",
+      "size": 151920,
+      "sha256": "f25d57fa50fca5d641ffa8c7a054e838fa90954414f78adbfa7a0cf9c63e1ebb",
+      "mime": "image/webp",
+      "width": 1600,
+      "height": 900,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/main_adventure_map_clean_new.webp",
+      "size": 159390,
+      "sha256": "70079e83fcf1add620678e07abca90e5751a33b689152b1e20ef135f647777cc",
+      "mime": "image/webp",
+      "width": 1000,
+      "height": 562,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/ancient_idol_chibi.png",
+      "size": 295570,
+      "sha256": "16a7f3ed9b41eb1f1bbac96f92b86d0377b06ef760e58cbec77b1de300f7e7c3",
+      "mime": "image/png",
+      "width": 333,
+      "height": 407,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/archmage_lich_chibi.png",
+      "size": 356818,
+      "sha256": "6c8292eec9fddb38a630b78eaac284c5d831293c10023d2e50655c07b74f0c13",
+      "mime": "image/png",
+      "width": 400,
+      "height": 491,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/armored_knight_chibi.png",
+      "size": 369545,
+      "sha256": "f710d17fde461d018bd96bc0bb7ec9c5040f666d40131939fef417d686efbdff",
+      "mime": "image/png",
+      "width": 412,
+      "height": 446,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/bounty_warlord_chibi.png",
+      "size": 420469,
+      "sha256": "3a9c16b518edf7108244d0d010d344bbed1279c98e81511e472a27e5f9bf8268",
+      "mime": "image/png",
+      "width": 512,
+      "height": 508,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/cave_bat_chibi.png",
+      "size": 238530,
+      "sha256": "af94d704fded5986288902d7e64bd6fbe124cd1de33e468c244239a1755747a5",
+      "mime": "image/png",
+      "width": 416,
+      "height": 362,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/defeated_chibi.png",
+      "size": 287545,
+      "sha256": "54407aaf45b372bf1d94214a2f0fdbb79058490c25c559d380af2f120c7f2787",
+      "mime": "image/png",
+      "width": 495,
+      "height": 402,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/dragon_oracle_chibi.png",
+      "size": 319856,
+      "sha256": "9464665903b7f4e6ff27ac7f39a36edbd201879771a1ed378a2e5039151a1c79",
+      "mime": "image/png",
+      "width": 363,
+      "height": 429,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/fate_deity_chibi.png",
+      "size": 332774,
+      "sha256": "3b675b3ff15bfc9149cc498fad4f1c08f7d4bb51206f21c16e1851a46d0e5d34",
+      "mime": "image/png",
+      "width": 371,
+      "height": 436,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/forest_spirit_chibi.png",
+      "size": 286253,
+      "sha256": "aea102378aab74f0a217b66f2b41a6c2c4bcbad230f943c4aa2e28058c77d529",
+      "mime": "image/png",
+      "width": 335,
+      "height": 426,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/goblin_guard_chibi.png",
+      "size": 262597,
+      "sha256": "329420eee76b8f8d3fb189a04afcd8892531c9284f47099b5ca9ced54d76c981",
+      "mime": "image/png",
+      "width": 356,
+      "height": 405,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/goblin_raider_chibi.png",
+      "size": 225879,
+      "sha256": "d749e6bbbde00a9e6e71f32b02866cbbdcc6021a1620b9261039030aedaa1923",
+      "mime": "image/png",
+      "width": 331,
+      "height": 360,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/lich_mage_chibi.png",
+      "size": 262605,
+      "sha256": "7c801dde5e6f2a3b913238d59687b98192fa3f569f2c754fa092d9f351c8e8d9",
+      "mime": "image/png",
+      "width": 361,
+      "height": 490,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/mist_dryad_chibi.png",
+      "size": 373554,
+      "sha256": "cf893481c6ceeaf0ddab99c25dc7064033943d690b608244a5c5382684a18683",
+      "mime": "image/png",
+      "width": 392,
+      "height": 468,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/omega_idol_chibi.png",
+      "size": 395882,
+      "sha256": "9d03387ce9057cff64590773a9442ae7a79f7d9383759491e7685874d87c55e5",
+      "mime": "image/png",
+      "width": 376,
+      "height": 479,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/orc_grunt_chibi.png",
+      "size": 288584,
+      "sha256": "91f788f87ee4621f85be7fdc5751134d52bc925fe629776dcc2e27188de288f8",
+      "mime": "image/png",
+      "width": 358,
+      "height": 435,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/orc_shield_chibi.png",
+      "size": 392844,
+      "sha256": "7bc9a050681aba0d3462f6d6cb4235c6d2d267d8b91119bf7e9cf2f29e5e8f4a",
+      "mime": "image/png",
+      "width": 512,
+      "height": 481,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/royal_knight_chibi.png",
+      "size": 332812,
+      "sha256": "e433a80daad5c53a8adc807f5e248da360fdbc32b0f38b7155318dc215f06d4b",
+      "mime": "image/png",
+      "width": 409,
+      "height": 439,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/slime_chibi.png",
+      "size": 241262,
+      "sha256": "a0673a9146afb44b37a1981770afc5fd92e1cf4ad3c411c411179f26c9b2d6b7",
+      "mime": "image/png",
+      "width": 376,
+      "height": 389,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/storm_deity_chibi.png",
+      "size": 324030,
+      "sha256": "005c20be5c34f10367f57a27b1562555e718b7a543a7b4a43fbea374bcc1e3e3",
+      "mime": "image/png",
+      "width": 384,
+      "height": 438,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/tribal_orc_chibi.png",
+      "size": 275093,
+      "sha256": "14835324eb2b5a385ec9974c02675dc57b5b0d639846e4cd13fa9c9bf988cdfd",
+      "mime": "image/png",
+      "width": 340,
+      "height": 403,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/unknown_chibi.png",
+      "size": 311962,
+      "sha256": "4cd91c8f887c96357657a94777031f66663ea5fffac0643772782d15e61a4a77",
+      "mime": "image/png",
+      "width": 454,
+      "height": 494,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/monsters/wyvern_chibi.png",
+      "size": 291372,
+      "sha256": "5efec846bb39c6f030813d7c2aa1ab244f5b9f0247620a234b02c27287cbcd27",
+      "mime": "image/png",
+      "width": 402,
+      "height": 401,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/npc_serena_login.webp",
+      "size": 130774,
+      "sha256": "ce55d0fdf467a5ca7541729f05782160a68a1eb701f9a36204355c8dd5d3d1f0",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/cat_anim_lv2/01_idle.webp",
+      "size": 251284,
+      "sha256": "a30947176fd9a9af822b487c39b482bd22224d7db95072891bf5147fa1e58329",
+      "mime": "image/webp",
+      "width": 1254,
+      "height": 1254,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/cat_anim_lv3/01_idle.webp",
+      "size": 314292,
+      "sha256": "5fe1168960b895fc7ff4a2b727787845a68465096fcd3f52e7cb4b35fc2b400b",
+      "mime": "image/webp",
+      "width": 1254,
+      "height": 1254,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/dragon_anim_lv2/01_idle.webp",
+      "size": 246290,
+      "sha256": "85801c68fa841ec06ec8f71239eadf3f12bb320f70aa6ba7609a3a04654503e4",
+      "mime": "image/webp",
+      "width": 1254,
+      "height": 1254,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/dragon_anim_lv3/01_idle.webp",
+      "size": 270364,
+      "sha256": "70580af6136778a30cecf514c1b9700b292a7c266de8158815d6b46497bf1677",
+      "mime": "image/webp",
+      "width": 1254,
+      "height": 1254,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/horse_anim_lv2/01_idle.webp",
+      "size": 209348,
+      "sha256": "ca321e67b853dd98947f794ce00f89d74d79ee606c7e36dee2b5a61b2850b74d",
+      "mime": "image/webp",
+      "width": 1254,
+      "height": 1254,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/horse_anim_lv3/01_idle.webp",
+      "size": 540822,
+      "sha256": "c312cdeb46450f0fed4dd6bfd8debaf2217a6af1245b0ffc70e1dcb44ad49d00",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+      "size": 431040,
+      "sha256": "36303787e9e44781add5150f1ea353db3b61625780b1fa9f7bcfce8373febe5c",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+      "size": 430492,
+      "sha256": "0aeb1bbea8a17d8c5893734d963f6766cd49e868ed3570978547327ee2c0365b",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/pets/pet_whispering_void_kit_lv1.webp",
+      "size": 610786,
+      "sha256": "fda3bc7348e52dd8e447b79af6671b940cdb95dcb89885f34387b05c35f3d290",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/create_room.webp",
+      "size": 175488,
+      "sha256": "8e9841cb10881332f1e6fc62fe95e469c61f6794c6f779b31e3d632cb2b698ad",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/in_match.webp",
+      "size": 169580,
+      "sha256": "b5412c3f687cf19e800c882975e13bc1e52dc61a52ccaa2b3848ce87ac33e413",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/join_room.webp",
+      "size": 143692,
+      "sha256": "e83afd679716a85adb481ba0f2a40ce5d07e22fcd3d3da670f2801651404724e",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/match_result.webp",
+      "size": 174630,
+      "sha256": "7cda91c436c253e8c4fbcffa7ea4d14e366c4c048231076b89c9c9b55a3af2f3",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/npc_aiden.webp",
+      "size": 143978,
+      "sha256": "90cd46b8a48dd4a65f9c270e6d8d87f17c7c4f4779c68558f3e125c6b6e3f4fb",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/play_entrance.webp",
+      "size": 258456,
+      "sha256": "c3641f3233c7b4befad209bcc3d92f5425c0576575528c6eba30a6dcacfcd4d9",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/waiting_bench.webp",
+      "size": 166722,
+      "sha256": "8c25e4c70fcda5b896f032f0378637a44152ded07ef3ea09f63d44d79b2e4d4f",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/play_page_assets/home/ubuntu/play_assets/waiting_opponent.webp",
+      "size": 188060,
+      "sha256": "832b3414958f56dfae24b3b4f3b93f4ba7d038d10c64c5d2483bff058fce4185",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/cert_background.webp",
+      "size": 919014,
+      "sha256": "cd88fa827600295730bb2ec7d201ea570ee9a34c3102fd13c96b55d2813c3c2a",
+      "mime": "image/webp",
+      "width": 2304,
+      "height": 1536,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/icons/brass_astrolabe.png",
+      "size": 95925,
+      "sha256": "f1ba934264ee9f6b9dbf1b75c99967c578e9bca88ee94e137d3e730416a6eaad",
+      "mime": "image/png",
+      "width": 228,
+      "height": 256,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/icons/go_stones.png",
+      "size": 122785,
+      "sha256": "595931a3be70875f012f94120d57c44c3f3b116731f411dedf83e7453bb349d6",
+      "mime": "image/png",
+      "width": 243,
+      "height": 256,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/icons/hourglass_timer.png",
+      "size": 82501,
+      "sha256": "0aae2b65f79fcc061faf2cb8d57f24bcac667245f9647cbf8c80ed4679cffdb3",
+      "mime": "image/png",
+      "width": 165,
+      "height": 256,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/icons/parchment_certificate.png",
+      "size": 103033,
+      "sha256": "97f4be00cc50ca2455cf05adeed29a646d18d6346a16c5b4f927d63fd10fbe69",
+      "mime": "image/png",
+      "width": 243,
+      "height": 256,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/icons/skill_point_crystal.png",
+      "size": 85579,
+      "sha256": "506696702660cb3c20dd131503bb0ea714dca1d07d80f2ce5f9bab28f809e914",
+      "mime": "image/png",
+      "width": 227,
+      "height": 256,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/icons/training_scroll.png",
+      "size": 114124,
+      "sha256": "689ffb22b9db64a5401d2268d9cb36a764209b8b580cefc3735cb87c030c4c43",
+      "mime": "image/png",
+      "width": 256,
+      "height": 249,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/npc_go_appraiser_chibi_transparent.webp",
+      "size": 207176,
+      "sha256": "b14194f8efd98cd4a2cb0fd58fbf2c36fa773b929e5acbb406cb9d9b1640511b",
+      "mime": "image/webp",
+      "width": 871,
+      "height": 1214,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/npc_lizzy_result.webp",
+      "size": 972486,
+      "sha256": "34c84705eaf892a08dab5dc45513c53d69625240bc81be22025d260ebd956d59",
+      "mime": "image/webp",
+      "width": 1536,
+      "height": 2304,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/rating_test/seal_astrolabe.webp",
+      "size": 1394844,
+      "sha256": "33cadde349053efda6b17d09b3d3dc9eaba325a568cdf79d361f7a8c2b2886c8",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/ai_explain_ticket_bundle.webp",
+      "size": 322450,
+      "sha256": "ba9f71de33a641391d9d07f8312c105d744f3c7cdf91d58946d5c4ee13634569",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/double_streak_shield.webp",
+      "size": 399596,
+      "sha256": "46bdaef1b7ca4652632c669336976314baa6b1c19778cb2e52e88569d8bfcb7f",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/gacha_chest_closed.webp",
+      "size": 361888,
+      "sha256": "1d4d8c08a6c91bc6c928c86a2f91425fc97ee56bec8f77b19b15a753177a08fd",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/gacha_chest_open.webp",
+      "size": 343666,
+      "sha256": "22874ef4f7788ccefbf89460a716f7d9f541b19349a8c4f406e7a6c096a123f7",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/grand_training_pass.webp",
+      "size": 360134,
+      "sha256": "7926b8fe41f2519498e181b9593367e189662ce0677d0fadff8e18de3fb03233",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/grand_xp_potion.webp",
+      "size": 289014,
+      "sha256": "c7fadd775647ce1a524e7145873aab0b72956972c6ee6abb484a4280d2521de7",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/icon_ai_ticket.webp",
+      "size": 378148,
+      "sha256": "f2ad9bfdcef85c6a5f8ce561374dbb91b8b7f11a8f5c910d55dcc3a70cc51de8",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/icon_shield.webp",
+      "size": 391878,
+      "sha256": "2f6de1583029d1ecf3331c4ae2ce10f0f16348088011a8fe5b21d5e59442ada5",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/icon_xp_potion.webp",
+      "size": 342364,
+      "sha256": "6ecc5703919ad390ff268ea29140781867ce58ba4c935bca5835dec517e274e1",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/moon_dew_vial.webp",
+      "size": 193622,
+      "sha256": "4ec0260092f6f7ed43f1ed38e0d32e9023f7b4f0965473231a0779fdb94fd179",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/npc_merchant_happy.webp",
+      "size": 351892,
+      "sha256": "c94d6eedfe24b5366f5e4cd306d790b39b7eca0f4a2cd5e06943a69d2c676141",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/npc_merchant_idle.webp",
+      "size": 333296,
+      "sha256": "d897080e8c76d34307fb29880cceaf2a54c5d7f381f7f1ca5dbadbc4628c7004",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/npc_merchant_talk.webp",
+      "size": 336238,
+      "sha256": "4d94b0887a2eb3a4e169ed1f29cd3484d22a9e812015a83653a53d8b278b43f2",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/pet_candy_pouch.webp",
+      "size": 294208,
+      "sha256": "6a0343da91eecc967f43155c3e308180e9455a74d7f8b749a5990305853a1f8c",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/pet_feast_box.webp",
+      "size": 289580,
+      "sha256": "c43da11ca19f3da380e0b092fec92911dee342185a69693023556cb8f3f08bdd",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/premium_hint_bundle.webp",
+      "size": 457702,
+      "sha256": "f05b3aa04cb445683056d83f42d0a6dafa3941fd1d30f3a98a5c0abab434ffa9",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/shop_bg.webp",
+      "size": 300394,
+      "sha256": "60710dba50bc6fd94610ae3be2230d6d0e220e307585d60890c19b6cf89c8f06",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/shop_sign.webp",
+      "size": 389884,
+      "sha256": "52a80328ff50169fea05965ca58bc0665536d75e84444178226c04c28517036f",
+      "mime": "image/webp",
+      "width": 1536,
+      "height": 2304,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/small_hint_scroll.webp",
+      "size": 793442,
+      "sha256": "47e400835cbb8a0c1270411e8fb4eae981096a46cbbf6c0dc056a7609a34e5a3",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/small_training_pass.webp",
+      "size": 370170,
+      "sha256": "07ad61b4c736e058ae5e51545342cb9e45d6736823345b1b3fcd1a5241ecbc70",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/small_xp_potion.webp",
+      "size": 261738,
+      "sha256": "2b84f9ccb18a9af7efd8cc2fc1651afc2fd765a782262b0aa417ba166007684e",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/star_fruit_basket.webp",
+      "size": 280554,
+      "sha256": "b5dd92851db7da0b88af11f733610aab3f3d37b51c7ffa06696a29b22450c9ff",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1920,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/shop/title_badge_recruit.webp",
+      "size": 202224,
+      "sha256": "d6d9005ead053590ea1a0bf813f5a94471baa01db2f41e4ee0b78d189cfa8ecd",
+      "mime": "image/webp",
+      "width": 600,
+      "height": 600,
+      "provenance": "production-host-recovered",
+      "source_evidence": "Recovered read-only from production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/ (RELEASE-FIX-A2 incident); absent from C:\\go-website and unresolved to any Git blob -- provenance is the production host copy itself, honestly recorded as such."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_01.webp",
+      "size": 350854,
+      "sha256": "a5294e3b43282f8d272bd463972dc9331d062da00a5465097b8b9d9be991caf0",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_02.webp",
+      "size": 450204,
+      "sha256": "ca80f86ad02b72b456abd19bb338260474c801732fb1715b6a942d03eb9d5570",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_03.webp",
+      "size": 552746,
+      "sha256": "97e37e61c780b25598c484372d69111d95c5bff9a902f7c796698415f6cf47e5",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_04.webp",
+      "size": 500870,
+      "sha256": "617011f76790609c86137e0ccbee2a37d8776b71c463809e93815b7828e4377e",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_05.webp",
+      "size": 407608,
+      "sha256": "07b6c5513a63e056ff77993f957b9bd14e0dfd2ec4e4908f90fab122cf3e3bee",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_06.webp",
+      "size": 657982,
+      "sha256": "fdf6a404b8b56fb063051e96cac164b16ac4742f95d4b5400db5803de7ce6bda",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_scene_07.webp",
+      "size": 544264,
+      "sha256": "f51ae6d5fd0d787514b943c58aedc10a6ac8f3359404be5b0423669d595b7fb1",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_scene_01.webp",
+      "size": 252690,
+      "sha256": "e698a0bab35bd8de13465829b7a173049c586dc0e4779fa4566ede414d0f6b40",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_scene_02.webp",
+      "size": 320576,
+      "sha256": "337e3162afc7bef474f227dffb27cfc141b614bcaec31b369f02c465582ac484",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_scene_03.webp",
+      "size": 620692,
+      "sha256": "fad5990a1365e683f9d0a138e113e968f055d142e33c42a110787283b83b806c",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_scene_04.webp",
+      "size": 174628,
+      "sha256": "92a2018fc97cc481d158a0b06ead70b9fe800d8f14e937a01558dc962c1f4de2",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_scene_01.webp",
+      "size": 283444,
+      "sha256": "b721e7f367c9e1580e05cab1a0f888ab492e188947b78ad66c172ccb4d875807",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_scene_02.webp",
+      "size": 432000,
+      "sha256": "40beb97146e6aa4a20c68b4c619e57c40f2996f640d3c2084a327f071552d432",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_scene_03.webp",
+      "size": 342334,
+      "sha256": "f690995f4e2abd277dddc7ce7a796e161187168386a248c4e493c09ea1c68cb1",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_scene_04.webp",
+      "size": 425958,
+      "sha256": "e5f508bc848365b18bbb356ba4037200b4cba8e31dc62e54f622374329186da8",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_scene_01.webp",
+      "size": 187720,
+      "sha256": "3b006afc1f0380e4299d3694d68490689f57710ca584006a3edcc5f3c439dadd",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_scene_02.webp",
+      "size": 238770,
+      "sha256": "4a83fcf3f4679297cec08af702d8337986402a64cb27e485dbf7ac7b7b3371d1",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_scene_03.webp",
+      "size": 332888,
+      "sha256": "21e775881688ae0206f11dbe98ab883cf98cd4c7068a6c5a0e6be0c54efd4914",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_scene_04.webp",
+      "size": 251040,
+      "sha256": "53844977b02df5e0bf83bd9715b5917a4d909d9a0a8e4e23e0cf38b2a3eeac24",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_scene_01.webp",
+      "size": 203318,
+      "sha256": "158394326b6c71cbbdc759af6e31b27bf9dae364e74422d4e6d28df905d21741",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_scene_02.webp",
+      "size": 146240,
+      "sha256": "4ab39e626826044afd4705d62caefb61c6f9437f5820b96db68ccd7d752577fb",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_scene_03.webp",
+      "size": 314044,
+      "sha256": "cfa9beabfa3a45b1b0ad6b717fee2407169a77a33e20a18981752ec0dd2420a7",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_scene_04.webp",
+      "size": 174144,
+      "sha256": "509c867bc23ea67e57c22d3d5425cd69b541ef6a7c3fdc090922bc18cbc5f0f8",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_scene_01.webp",
+      "size": 438766,
+      "sha256": "4aed8c5637ecc828e93cb81fe1b86c33fed91358189defac6e78a4ac493a630c",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_scene_02.webp",
+      "size": 480388,
+      "sha256": "15a5a8b3036c1db8aef07aef41fea0130da50e235c6efd54d59a21558487010b",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_scene_03.webp",
+      "size": 350000,
+      "sha256": "1a6d717e0adf5d4bfb6157aa741aaed0d44704d0a7ef28ed0eb7f629f7857b84",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_scene_04.webp",
+      "size": 287020,
+      "sha256": "3ad1090121c8e1b04abb19dc3c6e7557b294f3e91cb667709145f5518f6d3cde",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_scene_01.webp",
+      "size": 247742,
+      "sha256": "446a7db7cf5963939a90b6c529d7b1b81887d1a1aa47373e9b0e89c840cb5021",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_scene_02.webp",
+      "size": 274648,
+      "sha256": "f8d0551887c44c8f37a05e8189fda0760a5b78140521fe261e81cd853f3ffe7e",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_scene_03.webp",
+      "size": 526022,
+      "sha256": "9536869b6aab6b713b97373839bdc52bc581df8371c18c60bd0db62fe8939e0a",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_scene_04.webp",
+      "size": 371130,
+      "sha256": "a3c6f021911b72d23c47a90a7ad5a747d14cd64255276a0c9052c445d45cd736",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_scene_05.webp",
+      "size": 551954,
+      "sha256": "56f758abf3e168467424e6862617c57725af05f8788c0de45a675a25ab9af8b0",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_scene_06.webp",
+      "size": 900706,
+      "sha256": "6b2b5b69b1afa3b005cac922edbb1a97c1e71e81ade7a13957367b3f6abec7bf",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_scene_01.webp",
+      "size": 273808,
+      "sha256": "6dfe88ac29565ff8a96f487df629ef1a234476372b6f10ceba9381c4efdeda42",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_scene_02.webp",
+      "size": 331692,
+      "sha256": "7185d631b00d8ab0a2cc14e95171de7f5266f887e852c62ed94a4f7b17ad3101",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_scene_03.webp",
+      "size": 484464,
+      "sha256": "37de9e017e41105fb311c90d236227742c8a2a94dadae62e241fd8d403582083",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_scene_04.webp",
+      "size": 225688,
+      "sha256": "4cf5ddbc2066d7c0dfcdb6acbd36b1af374721765eadfbc79a9ef22cc41d5af3",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_scene_01.webp",
+      "size": 376768,
+      "sha256": "d330439be69a11d44145b8cdf9edb392e4e9dade1526c0769d8258da99022cae",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_scene_02.webp",
+      "size": 237590,
+      "sha256": "92c0ef8e8b8bfa842503bbe174f990539cb564b429597990eeb1703d54861ad8",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_scene_03.webp",
+      "size": 399848,
+      "sha256": "f42bde3043be82a0317b54b6b5250d5a1439aba9f7ea0da20179c96c120416fe",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_scene_04.webp",
+      "size": 230112,
+      "sha256": "81ac9704f31bd131fd7b1fb8d792e8783a8c5eb447e2dc658bbc2d0f27e1497c",
+      "mime": "image/webp",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_scene_01.webp",
+      "size": 125198,
+      "sha256": "9058e350782693bcedeb8687bfa56bd2284dc67846f051edc6ce7322dbbb2d95",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1080,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_scene_02.webp",
+      "size": 215468,
+      "sha256": "ffc5a3a1186fbf10943c49db16f9c6ae91a5c8c4bff1788f7f5a57a538beb43f",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_scene_03.webp",
+      "size": 426218,
+      "sha256": "cc5b699d43f3b260f27228e4ad851a76cb522e81c287d1bfabf213dfbd7bcd74",
+      "mime": "image/webp",
+      "width": 1920,
+      "height": 1080,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_scene_04.webp",
+      "size": 225876,
+      "sha256": "a16f64fc4898e8438888147b643ce23a78137cfd6cf8ef5e171dea9a895e110f",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/icon_ai_oracle.webp",
+      "size": 224246,
+      "sha256": "52d49120326a2c23409196197052e74171f7d46a14a3403269dd84e1ef540add",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/icon_infinite_training.webp",
+      "size": 222816,
+      "sha256": "2c72e590f06f0c07b0fb13461cc63e9f45c1a2ae3a69bea1ce9d815150f56967",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/icon_premium_rewards.webp",
+      "size": 224834,
+      "sha256": "9f4a452f17f794a2f4ea5517837ed52c78bb3488c48930ba21d8dea5f42a8ec7",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/icon_unlock_grimoire.webp",
+      "size": 229574,
+      "sha256": "3797aa0377d72477d445c419b671752122ecdd3925b03b691c1137062153c084",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/npc_pass_keeper.webp",
+      "size": 145550,
+      "sha256": "f10010e7da0fcecd10fbb1845c472c4f2f5116382df9c96af8bbdd9da6a1b13e",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/premium_pass_card.webp",
+      "size": 202902,
+      "sha256": "65e2a7f99408b5bd9769a3eca99093cdf79c7c5c157204e733bf0f1f9cd815a3",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/premium_treasure_chest.webp",
+      "size": 237788,
+      "sha256": "57c1d04a02924f6b28bf2a404ea8c1abb2714f0fe29e447da71cc1d33d86e3e7",
+      "mime": "image/webp",
+      "width": 1248,
+      "height": 1248,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/upgrade_page_assets/upgrade_hero_premium_hall.webp",
+      "size": 186368,
+      "sha256": "c6827fa2033d44820852518d5bad24b0c77fd3918fc232ce7ea798c389bc2700",
+      "mime": "image/webp",
+      "width": 1600,
+      "height": 900,
+      "provenance": "historical-git-verified",
+      "source_evidence": "Byte-identical (SHA-256 verified) to C:\\go-website (frozen candidate repo, Git-tracked) and to the production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    }
+  ]
+}

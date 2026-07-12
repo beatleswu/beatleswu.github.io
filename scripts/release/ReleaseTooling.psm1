@@ -578,6 +578,53 @@ function Assert-SafeStaticRelativePath {
     }
 }
 
+function Assert-SafeStaticSubtreeRelativePath {
+    <#
+    .SYNOPSIS
+    Fail-closed path safety check for governed subtree files (e.g. assets/**,
+    see required_subtrees in deploy/live-static-asset-inventory.json) -- same
+    traversal/forbidden-pattern defenses as Assert-SafeStaticRelativePath, but
+    checked against a subtree prefix instead of the flat eligible_files list
+    (a directory tree can never be fully enumerated in that flat allowlist).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [Parameter(Mandatory = $true)][string]$Prefix,
+        [Parameter(Mandatory = $true)]$Inventory
+    )
+    $normalized = $RelativePath.Replace('\', '/')
+    if ($normalized -match '^[A-Za-z]:') {
+        throw "Absolute drive paths are not allowed: $RelativePath"
+    }
+    if ($normalized.StartsWith('/')) {
+        throw "Absolute paths are not allowed: $RelativePath"
+    }
+    if ($normalized.Contains('..')) {
+        throw "Path traversal is not allowed: $RelativePath"
+    }
+    if (-not $normalized.StartsWith($Prefix)) {
+        throw "Governed subtree file is not under its declared prefix '$Prefix': $RelativePath"
+    }
+    foreach ($pattern in $Inventory.forbidden_patterns.path_patterns) {
+        if ($normalized -match $pattern) {
+            throw "Forbidden path for static release: $RelativePath"
+        }
+    }
+}
+
+function Get-CanonicalAssetClosureManifest {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A2: reads the declarative closure manifest a required_subtrees
+    entry points at (deploy/canonical-asset-closure-manifest.json) -- the
+    single source of truth for exactly which files under a governed subtree
+    (e.g. assets/**) a static release generation stages. See
+    docs/incidents/2026-07-12-full-site-asset-outage.md.
+    #>
+    param([Parameter(Mandatory = $true)][string]$ManifestPath)
+    return Read-JsonFile -Path (Resolve-RepoPath $ManifestPath)
+}
+
 function Get-StaticReleaseGenerationName {
     <#
     .SYNOPSIS
@@ -637,6 +684,35 @@ function New-StaticReleaseBundle {
             size = $size
         }
     }
+
+    foreach ($subtree in @($Inventory.required_subtrees.entries)) {
+        $closureManifest = Get-CanonicalAssetClosureManifest -ManifestPath $subtree.manifest
+        foreach ($entry in @($closureManifest.files)) {
+            $relativePath = $entry.path
+            Assert-SafeStaticSubtreeRelativePath -RelativePath $relativePath -Prefix $subtree.prefix -Inventory $Inventory
+            $sourceFile = Join-Path $SourceRoot $relativePath
+            if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+                throw "Governed subtree file declared in closure manifest is missing from source checkout (fail closed -- partial generation refused): $relativePath"
+            }
+            $targetFile = Join-Path $StagePath $relativePath
+            New-Item -ItemType Directory -Path (Split-Path -Parent $targetFile) -Force | Out-Null
+            Copy-Item -LiteralPath $sourceFile -Destination $targetFile -Force
+            $hash = (Get-FileHash -LiteralPath $targetFile -Algorithm SHA256).Hash.ToLowerInvariant()
+            $size = (Get-Item -LiteralPath $targetFile).Length
+            if ($size -ne $entry.size) {
+                throw "Staged subtree file size does not match closure manifest (fail closed): $relativePath -- expected $($entry.size), got $size"
+            }
+            if ($hash -ne $entry.sha256) {
+                throw "Staged subtree file SHA-256 does not match closure manifest (fail closed): $relativePath -- expected $($entry.sha256), got $hash"
+            }
+            $files += [ordered]@{
+                path = $relativePath
+                sha256 = $hash
+                size = $size
+            }
+        }
+    }
+
     return $files
 }
 
@@ -693,6 +769,8 @@ Export-ModuleMember -Function @(
     'Get-StaticAssetInventory',
     'Get-SwVersionFromText',
     'Assert-SafeStaticRelativePath',
+    'Assert-SafeStaticSubtreeRelativePath',
+    'Get-CanonicalAssetClosureManifest',
     'Get-StaticReleaseGenerationName',
     'New-StaticReleaseBundle',
     'New-StaticReleaseManifestObject'

@@ -23,9 +23,19 @@
     "description": "The subset of eligible_files this Sprint's static release tooling (scripts/release/package-static-release.ps1 / deploy-static-release.ps1) actually stages, ships, and verifies in every generation. Root cause of RELEASE-FIX-A: production's /opt/go-odyssey-static/current/{i18n.js,sw.js} were the only two files physically present there (confirmed via `ls -la` on the host), stuck at a 2026-07-10 generation, while every other eligible_files entry was absent from that directory and therefore already correctly falling back to the Docker image's baked copy the whole time. This Sprint's tooling manages exactly the files that were found drifted, not the full eligible_files list, to keep the fix narrowly scoped to the confirmed problem -- widening required_in_generation to cover the other 36 HTML pages is a separate, future decision (see docs/deployment/canonical_static_release_contract.md, 'Deferred scope').",
     "entries": ["i18n.js", "sw.js"]
   },
+  "required_subtrees": {
+    "description": "RELEASE-FIX-A2 (see docs/incidents/2026-07-12-full-site-asset-outage.md): RELEASE-FIX-A's narrow i18n.js/sw.js-only scope left assets/ management to whatever the production host happened to have mounted -- an undocumented, untracked 757MB tree that RELEASE-FIX-A's own generation switch silently orphaned, breaking every image on the site. assets/ is no longer excluded_prefixes; it is now release-bound and generation-managed, staged from the declarative closure manifest below -- NOT by copying an entire directory tree wholesale (that reintroduces exactly the untracked-content problem this fixes).",
+    "entries": [
+      {
+        "prefix": "assets/",
+        "manifest": "deploy/canonical-asset-closure-manifest.json",
+        "staging_rule": "Stage exactly the files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage a file under assets/ that is not in this manifest, even if present on disk -- a partial or over-broad generation must fail closed (see package-static-release.ps1 and its tests)."
+      }
+    ]
+  },
   "excluded_prefixes": {
-    "description": "Subdirectory trees app.py also serves live-static-aware (via _serve_live_static_or_baked_subpath), deliberately OUT OF SCOPE for this Sprint's static release generation -- these are externally-versioned content with their own separate lifecycle (see Dockerfile's 'Content and asset boundary' comment), not git-tracked application code with a canonical source commit the way i18n.js/sw.js are.",
-    "entries": ["assets/", "icons/"]
+    "description": "Subdirectory trees app.py also serves live-static-aware (via _serve_live_static_or_baked_subpath), still OUT OF SCOPE -- externally-versioned content with its own separate lifecycle (see Dockerfile's 'Content and asset boundary' comment), not git-tracked application code with a canonical source commit. assets/ was moved to required_subtrees above by RELEASE-FIX-A2; icons/ remains excluded (no current runtime reference resolves to it).",
+    "entries": ["icons/"]
   },
   "forbidden_patterns": {
     "description": "Defense-in-depth reject list enforced by the static release tooling, independent of the allowlist check above -- even a typo'd or maliciously-crafted eligible_files entry could never pass these.",
