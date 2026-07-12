@@ -173,15 +173,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "08f3294034a446990e40b1fb9ae69a9a76b11d12",
-      "source_branch_or_local_ref": "codex/e25-shadow-dashboard-fast-track",
-      "source_commit_subject": "fix: guard xp hud updates on practice pages",
-      "source_date": "Sat Jul 11",
-      "content_sha256": "bb082baf83e5140a33f0d901fb42a21e1996629bed1e966880fcb63d86752db0",
+      "source_commit": "900aa119d36bdd077ba91bef37113df7b0cee3c1",
+      "source_branch_or_local_ref": "hotfix/premium-upsell-benefit-opacity",
+      "source_commit_subject": "fix(premium): restore daily limit benefit card visibility",
+      "source_date": "Sun Jul 12",
+      "content_sha256": "8e007d576b6179f017cb56d755239798ca959bc1787948e02aa6ed864e61409d",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin (HOTFIX-PREMIUM-UPSELL-01 update)"
     },
     {
       "path": "terms.html",
