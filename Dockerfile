@@ -70,6 +70,20 @@ COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
+# E9 Adventure Shell runtime assets (feature-flagged, default OFF -- see
+# js/e9/feature_flags.js). These are tracked application code served by
+# app.py's narrow /js/e9/, /css/e9/, /components/adventure/ static routes
+# (_serve_live_static_or_baked_subpath), same category as the curated HTML/JS
+# above -- NOT external/versioned content like assets/ or questions.json
+# (see the "Content and asset boundary" note below). E9.1A2-FIX1: this was
+# omitted from the original E9.1A2 COPY list, which meant these routes
+# 404'd in every built image despite passing locally (tests read the host
+# working tree, not the built image) -- see
+# tests/deployment/test_e9_runtime_asset_packaging.py for the regression
+# coverage that would have caught this.
+COPY js/e9 ./js/e9
+COPY css/e9 ./css/e9
+COPY components/adventure ./components/adventure
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
