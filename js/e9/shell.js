@@ -73,10 +73,14 @@
     console.error('[E9] critical failure — recovering to legacy Adventure:', err);
     try {
       var statusEl = document.querySelector('#e9-world-stage-slot');
-      if (statusEl && global.I18n && typeof global.I18n.t === 'function') {
+      if (statusEl && global.E9 && global.E9.I18nFallback && typeof global.E9.I18nFallback.t === 'function') {
         // Best-effort: if the shell is still momentarily visible, show a
         // translated notice before we hide it. Not required to succeed.
-        statusEl.setAttribute('aria-label', global.I18n.t('e9.shell.critical_error'));
+        // Hardened against a missing 'e9.shell.critical_error' key leaking
+        // into the aria-label as a raw dictionary key (RELEASE-FIX-B).
+        statusEl.setAttribute('aria-label', global.E9.I18nFallback.t(
+          'e9.shell.critical_error', 'A critical error occurred. Returning to Adventure Map.'
+        ));
       }
     } catch (labelErr) {
       // ignore — purely cosmetic best-effort

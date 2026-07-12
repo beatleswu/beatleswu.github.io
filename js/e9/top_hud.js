@@ -27,9 +27,8 @@
   }
 
   function t(key, fallback) {
-    if (window.I18n && typeof window.I18n.t === 'function') {
-      var val = window.I18n.t(key);
-      return val || fallback;
+    if (window.E9 && window.E9.I18nFallback && typeof window.E9.I18nFallback.t === 'function') {
+      return window.E9.I18nFallback.t(key, fallback);
     }
     return fallback;
   }

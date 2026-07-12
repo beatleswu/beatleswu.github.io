@@ -15366,17 +15366,20 @@ window.addEventListener('appinstalled', () => {
      this point in the page, which they are). -->
 <script src="/js/e9/feature_flags.js?v=20260712e9d"></script>
 <script src="/js/e9/component_loader.js?v=20260712e9d"></script>
+<!-- RELEASE-FIX-B: shared missing-key fallback helper. Must load before
+     any component script that calls window.E9.I18nFallback.t(). -->
+<script src="/js/e9/i18n_fallback.js?v=20260712e9e"></script>
 <!-- E9.1B adapters: single source of truth for canonical runtime data,
      read by top_hud.js/right_cards.js/world_stage.js below. Must load
      before those component scripts. -->
 <script src="/js/e9/adapters/player_state.js?v=20260712e9d"></script>
 <script src="/js/e9/adapters/adventure_state.js?v=20260712e9d"></script>
 <script src="/js/e9/adapters/activity_state.js?v=20260712e9d"></script>
-<script src="/js/e9/top_hud.js?v=20260712e9d"></script>
+<script src="/js/e9/top_hud.js?v=20260712e9e"></script>
 <script src="/js/e9/left_nav.js?v=20260712e9d"></script>
-<script src="/js/e9/right_cards.js?v=20260712e9d"></script>
+<script src="/js/e9/right_cards.js?v=20260712e9e"></script>
 <script src="/js/e9/bottom_dock.js?v=20260712e9d"></script>
-<script src="/js/e9/world_stage.js?v=20260712e9d"></script>
-<script src="/js/e9/shell.js?v=20260712e9d"></script>
+<script src="/js/e9/world_stage.js?v=20260712e9e"></script>
+<script src="/js/e9/shell.js?v=20260712e9e"></script>
 </body>
 </html>
