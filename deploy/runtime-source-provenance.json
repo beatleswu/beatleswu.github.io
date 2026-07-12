@@ -173,15 +173,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "900aa119d36bdd077ba91bef37113df7b0cee3c1",
-      "source_branch_or_local_ref": "hotfix/premium-upsell-benefit-opacity",
-      "source_commit_subject": "fix(premium): restore daily limit benefit card visibility",
+      "source_commit": "c69095af16b5cc38e59e498464f94bcae8508b3c",
+      "source_branch_or_local_ref": "feature/e9-1a2-legacy-shell-integration",
+      "source_commit_subject": "feat(e9): integrate feature-flagged adventure shell",
       "source_date": "Sun Jul 12",
-      "content_sha256": "8e007d576b6179f017cb56d755239798ca959bc1787948e02aa6ed864e61409d",
+      "content_sha256": "bd45a3f382c12b24963ef16baed5832bce91ce06f1f710b2b046d48f3be381ef",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin (HOTFIX-PREMIUM-UPSELL-01 update)"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin (E9.1A2 update, rebased onto HOTFIX-PREMIUM-UPSELL-01 + admin/release-tooling merges)"
     },
     {
       "path": "terms.html",
@@ -437,27 +437,27 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "4fc8a5d655271023ccdcaf930b921396b09e1aac",
-      "source_branch_or_local_ref": "recovered-production-tip-20260711 (or equivalent Graph A branch reachable from it)",
-      "source_commit_subject": "fix: retrofit RQ-2 player UI i18n coverage + add no_valid_answer reason code (RQ-HOTFIX2)",
-      "source_date": "Fri Jul 10",
-      "content_sha256": "776d8a9455caf635a8224fc83a85682041093c2d2b644f3c6f3bdecb3e6c2e37",
+      "source_commit": "c69095af16b5cc38e59e498464f94bcae8508b3c",
+      "source_branch_or_local_ref": "feature/e9-1a2-legacy-shell-integration",
+      "source_commit_subject": "feat(e9): integrate feature-flagged adventure shell",
+      "source_date": "Sun Jul 12",
+      "content_sha256": "0132dd6d1bc30679a6f212f5fd86184070af7f161d713871341dbeeb35a73c38",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin (E9.1A2 update)"
     },
     {
       "path": "sw.js",
-      "source_commit": "c33fd19bcabe45c1aac1a40aa9046fc19d2c3c0d",
-      "source_branch_or_local_ref": "recovered-production-tip-20260711 (or equivalent Graph A branch reachable from it)",
-      "source_commit_subject": "chore: bump service worker for sgf frontend hotfix",
-      "source_date": "Fri Jul 10",
-      "content_sha256": "b768739af6b97cd4764d1a8a45d9f804a014c3987c35d089325729c2da4e0e3a",
+      "source_commit": "c69095af16b5cc38e59e498464f94bcae8508b3c",
+      "source_branch_or_local_ref": "feature/e9-1a2-legacy-shell-integration",
+      "source_commit_subject": "feat(e9): integrate feature-flagged adventure shell",
+      "source_date": "Sun Jul 12",
+      "content_sha256": "cfaf15f4e288357f34bf03135abb62cf309ca033f9d19ec78944d707751a5209",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin (E9.1A2 update)"
     },
     {
       "path": "srs.js",
