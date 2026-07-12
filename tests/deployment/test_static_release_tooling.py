@@ -323,11 +323,19 @@ def test_example_layout_has_static_release_root():
 
 
 # ---------------------------------------------------------------------------
-# E9-FIX-B boundary -- confirm this PR does NOT touch the fallback helper
+# E9-FIX-B boundary -- this Sprint (RELEASE-FIX-A) does not fix the known
+# `t(key, fallback)` fallback-helper defect; that is RELEASE-FIX-B's job
+# (see docs/planning/release_fix_b_e9_i18n_fallback.md, now merged) --
+# infrastructure-only PRs must not silently absorb an unrelated code-level
+# fix, and once RELEASE-FIX-B lands, the defective `|| fallback` pattern
+# should be gone for good, not reintroduced by a future infra-only PR.
 # ---------------------------------------------------------------------------
 
-def test_this_pr_does_not_touch_e9_fallback_helper():
+def test_e9_fallback_helper_defect_is_fixed_not_reintroduced():
     for name in ["top_hud.js", "right_cards.js", "world_stage.js"]:
         content = _read(REPO_ROOT / "js" / "e9" / name)
-        # the pre-existing `|| fallback` pattern must be untouched by this PR
-        assert "window.I18n.t(key)" in content
+        assert "val || fallback" not in content, (
+            f"{name} must not reintroduce the defective '|| fallback' pattern "
+            "fixed by RELEASE-FIX-B"
+        )
+        assert "window.E9.I18nFallback.t(key, fallback)" in content
