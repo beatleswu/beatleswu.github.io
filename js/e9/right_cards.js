@@ -1,8 +1,9 @@
 /*
  * E9 Right Cards — component init (non-critical).
- * Operates only on its own root. Each card fetches independently and
- * fails independently — one card erroring never blocks the others.
- * Real data sources only (no new API, no fabricated numbers):
+ * Operates only on its own root. Each card fetches independently via
+ * js/e9/adapters/activity_state.js and fails independently -- one card
+ * erroring never blocks the others. Real data sources only (no new API,
+ * no fabricated numbers):
  *   GET /api/daily-challenge/today
  *   GET /api/adventure/bootstrap  -> zones[] (boss progress summary)
  *   GET /api/srs/due              -> {due:[], count}
@@ -31,73 +32,80 @@
     el.removeAttribute('data-i18n');
   }
 
+  function errorTextFor(cardKey, result) {
+    if (result.kind === 'unauthorized') return t('e9.right_cards.unauthorized', 'Please log in again');
+    return t('e9.right_cards.error', 'Unavailable');
+  }
+
   function loadDailyChallenge(root) {
-    fetch('/api/daily-challenge/today', { credentials: 'same-origin' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function () {
-        setBody(root, 'daily_challenge', t('index.ws.bounty_desk', 'Daily Challenge available'));
-      })
-      .catch(function (err) {
-        console.error('[E9] right_cards daily_challenge fetch failed (non-critical):', err);
-        setBody(root, 'daily_challenge', t('e9.right_cards.empty', 'No data yet'));
-      });
+    var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
+    if (!adapter) return setBody(root, 'daily_challenge', t('e9.right_cards.error', 'Unavailable'));
+    adapter.fetchDailyChallenge().then(function (result) {
+      if (!result.ok) {
+        setBody(root, 'daily_challenge', errorTextFor('daily_challenge', result));
+        return;
+      }
+      var text = result.data.submitted
+        ? t('e9.right_cards.daily_challenge_done', 'Completed today')
+        : t('e9.right_cards.daily_challenge_available', 'Available now');
+      setBody(root, 'daily_challenge', text);
+    }).catch(function (err) {
+      console.error('[E9] right_cards daily_challenge fetch failed (non-critical):', err);
+      setBody(root, 'daily_challenge', t('e9.right_cards.error', 'Unavailable'));
+    });
   }
 
   function loadBossProgress(root) {
-    fetch('/api/adventure/bootstrap', { credentials: 'same-origin' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        var zones = (data && data.zones) || [];
-        if (!zones.length) {
-          setBody(root, 'boss_progress', t('e9.right_cards.empty', 'No data yet'));
-          return;
-        }
-        var cleared = zones.filter(function (z) { return z.status === 'completed'; }).length;
-        setBody(root, 'boss_progress', t('index.adv.summary', '{n} / {t} areas cleared')
-          .replace('{n}', cleared).replace('{t}', zones.length));
-      })
-      .catch(function (err) {
-        console.error('[E9] right_cards boss_progress fetch failed (non-critical):', err);
-        setBody(root, 'boss_progress', t('e9.right_cards.error', 'Unavailable'));
-      });
+    var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
+    if (!adapter) return setBody(root, 'boss_progress', t('e9.right_cards.error', 'Unavailable'));
+    adapter.fetchBossProgress().then(function (result) {
+      if (!result.ok) {
+        setBody(root, 'boss_progress', errorTextFor('boss_progress', result));
+        return;
+      }
+      var d = result.data;
+      if (!d.total) {
+        setBody(root, 'boss_progress', t('e9.right_cards.empty', 'No data yet'));
+        return;
+      }
+      setBody(root, 'boss_progress', t('index.adv.summary', '{n} / {t} areas cleared')
+        .replace('{n}', d.cleared).replace('{t}', d.total));
+    }).catch(function (err) {
+      console.error('[E9] right_cards boss_progress fetch failed (non-critical):', err);
+      setBody(root, 'boss_progress', t('e9.right_cards.error', 'Unavailable'));
+    });
   }
 
   function loadSrsDue(root) {
-    fetch('/api/srs/due', { credentials: 'same-origin' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        var count = (data && typeof data.count === 'number') ? data.count : 0;
-        setBody(root, 'srs_due', count > 0 ? String(count) : t('e9.right_cards.empty', 'No data yet'));
-      })
-      .catch(function (err) {
-        console.error('[E9] right_cards srs_due fetch failed (non-critical):', err);
-        setBody(root, 'srs_due', t('e9.right_cards.error', 'Unavailable'));
-      });
+    var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
+    if (!adapter) return setBody(root, 'srs_due', t('e9.right_cards.error', 'Unavailable'));
+    adapter.fetchSrsDue().then(function (result) {
+      if (!result.ok) {
+        setBody(root, 'srs_due', errorTextFor('srs_due', result));
+        return;
+      }
+      var count = result.data.count;
+      setBody(root, 'srs_due', count !== null && count > 0 ? String(count) : t('e9.right_cards.empty', 'No data yet'));
+    }).catch(function (err) {
+      console.error('[E9] right_cards srs_due fetch failed (non-critical):', err);
+      setBody(root, 'srs_due', t('e9.right_cards.error', 'Unavailable'));
+    });
   }
 
   function loadWeakness(root) {
-    fetch('/api/mistakes/stats', { credentials: 'same-origin' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        var total = (data && typeof data.total === 'number') ? data.total : 0;
-        setBody(root, 'weakness', total > 0 ? String(total) : t('e9.right_cards.empty', 'No data yet'));
-      })
-      .catch(function (err) {
-        console.error('[E9] right_cards weakness fetch failed (non-critical):', err);
-        setBody(root, 'weakness', t('e9.right_cards.error', 'Unavailable'));
-      });
+    var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
+    if (!adapter) return setBody(root, 'weakness', t('e9.right_cards.error', 'Unavailable'));
+    adapter.fetchMistakes().then(function (result) {
+      if (!result.ok) {
+        setBody(root, 'weakness', errorTextFor('weakness', result));
+        return;
+      }
+      var total = result.data.total;
+      setBody(root, 'weakness', total !== null && total > 0 ? String(total) : t('e9.right_cards.empty', 'No data yet'));
+    }).catch(function (err) {
+      console.error('[E9] right_cards weakness fetch failed (non-critical):', err);
+      setBody(root, 'weakness', t('e9.right_cards.error', 'Unavailable'));
+    });
   }
 
   function init(root) {

@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v179-e9-1a2-rev2-i18n-stale-rescan-fix';
+const VERSION     = 'v180-e9-1b-real-data-contract';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

@@ -29,7 +29,7 @@ JS_DIR = REPO_ROOT / "js" / "e9"
 COMPONENTS_DIR = REPO_ROOT / "components" / "adventure"
 
 OLD_SW_VERSION = "v177-sgf-fe-hotfix1a-node-parser"
-NEW_SW_VERSION = "v179-e9-1a2-rev2-i18n-stale-rescan-fix"
+NEW_SW_VERSION = "v180-e9-1b-real-data-contract"
 
 
 def _read(path):
@@ -395,10 +395,15 @@ def test_top_hud_has_no_stars_hp_sp():
 
 
 def test_top_hud_coins_uses_real_endpoint_not_a_literal_number():
+    # E9.1B: top_hud.js delegates to js/e9/adapters/player_state.js (single
+    # source of truth) instead of parsing /api/user/coins inline -- the real
+    # endpoint and real field access now live in the adapter.
     top_hud_js = _read(JS_DIR / "top_hud.js")
-    assert "/api/user/coins" in top_hud_js
-    # must read the value from the parsed response, not assign a literal
-    assert re.search(r"coinsRes\.coins", top_hud_js)
+    assert "PlayerState" in top_hud_js
+    assert re.search(r"data\.coins", top_hud_js)
+    adapter_js = _read(JS_DIR / "adapters" / "player_state.js")
+    assert "/api/user/coins" in adapter_js
+    assert re.search(r"raw\.coins", adapter_js)
 
 
 def test_no_guild_pass_card_or_key_anywhere():
