@@ -209,14 +209,14 @@
     },
     {
       "path": "admin.html",
-      "source_commit": "7a5ef15af2a3a2f12d9eaed0b317fc8fa357303f",
-      "source_branch_or_local_ref": "recovered-production-tip-20260711 (or equivalent Graph A branch reachable from it)",
-      "source_commit_subject": "feat: add read-only shadow dashboard ui",
-      "source_date": "Sat Jul 11",
-      "content_sha256": "d4712723febf1eb606af8f0bfbb080459eae14ba6dcf674465af8c9cbc7c015d",
+      "source_commit": "3a0a76ef094ef8faca901624a26f83645f5204c5",
+      "source_branch_or_local_ref": "hotfix/admin-ui-sections-regression",
+      "source_commit_subject": "fix(admin): restore sidebar sections in admin ui",
+      "source_date": "2026-07-12",
+      "content_sha256": "89cd84dbbfd7c313732933bc58d255336c7ad4440213e79ccb2f9497e9cba158",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "does NOT byte-match current Production (hotfix source commit recorded locally for runtime provenance)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin"
     },
     {
