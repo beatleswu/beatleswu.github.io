@@ -334,3 +334,59 @@ class TestLiveAssetHttpChecks:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 assert resp.status == 200, f"{page}'s representative asset {sample_path} is broken"
                 assert resp.headers.get("Content-Type", "").startswith("image/")
+
+
+# ---------------------------------------------------------------------------
+# Manifest safety -- path hygiene, symlink hygiene, and MIME-vs-decoded-type
+# consistency for all 180 declared files. Deterministic, no network.
+# ---------------------------------------------------------------------------
+
+def test_manifest_paths_have_no_absolute_or_traversal_components():
+    manifest = _load_closure_manifest()
+    for f in manifest["files"]:
+        p = f["path"]
+        assert not p.startswith("/"), f"absolute path in manifest: {p}"
+        assert not re.match(r"^[A-Za-z]:", p), f"drive-absolute path in manifest: {p}"
+        assert ".." not in p.split("/"), f"path traversal component in manifest: {p}"
+
+
+def test_manifest_paths_have_no_duplicates():
+    manifest = _load_closure_manifest()
+    paths = [f["path"] for f in manifest["files"]]
+    assert len(paths) == len(set(paths)), "duplicate normalized path(s) in closure manifest"
+
+
+def test_manifest_paths_have_no_case_collisions():
+    # Two distinct declared paths that would collide on a case-insensitive
+    # filesystem (Windows dev machines, some CI runners) must never coexist.
+    manifest = _load_closure_manifest()
+    paths = [f["path"] for f in manifest["files"]]
+    lowered = {}
+    for p in paths:
+        key = p.lower()
+        assert key not in lowered, f"case-collision: {p!r} vs {lowered.get(key)!r}"
+        lowered[key] = p
+
+
+def test_manifest_source_files_are_not_symlinks():
+    manifest = _load_closure_manifest()
+    for f in manifest["files"]:
+        source = REPO_ROOT / f["path"]
+        assert source.is_file(), f"manifest source file missing: {f['path']}"
+        assert not source.is_symlink(), f"manifest source file must not be a symlink: {f['path']}"
+
+
+def test_manifest_mime_matches_decoded_file_type():
+    if shutil.which("file") is None:
+        pytest.skip("`file` command not available in this environment")
+    manifest = _load_closure_manifest()
+    mismatches = []
+    for f in manifest["files"]:
+        result = subprocess.run(
+            ["file", "--mime-type", "-b", str(REPO_ROOT / f["path"])],
+            capture_output=True, text=True,
+        )
+        detected = result.stdout.strip()
+        if detected != f["mime"]:
+            mismatches.append(f"{f['path']}: manifest={f['mime']!r} detected={detected!r}")
+    assert not mismatches, "\n".join(mismatches)
