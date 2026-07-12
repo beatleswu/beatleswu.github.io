@@ -104,3 +104,76 @@ def test_admin_page_redirects_non_admin(app_module):
     response = client.get('/admin')
     assert response.status_code == 302
     assert response.headers['Location'].endswith('/login')
+
+
+def test_admin_page_includes_student_note_controls(app_module):
+    client = app_module.app.test_client()
+    with client.session_transaction() as sess:
+        sess['user_id'] = 11
+        sess['is_admin'] = True
+
+    response = client.get('/admin')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+
+    for token in (
+        'admin_note',
+        'saveUserNote(${u.id}, this.value)',
+        '/api/admin/users/${uid}/note',
+    ):
+        assert token in html
+
+
+class _FakeNoteResult:
+    def __init__(self, row):
+        self._row = row
+
+    def fetchone(self):
+        return self._row
+
+
+class _FakeNoteConn:
+    def __init__(self, row):
+        self.row = row
+        self.executed = []
+        self.committed = False
+
+    def execute(self, sql, params=None):
+        self.executed.append((sql, params))
+        return _FakeNoteResult(self.row)
+
+    def commit(self):
+        self.committed = True
+
+
+class _FakeNoteConnCtx:
+    def __init__(self, row):
+        self.conn = _FakeNoteConn(row)
+
+    def __enter__(self):
+        return self.conn
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+
+def test_admin_note_endpoint_updates_admin_note(app_module, monkeypatch):
+    row = {'id': 7}
+    ctx = _FakeNoteConnCtx(row)
+    monkeypatch.setattr(app_module, 'get_db', lambda: ctx)
+
+    client = app_module.app.test_client()
+    with client.session_transaction() as sess:
+        sess['user_id'] = 11
+        sess['is_admin'] = True
+
+    response = client.post('/api/admin/users/7/note', json={'note': '  keep studying  '})
+
+    assert response.status_code == 200
+    assert response.get_json() == {'ok': True}
+    assert ctx.conn.committed is True
+    assert any(
+        sql.strip().startswith('UPDATE users SET admin_note=? WHERE id=?')
+        and params == ('keep studying', 7)
+        for sql, params in ctx.conn.executed
+    )
