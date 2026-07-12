@@ -313,7 +313,7 @@ def test_deploy_script_structural_ordering_prevents_downstream_work_on_failure()
         "Invoke-BoundedFileUpload -LocalPath $localFile",
         "Uploaded file count mismatch",
         "Uploaded byte size mismatch",
-        "Remote hash mismatch for",
+        "Batch SHA-256 verification failed",
         "Invoke-BoundedFileUpload -LocalPath $manifestPath",
         "Final remote file count mismatch after manifest upload",
         "sudo ln -sfnT $quotedRelease current.next",
@@ -376,7 +376,7 @@ def test_manifest_uploaded_only_after_count_size_hash_verification():
     text = _read(DEPLOY_SCRIPT)
     count_check = text.index("Uploaded file count mismatch")
     size_check = text.index("Uploaded byte size mismatch")
-    hash_check = text.index("Remote hash mismatch for")
+    hash_check = text.index("Batch SHA-256 verification failed")
     manifest_upload = text.index("Invoke-BoundedFileUpload -LocalPath $manifestPath")
     assert count_check < manifest_upload
     assert size_check < manifest_upload
