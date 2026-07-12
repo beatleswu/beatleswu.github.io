@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Goblin Guard">
+  <defs>
+    <radialGradient id="goblin_guard-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#d9ff89"/>
+      <stop offset=".58" stop-color="#2b4a15"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="goblin_guard-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="goblin_guard-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c5f47c"/>
+      <stop offset=".47" stop-color="#74a83d"/>
+      <stop offset="1" stop-color="#2d4717"/>
+    </linearGradient>
+    <filter id="goblin_guard-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="goblin_guard-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="goblin_guard-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#goblin_guard-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#goblin_guard-bg)"/>
+  <g clip-path="url(#goblin_guard-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#fde68a" opacity=".16" filter="url(#goblin_guard-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#c5f47c" opacity=".10" filter="url(#goblin_guard-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M52 129 22 105l42-12 9-34 41 22c12-6 29-6 41 0l41-22 9 34 42 12-30 24c5 55-27 82-82 82s-88-27-83-82Z" fill="url(#goblin_guard-body)" stroke="#294915" stroke-width="8" filter="url(#goblin_guard-shadow)"/>
+      <path d="M78 84h101l-12-31H90Z" fill="#fff1b5" stroke="#294915" stroke-width="6"/>
+      <path d="M88 121c17-14 36-14 52 0M148 121c17-14 34-14 49 0" fill="none" stroke="#294915" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="103" cy="141" r="8" fill="#071421"/><circle cx="153" cy="141" r="8" fill="#071421"/><path d="M101 168c19 13 44 12 62-2" fill="none" stroke="#071421" stroke-width="8" stroke-linecap="round" opacity=".7"/><path d="M128 137 108 169h38Z" fill="#d7a84c" stroke="#294915" stroke-width="6"/>
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

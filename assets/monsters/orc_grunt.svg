@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Orc Grunt">
+  <defs>
+    <radialGradient id="orc_grunt-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#d7f37d"/>
+      <stop offset=".58" stop-color="#3b4d16"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="orc_grunt-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="orc_grunt-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c5dd68"/>
+      <stop offset=".47" stop-color="#7a9733"/>
+      <stop offset="1" stop-color="#344214"/>
+    </linearGradient>
+    <filter id="orc_grunt-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="orc_grunt-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="orc_grunt-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#orc_grunt-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#orc_grunt-bg)"/>
+  <g clip-path="url(#orc_grunt-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#fde68a" opacity=".16" filter="url(#orc_grunt-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#c5dd68" opacity=".10" filter="url(#orc_grunt-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M63 144c-6-56 24-91 70-91s76 35 70 91c-5 46-36 68-70 68s-65-22-70-68Z" fill="url(#orc_grunt-body)" stroke="#2e3e13" stroke-width="8" filter="url(#orc_grunt-shadow)"/>
+      <path d="M77 92 44 50M189 92l33-42" fill="none" stroke="#2e3e13" stroke-width="8" stroke-linecap="round"/>
+      <path d="M91 174 74 211l36-21ZM176 174l17 37-36-21Z" fill="#fff0bd" stroke="#2e3e13" stroke-width="6"/>
+      <circle cx="105" cy="135" r="8" fill="#172033"/><circle cx="158" cy="135" r="8" fill="#172033"/><path d="M101 168c19 13 44 12 62-2" fill="none" stroke="#071421" stroke-width="8" stroke-linecap="round" opacity=".7"/><path d="M94 107c23-17 52-17 75 0" fill="none" stroke="#2e3e13" stroke-width="8" stroke-linecap="round"/>
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

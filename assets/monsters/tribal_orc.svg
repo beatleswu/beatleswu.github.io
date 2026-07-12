@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Tribal Orc">
+  <defs>
+    <radialGradient id="tribal_orc-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#ffd083"/>
+      <stop offset=".58" stop-color="#4a1f08"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="tribal_orc-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="tribal_orc-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7b65b"/>
+      <stop offset=".47" stop-color="#b8560b"/>
+      <stop offset="1" stop-color="#612307"/>
+    </linearGradient>
+    <filter id="tribal_orc-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="tribal_orc-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="tribal_orc-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#tribal_orc-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#tribal_orc-bg)"/>
+  <g clip-path="url(#tribal_orc-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#fbbf24" opacity=".16" filter="url(#tribal_orc-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#f7b65b" opacity=".10" filter="url(#tribal_orc-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M61 145c-7-58 26-93 72-93s79 35 72 93c-6 45-37 67-72 67s-66-22-72-67Z" fill="url(#tribal_orc-body)" stroke="#5b2408" stroke-width="8" filter="url(#tribal_orc-shadow)"/>
+      <path d="M79 92 45 45M190 92l34-47M87 70c33-23 77-23 110 0" fill="none" stroke="#5b2408" stroke-width="8" stroke-linecap="round"/>
+      <path d="M91 174 74 211l36-21ZM177 174l17 37-36-21Z" fill="#ffe2a5" stroke="#5b2408" stroke-width="6"/>
+      <circle cx="107" cy="139" r="8" fill="#1c1409"/><circle cx="161" cy="139" r="8" fill="#1c1409"/><path d="M101 168c19 13 44 12 62-2" fill="none" stroke="#071421" stroke-width="8" stroke-linecap="round" opacity=".7"/>
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

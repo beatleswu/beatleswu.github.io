@@ -692,6 +692,67 @@ function Get-BatchVerificationTimeoutSeconds {
     return [Math]::Min($MaxSeconds, [Math]::Max($MinSeconds, $sizeBasedSeconds))
 }
 
+function Get-ArchiveTransferTimeoutSeconds {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A3: size-aware timeout for the single archive upload+extract
+    operation, analogous to Get-BatchVerificationTimeoutSeconds but scaled
+    for a much larger closure (hundreds of MB of images, not tens).
+    #>
+    param(
+        [Parameter(Mandatory = $true)][long]$TotalBytes,
+        [int]$MinSeconds = 120,
+        [int]$MaxSeconds = 900,
+        [long]$AssumedBytesPerSecond = 2MB
+    )
+    $sizeBasedSeconds = [Math]::Ceiling($TotalBytes / [double]$AssumedBytesPerSecond)
+    return [Math]::Min($MaxSeconds, [Math]::Max($MinSeconds, $sizeBasedSeconds))
+}
+
+function New-DeterministicStaticArchive {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A3: builds ONE deterministic tar archive of every staged
+    file in a static release bundle, in sorted path order, with normalized
+    mtime/owner/group -- so uploading a hundreds-of-files, hundreds-of-MB
+    closure is one bounded transfer instead of one scp per file.
+    .DESCRIPTION
+    Every path added to the archive must already have passed
+    Assert-SafeRemoteRelativeFilePath (the manifest/bundle build step
+    upstream of this function already enforces that) -- this function does
+    not re-validate, it only orders and archives what New-StaticReleaseBundle
+    already staged and verified.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$BundlePath,
+        [Parameter(Mandatory = $true)][string[]]$RelativePaths,
+        [Parameter(Mandatory = $true)][string]$ArchivePath
+    )
+    if (Test-Path -LiteralPath $ArchivePath) {
+        Remove-Item -LiteralPath $ArchivePath -Force
+    }
+    $sorted = $RelativePaths | Sort-Object
+    $listFile = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllLines($listFile, $sorted)
+        $tarArgs = @(
+            '--sort=name', "--mtime=UTC 1970-01-01", '--owner=0', '--group=0', '--numeric-owner',
+            '-cf', $ArchivePath, '-C', $BundlePath, '-T', $listFile
+        )
+        $proc = Start-Process -FilePath 'tar' -ArgumentList $tarArgs -NoNewWindow -Wait -PassThru
+        if ($proc.ExitCode -ne 0) {
+            throw "tar archive creation failed with exit code $($proc.ExitCode)."
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $listFile -Force -ErrorAction SilentlyContinue
+    }
+    if (-not (Test-Path -LiteralPath $ArchivePath)) {
+        throw "Archive was not created: $ArchivePath"
+    }
+    return Get-Item -LiteralPath $ArchivePath
+}
+
 function Get-ImageLabels {
     param([Parameter(Mandatory = $true)][string]$ImageTag)
     $raw = & docker image inspect $ImageTag --format '{{json .Config.Labels}}'
@@ -1092,5 +1153,7 @@ Export-ModuleMember -Function @(
     'Get-RemoteParentDirectorySet',
     'New-RemoteMkdirScriptText',
     'New-RemoteBatchShaVerificationScript',
-    'Get-BatchVerificationTimeoutSeconds'
+    'Get-BatchVerificationTimeoutSeconds',
+    'Get-ArchiveTransferTimeoutSeconds',
+    'New-DeterministicStaticArchive'
 )

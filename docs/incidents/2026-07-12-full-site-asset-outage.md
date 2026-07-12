@@ -90,3 +90,64 @@ The 12-file HTML simplification attempted under
 **abandoned, not merged** — superseded by RELEASE-FIX-A2's asset import,
 which restores the original images rather than removing/replacing them.
 Those 12 files are restored to `HEAD` (`cb6b25c0`) unchanged.
+
+## RELEASE-FIX-A3 addendum — the 180-path closure was incomplete
+
+After RELEASE-FIX-A2 deployed its governed 180-file closure to production
+(generation `20260712-180921-6b44f289-v181-release-fix-b-e9-i18n-fallback`),
+live browser network audits of `/hero`, `/curriculum`, `/community`,
+`/shop`, `/bot`, `/rating_test`, `/play`, `/upgrade`, `/landing`, and
+`/login` still showed extensive broken images: hero character/gear/
+accessory tiers, guild/tavern UI, and other runtime-composed paths.
+
+**Root cause of the gap**: RELEASE-FIX-A2's closure manifest was built by
+statically grep-ing tracked source for string literals containing a full
+`/assets/...` path. That scan is blind to:
+
+- Query-string-suffixed references (`/assets/shop/newbie_gift_pack.webp?v=1`)
+  that never normalized to their bare path.
+- A module-level "root" constant concatenated with a literal filename or
+  a dict-literal lookup (e.g. `HERO_GEAR_ROOT + 'armor_t1.webp'`,
+  `` `${HERO_ITEM_ROOT}unknown.svg` ``, `'/assets/hero/characters/' +
+  CHARACTER_ART[key]`) — every one of these composes a real, fixed path at
+  runtime, but no literal string in the source contains it.
+- Genuinely data-driven composition (`root + value + '.webp'` where
+  `value` comes from a database field or API response, or
+  `(item.root || HERO_GEAR_ROOT) + (variant || item.art)` where `item`
+  comes from a data array) — these can reference any member of a large,
+  evolving set of images that a one-time literal scan can never fully
+  enumerate no matter how it's improved.
+
+**Conclusion**: a runtime-reference-derived allowlist is not an adequate
+ownership boundary for this asset tree — it will always undercount by
+however many dynamic-composition patterns exist in the code at scan time,
+and silently miss new ones added later. The RELEASE-FIX-A2 180-file
+closure was a real improvement over the RELEASE-FIX-A i18n/sw.js-only
+scope, but it inherited the same "narrow to what we can currently prove is
+referenced" framing that caused RELEASE-FIX-A's gap in the first place,
+just one layer further out.
+
+**New canonical ownership boundary**: `deploy/canonical-image-pack-manifest.json`
+— the complete, byte-verified historical production image tree (1,298
+files, 753,319,229 bytes; source generation
+`20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser`), independent
+of what any static or runtime scan can currently prove is referenced.
+Reference scanning (`scripts/release/asset_reference_scanner.py`,
+`tests/test_release_fix_a2_asset_closure.py`,
+`tests/test_release_fix_a3_canonical_image_pack.py`) remains valuable as a
+**regression/observability layer** — it still catches a genuinely dead or
+newly-introduced reference — but it is no longer the boundary that decides
+what ships. `deploy/live-static-asset-inventory.json`'s `required_subtrees`
+entry for `assets/` now points at the image-pack manifest instead of the
+superseded 180-file closure manifest (which remains on disk, unreferenced,
+as a historical record of the earlier fix).
+
+**Correction to the static release contract**: this incident's earlier
+"Rollback path rejected" section, and `docs/deployment/canonical_static_release_contract.md`,
+both need to state plainly that `scripts/release/deploy-static-release.ps1`
+manages only the `current` symlink — it has never written or maintained a
+`previous` symlink. The `previous` symlink observed on the production host
+is a legacy artifact that predates this tooling; `rollback-static-release.ps1`
+has always taken an explicit `-TargetGenerationPath` parameter and never
+reads `previous`. Any operator expecting `previous` to be a live, tooling-
+maintained rollback pointer would be wrong to rely on it.
