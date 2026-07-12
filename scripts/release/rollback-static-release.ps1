@@ -10,6 +10,13 @@
   generation directory (written by package-static-release.ps1 /
   deploy-static-release.ps1) as the source of truth for what to verify --
   never assumes what the target generation should contain.
+
+  Restarts app+scheduler after the symlink switch, same as
+  deploy-static-release.ps1 -- the containers' bind mount of
+  /opt/go-odyssey-static/current resolves the symlink target once, at
+  container start, so a rollback that only changes the symlink without
+  restarting would be filesystem-real but functionally inert (discovered
+  live during this Sprint's own production deploy).
 #>
 [CmdletBinding()]
 param(
@@ -108,6 +115,18 @@ Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedTarget current.next &&
 $newCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
 if ($newCurrentTarget -ne $TargetGenerationPath) {
     throw "Remote current does not point to the rollback target. Expected '$TargetGenerationPath', observed '$newCurrentTarget'."
+}
+
+Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" | Out-Null
+$deadline = (Get-Date).AddSeconds(60)
+$appHealthy = $false
+do {
+    Start-Sleep -Seconds 2
+    $health = (Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $layout.app_service_name) --format '{{.State.Health.Status}}'").Trim()
+    if ($health -eq 'healthy') { $appHealthy = $true }
+} while (-not $appHealthy -and (Get-Date) -lt $deadline)
+if (-not $appHealthy) {
+    throw "App container did not become healthy after restart following the static release rollback."
 }
 
 $publicVerification = @()

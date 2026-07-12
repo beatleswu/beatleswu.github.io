@@ -16,6 +16,19 @@
   PUBLIC, cache-busted HTTPS response (not just the container filesystem or
   the host directory) before declaring success, and automatically rolls
   the symlink back on any post-switch verification failure.
+
+  IMPORTANT, discovered live during this Sprint's own production deploy:
+  the app/scheduler containers' bind mount of /opt/go-odyssey-static/current
+  resolves the symlink's target ONCE, at container start -- changing what
+  the symlink points to on the HOST has zero effect on what the RUNNING
+  containers see until they are restarted (confirmed directly: `sha256sum`
+  on the host showed the new file immediately after the switch, while
+  `docker exec go-odyssey-app sha256sum` on the exact same path still showed
+  the OLD file, until `docker restart` was run). This is why this script
+  restarts app+scheduler after the symlink switch and before public
+  verification -- omitting that step would make the switch filesystem-real
+  but functionally inert, exactly reproducing the original drift this
+  Sprint exists to fix, just one layer deeper.
 #>
 [CmdletBinding()]
 param(
@@ -181,6 +194,27 @@ try {
         throw "Remote current does not point to the new release after switch. Expected '$remoteReleaseDir', observed '$newCurrentTarget'."
     }
 
+    # The bind-mounted app/scheduler containers resolved the OLD symlink
+    # target at their own start time -- restart them so their mount
+    # namespace re-resolves against the new "current" target. See the
+    # module docstring above for how this was discovered.
+    Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" | Out-Null
+    $deadline = (Get-Date).AddSeconds(60)
+    $appHealthy = $false
+    do {
+        Start-Sleep -Seconds 2
+        $health = (Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $layout.app_service_name) --format '{{.State.Health.Status}}'").Trim()
+        if ($health -eq 'healthy') { $appHealthy = $true }
+    } while (-not $appHealthy -and (Get-Date) -lt $deadline)
+    if (-not $appHealthy) {
+        throw "App container did not become healthy after restart following the static release switch."
+    }
+    $containerServedHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/i18n.js")").Split(' ')[0].Trim().ToLowerInvariant()
+    $expectedI18nHash = ($manifest.files | Where-Object { $_.path -eq 'i18n.js' }).sha256
+    if ($containerServedHash -ne $expectedI18nHash) {
+        throw "Container-internal i18n.js hash still does not match the new release after restart. Expected '$expectedI18nHash', observed '$containerServedHash'."
+    }
+
     $publicVerification = @()
     foreach ($entry in $manifest.files) {
         $url = "$publicBase/$($entry.path)?deploy-verify=$shortSha"
@@ -218,6 +252,12 @@ catch {
             $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
             $quotedPrevious = Quote-PosixShellArgument $previousCurrentTarget
             Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedPrevious current.next && sudo mv -Tf current.next current" | Out-Null
+            # The containers may already have been restarted onto the failed
+            # release's mount target (see the restart step above) -- restart
+            # again so they actually pick up the reverted symlink too, or the
+            # rollback would be filesystem-real but functionally inert, same
+            # as the original bug.
+            Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" | Out-Null
             $rollbackPerformed = $true
         }
         catch {
@@ -225,7 +265,7 @@ catch {
         }
     }
     if ($rollbackPerformed) {
-        throw "Static release deploy failed and automatic rollback succeeded (current restored to $previousCurrentTarget): $failureMessage"
+        throw "Static release deploy failed and automatic rollback succeeded (current restored to $previousCurrentTarget, containers restarted): $failureMessage"
     }
     throw
 }
