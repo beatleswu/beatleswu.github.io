@@ -463,6 +463,14 @@
         transform:translateY(10px);
     }
     .rankup-ritual-reward.show { animation: rankupRewardIn .54s ease forwards; }
+    /* HOTFIX-PREMIUM-UPSELL-01: .free-limit-benefit shares the base
+       .modal-system-benefit rule above (opacity:0, meant to be revealed by
+       a .show class), but _showDailyLimitWall() only ever adds .show to the
+       outer #daily-limit-wall, never to the individual benefit rows -- so
+       they stayed permanently invisible while still occupying layout space.
+       Scope the reveal to the wall's own .show state instead of requiring
+       each row to carry its own .show class; no JS change needed. */
+    .daily-limit-wall.show .free-limit-benefit { opacity: 1; }
     .rankup-ritual-dot,
     .modal-system-benefit-icon {
         width:12px; height:12px; flex:none;
