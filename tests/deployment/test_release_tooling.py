@@ -8,6 +8,7 @@ import subprocess
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 RELEASE_SCRIPTS = [
     REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1",
+    REPO_ROOT / "scripts" / "build-production-image.ps1",
     REPO_ROOT / "scripts" / "release" / "build-release-image.ps1",
     REPO_ROOT / "scripts" / "release" / "package-release-image.ps1",
     REPO_ROOT / "scripts" / "release" / "preflight-production.ps1",
@@ -15,6 +16,7 @@ RELEASE_SCRIPTS = [
     REPO_ROOT / "scripts" / "release" / "verify-production-release.ps1",
     REPO_ROOT / "scripts" / "release" / "rollback-release.ps1",
 ]
+BUILD_PRODUCTION_IMAGE_SCRIPT = REPO_ROOT / "scripts" / "build-production-image.ps1"
 
 
 def read_text(path):
@@ -309,6 +311,117 @@ def test_build_script_uses_clean_tree_and_detached_worktree():
     content = read_text(REPO_ROOT / "scripts" / "release" / "build-release-image.ps1")
     for token in ("Assert-TrackedTreeClean", "New-DetachedWorktree", "shadow_judging.py --selftest", "py_compile"):
         assert token in content
+
+
+# ---------------------------------------------------------------------------
+# RELEASE-TOOLING-HOTFIX-02: ARM64 build contract
+# ---------------------------------------------------------------------------
+#
+# Root cause this closes: scripts/build-production-image.ps1 used a plain
+# `docker build` with no --platform flag, which always targets the local
+# Docker daemon's native platform. Run from a Windows/amd64 machine, this
+# silently produced a linux/amd64 image with no error, even though
+# production runs on real aarch64 hardware (confirmed directly via
+# `ssh <prod> uname -m`, not assumed). The wrong-architecture image was only
+# ever going to be caught by deploy-release-image.ps1's -ExpectedPlatform
+# check, i.e. much later, right before an actual deploy attempt -- this
+# closes the gap at build time instead.
+
+def test_build_script_uses_buildx_not_plain_docker_build():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "docker buildx build" in content
+    # a bare `docker build` invocation (as an actual executed statement, at
+    # the start of a line -- not mentioned in prose/comments explaining what
+    # NOT to do) must not remain anywhere
+    import re
+    executable_lines = [
+        line for line in content.splitlines()
+        if re.match(r"^\s*docker build\b", line) and "buildx" not in line
+    ]
+    assert executable_lines == [], (
+        f"no plain `docker build` invocation may remain (found: {executable_lines}) "
+        "-- it cannot cross-build for a non-native platform"
+    )
+
+
+def test_build_script_default_platform_contract_is_arm64():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "[string]$Platform = 'linux/arm64'" in content
+
+
+def test_build_script_platform_is_an_overridable_parameter():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    # It must be a real parameter (so `-Platform` on the command line is the
+    # only way to change it -- not, say, an environment variable read
+    # implicitly, and not hardcoded inline at the buildx call site).
+    assert "param(" in content
+    param_block = content[content.index("param("):content.index("param(") + 400]
+    assert "$Platform" in param_block
+    assert "--platform $Platform" in content
+
+
+def test_build_script_passes_explicit_platform_to_buildx():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "--platform $Platform" in content
+    assert "--load" in content
+
+
+def test_build_script_has_capability_preflight_before_building():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "docker buildx version" in content
+    assert "docker buildx inspect" in content
+    # must fail, not warn-and-continue, when the builder doesn't support it
+    assert "does not report support for" in content
+    assert "Fail " in content or "Fail(" in content
+
+
+def test_build_script_verifies_platform_immediately_after_build():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "Get-ImagePlatform -ImageTag $imageTag" in content
+    build_pos = content.index("docker buildx build")
+    verify_pos = content.index("Get-ImagePlatform -ImageTag $imageTag")
+    assert build_pos < verify_pos, "platform must be verified AFTER the build, not before"
+
+
+def test_build_script_fails_closed_on_platform_mismatch():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "$actualPlatform -ne $Platform" in content
+    mismatch_check_pos = content.index("$actualPlatform -ne $Platform")
+    # the very next non-blank construct after the mismatch check must be a Fail call
+    snippet = content[mismatch_check_pos:mismatch_check_pos + 200]
+    assert "Fail " in snippet or "Fail(" in snippet
+
+
+def test_build_script_has_no_silent_fallback_between_capability_check_and_build():
+    content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    # Anchor on the section marker and the EXECUTABLE buildx invocation (not
+    # its mention in the docstring earlier in the file, which would make a
+    # naive first-index slice empty/reversed).
+    section_start = content.index("docker buildx version")
+    build_invocation_pos = content.index("docker buildx build `")
+    capability_section = content[section_start:build_invocation_pos]
+    assert "docker buildx version" in capability_section
+    # the buildx capability checks themselves must not swallow failures
+    # (Get-Command docker -ErrorAction SilentlyContinue, earlier in the
+    # section, is a separate and legitimate "is docker installed at all"
+    # check -- excluded from this section's slice by starting at
+    # "docker buildx version" instead of the section's comment header)
+    assert "-ErrorAction SilentlyContinue" not in capability_section
+    # There must be no alternate/fallback branch that proceeds with a plain
+    # `docker build` (or continues past a capability failure) -- the only
+    # acceptable outcomes in this section are: buildx + arm64 support
+    # confirmed, or Fail().
+    assert capability_section.count("Fail ") + capability_section.count("Fail(") >= 2
+
+
+def test_shared_get_image_platform_helper_exists_and_is_exported():
+    module_content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    assert "function Get-ImagePlatform" in module_content
+    assert "{{.Os}}/{{.Architecture}}" in module_content
+    assert "'Get-ImagePlatform'" in module_content
+    build_content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
+    assert "Import-Module" in build_content
+    assert "ReleaseTooling.psm1" in build_content
 
 
 def test_package_script_exports_checksum_and_manifest():
