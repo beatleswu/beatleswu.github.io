@@ -383,6 +383,13 @@ done
         }
     }
 
+    # Drift is judged by CONTENT (per-file SHA-256), not by whether the
+    # generation directory's name/timestamp happens to match -- a later
+    # commit that never touched i18n.js/sw.js legitimately produces a new
+    # static_generation_id with byte-identical content, and that is not
+    # drift. Comparing names instead of bytes would repeat exactly the
+    # mistake this Sprint exists to fix (trusting a label instead of the
+    # actual served bytes).
     $drift = $null
     $driftChecked = $false
     if ($ExpectedManifest) {
@@ -393,9 +400,6 @@ done
             if (-not $observed -or -not $observed.present -or $observed.sha256 -ne $entry.sha256) {
                 $drift = $true
             }
-        }
-        if ($currentTarget -notmatch [regex]::Escape($ExpectedManifest.static_generation_id)) {
-            $drift = $true
         }
     }
 
