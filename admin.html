@@ -2,12 +2,149 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>用戶管理 — Colorful Go</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用戶管理 — 弈境奇兵 (Go Odyssey)</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="/i18n.js?v=20260513"></script>
+<script src="/wgo/wgo.min.js?v=20260514k"></script>
+<script src="/wgo/stone_skin.js?v=3"></script>
+<script src="/i18n.js?v=20260709b"></script>
+<link rel="stylesheet" href="/wgo/wgo.player.css">
 <style>
 .fade-in { animation: fadeIn .3s ease both; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.alt-board {
+    width: min(72vw, 560px);
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    border: 1px solid #5a3e1b;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #d8b46a;
+}
+html { scroll-behavior: smooth; }
+.admin-shell {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 264px) minmax(0, 1fr);
+    gap: 1.5rem;
+}
+.admin-sidebar {
+    position: sticky;
+    top: 1.5rem;
+    align-self: start;
+    border: 1px solid rgba(120, 113, 108, 0.8);
+    border-radius: 1rem;
+    padding: 1rem;
+    background:
+        linear-gradient(180deg, rgba(55, 38, 24, 0.95), rgba(28, 25, 23, 0.96)),
+        radial-gradient(circle at top, rgba(245, 200, 118, 0.14), transparent 58%);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.25);
+}
+.admin-sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.1);
+}
+.admin-sidebar-panel {
+    position: relative;
+    z-index: 1;
+}
+.admin-nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.85rem;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    line-height: 1.25rem;
+    transition: background-color .2s ease, color .2s ease, transform .2s ease, border-color .2s ease;
+    border: 1px solid transparent;
+}
+.admin-nav-link:hover {
+    color: #fde68a;
+    background: rgba(120, 53, 15, 0.22);
+    border-color: rgba(251, 191, 36, 0.22);
+    transform: translateX(2px);
+}
+.admin-nav-link.is-active {
+    color: #fde68a;
+    background: linear-gradient(90deg, rgba(146, 64, 14, 0.45), rgba(120, 53, 15, 0.18));
+    border-color: rgba(251, 191, 36, 0.32);
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.16);
+}
+.admin-search-results[hidden] { display: none; }
+.admin-search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(71, 85, 105, 0.75);
+    background: rgba(15, 23, 42, 0.5);
+    transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+.admin-search-result:hover {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(120, 53, 15, 0.16);
+    transform: translateY(-1px);
+}
+.admin-section {
+    scroll-margin-top: 1.4rem;
+}
+.admin-lowfreq > summary {
+    list-style: none;
+}
+.admin-lowfreq > summary::-webkit-details-marker {
+    display: none;
+}
+.admin-lowfreq[open] .admin-lowfreq-chevron {
+    transform: rotate(180deg);
+}
+.admin-back-to-top {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+    transition: opacity .2s ease, transform .2s ease;
+}
+.admin-back-to-top.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+@media (max-width: 1024px) {
+    .admin-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .admin-sidebar {
+        position: static;
+        top: auto;
+    }
+    .admin-sidebar-nav {
+        display: flex;
+        gap: 0.6rem;
+        overflow-x: auto;
+        padding-bottom: 0.15rem;
+        scrollbar-width: thin;
+    }
+    .admin-sidebar-nav .admin-nav-link {
+        flex: 0 0 auto;
+        min-width: 10.5rem;
+    }
+}
 </style>
 </head>
 <body class="bg-slate-900 text-slate-200 min-h-screen flex flex-col">
@@ -27,10 +164,31 @@
     </div>
 </header>
 
-<div class="flex-1 p-6 max-w-5xl mx-auto w-full space-y-6">
+<div id="admin-top"></div>
+<div class="flex-1 p-6 w-full">
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar-panel space-y-4">
+                <div class="rounded-2xl border border-amber-900/40 bg-black/10 p-4">
+                    <div class="text-[11px] font-bold uppercase tracking-[0.28em] text-amber-300" data-i18n="admin.nav.title">公會導覽</div>
+                    <div class="mt-2 text-sm text-slate-300" data-i18n="admin.nav.subtitle">快速定位後台功能與低頻工具。</div>
+                </div>
+                <div class="space-y-2">
+                    <label for="admin-nav-search" class="block text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500" data-i18n="admin.search.label">功能搜尋</label>
+                    <input id="admin-nav-search" type="search" autocomplete="off"
+                        class="w-full rounded-xl border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-amber-400"
+                        data-i18n-placeholder="admin.search.placeholder"
+                        placeholder="搜尋功能、按鈕或關鍵字">
+                </div>
+                <div id="admin-search-results" class="admin-search-results space-y-2" hidden></div>
+                <div id="admin-search-empty" class="hidden rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-3 text-sm text-slate-400" data-i18n="admin.search.empty">找不到相關功能</div>
+                <nav id="admin-sidebar-nav" class="admin-sidebar-nav space-y-1"></nav>
+            </div>
+        </aside>
+        <main class="space-y-6">
 
     <!-- 統計 -->
-    <div class="grid grid-cols-3 gap-4">
+    <div id="admin-section-overview" class="admin-section grid grid-cols-3 gap-4" data-admin-section="overview" data-admin-title="總覽 / Overview" data-search-keywords="overview dashboard summary total users admins active health stats 總覽 玩家 用戶 統計 system">
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 text-center">
             <div id="stat-users" class="text-3xl font-black text-teal-400">—</div>
             <div class="text-xs text-slate-500 mt-1">總用戶數</div>
@@ -43,6 +201,28 @@
             <div id="stat-active" class="text-3xl font-black text-green-400">—</div>
             <div class="text-xs text-slate-500 mt-1">曾登入用戶</div>
         </div>
+    </div>
+
+    <!-- 棋力測驗 shadow readiness -->
+    <div id="rating-shadow-card" class="bg-slate-800 border border-slate-700 rounded-xl p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">棋力測驗校準進度</h2>
+                <p class="text-xs text-slate-500 mt-1">累積 200 場有效正式測驗後，提醒進行 shadow 演算法審查；不會自動改動玩家棋力。</p>
+            </div>
+            <span id="rating-shadow-status" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-700 text-slate-400">載入中</span>
+        </div>
+        <div class="mt-4 flex flex-wrap items-end gap-x-8 gap-y-3">
+            <div>
+                <span id="rating-shadow-count" class="text-3xl font-black text-cyan-400">—</span>
+                <span class="text-sm text-slate-500"> / 200 場</span>
+            </div>
+            <div id="rating-shadow-detail" class="text-xs text-slate-400">正在統計有效正式測驗…</div>
+        </div>
+        <div class="mt-3 h-2 rounded-full bg-slate-700 overflow-hidden">
+            <div id="rating-shadow-progress" class="h-full bg-cyan-500 transition-all duration-500" style="width:0%"></div>
+        </div>
+        <div id="rating-shadow-reminder" class="hidden mt-4 rounded-lg border px-4 py-3 text-sm font-bold"></div>
     </div>
 
     <!-- 新增用戶 -->
@@ -80,7 +260,7 @@
     </div>
 
     <!-- 用戶列表 -->
-    <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+    <div id="admin-section-user-management" class="admin-section bg-slate-800 border border-slate-700 rounded-xl overflow-hidden" data-admin-section="user-management" data-admin-title="User Management" data-search-keywords="user users player players admin assets premium free 玩家 用戶 user player assets 管理員">
         <div class="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
             <h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">用戶列表</h2>
             <button onclick="loadUsers()" class="text-xs text-slate-500 hover:text-teal-400 transition">↺ 重新整理</button>
@@ -106,9 +286,537 @@
             </table>
         </div>
     </div>
+
+    <!-- 留存分析 -->
+    <div id="admin-section-analytics" class="admin-section bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" data-admin-section="analytics" data-admin-title="Analytics / Stats" data-search-keywords="analytics stats retention northstar report health growth 統計 留存 北極星 report 回報 health">
+        <div class="flex flex-wrap items-start justify-between gap-3 px-5 py-4 border-b border-slate-700">
+            <div>
+                <h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">玩家留存分析</h2>
+                <p class="text-xs text-slate-500 mt-1">以註冊 cohort 為主，先看啟動率、D1/D7/D30 與首週活躍深度。</p>
+            </div>
+            <div class="flex flex-wrap items-end gap-2">
+                <label class="grid gap-1 text-[11px] text-slate-500">
+                    起始日
+                    <input id="retention-start" type="date" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-[11px] text-slate-500">
+                    結束日
+                    <input id="retention-end" type="date" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-[11px] text-slate-500">
+                    快速區間
+                    <select id="retention-days" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                        <option value="30">30 天</option>
+                        <option value="90" selected>90 天</option>
+                        <option value="180">180 天</option>
+                        <option value="365">365 天</option>
+                    </select>
+                </label>
+                <button onclick="loadRetention()" class="bg-teal-700 hover:bg-teal-600 text-white font-bold text-sm px-4 py-2 rounded transition">
+                    重新整理
+                </button>
+            </div>
+        </div>
+        <div class="p-5 space-y-5">
+            <div class="rounded-xl border border-slate-700 bg-slate-900/40 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-200">北極星指標</h3>
+                        <p class="mt-1 text-xs text-slate-500">同一份留存活動定義下的近 7 天週活躍、付費留存與流失概況。</p>
+                    </div>
+                    <div id="northstar-computed-at" class="text-[11px] text-slate-500">更新中...</div>
+                </div>
+                <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">週活躍</div>
+                        <div id="northstar-wau" class="mt-2 text-3xl font-black text-cyan-300">--</div>
+                        <div id="northstar-wau-detail" class="mt-1 text-[11px] text-slate-500">與上週比較中...</div>
+                    </div>
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">付費學習者 4 週留存</div>
+                        <div id="northstar-retention-premium" class="mt-2 text-3xl font-black text-emerald-300">--</div>
+                        <div class="mt-1 text-[11px] text-slate-500">北極星指標</div>
+                    </div>
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">全體 4 週留存</div>
+                        <div id="northstar-retention-all" class="mt-2 text-3xl font-black text-violet-300">--</div>
+                        <div class="mt-1 text-[11px] text-slate-500">28 天前活躍 cohort</div>
+                    </div>
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">付費人數</div>
+                        <div id="northstar-premium-count" class="mt-2 text-3xl font-black text-amber-300">--</div>
+                        <div class="mt-1 text-[11px] text-slate-500">目前有效 Premium</div>
+                    </div>
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">新增付費 7 天</div>
+                        <div id="northstar-new-premium" class="mt-2 text-3xl font-black text-rose-300">--</div>
+                        <div class="mt-1 text-[11px] text-slate-500">首筆成功付款用戶</div>
+                    </div>
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">流失率 30 天</div>
+                        <div id="northstar-churn" class="mt-2 text-3xl font-black text-teal-300">--</div>
+                        <div class="mt-1 text-[11px] text-slate-500">近 30 天到期 Premium</div>
+                    </div>
+                    <div class="rounded border border-slate-700 bg-slate-950/40 p-4">
+                        <div class="text-xs uppercase tracking-widest text-slate-500">總用戶 / 新用戶</div>
+                        <div id="northstar-total-users" class="mt-2 text-3xl font-black text-slate-100">--</div>
+                        <div id="northstar-total-users-detail" class="mt-1 text-[11px] text-slate-500">近 7 天新用戶 --</div>
+                    </div>
+                </div>
+                <div id="northstar-notes" class="mt-3 hidden rounded border border-amber-700/60 bg-amber-950/30 px-3 py-2 text-xs text-amber-200"></div>
+            </div>
+            <div id="analytics-tracking-gap-panel" class="rounded-xl border border-amber-700/40 bg-amber-950/10 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-amber-200" data-i18n="admin.analytics_gap.title">Tracking Gap Watchlist</h3>
+                        <p class="mt-1 text-xs text-slate-400" data-i18n="admin.analytics_gap.subtitle">Missing tracking is shown as a gap, not as zero or a fake KPI.</p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full border border-amber-700/60 bg-slate-950/60 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-200" data-i18n="admin.analytics_gap.read_only">Read-only foundation</span>
+                </div>
+                <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <article class="rounded-lg border border-slate-700 bg-slate-950/50 p-4">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="text-sm font-bold text-slate-100" data-i18n="admin.analytics_gap.premium.title">Premium conversion funnel</h4>
+                            <span class="rounded-full border border-amber-700/60 bg-amber-950/50 px-2 py-0.5 text-[11px] font-bold text-amber-200" data-i18n="admin.analytics_gap.status.tracking_gap">Tracking gap</span>
+                        </div>
+                        <p class="mt-2 text-xs leading-5 text-slate-400" data-i18n="admin.analytics_gap.premium.body">CTR, CVR, attributed revenue, and funnel conversion remain hidden until the required event chain exists.</p>
+                        <p class="mt-3 text-[11px] text-slate-500" data-i18n="admin.analytics_gap.premium.foot">Requires impression, click, checkout, and paid-order linkage.</p>
+                    </article>
+                    <article class="rounded-lg border border-slate-700 bg-slate-950/50 p-4">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="text-sm font-bold text-slate-100" data-i18n="admin.analytics_gap.adventure.title">Adventure operations health</h4>
+                            <span class="rounded-full border border-cyan-700/60 bg-cyan-950/40 px-2 py-0.5 text-[11px] font-bold text-cyan-200" data-i18n="admin.analytics_gap.status.needs_instrumentation">Needs instrumentation</span>
+                        </div>
+                        <p class="mt-2 text-xs leading-5 text-slate-400" data-i18n="admin.analytics_gap.adventure.body">Stuck-zone rate, boss pass-rate trend, and replay loop health stay hidden until zone and boss event coverage exists.</p>
+                        <p class="mt-3 text-[11px] text-slate-500" data-i18n="admin.analytics_gap.adventure.foot">Requires zone start, zone complete, boss challenge, boss pass, and replay events.</p>
+                    </article>
+                    <article class="rounded-lg border border-slate-700 bg-slate-950/50 p-4">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="text-sm font-bold text-slate-100" data-i18n="admin.analytics_gap.ai.title">AI usage and quality</h4>
+                            <span class="rounded-full border border-violet-700/60 bg-violet-950/40 px-2 py-0.5 text-[11px] font-bold text-violet-200" data-i18n="admin.analytics_gap.status.not_enough_data">Not enough tracked data</span>
+                        </div>
+                        <p class="mt-2 text-xs leading-5 text-slate-400" data-i18n="admin.analytics_gap.ai.body">Helpfulness and quality trends remain hidden until explanation events, failure states, and feedback samples are large enough to trust.</p>
+                        <p class="mt-3 text-[11px] text-slate-500" data-i18n="admin.analytics_gap.ai.foot">Missing tracking and insufficient sample size are both treated as unavailable.</p>
+                    </article>
+                    <article class="rounded-lg border border-slate-700 bg-slate-950/50 p-4">
+                        <div class="flex items-start justify-between gap-2">
+                            <h4 class="text-sm font-bold text-slate-100" data-i18n="admin.analytics_gap.intelligence.title">Admin Intelligence alerts</h4>
+                            <span class="rounded-full border border-slate-600 bg-slate-900/80 px-2 py-0.5 text-[11px] font-bold text-slate-200" data-i18n="admin.analytics_gap.status.not_implemented">Not implemented</span>
+                        </div>
+                        <p class="mt-2 text-xs leading-5 text-slate-400" data-i18n="admin.analytics_gap.intelligence.body">Alert cards stay hidden until metric definitions, thresholds, freshness rules, and rollback paths are defined.</p>
+                        <p class="mt-3 text-[11px] text-slate-500" data-i18n="admin.analytics_gap.intelligence.foot">This batch adds no alert engine, event tracking, or automated decisions.</p>
+                    </article>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2 text-[11px]">
+                    <span class="rounded-full border border-amber-700/60 bg-amber-950/50 px-2 py-1 text-amber-200" data-i18n="admin.analytics_gap.status.tracking_gap">Tracking gap</span>
+                    <span class="rounded-full border border-cyan-700/60 bg-cyan-950/40 px-2 py-1 text-cyan-200" data-i18n="admin.analytics_gap.status.needs_instrumentation">Needs instrumentation</span>
+                    <span class="rounded-full border border-violet-700/60 bg-violet-950/40 px-2 py-1 text-violet-200" data-i18n="admin.analytics_gap.status.not_enough_data">Not enough tracked data</span>
+                    <span class="rounded-full border border-slate-600 bg-slate-900/80 px-2 py-1 text-slate-200" data-i18n="admin.analytics_gap.status.not_implemented">Not implemented</span>
+                </div>
+                <p class="mt-3 text-xs text-slate-400" data-i18n="admin.analytics_gap.footer">Missing tracking is not counted as zero.</p>
+            </div>
+            <div id="retention-summary-grid" class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">註冊數</div>
+                    <div id="retention-signups" class="mt-2 text-3xl font-black text-cyan-400">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">選定 cohort 內的總註冊數</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">24h 啟動率</div>
+                    <div id="retention-activation" class="mt-2 text-3xl font-black text-emerald-400">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">註冊後 24 小時內有實際行為</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">D1 留存</div>
+                    <div id="retention-d1" class="mt-2 text-3xl font-black text-amber-400">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">下一日仍有活動</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">D7 留存</div>
+                    <div id="retention-d7" class="mt-2 text-3xl font-black text-rose-400">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">一週後仍有活動</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">D30 留存</div>
+                    <div id="retention-d30" class="mt-2 text-3xl font-black text-violet-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">一月後仍有活動</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">新手完成率</div>
+                    <div id="retention-graduated" class="mt-2 text-3xl font-black text-teal-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">newbie quest 畢業比例</div>
+                </div>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">未啟動</div>
+                    <div id="retention-segment-never" class="mt-2 text-3xl font-black text-red-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">註冊後 24 小時內完全沒行為</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">一次性</div>
+                    <div id="retention-segment-single" class="mt-2 text-3xl font-black text-amber-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">有啟動但很快沉默</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">首週穩定</div>
+                    <div id="retention-segment-regular" class="mt-2 text-3xl font-black text-emerald-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">首週有 3 天以上活躍</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">30 天續航</div>
+                    <div id="retention-segment-sustained" class="mt-2 text-3xl font-black text-cyan-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">已經撐過 30 天的玩家</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">高潛力</div>
+                    <div id="retention-segment-power" class="mt-2 text-3xl font-black text-violet-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">30 天內活躍 10 天以上</div>
+                </div>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">Email 驗證率</div>
+                    <div id="retention-email-rate" class="mt-2 text-3xl font-black text-cyan-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">註冊 cohort 中已驗證 email 的比例</div>
+                </div>
+                <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest">首週活躍</div>
+                    <div id="retention-active-days" class="mt-2 text-3xl font-black text-emerald-300">—</div>
+                    <div class="text-[11px] text-slate-500 mt-1">平均首週 / 首月活躍日數</div>
+                </div>
+            </div>
+            <div class="overflow-x-auto rounded border border-slate-700">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-700/50 text-xs text-slate-500 uppercase tracking-wider">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Cohort</th>
+                            <th class="px-4 py-3 text-center">註冊數</th>
+                            <th class="px-4 py-3 text-center">啟動率</th>
+                            <th class="px-4 py-3 text-center">D1</th>
+                            <th class="px-4 py-3 text-center">D7</th>
+                            <th class="px-4 py-3 text-center">D30</th>
+                            <th class="px-4 py-3 text-center">驗證率</th>
+                            <th class="px-4 py-3 text-center">新手畢業</th>
+                            <th class="px-4 py-3 text-center">首週活躍日</th>
+                            <th class="px-4 py-3 text-center">首月活躍日</th>
+                        </tr>
+                    </thead>
+                    <tbody id="retention-cohort-tbody">
+                        <tr><td colspan="10" class="px-5 py-8 text-center text-slate-600">尚未載入</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-xs text-slate-500 leading-6">
+                定義：活躍以 review / 對局 / 每日挑戰 / rating test / 新手任務更新為準，不把單純登入算進留存。
+            </div>
+            <div class="rounded border border-slate-700 bg-slate-900/50 p-4">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-widest">高風險名單</div>
+                        <div class="text-[11px] text-slate-500 mt-1">最多顯示 20 名最近 cohort 的未啟動 / 一次性玩家</div>
+                    </div>
+                    <div class="text-[11px] text-slate-500">v3 流失預警</div>
+                </div>
+                <div id="retention-risk-list" class="flex flex-wrap gap-2 text-xs text-slate-300">
+                    <span class="text-slate-600">尚未載入</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium 每週報告 shadow -->
+    <div id="admin-section-adventure" class="admin-section bg-slate-800 border border-slate-700 rounded-xl overflow-hidden" data-admin-section="adventure" data-admin-title="Adventure" data-search-keywords="adventure boss premium weekly shadow map challenge quest adventure boss premium shadow">
+        <div class="px-5 py-4 flex flex-wrap items-start justify-between gap-3">
+            <button id="weekly-shadow-toggle" type="button" class="min-w-0 flex-1 text-left hover:opacity-90 transition">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="font-bold text-sm text-amber-300 uppercase tracking-widest">Premium 每週戰報 Shadow</h2>
+                    <span id="weekly-shadow-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">載入中</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">先產生不可變快照與專屬題組；人工審查後才逐份發布。</p>
+                <div id="weekly-shadow-summary" class="text-xs text-slate-400 mt-2">載入中…</div>
+            </button>
+            <div class="flex items-center gap-3 self-start">
+                <button id="weekly-generate" type="button" class="text-xs px-3 py-2 rounded bg-amber-700 hover:bg-amber-600 text-white">產生上週 Shadow</button>
+                <span id="weekly-shadow-chevron" class="text-slate-500 text-lg leading-none">▾</span>
+            </div>
+        </div>
+        <div id="weekly-shadow-body" class="hidden border-t border-slate-700 p-5">
+            <div id="weekly-release" class="rounded border border-slate-700 p-3 text-xs text-slate-400">模型發布閘門：載入中…</div>
+            <div id="weekly-metrics" class="mt-3 text-xs text-slate-500">盲評指標：尚無兩份獨立評分</div>
+            <div id="weekly-reports" class="mt-4 space-y-2 text-sm max-h-[32rem] overflow-y-auto pr-1"><div class="text-slate-500">載入中…</div></div>
+        </div>
+    </div>
+
+    <!-- 金流訂閱/訂單 -->
+    <div id="admin-section-growth-billing" class="admin-section bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" data-admin-section="growth-billing" data-admin-title="Growth & Billing" data-search-keywords="billing payments orders premium subscription 金流 訂單 會員 order billing premium payment">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+            <h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">💳 金流訂閱 / 訂單</h2>
+            <button onclick="loadPayments()" class="text-xs text-slate-500 hover:text-teal-400 transition">↺ 重新整理</button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-700/50 text-xs text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-5 py-3 text-left">帳號</th>
+                        <th class="px-4 py-3 text-center">委託單號</th>
+                        <th class="px-4 py-3 text-center">方案</th>
+                        <th class="px-4 py-3 text-center">金額</th>
+                        <th class="px-4 py-3 text-center">狀態</th>
+                        <th class="px-4 py-3 text-center">期數</th>
+                        <th class="px-4 py-3 text-center">建立</th>
+                        <th class="px-4 py-3 text-center">取消</th>
+                    </tr>
+                </thead>
+                <tbody id="payments-tbody">
+                    <tr><td colspan="8" class="px-5 py-8 text-center text-slate-600">尚未載入</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="px-5 py-3 border-t border-slate-700">
+            <div class="text-xs text-slate-500 mb-2 uppercase tracking-wider">最近付款（200 筆內）</div>
+            <div id="payments-orders" class="text-xs text-slate-400 space-y-1 max-h-48 overflow-y-auto">—</div>
+        </div>
+    </div>
+
+    <!-- Trial codes -->
+    <details id="admin-section-system-tools" class="admin-section admin-lowfreq bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" data-admin-section="system-tools" data-admin-title="System / Tools" data-search-keywords="trial tools cache system health trial codes 工具 系統 cache health codes">
+        <summary class="flex cursor-pointer flex-wrap items-start justify-between gap-3 px-5 py-4 border-b border-slate-700">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">Trial Codes</h2>
+                    <span class="inline-block rounded-full border border-amber-700/50 bg-amber-950/35 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300" data-i18n="admin.accordion.low_freq">低頻工具</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Generate one-time Premium trial codes for partner clubs and associations.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="event.preventDefault(); loadTrialBatches();" class="text-xs text-slate-500 hover:text-teal-400 transition">Refresh</button>
+                <span class="admin-lowfreq-chevron text-slate-500 text-lg leading-none transition-transform">▾</span>
+            </div>
+        </summary>
+        <div class="p-5 grid gap-5">
+            <div class="grid gap-3 md:grid-cols-4">
+                <label class="grid gap-1 text-xs text-slate-500">Batch key
+                    <input id="trial-batch-key" value="BGA_2026_06" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-xs text-slate-500">Organization
+                    <input id="trial-org-name" value="British Go Association" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-xs text-slate-500">Campaign
+                    <input id="trial-campaign-name" value="BGA community trial" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-xs text-slate-500">Expires at
+                    <input id="trial-expires-at" type="date" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-xs text-slate-500">Count
+                    <input id="trial-count" type="number" min="1" max="500" value="30" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-xs text-slate-500">Premium days
+                    <input id="trial-days" type="number" min="1" max="365" value="30" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+                <label class="grid gap-1 text-xs text-slate-500 md:col-span-2">Note
+                    <input id="trial-note" value="For BGA club and junior players" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-slate-100">
+                </label>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button id="trial-create-btn" onclick="createTrialBatch()" class="bg-teal-700 hover:bg-teal-600 text-white font-bold text-sm px-4 py-2 rounded transition">Generate codes</button>
+                <button onclick="downloadGeneratedTrialCodes()" class="border border-slate-600 hover:border-teal-500 text-slate-300 text-sm px-4 py-2 rounded transition">Download last generated CSV</button>
+            </div>
+            <div id="trial-generated" class="hidden rounded border border-teal-800 bg-teal-950/30 p-3 text-xs text-teal-100"></div>
+            <div class="overflow-x-auto rounded border border-slate-700">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-700/50 text-xs text-slate-500 uppercase tracking-wider">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Batch</th>
+                            <th class="px-4 py-3 text-left">Org</th>
+                            <th class="px-4 py-3 text-center">Days</th>
+                            <th class="px-4 py-3 text-center">Codes</th>
+                            <th class="px-4 py-3 text-center">Redeemed</th>
+                            <th class="px-4 py-3 text-center">Expires</th>
+                            <th class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trial-batches">
+                        <tr><td colspan="7" class="px-5 py-8 text-center text-slate-600">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="trial-detail" class="hidden rounded border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-300 max-h-96 overflow-y-auto"></div>
+        </div>
+    </details>
+
+    <!-- 錯題處理 / review queue -->
+    <div id="admin-section-review-queue" class="admin-section bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" data-admin-section="review-queue" data-admin-title="錯題處理" data-search-keywords="review queue problem report import 錯題處理 回報 佇列 問題題目 review">
+        <div class="flex flex-wrap items-start justify-between gap-3 px-5 py-4 border-b border-slate-700">
+            <div class="space-y-1">
+                <h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">錯題處理</h2>
+                <p class="text-xs text-amber-300">此頁 Phase 1 只建立回報、佇列與審核紀錄，不會直接修改 questions.json 或正式題庫內容。涉及 SGF／答案路徑的修復仍需另開修復批次與部署。</p>
+            </div>
+            <button id="review-queue-refresh-btn" type="button" onclick="loadReviewQueueDashboard()" class="text-xs text-slate-500 hover:text-teal-400 transition">↺ 重新整理</button>
+        </div>
+        <div class="space-y-5 p-5">
+            <div class="rounded-xl border border-slate-700 bg-slate-900/35 p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <div class="text-sm font-bold text-slate-200">匯入稽核題目</div>
+                        <div class="text-xs text-slate-500 mt-1">匯入前請先確認 22C 報表已更新且為最新修復狀態。</div>
+                    </div>
+                    <button id="review-queue-import-btn" type="button" onclick="importReviewQueueSnapshot()" class="px-4 py-2 rounded-lg bg-amber-600 text-black font-bold text-sm hover:bg-amber-500 transition">匯入目前仍有問題的 22C 題目</button>
+                </div>
+                <div id="review-queue-import-summary" class="grid gap-3 text-sm text-slate-300 sm:grid-cols-2 lg:grid-cols-3"></div>
+                <div id="review-queue-import-result" class="space-y-3"></div>
+            </div>
+
+            <div class="grid gap-5 lg:grid-cols-2">
+                <div class="rounded-xl border border-slate-700 bg-slate-900/35 p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-bold text-slate-200">玩家問題回報</div>
+                            <div class="text-xs text-slate-500 mt-1">從玩家端的「回報此題有問題」送進來的待審核項目。</div>
+                        </div>
+                        <select id="problem-report-status-filter" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200" onchange="loadProblemReportsList()">
+                            <option value="open_first">open first</option>
+                            <option value="">all</option>
+                            <option value="open">open</option>
+                            <option value="dismissed">dismissed</option>
+                            <option value="duplicate">duplicate</option>
+                            <option value="confirmed">confirmed</option>
+                        </select>
+                    </div>
+                    <div id="problem-report-list" class="space-y-2"></div>
+                </div>
+
+                <div class="rounded-xl border border-slate-700 bg-slate-900/35 p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-bold text-slate-200">待處理佇列</div>
+                            <div class="text-xs text-slate-500 mt-1">已確認或匯入的 review queue 項目，含 staleness 與來源資訊。</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="review-queue-status-filter" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200" onchange="loadReviewQueueItems()">
+                                <option value="pending_first">pending first</option>
+                                <option value="">all</option>
+                                <option value="pending">pending</option>
+                                <option value="resolved">resolved</option>
+                                <option value="wont_fix">wont_fix</option>
+                            </select>
+                            <select id="review-queue-source-filter" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200" onchange="loadReviewQueueItems()">
+                                <option value="">all sources</option>
+                                <option value="player_reported">player_reported</option>
+                                <option value="p0_parse_failure">p0_parse_failure</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="review-queue-list" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="grid gap-5 xl:grid-cols-2">
+                <div class="rounded-xl border border-slate-700 bg-slate-900/35 p-4 space-y-3">
+                    <div class="text-sm font-bold text-slate-200">玩家問題回報詳情 / 棋盤預覽</div>
+                    <div id="problem-report-detail" class="space-y-3">
+                        <div class="text-sm text-slate-500">點選一筆回報以檢視詳情。</div>
+                    </div>
+                </div>
+                <div class="rounded-xl border border-slate-700 bg-slate-900/35 p-4 space-y-3">
+                    <div class="text-sm font-bold text-slate-200">佇列詳情 / 棋盤預覽</div>
+                    <div id="review-queue-detail" class="space-y-3">
+                        <div class="text-sm text-slate-500">點選一筆佇列項目以檢視詳情。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 私訊檢舉 -->
+    <div id="admin-section-content-moderation" class="admin-section bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" data-admin-section="content-moderation" data-admin-title="Content Moderation" data-search-keywords="moderation reports dm alternative answer report content 回報 檢舉 moderation report content">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+            <div><h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">私訊檢舉</h2><p class="text-xs text-slate-500 mt-1">查看內容與處理動作都會留下稽核紀錄</p></div>
+            <button onclick="loadDmReports()" class="text-xs text-slate-500 hover:text-teal-400 transition">↺ 重新整理</button>
+        </div>
+        <div id="dm-reports" class="divide-y divide-slate-700/60"><div class="px-5 py-8 text-center text-slate-600">尚未載入</div></div>
+    </div>
+
+    <!-- 題目另解回報 -->
+    <div class="bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" data-search-keywords="alternative answer reports moderation report content 回報 題目 檢舉">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+            <div><h2 class="font-bold text-sm text-slate-300 uppercase tracking-widest">題目另解回報</h2><p class="text-xs text-slate-500 mt-1">玩家認為某手也成立時的回報清單；審核後再決定是否納入題庫修正</p></div>
+            <button onclick="loadAlternativeAnswerReports()" class="text-xs text-slate-500 hover:text-teal-400 transition">↺ 重新整理</button>
+        </div>
+        <div id="alt-answer-reports" class="divide-y divide-slate-700/60"><div class="px-5 py-8 text-center text-slate-600">尚未載入</div></div>
+    </div>
+
+    <!-- Upsell 觸發點狀態（read-only 靜態稽核清單，不做即時偵測） -->
+    <details class="admin-section admin-lowfreq bg-slate-800/60 border border-slate-700 rounded-xl overflow-hidden mt-8" id="upsell-status-panel" data-admin-section="upsell-status" data-admin-title="Upsell 狀態" data-search-keywords="upsell premium upgrade weakness heatmap blur lock 升級 premium upsell weakness heatmap">
+        <summary class="flex cursor-pointer items-start justify-between gap-3 px-5 py-4 border-b border-slate-700">
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-sm text-amber-300 uppercase tracking-widest" data-i18n="admin.upsell.title">Upsell 觸發點狀態</h2>
+                    <span class="inline-block rounded-full border border-amber-700/50 bg-amber-950/35 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300" data-i18n="admin.accordion.audit">稽核區塊</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1" data-i18n="admin.upsell.subtitle">靜態稽核結果，非即時監控。</p>
+            </div>
+            <span class="admin-lowfreq-chevron text-slate-500 text-lg leading-none transition-transform">▾</span>
+        </summary>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-700/50 text-xs text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-5 py-3 text-left" data-i18n="admin.upsell.col_trigger">觸發點</th>
+                        <th class="px-4 py-3 text-left" data-i18n="admin.upsell.col_entry">前台入口</th>
+                        <th class="px-4 py-3 text-center" data-i18n="admin.upsell.col_status">狀態</th>
+                        <th class="px-4 py-3 text-left" data-i18n="admin.upsell.col_note">說明</th>
+                    </tr>
+                </thead>
+                <tbody id="upsell-status-tbody">
+                    <tr data-trigger="rank_gate">
+                        <td class="px-5 py-3 text-slate-200" data-i18n="admin.upsell.rank_gate_name">段位題牆</td>
+                        <td class="px-4 py-3 text-slate-400" data-i18n="admin.upsell.rank_gate_entry">冒險地圖／SRS 複習</td>
+                        <td class="px-4 py-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-teal-900/50 text-teal-300" data-i18n="admin.upsell.enabled">已啟用</span></td>
+                        <td class="px-4 py-3 text-slate-500 text-xs" data-i18n="admin.upsell.rank_gate_note">免費玩家作答段位付費題（&gt;10k）時，後端回 403 premium_required。</td>
+                    </tr>
+                    <tr data-trigger="daily_limit">
+                        <td class="px-5 py-3 text-slate-200" data-i18n="admin.upsell.daily_limit_name">每日上限牆</td>
+                        <td class="px-4 py-3 text-slate-400" data-i18n="admin.upsell.daily_limit_entry">首頁練習流程</td>
+                        <td class="px-4 py-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-teal-900/50 text-teal-300" data-i18n="admin.upsell.enabled">已啟用</span></td>
+                        <td class="px-4 py-3 text-slate-500 text-xs" data-i18n="admin.upsell.daily_limit_note">免費玩家每日 20 題用完後鎖版，顯示升級連結（_applyDailyLimit）。</td>
+                    </tr>
+                    <tr data-trigger="ai_explain">
+                        <td class="px-5 py-3 text-slate-200" data-i18n="admin.upsell.ai_explain_name">AI 解說牆</td>
+                        <td class="px-4 py-3 text-slate-400" data-i18n="admin.upsell.ai_explain_entry">解說面板</td>
+                        <td class="px-4 py-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-teal-900/50 text-teal-300" data-i18n="admin.upsell.enabled">已啟用</span></td>
+                        <td class="px-4 py-3 text-slate-500 text-xs" data-i18n="admin.upsell.ai_explain_note">免費玩家沒有解說券時，點 AI 解說觸發 403 premium_required。</td>
+                    </tr>
+                    <tr data-trigger="upgrade_entry">
+                        <td class="px-5 py-3 text-slate-200" data-i18n="admin.upsell.upgrade_entry_name">/upgrade 靜態入口 / premium_required 後端牆</td>
+                        <td class="px-4 py-3 text-slate-400" data-i18n="admin.upsell.upgrade_entry_entry">全站側欄、nav、/upgrade 頁</td>
+                        <td class="px-4 py-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-teal-900/50 text-teal-300" data-i18n="admin.upsell.enabled">已啟用</span></td>
+                        <td class="px-4 py-3 text-slate-500 text-xs" data-i18n="admin.upsell.upgrade_entry_note">被動入口：側欄 hint、nav、PRO 徽章、/upgrade 頁。</td>
+                    </tr>
+                    <tr data-trigger="weakness_teaser">
+                        <td class="px-5 py-3 text-slate-200">
+                            <span data-i18n="admin.upsell.weakness_teaser_name">弱點分析 / 熱力圖 teaser blur-lock</span>
+                            <span class="ml-2 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-900/50 text-amber-300" data-i18n="admin.upsell.rebuilt_tag">本次重建</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-400" data-i18n="admin.upsell.weakness_teaser_entry">首頁弱點情報卡、公會情報弱點卡、/stats</td>
+                        <td class="px-4 py-3 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-teal-900/50 text-teal-300" data-i18n="admin.upsell.enabled">已啟用</span></td>
+                        <td class="px-4 py-3 text-slate-500 text-xs" data-i18n="admin.upsell.weakness_teaser_note">非 premium 使用者看到 RPG 風格模糊鎖 teaser + 升級 CTA，不會呼叫真實弱點分析／熱力圖資料 API。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
 </div>
 
 <!-- 重設密碼 Modal -->
+        </main>
+    </div>
+</div>
+
+<button id="admin-back-to-top" type="button" class="admin-back-to-top rounded-full border border-amber-700/70 bg-stone-950/90 px-4 py-3 text-sm font-bold text-amber-200 shadow-2xl">
+    ↑ <span data-i18n="admin.back_to_top">返回頂端</span>
+</button>
+
 <div id="reset-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 w-96 shadow-2xl">
         <div class="font-bold text-lg text-slate-100 mb-1">重設密碼</div>
@@ -153,18 +861,1338 @@
 </div>
 
 <!-- Toast -->
+<!-- 遊戲資產管理 Modal -->
+<div id="assets-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 w-full max-w-3xl max-h-[88vh] overflow-y-auto shadow-2xl">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <div class="font-bold text-lg text-slate-100">🎮 遊戲資產管理</div>
+                <div id="assets-modal-sub" class="text-xs text-slate-500"></div>
+            </div>
+            <button onclick="closeAssetsModal()" class="text-slate-500 hover:text-slate-200 text-xl leading-none">✕</button>
+        </div>
+        <div id="assets-body" class="text-sm text-slate-300">載入中…</div>
+    </div>
+</div>
+
+<div id="dm-context-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 w-full max-w-3xl max-h-[88vh] overflow-y-auto shadow-2xl">
+        <div class="flex items-center justify-between mb-4"><div class="font-bold text-lg text-slate-100">私訊檢舉上下文</div><button onclick="closeDmContext()" class="text-slate-500 hover:text-slate-200 text-xl">✕</button></div>
+        <div id="dm-context-body" class="space-y-2"></div>
+    </div>
+</div>
+
+<div id="alt-answer-context-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 w-full max-w-4xl max-h-[88vh] overflow-y-auto shadow-2xl">
+        <div class="flex items-center justify-between mb-4"><div class="font-bold text-lg text-slate-100">題目另解上下文</div><button onclick="closeAltAnswerContext()" class="text-slate-500 hover:text-slate-200 text-xl">✕</button></div>
+        <div id="alt-answer-context-body" class="space-y-3"></div>
+    </div>
+</div>
+
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-4 opacity-0 pointer-events-none
     bg-amber-400 text-black text-sm font-bold px-5 py-2 rounded-lg transition-all duration-300 z-50"></div>
 
 <script>
 let _me = null;
+let _weeklyShadowOpen = false;
+let _adminNavSections = [];
+
+function adminText(key, fallback) {
+    if (typeof I18n !== 'undefined' && typeof I18n.t === 'function') {
+        const translated = I18n.t(key);
+        if (translated && translated !== key) return translated;
+    }
+    return fallback || key;
+}
+
+function buildAdminSearchKeywords(section) {
+    const parts = [
+        section.dataset.adminTitle || '',
+        section.dataset.searchKeywords || '',
+        ...Array.from(section.querySelectorAll('h2, h3, button')).map((el) => el.textContent || '')
+    ];
+    return parts.join(' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function scrollAdminSectionIntoView(sectionId) {
+    const target = document.getElementById(sectionId);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function scrollAdminPageToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.requestAnimationFrame(() => {
+        if (window.scrollY <= 0) return;
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+}
+
+function setActiveAdminSection(sectionId) {
+    document.querySelectorAll('[data-admin-nav-target]').forEach((link) => {
+        link.classList.toggle('is-active', link.dataset.adminNavTarget === sectionId);
+    });
+}
+
+function renderAdminSearchResults(matches, query) {
+    const host = document.getElementById('admin-search-results');
+    const empty = document.getElementById('admin-search-empty');
+    if (!host || !empty) return;
+    host.replaceChildren();
+    if (!query) {
+        host.hidden = true;
+        empty.classList.add('hidden');
+        return;
+    }
+    host.hidden = false;
+    if (!matches.length) {
+        empty.classList.remove('hidden');
+        return;
+    }
+    empty.classList.add('hidden');
+    for (const match of matches) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'admin-search-result';
+        button.dataset.adminSearchTarget = match.id;
+        button.innerHTML = `
+            <span class="text-sm font-bold text-amber-200">${match.label}</span>
+            <span class="text-xs text-slate-400">${match.meta}</span>
+        `;
+        button.onclick = () => {
+            scrollAdminSectionIntoView(match.id);
+            setActiveAdminSection(match.id);
+        };
+        host.appendChild(button);
+    }
+}
+
+function refreshAdminNavSearch() {
+    const input = document.getElementById('admin-nav-search');
+    if (!input) return;
+    const query = input.value.trim().toLowerCase();
+    if (!query) {
+        renderAdminSearchResults([], '');
+        return;
+    }
+    const matches = _adminNavSections
+        .filter((section) => section.searchText.includes(query))
+        .map((section) => ({
+            id: section.id,
+            label: section.label,
+            meta: section.meta
+        }));
+    renderAdminSearchResults(matches, query);
+}
+
+function updateAdminViewportState() {
+    if (!_adminNavSections.length) return;
+    const visible = _adminNavSections
+        .filter((section) => {
+            const rect = section.el.getBoundingClientRect();
+            return rect.top <= 180 && rect.bottom >= 140;
+        })
+        .sort((a, b) => Math.abs(a.el.getBoundingClientRect().top) - Math.abs(b.el.getBoundingClientRect().top));
+    if (visible.length) {
+        setActiveAdminSection(visible[0].id);
+    }
+    const backToTop = document.getElementById('admin-back-to-top');
+    if (backToTop) {
+        backToTop.classList.toggle('is-visible', window.scrollY > 420);
+    }
+}
+
+function initAdminNavigation() {
+    const nav = document.getElementById('admin-sidebar-nav');
+    const search = document.getElementById('admin-nav-search');
+    const backToTop = document.getElementById('admin-back-to-top');
+    if (!nav || !search || !backToTop) return;
+
+    const sections = Array.from(document.querySelectorAll('[data-admin-section]'));
+    _adminNavSections = sections.map((section) => {
+        const label = section.dataset.adminTitle || section.id;
+        const meta = adminText('admin.nav.jump', 'Jump to section');
+        return {
+            id: section.id,
+            el: section,
+            label,
+            meta,
+            searchText: buildAdminSearchKeywords(section)
+        };
+    });
+
+    nav.replaceChildren();
+    for (const section of _adminNavSections) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'admin-nav-link';
+        button.dataset.adminNavTarget = section.id;
+        button.innerHTML = `
+            <span>${section.label}</span>
+            <span class="text-xs text-slate-500">↘</span>
+        `;
+        button.onclick = () => {
+            scrollAdminSectionIntoView(section.id);
+            setActiveAdminSection(section.id);
+        };
+        nav.appendChild(button);
+    }
+
+    search.addEventListener('input', refreshAdminNavSearch);
+    backToTop.onclick = () => scrollAdminPageToTop();
+    window.addEventListener('scroll', updateAdminViewportState, { passive: true });
+    updateAdminViewportState();
+}
+
+function setWeeklyShadowOpen(open) {
+    _weeklyShadowOpen = !!open;
+    const body = document.getElementById('weekly-shadow-body');
+    const chevron = document.getElementById('weekly-shadow-chevron');
+    const toggle = document.getElementById('weekly-shadow-toggle');
+    if (body) body.classList.toggle('hidden', !_weeklyShadowOpen);
+    if (chevron) chevron.textContent = _weeklyShadowOpen ? '▴' : '▾';
+    if (toggle) toggle.setAttribute('aria-expanded', _weeklyShadowOpen ? 'true' : 'false');
+}
 
 async function init() {
     const me = await fetch('/api/auth/me',{credentials:'include'}).then(r=>r.json());
     if (!me.logged_in || !me.is_admin) { window.location.href='/login'; return; }
     _me = me;
     document.getElementById('current-user').textContent = `👤 ${me.username}`;
+    document.getElementById('weekly-shadow-toggle').onclick=()=>setWeeklyShadowOpen(!_weeklyShadowOpen);
+    setWeeklyShadowOpen(false);
+    initAdminNavigation();
     loadUsers();
+    initRetentionDefaults();
+    loadRetention();
+    loadPayments();
+    loadDmReports();
+    renderReviewQueueImportSummary(null);
+    loadReviewQueueDashboard();
+    loadAlternativeAnswerReports();
+    loadRatingShadowReadiness();
+    loadPremiumWeeklyReports();
+    initTrialDefaults();
+    loadTrialBatches();
+}
+
+async function loadPremiumWeeklyReports() {
+    const host=document.getElementById('weekly-reports'); host.replaceChildren(dmEl('div','text-slate-500','載入中…'));
+    const summaryHost=document.getElementById('weekly-shadow-summary');
+    const badgeHost=document.getElementById('weekly-shadow-badge');
+    const releaseRes=await fetch('/api/admin/premium/weekly/model-release',{credentials:'include',cache:'no-store'});const release=await releaseRes.json().catch(()=>({}));const releaseHost=document.getElementById('weekly-release');releaseHost.replaceChildren();
+    if(releaseRes.ok&&release.approved){releaseHost.append(dmEl('span','text-emerald-300',`模型 ${release.model_version} 已通過保留樣本驗證（${release.evidence.holdout_reports} 份）`))}else if(releaseRes.ok){releaseHost.append(dmEl('span','',`模型 ${release.model_version} 尚未放行；需至少 ${release.minimum_holdout_reports} 份保留樣本。`));const approve=dmEl('button','ml-3 px-2 py-1 rounded border border-amber-700 text-amber-300','登錄驗證結果');approve.onclick=approvePremiumWeeklyRelease;releaseHost.append(approve)}else{releaseHost.append(dmEl('span','text-red-400','模型閘門載入失敗'))}
+    const res=await fetch('/api/admin/premium/weekly/reports',{credentials:'include',cache:'no-store'});const data=await res.json().catch(()=>({}));host.replaceChildren();
+    if(!res.ok){if(summaryHost)summaryHost.textContent='載入失敗';if(badgeHost){badgeHost.textContent='錯誤';badgeHost.className='text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-900/60 text-red-200'}host.append(dmEl('div','text-red-400','載入失敗：'+(data.error||res.status)));return}
+    const reports=Array.isArray(data.reports)?data.reports:[];
+    const shadowCount=reports.filter(r=>r.status==='shadow').length;
+    const publishedCount=reports.filter(r=>r.status==='published').length;
+    const releaseLabel=releaseRes.ok?(release.approved?'模型已放行':'模型待放行'):'模型閘門載入失敗';
+    if(summaryHost)summaryHost.textContent=`待審 ${shadowCount} 份 · 已發布 ${publishedCount} 份 · ${releaseLabel}`;
+    if(badgeHost){
+        badgeHost.textContent=shadowCount?`${shadowCount} 待審`:'0 待審';
+        badgeHost.className=shadowCount
+            ? 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-900/70 text-amber-200'
+            : 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300';
+    }
+    if(!reports.length){host.append(dmEl('div','text-slate-500','尚無報告'));return}
+    reports.forEach(r=>{const row=dmEl('div','flex flex-wrap items-center justify-between gap-3 rounded border border-slate-700 p-3');const info=dmEl('div');info.append(dmEl('strong','text-slate-200',`${r.username} · ${r.period_start}～${r.period_end}`),dmEl('div','text-xs text-slate-500',`${r.status} · ${r.item_count||0} 題 · ${r.model_version}`));row.append(info);const actions=dmEl('div','flex gap-2');const view=dmEl('a','text-xs px-3 py-1.5 rounded border border-slate-600','預覽');view.href=`/premium/weekly?set=${r.training_set_id}`;actions.append(view);if(r.status==='shadow'){const review=dmEl('button','text-xs px-3 py-1.5 rounded border border-cyan-700 text-cyan-300','提交盲評');review.onclick=()=>submitWeeklyReview(r.id);const pub=dmEl('button','text-xs px-3 py-1.5 rounded bg-emerald-700 text-white','審查後發布');pub.onclick=async()=>{if(!confirm('確定已由兩位不同評審完成盲評，且資料與難度皆合理？'))return;const res=await fetch(`/api/admin/premium/weekly/reports/${r.id}/publish`,{method:'POST',credentials:'include'});const d=await res.json();if(!res.ok){const msg=d.error==='independent_review_required'?'需兩位不同評審且兩者皆判定資料充分、難度合理':d.error==='holdout_release_not_approved'?'模型尚未通過保留樣本驗證，不能發布':(d.error||res.status);toast('❌ '+msg)}else toast('✅ 已發布');loadPremiumWeeklyReports()};actions.append(review,pub)}row.append(actions);host.append(row)});
+    const metrics=await fetch('/api/admin/premium/weekly/review-metrics',{credentials:'include',cache:'no-store'}).then(r=>r.json());document.getElementById('weekly-metrics').textContent=metrics.reviewed_reports?`雙評審 ${metrics.reviewed_reports} 份 · Kappa ${metrics.cohen_kappa} · Jaccard@3 ${metrics.jaccard_at_3} · Kendall τ ${metrics.kendall_tau} · Top-1 ${Math.round(metrics.top1_hit_rate*100)}%`:'盲評指標：尚無兩份獨立評分';
+}
+async function submitWeeklyReview(reportId){const slot=Number(prompt('評審席次（1 或 2）'));if(![1,2].includes(slot))return;const raw=prompt('請輸入最多三個學科 key，以逗號分隔（tesuji, life_death, endgame_counting, opening_direction, capture_escape, connection_cut, shape_weakness, whole_board）');if(!raw)return;const top=raw.split(',').map(x=>x.trim()).filter(Boolean);const data_sufficient=confirm('原始資料是否足夠判讀？');const difficulty_fit=confirm('推薦難度是否合理？');const notes=prompt('備註（可空白）')||'';const res=await fetch(`/api/admin/premium/weekly/reports/${reportId}/review`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({reviewer_slot:slot,top_disciplines:top,data_sufficient,difficulty_fit,notes})});const d=await res.json();toast(res.ok?'✅ 盲評已保存':'❌ '+(d.error||res.status));loadPremiumWeeklyReports()}
+async function approvePremiumWeeklyRelease(){const count=Number(prompt('已完成的獨立保留樣本報告數量'));if(!Number.isInteger(count)||count<1)return;const confirmation=prompt('這會開啟該模型版本的發布能力。請輸入 HOLDOUT_APPROVED 確認');if(confirmation!=='HOLDOUT_APPROVED')return;const res=await fetch('/api/admin/premium/weekly/model-release',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({holdout_reports:count,confirmation})});const data=await res.json().catch(()=>({}));toast(res.ok?'✅ 模型發布閘門已開啟':`❌ ${data.error==='holdout_evidence_required'?`至少需要 ${data.minimum_holdout_reports} 份保留樣本`:(data.error||res.status)}`);loadPremiumWeeklyReports()}
+document.getElementById('weekly-generate').onclick=async()=>{const btn=document.getElementById('weekly-generate');btn.disabled=true;btn.textContent='產生中…';try{const r=await fetch('/api/admin/premium/weekly/generate',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:'{}'});const d=await r.json();toast(r.ok?`✅ 已產生 ${d.generated} 份`:`❌ ${d.error||r.status}`);await loadPremiumWeeklyReports()}finally{btn.disabled=false;btn.textContent='產生上週 Shadow'}};
+
+async function loadRatingShadowReadiness() {
+    const status = document.getElementById('rating-shadow-status');
+    const detail = document.getElementById('rating-shadow-detail');
+    const reminder = document.getElementById('rating-shadow-reminder');
+    try {
+        const response = await fetch('/api/admin/rating_test/shadow_readiness', {
+            credentials: 'include', cache: 'no-store'
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) throw new Error(data.error || String(response.status));
+        document.getElementById('rating-shadow-count').textContent = data.valid_sessions;
+        document.getElementById('rating-shadow-progress').style.width = `${data.progress_percent}%`;
+        detail.textContent = `還差 ${data.remaining_sessions} 場 · ${data.unique_players} 位不同玩家`;
+        reminder.classList.remove('hidden', 'border-amber-700', 'bg-amber-950/40', 'text-amber-300',
+            'border-emerald-600', 'bg-emerald-950/50', 'text-emerald-300');
+        if (data.ready_for_review) {
+            status.textContent = '已達審查門檻';
+            status.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-900 text-emerald-300';
+            reminder.textContent = '已累積足夠場次，請啟動新版演算法 shadow 比對與人工審查。正式計分仍未變更。';
+            reminder.classList.add('border-emerald-600', 'bg-emerald-950/50', 'text-emerald-300');
+        } else {
+            status.textContent = '持續收集中';
+            status.className = 'text-xs font-bold px-3 py-1 rounded-full bg-cyan-950 text-cyan-300';
+            reminder.textContent = `尚未達標，系統會繼續自動保存作答；再累積 ${data.remaining_sessions} 場後提醒審查。`;
+            reminder.classList.add('border-amber-700', 'bg-amber-950/40', 'text-amber-300');
+        }
+    } catch (error) {
+        status.textContent = '統計失敗';
+        status.className = 'text-xs font-bold px-3 py-1 rounded-full bg-red-950 text-red-300';
+        detail.textContent = `無法載入：${error.message}`;
+        reminder.classList.add('hidden');
+    }
+}
+
+function dmEl(tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (text !== undefined) el.textContent = text;
+    return el;
+}
+
+let _lastTrialCodes = [];
+let _lastTrialBatchKey = '';
+
+function initTrialDefaults() {
+    const exp = document.getElementById('trial-expires-at');
+    if (exp && !exp.value) {
+        const d = new Date();
+        d.setDate(d.getDate() + 60);
+        exp.value = d.toISOString().slice(0, 10);
+    }
+}
+
+function trialVal(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+}
+
+async function createTrialBatch() {
+    const btn = document.getElementById('trial-create-btn');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    try {
+        const payload = {
+            batch_key: trialVal('trial-batch-key'),
+            org_name: trialVal('trial-org-name'),
+            campaign_name: trialVal('trial-campaign-name'),
+            expires_at: trialVal('trial-expires-at'),
+            count: Number(trialVal('trial-count')),
+            days: Number(trialVal('trial-days')),
+            note: trialVal('trial-note')
+        };
+        const res = await fetch('/api/admin/trial-codes/batches', {
+            method: 'POST', credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) {
+            toast('Trial code error: ' + (data.error || res.status));
+            return;
+        }
+        _lastTrialCodes = data.codes || [];
+        _lastTrialBatchKey = data.batch_key || payload.batch_key || 'trial_codes';
+        renderGeneratedTrialCodes(data);
+        toast(`Generated ${_lastTrialCodes.length} trial codes`);
+        loadTrialBatches();
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate codes';
+    }
+}
+
+function renderGeneratedTrialCodes(data) {
+    const box = document.getElementById('trial-generated');
+    box.classList.remove('hidden');
+    box.replaceChildren();
+    box.appendChild(dmEl('div', 'font-bold text-teal-200 mb-2',
+        `${data.batch_key} generated. Full codes are shown only now.`));
+    const pre = dmEl('pre', 'whitespace-pre-wrap font-mono text-[11px] leading-5 max-h-56 overflow-y-auto');
+    pre.textContent = (data.codes || []).join('\n');
+    box.appendChild(pre);
+}
+
+function downloadGeneratedTrialCodes() {
+    if (!_lastTrialCodes.length) {
+        toast('No generated codes in this page session');
+        return;
+    }
+    const rows = [['batch_key', 'code'], ..._lastTrialCodes.map(c => [_lastTrialBatchKey, c])];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${_lastTrialBatchKey || 'trial_codes'}_full_codes.csv`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    a.remove();
+}
+
+function trialDate(v) {
+    return (v || '').replace('T', ' ').slice(0, 16) || '-';
+}
+
+async function loadTrialBatches() {
+    const tbody = document.getElementById('trial-batches');
+    if (!tbody) return;
+    tbody.replaceChildren();
+    tbody.appendChild(trialTableMessage('Loading...', 7));
+    const res = await fetch('/api/admin/trial-codes/batches', {credentials: 'include', cache: 'no-store'});
+    const data = await res.json().catch(() => ({}));
+    tbody.replaceChildren();
+    if (!res.ok || data.error) {
+        tbody.appendChild(trialTableMessage('Failed: ' + (data.error || res.status), 7));
+        return;
+    }
+    const batches = data.batches || [];
+    if (!batches.length) {
+        tbody.appendChild(trialTableMessage('No trial batches yet', 7));
+        return;
+    }
+    for (const b of batches) {
+        const tr = document.createElement('tr');
+        tr.className = 'border-t border-slate-700/60';
+        const cells = [
+            [b.batch_key, 'text-left font-mono text-xs text-slate-200'],
+            [b.org_name || '-', 'text-left text-slate-300'],
+            [b.days, 'text-center font-mono text-amber-300'],
+            [b.code_count, 'text-center font-mono text-slate-300'],
+            [`${b.redeemed_count || 0} / ${b.code_count || 0}`, 'text-center font-mono text-teal-300'],
+            [trialDate(b.expires_at), 'text-center text-xs text-slate-400']
+        ];
+        for (const [text, cls] of cells) {
+            const td = dmEl('td', 'px-4 py-3 ' + cls, text);
+            tr.appendChild(td);
+        }
+        const actions = dmEl('td', 'px-4 py-3 text-right');
+        actions.append(
+            trialAction('View', () => viewTrialBatch(b.id)),
+            trialAction('Export', () => { location.href = `/api/admin/trial-codes/batches/${b.id}/export`; }),
+            trialAction('Revoke unused', () => revokeTrialBatch(b.id))
+        );
+        tr.appendChild(actions);
+        tbody.appendChild(tr);
+    }
+}
+
+function trialTableMessage(text, colspan) {
+    const tr = document.createElement('tr');
+    const td = dmEl('td', 'px-5 py-8 text-center text-slate-600', text);
+    td.colSpan = colspan;
+    tr.appendChild(td);
+    return tr;
+}
+
+function trialAction(label, fn) {
+    const btn = dmEl('button', 'ml-2 text-xs px-2 py-1 rounded border border-slate-600 hover:border-teal-500 text-slate-300', label);
+    btn.type = 'button';
+    btn.onclick = fn;
+    return btn;
+}
+
+async function viewTrialBatch(batchId) {
+    const box = document.getElementById('trial-detail');
+    box.classList.remove('hidden');
+    box.replaceChildren(dmEl('div', 'text-slate-500', 'Loading...'));
+    const res = await fetch(`/api/admin/trial-codes/batches/${batchId}`, {credentials: 'include', cache: 'no-store'});
+    const data = await res.json().catch(() => ({}));
+    box.replaceChildren();
+    if (!res.ok || data.error) {
+        box.appendChild(dmEl('div', 'text-red-400', 'Failed: ' + (data.error || res.status)));
+        return;
+    }
+    box.appendChild(dmEl('div', 'font-bold text-slate-100 mb-2',
+        `${data.batch.batch_key} - ${data.batch.org_name || 'No organization'}`));
+    const grid = dmEl('div', 'grid gap-2');
+    for (const c of data.codes || []) {
+        const row = dmEl('div', 'grid grid-cols-[1fr_auto_auto] gap-3 items-center rounded border border-slate-700 px-3 py-2');
+        row.appendChild(dmEl('div', 'font-mono text-slate-200', `${c.code_label} · ${c.status}`));
+        row.appendChild(dmEl('div', 'text-slate-500', c.redeemed_by_email || trialDate(c.expires_at)));
+        const actions = dmEl('div', 'text-right');
+        if (c.status === 'unused') actions.appendChild(trialAction('Revoke', () => revokeTrialCode(c.id, batchId)));
+        row.appendChild(actions);
+        grid.appendChild(row);
+    }
+    box.appendChild(grid);
+}
+
+async function revokeTrialCode(codeId, batchId) {
+    const reason = prompt('Reason for revoking this code', 'admin revoked');
+    if (!reason) return;
+    const res = await fetch(`/api/admin/trial-codes/${codeId}/revoke`, {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reason})
+    });
+    const data = await res.json().catch(() => ({}));
+    toast(res.ok ? 'Code revoked' : 'Revoke failed: ' + (data.error || res.status));
+    if (res.ok) {
+        loadTrialBatches();
+        viewTrialBatch(batchId);
+    }
+}
+
+async function revokeTrialBatch(batchId) {
+    const reason = prompt('Reason for revoking all unused codes in this batch', 'batch closed');
+    if (!reason) return;
+    if (!confirm('Revoke all unused codes in this batch?')) return;
+    const res = await fetch(`/api/admin/trial-codes/batches/${batchId}/revoke-all`, {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reason})
+    });
+    const data = await res.json().catch(() => ({}));
+    toast(res.ok ? `Revoked ${data.revoked || 0} codes` : 'Revoke failed: ' + (data.error || res.status));
+    if (res.ok) loadTrialBatches();
+}
+
+async function loadDmReports() {
+    const box = document.getElementById('dm-reports');
+    box.replaceChildren(dmEl('div','px-5 py-8 text-center text-slate-600','載入中...'));
+    const response = await fetch('/api/admin/dm/reports',{credentials:'include',cache:'no-store'});
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok || data.error) { box.replaceChildren(dmEl('div','px-5 py-8 text-center text-red-400','載入失敗：'+(data.error||response.status))); return; }
+    box.replaceChildren();
+    if (!data.reports.length) { box.appendChild(dmEl('div','px-5 py-8 text-center text-slate-600','目前沒有私訊檢舉')); return; }
+    for (const report of data.reports) {
+        const row = dmEl('div','p-5 grid gap-3 md:grid-cols-[1fr_auto]');
+        const body = dmEl('div','min-w-0');
+        body.appendChild(dmEl('div','text-sm font-bold text-slate-200',`${report.sender_username} → ${report.reporter_username}`));
+        body.appendChild(dmEl('div','text-xs text-slate-500 mt-1',`#${report.id} · ${report.status} · ${(report.created_at||'').replace('T',' ').slice(0,19)}`));
+        body.appendChild(dmEl('div','text-sm text-slate-300 mt-2 whitespace-pre-wrap break-words',report.body));
+        body.appendChild(dmEl('div','text-xs text-amber-300 mt-2','檢舉原因：'+(report.reason||'未填寫')));
+        const actions = dmEl('div','flex flex-wrap gap-2 items-start');
+        const context = dmEl('button','px-3 py-1.5 text-xs border border-slate-600 rounded hover:border-teal-400','查看上下文');
+        context.onclick = () => openDmContext(report.id);
+        actions.appendChild(context);
+        if (report.status === 'open') {
+            const remove = dmEl('button','px-3 py-1.5 text-xs border border-red-700 text-red-300 rounded','刪除訊息');
+            remove.onclick = () => resolveDmReport(report.id,'delete_msg');
+            const dismiss = dmEl('button','px-3 py-1.5 text-xs border border-slate-600 rounded','駁回');
+            dismiss.onclick = () => resolveDmReport(report.id,'dismiss');
+            actions.append(remove,dismiss);
+        }
+        row.append(body,actions); box.appendChild(row);
+    }
+}
+
+async function loadAlternativeAnswerReports() {
+    const box = document.getElementById('alt-answer-reports');
+    box.replaceChildren(dmEl('div','px-5 py-8 text-center text-slate-600','載入中...'));
+    const response = await fetch('/api/admin/question-alternative-reports',{credentials:'include',cache:'no-store'});
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok || data.error) {
+        box.replaceChildren(dmEl('div','px-5 py-8 text-center text-red-400','載入失敗：' + (data.error || response.status)));
+        return;
+    }
+    box.replaceChildren();
+    if (!data.reports.length) {
+        box.appendChild(dmEl('div','px-5 py-8 text-center text-slate-600','目前沒有待審另解'));
+        return;
+    }
+    for (const report of data.reports) {
+        const row = dmEl('div','p-5 grid gap-3 md:grid-cols-[1fr_auto]');
+        const body = dmEl('div','min-w-0');
+        body.appendChild(dmEl('div','text-sm font-bold text-slate-200', report.question_label || ('題目 #' + report.question_id)));
+        body.appendChild(dmEl('div','text-xs text-slate-500 mt-1', report.reporter_username + ' · #' + report.id + ' · ' + report.status + ' · ' + String(report.created_at || '').replace('T',' ').slice(0,19)));
+        body.appendChild(dmEl('div','text-xs text-slate-400 mt-1', '座標：' + (report.move_label || (report.wrong_move_x + ',' + report.wrong_move_y)) + ' · ' + (report.question_topic || '-') + ' · ' + (report.question_level || '-')));
+        body.appendChild(dmEl('div','text-sm text-slate-300 mt-2 whitespace-pre-wrap break-words', report.note || '（無說明）'));
+        if (report.admin_note) {
+            body.appendChild(dmEl('div','text-xs text-emerald-300 mt-2 whitespace-pre-wrap break-words', '處理說明：' + report.admin_note));
+        }
+        const actions = dmEl('div','flex flex-wrap gap-2 items-start');
+        const context = dmEl('button','px-3 py-1.5 text-xs border border-slate-600 rounded hover:border-teal-400','開棋盤');
+        context.onclick = () => openAltAnswerContext(report.id);
+        actions.appendChild(context);
+        if (report.status === 'open') {
+            const accept = dmEl('button','px-3 py-1.5 text-xs border border-emerald-700 text-emerald-300 rounded','採納');
+            accept.onclick = () => resolveAltAnswerReport(report.id, 'accept', { x: report.wrong_move_x, y: report.wrong_move_y });
+            const disable = dmEl('button','px-3 py-1.5 text-xs border border-amber-700 text-amber-300 rounded','停用');
+            disable.onclick = () => resolveAltAnswerReport(report.id, 'disable');
+            const dismiss = dmEl('button','px-3 py-1.5 text-xs border border-slate-600 rounded','駁回');
+            dismiss.onclick = () => resolveAltAnswerReport(report.id, 'dismiss');
+            actions.append(accept, disable, dismiss);
+        }
+        row.append(body, actions);
+        box.appendChild(row);
+    }
+}
+
+const REVIEW_QUEUE_PROBLEM_REASON_LABELS = {
+    broken_unanswerable: '題目壞掉／無法作答',
+    answer_seems_wrong: '答案疑似錯誤',
+    unclear: '題意不清',
+    wrong_difficulty: '難度標錯',
+    wrong_category: '分類錯誤',
+    display_glitch: '棋盤／SGF 顯示異常',
+    other: '其他',
+};
+const REVIEW_QUEUE_RESOLUTION_LABELS = {
+    confirmed_needs_repair: '確認需要修復',
+    needs_source_material: '需要原始來源人工重製',
+    repair_proposed: '已產生修復提案／待修復批次',
+    wont_fix: '不處理',
+    dismissed_false_positive: '誤報／不予處理',
+};
+let _reviewQueueImportBusy = false;
+let _reviewQueueSelectedReportId = null;
+let _reviewQueueSelectedItemId = null;
+
+function reviewQueueTs(iso) {
+    return String(iso || '').replace('T', ' ').slice(0, 19) || '—';
+}
+function reviewQueueShortHash(hash) {
+    const text = String(hash || '');
+    return text ? text.slice(0, 12) : '—';
+}
+function reviewQueueReasonLabel(code) {
+    return REVIEW_QUEUE_PROBLEM_REASON_LABELS[code] || code || '—';
+}
+function reviewQueueActionLabel(action) {
+    return REVIEW_QUEUE_RESOLUTION_LABELS[action] || action || '—';
+}
+function reviewQueueExtractContent(payload) {
+    const candidates = [
+        payload?.question?.content,
+        payload?.selected_question?.content,
+        payload?.current_question?.content,
+        payload?.content,
+        payload?.question_content,
+    ];
+    return candidates.find((item) => typeof item === 'string' && item.trim()) || '';
+}
+async function reviewQueueFetchJson(url, options = {}) {
+    const response = await fetch(url, {
+        credentials: 'include',
+        cache: 'no-store',
+        ...options,
+    });
+    const data = await response.json().catch(() => ({}));
+    return { response, data };
+}
+function reviewQueueShowContractError(hostId, message, payload) {
+    console.warn('[review-queue] contract mismatch', message, payload);
+    const host = document.getElementById(hostId);
+    if (host) {
+        host.innerHTML = `<div class="rounded-lg border border-red-700/60 bg-red-950/30 px-3 py-2 text-sm text-red-200">${escHtml(message)}</div>`;
+    }
+}
+function parseReviewQueueBoard(sgf) {
+    const text = String(sgf || '');
+    const sizeMatch = text.match(/SZ\[(\d+)\]/i);
+    const size = sizeMatch ? Math.max(5, Number(sizeMatch[1]) || 19) : 19;
+    const black = [];
+    const white = [];
+    const addStones = (prop, list) => {
+        const blocks = text.match(new RegExp(prop + '(?:\\[[a-s]{2}\\])+', 'gi')) || [];
+        for (const block of blocks) {
+            const coords = block.match(/\[([a-s]{2})\]/gi) || [];
+            for (const coord of coords) {
+                const v = coord.slice(1, 3).toLowerCase();
+                const x = v.charCodeAt(0) - 97;
+                const y = v.charCodeAt(1) - 97;
+                if (x >= 0 && x < size && y >= 0 && y < size) list.push({ x, y });
+            }
+        }
+    };
+    addStones('AB', black);
+    addStones('AW', white);
+    return { size, black, white };
+}
+function renderReadOnlyBoard(hostId, sgf) {
+    const host = typeof hostId === 'string' ? document.getElementById(hostId) : hostId;
+    if (!host) return null;
+    host.replaceChildren();
+    const text = String(sgf || '').trim();
+    if (!text) {
+        host.appendChild(dmEl('div', 'rounded-lg border border-dashed border-slate-600 bg-slate-950/40 px-3 py-4 text-xs text-slate-500', '沒有可顯示的 SGF 內容。'));
+        return null;
+    }
+    try {
+        const board = parseReviewQueueBoard(text);
+        const width = Math.max(300, Math.min(560, host.parentElement?.clientWidth || 560));
+        const wgo = new WGo.Board(host, {
+            width,
+            size: board.size,
+            section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 }
+        });
+        const stones = [];
+        board.black.forEach((s) => stones.push({ x: s.x, y: s.y, c: WGo.B }));
+        board.white.forEach((s) => stones.push({ x: s.x, y: s.y, c: WGo.W }));
+        stones.forEach((s) => wgo.addObject({ x: s.x, y: s.y, c: s.c }));
+        return board;
+    } catch (error) {
+        host.appendChild(dmEl('div', 'rounded-lg border border-red-700/60 bg-red-950/30 px-3 py-4 text-xs text-red-200 whitespace-pre-wrap break-words', '棋盤預覽失敗：' + (error?.message || error)));
+        return null;
+    }
+}
+function renderReviewQueueImportSummary(data) {
+    const host = document.getElementById('review-queue-import-summary');
+    const result = document.getElementById('review-queue-import-result');
+    if (!host || !result) return;
+    if (data && data.error) {
+        host.innerHTML = `<div class="rounded-lg border border-red-700/60 bg-red-950/30 p-3 text-sm text-red-200">${escHtml(data.error)}</div>`;
+        result.innerHTML = '';
+        return;
+    }
+    const metrics = data || null;
+    host.innerHTML = metrics
+        ? `
+            <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3"><div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">原始候選列數</div><div class="mt-1 text-lg font-bold text-slate-100">${metrics.raw_row_count ?? '—'}</div></div>
+            <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3"><div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">重複樣本列數</div><div class="mt-1 text-lg font-bold text-slate-100">${metrics.duplicate_row_count ?? '—'}</div></div>
+            <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3"><div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">去重後候選數</div><div class="mt-1 text-lg font-bold text-slate-100">${metrics.unique_candidate_count ?? '—'}</div></div>
+            <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3"><div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">目前仍有問題的候選</div><div class="mt-1 text-lg font-bold text-amber-300">${metrics.imported_count ?? '—'}</div></div>
+            <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3"><div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">已修復並略過</div><div class="mt-1 text-lg font-bold text-emerald-300">${metrics.skipped_count ?? '—'}</div></div>
+            <div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3"><div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">匯入時題庫版本</div><div class="mt-1 text-xs font-mono text-slate-300 break-all">${escHtml(metrics.questions_json_commit || '—')}</div></div>`
+        : '<div class="rounded-lg border border-slate-700 bg-slate-950/40 p-3 text-sm text-slate-500">尚未匯入。</div>';
+    result.innerHTML = '';
+    if (!metrics || data.error) return;
+    const imported = Array.isArray(data.imported) ? data.imported : [];
+    const skipped = Array.isArray(data.skipped) ? data.skipped : [];
+    const importedItems = imported.length
+        ? imported.map((row) => `
+            <div class="rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-3 text-sm text-slate-200">
+                <div class="font-bold">${escHtml(String(row.record_index ?? '—'))} / ${escHtml(String(row.legacy_question_id ?? '—'))}</div>
+                <div class="mt-1 text-xs text-slate-400">${escHtml(row.source_path || '—')}</div>
+                <div class="mt-1 text-xs text-slate-500">source_type: ${escHtml(row.source_type || '—')} · reason: ${escHtml(row.reason || '—')}</div>
+                <div class="mt-1 font-mono text-[11px] text-slate-400 break-all">${escHtml(reviewQueueShortHash(row.content_sha256))}</div>
+            </div>`).join('')
+        : '<div class="text-sm text-slate-500">沒有可匯入的項目。</div>';
+    const skippedDetails = skipped.length
+        ? `
+            <details class="rounded-lg border border-slate-700 bg-slate-950/30 p-3">
+                <summary class="cursor-pointer text-sm font-bold text-slate-200">已修復略過的題目（${skipped.length}）</summary>
+                <div class="mt-3 grid gap-2 md:grid-cols-2">
+                    ${skipped.map((row) => `
+                        <div class="rounded-lg border border-slate-700/70 bg-slate-900/40 p-3 text-xs text-slate-300">
+                            <div class="font-bold">${escHtml(String(row.record_index ?? '—'))} / ${escHtml(String(row.legacy_question_id ?? '—'))}</div>
+                            <div class="mt-1 text-slate-500">${escHtml(row.reason || '—')}</div>
+                            ${row.classification ? `<div class="mt-1 text-slate-500">classification: ${escHtml(row.classification)}</div>` : ''}
+                        </div>`).join('')}
+                </div>
+            </details>`
+        : '';
+    result.innerHTML = `
+        <div class="space-y-3">
+            <div class="text-sm font-bold text-slate-200">目前仍需處理的題目</div>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">${importedItems}</div>
+        </div>
+        ${skippedDetails}
+    `;
+}
+async function importReviewQueueSnapshot() {
+    if (_reviewQueueImportBusy) return;
+    _reviewQueueImportBusy = true;
+    const btn = document.getElementById('review-queue-import-btn');
+    if (btn) btn.disabled = true;
+    renderReviewQueueImportSummary({ raw_row_count: '…', duplicate_row_count: '…', unique_candidate_count: '…', imported_count: '…', skipped_count: '…', questions_json_commit: '載入中…' });
+    try {
+        const { response, data } = await reviewQueueFetchJson('/api/admin/review-queue/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+        });
+        if (!response.ok || data.error) {
+            const msg = data.error ? `匯入失敗：${data.error}` : `匯入失敗：${response.status}`;
+            renderReviewQueueImportSummary({ error: msg });
+            toast(msg);
+            return;
+        }
+        if (typeof data.raw_row_count !== 'number' || typeof data.unique_candidate_count !== 'number' || typeof data.duplicate_row_count !== 'number' || typeof data.imported_count !== 'number' || typeof data.skipped_count !== 'number' || !('questions_json_commit' in data)) {
+            const msg = '後端回傳格式與前端預期不一致，請先檢查 RQ-1 API contract。';
+            renderReviewQueueImportSummary({ error: msg });
+            reviewQueueShowContractError('review-queue-import-result', msg, data);
+            return;
+        }
+        renderReviewQueueImportSummary(data);
+        await loadProblemReportsList();
+        await loadReviewQueueItems();
+        toast(`匯入完成：目前仍有問題的候選 ${data.imported_count} 筆`);
+    } catch (error) {
+        renderReviewQueueImportSummary({ error: '匯入失敗：network' });
+        toast('匯入失敗：network');
+    } finally {
+        _reviewQueueImportBusy = false;
+        if (btn) btn.disabled = false;
+    }
+}
+function renderProblemReportList(reports) {
+    const box = document.getElementById('problem-report-list');
+    if (!box) return;
+    const rows = Array.isArray(reports) ? reports : [];
+    if (!rows.length) {
+        box.innerHTML = '<div class="rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-4 text-sm text-slate-500">目前沒有玩家問題回報。</div>';
+        return;
+    }
+    box.innerHTML = rows.map((report) => `
+        <button type="button" data-report-id="${escAttr(report.id)}" class="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-3 text-left transition hover:border-amber-500/60 hover:bg-slate-900/50">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="font-bold text-slate-100">#${escHtml(String(report.id))} · ${escHtml(String(report.question_id ?? '—'))}</div>
+                <div class="text-[11px] uppercase tracking-[0.22em] ${report.status === 'open' ? 'text-amber-300' : 'text-slate-500'}">${escHtml(String(report.status || '—'))}</div>
+            </div>
+            <div class="mt-1 text-xs text-slate-400">${escHtml(reviewQueueReasonLabel(report.reason_code))}${(report.duplicate_count ?? report.duplicate_candidate_count) != null ? ` · duplicates: ${escHtml(String(report.duplicate_count ?? report.duplicate_candidate_count))}` : ''}</div>
+            <div class="mt-1 text-xs text-slate-500">${escHtml((report.reporter_username || '-') + ' · ' + reviewQueueTs(report.created_at))}</div>
+            <div class="mt-2 text-sm text-slate-300 line-clamp-2 whitespace-pre-wrap break-words">${escHtml((report.note || '').slice(0, 140) || '（無備註）')}</div>
+        </button>
+    `).join('');
+    box.querySelectorAll('[data-report-id]').forEach((button) => {
+        button.onclick = () => openProblemReportContext(Number(button.dataset.reportId));
+    });
+}
+async function loadProblemReportsList() {
+    const box = document.getElementById('problem-report-list');
+    if (!box) return;
+    box.innerHTML = '<div class="rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-4 text-sm text-slate-500">載入中...</div>';
+    try {
+        const filter = document.getElementById('problem-report-status-filter')?.value || 'open_first';
+        const query = filter && filter !== 'open_first' ? `?status=${encodeURIComponent(filter)}` : '';
+        const { response, data } = await reviewQueueFetchJson('/api/admin/question-problem-reports' + query);
+        if (!response.ok || data.error) {
+            renderProblemReportList([]);
+            reviewQueueShowContractError('problem-report-list', `問題回報載入失敗：${data.error || response.status}`, data);
+            return;
+        }
+        let reports = Array.isArray(data.reports) ? data.reports : null;
+        if (!reports) {
+            reviewQueueShowContractError('problem-report-list', '後端回傳格式與前端預期不一致，請先檢查 RQ-1 API contract。', data);
+            return;
+        }
+        if (filter === 'open_first') {
+            reports = reports.slice().sort((a, b) => {
+                const aOpen = a.status === 'open' ? 0 : 1;
+                const bOpen = b.status === 'open' ? 0 : 1;
+                return aOpen - bOpen || String(b.created_at || '').localeCompare(String(a.created_at || '')) || (Number(b.id) - Number(a.id));
+            });
+        }
+        _reviewQueueReports = reports;
+        renderProblemReportList(reports);
+        if (_reviewQueueSelectedReportId != null) {
+            const current = reports.find((item) => Number(item.id) === Number(_reviewQueueSelectedReportId));
+            if (current) {
+                renderProblemReportList(reports);
+            }
+        }
+    } catch (error) {
+        reviewQueueShowContractError('problem-report-list', '問題回報載入失敗：network', { error: String(error) });
+    }
+}
+function renderReviewQueueList(items) {
+    const box = document.getElementById('review-queue-list');
+    if (!box) return;
+    const rows = Array.isArray(items) ? items : [];
+    if (!rows.length) {
+        box.innerHTML = '<div class="rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-4 text-sm text-slate-500">目前沒有待處理佇列項目。</div>';
+        return;
+    }
+    box.innerHTML = rows.map((item) => `
+        <button type="button" data-queue-id="${escAttr(item.id)}" class="w-full rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-3 text-left transition hover:border-cyan-500/60 hover:bg-slate-900/50">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="font-bold text-slate-100">#${escHtml(String(item.id))} · record ${escHtml(String(item.record_index ?? '—'))}</div>
+                <div class="text-[11px] uppercase tracking-[0.22em] ${item.status === 'pending' ? 'text-amber-300' : 'text-slate-500'}">${escHtml(String(item.status || '—'))}</div>
+            </div>
+            <div class="mt-1 text-xs text-slate-400">${escHtml(String(item.source_type || '—'))} · ${escHtml(String(item.legacy_question_id ?? '—'))}</div>
+            <div class="mt-1 text-xs text-slate-500">${escHtml((item.source_path || '-') + ' · ' + (item.source_batch || '-'))}</div>
+            <div class="mt-2 text-sm text-slate-300 line-clamp-2 whitespace-pre-wrap break-words">${escHtml(String(item.reason || '—'))}</div>
+        </button>
+    `).join('');
+    box.querySelectorAll('[data-queue-id]').forEach((button) => {
+        button.onclick = () => openReviewQueueContext(Number(button.dataset.queueId));
+    });
+}
+async function loadReviewQueueItems() {
+    const box = document.getElementById('review-queue-list');
+    if (!box) return;
+    box.innerHTML = '<div class="rounded-lg border border-slate-700 bg-slate-950/30 px-3 py-4 text-sm text-slate-500">載入中...</div>';
+    try {
+        const { response, data } = await reviewQueueFetchJson('/api/admin/review-queue');
+        if (!response.ok || data.error) {
+            reviewQueueShowContractError('review-queue-list', `佇列載入失敗：${data.error || response.status}`, data);
+            return;
+        }
+        let items = Array.isArray(data.queue_items) ? data.queue_items : null;
+        if (!items) {
+            reviewQueueShowContractError('review-queue-list', '後端回傳格式與前端預期不一致，請先檢查 RQ-1 API contract。', data);
+            return;
+        }
+        const statusFilter = document.getElementById('review-queue-status-filter')?.value || 'pending_first';
+        const sourceFilter = document.getElementById('review-queue-source-filter')?.value || '';
+        if (statusFilter && statusFilter !== 'pending_first') {
+            items = items.filter((item) => String(item.status || '') === statusFilter);
+        }
+        if (sourceFilter) {
+            items = items.filter((item) => String(item.source_type || '') === sourceFilter);
+        }
+        if (statusFilter === 'pending_first') {
+            items = items.slice().sort((a, b) => {
+                const aPending = a.status === 'pending' ? 0 : 1;
+                const bPending = b.status === 'pending' ? 0 : 1;
+                return aPending - bPending || String(b.created_at || '').localeCompare(String(a.created_at || '')) || (Number(b.id) - Number(a.id));
+            });
+        }
+        _reviewQueueItems = items;
+        renderReviewQueueList(items);
+    } catch (error) {
+        reviewQueueShowContractError('review-queue-list', '佇列載入失敗：network', { error: String(error) });
+    }
+}
+async function openProblemReportContext(reportId) {
+    _reviewQueueSelectedReportId = reportId;
+    const box = document.getElementById('problem-report-detail');
+    if (!box) return;
+    box.innerHTML = '<div class="text-sm text-slate-500">載入中...</div>';
+    const { response, data } = await reviewQueueFetchJson(`/api/admin/question-problem-reports/${reportId}/context`);
+    if (!response.ok || data.error || !data.report) {
+        reviewQueueShowContractError('problem-report-detail', `問題回報詳情載入失敗：${data.error || response.status}`, data);
+        return;
+    }
+    renderProblemReportDetail(data.report);
+}
+function renderProblemReportDetail(report) {
+    const box = document.getElementById('problem-report-detail');
+    if (!box) return;
+    if (!report) {
+        box.innerHTML = '<div class="text-sm text-slate-500">點選一筆回報以檢視詳情。</div>';
+        return;
+    }
+    const candidates = Array.isArray(report.duplicate_candidates) ? report.duplicate_candidates : [];
+    const isAmbiguous = candidates.length > 1;
+    const content = reviewQueueExtractContent(report);
+    box.innerHTML = `
+        <div class="space-y-3">
+            <div class="rounded-xl border border-slate-700 bg-slate-950/40 p-3 space-y-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs uppercase tracking-[0.22em] text-slate-500">#${escHtml(String(report.id))} · ${escHtml(String(report.status || '—'))}</div>
+                    <div class="text-xs text-slate-500">${escHtml(reviewQueueTs(report.created_at))}</div>
+                </div>
+                <div class="text-sm font-bold text-slate-100">題目 #${escHtml(String(report.question_id ?? '—'))}</div>
+                <div class="text-sm text-slate-300">${escHtml(reviewQueueReasonLabel(report.reason_code))}</div>
+                <div class="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-sm text-slate-200 whitespace-pre-wrap break-words">${escHtml(report.note || '（無備註）')}</div>
+                <div class="text-xs text-slate-500">reporter: ${escHtml(report.reporter_username || '-')}${report.duplicate_candidate_count != null ? ` · duplicate_candidates: ${escHtml(String(report.duplicate_candidate_count))}` : ''}</div>
+            </div>
+            ${isAmbiguous ? `
+            <div class="rounded-xl border border-amber-700/50 bg-amber-950/20 p-3 space-y-2">
+                <div class="text-sm font-bold text-amber-200">此 legacy question_id 對應多筆題目，請選擇正確 record_index 後才能確認進佇列。</div>
+                <div class="grid gap-2">
+                    <label class="text-xs text-slate-400">selected_record_index
+                        <select id="problem-report-selected-record-index" class="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100">
+                            <option value="">請選擇 record_index</option>
+                            ${candidates.map((candidate) => `<option value="${escAttr(candidate.record_index)}">#${escHtml(String(candidate.record_index))} · ${escHtml(candidate.source_path || '—')} · ${escHtml(reviewQueueShortHash(candidate.content_sha256))}</option>`).join('')}
+                        </select>
+                    </label>
+                    <div id="problem-report-duplicate-list" class="grid gap-2"></div>
+                </div>
+            </div>` : ''}
+            <div class="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(0,1.2fr)] items-start">
+                <div class="space-y-3">
+                    <div id="problem-report-board" class="min-h-[260px] rounded-xl border border-slate-700 bg-slate-950/40 p-2"></div>
+                    <div class="text-xs text-slate-500">只讀棋盤預覽，僅供查看目前題目內容。</div>
+                </div>
+                <div class="space-y-3">
+                    <div class="rounded-xl border border-slate-700 bg-slate-950/40 p-3 space-y-2">
+                        <div class="text-xs uppercase tracking-[0.22em] text-slate-500">detail</div>
+                        <div class="text-sm text-slate-300">發報者：${escHtml(report.reporter_username || '-')}</div>
+                        <div class="text-sm text-slate-300">selected_record_index：${escHtml(report.selected_record_index ?? '—')}</div>
+                        <div class="text-sm text-slate-300">questions_json_commit：${escHtml(report.questions_json_commit || '—')}</div>
+                    </div>
+                    <label class="block">
+                        <div class="text-xs text-slate-400 mb-1">admin_note</div>
+                        <textarea id="problem-report-admin-note" class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100" rows="4" maxlength="500" placeholder="審核備註（可選）"></textarea>
+                    </label>
+                    <div id="problem-report-action-bar" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    if (isAmbiguous) {
+        const dupHost = document.getElementById('problem-report-duplicate-list');
+        if (dupHost) {
+            dupHost.innerHTML = candidates.map((candidate) => `
+                <div class="rounded-lg border border-slate-700 bg-slate-950/30 p-3 text-xs text-slate-300">
+                    <div class="font-bold">record_index #${escHtml(String(candidate.record_index ?? '—'))}</div>
+                    <div class="mt-1 text-slate-500">${escHtml(candidate.source_path || '—')}</div>
+                    <div class="mt-1 text-slate-500">legacy_question_id: ${escHtml(String(candidate.legacy_question_id ?? report.question_id ?? '—'))}</div>
+                    <div class="mt-1 font-mono text-[11px] text-slate-400 break-all">${escHtml(reviewQueueShortHash(candidate.content_sha256))}</div>
+                </div>
+            `).join('');
+        }
+    }
+    renderReadOnlyBoard('problem-report-board', content);
+    const actionBar = document.getElementById('problem-report-action-bar');
+    if (actionBar) {
+        actionBar.replaceChildren();
+        if (report.status === 'open') {
+            for (const [action, label] of [['confirmed', '確認並加入佇列'], ['dismissed', '不處理'], ['duplicate', '重複回報']]) {
+                const button = dmEl('button', action === 'confirmed' ? 'px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-bold' : action === 'dismissed' ? 'px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 text-sm font-bold' : 'px-3 py-1.5 rounded-lg border border-amber-700 text-amber-300 text-sm font-bold', label);
+                button.onclick = () => resolveProblemReport(report.id, action);
+                actionBar.appendChild(button);
+            }
+        } else {
+            actionBar.appendChild(dmEl('div', 'text-sm text-slate-500', `已處理：${escHtml(report.status || '—')}`));
+        }
+    }
+    const select = document.getElementById('problem-report-selected-record-index');
+    if (select && report.selected_record_index != null) {
+        select.value = String(report.selected_record_index);
+    }
+    const adminNote = document.getElementById('problem-report-admin-note');
+    if (adminNote) adminNote.value = report.admin_note || '';
+}
+async function resolveProblemReport(reportId, action) {
+    const detail = document.getElementById('problem-report-detail');
+    const note = document.getElementById('problem-report-admin-note');
+    const noteValue = String(note?.value || '').trim();
+    const select = document.getElementById('problem-report-selected-record-index');
+    const isAmbiguous = !!select && select.options.length > 1;
+    const payload = { action, admin_note: noteValue };
+    if (isAmbiguous && action === 'confirmed') {
+        const selected = Number(select.value);
+        if (!Number.isInteger(selected)) {
+            toast('此題有多筆候選 record_index，請先選擇正確項目。');
+            return;
+        }
+        payload.selected_record_index = selected;
+    }
+    const { response, data } = await reviewQueueFetchJson(`/api/admin/question-problem-reports/${reportId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok || data.error) {
+        const msg = data.error === 'selected_record_index_required'
+            ? '此題有多筆候選 record_index，請先選擇正確項目。'
+            : `問題回報處理失敗：${data.error || response.status}`;
+        toast(msg);
+        return;
+    }
+    toast(`問題回報已處理：${reviewQueueActionLabel(action)}`);
+    await loadProblemReportsList();
+    await loadReviewQueueItems();
+    await openProblemReportContext(reportId);
+}
+async function openReviewQueueContext(itemId) {
+    _reviewQueueSelectedItemId = itemId;
+    const box = document.getElementById('review-queue-detail');
+    if (!box) return;
+    box.innerHTML = '<div class="text-sm text-slate-500">載入中...</div>';
+    const { response, data } = await reviewQueueFetchJson(`/api/admin/review-queue/${itemId}/context`);
+    if (!response.ok || data.error || !data.queue_item) {
+        reviewQueueShowContractError('review-queue-detail', `佇列詳情載入失敗：${data.error || response.status}`, data);
+        return;
+    }
+    renderReviewQueueDetail(data.queue_item);
+}
+function renderReviewQueueDetail(item) {
+    const box = document.getElementById('review-queue-detail');
+    if (!box) return;
+    if (!item) {
+        box.innerHTML = '<div class="text-sm text-slate-500">點選一筆佇列項目以檢視詳情。</div>';
+        return;
+    }
+    const candidates = Array.isArray(item.duplicate_candidates) ? item.duplicate_candidates : [];
+    const isAmbiguous = candidates.length > 1;
+    const content = reviewQueueExtractContent(item);
+    box.innerHTML = `
+        <div class="space-y-3">
+            <div class="rounded-xl border border-slate-700 bg-slate-950/40 p-3 space-y-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs uppercase tracking-[0.22em] text-slate-500">#${escHtml(String(item.id))} · ${escHtml(String(item.status || '—'))}</div>
+                    <div class="text-xs text-slate-500">${escHtml(reviewQueueTs(item.created_at))}</div>
+                </div>
+                <div class="text-sm font-bold text-slate-100">record_index #${escHtml(String(item.record_index ?? '—'))} · question #${escHtml(String(item.legacy_question_id ?? '—'))}</div>
+                <div class="text-sm text-slate-300">${escHtml(String(item.source_type || '—'))} · ${escHtml(String(item.reason || '—'))}</div>
+                <div class="text-xs text-slate-500">${escHtml(String(item.source_path || '—'))} · batch ${escHtml(String(item.source_batch || '—'))}</div>
+                <div class="text-xs text-slate-500">questions_json_commit: ${escHtml(item.questions_json_commit || '—')}</div>
+            </div>
+            ${item.is_stale ? `
+            <div class="rounded-xl border border-amber-700/50 bg-amber-950/20 p-3 space-y-2">
+                <div class="text-sm font-bold text-amber-200">此題內容自進入佇列後已變更，請重新確認問題是否仍存在。</div>
+                <div class="text-xs text-slate-300">${escHtml(item.stale_reason || '—')}</div>
+                <div class="grid gap-2 text-xs text-slate-400">
+                    <div>stored hash: <span class="font-mono text-slate-200 break-all">${escHtml(item.content_sha256 || '—')}</span></div>
+                    <div>current hash: <span class="font-mono text-slate-200 break-all">${escHtml(item.current_content_sha256 || '—')}</span></div>
+                </div>
+            </div>` : ''}
+            ${(item.duplicate_candidate_count > 1 || isAmbiguous) ? `
+            <div class="rounded-xl border border-amber-700/50 bg-amber-950/20 p-3 text-sm text-amber-200">此 legacy question_id 目前仍對應多筆題目，請核對 record_index 與 source_path。</div>
+            ` : ''}
+            <div class="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(0,1.2fr)] items-start">
+                <div class="space-y-3">
+                    <div id="review-queue-board" class="min-h-[260px] rounded-xl border border-slate-700 bg-slate-950/40 p-2"></div>
+                    <div class="text-xs text-slate-500">只讀棋盤預覽，呈現目前題目內容的初始局面。</div>
+                </div>
+                <div class="space-y-3">
+                    <div class="rounded-xl border border-slate-700 bg-slate-950/40 p-3 space-y-2">
+                        <div class="text-xs uppercase tracking-[0.22em] text-slate-500">detail</div>
+                        <div class="text-sm text-slate-300">reviewed_at：${escHtml(reviewQueueTs(item.reviewed_at))}</div>
+                        <div class="text-sm text-slate-300">reviewed_by：${escHtml(item.reviewer_username || item.reviewed_by || '—')}</div>
+                        <div class="text-sm text-slate-300">status：${escHtml(String(item.status || '—'))}</div>
+                    </div>
+                    <label class="block">
+                        <div class="text-xs text-slate-400 mb-1">admin_note</div>
+                        <textarea id="review-queue-admin-note" class="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100" rows="4" maxlength="500" placeholder="審核備註（可選）"></textarea>
+                    </label>
+                    <div id="review-queue-action-bar" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+            ${isAmbiguous ? `
+            <div class="rounded-xl border border-slate-700 bg-slate-950/40 p-3 space-y-2">
+                <div class="text-sm font-bold text-slate-200">duplicate_candidates</div>
+                <div class="grid gap-2 md:grid-cols-2">
+                    ${candidates.map((candidate) => `
+                        <div class="rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-300">
+                            <div class="font-bold">record_index #${escHtml(String(candidate.record_index ?? '—'))}</div>
+                            <div class="mt-1 text-slate-500">${escHtml(candidate.source_path || '—')}</div>
+                            <div class="mt-1 font-mono text-[11px] text-slate-400 break-all">${escHtml(reviewQueueShortHash(candidate.content_sha256))}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>` : ''}
+        </div>
+    `;
+    renderReadOnlyBoard('review-queue-board', content);
+    const actionBar = document.getElementById('review-queue-action-bar');
+    if (actionBar) {
+        actionBar.replaceChildren();
+        for (const [action, label] of Object.entries(REVIEW_QUEUE_RESOLUTION_LABELS)) {
+            const button = dmEl(
+                'button',
+                action === 'confirmed_needs_repair'
+                    ? 'px-3 py-1.5 rounded-lg bg-cyan-600 text-white text-sm font-bold'
+                    : action === 'wont_fix'
+                        ? 'px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 text-sm font-bold'
+                        : action === 'dismissed_false_positive'
+                            ? 'px-3 py-1.5 rounded-lg border border-amber-700 text-amber-300 text-sm font-bold'
+                            : 'px-3 py-1.5 rounded-lg border border-slate-600 text-slate-200 text-sm font-bold',
+                label
+            );
+            button.onclick = () => resolveReviewQueueItem(item.id, action);
+            actionBar.appendChild(button);
+        }
+    }
+    const adminNote = document.getElementById('review-queue-admin-note');
+    if (adminNote) adminNote.value = item.admin_note || '';
+}
+async function resolveReviewQueueItem(itemId, action) {
+    const note = document.getElementById('review-queue-admin-note');
+    const noteValue = String(note?.value || '').trim();
+    const payload = { resolution_action: action, admin_note: noteValue };
+    const { response, data } = await reviewQueueFetchJson(`/api/admin/review-queue/${itemId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok || data.error) {
+        toast(`佇列處理失敗：${data.error || response.status}`);
+        return;
+    }
+    toast(`佇列項目已處理：${reviewQueueActionLabel(action)}`);
+    await loadReviewQueueItems();
+    await openReviewQueueContext(itemId);
+}
+async function loadReviewQueueDashboard() {
+    await Promise.all([loadProblemReportsList(), loadReviewQueueItems()]);
+}
+
+async function openAltAnswerContext(reportId) {
+    const modal = document.getElementById('alt-answer-context-modal');
+    const box = document.getElementById('alt-answer-context-body');
+    box.replaceChildren(dmEl('div','text-slate-500','載入中...'));
+    modal.classList.remove('hidden');
+    const response = await fetch('/api/admin/question-alternative-reports/' + reportId + '/context',{credentials:'include',cache:'no-store'});
+    const data = await response.json().catch(()=>({}));
+    box.replaceChildren();
+    if (!response.ok || data.error) {
+        box.appendChild(dmEl('div','text-red-400','載入失敗：' + (data.error || response.status)));
+        return;
+    }
+    const report = data.report || {};
+    const question = data.question || {};
+    const top = dmEl('div','grid gap-4 lg:grid-cols-[minmax(280px,1fr)_minmax(0,1.2fr)] items-start');
+    const boardWrap = dmEl('div','space-y-2');
+    const board = dmEl('div','alt-board');
+    board.id = 'alt-answer-board';
+    const boardHint = dmEl('div','text-xs text-slate-500');
+    boardHint.id = 'alt-answer-picked-label';
+    boardHint.textContent = '待審座標：' + (report.move_label || (report.wrong_move_x + ',' + report.wrong_move_y));
+    boardWrap.append(board, boardHint);
+
+    const info = dmEl('div','space-y-3');
+    info.appendChild(dmEl('div','text-xs text-slate-500', '#' + report.id + ' · ' + report.status + ' · ' + (report.reporter_username || '-') + ' · ' + String(report.created_at || '').replace('T',' ').slice(0,19)));
+    info.appendChild(dmEl('div','text-sm font-bold text-slate-100', question.source || ('題目 #' + (report.question_id || '-'))));
+    info.appendChild(dmEl('div','text-xs text-slate-400', (question.topic || '-') + ' · ' + (question.level || '-')));
+    if (report.note) info.appendChild(dmEl('div','rounded border border-slate-700 bg-slate-900/40 p-3 text-sm text-slate-200 whitespace-pre-wrap break-words', report.note));
+    if (question.comment) info.appendChild(dmEl('div','rounded border border-slate-700 bg-slate-900/40 p-3 text-xs text-slate-400 whitespace-pre-wrap break-words', '解說：' + question.comment));
+    info.appendChild(dmEl('div','text-xs text-slate-500', '目前選擇：' + (report.move_label || (report.wrong_move_x + ',' + report.wrong_move_y))));
+    info.appendChild(dmEl('div','text-xs text-slate-500', '點棋盤即可改選要採納的手；停用題目不需要座標。'));
+    if (report.status === 'open') {
+        const actionBar = dmEl('div','flex flex-wrap gap-2 pt-1');
+        const accept = dmEl('button','px-3 py-1.5 text-xs border border-emerald-700 text-emerald-300 rounded','採納為答案');
+        accept.onclick = () => resolveAltAnswerReport(report.id, 'accept');
+        const disable = dmEl('button','px-3 py-1.5 text-xs border border-amber-700 text-amber-300 rounded','停用題目');
+        disable.onclick = () => resolveAltAnswerReport(report.id, 'disable');
+        const dismiss = dmEl('button','px-3 py-1.5 text-xs border border-slate-600 rounded','駁回');
+        dismiss.onclick = () => resolveAltAnswerReport(report.id, 'dismiss');
+        actionBar.append(accept, disable, dismiss);
+        info.appendChild(actionBar);
+    }
+    top.append(boardWrap, info);
+    box.appendChild(top);
+    if (question.content) {
+        const pre = dmEl('pre','rounded border border-slate-700 bg-slate-950/60 p-3 text-[11px] leading-5 text-slate-300 whitespace-pre-wrap break-words max-h-72 overflow-y-auto');
+        pre.textContent = question.content;
+        box.appendChild(pre);
+    }
+    renderAltAnswerBoard(question.content || '', { x: report.wrong_move_x, y: report.wrong_move_y });
+}
+
+function closeAltAnswerContext() {
+    document.getElementById('alt-answer-context-modal').classList.add('hidden');
+    _altAnswerBoardSelection = null;
+}
+
+function parseAltAnswerBoard(sgf) {
+    const sizeMatch = String(sgf || '').match(/SZ\[(\d+)\]/);
+    const size = sizeMatch ? Math.max(5, Number(sizeMatch[1]) || 19) : 19;
+    const black = [];
+    const white = [];
+    const addStones = (prop, list) => {
+        const blocks = String(sgf || '').match(new RegExp(prop + '(?:\\[[a-s]{2}\\])+', 'gi')) || [];
+        for (const block of blocks) {
+            const coords = block.match(/\[([a-s]{2})\]/gi) || [];
+            for (const coord of coords) {
+                const v = coord.slice(1, 3).toLowerCase();
+                if (v === 'tt') continue;
+                const x = v.charCodeAt(0) - 97;
+                const y = v.charCodeAt(1) - 97;
+                if (x >= 0 && x < size && y >= 0 && y < size) list.push({ x, y });
+            }
+        }
+    };
+    addStones('AB', black);
+    addStones('AW', white);
+    return { size, black, white };
+}
+
+function renderAltAnswerBoard(sgf, reportMove) {
+    const host = document.getElementById('alt-answer-board');
+    if (!host) return;
+    const board = parseAltAnswerBoard(sgf);
+    const size = board.size || 19;
+    const move = reportMove && Number.isFinite(reportMove.x) && Number.isFinite(reportMove.y)
+        ? { x: reportMove.x, y: reportMove.y }
+        : null;
+    host.replaceChildren();
+    let picked = move ? { x: move.x, y: move.y } : { x: Math.floor(size / 2), y: Math.floor(size / 2) };
+    _altAnswerBoardSelection = picked;
+    const w = Math.max(320, Math.min(560, host.parentElement?.clientWidth || 560));
+    const b = new WGo.Board(host, {
+        width: w,
+        size,
+        section: { top: -0.5, left: -0.5, right: -0.5, bottom: -0.5 }
+    });
+    const stones = [];
+    board.black.forEach(s => stones.push({ x: s.x, y: s.y, c: WGo.B }));
+    board.white.forEach(s => stones.push({ x: s.x, y: s.y, c: WGo.W }));
+
+    const redraw = () => {
+        b.removeAllObjects();
+        stones.forEach(s => b.addObject({ x: s.x, y: s.y, c: s.c }));
+        if (move) b.addObject({ x: move.x, y: move.y, type: 'CR' });
+        if (picked && (!move || picked.x !== move.x || picked.y !== move.y)) {
+            b.addObject({ x: picked.x, y: picked.y, type: 'SQ' });
+        }
+    };
+    const updatePicked = (x, y) => {
+        picked = { x, y };
+        _altAnswerBoardSelection = picked;
+        const label = document.getElementById('alt-answer-picked-label');
+        if (label) label.textContent = '已選擇：' + altMoveLabel(x, y, size);
+        redraw();
+    };
+    b.addEventListener('click', (x, y) => updatePicked(x, y));
+    redraw();
+    updatePicked(picked.x, picked.y);
+}
+
+function altMoveLabel(x, y, size) {
+    const cols = 'ABCDEFGHJKLMNOPQRST';
+    const col = cols[x] || '?';
+    const row = size - y;
+    return col + row;
+}
+
+let _altAnswerBoardSelection = null;
+
+async function resolveAltAnswerReport(reportId, action, moveOverride=null) {
+    const move = action === 'accept' ? (moveOverride || _altAnswerBoardSelection) : null;
+    const payload = { action, note: '' };
+    if (move) payload.move = move;
+    const response = await fetch('/api/admin/question-alternative-reports/' + reportId + '/resolve',{
+        method:'POST',
+        credentials:'include',
+        cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+    });
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok || data.error) { toast('錯誤：' + (data.error || response.status)); return; }
+    toast(action === 'accept' ? '已採納答案' : (action === 'disable' ? '題目已停用' : '已駁回'));
+    closeAltAnswerContext();
+    loadAlternativeAnswerReports();
+}
+
+async function openDmContext(reportId) {
+    const modal = document.getElementById('dm-context-modal');
+    const box = document.getElementById('dm-context-body');
+    box.replaceChildren(dmEl('div','text-slate-500','載入中...')); modal.classList.remove('hidden');
+    const response = await fetch(`/api/admin/dm/reports/${reportId}/context`,{credentials:'include',cache:'no-store'});
+    const data = await response.json().catch(()=>({})); box.replaceChildren();
+    if (!response.ok || data.error) { box.appendChild(dmEl('div','text-red-400','載入失敗：'+(data.error||response.status))); return; }
+    for (const message of data.messages) {
+        const row = dmEl('div','rounded-lg border border-slate-700 bg-slate-900/40 p-3');
+        row.appendChild(dmEl('div','text-xs text-slate-500',`${message.username} · ${(message.created_at||'').replace('T',' ').slice(0,19)} · #${message.id}`));
+        row.appendChild(dmEl('div','text-sm text-slate-200 mt-1 whitespace-pre-wrap break-words',message.is_deleted ? '訊息已移除' : message.body));
+        box.appendChild(row);
+    }
+}
+
+function closeDmContext() { document.getElementById('dm-context-modal').classList.add('hidden'); }
+
+async function resolveDmReport(reportId, action) {
+    const reason = prompt(action === 'delete_msg' ? '請填寫刪除理由：' : '請填寫駁回理由：');
+    if (!reason || !reason.trim()) return;
+    const response = await fetch('/api/admin/dm/resolve',{method:'POST',credentials:'include',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({report_id:reportId,action,reason:reason.trim()})});
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok || data.error) { toast('❌ '+(data.error||response.status)); return; }
+    toast('✅ 已處理私訊檢舉'); loadDmReports();
+}
+
+async function loadPayments() {
+    const tbody = document.getElementById('payments-tbody');
+    const ordersBox = document.getElementById('payments-orders');
+    const data = await fetch('/api/admin/payments',{credentials:'include'}).then(r=>r.json()).catch(()=>({error:'network'}));
+    if (data.error) { tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-8 text-center text-slate-600">載入失敗：${data.error}</td></tr>`; return; }
+    const subs = data.subscriptions || [];
+    const statusBadge = s => ({
+        active:    '<span class="text-emerald-400">生效中</span>',
+        pending:   '<span class="text-amber-400">待授權</span>',
+        cancelled: '<span class="text-slate-500">已取消</span>',
+        failed:    '<span class="text-red-400">授權失敗</span>'
+    }[s] || s);
+    tbody.innerHTML = subs.length ? subs.map(s => `
+        <tr class="border-t border-slate-700/60">
+            <td class="px-5 py-2 text-slate-200">${s.username}</td>
+            <td class="px-4 py-2 text-center font-mono text-xs text-slate-400">${s.mer_order_no}</td>
+            <td class="px-4 py-2 text-center">${s.plan_key === 'annual' ? '年繳' : '月繳'}</td>
+            <td class="px-4 py-2 text-center text-amber-300">NT$${(s.amount||0).toLocaleString()}</td>
+            <td class="px-4 py-2 text-center">${statusBadge(s.status)}</td>
+            <td class="px-4 py-2 text-center text-slate-400">${s.charged_times}/${s.total_times}</td>
+            <td class="px-4 py-2 text-center text-xs text-slate-500">${(s.created_at||'').slice(0,10)}</td>
+            <td class="px-4 py-2 text-center text-xs text-slate-500">${s.cancelled_at ? s.cancelled_at.slice(0,10) : '—'}</td>
+        </tr>`).join('')
+        : '<tr><td colspan="8" class="px-5 py-8 text-center text-slate-600">尚無訂閱記錄</td></tr>';
+    const orders = data.orders || [];
+    ordersBox.innerHTML = orders.length ? orders.map(o =>
+        `<div>${(o.paid_at||o.created_at||'').slice(0,16).replace('T',' ')} — <span class="text-slate-200">${o.username}</span> ${o.plan_key === 'annual' ? '年繳' : '月繳'} <span class="text-amber-300">NT$${(o.amount||0).toLocaleString()}</span> <span class="font-mono">${o.mer_order_no}</span> [${o.status}]</div>`
+    ).join('') : '尚無付款記錄';
 }
 
 async function loadUsers() {
@@ -180,13 +2208,24 @@ function renderStats(rows) {
     document.getElementById('stat-active').textContent = rows.filter(r=>r.last_login).length;
 }
 
+function escAttr(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+        .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 function fmtDate(iso) {
     if (!iso) return '<span class="text-slate-600">—</span>';
     const d = new Date(iso);
     return `<span class="font-mono text-xs">${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}</span>`;
 }
+function planUntilLabel(u) {
+    if (u.plan !== 'premium') return '<div class="text-[10px] text-slate-500 mt-1">Free user</div>';
+    if (!u.premium_until) return '<div class="text-[10px] text-amber-300 mt-1">永久 Premium</div>';
+    return `<div class="text-[10px] text-amber-300 mt-1">到期 ${fmtDate(u.premium_until)}</div>`;
+}
 
 function renderTable(rows) {
+    window._adminUsersById = Object.fromEntries(rows.map(u => [String(u.id), u]));
     const tbody = document.getElementById('user-tbody');
     if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="9" class="px-5 py-12 text-center text-slate-600">尚無用戶</td></tr>';
@@ -214,15 +2253,21 @@ function renderTable(rows) {
             : '';
 
         return `<tr class="border-t border-slate-700/50 hover:bg-slate-700/30 transition fade-in">
-            <td class="px-5 py-3 font-bold text-slate-200">${u.username}${selfMark}</td>
+            <td class="px-5 py-3 align-top">
+                <div class="font-bold text-slate-200">${u.username}${selfMark}</div>
+                <input type="text" value="${escAttr(u.admin_note)}" placeholder="備註：哪位學生"
+                    onchange="saveUserNote(${u.id}, this.value)"
+                    class="mt-1 w-40 bg-slate-900/60 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-300 placeholder-slate-600 focus:border-teal-500 focus:outline-none">
+            </td>
             <td class="px-4 py-3 text-center">${adminBadge}</td>
             <td class="px-4 py-3 text-center">
-                <button onclick="togglePlan(${u.id},'${u.username}','${u.plan||'free'}')"
+                <button onclick="openPremiumPrompt(${u.id})"
                     class="text-xs px-2 py-0.5 rounded-full font-bold transition ${u.plan==='premium'
                         ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/40'
                         : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}">
                     ${u.plan==='premium' ? '✨ Premium' : '免費'}
                 </button>
+                ${planUntilLabel(u)}
             </td>
             <td class="px-4 py-3 text-center font-mono text-teal-400">${u.total_correct}</td>
             <td class="px-4 py-3 text-center font-mono text-rose-400">${u.max_streak}</td>
@@ -230,6 +2275,10 @@ function renderTable(rows) {
             <td class="px-4 py-3 text-center">${fmtDate(u.last_login)}</td>
             <td class="px-4 py-3 text-center">${fmtDate(u.created_at)}</td>
             <td class="px-4 py-3 text-right flex items-center justify-end gap-1">
+                <button onclick="openAssetsModal(${u.id},'${u.username}')"
+                    class="text-xs px-2 py-1 border border-transparent text-slate-600 hover:border-teal-500 hover:text-teal-300 rounded transition">
+                    🎮 資產
+                </button>
                 <button onclick="openResetModal(${u.id},'${u.username}')"
                     class="text-xs px-2 py-1 border border-transparent text-slate-600 hover:border-slate-500 hover:text-slate-300 rounded transition">
                     重設密碼
@@ -242,6 +2291,172 @@ function renderTable(rows) {
 }
 
 // ── 新增用戶 ──────────────────────────────────────────────────
+function initRetentionDefaults() {
+    const endInput = document.getElementById('retention-end');
+    const startInput = document.getElementById('retention-start');
+    const daysInput = document.getElementById('retention-days');
+    if (!endInput || !startInput || !daysInput) return;
+    const today = new Date();
+    const endIso = today.toISOString().slice(0, 10);
+    const start = new Date(today);
+    start.setDate(start.getDate() - (Number(daysInput.value || 90) - 1));
+    endInput.value = endIso;
+    startInput.value = start.toISOString().slice(0, 10);
+}
+
+function retentionPctLabel(v) {
+    if (v == null || Number.isNaN(Number(v))) return '—';
+    return `${Number(v).toFixed(1)}%`;
+}
+
+function retentionCountLabel(v) {
+    if (v == null || Number.isNaN(Number(v))) return '—';
+    return String(Math.round(Number(v)));
+}
+
+function formatNorthStarTimestamp(v) {
+    if (!v) return '更新時間 unavailable';
+    const dt = new Date(v);
+    if (Number.isNaN(dt.getTime())) return `更新時間 ${v}`;
+    return `更新時間 ${dt.toLocaleString()}`;
+}
+
+function northStarDeltaLabel(currentValue, previousValue) {
+    if (currentValue == null || previousValue == null) return '與上週比較 --';
+    const delta = Number(currentValue) - Number(previousValue);
+    const sign = delta > 0 ? '+' : '';
+    return `較上週 ${sign}${Math.round(delta)}`;
+}
+
+function updateNorthStarMetrics(data) {
+    document.getElementById('northstar-computed-at').textContent =
+        formatNorthStarTimestamp(data.computed_at);
+    document.getElementById('northstar-wau').textContent = retentionCountLabel(data.wau);
+    document.getElementById('northstar-wau-detail').textContent =
+        `上週 ${retentionCountLabel(data.wau_prev)} / ${northStarDeltaLabel(data.wau, data.wau_prev)}`;
+    document.getElementById('northstar-retention-premium').textContent =
+        retentionPctLabel(data.retention_4w_premium);
+    document.getElementById('northstar-retention-all').textContent =
+        retentionPctLabel(data.retention_4w_all);
+    document.getElementById('northstar-premium-count').textContent =
+        retentionCountLabel(data.premium_count);
+    document.getElementById('northstar-new-premium').textContent =
+        retentionCountLabel(data.new_premium_7d);
+    document.getElementById('northstar-churn').textContent =
+        retentionPctLabel(data.churn_30d);
+    document.getElementById('northstar-total-users').textContent =
+        retentionCountLabel(data.total_users);
+    document.getElementById('northstar-total-users-detail').textContent =
+        `近 7 天新用戶 ${retentionCountLabel(data.new_users_7d)}`;
+
+    const notesEl = document.getElementById('northstar-notes');
+    const notes = Object.entries(data.notes || {});
+    if (!notesEl) return;
+    if (!notes.length) {
+        notesEl.classList.add('hidden');
+        notesEl.textContent = '';
+        return;
+    }
+    notesEl.classList.remove('hidden');
+    notesEl.textContent = notes.map(([key, value]) => `${key}: ${value}`).join(' | ');
+}
+
+function updateRetentionSummary(data) {
+    const s = data.summary || {};
+    const seg = data.segments || {};
+    document.getElementById('retention-signups').textContent = retentionCountLabel(s.signup_users);
+    document.getElementById('retention-activation').textContent = retentionPctLabel(s.activation_rate_24h);
+    document.getElementById('retention-d1').textContent = retentionPctLabel(s.d1_rate);
+    document.getElementById('retention-d7').textContent = retentionPctLabel(s.d7_rate);
+    document.getElementById('retention-d30').textContent = retentionPctLabel(s.d30_rate);
+    document.getElementById('retention-email-rate').textContent = retentionPctLabel(s.email_verified_rate);
+    document.getElementById('retention-graduated').textContent = retentionPctLabel(s.graduated_rate);
+    document.getElementById('retention-active-days').textContent =
+        `${(Number(s.avg_active_days_7) || 0).toFixed(2)} / ${(Number(s.avg_active_days_30) || 0).toFixed(2)}`;
+    document.getElementById('retention-segment-never').textContent = retentionCountLabel(seg.never_activated);
+    document.getElementById('retention-segment-single').textContent = retentionCountLabel(seg.single_day);
+    document.getElementById('retention-segment-regular').textContent = retentionCountLabel(seg.first_week_regular);
+    document.getElementById('retention-segment-sustained').textContent = retentionCountLabel(seg.sustained_30d);
+    document.getElementById('retention-segment-power').textContent = retentionCountLabel(seg.power_user);
+
+    const riskList = document.getElementById('retention-risk-list');
+    const riskRows = data.at_risk_users || [];
+    if (riskList) {
+        if (!riskRows.length) {
+            riskList.innerHTML = '<span class="text-slate-600">暫無高風險名單</span>';
+        } else {
+            riskList.innerHTML = riskRows.map(u => `
+                <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-3 py-1">
+                    <span class="font-mono text-slate-100">${u.username}</span>
+                    <span class="text-slate-500">${u.segment}</span>
+                    <span class="text-slate-600">${u.cohort_date || ''}</span>
+                </span>
+            `).join('');
+        }
+    }
+}
+
+function renderRetentionCohorts(rows) {
+    const tbody = document.getElementById('retention-cohort-tbody');
+    if (!tbody) return;
+    if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="px-5 py-8 text-center text-slate-600">尚無資料</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(row => `
+        <tr class="border-t border-slate-700/60 hover:bg-slate-700/20 transition">
+            <td class="px-4 py-3 font-mono text-slate-300">${row.cohort_date || ''}</td>
+            <td class="px-4 py-3 text-center text-cyan-300 font-bold">${retentionCountLabel(row.signup_users)}</td>
+            <td class="px-4 py-3 text-center text-emerald-300">${retentionPctLabel(row.activation_rate_24h)}</td>
+            <td class="px-4 py-3 text-center text-amber-300">${retentionPctLabel(row.d1_rate)}</td>
+            <td class="px-4 py-3 text-center text-rose-300">${retentionPctLabel(row.d7_rate)}</td>
+            <td class="px-4 py-3 text-center text-violet-300">${retentionPctLabel(row.d30_rate)}</td>
+            <td class="px-4 py-3 text-center text-cyan-200">${retentionPctLabel(row.email_verified_rate)}</td>
+            <td class="px-4 py-3 text-center text-teal-200">${retentionPctLabel(row.graduated_rate)}</td>
+            <td class="px-4 py-3 text-center text-slate-200">${(Number(row.avg_active_days_7) || 0).toFixed(2)}</td>
+            <td class="px-4 py-3 text-center text-slate-200">${(Number(row.avg_active_days_30) || 0).toFixed(2)}</td>
+        </tr>
+    `).join('');
+}
+
+async function loadNorthStarMetrics() {
+    const res = await fetch('/api/admin/metrics/northstar', {
+        credentials: 'include',
+        cache: 'no-store',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        toast('北極星指標載入失敗 ' + (data.error || res.status));
+        return;
+    }
+    updateNorthStarMetrics(data);
+}
+
+async function loadRetention() {
+    const startInput = document.getElementById('retention-start');
+    const endInput = document.getElementById('retention-end');
+    const daysInput = document.getElementById('retention-days');
+    if (!startInput || !endInput || !daysInput) return;
+
+    const params = new URLSearchParams();
+    if (startInput.value) params.set('start_date', startInput.value);
+    if (endInput.value) params.set('end_date', endInput.value);
+    if (daysInput.value) params.set('days', daysInput.value);
+
+    const res = await fetch(`/api/admin/retention?${params.toString()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        toast('留存分析載入失敗：' + (data.error || res.status));
+        return;
+    }
+    updateRetentionSummary(data);
+    renderRetentionCohorts(data.cohorts || []);
+    await loadNorthStarMetrics();
+}
+
 async function createUser() {
     const username = document.getElementById('new-username').value.trim();
     const password = document.getElementById('new-password').value;
@@ -272,6 +2487,22 @@ async function createUser() {
     setTimeout(()=>msgEl.classList.add('hidden'), 4000);
 }
 
+// ── 儲存帳號備註（哪位學生）──────────────────────────────────
+async function saveUserNote(uid, note) {
+    const res = await fetch(`/api/admin/users/${uid}/note`, {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ note })
+    }).then(r=>r.json()).catch(()=>({error:'網路錯誤'}));
+    if (res.ok) {
+        toast('✅ 備註已儲存');
+        const u = (window._adminUsersById || {})[String(uid)];
+        if (u) u.admin_note = note.trim();
+    } else {
+        toast('❌ 備註儲存失敗：' + (res.error || ''));
+    }
+}
+
 // ── 切換方案 ──────────────────────────────────────────────────
 async function togglePlan(uid, username, currentPlan) {
     const newPlan = currentPlan === 'premium' ? 'free' : 'premium';
@@ -288,6 +2519,57 @@ async function togglePlan(uid, username, currentPlan) {
 }
 
 // ── 重設密碼 Modal ────────────────────────────────────────────
+async function openPremiumPrompt(uid, username, currentPlan) {
+    const user = (window._adminUsersById || {})[String(uid)] || {};
+    username = username || user.username || `#${uid}`;
+    currentPlan = currentPlan || user.plan || 'free';
+    const hint = [
+        `設定 ${username} 的方案：`,
+        '',
+        '輸入 30 / 90 / 365 = 開通 Premium 天數',
+        '輸入 0 或 permanent = 永久 Premium',
+        '輸入 YYYY-MM-DD = Premium 到該日 23:59',
+        '輸入 free = 改回免費'
+    ].join('\n');
+    const value = prompt(hint, currentPlan === 'premium' ? 'free' : '30');
+    if (value === null) return;
+    const v = value.trim().toLowerCase();
+    if (!v) return;
+
+    let payload;
+    let label;
+    if (v === 'free') {
+        payload = { plan: 'free' };
+        label = '免費';
+    } else if (v === '0' || v === 'permanent' || v === 'forever') {
+        payload = { plan: 'premium', permanent: true };
+        label = '永久 Premium';
+    } else if (/^\d+$/.test(v)) {
+        payload = { plan: 'premium', days: Number(v) };
+        label = `Premium ${Number(v)} 天`;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        payload = { plan: 'premium', premium_until: v };
+        label = `Premium 到 ${v}`;
+    } else {
+        toast('❌ 格式錯誤：請輸入 30、0、free 或 YYYY-MM-DD');
+        return;
+    }
+
+    if (!confirm(`確定把 ${username} 設為 ${label}？`)) return;
+    const res = await fetch(`/api/admin/users/${uid}/set-plan`, {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+        toast(`✅ ${username} 已設為 ${label}`);
+        loadUsers();
+    } else {
+        toast('❌' + (data.error || '操作失敗'));
+    }
+}
+
 let _resetUid = null;
 function openResetModal(uid, username) {
     _resetUid = uid;
@@ -396,8 +2678,124 @@ function toast(msg) {
     }, 2500);
 }
 
+// ── 遊戲資產管理 ──────────────────────────────────────────────
+let _assetsUid = null;
+
+function openAssetsModal(uid, username) {
+    _assetsUid = uid;
+    document.getElementById('assets-modal-sub').textContent = `帳號：${username}（ID ${uid}）`;
+    document.getElementById('assets-body').textContent = '載入中…';
+    document.getElementById('assets-modal').classList.remove('hidden');
+    loadAssets();
+}
+function closeAssetsModal() { document.getElementById('assets-modal').classList.add('hidden'); }
+
+async function loadAssets() {
+    const d = await fetch(`/api/admin/users/${_assetsUid}/assets`, {credentials:'include'}).then(r=>r.json());
+    if (d.error) { document.getElementById('assets-body').textContent = '載入失敗：' + d.error; return; }
+    const inp = 'class="bg-slate-700 border border-slate-600 rounded px-2 py-1 w-24 text-slate-100 text-xs"';
+    const sel = 'class="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-xs"';
+    const btn = 'class="text-xs px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded font-bold"';
+    const btnR = 'class="text-xs px-1.5 py-0.5 text-red-400 hover:bg-red-900/40 rounded"';
+    const secT = 'class="font-bold text-slate-200 text-xs uppercase tracking-widest mt-5 mb-2 border-b border-slate-700 pb-1"';
+
+    const itemOpts = d.catalogs.shop_items.map(o=>`<option value="${o.key}">${o.name}</option>`).join('');
+    const foodOpts = d.catalogs.pet_food.map(o=>`<option value="${o.key}">${o.name}</option>`).join('');
+    const eqOpts   = d.catalogs.equipment.map(o=>`<option value="${o.key}">[${o.slot}] ${o.name}（${o.rarity}）</option>`).join('');
+    const apOpts   = d.catalogs.appearance.map(o=>`<option value="${o.key}">[${o.slot}] ${o.name}（${o.rarity}）</option>`).join('');
+    const petOpts  = d.catalogs.pets.map(o=>`<option value="${o.key}">${o.name}</option>`).join('');
+
+    document.getElementById('assets-body').innerHTML = `
+      <div ${secT}>💰 金幣 / ⭐ XP / 🏅 棋力</div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="font-mono text-amber-400">🪙 ${d.stats.coins.toLocaleString()}</span>
+        <input id="as-coin" type="number" placeholder="±數量" ${inp}>
+        <button ${btn} onclick="adjAsset('coins',{delta:+document.getElementById('as-coin').value||0})">調整金幣</button>
+        <span class="text-slate-600">|</span>
+        <span class="font-mono text-teal-400">⭐ ${d.stats.xp.toLocaleString()}（${d.stats.rank_level}）</span>
+        <input id="as-xp" type="number" placeholder="±XP" ${inp}>
+        <button ${btn} onclick="adjAsset('xp',{delta:+document.getElementById('as-xp').value||0})">調整XP</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-3 mt-2">
+        <span class="font-mono text-rose-300">Elo ${d.user.elo_rating ? Math.round(d.user.elo_rating) : '—'}（${d.stats.go_rank}）
+          ${d.user.elo_provisional ? '<span class="text-amber-400">暫定</span>' : '<span class="text-teal-500">已驗證</span>'}</span>
+        <input id="as-elo" type="number" placeholder="新Elo" ${inp}>
+        <button ${btn} onclick="adjAsset('rating',{elo:+document.getElementById('as-elo').value||1500})">設定Elo</button>
+        <button ${btn} onclick="adjAsset('rating',{provisional:${d.user.elo_provisional ? 'false' : 'true'}})">
+          ${d.user.elo_provisional ? '轉為已驗證' : '標記為暫定'}</button>
+      </div>
+
+      <div ${secT}>🎒 商城道具</div>
+      <div class="flex flex-wrap gap-2 mb-2">${d.shop_items.length
+        ? d.shop_items.map(i=>`<span class="bg-slate-700/60 px-2 py-0.5 rounded text-xs">${i.name} ×${i.qty}</span>`).join('')
+        : '<span class="text-slate-600 text-xs">無</span>'}</div>
+      <div class="flex items-center gap-2">
+        <select id="as-item" ${sel}>${itemOpts}</select>
+        <input id="as-item-n" type="number" value="1" ${inp}>
+        <button ${btn} onclick="adjAsset('item',{item_key:document.getElementById('as-item').value,delta:+document.getElementById('as-item-n').value||0,kind:'shop'})">增減</button>
+      </div>
+
+      <div ${secT}>🍖 寵物食物</div>
+      <div class="flex flex-wrap gap-2 mb-2">${d.pet_food.length
+        ? d.pet_food.map(i=>`<span class="bg-slate-700/60 px-2 py-0.5 rounded text-xs">${i.name} ×${i.qty}</span>`).join('')
+        : '<span class="text-slate-600 text-xs">無</span>'}</div>
+      <div class="flex items-center gap-2">
+        <select id="as-food" ${sel}>${foodOpts}</select>
+        <input id="as-food-n" type="number" value="1" ${inp}>
+        <button ${btn} onclick="adjAsset('item',{item_key:document.getElementById('as-food').value,delta:+document.getElementById('as-food-n').value||0,kind:'pet_food'})">增減</button>
+      </div>
+
+      <div ${secT}>⚔️ 數值裝備</div>
+      <div class="flex flex-wrap gap-2 mb-2">${d.equipment.length
+        ? d.equipment.map(e=>`<span class="bg-slate-700/60 px-2 py-0.5 rounded text-xs">[${e.slot}] ${e.name}${e.equipped?' ✅':''}
+            <button ${btnR} onclick="adjAsset('equipment',{action:'remove',inv_id:${e.inv_id}})">✕</button></span>`).join('')
+        : '<span class="text-slate-600 text-xs">無</span>'}</div>
+      <div class="flex items-center gap-2">
+        <select id="as-eq" ${sel} style="max-width:280px">${eqOpts}</select>
+        <button ${btn} onclick="adjAsset('equipment',{action:'grant',equip_id:document.getElementById('as-eq').value})">授予</button>
+      </div>
+
+      <div ${secT}>👘 外觀衣櫃</div>
+      <div class="flex flex-wrap gap-2 mb-2">${d.wardrobe.length
+        ? d.wardrobe.map(w=>`<span class="bg-slate-700/60 px-2 py-0.5 rounded text-xs">${w.name}（${w.rarity}）
+            <button ${btnR} onclick="adjAsset('appearance',{action:'remove',inv_id:${w.inv_id}})">✕</button></span>`).join('')
+        : '<span class="text-slate-600 text-xs">無</span>'}</div>
+      <div class="flex items-center gap-2">
+        <select id="as-ap" ${sel} style="max-width:280px">${apOpts}</select>
+        <button ${btn} onclick="adjAsset('appearance',{action:'grant',item_id:document.getElementById('as-ap').value})">授予</button>
+      </div>
+
+      <div ${secT}>🐾 寵物</div>
+      ${d.pet ? `
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="as-pet-key" ${sel}>${petOpts}</select>
+        <label class="text-xs text-slate-500">Lv</label><input id="as-pet-lv" type="number" value="${d.pet.level}" ${inp}>
+        <label class="text-xs text-slate-500">XP</label><input id="as-pet-xp" type="number" value="${d.pet.xp}" ${inp}>
+        <label class="text-xs text-slate-500">飽食</label><input id="as-pet-full" type="number" value="${d.pet.fullness}" ${inp}>
+        <label class="text-xs text-slate-500">好感</label><input id="as-pet-aff" type="number" value="${d.pet.affection}" ${inp}>
+        <button ${btn} onclick="adjAsset('pet',{pet_key:document.getElementById('as-pet-key').value,
+            level:+document.getElementById('as-pet-lv').value,xp:+document.getElementById('as-pet-xp').value,
+            fullness:+document.getElementById('as-pet-full').value,affection:+document.getElementById('as-pet-aff').value})">套用</button>
+      </div>`
+      : '<span class="text-slate-600 text-xs">該用戶尚未選擇寵物</span>'}
+    `;
+    const pk = document.getElementById('as-pet-key');
+    if (pk && d.pet) pk.value = d.pet.pet_key;
+}
+
+async function adjAsset(kind, payload) {
+    const res = await fetch(`/api/admin/users/${_assetsUid}/assets/${kind}`, {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+    }).then(r=>r.json());
+    if (res.error) { toast('❌ ' + (res.message || res.error)); return; }
+    toast('✅ 已更新');
+    loadAssets();
+}
+
 // 關閉 Modal on backdrop click
-['reset-modal','delete-modal','self-pw-modal'].forEach(id => {
+['reset-modal','delete-modal','self-pw-modal','assets-modal','dm-context-modal'].forEach(id => {
     document.getElementById(id).addEventListener('click', e => {
         if (e.target.id === id) document.getElementById(id).classList.add('hidden');
     });
@@ -406,8 +2804,15 @@ function toast(msg) {
 window.onload = init;
 </script>
 <script>
-window.onLangChange = () => { I18n.apply(); };
-document.addEventListener('DOMContentLoaded',()=>{ I18n.renderSwitcher(document.getElementById('lang-switcher-admin')); });
+window.onLangChange = () => {
+    I18n.apply();
+    initAdminNavigation();
+    refreshAdminNavSearch();
+};
+document.addEventListener('DOMContentLoaded',()=>{
+    I18n.renderSwitcher(document.getElementById('lang-switcher-admin'));
+    I18n.apply();
+});
 </script>
 </body>
 </html>
