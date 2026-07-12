@@ -20,16 +20,35 @@
   Allow a non-clean working tree (for local iteration only). Never use this
   for a build whose image tag will be trusted as reproducible.
 
+.PARAMETER Platform
+  RELEASE-TOOLING-HOTFIX-02: the target image platform. Defaults to the
+  production contract, linux/arm64 (production runs on real aarch64
+  hardware -- confirmed directly against the live host, not assumed from
+  docs). Changing this
+  requires explicitly passing -Platform; there is no silent fallback to the
+  local build machine's native platform. Uses `docker buildx build
+  --platform <Platform> --load`, never plain `docker build` (which always
+  targets the local daemon's native platform with no way to cross-build
+  arm64 from an amd64 host, which is exactly how a wrong-architecture image
+  was silently produced before this fix). The resulting image's actual
+  platform is inspected immediately after build and the script fails if it
+  does not match -- this is not something later gates (e.g.
+  deploy-release-image.ps1's -ExpectedPlatform check) may be relied on to
+  catch alone. See docs/deployment/release_tooling_hotfix_02_arm64_build_contract.md.
+
 .EXAMPLE
   pwsh ./scripts/build-production-image.ps1
 #>
 [CmdletBinding()]
 param(
     [string]$GitSha,
-    [switch]$SkipCleanCheck
+    [switch]$SkipCleanCheck,
+    [string]$Platform = 'linux/arm64'
 )
 
 $ErrorActionPreference = 'Stop'
+$Platform = $Platform.Trim().ToLowerInvariant()
+Import-Module (Join-Path $PSScriptRoot 'release\ReleaseTooling.psm1') -Force -DisableNameChecking
 
 function Fail($msg) {
     Write-Host "BUILD FAILED: $msg" -ForegroundColor Red
@@ -144,15 +163,34 @@ Write-Host "APP_GIT_SHA:        $GitSha"
 Write-Host "APP_BUILD_DATE:     $buildDate"
 Write-Host "SGF_ENGINE_SOURCE_COMMIT: $sgfEngineCommit"
 
-# 8. Verify docker is available.
+# 8. Verify docker AND buildx are available, and that the active builder
+#    actually supports the target platform. RELEASE-TOOLING-HOTFIX-02: do
+#    not silently fall back to a plain `docker build` (which targets the
+#    local daemon's native platform with no cross-build capability) if
+#    buildx or arm64 support is unavailable -- fail closed and say why.
 $docker = Get-Command docker -ErrorAction SilentlyContinue
 if (-not $docker) {
     Write-Host "BUILD NOT EXECUTED — LOCAL DOCKER ENGINE UNAVAILABLE" -ForegroundColor Yellow
     exit 0
 }
+& docker buildx version *> $null
+if ($LASTEXITCODE -ne 0) {
+    Fail "docker buildx is not available. This build requires buildx to target $Platform -- refusing to silently fall back to a plain `docker build` (which would target the local machine's native platform, not the production contract)."
+}
+$builderPlatforms = (& docker buildx inspect 2>$null | Select-String -Pattern '^Platforms:\s*(.+)$').Matches |
+    ForEach-Object { $_.Groups[1].Value } | Select-Object -First 1
+if (-not $builderPlatforms -or ($builderPlatforms -split ',\s*') -notcontains $Platform) {
+    Fail "The active buildx builder does not report support for $Platform (reported platforms: $builderPlatforms). Refusing to build -- this is a capability gap to fix (e.g. QEMU/binfmt setup), not something to silently downgrade past."
+}
 
-# 9. Build. Never deploy, never `up`, never touch any remote host.
-docker build `
+# 9. Build with buildx, targeting the explicit platform contract, loaded
+#    into the local Docker image store (--load) so the rest of this
+#    pipeline (package-release-image.ps1, deploy-release-image.ps1) can
+#    use it exactly like any other locally-built image. Never deploy,
+#    never `up`, never touch any remote host.
+docker buildx build `
+    --platform $Platform `
+    --load `
     --build-arg "APP_GIT_SHA=$GitSha" `
     --build-arg "APP_BUILD_DATE=$buildDate" `
     --build-arg "SGF_ENGINE_SOURCE_COMMIT=$sgfEngineCommit" `
@@ -161,8 +199,19 @@ docker build `
     .
 
 if ($LASTEXITCODE -ne 0) {
-    Fail "docker build exited with code $LASTEXITCODE."
+    Fail "docker buildx build exited with code $LASTEXITCODE."
 }
+
+# 9b. Verify the built image's actual platform, immediately, at build time.
+#     RELEASE-TOOLING-HOTFIX-02: this must not be the only place platform is
+#     checked (deploy-release-image.ps1's -ExpectedPlatform check stays in
+#     place too), but it must not be the ONLY line of defense either -- a
+#     wrong-architecture image should never leave this script un-flagged.
+$actualPlatform = Get-ImagePlatform -ImageTag $imageTag
+if ($actualPlatform -ne $Platform) {
+    Fail "Built image $imageTag reports platform '$actualPlatform', expected '$Platform'. Refusing to hand off a wrong-architecture image to the rest of the release pipeline."
+}
+Write-Host "Verified image platform: $actualPlatform" -ForegroundColor Green
 
 # 10. Record what was built. Never push, never deploy.
 $record = [ordered]@{
@@ -171,6 +220,7 @@ $record = [ordered]@{
     build_date        = $buildDate
     sgf_engine_commit = $sgfEngineCommit
     merge_base_with_master = $mergeBase
+    platform          = $actualPlatform
 }
 $record | ConvertTo-Json | Write-Host
 

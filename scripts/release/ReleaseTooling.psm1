@@ -5,6 +5,21 @@ function Get-RepoRoot {
     return (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 }
 
+function Get-ImagePlatform {
+    <#
+    .SYNOPSIS
+    Returns a Docker image's actual "os/architecture" string, e.g. "linux/arm64".
+    .DESCRIPTION
+    RELEASE-TOOLING-HOTFIX-02: pulled out as a shared helper so
+    build-production-image.ps1's build-time platform verification and
+    deploy-release-image.ps1's existing -ExpectedPlatform checks read this
+    the same way, rather than each inlining their own `docker image inspect`
+    format string.
+    #>
+    param([Parameter(Mandatory = $true)][string]$ImageTag)
+    return (& docker image inspect $ImageTag --format '{{.Os}}/{{.Architecture}}').Trim().ToLowerInvariant()
+}
+
 function Resolve-RepoPath {
     param([Parameter(Mandatory = $true)][string]$Path)
     if ([string]::IsNullOrWhiteSpace($Path)) {
@@ -505,6 +520,7 @@ Export-ModuleMember -Function @(
     'ConvertFrom-NestedPowerShellJson',
     'ConvertTo-Utf8NoBomLfBytes',
     'Ensure-Directory',
+    'Get-ImagePlatform',
     'Invoke-ProcessWithUtf8NoBomStdin',
     'Invoke-RemoteShellCommand',
     'Get-CanonicalAppHealthcheckDefinition',
