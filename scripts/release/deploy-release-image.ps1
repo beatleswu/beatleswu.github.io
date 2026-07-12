@@ -40,44 +40,19 @@ $canonicalAppHealthcheck = Get-CanonicalAppHealthcheckDefinition
 Set-Content -LiteralPath $healthcheckOverridePath -Value (New-CanonicalAppHealthcheckOverrideYaml) -Encoding UTF8
 
 function Invoke-RemoteCommandResult {
+    # RELEASE-TOOLING-HOTFIX-01: delegates to ReleaseTooling.psm1's shared
+    # Invoke-RemoteShellCommand -- do not re-implement stdin piping here.
     param(
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$Command,
         [string]$ScriptText,
         [string]$StdinText
     )
-    $previousErrorActionPreference = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
-        if ($PSBoundParameters.ContainsKey('ScriptText')) {
-            $normalizedScriptText = $ScriptText -replace "`r`n", "`n" -replace "`r", "`n"
-            $rawOutput = $normalizedScriptText | & ssh $layout.ssh_alias 'sh -s' 2>&1
-        }
-        elseif ($PSBoundParameters.ContainsKey('StdinText')) {
-            $normalizedStdinText = $StdinText -replace "`r`n", "`n" -replace "`r", "`n"
-            $rawOutput = $normalizedStdinText | & ssh $layout.ssh_alias $Command 2>&1
-        }
-        else {
-            $rawOutput = & ssh $layout.ssh_alias $Command 2>&1
-        }
-        $exitCode = $LASTEXITCODE
-    }
-    finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-    $output = ($rawOutput | ForEach-Object {
-        if ($_ -is [System.Management.Automation.ErrorRecord]) {
-            $_.ToString()
-        }
-        else {
-            [string]$_
-        }
-    } | Out-String).Trim()
-    return [ordered]@{
-        name = $Name
-        output = $output
-        exit_code = $exitCode
-    }
+    $params = @{ SshAlias = $layout.ssh_alias; Name = $Name }
+    if ($PSBoundParameters.ContainsKey('Command')) { $params.Command = $Command }
+    if ($PSBoundParameters.ContainsKey('ScriptText')) { $params.ScriptText = $ScriptText }
+    if ($PSBoundParameters.ContainsKey('StdinText')) { $params.StdinText = $StdinText }
+    return Invoke-RemoteShellCommand @params
 }
 
 function Invoke-RemoteText {
