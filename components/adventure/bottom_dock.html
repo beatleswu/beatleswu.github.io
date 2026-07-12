@@ -1,14 +1,15 @@
 <!--
-  Component: Bottom Dock
+  Component: Bottom Dock (non-critical slot)
   Stable root id: bottom-dock  (Rule #6)
-  Real sources when wired: /api/leaderboard, /api/community/leaderboard,
-  /api/badges/*, game_records ("battle log" analog).
-  Guild is intentionally NOT listed — does not exist (audit Phase F).
+  Every action targets an existing real route. "Settings" was dropped --
+  no settings page/route exists anywhere in the app (verified: no
+  /settings route). "Friends" links to /community, the same real social
+  hub page the legacy UI uses -- there is no separate dedicated friends
+  page/route to link to instead.
 -->
-<footer id="bottom-dock" class="e9-dock" data-e9-component="bottom_dock" role="toolbar" aria-label="Utility dock">
-  <button class="e9-dock__item" data-e9-dock="leaderboard">🏆 Leaderboard</button>
-  <button class="e9-dock__item" data-e9-dock="achievements">🎖️ Achievements</button>
-  <button class="e9-dock__item" data-e9-dock="records">📖 Game Records</button>
-  <button class="e9-dock__item" data-e9-dock="friends">👥 Friends</button>
-  <button class="e9-dock__item" data-e9-dock="settings">⚙️ Settings</button>
+<footer id="bottom-dock" class="e9-dock" data-e9-component="bottom_dock" role="toolbar" data-i18n-aria-label="e9.bottom_dock.aria_label">
+  <button class="e9-dock__item" data-e9-dock="leaderboard" data-i18n="e9.bottom_dock.leaderboard">Leaderboard</button>
+  <button class="e9-dock__item" data-e9-dock="achievements" data-i18n="e9.bottom_dock.achievements">Achievements</button>
+  <button class="e9-dock__item" data-e9-dock="records" data-i18n="e9.bottom_dock.records">Game Records</button>
+  <button class="e9-dock__item" data-e9-dock="friends" data-i18n="e9.bottom_dock.friends">Friends</button>
 </footer>

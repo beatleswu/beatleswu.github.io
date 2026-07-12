@@ -1,12 +1,17 @@
 /*
  * E9 Component Loader — fail-safe fetch + inject + initialize.
  *
- * Contract:
+ * Contract (fixed order, per Go Odyssey i18n engineering contract):
  *   1. show a lightweight loading skeleton immediately (no blank flash)
  *   2. fetch the fragment (versioned URL)
  *   3. validate response.ok
  *   4. inject into the target root
- *   5. dispatch "e9:component-loaded" with {component, root} so the
+ *   5. apply the EXISTING window.I18n system to the newly-injected markup
+ *      (I18n.apply() is a cheap, idempotent full-document rescan — this
+ *      repo has no scoped/subtree i18n API, so re-running the global
+ *      apply() after injection is the established pattern, matching what
+ *      index.html/hero.html already do after inserting new content)
+ *   6. dispatch "e9:component-loaded" with {component, root} so the
  *      component's own init script can wire itself up
  *
  * On any failure at any step: render a safe fallback into the root,
@@ -70,6 +75,15 @@
       })
       .then(function (html) {
         root.innerHTML = html;
+        try {
+          if (global.I18n && typeof global.I18n.apply === 'function') {
+            global.I18n.apply();
+          }
+        } catch (i18nErr) {
+          // Never let an i18n failure block the component from mounting —
+          // untranslated text is degraded, not broken.
+          console.error('[E9] I18n.apply() failed after injecting', component, i18nErr);
+        }
         root.setAttribute('data-e9-loaded', '1');
         root.dispatchEvent(new CustomEvent('e9:component-loaded', {
           bubbles: true,

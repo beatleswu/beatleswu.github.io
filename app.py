@@ -1,5 +1,5 @@
 from flask import (Flask, jsonify, send_from_directory, request,
-                   session, redirect, Response, send_file)
+                   session, redirect, Response, send_file, abort)
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -17931,6 +17931,30 @@ def serve_sw():
 
 @app.route('/icons/<path:filename>')
 def serve_icons(filename): return _serve_live_static_or_baked_subpath(filename, 'icons', 'icons')
+
+# E9.1A2: narrow static routes for the feature-flagged Adventure Shell.
+# Mirrors the /assets/ and /icons/ pattern above (_serve_live_static_or_baked_subpath
+# already blocks '..' traversal, absolute paths, and hidden dotfile segments via
+# _resolve_live_static_path). Extension is explicitly allowlisted here since no
+# existing helper restricts by extension -- these three routes must only ever
+# serve .js / .css / .html respectively, never arbitrary repo files.
+@app.route('/js/e9/<path:subpath>')
+def serve_e9_js(subpath):
+    if not subpath.endswith('.js'):
+        abort(404)
+    return _serve_live_static_or_baked_subpath(subpath, 'js/e9', 'js/e9')
+
+@app.route('/css/e9/<path:subpath>')
+def serve_e9_css(subpath):
+    if not subpath.endswith('.css'):
+        abort(404)
+    return _serve_live_static_or_baked_subpath(subpath, 'css/e9', 'css/e9')
+
+@app.route('/components/adventure/<path:subpath>')
+def serve_e9_components(subpath):
+    if not subpath.endswith('.html'):
+        abort(404)
+    return _serve_live_static_or_baked_subpath(subpath, 'components/adventure', 'components/adventure')
 
 # ══════════════════════════════════════════════════════════════
 # 線上對弈模組（Socket.IO）

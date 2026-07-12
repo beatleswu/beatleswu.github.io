@@ -43,11 +43,29 @@
 }
 
 .e9-component-skeleton {
-  min-height: 48px;
+  /* PR #78 known issue: a single fixed height caused a ~48px -> ~387px
+     jump for the three main-body slots on desktop. Fixed here with
+     per-slot, per-breakpoint min-heights (see rwd.css for the
+     tablet/mobile overrides) approximating each slot's real loaded
+     height instead of one constant applied to every device. */
+  min-height: var(--e9-skeleton-min-height, 48px);
   border-radius: 8px;
   background: linear-gradient(90deg, var(--e9-skel-a, #e8e4d8) 25%, var(--e9-skel-b, #f5f2e9) 37%, var(--e9-skel-a, #e8e4d8) 63%);
   background-size: 400% 100%;
   animation: e9-skeleton-shimmer 1.4s ease infinite;
+}
+
+/* Desktop defaults: top/bottom bars are short; the three stretched
+   main-body columns (left nav / world stage / right cards) are tall. */
+#e9-top-hud-slot .e9-component-skeleton,
+#e9-bottom-dock-slot .e9-component-skeleton {
+  --e9-skeleton-min-height: 48px;
+}
+
+#e9-left-nav-slot .e9-component-skeleton,
+#e9-world-stage-slot .e9-component-skeleton,
+#e9-right-cards-slot .e9-component-skeleton {
+  --e9-skeleton-min-height: 340px;
 }
 
 @keyframes e9-skeleton-shimmer {

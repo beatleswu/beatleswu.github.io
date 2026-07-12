@@ -197,12 +197,16 @@ def test_legacy_adventure_map_section_is_untouched():
     )
 
 
-def test_index_html_does_not_yet_reference_e9_shell():
+def test_index_html_shell_wiring_state_is_tracked():
+    # E9.1A1 asserted index.html did NOT yet reference the shell (that was
+    # E9.1A2's job). E9.1A2 has now landed that wiring — this test's job
+    # going forward is just to confirm the wiring is real and present, not
+    # to re-assert the old "not yet" boundary, which is obsolete by design
+    # now that E9.1A2 is complete. See test_e9_adventure_shell_integration.py
+    # for the full E9.1A2 contract (flag default, slot ids, legacy fallback).
     index_html = _read(REPO_ROOT / "index.html")
-    assert "e9-adventure-shell" not in index_html, (
-        "E9.1A1 must not wire the shell into index.html — that is E9.1A2's job"
-    )
-    assert "js/e9/shell.js" not in index_html
+    assert "e9-adventure-shell" in index_html
+    assert "js/e9/shell.js" in index_html
 
 
 # ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v177-sgf-fe-hotfix1a-node-parser';
+const VERSION     = 'v178-e9-1a2-adventure-shell-integration';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

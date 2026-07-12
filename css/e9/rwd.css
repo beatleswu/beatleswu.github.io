@@ -1,5 +1,12 @@
 /* E9 Adventure Shell — responsive breakpoints. Stacks to a single column
-   below tablet width; desktop keeps the 3-column body (nav / stage / cards). */
+   below tablet width; desktop keeps the 3-column body (nav / stage / cards).
+   Tested against 8 viewport widths derived from this project's existing
+   CSS breakpoint chain (css/style.css / css/screen.css): 1440, 1366, 1280,
+   1024, 768, 640, 480, 320 — see docs/planning/e9_1a2_legacy_shell_integration.md
+   for the exact matrix (no separate "8 canonical viewports" test matrix
+   existed in this repo prior to E9.1A2; this is the closest real,
+   already-established structure to test against). */
+
 @media (max-width: 1024px) {
   #e9-adventure-shell .e9-body {
     flex-direction: column;
@@ -12,6 +19,15 @@
     flex-direction: row;
     flex-wrap: wrap;
   }
+
+  /* Stacked column layout no longer stretches all three main-body slots
+     to a shared tall height, so their skeleton placeholder should be
+     shorter too — avoids the PR #78 jank at tablet width. */
+  #e9-left-nav-slot .e9-component-skeleton,
+  #e9-world-stage-slot .e9-component-skeleton,
+  #e9-right-cards-slot .e9-component-skeleton {
+    --e9-skeleton-min-height: 180px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -23,5 +39,15 @@
   .e9-dock {
     justify-content: flex-start;
     overflow-x: auto;
+  }
+
+  #e9-top-hud-slot .e9-component-skeleton,
+  #e9-bottom-dock-slot .e9-component-skeleton {
+    --e9-skeleton-min-height: 64px;
+  }
+  #e9-left-nav-slot .e9-component-skeleton,
+  #e9-world-stage-slot .e9-component-skeleton,
+  #e9-right-cards-slot .e9-component-skeleton {
+    --e9-skeleton-min-height: 140px;
   }
 }

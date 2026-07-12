@@ -1,25 +1,30 @@
 <!--
-  Component: Right Cards
+  Component: Right Cards (non-critical slot)
   Stable root id: right-cards  (Rule #6)
-  Real sources when wired: /api/daily-challenge/today, /api/quests/today,
-  /api/adventure/progress (boss stars), /api/srs/due, /api/mistakes/stats.
-  "Weekly reward" card intentionally omitted — does not exist (audit Phase F).
+  Real data sources (no new API):
+    GET /api/daily-challenge/today  -> daily challenge availability
+    GET /api/adventure/bootstrap    -> zones[] (boss progress summary)
+    GET /api/srs/due                -> {due:[], count}
+    GET /api/mistakes/stats         -> {total, corrected, worst5}
+  "Guild Pass" is intentionally NOT a card here -- confirmed to not exist
+  as a real system (E9 audit, Phase F). Each card fetches independently;
+  one card failing/empty never affects the others (non-critical isolation).
 -->
-<aside id="right-cards" class="e9-cards" data-e9-component="right_cards" aria-label="Mission and progress cards">
+<aside id="right-cards" class="e9-cards" data-e9-component="right_cards" data-i18n-aria-label="e9.right_cards.aria_label">
   <div class="e9-card" data-e9-card="daily_challenge">
-    <h4>Daily Challenge</h4>
-    <p class="e9-card__body">placeholder</p>
+    <h4 data-i18n="e9.right_cards.daily_challenge_title">Daily Challenge</h4>
+    <p class="e9-card__body" data-e9-card-body="daily_challenge" data-i18n="e9.right_cards.loading">Loading…</p>
   </div>
   <div class="e9-card" data-e9-card="boss_progress">
-    <h4>Boss Progress</h4>
-    <p class="e9-card__body">placeholder</p>
+    <h4 data-i18n="e9.right_cards.boss_progress_title">Boss Progress</h4>
+    <p class="e9-card__body" data-e9-card-body="boss_progress" data-i18n="e9.right_cards.loading">Loading…</p>
   </div>
   <div class="e9-card" data-e9-card="srs_due">
-    <h4>SRS Due</h4>
-    <p class="e9-card__body">placeholder</p>
+    <h4 data-i18n="e9.right_cards.srs_due_title">SRS Due</h4>
+    <p class="e9-card__body" data-e9-card-body="srs_due" data-i18n="e9.right_cards.loading">Loading…</p>
   </div>
   <div class="e9-card" data-e9-card="weakness">
-    <h4>Weakness Summary</h4>
-    <p class="e9-card__body">placeholder</p>
+    <h4 data-i18n="e9.right_cards.weakness_title">Weakness Summary</h4>
+    <p class="e9-card__body" data-e9-card-body="weakness" data-i18n="e9.right_cards.loading">Loading…</p>
   </div>
 </aside>

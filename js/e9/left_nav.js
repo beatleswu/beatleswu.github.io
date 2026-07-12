@@ -1,8 +1,9 @@
 /*
- * E9 Left Nav — component init.
- * Operates only on its own root. This sprint only Adventure is a real
- * target (the world_stage slot); other items are inert placeholders
- * until their real destination pages are wired in a later sprint.
+ * E9 Left Nav — component init (non-critical).
+ * Operates only on its own root. All links except "Adventure" are real
+ * <a href> targets and need no JS to navigate — the browser handles them
+ * natively. "Adventure" is the current view, so its click is a no-op
+ * (prevented) rather than a real navigation.
  */
 (function (document) {
   'use strict';
@@ -11,13 +12,12 @@
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
 
-    root.querySelectorAll('[data-e9-nav]').forEach(function (link) {
-      link.addEventListener('click', function (evt) {
-        evt.preventDefault();
-        var target = link.getAttribute('data-e9-nav');
-        console.log('[E9] left-nav click (placeholder, no navigation wired yet):', target);
+    var current = root.querySelector('[data-e9-nav="adventure"]');
+    if (current) {
+      current.addEventListener('click', function (evt) {
+        evt.preventDefault(); // already on this view
       });
-    });
+    }
   }
 
   document.addEventListener('e9:component-loaded', function (e) {
