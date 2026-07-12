@@ -79,11 +79,22 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     assert set(inventory["required_in_generation"]["entries"]) == {"i18n.js", "sw.js"}
 
 
-def test_inventory_excludes_assets_and_icons_prefixes():
+def test_inventory_excludes_icons_prefix():
+    # assets/ moved to required_subtrees under RELEASE-FIX-A2 -- see
+    # docs/incidents/2026-07-12-full-site-asset-outage.md. icons/ remains
+    # excluded: no current runtime reference resolves to it.
     inventory = _load_inventory()
     excluded = set(inventory["excluded_prefixes"]["entries"])
-    assert "assets/" in excluded
     assert "icons/" in excluded
+    assert "assets/" not in excluded
+
+
+def test_inventory_governs_assets_via_required_subtrees():
+    inventory = _load_inventory()
+    subtrees = inventory["required_subtrees"]["entries"]
+    assets_subtree = next((s for s in subtrees if s["prefix"] == "assets/"), None)
+    assert assets_subtree is not None, "assets/ must be declared in required_subtrees"
+    assert assets_subtree["manifest"] == "deploy/canonical-asset-closure-manifest.json"
 
 
 def test_inventory_forbidden_patterns_reject_dangerous_paths():
