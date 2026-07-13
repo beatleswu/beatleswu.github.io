@@ -94,11 +94,11 @@
     },
     {
       "path": "community_leaderboard_rewards_scheduler.py",
-      "source_commit": "8d9f0f82df8e41c323ae4ecd680f2a6a1a136bd2",
+      "source_commit": "9c7e74295f8db03b545ad395e7a385e93306fc11",
       "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
-      "source_commit_subject": "feat(rewards): harden automated weekly leaderboard scheduler",
+      "source_commit_subject": "fix(rewards): require exact true for community scheduler flag",
       "source_date": "2026-07-13",
-      "content_sha256": "94fc6d9368be7bafd0508a06c12dc9fc54c8134e6d1c8d3aa8579b7fa9742fa7",
+      "content_sha256": "1fc261fe2489959efe97846a58ea9c23943c98e05a0c22a20f9017019157867d",
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred import inside _start_community_leaderboard_weekly_scheduler() and scheduler.py-started runtime reward loop; weekly scheduler runtime-critical when COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true",
       "source_status": "local Git provenance -- not previously pushed to canonical origin"
