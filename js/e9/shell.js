@@ -1,22 +1,12 @@
 /*
- * E9 Adventure Shell — orchestrator.
+ * E9 Adventure Shell -- orchestrator.
  *
- * Responsible for: reading flags, toggling legacy vs. E9 visibility,
- * kicking off loadComponent() for each slot, and recovering to legacy on
- * a CRITICAL failure. Per-component DOM logic lives in each component's
- * own init script, wired via the "e9:component-loaded" event.
+ * Responsible for: reading flags, enforcing exclusive legacy vs. E9
+ * shell ownership, kicking off loadComponent() for each slot, and
+ * recovering to legacy on a CRITICAL failure.
  *
- * Critical vs non-critical (E9.1A2 contract):
- *   Critical:     shell orchestration itself (this file), World Stage.
- *   Non-critical: Top HUD, Right Cards, Bottom Dock, Left Navigation.
- * A non-critical component failure only renders that component's own
- * fallback (handled inside component_loader.js) and never touches
- * anything else. A critical failure (World Stage fails to load, or this
- * file throws for any reason) triggers full recovery: hide E9, restore
- * Legacy, no reload, no uncaught pageerror.
- *
- * Flag OFF is a complete no-op — no fragment fetches happen at all, and
- * the legacy #skill-map section is left exactly as it was.
+ * Flag OFF is a complete no-op for E9 runtime work: no fragment fetches,
+ * no component init, legacy remains the only visible/interactive shell.
  */
 (function (global, document) {
   'use strict';
@@ -33,65 +23,162 @@
     { flag: 'e9BottomDock', component: 'bottom_dock', selector: '#e9-bottom-dock-slot', src: '/components/adventure/bottom_dock.html' }
   ];
 
-  var LEGACY_SELECTOR = '#skill-map';
+  var LEGACY_SELECTORS = [
+    '#welcome-state > .guild-hall-hero',
+    '#welcome-state > .guild-entry-grid',
+    '#skill-map',
+    '#welcome-state > .home-left-col',
+    '#welcome-state > .home-report'
+  ];
   var SHELL_SELECTOR = '#e9-adventure-shell';
+  var FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'area[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'iframe',
+    '[tabindex]',
+    '[contenteditable="true"]'
+  ].join(',');
 
-  function legacyEl() { return document.querySelector(LEGACY_SELECTOR); }
-  function shellEl() { return document.querySelector(SHELL_SELECTOR); }
+  var activeShellState = null;
+  var mountStarted = false;
 
-  function showE9Shell() {
-    var shell = shellEl();
-    if (shell) {
-      shell.hidden = false;
-      shell.removeAttribute('aria-hidden');
+  function shellEl() {
+    return document.querySelector(SHELL_SELECTOR);
+  }
+
+  function legacyEls() {
+    var seen = [];
+    LEGACY_SELECTORS.forEach(function (selector) {
+      document.querySelectorAll(selector).forEach(function (el) {
+        if (seen.indexOf(el) === -1) seen.push(el);
+      });
+    });
+    return seen;
+  }
+
+  function focusableEls(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') return [];
+    return Array.prototype.slice.call(root.querySelectorAll(FOCUSABLE_SELECTOR)).filter(function (el) {
+      if (!el || el.hidden || el.getAttribute('aria-hidden') === 'true') return false;
+      if (el.tabIndex < 0) return false;
+      return true;
+    });
+  }
+
+  function rootsContainNode(roots, node) {
+    if (!node) return false;
+    return roots.some(function (root) {
+      return root === node || (root && typeof root.contains === 'function' && root.contains(node));
+    });
+  }
+
+  function suspendTabbing(root) {
+    focusableEls(root).forEach(function (el) {
+      if (!el.hasAttribute('data-e9-prev-tabindex')) {
+        el.setAttribute('data-e9-prev-tabindex', el.getAttribute('tabindex') || '');
+      }
+      el.setAttribute('tabindex', '-1');
+    });
+  }
+
+  function restoreTabbing(root) {
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    root.querySelectorAll('[data-e9-prev-tabindex]').forEach(function (el) {
+      var prev = el.getAttribute('data-e9-prev-tabindex');
+      if (prev === '') {
+        el.removeAttribute('tabindex');
+      } else {
+        el.setAttribute('tabindex', prev);
+      }
+      el.removeAttribute('data-e9-prev-tabindex');
+    });
+  }
+
+  function setRootState(root, active) {
+    if (!root) return;
+    root.setAttribute('data-shell-active', active ? 'true' : 'false');
+    if (active) {
+      root.hidden = false;
+      root.removeAttribute('aria-hidden');
+      root.removeAttribute('inert');
+      root.removeAttribute('data-shell-hidden');
+      restoreTabbing(root);
+      return;
     }
+    suspendTabbing(root);
+    root.setAttribute('aria-hidden', 'true');
+    root.setAttribute('inert', '');
+    root.setAttribute('data-shell-hidden', 'true');
+    root.hidden = true;
   }
 
-  function hideE9Shell() {
-    var shell = shellEl();
-    if (shell) {
-      shell.hidden = true;
-      shell.setAttribute('aria-hidden', 'true');
+  function firstFocusableInRoots(roots) {
+    for (var i = 0; i < roots.length; i++) {
+      var focusables = focusableEls(roots[i]);
+      if (focusables.length) return focusables[0];
     }
+    return null;
   }
 
-  function hideLegacyAdventure() {
-    var legacy = legacyEl();
-    if (legacy) legacy.hidden = true;
+  function resolveRequestedShellMode(flags) {
+    if (!flags || !flags.e9Shell) return 'legacy';
+    return global.__GO_E9_ACTIVE_SHELL__ === 'e9' ? 'e9' : 'legacy';
   }
 
-  function showLegacyAdventure() {
-    var legacy = legacyEl();
-    if (legacy) legacy.hidden = false;
+  function applyShellState(nextState) {
+    var mode = nextState === 'e9' ? 'e9' : 'legacy';
+    var legacyRoots = legacyEls();
+    var e9Root = shellEl();
+    var currentActive = document.activeElement;
+    var hidingRoots = mode === 'e9' ? legacyRoots : (e9Root ? [e9Root] : []);
+    var focusNeedsMove = rootsContainNode(hidingRoots, currentActive);
+
+    legacyRoots.forEach(function (root) { setRootState(root, mode === 'legacy'); });
+    setRootState(e9Root, mode === 'e9');
+
+    document.body.setAttribute('data-adventure-shell-active', mode);
+    activeShellState = mode;
+
+    if (focusNeedsMove) {
+      var activeRoots = mode === 'e9' ? (e9Root ? [e9Root] : []) : legacyRoots;
+      var fallbackTarget = firstFocusableInRoots(activeRoots);
+      if (fallbackTarget && typeof fallbackTarget.focus === 'function') {
+        try {
+          fallbackTarget.focus({ preventScroll: true });
+        } catch (focusErr) {
+          fallbackTarget.focus();
+        }
+      } else if (document.body && typeof document.body.focus === 'function') {
+        document.body.focus();
+      }
+    }
+
+    return mode;
   }
 
-  /**
-   * Recovery path for a critical failure. No reload, no further fragment
-   * requests, no uncaught error — just fall back to the legacy UI.
-   */
   function recoverToLegacy(err) {
-    console.error('[E9] critical failure — recovering to legacy Adventure:', err);
+    console.error('[E9] critical failure -- recovering to legacy Adventure:', err);
+    global.__GO_E9_ACTIVE_SHELL__ = 'legacy';
     try {
       var statusEl = document.querySelector('#e9-world-stage-slot');
       if (statusEl && global.E9 && global.E9.I18nFallback && typeof global.E9.I18nFallback.t === 'function') {
-        // Best-effort: if the shell is still momentarily visible, show a
-        // translated notice before we hide it. Not required to succeed.
-        // Hardened against a missing 'e9.shell.critical_error' key leaking
-        // into the aria-label as a raw dictionary key (RELEASE-FIX-B).
         statusEl.setAttribute('aria-label', global.E9.I18nFallback.t(
           'e9.shell.critical_error', 'A critical error occurred. Returning to Adventure Map.'
         ));
       }
     } catch (labelErr) {
-      // ignore — purely cosmetic best-effort
+      // cosmetic best-effort only
     }
-    hideE9Shell();
-    showLegacyAdventure();
+    applyShellState('legacy');
   }
 
   function mountSlot(slot) {
     var root = document.querySelector(slot.selector);
-    if (!root) return Promise.resolve(false); // slot not present on this page
+    if (!root) return Promise.resolve(false);
     if (!global.E9 || typeof global.E9.loadComponent !== 'function') {
       return Promise.resolve(false);
     }
@@ -100,28 +187,30 @@
 
   function init() {
     var flags;
+    var requestedMode;
     try {
       if (!global.E9 || typeof global.E9.getFlags !== 'function') {
-        console.error('[E9] feature_flags.js did not load before shell.js — E9 shell stays off');
+        console.error('[E9] feature_flags.js did not load before shell.js -- E9 shell stays off');
+        applyShellState('legacy');
         return;
       }
       flags = global.E9.getFlags();
-      if (!flags.e9Shell) {
-        return; // no-op: legacy stays exactly as-is, zero fragment requests
+      requestedMode = resolveRequestedShellMode(flags);
+      applyShellState(requestedMode);
+      if (requestedMode !== 'e9') {
+        return;
       }
-
-      hideLegacyAdventure();
-      showE9Shell();
     } catch (err) {
       recoverToLegacy(err);
       return;
     }
 
-    // World Stage is critical: await it before mounting anything else, and
-    // recover to legacy if it fails.
+    if (mountStarted) return;
+    mountStarted = true;
+
     var worldStagePromise = flags[CRITICAL_SLOT.flag]
       ? mountSlot(CRITICAL_SLOT)
-      : Promise.resolve(true); // flag off for this slot alone isn't a failure
+      : Promise.resolve(true);
 
     worldStagePromise.then(function (ok) {
       if (flags[CRITICAL_SLOT.flag] && !ok) {
@@ -129,30 +218,19 @@
         return;
       }
 
-      // Non-critical slots mount independently; each isolates its own
-      // failure via component_loader.js's fallback rendering.
       NON_CRITICAL_SLOTS.forEach(function (slot) {
-        if (flags[slot.flag]) {
-          try {
-            mountSlot(slot);
-          } catch (slotErr) {
-            console.error('[E9] non-critical slot threw synchronously (unexpected):', slot.component, slotErr);
-          }
+        if (!flags[slot.flag]) return;
+        try {
+          mountSlot(slot);
+        } catch (slotErr) {
+          console.error('[E9] non-critical slot threw synchronously:', slot.component, slotErr);
         }
       });
     }).catch(function (err) {
-      // mountSlot's promise should never reject (component_loader.js
-      // catches internally), but guard anyway — a critical-path failure
-      // here must still recover to legacy, not surface as pageerror.
       recoverToLegacy(err);
     });
   }
 
-  /**
-   * Thin adapter to the existing canonical Adventure Start flow.
-   * Never re-implements zone-entry logic — only calls the legacy global
-   * function that already exists on this page.
-   */
   function startAdventureFromE9(zoneKey) {
     if (typeof global.startAdventureStage !== 'function') {
       var err = new Error('Legacy startAdventureStage() is unavailable');
@@ -164,11 +242,12 @@
 
   global.E9 = global.E9 || {};
   global.E9.startAdventureFromE9 = startAdventureFromE9;
-  // Exposed so world_stage.js (the critical component) can trigger full
-  // recovery if it successfully mounted its HTML fragment but then fails
-  // to load real adventure data — a World Stage that can't show real
-  // state is as broken as one whose fragment 404'd.
   global.E9.recoverToLegacy = recoverToLegacy;
+  global.E9.applyShellState = applyShellState;
+  global.E9.getActiveShell = function () { return activeShellState || 'legacy'; };
+  global.E9.resolveRequestedShellMode = resolveRequestedShellMode;
+  global.E9.__getLegacyShellRoots = legacyEls;
+  global.E9.initShell = init;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
