@@ -1,5 +1,6 @@
 import calendar
 import datetime
+import hashlib
 import json
 import re
 from zoneinfo import ZoneInfo
@@ -40,6 +41,8 @@ CLAIM_STATUSES = (
 # Phase 1 reward bundles must not include ai_explain_ticket (explanation
 # quality is not stable enough yet to hand out as a leaderboard reward).
 FORBIDDEN_REWARD_ITEM_KEYS = frozenset({"ai_explain_ticket"})
+
+EXACT_PERIOD_OWNER_GATE = "GO_COMMUNITY_LEADERBOARD_REWARD_GRANT"
 
 _EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 _GOOGLE_SUB_RE = re.compile(r"^\d{9,30}$")
@@ -93,6 +96,14 @@ _MONTHLY_REWARD_BUNDLES = {
         "coins": 150,
     },
 }
+
+
+def canonical_json_dumps(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def sha256_hex_from_value(value):
+    return hashlib.sha256(canonical_json_dumps(value).encode("utf-8")).hexdigest()
 
 
 def determine_leaderboard_rank_band(rank):
@@ -288,6 +299,173 @@ def format_leaderboard_period_key(board_type, period_start):
     return period_start.strftime("%Y-%m")
 
 
+def get_exact_period_bounds(board_type, period_start, timezone="Asia/Taipei"):
+    validate_leaderboard_board_type(board_type)
+    if hasattr(period_start, "date"):
+        period_start = period_start.date()
+    if board_type == BOARD_TYPE_WEEKLY:
+        period_end = period_start + datetime.timedelta(days=7)
+    else:
+        next_month = (period_start.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+        period_end = next_month
+    tz = ZoneInfo(timezone)
+    start_dt = datetime.datetime.combine(period_start, datetime.time.min, tzinfo=tz)
+    end_dt = datetime.datetime.combine(period_end, datetime.time.min, tzinfo=tz)
+    return period_start, period_end, start_dt, end_dt
+
+
+def validate_exact_period_bounds(board_type, period_key, period_start, period_end, timezone="Asia/Taipei"):
+    validate_leaderboard_board_type(board_type)
+    start_date, expected_end_date, start_dt, end_dt = get_exact_period_bounds(
+        board_type, period_start, timezone=timezone)
+    provided_end = period_end.date() if hasattr(period_end, "date") else period_end
+    if provided_end != expected_end_date:
+        raise ValueError(
+            f"period_end {provided_end!r} does not match the exact {board_type} period end "
+            f"for period_start {start_date!r}"
+        )
+    expected_key = format_leaderboard_period_key(board_type, start_date)
+    if period_key != expected_key:
+        raise ValueError(
+            f"period_key {period_key!r} does not match board_type={board_type!r} "
+            f"period_start={start_date!r} (expected {expected_key!r})"
+        )
+    return {
+        "period_start_date": start_date,
+        "period_end_date": expected_end_date,
+        "period_start_at": start_dt,
+        "period_end_exclusive_at": end_dt,
+        "period_key": expected_key,
+        "timezone": timezone,
+    }
+
+
+def is_exact_period_closed(board_type, period_start, period_end, *, now=None, timezone="Asia/Taipei"):
+    bounds = validate_exact_period_bounds(board_type, format_leaderboard_period_key(
+        board_type, period_start.date() if hasattr(period_start, "date") else period_start
+    ), period_start, period_end, timezone=timezone)
+    current = now or datetime.datetime.now(ZoneInfo(timezone))
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=ZoneInfo(timezone))
+    else:
+        current = current.astimezone(ZoneInfo(timezone))
+    return current >= bounds["period_end_exclusive_at"]
+
+
+def fetch_leaderboard_participant_rows(conn, period_start_iso, period_end_iso=None, *, limit=None):
+    sql = """
+WITH qualifying_distinct AS (
+    SELECT rl.user_id, rl.question_id, MIN(rl.reviewed_at) AS first_counted_at
+      FROM review_log rl
+     WHERE rl.reviewed_at >= ?
+       {period_end_clause}
+       AND rl.grade >= 3
+     GROUP BY rl.user_id, rl.question_id
+),
+scored AS (
+    SELECT q.user_id,
+           COUNT(*) AS score,
+           MAX(q.first_counted_at) AS final_counted_at
+      FROM qualifying_distinct q
+     GROUP BY q.user_id
+)
+SELECT u.id,
+       u.username,
+       COALESCE(u.nickname,u.username) AS display_name,
+       scored.score AS score,
+       scored.final_counted_at AS final_counted_at,
+       COALESCE(MAX(us.rank_level),'LV1') AS rank_level,
+       COALESCE(MAX(pa.character_key),'') AS character_key,
+       COALESCE(MAX(pa.combat_armor),'') AS combat_armor,
+       COALESCE(MAX(pa.combat_weapon),'') AS combat_weapon,
+       COALESCE(MAX(pa.combat_cape),'') AS combat_cape,
+       COALESCE(MAX(pa.combat_offhand),'') AS combat_offhand,
+       COALESCE(MAX(pa.combat_hat),'') AS combat_hat,
+       COALESCE(MAX(pa.combat_pet),'') AS combat_pet,
+       COALESCE(MAX(pa.combat_aura),'') AS combat_aura,
+       CASE WHEN u.plan='premium' THEN 1 ELSE 0 END AS is_premium,
+       COALESCE(u.is_admin,0) AS is_admin
+  FROM scored
+  JOIN users u ON u.id = scored.user_id
+  LEFT JOIN user_stats us ON us.user_id = u.id
+  LEFT JOIN player_appearance pa ON pa.user_id = u.id
+ GROUP BY u.id, u.username, u.nickname, u.plan, u.is_admin, scored.score, scored.final_counted_at
+ ORDER BY scored.score DESC, scored.final_counted_at ASC, u.id ASC
+{limit_clause}
+""".format(
+        period_end_clause="AND rl.reviewed_at < ?" if period_end_iso else "",
+        limit_clause=(" LIMIT ?" if limit is not None else ""),
+    )
+    params = [period_start_iso]
+    if period_end_iso:
+        params.append(period_end_iso)
+    if limit is not None:
+        params.append(limit)
+    return conn.execute(sql, tuple(params)).fetchall()
+
+
+def rank_leaderboard_participants(rows):
+    ranked = []
+    for raw in rows:
+        row = dict(raw)
+        user_id = int(row["id"])
+        row["user_id"] = user_id
+        row["score"] = int(row["score"] or 0)
+        row["final_counted_at"] = row.get("final_counted_at")
+        ranked.append(row)
+    ranked.sort(key=lambda r: (-int(r["score"]), str(r["final_counted_at"] or ""), int(r["user_id"])))
+    for index, row in enumerate(ranked, start=1):
+        row["rank"] = index
+    return ranked
+
+
+def leaderboard_rows_to_entries(rows, *, limit=None):
+    entries = []
+    for row in rows[:limit] if limit is not None else rows:
+        entries.append({
+            "user_id": int(row["user_id"]),
+            "display_name": row["display_name"],
+            "avatar": row.get("character_key") or None,
+            "rank": int(row["rank"]),
+            "score": int(row["score"]),
+            "final_counted_at": row.get("final_counted_at"),
+        })
+    return entries
+
+
+def summarize_preview_rewards(preview_entries):
+    eligible_entries = [entry for entry in preview_entries if entry.get("eligible")]
+    summary = {
+        "claims_count": len(eligible_entries),
+        "snapshot_row_count": len(preview_entries),
+        "eligible_claim_count": len(eligible_entries),
+        "non_rewarded_row_count": len(preview_entries) - len(eligible_entries),
+        "component_count": 0,
+        "total_coins": 0,
+        "total_items": {},
+        "total_badges": {},
+        "total_titles": {},
+    }
+    for entry in preview_entries:
+        if not entry.get("eligible"):
+            continue
+        payload = entry.get("reward_payload") or {}
+        coins = int(payload.get("coins") or 0)
+        if coins > 0:
+            summary["component_count"] += 1
+            summary["total_coins"] += coins
+        for item_key, qty in (payload.get("items") or {}).items():
+            summary["component_count"] += 1
+            summary["total_items"][item_key] = summary["total_items"].get(item_key, 0) + int(qty)
+        for badge_key in payload.get("badges") or []:
+            summary["component_count"] += 1
+            summary["total_badges"][badge_key] = summary["total_badges"].get(badge_key, 0) + 1
+        for title_key in payload.get("titles") or []:
+            summary["component_count"] += 1
+            summary["total_titles"][title_key] = summary["total_titles"].get(title_key, 0) + 1
+    return summary
+
+
 def _split_reward_bundle(bundle):
     """Split a flat reward bundle dict (as returned by get_*_reward_bundle)
     into (coins, items, badges, titles) based on key naming convention."""
@@ -400,7 +578,7 @@ def finalize_leaderboard_reward_period(
 ):
     """Settle one weekly/monthly leaderboard period into snapshots + reward
     claims, WITHOUT granting anything. Phase 1 / PR 3: only creates
-    'pending' or 'skipped' claims, never 'granted'. Does not invoke any
+    pending claims for reward-eligible rows, never granted claims. Does not invoke any
     coin-granting or shop-purchase-granting helper.
 
     entries: list of {"user_id", "display_name", "avatar", "rank", "score"}.
@@ -440,7 +618,6 @@ def finalize_leaderboard_reward_period(
     claim_inserted = 0
     claim_existing = 0
     claim_pending = 0
-    claim_skipped = 0
     result_entries = []
 
     for item in processed:
@@ -466,35 +643,35 @@ def finalize_leaderboard_reward_period(
             snapshot_status = "inserted"
             snapshot_inserted += 1
 
-        claim_status = CLAIM_STATUS_PENDING if item["eligible"] else CLAIM_STATUS_SKIPPED
-        claim_record = make_leaderboard_reward_claim_record(
-            user_id=item["user_id"],
-            board_type=board_type,
-            period_key=period_key,
-            status=claim_status,
-            rank=item["rank"],
-            rank_band=item["rank_band"],
-            score=item["score"],
-            eligible=item["eligible"],
-            ineligible_reason=item["ineligible_reason"],
-            reward_bundle_key=item["reward_bundle_key"],
-            granted_coins=item["reward_payload"]["coins"],
-            granted_items=item["reward_payload"]["items"],
-            granted_badges=item["reward_payload"]["badges"],
-            granted_titles=item["reward_payload"]["titles"],
-            created_at=created_at,
-        )
-        claim_row = conn.execute(_CLAIM_INSERT_SQL, claim_record).fetchone()
-        if claim_row is None:
-            claim_result_status = "existing"
-            claim_existing += 1
-        else:
-            claim_result_status = "inserted"
-            claim_inserted += 1
-            if claim_status == CLAIM_STATUS_PENDING:
-                claim_pending += 1
+        claim_result_status = "not_created"
+        if item["eligible"]:
+            claim_record = make_leaderboard_reward_claim_record(
+                user_id=item["user_id"],
+                board_type=board_type,
+                period_key=period_key,
+                status=CLAIM_STATUS_PENDING,
+                rank=item["rank"],
+                rank_band=item["rank_band"],
+                score=item["score"],
+                eligible=item["eligible"],
+                ineligible_reason=item["ineligible_reason"],
+                reward_bundle_key=item["reward_bundle_key"],
+                granted_coins=item["reward_payload"]["coins"],
+                granted_items=item["reward_payload"]["items"],
+                granted_badges=item["reward_payload"]["badges"],
+                granted_titles=item["reward_payload"]["titles"],
+                created_at=created_at,
+            )
+            claim_row = conn.execute(_CLAIM_INSERT_SQL, claim_record).fetchone()
+            if claim_row is None:
+                claim_result_status = "existing"
+                claim_existing += 1
             else:
-                claim_skipped += 1
+                claim_result_status = "inserted"
+                claim_inserted += 1
+                claim_pending += 1
+        else:
+            claim_row = None
 
         result_entries.append(
             {**item, "snapshot_status": snapshot_status, "claim_status": claim_result_status}
@@ -511,7 +688,7 @@ def finalize_leaderboard_reward_period(
             "inserted": claim_inserted,
             "existing": claim_existing,
             "pending": claim_pending,
-            "skipped": claim_skipped,
+            "not_created": len([entry for entry in processed if not entry["eligible"]]),
         },
         "entries": result_entries,
     }
