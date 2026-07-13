@@ -82,6 +82,29 @@ try {
     # does not bind to hashtable keys, so extract the values explicitly.
     $expectedBytes = (@($files) | ForEach-Object { $_.size } | Measure-Object -Sum).Sum
     $archiveTimeoutSeconds = Get-ArchiveTransferTimeoutSeconds -TotalBytes $expectedBytes
+
+    # Immediately re-verify every staged file's hash right before archiving
+    # -- fail closed if the on-disk bytes have changed since
+    # New-StaticReleaseBundle's own copy-time verification. Confirmed live
+    # on this workstation: a staged file can silently diverge from its
+    # verified bytes between being copied/verified and being archived
+    # (observed twice, a different random file each time, sizes unchanged,
+    # both still valid images of the declared type -- consistent with a
+    # host-level disk/AV write race, not a logic defect) with no exception
+    # raised anywhere in the pipeline. Re-hashing immediately before the
+    # archive read closes that window as tightly as this script can.
+    $staleFiles = @()
+    foreach ($entry in $files) {
+        $stagedFile = Join-Path $BundlePath $entry.path
+        $reverifyHash = (Get-FileHash -LiteralPath $stagedFile -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($reverifyHash -ne $entry.sha256) {
+            $staleFiles += "$($entry.path) (verified $($entry.sha256), now $reverifyHash)"
+        }
+    }
+    if ($staleFiles.Count -gt 0) {
+        throw "Staged file(s) changed on disk between copy-time verification and archiving -- refusing to build an archive from unverified bytes: $($staleFiles -join '; ')"
+    }
+
     New-DeterministicStaticArchive -BundlePath $BundlePath -RelativePaths $relativePaths -ArchivePath $ArchivePath -GnuTarExecutablePath $gnuTar.path -TimeoutSeconds $archiveTimeoutSeconds | Out-Null
 
     # Prove the archive is safe and record its real, freshly-computed
@@ -97,6 +120,46 @@ try {
     if ($archiveEntryCount -ne $relativePaths.Count) {
         throw "Archive entry count ($archiveEntryCount) does not match the staged file count ($($relativePaths.Count)) -- refusing to publish a manifest for a mismatched archive."
     }
+
+    # Extract the just-built archive and re-verify every file's hash against
+    # what was staged -- the strongest available proof that the BYTES THAT
+    # ACTUALLY SHIPPED are correct, not merely that the staging directory
+    # looked correct at some earlier point. This closes the same
+    # disk-corruption-race window as the pre-archive re-check above, but
+    # against the archive's own contents rather than the staging directory.
+    $verifyExtractPath = Join-Path ([System.IO.Path]::GetTempPath()) ("archive-verify-" + [System.Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $verifyExtractPath -Force | Out-Null
+    try {
+        # GNU tar's -C target directory (unlike its -f archive path, which
+        # --force-local already covers) still mis-parses a Windows
+        # backslash-style absolute path ("C:\Users\...") -- confirmed live:
+        # "Cannot open: No such file or directory" even with --force-local
+        # and the directory already created. Forward slashes avoid the
+        # ambiguity entirely and Windows accepts them equally.
+        $extractResult = Invoke-BoundedNativeCommand -FileName $gnuTar.path -ArgumentList @('--force-local', '-xf', $ArchivePath, '-C', ($verifyExtractPath -replace '\\', '/')) -TimeoutSeconds $archiveTimeoutSeconds -OperationLabel 'extract archive for post-build verification'
+        if ($extractResult.exit_code -ne 0) {
+            throw "Failed to extract the built archive for verification: $($extractResult.output)"
+        }
+        $archiveContentMismatches = @()
+        foreach ($entry in $files) {
+            $extractedFile = Join-Path $verifyExtractPath $entry.path
+            if (-not (Test-Path -LiteralPath $extractedFile -PathType Leaf)) {
+                $archiveContentMismatches += "$($entry.path) (missing from extracted archive)"
+                continue
+            }
+            $extractedHash = (Get-FileHash -LiteralPath $extractedFile -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($extractedHash -ne $entry.sha256) {
+                $archiveContentMismatches += "$($entry.path) (expected $($entry.sha256), archive has $extractedHash)"
+            }
+        }
+        if ($archiveContentMismatches.Count -gt 0) {
+            throw "Built archive contains incorrect bytes for $($archiveContentMismatches.Count) file(s) -- refusing to publish a manifest for a corrupted archive: $($archiveContentMismatches -join '; ')"
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $verifyExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     $archiveHash = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
     $archiveSize = (Get-Item -LiteralPath $ArchivePath).Length
 

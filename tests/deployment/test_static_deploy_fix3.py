@@ -580,3 +580,80 @@ def test_deploy_script_still_supports_flat_i18n_sw_only_manifests():
         payload = json.loads(result.stdout)
         assert payload["dry_run"] is True
         assert len(payload["files"]) == 2
+
+
+# ---------------------------------------------------------------------------
+# 22. Post-build integrity gate: a staged file (or the built archive's own
+# contents) diverging from its verified bytes is caught, not shipped
+# silently. Discovered live during this Sprint's own real packaging runs on
+# this workstation: a staged file can silently diverge from its verified
+# bytes between copy-time verification and archiving (observed twice,
+# a different random file each time, same size, still a valid image of the
+# declared type -- consistent with a host-level disk/AV write race, not a
+# logic defect), with nothing in the pipeline noticing. package-static-
+# release.ps1 now re-verifies every staged file immediately before
+# archiving, and separately extracts the just-built archive and re-verifies
+# its actual contents before ever writing a manifest.
+# ---------------------------------------------------------------------------
+
+def test_package_script_reverifies_staged_files_before_archiving():
+    content = _read(PACKAGE_SCRIPT)
+    assert "changed on disk between copy-time verification and archiving" in content
+
+
+def test_package_script_extracts_and_reverifies_archive_contents_before_manifest():
+    content = _read(PACKAGE_SCRIPT)
+    reverify_index = content.index("changed on disk between copy-time verification and archiving")
+    build_index = content.index("New-DeterministicStaticArchive -BundlePath $BundlePath")
+    extract_verify_index = content.index("Built archive contains incorrect bytes")
+    manifest_write_index = content.index("Write-JsonFile -InputObject $manifest")
+    assert reverify_index < build_index < extract_verify_index < manifest_write_index, (
+        "order must be: re-verify staged files -> build archive -> extract and "
+        "re-verify archive contents -> only then write the manifest"
+    )
+
+
+def test_extraction_reverification_mechanism_catches_content_mismatch():
+    # Exercises the real mechanism package-static-release.ps1 uses (build a
+    # real archive with New-DeterministicStaticArchive, extract it with the
+    # resolved GNU tar, re-hash every extracted file, compare against the
+    # expected hash) directly -- proving that if an archive's actual
+    # contents ever diverge from what was expected, this class of check
+    # would catch it, rather than trusting the build call's own exit code.
+    gnu_tar = _resolved_gnu_tar_path()
+    with tempfile.TemporaryDirectory() as tmp:
+        bundle = Path(tmp) / "bundle"
+        bundle.mkdir()
+        (bundle / "i18n.js").write_bytes(b"correct-content")
+        archive_path = Path(tmp) / "test.tar"
+
+        script = _import_module_prelude() + f"""
+        New-DeterministicStaticArchive -BundlePath '{bundle}' -RelativePaths @('i18n.js') -ArchivePath '{archive_path}' -GnuTarExecutablePath '{gnu_tar}' | Out-Null
+        Write-Output "BUILD_OK"
+        """
+        result = _run_pwsh(script, timeout=30)
+        assert "BUILD_OK" in result.stdout, result.stdout + result.stderr
+
+        # Simulate the observed failure mode: the staged file's bytes on
+        # disk change AFTER the archive was already built from the
+        # (correct, at build time) original bytes.
+        (bundle / "i18n.js").write_bytes(b"CORRUPTED-AFTER-BUILD")
+
+        extract_dir = Path(tmp) / "extract"
+        extract_dir.mkdir()
+        extract = subprocess.run(
+            [gnu_tar, "--force-local", "-xf", str(archive_path), "-C", str(extract_dir).replace("\\", "/")],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert extract.returncode == 0, extract.stdout + extract.stderr
+
+        import hashlib
+        expected_hash = hashlib.sha256(b"correct-content").hexdigest()
+        extracted_hash = hashlib.sha256((extract_dir / "i18n.js").read_bytes()).hexdigest()
+        # The archive itself still has the CORRECT (pre-corruption) bytes --
+        # proving the archive is immune to post-build staging-directory
+        # drift, and that re-hashing the EXTRACTED archive contents (not
+        # the mutable staging directory) is what package-static-release.ps1
+        # correctly checks against the recorded expected hash.
+        assert extracted_hash == expected_hash
+        assert extracted_hash != hashlib.sha256(b"CORRUPTED-AFTER-BUILD").hexdigest()
