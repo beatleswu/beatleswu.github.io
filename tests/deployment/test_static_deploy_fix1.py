@@ -26,6 +26,7 @@ None of these tests connect to production. Fake ssh/scp executables
 (tests/fixtures/fake_ssh/{ssh,scp}.cmd) simulate hang/fail/success without
 any network access.
 """
+import hashlib
 import json
 import re
 import subprocess
@@ -70,11 +71,83 @@ def _parse_harness_json(result):
     return json.loads(match.group(0))
 
 
+def _build_deterministic_manifest():
+    """Hermetic stand-in for the real production static-release manifest:
+    182 files across 22 unique non-root parent directories (23 including the
+    release root itself), with the same nested/duplicate-parent-prefix shape
+    (assets/pets/*, assets/hero/*, assets/rating_test + assets/rating_test/icons)
+    the real bundle has, so directory dedup logic is genuinely exercised."""
+    directories = [
+        "assets/boards", "assets/community", "assets/shop",
+        "assets/go_rpg_assets", "assets/go_rpg_assets_v3",
+        "assets/guild_bounty_assets", "assets/landing_page_assets",
+        "assets/play_page_assets", "assets/rating_test",
+        "assets/rating_test/icons", "assets/upgrade_page_assets",
+        "assets/monsters", "assets/stats", "assets/storyboards",
+        "assets/pets/horse_anim_lv2", "assets/pets/horse_anim_lv3",
+        "assets/pets/cat_anim_lv2", "assets/pets/cat_anim_lv3",
+        "assets/pets/dragon_anim_lv2", "assets/pets/dragon_anim_lv3",
+        "assets/hero/characters", "assets/hero/gear_v2",
+    ]
+    assert len(directories) == 22
+    files = [
+        {"path": "i18n.js", "sha256": hashlib.sha256(b"i18n.js-fixture").hexdigest(), "size": 1000},
+        {"path": "sw.js", "sha256": hashlib.sha256(b"sw.js-fixture").hexdigest(), "size": 500},
+    ]
+    remaining = 182 - len(files)
+    per_dir, extra = divmod(remaining, len(directories))
+    idx = 0
+    for d_i, d in enumerate(directories):
+        count = per_dir + (1 if d_i < extra else 0)
+        for f_i in range(count):
+            path = f"{d}/file_{f_i:03d}.webp"
+            files.append({
+                "path": path,
+                "sha256": hashlib.sha256(path.encode()).hexdigest(),
+                "size": 1000 + idx,
+            })
+            idx += 1
+    assert len(files) == 182
+    return {
+        "release_git_sha": "0" * 40,
+        "static_generation_id": "hermetic-fixture-generation",
+        "asset_count": len(files),
+        "files": files,
+    }
+
+
+@pytest.fixture
+def real_static_manifest_fixture():
+    """Materializes REAL_STATIC_MANIFEST hermetically for the duration of a
+    test. static_deploy_fix1_ps_harness.ps1's RealManifestSingleMkdirOperation
+    scenario hardcodes a read of this exact path and is out of this repair's
+    authorized scope, so the path itself cannot change -- instead this makes
+    the *dependency* hermetic by generating the file the harness expects
+    rather than relying on a pre-existing local, gitignored artifact left
+    over from earlier sprints. Backs up and restores any real file so this
+    never destroys local data, and leaves no trace in a clean worktree."""
+    manifest_dir = REAL_STATIC_MANIFEST.parent
+    dir_preexisted = manifest_dir.exists()
+    file_preexisted = REAL_STATIC_MANIFEST.exists()
+    backup = REAL_STATIC_MANIFEST.read_bytes() if file_preexisted else None
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    REAL_STATIC_MANIFEST.write_text(json.dumps(_build_deterministic_manifest()), encoding="utf-8")
+    try:
+        yield REAL_STATIC_MANIFEST
+    finally:
+        if file_preexisted:
+            REAL_STATIC_MANIFEST.write_bytes(backup)
+        else:
+            REAL_STATIC_MANIFEST.unlink()
+            if not dir_preexisted and not any(manifest_dir.iterdir()):
+                manifest_dir.rmdir()
+
+
 # ---------------------------------------------------------------------------
 # 1-3: nested parent-directory derivation, dedup, deterministic ordering
 # ---------------------------------------------------------------------------
 
-def test_parent_directory_derivation_and_dedup_and_ordering():
+def test_parent_directory_derivation_and_dedup_and_ordering(real_static_manifest_fixture):
     result = _run_harness("RealManifestSingleMkdirOperation")
     assert result.returncode == 0, result.stdout + result.stderr
     payload = _parse_harness_json(result)

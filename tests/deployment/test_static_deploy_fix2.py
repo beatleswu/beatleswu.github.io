@@ -28,6 +28,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -78,12 +79,81 @@ def _parse_json(result):
     return json.loads(match.group(0))
 
 
+def _build_deterministic_manifest():
+    """Hermetic stand-in for the real production static-release manifest:
+    182 files across 22 unique non-root parent directories, matching the
+    real bundle's nested/duplicate-parent-prefix shape closely enough to
+    exercise genuine ordering/uniqueness/hash-format assertions without
+    depending on any pre-existing local, gitignored artifact."""
+    directories = [
+        "assets/boards", "assets/community", "assets/shop",
+        "assets/go_rpg_assets", "assets/go_rpg_assets_v3",
+        "assets/guild_bounty_assets", "assets/landing_page_assets",
+        "assets/play_page_assets", "assets/rating_test",
+        "assets/rating_test/icons", "assets/upgrade_page_assets",
+        "assets/monsters", "assets/stats", "assets/storyboards",
+        "assets/pets/horse_anim_lv2", "assets/pets/horse_anim_lv3",
+        "assets/pets/cat_anim_lv2", "assets/pets/cat_anim_lv3",
+        "assets/pets/dragon_anim_lv2", "assets/pets/dragon_anim_lv3",
+        "assets/hero/characters", "assets/hero/gear_v2",
+    ]
+    assert len(directories) == 22
+    files = [
+        {"path": "i18n.js", "sha256": hashlib.sha256(b"i18n.js-fixture").hexdigest(), "size": 1000},
+        {"path": "sw.js", "sha256": hashlib.sha256(b"sw.js-fixture").hexdigest(), "size": 500},
+    ]
+    remaining = 182 - len(files)
+    per_dir, extra = divmod(remaining, len(directories))
+    idx = 0
+    for d_i, d in enumerate(directories):
+        count = per_dir + (1 if d_i < extra else 0)
+        for f_i in range(count):
+            path = f"{d}/file_{f_i:03d}.webp"
+            files.append({
+                "path": path,
+                "sha256": hashlib.sha256(path.encode()).hexdigest(),
+                "size": 1000 + idx,
+            })
+            idx += 1
+    assert len(files) == 182
+    return {
+        "release_git_sha": "0" * 40,
+        "static_generation_id": "hermetic-fixture-generation",
+        "asset_count": len(files),
+        "files": files,
+    }
+
+
+@pytest.fixture
+def real_static_manifest_fixture():
+    """Materializes REAL_STATIC_MANIFEST hermetically for the duration of a
+    test, replacing the dependency on a pre-existing local, gitignored
+    artifact left over from earlier sprints. Backs up and restores any real
+    file so this never destroys local data, and leaves no trace in a clean
+    worktree."""
+    manifest_dir = REAL_STATIC_MANIFEST.parent
+    dir_preexisted = manifest_dir.exists()
+    file_preexisted = REAL_STATIC_MANIFEST.exists()
+    backup = REAL_STATIC_MANIFEST.read_bytes() if file_preexisted else None
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    REAL_STATIC_MANIFEST.write_text(json.dumps(_build_deterministic_manifest()), encoding="utf-8")
+    try:
+        yield REAL_STATIC_MANIFEST
+    finally:
+        if file_preexisted:
+            REAL_STATIC_MANIFEST.write_bytes(backup)
+        else:
+            REAL_STATIC_MANIFEST.unlink()
+            if not dir_preexisted and not any(manifest_dir.iterdir()):
+                manifest_dir.rmdir()
+
+
 # ---------------------------------------------------------------------------
 # 1-4: one batch operation, all files exactly once, deterministic order,
 # safely validated relative paths
 # ---------------------------------------------------------------------------
 
-def test_real_182_file_manifest_produces_one_batch_verification_script():
+def test_real_182_file_manifest_produces_one_batch_verification_script(real_static_manifest_fixture):
     manifest = _load_real_manifest()
     command = f"""
     Import-Module '{PSM1}' -Force -DisableNameChecking
@@ -102,7 +172,7 @@ def test_real_182_file_manifest_produces_one_batch_verification_script():
     assert f"LINES={len(manifest['files'])}" in result.stdout
 
 
-def test_check_input_contains_every_file_exactly_once_in_manifest_order():
+def test_check_input_contains_every_file_exactly_once_in_manifest_order(real_static_manifest_fixture):
     manifest = _load_real_manifest()
     command = f"""
     Import-Module '{PSM1}' -Force -DisableNameChecking
@@ -345,6 +415,47 @@ def test_existing_fix1_and_release_suites_still_pass():
         cwd=REPO_ROOT, capture_output=True, text=True, timeout=180,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_static_deploy_fixes_pass_in_clean_worktree_without_release_artifacts():
+    """EXPAND_DEPLOYMENT_GATE_FIX regression guard: the two fixture-generated
+    deployment tests (fix1's directory-derivation test, fix2's two
+    real-manifest tests) must pass in a fresh git worktree that starts with
+    no release-artifacts/ directory at all -- the exact condition
+    build-release-image.ps1's detached worktree is always in, which is what
+    exposed the original Category C hermeticity gap."""
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    holder = Path(tempfile.mkdtemp(prefix="hermeticity-check-"))
+    worktree_path = holder / "wt"
+    try:
+        add = subprocess.run(
+            ["git", "worktree", "add", "--detach", str(worktree_path), head],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=60,
+        )
+        assert add.returncode == 0, add.stdout + add.stderr
+        assert not (worktree_path / "release-artifacts").exists(), (
+            "test setup invariant broken: a fresh worktree must not have release-artifacts/"
+        )
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest",
+             "tests/deployment/test_static_deploy_fix1.py::test_parent_directory_derivation_and_dedup_and_ordering",
+             "tests/deployment/test_static_deploy_fix2.py::test_real_182_file_manifest_produces_one_batch_verification_script",
+             "tests/deployment/test_static_deploy_fix2.py::test_check_input_contains_every_file_exactly_once_in_manifest_order",
+             "-q"],
+            cwd=str(worktree_path), capture_output=True, text=True, timeout=180,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert not (worktree_path / "release-artifacts").exists(), (
+            "fixtures must clean up after themselves, leaving no release-artifacts/ directory behind"
+        )
+    finally:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(worktree_path)],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        )
+        shutil.rmtree(holder, ignore_errors=True)
 
 
 def test_powershell_scripts_still_parse():
