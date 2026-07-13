@@ -64,6 +64,8 @@
       "backend_i18n.py",
       "community_leaderboard_rewards.py",
       "db.py",
+      "newebpay.py",
+      "paypal_api.py",
       "deploy/runtime-source-provenance.json",
       "login.html", "landing.html", "index.html", "terms.html", "manage.html",
       "admin.html", "shadow_dashboard.html", "bot.html", "daily_challenge.html", "community.html",

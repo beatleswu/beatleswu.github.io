@@ -42,6 +42,13 @@ COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./
 COPY backend_i18n.py ./
 COPY community_leaderboard_rewards.py ./
+# PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
+# first payment-route access, not at app startup) -- restored after being
+# absent from this explicit COPY list despite app.py already depending on
+# them, which made every /api/pay/* route raise an unhandled
+# ModuleNotFoundError/500. See deploy/runtime-source-provenance.json.
+COPY newebpay.py ./
+COPY paypal_api.py ./
 # Community Leaderboard Rewards operator tools (dry-run/read-only CLIs) --
 # narrow copy, not the whole tools/ directory, since other scripts under
 # tools/ carry unrelated dependencies/production risk not needed here.

@@ -818,6 +818,30 @@
       "runtime_role": "startup-critical: app.py does `from db import get_db` -- PostgreSQL connection pool",
       "production_hash_status": "diverged from Production in this Sprint to add secret-safe readiness helpers",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; updated in Sprint"
+    },
+    {
+      "path": "newebpay.py",
+      "source_commit": "86f5ca4cfb450b511ed0162085b7a98d733ea23b",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711 (also reachable via sgf-fe-hotfix1a-node-property-parser and other Graph A branches)",
+      "source_commit_subject": "fix: AlterStatus 加 User-Agent（藍新 WAF 擋無 UA 請求回 403）",
+      "source_date": "2026-06-12",
+      "content_sha256": "74adca447e10a152edd2d71d57e6e5b375d2f238df90d685ba80d881fdb76302",
+      "line_ending_policy": "LF",
+      "runtime_role": "PAY-PLANS-500 hotfix: lazily imported inside app.py's _newebpay() (app.py:16228), only on first NewebPay payment-route access -- app.py itself starts fine without it, but GET /api/pay/plans and every /api/pay/newebpay/* route raised an unhandled ModuleNotFoundError/500 without it. Restored byte-identical to the last commit that touched it on any branch; verified against every current-master call site (build_period_form, decrypt_period_response, alter_period_status, is_configured, IS_TEST) before restoring.",
+      "production_hash_status": "not applicable -- this file was absent from the running Production container's filesystem entirely prior to this Sprint (confirmed via `docker exec ... find / -iname newebpay*`), so there is no Production copy to hash-compare against",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
+      "path": "paypal_api.py",
+      "source_commit": "64c5a95ca8da8f3df05901fcf2e25aa4ef2eebb6",
+      "source_branch_or_local_ref": "recovered-production-tip-20260711 (also reachable via sgf-fe-hotfix1a-node-property-parser and other Graph A branches)",
+      "source_commit_subject": "feat: PayPal Subscriptions 訂閱（US$10/月、US$84/年，Sandbox 先行）",
+      "source_date": "2026-06-12",
+      "content_sha256": "d862ad3412271679a5cedbad864d92ff31e898572f6a506b5b6af7318b432155",
+      "line_ending_policy": "LF",
+      "runtime_role": "PAY-PLANS-500 hotfix: lazily imported inside app.py's _paypal() (app.py:16872), only on first PayPal payment-route access -- app.py itself starts fine without it, but GET /api/pay/plans and every /api/pay/paypal/* route raised an unhandled ModuleNotFoundError/500 without it. Restored byte-identical to the last (and only) commit that touched it on any branch; verified against every current-master call site (is_configured, IS_TEST, create_product, create_plan, create_subscription, get_subscription, cancel_subscription) before restoring.",
+      "production_hash_status": "not applicable -- this file was absent from the running Production container's filesystem entirely prior to this Sprint (confirmed via `docker exec ... find / -iname paypal_api*`), so there is no Production copy to hash-compare against",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
     }
   ]
 }
