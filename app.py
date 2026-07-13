@@ -12204,53 +12204,46 @@ def _row_loadout(r):
         'is_premium':     1 if ('is_premium' in ks and r['is_premium']) else 0,
     }
 
-def _community_leaderboard_period_start_iso(board_type, now=None):
-    """Naive-UTC ISO timestamp for the start of the current weekly/monthly
-    community leaderboard scoring period, computed in Taiwan time (UTC+8,
-    no DST) to match how review_log.reviewed_at is stored.
-
-    Shared by the public /api/community/leaderboard route and the offline
-    reward entries exporter (tools/community_leaderboard_rewards_export_entries.py)
-    so the two can never drift apart on period boundaries."""
+def _community_leaderboard_period_bounds_iso(board_type, now=None):
+    """Naive-UTC ISO timestamps for the current community leaderboard
+    scoring period in Taiwan time, returned as
+    (period_start_iso, period_end_exclusive_iso)."""
     _TW = datetime.timezone(datetime.timedelta(hours=8))
     today = (now.astimezone(_TW) if now else datetime.datetime.now(_TW)).date()
     if board_type == 'weekly':
         anchor = today - datetime.timedelta(days=today.weekday())
+        end_anchor = anchor + datetime.timedelta(days=7)
     elif board_type == 'monthly':
         anchor = today.replace(day=1)
+        end_anchor = (anchor.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
     else:
         raise ValueError(f"unsupported community leaderboard board_type: {board_type!r}")
-    local = datetime.datetime.combine(anchor, datetime.time.min, tzinfo=_TW)
-    return local.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat()
+    start_local = datetime.datetime.combine(anchor, datetime.time.min, tzinfo=_TW)
+    end_local = datetime.datetime.combine(end_anchor, datetime.time.min, tzinfo=_TW)
+    return (
+        start_local.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat(),
+        end_local.astimezone(datetime.timezone.utc).replace(tzinfo=None).isoformat(),
+    )
 
 
-def _fetch_community_leaderboard_score_rows(conn, period_start_iso):
-    """Raw weekly/monthly community leaderboard rows (distinct-question
-    score, grade >= 3) for one period-start boundary. Read-only.
+def _community_leaderboard_period_start_iso(board_type, now=None):
+    return _community_leaderboard_period_bounds_iso(board_type, now=now)[0]
 
-    Score is COUNT(DISTINCT rl.question_id), not COUNT(*): repeatedly
-    resubmitting the same question in the same period must not inflate
-    leaderboard score (Phase 4C anti-abuse fix). This only changes how
-    the score is computed on each call -- it does not touch existing
-    review_log rows or already-finalized reward claims.
 
-    Shared by the public /api/community/leaderboard route (which strips
-    the internal `id` field before returning JSON) and the offline reward
-    entries exporter tool, so both stay in sync on ranking semantics --
-    same query and LIMIT the route has always run, just factored into one
-    place instead of duplicated for weekly/monthly."""
-    return conn.execute("""
-        SELECT u.id, u.username, COALESCE(u.nickname,u.username) AS display_name,
-               COUNT(DISTINCT rl.question_id) AS score,
-               COALESCE(MAX(s.rank_level),'LV1') AS rank_level,
-               COALESCE(MAX(pa.character_key),'') AS character_key, COALESCE(MAX(pa.combat_armor),'') AS combat_armor, COALESCE(MAX(pa.combat_weapon),'') AS combat_weapon, COALESCE(MAX(pa.combat_cape),'') AS combat_cape, COALESCE(MAX(pa.combat_offhand),'') AS combat_offhand, COALESCE(MAX(pa.combat_hat),'') AS combat_hat, COALESCE(MAX(pa.combat_pet),'') AS combat_pet, COALESCE(MAX(pa.combat_aura),'') AS combat_aura, CASE WHEN u.plan='premium' THEN 1 ELSE 0 END AS is_premium
-        FROM review_log rl
-        JOIN users u ON u.id = rl.user_id
-        LEFT JOIN user_stats s ON s.user_id = u.id
-        LEFT JOIN player_appearance pa ON pa.user_id = u.id
-        WHERE rl.reviewed_at >= ? AND rl.grade >= 3
-        GROUP BY u.id, u.username, u.nickname, u.plan ORDER BY score DESC LIMIT 50
-    """, (period_start_iso,)).fetchall()
+def _fetch_community_leaderboard_score_rows(conn, period_start_iso, period_end_iso=None):
+    from community_leaderboard_rewards import (
+        classify_leaderboard_participants,
+        fetch_leaderboard_participant_rows,
+        get_canonical_test_account_ids,
+    )
+    participants = fetch_leaderboard_participant_rows(
+        conn, period_start_iso, period_end_iso, limit=None)
+    ranked = classify_leaderboard_participants(
+        participants,
+        exclude_admin=True,
+        canonical_test_account_ids=get_canonical_test_account_ids(),
+    )["included"]
+    return ranked[:50]
 
 
 @app.route('/api/community/leaderboard')
@@ -12260,12 +12253,14 @@ def community_leaderboard():
     with get_db() as conn:
 
         # ── 週排行：本週答對次數（台灣時區週一 00:00 起）──
+        weekly_start_iso, weekly_end_iso = _community_leaderboard_period_bounds_iso('weekly')
         weekly_rows = _fetch_community_leaderboard_score_rows(
-            conn, _community_leaderboard_period_start_iso('weekly'))
+            conn, weekly_start_iso, weekly_end_iso)
 
         # ── 月排行：本月答對次數（台灣時區當月 1 日 00:00 起）──
+        monthly_start_iso, monthly_end_iso = _community_leaderboard_period_bounds_iso('monthly')
         monthly_rows = _fetch_community_leaderboard_score_rows(
-            conn, _community_leaderboard_period_start_iso('monthly'))
+            conn, monthly_start_iso, monthly_end_iso)
 
         # ── 總排行：累計 XP ──
         alltime_rows = conn.execute("""

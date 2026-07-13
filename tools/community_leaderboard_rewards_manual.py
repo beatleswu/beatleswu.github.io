@@ -63,6 +63,7 @@ route.
 """
 
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -103,6 +104,21 @@ def _connect(database_url):
 def _load_entries(entries_file):
     with open(entries_file, "r", encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def _load_json_file(path):
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _parse_json_arg(raw, label):
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} must be valid JSON: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must decode to a JSON object")
+    return value
 
 
 def _print_header(board_type, period_key, mode, dry_run):
@@ -311,6 +327,95 @@ def cmd_grant_real_preview(args):
     print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
     if result["real_function_signature_errors"]:
         return 4
+    return 0
+
+
+def cmd_snapshot_exact_period(args):
+    from community_leaderboard_rewards_exact_period import build_exact_period_snapshot
+    conn = _connect(args.database_url)
+    try:
+        snapshot = build_exact_period_snapshot(
+            conn,
+            board_type=args.board,
+            period_key=args.period_key,
+            period_start=args.period_start,
+            period_end_exclusive=args.period_end,
+            timezone=args.timezone,
+            limit=args.limit,
+        )
+    finally:
+        conn.close()
+    if args.output:
+        Path(args.output).write_text(
+            lbr.canonical_json_dumps(snapshot), encoding="utf-8")
+    print(f"board_type={args.board}")
+    print(f"period_key={args.period_key}")
+    print("mode=snapshot-exact-period")
+    print("dry_run=True")
+    print(f"snapshot_sha256={lbr.sha256_hex_from_value(snapshot)}")
+    print(f"original_participant_count={snapshot['participant_counts']['original_participant_count']}")
+    print(f"excluded_admin_count={snapshot['participant_counts']['excluded_admin_count']}")
+    print(
+        f"excluded_canonical_test_account_count="
+        f"{snapshot['participant_counts']['excluded_canonical_test_account_count']}"
+    )
+    print(json.dumps(snapshot, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_preview_exact_period(args):
+    from community_leaderboard_rewards_exact_period import build_exact_period_preview
+    snapshot = _load_json_file(args.snapshot_file)
+    preview = build_exact_period_preview(snapshot)
+    print(f"board_type={preview['board_type']}")
+    print(f"period_key={preview['period_key']}")
+    print("mode=preview-exact-period")
+    print("dry_run=True")
+    print(f"snapshot_sha256={preview['snapshot_sha256']}")
+    print(f"preview_sha256={preview['preview_sha256']}")
+    print(f"claims_count={preview['summary']['claims_count']}")
+    print(f"eligible_claim_count={preview['summary']['eligible_claim_count']}")
+    print(f"component_count={preview['summary']['component_count']}")
+    print(json.dumps(preview, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_grant_exact_period_commit(args):
+    from community_leaderboard_rewards_exact_period import commit_exact_period
+    snapshot = _load_json_file(args.snapshot_file)
+    expected_total_items = _parse_json_arg(args.expected_total_items_json, "expected_total_items_json")
+    expected_total_badges = _parse_json_arg(args.expected_total_badges_json, "expected_total_badges_json")
+    conn = _connect(args.database_url)
+    try:
+        try:
+            result = commit_exact_period(
+                conn,
+                snapshot=snapshot,
+                expected_snapshot_sha256=args.expected_snapshot_sha256,
+                expected_preview_sha256=args.expected_preview_sha256,
+                expected_claim_count=args.expected_claim_count,
+                expected_component_count=args.expected_component_count,
+                expected_total_coins=args.expected_total_coins,
+                expected_total_items=expected_total_items,
+                expected_total_badges=expected_total_badges,
+                owner_gate=args.owner_gate,
+                required_owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+                now=datetime.datetime.now(datetime.timezone.utc),
+            )
+        except Exception:
+            conn.rollback()
+            raise
+        conn.commit()
+    finally:
+        conn.close()
+    print(f"board_type={snapshot['board_type']}")
+    print(f"period_key={snapshot['period_key']}")
+    print("mode=grant-exact-period-commit")
+    print("dry_run=False")
+    print(f"result={result['result']}")
+    print(f"snapshot_sha256={result['snapshot_sha256']}")
+    print(f"preview_sha256={result['preview_sha256']}")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
 
 
@@ -776,6 +881,27 @@ def build_parser():
     _add_common_args(grp)
     grp.set_defaults(func=cmd_grant_real_preview)
 
+    sep = sub.add_parser(
+        "snapshot-exact-period",
+        help="Read-only extraction of a closed exact-period snapshot with deterministic "
+             "ranking, exclusions, and tie-break metadata.",
+    )
+    _add_common_args(sep)
+    sep.add_argument("--period-start", required=True, help="Exact period start date (YYYY-MM-DD).")
+    sep.add_argument("--period-end", required=True, help="Exact exclusive period end date (YYYY-MM-DD).")
+    sep.add_argument("--timezone", default="Asia/Taipei")
+    sep.add_argument("--limit", type=int, default=50)
+    sep.add_argument("--output", default=None)
+    sep.set_defaults(func=cmd_snapshot_exact_period)
+
+    pep = sub.add_parser(
+        "preview-exact-period",
+        help="Pure preview from an exact-period snapshot file. Computes canonical preview and "
+             "reward totals plus snapshot/preview SHA-256 values.",
+    )
+    pep.add_argument("--snapshot-file", required=True)
+    pep.set_defaults(func=cmd_preview_exact_period)
+
     gc = sub.add_parser(
         "grant-commit",
         help="Intentionally disabled until a later PR wires production grant functions.",
@@ -783,6 +909,28 @@ def build_parser():
     _add_common_args(gc)
     gc.add_argument("--confirm-grant", action="store_true")
     gc.set_defaults(func=cmd_grant_commit)
+
+    gep = sub.add_parser(
+        "grant-exact-period-commit",
+        help="WRITE-CAPABLE exact-period grant path. Requires exact snapshot/preview hashes, "
+             "expected totals, and the dedicated owner gate. Returns already_granted_noop for a "
+             "fully matching prior successful run; otherwise fails closed on any drift.",
+    )
+    gep.add_argument("--snapshot-file", required=True)
+    gep.add_argument("--expected-snapshot-sha256", required=True)
+    gep.add_argument("--expected-preview-sha256", required=True)
+    gep.add_argument("--expected-claim-count", type=int, required=True)
+    gep.add_argument("--expected-component-count", type=int, required=True)
+    gep.add_argument("--expected-total-coins", type=int, required=True)
+    gep.add_argument("--expected-total-items-json", required=True)
+    gep.add_argument("--expected-total-badges-json", required=True)
+    gep.add_argument("--owner-gate", required=True)
+    gep.add_argument(
+        "--database-url",
+        default=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
+        help="Defaults to the local dev Postgres used by the test suite, or $DATABASE_URL.",
+    )
+    gep.set_defaults(func=cmd_grant_exact_period_commit)
 
     gwc = sub.add_parser(
         "grant-weekly-2026w27-commit",

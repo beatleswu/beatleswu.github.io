@@ -18,7 +18,7 @@ def load_manifest():
 def test_manifest_exists_and_valid():
     data = load_manifest()
     assert isinstance(data["files"], list)
-    assert len(data["files"]) == 71
+    assert len(data["files"]) == 72
 
 
 def test_manifest_covers_every_recovered_runtime_file():
@@ -31,6 +31,7 @@ def test_manifest_covers_every_recovered_runtime_file():
         "newebpay.py", "paypal_api.py",
         "tools/community_leaderboard_rewards_export_entries.py",
         "tools/community_leaderboard_rewards_manual.py",
+        "tools/community_leaderboard_rewards_exact_period.py",
         "tools/community_leaderboard_rewards_real_grant_commit.py",
         "tools/community_leaderboard_rewards_real_grant_preview.py",
         "login.html", "landing.html", "index.html", "terms.html", "manage.html",
