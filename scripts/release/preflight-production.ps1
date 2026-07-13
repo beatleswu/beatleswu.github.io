@@ -9,6 +9,24 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# Machine-readable output (the final ConvertTo-Json report, and any fail-closed
+# gate message a caller greps for) must be valid UTF-8 regardless of the host's
+# active code page. Without this, an uncaught terminating error is instead
+# formatted and written by PowerShell's own top-level handler using the
+# console's default (locale-dependent) encoding, and in a non-English-locale
+# Windows install that handler's own boilerplate text (e.g. the localized "at
+# <script>:<line>" header) is emitted in that locale, not UTF-8 -- corrupting
+# the byte stream for any strict-UTF-8 reader even though every message this
+# script itself writes is plain ASCII.
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+trap {
+    # Emit only this script's own ASCII gate-violation message, bypassing
+    # PowerShell's default unhandled-exception formatting (the source of the
+    # locale-dependent bytes above). Fail-closed behavior is unchanged: same
+    # message text, same non-zero exit.
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
 Import-Module (Join-Path $PSScriptRoot 'ReleaseTooling.psm1') -Force -DisableNameChecking
 
 $repoRoot = Get-RepoRoot

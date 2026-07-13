@@ -162,6 +162,13 @@ def run_module_probe(tmp_path, probe_body):
     script = tmp_path / "probe.ps1"
     module_path = str(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
     script.write_text(
+        # Some PowerShell/.NET built-in exception messages (e.g. ConvertFrom-Json's
+        # own parse-error text) are localized to the OS display language. Forcing
+        # UTF-8 output here means that localized text -- wherever a probe
+        # intentionally surfaces it -- round-trips as valid UTF-8 instead of
+        # being emitted in the console's active code page (e.g. cp950/Big5 on a
+        # zh-TW host), which a strict UTF-8 reader (python -X utf8) can't decode.
+        "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)\n"
         "$ErrorActionPreference = 'Stop'\n"
         f"Import-Module '{module_path}' -Force -DisableNameChecking\n" + probe_body,
         encoding="utf-8",
@@ -171,6 +178,7 @@ def run_module_probe(tmp_path, probe_body):
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
 
@@ -201,6 +209,7 @@ def run_preflight_with_fake_remote(tmp_path, fake_remote_payload):
         env=env,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     return result
