@@ -354,11 +354,8 @@ def cmd_snapshot_exact_period(args):
     print("dry_run=True")
     print(f"snapshot_sha256={lbr.sha256_hex_from_value(snapshot)}")
     print(f"original_participant_count={snapshot['participant_counts']['original_participant_count']}")
-    print(f"excluded_admin_count={snapshot['participant_counts']['excluded_admin_count']}")
-    print(
-        f"excluded_canonical_test_account_count="
-        f"{snapshot['participant_counts']['excluded_canonical_test_account_count']}"
-    )
+    print(f"ranked_participant_count={snapshot['participant_counts']['ranked_participant_count']}")
+    print(f"top_ranked_row_count={snapshot['participant_counts']['top_ranked_row_count']}")
     print(json.dumps(snapshot, indent=2, ensure_ascii=False))
     return 0
 
@@ -374,6 +371,7 @@ def cmd_preview_exact_period(args):
     print(f"snapshot_sha256={preview['snapshot_sha256']}")
     print(f"preview_sha256={preview['preview_sha256']}")
     print(f"claims_count={preview['summary']['claims_count']}")
+    print(f"snapshot_row_count={preview['summary']['snapshot_row_count']}")
     print(f"eligible_claim_count={preview['summary']['eligible_claim_count']}")
     print(f"component_count={preview['summary']['component_count']}")
     print(json.dumps(preview, indent=2, ensure_ascii=False))

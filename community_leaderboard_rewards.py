@@ -44,22 +44,6 @@ FORBIDDEN_REWARD_ITEM_KEYS = frozenset({"ai_explain_ticket"})
 
 EXACT_PERIOD_OWNER_GATE = "GO_COMMUNITY_LEADERBOARD_REWARD_GRANT"
 
-TEST_ACCOUNT_EVIDENCE_FIXTURE = "test_fixture"
-TEST_ACCOUNT_EVIDENCE_QA = "qa_account"
-TEST_ACCOUNT_EVIDENCE_SMOKE = "deployment_smoke_account"
-TEST_ACCOUNT_EVIDENCE_TOOLING = "explicit_tooling_account"
-_TEST_ACCOUNT_EVIDENCE_CLASSES = frozenset({
-    TEST_ACCOUNT_EVIDENCE_FIXTURE,
-    TEST_ACCOUNT_EVIDENCE_QA,
-    TEST_ACCOUNT_EVIDENCE_SMOKE,
-    TEST_ACCOUNT_EVIDENCE_TOOLING,
-})
-
-# Reviewable explicit denylist for canonical smoke / QA / tooling-only
-# accounts. Leave empty unless an account is backed by durable, non-private
-# evidence from fixtures, deployment smoke configuration, or explicit tooling.
-CANONICAL_TEST_ACCOUNT_REGISTRY = ()
-
 _EMAIL_RE = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 _GOOGLE_SUB_RE = re.compile(r"^\d{9,30}$")
 _GENERATED_GOOGLE_USERNAME_RE = re.compile(r"^g_.+_\d+$")
@@ -112,37 +96,6 @@ _MONTHLY_REWARD_BUNDLES = {
         "coins": 150,
     },
 }
-
-
-def get_canonical_test_account_registry():
-    registry = {}
-    for entry in CANONICAL_TEST_ACCOUNT_REGISTRY:
-        if not isinstance(entry, dict):
-            raise ValueError("canonical test account registry entries must be dicts")
-        user_id = entry.get("user_id")
-        evidence_class = entry.get("evidence_class")
-        note = entry.get("note") or ""
-        if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
-            raise ValueError(f"invalid canonical test-account user_id: {user_id!r}")
-        if evidence_class not in _TEST_ACCOUNT_EVIDENCE_CLASSES:
-            raise ValueError(
-                f"invalid canonical test-account evidence_class for user_id={user_id}: "
-                f"{evidence_class!r}"
-            )
-        if not isinstance(note, str):
-            raise ValueError(f"invalid canonical test-account note for user_id={user_id}")
-        if user_id in registry:
-            raise ValueError(f"duplicate canonical test-account user_id: {user_id}")
-        registry[user_id] = {
-            "user_id": user_id,
-            "evidence_class": evidence_class,
-            "note": note.strip(),
-        }
-    return registry
-
-
-def get_canonical_test_account_ids():
-    return frozenset(get_canonical_test_account_registry().keys())
 
 
 def canonical_json_dumps(value):
@@ -451,34 +404,19 @@ SELECT u.id,
     return conn.execute(sql, tuple(params)).fetchall()
 
 
-def classify_leaderboard_participants(rows, *, exclude_admin=True, canonical_test_account_ids=None):
-    test_account_ids = frozenset(canonical_test_account_ids or ())
+def rank_leaderboard_participants(rows):
     ranked = []
-    excluded = []
     for raw in rows:
         row = dict(raw)
         user_id = int(row["id"])
-        exclusion_reason = None
-        evidence_class = None
-        if exclude_admin and bool(row.get("is_admin")):
-            exclusion_reason = "admin_account"
-            evidence_class = "users.is_admin"
-        elif user_id in test_account_ids:
-            exclusion_reason = "canonical_test_account"
-            evidence_class = "canonical_test_account_registry"
         row["user_id"] = user_id
         row["score"] = int(row["score"] or 0)
         row["final_counted_at"] = row.get("final_counted_at")
-        if exclusion_reason:
-            row["exclusion_reason"] = exclusion_reason
-            row["evidence_class"] = evidence_class
-            excluded.append(row)
-        else:
-            ranked.append(row)
+        ranked.append(row)
     ranked.sort(key=lambda r: (-int(r["score"]), str(r["final_counted_at"] or ""), int(r["user_id"])))
     for index, row in enumerate(ranked, start=1):
         row["rank"] = index
-    return {"included": ranked, "excluded": excluded}
+    return ranked
 
 
 def leaderboard_rows_to_entries(rows, *, limit=None):
@@ -496,10 +434,12 @@ def leaderboard_rows_to_entries(rows, *, limit=None):
 
 
 def summarize_preview_rewards(preview_entries):
+    eligible_entries = [entry for entry in preview_entries if entry.get("eligible")]
     summary = {
-        "claims_count": len(preview_entries),
-        "eligible_claim_count": 0,
-        "skipped_claim_count": 0,
+        "claims_count": len(eligible_entries),
+        "snapshot_row_count": len(preview_entries),
+        "eligible_claim_count": len(eligible_entries),
+        "non_rewarded_row_count": len(preview_entries) - len(eligible_entries),
         "component_count": 0,
         "total_coins": 0,
         "total_items": {},
@@ -508,9 +448,7 @@ def summarize_preview_rewards(preview_entries):
     }
     for entry in preview_entries:
         if not entry.get("eligible"):
-            summary["skipped_claim_count"] += 1
             continue
-        summary["eligible_claim_count"] += 1
         payload = entry.get("reward_payload") or {}
         coins = int(payload.get("coins") or 0)
         if coins > 0:
@@ -640,7 +578,7 @@ def finalize_leaderboard_reward_period(
 ):
     """Settle one weekly/monthly leaderboard period into snapshots + reward
     claims, WITHOUT granting anything. Phase 1 / PR 3: only creates
-    'pending' or 'skipped' claims, never 'granted'. Does not invoke any
+    pending claims for reward-eligible rows, never granted claims. Does not invoke any
     coin-granting or shop-purchase-granting helper.
 
     entries: list of {"user_id", "display_name", "avatar", "rank", "score"}.
@@ -680,7 +618,6 @@ def finalize_leaderboard_reward_period(
     claim_inserted = 0
     claim_existing = 0
     claim_pending = 0
-    claim_skipped = 0
     result_entries = []
 
     for item in processed:
@@ -706,35 +643,35 @@ def finalize_leaderboard_reward_period(
             snapshot_status = "inserted"
             snapshot_inserted += 1
 
-        claim_status = CLAIM_STATUS_PENDING if item["eligible"] else CLAIM_STATUS_SKIPPED
-        claim_record = make_leaderboard_reward_claim_record(
-            user_id=item["user_id"],
-            board_type=board_type,
-            period_key=period_key,
-            status=claim_status,
-            rank=item["rank"],
-            rank_band=item["rank_band"],
-            score=item["score"],
-            eligible=item["eligible"],
-            ineligible_reason=item["ineligible_reason"],
-            reward_bundle_key=item["reward_bundle_key"],
-            granted_coins=item["reward_payload"]["coins"],
-            granted_items=item["reward_payload"]["items"],
-            granted_badges=item["reward_payload"]["badges"],
-            granted_titles=item["reward_payload"]["titles"],
-            created_at=created_at,
-        )
-        claim_row = conn.execute(_CLAIM_INSERT_SQL, claim_record).fetchone()
-        if claim_row is None:
-            claim_result_status = "existing"
-            claim_existing += 1
-        else:
-            claim_result_status = "inserted"
-            claim_inserted += 1
-            if claim_status == CLAIM_STATUS_PENDING:
-                claim_pending += 1
+        claim_result_status = "not_created"
+        if item["eligible"]:
+            claim_record = make_leaderboard_reward_claim_record(
+                user_id=item["user_id"],
+                board_type=board_type,
+                period_key=period_key,
+                status=CLAIM_STATUS_PENDING,
+                rank=item["rank"],
+                rank_band=item["rank_band"],
+                score=item["score"],
+                eligible=item["eligible"],
+                ineligible_reason=item["ineligible_reason"],
+                reward_bundle_key=item["reward_bundle_key"],
+                granted_coins=item["reward_payload"]["coins"],
+                granted_items=item["reward_payload"]["items"],
+                granted_badges=item["reward_payload"]["badges"],
+                granted_titles=item["reward_payload"]["titles"],
+                created_at=created_at,
+            )
+            claim_row = conn.execute(_CLAIM_INSERT_SQL, claim_record).fetchone()
+            if claim_row is None:
+                claim_result_status = "existing"
+                claim_existing += 1
             else:
-                claim_skipped += 1
+                claim_result_status = "inserted"
+                claim_inserted += 1
+                claim_pending += 1
+        else:
+            claim_row = None
 
         result_entries.append(
             {**item, "snapshot_status": snapshot_status, "claim_status": claim_result_status}
@@ -751,7 +688,7 @@ def finalize_leaderboard_reward_period(
             "inserted": claim_inserted,
             "existing": claim_existing,
             "pending": claim_pending,
-            "skipped": claim_skipped,
+            "not_created": len([entry for entry in processed if not entry["eligible"]]),
         },
         "entries": result_entries,
     }

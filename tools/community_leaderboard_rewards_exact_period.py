@@ -26,10 +26,6 @@ def _parse_date(value, label):
     return datetime.date.fromisoformat(value)
 
 
-def _canonical_test_registry():
-    return lbr.get_canonical_test_account_registry()
-
-
 def _period_bounds(board_type, period_key, period_start, period_end_exclusive, timezone):
     start_date = _parse_date(period_start, "period_start")
     end_date = _parse_date(period_end_exclusive, "period_end_exclusive")
@@ -57,19 +53,13 @@ def build_exact_period_snapshot(
     limit=50,
 ):
     bounds = _period_bounds(board_type, period_key, period_start, period_end_exclusive, timezone)
-    registry = _canonical_test_registry()
     participants = lbr.fetch_leaderboard_participant_rows(
         conn,
         _utc_naive_iso(bounds["period_start_at"]),
         _utc_naive_iso(bounds["period_end_exclusive_at"]),
         limit=None,
     )
-    classified = lbr.classify_leaderboard_participants(
-        participants,
-        exclude_admin=True,
-        canonical_test_account_ids=frozenset(registry.keys()),
-    )
-    ranked_rows = classified["included"]
+    ranked_rows = lbr.rank_leaderboard_participants(participants)
     top_rows = ranked_rows[:limit]
     entries = lbr.leaderboard_rows_to_entries(top_rows)
     reward_preview = lbr.finalize_leaderboard_reward_period(
@@ -82,19 +72,6 @@ def build_exact_period_snapshot(
         dry_run=True,
     )
     summary = lbr.summarize_preview_rewards(reward_preview["preview"])
-    excluded_accounts = []
-    for row in classified["excluded"]:
-        item = {
-            "user_id": int(row["user_id"]),
-            "username": row["username"],
-            "display_name": row["display_name"],
-            "score": int(row["score"]),
-            "final_counted_at": row["final_counted_at"],
-            "exclusion_reason": row["exclusion_reason"],
-            "evidence_class": row["evidence_class"],
-            "note": registry.get(int(row["user_id"]), {}).get("note", ""),
-        }
-        excluded_accounts.append(item)
     rank_changes = []
     original_ranks = {int(dict(row)["id"]): index for index, row in enumerate(participants, start=1)}
     for row in top_rows:
@@ -117,8 +94,8 @@ def build_exact_period_snapshot(
         "period_start_utc_naive": _utc_naive_iso(bounds["period_start_at"]),
         "period_end_utc_naive": _utc_naive_iso(bounds["period_end_exclusive_at"]),
         "policy": {
-            "exclude_admin_accounts": True,
-            "canonical_test_account_registry": list(registry.values()),
+            "admin_accounts_eligible": True,
+            "test_accounts_eligible": True,
             "ranking_order": [
                 "score DESC",
                 "final_counted_distinct_question_at ASC",
@@ -128,14 +105,11 @@ def build_exact_period_snapshot(
         },
         "participant_counts": {
             "original_participant_count": len(participants),
-            "excluded_admin_count": sum(1 for r in classified["excluded"] if r["exclusion_reason"] == "admin_account"),
-            "excluded_canonical_test_account_count": sum(
-                1 for r in classified["excluded"] if r["exclusion_reason"] == "canonical_test_account"
-            ),
-            "post_exclusion_participant_count": len(ranked_rows),
+            "ranked_participant_count": len(ranked_rows),
+            "top_ranked_row_count": len(top_rows),
             "reward_eligible_count": summary["eligible_claim_count"],
         },
-        "excluded_accounts": excluded_accounts,
+        "excluded_accounts": [],
         "rank_changes": rank_changes,
         "entries": entries,
         "top_rows": [
@@ -278,6 +252,8 @@ def expected_component_rows(preview_entries):
 def _preview_claim_expectations(preview_entries):
     expectations = []
     for entry in preview_entries:
+        if not entry.get("eligible"):
+            continue
         payload = entry.get("reward_payload") or {}
         expectations.append({
             "user_id": int(entry["user_id"]),
@@ -303,8 +279,11 @@ def detect_existing_operation_state(conn, snapshot, preview_result):
     if not claims or not snapshots:
         return {"state": "conflict", "reason": "partial snapshot/claim presence", "claims": claims, "snapshots": snapshots}
     expected_claims = _preview_claim_expectations(preview_result["preview"])
-    if len(claims) != len(expected_claims) or len(snapshots) != len(expected_claims):
-        return {"state": "conflict", "reason": "existing claim/snapshot count mismatch", "claims": claims, "snapshots": snapshots}
+    expected_snapshot_rows = preview_result["summary"]["snapshot_row_count"]
+    if len(claims) != len(expected_claims):
+        return {"state": "conflict", "reason": "existing claim count mismatch", "claims": claims, "snapshots": snapshots}
+    if len(snapshots) != int(expected_snapshot_rows):
+        return {"state": "conflict", "reason": "existing snapshot count mismatch", "claims": claims, "snapshots": snapshots}
     by_rank = {int(item["rank"]): item for item in expected_claims}
     def _norm_scalar(key, value):
         if key in ("user_id", "rank", "granted_coins"):
@@ -327,11 +306,12 @@ def detect_existing_operation_state(conn, snapshot, preview_result):
                 return {"state": "conflict", "reason": f"existing claim mismatch for rank={claim['rank']} key={key}"}
         if bool(claim["eligible"]) != bool(expected["eligible"]):
             return {"state": "conflict", "reason": f"existing claim eligibility mismatch for rank={claim['rank']}"}
-        wanted_status = lbr.CLAIM_STATUS_GRANTED if expected["eligible"] else lbr.CLAIM_STATUS_SKIPPED
+        wanted_status = lbr.CLAIM_STATUS_GRANTED
         if claim["status"] != wanted_status:
             return {"state": "conflict", "reason": f"existing claim status is not fully settled for rank={claim['rank']}"}
+    preview_by_rank = {int(item["rank"]): item for item in preview_result["preview"]}
     for snap in snapshots:
-        expected = by_rank.get(int(snap["rank"]))
+        expected = preview_by_rank.get(int(snap["rank"]))
         if expected is None:
             return {"state": "conflict", "reason": "unexpected existing snapshot rank"}
         if int(snap["user_id"]) != int(expected["user_id"]) or int(snap["score"]) != int(expected["score"]):

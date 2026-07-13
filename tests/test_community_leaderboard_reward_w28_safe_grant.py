@@ -237,15 +237,6 @@ class FakeAppModule:
 
 
 def build_commit_snapshot(conn, monkeypatch):
-    monkeypatch.setattr(
-        lbr,
-        "CANONICAL_TEST_ACCOUNT_REGISTRY",
-        ({
-            "user_id": 105,
-            "evidence_class": lbr.TEST_ACCOUNT_EVIDENCE_FIXTURE,
-            "note": "reward safety fixture account",
-        },),
-    )
     snapshot = build_exact_period_snapshot(
         conn,
         board_type="weekly",
@@ -257,18 +248,9 @@ def build_commit_snapshot(conn, monkeypatch):
     return snapshot, preview
 
 
-def test_admin_and_registry_exclusions_apply_before_ranking_and_names_are_not_heuristics(monkeypatch):
+def test_admin_and_test_style_names_remain_ranked_and_names_are_not_heuristics(monkeypatch):
     conn = make_conn()
     seed_ranking_fixture(conn)
-    monkeypatch.setattr(
-        lbr,
-        "CANONICAL_TEST_ACCOUNT_REGISTRY",
-        ({
-            "user_id": 20,
-            "evidence_class": lbr.TEST_ACCOUNT_EVIDENCE_FIXTURE,
-            "note": "fixture user",
-        },),
-    )
     snapshot = build_exact_period_snapshot(
         conn,
         board_type="weekly",
@@ -276,21 +258,20 @@ def test_admin_and_registry_exclusions_apply_before_ranking_and_names_are_not_he
         period_start="2026-07-06",
         period_end_exclusive="2026-07-13",
     )
-    excluded_ids = {row["user_id"] for row in snapshot["excluded_accounts"]}
-    assert excluded_ids == {10, 20}
-    assert snapshot["participant_counts"]["excluded_admin_count"] == 1
-    assert snapshot["participant_counts"]["excluded_canonical_test_account_count"] == 1
-    assert snapshot["top_rows"][0]["user_id"] == 40
-    assert snapshot["top_rows"][1]["user_id"] == 30
-    assert 30 not in excluded_ids
-    assert snapshot["top_rows"][1]["display_name"] == "test01"
+    assert snapshot["excluded_accounts"] == []
+    assert snapshot["participant_counts"]["original_participant_count"] == 6
+    assert snapshot["participant_counts"]["ranked_participant_count"] == 6
+    assert snapshot["top_rows"][0]["user_id"] == 10
+    assert snapshot["top_rows"][1]["user_id"] == 20
+    assert snapshot["top_rows"][2]["user_id"] == 40
+    assert snapshot["top_rows"][3]["user_id"] == 30
+    assert snapshot["top_rows"][3]["display_name"] == "test01"
     conn.close()
 
 
 def test_tiebreak_uses_final_counted_timestamp_then_user_id_and_repeated_solves_do_not_inflate(monkeypatch):
     conn = make_conn()
     seed_ranking_fixture(conn)
-    monkeypatch.setattr(lbr, "CANONICAL_TEST_ACCOUNT_REGISTRY", ())
     snapshot = build_exact_period_snapshot(
         conn,
         board_type="weekly",
@@ -310,7 +291,6 @@ def test_tiebreak_uses_final_counted_timestamp_then_user_id_and_repeated_solves_
 def test_exact_period_preview_is_deterministic_and_monday_activity_is_excluded(monkeypatch):
     conn = make_conn()
     seed_ranking_fixture(conn)
-    monkeypatch.setattr(lbr, "CANONICAL_TEST_ACCOUNT_REGISTRY", ())
     snapshot1 = build_exact_period_snapshot(
         conn,
         board_type="weekly",
@@ -468,7 +448,7 @@ def test_commit_succeeds_once_then_returns_controlled_noop_without_duplicate_rew
         "SELECT status FROM leaderboard_reward_claims WHERE board_type=? AND period_key=? ORDER BY rank",
         ("weekly", "2026-W28"),
     ).fetchall()
-    assert [row[0] for row in claims] == ["granted", "granted", "granted"]
+    assert [row[0] for row in claims] == ["granted", "granted", "granted", "granted", "granted"]
     notifications = lbr.fetch_unacknowledged_granted_reward_claims(conn, 101)
     assert len(notifications) == 1
     coins_after_first = conn.execute(
@@ -538,3 +518,32 @@ def test_manual_grant_commit_remains_disabled():
         "--confirm-grant",
     ])
     assert result == 3
+
+
+def test_finalize_exact_period_creates_snapshots_for_top_rows_but_claims_only_for_rewarded_rows():
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot = build_exact_period_snapshot(
+        conn,
+        board_type="weekly",
+        period_key="2026-W28",
+        period_start="2026-07-06",
+        period_end_exclusive="2026-07-13",
+    )
+    result = lbr.finalize_leaderboard_reward_period(
+        conn,
+        snapshot["board_type"],
+        snapshot["period_key"],
+        snapshot["period_start"],
+        (datetime.date.fromisoformat(snapshot["period_end_exclusive"]) - datetime.timedelta(days=1)).isoformat(),
+        snapshot["entries"],
+        dry_run=False,
+    )
+    conn.commit()
+    assert result["claims"]["inserted"] == snapshot["preview_summary"]["claims_count"]
+    assert result["claims"]["not_created"] == (
+        snapshot["preview_summary"]["snapshot_row_count"] - snapshot["preview_summary"]["claims_count"]
+    )
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == snapshot["preview_summary"]["snapshot_row_count"]
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == snapshot["preview_summary"]["claims_count"]
+    conn.close()

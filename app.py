@@ -12232,17 +12232,12 @@ def _community_leaderboard_period_start_iso(board_type, now=None):
 
 def _fetch_community_leaderboard_score_rows(conn, period_start_iso, period_end_iso=None):
     from community_leaderboard_rewards import (
-        classify_leaderboard_participants,
         fetch_leaderboard_participant_rows,
-        get_canonical_test_account_ids,
+        rank_leaderboard_participants,
     )
     participants = fetch_leaderboard_participant_rows(
         conn, period_start_iso, period_end_iso, limit=None)
-    ranked = classify_leaderboard_participants(
-        participants,
-        exclude_admin=True,
-        canonical_test_account_ids=get_canonical_test_account_ids(),
-    )["included"]
+    ranked = rank_leaderboard_participants(participants)
     return ranked[:50]
 
 
