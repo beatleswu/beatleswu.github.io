@@ -105,11 +105,11 @@
     },
     {
       "path": "tools/community_leaderboard_rewards_manual.py",
-      "source_commit": "6e4828a0565dd5722186ee653eaf446cbe3e0719",
+      "source_commit": "c80b92d1a0e99ac9e3f511b70f0d3f5e41d3213a",
       "source_branch_or_local_ref": "feature/community-leaderboard-w28-safe-grant",
-      "source_commit_subject": "fix(rewards): keep admin and test accounts eligible",
+      "source_commit_subject": "test(rewards): harden exact-period operator snapshot flow",
       "source_date": "2026-07-13",
-      "content_sha256": "aae934ae2ca39261922b7d133ad834e9cf29ae0d3473bd9ecafe440c488207a5",
+      "content_sha256": "4c74e1b436c5720720f383f00bc040132246c8b6cacfe893ee493cc8084af612",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin"
