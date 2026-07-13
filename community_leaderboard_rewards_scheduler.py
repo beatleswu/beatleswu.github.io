@@ -42,6 +42,14 @@ def _logger_for(app_module):
     return logging.getLogger("community_leaderboard_rewards_scheduler")
 
 
+def _community_rewards_flag_enabled(app_module):
+    exact_reader = getattr(app_module, "_env_flag_exact_true", None)
+    if callable(exact_reader):
+        return bool(exact_reader(COMMUNITY_LEADERBOARD_REWARDS_ENABLED))
+    raw = os.environ.get(COMMUNITY_LEADERBOARD_REWARDS_ENABLED)
+    return bool(raw is not None and raw.strip().lower() == "true")
+
+
 def resolve_scheduler_now(now=None, timezone=SCHEDULER_TIMEZONE):
     tz = ZoneInfo(timezone)
     if now is None:
@@ -343,7 +351,7 @@ def log_scheduler_result(logger, result):
 def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_root=None):
     logger = _logger_for(app_module)
     started_at = time.monotonic()
-    flag_enabled = app_module._env_flag_enabled(COMMUNITY_LEADERBOARD_REWARDS_ENABLED)
+    flag_enabled = _community_rewards_flag_enabled(app_module)
     if not flag_enabled:
         result = {
             "result": "disabled_noop",

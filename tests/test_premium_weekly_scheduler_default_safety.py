@@ -85,19 +85,19 @@ def test_premium_weekly_scheduler_starts_only_for_explicit_true(monkeypatch):
 
 
 def test_community_leaderboard_weekly_flag_parser_treats_false_values_as_disabled(monkeypatch):
-    for value in (None, "", "0", "false", "False", "no", "off", "   "):
+    for value in (None, "", "0", "1", "false", "False", "no", "off", "yes", "on", "   "):
         if value is None:
             monkeypatch.delenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", raising=False)
         else:
             monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", value)
 
-        assert app_module._env_flag_enabled("COMMUNITY_LEADERBOARD_REWARDS_ENABLED") is False
+        assert app_module._env_flag_exact_true("COMMUNITY_LEADERBOARD_REWARDS_ENABLED") is False
 
 
 def test_community_leaderboard_weekly_flag_parser_accepts_explicit_true_values(monkeypatch):
-    for value in ("1", "true", "TRUE", "yes", "on"):
+    for value in ("true", "TRUE", " True "):
         monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", value)
-        assert app_module._env_flag_enabled("COMMUNITY_LEADERBOARD_REWARDS_ENABLED") is True
+        assert app_module._env_flag_exact_true("COMMUNITY_LEADERBOARD_REWARDS_ENABLED") is True
 
 
 def test_community_leaderboard_scheduler_disabled_by_default_never_imports_or_starts_thread(monkeypatch):

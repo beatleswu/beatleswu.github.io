@@ -56,7 +56,7 @@ class FakeAppModule:
         self._conn = conn
         self.app = SimpleNamespace(logger=FakeLogger())
 
-    def _env_flag_enabled(self, name):
+    def _env_flag_exact_true(self, name):
         assert name == scheduler.COMMUNITY_LEADERBOARD_REWARDS_ENABLED
         return self._enabled
 
@@ -885,7 +885,7 @@ class _PgAppModule:
         self.database_url = database_url
         self.app = SimpleNamespace(logger=FakeLogger())
 
-    def _env_flag_enabled(self, name):
+    def _env_flag_exact_true(self, name):
         assert name == scheduler.COMMUNITY_LEADERBOARD_REWARDS_ENABLED
         return True
 

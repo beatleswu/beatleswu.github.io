@@ -21282,6 +21282,13 @@ def _env_flag_enabled(name, default=False):
     return normalized in {'1', 'true', 'yes', 'on'}
 
 
+def _env_flag_exact_true(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() == 'true'
+
+
 def _start_premium_weekly_scheduler():
     """Run the idempotent job hourly; generation itself is keyed by report week."""
     if not _env_flag_enabled('PREMIUM_WEEKLY_SCHEDULER_ENABLED'):
@@ -21300,7 +21307,7 @@ def _start_premium_weekly_scheduler():
 def _start_community_leaderboard_weekly_scheduler():
     """Run the weekly leaderboard reward job on a short bounded interval so
     Monday 00:10 Asia/Taipei executes promptly and later restarts catch up."""
-    if not _env_flag_enabled('COMMUNITY_LEADERBOARD_REWARDS_ENABLED'):
+    if not _env_flag_exact_true('COMMUNITY_LEADERBOARD_REWARDS_ENABLED'):
         return
 
     def worker():
