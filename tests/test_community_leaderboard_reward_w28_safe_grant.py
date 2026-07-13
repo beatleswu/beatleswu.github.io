@@ -510,6 +510,156 @@ def test_transaction_failure_rolls_back_partial_writes(monkeypatch):
     conn.close()
 
 
+def test_exact_period_later_winner_failure_rolls_back_entire_period(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    import community_leaderboard_rewards_real_grant_preview as real_preview
+
+    class FailOnSecondWinnerApp(FakeAppModule):
+        item_calls = 0
+
+        @staticmethod
+        def _grant_shop_purchase(conn, user_id, item, quantity):
+            FailOnSecondWinnerApp.item_calls += 1
+            if FailOnSecondWinnerApp.item_calls >= 2:
+                raise RuntimeError("later winner item failure")
+            return FakeAppModule._grant_shop_purchase(conn, user_id, item, quantity)
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FailOnSecondWinnerApp)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+
+    with pytest.raises(RuntimeError, match="later winner item failure"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    conn.rollback()
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM shop_inventory").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM badges_earned").fetchone()[0] == 0
+    conn.close()
+
+
+def test_exact_period_coin_failure_rolls_back_everything(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    import community_leaderboard_rewards_real_grant_preview as real_preview
+
+    class FailCoinsApp(FakeAppModule):
+        @staticmethod
+        def _grant_coins(conn, user_id, amount, reason, bypass_daily_cap=False):
+            raise RuntimeError("coin grant failure")
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FailCoinsApp)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+
+    with pytest.raises(RuntimeError, match="coin grant failure"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    conn.rollback()
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+    assert conn.execute("SELECT coin_balance FROM users WHERE id = 101").fetchone()[0] == 0
+    conn.close()
+
+
+def test_exact_period_badge_failure_rolls_back_everything(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    import community_leaderboard_rewards_real_grant_preview as real_preview
+
+    class FailBadgeApp(FakeAppModule):
+        @staticmethod
+        def grant_community_reward_badge(conn, *, user_id, badge_key, claim_id=None, context=None):
+            raise RuntimeError("badge grant failure")
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FailBadgeApp)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+
+    with pytest.raises(RuntimeError, match="badge grant failure"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    conn.rollback()
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM badges_earned").fetchone()[0] == 0
+    conn.close()
+
+
+def test_exact_period_granted_state_publication_failure_rolls_back_notifications(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    import community_leaderboard_rewards_real_grant_preview as real_preview
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+
+    original_mark_granted = lbr.mark_leaderboard_claim_granted
+
+    def fail_mark_granted(conn, claim_id):
+        raise RuntimeError("notification publication failure")
+
+    monkeypatch.setattr(lbr, "mark_leaderboard_claim_granted", fail_mark_granted)
+    try:
+        with pytest.raises(RuntimeError, match="notification publication failure"):
+            commit_exact_period(
+                conn,
+                snapshot=snapshot,
+                expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+                expected_preview_sha256=preview["preview_sha256"],
+                expected_claim_count=preview["summary"]["claims_count"],
+                expected_component_count=preview["summary"]["component_count"],
+                expected_total_coins=preview["summary"]["total_coins"],
+                expected_total_items=preview["summary"]["total_items"],
+                expected_total_badges=preview["summary"]["total_badges"],
+                owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+            )
+    finally:
+        monkeypatch.setattr(lbr, "mark_leaderboard_claim_granted", original_mark_granted)
+    conn.rollback()
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+    assert lbr.fetch_unacknowledged_granted_reward_claims(conn, 101) == []
+    conn.close()
+
+
 def test_manual_grant_commit_remains_disabled():
     result = manual.main([
         "grant-commit",
