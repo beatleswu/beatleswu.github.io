@@ -184,15 +184,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "d942a19a56bbe3ba7167d45d9c8d008430b94283",
-      "source_branch_or_local_ref": "feature/release-fix-b-e9-i18n-fallback",
-      "source_commit_subject": "fix(e9): harden missing translation fallback",
-      "source_date": "Sun Jul 12",
-      "content_sha256": "07269c51a95074256489eb31e27de44aad3a7801aefb41d1c1476f699d943494",
+      "source_commit": "67fe6f20edfad823343a2aae0de8667f6a1d3514",
+      "source_branch_or_local_ref": "feature/e9-1d1-shell-exclusivity",
+      "source_commit_subject": "feat/e9-1d1: enforce exclusive adventure shell ownership",
+      "source_date": "Mon Jul 13",
+      "content_sha256": "c887de5fad1c3770116457c1640a592d10b163cc6b38e208bba0102c922d2862",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin (RELEASE-FIX-B update: added js/e9/i18n_fallback.js script tag, bumped ?v= cache-bust for the four hardened E9 files)"
+      "production_hash_status": "does NOT byte-match current Production (post-merge shell exclusivity update changed served runtime bytes) -- latest reachable canonical Git commit recorded here",
+      "source_status": "canonical Git provenance repaired after stale RELEASE-FIX-B metadata drift; earlier note said not previously pushed to canonical origin, but current tracked bytes match this merged source commit exactly"
     },
     {
       "path": "terms.html",
@@ -460,15 +460,15 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "d942a19a56bbe3ba7167d45d9c8d008430b94283",
-      "source_branch_or_local_ref": "feature/release-fix-b-e9-i18n-fallback",
-      "source_commit_subject": "fix(e9): harden missing translation fallback",
-      "source_date": "Sun Jul 12",
-      "content_sha256": "1bb41ef18c0c404ce1fb1c274645c0ebf4b5b2fb76474ad0f9b65ad840733979",
+      "source_commit": "67fe6f20edfad823343a2aae0de8667f6a1d3514",
+      "source_branch_or_local_ref": "feature/e9-1d1-shell-exclusivity",
+      "source_commit_subject": "feat/e9-1d1: enforce exclusive adventure shell ownership",
+      "source_date": "Mon Jul 13",
+      "content_sha256": "f8b2b2b7493cce3173d5899b980d15c7d1aa3405861788d1c0bb6a61e357de3d",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin (RELEASE-FIX-B update: VERSION bump since E9 JS bytes changed)"
+      "production_hash_status": "does NOT byte-match current Production (post-merge shell exclusivity update changed served runtime bytes) -- latest reachable canonical Git commit recorded here",
+      "source_status": "canonical Git provenance repaired after stale RELEASE-FIX-B metadata drift; earlier note said not previously pushed to canonical origin, but current tracked bytes match this merged source commit exactly"
     },
     {
       "path": "srs.js",
