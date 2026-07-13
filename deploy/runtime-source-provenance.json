@@ -83,11 +83,11 @@
     },
     {
       "path": "scheduler.py",
-      "source_commit": "3e93104db708b3b00dc62d6470809dc575413ab5",
-      "source_branch_or_local_ref": "recovered-production-tip-20260711",
-      "source_commit_subject": "recover: production tree from scheduler container snapshot 2026-07-02",
-      "source_date": "2026-07-02",
-      "content_sha256": "b318044398b3b4e838d58e18af14372f58d479c0ddf5d70789a135e1456ead7c",
+      "source_commit": "cd45da3fbd651f2b412eb9e21bb7991fca4888b1",
+      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
+      "source_commit_subject": "feat(rewards): automate weekly leaderboard grants",
+      "source_date": "2026-07-13",
+      "content_sha256": "8b00c637db9a597826e8f4ccaa5d77f2012073be06fb8a4ffbb2c94cfb6864cc",
       "line_ending_policy": "LF",
       "runtime_role": "docker-compose.prod.yml scheduler service entrypoint (command: python scheduler.py); scheduler-container-critical, not imported by app.py itself",
       "source_status": "local Git provenance -- not previously pushed to canonical origin"
