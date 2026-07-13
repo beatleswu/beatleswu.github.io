@@ -1,5 +1,7 @@
 import datetime
 import json
+import os
+import zlib
 
 import community_leaderboard_rewards as lbr
 
@@ -16,6 +18,88 @@ _SNAPSHOT_COLUMNS = [
     "display_name_snapshot", "avatar_snapshot", "rank", "score", "eligible",
     "rank_band", "created_at",
 ]
+
+COMMUNITY_LEADERBOARD_REWARDS_ENABLED = "COMMUNITY_LEADERBOARD_REWARDS_ENABLED"
+_SCHEDULER_LOCK_NAMESPACE = "community_leaderboard_rewards"
+
+
+class _SchedulerCommitAuthorization:
+    __slots__ = ("board_type", "period_key", "flag_name", "flag_enabled")
+
+    def __init__(self, *, board_type, period_key, flag_name, flag_enabled):
+        self.board_type = str(board_type)
+        self.period_key = str(period_key)
+        self.flag_name = str(flag_name)
+        self.flag_enabled = bool(flag_enabled)
+
+
+def create_scheduler_commit_authorization(*, board_type, period_key, flag_enabled):
+    return _SchedulerCommitAuthorization(
+        board_type=board_type,
+        period_key=period_key,
+        flag_name=COMMUNITY_LEADERBOARD_REWARDS_ENABLED,
+        flag_enabled=flag_enabled,
+    )
+
+
+def _advisory_lock_keys(board_type, period_key):
+    namespace_key = zlib.crc32(_SCHEDULER_LOCK_NAMESPACE.encode("utf-8")) & 0x7FFFFFFF
+    scope_key = zlib.crc32(f"{board_type}:{period_key}".encode("utf-8")) & 0x7FFFFFFF
+    return namespace_key, scope_key
+
+
+def scheduler_period_lock_is_held(conn, *, board_type, period_key):
+    namespace_key, scope_key = _advisory_lock_keys(board_type, period_key)
+    try:
+        row = conn.execute(
+            "SELECT EXISTS("
+            "SELECT 1 FROM pg_locks "
+            "WHERE locktype = 'advisory' "
+            "AND classid = %s "
+            "AND objid = %s "
+            "AND pid = pg_backend_pid() "
+            "AND granted = TRUE"
+            ")",
+            (int(namespace_key), int(scope_key)),
+        ).fetchone()
+    except Exception:
+        return False
+    return bool(row[0]) if row else False
+
+
+def _validate_commit_authorization(
+    conn,
+    snapshot,
+    *,
+    owner_gate,
+    required_owner_gate,
+    scheduler_authorization,
+):
+    using_owner_gate = owner_gate is not None
+    using_scheduler_auth = scheduler_authorization is not None
+    if using_owner_gate == using_scheduler_auth:
+        raise ValueError("exactly one authorization path must be provided")
+    if using_owner_gate:
+        if owner_gate != required_owner_gate:
+            raise ValueError(f"owner gate mismatch: expected {required_owner_gate}")
+        return "manual"
+    if not isinstance(scheduler_authorization, _SchedulerCommitAuthorization):
+        raise ValueError("scheduler authorization token mismatch")
+    if scheduler_authorization.flag_name != COMMUNITY_LEADERBOARD_REWARDS_ENABLED:
+        raise ValueError("scheduler authorization flag mismatch")
+    if not scheduler_authorization.flag_enabled:
+        raise ValueError("scheduler authorization requires the canonical enable flag")
+    if str(os.environ.get(COMMUNITY_LEADERBOARD_REWARDS_ENABLED, "")).strip().lower() != "true":
+        raise ValueError("scheduler authorization requires COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true")
+    if scheduler_authorization.board_type != snapshot["board_type"] or scheduler_authorization.period_key != snapshot["period_key"]:
+        raise ValueError("scheduler authorization period mismatch")
+    if not scheduler_period_lock_is_held(
+        conn,
+        board_type=snapshot["board_type"],
+        period_key=snapshot["period_key"],
+    ):
+        raise ValueError("scheduler authorization requires a held advisory lock")
+    return "scheduler"
 
 
 def _parse_date(value, label):
@@ -360,14 +444,20 @@ def commit_exact_period(
     expected_total_coins,
     expected_total_items,
     expected_total_badges,
-    owner_gate,
+    owner_gate=None,
     required_owner_gate=None,
+    scheduler_authorization=None,
     now=None,
 ):
     if required_owner_gate is None:
         required_owner_gate = lbr.EXACT_PERIOD_OWNER_GATE
-    if owner_gate != required_owner_gate:
-        raise ValueError(f"owner gate mismatch: expected {required_owner_gate}")
+    _validate_commit_authorization(
+        conn,
+        snapshot,
+        owner_gate=owner_gate,
+        required_owner_gate=required_owner_gate,
+        scheduler_authorization=scheduler_authorization,
+    )
     if snapshot["timezone"] != "Asia/Taipei":
         raise ValueError("exact-period commit only supports Asia/Taipei snapshots")
     if not lbr.is_exact_period_closed(

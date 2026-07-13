@@ -384,7 +384,7 @@ SELECT u.id,
        COALESCE(MAX(pa.combat_pet),'') AS combat_pet,
        COALESCE(MAX(pa.combat_aura),'') AS combat_aura,
        CASE WHEN u.plan='premium' THEN 1 ELSE 0 END AS is_premium,
-       COALESCE(u.is_admin,0) AS is_admin
+       CASE WHEN COALESCE(u.is_admin,FALSE) THEN 1 ELSE 0 END AS is_admin
   FROM scored
   JOIN users u ON u.id = scored.user_id
   LEFT JOIN user_stats us ON us.user_id = u.id

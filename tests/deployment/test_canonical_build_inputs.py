@@ -28,6 +28,7 @@ REQUIRED_TRACKED_FILES = [
     "requirements.txt",
     "entrypoint.sh",
     "scheduler.py",
+    "community_leaderboard_rewards_scheduler.py",
     "nginx/default.conf",
     "app.py",
     "shadow_judging.py",

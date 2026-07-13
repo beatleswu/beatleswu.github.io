@@ -34,6 +34,7 @@ COPY db.py ./
 COPY shadow_judging.py ./
 COPY shadow_dashboard.py ./
 COPY scheduler.py ./
+COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
 COPY explain_overrides.py ./
 COPY grimoire_api.py ./

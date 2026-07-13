@@ -21282,6 +21282,13 @@ def _env_flag_enabled(name, default=False):
     return normalized in {'1', 'true', 'yes', 'on'}
 
 
+def _env_flag_exact_true(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() == 'true'
+
+
 def _start_premium_weekly_scheduler():
     """Run the idempotent job hourly; generation itself is keyed by report week."""
     if not _env_flag_enabled('PREMIUM_WEEKLY_SCHEDULER_ENABLED'):
@@ -21297,8 +21304,30 @@ def _start_premium_weekly_scheduler():
     threading.Thread(target=worker, name='premium-weekly', daemon=True).start()
 
 
+def _start_community_leaderboard_weekly_scheduler():
+    """Run the weekly leaderboard reward job on a short bounded interval so
+    Monday 00:10 Asia/Taipei executes promptly and later restarts catch up."""
+    if not _env_flag_exact_true('COMMUNITY_LEADERBOARD_REWARDS_ENABLED'):
+        return
+
+    def worker():
+        from community_leaderboard_rewards_scheduler import (
+            SCHEDULER_WAKE_INTERVAL_SECONDS,
+            run_community_leaderboard_weekly_cycle,
+        )
+        while True:
+            try:
+                run_community_leaderboard_weekly_cycle(__import__(__name__))
+            except Exception:
+                app.logger.exception('[community_leaderboard_weekly] scheduled job failed')
+            time.sleep(SCHEDULER_WAKE_INTERVAL_SECONDS)
+
+    threading.Thread(target=worker, name='community-leaderboard-weekly', daemon=True).start()
+
+
 if __name__ == '__main__':
     init_db()
     _start_premium_weekly_scheduler()
+    _start_community_leaderboard_weekly_scheduler()
     port = int(os.environ.get('PORT', '5000'))
     socketio.run(app, host='0.0.0.0', debug=False, port=port, allow_unsafe_werkzeug=True)
