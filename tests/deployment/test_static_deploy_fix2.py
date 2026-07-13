@@ -329,7 +329,9 @@ def test_fix1_directory_batching_still_intact():
     text = _read(DEPLOY_SCRIPT)
     assert "Invoke-RemoteDirectoryBatch -Directories $requiredDirectories" in text
     dir_batch_index = text.index("Invoke-RemoteDirectoryBatch -Directories")
-    upload_index = text.index("Invoke-BoundedFileUpload -LocalPath $localFile")
+    # RELEASE-FIX-A3: the per-file upload loop was replaced with a single
+    # deterministic archive upload -- that's now the first upload.
+    upload_index = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
     verify_index = text.index("New-RemoteBatchShaVerificationScript")
     assert dir_batch_index < upload_index < verify_index
 

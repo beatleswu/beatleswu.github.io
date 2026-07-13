@@ -134,7 +134,10 @@ def test_multiple_files_same_directory_dedup_to_one_entry():
 def test_deploy_script_creates_directories_before_first_upload():
     text = _read(DEPLOY_SCRIPT)
     dir_batch_index = text.index("Invoke-RemoteDirectoryBatch -Directories")
-    first_upload_index = text.index("Invoke-BoundedFileUpload -LocalPath $localFile")
+    # RELEASE-FIX-A3 replaced the per-file upload loop with a single
+    # deterministic-archive upload (see New-DeterministicStaticArchive) --
+    # the first upload is now the archive itself, not a per-file $localFile.
+    first_upload_index = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
     assert dir_batch_index < first_upload_index, (
         "all required remote directories must be created before the first file upload begins"
     )
@@ -307,10 +310,16 @@ def test_bounded_scp_upload_success_and_failure_via_fake_executable():
 
 def test_deploy_script_structural_ordering_prevents_downstream_work_on_failure():
     text = _read(DEPLOY_SCRIPT)
-    # every phase must appear, in this exact order, inside the same try block
+    # every phase must appear, in this exact order, inside the same try block.
+    # RELEASE-FIX-A3 replaced the per-file upload loop with one deterministic
+    # archive build + upload + remote extract (New-DeterministicStaticArchive
+    # / "tar -xf"), so those two markers replace the old $localFile loop --
+    # everything downstream of the upload phase is otherwise unchanged.
     markers = [
         "Invoke-RemoteDirectoryBatch -Directories",
-        "Invoke-BoundedFileUpload -LocalPath $localFile",
+        "New-DeterministicStaticArchive -BundlePath $bundlePath",
+        "Invoke-BoundedFileUpload -LocalPath $localArchivePath",
+        "tar -xf",
         "Uploaded file count mismatch",
         "Uploaded byte size mismatch",
         "Batch SHA-256 verification failed",
@@ -321,9 +330,9 @@ def test_deploy_script_structural_ordering_prevents_downstream_work_on_failure()
     ]
     positions = [text.index(m) for m in markers]
     assert positions == sorted(positions), (
-        "deploy sequence must be: directories -> uploads -> count check -> size check -> "
-        "hash check -> manifest upload -> final recount -> cutover -> restart, with no step "
-        "reachable before an earlier one throws"
+        "deploy sequence must be: directories -> archive build -> archive upload -> "
+        "remote extract -> count check -> size check -> hash check -> manifest upload -> "
+        "final recount -> cutover -> restart, with no step reachable before an earlier one throws"
     )
 
 
@@ -347,7 +356,9 @@ def test_all_remote_calls_in_try_block_are_bounded_not_raw_native_calls():
 def test_directory_batch_failure_raises_before_any_upload_attempted():
     text = _read(DEPLOY_SCRIPT)
     batch_call = text.index("Invoke-RemoteDirectoryBatch -Directories $requiredDirectories")
-    first_upload = text.index("foreach ($entry in $manifest.files) {\n        $localFile")
+    # RELEASE-FIX-A3: the first upload is the single deterministic archive,
+    # not a per-file loop.
+    first_upload = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
     assert batch_call < first_upload
     # Invoke-RemoteDirectoryBatch itself throws on nonzero exit code
     func_text = _read(DEPLOY_SCRIPT)
@@ -363,9 +374,12 @@ def test_scp_failure_raises_before_manifest_upload():
     func_end = text.index("\nfunction ", func_start + 1)
     func_body = text[func_start:func_end]
     assert "throw" in func_body
-    upload_loop = text.index("Invoke-BoundedFileUpload -LocalPath $localFile")
+    # RELEASE-FIX-A3: the governed files travel inside the single archive
+    # upload, not a per-file loop -- the archive upload must still precede
+    # the manifest upload.
+    archive_upload = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
     manifest_upload = text.index("Invoke-BoundedFileUpload -LocalPath $manifestPath")
-    assert upload_loop < manifest_upload
+    assert archive_upload < manifest_upload
 
 
 # ---------------------------------------------------------------------------

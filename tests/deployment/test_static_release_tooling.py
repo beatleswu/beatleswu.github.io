@@ -94,7 +94,10 @@ def test_inventory_governs_assets_via_required_subtrees():
     subtrees = inventory["required_subtrees"]["entries"]
     assets_subtree = next((s for s in subtrees if s["prefix"] == "assets/"), None)
     assert assets_subtree is not None, "assets/ must be declared in required_subtrees"
-    assert assets_subtree["manifest"] == "deploy/canonical-asset-closure-manifest.json"
+    # RELEASE-FIX-A3 superseded the 180-file reference-derived closure with
+    # the complete verified historical image pack as the ownership boundary
+    # for assets/ -- see docs/incidents/2026-07-12-full-site-asset-outage.md.
+    assert assets_subtree["manifest"] == "deploy/canonical-image-pack-manifest.json"
 
 
 def test_inventory_forbidden_patterns_reject_dangerous_paths():
