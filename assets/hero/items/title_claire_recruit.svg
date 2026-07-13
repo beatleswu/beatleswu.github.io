@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Claire recruit title">
+  <defs>
+    <linearGradient id="badge" x1="20" y1="18" x2="108" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fef3c7"/>
+      <stop offset=".55" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="39" y1="70" x2="89" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 10l14 12 18-1 5 17 15 10-7 17 7 17-15 10-5 17-18-1-14 12-14-12-18 1-5-17-15-10 7-17-7-17 15-10 5-17 18 1 14-12z" fill="url(#badge)" stroke="#78350f" stroke-width="5" stroke-linejoin="round"/>
+  <circle cx="64" cy="58" r="27" fill="#fff7ed" stroke="#92400e" stroke-width="5"/>
+  <path d="M50 60l10 10 20-24" fill="none" stroke="#0f766e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M45 82l-8 34 27-14 27 14-8-34" fill="url(#ribbon)" stroke="#064e3b" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M64 24l5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2 5-10z" fill="#fde68a" stroke="#92400e" stroke-width="3"/>
+</svg>

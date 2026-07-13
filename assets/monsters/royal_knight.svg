@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Royal Knight">
+  <defs>
+    <radialGradient id="royal_knight-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#e2e8f0"/>
+      <stop offset=".58" stop-color="#172033"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="royal_knight-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="royal_knight-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#cbd5e1"/>
+      <stop offset=".47" stop-color="#64748b"/>
+      <stop offset="1" stop-color="#293548"/>
+    </linearGradient>
+    <filter id="royal_knight-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="royal_knight-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="royal_knight-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#royal_knight-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#royal_knight-bg)"/>
+  <g clip-path="url(#royal_knight-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#fde68a" opacity=".16" filter="url(#royal_knight-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#cbd5e1" opacity=".10" filter="url(#royal_knight-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M61 82 128 36l67 46v63c0 44-27 70-67 85-40-15-67-41-67-85Z" fill="url(#royal_knight-body)" stroke="#111827" stroke-width="8" filter="url(#royal_knight-shadow)"/>
+      <path d="M96 70h65l-13-32h-39Z" fill="#facc15" stroke="#111827" stroke-width="7"/>
+      <path d="M85 105h86v50H85Z" fill="#94a3b8" stroke="#111827" stroke-width="7"/>
+      <path d="M85 130h86M128 37v186" fill="none" stroke="#111827" stroke-width="7"/>
+      <circle cx="108" cy="169" r="8" fill="#0f172a"/><circle cx="150" cy="169" r="8" fill="#0f172a"/>
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

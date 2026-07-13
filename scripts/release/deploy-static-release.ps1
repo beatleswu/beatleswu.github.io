@@ -214,13 +214,23 @@ try {
     $requiredDirectories = Get-RemoteParentDirectorySet -RelativePaths $relativePaths -RemoteReleaseDir $remoteReleaseDir
     Invoke-RemoteDirectoryBatch -Directories $requiredDirectories
 
-    # Step 4: upload every governed file. Each scp call is individually
-    # bounded (Invoke-BoundedFileUpload) -- a hung transfer is killed and
-    # fails the deploy instead of hanging it.
-    foreach ($entry in $manifest.files) {
-        $localFile = Join-Path $bundlePath $entry.path
-        $remoteFile = "$remoteReleaseDir/$($entry.path)"
-        Invoke-BoundedFileUpload -LocalPath $localFile -RemotePath $remoteFile
+    # Step 4: upload every governed file via ONE deterministic tar archive
+    # (RELEASE-FIX-A3), not one scp per file. A per-file loop was fine for
+    # a 182-file/53MB closure but does not scale to a hundreds-of-files,
+    # hundreds-of-MB canonical image pack -- this replaces N scp calls with
+    # exactly 2 bounded remote operations (upload the archive, extract it).
+    $expectedBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
+    $archiveTimeoutSeconds = Get-ArchiveTransferTimeoutSeconds -TotalBytes $expectedBytes
+    $localArchivePath = Join-Path ([System.IO.Path]::GetTempPath()) "$generationId.tar"
+    $relativePathsForArchive = @($manifest.files | ForEach-Object { $_.path })
+    New-DeterministicStaticArchive -BundlePath $bundlePath -RelativePaths $relativePathsForArchive -ArchivePath $localArchivePath | Out-Null
+    try {
+        $remoteArchivePath = "$($layout.static_release_root.TrimEnd('/'))/releases/.upload-$generationId.tar"
+        Invoke-BoundedFileUpload -LocalPath $localArchivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveTimeoutSeconds
+        $extractResult = Invoke-RemoteText "tar -xf $(Quote-PosixShellArgument $remoteArchivePath) -C $(Quote-PosixShellArgument $remoteReleaseDir) && rm -f $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds $archiveTimeoutSeconds -OperationLabel 'extract static release archive'
+    }
+    finally {
+        Remove-Item -LiteralPath $localArchivePath -Force -ErrorAction SilentlyContinue
     }
 
     # Step 5: validate uploaded file count before trusting anything else.
@@ -230,7 +240,6 @@ try {
     }
 
     # Step 6: validate uploaded total byte size.
-    $expectedBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
     $uploadedBytes = [long](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f -exec stat -c%s {} \; | awk '{s+=`$1} END{print s+0}'" -OperationLabel 'sum uploaded bytes').Trim()
     if ($uploadedBytes -ne $expectedBytes) {
         throw "Uploaded byte size mismatch: expected $expectedBytes, remote has $uploadedBytes."

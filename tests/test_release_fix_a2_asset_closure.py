@@ -34,6 +34,10 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CLOSURE_MANIFEST = REPO_ROOT / "deploy" / "canonical-asset-closure-manifest.json"
+# RELEASE-FIX-A3 superseded CLOSURE_MANIFEST as the manifest live-static-
+# asset-inventory.json's required_subtrees entry actually points at --
+# staging now governs from the full image pack, not the 180-file closure.
+ACTIVE_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-image-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 
@@ -65,7 +69,12 @@ def scan_runtime_image_references(repo_root=REPO_ROOT):
     result = subprocess.run(
         ["git", "grep", "-IhoE",
          r"""["'(](/[a-zA-Z0-9_./-]+\.(png|jpe?g|webp|gif|ico))["')]""",
-         "--", "*.html", "*.js", "*.py", "*.json", "*.css"],
+         "--", "*.html", "*.js", "*.py", "*.json", "*.css",
+         # Test fixtures under tests/ deliberately contain asset-path-shaped
+         # string literals (to exercise scanner/manifest logic) that are not
+         # real runtime references -- exclude them from this production-code
+         # reference scan so they can't be mistaken for dead/live references.
+         ":(exclude)tests/*"],
         cwd=repo_root, capture_output=True, text=True,
     )
     paths = set()
@@ -130,7 +139,11 @@ def _run_pwsh(script):
 
 
 def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
-    manifest = _load_closure_manifest()
+    # Staging is driven by whatever manifest live-static-asset-inventory.json's
+    # required_subtrees entry currently points at -- RELEASE-FIX-A3 switched
+    # that from the 180-file closure to the full image pack, so this test's
+    # expected set must track the same manifest, not the superseded one.
+    manifest = json.loads(_read(ACTIVE_SUBTREE_MANIFEST))
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"

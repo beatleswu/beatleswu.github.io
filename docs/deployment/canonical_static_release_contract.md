@@ -202,6 +202,36 @@ pre-deploy baseline, so any future drift between the declared release and
 what a browser actually receives is visible before deploy, not discovered
 after the fact by a real player (or another Acceptance sprint).
 
+## Correction (RELEASE-FIX-A3): `previous` is not managed by this tooling
+
+The "Release flow" section above, written when this contract was first
+adopted, describes step 2 as "recording the previous target first" and
+step 3 as switching "back to a named previous generation" — this reads as
+though `deploy-static-release.ps1` maintains `/opt/go-odyssey-static/previous`
+as a live rollback pointer. It never has:
+
+- `deploy-static-release.ps1` reads the pre-switch `current` target into a
+  local variable (`$previousCurrentTarget`) solely so its own catch block
+  can auto-rollback if the *same deploy* fails after the symlink switch —
+  it is a transient in-memory value, included informationally in the
+  result JSON, and is never written to a `previous` symlink on disk.
+- `rollback-static-release.ps1` has always taken an explicit
+  `-TargetGenerationPath` parameter and reads that target generation's own
+  `manifest.json` as its sole source of truth. It has never read or relied
+  on a host `previous` symlink.
+- The `previous -> releases/20260704-173425-fa8c1e8e8f` symlink shown in
+  the "Discovery" section above is a legacy artifact left over from the
+  untracked, host-only `deploy-static.ps1` that predates this repo's
+  tooling entirely. Nothing in `scripts/release/` updates it, and an
+  operator should not expect it to reflect the generation this tooling
+  most recently deployed away from.
+
+**Practical implication**: rollback always requires citing an explicit,
+known-good generation path (e.g. from `preflight-production.ps1`'s history
+or a prior deploy's own output) — never "roll back to `previous`" as a
+bare instruction, since that symlink's target is not guaranteed to be
+anything this tooling put there.
+
 ## Security boundary
 
 `deploy/live-static-asset-inventory.json`'s `forbidden_patterns` plus the

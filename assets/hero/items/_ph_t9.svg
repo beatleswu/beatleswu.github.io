@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="棋聖">
+<defs>
+  <radialGradient id="_ph_t9-bg" cx="30%" cy="22%" r="88%">
+    <stop offset="0" stop-color="#f3e8ff"/><stop offset=".52" stop-color="#7c3aed"/><stop offset="1" stop-color="#090f1d"/>
+  </radialGradient>
+  <linearGradient id="_ph_t9-rim" x1="20" y1="18" x2="236" y2="240">
+    <stop offset="0" stop-color="#fff2bb"/><stop offset=".48" stop-color="#a78bfa"/><stop offset="1" stop-color="#3b0764"/>
+  </linearGradient>
+  <linearGradient id="_ph_t9-body" x1="60" y1="40" x2="190" y2="220">
+    <stop offset="0" stop-color="#f3e8ff"/><stop offset=".46" stop-color="#a78bfa"/><stop offset="1" stop-color="#3b0764"/>
+  </linearGradient>
+  <filter id="_ph_t9-shadow" x="-35%" y="-35%" width="170%" height="180%">
+    <feDropShadow dx="0" dy="15" stdDeviation="13" flood-color="#000" flood-opacity=".46"/>
+  </filter>
+  <clipPath id="_ph_t9-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+</defs>
+<rect width="256" height="256" rx="46" fill="#0b1220"/>
+<rect x="18" y="18" width="220" height="220" rx="46" fill="url(#_ph_t9-rim)"/>
+<rect x="24" y="24" width="208" height="208" rx="41" fill="url(#_ph_t9-bg)"/>
+<g clip-path="url(#_ph_t9-clip)">
+  <path d="M-8 212C39 178 55 132 81 77c28 35 58 43 94 25 26 45 55 78 91 99v60H-8Z" fill="#020617" opacity=".31"/>
+  <circle cx="198" cy="58" r="29" fill="#fff" opacity=".13"/>
+  <circle cx="59" cy="202" r="31" fill="#fff" opacity=".10"/>
+  <path d="M57 82h142v105H57Z" fill="url(#_ph_t9-body)" stroke="#071421" stroke-width="8" filter="url(#_ph_t9-shadow)"/><path d="M75 112h58M75 143h80M75 169h52" stroke="#071421" stroke-width="7" stroke-linecap="round"/><path d="M114 172l12-70 25 31 11-48 11 48 25-31 12 70Z" fill="#fff" opacity=".54" stroke="#071421" stroke-width="6"/>
+  <g fill="#fff" opacity=".75"><circle cx="202" cy="58" r="6"/><circle cx="51" cy="203" r="3"/><circle cx="47" cy="76" r="2.5"/></g>
+</g>
+<rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".56"/>
+<rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Dragon Oracle">
+  <defs>
+    <radialGradient id="dragon_oracle-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#91c9ff"/>
+      <stop offset=".58" stop-color="#122155"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="dragon_oracle-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="dragon_oracle-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8cc5ff"/>
+      <stop offset=".47" stop-color="#2e7bea"/>
+      <stop offset="1" stop-color="#123078"/>
+    </linearGradient>
+    <filter id="dragon_oracle-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="dragon_oracle-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="dragon_oracle-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#dragon_oracle-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#dragon_oracle-bg)"/>
+  <g clip-path="url(#dragon_oracle-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#bfdbfe" opacity=".16" filter="url(#dragon_oracle-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#8cc5ff" opacity=".10" filter="url(#dragon_oracle-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M128 32 194 101 169 215H87L62 101Z" fill="url(#dragon_oracle-body)" stroke="#0f1f52" stroke-width="8" filter="url(#dragon_oracle-shadow)"/>
+      <path d="M87 97 128 46l42 51-42 34Z" fill="#63b3ff" opacity=".8"/>
+      <circle cx="128" cy="142" r="43" fill="#1d4ed8" stroke="#0f1f52" stroke-width="8"/><circle cx="128" cy="142" r="17" fill="#93c5fd"/>
+      <path d="M85 91 43 54M171 91l42-37M91 215l-22 24M165 215l22 24" fill="none" stroke="#0f1f52" stroke-width="7" stroke-linecap="round"/>
+    
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

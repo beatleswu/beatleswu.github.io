@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Wyvern">
+  <defs>
+    <radialGradient id="wyvern-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#91c9ff"/>
+      <stop offset=".58" stop-color="#122155"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="wyvern-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="wyvern-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8cc5ff"/>
+      <stop offset=".47" stop-color="#2e7bea"/>
+      <stop offset="1" stop-color="#123078"/>
+    </linearGradient>
+    <filter id="wyvern-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="wyvern-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="wyvern-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#wyvern-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#wyvern-bg)"/>
+  <g clip-path="url(#wyvern-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#bfdbfe" opacity=".16" filter="url(#wyvern-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#8cc5ff" opacity=".10" filter="url(#wyvern-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M128 51 93 111 25 76l31 80-29 23 69 6c11 31 39 45 73 35 38-12 53-50 34-87l35-43-63 18Z" fill="url(#wyvern-body)" stroke="#172554" stroke-width="8" filter="url(#wyvern-shadow)"/>
+      <path d="M96 116 49 95l25 55ZM175 113l47-19-25 56Z" fill="#60a5fa" opacity=".9"/>
+      <path d="M128 51 139 17M165 105l44-46M99 199l-21 31M164 202l20 28" fill="none" stroke="#172554" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="141" cy="129" r="9" fill="#eff6ff"/><path d="M148 159c16 8 32 5 48-6" fill="none" stroke="#172554" stroke-width="7" stroke-linecap="round"/>
+    
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

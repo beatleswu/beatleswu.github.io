@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Cave Bat">
+  <defs>
+    <radialGradient id="cave_bat-bg" cx="34%" cy="23%" r="82%">
+      <stop offset="0" stop-color="#8b8cff"/>
+      <stop offset=".58" stop-color="#101833"/>
+      <stop offset="1" stop-color="#080d18"/>
+    </radialGradient>
+    <linearGradient id="cave_bat-gold" x1="26" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff2b8"/>
+      <stop offset=".42" stop-color="#d7a84c"/>
+      <stop offset="1" stop-color="#714715"/>
+    </linearGradient>
+    <linearGradient id="cave_bat-body" x1="62" y1="52" x2="194" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#607099"/>
+      <stop offset=".47" stop-color="#334155"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <filter id="cave_bat-shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#000" flood-opacity=".48"/>
+    </filter>
+    <filter id="cave_bat-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="cave_bat-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="46" fill="#0b1220"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="url(#cave_bat-gold)"/>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="url(#cave_bat-bg)"/>
+  <g clip-path="url(#cave_bat-clip)">
+    <path d="M-10 208C34 177 53 144 78 79c22 32 52 44 91 25 30 43 53 76 107 96v60H-10Z" fill="#020617" opacity=".34"/>
+    <circle cx="196" cy="56" r="26" fill="#a78bfa" opacity=".16" filter="url(#cave_bat-glow)"/>
+    <circle cx="66" cy="198" r="32" fill="#607099" opacity=".10" filter="url(#cave_bat-glow)"/>
+    <path d="M36 56c52-24 114-24 184 5" fill="none" stroke="#fff" stroke-width="2" opacity=".10"/>
+    
+      <path d="M128 67 95 31 85 78 27 50l22 70-27 20 51 20c0 34 22 55 55 55s55-21 55-55l51-20-27-20 22-70-58 28-10-47Z" fill="url(#cave_bat-body)" stroke="#101827" stroke-width="8" filter="url(#cave_bat-shadow)"/>
+      <path d="M48 119 88 94l-12 47ZM208 119l-40-25 12 47Z" fill="#556176"/>
+      <circle cx="108" cy="139" r="8" fill="#9ecbff"/><circle cx="148" cy="139" r="8" fill="#9ecbff"/><path d="M101 168c19 13 44 12 62-2" fill="none" stroke="#071421" stroke-width="8" stroke-linecap="round" opacity=".7"/><path d="M112 174h32M116 174l-7 18M140 174l7 18" fill="none" stroke="#101827" stroke-width="7" stroke-linecap="round"/>
+    <g fill="#fff" opacity=".72">
+      <circle cx="203" cy="58" r="6"/><circle cx="52" cy="202" r="3"/><circle cx="43" cy="72" r="2.5"/>
+    </g>
+  </g>
+  <rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".55"/>
+  <rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>

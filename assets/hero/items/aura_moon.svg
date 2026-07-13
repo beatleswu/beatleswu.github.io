@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="月光光環">
+<defs>
+  <radialGradient id="aura_moon-bg" cx="30%" cy="22%" r="88%">
+    <stop offset="0" stop-color="#ede9fe"/><stop offset=".52" stop-color="#7c3aed"/><stop offset="1" stop-color="#090f1d"/>
+  </radialGradient>
+  <linearGradient id="aura_moon-rim" x1="20" y1="18" x2="236" y2="240">
+    <stop offset="0" stop-color="#fff2bb"/><stop offset=".48" stop-color="#c4b5fd"/><stop offset="1" stop-color="#312e81"/>
+  </linearGradient>
+  <linearGradient id="aura_moon-body" x1="60" y1="40" x2="190" y2="220">
+    <stop offset="0" stop-color="#ede9fe"/><stop offset=".46" stop-color="#c4b5fd"/><stop offset="1" stop-color="#312e81"/>
+  </linearGradient>
+  <filter id="aura_moon-shadow" x="-35%" y="-35%" width="170%" height="180%">
+    <feDropShadow dx="0" dy="15" stdDeviation="13" flood-color="#000" flood-opacity=".46"/>
+  </filter>
+  <clipPath id="aura_moon-clip"><rect x="28" y="28" width="200" height="200" rx="38"/></clipPath>
+</defs>
+<rect width="256" height="256" rx="46" fill="#0b1220"/>
+<rect x="18" y="18" width="220" height="220" rx="46" fill="url(#aura_moon-rim)"/>
+<rect x="24" y="24" width="208" height="208" rx="41" fill="url(#aura_moon-bg)"/>
+<g clip-path="url(#aura_moon-clip)">
+  <path d="M-8 212C39 178 55 132 81 77c28 35 58 43 94 25 26 45 55 78 91 99v60H-8Z" fill="#020617" opacity=".31"/>
+  <circle cx="198" cy="58" r="29" fill="#fff" opacity=".13"/>
+  <circle cx="59" cy="202" r="31" fill="#fff" opacity=".10"/>
+  <circle cx="128" cy="132" r="76" fill="none" stroke="url(#aura_moon-body)" stroke-width="18" filter="url(#aura_moon-shadow)"/><circle cx="128" cy="132" r="45" fill="url(#aura_moon-body)" opacity=".23"/><path d="M149 78c-39 13-55 55-30 89 12 16 30 24 52 23-43 27-97-7-95-57 2-41 36-65 73-55Z" fill="#ede9fe" opacity=".72"/><path d="M128 47v30M128 187v30M58 132h30M168 132h30" stroke="#fff" stroke-width="7" opacity=".42" stroke-linecap="round"/>
+  <g fill="#fff" opacity=".75"><circle cx="202" cy="58" r="6"/><circle cx="51" cy="203" r="3"/><circle cx="47" cy="76" r="2.5"/></g>
+</g>
+<rect x="24" y="24" width="208" height="208" rx="41" fill="none" stroke="#fff7d6" stroke-width="2" opacity=".56"/>
+<rect x="18" y="18" width="220" height="220" rx="46" fill="none" stroke="#0f172a" stroke-width="5" opacity=".45"/>
+</svg>
