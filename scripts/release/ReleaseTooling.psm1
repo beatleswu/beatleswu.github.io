@@ -709,6 +709,179 @@ function Get-ArchiveTransferTimeoutSeconds {
     return [Math]::Min($MaxSeconds, [Math]::Max($MinSeconds, $sizeBasedSeconds))
 }
 
+$script:DeterministicArchiveTarFlags = @(
+    '--sort=name', '--mtime=UTC 1970-01-01', '--owner=0', '--group=0', '--numeric-owner'
+)
+
+# Git for Windows' GNU tar treats any path containing a colon (e.g.
+# "D:\go-website\release-artifacts\x.tar") as a "host:path" remote-tar
+# spec unless told otherwise, since GNU tar's remote-archive heuristic
+# predates Windows drive letters -- confirmed live: an archive build with
+# a Windows absolute path failed with "Cannot connect to C: resolve
+# failed" against a real, correctly-resolved, genuinely-GNU tar binary.
+# --force-local disables that heuristic and must be present on every tar
+# invocation (build, list, smoke-test) that may receive a Windows path.
+$script:TarForceLocalFlag = '--force-local'
+
+function Test-GnuTarExecutableCapability {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: verifies a candidate tar executable
+    is real GNU tar AND actually supports the exact deterministic-archive
+    flags packaging depends on -- via a real archive build through the
+    SAME bounded native-process helper used for the real archive, not
+    just a --version string check. A --version-only check would not have
+    reliably caught the original incident (Windows bsdtar's --version
+    output does not always make its identity unambiguous, and even a
+    genuine GNU tar binary could in principle lack a specific flag on an
+    old release) -- an actual smoke-test build is the only check that
+    proves the exact invocation this Sprint relies on will work.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$TarExecutablePath
+    )
+    $result = [ordered]@{
+        path = $TarExecutablePath
+        exists = $false
+        version_output = ''
+        is_gnu_tar = $false
+        smoke_test_passed = $false
+        failure_reason = $null
+    }
+    if (-not (Test-Path -LiteralPath $TarExecutablePath -PathType Leaf)) {
+        $result.failure_reason = 'executable not found at this path'
+        return $result
+    }
+    $result.exists = $true
+
+    try {
+        $versionResult = Invoke-BoundedNativeCommand -FileName $TarExecutablePath -ArgumentList @('--version') -TimeoutSeconds 10 -OperationLabel "tar --version probe"
+    }
+    catch {
+        $result.failure_reason = "failed to execute --version: $($_.Exception.Message)"
+        return $result
+    }
+    $result.version_output = $versionResult.output
+    if ($versionResult.exit_code -ne 0 -or $versionResult.output -notmatch 'GNU tar') {
+        $result.failure_reason = 'not GNU tar (--version output did not contain "GNU tar") -- Windows bsdtar and other non-GNU implementations are rejected'
+        return $result
+    }
+    $result.is_gnu_tar = $true
+
+    $probeDir = Join-Path ([System.IO.Path]::GetTempPath()) ("gnu_tar_probe_" + [System.Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $probeDir -Force | Out-Null
+    try {
+        $sampleFile = Join-Path $probeDir 'probe.txt'
+        Set-Content -LiteralPath $sampleFile -Value 'probe' -NoNewline -Encoding UTF8
+        $listFile = Join-Path $probeDir 'filelist.txt'
+        # WriteAllLines always uses Environment.NewLine (CRLF on Windows) --
+        # GNU tar's -T file list only strips the trailing \n, leaving a
+        # literal \r in the parsed filename ("probe.txt\r": not found).
+        # Write LF-only, unconditionally, regardless of host platform.
+        [System.IO.File]::WriteAllText($listFile, "probe.txt`n")
+        $archivePath = Join-Path $probeDir 'probe.tar'
+        $tarArgs = @($script:DeterministicArchiveTarFlags) + @($script:TarForceLocalFlag, '-cf', $archivePath, '-C', $probeDir, '-T', $listFile)
+        $buildResult = Invoke-BoundedNativeCommand -FileName $TarExecutablePath -ArgumentList $tarArgs -TimeoutSeconds 15 -OperationLabel "tar capability smoke test"
+        if ($buildResult.exit_code -ne 0) {
+            $result.failure_reason = "smoke-test archive build with the required deterministic flags failed (exit $($buildResult.exit_code)): $($buildResult.output)"
+            return $result
+        }
+        if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+            $result.failure_reason = 'smoke-test archive build reported success but produced no archive file'
+            return $result
+        }
+        $result.smoke_test_passed = $true
+    }
+    finally {
+        Remove-Item -LiteralPath $probeDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    return $result
+}
+
+function Resolve-GnuTarExecutable {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: finds a real GNU tar executable
+    capable of the exact deterministic-archive flags packaging requires,
+    and fails closed rather than silently falling back to whatever a bare
+    `tar` name happens to resolve to on PATH -- which on Windows can
+    silently resolve to the bundled bsdtar (the exact production incident
+    this function exists to prevent from recurring).
+    .DESCRIPTION
+    Resolution order:
+      1. An explicit override -- the -OverridePath parameter if supplied,
+         otherwise the GO_ODYSSEY_GNU_TAR environment variable. When an
+         override is given, it is the ONLY candidate tried: if it fails
+         capability verification, this throws immediately citing exactly
+         why, rather than silently falling through to auto-discovery and
+         masking an operator's explicit misconfiguration.
+      2. A Git for Windows installation discovered from the real git.exe
+         location on PATH (git.exe lives at <root>\cmd\git.exe or
+         <root>\bin\git.exe; GNU tar ships at <root>\usr\bin\tar.exe).
+      3. Known Git for Windows install locations, as a last-resort
+         fallback only -- never the sole supported path, and only tried
+         when no override was given and git.exe discovery found nothing
+         usable.
+    Every candidate is verified with Test-GnuTarExecutableCapability
+    before being accepted. If nothing passes, this throws with every
+    candidate examined and why each failed -- it never silently returns
+    an unverified or non-GNU tar path.
+    #>
+    param(
+        [string]$OverridePath
+    )
+    $override = $OverridePath
+    if ([string]::IsNullOrWhiteSpace($override)) {
+        $override = $env:GO_ODYSSEY_GNU_TAR
+    }
+    if (-not [string]::IsNullOrWhiteSpace($override)) {
+        $probe = Test-GnuTarExecutableCapability -TarExecutablePath $override
+        if ($probe.smoke_test_passed) {
+            return [ordered]@{
+                path = $override
+                version_output = $probe.version_output
+                source = 'override'
+                examined_candidates = @($probe)
+            }
+        }
+        throw "GNU tar override '$override' (from -GnuTarPath or `$env:GO_ODYSSEY_GNU_TAR) is not usable: $($probe.failure_reason)"
+    }
+
+    $examined = @()
+    $candidates = @()
+
+    $gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+    if ($gitCommand) {
+        $gitBinDir = Split-Path -Parent $gitCommand.Source
+        $gitRoot = Split-Path -Parent $gitBinDir
+        $candidates += (Join-Path $gitRoot 'usr\bin\tar.exe')
+    }
+
+    $candidates += @(
+        'C:\Program Files\Git\usr\bin\tar.exe',
+        'C:\Program Files (x86)\Git\usr\bin\tar.exe'
+    )
+
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+        if (-not $seen.Add($candidate.ToLowerInvariant())) { continue }
+        $probe = Test-GnuTarExecutableCapability -TarExecutablePath $candidate
+        $examined += $probe
+        if ($probe.smoke_test_passed) {
+            return [ordered]@{
+                path = $candidate
+                version_output = $probe.version_output
+                source = 'discovered'
+                examined_candidates = $examined
+            }
+        }
+    }
+
+    $summary = (@($examined) | ForEach-Object { "$($_.path) -> $($_.failure_reason)" }) -join '; '
+    throw "No GNU tar executable capable of the required deterministic-archive flags was found (Windows bsdtar is never accepted as a silent fallback). Set `$env:GO_ODYSSEY_GNU_TAR or pass -GnuTarPath to pin an explicit known-good GNU tar. Candidates examined: $summary"
+}
+
 function New-DeterministicStaticArchive {
     <#
     .SYNOPSIS
@@ -722,26 +895,45 @@ function New-DeterministicStaticArchive {
     upstream of this function already enforces that) -- this function does
     not re-validate, it only orders and archives what New-StaticReleaseBundle
     already staged and verified.
+
+    RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: requires an explicit, pre-resolved
+    GnuTarExecutablePath (see Resolve-GnuTarExecutable) and invokes it
+    through the same bounded native-process helper (Invoke-BoundedNativeCommand)
+    used everywhere else in this module -- never a bare `tar` name via
+    Start-Process, which on Windows can silently resolve to the bundled
+    bsdtar instead of a real GNU tar.
+
+    This is the ONLY place a static release archive is ever built. It is
+    called exactly once, during packaging (package-static-release.ps1) --
+    deploy-static-release.ps1 must never call this function; it consumes
+    the already-built, already-hashed archive as an explicit input.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$BundlePath,
         [Parameter(Mandatory = $true)][string[]]$RelativePaths,
-        [Parameter(Mandatory = $true)][string]$ArchivePath
+        [Parameter(Mandatory = $true)][string]$ArchivePath,
+        [Parameter(Mandatory = $true)][string]$GnuTarExecutablePath,
+        [int]$TimeoutSeconds = 300
     )
+    if (-not (Test-Path -LiteralPath $GnuTarExecutablePath -PathType Leaf)) {
+        throw "New-DeterministicStaticArchive: GnuTarExecutablePath does not exist: $GnuTarExecutablePath"
+    }
     if (Test-Path -LiteralPath $ArchivePath) {
         Remove-Item -LiteralPath $ArchivePath -Force
     }
     $sorted = $RelativePaths | Sort-Object
     $listFile = [System.IO.Path]::GetTempFileName()
     try {
-        [System.IO.File]::WriteAllLines($listFile, $sorted)
-        $tarArgs = @(
-            '--sort=name', "--mtime=UTC 1970-01-01", '--owner=0', '--group=0', '--numeric-owner',
-            '-cf', $ArchivePath, '-C', $BundlePath, '-T', $listFile
-        )
-        $proc = Start-Process -FilePath 'tar' -ArgumentList $tarArgs -NoNewWindow -Wait -PassThru
-        if ($proc.ExitCode -ne 0) {
-            throw "tar archive creation failed with exit code $($proc.ExitCode)."
+        # WriteAllLines always uses Environment.NewLine (CRLF on Windows) --
+        # GNU tar's -T file list only strips the trailing \n, leaving a
+        # literal \r in every parsed filename ("assets/foo.webp\r": not
+        # found). Write LF-only, unconditionally, regardless of host
+        # platform, so the file list parses identically wherever this runs.
+        [System.IO.File]::WriteAllText($listFile, (($sorted -join "`n") + "`n"))
+        $tarArgs = @($script:DeterministicArchiveTarFlags) + @($script:TarForceLocalFlag, '-cf', $ArchivePath, '-C', $BundlePath, '-T', $listFile)
+        $result = Invoke-BoundedNativeCommand -FileName $GnuTarExecutablePath -ArgumentList $tarArgs -TimeoutSeconds $TimeoutSeconds -OperationLabel 'build deterministic static archive'
+        if ($result.exit_code -ne 0) {
+            throw "tar archive creation failed with exit code $($result.exit_code): $($result.output)"
         }
     }
     finally {
@@ -751,6 +943,48 @@ function New-DeterministicStaticArchive {
         throw "Archive was not created: $ArchivePath"
     }
     return Get-Item -LiteralPath $ArchivePath
+}
+
+function Test-StaticArchiveEntrySafety {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: lists a prebuilt static release
+    archive's entries (via the resolved GNU tar's `-tvf`) and throws if any
+    entry is not a safe plain file at a safe relative path -- absolute
+    paths, traversal components, symlinks, hardlinks, devices, and FIFOs
+    are all rejected. Deploy runs this against the already-built archive
+    before uploading it -- it never rebuilds the archive to validate it.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$ArchivePath,
+        [Parameter(Mandatory = $true)][string]$GnuTarExecutablePath,
+        [int]$TimeoutSeconds = 60
+    )
+    $result = Invoke-BoundedNativeCommand -FileName $GnuTarExecutablePath -ArgumentList @($script:TarForceLocalFlag, '-tvf', $ArchivePath) -TimeoutSeconds $TimeoutSeconds -OperationLabel 'list static archive entries'
+    if ($result.exit_code -ne 0) {
+        throw "Failed to list static archive entries (exit $($result.exit_code)): $($result.output)"
+    }
+    $badEntries = @()
+    foreach ($line in ($result.output -split "`n")) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $trimmed = $line.Trim()
+        $typeChar = $trimmed.Substring(0, 1)
+        if ($typeChar -ne '-') {
+            $badEntries += $trimmed
+            continue
+        }
+        $name = ($trimmed -split '\s+', 6)[-1]
+        if ($name.StartsWith('/') -or ($name.Length -ge 2 -and $name[1] -eq ':')) {
+            $badEntries += $trimmed
+            continue
+        }
+        if (($name -split '/') -contains '..') {
+            $badEntries += $trimmed
+        }
+    }
+    if ($badEntries.Count -gt 0) {
+        throw "Static archive contains unsafe entries: $($badEntries -join '; ')"
+    }
 }
 
 function Get-ImageLabels {
@@ -1088,12 +1322,27 @@ function New-StaticReleaseBundle {
 }
 
 function New-StaticReleaseManifestObject {
+    <#
+    .SYNOPSIS
+    RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: the archive fields (ArchiveFileName/
+    ArchiveSha256/ArchiveSize/ArchiveEntryCount/GnuTarExecutablePath/
+    GnuTarVersion) make the manifest the honest, single source of truth for
+    "this exact archive is the one that was reviewed" -- deploy-static-
+    release.ps1 verifies the archive it is about to upload against these
+    recorded values instead of rebuilding an archive and trusting it blind.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$GitSha,
         [Parameter(Mandatory = $true)][string]$GenerationId,
         [Parameter(Mandatory = $true)][string]$SwVersion,
         [Parameter(Mandatory = $true)][object[]]$Files,
-        [Parameter(Mandatory = $true)][string]$CreatedAtUtc
+        [Parameter(Mandatory = $true)][string]$CreatedAtUtc,
+        [string]$ArchiveFileName,
+        [string]$ArchiveSha256,
+        [long]$ArchiveSize,
+        [int]$ArchiveEntryCount,
+        [string]$GnuTarExecutablePath,
+        [string]$GnuTarVersion
     )
     return [ordered]@{
         release_git_sha = $GitSha
@@ -1101,7 +1350,18 @@ function New-StaticReleaseManifestObject {
         static_root = '/opt/go-odyssey-static'
         service_worker_version = $SwVersion
         asset_count = @($Files).Count
+        # $Files entries may be ordered hashtables (from New-StaticReleaseBundle,
+        # in-memory) or PSCustomObjects (after a JSON round-trip) -- extract
+        # .size explicitly via ForEach-Object rather than Measure-Object
+        # -Property, which does not bind to hashtable keys.
+        total_bytes = (@($Files) | ForEach-Object { $_.size } | Measure-Object -Sum).Sum
         files = @($Files)
+        archive_filename = $ArchiveFileName
+        archive_sha256 = $ArchiveSha256
+        archive_size = $ArchiveSize
+        archive_entry_count = $ArchiveEntryCount
+        gnu_tar_executable_path = $GnuTarExecutablePath
+        gnu_tar_version = $GnuTarVersion
         created_at = $CreatedAtUtc
     }
 }
@@ -1155,5 +1415,8 @@ Export-ModuleMember -Function @(
     'New-RemoteBatchShaVerificationScript',
     'Get-BatchVerificationTimeoutSeconds',
     'Get-ArchiveTransferTimeoutSeconds',
-    'New-DeterministicStaticArchive'
+    'New-DeterministicStaticArchive',
+    'Test-GnuTarExecutableCapability',
+    'Resolve-GnuTarExecutable',
+    'Test-StaticArchiveEntrySafety'
 )

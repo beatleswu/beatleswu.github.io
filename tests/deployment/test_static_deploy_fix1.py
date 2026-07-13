@@ -137,7 +137,7 @@ def test_deploy_script_creates_directories_before_first_upload():
     # RELEASE-FIX-A3 replaced the per-file upload loop with a single
     # deterministic-archive upload (see New-DeterministicStaticArchive) --
     # the first upload is now the archive itself, not a per-file $localFile.
-    first_upload_index = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
+    first_upload_index = text.index("Invoke-BoundedFileUpload -LocalPath $archivePath")
     assert dir_batch_index < first_upload_index, (
         "all required remote directories must be created before the first file upload begins"
     )
@@ -311,14 +311,13 @@ def test_bounded_scp_upload_success_and_failure_via_fake_executable():
 def test_deploy_script_structural_ordering_prevents_downstream_work_on_failure():
     text = _read(DEPLOY_SCRIPT)
     # every phase must appear, in this exact order, inside the same try block.
-    # RELEASE-FIX-A3 replaced the per-file upload loop with one deterministic
-    # archive build + upload + remote extract (New-DeterministicStaticArchive
-    # / "tar -xf"), so those two markers replace the old $localFile loop --
-    # everything downstream of the upload phase is otherwise unchanged.
+    # RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: the archive is no longer built here
+    # (New-DeterministicStaticArchive moved entirely into packaging) -- the
+    # first phase inside the try block is now uploading the already-built,
+    # already-verified archive directly.
     markers = [
         "Invoke-RemoteDirectoryBatch -Directories",
-        "New-DeterministicStaticArchive -BundlePath $bundlePath",
-        "Invoke-BoundedFileUpload -LocalPath $localArchivePath",
+        "Invoke-BoundedFileUpload -LocalPath $archivePath",
         "tar -xf",
         "Uploaded file count mismatch",
         "Uploaded byte size mismatch",
@@ -358,7 +357,7 @@ def test_directory_batch_failure_raises_before_any_upload_attempted():
     batch_call = text.index("Invoke-RemoteDirectoryBatch -Directories $requiredDirectories")
     # RELEASE-FIX-A3: the first upload is the single deterministic archive,
     # not a per-file loop.
-    first_upload = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
+    first_upload = text.index("Invoke-BoundedFileUpload -LocalPath $archivePath")
     assert batch_call < first_upload
     # Invoke-RemoteDirectoryBatch itself throws on nonzero exit code
     func_text = _read(DEPLOY_SCRIPT)
@@ -377,7 +376,7 @@ def test_scp_failure_raises_before_manifest_upload():
     # RELEASE-FIX-A3: the governed files travel inside the single archive
     # upload, not a per-file loop -- the archive upload must still precede
     # the manifest upload.
-    archive_upload = text.index("Invoke-BoundedFileUpload -LocalPath $localArchivePath")
+    archive_upload = text.index("Invoke-BoundedFileUpload -LocalPath $archivePath")
     manifest_upload = text.index("Invoke-BoundedFileUpload -LocalPath $manifestPath")
     assert archive_upload < manifest_upload
 

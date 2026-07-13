@@ -35,9 +35,11 @@ param(
     [Parameter(Mandatory = $true)][string]$ExpectedGitSha,
     [Parameter(Mandatory = $true)][string]$StaticManifest,
     [Parameter(Mandatory = $true)][string]$BundlePath,
+    [Parameter(Mandatory = $true)][string]$ArchivePath,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$Execute,
-    [string]$OwnerGate
+    [string]$OwnerGate,
+    [string]$GnuTarPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +54,7 @@ $ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -Workin
 $manifestPath = Resolve-RepoPath $StaticManifest
 $manifest = Read-JsonFile -Path $manifestPath
 $bundlePath = Resolve-RepoPath $BundlePath
+$archivePath = Resolve-RepoPath $ArchivePath
 
 if ($manifest.release_git_sha -ne $ExpectedGitSha) {
     throw "Static release manifest git SHA ($($manifest.release_git_sha)) does not match expected SHA ($ExpectedGitSha)."
@@ -69,6 +72,31 @@ foreach ($entry in $manifest.files) {
         throw "Staged static release file hash mismatch for $($entry.path). Re-run package-static-release.ps1."
     }
 }
+
+# RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: this script consumes the ALREADY-BUILT
+# deterministic archive package-static-release.ps1 produced -- it never
+# calls New-DeterministicStaticArchive and never rebuilds an archive. The
+# archive a Release Review verified is the exact archive bytes uploaded
+# here, verified by SHA-256/size/entry-count against what the manifest
+# recorded at packaging time, not re-derived from whatever GNU tar (or
+# bsdtar) happens to be resolvable on this deploy workstation's PATH today.
+if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+    throw "Static release archive not found: $archivePath. Run package-static-release.ps1 first; this script never builds an archive itself."
+}
+if ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename)) {
+    throw "Static release manifest does not record archive identity (archive_filename/archive_sha256) -- it was built before RELEASE-FIX-A3-STATIC-DEPLOY-FIX3 or is otherwise incompatible. Re-run package-static-release.ps1."
+}
+$actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualArchiveHash -ne $manifest.archive_sha256) {
+    throw "Local archive SHA-256 ($actualArchiveHash) does not match the manifest's recorded archive_sha256 ($($manifest.archive_sha256)) -- refusing to upload a mismatched archive. Re-run package-static-release.ps1."
+}
+$actualArchiveSize = (Get-Item -LiteralPath $archivePath).Length
+if ($manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
+    throw "Local archive byte size ($actualArchiveSize) does not match the manifest's recorded archive_size ($($manifest.archive_size))."
+}
+
+$gnuTar = Resolve-GnuTarExecutable -OverridePath $GnuTarPath
+Test-StaticArchiveEntrySafety -ArchivePath $archivePath -GnuTarExecutablePath $gnuTar.path
 
 $RemoteCommandTimeoutSeconds = 30
 $RemoteRestartTimeoutSeconds = 45
@@ -214,24 +242,17 @@ try {
     $requiredDirectories = Get-RemoteParentDirectorySet -RelativePaths $relativePaths -RemoteReleaseDir $remoteReleaseDir
     Invoke-RemoteDirectoryBatch -Directories $requiredDirectories
 
-    # Step 4: upload every governed file via ONE deterministic tar archive
-    # (RELEASE-FIX-A3), not one scp per file. A per-file loop was fine for
-    # a 182-file/53MB closure but does not scale to a hundreds-of-files,
-    # hundreds-of-MB canonical image pack -- this replaces N scp calls with
-    # exactly 2 bounded remote operations (upload the archive, extract it).
+    # Step 4: upload the ALREADY-BUILT deterministic archive (RELEASE-FIX-A3
+    # / RELEASE-FIX-A3-STATIC-DEPLOY-FIX3), not one scp per file and not a
+    # freshly-rebuilt archive -- this is the exact same archive bytes a
+    # Release Review verified (SHA-256-checked above, before any remote
+    # call), uploaded as-is: exactly 2 bounded remote operations (upload,
+    # extract) for a hundreds-of-files, hundreds-of-MB canonical image pack.
     $expectedBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
     $archiveTimeoutSeconds = Get-ArchiveTransferTimeoutSeconds -TotalBytes $expectedBytes
-    $localArchivePath = Join-Path ([System.IO.Path]::GetTempPath()) "$generationId.tar"
-    $relativePathsForArchive = @($manifest.files | ForEach-Object { $_.path })
-    New-DeterministicStaticArchive -BundlePath $bundlePath -RelativePaths $relativePathsForArchive -ArchivePath $localArchivePath | Out-Null
-    try {
-        $remoteArchivePath = "$($layout.static_release_root.TrimEnd('/'))/releases/.upload-$generationId.tar"
-        Invoke-BoundedFileUpload -LocalPath $localArchivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveTimeoutSeconds
-        $extractResult = Invoke-RemoteText "tar -xf $(Quote-PosixShellArgument $remoteArchivePath) -C $(Quote-PosixShellArgument $remoteReleaseDir) && rm -f $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds $archiveTimeoutSeconds -OperationLabel 'extract static release archive'
-    }
-    finally {
-        Remove-Item -LiteralPath $localArchivePath -Force -ErrorAction SilentlyContinue
-    }
+    $remoteArchivePath = "$($layout.static_release_root.TrimEnd('/'))/releases/.upload-$generationId.tar"
+    Invoke-BoundedFileUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveTimeoutSeconds
+    $extractResult = Invoke-RemoteText "tar -xf $(Quote-PosixShellArgument $remoteArchivePath) -C $(Quote-PosixShellArgument $remoteReleaseDir) && rm -f $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds $archiveTimeoutSeconds -OperationLabel 'extract static release archive'
 
     # Step 5: validate uploaded file count before trusting anything else.
     $uploadedCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f | wc -l" -OperationLabel 'count uploaded files').Trim()
