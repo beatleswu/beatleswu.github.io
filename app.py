@@ -21298,19 +21298,22 @@ def _start_premium_weekly_scheduler():
 
 
 def _start_community_leaderboard_weekly_scheduler():
-    """Run the weekly leaderboard reward job hourly; the job itself enforces
-    the Asia/Taipei Monday 00:10 boundary and idempotent catch-up behavior."""
-    if not _env_flag_enabled('COMMUNITY_LEADERBOARD_WEEKLY_ENABLED'):
+    """Run the weekly leaderboard reward job on a short bounded interval so
+    Monday 00:10 Asia/Taipei executes promptly and later restarts catch up."""
+    if not _env_flag_enabled('COMMUNITY_LEADERBOARD_REWARDS_ENABLED'):
         return
 
     def worker():
-        from community_leaderboard_rewards_scheduler import run_community_leaderboard_weekly_cycle
+        from community_leaderboard_rewards_scheduler import (
+            SCHEDULER_WAKE_INTERVAL_SECONDS,
+            run_community_leaderboard_weekly_cycle,
+        )
         while True:
             try:
                 run_community_leaderboard_weekly_cycle(__import__(__name__))
             except Exception:
                 app.logger.exception('[community_leaderboard_weekly] scheduled job failed')
-            time.sleep(3600)
+            time.sleep(SCHEDULER_WAKE_INTERVAL_SECONDS)
 
     threading.Thread(target=worker, name='community-leaderboard-weekly', daemon=True).start()
 

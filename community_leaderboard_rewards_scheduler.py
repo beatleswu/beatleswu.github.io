@@ -1,9 +1,11 @@
 import datetime
+import hashlib
 import json
 import logging
 import os
 import socket
 import stat
+import subprocess
 import time
 import urllib.parse
 import zlib
@@ -15,15 +17,17 @@ from tools.community_leaderboard_rewards_exact_period import (
     build_exact_period_preview,
     build_exact_period_snapshot,
     commit_exact_period,
+    create_scheduler_commit_authorization,
 )
 
 
-COMMUNITY_LEADERBOARD_WEEKLY_ENABLED = "COMMUNITY_LEADERBOARD_WEEKLY_ENABLED"
+COMMUNITY_LEADERBOARD_REWARDS_ENABLED = "COMMUNITY_LEADERBOARD_REWARDS_ENABLED"
 DEFAULT_OPERATIONS_ROOT = Path("/opt/go-odyssey/reward-operations")
 SCHEDULER_TIMEZONE = "Asia/Taipei"
 SCHEDULE_WEEKDAY = 0  # Monday
 SCHEDULE_HOUR = 0
 SCHEDULE_MINUTE = 10
+SCHEDULER_WAKE_INTERVAL_SECONDS = 60
 LOCK_NAMESPACE = "community_leaderboard_rewards"
 LOCK_BOARD_TYPE = lbr.BOARD_TYPE_WEEKLY
 SNAPSHOT_FILENAME = "snapshot.json"
@@ -68,6 +72,15 @@ def get_weekly_scheduler_target(now=None, timezone=SCHEDULER_TIMEZONE):
     }
 
 
+def next_scheduler_check_at(now=None, timezone=SCHEDULER_TIMEZONE):
+    now_at = resolve_scheduler_now(now=now, timezone=timezone)
+    target = get_weekly_scheduler_target(now=now_at, timezone=timezone)
+    if not target["is_due"]:
+        return target["due_at"]
+    next_week_due = target["due_at"] + datetime.timedelta(days=7)
+    return min(now_at + datetime.timedelta(seconds=SCHEDULER_WAKE_INTERVAL_SECONDS), next_week_due)
+
+
 def advisory_lock_keys(board_type, period_key):
     namespace_key = zlib.crc32(LOCK_NAMESPACE.encode("utf-8")) & 0x7FFFFFFF
     scope_key = zlib.crc32(f"{board_type}:{period_key}".encode("utf-8")) & 0x7FFFFFFF
@@ -98,6 +111,10 @@ def _database_identity(database_url):
     port = f":{parsed.port}" if parsed.port else ""
     dbname = (parsed.path or "").lstrip("/") or "unknown-db"
     return f"{scheme}://{host}{port}/{dbname}"
+
+
+def _sha256_hex_bytes(data):
+    return hashlib.sha256(data).hexdigest()
 
 
 def _environment_identity():
@@ -134,11 +151,32 @@ def _ensure_restrictive_directory(path):
         os.chmod(path, 0o700)
 
 
+def _reject_git_worktree_path(path):
+    probe = Path(path).resolve(strict=False)
+    for candidate in (probe, *probe.parents):
+        git_marker = candidate / ".git"
+        if git_marker.exists():
+            raise ValueError(f"git working-tree paths are forbidden for reward operations: {path}")
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(probe),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return
+    if result.returncode == 0 and result.stdout.strip():
+        raise ValueError(f"git working-tree paths are forbidden for reward operations: {path}")
+
+
 def _validate_operation_dir(root, period_key):
     root = Path(root)
     if not root.is_absolute():
         raise ValueError("operations root must be an absolute path")
     _reject_symlink_path(root)
+    _reject_git_worktree_path(root)
     _ensure_restrictive_directory(root)
     target = root / period_key
     if target.exists():
@@ -201,7 +239,7 @@ def build_preview_identity_record(snapshot, preview, *, database_url, snapshot_f
         "database_identity": _database_identity(database_url),
         "environment_identity": _environment_identity(),
         "snapshot_file": str(snapshot_file),
-        "snapshot_file_sha256": lbr.sha256_hex_from_value(json.loads(snapshot_file.read_text(encoding="utf-8"))),
+        "snapshot_file_sha256": _sha256_hex_bytes(snapshot_file.read_bytes()),
         "snapshot_sha256": preview["snapshot_sha256"],
         "preview_sha256": preview["preview_sha256"],
         "summary": preview["summary"],
@@ -209,9 +247,7 @@ def build_preview_identity_record(snapshot, preview, *, database_url, snapshot_f
 
 
 def validate_preview_identity(preview_identity, *, snapshot, snapshot_file, database_url):
-    if preview_identity.get("snapshot_file_sha256") != lbr.sha256_hex_from_value(
-        json.loads(snapshot_file.read_text(encoding="utf-8"))
-    ):
+    if preview_identity.get("snapshot_file_sha256") != _sha256_hex_bytes(snapshot_file.read_bytes()):
         raise ValueError("preview identity does not match the exact snapshot file bytes")
     if preview_identity.get("snapshot_sha256") != lbr.sha256_hex_from_value(snapshot):
         raise ValueError("preview identity snapshot SHA mismatch")
@@ -307,7 +343,8 @@ def log_scheduler_result(logger, result):
 def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_root=None):
     logger = _logger_for(app_module)
     started_at = time.monotonic()
-    if not app_module._env_flag_enabled(COMMUNITY_LEADERBOARD_WEEKLY_ENABLED):
+    flag_enabled = app_module._env_flag_enabled(COMMUNITY_LEADERBOARD_REWARDS_ENABLED)
+    if not flag_enabled:
         result = {
             "result": "disabled_noop",
             "board_type": lbr.BOARD_TYPE_WEEKLY,
@@ -325,7 +362,7 @@ def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_r
     target = get_weekly_scheduler_target(now=now, timezone=SCHEDULER_TIMEZONE)
     if not target["is_due"]:
         result = {
-            "result": "before_schedule_noop",
+            "result": "not_due_noop",
             "board_type": target["board_type"],
             "period_key": target["period_key"],
             "claim_count": 0,
@@ -400,7 +437,11 @@ def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_r
             expected_total_coins=preview["summary"]["total_coins"],
             expected_total_items=preview["summary"]["total_items"],
             expected_total_badges=preview["summary"]["total_badges"],
-            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+            scheduler_authorization=create_scheduler_commit_authorization(
+                board_type=target["board_type"],
+                period_key=target["period_key"],
+                flag_enabled=flag_enabled,
+            ),
             now=target["now_at"],
         )
         post_state = summarize_post_grant_state(
@@ -423,8 +464,9 @@ def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_r
         conn.commit()
         grant_result_record = build_grant_result_record(snapshot, preview_identity, result, duration_seconds=duration_seconds)
         _write_exact_json(operation_dir / GRANT_RESULT_FILENAME, grant_result_record, replace=True)
+        scheduler_result_name = "granted" if result["result"] == "committed" else result["result"]
         scheduler_result = {
-            "result": result["result"],
+            "result": scheduler_result_name,
             "board_type": target["board_type"],
             "period_key": target["period_key"],
             "snapshot_sha256": result["snapshot_sha256"],
@@ -438,9 +480,22 @@ def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_r
         }
         log_scheduler_result(logger, scheduler_result)
         return scheduler_result
-    except Exception:
+    except Exception as exc:
         conn.rollback()
-        raise
+        failed_result = {
+            "result": "failed_closed",
+            "board_type": target.get("board_type"),
+            "period_key": target.get("period_key"),
+            "claim_count": 0,
+            "component_count": 0,
+            "total_coins": 0,
+            "total_items": {},
+            "total_badges": {},
+            "duration_seconds": round(time.monotonic() - started_at, 3),
+            "error_type": type(exc).__name__,
+        }
+        log_scheduler_result(logger, failed_result)
+        return failed_result
     finally:
         if lock_acquired:
             try:

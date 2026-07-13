@@ -17,6 +17,7 @@ from community_leaderboard_rewards_exact_period import (
     build_exact_period_preview,
     build_exact_period_snapshot,
     commit_exact_period,
+    create_scheduler_commit_authorization,
     detect_existing_operation_state,
 )
 
@@ -417,6 +418,99 @@ def test_commit_rejects_total_mismatch_and_partial_existing_claims(monkeypatch):
             expected_total_items=preview["summary"]["total_items"],
             expected_total_badges=preview["summary"]["total_badges"],
             owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    conn.close()
+
+
+def test_commit_rejects_claim_component_item_and_badge_total_mismatches(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+
+    with pytest.raises(ValueError, match="expected claim count mismatch"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"] + 1,
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    with pytest.raises(ValueError, match="expected reward totals mismatch"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"] + 1,
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    with pytest.raises(ValueError, match="expected reward totals mismatch"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items={"xp_potion": 999},
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    with pytest.raises(ValueError, match="expected reward totals mismatch"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges={"badge_lb_weekly_1": 999},
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+    conn.close()
+
+
+def test_scheduler_authorization_cannot_bypass_manual_owner_gate_without_lock(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    auth = create_scheduler_commit_authorization(
+        board_type="weekly",
+        period_key="2026-W28",
+        flag_enabled=True,
+    )
+    monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
+    monkeypatch.setattr(
+        "community_leaderboard_rewards_exact_period.scheduler_period_lock_is_held",
+        lambda conn, board_type, period_key: False,
+    )
+    with pytest.raises(ValueError, match="held advisory lock"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            scheduler_authorization=auth,
         )
     conn.close()
 

@@ -87,17 +87,17 @@ def test_premium_weekly_scheduler_starts_only_for_explicit_true(monkeypatch):
 def test_community_leaderboard_weekly_flag_parser_treats_false_values_as_disabled(monkeypatch):
     for value in (None, "", "0", "false", "False", "no", "off", "   "):
         if value is None:
-            monkeypatch.delenv("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED", raising=False)
+            monkeypatch.delenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", raising=False)
         else:
-            monkeypatch.setenv("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED", value)
+            monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", value)
 
-        assert app_module._env_flag_enabled("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED") is False
+        assert app_module._env_flag_enabled("COMMUNITY_LEADERBOARD_REWARDS_ENABLED") is False
 
 
 def test_community_leaderboard_weekly_flag_parser_accepts_explicit_true_values(monkeypatch):
     for value in ("1", "true", "TRUE", "yes", "on"):
-        monkeypatch.setenv("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED", value)
-        assert app_module._env_flag_enabled("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED") is True
+        monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", value)
+        assert app_module._env_flag_enabled("COMMUNITY_LEADERBOARD_REWARDS_ENABLED") is True
 
 
 def test_community_leaderboard_scheduler_disabled_by_default_never_imports_or_starts_thread(monkeypatch):
@@ -118,7 +118,7 @@ def test_community_leaderboard_scheduler_disabled_by_default_never_imports_or_st
         def start(self):
             thread_calls.append(("start",))
 
-    monkeypatch.delenv("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED", raising=False)
+    monkeypatch.delenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", raising=False)
     monkeypatch.setattr(builtins, "__import__", fake_import)
     monkeypatch.setattr(app_module.threading, "Thread", FakeThread)
 
@@ -137,6 +137,7 @@ def test_community_leaderboard_scheduler_starts_only_for_explicit_true(monkeypat
         imported.append(name)
         if name == "community_leaderboard_rewards_scheduler":
             module = types.SimpleNamespace(
+                SCHEDULER_WAKE_INTERVAL_SECONDS=60,
                 run_community_leaderboard_weekly_cycle=lambda app_module: (_ for _ in ()).throw(SystemExit("stop after import"))
             )
             return module
@@ -155,7 +156,7 @@ def test_community_leaderboard_scheduler_starts_only_for_explicit_true(monkeypat
             except SystemExit:
                 thread_started.append(("system_exit",))
 
-    monkeypatch.setenv("COMMUNITY_LEADERBOARD_WEEKLY_ENABLED", "true")
+    monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
     monkeypatch.setattr(builtins, "__import__", fake_import)
     monkeypatch.setattr(app_module.threading, "Thread", FakeThread)
 
