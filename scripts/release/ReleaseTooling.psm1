@@ -152,6 +152,7 @@ function Get-ReleaseLayout {
         'app_service_name',
         'scheduler_service_name',
         'nginx_service_name',
+        'postgres_service_name',
         'asset_source_path',
         'asset_container_mount_destination',
         'questions_content_source_path',
@@ -159,7 +160,8 @@ function Get-ReleaseLayout {
         'shadow_event_log_path',
         'health_url',
         'login_url',
-        'homepage_url'
+        'homepage_url',
+        'production_env_path'
     )
     foreach ($name in $required) {
         if (-not $layout.PSObject.Properties.Name.Contains($name)) {
@@ -187,6 +189,201 @@ function Quote-PosixShellArgument {
     }
     $escaped = $Value -replace "'", ($singleQuote + '"' + $singleQuote + '"' + $singleQuote)
     return $singleQuote + $escaped + $singleQuote
+}
+
+function Assert-ProtectedHostEnvCredentialAndTcpAuthentication {
+    <#
+    .SYNOPSIS
+    The single, canonical DB credential gate for deploy and rollback. Runs
+    entirely on the production host so the raw DB password never crosses
+    back over SSH to the local machine -- not into an exception message, a
+    PowerShell transcript, a captured command result, or local process
+    memory.
+    .DESCRIPTION
+    PRODUCTION-RUNTIME-CANONICALIZATION (2026-07-14 godokoro.com 502
+    incident follow-up, hardened after review): deploy and rollback used to
+    derive POSTGRES_PASSWORD/DATABASE_URL by docker-inspecting the
+    *existing* scheduler container's live environment, silently
+    propagating a stale/incorrect credential forward on every future
+    deploy/rollback. An earlier version of this fix read the protected
+    .env back to the local machine and authenticated from here; that still
+    let the raw password transit SSH stdout and live in a local PowerShell
+    variable. This version instead sends one Python payload over SSH
+    stdin (`python3 -`) that does everything remotely and returns only a
+    sanitized `{"status": "ok"|"fail", "reason": ...}` JSON line -- this
+    function and its caller never see the credential value itself.
+
+    The remote payload:
+      - reads production_env_path as KEY=VALUE data, never `source`d or
+        dot-executed as shell code;
+      - fails closed if the path is missing, not a regular file, has a
+        duplicate assignment, POSTGRES_PASSWORD is missing/empty, its
+        DATABASE_URL (if present) disagrees with the standalone
+        POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB fields, or the
+        credential contains a CR/LF/NUL byte;
+      - determines the Postgres container's own already-pulled image ID
+        and its Docker network purely from non-secret `docker inspect`
+        provenance (never its environment) -- network resolution fails
+        closed unless exactly one candidate network exists;
+      - authenticates over a REAL TCP connection (`psql host=... port=...`,
+        never the Postgres container's own Unix socket trust/peer) from a
+        throwaway `--rm --pull=never` container built from that exact
+        already-running image ID, so no floating/unverified image is ever
+        pulled during a production deploy;
+      - delivers the password to that throwaway container only via a 0600
+        PGPASSFILE mounted read-only, escaped per the `.pgpass` format,
+        removed in a `finally` regardless of outcome;
+      - never prints the raw credential to stdout/stderr, and never
+        mutates the Postgres role's credential or the Postgres
+        container's lifecycle in any way.
+
+    On any failure this throws and the caller must not proceed with any
+    recreate/restart.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$EnvPath,
+        [Parameter(Mandatory = $true)][string]$PostgresContainerName
+    )
+    $script = @'
+import json
+import os
+import subprocess
+import sys
+from urllib.parse import urlparse, unquote
+
+ENV_PATH = "__ENV_PATH__"
+POSTGRES_CONTAINER = "__POSTGRES_CONTAINER_NAME__"
+
+
+def fail(reason):
+    print(json.dumps({"status": "fail", "reason": reason}))
+    sys.exit(1)
+
+
+def pgpass_escape(value):
+    return value.replace("\\", "\\\\").replace(":", "\\:")
+
+
+def main():
+    if not os.path.isfile(ENV_PATH) or os.path.islink(ENV_PATH):
+        fail("env_path_missing_or_not_regular_file")
+
+    with open(ENV_PATH, "r", encoding="utf-8", errors="strict") as handle:
+        raw_text = handle.read()
+
+    assignments = {}
+    seen = set()
+    for raw_line in raw_text.split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if key in seen:
+            fail("duplicate_assignment")
+        seen.add(key)
+        assignments[key] = value
+
+    user = assignments.get("POSTGRES_USER") or "go"
+    if "POSTGRES_PASSWORD" not in assignments:
+        fail("postgres_password_missing")
+    password = assignments["POSTGRES_PASSWORD"]
+    if password == "":
+        fail("postgres_password_empty")
+    database = assignments.get("POSTGRES_DB") or "go_odyssey"
+
+    for unsafe in ("\r", "\n", "\x00"):
+        if unsafe in password or unsafe in user or unsafe in database:
+            fail("credential_contains_unsafe_control_character")
+
+    database_url = assignments.get("DATABASE_URL", "").strip()
+    if database_url:
+        parsed = urlparse(database_url)
+        if (
+            unquote(parsed.username or "") != user
+            or unquote(parsed.password or "") != password
+            or (parsed.path or "").lstrip("/") != database
+        ):
+            fail("database_url_disagrees_with_fields")
+
+    try:
+        inspect_raw = subprocess.check_output(
+            ["docker", "inspect", POSTGRES_CONTAINER], text=True
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        fail("postgres_container_not_found")
+    item = json.loads(inspect_raw)[0]
+    image_id = item.get("Image")
+    if not image_id:
+        fail("postgres_image_identity_unavailable")
+    networks = list(((item.get("NetworkSettings") or {}).get("Networks") or {}).keys())
+    if len(networks) != 1:
+        fail("postgres_network_not_uniquely_determined")
+    network_name = networks[0]
+
+    pgpass_line = "{}:5432:{}:{}:{}\n".format(
+        POSTGRES_CONTAINER,
+        pgpass_escape(database),
+        pgpass_escape(user),
+        pgpass_escape(password),
+    )
+    pgpass_path = "/tmp/.release-pgauth-{}.tmp".format(os.getpid())
+    fd = os.open(pgpass_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(pgpass_line)
+        conn_str = "host={} port=5432 dbname={} user={} sslmode=disable".format(
+            POSTGRES_CONTAINER, database, user
+        )
+        try:
+            result = subprocess.run(
+                [
+                    "docker", "run", "--rm", "--pull=never",
+                    "--network", network_name,
+                    "-v", "{}:/tmp/.pgpass:ro".format(pgpass_path),
+                    "-e", "PGPASSFILE=/tmp/.pgpass",
+                    image_id,
+                    "psql", conn_str, "-tAc", "SELECT 1;",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            fail("tcp_auth_timeout")
+    finally:
+        try:
+            os.remove(pgpass_path)
+        except OSError:
+            pass
+
+    if result.returncode != 0 or result.stdout.strip() != "1":
+        fail("tcp_password_authentication_failed")
+
+    print(json.dumps({"status": "ok"}))
+
+
+try:
+    main()
+except SystemExit:
+    raise
+except BaseException:
+    # Catch-all: an unexpected exception here (malformed encoding, an
+    # unexpected `docker inspect` shape, etc.) must never let a raw
+    # traceback -- which could echo file contents or command output --
+    # cross back over SSH. Only a fixed, non-secret reason code may.
+    print(json.dumps({"status": "fail", "reason": "remote_helper_internal_failure"}))
+    sys.exit(1)
+'@
+    $script = $script.Replace('__ENV_PATH__', $EnvPath).Replace('__POSTGRES_CONTAINER_NAME__', $PostgresContainerName)
+    $result = Invoke-RemoteShellCommand -SshAlias $SshAlias -Name 'protected_credential_and_tcp_auth' -Command 'python3 -' -StdinText $script
+    $sanitized = $null
+    try { $sanitized = $result.output | ConvertFrom-Json } catch { $sanitized = $null }
+    if ($result.exit_code -ne 0 -or -not $sanitized -or $sanitized.status -ne 'ok') {
+        $reason = if ($sanitized -and $sanitized.reason) { $sanitized.reason } else { 'unknown' }
+        throw "Protected credential / TCP authentication preflight failed (fail closed: no DB role repair, no recreate, no restart will be attempted). reason=$reason"
+    }
 }
 
 function Get-BooleanFlag {
@@ -1377,6 +1574,7 @@ Export-ModuleMember -Function @(
     'Invoke-ProcessWithUtf8NoBomStdin',
     'Invoke-RemoteShellCommand',
     'Get-CanonicalAppHealthcheckDefinition',
+    'Assert-ProtectedHostEnvCredentialAndTcpAuthentication',
     'Get-BooleanFlag',
     'Get-CurrentGitSha',
     'Get-ImageLabels',

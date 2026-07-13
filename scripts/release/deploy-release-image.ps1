@@ -72,28 +72,20 @@ function Join-RemotePath {
     return ($Left.TrimEnd('/') + '/' + $Right.TrimStart('/'))
 }
 
-function Get-DatabaseUrlComponents {
-    param([Parameter(Mandatory = $true)][string]$DatabaseUrl)
-    $uri = [Uri]$DatabaseUrl
-    $userInfo = $uri.UserInfo -split ':', 2
-    return [ordered]@{
-        user = if ($userInfo.Count -gt 0) { [Uri]::UnescapeDataString($userInfo[0]) } else { '' }
-        password = if ($userInfo.Count -gt 1) { [Uri]::UnescapeDataString($userInfo[1]) } else { '' }
-        database = $uri.AbsolutePath.TrimStart('/')
-    }
-}
-
 function Get-RemoteComposeEnvironmentPrefix {
+    <#
+    .SYNOPSIS
+    Non-secret, deploy-computed compose interpolation values only.
+    DB credentials never appear here -- they reach Compose exclusively via
+    `docker compose --env-file <production_env_path>`, sourced by
+    Assert-ProtectedHostEnvCredentialAndTcpAuthentication (see PRODUCTION-RUNTIME-CANONICALIZATION).
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$ImageTag,
-        [Parameter(Mandatory = $true)]$DatabaseComponents,
         [Parameter(Mandatory = $true)][string]$QuestionsVolumeName
     )
     $pairs = [ordered]@{
         GO_ODYSSEY_IMAGE = $ImageTag
-        POSTGRES_USER = $DatabaseComponents.user
-        POSTGRES_PASSWORD = $DatabaseComponents.password
-        POSTGRES_DB = $DatabaseComponents.database
         QUESTIONS_CONTENT_VOLUME_NAME = $QuestionsVolumeName
         QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
         ASSET_SOURCE_PATH = $layout.asset_source_path
@@ -862,14 +854,24 @@ try {
     $appBefore = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
     $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
     $nginxBefore = Get-RemoteContainerSnapshot -ContainerName $layout.nginx_service_name
-    $schedulerEnv = Get-RemoteContainerEnvMap -ContainerName $layout.scheduler_service_name
-    $databaseComponents = Get-DatabaseUrlComponents -DatabaseUrl $schedulerEnv['DATABASE_URL']
+
+    # PRODUCTION-RUNTIME-CANONICALIZATION: the DB credential source of
+    # truth is the protected host env declared by the release layout --
+    # never the existing scheduler container's live environment (which
+    # would silently propagate a stale/incorrect password forward). This
+    # runs entirely on the production host; the raw password never
+    # returns to this local process. See
+    # Assert-ProtectedHostEnvCredentialAndTcpAuthentication for the
+    # fail-closed contract.
+    Assert-ProtectedHostEnvCredentialAndTcpAuthentication -SshAlias $layout.ssh_alias -EnvPath $layout.production_env_path -PostgresContainerName $layout.postgres_service_name
+
     $questionsVolumeName = Get-RemoteQuestionsVolumeName -ContainerName $layout.app_service_name
     $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
     $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
     $nginxComposeService = if ([string]::IsNullOrWhiteSpace($nginxBefore.compose_service)) { $layout.nginx_service_name } else { $nginxBefore.compose_service }
-    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -DatabaseComponents $databaseComponents -QuestionsVolumeName $questionsVolumeName
-    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
+    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -QuestionsVolumeName $questionsVolumeName
+    $composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
+    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
     $composeServiceList = [regex]::Split($composeServices, '\r?\n') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     foreach ($serviceName in @($appComposeService, $schedulerComposeService, $nginxComposeService)) {
         if ($composeServiceList -notcontains $serviceName) {
@@ -877,7 +879,7 @@ try {
         }
     }
 
-    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --images"
+    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --images"
     $composeImageMatches = ([regex]::Split($composeImages, '\r?\n') | Where-Object { $_.Trim() -eq $manifest.image_tag }).Count
     if ($composeImageMatches -lt 2) {
         throw "docker compose config did not resolve the exact release image for app and scheduler."
@@ -910,9 +912,6 @@ try {
         if (-not $appRuntimeContract.required_database_keys.$key) {
             throw "Live app runtime contract is missing required environment key: $key"
         }
-    }
-    if ([string]::IsNullOrWhiteSpace($databaseComponents.user) -or [string]::IsNullOrWhiteSpace($databaseComponents.password) -or [string]::IsNullOrWhiteSpace($databaseComponents.database)) {
-        throw "Runtime-derived compose database values are incomplete."
     }
     $rollbackIdentity = [ordered]@{
         previous_app_image_tag = $appBefore.image_tag
@@ -974,7 +973,7 @@ try {
     }
 
     $rollbackRequired = $true
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
@@ -1001,7 +1000,7 @@ try {
         throw "Daily challenge returned 503 after the app image switch."
     }
 
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
     $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
     if ($schedulerAfter.image_tag -ne $manifest.image_tag) {
