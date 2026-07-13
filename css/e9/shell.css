@@ -10,7 +10,15 @@
 }
 
 #e9-adventure-shell[hidden] {
-  display: none;
+  display: none !important;
+}
+
+#skill-map[hidden],
+#welcome-state > .guild-hall-hero[hidden],
+#welcome-state > .guild-entry-grid[hidden],
+#welcome-state > .home-left-col[hidden],
+#welcome-state > .home-report[hidden] {
+  display: none !important;
 }
 
 #e9-adventure-shell .e9-body {

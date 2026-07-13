@@ -5987,7 +5987,7 @@
     <!-- E9 Adventure Shell (feature-flagged, default OFF — see js/e9/feature_flags.js).
          Loaded unconditionally so there is no FOUC once the flag is enabled;
          harmless while #e9-adventure-shell stays hidden. -->
-    <link rel="stylesheet" href="/css/e9/shell.css?v=20260712e9d">
+    <link rel="stylesheet" href="/css/e9/shell.css?v=20260713e9d1">
     <link rel="stylesheet" href="/css/e9/top_hud.css?v=20260712e9d">
     <link rel="stylesheet" href="/css/e9/navigation.css?v=20260712e9d">
     <link rel="stylesheet" href="/css/e9/cards.css?v=20260712e9d">
@@ -14106,6 +14106,54 @@ window.onLangChange = () => {
     try { if (typeof initDojoBanner === 'function') initDojoBanner(); } catch(e) {}
     try { if (typeof loadSageMessage === 'function') loadSageMessage(); } catch(e) {}
 };
+const E9_INLINE_DEBUG_HOSTNAMES = new RegExp('^(localhost|127\\.0\\.0\\.1|\\[::1\\]|.*\\.local|.*\\.test)$', 'i');
+function isE9InlineDebugEnvironment() {
+    const host = window.location && window.location.hostname ? window.location.hostname : '';
+    return E9_INLINE_DEBUG_HOSTNAMES.test(host);
+}
+function resolveInitialE9Flags() {
+    if (window.__GO_E9_FLAGS__ && typeof window.__GO_E9_FLAGS__ === 'object') {
+        return Object.assign({}, window.__GO_E9_FLAGS__);
+    }
+    const base = Object.assign({
+        e9Shell: false,
+        e9TopHud: false,
+        e9LeftNav: false,
+        e9RightCards: false,
+        e9BottomDock: false,
+        e9WorldStage: false
+    }, window.GO_ODYSSEY_FEATURES || {});
+    const params = new URLSearchParams(window.location ? window.location.search : '');
+    const debugOptIn = params.get('E9_DEBUG') === '1';
+    if (debugOptIn && isE9InlineDebugEnvironment()) {
+        Object.keys(base).forEach((key) => {
+            if (params.has(key)) {
+                const raw = params.get(key);
+                base[key] = raw !== '0' && raw !== 'false';
+            }
+        });
+    }
+    window.__GO_E9_FLAGS__ = Object.assign({}, base);
+    return Object.assign({}, base);
+}
+function primeInitialE9ShellOwnership() {
+    const params = new URLSearchParams(window.location ? window.location.search : '');
+    const flags = resolveInitialE9Flags();
+    const e9ShellRequested = !!flags.e9Shell;
+    const premiumSetParam = params.get('premium_set');
+    const disciplineParam = params.get('discipline');
+    const skillResume = params.get('resume');
+    const grimoireParam = params.get('grimoire');
+    const zoneParam = params.get('zone');
+    const adventureResume = !!(zoneParam && params.get('adventure') && skillResume);
+    const useScopedQuestions = !!(disciplineParam && skillResume);
+    const challengeId = params.get('challenge');
+    const needsImmediatePracticeState = !!(premiumSetParam || challengeId || grimoireParam || adventureResume || useScopedQuestions);
+    const legacyWelcomeShellActive = !e9ShellRequested || needsImmediatePracticeState;
+    window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
+    window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
+}
+primeInitialE9ShellOwnership();
 window.onload = async () => {
     I18n.renderSwitcher(document.getElementById('lang-switcher-index'));
     I18n.apply();
@@ -14141,14 +14189,8 @@ _bindNewbieQuestInteractions();
 initNewbieQuest(me);
 }catch(e){}
     if (!_isPremiumUser && _isDailyLimitLockedToday()) _applyDailyLimit();
-    renderMapSkeleton();
-    loadPlayerAvatar();
-    initDojoBanner();
-    loadMapProgressStatus();              // 地圖 / BOSS 進度先跑，不等待題庫與 SRS
-    // ── 金幣顯示 ──
-    runHomeIdleTask(async () => { try{const cr=await fetch('/api/user/coins',{credentials:'include'}).then(r=>r.json());const cel=document.getElementById('coins-nav-count');if(cel)cel.textContent=Number(cr.coins||0).toLocaleString();}catch(e){} }, 1200);
-    // ── 免費每日上限：頁面開啟時同步 ──
-    if(!_isPremiumUser){runHomeIdleTask(async () => { try{const sub=await fetch('/api/subscription/status',{credentials:'include'}).then(r=>r.json());_dailyLimitMax=sub.daily_limit||20;if((sub.remaining??1)<=0)_applyDailyLimit();}catch(e){} }, 2200);}
+    const e9Flags = resolveInitialE9Flags();
+    const e9ShellRequested = !!e9Flags.e9Shell;
     const params  = new URLSearchParams(location.search);
     const premiumSetParam = params.get('premium_set');
     const disciplineParam = params.get('discipline');
@@ -14165,6 +14207,19 @@ initNewbieQuest(me);
     const adventureResume = !!(zoneParam && params.get('adventure') && skillResume);
     // discipline + resume（不限 stage）= 練習該學科全部題目；三個都有 = 限定某本書
     const useScopedQuestions = !!(disciplineParam && skillResume);
+    const challengeId = params.get('challenge');
+    const needsImmediatePracticeState = !!(premiumSetParam || challengeId || grimoireParam || adventureResume || useScopedQuestions);
+    const legacyWelcomeShellActive = !e9ShellRequested || needsImmediatePracticeState;
+    window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
+    window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
+    if (legacyWelcomeShellActive) {
+        renderMapSkeleton();
+        loadPlayerAvatar();
+        initDojoBanner();
+        loadMapProgressStatus();
+        runHomeIdleTask(async () => { try{const cr=await fetch('/api/user/coins',{credentials:'include'}).then(r=>r.json());const cel=document.getElementById('coins-nav-count');if(cel)cel.textContent=Number(cr.coins||0).toLocaleString();}catch(e){} }, 1200);
+        if(!_isPremiumUser){runHomeIdleTask(async () => { try{const sub=await fetch('/api/subscription/status',{credentials:'include'}).then(r=>r.json());_dailyLimitMax=sub.daily_limit||20;if((sub.remaining??1)<=0)_applyDailyLimit();}catch(e){} }, 2200);}
+    }
     console.log('[INIT] URL params:', {disciplineParam, stageParam, questParam, skillResume, grimoireParam, adventureResume, useScopedQuestions});
     const qsApi = new URL('/api/questions', location.origin);
     qsApi.searchParams.set('slim', '1');  // 首頁只需精簡欄位，把 60MB 砍到約一半
@@ -14181,8 +14236,6 @@ initNewbieQuest(me);
     let questions;
     try{const r=await fetch(qsApi.pathname + qsApi.search,{credentials:'include'});if(!r.ok)throw new Error(`HTTP ${r.status}`);questions=await r.json();console.log('[INIT] questions loaded:', questions.length);}
     catch(err){if(statusEl)statusEl.textContent='ERROR';if(listDiv)listDiv.innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${I18n.t('index.load_err')}<br><small style="color:var(--ink3)">${_esc(err.message)}</small></div>`;console.error('[INIT] fetch error:', err);return;}
-    const challengeId = params.get('challenge');
-    const needsImmediatePracticeState = !!(premiumSetParam || challengeId || grimoireParam || adventureResume || useScopedQuestions);
     let initData={dueData:{due:[],count:0}};
     let mistakeStats={total:0};
     if (needsImmediatePracticeState) {
@@ -14204,20 +14257,22 @@ initNewbieQuest(me);
             } catch(e) {}
         }, 1800);
     }
-    runHomeIdleTask(loadTodayStats, 1400);
-    bindXpHelp();
-    runHomeIdleTask(loadXpStatus, 1600);
-    runHomeIdleTask(loadQuizPet, 1800);    // 做題頁陪伴棋靈
-    runHomeIdleTask(initStreakDots, 2200);
-    runHomeIdleTask(loadDailyTrainingStatus, 2000); // 今日修煉進度（獨立，不依賴 SRS）
-    if (_isPremiumUser) runHomeIdleTask(loadSageMessage, 2400);  // 弱點分析（不依賴首頁 banner）；非 premium 不呼叫真實弱點分析 API
-    setTimeout(updateWelcomeStats, 1200);  // after loadTodayStats resolves
-    runHomeIdleTask(loadQuestsPanel, 2600);
-    startQuestTimer();
+    if (legacyWelcomeShellActive) {
+        runHomeIdleTask(loadTodayStats, 1400);
+        bindXpHelp();
+        runHomeIdleTask(loadXpStatus, 1600);
+        runHomeIdleTask(loadQuizPet, 1800);
+        runHomeIdleTask(initStreakDots, 2200);
+        runHomeIdleTask(loadDailyTrainingStatus, 2000);
+        if (_isPremiumUser) runHomeIdleTask(loadSageMessage, 2400);
+        setTimeout(updateWelcomeStats, 1200);
+        runHomeIdleTask(loadQuestsPanel, 2600);
+        startQuestTimer();
+    }
     document.querySelector('main')?.scrollTo(0, 0);
     document.querySelector('.practice')?.scrollTo(0, 0);
     allQuestions=questions;srsDueTotal=initData.dueData?.count??0;if(statusEl)statusEl.textContent=I18n.t('index.sidebar_count').replace('{n}',allQuestions.length);
-    renderAdventureMap();
+    if (legacyWelcomeShellActive) renderAdventureMap();
     const sbCount=document.getElementById('sidebar-q-count');if(sbCount)sbCount.textContent=I18n.t('index.sidebar_count').replace('{n}',allQuestions.length);
     if(mistakeStats.total>0){const b=document.getElementById('mistake-badge');b.textContent=mistakeStats.total>99?'99+':mistakeStats.total;b.style.display='inline-block';}
     updateSRSProgress();
@@ -15327,6 +15382,7 @@ window.addEventListener('appinstalled', () => {
 
     /* 從棋力確認頁返回時直接啟動 Tour */
     function _initTourFlow() {
+        if (window.__GO_E9_ACTIVE_SHELL__ === 'e9') return;
         try {
             const pending = JSON.parse(localStorage.getItem(NEWBIE_CHOICE_PENDING_KEY) || 'null');
             if (pending && (pending.path === 'newbie' || pending.path === 'test')) {
@@ -15364,7 +15420,7 @@ window.addEventListener('appinstalled', () => {
      dispatches the mount calls the component inits listen for, and depends
      on I18n/startAdventureStage already being defined by the scripts above
      this point in the page, which they are). -->
-<script src="/js/e9/feature_flags.js?v=20260712e9d"></script>
+<script src="/js/e9/feature_flags.js?v=20260713e9d1"></script>
 <script src="/js/e9/component_loader.js?v=20260712e9d"></script>
 <!-- RELEASE-FIX-B: shared missing-key fallback helper. Must load before
      any component script that calls window.E9.I18nFallback.t(). -->
@@ -15380,6 +15436,6 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/right_cards.js?v=20260712e9e"></script>
 <script src="/js/e9/bottom_dock.js?v=20260712e9d"></script>
 <script src="/js/e9/world_stage.js?v=20260712e9e"></script>
-<script src="/js/e9/shell.js?v=20260712e9e"></script>
+<script src="/js/e9/shell.js?v=20260713e9d1"></script>
 </body>
 </html>

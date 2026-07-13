@@ -32,7 +32,7 @@ OLD_SW_VERSION = "v177-sgf-fe-hotfix1a-node-parser"
 # NEW_SW_VERSION tracks whatever Sprint most recently bumped sw.js VERSION
 # (superseded by each subsequent Sprint that also changes E9 JS bytes --
 # see RELEASE-FIX-B, docs/planning/release_fix_b_e9_i18n_fallback.md).
-NEW_SW_VERSION = "v181-release-fix-b-e9-i18n-fallback"
+NEW_SW_VERSION = "v182-e9-1d1-shell-exclusivity"
 
 
 def _read(path):
@@ -79,15 +79,17 @@ def test_production_flags_still_default_false():
 
 def test_flag_off_returns_before_any_fragment_mount_call():
     shell_js = _read(JS_DIR / "shell.js")
-    # The e9Shell-off early return must appear textually before the first
-    # mountSlot(...) call inside init(), so a flag-off page makes zero
-    # fragment requests.
-    init_body_match = re.search(r"function init\(\)\s*\{(.*?)\n  \}\n\n  /\*\*", shell_js, re.S)
-    assert init_body_match, "could not locate shell.js init() body"
-    init_body = init_body_match.group(1)
-    early_return_pos = init_body.find("if (!flags.e9Shell)")
+    # resolveRequestedShellMode()/applyShellState() may still run in flag-off
+    # mode to enforce aria-hidden/inert/tabbability, but init() must still
+    # return before the first mountSlot(...) call so a legacy-owned page
+    # makes zero fragment requests.
+    start = shell_js.find("function init() {")
+    end = shell_js.find("\n\n  function startAdventureFromE9")
+    assert start != -1 and end != -1, "could not locate shell.js init() body"
+    init_body = shell_js[start:end]
+    early_return_pos = init_body.find("if (requestedMode !== 'e9')")
     first_mount_pos = init_body.find("mountSlot(")
-    assert early_return_pos != -1, "missing e9Shell-off guard"
+    assert early_return_pos != -1, "missing legacy-owned early return guard"
     assert first_mount_pos == -1 or early_return_pos < first_mount_pos, (
         "flag-off guard must come before any mountSlot() call"
     )
@@ -96,8 +98,7 @@ def test_flag_off_returns_before_any_fragment_mount_call():
 def test_critical_failure_recovers_to_legacy():
     shell_js = _read(JS_DIR / "shell.js")
     assert "function recoverToLegacy" in shell_js
-    assert "hideE9Shell()" in shell_js
-    assert "showLegacyAdventure()" in shell_js
+    assert "applyShellState('legacy')" in shell_js
     # No page reload anywhere in the recovery path.
     assert "location.reload" not in shell_js
 
@@ -122,6 +123,8 @@ def test_no_duplicate_init_or_double_binding_guard_present():
     for name in ["top_hud", "left_nav", "right_cards", "bottom_dock", "world_stage"]:
         js = _read(JS_DIR / f"{name}.js")
         assert "data-e9-inited" in js, f"{name}.js must guard against duplicate init"
+    shell_js = _read(JS_DIR / "shell.js")
+    assert "mountStarted" in shell_js, "shell.js must guard against duplicate fragment mounts"
 
 
 # ---------------------------------------------------------------------------

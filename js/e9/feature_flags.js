@@ -19,7 +19,7 @@
   // Bump alongside sw.js VERSION whenever E9 JS/CSS changes ship, so the
   // cache-first strategy in sw.js for *.js/*.css does not strand users on
   // a stale bundle. Also appended as ?v= on every component fragment URL.
-  var ASSET_VERSION = 'e9-1a2-1';
+  var ASSET_VERSION = 'e9-1d1-1';
 
   var PRODUCTION_FLAGS = {
     e9Shell: false,
@@ -44,10 +44,14 @@
   }
 
   function resolveFlags() {
+    if (global.__GO_E9_FLAGS__ && typeof global.__GO_E9_FLAGS__ === 'object') {
+      return Object.assign({}, global.__GO_E9_FLAGS__);
+    }
     var base = Object.assign({}, PRODUCTION_FLAGS, global.GO_ODYSSEY_FEATURES || {});
     var params = new URLSearchParams(global.location ? global.location.search : '');
 
     var debugOptIn = params.get('E9_DEBUG') === '1';
+    global.__GO_E9_FLAGS__ = Object.assign({}, base);
     if (!debugOptIn || !isDebugEnvironment()) {
       return base;
     }
@@ -60,6 +64,7 @@
         base[key] = raw !== '0' && raw !== 'false';
       }
     });
+    global.__GO_E9_FLAGS__ = Object.assign({}, base);
     return base;
   }
 
