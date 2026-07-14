@@ -379,7 +379,62 @@ function Get-RemoteStaticGenerationReport {
             drift = $null
         }
     }
-    $script = @"
+    $files = @()
+    $drift = $null
+    $driftChecked = $false
+    if ($ExpectedManifest) {
+        $driftChecked = $true
+        $drift = $false
+        $normalizedFiles = @()
+        $expectedPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::Ordinal)
+        foreach ($entry in @($ExpectedManifest.files)) {
+            $normalizedPath = ([string]$entry.path).Replace('\', '/')
+            Assert-SafeRemoteRelativeFilePath -RelativePath $normalizedPath
+            if ($normalizedPath -match "[`r`n]") {
+                throw "Static manifest contains an unsafe file path: $($entry.path)"
+            }
+            $expectedSha = ([string]$entry.sha256).ToLowerInvariant()
+            if (-not [regex]::IsMatch($expectedSha, '^[0-9a-f]{64}$')) {
+                throw "Static manifest contains an invalid SHA-256 for: $normalizedPath"
+            }
+            if (-not $expectedPaths.Add($normalizedPath)) {
+                throw "Static manifest contains a duplicate normalized path: $normalizedPath"
+            }
+            $normalizedFiles += [pscustomobject]@{ path = $normalizedPath; sha256 = $expectedSha }
+        }
+        if ($normalizedFiles.Count -eq 0) {
+            throw 'Static manifest must contain at least one file.'
+        }
+
+        # Full-manifest verification is one remote batch. The generated script
+        # first cd's into the resolved generation root and validates every
+        # manifest path before feeding it to sha256sum --check --strict.
+        $batchScript = New-RemoteBatchShaVerificationScript -RemoteReleaseDir $currentTarget -Files $normalizedFiles
+        $batchResult = Invoke-RemoteCommandResult -Name 'static_current_manifest_files' -ScriptText $batchScript
+        $observedPaths = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::Ordinal)
+        foreach ($line in ($batchResult.output -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+            if ($line -match '^(.*): OK$') {
+                [void]$observedPaths.Add($Matches[1])
+            }
+        }
+        if ($batchResult.exit_code -ne 0 -or $observedPaths.Count -ne $expectedPaths.Count) {
+            $drift = $true
+        }
+        foreach ($entry in $normalizedFiles) {
+            $present = $observedPaths.Contains($entry.path)
+            if (-not $present) {
+                $drift = $true
+            }
+            $files += [ordered]@{
+                path = $entry.path
+                sha256 = $(if ($present -and $batchResult.exit_code -eq 0) { $entry.sha256 } else { $null })
+                present = $present
+                verified = ($present -and $batchResult.exit_code -eq 0)
+            }
+        }
+    }
+    else {
+        $script = @"
 for f in i18n.js sw.js; do
   path="$currentTarget/`$f"
   if [ -f "`$path" ]; then
@@ -389,34 +444,14 @@ for f in i18n.js sw.js; do
   fi
 done
 "@
-    $raw = Invoke-RemoteScriptText -Name 'static_current_files' -ScriptText $script
-    $files = @()
-    foreach ($line in ($raw -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
-        if ($line -match '^MISSING\s+(.+)$') {
-            $files += [ordered]@{ path = $Matches[1].Trim(); sha256 = $null; present = $false }
-        }
-        else {
-            $parts = $line -split '\s+', 2
-            $files += [ordered]@{ path = (Split-Path -Leaf $parts[1].Trim()); sha256 = $parts[0].Trim().ToLowerInvariant(); present = $true }
-        }
-    }
-
-    # Drift is judged by CONTENT (per-file SHA-256), not by whether the
-    # generation directory's name/timestamp happens to match -- a later
-    # commit that never touched i18n.js/sw.js legitimately produces a new
-    # static_generation_id with byte-identical content, and that is not
-    # drift. Comparing names instead of bytes would repeat exactly the
-    # mistake this Sprint exists to fix (trusting a label instead of the
-    # actual served bytes).
-    $drift = $null
-    $driftChecked = $false
-    if ($ExpectedManifest) {
-        $driftChecked = $true
-        $drift = $false
-        foreach ($entry in $ExpectedManifest.files) {
-            $observed = $files | Where-Object { $_.path -eq $entry.path } | Select-Object -First 1
-            if (-not $observed -or -not $observed.present -or $observed.sha256 -ne $entry.sha256) {
-                $drift = $true
+        $raw = Invoke-RemoteScriptText -Name 'static_current_files' -ScriptText $script
+        foreach ($line in ($raw -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+            if ($line -match '^MISSING\s+(.+)$') {
+                $files += [ordered]@{ path = $Matches[1].Trim(); sha256 = $null; present = $false }
+            }
+            else {
+                $parts = $line -split '\s+', 2
+                $files += [ordered]@{ path = (Split-Path -Leaf $parts[1].Trim()); sha256 = $parts[0].Trim().ToLowerInvariant(); present = $true }
             }
         }
     }
