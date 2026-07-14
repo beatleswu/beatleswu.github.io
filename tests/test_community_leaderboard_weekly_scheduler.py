@@ -527,7 +527,7 @@ class SqliteConnWrapper:
 def _add_user(conn, user_id, username, nickname, *, is_admin=0, plan="free"):
     conn.execute(
         "INSERT INTO users(id, username, nickname, is_admin, plan) VALUES(?,?,?,?,?)",
-        (user_id, username, nickname, bool(is_admin), plan),
+        (user_id, username, nickname, int(bool(is_admin)), plan),
     )
     conn.execute("INSERT INTO user_stats(user_id, rank_level, xp) VALUES(?,?,?)", (user_id, "LV10", 100))
     conn.execute(
@@ -781,7 +781,7 @@ def _create_pg_schema(conn):
             id INTEGER PRIMARY KEY,
             username TEXT NOT NULL,
             nickname TEXT,
-            is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+            is_admin INTEGER NOT NULL DEFAULT 0,
             plan TEXT NOT NULL DEFAULT 'free',
             coin_balance INTEGER NOT NULL DEFAULT 0
         )
