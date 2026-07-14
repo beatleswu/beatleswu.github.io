@@ -38,6 +38,13 @@ CLOSURE_MANIFEST = REPO_ROOT / "deploy" / "canonical-asset-closure-manifest.json
 # asset-inventory.json's required_subtrees entry actually points at --
 # staging now governs from the full image pack, not the 180-file closure.
 ACTIVE_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-image-pack-manifest.json"
+# 2026-07-15: a second, disjoint required_subtrees entry (assets/storyboards/)
+# was added for narration audio -- see canonical_static_narration_audio_contract.md.
+# New-StaticReleaseBundle stages the union of every required_subtrees entry's
+# closure manifest, so the "governed, no more no less" assertion below must
+# include this manifest's files too, or a real staging run now legitimately
+# produces "extra" files this test doesn't know about.
+ACTIVE_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-audio-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 
@@ -144,6 +151,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     # that from the 180-file closure to the full image pack, so this test's
     # expected set must track the same manifest, not the superseded one.
     manifest = json.loads(_read(ACTIVE_SUBTREE_MANIFEST))
+    audio_manifest = json.loads(_read(ACTIVE_AUDIO_SUBTREE_MANIFEST))
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
@@ -163,13 +171,17 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         staged = json.loads(result.stdout)
         staged_by_path = {f["path"].replace("\\", "/"): f for f in staged}
 
-        governed_paths = {f["path"] for f in manifest["files"]} | {"i18n.js", "sw.js"}
+        governed_paths = (
+            {f["path"] for f in manifest["files"]}
+            | {f["path"] for f in audio_manifest["files"]}
+            | {"i18n.js", "sw.js"}
+        )
         assert set(staged_by_path.keys()) == governed_paths, (
             "staged file set must be exactly the governed closure -- no more, no less "
             f"(missing: {governed_paths - set(staged_by_path)}, "
             f"extra/unreferenced: {set(staged_by_path) - governed_paths})"
         )
-        for entry in manifest["files"]:
+        for entry in manifest["files"] + audio_manifest["files"]:
             staged_entry = staged_by_path[entry["path"]]
             assert staged_entry["sha256"] == entry["sha256"], f"SHA mismatch for {entry['path']}"
             assert staged_entry["size"] == entry["size"], f"size mismatch for {entry['path']}"
