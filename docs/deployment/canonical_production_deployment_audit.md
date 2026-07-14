@@ -1,6 +1,15 @@
 # Canonical Production Deployment Audit
 
-Status: Findings recorded, no procedure enacted
+> **SUPERSEDED (2026-07-15):** DEPLOY-GOV-1, the audit this document opened, was closed the same
+> day this document's status note below was last written — see ADR-0001's "Deployment Governance"
+> section (commit `01af7c2f5`) and
+> [production_deployment_governance.md](production_deployment_governance.md) for the current,
+> reviewed contract. This document's "still PENDING GOVERNANCE AUDIT" line (in the status note
+> immediately below) was never updated after that closure and must not be read as current status.
+> The findings and history below remain an accurate historical record of the pre-closure state and
+> are kept for that reason, not as live guidance.
+
+Status: Findings recorded, no procedure enacted (historical — see superseded notice above)
 Audit Date: 2026-07-11
 Canonical Git Commit: `4ea3f63e62d8db9ec50815f99e9ccf0ac6780caf` (`origin/master`)
 Production Host: SSH alias `oracle_godoyssey` (instance `instance-20260609-0051`)
