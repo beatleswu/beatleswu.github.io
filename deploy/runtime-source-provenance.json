@@ -160,11 +160,11 @@
     },
     {
       "path": "community_leaderboard_rewards.py",
-      "source_commit": "8d9f0f82df8e41c323ae4ecd680f2a6a1a136bd2",
-      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
-      "source_commit_subject": "feat(rewards): harden automated weekly leaderboard scheduler",
-      "source_date": "2026-07-13",
-      "content_sha256": "e0307c5177601f7438bc1d3d4a71a238757ffa8f1fc58efc691313467f04836b",
+      "source_commit": "094a8230eb3644d10f02ef645c559646153f6383",
+      "source_branch_or_local_ref": "hotfix/community-leaderboard-is-admin-type",
+      "source_commit_subject": "fix/community: restore integer-safe leaderboard admin expression",
+      "source_date": "2026-07-14",
+      "content_sha256": "a03f46ff5eed7682763612b3cfd8d8ada9e948b34f7afea42618c1f5deaebf4e",
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all five tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
       "source_status": "local Git provenance -- not previously pushed to canonical origin. This file was newly resolved in DEPLOY-GOV-2B-FIX; it was not part of PR #52's original 12-file candidate set and was previously entirely absent from this repository."
