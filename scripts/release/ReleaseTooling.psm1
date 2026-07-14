@@ -269,7 +269,12 @@ def main():
     if not os.path.isfile(ENV_PATH) or os.path.islink(ENV_PATH):
         fail("env_path_missing_or_not_regular_file")
 
-    with open(ENV_PATH, "r", encoding="utf-8", errors="strict") as handle:
+    # newline="" disables universal newline translation. Without it, a
+    # lone CR embedded mid-value is silently rewritten to LF by Python's
+    # default text-mode reading before the unsafe-character check below
+    # ever runs -- turning what must be a fail-closed rejection into a
+    # silent truncation of the credential instead (worse than failing).
+    with open(ENV_PATH, "r", encoding="utf-8", errors="strict", newline="") as handle:
         raw_text = handle.read()
 
     assignments = {}
@@ -309,7 +314,9 @@ def main():
 
     try:
         inspect_raw = subprocess.check_output(
-            ["docker", "inspect", POSTGRES_CONTAINER], text=True
+            ["docker", "inspect", POSTGRES_CONTAINER],
+            text=True,
+            stderr=subprocess.DEVNULL,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
         fail("postgres_container_not_found")
