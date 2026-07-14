@@ -174,6 +174,7 @@
       // cosmetic best-effort only
     }
     applyShellState('legacy');
+    var mapReadiness = Promise.resolve(false);
     try {
       if (typeof global.ensureLegacyHomeAmbientState === 'function') {
         global.ensureLegacyHomeAmbientState({ immediate: true, reason: 'e9-critical-fallback' });
@@ -181,6 +182,17 @@
     } catch (restoreErr) {
       console.error('[E9] failed to restore legacy ambient ownership after critical fallback:', restoreErr);
     }
+    try {
+      if (typeof global.ensureLegacyAdventureMapReady === 'function') {
+        mapReadiness = Promise.resolve(global.ensureLegacyAdventureMapReady({ reuseE9Adapter: true }));
+      }
+    } catch (mapRestoreErr) {
+      mapReadiness = Promise.reject(mapRestoreErr);
+    }
+    return mapReadiness.catch(function (mapRestoreErr) {
+      console.error('[E9] failed to restore Legacy Adventure Map readiness after critical fallback:', mapRestoreErr);
+      return false;
+    });
   }
 
   function mountSlot(slot) {

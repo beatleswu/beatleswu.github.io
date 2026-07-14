@@ -81,7 +81,7 @@
     inFlight = doFetch('/api/adventure/bootstrap', { credentials: 'same-origin' }).then(function (res) {
       if (!res.ok) return { ok: false, kind: classifyHttpError(res.status), status: res.status };
       return res.json().then(function (body) {
-        var normalized = { ok: true, data: normalizeZones(body) };
+        var normalized = { ok: true, data: normalizeZones(body), rawData: body };
         cachedSuccess = normalized;
         return normalized;
       });

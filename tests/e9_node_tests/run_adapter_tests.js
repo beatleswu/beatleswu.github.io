@@ -250,6 +250,7 @@ async function run() {
     assert.strictEqual(calls, 1);
     assert.strictEqual(results[0].ok, true);
     assert.strictEqual(results[1].ok, true);
+    assert.strictEqual(results[0].rawData.zones[0].key, 'k1');
   });
   await testAsync('fetchAdventureState: successful response is reused until invalidated', async () => {
     AdventureState.invalidateAdventureState();

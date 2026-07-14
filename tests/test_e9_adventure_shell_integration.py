@@ -32,7 +32,7 @@ OLD_SW_VERSION = "v177-sgf-fe-hotfix1a-node-parser"
 # NEW_SW_VERSION tracks whatever Sprint most recently bumped sw.js VERSION
 # (superseded by each subsequent Sprint that also changes E9 JS bytes --
 # see RELEASE-FIX-B, docs/planning/release_fix_b_e9_i18n_fallback.md).
-NEW_SW_VERSION = "v185-e9-1d3-invalidation-fallback"
+NEW_SW_VERSION = "v186-e9-1d3-legacy-map-recovery"
 
 
 def _read(path):
@@ -99,6 +99,7 @@ def test_critical_failure_recovers_to_legacy():
     shell_js = _read(JS_DIR / "shell.js")
     assert "function recoverToLegacy" in shell_js
     assert "applyShellState('legacy')" in shell_js
+    assert "global.ensureLegacyAdventureMapReady" in shell_js
     # No page reload anywhere in the recovery path.
     assert "location.reload" not in shell_js
 
@@ -107,6 +108,10 @@ def test_critical_failure_recovers_to_legacy():
         "world_stage.js (critical component) must trigger shell recovery "
         "on its own data-fetch failure, not just show a local error"
     )
+
+    html = _read(INDEX_HTML)
+    assert "function ensureLegacyAdventureMapReady(options = {})" in html
+    assert "window.ensureLegacyAdventureMapReady = ensureLegacyAdventureMapReady" in html
 
 
 def test_e9_cta_uses_existing_adventure_start_action():

@@ -311,21 +311,40 @@ async function main() {
 
     report.cases.push(await runCase(browser, origin, 'critical_fallback_restores_legacy_ambient', {
       verify: async (page) => {
-        const shellState = await page.evaluate(() => ({
-          activeShell: window.E9.getActiveShell(),
-          shellAttr: document.body.getAttribute('data-adventure-shell-active'),
-          legacySkillMapHidden: document.querySelector('#skill-map')?.hidden,
-          e9ShellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
-        }));
+        const shellState = await page.evaluate(() => {
+          const control = document.querySelector('#adventure-map-nodes .adventure-node:not(.locked)');
+          const rect = control?.getBoundingClientRect();
+          window.__E9_TEST_LEGACY_STARTS__ = 0;
+          window.startAdventureStage = () => { window.__E9_TEST_LEGACY_STARTS__ += 1; };
+          control?.focus();
+          const focusable = document.activeElement === control;
+          control?.click();
+          return {
+            activeShell: window.E9.getActiveShell(),
+            shellAttr: document.body.getAttribute('data-adventure-shell-active'),
+            legacySkillMapHidden: document.querySelector('#skill-map')?.hidden,
+            e9ShellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
+            mapNodeCount: document.querySelectorAll('#adventure-map-nodes .adventure-node').length,
+            geometryValid: !!(rect && rect.width > 0 && rect.height > 0),
+            focusable,
+            clickCount: window.__E9_TEST_LEGACY_STARTS__,
+          };
+        });
         if (shellState.activeShell !== 'legacy' || shellState.shellAttr !== 'legacy') {
           throw new Error('critical_fallback_restores_legacy_ambient: legacy shell did not retake ownership');
         }
         if (shellState.legacySkillMapHidden !== false || shellState.e9ShellHidden !== true) {
           throw new Error('critical_fallback_restores_legacy_ambient: shell visibility did not switch to legacy');
         }
+        if (shellState.mapNodeCount < 1 || !shellState.geometryValid) {
+          throw new Error('critical_fallback_restores_legacy_ambient: Legacy Adventure Map has no rendered geometry');
+        }
+        if (!shellState.focusable || shellState.clickCount < 1) {
+          throw new Error('critical_fallback_restores_legacy_ambient: Legacy Adventure Map control is not focusable/clickable');
+        }
       },
     }, async (page) => {
-      await page.evaluate(() => { window.E9.recoverToLegacy(new Error('synthetic fallback')); });
+      await page.evaluate(() => window.E9.recoverToLegacy(new Error('synthetic fallback')));
     }, {
       '/api/skills/profile': 0,
       '/api/user/coins': 0,
@@ -335,10 +354,37 @@ async function main() {
       '/api/mistakes/stats': 1,
     }));
 
-    report.cases.push(await runCase(browser, origin, 'repeated_fallback_is_idempotent', {}, async (page) => {
-      await page.evaluate(() => { window.E9.recoverToLegacy(new Error('synthetic fallback 1')); });
-      await page.waitForTimeout(2500);
-      await page.evaluate(() => { window.E9.recoverToLegacy(new Error('synthetic fallback 2')); });
+    report.cases.push(await runCase(browser, origin, 'repeated_fallback_is_idempotent', {
+      verify: async (page) => {
+        const state = await page.evaluate(() => window.__E9_TEST_FALLBACK_STATE__);
+        if (!state.sharedPromise) {
+          throw new Error('repeated_fallback_is_idempotent: concurrent readiness calls did not share one promise');
+        }
+        if (state.listenerAdds !== 3 || state.routingBound !== '1') {
+          throw new Error(`repeated_fallback_is_idempotent: expected one listener set (3 adds), got ${state.listenerAdds}`);
+        }
+      },
+    }, async (page) => {
+      await page.evaluate(async () => {
+        const host = document.querySelector('#adventure-map-nodes');
+        const originalAddEventListener = host.addEventListener.bind(host);
+        let listenerAdds = 0;
+        host.addEventListener = function (...args) {
+          listenerAdds += 1;
+          return originalAddEventListener(...args);
+        };
+        const recovery = window.E9.recoverToLegacy(new Error('synthetic fallback 1'));
+        const first = window.ensureLegacyAdventureMapReady();
+        const second = window.ensureLegacyAdventureMapReady();
+        const sharedPromise = first === second;
+        await Promise.all([recovery, first, second]);
+        await window.E9.recoverToLegacy(new Error('synthetic fallback 2'));
+        window.__E9_TEST_FALLBACK_STATE__ = {
+          sharedPromise,
+          listenerAdds,
+          routingBound: host.dataset.adventureRoutingBound,
+        };
+      });
     }, {
       '/api/skills/profile': 0,
       '/api/user/coins': 0,
@@ -346,6 +392,43 @@ async function main() {
       '/api/daily-challenge/today': 0,
       '/api/srs/due': 1,
       '/api/mistakes/stats': 1,
+    }));
+
+    report.cases.push(await runCase(browser, origin, 'failed_legacy_map_readiness_can_retry', {
+      verify: async (page) => {
+        const state = await page.evaluate(() => window.__E9_TEST_READINESS_RETRY__);
+        if (!state.firstFailed || state.nodeCount < 1 || !state.hasActionableControl) {
+          throw new Error('failed_legacy_map_readiness_can_retry: failed attempt did not clear in-flight state for a successful retry');
+        }
+      },
+    }, async (page) => {
+      await page.evaluate(async () => {
+        window.E9.applyShellState('legacy');
+        const host = document.querySelector('#adventure-map-nodes');
+        const parent = host.parentNode;
+        const next = host.nextSibling;
+        host.remove();
+        let firstFailed = false;
+        try {
+          await window.ensureLegacyAdventureMapReady();
+        } catch (error) {
+          firstFailed = true;
+        }
+        parent.insertBefore(host, next);
+        await window.ensureLegacyAdventureMapReady();
+        window.__E9_TEST_READINESS_RETRY__ = {
+          firstFailed,
+          nodeCount: host.querySelectorAll('.adventure-node').length,
+          hasActionableControl: !!host.querySelector('.adventure-node:not(.locked)[href]:not([href="#"])'),
+        };
+      });
+    }, {
+      '/api/skills/profile': 0,
+      '/api/user/coins': 0,
+      '/api/adventure/bootstrap': 2,
+      '/api/daily-challenge/today': 0,
+      '/api/srs/due': 0,
+      '/api/mistakes/stats': 0,
     }));
 
     report.cases.push(await runCase(browser, origin, 'language_switch_not_refetch', {}, async (page) => {
@@ -362,9 +445,15 @@ async function main() {
     report.cases.push(await runCase(browser, origin, 'non_critical_failure_does_not_refetch_others', {
       apiFailure: { path: '/api/mistakes/stats', status: 500, times: 1 },
       verify: async (page) => {
-        const activeShell = await page.evaluate(() => window.E9.getActiveShell());
-        if (activeShell !== 'e9') {
+        const state = await page.evaluate(() => ({
+          activeShell: window.E9.getActiveShell(),
+          legacyMapNodeCount: document.querySelectorAll('#adventure-map-nodes .adventure-node').length,
+        }));
+        if (state.activeShell !== 'e9') {
           throw new Error('non_critical_failure_does_not_refetch_others: non-critical failure switched ownership away from E9');
+        }
+        if (state.legacyMapNodeCount !== 0) {
+          throw new Error('non_critical_failure_does_not_refetch_others: non-critical failure initialized the Legacy Adventure Map');
         }
       },
     }, 'after-load', {
@@ -378,10 +467,19 @@ async function main() {
 
     report.cases.push(await runCase(browser, origin, 'critical_world_stage_failure_retry_contract', {
       apiFailure: { path: '/api/adventure/bootstrap', status: 500, times: 2 },
+      verify: async (page) => {
+        const state = await page.evaluate(() => ({
+          activeShell: window.E9.getActiveShell(),
+          nodeCount: document.querySelectorAll('#adventure-map-nodes .adventure-node').length,
+        }));
+        if (state.activeShell !== 'legacy' || state.nodeCount < 1) {
+          throw new Error('critical_world_stage_failure_retry_contract: automatic fallback did not produce a ready Legacy map');
+        }
+      },
     }, 'after-load', {
       '/api/skills/profile': 1,
       '/api/user/coins': 1,
-      '/api/adventure/bootstrap': 2,
+      '/api/adventure/bootstrap': 3,
       '/api/daily-challenge/today': 1,
       '/api/srs/due': 2,
       '/api/mistakes/stats': 2,
@@ -485,7 +583,18 @@ async function main() {
       '/api/mistakes/stats': 0,
     }));
 
-    report.cases.push(await runCase(browser, origin, 'legacy_off_state_zero_e9_requests', {}, async (page) => {
+    report.cases.push(await runCase(browser, origin, 'legacy_off_state_zero_e9_requests', {
+      verify: async (page) => {
+        const state = await page.evaluate(() => ({
+          activeShell: window.E9.getActiveShell(),
+          nodeCount: document.querySelectorAll('#adventure-map-nodes .adventure-node').length,
+          hasActionableControl: !!document.querySelector('#adventure-map-nodes .adventure-node:not(.locked)[href]:not([href="#"])'),
+        }));
+        if (state.activeShell !== 'legacy' || state.nodeCount < 1 || !state.hasActionableControl) {
+          throw new Error('legacy_off_state_zero_e9_requests: normal Legacy startup did not produce a ready map');
+        }
+      },
+    }, async (page) => {
       await page.goto(origin + '/index.html', { waitUntil: 'networkidle' });
       await page.waitForTimeout(700);
     }, {

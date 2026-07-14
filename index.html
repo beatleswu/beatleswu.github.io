@@ -5987,12 +5987,12 @@
     <!-- E9 Adventure Shell (feature-flagged, default OFF — see js/e9/feature_flags.js).
          Loaded unconditionally so there is no FOUC once the flag is enabled;
          harmless while #e9-adventure-shell stays hidden. -->
-    <link rel="stylesheet" href="/css/e9/shell.css?v=20260714e9d3b">
-    <link rel="stylesheet" href="/css/e9/top_hud.css?v=20260714e9d3b">
-    <link rel="stylesheet" href="/css/e9/navigation.css?v=20260714e9d3b">
-    <link rel="stylesheet" href="/css/e9/cards.css?v=20260714e9d3b">
-    <link rel="stylesheet" href="/css/e9/world_stage.css?v=20260714e9d3b">
-    <link rel="stylesheet" href="/css/e9/rwd.css?v=20260714e9d3b">
+    <link rel="stylesheet" href="/css/e9/shell.css?v=20260714e9d3c">
+    <link rel="stylesheet" href="/css/e9/top_hud.css?v=20260714e9d3c">
+    <link rel="stylesheet" href="/css/e9/navigation.css?v=20260714e9d3c">
+    <link rel="stylesheet" href="/css/e9/cards.css?v=20260714e9d3c">
+    <link rel="stylesheet" href="/css/e9/world_stage.css?v=20260714e9d3c">
+    <link rel="stylesheet" href="/css/e9/rwd.css?v=20260714e9d3c">
 </head>
 <body>
 
@@ -9356,6 +9356,64 @@ function runHomeIdleTask(fn, timeout = 2500) {
 
 let _legacyAmbientOwnershipRequested = false;
 let _legacyAmbientOwnershipInFlight = null;
+let _legacyAdventureMapReady = false;
+let _legacyAdventureMapReadyInFlight = null;
+
+function _legacyAdventureMapReadiness() {
+    const host = document.getElementById('adventure-map-nodes');
+    const nodes = host ? host.querySelectorAll('.adventure-node') : [];
+    const control = host
+        ? host.querySelector('.adventure-node:not(.locked)[href]:not([href="#"])')
+        : null;
+    return {
+        ready: !!(host && nodes.length && control),
+        nodeCount: nodes.length,
+        control,
+    };
+}
+
+function ensureLegacyAdventureMapReady(options = {}) {
+    const current = _legacyAdventureMapReadiness();
+    if (_legacyAdventureMapReady && current.ready) return Promise.resolve(current);
+    if (_legacyAdventureMapReadyInFlight) return _legacyAdventureMapReadyInFlight;
+
+    const attempt = (async () => {
+        renderMapSkeleton();
+        const adapter = options.reuseE9Adapter
+            ? (window.E9AdventureState
+                || (window.E9 && window.E9.Adapters && window.E9.Adapters.AdventureState)
+                || null)
+            : null;
+        const sharedResult = adapter && typeof adapter.fetchAdventureState === 'function'
+            ? await adapter.fetchAdventureState()
+            : null;
+        if (sharedResult && sharedResult.ok) {
+            updateMapProgress(sharedResult.rawData || { zones: sharedResult.data.zones });
+            refreshHomeReportPanel();
+        } else {
+            await loadMapProgressStatus();
+        }
+        renderAdventureMap();
+        const readiness = _legacyAdventureMapReadiness();
+        if (!readiness.ready) {
+            throw new Error('Legacy Adventure Map did not render an actionable node');
+        }
+        _legacyAdventureMapReady = true;
+        return readiness;
+    })();
+
+    _legacyAdventureMapReadyInFlight = attempt;
+    attempt.then(
+        () => {
+            if (_legacyAdventureMapReadyInFlight === attempt) _legacyAdventureMapReadyInFlight = null;
+        },
+        () => {
+            _legacyAdventureMapReady = false;
+            if (_legacyAdventureMapReadyInFlight === attempt) _legacyAdventureMapReadyInFlight = null;
+        }
+    );
+    return attempt;
+}
 
 function invalidateE9AdventureStateCache() {
     try {
@@ -9400,6 +9458,7 @@ function ensureLegacyHomeAmbientState(options = {}) {
 }
 
 window.ensureLegacyHomeAmbientState = ensureLegacyHomeAmbientState;
+window.ensureLegacyAdventureMapReady = ensureLegacyAdventureMapReady;
 window.invalidateE9AdventureStateCache = invalidateE9AdventureStateCache;
 let _isAdmin            = false;  // 管理員：顯示快速修正按鈕
 let _dailyLimitReached  = false;  // 免費用戶今日已達上限
@@ -14262,10 +14321,11 @@ initNewbieQuest(me);
     window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
     window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
     if (legacyWelcomeShellActive) {
-        renderMapSkeleton();
+        ensureLegacyAdventureMapReady().catch((error) => {
+            console.error('[INIT] Legacy Adventure Map readiness failed:', error);
+        });
         loadPlayerAvatar();
         initDojoBanner();
-        loadMapProgressStatus();
         runHomeIdleTask(async () => { try{const cr=await fetch('/api/user/coins',{credentials:'include'}).then(r=>r.json());const cel=document.getElementById('coins-nav-count');if(cel)cel.textContent=Number(cr.coins||0).toLocaleString();}catch(e){} }, 1200);
         if(!_isPremiumUser){runHomeIdleTask(async () => { try{const sub=await fetch('/api/subscription/status',{credentials:'include'}).then(r=>r.json());_dailyLimitMax=sub.daily_limit||20;if((sub.remaining??1)<=0)_applyDailyLimit();}catch(e){} }, 2200);}
     }
@@ -15456,22 +15516,22 @@ window.addEventListener('appinstalled', () => {
      dispatches the mount calls the component inits listen for, and depends
      on I18n/startAdventureStage already being defined by the scripts above
      this point in the page, which they are). -->
-<script src="/js/e9/feature_flags.js?v=20260714e9d3b"></script>
-<script src="/js/e9/component_loader.js?v=20260714e9d3b"></script>
+<script src="/js/e9/feature_flags.js?v=20260714e9d3c"></script>
+<script src="/js/e9/component_loader.js?v=20260714e9d3c"></script>
 <!-- RELEASE-FIX-B: shared missing-key fallback helper. Must load before
      any component script that calls window.E9.I18nFallback.t(). -->
-<script src="/js/e9/i18n_fallback.js?v=20260714e9d3b"></script>
+<script src="/js/e9/i18n_fallback.js?v=20260714e9d3c"></script>
 <!-- E9.1B adapters: single source of truth for canonical runtime data,
      read by top_hud.js/right_cards.js/world_stage.js below. Must load
      before those component scripts. -->
-<script src="/js/e9/adapters/player_state.js?v=20260714e9d3b"></script>
-<script src="/js/e9/adapters/adventure_state.js?v=20260714e9d3b"></script>
-<script src="/js/e9/adapters/activity_state.js?v=20260714e9d3b"></script>
-<script src="/js/e9/top_hud.js?v=20260714e9d3b"></script>
-<script src="/js/e9/left_nav.js?v=20260714e9d3b"></script>
-<script src="/js/e9/right_cards.js?v=20260714e9d3b"></script>
-<script src="/js/e9/bottom_dock.js?v=20260714e9d3b"></script>
-<script src="/js/e9/world_stage.js?v=20260714e9d3b"></script>
-<script src="/js/e9/shell.js?v=20260714e9d3b"></script>
+<script src="/js/e9/adapters/player_state.js?v=20260714e9d3c"></script>
+<script src="/js/e9/adapters/adventure_state.js?v=20260714e9d3c"></script>
+<script src="/js/e9/adapters/activity_state.js?v=20260714e9d3c"></script>
+<script src="/js/e9/top_hud.js?v=20260714e9d3c"></script>
+<script src="/js/e9/left_nav.js?v=20260714e9d3c"></script>
+<script src="/js/e9/right_cards.js?v=20260714e9d3c"></script>
+<script src="/js/e9/bottom_dock.js?v=20260714e9d3c"></script>
+<script src="/js/e9/world_stage.js?v=20260714e9d3c"></script>
+<script src="/js/e9/shell.js?v=20260714e9d3c"></script>
 </body>
 </html>
