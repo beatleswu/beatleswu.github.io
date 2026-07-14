@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "c61cdc56507e04458d133a2797162b7c138dfdde",
-      "source_branch_or_local_ref": "feature/e9-1d2-layout-rwd-stabilization",
-      "source_commit_subject": "feat/e9-1d2: stabilize E9 shell layout and responsive behavior",
-      "source_date": "2026-07-13",
-      "content_sha256": "38dfb0419bc320167cfc84579b1e122e11993fed83a2a2810e593d0681e51b08",
+      "source_commit": "427d0ec5245b8b148e391a40e8678afa5cc36ca1",
+      "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
+      "source_commit_subject": "fix(e9): enforce duplicate fetch contract",
+      "source_date": "2026-07-14",
+      "content_sha256": "7b23ec5c06258ae634152f6dca84a13f07f998e8bf5f990483269a43572ec204",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (Production still serves the PR #98/e9-1d1 index.html; this E9.1D2 content is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin. Re-verified after E9.1D2/master sync (origin/master @ 3ee8800ea3422216ff8901cbef22d2e3ae20c337): merge brought in no further index.html changes from master (no commits touched this path between the PR's base and current master), so the post-merge working-tree blob is byte-identical to this source commit's content -- confirmed via git hash-object and sha256 comparison."
+      "production_hash_status": "does NOT byte-match current Production (E9.1D3 duplicate-fetch contract fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "terms.html",
@@ -471,15 +471,15 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "c61cdc56507e04458d133a2797162b7c138dfdde",
-      "source_branch_or_local_ref": "feature/e9-1d2-layout-rwd-stabilization",
-      "source_commit_subject": "feat/e9-1d2: stabilize E9 shell layout and responsive behavior",
-      "source_date": "2026-07-13",
-      "content_sha256": "2bc6238b077642b527550d02907c67a1f6e39296ae5a246f80ca48d2ada17c2c",
+      "source_commit": "427d0ec5245b8b148e391a40e8678afa5cc36ca1",
+      "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
+      "source_commit_subject": "fix(e9): enforce duplicate fetch contract",
+      "source_date": "2026-07-14",
+      "content_sha256": "461df0d7e5e1dcdec1cb73ab7f3fbf0d441c94b6fff42f10a21e3fa3d698b758",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (Production still serves the PR #98/e9-1d1 sw.js; this E9.1D2 content is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin. Re-verified after E9.1D2/master sync (origin/master @ 3ee8800ea3422216ff8901cbef22d2e3ae20c337): merge brought in no further sw.js changes from master (no commits touched this path between the PR's base and current master), so the post-merge working-tree blob is byte-identical to this source commit's content -- confirmed via git hash-object and sha256 comparison."
+      "production_hash_status": "does NOT byte-match current Production (E9.1D3 duplicate-fetch contract fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "srs.js",
