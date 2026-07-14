@@ -11,6 +11,7 @@
     "app_service_name",
     "scheduler_service_name",
     "nginx_service_name",
+    "postgres_service_name",
     "asset_source_path",
     "asset_container_mount_destination",
     "questions_content_source_path",
@@ -18,7 +19,8 @@
     "shadow_event_log_path",
     "health_url",
     "login_url",
-    "homepage_url"
+    "homepage_url",
+    "production_env_path"
   ],
   "properties": {
     "$schema": { "type": "string" },
@@ -29,6 +31,7 @@
     "app_service_name": { "type": "string", "minLength": 1 },
     "scheduler_service_name": { "type": "string", "minLength": 1 },
     "nginx_service_name": { "type": "string", "minLength": 1 },
+    "postgres_service_name": { "type": "string", "minLength": 1 },
     "asset_source_path": { "type": "string", "minLength": 1 },
     "asset_container_mount_destination": { "type": "string", "minLength": 1 },
     "questions_content_source_path": { "type": "string", "minLength": 1 },
@@ -37,6 +40,11 @@
     "health_url": { "type": "string", "minLength": 1 },
     "login_url": { "type": "string", "minLength": 1 },
     "homepage_url": { "type": "string", "minLength": 1 },
+    "production_env_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PRODUCTION-RUNTIME-CANONICALIZATION: absolute path on the production host to the single protected .env file that is the sole, canonical source of DB credentials for deploy and rollback. Never derived from app/scheduler container environment or a rollback snapshot; read as KEY=VALUE data, never sourced/executed as shell code."
+    },
     "release_artifacts_directory": { "type": "string", "minLength": 1 },
     "static_release_root": {
       "type": "string",

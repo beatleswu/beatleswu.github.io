@@ -665,6 +665,7 @@ def test_deploy_script_orders_release_mutations_safely():
     assert_tokens_in_order(
         content,
         "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'",
+        "Assert-ProtectedHostEnvCredentialAndTcpAuthentication -SshAlias $layout.ssh_alias -EnvPath $layout.production_env_path -PostgresContainerName $layout.postgres_service_name",
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
         "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag",
         'Invoke-RemoteText "docker load -i $(Quote-PosixShellArgument $remoteArchivePath)"',
@@ -676,8 +677,8 @@ def test_deploy_script_orders_release_mutations_safely():
         "$candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)",
         "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
         "if ($candidateReadinessReport.healthz_status -ne '200'",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
         "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path",
     )
@@ -692,7 +693,6 @@ def test_deploy_script_persists_sanitized_runtime_contracts_for_rollback():
         '"postgres_compose_keys_required"',
         "previous_app_runtime_contract = $appRuntimeContract",
         "previous_scheduler_runtime_contract = $schedulerRuntimeContract",
-        "Runtime-derived compose database values are incomplete.",
     ):
         assert token in content
     for token in ("full DATABASE_URL", "complete .env"):
@@ -773,7 +773,7 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
         "verify-production-release.ps1",
         "compose_config_files",
         "compose_working_dir",
-        "docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-deps --force-recreate",
+        "docker compose $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate",
         "image ID does not match the rollback image ID",
     ):
         assert token in content
@@ -785,9 +785,10 @@ def test_rollback_script_restores_app_before_scheduler():
     assert_tokens_in_order(
         content,
         "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ROLLBACK'",
+        "Assert-ProtectedHostEnvCredentialAndTcpAuthentication -SshAlias $layout.ssh_alias -EnvPath $layout.production_env_path -PostgresContainerName $layout.postgres_service_name",
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
-        "$rollbackComposeFile = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_config_files)) { (Join-RemotePath $layout.compose_directory 'docker-compose.release.yml') } else { $schedulerBefore.compose_config_files }",
-        "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents",
+        "$canonicalComposeFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'",
+        "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -QuestionsVolumeName $questionsVolumeName",
         "Invoke-RemoteText $rollbackAppCommand",
         "$appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name",
         "Invoke-RemoteText $rollbackSchedulerCommand",

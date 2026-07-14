@@ -260,28 +260,20 @@ function New-RollbackVerificationManifest {
         -SGFEngineSourceCommit $manifest.sgf_engine_source_commit
 }
 
-function Get-DatabaseUrlComponents {
-    param([Parameter(Mandatory = $true)][string]$DatabaseUrl)
-    $uri = [Uri]$DatabaseUrl
-    $userInfo = $uri.UserInfo -split ':', 2
-    return [ordered]@{
-        user = if ($userInfo.Count -gt 0) { [Uri]::UnescapeDataString($userInfo[0]) } else { '' }
-        password = if ($userInfo.Count -gt 1) { [Uri]::UnescapeDataString($userInfo[1]) } else { '' }
-        database = $uri.AbsolutePath.TrimStart('/')
-    }
-}
-
 function Get-RemoteComposeEnvironmentPrefix {
+    <#
+    .SYNOPSIS
+    Non-secret, rollback-computed compose interpolation values only. DB
+    credentials never appear here -- see PRODUCTION-RUNTIME-CANONICALIZATION
+    (Assert-ProtectedHostEnvCredentialAndTcpAuthentication, module-shared
+    with deploy).
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$ImageTag,
-        [Parameter(Mandatory = $true)]$DatabaseComponents,
         [Parameter(Mandatory = $true)][string]$QuestionsVolumeName
     )
     $pairs = [ordered]@{
         GO_ODYSSEY_IMAGE = $ImageTag
-        POSTGRES_USER = $DatabaseComponents.user
-        POSTGRES_PASSWORD = $DatabaseComponents.password
-        POSTGRES_DB = $DatabaseComponents.database
         QUESTIONS_CONTENT_VOLUME_NAME = $QuestionsVolumeName
         QUESTIONS_CONTENT_MOUNT_DESTINATION = $layout.questions_content_mount_destination
         ASSET_SOURCE_PATH = $layout.asset_source_path
@@ -361,8 +353,14 @@ if ($rollbackIdentity.previous_app_release_git_sha -and $rollbackIdentity.previo
 
 $appBefore = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
-$schedulerEnv = Get-RemoteContainerEnvMap -ContainerName $layout.scheduler_service_name
-$databaseComponents = Get-DatabaseUrlComponents -DatabaseUrl $schedulerEnv['DATABASE_URL']
+
+# PRODUCTION-RUNTIME-CANONICALIZATION: same protected-host-env credential
+# authority and fail-closed TCP auth gate as deploy-release-image.ps1 --
+# rollback must never derive credentials from the scheduler container's
+# live environment either. Runs entirely on the production host; the raw
+# password never returns to this local process.
+Assert-ProtectedHostEnvCredentialAndTcpAuthentication -SshAlias $layout.ssh_alias -EnvPath $layout.production_env_path -PostgresContainerName $layout.postgres_service_name
+
 $questionsVolumeName = Get-RemoteQuestionsVolumeName -ContainerName $layout.app_service_name
 $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
 $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
@@ -371,20 +369,19 @@ $schedulerBeforeLabels = Get-RemoteImageLabels -ImageTag $schedulerBefore.image_
 
 $rollbackVerificationManifest = New-RollbackVerificationManifest -RollbackImageTag $rollbackImageTag -RollbackGitSha $rollbackGitSha -RollbackImageId $rollbackImageId
 Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerificationManifestPath
-$rollbackComposeWorkingDir = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_working_dir)) { $layout.compose_directory } else { $schedulerBefore.compose_working_dir }
-$rollbackComposeFile = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_config_files)) { (Join-RemotePath $layout.compose_directory 'docker-compose.release.yml') } else { $schedulerBefore.compose_config_files }
-$useReleaseCompose = $rollbackComposeFile -like '*docker-compose.release.yml'
-$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -DatabaseComponents $databaseComponents -QuestionsVolumeName $questionsVolumeName
-$rollbackAppCommand = if ($useReleaseCompose) {
-    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
-} else {
-    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-deps --force-recreate $appComposeService"
-}
-$rollbackSchedulerCommand = if ($useReleaseCompose) {
-    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
-} else {
-    "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose -f $(Quote-PosixShellArgument $rollbackComposeFile) up -d --no-deps --force-recreate $schedulerComposeService"
-}
+# The previous container's compose_config_files is captured above (via
+# Get-RemoteContainerSnapshot, still recorded in the rollback record) as
+# provenance evidence ONLY. It must never control which compose file is
+# actually executed -- rollback always uses the ADR-0001 canonical
+# docker-compose.release.yml, so a non-canonical drift (e.g. the
+# docker-compose.prod.yml provenance found in the 2026-07-14 incident)
+# cannot be perpetuated by a rollback instead of corrected.
+$rollbackComposeWorkingDir = $layout.compose_directory
+$canonicalComposeFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
+$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -QuestionsVolumeName $questionsVolumeName
+$composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
+$rollbackAppCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
+$rollbackSchedulerCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
 Invoke-RemoteText $rollbackAppCommand
 
