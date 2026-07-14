@@ -117,6 +117,37 @@ function buildMockResponse(pathname) {
   return { ok: true };
 }
 
+function defaultBossFinishResponse() {
+  return {
+    ok: true,
+    passed: true,
+    cooldown_left: 30,
+    zones: [
+      {
+        key: 'forest',
+        name: 'Forest',
+        status: 'completed',
+        stars: 3,
+        boss: { available: false },
+      },
+      {
+        key: 'cave',
+        name: 'Cave',
+        status: 'completed',
+        stars: 2,
+        boss: { available: false },
+      },
+      {
+        key: 'lake',
+        name: 'Lake',
+        status: 'unlocked',
+        stars: 0,
+        boss: { available: false },
+      },
+    ],
+  };
+}
+
 async function installFetchTrace(page) {
   await page.addInitScript(() => {
     window.__E9_FETCH_TRACE__ = [];
@@ -159,6 +190,14 @@ async function createPage(browser, origin, scenario = {}) {
     counters.set(pathname, count);
 
     if (pathname.startsWith('/api/')) {
+      if (scenario.bossFinish && pathname === '/api/adventure/boss/finish') {
+        await route.fulfill({
+          status: scenario.bossFinish.status || 200,
+          contentType: 'application/json',
+          body: JSON.stringify(scenario.bossFinish.body || defaultBossFinishResponse()),
+        });
+        return;
+      }
       if (scenario.apiFailure && pathname === scenario.apiFailure.path) {
         const limit = scenario.apiFailure.times || 1;
         if (count <= limit) {
@@ -235,6 +274,9 @@ async function runCase(browser, origin, name, scenario, action, expected) {
     const trace = await readTrace(page);
     const summary = summarize(trace);
     assertCounts(name, summary.byEndpoint, expected);
+    if (typeof scenario.verify === 'function') {
+      await scenario.verify(page, summary, trace);
+    }
     return { name, expected, actual: summary.byEndpoint, trace: summary.filtered };
   } finally {
     await page.close();
@@ -267,31 +309,43 @@ async function main() {
       '/api/mistakes/stats': 0,
     }));
 
-    report.cases.push(await runCase(browser, origin, 'legacy_fallback_no_refetch', {}, async (page) => {
+    report.cases.push(await runCase(browser, origin, 'critical_fallback_restores_legacy_ambient', {
+      verify: async (page) => {
+        const shellState = await page.evaluate(() => ({
+          activeShell: window.E9.getActiveShell(),
+          shellAttr: document.body.getAttribute('data-adventure-shell-active'),
+          legacySkillMapHidden: document.querySelector('#skill-map')?.hidden,
+          e9ShellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
+        }));
+        if (shellState.activeShell !== 'legacy' || shellState.shellAttr !== 'legacy') {
+          throw new Error('critical_fallback_restores_legacy_ambient: legacy shell did not retake ownership');
+        }
+        if (shellState.legacySkillMapHidden !== false || shellState.e9ShellHidden !== true) {
+          throw new Error('critical_fallback_restores_legacy_ambient: shell visibility did not switch to legacy');
+        }
+      },
+    }, async (page) => {
       await page.evaluate(() => { window.E9.recoverToLegacy(new Error('synthetic fallback')); });
     }, {
       '/api/skills/profile': 0,
       '/api/user/coins': 0,
       '/api/adventure/bootstrap': 0,
       '/api/daily-challenge/today': 0,
-      '/api/srs/due': 0,
-      '/api/mistakes/stats': 0,
+      '/api/srs/due': 1,
+      '/api/mistakes/stats': 1,
     }));
 
-    report.cases.push(await runCase(browser, origin, 'legacy_to_e9_reenable_same_page', {}, async (page) => {
-      await page.evaluate(() => {
-        window.E9.recoverToLegacy(new Error('synthetic fallback'));
-        window.__GO_E9_ACTIVE_SHELL__ = 'e9';
-        window.E9.applyShellState('e9');
-        window.E9.initShell();
-      });
+    report.cases.push(await runCase(browser, origin, 'repeated_fallback_is_idempotent', {}, async (page) => {
+      await page.evaluate(() => { window.E9.recoverToLegacy(new Error('synthetic fallback 1')); });
+      await page.waitForTimeout(2500);
+      await page.evaluate(() => { window.E9.recoverToLegacy(new Error('synthetic fallback 2')); });
     }, {
       '/api/skills/profile': 0,
       '/api/user/coins': 0,
       '/api/adventure/bootstrap': 0,
       '/api/daily-challenge/today': 0,
-      '/api/srs/due': 0,
-      '/api/mistakes/stats': 0,
+      '/api/srs/due': 1,
+      '/api/mistakes/stats': 1,
     }));
 
     report.cases.push(await runCase(browser, origin, 'language_switch_not_refetch', {}, async (page) => {
@@ -307,6 +361,12 @@ async function main() {
 
     report.cases.push(await runCase(browser, origin, 'non_critical_failure_does_not_refetch_others', {
       apiFailure: { path: '/api/mistakes/stats', status: 500, times: 1 },
+      verify: async (page) => {
+        const activeShell = await page.evaluate(() => window.E9.getActiveShell());
+        if (activeShell !== 'e9') {
+          throw new Error('non_critical_failure_does_not_refetch_others: non-critical failure switched ownership away from E9');
+        }
+      },
     }, 'after-load', {
       '/api/skills/profile': 1,
       '/api/user/coins': 1,
@@ -321,10 +381,60 @@ async function main() {
     }, 'after-load', {
       '/api/skills/profile': 1,
       '/api/user/coins': 1,
-      '/api/adventure/bootstrap': 3,
+      '/api/adventure/bootstrap': 2,
       '/api/daily-challenge/today': 1,
-      '/api/srs/due': 1,
-      '/api/mistakes/stats': 1,
+      '/api/srs/due': 2,
+      '/api/mistakes/stats': 2,
+    }));
+
+    report.cases.push(await runCase(browser, origin, 'boss_finish_success_invalidates_cache_and_rededupes', {
+      bossFinish: { status: 200, body: defaultBossFinishResponse() },
+    }, async (page) => {
+      await page.evaluate(async () => {
+        await window.eval(`(async () => {
+          _bossMode = true;
+          _bossZone = { key: 'cave', name: 'Cave', nameEn: 'Cave' };
+          _bossQueue = [101, 102];
+          _bossCorrect = 2;
+          await _finishBossBattle();
+          await Promise.all([
+            window.E9.Adapters.AdventureState.fetchAdventureState(),
+            window.E9.Adapters.AdventureState.fetchAdventureState(),
+          ]);
+        })()`);
+      });
+    }, {
+      '/api/skills/profile': 0,
+      '/api/user/coins': 0,
+      '/api/adventure/bootstrap': 1,
+      '/api/daily-challenge/today': 0,
+      '/api/srs/due': 0,
+      '/api/mistakes/stats': 0,
+    }));
+
+    report.cases.push(await runCase(browser, origin, 'boss_finish_failure_keeps_cached_adventure_state', {
+      bossFinish: {
+        status: 500,
+        body: { ok: false, error: 'forced boss finish failure' },
+      },
+    }, async (page) => {
+      await page.evaluate(async () => {
+        await window.eval(`(async () => {
+          _bossMode = true;
+          _bossZone = { key: 'cave', name: 'Cave', nameEn: 'Cave' };
+          _bossQueue = [201, 202];
+          _bossCorrect = 1;
+          await _finishBossBattle();
+          await window.E9.Adapters.AdventureState.fetchAdventureState();
+        })()`);
+      });
+    }, {
+      '/api/skills/profile': 0,
+      '/api/user/coins': 0,
+      '/api/adventure/bootstrap': 0,
+      '/api/daily-challenge/today': 0,
+      '/api/srs/due': 0,
+      '/api/mistakes/stats': 0,
     }));
 
     report.cases.push(await runCase(browser, origin, 'resize_not_refetch', {}, async (page) => {

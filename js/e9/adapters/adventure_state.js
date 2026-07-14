@@ -106,6 +106,7 @@
   global.E9 = global.E9 || {};
   global.E9.Adapters = global.E9.Adapters || {};
   global.E9.Adapters.AdventureState = api;
+  global.E9AdventureState = api;
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;

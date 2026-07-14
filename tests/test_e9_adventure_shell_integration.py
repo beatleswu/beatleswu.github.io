@@ -32,7 +32,7 @@ OLD_SW_VERSION = "v177-sgf-fe-hotfix1a-node-parser"
 # NEW_SW_VERSION tracks whatever Sprint most recently bumped sw.js VERSION
 # (superseded by each subsequent Sprint that also changes E9 JS bytes --
 # see RELEASE-FIX-B, docs/planning/release_fix_b_e9_i18n_fallback.md).
-NEW_SW_VERSION = "v184-e9-1d3-duplicate-fetch"
+NEW_SW_VERSION = "v185-e9-1d3-invalidation-fallback"
 
 
 def _read(path):

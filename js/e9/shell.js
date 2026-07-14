@@ -174,6 +174,13 @@
       // cosmetic best-effort only
     }
     applyShellState('legacy');
+    try {
+      if (typeof global.ensureLegacyHomeAmbientState === 'function') {
+        global.ensureLegacyHomeAmbientState({ immediate: true, reason: 'e9-critical-fallback' });
+      }
+    } catch (restoreErr) {
+      console.error('[E9] failed to restore legacy ambient ownership after critical fallback:', restoreErr);
+    }
   }
 
   function mountSlot(slot) {
