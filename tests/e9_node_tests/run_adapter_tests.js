@@ -14,6 +14,10 @@ const PlayerState = require(path.join(REPO_ROOT, 'js', 'e9', 'adapters', 'player
 const AdventureState = require(path.join(REPO_ROOT, 'js', 'e9', 'adapters', 'adventure_state.js'));
 const ActivityState = require(path.join(REPO_ROOT, 'js', 'e9', 'adapters', 'activity_state.js'));
 
+global.E9 = global.E9 || {};
+global.E9.Adapters = global.E9.Adapters || {};
+global.E9.Adapters.AdventureState = AdventureState;
+
 let failures = [];
 let passCount = 0;
 
@@ -227,6 +231,91 @@ async function run() {
     const fetchImpl = fakeFetch([{ ok: false, status: 401 }]);
     const r = await ActivityState.fetchDailyChallenge(fetchImpl);
     assert.strictEqual(r.kind, 'unauthorized');
+  });
+  await testAsync('fetchAdventureState: concurrent consumers share one in-flight request', async () => {
+    AdventureState.invalidateAdventureState();
+    let calls = 0;
+    const fetchImpl = function () {
+      calls += 1;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: function () { return Promise.resolve({ zones: [{ key: 'k1', name: 'Zone 1', status: 'locked' }] }); },
+      });
+    };
+    const results = await Promise.all([
+      AdventureState.fetchAdventureState(fetchImpl),
+      AdventureState.fetchAdventureState(fetchImpl),
+    ]);
+    assert.strictEqual(calls, 1);
+    assert.strictEqual(results[0].ok, true);
+    assert.strictEqual(results[1].ok, true);
+  });
+  await testAsync('fetchAdventureState: successful response is reused until invalidated', async () => {
+    AdventureState.invalidateAdventureState();
+    let calls = 0;
+    const fetchImpl = function () {
+      calls += 1;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: function () { return Promise.resolve({ zones: [{ key: 'k1', name: 'Zone 1', status: 'locked' }] }); },
+      });
+    };
+    const first = await AdventureState.fetchAdventureState(fetchImpl);
+    const second = await AdventureState.fetchAdventureState(fetchImpl);
+    assert.strictEqual(first.ok, true);
+    assert.strictEqual(second.ok, true);
+    assert.strictEqual(calls, 1);
+    AdventureState.invalidateAdventureState();
+    await AdventureState.fetchAdventureState(fetchImpl);
+    assert.strictEqual(calls, 2);
+  });
+  await testAsync('fetchAdventureState: failed request is evicted and can retry', async () => {
+    AdventureState.invalidateAdventureState();
+    let calls = 0;
+    const fetchImpl = function () {
+      calls += 1;
+      if (calls === 1) return Promise.reject(new Error('boom'));
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: function () { return Promise.resolve({ zones: [{ key: 'k1', name: 'Zone 1', status: 'locked' }] }); },
+      });
+    };
+    const first = await AdventureState.fetchAdventureState(fetchImpl);
+    const second = await AdventureState.fetchAdventureState(fetchImpl);
+    assert.strictEqual(first.ok, false);
+    assert.strictEqual(second.ok, true);
+    assert.strictEqual(calls, 2);
+  });
+  await testAsync('fetchBossProgress: delegates to AdventureState shared request', async () => {
+    AdventureState.invalidateAdventureState();
+    let calls = 0;
+    const fetchImpl = function () {
+      calls += 1;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: function () {
+          return Promise.resolve({
+            zones: [
+              { key: 'k1', name: 'Zone 1', status: 'completed' },
+              { key: 'k2', name: 'Zone 2', status: 'locked' },
+            ],
+          });
+        },
+      });
+    };
+    const results = await Promise.all([
+      AdventureState.fetchAdventureState(fetchImpl),
+      ActivityState.fetchBossProgress(fetchImpl),
+    ]);
+    assert.strictEqual(calls, 1);
+    assert.strictEqual(results[0].ok, true);
+    assert.strictEqual(results[1].ok, true);
+    assert.strictEqual(results[1].data.cleared, 1);
+    assert.strictEqual(results[1].data.total, 2);
   });
 
   if (failures.length) {

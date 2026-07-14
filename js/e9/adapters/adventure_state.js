@@ -11,6 +11,8 @@
   'use strict';
 
   var VALID_STATUSES = ['locked', 'unlocked', 'completed', 'skipped_by_placement'];
+  var cachedSuccess = null;
+  var inFlight = null;
 
   /**
    * Pure normalization: raw zone object -> stable view model, or null if
@@ -63,23 +65,41 @@
     return 'error';
   }
 
-  function fetchAdventureState(fetchImpl) {
+  function invalidateAdventureState() {
+    cachedSuccess = null;
+    inFlight = null;
+  }
+
+  function fetchAdventureState(fetchImpl, options) {
+    var opts = options || {};
     var doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
     if (!doFetch) return Promise.resolve({ ok: false, kind: 'network', status: null });
+    if (opts.forceRefresh) invalidateAdventureState();
+    if (cachedSuccess) return Promise.resolve(cachedSuccess);
+    if (inFlight) return inFlight;
 
-    return doFetch('/api/adventure/bootstrap', { credentials: 'same-origin' }).then(function (res) {
+    inFlight = doFetch('/api/adventure/bootstrap', { credentials: 'same-origin' }).then(function (res) {
       if (!res.ok) return { ok: false, kind: classifyHttpError(res.status), status: res.status };
       return res.json().then(function (body) {
-        return { ok: true, data: normalizeZones(body) };
+        var normalized = { ok: true, data: normalizeZones(body) };
+        cachedSuccess = normalized;
+        return normalized;
       });
     }).catch(function () {
       return { ok: false, kind: 'network', status: null };
+    }).then(function (result) {
+      if (!result.ok) cachedSuccess = null;
+      inFlight = null;
+      return result;
     });
+
+    return inFlight;
   }
 
   var api = {
     normalizeZone: normalizeZone,
     normalizeZones: normalizeZones,
+    invalidateAdventureState: invalidateAdventureState,
     fetchAdventureState: fetchAdventureState,
   };
 

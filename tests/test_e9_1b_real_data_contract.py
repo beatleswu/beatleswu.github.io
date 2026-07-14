@@ -125,6 +125,26 @@ def test_world_stage_delegates_to_adventure_state_adapter():
     assert "fetch('/api/adventure/bootstrap'" not in js
 
 
+def test_boss_progress_reuses_adventure_state_adapter():
+    js = _read(ADAPTERS_DIR / "activity_state.js")
+    assert "AdventureState" in js
+    assert "fetchAdventureState(fetchImpl)" in js
+
+
+def test_adventure_state_exposes_shared_request_controls():
+    js = _read(ADAPTERS_DIR / "adventure_state.js")
+    assert "cachedSuccess" in js
+    assert "inFlight" in js
+    assert "invalidateAdventureState" in js
+    assert "if (cachedSuccess) return Promise.resolve(cachedSuccess);" in js
+    assert "if (inFlight) return inFlight;" in js
+
+
+def test_legacy_idle_srs_and_mistakes_are_gated_off_when_e9_shell_owns_home():
+    html = _read(REPO_ROOT / "index.html")
+    assert "} else if (legacyWelcomeShellActive) {" in html
+
+
 def test_adapters_never_write_to_localstorage_or_persist_second_state():
     # Check for actual usage (property/method access), not a docstring
     # mentioning why it's deliberately absent.

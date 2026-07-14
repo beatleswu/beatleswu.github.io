@@ -69,7 +69,14 @@
     return fetchOne('/api/daily-challenge/today', normalizeDailyChallenge, fetchImpl);
   }
   function fetchBossProgress(fetchImpl) {
-    return fetchOne('/api/adventure/bootstrap', normalizeBossProgress, fetchImpl);
+    var adventureAdapter = global.E9 && global.E9.Adapters && global.E9.Adapters.AdventureState;
+    if (!adventureAdapter || typeof adventureAdapter.fetchAdventureState !== 'function') {
+      return fetchOne('/api/adventure/bootstrap', normalizeBossProgress, fetchImpl);
+    }
+    return adventureAdapter.fetchAdventureState(fetchImpl).then(function (result) {
+      if (!result.ok) return result;
+      return { ok: true, data: normalizeBossProgress({ zones: result.data.zones }) };
+    });
   }
   function fetchSrsDue(fetchImpl) {
     return fetchOne('/api/srs/due', normalizeSrsDue, fetchImpl);
