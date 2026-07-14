@@ -34,6 +34,7 @@ COPY db.py ./
 COPY shadow_judging.py ./
 COPY shadow_dashboard.py ./
 COPY scheduler.py ./
+COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
 COPY explain_overrides.py ./
 COPY grimoire_api.py ./
@@ -57,6 +58,7 @@ COPY tools/community_leaderboard_rewards_manual.py /app/tools/community_leaderbo
 COPY tools/community_leaderboard_rewards_export_entries.py /app/tools/community_leaderboard_rewards_export_entries.py
 COPY tools/community_leaderboard_rewards_real_grant_preview.py /app/tools/community_leaderboard_rewards_real_grant_preview.py
 COPY tools/community_leaderboard_rewards_real_grant_commit.py /app/tools/community_leaderboard_rewards_real_grant_commit.py
+COPY tools/community_leaderboard_rewards_exact_period.py /app/tools/community_leaderboard_rewards_exact_period.py
 COPY sgf_engine ./sgf_engine
 
 # ── Curated root static pages/scripts (explicit list, not a wildcard).

@@ -13,6 +13,7 @@ LEADERBOARD_TOOLS = [
     "tools/community_leaderboard_rewards_export_entries.py",
     "tools/community_leaderboard_rewards_real_grant_preview.py",
     "tools/community_leaderboard_rewards_real_grant_commit.py",
+    "tools/community_leaderboard_rewards_exact_period.py",
 ]
 
 

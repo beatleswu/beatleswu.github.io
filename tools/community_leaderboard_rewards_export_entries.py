@@ -134,11 +134,21 @@ def validate_entries_list(entries):
     return True
 
 
-def fetch_real_leaderboard_rows(conn, app_module, board_type):
+def fetch_real_leaderboard_rows(
+    conn,
+    app_module,
+    board_type,
+    *,
+    period_start_iso=None,
+    period_end_iso=None,
+):
     """Read-only fetch of the real, current weekly/monthly community
     leaderboard rows via app.py's shared, unmodified scoring helpers."""
-    period_start_iso = app_module._community_leaderboard_period_start_iso(board_type)
-    return app_module._fetch_community_leaderboard_score_rows(conn, period_start_iso)
+    if period_start_iso is None or period_end_iso is None:
+        period_start_iso, period_end_iso = app_module._community_leaderboard_period_bounds_iso(
+            board_type)
+    return app_module._fetch_community_leaderboard_score_rows(
+        conn, period_start_iso, period_end_iso)
 
 
 def resolve_period_metadata(board_type, period_key, period_start, period_end):

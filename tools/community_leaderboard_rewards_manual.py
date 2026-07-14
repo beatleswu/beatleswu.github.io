@@ -63,9 +63,13 @@ route.
 """
 
 import argparse
+import datetime
 import json
 import os
+import socket
+import stat
 import sys
+import urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -73,6 +77,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import community_leaderboard_rewards as lbr
 
 DEFAULT_DATABASE_URL = "postgresql://go:go@localhost:5432/go_odyssey"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_OPERATIONS_ROOT = Path(
+    os.environ.get("GO_ODYSSEY_REWARD_OPERATIONS_ROOT", "/opt/go-odyssey/reward-operations")
+)
+SNAPSHOT_FILENAME = "snapshot.json"
+PREVIEW_FILENAME = "preview.json"
+GRANT_RESULT_FILENAME = "grant-result.json"
+_OPERATION_FILENAMES = frozenset({SNAPSHOT_FILENAME, PREVIEW_FILENAME, GRANT_RESULT_FILENAME})
 
 GRANT_COMMIT_DISABLED_MESSAGE = (
     "grant-commit is intentionally disabled until production grant "
@@ -103,6 +115,169 @@ def _connect(database_url):
 def _load_entries(entries_file):
     with open(entries_file, "r", encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def _load_json_file(path):
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _canonical_file_sha256(path):
+    return lbr.sha256_hex_from_value(_load_json_file(path))
+
+
+def _parse_json_arg(raw, label):
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} must be valid JSON: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must decode to a JSON object")
+    return value
+
+
+def _database_identity(database_url):
+    parsed = urllib.parse.urlsplit(database_url)
+    scheme = parsed.scheme or "unknown"
+    host = parsed.hostname or "unknown-host"
+    port = parsed.port or ""
+    dbname = (parsed.path or "").lstrip("/") or "unknown-db"
+    suffix = f":{port}" if port else ""
+    return f"{scheme}://{host}{suffix}/{dbname}"
+
+
+def _environment_identity():
+    return {
+        "production_flag": str(os.environ.get("PRODUCTION", "")),
+        "hostname": socket.gethostname(),
+    }
+
+
+def _reject_symlink_path(path):
+    current = Path(path.anchor) if path.is_absolute() else Path(".")
+    for part in path.parts[1:] if path.is_absolute() else path.parts:
+        current = current / part
+        if current.exists() and current.is_symlink():
+            raise ValueError(f"symlink paths are forbidden for reward operations: {current}")
+
+
+def _is_world_writable(path):
+    if os.name == "nt":
+        return False
+    return bool(path.stat().st_mode & stat.S_IWOTH)
+
+
+def _ensure_restrictive_directory(path):
+    if path.exists():
+        if not path.is_dir():
+            raise ValueError(f"operation path is not a directory: {path}")
+        if _is_world_writable(path):
+            raise ValueError(f"world-writable directory is forbidden: {path}")
+    else:
+        path.mkdir(mode=0o700, parents=True, exist_ok=False)
+    if os.name != "nt":
+        os.chmod(path, 0o700)
+
+
+def _validate_operation_dir(operation_dir):
+    raw = Path(operation_dir)
+    if not raw.is_absolute():
+        raise ValueError("operation_dir must be an absolute path")
+    _reject_symlink_path(raw)
+    root = DEFAULT_OPERATIONS_ROOT.resolve(strict=False)
+    candidate = raw.resolve(strict=False)
+    if candidate == REPO_ROOT or REPO_ROOT in candidate.parents:
+        raise ValueError("reward operation files must not be written inside the Git working tree")
+    if candidate != root and root not in candidate.parents:
+        raise ValueError(f"operation_dir must stay under {root}")
+    _ensure_restrictive_directory(root)
+    parent = candidate.parent
+    if parent != candidate:
+        _reject_symlink_path(parent)
+        _ensure_restrictive_directory(parent)
+    _ensure_restrictive_directory(candidate)
+    return candidate
+
+
+def _validate_operation_file(path, *, operation_dir=None, require_exists=True):
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        raise ValueError("operation file path must be absolute")
+    _reject_symlink_path(candidate)
+    resolved = candidate.resolve(strict=False)
+    if resolved == REPO_ROOT or REPO_ROOT in resolved.parents:
+        raise ValueError("reward operation files must not be stored inside the Git working tree")
+    if operation_dir is not None and resolved.parent != Path(operation_dir).resolve(strict=False):
+        raise ValueError(f"operation file must live directly under {operation_dir}")
+    if resolved.name not in _OPERATION_FILENAMES:
+        raise ValueError(f"unexpected reward operation filename: {resolved.name}")
+    if require_exists:
+        if not resolved.exists():
+            raise ValueError(f"operation file does not exist: {resolved}")
+        if not resolved.is_file():
+            raise ValueError(f"operation path is not a file: {resolved}")
+        if _is_world_writable(resolved):
+            raise ValueError(f"world-writable file is forbidden: {resolved}")
+    return resolved
+
+
+def _write_operation_json(path, payload):
+    target = _validate_operation_file(path, require_exists=False)
+    data = (lbr.canonical_json_dumps(payload) + "\n").encode("utf-8")
+    if target.exists():
+        if target.read_bytes() != data:
+            raise ValueError(f"existing operation file identity differs: {target}")
+    else:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        fd = os.open(str(target), flags, 0o600)
+        try:
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(data)
+        finally:
+            try:
+                os.chmod(target, 0o600)
+            except OSError:
+                pass
+    written = target.read_bytes()
+    if written != data:
+        raise ValueError(f"operation file bytes changed unexpectedly after write: {target}")
+    return target, lbr.sha256_hex_from_value(json.loads(written.decode("utf-8")))
+
+
+def _build_preview_identity_record(snapshot, preview, *, database_url, snapshot_file):
+    return {
+        "board_type": snapshot["board_type"],
+        "period_key": snapshot["period_key"],
+        "period_start": snapshot["period_start"],
+        "period_end_exclusive": snapshot["period_end_exclusive"],
+        "timezone": snapshot["timezone"],
+        "database_identity": _database_identity(database_url),
+        "environment_identity": _environment_identity(),
+        "snapshot_file": str(snapshot_file),
+        "snapshot_file_sha256": _canonical_file_sha256(snapshot_file),
+        "snapshot_sha256": preview["snapshot_sha256"],
+        "preview_sha256": preview["preview_sha256"],
+        "summary": preview["summary"],
+    }
+
+
+def _load_and_validate_preview_identity(preview_file, *, snapshot, snapshot_file, database_url):
+    preview_identity = _load_json_file(preview_file)
+    if preview_identity.get("snapshot_file_sha256") != _canonical_file_sha256(snapshot_file):
+        raise ValueError("preview identity does not match the exact snapshot file bytes")
+    if preview_identity.get("snapshot_sha256") != lbr.sha256_hex_from_value(snapshot):
+        raise ValueError("preview identity snapshot SHA mismatch")
+    if preview_identity.get("database_identity") != _database_identity(database_url):
+        raise ValueError("preview identity database mismatch")
+    expected_env = _environment_identity()
+    if preview_identity.get("environment_identity") != expected_env:
+        raise ValueError("preview identity environment mismatch")
+    for key in ("board_type", "period_key", "period_start", "period_end_exclusive", "timezone"):
+        if preview_identity.get(key) != snapshot.get(key):
+            raise ValueError(f"preview identity {key} mismatch")
+    return preview_identity
 
 
 def _print_header(board_type, period_key, mode, dry_run):
@@ -311,6 +486,155 @@ def cmd_grant_real_preview(args):
     print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
     if result["real_function_signature_errors"]:
         return 4
+    return 0
+
+
+def cmd_snapshot_exact_period(args):
+    from community_leaderboard_rewards_exact_period import (
+        build_exact_period_preview,
+        build_exact_period_snapshot,
+    )
+    conn = _connect(args.database_url)
+    try:
+        snapshot = build_exact_period_snapshot(
+            conn,
+            board_type=args.board,
+            period_key=args.period_key,
+            period_start=args.period_start,
+            period_end_exclusive=args.period_end,
+            timezone=args.timezone,
+            limit=args.limit,
+        )
+    finally:
+        conn.close()
+    preview = None
+    preview_identity = None
+    operation_dir = None
+    if args.operation_dir:
+        operation_dir = _validate_operation_dir(args.operation_dir)
+        snapshot_path = operation_dir / SNAPSHOT_FILENAME
+        preview_path = operation_dir / PREVIEW_FILENAME
+        _write_operation_json(snapshot_path, snapshot)
+        preview = build_exact_period_preview(snapshot)
+        preview_identity = _build_preview_identity_record(
+            snapshot,
+            preview,
+            database_url=args.database_url,
+            snapshot_file=snapshot_path,
+        )
+        _write_operation_json(preview_path, preview_identity)
+    print(f"board_type={args.board}")
+    print(f"period_key={args.period_key}")
+    print("mode=snapshot-exact-period")
+    print("dry_run=True")
+    print(f"snapshot_sha256={lbr.sha256_hex_from_value(snapshot)}")
+    print(f"original_participant_count={snapshot['participant_counts']['original_participant_count']}")
+    print(f"ranked_participant_count={snapshot['participant_counts']['ranked_participant_count']}")
+    print(f"top_ranked_row_count={snapshot['participant_counts']['top_ranked_row_count']}")
+    if operation_dir is not None:
+        print(f"operation_dir={operation_dir}")
+        print(f"snapshot_file={operation_dir / SNAPSHOT_FILENAME}")
+        print(f"preview_file={operation_dir / PREVIEW_FILENAME}")
+        print(f"preview_sha256={preview['preview_sha256']}")
+    print(json.dumps(snapshot, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_preview_exact_period(args):
+    from community_leaderboard_rewards_exact_period import build_exact_period_preview
+    snapshot_file = _validate_operation_file(args.snapshot_file, require_exists=True)
+    snapshot = _load_json_file(snapshot_file)
+    preview = build_exact_period_preview(snapshot)
+    preview_identity = None
+    if args.preview_file:
+        preview_file = _validate_operation_file(
+            args.preview_file,
+            operation_dir=snapshot_file.parent,
+            require_exists=True,
+        )
+        preview_identity = _load_and_validate_preview_identity(
+            preview_file,
+            snapshot=snapshot,
+            snapshot_file=snapshot_file,
+            database_url=args.database_url,
+        )
+    print(f"board_type={preview['board_type']}")
+    print(f"period_key={preview['period_key']}")
+    print("mode=preview-exact-period")
+    print("dry_run=True")
+    print(f"snapshot_sha256={preview['snapshot_sha256']}")
+    print(f"preview_sha256={preview['preview_sha256']}")
+    print(f"claims_count={preview['summary']['claims_count']}")
+    print(f"snapshot_row_count={preview['summary']['snapshot_row_count']}")
+    print(f"eligible_claim_count={preview['summary']['eligible_claim_count']}")
+    print(f"component_count={preview['summary']['component_count']}")
+    if preview_identity is not None:
+        print(f"preview_identity_file={preview_file}")
+    print(json.dumps(preview, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_grant_exact_period_commit(args):
+    from community_leaderboard_rewards_exact_period import commit_exact_period
+    snapshot_file = _validate_operation_file(args.snapshot_file, require_exists=True)
+    snapshot = _load_json_file(snapshot_file)
+    preview_file = _validate_operation_file(
+        args.preview_file,
+        operation_dir=snapshot_file.parent,
+        require_exists=True,
+    )
+    expected_total_items = _parse_json_arg(args.expected_total_items_json, "expected_total_items_json")
+    expected_total_badges = _parse_json_arg(args.expected_total_badges_json, "expected_total_badges_json")
+    _load_and_validate_preview_identity(
+        preview_file,
+        snapshot=snapshot,
+        snapshot_file=snapshot_file,
+        database_url=args.database_url,
+    )
+    conn = _connect(args.database_url)
+    try:
+        try:
+            result = commit_exact_period(
+                conn,
+                snapshot=snapshot,
+                expected_snapshot_sha256=args.expected_snapshot_sha256,
+                expected_preview_sha256=args.expected_preview_sha256,
+                expected_claim_count=args.expected_claim_count,
+                expected_component_count=args.expected_component_count,
+                expected_total_coins=args.expected_total_coins,
+                expected_total_items=expected_total_items,
+                expected_total_badges=expected_total_badges,
+                owner_gate=args.owner_gate,
+                required_owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+                now=datetime.datetime.now(datetime.timezone.utc),
+            )
+        except Exception:
+            conn.rollback()
+            raise
+        conn.commit()
+    finally:
+        conn.close()
+    grant_result_path = snapshot_file.parent / GRANT_RESULT_FILENAME
+    grant_result_record = {
+        "board_type": snapshot["board_type"],
+        "period_key": snapshot["period_key"],
+        "snapshot_sha256": result["snapshot_sha256"],
+        "preview_sha256": result["preview_sha256"],
+        "result": result["result"],
+        "summary": result["summary"],
+        "database_identity": _database_identity(args.database_url),
+        "environment_identity": _environment_identity(),
+    }
+    _write_operation_json(grant_result_path, grant_result_record)
+    print(f"board_type={snapshot['board_type']}")
+    print(f"period_key={snapshot['period_key']}")
+    print("mode=grant-exact-period-commit")
+    print("dry_run=False")
+    print(f"result={result['result']}")
+    print(f"snapshot_sha256={result['snapshot_sha256']}")
+    print(f"preview_sha256={result['preview_sha256']}")
+    print(f"grant_result_file={grant_result_path}")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
 
 
@@ -776,6 +1100,38 @@ def build_parser():
     _add_common_args(grp)
     grp.set_defaults(func=cmd_grant_real_preview)
 
+    sep = sub.add_parser(
+        "snapshot-exact-period",
+        help="Read-only extraction of a closed exact-period snapshot with deterministic "
+             "ranking, exclusions, and tie-break metadata.",
+    )
+    _add_common_args(sep)
+    sep.add_argument("--period-start", required=True, help="Exact period start date (YYYY-MM-DD).")
+    sep.add_argument("--period-end", required=True, help="Exact exclusive period end date (YYYY-MM-DD).")
+    sep.add_argument("--timezone", default="Asia/Taipei")
+    sep.add_argument("--limit", type=int, default=50)
+    sep.add_argument(
+        "--operation-dir",
+        default=None,
+        help="Absolute host-local operation directory under GO_ODYSSEY_REWARD_OPERATIONS_ROOT. "
+             "If supplied, writes snapshot.json and preview.json with restrictive permissions.",
+    )
+    sep.set_defaults(func=cmd_snapshot_exact_period)
+
+    pep = sub.add_parser(
+        "preview-exact-period",
+        help="Pure preview from an exact-period snapshot file. Computes canonical preview and "
+             "reward totals plus snapshot/preview SHA-256 values.",
+    )
+    pep.add_argument("--snapshot-file", required=True)
+    pep.add_argument("--preview-file", default=None)
+    pep.add_argument(
+        "--database-url",
+        default=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
+        help="Defaults to the local dev Postgres used by the test suite, or $DATABASE_URL.",
+    )
+    pep.set_defaults(func=cmd_preview_exact_period)
+
     gc = sub.add_parser(
         "grant-commit",
         help="Intentionally disabled until a later PR wires production grant functions.",
@@ -783,6 +1139,29 @@ def build_parser():
     _add_common_args(gc)
     gc.add_argument("--confirm-grant", action="store_true")
     gc.set_defaults(func=cmd_grant_commit)
+
+    gep = sub.add_parser(
+        "grant-exact-period-commit",
+        help="WRITE-CAPABLE exact-period grant path. Requires exact snapshot/preview hashes, "
+        "expected totals, and the dedicated owner gate. Returns already_granted_noop for a "
+        "fully matching prior successful run; otherwise fails closed on any drift.",
+    )
+    gep.add_argument("--snapshot-file", required=True)
+    gep.add_argument("--preview-file", required=True)
+    gep.add_argument("--expected-snapshot-sha256", required=True)
+    gep.add_argument("--expected-preview-sha256", required=True)
+    gep.add_argument("--expected-claim-count", type=int, required=True)
+    gep.add_argument("--expected-component-count", type=int, required=True)
+    gep.add_argument("--expected-total-coins", type=int, required=True)
+    gep.add_argument("--expected-total-items-json", required=True)
+    gep.add_argument("--expected-total-badges-json", required=True)
+    gep.add_argument("--owner-gate", required=True)
+    gep.add_argument(
+        "--database-url",
+        default=os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL),
+        help="Defaults to the local dev Postgres used by the test suite, or $DATABASE_URL.",
+    )
+    gep.set_defaults(func=cmd_grant_exact_period_commit)
 
     gwc = sub.add_parser(
         "grant-weekly-2026w27-commit",

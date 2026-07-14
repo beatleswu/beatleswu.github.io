@@ -51,6 +51,7 @@
       "requirements.txt",
       "entrypoint.sh",
       "scheduler.py",
+      "community_leaderboard_rewards_scheduler.py",
       "nginx/default.conf",
       "app.py",
       "shadow_judging.py",
@@ -120,7 +121,8 @@
       "tools/community_leaderboard_rewards_manual.py",
       "tools/community_leaderboard_rewards_export_entries.py",
       "tools/community_leaderboard_rewards_real_grant_preview.py",
-      "tools/community_leaderboard_rewards_real_grant_commit.py"
+      "tools/community_leaderboard_rewards_real_grant_commit.py",
+      "tools/community_leaderboard_rewards_exact_period.py"
     ],
     "external_content_boundary": {
       "description": "Deliberately excluded from the application image as of DEPLOY-GOV-2E. The image builds and starts successfully without any of these being present; app.py already degrades gracefully (404 per missing static file, empty puzzle list) rather than crashing.",
@@ -183,6 +185,7 @@
     "/app/shadow_dashboard.py",
     "/app/shadow_dashboard.html",
     "/app/scheduler.py",
+    "/app/community_leaderboard_rewards_scheduler.py",
     "/app/community_leaderboard_rewards.py",
     "/app/entrypoint.sh",
     "/app/sgf_engine/VENDORED_FROM.txt",

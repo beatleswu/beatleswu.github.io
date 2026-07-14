@@ -83,47 +83,69 @@
     },
     {
       "path": "scheduler.py",
-      "source_commit": "21a535f87890fa520005cec464ed507f57190c23",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: reconstruct canonical production image source",
-      "source_date": "2026-07-11",
-      "content_sha256": "b318044398b3b4e838d58e18af14372f58d479c0ddf5d70789a135e1456ead7c",
+      "source_commit": "cd45da3fbd651f2b412eb9e21bb7991fca4888b1",
+      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
+      "source_commit_subject": "feat(rewards): automate weekly leaderboard grants",
+      "source_date": "2026-07-13",
+      "content_sha256": "8b00c637db9a597826e8f4ccaa5d77f2012073be06fb8a4ffbb2c94cfb6864cc",
       "line_ending_policy": "LF",
       "runtime_role": "docker-compose.prod.yml scheduler service entrypoint (command: python scheduler.py); scheduler-container-critical, not imported by app.py itself",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
+      "path": "community_leaderboard_rewards_scheduler.py",
+      "source_commit": "9c7e74295f8db03b545ad395e7a385e93306fc11",
+      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
+      "source_commit_subject": "fix(rewards): require exact true for community scheduler flag",
+      "source_date": "2026-07-13",
+      "content_sha256": "1fc261fe2489959efe97846a58ea9c23943c98e05a0c22a20f9017019157867d",
+      "line_ending_policy": "LF",
+      "runtime_role": "app.py deferred import inside _start_community_leaderboard_weekly_scheduler() and scheduler.py-started runtime reward loop; weekly scheduler runtime-critical when COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+    },
+    {
       "path": "tools/community_leaderboard_rewards_export_entries.py",
-      "source_commit": "21a535f87890fa520005cec464ed507f57190c23",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: reconstruct canonical production image source",
-      "source_date": "2026-07-11",
-      "content_sha256": "fdbb9118730f6dda2ae96a88062fdbdee33ee562c280d5310eb1e22215b9ca2f",
+      "source_commit": "618288ff4cc46291421fabfb6dac10f8dfe9877f",
+      "source_branch_or_local_ref": "feature/community-leaderboard-w28-safe-grant",
+      "source_commit_subject": "feat(rewards): add exact-period leaderboard reward safety gates",
+      "source_date": "2026-07-13",
+      "content_sha256": "f8d451727a442343759405e6bf8ef67aba3b77a7cf85eff90105749750829f91",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "tools/community_leaderboard_rewards_manual.py",
-      "source_commit": "21a535f87890fa520005cec464ed507f57190c23",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: reconstruct canonical production image source",
-      "source_date": "2026-07-11",
-      "content_sha256": "f381f5c7719eb49b193a892234705909e96b7c96673fae14182c4d8257d1c6ea",
+      "source_commit": "c80b92d1a0e99ac9e3f511b70f0d3f5e41d3213a",
+      "source_branch_or_local_ref": "feature/community-leaderboard-w28-safe-grant",
+      "source_commit_subject": "test(rewards): harden exact-period operator snapshot flow",
+      "source_date": "2026-07-13",
+      "content_sha256": "4c74e1b436c5720720f383f00bc040132246c8b6cacfe893ee493cc8084af612",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "tools/community_leaderboard_rewards_real_grant_commit.py",
-      "source_commit": "21a535f87890fa520005cec464ed507f57190c23",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: reconstruct canonical production image source",
-      "source_date": "2026-07-11",
-      "content_sha256": "2f00ea4800bf396c5f33662750aa4c2991b5ef8469c7d2ff86d1ce5ab1962ba8",
+      "source_commit": "618288ff4cc46291421fabfb6dac10f8dfe9877f",
+      "source_branch_or_local_ref": "feature/community-leaderboard-w28-safe-grant",
+      "source_commit_subject": "feat(rewards): add exact-period leaderboard reward safety gates",
+      "source_date": "2026-07-13",
+      "content_sha256": "a26c262679051f9d49356e069bcfe8999d11f7122c341ff219175d079c4acc90",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+    },
+    {
+      "path": "tools/community_leaderboard_rewards_exact_period.py",
+      "source_commit": "8d9f0f82df8e41c323ae4ecd680f2a6a1a136bd2",
+      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
+      "source_commit_subject": "feat(rewards): harden automated weekly leaderboard scheduler",
+      "source_date": "2026-07-13",
+      "content_sha256": "0b502fc0547d9f03bc94e253a66d534ce1dae7e972c92ea9abacd70691ffd7ec",
+      "line_ending_policy": "LF",
+      "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; exact closed-period snapshot/preview/commit guard rail for leaderboard rewards; depends on community_leaderboard_rewards.py and tools/community_leaderboard_rewards_real_grant_* helpers",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin"
     },
     {
       "path": "tools/community_leaderboard_rewards_real_grant_preview.py",
@@ -138,14 +160,14 @@
     },
     {
       "path": "community_leaderboard_rewards.py",
-      "source_commit": "027fc90c7f0379fa6e90777dfa7e73e8eb697585",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: recover runtime dependencies from verified git sources",
-      "source_date": "2026-07-11",
-      "content_sha256": "42828b34d428412df466f5869faec1bea44bc5f9c0681ef5c8c2ba8e97ea6034",
+      "source_commit": "094a8230eb3644d10f02ef645c559646153f6383",
+      "source_branch_or_local_ref": "hotfix/community-leaderboard-is-admin-type",
+      "source_commit_subject": "fix/community: restore integer-safe leaderboard admin expression",
+      "source_date": "2026-07-14",
+      "content_sha256": "a03f46ff5eed7682763612b3cfd8d8ada9e948b34f7afea42618c1f5deaebf4e",
       "line_ending_policy": "LF",
-      "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all four tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "runtime_role": "app.py deferred/function-body imports only (lines 3699, 12170, 12183, 12202) -- not required at app startup, only when community-leaderboard-rewards code paths are invoked. Required by all five tools/community_leaderboard_rewards_*.py CLI scripts at their own module level. Content verified byte-identical (LF-normalized) to the file running in the Production container at the time of this audit. Contains reward-granting/database-write functions (e.g. grant_leaderboard_reward_claims, mark_leaderboard_claim_granted) -- not executed as part of this Sprint's verification.",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin. This file was newly resolved in DEPLOY-GOV-2B-FIX; it was not part of PR #52's original 12-file candidate set and was previously entirely absent from this repository."
     },
     {
       "path": "login.html",
@@ -180,8 +202,8 @@
       "content_sha256": "38dfb0419bc320167cfc84579b1e122e11993fed83a2a2810e593d0681e51b08",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "production_hash_status": "does NOT byte-match current Production (Production still serves the PR #98/e9-1d1 index.html; this E9.1D2 content is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin. Re-verified after E9.1D2/master sync (origin/master @ 3ee8800ea3422216ff8901cbef22d2e3ae20c337): merge brought in no further index.html changes from master (no commits touched this path between the PR's base and current master), so the post-merge working-tree blob is byte-identical to this source commit's content -- confirmed via git hash-object and sha256 comparison."
     },
     {
       "path": "terms.html",
@@ -456,8 +478,8 @@
       "content_sha256": "2bc6238b077642b527550d02907c67a1f6e39296ae5a246f80ca48d2ada17c2c",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "production_hash_status": "does NOT byte-match current Production (Production still serves the PR #98/e9-1d1 sw.js; this E9.1D2 content is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin. Re-verified after E9.1D2/master sync (origin/master @ 3ee8800ea3422216ff8901cbef22d2e3ae20c337): merge brought in no further sw.js changes from master (no commits touched this path between the PR's base and current master), so the post-merge working-tree blob is byte-identical to this source commit's content -- confirmed via git hash-object and sha256 comparison."
     },
     {
       "path": "srs.js",
