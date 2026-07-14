@@ -28,11 +28,13 @@ I18N_JS = REPO_ROOT / "i18n.js"
 JS_DIR = REPO_ROOT / "js" / "e9"
 COMPONENTS_DIR = REPO_ROOT / "components" / "adventure"
 
-OLD_SW_VERSION = "v177-sgf-fe-hotfix1a-node-parser"
+OLD_SW_VERSION = "v183-e9-1d2-layout-rwd"
 # NEW_SW_VERSION tracks whatever Sprint most recently bumped sw.js VERSION
 # (superseded by each subsequent Sprint that also changes E9 JS bytes --
 # see RELEASE-FIX-B, docs/planning/release_fix_b_e9_i18n_fallback.md).
-NEW_SW_VERSION = "v183-e9-1d2-layout-rwd"
+# Bumped in 2026-07-14's adventure intro-film narration pacing fix (the
+# shell version const is shared by both E9 and legacy static routes).
+NEW_SW_VERSION = "v184-adventure-intro-narration-fix"
 
 
 def _read(path):

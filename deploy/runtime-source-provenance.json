@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "c61cdc56507e04458d133a2797162b7c138dfdde",
-      "source_branch_or_local_ref": "feature/e9-1d2-layout-rwd-stabilization",
-      "source_commit_subject": "feat/e9-1d2: stabilize E9 shell layout and responsive behavior",
-      "source_date": "2026-07-13",
-      "content_sha256": "38dfb0419bc320167cfc84579b1e122e11993fed83a2a2810e593d0681e51b08",
+      "source_commit": "026d0253aab0aada669a1b9864b46bf2204c017f",
+      "source_branch_or_local_ref": "fix/adventure-intro-narration-silent-fallback",
+      "source_commit_subject": "fix(adventure): preserve cinematic pacing when narration fails",
+      "source_date": "2026-07-14",
+      "content_sha256": "2c687740462a8302304e062c0509bbc5e6cf390502f2bee6beb4954315cd68a3",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (Production still serves the PR #98/e9-1d1 index.html; this E9.1D2 content is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin. Re-verified after E9.1D2/master sync (origin/master @ 3ee8800ea3422216ff8901cbef22d2e3ae20c337): merge brought in no further index.html changes from master (no commits touched this path between the PR's base and current master), so the post-merge working-tree blob is byte-identical to this source commit's content -- confirmed via git hash-object and sha256 comparison."
+      "production_hash_status": "does NOT byte-match current Production (this incident-fix branch is not deployed; Production still serves the pre-fix index.html with the narration-pacing bug) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "terms.html",
@@ -471,15 +471,15 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "c61cdc56507e04458d133a2797162b7c138dfdde",
-      "source_branch_or_local_ref": "feature/e9-1d2-layout-rwd-stabilization",
-      "source_commit_subject": "feat/e9-1d2: stabilize E9 shell layout and responsive behavior",
-      "source_date": "2026-07-13",
-      "content_sha256": "2bc6238b077642b527550d02907c67a1f6e39296ae5a246f80ca48d2ada17c2c",
+      "source_commit": "8567b8e32d80f770be7db5999a91b78870500599",
+      "source_branch_or_local_ref": "fix/adventure-intro-narration-silent-fallback",
+      "source_commit_subject": "chore(release): bump sw.js shell version for narration pacing fix",
+      "source_date": "2026-07-14",
+      "content_sha256": "64b60bb3aebcff690b2a2a7adf0194e62bbde54ce784ec26c543ab625af04e54",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (Production still serves the PR #98/e9-1d1 sw.js; this E9.1D2 content is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin. Re-verified after E9.1D2/master sync (origin/master @ 3ee8800ea3422216ff8901cbef22d2e3ae20c337): merge brought in no further sw.js changes from master (no commits touched this path between the PR's base and current master), so the post-merge working-tree blob is byte-identical to this source commit's content -- confirmed via git hash-object and sha256 comparison."
+      "production_hash_status": "does NOT byte-match current Production (this incident-fix branch is not deployed; Production still serves the pre-fix sw.js) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "srs.js",
