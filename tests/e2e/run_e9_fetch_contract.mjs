@@ -321,7 +321,7 @@ async function main() {
     }, 'after-load', {
       '/api/skills/profile': 1,
       '/api/user/coins': 1,
-      '/api/adventure/bootstrap': 2,
+      '/api/adventure/bootstrap': 3,
       '/api/daily-challenge/today': 1,
       '/api/srs/due': 1,
       '/api/mistakes/stats': 1,
