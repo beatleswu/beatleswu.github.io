@@ -1,0 +1,11 @@
+{
+  "name": "go-website-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e9:layout": "node run_e9_layout_contract.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.54.2"
+  }
+}

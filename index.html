@@ -5987,12 +5987,12 @@
     <!-- E9 Adventure Shell (feature-flagged, default OFF — see js/e9/feature_flags.js).
          Loaded unconditionally so there is no FOUC once the flag is enabled;
          harmless while #e9-adventure-shell stays hidden. -->
-    <link rel="stylesheet" href="/css/e9/shell.css?v=20260713e9d1">
-    <link rel="stylesheet" href="/css/e9/top_hud.css?v=20260712e9d">
-    <link rel="stylesheet" href="/css/e9/navigation.css?v=20260712e9d">
-    <link rel="stylesheet" href="/css/e9/cards.css?v=20260712e9d">
-    <link rel="stylesheet" href="/css/e9/world_stage.css?v=20260712e9d">
-    <link rel="stylesheet" href="/css/e9/rwd.css?v=20260712e9d">
+    <link rel="stylesheet" href="/css/e9/shell.css?v=20260713e9d2">
+    <link rel="stylesheet" href="/css/e9/top_hud.css?v=20260713e9d2">
+    <link rel="stylesheet" href="/css/e9/navigation.css?v=20260713e9d2">
+    <link rel="stylesheet" href="/css/e9/cards.css?v=20260713e9d2">
+    <link rel="stylesheet" href="/css/e9/world_stage.css?v=20260713e9d2">
+    <link rel="stylesheet" href="/css/e9/rwd.css?v=20260713e9d2">
 </head>
 <body>
 
@@ -15420,22 +15420,22 @@ window.addEventListener('appinstalled', () => {
      dispatches the mount calls the component inits listen for, and depends
      on I18n/startAdventureStage already being defined by the scripts above
      this point in the page, which they are). -->
-<script src="/js/e9/feature_flags.js?v=20260713e9d1"></script>
-<script src="/js/e9/component_loader.js?v=20260712e9d"></script>
+<script src="/js/e9/feature_flags.js?v=20260713e9d2"></script>
+<script src="/js/e9/component_loader.js?v=20260713e9d2"></script>
 <!-- RELEASE-FIX-B: shared missing-key fallback helper. Must load before
      any component script that calls window.E9.I18nFallback.t(). -->
-<script src="/js/e9/i18n_fallback.js?v=20260712e9e"></script>
+<script src="/js/e9/i18n_fallback.js?v=20260713e9d2"></script>
 <!-- E9.1B adapters: single source of truth for canonical runtime data,
      read by top_hud.js/right_cards.js/world_stage.js below. Must load
      before those component scripts. -->
-<script src="/js/e9/adapters/player_state.js?v=20260712e9d"></script>
-<script src="/js/e9/adapters/adventure_state.js?v=20260712e9d"></script>
-<script src="/js/e9/adapters/activity_state.js?v=20260712e9d"></script>
-<script src="/js/e9/top_hud.js?v=20260712e9e"></script>
-<script src="/js/e9/left_nav.js?v=20260712e9d"></script>
-<script src="/js/e9/right_cards.js?v=20260712e9e"></script>
-<script src="/js/e9/bottom_dock.js?v=20260712e9d"></script>
-<script src="/js/e9/world_stage.js?v=20260712e9e"></script>
-<script src="/js/e9/shell.js?v=20260713e9d1"></script>
+<script src="/js/e9/adapters/player_state.js?v=20260713e9d2"></script>
+<script src="/js/e9/adapters/adventure_state.js?v=20260713e9d2"></script>
+<script src="/js/e9/adapters/activity_state.js?v=20260713e9d2"></script>
+<script src="/js/e9/top_hud.js?v=20260713e9d2"></script>
+<script src="/js/e9/left_nav.js?v=20260713e9d2"></script>
+<script src="/js/e9/right_cards.js?v=20260713e9d2"></script>
+<script src="/js/e9/bottom_dock.js?v=20260713e9d2"></script>
+<script src="/js/e9/world_stage.js?v=20260713e9d2"></script>
+<script src="/js/e9/shell.js?v=20260713e9d2"></script>
 </body>
 </html>

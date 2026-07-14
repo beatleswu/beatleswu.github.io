@@ -1,53 +1,94 @@
-/* E9 Adventure Shell — responsive breakpoints. Stacks to a single column
-   below tablet width; desktop keeps the 3-column body (nav / stage / cards).
-   Tested against 8 viewport widths derived from this project's existing
-   CSS breakpoint chain (css/style.css / css/screen.css): 1440, 1366, 1280,
-   1024, 768, 640, 480, 320 — see docs/planning/e9_1a2_legacy_shell_integration.md
-   for the exact matrix (no separate "8 canonical viewports" test matrix
-   existed in this repo prior to E9.1A2; this is the closest real,
-   already-established structure to test against). */
+/* E9 Adventure Shell responsive contract.
+   Desktop keeps a deliberate multi-column shell.
+   Tablet progressively narrows the shell and moves supporting regions.
+   Mobile uses a single-column flow with reserved space for the dock. */
+
+@media (max-width: 1279px) {
+  body[data-adventure-shell-active="e9"] #e9-adventure-shell .e9-body {
+    grid-template-columns: minmax(0, 216px) minmax(0, 1fr);
+    grid-template-areas:
+      "nav stage"
+      "cards cards";
+  }
+
+  body[data-adventure-shell-active="e9"] #e9-left-nav-slot {
+    grid-area: nav;
+  }
+
+  body[data-adventure-shell-active="e9"] #e9-world-stage-slot {
+    grid-area: stage;
+  }
+
+  body[data-adventure-shell-active="e9"] #e9-right-cards-slot {
+    grid-area: cards;
+  }
+
+  body[data-adventure-shell-active="e9"] .e9-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
 
 @media (max-width: 1024px) {
-  #e9-adventure-shell .e9-body {
-    flex-direction: column;
+  body[data-adventure-shell-active="e9"] .practice {
+    padding: 14px 12px 96px !important;
+    overflow-y: auto;
   }
-  .e9-nav,
-  .e9-cards {
-    width: 100%;
+
+  body[data-adventure-shell-active="e9"] #e9-adventure-shell {
+    min-height: auto;
   }
-  .e9-nav__list {
+
+  body[data-adventure-shell-active="e9"] #e9-adventure-shell .e9-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "nav"
+      "stage"
+      "cards";
+  }
+
+  body[data-adventure-shell-active="e9"] .e9-nav__list {
     flex-direction: row;
     flex-wrap: wrap;
   }
 
-  /* Stacked column layout no longer stretches all three main-body slots
-     to a shared tall height, so their skeleton placeholder should be
-     shorter too — avoids the PR #78 jank at tablet width. */
   #e9-left-nav-slot .e9-component-skeleton,
   #e9-world-stage-slot .e9-component-skeleton,
   #e9-right-cards-slot .e9-component-skeleton {
-    --e9-skeleton-min-height: 180px;
+    --e9-skeleton-min-height: 220px;
   }
 }
 
-@media (max-width: 600px) {
-  .e9-hud {
+@media (max-width: 767px) {
+  body[data-adventure-shell-active="e9"] .practice {
+    padding-bottom: calc(var(--e9-shell-mobile-dock-reserve) + 18px) !important;
+  }
+
+  body[data-adventure-shell-active="e9"] .e9-hud {
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: 10px;
   }
-  .e9-dock {
+
+  body[data-adventure-shell-active="e9"] .e9-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-adventure-shell-active="e9"] .e9-dock {
     justify-content: flex-start;
     overflow-x: auto;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   #e9-top-hud-slot .e9-component-skeleton,
   #e9-bottom-dock-slot .e9-component-skeleton {
-    --e9-skeleton-min-height: 64px;
+    --e9-skeleton-min-height: 72px;
   }
+
   #e9-left-nav-slot .e9-component-skeleton,
   #e9-world-stage-slot .e9-component-skeleton,
   #e9-right-cards-slot .e9-component-skeleton {
-    --e9-skeleton-min-height: 140px;
+    --e9-skeleton-min-height: 160px;
   }
 }

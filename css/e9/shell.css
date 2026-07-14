@@ -1,7 +1,17 @@
-/* E9 Adventure Shell — layout grid. Loaded unconditionally (cheap, inert
-   when #e9-adventure-shell stays hidden). Keeps critical layout available
-   before any component fragment has arrived, to avoid FOUC once the shell
-   flag is on. */
+/* E9 Adventure Shell layout contract.
+   Loaded unconditionally, but only takes over geometry when
+   body[data-adventure-shell-active="e9"] is present. */
+
+:root {
+  --e9-shell-max-width: 1480px;
+  --e9-shell-gap: 16px;
+  --e9-shell-nav-width: clamp(208px, 17vw, 252px);
+  --e9-shell-cards-width: clamp(248px, 23vw, 320px);
+  --e9-shell-mobile-dock-reserve: 104px;
+  --e9-shell-panel-bg: rgba(255, 248, 234, 0.94);
+  --e9-shell-panel-border: rgba(121, 87, 40, 0.24);
+  --e9-shell-panel-shadow: 0 18px 38px rgba(12, 8, 3, 0.16);
+}
 
 #e9-adventure-shell {
   display: flex;
@@ -41,6 +51,104 @@
   min-width: 0;
 }
 
+body[data-adventure-shell-active="e9"] main {
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+}
+
+body[data-adventure-shell-active="e9"] main .practice {
+  width: 100%;
+  max-width: min(1600px, calc(100vw - 20px));
+  padding: 12px 10px 28px;
+  overflow-y: visible;
+  flex: 1 1 auto;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+body[data-adventure-shell-active="e9"] #main-row {
+  width: 100%;
+  max-width: none;
+  display: block;
+  padding-left: 0;
+}
+
+body[data-adventure-shell-active="e9"] #main-row #main-left {
+  width: 100%;
+  max-width: none;
+  padding-left: 0 !important;
+  align-items: stretch;
+}
+
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  display: block !important;
+  padding: 0 0 28px;
+  gap: 0;
+  animation: none;
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+}
+
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .guild-hall-hero,
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .guild-entry-grid,
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .home-left-col,
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .home-report,
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > #skill-map {
+  display: none !important;
+}
+
+body[data-adventure-shell-active="e9"] #main-row #main-left #e9-adventure-shell {
+  width: min(100%, var(--e9-shell-max-width));
+  margin: 0 auto;
+  min-height: calc(100vh - 126px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: var(--e9-shell-gap);
+  align-items: start;
+  align-content: start;
+}
+
+body[data-adventure-shell-active="e9"] #e9-top-hud-slot,
+body[data-adventure-shell-active="e9"] #e9-left-nav-slot,
+body[data-adventure-shell-active="e9"] #e9-world-stage-slot,
+body[data-adventure-shell-active="e9"] #e9-right-cards-slot,
+body[data-adventure-shell-active="e9"] #e9-bottom-dock-slot {
+  min-width: 0;
+}
+
+body[data-adventure-shell-active="e9"] #e9-top-hud-slot,
+body[data-adventure-shell-active="e9"] #e9-left-nav-slot,
+body[data-adventure-shell-active="e9"] #e9-right-cards-slot,
+body[data-adventure-shell-active="e9"] #e9-bottom-dock-slot,
+body[data-adventure-shell-active="e9"] #e9-world-stage-slot > * {
+  width: 100%;
+}
+
+body[data-adventure-shell-active="e9"] #e9-adventure-shell .e9-body {
+  display: grid;
+  grid-template-columns:
+    minmax(0, var(--e9-shell-nav-width))
+    minmax(0, 1fr)
+    minmax(0, var(--e9-shell-cards-width));
+  gap: var(--e9-shell-gap);
+  align-items: start;
+  min-height: 0;
+}
+
+body[data-adventure-shell-active="e9"] #e9-left-nav-slot,
+body[data-adventure-shell-active="e9"] #e9-right-cards-slot {
+  align-self: start;
+}
+
+body[data-adventure-shell-active="e9"] #e9-world-stage-slot {
+  min-width: 0;
+  min-height: 420px;
+}
+
 .e9-visually-hidden {
   position: absolute;
   width: 1px;
@@ -51,11 +159,8 @@
 }
 
 .e9-component-skeleton {
-  /* PR #78 known issue: a single fixed height caused a ~48px -> ~387px
-     jump for the three main-body slots on desktop. Fixed here with
-     per-slot, per-breakpoint min-heights (see rwd.css for the
-     tablet/mobile overrides) approximating each slot's real loaded
-     height instead of one constant applied to every device. */
+  /* Keep placeholder heights close to the loaded geometry so the shell
+     does not jump when fragments mount or data resolves. */
   min-height: var(--e9-skeleton-min-height, 48px);
   border-radius: 8px;
   background: linear-gradient(90deg, var(--e9-skel-a, #e8e4d8) 25%, var(--e9-skel-b, #f5f2e9) 37%, var(--e9-skel-a, #e8e4d8) 63%);
@@ -63,8 +168,6 @@
   animation: e9-skeleton-shimmer 1.4s ease infinite;
 }
 
-/* Desktop defaults: top/bottom bars are short; the three stretched
-   main-body columns (left nav / world stage / right cards) are tall. */
 #e9-top-hud-slot .e9-component-skeleton,
 #e9-bottom-dock-slot .e9-component-skeleton {
   --e9-skeleton-min-height: 48px;

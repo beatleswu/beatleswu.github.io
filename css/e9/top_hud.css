@@ -3,13 +3,53 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background: #2b2b3d;
-  color: #fff;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(40, 31, 18, 0.96), rgba(22, 58, 53, 0.92));
+  color: #fff6df;
+  border: 1px solid rgba(239, 212, 151, 0.2);
+  border-radius: 22px;
+  box-shadow: var(--e9-shell-panel-shadow);
 }
+
 .e9-hud__player,
 .e9-hud__resources {
   display: flex;
   gap: 10px;
   align-items: center;
+  min-width: 0;
+}
+
+.e9-hud__player {
+  flex: 1 1 auto;
+}
+
+.e9-hud__avatar {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  flex: 0 0 auto;
+}
+
+.e9-hud__name {
+  min-width: 0;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.e9-hud__level,
+.e9-hud__coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
 }
