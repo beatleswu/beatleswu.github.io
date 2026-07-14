@@ -183,15 +183,14 @@ def run_module_probe(tmp_path, probe_body):
     )
 
 
-def run_preflight_with_fake_remote(tmp_path, fake_remote_payload):
+def run_preflight_with_fake_remote(tmp_path, fake_remote_payload, static_manifest=None):
     fake_remote_path = tmp_path / "fake-remote.json"
     archive_path = tmp_path / "release.tar"
     archive_path.write_bytes(b"artifact")
     write_json(fake_remote_path, fake_remote_payload)
     env = os.environ.copy()
     env["GO_ODYSSEY_PREFLIGHT_FAKE_REMOTE_RESPONSES"] = str(fake_remote_path)
-    result = subprocess.run(
-        [
+    command = [
             "powershell",
             "-NoProfile",
             "-ExecutionPolicy",
@@ -204,7 +203,13 @@ def run_preflight_with_fake_remote(tmp_path, fake_remote_payload):
             str(REPO_ROOT / "deploy" / "release-manifest.example.json"),
             "-ReleaseArchive",
             str(archive_path),
-        ],
+        ]
+    if static_manifest is not None:
+        static_manifest_path = tmp_path / "static-manifest.json"
+        write_json(static_manifest_path, static_manifest)
+        command.extend(["-StaticManifest", str(static_manifest_path)])
+    result = subprocess.run(
+        command,
         cwd=REPO_ROOT,
         env=env,
         capture_output=True,
@@ -213,6 +218,28 @@ def run_preflight_with_fake_remote(tmp_path, fake_remote_payload):
         check=False,
     )
     return result
+
+
+def make_static_manifest(files=None):
+    return {
+        "static_generation_id": "test-full-generation",
+        "files": files
+        if files is not None
+        else [
+            {
+                "path": "i18n.js",
+                "sha256": "bf84cca277addbdc408e83c55e93559cdb94e710b0a68fe8e43a9ea64c6e672a",
+            },
+            {
+                "path": "sw.js",
+                "sha256": "150e0ecbef379637c48d53a6e43c20a6610dc384e1adf782a674e8775f9b4aed",
+            },
+            {
+                "path": "assets/storyboards/nested/scene 01.mp3",
+                "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            },
+        ],
+    }
 
 
 def test_release_layout_example_has_required_contract_fields():
@@ -514,6 +541,107 @@ def test_preflight_uses_helper_when_runtime_helper_is_available(tmp_path):
     assert report["readiness_mode"] == "helper"
     assert report["helper_available"] is True
     assert report["questions"]["record_count"] == 321
+
+
+def test_preflight_full_static_manifest_requires_complete_observation(tmp_path):
+    payload = make_fake_preflight_responses()
+    payload["responses"]["static_current_manifest_files"] = {
+        "stdout": "i18n.js: OK\nsw.js: OK"
+    }
+    result = run_preflight_with_fake_remote(
+        tmp_path, payload, static_manifest=make_static_manifest()
+    )
+    assert result.returncode != 0
+    assert "STATIC GENERATION DRIFT" in (result.stdout + result.stderr)
+
+
+def test_preflight_full_static_manifest_accepts_complete_nested_observation(tmp_path):
+    payload = make_fake_preflight_responses()
+    payload["responses"]["static_current_manifest_files"] = {
+        "stdout": (
+            "i18n.js: OK\n"
+            "sw.js: OK\n"
+            "assets/storyboards/nested/scene 01.mp3: OK"
+        )
+    }
+    result = run_preflight_with_fake_remote(
+        tmp_path, payload, static_manifest=make_static_manifest()
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["static_generation"]["drift_checked"] is True
+    assert report["static_generation"]["drift"] is False
+    assert [entry["path"] for entry in report["static_generation"]["files"]] == [
+        "i18n.js",
+        "sw.js",
+        "assets/storyboards/nested/scene 01.mp3",
+    ]
+
+
+def test_preflight_full_static_manifest_normalizes_windows_separators(tmp_path):
+    manifest = make_static_manifest()
+    manifest["files"][2]["path"] = r"assets\storyboards\nested\scene 01.mp3"
+    payload = make_fake_preflight_responses()
+    payload["responses"]["static_current_manifest_files"] = {
+        "stdout": (
+            "i18n.js: OK\n"
+            "sw.js: OK\n"
+            "assets/storyboards/nested/scene 01.mp3: OK"
+        )
+    }
+    result = run_preflight_with_fake_remote(
+        tmp_path, payload, static_manifest=manifest
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_preflight_full_static_manifest_rejects_path_escape(tmp_path):
+    manifest = make_static_manifest(
+        [
+            {
+                "path": "../outside.txt",
+                "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            }
+        ]
+    )
+    payload = make_fake_preflight_responses()
+    payload["responses"]["static_current_manifest_files"] = {
+        "stdout": "../outside.txt: OK"
+    }
+    result = run_preflight_with_fake_remote(
+        tmp_path, payload, static_manifest=manifest
+    )
+    assert result.returncode != 0
+    assert "path traversal" in (result.stdout + result.stderr).lower()
+
+
+def test_preflight_full_static_manifest_fails_on_missing_or_mismatch(tmp_path):
+    for label, output in (
+        ("missing", "i18n.js: OK\nsw.js: OK\nassets/storyboards/nested/scene 01.mp3: FAILED open or read"),
+        ("mismatch", "i18n.js: OK\nsw.js: FAILED\nassets/storyboards/nested/scene 01.mp3: OK"),
+    ):
+        case_dir = tmp_path / label
+        case_dir.mkdir()
+        payload = make_fake_preflight_responses()
+        payload["responses"]["static_current_manifest_files"] = {
+            "stdout": output,
+            "exit_code": 1,
+        }
+        result = run_preflight_with_fake_remote(
+            case_dir, payload, static_manifest=make_static_manifest()
+        )
+        assert result.returncode != 0
+        assert "STATIC GENERATION DRIFT" in (result.stdout + result.stderr)
+
+
+def test_preflight_full_static_manifest_rejects_empty_manifest(tmp_path):
+    payload = make_fake_preflight_responses()
+    payload["responses"]["static_current_manifest_files"] = {"stdout": ""}
+    result = run_preflight_with_fake_remote(
+        tmp_path, payload, static_manifest=make_static_manifest([])
+    )
+    assert result.returncode != 0
+    assert "at least one file" in (result.stdout + result.stderr)
 
 
 def test_preflight_uses_legacy_fallback_when_runtime_helper_is_absent(tmp_path):
