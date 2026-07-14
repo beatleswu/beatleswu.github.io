@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "427d0ec5245b8b148e391a40e8678afa5cc36ca1",
+      "source_commit": "8968cb20fd9bd9c5f2233cc647b19df806878787",
       "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
-      "source_commit_subject": "fix(e9): enforce duplicate fetch contract",
+      "source_commit_subject": "fix(e9): restore legacy fallback ownership",
       "source_date": "2026-07-14",
-      "content_sha256": "7b23ec5c06258ae634152f6dca84a13f07f998e8bf5f990483269a43572ec204",
+      "content_sha256": "046541ff943cced1eb2910891f3f41f21dd1dca94aed4b7c14f2892341894442",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (E9.1D3 duplicate-fetch contract fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "does NOT byte-match current Production (E9.1D3 invalidation/fallback fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
@@ -471,14 +471,14 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "427d0ec5245b8b148e391a40e8678afa5cc36ca1",
+      "source_commit": "8968cb20fd9bd9c5f2233cc647b19df806878787",
       "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
-      "source_commit_subject": "fix(e9): enforce duplicate fetch contract",
+      "source_commit_subject": "fix(e9): restore legacy fallback ownership",
       "source_date": "2026-07-14",
-      "content_sha256": "461df0d7e5e1dcdec1cb73ab7f3fbf0d441c94b6fff42f10a21e3fa3d698b758",
+      "content_sha256": "a7266543e18bcc40b25bdc2b05653b7a81a6ddc2bcc2e5db081693e39ebbe251",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (E9.1D3 duplicate-fetch contract fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "does NOT byte-match current Production (E9.1D3 invalidation/fallback fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
