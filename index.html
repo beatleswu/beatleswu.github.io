@@ -12576,8 +12576,18 @@ async function playNewbieVillageIntroFilm(zone) {
             : Math.max(4200, item.text.length * 210);
     }
     function playAssetVoice(item, onDone) {
+        const finishSilently = (audio = null) => {
+            if (audio && audio._introNarrationFinished) return;
+            if (audio) audio._introNarrationFinished = true;
+            const holdMs = computeShotHoldMs(item);
+            const id = setTimeout(() => {
+                if (runId !== _introFilmRunId) return;
+                onDone();
+            }, holdMs);
+            _introFilmTimers.push(id);
+        };
         if (!item.audioSrc) {
-            playBrowserVoice(item, onDone);
+            finishSilently();
             return;
         }
         const audio = new Audio(item.audioSrc);
@@ -12600,23 +12610,18 @@ async function playNewbieVillageIntroFilm(zone) {
         // narration assets were unavailable (see 2026-07-14 incident).
         // Keep the shot's current visual composition and caption on screen
         // for its computed hold duration, then advance exactly once.
-        const finishSilently = () => {
+        const finishAudioSilently = () => {
             if (finished || runId !== _introFilmRunId) return;
             finished = true;
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
             if (_introAudio === audio) _introAudio = null;
-            const holdMs = computeShotHoldMs(item);
-            const id = setTimeout(() => {
-                if (runId !== _introFilmRunId) return;
-                onDone();
-            }, holdMs);
-            _introFilmTimers.push(id);
+            finishSilently(audio);
         };
         audio.onended = () => finishSuccess(720);
-        audio.onerror = finishSilently;
-        audio.play().catch(finishSilently);
+        audio.onerror = finishAudioSilently;
+        audio.play().catch(finishAudioSilently);
     }
     function playBrowserVoice(item, onDone) {
         const fallbackMs = computeShotHoldMs(item);
