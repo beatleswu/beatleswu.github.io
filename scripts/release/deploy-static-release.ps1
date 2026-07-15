@@ -225,14 +225,18 @@ function Invoke-BoundedPublicVerification {
         }
     }
 
-    $results = New-Object System.Collections.Generic.List[object]
+    # Use a PowerShell array here rather than a generic List.  Job output can
+    # be a deserialized PSObject whose runtime type varies by host; passing
+    # that value through List[object].Add triggered "Argument types do not
+    # match" during a live 1,390-entry adoption run.
+    $results = @()
     $deadline = [DateTime]::UtcNow.AddSeconds($DeadlineSeconds)
     $nextProgress = 100
     for ($offset = 0; $offset -lt $Entries.Count; $offset += $Concurrency) {
         $remaining = [int][Math]::Floor(($deadline - [DateTime]::UtcNow).TotalSeconds)
         if ($remaining -le 0) {
             foreach ($entry in $Entries[$offset..($Entries.Count - 1)]) {
-                $results.Add([pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' })
+                $results += [pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' }
             }
             break
         }
@@ -250,13 +254,13 @@ function Invoke-BoundedPublicVerification {
             $completed = @(Wait-Job -Job $jobs -Timeout $waitSeconds)
             foreach ($job in $completed) {
                 $received = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
-                if ($received.Count -gt 0) { $results.Add($received[0]) }
-                else { $results.Add([pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' }) }
+                if ($received.Count -gt 0) { $results += $received[0] }
+                else { $results += [pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' } }
             }
             $completedIds = @($completed | ForEach-Object { $_.Id })
             foreach ($job in @($jobs | Where-Object { $_.Id -notin $completedIds })) {
                 $entry = $jobEntries[$job.Id]
-                $results.Add([pscustomobject]@{ path = $entry.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $entry.sha256 })
+                $results += [pscustomobject]@{ path = $entry.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $entry.sha256 }
             }
         }
         finally {
