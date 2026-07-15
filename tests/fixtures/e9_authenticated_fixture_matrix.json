@@ -1,0 +1,79 @@
+{
+  "schema_version": "e9-authenticated-fixtures-v1",
+  "identity_policy": "synthetic-only",
+  "scenarios": [
+    {
+      "id": "full_happy_path",
+      "auth": {"logged_in": true, "user_key": "synthetic-eligible", "e9_eligible": true},
+      "profile": {"display_name": "Synthetic Player", "coins": 120},
+      "adventure": {"selected": "forest", "recommended": "cave", "zones": [
+        {"key": "forest", "status": "completed", "completed": true, "unlocked": true, "skipped_by_placement": false, "boss_ready": false},
+        {"key": "cave", "status": "unlocked", "completed": false, "unlocked": true, "skipped_by_placement": false, "boss_ready": true}
+      ]},
+      "daily": {"available": true, "completed": false},
+      "srs": {"due_count": 3},
+      "mistakes": {"count": 2, "review_cta": true},
+      "expected": {"shell": "e9", "fallback": "legacy-on-critical-failure"}
+    },
+    {
+      "id": "ordinary_legacy_user",
+      "auth": {"logged_in": true, "user_key": "synthetic-ordinary", "e9_eligible": false},
+      "profile": {"display_name": "Legacy Player", "coins": 0},
+      "adventure": {"selected": null, "recommended": null, "zones": []},
+      "daily": {"available": false, "completed": false},
+      "srs": {"due_count": 0},
+      "mistakes": {"count": 0, "review_cta": false},
+      "expected": {"shell": "legacy", "effective_flags": "all-false"}
+    },
+    {
+      "id": "partial_optional_data",
+      "auth": {"logged_in": true, "user_key": "synthetic-partial", "e9_eligible": true},
+      "profile": {"display_name": null, "coins": null},
+      "adventure": {"selected": "forest", "recommended": null, "zones": [{"key": "forest", "status": "unlocked"}]},
+      "daily": null,
+      "srs": null,
+      "mistakes": null,
+      "expected": {"shell": "e9", "fallback": "component-local"}
+    },
+    {
+      "id": "empty_new_player",
+      "auth": {"logged_in": true, "user_key": "synthetic-empty", "e9_eligible": false},
+      "profile": {"display_name": "New Player", "coins": 0},
+      "adventure": {"selected": null, "recommended": null, "zones": []},
+      "daily": {"available": false, "completed": false},
+      "srs": {"due_count": 0},
+      "mistakes": {"count": 0, "review_cta": false},
+      "expected": {"shell": "legacy", "empty_states": true}
+    },
+    {
+      "id": "malformed_payload",
+      "auth": {"logged_in": true, "user_key": "synthetic-malformed", "e9_eligible": true},
+      "profile": {"display_name": 17, "coins": -4},
+      "adventure": {"selected": 42, "recommended": [], "zones": [{"key": null, "status": "unknown"}]},
+      "daily": {"available": "yes", "completed": null},
+      "srs": {"due_count": -1},
+      "mistakes": {"count": "many", "review_cta": "yes"},
+      "expected": {"shell": "legacy", "fail_closed": true}
+    },
+    {
+      "id": "unauthenticated",
+      "auth": {"logged_in": false, "user_key": null, "e9_eligible": false, "status": 401},
+      "expected": {"shell": "legacy", "effective_flags": "all-false"}
+    },
+    {
+      "id": "session_switch",
+      "auth_sequence": [
+        {"logged_in": true, "user_key": "synthetic-eligible", "e9_eligible": true},
+        {"logged_in": false, "user_key": null, "e9_eligible": false, "status": 401},
+        {"logged_in": true, "user_key": "synthetic-ordinary", "e9_eligible": false}
+      ],
+      "expected": {"no_cross_user_cache": true, "final_shell": "legacy"}
+    },
+    {
+      "id": "api_failure_retry",
+      "auth": {"logged_in": true, "user_key": "synthetic-eligible", "e9_eligible": true},
+      "failures": {"adventure": [500, "retry-success"], "activity": ["timeout", "retry-success"]},
+      "expected": {"critical": "legacy-fallback", "retry": true, "no_duplicate_requests": true}
+    }
+  ]
+}
