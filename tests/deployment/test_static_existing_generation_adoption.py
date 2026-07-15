@@ -21,6 +21,13 @@ def test_existing_generation_path_is_fail_closed():
     assert "contains unsafe path components" in DEPLOY
 
 
+def test_remote_safety_command_is_constructed_without_local_command_substitution():
+    assert "$adoptionCheckCommand = 'test -d '" in DEPLOY
+    assert "findmnt -T ' + $quotedExistingGeneration" in DEPLOY
+    assert 'Invoke-RemoteText $adoptionCheckCommand' in DEPLOY
+    assert '$adoptionCheck = Invoke-RemoteText "p=$(Quote-PosixShellArgument' not in DEPLOY
+
+
 def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():
     assert "existing generation manifest" in DEPLOY
     assert "Existing generation manifest identity does not match" in DEPLOY
