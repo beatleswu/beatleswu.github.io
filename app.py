@@ -91,6 +91,78 @@ _ANALYTICS_EVENT_ALLOWED_FIELDS = {
     'destination',
 }
 
+_E9_FLAG_KEYS = (
+    'e9Shell', 'e9TopHud', 'e9LeftNav', 'e9RightCards',
+    'e9BottomDock', 'e9WorldStage',
+)
+_E9_REASON_CODES = {
+    'global_disabled', 'admin_entitled', 'named_allowlist',
+    'not_allowed', 'unauthenticated', 'invalid_config',
+}
+
+def _e9_truthy_env(name):
+    return os.environ.get(name, '').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+def _e9_normalize_identity(value):
+    return str(value or '').strip().casefold()
+
+def _e9_rollout_config():
+    """Load server-only E9 targeting config; malformed config fails closed."""
+    raw_allowlist = os.environ.get('E9_ROLLOUT_ALLOWLIST', '')
+    entries = [_e9_normalize_identity(x) for x in raw_allowlist.split(',')]
+    if any(not x or not re.fullmatch(r'[a-z0-9_@.+-]{1,160}', x) for x in entries):
+        return None
+    if len(entries) != len(set(entries)):
+        return None
+    raw_flags = os.environ.get('E9_ROLLOUT_FLAGS', ','.join(_E9_FLAG_KEYS))
+    flags = [x.strip() for x in raw_flags.split(',') if x.strip()]
+    if not flags or any(x not in _E9_FLAG_KEYS for x in flags) or 'e9Shell' not in flags:
+        return None
+    config = {
+        'global_enabled': _e9_truthy_env('E9_ROLLOUT_GLOBAL_ENABLED'),
+        'admin_enabled': _e9_truthy_env('E9_ROLLOUT_ADMIN_ENABLED'),
+        'allowlist': tuple(sorted(set(entries))),
+        'flags': tuple(flags),
+    }
+    config['identity'] = hashlib.sha256(
+        json.dumps(config, sort_keys=True, separators=(',', ':')).encode()
+    ).hexdigest()[:16]
+    return config
+
+def _e9_rollout_decision(*, user_id=None, username=None, is_admin=False):
+    false_flags = {key: False for key in _E9_FLAG_KEYS}
+    config = _e9_rollout_config()
+    if not config:
+        return {'eligible': False, 'reason': 'invalid_config', 'effective_flags': false_flags,
+                'decision_version': 'e9-rollout-v1-invalid', 'kill_switch': True}
+    base = {'decision_version': f"e9-rollout-v1-{config['identity']}",
+            'kill_switch': not config['global_enabled']}
+    if not user_id or not username:
+        reason = 'unauthenticated'
+    elif not config['global_enabled']:
+        reason = 'global_disabled'
+    elif config['admin_enabled'] and is_admin:
+        reason = 'admin_entitled'
+    elif _e9_normalize_identity(username) in config['allowlist']:
+        reason = 'named_allowlist'
+    else:
+        reason = 'not_allowed'
+    eligible = reason in {'admin_entitled', 'named_allowlist'}
+    flags = {key: bool(eligible and key in config['flags']) for key in _E9_FLAG_KEYS}
+    if not flags['e9Shell']:
+        flags = false_flags
+    return {'eligible': eligible, 'reason': reason, 'effective_flags': flags, **base}
+
+def _e9_rollout_telemetry(decision, user_id=None):
+    digest = hashlib.sha256(str(user_id).encode()).hexdigest()[:16] if user_id else None
+    app.logger.info('[e9_rollout_decision] %s', json.dumps({
+        'eligible': decision['eligible'], 'reason': decision['reason'],
+        'effective_flags': decision['effective_flags'],
+        'decision_version': decision['decision_version'],
+        'kill_switch': decision['kill_switch'], 'user_digest': digest,
+        'surface': request.path,
+    }, sort_keys=True, separators=(',', ':')))
+
 QUESTION_PROBLEM_REPORT_REASON_CODES = (
     'broken_unanswerable',
     'answer_seems_wrong',
@@ -5792,7 +5864,9 @@ def _newbie_quest_snapshot(uid, conn, sync_server_tasks=True):
 @app.route('/api/auth/me')
 def auth_me():
     if 'user_id' not in session:
-        return jsonify({'logged_in': False})
+        decision = _e9_rollout_decision()
+        _e9_rollout_telemetry(decision)
+        return jsonify({'logged_in': False, 'e9_rollout': decision})
     plan = session.get('plan', 'free')
     uid  = session['user_id']
     display_name = _user_display_label(
@@ -5811,17 +5885,22 @@ def auth_me():
             tour_done = row['tour_done'] or 0
         row2 = conn.execute(
             'SELECT elo_rating, elo_provisional, email, email_verified, onboarding_path, '
+            'is_admin, username, '
             'onboarding_required '
             'FROM users WHERE id=?',
             (uid,)).fetchone()
         email          = None
         email_verified = 0
         elo_provisional = 0
+        authoritative_is_admin = False
+        authoritative_username = session.get('username', '')
         if row2:
             elo_rating      = row2['elo_rating']
             elo_provisional = row2['elo_provisional'] or 0
             email          = row2['email']
             email_verified = row2['email_verified'] or 0
+            authoritative_is_admin = bool(row2['is_admin'])
+            authoritative_username = row2['username'] or authoritative_username
             needs_onboarding_choice = (
                 bool(row2['onboarding_required'])
                 and not bool(row2['onboarding_path'])
@@ -5831,15 +5910,19 @@ def auth_me():
                 'SELECT graduated FROM newbie_quest_state WHERE user_id=?', (uid,)
             ).fetchone()
             newbie_quest_eligible = bool(quest_state) and not bool(quest_state['graduated'])
+    decision = _e9_rollout_decision(
+        user_id=uid, username=authoritative_username, is_admin=authoritative_is_admin
+    )
+    _e9_rollout_telemetry(decision, uid)
     return jsonify({
         'logged_in':  True,
         'user_id':    uid,
         'username':   session['username'],
         'nickname':   session.get('nickname', ''),
         'display_name': display_name,
-        'is_admin':   session.get('is_admin', False),
+        'is_admin':   authoritative_is_admin,
         'plan':       plan,
-        'is_premium': plan == 'premium' or session.get('is_admin', False),
+        'is_premium': plan == 'premium' or authoritative_is_admin,
         'go_rank':    go_rank,
         'elo_rating': elo_rating,
         'elo_provisional': bool(elo_provisional),
@@ -5848,6 +5931,7 @@ def auth_me():
         'tour_done':  bool(tour_done),
         'needs_onboarding_choice': needs_onboarding_choice,
         'newbie_quest_eligible': newbie_quest_eligible,
+        'e9_rollout': decision,
     })
 
 @app.route('/api/auth/tour_done', methods=['POST'])
