@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "1e5540587d0dfbcf2b4adf1af2150c7dcd01db2f",
-      "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
-      "source_commit_subject": "fix(e9): ensure legacy map readiness on fallback",
-      "source_date": "2026-07-14",
-      "content_sha256": "468054cbd6191556247d14e6b3a04966d95b5469035ccc38cb7941220ea4d7cc",
+      "source_commit": "14c0207b074f467d0691ce25e4a686f4b95e28c8",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "Merge pull request #111 from beatleswu/codex/remove-intro-browser-tts",
+      "source_date": "2026-07-15",
+      "content_sha256": "c7b82d7e9797bdc61afda06556da8fecc113bf3ed9709a29054239bc8dc028cc",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (E9.1D3 invalidation/fallback fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "does NOT byte-match current Production (this incident-fix branch is not deployed; Production still serves the pre-fix index.html with the narration-pacing bug) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
@@ -471,14 +471,14 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "1e5540587d0dfbcf2b4adf1af2150c7dcd01db2f",
-      "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
-      "source_commit_subject": "fix(e9): ensure legacy map readiness on fallback",
-      "source_date": "2026-07-14",
-      "content_sha256": "488b06c5bd179ea9c49ac553665da4e5c32bb82d73c2f2bda125f2973f30fa03",
+      "source_commit": "7e0779869095d3c3dcf4881626a694be51f31282",
+      "source_branch_or_local_ref": "codex/coordinated-release-prep-20260715",
+      "source_commit_subject": "chore(release): bump service worker for narration contract",
+      "source_date": "2026-07-15",
+      "content_sha256": "b0d160c5cba223d9d26f740fbd68cc2d737ff9ecb4e2464d86dfb536f8ecc0d8",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (E9.1D3 invalidation/fallback fix is a local branch change and is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "does NOT byte-match current Production (this incident-fix branch is not deployed; Production still serves the pre-fix sw.js) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {

@@ -12673,30 +12673,65 @@ async function playNewbieVillageIntroFilm(zone) {
     const runId = _introFilmRunId;
     const timeline = locale.timeline;
     applyIntroFilmShotAssets(timeline);
+    // Shared pacing formula for how long a shot should visually hold when no
+    // narration audio plays for it (used both by the TTS fallback below and
+    // by the silent visual-hold path when recorded narration is missing or
+    // fails -- see playAssetVoice's onerror/rejection handling).
+    function computeShotHoldMs(item) {
+        return locale.uiLang === 'en'
+            ? Math.max(5400, item.text.split(/\s+/).length * 420)
+            : Math.max(4200, item.text.length * 210);
+    }
     function playAssetVoice(item, onDone) {
+        const finishSilently = (audio = null) => {
+            if (audio && audio._introNarrationFinished) return;
+            if (audio) audio._introNarrationFinished = true;
+            const holdMs = computeShotHoldMs(item);
+            const id = setTimeout(() => {
+                if (runId !== _introFilmRunId) return;
+                onDone();
+            }, holdMs);
+            _introFilmTimers.push(id);
+        };
         if (!item.audioSrc) {
-            playBrowserVoice(item, onDone);
+            finishSilently();
             return;
         }
         const audio = new Audio(item.audioSrc);
         _introAudio = audio;
         let finished = false;
-        const finish = (delay = 520) => {
+        const finishSuccess = (delay = 520) => {
             if (finished || runId !== _introFilmRunId) return;
             finished = true;
+            audio.onended = null;
+            audio.onerror = null;
             try { audio.pause(); } catch (e) {}
             if (_introAudio === audio) _introAudio = null;
             const id = setTimeout(onDone, delay);
             _introFilmTimers.push(id);
         };
-        audio.onended = () => finish(720);
-        audio.onerror = () => finish(0);
-        audio.play().catch(() => finish(0));
+        // Recorded narration failed to play (missing file, decode error, or
+        // play() rejection -- e.g. autoplay policy). Do NOT fall back to
+        // browser TTS and do NOT advance immediately: that previously
+        // collapsed the whole shot sequence into milliseconds when the
+        // narration assets were unavailable (see 2026-07-14 incident).
+        // Keep the shot's current visual composition and caption on screen
+        // for its computed hold duration, then advance exactly once.
+        const finishAudioSilently = () => {
+            if (finished || runId !== _introFilmRunId) return;
+            finished = true;
+            audio.onended = null;
+            audio.onerror = null;
+            try { audio.pause(); } catch (e) {}
+            if (_introAudio === audio) _introAudio = null;
+            finishSilently(audio);
+        };
+        audio.onended = () => finishSuccess(720);
+        audio.onerror = finishAudioSilently;
+        audio.play().catch(finishAudioSilently);
     }
     function playBrowserVoice(item, onDone) {
-        const fallbackMs = locale.uiLang === 'en'
-            ? Math.max(5400, item.text.split(/\s+/).length * 420)
-            : Math.max(4200, item.text.length * 210);
+        const fallbackMs = computeShotHoldMs(item);
         if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
             const id = setTimeout(() => {
                 if (runId !== _introFilmRunId) return;
@@ -12753,7 +12788,16 @@ async function playNewbieVillageIntroFilm(zone) {
         if (item.shot === 0) {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
         }
-        playVoice(item, () => activate(index + 1));
+        // Single completion gate: onended/onerror/play()-rejection/the
+        // silent-hold timer can each independently attempt to finish this
+        // shot -- only the first one may advance it.
+        let advanced = false;
+        const advanceOnce = () => {
+            if (advanced || runId !== _introFilmRunId) return;
+            advanced = true;
+            activate(index + 1);
+        };
+        playVoice(item, advanceOnce);
     }
     activate(0);
 }

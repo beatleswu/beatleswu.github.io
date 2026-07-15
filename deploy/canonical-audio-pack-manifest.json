@@ -1,0 +1,730 @@
+{
+  "$schema_note": "Canonical governed audio asset pack. Companion to canonical-image-pack-manifest.json -- that manifest's own $schema_note documents excluding these exact 90 storyboard narration MP3 files ('audio/*, video/*, and non-image artifacts... 90 mp3 voice files') by design, since it is validated (tests/test_release_fix_a3_canonical_image_pack.py::test_manifest_contains_only_image_mime_types, tests/test_release_fix_a2_asset_closure.py) to contain image/* MIME types only. This manifest is the single source of truth for which audio files under assets/storyboards/ a static release generation stages -- see deploy/live-static-asset-inventory.json's required_subtrees for how it is wired in, and docs/deployment/canonical_static_narration_audio_contract.md for the full rationale.",
+  "manifest_version": "1.0.0",
+  "generated_for_incident": "2026-07-14 adventure intro-film narration silent-pacing fix (PR #107)",
+  "total_files": 90,
+  "total_bytes": 36598387,
+  "provenance_summary": "All 90 files restored from historical commit 2efdb6e3c in PR #107 (fix(assets): restore referenced storyboard narration, d79a050ea) and verified byte-identical to the committed source at HEAD via git cat-file blob SHA-256 comparison.",
+  "files": [
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_01.mp3",
+      "size": 464706,
+      "sha256": "366bcd3fe96393a476726fb5da4108ad74d5ec092173d75d6d5d20d6a955fdc1",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_02.mp3",
+      "size": 388219,
+      "sha256": "c05950d983b7bc769b34d9e07bcc16533e0dc85a7a8191615a903ecc81113be8",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_03.mp3",
+      "size": 521130,
+      "sha256": "7d949b612292669007fcca3e6721c6c7d09861573c6f5fd38ef3a48c2b72560d",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_04.mp3",
+      "size": 419984,
+      "sha256": "e5e26b9d818d7b5f6955db00a92c38d04941a20893914143b56b4dc08835c9d3",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_05.mp3",
+      "size": 722168,
+      "sha256": "0e8b5635f4188e85ea91c61fd423dc82dfaff52068ba7101bc0e3690bf38ccfe",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_06.mp3",
+      "size": 576301,
+      "sha256": "e5819cd1e3e3837b57d562338223f4abadfd4e945885b07d2b9f113358f5d14f",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_07.mp3",
+      "size": 457182,
+      "sha256": "2fb9f73cf9cd60958c0062d97c04a2eda85bab309d553a81dad48bf566e38998",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_01.mp3",
+      "size": 382786,
+      "sha256": "2fa9a9364766ad9f737c4f8d9cc995b32cf6556110dd2b6149336bed038cc5fd",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_02.mp3",
+      "size": 374008,
+      "sha256": "c976100690a7bc26c46a464ea8dbff11e9d450f9e4f26e6e4c465403a006c3eb",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_03.mp3",
+      "size": 495635,
+      "sha256": "d8e1e1f793f42f7ba3ce82e2b0875998b9cc0750234f458fa636782c7317951e",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_04.mp3",
+      "size": 334302,
+      "sha256": "e44bedbbbcbeb34cbce01fa5f265af34a3ab71d80555e8b262d6fe36146a2752",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_05.mp3",
+      "size": 595527,
+      "sha256": "ea9582994649da96781c05ecbdd6e78e3d47010ad35c7a9ec31f934be534dbaa",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_06.mp3",
+      "size": 476408,
+      "sha256": "5929906d7087b9e4c56a70369c585196c4f19781dce15bc30d619ad77e53b731",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ancient_temple_voice_en_07.mp3",
+      "size": 481424,
+      "sha256": "438e00bc525b7fb424258a2f85fd3cf6d8637d0fcafb88a3a45a397bf5060de1",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_01.mp3",
+      "size": 414968,
+      "sha256": "aa8fb0ea3df5b5d41c9ccf2d83a95197757aeee5f4bb4ed43a71acc2e22a6810",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_02.mp3",
+      "size": 411207,
+      "sha256": "5616488f8c370aeb6cdbc53d15f3c632cb84c657061c94fb3740f58202cfcbe6",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_03.mp3",
+      "size": 477662,
+      "sha256": "ca9d589b64f0884d4f51f027b5e77bc886e6b49f86a61b9b4ea7b2cfa1326462",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_04.mp3",
+      "size": 535341,
+      "sha256": "5802a05db950525207bda75dd08c8d8c123606f7b57efa93bb6a49c7cf99c1c1",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_en_01.mp3",
+      "size": 400758,
+      "sha256": "2c7c054ef7fac0560c92e2d33786d88ecc1cebd36abc4986152b9808fdc8f04e",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_en_02.mp3",
+      "size": 335556,
+      "sha256": "99c7963c4433db45e46d49311876540a6848c414452fbd7f01077e784ea7bbdc",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_en_03.mp3",
+      "size": 394488,
+      "sha256": "02b9fae3ed4f2204e3fcbfe57d24b6b9646b5e42b90208f628c3847ddbbd31cb",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_demon_castle_voice_en_04.mp3",
+      "size": 522384,
+      "sha256": "c58a3f6f7ad454b1b4297208295abf0528f9b0fafd81dd841963f970a56081a2",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_01.mp3",
+      "size": 289581,
+      "sha256": "c1b67c4c89601be206dc8a49744a4b861d2ba9b9046744b1c2c212c9c22d271f",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_02.mp3",
+      "size": 297104,
+      "sha256": "d3d5aba1e8b2c5baabc5131ba0495a10758ece5afd51fe5c0b78d7f009ff072c",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_03.mp3",
+      "size": 421238,
+      "sha256": "a4172ea2081d451ac1afbe964660ced774616191987eb77799bc87753bac1ec2",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_04.mp3",
+      "size": 508591,
+      "sha256": "82e98227ba8d0fc4ce47af4e7fba8a0a8b4cd722577e19fd53b91a265b9579c9",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_en_01.mp3",
+      "size": 293342,
+      "sha256": "ae1767160723456c3a3f206bdfe46e5caef991db4dbbf55880f791880dac3408",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_en_02.mp3",
+      "size": 266593,
+      "sha256": "a2b6b782943462d43a29b45653e6f9fdadfbe0881fe5a43ad6314a00a7353fd9",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_en_03.mp3",
+      "size": 423746,
+      "sha256": "be2b3849bec8bbbc0d621fe9b277e2d993bfa5306753160511cd3f25bdf43801",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_dragon_valley_voice_en_04.mp3",
+      "size": 524892,
+      "sha256": "31b5339ab512ad6eab957a29371159f17be71246c62006926fdacd444ad245ee",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_01.mp3",
+      "size": 328033,
+      "sha256": "f87a922e740cac9c781d33e1e4006f39eda8049393b5c842fac3411ce7f56700",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_02.mp3",
+      "size": 281639,
+      "sha256": "1a62c86c8be9ec7ec5212d49b00ede44e3780a53bdc9b9bf2786706fd39eb1c2",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_03.mp3",
+      "size": 376516,
+      "sha256": "84a88ed81279f456662dd83d61fce20cd3780c51e049eca9206224ad99930b80",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_04.mp3",
+      "size": 395742,
+      "sha256": "8f2e6cc51dacc9954ff274fa95b6a577047d0947c99044a8f75f27b666912523",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_en_01.mp3",
+      "size": 276624,
+      "sha256": "3080be8e6c1af87ca8a5530a0d68542f9d1759cbbe0379c5d9903dcbfb8812d5",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_en_02.mp3",
+      "size": 252382,
+      "sha256": "6ff826c5386733eca23ced34a6b903e24a0ced9a8f748c91efa6dee0ffecabdb",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_en_03.mp3",
+      "size": 380278,
+      "sha256": "ef892c073e51d07288605c2e475ab08e96bd4b453a6f67f83f1132de3d01ba81",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_goblin_cave_voice_en_04.mp3",
+      "size": 348513,
+      "sha256": "d0018a99afee9491d64b7f1007aa1f7a45193d72290538ee79f2dd740923e88a",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_01.mp3",
+      "size": 271608,
+      "sha256": "1712e1f4a79e53e18b30bafb181fd81b9623f5b9f932f2a3d299f881ad77a7f8",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_02.mp3",
+      "size": 299612,
+      "sha256": "fa4c363b05eb39c5dcdb0cf4f1a2120d2a269348ea1a5a05662cc6b648c10863",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_03.mp3",
+      "size": 346005,
+      "sha256": "934c702f3e39143051cc5e392423e302de9d63b5f7daa89113946b3e56496d17",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_04.mp3",
+      "size": 400758,
+      "sha256": "53ec46e619bc9a23b8aee4d899e62b403f0e1612040ba00364da25f1fb04fbc6",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_en_01.mp3",
+      "size": 235664,
+      "sha256": "acac411fabdf293da8f97df2e456774189dc1b0b8371ba993b0c50049ab79201",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_en_02.mp3",
+      "size": 298358,
+      "sha256": "aeaea8cf8780ce632422863c1693b7f1543886fb58815cc010949b8c3d8ead90",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_en_03.mp3",
+      "size": 354782,
+      "sha256": "2e0236ca0836652901f757cd0bda48781e0e06f1ef4d38e6273a342a70397442",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_misty_forest_voice_en_04.mp3",
+      "size": 391981,
+      "sha256": "c6e634fdd25e233e45ecd3d20d9e5e7461bf0db24b079bb44d9a1b375ab64c38",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_01.mp3",
+      "size": 312568,
+      "sha256": "1af312b8ea512a6d01eacc66840b66eeab74b8b9f67d45cd68dcac6999874997",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_02.mp3",
+      "size": 299612,
+      "sha256": "0efe66fe245a83ced28e069e2587ed1afa5737bc342626d331bdb277bef70ebb",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_03.mp3",
+      "size": 313822,
+      "sha256": "6aa4f1c98c08e165696e7388c76719b320b16544612f6e8d5868e20fa18aec8b",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_04.mp3",
+      "size": 436702,
+      "sha256": "9336b00302db2118d7d591877d80e98b57ea845b47d554811dd5ca41caa59c4e",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_en_01.mp3",
+      "size": 274116,
+      "sha256": "56bcbb82adc13b3125a058d29fdecda6f1fbceffea16dc1939aa6a280902074e",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_en_02.mp3",
+      "size": 310061,
+      "sha256": "e93cf31db9ce6f1bdc0fd553cf24645868527aafd4554c1970a621818bf0fc22",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_en_03.mp3",
+      "size": 356036,
+      "sha256": "3bdcee3f04fba1afc0da59e8fc485b129763473ae4b9ad82dc9edeb869f64a29",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_orc_arena_voice_en_04.mp3",
+      "size": 404519,
+      "sha256": "dafa9a853254a4f59064328be35c7062c28d6e453ce536969b313c9a378cbee6",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_01.mp3",
+      "size": 407445,
+      "sha256": "659cfc31442aba6ad6fff5a851d2c37e40c0375026b3897ca7d6589f5037c2ee",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_02.mp3",
+      "size": 389582,
+      "sha256": "dc670fb0999522f9a41299a77626c50cc1d38c7fc2e3be3e68871ae6dc762313",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_03.mp3",
+      "size": 622276,
+      "sha256": "ac2e9ff9ab68929ecbf69b3fd42bae49d52a797207eb9aa37ff6f11509894945",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_04.mp3",
+      "size": 429179,
+      "sha256": "96f2dd3fce93087a0a60279c5eea7552c0d83fabe512a39fc5b5f6dd1d490f9d",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_05.mp3",
+      "size": 448405,
+      "sha256": "c9c863933e22cd5cdccf3500ded1109ca019c6068347cce70f539eb869ff8d3d",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_06.mp3",
+      "size": 752679,
+      "sha256": "da2cea0f7b9bd99dec41e43c2b213436f236d976590bfce37bd178f59cb4113e",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_en_01.mp3",
+      "size": 374008,
+      "sha256": "2392b1a10d3b32c5ea955e68090ed5bf5de1882f6f34a89be947f62a64095065",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_en_02.mp3",
+      "size": 376516,
+      "sha256": "75658ce5731753723bf2408be841bde567bf70e67ef24cf833715e516c2f3d72",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_en_03.mp3",
+      "size": 581316,
+      "sha256": "45b8271ac79a3109d2249ed777f2ea4ca2e5f37a5c540c075d39d368a055b854",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_en_04.mp3",
+      "size": 376516,
+      "sha256": "3af63b66872e1f200e4cd74cba47f703803e6fc317d343dda83084fc6c9d77eb",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_en_05.mp3",
+      "size": 422492,
+      "sha256": "a6265c786b004be596dff92f06ad8214c63ee1b67d3b3cd17f972a85ac6d45f1",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_ragnarok_voice_en_06.mp3",
+      "size": 740141,
+      "sha256": "dd4a7b525c5745aaeb2c7234dd938eab6173891aab6ac824ef321eab8db4e62c",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_01.mp3",
+      "size": 432941,
+      "sha256": "016c49459fc892210797904b8d39e3db4592054b1f2b2744d2456468a381f7b1",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_02.mp3",
+      "size": 455928,
+      "sha256": "1ca6333e7018a488012dd3fce3f5f66b0f86cb0f2c53824c9affe2975c817534",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_03.mp3",
+      "size": 461471,
+      "sha256": "793da714ca666d882bb8ead1c6b39ad929d0bf1ad6d377714f731a05a9fbea03",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_04.mp3",
+      "size": 732199,
+      "sha256": "2a4acda81a92731355c3184c2b0349a04adac462608e4969dfafb7849ecf5270",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_en_01.mp3",
+      "size": 363559,
+      "sha256": "b2691abcfab831fda5e47d29458b5d604a7fcb1c0afe463c6a14c6e5b5ee8801",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_en_02.mp3",
+      "size": 384039,
+      "sha256": "1a279067f0306e3b46808cac01738d019b91dd532ee275b845a8cbcfdf347c29",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_en_03.mp3",
+      "size": 476408,
+      "sha256": "0e63fb400d6d4f815ce730d59dfd759ebff31827f9149e00cec01a819752277c",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_sage_tower_voice_en_04.mp3",
+      "size": 725930,
+      "sha256": "8e1d73a3e062cdef02453da0a0c83a039280ab3176b24637e1ce0f64e81e52b2",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_01.mp3",
+      "size": 336810,
+      "sha256": "507d431c5526ca76a892445e70c67cdbe4b05b15c608432b5b980a2c35755769",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_02.mp3",
+      "size": 281639,
+      "sha256": "20cdb4e313aa4fe1a0481e7590cd126616903748992cd721985b766baeb363ce",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_03.mp3",
+      "size": 391981,
+      "sha256": "e1d15e44782e9f4a28b1fcc2467c35ee9e3a950e5ddbb2baa83f362b110fa23d",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_04.mp3",
+      "size": 313822,
+      "sha256": "e75d5853d9632c28af9dca332d002170843f6ead701f2116712c726445dcb289",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_en_01.mp3",
+      "size": 322599,
+      "sha256": "ec4c5cf625b3b53e1e01bd37646399b3fee339fa20331c419ede60e83754520f",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_en_02.mp3",
+      "size": 322599,
+      "sha256": "011503885f2e1493208d8034011aa27160102d9bc1f826cfb1ce6829edfae276",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_en_03.mp3",
+      "size": 388219,
+      "sha256": "f1ebee0316551d5b1a90af258a869fcf19a08f7d81353026f6aa500d3c00a0ea",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_slime_plains_voice_en_04.mp3",
+      "size": 359798,
+      "sha256": "b5991c450bf2502d13e70666323b0c41327b45e3f6e1bf3711bdccd76b4a7bb6",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_01.mp3",
+      "size": 439210,
+      "sha256": "1ccf8641c936189be95cbf0a6c88a72c41d056773248bcd21a0ff7e432105915",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_02.mp3",
+      "size": 416222,
+      "sha256": "bbc5b31f8fb1e51993b235fae465006ec882fd330c73d1aad26aa3d990cfc0ee",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_03.mp3",
+      "size": 395742,
+      "sha256": "46e481a95c2aa55572ecbf45a25296e6d48654b7428f0242d5723bde39730838",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_04.mp3",
+      "size": 426671,
+      "sha256": "06270a65c2f5f79d119410126920485db686b5bcfdd301f1773d8fe123d12d02",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_en_01.mp3",
+      "size": 264085,
+      "sha256": "a3fb2a401bfeafa03126ab7162478ee371927d3f6944f68070a7e52997c468c0",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_en_02.mp3",
+      "size": 290835,
+      "sha256": "e103518608527b18f2c94703dd94b9c9db59d7154e56b6d8eca527957ffa7f8f",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_en_03.mp3",
+      "size": 249875,
+      "sha256": "b52c928ba081ffd3fca0a76f36c43c8456e3658e7c1a458c48452511a0689f24",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    },
+    {
+      "path": "assets/storyboards/go_starter_village_voice_en_04.mp3",
+      "size": 292088,
+      "sha256": "7166bcbc854816f43d43c9119359d84a157a4b306159605a5dd9a872b569cd82",
+      "mime": "audio/mpeg",
+      "provenance": "restored-2026-07-14-narration-incident-fix",
+      "source_evidence": "Committed in fix(assets): restore referenced storyboard narration (d79a050ea, PR #107), byte-verified against historical commit 2efdb6e3c (or its verified byte-identical archived copy for the single object affected by a transient git pack read issue -- see 10c730985 in PR #107). Governed here so package-static-release.ps1 stages it in every static release generation (previously excluded, see canonical-image-pack-manifest.json's $schema_note: 'Excludes audio/*... 90 mp3 voice files')."
+    }
+  ]
+}
