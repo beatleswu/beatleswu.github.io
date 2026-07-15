@@ -43,6 +43,14 @@ def test_static_adoption_emits_phase_history_without_changing_gates():
     assert "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'" in DEPLOY
 
 
+def test_dry_run_is_explicitly_local_validation_only():
+    assert "contract = 'local_validation_only'" in DEPLOY
+    assert 'remote_preflight = $false' in DEPLOY
+    assert 'owner_gate_validated = $false' in DEPLOY
+    assert "result = 'DRY_RUN_COMPLETE'" in DEPLOY
+    assert "End-StaticDeployPhase -Phase 'PRECHECK'" in DEPLOY
+
+
 def test_observability_logging_is_non_throwing_and_failure_fields_are_structured():
     assert 'catch {' in DEPLOY
     assert 'STATIC_PHASE_WARNING' in DEPLOY

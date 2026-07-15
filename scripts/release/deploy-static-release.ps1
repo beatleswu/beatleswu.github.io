@@ -372,9 +372,13 @@ Write-StaticDeployTiming "START generation=$generationId entries=$($manifest.fil
 Start-StaticDeployPhase -Phase 'PRECHECK'
 
 if (-not $Execute) {
+    End-StaticDeployPhase -Phase 'PRECHECK'
     [ordered]@{
         dry_run = $true
         execute_requested = $false
+        contract = 'local_validation_only'
+        remote_preflight = $false
+        owner_gate_validated = $false
         mode = if ($adoptionMode) { 'existing_generation_adoption' } else { 'archive_deployment' }
         existing_generation_path = if ($adoptionMode) { $ExistingGenerationPath } else { $null }
         release_git_sha = $ExpectedGitSha
@@ -383,6 +387,7 @@ if (-not $Execute) {
         remote_release_dir = $remoteReleaseDir
         files = $manifest.files
         required_owner_gate = 'GO_DEPLOY'
+        result = 'DRY_RUN_COMPLETE'
         plan = @(
             'verify remote release directory does not already exist',
             'create remote release directory',
