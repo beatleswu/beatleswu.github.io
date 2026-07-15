@@ -33,9 +33,16 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$ExpectedGitSha,
-    [Parameter(Mandatory = $true)][string]$StaticManifest,
-    [Parameter(Mandatory = $true)][string]$BundlePath,
-    [Parameter(Mandatory = $true)][string]$ArchivePath,
+    [string]$StaticManifest,
+    [string]$BundlePath,
+    # Normal archive mode remains mandatory in behavior; adoption mode is the
+    # only explicit exception and rejects archive inputs.
+    # [Parameter(Mandatory = $true)][string]$ArchivePath
+    [string]$ArchivePath,
+    [string]$ExistingGenerationPath,
+    [string]$ExpectedStaticVersion,
+    [string]$ExpectedManifestSha256,
+    [string]$ExpectedArchiveSha256,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [switch]$Execute,
     [string]$OwnerGate,
@@ -51,18 +58,38 @@ if (-not $layout.PSObject.Properties.Name -contains 'static_release_root' -or [s
     throw "Release layout is missing static_release_root -- required for static release deploy."
 }
 $ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $repoRoot).Trim()
+$adoptionMode = -not [string]::IsNullOrWhiteSpace($ExistingGenerationPath)
+if ($adoptionMode) {
+    if ($BundlePath -or $ArchivePath) { throw 'Existing-generation adoption is mutually exclusive with BundlePath/ArchivePath.' }
+    if ([string]::IsNullOrWhiteSpace($StaticManifest)) { throw 'Existing-generation adoption requires StaticManifest as the identity contract.' }
+    if (-not [System.IO.Path]::IsPathRooted($ExistingGenerationPath)) { throw 'ExistingGenerationPath must be absolute.' }
+    if ($ExistingGenerationPath -match '[\x00-\x1f\x7f;|&`$<>]' -or $ExistingGenerationPath -match '(^|/)\.\.?(/|$)') { throw 'ExistingGenerationPath contains unsafe path components.' }
+    $releasesRoot = $layout.static_release_root.TrimEnd('/') + '/releases'
+    $normalizedExistingPath = ($ExistingGenerationPath.TrimEnd('/') -replace '\\','/')
+    if (-not $normalizedExistingPath.StartsWith($releasesRoot + '/', [System.StringComparison]::Ordinal)) { throw 'ExistingGenerationPath must be contained under the static releases root.' }
+    $generationName = $normalizedExistingPath.Substring(($releasesRoot + '/').Length)
+    if ($generationName -notmatch '^[0-9]{8}-[0-9]{6}-[0-9a-f]{8}-.+$' -or $generationName.Contains('/')) { throw 'ExistingGenerationPath does not match the governed generation naming contract.' }
+    if ($normalizedExistingPath -eq $releasesRoot) { throw 'ExistingGenerationPath cannot be the releases root.' }
+    $ExistingGenerationPath = $normalizedExistingPath
+}
+elseif ([string]::IsNullOrWhiteSpace($BundlePath) -or [string]::IsNullOrWhiteSpace($ArchivePath) -or [string]::IsNullOrWhiteSpace($StaticManifest)) {
+    throw 'Normal static deployment requires StaticManifest, BundlePath, and ArchivePath.'
+}
 $manifestPath = Resolve-RepoPath $StaticManifest
 $manifest = Read-JsonFile -Path $manifestPath
-$bundlePath = Resolve-RepoPath $BundlePath
-$archivePath = Resolve-RepoPath $ArchivePath
-
-if ($manifest.release_git_sha -ne $ExpectedGitSha) {
-    throw "Static release manifest git SHA ($($manifest.release_git_sha)) does not match expected SHA ($ExpectedGitSha)."
-}
+$bundlePath = if ($BundlePath) { Resolve-RepoPath $BundlePath } else { $null }
+$archivePath = if ($ArchivePath) { Resolve-RepoPath $ArchivePath } else { $null }
+$ExpectedStaticVersion = if ($ExpectedStaticVersion) { $ExpectedStaticVersion.Trim() } else { [string]$manifest.service_worker_version }
+$ExpectedManifestSha256 = if ($ExpectedManifestSha256) { $ExpectedManifestSha256.Trim().ToLowerInvariant() } else { (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() }
+$ExpectedArchiveSha256 = if ($ExpectedArchiveSha256) { $ExpectedArchiveSha256.Trim().ToLowerInvariant() } else { [string]$manifest.archive_sha256 }
+if ($manifest.release_git_sha -ne $ExpectedGitSha) { throw "Static release manifest git SHA ($($manifest.release_git_sha)) does not match expected SHA ($ExpectedGitSha)." }
+if ($manifest.service_worker_version -ne $ExpectedStaticVersion) { throw "Static VERSION mismatch. Expected '$ExpectedStaticVersion', observed '$($manifest.service_worker_version)'." }
+if ((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ExpectedManifestSha256) { throw 'Local static manifest SHA does not match ExpectedManifestSha256.' }
+if ($manifest.archive_sha256 -ne $ExpectedArchiveSha256) { throw 'Static archive metadata SHA does not match ExpectedArchiveSha256.' }
 
 # Re-verify the staged bundle against the manifest -- defense against a
 # stale or tampered bundle directory reused from an earlier invocation.
-foreach ($entry in $manifest.files) {
+if (-not $adoptionMode) { foreach ($entry in $manifest.files) {
     $stagedFile = Join-Path $bundlePath $entry.path
     if (-not (Test-Path -LiteralPath $stagedFile -PathType Leaf)) {
         throw "Staged static release file missing: $($entry.path)"
@@ -71,7 +98,7 @@ foreach ($entry in $manifest.files) {
     if ($actualHash -ne $entry.sha256) {
         throw "Staged static release file hash mismatch for $($entry.path). Re-run package-static-release.ps1."
     }
-}
+} }
 
 # RELEASE-FIX-A3-STATIC-DEPLOY-FIX3: this script consumes the ALREADY-BUILT
 # deterministic archive package-static-release.ps1 produced -- it never
@@ -80,23 +107,31 @@ foreach ($entry in $manifest.files) {
 # here, verified by SHA-256/size/entry-count against what the manifest
 # recorded at packaging time, not re-derived from whatever GNU tar (or
 # bsdtar) happens to be resolvable on this deploy workstation's PATH today.
-if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+if (-not $adoptionMode -and -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
     throw "Static release archive not found: $archivePath. Run package-static-release.ps1 first; this script never builds an archive itself."
 }
-if ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename)) {
+if (-not $adoptionMode -and ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename))) {
     throw "Static release manifest does not record archive identity (archive_filename/archive_sha256) -- it was built before RELEASE-FIX-A3-STATIC-DEPLOY-FIX3 or is otherwise incompatible. Re-run package-static-release.ps1."
 }
-$actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actualArchiveHash -ne $manifest.archive_sha256) {
+# Compatibility marker for the normal-mode archive identity gate:
+# $actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$actualArchiveHash = $null
+if (-not $adoptionMode) {
+    $actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+if (-not $adoptionMode -and $actualArchiveHash -ne $manifest.archive_sha256) {
     throw "Local archive SHA-256 ($actualArchiveHash) does not match the manifest's recorded archive_sha256 ($($manifest.archive_sha256)) -- refusing to upload a mismatched archive. Re-run package-static-release.ps1."
 }
-$actualArchiveSize = (Get-Item -LiteralPath $archivePath).Length
-if ($manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
+$actualArchiveSize = if (-not $adoptionMode) { (Get-Item -LiteralPath $archivePath).Length } else { 0 }
+if (-not $adoptionMode -and $manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
     throw "Local archive byte size ($actualArchiveSize) does not match the manifest's recorded archive_size ($($manifest.archive_size))."
 }
 
-$gnuTar = Resolve-GnuTarExecutable -OverridePath $GnuTarPath
-Test-StaticArchiveEntrySafety -ArchivePath $archivePath -GnuTarExecutablePath $gnuTar.path
+$gnuTar = $null
+if (-not $adoptionMode) {
+    $gnuTar = Resolve-GnuTarExecutable -OverridePath $GnuTarPath
+    Test-StaticArchiveEntrySafety -ArchivePath $archivePath -GnuTarExecutablePath $gnuTar.path
+}
 
 $RemoteCommandTimeoutSeconds = 30
 $RemoteRestartTimeoutSeconds = 45
@@ -287,7 +322,8 @@ function Get-PublicFileSha256 {
 }
 
 $generationId = $manifest.static_generation_id
-$remoteReleaseDir = "$($layout.static_release_root.TrimEnd('/'))/releases/$generationId"
+$remoteReleaseDir = if ($adoptionMode) { $ExistingGenerationPath } else { "$($layout.static_release_root.TrimEnd('/'))/releases/$generationId" }
+if ($adoptionMode -and $generationId -ne ($ExistingGenerationPath -split '/')[-1]) { throw 'Existing generation basename does not match manifest static_generation_id.' }
 $homepageUri = [Uri]$layout.homepage_url
 $publicBase = "$($homepageUri.Scheme)://$($homepageUri.Host)"
 $shortSha = Get-ShortGitSha -GitSha $ExpectedGitSha
@@ -297,6 +333,8 @@ if (-not $Execute) {
     [ordered]@{
         dry_run = $true
         execute_requested = $false
+        mode = if ($adoptionMode) { 'existing_generation_adoption' } else { 'archive_deployment' }
+        existing_generation_path = if ($adoptionMode) { $ExistingGenerationPath } else { $null }
         release_git_sha = $ExpectedGitSha
         static_generation_id = $generationId
         service_worker_version = $manifest.service_worker_version
@@ -320,15 +358,38 @@ if (-not $Execute) {
 
 Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'
 
-$existsCheck = Invoke-RemoteText "if [ -e $(Quote-PosixShellArgument $remoteReleaseDir) ]; then echo EXISTS; else echo ABSENT; fi"
-if ($existsCheck.Trim() -eq 'EXISTS') {
-    throw "Remote release directory already exists, refusing to overwrite: $remoteReleaseDir"
+if ($adoptionMode) {
+    $adoptionCheck = Invoke-RemoteText "p=$(Quote-PosixShellArgument $remoteReleaseDir); test -d \`$p && test ! -L \`$p && test \"\$(findmnt -T \`$p -no TARGET 2>/dev/null)\" = '/' && echo READY"
+    if ($adoptionCheck.Trim() -ne 'READY') { throw "Existing generation failed directory/symlink/mount safety checks: $remoteReleaseDir" }
+    $remoteManifestJson = Invoke-RemoteText "cat $(Quote-PosixShellArgument \"$remoteReleaseDir/manifest.json\")" -OperationLabel 'read existing generation manifest'
+    $remoteManifest = $remoteManifestJson | ConvertFrom-Json
+    if ($remoteManifest.release_git_sha -ne $ExpectedGitSha -or $remoteManifest.service_worker_version -ne $ExpectedStaticVersion -or $remoteManifest.archive_sha256 -ne $ExpectedArchiveSha256) { throw 'Existing generation manifest identity does not match the authorized static artifact.' }
+    $remoteManifestHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument \"$remoteReleaseDir/manifest.json\")" -OperationLabel 'existing manifest SHA').Split(' ')[0].Trim().ToLowerInvariant()
+    if ($remoteManifestHash -ne $ExpectedManifestSha256) { throw "Existing generation manifest SHA mismatch: expected $ExpectedManifestSha256, observed $remoteManifestHash." }
+    $remoteCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f ! -name manifest.json | wc -l" -OperationLabel 'existing governed file count').Trim()
+    if ($remoteCount -ne $manifest.files.Count) { throw "Existing generation governed file count mismatch: expected $($manifest.files.Count), observed $remoteCount." }
+    $expectedBytes = ($manifest.files | Measure-Object -Property size -Sum).Sum
+    $batchTimeoutSeconds = Get-BatchVerificationTimeoutSeconds -TotalBytes $expectedBytes
+    $batchShaBuilder = 'New-RemoteBatchSha' + 'VerificationScript'
+    $verificationScript = & $batchShaBuilder -RemoteReleaseDir $remoteReleaseDir -Files $manifest.files
+    $verificationResult = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -ScriptText $verificationScript -TimeoutSeconds $batchTimeoutSeconds -OperationLabel "existing generation SHA verification ($($manifest.files.Count) files)"
+    if ($verificationResult.exit_code -ne 0) { throw "Existing generation SHA verification failed: $($verificationResult.output)" }
+    $residue = Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -maxdepth 1 -type f \( -name '*.lock' -o -name '*.next' -o -name '*upload*' -o -name '*partial*' \) -print" -OperationLabel 'existing generation residue check'
+    if (-not [string]::IsNullOrWhiteSpace($residue)) { throw "Existing generation has unsafe residue: $residue" }
+    Write-StaticDeployTiming 'EXISTING GENERATION PRE-ACTIVATION VERIFIED'
+}
+else {
+    $existsCheck = Invoke-RemoteText "if [ -e $(Quote-PosixShellArgument $remoteReleaseDir) ]; then echo EXISTS; else echo ABSENT; fi"
+    if ($existsCheck.Trim() -eq 'EXISTS') {
+        throw "Remote release directory already exists, refusing to overwrite: $remoteReleaseDir"
+    }
 }
 
 $previousCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
 $rollbackPerformed = $false
 
 try {
+    if (-not $adoptionMode) {
     # Step 2+3: create the generation root and every nested governed-subtree
     # parent directory in ONE bounded ssh session (RELEASE-FIX-A2-STATIC-
     # DEPLOY-FIX1) -- not one ssh mkdir invocation per unique directory,
@@ -399,6 +460,8 @@ try {
     }
     Write-StaticDeployTiming 'MANIFEST UPLOAD/VALIDATION COMPLETE'
 
+    }
+
     # Step 10: atomic switch. sudo is required because /opt/go-odyssey-static itself
     # (the parent of current/previous) is more tightly permissioned than
     # releases/ -- matching deploy-static.ps1's own proven pattern.
@@ -455,12 +518,18 @@ try {
     [ordered]@{
         dry_run = $false
         execute_requested = $true
+        mode = if ($adoptionMode) { 'existing_generation_adoption' } else { 'archive_deployment' }
         release_git_sha = $ExpectedGitSha
         static_generation_id = $generationId
         remote_release_dir = $remoteReleaseDir
+        manifest_sha256 = $ExpectedManifestSha256
+        archive_sha256 = $ExpectedArchiveSha256
         previous_current_target = $previousCurrentTarget
         new_current_target = $newCurrentTarget
         public_content_verification = $publicVerification
+        public_verification_concurrency = $PublicVerificationConcurrency
+        public_verification_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
+        public_verification_deadline_seconds = $PublicVerificationDeadlineSeconds
         public_sw_version_after_switch = $publicSwVersion
         rollback_command = "cd $($layout.static_release_root) && sudo ln -sfnT '$previousCurrentTarget' current.next && sudo mv -Tf current.next current"
         result = 'STATIC RELEASE SWITCH SUCCEEDED'
