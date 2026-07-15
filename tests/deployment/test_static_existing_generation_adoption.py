@@ -35,6 +35,31 @@ def test_existing_generation_manifest_path_is_quoted_for_remote_shell():
     assert 'Quote-PosixShellArgument \\\"$remoteReleaseDir/manifest.json\\\"' not in DEPLOY
 
 
+def test_static_adoption_emits_phase_history_without_changing_gates():
+    assert 'function Write-StaticDeployPhase' in DEPLOY
+    assert 'phase_history = @($phaseHistory)' in DEPLOY
+    assert "Write-StaticDeployPhase -Phase 'ROLLBACK_BEGIN' -Status 'BEGIN'" in DEPLOY
+    assert "Write-StaticDeployPhase -Phase 'ROLLBACK_COMPLETE' -Status 'END'" in DEPLOY
+    assert "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'" in DEPLOY
+
+
+def test_observability_logging_is_non_throwing_and_failure_fields_are_structured():
+    assert 'catch {' in DEPLOY
+    assert 'STATIC_PHASE_WARNING' in DEPLOY
+    assert 'accepted = $false' in DEPLOY
+    for field in (
+        'failure_phase', 'failure_message', 'failure_exit_code',
+        'rollback_required', 'rollback_started', 'rollback_finished',
+        'rollback_result', 'rollback_failure_phase',
+        'rollback_failure_message', 'final_current_generation',
+    ):
+        assert f'{field} =' in DEPLOY
+    assert "$rollbackResult = 'succeeded'" in DEPLOY
+    assert "$rollbackResult = 'failed'" in DEPLOY
+    assert "$rollbackResult = 'not_required'" in DEPLOY
+    assert 'failure_record=$($failureRecord | ConvertTo-Json' in DEPLOY
+
+
 def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():
     assert "existing generation manifest" in DEPLOY
     assert "Existing generation manifest identity does not match" in DEPLOY
