@@ -1,0 +1,48 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DEPLOY = (ROOT / "scripts/release/deploy-static-release.ps1").read_text(encoding="utf-8")
+
+
+def test_existing_generation_is_explicit_and_mutually_exclusive():
+    assert "ExistingGenerationPath" in DEPLOY
+    assert "Existing-generation adoption is mutually exclusive" in DEPLOY
+    assert "Existing-generation adoption requires StaticManifest" in DEPLOY
+    assert "Normal static deployment requires StaticManifest, BundlePath, and ArchivePath" in DEPLOY
+
+
+def test_existing_generation_path_is_fail_closed():
+    assert "must be absolute" in DEPLOY
+    assert "must be contained under the static releases root" in DEPLOY
+    assert "failed directory/symlink/mount safety checks" in DEPLOY
+    assert "does not match the governed generation naming contract" in DEPLOY
+    assert "cannot be the releases root" in DEPLOY
+    assert "contains unsafe path components" in DEPLOY
+
+
+def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():
+    assert "existing generation manifest" in DEPLOY
+    assert "Existing generation manifest identity does not match" in DEPLOY
+    assert "Existing generation manifest SHA mismatch" in DEPLOY
+    assert "existing governed file count" in DEPLOY
+    assert "existing generation SHA verification" in DEPLOY
+    assert "existing generation residue check" in DEPLOY
+    assert "EXISTING GENERATION PRE-ACTIVATION VERIFIED" in DEPLOY
+
+
+def test_adoption_skips_upload_and_extract_but_reuses_activation_verification():
+    assert "if (-not $adoptionMode)" in DEPLOY
+    assert "mode = if ($adoptionMode) { 'existing_generation_adoption' }" in DEPLOY
+    assert "atomic symlink switch" in DEPLOY
+    assert "Invoke-BoundedPublicVerification" in DEPLOY
+    assert "automatic rollback succeeded" in DEPLOY
+    assert "ARCHIVE UPLOAD COMPLETE" in DEPLOY
+    assert "ARCHIVE EXTRACT COMPLETE" in DEPLOY
+
+
+def test_existing_generation_does_not_weaken_owner_gate_or_normal_overwrite_guard():
+    assert "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'" in DEPLOY
+    assert "refusing to overwrite" in DEPLOY
+    assert "ExistingGenerationPath" in DEPLOY
+    assert "-OwnerGate 'GO_ROLLBACK'" not in DEPLOY
