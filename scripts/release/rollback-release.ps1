@@ -39,6 +39,14 @@ function Invoke-RemoteText {
     return $result.output
 }
 
+function Join-RemotePath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Left,
+        [Parameter(Mandatory = $true)][string]$Right
+    )
+    return ($Left.TrimEnd('/') + '/' + $Right.TrimStart('/'))
+}
+
 function Get-RemoteContainerSnapshot {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
     $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .State}}|{{.Config.Image}}|{{.Image}}|{{.Id}}|{{json .Config.Labels}}'"
