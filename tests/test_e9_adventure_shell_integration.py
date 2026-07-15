@@ -101,6 +101,7 @@ def test_critical_failure_recovers_to_legacy():
     shell_js = _read(JS_DIR / "shell.js")
     assert "function recoverToLegacy" in shell_js
     assert "applyShellState('legacy')" in shell_js
+    assert "global.ensureLegacyAdventureMapReady" in shell_js
     # No page reload anywhere in the recovery path.
     assert "location.reload" not in shell_js
 
@@ -109,6 +110,10 @@ def test_critical_failure_recovers_to_legacy():
         "world_stage.js (critical component) must trigger shell recovery "
         "on its own data-fetch failure, not just show a local error"
     )
+
+    html = _read(INDEX_HTML)
+    assert "function ensureLegacyAdventureMapReady(options = {})" in html
+    assert "window.ensureLegacyAdventureMapReady = ensureLegacyAdventureMapReady" in html
 
 
 def test_e9_cta_uses_existing_adventure_start_action():

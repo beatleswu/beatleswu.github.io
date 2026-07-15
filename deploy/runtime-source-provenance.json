@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "14c0207b074f467d0691ce25e4a686f4b95e28c8",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #111 from beatleswu/codex/remove-intro-browser-tts",
+      "source_commit": "b867a098b11e53b6643ea4bba7074f4c02493106",
+      "source_branch_or_local_ref": "fix/e9-1d3-duplicate-fetch",
+      "source_commit_subject": "Merge origin/master into PR #106 re-baseline",
       "source_date": "2026-07-15",
-      "content_sha256": "c7b82d7e9797bdc61afda06556da8fecc113bf3ed9709a29054239bc8dc028cc",
+      "content_sha256": "1382fe96c59f258bdcb19003e68e33d27c08b9ed846901d1a22492e9bb3d157a",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (this incident-fix branch is not deployed; Production still serves the pre-fix index.html with the narration-pacing bug) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "does NOT byte-match current Production (PR #106 is not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
