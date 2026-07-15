@@ -179,6 +179,22 @@ already a proven pattern on this exact host.
 
 ## Release flow
 
+### Tooling modes
+
+`deploy-static-release.ps1` has three deliberately separate modes:
+
+1. **Dry-run** (`-Execute` omitted): local validation and plan generation only.
+   It does not validate the owner gate, open SSH, inspect Production, switch
+   `current`, restart services, or write an accepted deployment record. Its
+   result is `dry_run: true` with `result: DRY_RUN_COMPLETE`.
+2. **Read-only Production preflight**: `preflight-production.ps1` owns remote
+   identity, health, drift, and rollback-readiness checks.
+3. **Execute** (`-Execute -OwnerGate GO_DEPLOY`): the mutation path, followed
+   by verification and automatic rollback on failure.
+
+This separation prevents a local plan from being confused with a remote
+preflight while keeping the mutation gate explicit.
+
 ```
 1. package-static-release.ps1  -- from an exact-SHA detached worktree,
    stage i18n.js + sw.js per the inventory, compute SHA-256, parse sw.js

@@ -38,5 +38,8 @@ The intended deployment sequence is:
 
 - The compose release file references an immutable image tag.
 - The scheduler defaults to `PREMIUM_WEEKLY_SCHEDULER_ENABLED=0`.
-- The release scripts keep deployment commands behind dry-run or owner-gated execution.
+- Static/image dry-runs are local validation and plan generation only; they do
+  not perform remote preflight. Use `preflight-production.ps1` for the
+  complete read-only Production check, and reserve `-Execute` plus the owner
+  gate for mutation.
 - Generated release artifacts live under `release-artifacts/`, which is ignored by Git.
