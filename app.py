@@ -108,17 +108,23 @@ def _e9_normalize_identity(value):
 
 def _e9_rollout_config():
     """Load server-only E9 targeting config; malformed config fails closed."""
+    raw_scope = os.environ.get('E9_ROLLOUT_SCOPE', 'admin_only').strip().casefold()
+    if raw_scope not in {'admin_only', 'named_allowlist'}:
+        return None
     raw_allowlist = os.environ.get('E9_ROLLOUT_ALLOWLIST', '')
-    entries = [_e9_normalize_identity(x) for x in raw_allowlist.split(',')]
+    entries = [_e9_normalize_identity(x) for x in raw_allowlist.split(',') if x.strip()]
     if any(not x or not re.fullmatch(r'[a-z0-9_@.+-]{1,160}', x) for x in entries):
         return None
     if len(entries) != len(set(entries)):
+        return None
+    if raw_scope == 'admin_only' and entries:
         return None
     raw_flags = os.environ.get('E9_ROLLOUT_FLAGS', ','.join(_E9_FLAG_KEYS))
     flags = [x.strip() for x in raw_flags.split(',') if x.strip()]
     if not flags or any(x not in _E9_FLAG_KEYS for x in flags) or 'e9Shell' not in flags:
         return None
     config = {
+        'scope': raw_scope,
         'global_enabled': _e9_truthy_env('E9_ROLLOUT_GLOBAL_ENABLED'),
         'admin_enabled': _e9_truthy_env('E9_ROLLOUT_ADMIN_ENABLED'),
         'allowlist': tuple(sorted(set(entries))),
@@ -143,7 +149,7 @@ def _e9_rollout_decision(*, user_id=None, username=None, is_admin=False):
         reason = 'global_disabled'
     elif config['admin_enabled'] and is_admin:
         reason = 'admin_entitled'
-    elif _e9_normalize_identity(username) in config['allowlist']:
+    elif config['scope'] == 'named_allowlist' and _e9_normalize_identity(username) in config['allowlist']:
         reason = 'named_allowlist'
     else:
         reason = 'not_allowed'
