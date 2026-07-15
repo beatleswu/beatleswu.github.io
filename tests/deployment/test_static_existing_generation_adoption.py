@@ -10,6 +10,9 @@ def test_existing_generation_is_explicit_and_mutually_exclusive():
     assert "Existing-generation adoption is mutually exclusive" in DEPLOY
     assert "Existing-generation adoption requires StaticManifest" in DEPLOY
     assert "Normal static deployment requires StaticManifest, BundlePath, and ArchivePath" in DEPLOY
+    assert "[string]$BundlePath" in DEPLOY
+    assert "[string]$ArchivePath" in DEPLOY
+    assert "if (-not $adoptionMode -and ([string]::IsNullOrWhiteSpace($BundlePath)" in DEPLOY
 
 
 def test_existing_generation_path_is_fail_closed():
