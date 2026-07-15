@@ -23,6 +23,14 @@ def test_rollout_config_normalizes_and_rejects_duplicate_or_invalid_entries():
     assert "casefold()" in APP
     assert "len(entries) != len(set(entries))" in APP
     assert "re.fullmatch(r'[a-z0-9_@.+-]{1,160}', x)" in APP
+    assert "if x.strip()" in APP
+
+
+def test_admin_only_scope_is_default_and_allowlist_cannot_expand_it():
+    assert "os.environ.get('E9_ROLLOUT_SCOPE', 'admin_only')" in APP
+    assert "raw_scope not in {'admin_only', 'named_allowlist'}" in APP
+    assert "if raw_scope == 'admin_only' and entries" in APP
+    assert "config['scope'] == 'named_allowlist'" in APP
 
 
 def test_auth_me_is_the_server_decision_boundary():
