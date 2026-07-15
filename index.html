@@ -14264,6 +14264,12 @@ function isE9InlineDebugEnvironment() {
     return E9_INLINE_DEBUG_HOSTNAMES.test(host);
 }
 function resolveInitialE9Flags() {
+    if (window.__GO_E9_SERVER_FLAGS__ && typeof window.__GO_E9_SERVER_FLAGS__ === 'object') {
+        return Object.assign({
+            e9Shell: false, e9TopHud: false, e9LeftNav: false,
+            e9RightCards: false, e9BottomDock: false, e9WorldStage: false
+        }, window.__GO_E9_SERVER_FLAGS__);
+    }
     if (window.__GO_E9_FLAGS__ && typeof window.__GO_E9_FLAGS__ === 'object') {
         return Object.assign({}, window.__GO_E9_FLAGS__);
     }
@@ -14304,13 +14310,27 @@ function primeInitialE9ShellOwnership() {
     const legacyWelcomeShellActive = !e9ShellRequested || needsImmediatePracticeState;
     window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
     window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
+    window.__GO_E9_OWNERSHIP_INITIALIZED__ = true;
 }
-primeInitialE9ShellOwnership();
+// Server-side targeting must be resolved before ownership is initialized.
+// The authenticated onload path below performs the first real initialization.
+if (window.__GO_E9_SERVER_FLAGS__ ||
+    (isE9InlineDebugEnvironment() && new URLSearchParams(location.search).get('E9_DEBUG') === '1')) {
+    primeInitialE9ShellOwnership();
+}
 window.onload = async () => {
     I18n.renderSwitcher(document.getElementById('lang-switcher-index'));
     I18n.apply();
     const statusEl=document.getElementById('api-status'),listDiv=document.getElementById('list-container');
     try{const me=await getMe();if(!me.logged_in){window.location.href='/login';return;}
+    if (me.e9_rollout) {
+        window.__GO_E9_SERVER_FLAGS__ = Object.assign({
+            e9Shell: false, e9TopHud: false, e9LeftNav: false,
+            e9RightCards: false, e9BottomDock: false, e9WorldStage: false
+        }, me.e9_rollout.effective_flags || {});
+        window.__GO_E9_FLAGS__ = Object.assign({}, window.__GO_E9_SERVER_FLAGS__);
+    }
+    if (!window.__GO_E9_OWNERSHIP_INITIALIZED__) primeInitialE9ShellOwnership();
 // ── 偵測使用者切換，清除前一帳號遺留的 localStorage 設定 ──
 (function(uid){
     const _k = 'last_session_uid_v1';

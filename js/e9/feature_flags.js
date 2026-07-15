@@ -44,6 +44,9 @@
   }
 
   function resolveFlags() {
+    if (global.__GO_E9_SERVER_FLAGS__ && typeof global.__GO_E9_SERVER_FLAGS__ === 'object') {
+      return Object.assign({}, PRODUCTION_FLAGS, global.__GO_E9_SERVER_FLAGS__);
+    }
     if (global.__GO_E9_FLAGS__ && typeof global.__GO_E9_FLAGS__ === 'object') {
       return Object.assign({}, global.__GO_E9_FLAGS__);
     }
