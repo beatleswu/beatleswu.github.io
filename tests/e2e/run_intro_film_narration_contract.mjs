@@ -316,6 +316,20 @@ async function main() {
       });
     }, results);
 
+    // --- I. Missing recorded asset: intro must remain silent and paced ---
+    await test('I: missing audioSrc uses silent pacing without TTS', async () => {
+      const source = await fs.readFile(path.join(repoRoot, 'index.html'), 'utf8');
+      if (!/if \(!item\.audioSrc\)\s*\{\s*finishSilently\(\);\s*return;\s*\}/.test(source)) {
+        throw new Error('missing audioSrc is not wired to finishSilently');
+      }
+      if (/if \(!item\.audioSrc\)\s*\{[^}]*playBrowserVoice/s.test(source)) {
+        throw new Error('missing audioSrc still reaches playBrowserVoice');
+      }
+      // The browser cases above exercise the same silent hold for load/error/
+      // play rejection; this source-level guard proves the missing-asset branch
+      // cannot reach the browser-TTS function.
+    }, results);
+
     const failed = results.filter((r) => !r.ok);
     console.log(JSON.stringify({ ok: failed.length === 0, total: results.length, passed: results.length - failed.length, failed }, null, 2));
     if (failed.length) process.exitCode = 1;
