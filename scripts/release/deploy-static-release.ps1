@@ -158,15 +158,20 @@ function Write-StaticDeployPhase {
         [Parameter(Mandatory = $true)][ValidateSet('BEGIN','END','FAIL','PROGRESS')][string]$Status,
         [string]$Detail
     )
-    $event = [ordered]@{
-        timestamp_utc = [DateTime]::UtcNow.ToString('o')
-        phase = $Phase
-        status = $Status
-        elapsed_ms = [int64][Math]::Round($phaseClock.Elapsed.TotalMilliseconds)
+    try {
+        $event = [ordered]@{
+            timestamp_utc = [DateTime]::UtcNow.ToString('o')
+            phase = $Phase
+            status = $Status
+            elapsed_ms = [int64][Math]::Round($phaseClock.Elapsed.TotalMilliseconds)
+        }
+        if ($Detail) { $event.detail = $Detail }
+        $phaseHistory.Add([pscustomobject]$event)
+        [Console]::Error.WriteLine(('STATIC_PHASE ' + ($event | ConvertTo-Json -Compress)))
     }
-    if ($Detail) { $event.detail = $Detail }
-    $phaseHistory.Add([pscustomobject]$event)
-    [Console]::Error.WriteLine(('STATIC_PHASE ' + ($event | ConvertTo-Json -Compress)))
+    catch {
+        try { [Console]::Error.WriteLine(('STATIC_PHASE_WARNING ' + $Phase + ': observability logging failed')) } catch { }
+    }
 }
 
 function Start-StaticDeployPhase {
@@ -595,10 +600,19 @@ try {
 }
 catch {
     $failureMessage = $_.Exception.Message
+    $failurePhase = $activePhase
+    $rollbackRequired = $false
+    $rollbackStarted = $false
+    $rollbackFinished = $false
+    $rollbackResult = 'not_started'
+    $rollbackFailurePhase = $null
+    $rollbackFailureMessage = $null
     Fail-StaticDeployPhase -Phase $activePhase -Message $failureMessage
     $currentNow = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
     if ($currentNow -eq $remoteReleaseDir -and $previousCurrentTarget) {
+        $rollbackRequired = $true
         try {
+            $rollbackStarted = $true
             Write-StaticDeployPhase -Phase 'ROLLBACK_BEGIN' -Status 'BEGIN'
             $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
             $quotedPrevious = Quote-PosixShellArgument $previousCurrentTarget
@@ -610,12 +624,37 @@ catch {
             # as the original bug.
             Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" -TimeoutSeconds $RemoteRestartTimeoutSeconds -OperationLabel 'rollback: docker restart' | Out-Null
             $rollbackPerformed = $true
+            $rollbackFinished = $true
+            $rollbackResult = 'succeeded'
             Write-StaticDeployPhase -Phase 'ROLLBACK_COMPLETE' -Status 'END'
         }
         catch {
+            $rollbackFinished = $true
+            $rollbackResult = 'failed'
+            $rollbackFailurePhase = 'ROLLBACK'
+            $rollbackFailureMessage = $_.Exception.Message
             throw "Static release deploy failed: $failureMessage`nAutomatic rollback ALSO failed: $($_.Exception.Message)"
         }
     }
+    elseif (-not $rollbackRequired) {
+        $rollbackResult = 'not_required'
+    }
+    $finalCurrentGeneration = try { Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root } catch { $null }
+    $failureRecord = [ordered]@{
+        accepted = $false
+        failure_phase = $failurePhase
+        failure_message = $failureMessage
+        failure_exit_code = 1
+        rollback_required = $rollbackRequired
+        rollback_started = $rollbackStarted
+        rollback_finished = $rollbackFinished
+        rollback_result = $rollbackResult
+        rollback_failure_phase = $rollbackFailurePhase
+        rollback_failure_message = $rollbackFailureMessage
+        final_current_generation = $finalCurrentGeneration
+        phase_history = @($phaseHistory)
+    }
+    try { [Console]::Error.WriteLine(('STATIC_FAILURE ' + ($failureRecord | ConvertTo-Json -Compress -Depth 8))) } catch { }
     if ($rollbackPerformed) {
         throw "Static release deploy failed and automatic rollback succeeded (current restored to $previousCurrentTarget, containers restarted): $failureMessage; phase_history=$($phaseHistory | ConvertTo-Json -Compress -Depth 6)"
     }
