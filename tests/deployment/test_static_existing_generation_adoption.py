@@ -35,6 +35,14 @@ def test_existing_generation_manifest_path_is_quoted_for_remote_shell():
     assert 'Quote-PosixShellArgument \\\"$remoteReleaseDir/manifest.json\\\"' not in DEPLOY
 
 
+def test_static_adoption_emits_phase_history_without_changing_gates():
+    assert 'function Write-StaticDeployPhase' in DEPLOY
+    assert 'phase_history = @($phaseHistory)' in DEPLOY
+    assert "Write-StaticDeployPhase -Phase 'ROLLBACK_BEGIN' -Status 'BEGIN'" in DEPLOY
+    assert "Write-StaticDeployPhase -Phase 'ROLLBACK_COMPLETE' -Status 'END'" in DEPLOY
+    assert "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'" in DEPLOY
+
+
 def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():
     assert "existing generation manifest" in DEPLOY
     assert "Existing generation manifest identity does not match" in DEPLOY

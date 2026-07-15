@@ -142,12 +142,47 @@ $PublicVerificationConcurrency = 8
 $PublicVerificationRequestTimeoutSeconds = 15
 $PublicVerificationDeadlineSeconds = 240
 $phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
+$phaseHistory = New-Object System.Collections.Generic.List[object]
+$activePhase = 'PRECHECK'
 
 function Write-StaticDeployTiming {
     param([Parameter(Mandatory = $true)][string]$Phase)
     if ($env:GO_ODYSSEY_STATIC_DEPLOY_TIMING -eq '1') {
         [Console]::Error.WriteLine(('[static-deploy +{0:n3}s] {1}' -f $phaseClock.Elapsed.TotalSeconds, $Phase))
     }
+}
+
+function Write-StaticDeployPhase {
+    param(
+        [Parameter(Mandatory = $true)][string]$Phase,
+        [Parameter(Mandatory = $true)][ValidateSet('BEGIN','END','FAIL','PROGRESS')][string]$Status,
+        [string]$Detail
+    )
+    $event = [ordered]@{
+        timestamp_utc = [DateTime]::UtcNow.ToString('o')
+        phase = $Phase
+        status = $Status
+        elapsed_ms = [int64][Math]::Round($phaseClock.Elapsed.TotalMilliseconds)
+    }
+    if ($Detail) { $event.detail = $Detail }
+    $phaseHistory.Add([pscustomobject]$event)
+    [Console]::Error.WriteLine(('STATIC_PHASE ' + ($event | ConvertTo-Json -Compress)))
+}
+
+function Start-StaticDeployPhase {
+    param([Parameter(Mandatory = $true)][string]$Phase)
+    $script:activePhase = $Phase
+    Write-StaticDeployPhase -Phase $Phase -Status 'BEGIN'
+}
+
+function End-StaticDeployPhase {
+    param([Parameter(Mandatory = $true)][string]$Phase)
+    Write-StaticDeployPhase -Phase $Phase -Status 'END'
+}
+
+function Fail-StaticDeployPhase {
+    param([Parameter(Mandatory = $true)][string]$Phase, [Parameter(Mandatory = $true)][string]$Message)
+    Write-StaticDeployPhase -Phase $Phase -Status 'FAIL' -Detail $Message
 }
 
 function Invoke-BoundedPublicVerification {
@@ -227,6 +262,7 @@ function Invoke-BoundedPublicVerification {
         }
         if ($results.Count -ge $nextProgress) {
             Write-StaticDeployTiming "PUBLIC HASH PROGRESS $($results.Count)/$($Entries.Count)"
+            Write-StaticDeployPhase -Phase 'PUBLIC_HASH_PROGRESS' -Status 'PROGRESS' -Detail "verified=$($results.Count);remaining=$([Math]::Max(0, $Entries.Count - $results.Count))"
             while ($nextProgress -le $results.Count) { $nextProgress += 100 }
         }
     }
@@ -328,6 +364,7 @@ $homepageUri = [Uri]$layout.homepage_url
 $publicBase = "$($homepageUri.Scheme)://$($homepageUri.Host)"
 $shortSha = Get-ShortGitSha -GitSha $ExpectedGitSha
 Write-StaticDeployTiming "START generation=$generationId entries=$($manifest.files.Count)"
+Start-StaticDeployPhase -Phase 'PRECHECK'
 
 if (-not $Execute) {
     [ordered]@{
@@ -357,8 +394,10 @@ if (-not $Execute) {
 }
 
 Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'
+End-StaticDeployPhase -Phase 'PRECHECK'
 
 if ($adoptionMode) {
+    Start-StaticDeployPhase -Phase 'IDENTITY_VERIFY'
     $quotedExistingGeneration = Quote-PosixShellArgument $remoteReleaseDir
     $adoptionCheckCommand = 'test -d ' + $quotedExistingGeneration + ' && test ! -L ' + $quotedExistingGeneration + ' && test "$(findmnt -T ' + $quotedExistingGeneration + ' -no TARGET 2>/dev/null)" = "/" && echo READY'
     $adoptionCheck = Invoke-RemoteText $adoptionCheckCommand -OperationLabel 'existing generation directory safety'
@@ -380,6 +419,7 @@ if ($adoptionMode) {
     $residue = Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -maxdepth 1 -type f \( -name '*.lock' -o -name '*.next' -o -name '*upload*' -o -name '*partial*' \) -print" -OperationLabel 'existing generation residue check'
     if (-not [string]::IsNullOrWhiteSpace($residue)) { throw "Existing generation has unsafe residue: $residue" }
     Write-StaticDeployTiming 'EXISTING GENERATION PRE-ACTIVATION VERIFIED'
+    End-StaticDeployPhase -Phase 'IDENTITY_VERIFY'
 }
 else {
     $existsCheck = Invoke-RemoteText "if [ -e $(Quote-PosixShellArgument $remoteReleaseDir) ]; then echo EXISTS; else echo ABSENT; fi"
@@ -388,7 +428,9 @@ else {
     }
 }
 
+Start-StaticDeployPhase -Phase 'CAPTURE_CURRENT'
 $previousCurrentTarget = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
+End-StaticDeployPhase -Phase 'CAPTURE_CURRENT'
 $rollbackPerformed = $false
 
 try {
@@ -468,6 +510,7 @@ try {
     # Step 10: atomic switch. sudo is required because /opt/go-odyssey-static itself
     # (the parent of current/previous) is more tightly permissioned than
     # releases/ -- matching deploy-static.ps1's own proven pattern.
+    Start-StaticDeployPhase -Phase 'SWITCH_CURRENT'
     $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
     $quotedRelease = Quote-PosixShellArgument $remoteReleaseDir
     Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedRelease current.next && sudo mv -Tf current.next current" -OperationLabel 'atomic symlink switch' | Out-Null
@@ -477,12 +520,16 @@ try {
         throw "Remote current does not point to the new release after switch. Expected '$remoteReleaseDir', observed '$newCurrentTarget'."
     }
     Write-StaticDeployTiming 'SYMLINK SWITCH COMPLETE'
+    End-StaticDeployPhase -Phase 'SWITCH_CURRENT'
 
     # Step 11: restart app+scheduler. The bind-mounted containers resolved
     # the OLD symlink target at their own start time -- restart them so
     # their mount namespace re-resolves against the new "current" target.
     # See the module docstring above for how this was discovered.
+    Start-StaticDeployPhase -Phase 'SERVICE_RESTART'
     Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" -TimeoutSeconds $RemoteRestartTimeoutSeconds -OperationLabel 'docker restart app+scheduler' | Out-Null
+    End-StaticDeployPhase -Phase 'SERVICE_RESTART'
+    Start-StaticDeployPhase -Phase 'HEALTH_CHECK'
     $deadline = (Get-Date).AddSeconds(60)
     $appHealthy = $false
     do {
@@ -494,6 +541,7 @@ try {
         throw "App container did not become healthy after restart following the static release switch."
     }
     Write-StaticDeployTiming 'CONTAINER RESTART/HEALTH COMPLETE'
+    End-StaticDeployPhase -Phase 'HEALTH_CHECK'
     # Step 12 (part 1 of 2): container-internal verification, before the
     # public HTTPS check below.
     $containerServedHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/i18n.js")" -OperationLabel 'container-internal i18n.js hash').Split(' ')[0].Trim().ToLowerInvariant()
@@ -502,6 +550,7 @@ try {
         throw "Container-internal i18n.js hash still does not match the new release after restart. Expected '$expectedI18nHash', observed '$containerServedHash'."
     }
 
+    Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
     $publicResults = Invoke-BoundedPublicVerification -Entries $manifest.files -PublicBase $publicBase -ShortSha $shortSha
     $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)?deploy-verify=$shortSha"; sha256_match = $true } })
@@ -511,13 +560,18 @@ try {
         throw "Public content verification failed: total=$($manifest.files.Count), completed=$($publicResults.Count), passed=$($publicVerification.Count), failures=$($publicFailures.Count). Details: $failureDetails"
     }
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION COMPLETE'
+    End-StaticDeployPhase -Phase 'PUBLIC_HASH_COMPLETE'
 
+    Start-StaticDeployPhase -Phase 'PUBLIC_SW'
     $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js?deploy-verify=$shortSha"
     if ($publicSwVersion -ne $manifest.service_worker_version) {
         throw "Public sw.js VERSION mismatch after switch. Expected '$($manifest.service_worker_version)', observed '$publicSwVersion'."
     }
     Write-StaticDeployTiming 'PUBLIC SW VERSION COMPLETE'
+    End-StaticDeployPhase -Phase 'PUBLIC_SW'
 
+    Start-StaticDeployPhase -Phase 'DEPLOYMENT_RECORD'
+    End-StaticDeployPhase -Phase 'DEPLOYMENT_RECORD'
     [ordered]@{
         dry_run = $false
         execute_requested = $true
@@ -534,15 +588,18 @@ try {
         public_verification_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
         public_verification_deadline_seconds = $PublicVerificationDeadlineSeconds
         public_sw_version_after_switch = $publicSwVersion
+        phase_history = @($phaseHistory)
         rollback_command = "cd $($layout.static_release_root) && sudo ln -sfnT '$previousCurrentTarget' current.next && sudo mv -Tf current.next current"
         result = 'STATIC RELEASE SWITCH SUCCEEDED'
     } | ConvertTo-Json -Depth 8 | Write-Output
 }
 catch {
     $failureMessage = $_.Exception.Message
+    Fail-StaticDeployPhase -Phase $activePhase -Message $failureMessage
     $currentNow = Get-RemoteCurrentTarget -StaticRoot $layout.static_release_root
     if ($currentNow -eq $remoteReleaseDir -and $previousCurrentTarget) {
         try {
+            Write-StaticDeployPhase -Phase 'ROLLBACK_BEGIN' -Status 'BEGIN'
             $quotedRoot = Quote-PosixShellArgument $layout.static_release_root
             $quotedPrevious = Quote-PosixShellArgument $previousCurrentTarget
             Invoke-RemoteText "cd $quotedRoot && sudo ln -sfnT $quotedPrevious current.next && sudo mv -Tf current.next current" -OperationLabel 'rollback: symlink switch' | Out-Null
@@ -553,13 +610,14 @@ catch {
             # as the original bug.
             Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.app_service_name) $(Quote-PosixShellArgument $layout.scheduler_service_name)" -TimeoutSeconds $RemoteRestartTimeoutSeconds -OperationLabel 'rollback: docker restart' | Out-Null
             $rollbackPerformed = $true
+            Write-StaticDeployPhase -Phase 'ROLLBACK_COMPLETE' -Status 'END'
         }
         catch {
             throw "Static release deploy failed: $failureMessage`nAutomatic rollback ALSO failed: $($_.Exception.Message)"
         }
     }
     if ($rollbackPerformed) {
-        throw "Static release deploy failed and automatic rollback succeeded (current restored to $previousCurrentTarget, containers restarted): $failureMessage"
+        throw "Static release deploy failed and automatic rollback succeeded (current restored to $previousCurrentTarget, containers restarted): $failureMessage; phase_history=$($phaseHistory | ConvertTo-Json -Compress -Depth 6)"
     }
     throw
 }
