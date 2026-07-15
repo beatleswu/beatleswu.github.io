@@ -28,6 +28,13 @@ def test_remote_safety_command_is_constructed_without_local_command_substitution
     assert '$adoptionCheck = Invoke-RemoteText "p=$(Quote-PosixShellArgument' not in DEPLOY
 
 
+def test_existing_generation_manifest_path_is_quoted_for_remote_shell():
+    assert '$quotedExistingManifest = Quote-PosixShellArgument "$remoteReleaseDir/manifest.json"' in DEPLOY
+    assert 'Invoke-RemoteText ("cat " + $quotedExistingManifest)' in DEPLOY
+    assert 'Invoke-RemoteText ("sha256sum " + $quotedExistingManifest)' in DEPLOY
+    assert 'Quote-PosixShellArgument \\\"$remoteReleaseDir/manifest.json\\\"' not in DEPLOY
+
+
 def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():
     assert "existing generation manifest" in DEPLOY
     assert "Existing generation manifest identity does not match" in DEPLOY
