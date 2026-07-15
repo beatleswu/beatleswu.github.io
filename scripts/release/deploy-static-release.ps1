@@ -633,7 +633,6 @@ catch {
             $rollbackResult = 'failed'
             $rollbackFailurePhase = 'ROLLBACK'
             $rollbackFailureMessage = $_.Exception.Message
-            throw "Static release deploy failed: $failureMessage`nAutomatic rollback ALSO failed: $($_.Exception.Message)"
         }
     }
     elseif (-not $rollbackRequired) {
@@ -655,6 +654,9 @@ catch {
         phase_history = @($phaseHistory)
     }
     try { [Console]::Error.WriteLine(('STATIC_FAILURE ' + ($failureRecord | ConvertTo-Json -Compress -Depth 8))) } catch { }
+    if ($rollbackResult -eq 'failed') {
+        throw "Static release deploy failed: $failureMessage`nAutomatic rollback ALSO failed: $rollbackFailureMessage; failure_record=$($failureRecord | ConvertTo-Json -Compress -Depth 8)"
+    }
     if ($rollbackPerformed) {
         throw "Static release deploy failed and automatic rollback succeeded (current restored to $previousCurrentTarget, containers restarted): $failureMessage; phase_history=$($phaseHistory | ConvertTo-Json -Compress -Depth 6)"
     }

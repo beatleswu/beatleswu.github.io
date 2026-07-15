@@ -57,6 +57,7 @@ def test_observability_logging_is_non_throwing_and_failure_fields_are_structured
     assert "$rollbackResult = 'succeeded'" in DEPLOY
     assert "$rollbackResult = 'failed'" in DEPLOY
     assert "$rollbackResult = 'not_required'" in DEPLOY
+    assert 'failure_record=$($failureRecord | ConvertTo-Json' in DEPLOY
 
 
 def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():
