@@ -363,10 +363,11 @@ if ($adoptionMode) {
     $adoptionCheckCommand = 'test -d ' + $quotedExistingGeneration + ' && test ! -L ' + $quotedExistingGeneration + ' && test "$(findmnt -T ' + $quotedExistingGeneration + ' -no TARGET 2>/dev/null)" = "/" && echo READY'
     $adoptionCheck = Invoke-RemoteText $adoptionCheckCommand -OperationLabel 'existing generation directory safety'
     if ($adoptionCheck.Trim() -ne 'READY') { throw "Existing generation failed directory/symlink/mount safety checks: $remoteReleaseDir" }
-    $remoteManifestJson = Invoke-RemoteText "cat $(Quote-PosixShellArgument \"$remoteReleaseDir/manifest.json\")" -OperationLabel 'read existing generation manifest'
+    $quotedExistingManifest = Quote-PosixShellArgument "$remoteReleaseDir/manifest.json"
+    $remoteManifestJson = Invoke-RemoteText ("cat " + $quotedExistingManifest) -OperationLabel 'read existing generation manifest'
     $remoteManifest = $remoteManifestJson | ConvertFrom-Json
     if ($remoteManifest.release_git_sha -ne $ExpectedGitSha -or $remoteManifest.service_worker_version -ne $ExpectedStaticVersion -or $remoteManifest.archive_sha256 -ne $ExpectedArchiveSha256) { throw 'Existing generation manifest identity does not match the authorized static artifact.' }
-    $remoteManifestHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument \"$remoteReleaseDir/manifest.json\")" -OperationLabel 'existing manifest SHA').Split(' ')[0].Trim().ToLowerInvariant()
+    $remoteManifestHash = (Invoke-RemoteText ("sha256sum " + $quotedExistingManifest) -OperationLabel 'existing manifest SHA').Split(' ')[0].Trim().ToLowerInvariant()
     if ($remoteManifestHash -ne $ExpectedManifestSha256) { throw "Existing generation manifest SHA mismatch: expected $ExpectedManifestSha256, observed $remoteManifestHash." }
     $remoteCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f ! -name manifest.json | wc -l" -OperationLabel 'existing governed file count').Trim()
     if ($remoteCount -ne $manifest.files.Count) { throw "Existing generation governed file count mismatch: expected $($manifest.files.Count), observed $remoteCount." }
