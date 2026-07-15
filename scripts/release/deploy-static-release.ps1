@@ -359,7 +359,9 @@ if (-not $Execute) {
 Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'
 
 if ($adoptionMode) {
-    $adoptionCheck = Invoke-RemoteText "p=$(Quote-PosixShellArgument $remoteReleaseDir); test -d \`$p && test ! -L \`$p && test \"\$(findmnt -T \`$p -no TARGET 2>/dev/null)\" = '/' && echo READY"
+    $quotedExistingGeneration = Quote-PosixShellArgument $remoteReleaseDir
+    $adoptionCheckCommand = 'test -d ' + $quotedExistingGeneration + ' && test ! -L ' + $quotedExistingGeneration + ' && test "$(findmnt -T ' + $quotedExistingGeneration + ' -no TARGET 2>/dev/null)" = "/" && echo READY'
+    $adoptionCheck = Invoke-RemoteText $adoptionCheckCommand -OperationLabel 'existing generation directory safety'
     if ($adoptionCheck.Trim() -ne 'READY') { throw "Existing generation failed directory/symlink/mount safety checks: $remoteReleaseDir" }
     $remoteManifestJson = Invoke-RemoteText "cat $(Quote-PosixShellArgument \"$remoteReleaseDir/manifest.json\")" -OperationLabel 'read existing generation manifest'
     $remoteManifest = $remoteManifestJson | ConvertFrom-Json
