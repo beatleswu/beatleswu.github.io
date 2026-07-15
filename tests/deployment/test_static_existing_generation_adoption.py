@@ -12,7 +12,7 @@ def test_existing_generation_is_explicit_and_mutually_exclusive():
     assert "Normal static deployment requires StaticManifest, BundlePath, and ArchivePath" in DEPLOY
     assert "[string]$BundlePath" in DEPLOY
     assert "[string]$ArchivePath" in DEPLOY
-    assert "if (-not $adoptionMode -and ([string]::IsNullOrWhiteSpace($BundlePath)" in DEPLOY
+    assert "elseif ([string]::IsNullOrWhiteSpace($BundlePath)" in DEPLOY
 
 
 def test_existing_generation_path_is_fail_closed():
@@ -69,6 +69,10 @@ def test_observability_logging_is_non_throwing_and_failure_fields_are_structured
     assert "$rollbackResult = 'failed'" in DEPLOY
     assert "$rollbackResult = 'not_required'" in DEPLOY
     assert 'failure_record=$($failureRecord | ConvertTo-Json' in DEPLOY
+
+
+def test_deadline_cancellation_does_not_use_powershell_range_slicing():
+    assert "for ($cancelIndex = $offset; $cancelIndex -lt $Entries.Count; $cancelIndex++)" in DEPLOY
 
 
 def test_adoption_preflight_verifies_remote_identity_and_all_governed_files():

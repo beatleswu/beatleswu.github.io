@@ -235,7 +235,8 @@ function Invoke-BoundedPublicVerification {
     for ($offset = 0; $offset -lt $Entries.Count; $offset += $Concurrency) {
         $remaining = [int][Math]::Floor(($deadline - [DateTime]::UtcNow).TotalSeconds)
         if ($remaining -le 0) {
-            foreach ($entry in $Entries[$offset..($Entries.Count - 1)]) {
+            for ($cancelIndex = $offset; $cancelIndex -lt $Entries.Count; $cancelIndex++) {
+                $entry = $Entries[$cancelIndex]
                 $results += [pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' }
             }
             break
