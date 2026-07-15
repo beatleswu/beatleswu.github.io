@@ -103,6 +103,100 @@ $RemoteRestartTimeoutSeconds = 45
 $RemoteHealthPollTimeoutSeconds = 20
 $RemoteDirectoryBatchTimeoutSeconds = 30
 $ScpUploadTimeoutSeconds = 90
+$PublicVerificationConcurrency = 8
+$PublicVerificationRequestTimeoutSeconds = 15
+$PublicVerificationDeadlineSeconds = 240
+$phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
+
+function Write-StaticDeployTiming {
+    param([Parameter(Mandatory = $true)][string]$Phase)
+    if ($env:GO_ODYSSEY_STATIC_DEPLOY_TIMING -eq '1') {
+        [Console]::Error.WriteLine(('[static-deploy +{0:n3}s] {1}' -f $phaseClock.Elapsed.TotalSeconds, $Phase))
+    }
+}
+
+function Invoke-BoundedPublicVerification {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Entries,
+        [Parameter(Mandatory = $true)][string]$PublicBase,
+        [Parameter(Mandatory = $true)][string]$ShortSha,
+        [int]$Concurrency = $PublicVerificationConcurrency,
+        [int]$RequestTimeoutSeconds = $PublicVerificationRequestTimeoutSeconds,
+        [int]$DeadlineSeconds = $PublicVerificationDeadlineSeconds
+    )
+
+    $worker = {
+        param($Url, $ExpectedHash, $Path, $TimeoutSeconds)
+        try {
+            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSeconds
+            $bytes = $response.Content
+            if ($bytes -is [string]) {
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes($bytes)
+            }
+            $hasher = [System.Security.Cryptography.SHA256]::Create()
+            try {
+                $observedHash = (([System.BitConverter]::ToString($hasher.ComputeHash($bytes))) -replace '-', '').ToLowerInvariant()
+            }
+            finally {
+                $hasher.Dispose()
+            }
+            if ($observedHash -ne $ExpectedHash) {
+                return [pscustomobject]@{ path = $Path; status = 'sha_mismatch'; expected = $ExpectedHash; observed = $observedHash; error = "Public content hash mismatch" }
+            }
+            return [pscustomobject]@{ path = $Path; status = 'passed'; expected = $ExpectedHash; observed = $observedHash }
+        }
+        catch {
+            return [pscustomobject]@{ path = $Path; status = 'http_failed'; error = $_.Exception.Message }
+        }
+    }
+
+    $results = New-Object System.Collections.Generic.List[object]
+    $deadline = [DateTime]::UtcNow.AddSeconds($DeadlineSeconds)
+    $nextProgress = 100
+    for ($offset = 0; $offset -lt $Entries.Count; $offset += $Concurrency) {
+        $remaining = [int][Math]::Floor(($deadline - [DateTime]::UtcNow).TotalSeconds)
+        if ($remaining -le 0) {
+            foreach ($entry in $Entries[$offset..($Entries.Count - 1)]) {
+                $results.Add([pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' })
+            }
+            break
+        }
+        $last = [Math]::Min($offset + $Concurrency - 1, $Entries.Count - 1)
+        $jobs = @()
+        $jobEntries = @{}
+        try {
+            foreach ($entry in $Entries[$offset..$last]) {
+                $url = "$PublicBase/$($entry.path)?deploy-verify=$ShortSha"
+                $job = Start-Job -ScriptBlock $worker -ArgumentList $url, $entry.sha256, $entry.path, $RequestTimeoutSeconds
+                $jobs += $job
+                $jobEntries[$job.Id] = $entry
+            }
+            $waitSeconds = [Math]::Min($remaining, $RequestTimeoutSeconds + 5)
+            $completed = @(Wait-Job -Job $jobs -Timeout $waitSeconds)
+            foreach ($job in $completed) {
+                $received = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
+                if ($received.Count -gt 0) { $results.Add($received[0]) }
+                else { $results.Add([pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' }) }
+            }
+            $completedIds = @($completed | ForEach-Object { $_.Id })
+            foreach ($job in @($jobs | Where-Object { $_.Id -notin $completedIds })) {
+                $entry = $jobEntries[$job.Id]
+                $results.Add([pscustomobject]@{ path = $entry.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $entry.sha256 })
+            }
+        }
+        finally {
+            foreach ($job in $jobs) {
+                if ($job.State -in @('Running', 'NotStarted')) { Stop-Job -Job $job -ErrorAction SilentlyContinue }
+                Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+            }
+        }
+        if ($results.Count -ge $nextProgress) {
+            Write-StaticDeployTiming "PUBLIC HASH PROGRESS $($results.Count)/$($Entries.Count)"
+            while ($nextProgress -le $results.Count) { $nextProgress += 100 }
+        }
+    }
+    return @($results)
+}
 
 function Invoke-RemoteText {
     <#
@@ -197,6 +291,7 @@ $remoteReleaseDir = "$($layout.static_release_root.TrimEnd('/'))/releases/$gener
 $homepageUri = [Uri]$layout.homepage_url
 $publicBase = "$($homepageUri.Scheme)://$($homepageUri.Host)"
 $shortSha = Get-ShortGitSha -GitSha $ExpectedGitSha
+Write-StaticDeployTiming "START generation=$generationId entries=$($manifest.files.Count)"
 
 if (-not $Execute) {
     [ordered]@{
@@ -241,6 +336,7 @@ try {
     $relativePaths = @($manifest.files | ForEach-Object { $_.path })
     $requiredDirectories = Get-RemoteParentDirectorySet -RelativePaths $relativePaths -RemoteReleaseDir $remoteReleaseDir
     Invoke-RemoteDirectoryBatch -Directories $requiredDirectories
+    Write-StaticDeployTiming 'REMOTE DIRECTORIES COMPLETE'
 
     # Step 4: upload the ALREADY-BUILT deterministic archive (RELEASE-FIX-A3
     # / RELEASE-FIX-A3-STATIC-DEPLOY-FIX3), not one scp per file and not a
@@ -252,7 +348,9 @@ try {
     $archiveTimeoutSeconds = Get-ArchiveTransferTimeoutSeconds -TotalBytes $expectedBytes
     $remoteArchivePath = "$($layout.static_release_root.TrimEnd('/'))/releases/.upload-$generationId.tar"
     Invoke-BoundedFileUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveTimeoutSeconds
+    Write-StaticDeployTiming 'ARCHIVE UPLOAD COMPLETE'
     $extractResult = Invoke-RemoteText "tar -xf $(Quote-PosixShellArgument $remoteArchivePath) -C $(Quote-PosixShellArgument $remoteReleaseDir) && rm -f $(Quote-PosixShellArgument $remoteArchivePath)" -TimeoutSeconds $archiveTimeoutSeconds -OperationLabel 'extract static release archive'
+    Write-StaticDeployTiming 'ARCHIVE EXTRACT COMPLETE'
 
     # Step 5: validate uploaded file count before trusting anything else.
     $uploadedCount = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $remoteReleaseDir) -type f | wc -l" -OperationLabel 'count uploaded files').Trim()
@@ -279,6 +377,7 @@ try {
         $failedLines = ($verificationResult.output -split "`n" | Where-Object { $_ -match 'FAILED' }) -join '; '
         throw "Batch SHA-256 verification failed (exit $($verificationResult.exit_code)): $failedLines"
     }
+    Write-StaticDeployTiming 'REMOTE GOVERNED SHA COMPLETE'
 
     # Step 8: manifest.json uploads LAST, only after every governed file has
     # passed count/size/hash verification -- a partial or corrupted
@@ -298,6 +397,7 @@ try {
     if ($remoteManifestHash -ne $localManifestHash) {
         throw "Remote manifest.json hash does not match the local manifest after upload."
     }
+    Write-StaticDeployTiming 'MANIFEST UPLOAD/VALIDATION COMPLETE'
 
     # Step 10: atomic switch. sudo is required because /opt/go-odyssey-static itself
     # (the parent of current/previous) is more tightly permissioned than
@@ -310,6 +410,7 @@ try {
     if ($newCurrentTarget -ne $remoteReleaseDir) {
         throw "Remote current does not point to the new release after switch. Expected '$remoteReleaseDir', observed '$newCurrentTarget'."
     }
+    Write-StaticDeployTiming 'SYMLINK SWITCH COMPLETE'
 
     # Step 11: restart app+scheduler. The bind-mounted containers resolved
     # the OLD symlink target at their own start time -- restart them so
@@ -326,6 +427,7 @@ try {
     if (-not $appHealthy) {
         throw "App container did not become healthy after restart following the static release switch."
     }
+    Write-StaticDeployTiming 'CONTAINER RESTART/HEALTH COMPLETE'
     # Step 12 (part 1 of 2): container-internal verification, before the
     # public HTTPS check below.
     $containerServedHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/i18n.js")" -OperationLabel 'container-internal i18n.js hash').Split(' ')[0].Trim().ToLowerInvariant()
@@ -334,20 +436,21 @@ try {
         throw "Container-internal i18n.js hash still does not match the new release after restart. Expected '$expectedI18nHash', observed '$containerServedHash'."
     }
 
-    $publicVerification = @()
-    foreach ($entry in $manifest.files) {
-        $url = "$publicBase/$($entry.path)?deploy-verify=$shortSha"
-        $observedHash = Get-PublicFileSha256 -Url $url
-        if ($observedHash -ne $entry.sha256) {
-            throw "Public content hash mismatch after switch for '$($entry.path)'. Expected '$($entry.sha256)', observed '$observedHash'."
-        }
-        $publicVerification += [ordered]@{ path = $entry.path; url = $url; sha256_match = $true }
+    Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
+    $publicResults = Invoke-BoundedPublicVerification -Entries $manifest.files -PublicBase $publicBase -ShortSha $shortSha
+    $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)?deploy-verify=$shortSha"; sha256_match = $true } })
+    $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
+    if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $manifest.files.Count) {
+        $failureDetails = ($publicFailures | ConvertTo-Json -Compress -Depth 6)
+        throw "Public content verification failed: total=$($manifest.files.Count), completed=$($publicResults.Count), passed=$($publicVerification.Count), failures=$($publicFailures.Count). Details: $failureDetails"
     }
+    Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION COMPLETE'
 
     $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js?deploy-verify=$shortSha"
     if ($publicSwVersion -ne $manifest.service_worker_version) {
         throw "Public sw.js VERSION mismatch after switch. Expected '$($manifest.service_worker_version)', observed '$publicSwVersion'."
     }
+    Write-StaticDeployTiming 'PUBLIC SW VERSION COMPLETE'
 
     [ordered]@{
         dry_run = $false

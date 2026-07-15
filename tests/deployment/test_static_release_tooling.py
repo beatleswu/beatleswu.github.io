@@ -183,6 +183,15 @@ def test_deploy_script_verifies_sw_version_publicly_not_just_locally():
     assert "Public sw.js VERSION mismatch" in content
 
 
+def test_static_deploy_has_env_gated_phase_timing_without_contract_change():
+    content = _read(DEPLOY_SCRIPT)
+    assert "GO_ODYSSEY_STATIC_DEPLOY_TIMING" in content
+    assert "PUBLIC HASH VERIFICATION START" in content
+    assert "PUBLIC HASH PROGRESS" in content
+    assert "PUBLIC HASH VERIFICATION COMPLETE" in content
+    assert "[Console]::Error.WriteLine" in content
+
+
 def test_deploy_script_auto_rolls_back_on_post_switch_failure():
     content = _read(DEPLOY_SCRIPT)
     assert "catch" in content
