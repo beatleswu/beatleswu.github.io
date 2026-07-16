@@ -13,7 +13,8 @@ DEPLOY = (ROOT / "scripts/release/deploy-static-release.ps1").read_text(encoding
 def test_public_verification_is_bounded_and_deadline_limited():
     assert "$PublicVerificationConcurrency = 8" in DEPLOY
     assert "$PublicVerificationRequestTimeoutSeconds = 15" in DEPLOY
-    assert "$PublicVerificationDeadlineSeconds = 240" in DEPLOY
+    assert "Get-StaticPublicVerificationDeadlineSeconds" in DEPLOY
+    assert "$PublicVerificationAttempts = 1" in DEPLOY
     assert "Invoke-BoundedPublicVerification" in DEPLOY
     assert "Start-Job -ScriptBlock $worker" in DEPLOY
     assert "Wait-Job -Job $jobs -Timeout" in DEPLOY
@@ -23,7 +24,9 @@ def test_public_verification_is_bounded_and_deadline_limited():
 
 def test_public_verification_keeps_complete_fail_closed_result_aggregation():
     assert "sha_mismatch" in DEPLOY
-    assert "http_failed" in DEPLOY
+    assert "http_non_200" in DEPLOY
+    assert "request_timeout" in DEPLOY
+    assert "unexpected_exception" in DEPLOY
     assert "cancelled_deadline" in DEPLOY
     assert "worker_exception" in DEPLOY
     assert "Public content verification failed" in DEPLOY

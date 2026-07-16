@@ -140,7 +140,12 @@ $RemoteDirectoryBatchTimeoutSeconds = 30
 $ScpUploadTimeoutSeconds = 90
 $PublicVerificationConcurrency = 8
 $PublicVerificationRequestTimeoutSeconds = 15
-$PublicVerificationDeadlineSeconds = 240
+$PublicVerificationAttempts = 1 # initial request plus configured retries; retries are currently zero
+$PublicVerificationDeadlineSeconds = Get-StaticPublicVerificationDeadlineSeconds `
+    -FileCount @($manifest.files).Count `
+    -Concurrency $PublicVerificationConcurrency `
+    -RequestTimeoutSeconds $PublicVerificationRequestTimeoutSeconds `
+    -AttemptCount $PublicVerificationAttempts
 $phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
 $phaseHistory = New-Object System.Collections.Generic.List[object]
 $activePhase = 'PRECHECK'
@@ -197,7 +202,8 @@ function Invoke-BoundedPublicVerification {
         [Parameter(Mandatory = $true)][string]$ShortSha,
         [int]$Concurrency = $PublicVerificationConcurrency,
         [int]$RequestTimeoutSeconds = $PublicVerificationRequestTimeoutSeconds,
-        [int]$DeadlineSeconds = $PublicVerificationDeadlineSeconds
+        [int]$DeadlineSeconds = $PublicVerificationDeadlineSeconds,
+        [int]$AttemptCount = $PublicVerificationAttempts
     )
 
     $worker = {
@@ -221,7 +227,14 @@ function Invoke-BoundedPublicVerification {
             return [pscustomobject]@{ path = $Path; status = 'passed'; expected = $ExpectedHash; observed = $observedHash }
         }
         catch {
-            return [pscustomobject]@{ path = $Path; status = 'http_failed'; error = $_.Exception.Message }
+            $response = $_.Exception.Response
+            if ($response -and $response.StatusCode) {
+                return [pscustomobject]@{ path = $Path; status = 'http_non_200'; http_status = [int]$response.StatusCode; error = $_.Exception.Message }
+            }
+            if ($_.Exception.Message -match 'timed out|timeout|operation has timed out') {
+                return [pscustomobject]@{ path = $Path; status = 'request_timeout'; error = $_.Exception.Message }
+            }
+            return [pscustomobject]@{ path = $Path; status = 'unexpected_exception'; error = $_.Exception.Message }
         }
     }
 
@@ -567,11 +580,26 @@ try {
 
     Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
-    $publicResults = Invoke-BoundedPublicVerification -Entries $manifest.files -PublicBase $publicBase -ShortSha $shortSha
+    $publicResults = Invoke-BoundedPublicVerification -Entries $manifest.files -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts
     $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)?deploy-verify=$shortSha"; sha256_match = $true } })
     $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
     if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $manifest.files.Count) {
-        $failureDetails = ($publicFailures | ConvertTo-Json -Compress -Depth 6)
+        $failureSummary = [ordered]@{
+            total = $manifest.files.Count
+            verified = @($publicResults | Where-Object { $_.status -eq 'passed' }).Count
+            http_non_200 = @($publicResults | Where-Object { $_.status -eq 'http_non_200' }).Count
+            hash_mismatch = @($publicResults | Where-Object { $_.status -eq 'sha_mismatch' }).Count
+            request_timeout = @($publicResults | Where-Object { $_.status -eq 'request_timeout' }).Count
+            cancelled_deadline = @($publicResults | Where-Object { $_.status -eq 'cancelled_deadline' }).Count
+            unexpected_exception = @($publicResults | Where-Object { $_.status -eq 'unexpected_exception' -or $_.status -eq 'worker_exception' }).Count
+            remaining = [Math]::Max(0, $manifest.files.Count - $publicResults.Count)
+            concurrency = $PublicVerificationConcurrency
+            per_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
+            attempts = $PublicVerificationAttempts
+            computed_deadline_seconds = $PublicVerificationDeadlineSeconds
+            elapsed_seconds = [Math]::Round($phaseClock.Elapsed.TotalSeconds, 3)
+        }
+        $failureDetails = ($failureSummary | ConvertTo-Json -Compress -Depth 6)
         throw "Public content verification failed: total=$($manifest.files.Count), completed=$($publicResults.Count), passed=$($publicVerification.Count), failures=$($publicFailures.Count). Details: $failureDetails"
     }
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION COMPLETE'

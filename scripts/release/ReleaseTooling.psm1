@@ -896,6 +896,40 @@ function Get-BatchVerificationTimeoutSeconds {
     return [Math]::Min($MaxSeconds, [Math]::Max($MinSeconds, $sizeBasedSeconds))
 }
 
+function Get-StaticPublicVerificationDeadlineSeconds {
+    <#
+    Scale-aware, bounded budget for public verification waves.
+    Attempts means the initial request plus every configured retry.
+    #>
+    param(
+        [long]$FileCount,
+        [int]$Concurrency,
+        [int]$RequestTimeoutSeconds,
+        [int]$AttemptCount = 1
+    )
+    if ($FileCount -lt 0) { throw 'FileCount cannot be negative.' }
+    if ($Concurrency -le 0) { throw 'Concurrency must be positive.' }
+    if ($RequestTimeoutSeconds -lt 0) { throw 'RequestTimeoutSeconds cannot be negative.' }
+    if ($AttemptCount -lt 1) { throw 'AttemptCount must be at least 1.' }
+
+    $minimumSeconds = 120L
+    $maximumSeconds = 7200L
+    $startupAllowanceSeconds = 30L
+    $completionAllowanceSeconds = 30L
+    $safetyMarginSeconds = 60L
+    $waves = [decimal][Math]::Ceiling([decimal]$FileCount / [decimal]$Concurrency)
+    $maxWorkload = [decimal]$maximumSeconds - [decimal]$startupAllowanceSeconds - [decimal]$completionAllowanceSeconds - [decimal]$safetyMarginSeconds
+    if ($RequestTimeoutSeconds -gt 0 -and $AttemptCount -gt 0) {
+        $perWaveWork = [decimal]$RequestTimeoutSeconds * [decimal]$AttemptCount
+        if ($waves -gt ($maxWorkload / $perWaveWork)) { return [int]$maximumSeconds }
+    }
+    $workload = $waves * [decimal]$RequestTimeoutSeconds * [decimal]$AttemptCount
+    $computed = [decimal]$startupAllowanceSeconds + [decimal]$completionAllowanceSeconds + $workload + [decimal]$safetyMarginSeconds
+    if ($computed -gt [decimal]$maximumSeconds) { return [int]$maximumSeconds }
+    if ($computed -lt [decimal]$minimumSeconds) { return [int]$minimumSeconds }
+    return [int][Math]::Ceiling($computed)
+}
+
 function Get-ArchiveTransferTimeoutSeconds {
     <#
     .SYNOPSIS
@@ -1619,6 +1653,7 @@ Export-ModuleMember -Function @(
     'New-RemoteMkdirScriptText',
     'New-RemoteBatchShaVerificationScript',
     'Get-BatchVerificationTimeoutSeconds',
+    'Get-StaticPublicVerificationDeadlineSeconds',
     'Get-ArchiveTransferTimeoutSeconds',
     'New-DeterministicStaticArchive',
     'Test-GnuTarExecutableCapability',
