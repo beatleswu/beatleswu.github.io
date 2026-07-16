@@ -290,10 +290,10 @@ const ALL_BADGES = [
   { id:'total_500',  name:'棋海漫遊', nameEn:'Sea Wanderer',icon:'\u{1F30A}', desc:'累計答對 500 題', descEn:'500 total correct' },
   { id:'total_1000', name:'千題宗師', nameEn:'Grandmaster',icon:'\u{1F451}', desc:'累計答對 1000 題', descEn:'1000 total correct' },
   { id:'mistake_master', name:'知錯能改', nameEn:'Self-Correcting', icon:'\u{1F504}', desc:'將 10 道錯題練習至答對', descEn:'Fix 10 mistakes to correct' },
-  { id:'daily_first', name:'初戰報到', nameEn:'First Battle', icon:'\u{1F4C5}', desc:'首次參加每日挑戰', descEn:'First daily challenge' },
-  { id:'daily_ace',   name:'一擊即中', nameEn:'Bullseye',  icon:'\u{2B50}',  desc:'每日挑戰答對送出', descEn:'Correct daily challenge submitted' },
-  { id:'daily_7',     name:'七日不怠', nameEn:'7-Day Diligence', icon:'\u{1F5D3}️', desc:'連續 7 天完成每日挑戰', descEn:'7-day daily challenge streak' },
-  { id:'daily_30',    name:'月不間斷', nameEn:'Monthlong', icon:'\u{1F3C6}', desc:'連續 30 天完成每日挑戰', descEn:'30-day daily challenge streak' },
+  { id:'daily_first', name:'初戰報到', nameEn:'First Battle', icon:'\u{1F4C5}', desc:'完成第一次每日懸賞令', descEn:'Complete your first Daily Bounty' },
+  { id:'daily_ace',   name:'一擊即中', nameEn:'Bullseye',  icon:'\u{2B50}',  desc:'正確完成每日懸賞令', descEn:'Submit a correct Daily Bounty answer' },
+  { id:'daily_7',     name:'七日不怠', nameEn:'7-Day Diligence', icon:'\u{1F5D3}️', desc:'連續 7 天完成每日懸賞令', descEn:'Maintain a 7-day Daily Bounty streak' },
+  { id:'daily_30',    name:'月不間斷', nameEn:'Monthlong', icon:'\u{1F3C6}', desc:'連續 30 天完成每日懸賞令', descEn:'Maintain a 30-day Daily Bounty streak' },
 ];
 function _bn(b){ return (typeof I18n!=='undefined' && I18n.getLang && I18n.getLang()==='en' && b.nameEn) ? b.nameEn : b.name; }
 function _bd(b){ return (typeof I18n!=='undefined' && I18n.getLang && I18n.getLang()==='en' && b.descEn) ? b.descEn : b.desc; }
