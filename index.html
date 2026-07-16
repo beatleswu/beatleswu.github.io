@@ -14478,6 +14478,13 @@ window.onload = async () => {
         window.__GO_E9_FLAGS__ = Object.assign({}, window.__GO_E9_SERVER_FLAGS__);
     }
     if (!window.__GO_E9_OWNERSHIP_INITIALIZED__) primeInitialE9ShellOwnership();
+    // shell.js initializes at DOMContentLoaded, before authenticated rollout
+    // flags are available. Re-run the existing idempotent initializer after
+    // the server-side auth handoff so an entitled admin can acquire E9
+    // ownership instead of remaining on the initial Legacy decision.
+    if (window.E9 && typeof window.E9.initShell === 'function') {
+        window.E9.initShell();
+    }
 // ── 偵測使用者切換，清除前一帳號遺留的 localStorage 設定 ──
 (function(uid){
     const _k = 'last_session_uid_v1';
