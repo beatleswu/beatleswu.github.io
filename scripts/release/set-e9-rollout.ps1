@@ -56,12 +56,25 @@ function Get-E9RuntimeHealth {
         if ($probe.exit_code -ne 0) { throw "E9 health probe failed closed: $Name" }
         return $probe.output.Trim()
     }
-    $app = Read-RemoteHealthValue 'e9_rollout_app_health' "docker inspect $($layout.app_service_name) --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'"
-    $scheduler = Read-RemoteHealthValue 'e9_rollout_scheduler_health' "docker inspect $($layout.scheduler_service_name) --format '{{.State.Status}}'"
-    $nginx = Read-RemoteHealthValue 'e9_rollout_nginx_health' "docker inspect $($layout.nginx_service_name) --format '{{.State.Status}}'"
-    $healthz = Read-RemoteHealthValue 'e9_rollout_healthz' "curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $layout.health_url)"
-    if ($app -notmatch '^running\|healthy$' -or $scheduler -ne 'running' -or $nginx -ne 'running' -or $healthz -ne '200') { throw "E9 post-change health gate failed closed: app=$app scheduler=$scheduler nginx=$nginx healthz=$healthz" }
-    return [ordered]@{ app = $app; scheduler = $scheduler; nginx = $nginx; healthz = $healthz }
+    $appCommand = "docker inspect $($layout.app_service_name) --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'"
+    $schedulerCommand = "docker inspect $($layout.scheduler_service_name) --format '{{.State.Status}}'"
+    $nginxCommand = "docker inspect $($layout.nginx_service_name) --format '{{.State.Status}}'"
+    $healthzCommand = "curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $layout.health_url)"
+    $app = $scheduler = $nginx = $healthz = $null
+    for ($attempt = 1; $attempt -le 18; $attempt++) {
+        $app = Read-RemoteHealthValue 'e9_rollout_app_health' $appCommand
+        $scheduler = Read-RemoteHealthValue 'e9_rollout_scheduler_health' $schedulerCommand
+        $nginx = Read-RemoteHealthValue 'e9_rollout_nginx_health' $nginxCommand
+        $healthz = Read-RemoteHealthValue 'e9_rollout_healthz' $healthzCommand
+        if ($app -match '^running\|healthy$' -and $scheduler -eq 'running' -and $nginx -eq 'running' -and $healthz -eq '200') {
+            return [ordered]@{ app = $app; scheduler = $scheduler; nginx = $nginx; healthz = $healthz; attempts = $attempt }
+        }
+        if ($app -match '^(exited|dead|running\|unhealthy)' -or $scheduler -ne 'running' -or $nginx -ne 'running' -or $healthz -ne '200') {
+            throw "E9 post-change health gate failed closed: app=$app scheduler=$scheduler nginx=$nginx healthz=$healthz"
+        }
+        Start-Sleep -Seconds 5
+    }
+    throw "E9 post-change health gate timed out: app=$app scheduler=$scheduler nginx=$nginx healthz=$healthz"
 }
 
 function Get-E9RuntimeFlags {
