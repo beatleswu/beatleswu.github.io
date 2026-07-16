@@ -265,3 +265,18 @@ tooling's public-verification step specifically re-fetches
 (`?deploy-verify=<sha>`, matching `deploy-static.ps1`'s own proven pattern)
 so a stale CDN/browser cache cannot mask a successful switch as a failure,
 or vice versa.
+
+## Scale-aware public verification budget
+
+Public hash verification uses a bounded deadline derived from manifest file
+count, verification concurrency, per-request timeout, and attempt count.
+The budget includes 30 seconds of startup allowance, 30 seconds of completion
+allowance, and a 60-second scheduling/TLS/cache safety margin. It is clamped
+between 120 and 7,200 seconds. Attempt count means the initial request plus
+configured retries; the current verifier uses one attempt.
+
+The deployment record reports file count, verified results, HTTP failures,
+hash mismatches, request timeouts, global-deadline cancellations, unexpected
+exceptions, and remaining work. A global-deadline cancellation is not
+reported as a request timeout. Operators must not manually alter verifier
+timeouts to bypass this contract.
