@@ -44,8 +44,19 @@ function Invoke-Git {
         # PowerShell 5 promotes native stderr to NativeCommandError when the
         # module-wide ErrorActionPreference is Stop. Keep stderr separate and
         # judge success only by git's actual process exit code.
-        $stdout = @(& git @Arguments 2> $stderrPath)
-        $exitCode = $LASTEXITCODE
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            # PowerShell 5 can still promote redirected native stderr to a
+            # terminating NativeCommandError under ErrorActionPreference=Stop.
+            # Relax only this native invocation; restore the module policy
+            # immediately and continue to judge success by the exit code.
+            $ErrorActionPreference = 'Continue'
+            $stdout = @(& git @Arguments 2> $stderrPath)
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
         $stderr = if (Test-Path -LiteralPath $stderrPath) {
             Get-Content -Raw -LiteralPath $stderrPath
         }
