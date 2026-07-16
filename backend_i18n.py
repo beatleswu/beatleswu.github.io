@@ -50,16 +50,16 @@ BADGE_EN = {
     'mistake_30':     ('Correction Veteran',  'Master 30 mistakes'),
     'mistake_50':     ('Gold from Errors',    'Master 50 mistakes'),
     'mistake_100':    ('Hundred Corrected',   'Master 100 mistakes'),
-    'daily_first': ('First Check-in',       'Join the daily challenge for the first time'),
-    'daily_ace':   ('One-shot',             'Submit a correct daily challenge'),
-    'daily_3':     ('Three-day Streak',     'Complete the daily challenge 3 days in a row'),
-    'daily_7':     ('Seven-day Diligence',  'Complete the daily challenge 7 days in a row'),
-    'daily_14':    ('Two-week Growth',      'Complete the daily challenge 14 days in a row'),
-    'daily_30':    ('Month Unbroken',       'Complete the daily challenge 30 days in a row'),
-    'daily_60':    ('Sixty-day Resolve',    'Complete the daily challenge 60 days in a row'),
-    'daily_100':   ('Hundred-day Forge',    'Complete the daily challenge 100 days in a row'),
-    'daily_200':   ('Two-Hundred Persistence','Complete the daily challenge 200 days in a row'),
-    'daily_365':   ('Year of Practice',     'Complete the daily challenge 365 days in a row'),
+    'daily_first': ('First Check-in',       'Join the Daily Bounty for the first time'),
+    'daily_ace':   ('One-shot',             'Submit a correct Daily Bounty'),
+    'daily_3':     ('Three-day Streak',     'Complete the Daily Bounty 3 days in a row'),
+    'daily_7':     ('Seven-day Diligence',  'Complete the Daily Bounty 7 days in a row'),
+    'daily_14':    ('Two-week Growth',      'Complete the Daily Bounty 14 days in a row'),
+    'daily_30':    ('Month Unbroken',       'Complete the Daily Bounty 30 days in a row'),
+    'daily_60':    ('Sixty-day Resolve',    'Complete the Daily Bounty 60 days in a row'),
+    'daily_100':   ('Hundred-day Forge',    'Complete the Daily Bounty 100 days in a row'),
+    'daily_200':   ('Two-Hundred Persistence','Complete the Daily Bounty 200 days in a row'),
+    'daily_365':   ('Year of Practice',     'Complete the Daily Bounty 365 days in a row'),
     'rank_19k': ('Journey Begins',   'Reach rank 19k'),
     'rank_18k': ('First Steps',      'Reach rank 18k'),
     'rank_17k': ('Early Progress',   'Reach rank 17k'),
@@ -142,4 +142,3 @@ def skill_node_en(name_zh):
 
 def title_en(title_id):
     return TITLE_EN.get(title_id)
-
