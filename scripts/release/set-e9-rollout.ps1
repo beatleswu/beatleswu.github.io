@@ -23,7 +23,7 @@ if ($Operation -in @('enable-admin-only','disable','rollback')) {
 $helperPath = Join-Path $repoRoot 'scripts\release\e9_rollout_config.py'
 $helper = Get-Content -Raw -LiteralPath $helperPath
 $envPath = $layout.production_env_path
-$envDir = Split-Path -Parent $envPath
+$envDir = $envPath.Substring(0, $envPath.LastIndexOf('/'))
 $backupDir = "$envDir/.e9-rollout-backups"
 $auditPath = "$($layout.remote_release_staging_directory.TrimEnd('/'))/e9-rollout-audit.jsonl"
 $lockPath = "$envPath.e9-rollout.lock"
