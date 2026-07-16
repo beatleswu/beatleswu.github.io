@@ -1505,6 +1505,7 @@ const I18n = (() => {
         'index.suicide_warn':   { en: '⛔ Suicide point! No liberties after playing here.', zh: '⛔ 禁著點！此處落子後無氣' },
         'index.gnugo_thinking': { en: '🤖 Opponent reply is being calculated…', zh: '🤖 對手回應計算中…' },
         'index.battle.fighting':{ en: '⚔️ In battle', zh: '⚔️ 對戰中' },
+        'index.battle.adventure_encounter': { en: '🗺️ Adventure Encounter', zh: '🗺️ 冒險遭遇' },
         'index.srs.save_fail':  { en: 'Answer not saved — please retry or refresh.', zh: '答題記錄寫入失敗，這題尚未儲存。請稍後重試或重新整理頁面。' },
         'index.srs.save_fail_detail': { en: 'Answer not saved: {e}', zh: '答題記錄寫入失敗：{e}' },
 

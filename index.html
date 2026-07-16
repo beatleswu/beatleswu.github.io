@@ -7702,7 +7702,7 @@ async function submitSRS(grade){
     let shouldAdvance = true;
     try {
         // ── 怪物 UI 更新 ────────────────────────────────────────────
-        if (data.monster) {
+        if (data.monster && !_isAdventureZonePractice()) {
             updateMonsterUI(data.monster);
             const mtype = data.monster.type || _lastMonsterType;
             if (data.monster.defeated) {
@@ -8189,6 +8189,22 @@ function updateMonsterUI(monster) {
     }
 }
 
+function _isAdventureZonePractice() {
+    return Array.isArray(_adventureActiveQuestions) && _adventureActiveQuestions.length > 0;
+}
+
+function renderAdventureZoneMonster(q) {
+    if (!q) return;
+    updateMonsterUI({
+        type: q.monster_type || 'goblin',
+        name: q.monster_name,
+        name_en: q.monster_name_en,
+        avatar: q.monster_avatar,
+        hp: q.monster_hp || 100,
+        max_hp: q.monster_hp || 100,
+    });
+}
+
 function initMonsterForQuestion(q) {
     if (!q) return;
     const hint = document.getElementById('attack-hint');
@@ -8198,6 +8214,11 @@ function initMonsterForQuestion(q) {
     if (statusEl) statusEl.textContent = I18n.t('index.battle.fighting');
 
     // 從戰場 API 取得真實血量、玩家 HP、技能、SP
+    if (_isAdventureZonePractice()) {
+        renderAdventureZoneMonster(q);
+        return;
+    }
+
     fetch('/api/monster/status', { credentials: 'include' })
         .then(r => r.json())
         .then(data => {
@@ -9051,7 +9072,7 @@ function onBoardClick(bx,by){
             return;
         }
         if(_challengeId&&window._challengeWrongHandler){window._challengeWrongHandler();}
-        if(currentQ&&!_dailyLimitReached)fetch('/api/srs/review',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:currentQ.id,grade:0,unit_name:null,unit_done:false,..._currentReviewMetadata()})}).then(r=>r.json()).then(d=>{if(d.error==='daily_limit'){_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();return;}if(d.error)return;_syncGuildQuestProgress();if(d.monster){updateMonsterUI(d.monster);if(!d.monster.defeated)monsterSpeakTaunt(d.monster.type||_lastMonsterType);}if(d.player)updatePlayerHPUI(d.player);if(d.quest_updates)updateQuestPanel(d.quest_updates);}).catch(()=>{});
+        if(currentQ&&!_dailyLimitReached)fetch('/api/srs/review',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:currentQ.id,grade:0,unit_name:null,unit_done:false,..._currentReviewMetadata()})}).then(r=>r.json()).then(d=>{if(d.error==='daily_limit'){_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();return;}if(d.error)return;_syncGuildQuestProgress();if(d.monster&&!_isAdventureZonePractice()){updateMonsterUI(d.monster);if(!d.monster.defeated)monsterSpeakTaunt(d.monster.type||_lastMonsterType);}if(d.player)updatePlayerHPUI(d.player);if(d.quest_updates)updateQuestPanel(d.quest_updates);}).catch(()=>{});
         setMsg('🤖 GnuGo 思考中…','err');
         askGnuGo(opp).then(mv=>{
             if(mv){ playStone(mv.x,mv.y,opp,true); }
@@ -14107,6 +14128,7 @@ async function loadVoidZoneCount() {
 // ── 啟動今日星軌修煉 ──────────────────────────────────────────────
 async function startDailyTraining() {
     window._nqMapActive = false;
+    _adventureActiveQuestions = null;
     // 若 queue 尚未載入（API 還在跑），先等一次 fetch
     if (_dailyTrainingQueue.length === 0) {
         await loadDailyTrainingStatus();
