@@ -370,6 +370,12 @@ def test_invoke_git_treats_native_stderr_as_diagnostic_and_checks_exit_code():
     assert "if ($exitCode -ne 0)" in content
 
 
+def test_detached_worktree_cleanup_uses_checked_git_helper():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    assert "Invoke-Git -Arguments @('worktree', 'remove', '--force', $Path)" in content
+    assert "& git worktree remove --force $Path" not in content
+
+
 # ---------------------------------------------------------------------------
 # RELEASE-TOOLING-HOTFIX-02: ARM64 build contract
 # ---------------------------------------------------------------------------

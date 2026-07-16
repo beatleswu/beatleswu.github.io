@@ -147,7 +147,7 @@ function Remove-DetachedWorktree {
         if (Test-Path $Path) {
             Push-Location (Get-RepoRoot)
             try {
-                & git worktree remove --force $Path | Out-Null
+                Invoke-Git -Arguments @('worktree', 'remove', '--force', $Path) | Out-Null
             }
             finally {
                 Pop-Location
