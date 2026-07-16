@@ -31,8 +31,8 @@ $operationArgs = "--operation $(Quote-PosixShellArgument $Operation) --env-path 
 if ($Operation -eq 'dry-run') { $operationArgs += ' --desired enable-admin-only' }
 
 function Invoke-E9Helper {
-    param([string]$Args)
-    $remoteScript = "python3 - $Args <<'__E9_ROLLOUT_HELPER__'`n$helper`n__E9_ROLLOUT_HELPER__"
+    param([string]$ArgumentText)
+    $remoteScript = "python3 - $ArgumentText <<'__E9_ROLLOUT_HELPER__'`n$helper`n__E9_ROLLOUT_HELPER__"
     $result = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name 'e9_rollout_config' -ScriptText $remoteScript
     if ($result.exit_code -ne 0) { throw "E9 setter failed closed: $($result.output)" }
     try { return ($result.output | ConvertFrom-Json) } catch { throw 'E9 setter returned invalid sanitized JSON.' }
@@ -77,7 +77,7 @@ function Assert-E9RuntimeFlags {
     if ($ExpectedOperation -eq 'disable' -and ($Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'false' -or $Flags.E9_ROLLOUT_ADMIN_ENABLED -ne 'false')) { throw 'E9 disabled runtime flags failed closed.' }
 }
 
-$result = Invoke-E9Helper -Args $operationArgs
+$result = Invoke-E9Helper -ArgumentText $operationArgs
 if ($Operation -in @('enable-admin-only','disable','rollback')) {
     try {
         Invoke-E9ComposeRecreate
@@ -90,7 +90,7 @@ if ($Operation -in @('enable-admin-only','disable','rollback')) {
     catch {
         if ($Operation -eq 'enable-admin-only') {
             try {
-                Invoke-E9Helper -Args ("--operation disable --env-path $(Quote-PosixShellArgument $envPath) --backup-dir $(Quote-PosixShellArgument $backupDir) --audit-path $(Quote-PosixShellArgument $auditPath) --lock-path $(Quote-PosixShellArgument $lockPath)") | Out-Null
+                Invoke-E9Helper -ArgumentText ("--operation disable --env-path $(Quote-PosixShellArgument $envPath) --backup-dir $(Quote-PosixShellArgument $backupDir) --audit-path $(Quote-PosixShellArgument $auditPath) --lock-path $(Quote-PosixShellArgument $lockPath)") | Out-Null
                 Invoke-E9ComposeRecreate
             } catch {}
         }
