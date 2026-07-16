@@ -50,12 +50,18 @@ function Invoke-E9ComposeRecreate {
 }
 
 function Get-E9RuntimeHealth {
-    $command = "docker inspect $($layout.app_service_name) --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'; docker inspect $($layout.scheduler_service_name) --format '{{.State.Status}}'; docker inspect $($layout.nginx_service_name) --format '{{.State.Status}}'; curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $layout.health_url)"
-    $result = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name 'e9_rollout_health' -Command $command
-    if ($result.exit_code -ne 0) { throw 'E9 health query failed closed.' }
-    $lines = @($result.output -split "`r?`n" | Where-Object { $_ -ne '' })
-    if ($lines.Count -lt 4 -or $lines[0] -notmatch '^running\|healthy$' -or $lines[1] -ne 'running' -or $lines[2] -ne 'running' -or $lines[3] -ne '200') { throw 'E9 post-change health gate failed closed.' }
-    return [ordered]@{ app = $lines[0]; scheduler = $lines[1]; nginx = $lines[2]; healthz = $lines[3] }
+    function Read-RemoteHealthValue {
+        param([string]$Name, [string]$Command)
+        $probe = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name $Name -Command $Command
+        if ($probe.exit_code -ne 0) { throw "E9 health probe failed closed: $Name" }
+        return $probe.output.Trim()
+    }
+    $app = Read-RemoteHealthValue 'e9_rollout_app_health' "docker inspect $($layout.app_service_name) --format '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}'"
+    $scheduler = Read-RemoteHealthValue 'e9_rollout_scheduler_health' "docker inspect $($layout.scheduler_service_name) --format '{{.State.Status}}'"
+    $nginx = Read-RemoteHealthValue 'e9_rollout_nginx_health' "docker inspect $($layout.nginx_service_name) --format '{{.State.Status}}'"
+    $healthz = Read-RemoteHealthValue 'e9_rollout_healthz' "curl -sS -o /dev/null -w '%{http_code}' $(Quote-PosixShellArgument $layout.health_url)"
+    if ($app -notmatch '^running\|healthy$' -or $scheduler -ne 'running' -or $nginx -ne 'running' -or $healthz -ne '200') { throw "E9 post-change health gate failed closed: app=$app scheduler=$scheduler nginx=$nginx healthz=$healthz" }
+    return [ordered]@{ app = $app; scheduler = $scheduler; nginx = $nginx; healthz = $healthz }
 }
 
 function Get-E9RuntimeFlags {
