@@ -64,7 +64,7 @@ def test_adventure_i18n_key_and_sw_version():
     assert "index.battle.adventure_encounter" in I18N
     assert "Adventure Encounter" in I18N
     assert "冒險遭遇" in I18N
-    assert re.search(r"const VERSION\s*=\s*'v191-e9-newbie-village-integration'", SW)
+    assert re.search(r"const VERSION\s*=\s*'v192-e9-admin-shell-activation'", SW)
 
 
 def test_ten_zone_keys_are_defined():

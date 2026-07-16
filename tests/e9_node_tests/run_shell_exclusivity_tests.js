@@ -21,14 +21,16 @@ const FOCUSABLE_SELECTOR = [
 
 let passCount = 0;
 let failures = [];
+let testPromises = [];
 
 function test(name, fn) {
-  Promise.resolve()
+  const promise = Promise.resolve()
     .then(fn)
     .then(() => { passCount++; })
     .catch((err) => {
       failures.push({ name, error: err && err.stack ? err.stack : String(err) });
     });
+  testPromises.push(promise);
 }
 
 class FakeNode {
@@ -170,6 +172,7 @@ function createHarness(opts) {
     e9Root,
     e9Button,
     loadCalls,
+    setFlags: (next) => Object.assign(flags, next),
     flush: () => new Promise((resolve) => setImmediate(resolve)),
   };
 }
@@ -267,8 +270,30 @@ test('initShell is idempotent for fragment mounts', async () => {
   assert.strictEqual(h.loadCalls.length, firstCount);
 });
 
+test('auth handoff can reacquire E9 ownership after initial legacy init', async () => {
+  const h = createHarness({ flags: {} });
+  await h.flush();
+  assert.strictEqual(h.win.E9.getActiveShell(), 'legacy');
+
+  h.win.__GO_E9_ACTIVE_SHELL__ = 'e9';
+  h.setFlags({
+    e9Shell: true,
+    e9TopHud: true,
+    e9LeftNav: true,
+    e9RightCards: true,
+    e9BottomDock: true,
+    e9WorldStage: true,
+  });
+  h.win.E9.initShell();
+  await h.flush();
+
+  assert.strictEqual(h.win.E9.getActiveShell(), 'e9');
+  assert.strictEqual(h.e9Root.hidden, false);
+  assert.strictEqual(h.legacyRoots[0].hidden, true);
+});
+
 setImmediate(() => {
-  setImmediate(() => {
+  Promise.all(testPromises).then(() => {
     if (failures.length) {
       console.error('Shell exclusivity tests failed:');
       failures.forEach((f) => {

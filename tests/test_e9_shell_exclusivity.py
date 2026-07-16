@@ -28,6 +28,14 @@ def test_index_gates_legacy_home_runtime_when_e9_owns_shell():
     assert "if (window.__GO_E9_ACTIVE_SHELL__ === 'e9') return;" in html
 
 
+def test_authenticated_rollout_handoff_reinitializes_shell_after_dom_ready():
+    html = _read(INDEX_HTML)
+    handoff = html.index("window.__GO_E9_SERVER_FLAGS__ = Object.assign")
+    reinit = html.index("window.E9.initShell();", handoff)
+    assert reinit > handoff
+    assert "typeof window.E9.initShell === 'function'" in html
+
+
 def test_shell_js_defines_exclusive_shell_contract():
     shell_js = _read(SHELL_JS)
     for selector in [
