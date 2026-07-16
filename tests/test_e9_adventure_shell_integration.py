@@ -34,7 +34,7 @@ OLD_SW_VERSION = "v183-e9-1d2-layout-rwd"
 # see RELEASE-FIX-B, docs/planning/release_fix_b_e9_i18n_fallback.md).
 # Bumped in 2026-07-15's intro narration browser-TTS contract fix (the
 # shell version const is shared by both E9 and legacy static routes).
-NEW_SW_VERSION = "v187-adventure-zone-encounter-context"
+NEW_SW_VERSION = "v188-adventure-encounter-safe-render"
 
 
 def _read(path):

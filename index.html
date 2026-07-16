@@ -8150,12 +8150,18 @@ function monsterArtKey(monster) {
 }
 function monsterArtSrc(monster, defeated=false) {
     if (defeated || (monster && monster.defeated)) return '/assets/monsters/defeated_chibi.png';
-    if (monster && typeof monster.avatar === 'string' && monster.avatar.startsWith('/assets/')) return monster.avatar;
+    if (monster && typeof monster.avatar === 'string' && /^\/assets\/[A-Za-z0-9._/-]+\.png$/.test(monster.avatar)) return monster.avatar;
     return `/assets/monsters/${monsterArtKey(monster)}_chibi.png`;
 }
 function setMonsterAvatar(el, monster, defeated=false) {
     if (!el) return;
-    el.innerHTML = `<img class="monster-art" src="${monsterArtSrc(monster, defeated)}" alt="" loading="lazy" decoding="async">`;
+    const img = document.createElement('img');
+    img.className = 'monster-art';
+    img.src = monsterArtSrc(monster, defeated);
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    el.replaceChildren(img);
 }
 
 function updateMonsterUI(monster) {
@@ -8195,6 +8201,8 @@ function _isAdventureZonePractice() {
 
 function renderAdventureZoneMonster(q) {
     if (!q) return;
+    const contextLabel = document.getElementById('battle-status');
+    if (contextLabel) contextLabel.textContent = I18n.t('index.battle.adventure_encounter');
     updateMonsterUI({
         type: q.monster_type || 'goblin',
         name: q.monster_name,
@@ -14129,6 +14137,8 @@ async function loadVoidZoneCount() {
 async function startDailyTraining() {
     window._nqMapActive = false;
     _adventureActiveQuestions = null;
+    const contextLabel = document.getElementById('battle-status');
+    if (contextLabel) contextLabel.textContent = I18n.t('index.battle.fighting');
     // 若 queue 尚未載入（API 還在跑），先等一次 fetch
     if (_dailyTrainingQueue.length === 0) {
         await loadDailyTrainingStatus();

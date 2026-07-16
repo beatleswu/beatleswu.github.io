@@ -26,6 +26,27 @@ def test_adventure_mode_guards_both_answer_paths():
     assert "d.monster&&!_isAdventureZonePractice()" in INDEX
 
 
+def test_adventure_renderer_uses_i18n_context_marker_and_daily_reset_hides_it():
+    renderer = INDEX.index("function renderAdventureZoneMonster")
+    reset = INDEX.index("async function startDailyTraining")
+    assert "I18n.t('index.battle.adventure_encounter')" in INDEX[renderer:reset]
+    assert "I18n.t('index.battle.fighting')" in INDEX[reset:reset + 600]
+    assert INDEX.count("id=\"monster-context-label\"") == 0
+
+
+def test_avatar_rendering_uses_safe_dom_assignment_and_asset_validation():
+    start = INDEX.index("function monsterArtSrc")
+    end = INDEX.index("function updateMonsterUI", start)
+    block = INDEX[start:end]
+    assert "document.createElement('img')" in block
+    assert "img.src = monsterArtSrc" in block
+    assert "el.replaceChildren(img)" in block
+    assert "innerHTML" not in block
+    assert "javascript:" not in block.lower()
+    assert "startsWith('/assets/')" not in block
+    assert "^\\/assets\\/[A-Za-z0-9._/-]+\\.png$" in block
+
+
 def test_daily_training_clears_adventure_context():
     start = INDEX.index("async function startDailyTraining")
     assert "_adventureActiveQuestions = null;" in INDEX[start:start + 500]
@@ -43,7 +64,7 @@ def test_adventure_i18n_key_and_sw_version():
     assert "index.battle.adventure_encounter" in I18N
     assert "Adventure Encounter" in I18N
     assert "冒險遭遇" in I18N
-    assert re.search(r"const VERSION\s*=\s*'v187-adventure-zone-encounter-context'", SW)
+    assert re.search(r"const VERSION\s*=\s*'v188-adventure-encounter-safe-render'", SW)
 
 
 def test_ten_zone_keys_are_defined():

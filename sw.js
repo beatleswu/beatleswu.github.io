@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v187-adventure-zone-encounter-context';
+const VERSION     = 'v188-adventure-encounter-safe-render';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 
