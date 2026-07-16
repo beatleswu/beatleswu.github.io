@@ -360,6 +360,13 @@ def test_build_script_uses_clean_tree_and_detached_worktree():
         assert token in content
 
 
+def test_invoke_git_treats_native_stderr_as_diagnostic_and_checks_exit_code():
+    content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    assert "2> $stderrPath" in content
+    assert "$exitCode = $LASTEXITCODE" in content
+    assert "if ($exitCode -ne 0)" in content
+
+
 # ---------------------------------------------------------------------------
 # RELEASE-TOOLING-HOTFIX-02: ARM64 build contract
 # ---------------------------------------------------------------------------

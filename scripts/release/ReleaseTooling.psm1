@@ -38,10 +38,34 @@ function Invoke-Git {
         [string]$WorkingDirectory = (Get-RepoRoot)
     )
     Push-Location $WorkingDirectory
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("go-odyssey-git-stderr-" + [guid]::NewGuid().ToString('N') + '.log')
     try {
-        return (& git @Arguments)
+        # Git writes normal progress such as `Preparing worktree...` to stderr.
+        # PowerShell 5 promotes native stderr to NativeCommandError when the
+        # module-wide ErrorActionPreference is Stop. Keep stderr separate and
+        # judge success only by git's actual process exit code.
+        $stdout = @(& git @Arguments 2> $stderrPath)
+        $exitCode = $LASTEXITCODE
+        $stderr = if (Test-Path -LiteralPath $stderrPath) {
+            Get-Content -Raw -LiteralPath $stderrPath
+        }
+        else {
+            ''
+        }
+        if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+            Write-Host $stderr.TrimEnd()
+        }
+        if ($exitCode -ne 0) {
+            $diagnostic = $stderr.Trim()
+            if ([string]::IsNullOrWhiteSpace($diagnostic)) {
+                $diagnostic = ($stdout -join [Environment]::NewLine).Trim()
+            }
+            throw "git $($Arguments -join ' ') failed with exit code $exitCode`: $diagnostic"
+        }
+        return $stdout
     }
     finally {
+        Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
         Pop-Location
     }
 }
