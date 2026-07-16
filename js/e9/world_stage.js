@@ -31,6 +31,55 @@
     return fallback;
   }
 
+  function renderBeginnerVillageMainline(root, zone) {
+    var panel = root.querySelector('#e9-newbie-mainline');
+    if (!panel || !zone || zone.key !== 'k26_30') return;
+
+    var setText = function (selector, key, fallback) {
+      var el = panel.querySelector(selector);
+      if (el) el.textContent = t(key, fallback);
+    };
+    setText('#e9-newbie-mainline-kicker', 'adventure.newbie.first_stop', 'First Stop');
+    setText('#e9-newbie-mainline-title', 'adventure.newbie.first_stop_title', 'First Stop: Beginner Village');
+    setText('#e9-newbie-mainline-summary', 'adventure.newbie.summary', 'Defeat the village monsters, complete your training, and challenge the Village Examiner.');
+    setText(
+      '#e9-newbie-mainline-boss',
+      zone.bossAvailable ? 'adventure.newbie.boss_ready' : 'adventure.newbie.objective',
+      zone.bossAvailable ? 'Village Examiner: prepare for your challenge.' : 'Keep training to challenge the Village Examiner.'
+    );
+    setText('#e9-newbie-mainline-goal', 'adventure.newbie.first_star_hint', 'Defeat the boss to earn your first star.');
+
+    var steps = panel.querySelector('#e9-newbie-mainline-steps');
+    if (steps) {
+      steps.innerHTML = '';
+      [
+        ['adventure.newbie.step_battle', 'Solve and battle'],
+        ['adventure.newbie.step_progress', 'Build progress'],
+        ['adventure.newbie.step_boss', 'Challenge the boss'],
+      ].forEach(function (item) {
+        var li = document.createElement('li');
+        li.textContent = t(item[0], item[1]);
+        steps.appendChild(li);
+      });
+    }
+
+    var cta = panel.querySelector('#e9-newbie-mainline-cta');
+    if (cta) {
+      var ctaKey = zone.bossAvailable
+        ? 'adventure.newbie.cta_boss'
+        : (zone.cleared || zone.stars > 0
+          ? 'adventure.newbie.cta_continue'
+          : 'adventure.newbie.cta_begin');
+      cta.textContent = t(ctaKey, 'Begin the Beginner Village Adventure');
+      cta.onclick = function () {
+        if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+          window.E9.startAdventureFromE9(zone.key);
+        }
+      };
+    }
+    panel.hidden = false;
+  }
+
   function renderZones(root, zones) {
     var statusEl = root.querySelector('#e9-world-stage-status');
     var zonesEl = root.querySelector('#e9-world-stage-zones');
@@ -111,6 +160,8 @@
       // right_cards.js, live-verified during E9.1A2 Rev2).
       statusEl.removeAttribute('data-i18n');
     }
+    var beginnerVillage = zones.filter(function (zone) { return zone.key === 'k26_30'; })[0];
+    renderBeginnerVillageMainline(root, beginnerVillage);
   }
 
   function recoverToLegacy(reason) {

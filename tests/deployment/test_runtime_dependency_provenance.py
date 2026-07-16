@@ -18,13 +18,15 @@ def load_manifest():
 def test_manifest_exists_and_valid():
     data = load_manifest()
     assert isinstance(data["files"], list)
-    assert len(data["files"]) == 73
+    assert len(data["files"]) == 77
 
 
 def test_manifest_covers_every_recovered_runtime_file():
     data = load_manifest()
     paths = {entry["path"] for entry in data["files"]}
     expected = {
+        "js/e9/feature_flags.js", "js/e9/world_stage.js",
+        "css/e9/world_stage.css", "components/adventure/world_stage.html",
         "backend_i18n.py", "chapter_i18n.py", "explain_overrides.py", "grimoire_api.py",
         "katago_explain.py", "monster_taxonomy.py", "question_taxonomy.py", "scheduler.py",
         "community_leaderboard_rewards_scheduler.py",
@@ -148,7 +150,10 @@ def test_dockerfile_explicitly_copies_every_provenance_tracked_file():
         filename = path.rsplit("/", 1)[-1]
         # a directory-level COPY (e.g. `COPY wgo ./wgo`) covers every file
         # inside it; a flat-file COPY lists the filename directly.
-        directory = path.split("/", 1)[0] if "/" in path else None
-        assert path in tokens or filename in tokens or directory in tokens, (
+        directories = [
+            "/".join(path.split("/")[:index])
+            for index in range(1, len(path.split("/")))
+        ]
+        assert path in tokens or filename in tokens or any(directory in tokens for directory in directories), (
             f"Dockerfile must explicitly COPY {path}"
         )
