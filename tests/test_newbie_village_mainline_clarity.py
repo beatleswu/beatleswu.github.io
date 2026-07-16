@@ -62,3 +62,20 @@ def test_first_journey_does_not_change_adventure_question_or_battlefield_boundar
 
 def test_service_worker_version_is_current_for_this_frontend_change():
     assert "const VERSION     = 'v190-newbie-village-mainline-clarity'" in SW
+
+
+def test_beginner_village_post_answer_continuation_controls_are_localized():
+    assert "isBeginnerVillageAdventureResult" in INDEX
+    assert "adventure.newbie.continue_training" in I18N
+    assert "adventure.newbie.return_map" in I18N
+    assert "adventure.newbie.encounter_complete" in I18N
+    assert "showBeginnerVillageEncounterContinuation" in INDEX
+    assert "returnToAdventureMapAfterEncounter" in INDEX
+    assert "shouldAdvance = false" in INDEX
+
+
+def test_post_answer_continuation_does_not_claim_fixed_progress_increment():
+    start = INDEX.index("function showBeginnerVillageEncounterContinuation")
+    end = INDEX.index("function returnToAdventureMapAfterEncounter", start)
+    block = INDEX[start:end]
+    assert "+1" not in block

@@ -6474,6 +6474,7 @@
                     </div>
                 </div>
                 <div class="btn-row">
+                    <button class="btn-nav" id="btn-adventure-return" onclick="returnToAdventureMapAfterEncounter()" style="display:none;"></button>
                     <button class="btn-nav" onclick="prevQuestion()" data-i18n="index.btn.prev">◀ 上一題</button>
                     <button class="btn-nav" id="btn-hint" onclick="useHintTicket()" style="display:none;"><span data-i18n="index.btn.hint">💡 提示</span> <span id="hint-count"></span></button>
                     <button class="btn-nav teal-btn" id="btn-show-solution" onclick="showSolutionNow()" data-sfx="none" style="display:none;" data-i18n="index.btn.solution">▶ 看正解</button>
@@ -7801,6 +7802,10 @@ async function submitSRS(grade){
         } else if (grade >= 3) {
             _zoneWrongStreak = 0;
         }
+        if (isBeginnerVillageAdventureResult()) {
+            showBeginnerVillageEncounterContinuation();
+            shouldAdvance = false;
+        }
     } finally {
         if (shouldAdvance && _premiumWeeklyMode) {
             try {
@@ -8225,6 +8230,34 @@ function updateMonsterUI(monster) {
 
 function _isAdventureZonePractice() {
     return Array.isArray(_adventureActiveQuestions) && _adventureActiveQuestions.length > 0;
+}
+
+function isBeginnerVillageAdventureResult() {
+    if (!_isAdventureZonePractice()) return false;
+    const zoneKey = new URLSearchParams(location.search).get('zone') || '';
+    if (zoneKey === 'k26_30') return true;
+    return _adventureActiveQuestions.some(q => /新手村|Beginner Village/i.test(String(q?.topic || '')));
+}
+
+function _setBeginnerVillagePostAnswerControls(active) {
+    const next = document.querySelector('.btn-row button[onclick="nextQuestion()"]');
+    const back = document.getElementById('btn-adventure-return');
+    if (next) next.textContent = active ? I18n.t('adventure.newbie.continue_training') : I18n.t('index.btn.next');
+    if (back) {
+        back.textContent = I18n.t('adventure.newbie.return_map');
+        back.style.display = active ? 'inline-flex' : 'none';
+    }
+}
+
+function showBeginnerVillageEncounterContinuation() {
+    if (!isBeginnerVillageAdventureResult()) return false;
+    _setBeginnerVillagePostAnswerControls(true);
+    setMsg(I18n.t('adventure.newbie.encounter_complete'), 'ok');
+    return true;
+}
+
+function returnToAdventureMapAfterEncounter() {
+    window.location.href = '/?adventure=1';
 }
 
 function renderAdventureZoneMonster(q) {
@@ -8972,6 +9005,7 @@ function _revealExplanationPanel(panel) {
 }
 
 async function loadQuestion(q){
+    _setBeginnerVillagePostAnswerControls(false);
     _hideRecommend();   // 切題時清掉推薦
     // Hide welcome screen, show practice elements
     const ws = document.getElementById('welcome-state');
@@ -9131,6 +9165,7 @@ function onBoardClick(bx,by){
             if(sBtn) sBtn.style.display = 'inline-block';
         });
         showExplanation({x, y});
+        showBeginnerVillageEncounterContinuation();
         return;
     }
     playStone(x,y,playerColor);currentNode=matched;
