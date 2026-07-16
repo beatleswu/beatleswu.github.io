@@ -3,7 +3,9 @@
 `scripts/release/set-e9-rollout.ps1` is the only supported operator for the
 four E9 rollout settings in Production. It uses the reviewed SSH stdin path
 from `ReleaseTooling.psm1`; it never downloads or prints the protected
-`/opt/go-odyssey/.env`.
+`/opt/go-odyssey/.env`. The host's existing non-interactive `sudo` policy is
+used only to run this fixed helper as the file owner; no shell command or
+arbitrary environment editor is accepted.
 
 ```powershell
 # Read-only inspection

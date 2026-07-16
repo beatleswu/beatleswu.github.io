@@ -193,15 +193,20 @@ def backup(env_path: Path, backup_dir: Path, snapshot):
         counter += 1
         path = backup_dir / f"{stamp}-{snapshot['sha256'][:12]}-{counter}.env"
         meta_path = path.with_suffix(".json")
-    shutil.copyfile(env_path, path)
-    if hasattr(os, "chown"):
-        os.chown(path, snapshot["uid"], snapshot["gid"])
-    os.chmod(path, snapshot["mode"])
-    metadata = {"marker": TARGET_MARKER, "env_path": str(env_path), "backup_path": str(path), "backup_sha256": sha256_file(path), "original": snapshot}
-    meta_path.write_text(json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8")
-    if hasattr(os, "chown"):
-        os.chown(meta_path, snapshot["uid"], snapshot["gid"])
-    os.chmod(meta_path, 0o600)
+    try:
+        shutil.copyfile(env_path, path)
+        if hasattr(os, "chown"):
+            os.chown(path, snapshot["uid"], snapshot["gid"])
+        os.chmod(path, snapshot["mode"])
+        metadata = {"marker": TARGET_MARKER, "env_path": str(env_path), "backup_path": str(path), "backup_sha256": sha256_file(path), "original": snapshot}
+        meta_path.write_text(json.dumps(metadata, sort_keys=True) + "\n", encoding="utf-8")
+        if hasattr(os, "chown"):
+            os.chown(meta_path, snapshot["uid"], snapshot["gid"])
+        os.chmod(meta_path, 0o600)
+    except Exception:
+        path.unlink(missing_ok=True)
+        meta_path.unlink(missing_ok=True)
+        raise
     return {"id": path.stem, "path": str(path), "sha256": metadata["backup_sha256"]}
 
 

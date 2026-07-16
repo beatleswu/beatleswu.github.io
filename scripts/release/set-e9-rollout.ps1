@@ -32,7 +32,7 @@ if ($Operation -eq 'dry-run') { $operationArgs += ' --desired enable-admin-only'
 
 function Invoke-E9Helper {
     param([string]$ArgumentText)
-    $remoteScript = "python3 - $ArgumentText <<'__E9_ROLLOUT_HELPER__'`n$helper`n__E9_ROLLOUT_HELPER__"
+    $remoteScript = "sudo -n python3 - $ArgumentText <<'__E9_ROLLOUT_HELPER__'`n$helper`n__E9_ROLLOUT_HELPER__"
     $result = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name 'e9_rollout_config' -ScriptText $remoteScript
     if ($result.exit_code -ne 0) { throw "E9 setter failed closed: $($result.output)" }
     try { return ($result.output | ConvertFrom-Json) } catch { throw 'E9 setter returned invalid sanitized JSON.' }
