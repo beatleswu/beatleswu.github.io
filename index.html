@@ -1601,6 +1601,33 @@
         border-radius: inherit;
         background: linear-gradient(90deg, #0d9488, #14b8a6);
     }
+    .adventure-newbie-mainline {
+        display: grid;
+        gap: 10px;
+        padding: 4px 0;
+    }
+    .adventure-newbie-kicker {
+        color: var(--accent, #0d9488);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+    .adventure-newbie-mainline h3,
+    .adventure-newbie-summary,
+    .adventure-newbie-progress,
+    .adventure-newbie-star-hint { margin: 0; }
+    .adventure-newbie-mainline h3 { font-size: clamp(1.1rem, 2vw, 1.45rem); }
+    .adventure-newbie-summary { color: var(--ink2, #5b4632); line-height: 1.5; }
+    .adventure-newbie-steps { display: grid; gap: 6px; color: var(--ink2, #5b4632); font-size: .88rem; }
+    .adventure-newbie-steps span { padding-left: 1.5rem; position: relative; }
+    .adventure-newbie-steps span::before { content: '→'; position: absolute; left: 0; color: var(--accent, #0d9488); font-weight: 800; }
+    .adventure-newbie-progress { font-weight: 700; }
+    .adventure-newbie-star-hint { color: var(--ink3, #806b55); font-size: .85rem; }
+    .adventure-newbie-details { color: var(--ink3, #806b55); font-size: .8rem; }
+    .adventure-newbie-details summary { cursor: pointer; font-weight: 700; }
+    .battle-adventure-objective { display: block; flex-basis: 100%; color: var(--ink3, #806b55); font-size: .78rem; line-height: 1.35; }
+
     .adventure-map-shell {
         position: relative;
         width: 100%;
@@ -6447,6 +6474,7 @@
                     </div>
                 </div>
                 <div class="btn-row">
+                    <button class="btn-nav" id="btn-adventure-return" onclick="returnToAdventureMapAfterEncounter()" style="display:none;"></button>
                     <button class="btn-nav" onclick="prevQuestion()" data-i18n="index.btn.prev">◀ 上一題</button>
                     <button class="btn-nav" id="btn-hint" onclick="useHintTicket()" style="display:none;"><span data-i18n="index.btn.hint">💡 提示</span> <span id="hint-count"></span></button>
                     <button class="btn-nav teal-btn" id="btn-show-solution" onclick="showSolutionNow()" data-sfx="none" style="display:none;" data-i18n="index.btn.solution">▶ 看正解</button>
@@ -6465,6 +6493,7 @@
 
                 <!-- ── 戰鬥競技場 ─────────────────────────────── -->
                 <div id="monster-panel">
+                    <div class="battle-adventure-objective hidden" id="battle-adventure-objective"></div>
                     <!-- 標題列 -->
                     <div class="battle-header">
                         <span class="battle-wave-badge" id="battle-wave-badge">⚔️ WAVE 1</span>
@@ -7773,6 +7802,10 @@ async function submitSRS(grade){
         } else if (grade >= 3) {
             _zoneWrongStreak = 0;
         }
+        if (isBeginnerVillageAdventureResult()) {
+            showBeginnerVillageEncounterContinuation();
+            shouldAdvance = false;
+        }
     } finally {
         if (shouldAdvance && _premiumWeeklyMode) {
             try {
@@ -8199,10 +8232,49 @@ function _isAdventureZonePractice() {
     return Array.isArray(_adventureActiveQuestions) && _adventureActiveQuestions.length > 0;
 }
 
+function isBeginnerVillageAdventureResult() {
+    if (!_isAdventureZonePractice()) return false;
+    const zoneKey = new URLSearchParams(location.search).get('zone') || '';
+    if (zoneKey === 'k26_30') return true;
+    return _adventureActiveQuestions.some(q => /新手村|Beginner Village/i.test(String(q?.topic || '')));
+}
+
+function _setBeginnerVillagePostAnswerControls(active) {
+    const next = document.querySelector('.btn-row button[onclick="nextQuestion()"]');
+    const back = document.getElementById('btn-adventure-return');
+    if (next) next.textContent = active ? I18n.t('adventure.newbie.continue_training') : I18n.t('index.btn.next');
+    if (back) {
+        back.textContent = I18n.t('adventure.newbie.return_map');
+        back.style.display = active ? 'inline-flex' : 'none';
+    }
+}
+
+function showBeginnerVillageEncounterContinuation() {
+    if (!isBeginnerVillageAdventureResult()) return false;
+    _setBeginnerVillagePostAnswerControls(true);
+    setMsg(I18n.t('adventure.newbie.encounter_complete'), 'ok');
+    return true;
+}
+
+function returnToAdventureMapAfterEncounter() {
+    window.location.href = '/?adventure=1';
+}
+
 function renderAdventureZoneMonster(q) {
     if (!q) return;
     const contextLabel = document.getElementById('battle-status');
-    if (contextLabel) contextLabel.textContent = I18n.t('index.battle.adventure_encounter');
+    if (contextLabel) {
+        const zoneKey = new URLSearchParams(location.search).get('zone') || '';
+        const isNewbieVillage = zoneKey === 'k26_30';
+        contextLabel.textContent = isNewbieVillage
+            ? `${I18n.t('adventure.newbie.encounter_title')} · ${I18n.t('index.battle.adventure_encounter')}`
+            : I18n.t('index.battle.adventure_encounter');
+        const objective = document.getElementById('battle-adventure-objective');
+        if (objective) {
+            objective.textContent = isNewbieVillage ? I18n.t('adventure.newbie.encounter_objective') : '';
+            objective.classList.toggle('hidden', !isNewbieVillage);
+        }
+    }
     updateMonsterUI({
         type: q.monster_type || 'goblin',
         name: q.monster_name,
@@ -8933,6 +9005,7 @@ function _revealExplanationPanel(panel) {
 }
 
 async function loadQuestion(q){
+    _setBeginnerVillagePostAnswerControls(false);
     _hideRecommend();   // 切題時清掉推薦
     // Hide welcome screen, show practice elements
     const ws = document.getElementById('welcome-state');
@@ -9092,6 +9165,7 @@ function onBoardClick(bx,by){
             if(sBtn) sBtn.style.display = 'inline-block';
         });
         showExplanation({x, y});
+        showBeginnerVillageEncounterContinuation();
         return;
     }
     playStone(x,y,playerColor);currentNode=matched;
@@ -10830,6 +10904,46 @@ function _adventureQuestCtaState(zone) {
     };
 }
 
+function _renderNewbieVillageMainline(zone, cta) {
+    const bossReady = cta?.state === 'boss_ready';
+    const cleared = cta?.state === 'boss_defeated' || cta?.state === 'stars_complete';
+    const action = cta?.action || `startAdventureStage('${zone.key}')`;
+    const labelKey = bossReady
+        ? 'adventure.newbie.cta_boss'
+        : (zone?.seen || zone?.progress?.completed_count ? 'adventure.newbie.cta_continue' : 'adventure.newbie.cta_begin');
+    const progress = zone?.progress && typeof zone.progress === 'object' ? zone.progress : null;
+    const remaining = zone?.boss?.remaining_to_challenge;
+    const progressLine = bossReady
+        ? I18n.t('adventure.newbie.boss_ready')
+        : cleared
+            ? I18n.t('adventure.newbie.first_star_earned')
+            : (remaining != null
+                ? I18n.t('adventure.newbie.progress_remaining').replace('{count}', remaining)
+                : I18n.t('adventure.newbie.objective'));
+    return `
+        <div class="adventure-newbie-mainline">
+            <div class="adventure-newbie-kicker">${I18n.t('adventure.newbie.first_stop')}</div>
+            <h3>${I18n.t('adventure.newbie.first_stop_title')}</h3>
+            <p class="adventure-newbie-summary">${I18n.t('adventure.newbie.summary')}</p>
+            <div class="adventure-newbie-steps" role="list">
+                <span role="listitem">${I18n.t('adventure.newbie.step_battle')}</span>
+                <span role="listitem">${I18n.t('adventure.newbie.step_progress')}</span>
+                <span role="listitem">${I18n.t('adventure.newbie.step_boss')}</span>
+            </div>
+            <p class="adventure-newbie-progress">${progressLine}</p>
+            <p class="adventure-newbie-star-hint">${I18n.t('adventure.newbie.first_star_hint')}</p>
+            <button type="button" class="adventure-panel-btn primary modal-system-cta" data-sfx="${cta?.sfx || 'map_start'}" onclick="${action}">${I18n.t(labelKey)}</button>
+            <details class="adventure-newbie-details">
+                <summary>${I18n.t('adventure.newbie.training_details')}</summary>
+                <div class="adventure-panel-meta">
+                    ${_adventureQuestDetailLines(zone).join('')}
+                    <div><strong>${I18n.t('index.adv.stars_label')}</strong> ${'★'.repeat(Math.max(0, _adventureStarsValue(zone)))}${'☆'.repeat(Math.max(0, 3 - _adventureStarsValue(zone)))}</div>
+                    ${progress ? `<div><strong>${I18n.t('index.adv.best_score')}</strong> ${_adventureBestScoreValue(zone)}</div>` : ''}
+                </div>
+            </details>
+        </div>`;
+}
+
 function renderAdventureInfoPanel(zones = _adventureProgress) {
     const panel = document.getElementById('adventure-map-panel');
     if (!panel) return;
@@ -10882,6 +10996,7 @@ function renderAdventureInfoPanel(zones = _adventureProgress) {
     }
 
     const cta = _adventureQuestCtaState(selectedZone);
+    const newbieFirstJourney = selectedZone.key === 'k26_30' && !_adventureStarsValue(selectedZone);
     const actions = [];
     if (cta.action && cta.labelKey) {
         actions.push(`<button type="button" class="adventure-panel-btn primary modal-system-cta" data-sfx="${cta.sfx || 'none'}" onclick="${cta.action}">${I18n.t(cta.labelKey)}</button>`);
@@ -10900,14 +11015,14 @@ function renderAdventureInfoPanel(zones = _adventureProgress) {
             <div class="adventure-panel-badges">${badges.join('')}</div>
         </div>
         <div class="adventure-panel-grid">
-            <div class="adventure-panel-card quest-card modal-system-card">
+            <div class="adventure-panel-card quest-card modal-system-card ${newbieFirstJourney ? 'newbie-first-journey-card' : ''}">
                 <h4 class="adventure-panel-kicker modal-system-eyebrow">${I18n.t('index.adv.current_position')}</h4>
-                <div class="adventure-quest-hero">
+                ${newbieFirstJourney ? _renderNewbieVillageMainline(selectedZone, cta) : `<div class="adventure-quest-hero">
                     ${_adventureQuestBossVisual(selectedZone, cta)}
                     ${_adventureQuestStarVisual(selectedZone)}
                 </div>
                 <div class="adventure-panel-meta">${selectedMeta.join('')}</div>
-                <div class="adventure-panel-actions">${actions.join('')}</div>
+                <div class="adventure-panel-actions">${actions.join('')}</div>`}
             </div>
             ${recommendedCard}
         </div>`;
