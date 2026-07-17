@@ -66,7 +66,7 @@ function Invoke-Git {
         $stdoutTask = $process.StandardOutput.ReadToEndAsync()
         $stderrTask = $process.StandardError.ReadToEndAsync()
         $process.WaitForExit()
-        $stdout = $stdoutTask.GetAwaiter().GetResult() -split "`r?`n"
+        $stdout = ($stdoutTask.GetAwaiter().GetResult().TrimEnd("`r", "`n")) -split "`r?`n"
         $stderr = $stderrTask.GetAwaiter().GetResult()
         $exitCode = $process.ExitCode
         $stdout | Set-Content -LiteralPath $stdoutPath -Encoding UTF8
