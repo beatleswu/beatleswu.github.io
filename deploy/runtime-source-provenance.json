@@ -507,7 +507,7 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "28d2185fb9860cea7e494117bf0b22a22c37dc04",
+      "source_commit": "773e14a1d57a55e510bb9d0e89ccbf4ff8c794c8",
       "source_branch_or_local_ref": "feature/e9-adventure-cta-browser-handoff",
       "source_commit_subject": "fix: trace Safari E9 adventure CTA handoff",
       "source_date": "2026-07-16",
