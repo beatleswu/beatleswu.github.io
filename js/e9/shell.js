@@ -251,6 +251,15 @@
   }
 
   function startAdventureFromE9(zoneKey) {
+    try {
+      if (new URLSearchParams(global.location.search || '').get('e9verify') === 'c3-1-trace') {
+        console.info('[E9:C3.1]', 'canonical-entry-owner', {
+          zone: zoneKey,
+          startAvailable: typeof global.startAdventureStage === 'function',
+          path: global.location.pathname,
+        });
+      }
+    } catch (traceErr) {}
     if (typeof global.startAdventureStage !== 'function') {
       // Keep the existing Adventure route as a governed fail-safe when the
       // legacy inline entry symbol is unavailable during shell handoff.

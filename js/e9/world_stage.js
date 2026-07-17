@@ -24,6 +24,32 @@
 (function (document) {
   'use strict';
 
+  function c3Trace(name, detail) {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('e9verify') !== 'c3-1-trace') return;
+      console.info('[E9:C3.1]', name, Object.assign({
+        path: window.location.pathname,
+        target: 'e9-newbie-mainline-cta',
+      }, detail || {}));
+    } catch (err) {}
+  }
+
+  function bindC3Trace(cta) {
+    if (!cta || cta.__e9C3TraceBound) return;
+    cta.__e9C3TraceBound = true;
+    ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click'].forEach(function (type) {
+      cta.addEventListener(type, function (event) {
+        c3Trace(type, {
+          phase: event.eventPhase === Event.CAPTURING_PHASE ? 'capture' : 'bubble',
+          defaultPrevented: event.defaultPrevented,
+          disabled: !!cta.disabled,
+          ariaDisabled: cta.getAttribute('aria-disabled'),
+        });
+      }, true);
+    });
+  }
+
   function t(key, fallback) {
     if (window.E9 && window.E9.I18nFallback && typeof window.E9.I18nFallback.t === 'function') {
       return window.E9.I18nFallback.t(key, fallback);
@@ -65,6 +91,7 @@
 
     var cta = panel.querySelector('#e9-newbie-mainline-cta');
     if (cta) {
+      bindC3Trace(cta);
       var ctaKey = zone.bossAvailable
         ? 'adventure.newbie.cta_boss'
         : (zone.cleared || zone.stars > 0
@@ -75,8 +102,12 @@
         cta.removeEventListener('click', cta.__e9AdventureHandler);
       }
       cta.__e9AdventureHandler = function () {
+        c3Trace('handler-invoked', { zone: zone.key });
         if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+          c3Trace('adapter-invoked', { zone: zone.key });
           window.E9.startAdventureFromE9(zone.key);
+        } else {
+          c3Trace('adapter-missing', { zone: zone.key });
         }
       };
       cta.addEventListener('click', cta.__e9AdventureHandler);

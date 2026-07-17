@@ -20,7 +20,8 @@ def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract(
     assert "focusTarget.focus({ preventScroll: true })" in WORLD
     assert "scrollIntoView({ behavior: 'smooth'" in WORLD
     assert 'id="e9-world-stage-details"' in MARKUP
-    assert "onclick=\"window.E9?.startAdventureFromE9?.('k26_30')\"" in MARKUP
+    assert 'id="e9-newbie-mainline-cta"' in MARKUP
+    assert "onclick=" not in MARKUP
 
 
 def test_locked_zones_do_not_get_selection_or_entry_handlers():

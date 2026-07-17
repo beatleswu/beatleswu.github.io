@@ -11541,6 +11541,15 @@ function _renderBossChallengeCard(zones = _adventureProgress) {
 }
 
 async function startAdventureStage(zoneKey) {
+    try {
+        if (new URLSearchParams(window.location.search || '').get('e9verify') === 'c3-1-trace') {
+            console.info('[E9:C3.1]', 'startAdventureStage', {
+                zone: zoneKey,
+                progressLoaded: Array.isArray(_adventureProgress) && _adventureProgress.length > 0,
+                questionsLoaded: Array.isArray(allQuestions) && allQuestions.length > 0,
+            });
+        }
+    } catch (traceErr) {}
     window._nqMapActive = true;
     const zone = (_adventureProgress || []).find(z => z.key === zoneKey)
         || ADVENTURE_ZONES.find(z => z.key === zoneKey);
