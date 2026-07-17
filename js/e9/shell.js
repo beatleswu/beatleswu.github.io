@@ -252,9 +252,10 @@
 
   function startAdventureFromE9(zoneKey) {
     if (typeof global.startAdventureStage !== 'function') {
-      var err = new Error('Legacy startAdventureStage() is unavailable');
-      console.error('[E9]', err.message);
-      throw err;
+      // Keep the existing Adventure route as a governed fail-safe when the
+      // legacy inline entry symbol is unavailable during shell handoff.
+      global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';
+      return;
     }
     global.startAdventureStage(zoneKey);
   }
