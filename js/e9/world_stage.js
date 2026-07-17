@@ -17,9 +17,9 @@
  * Adventure Start uses the thin adapter window.E9.startAdventureFromE9()
  * (defined in shell.js), which calls the existing legacy
  * startAdventureStage() global -- no gameplay logic is duplicated here.
- * Zone selection dispatches "e9:zone-selected" (bubbles) before invoking
- * the adapter, so other code can observe the interaction without the
- * adapter itself becoming a second event bus for progression state.
+ * Zone selection dispatches "e9:zone-selected" (bubbles) and updates the
+ * ephemeral detail selection. Only the detail CTA invokes the adapter, so
+ * selecting a card never starts an encounter or changes progression state.
  */
 (function (document) {
   'use strict';
@@ -80,11 +80,44 @@
     panel.hidden = false;
   }
 
+  function renderSelectedZone(root, zones, zoneKey, focusDetails) {
+    var state = root.__e9WorldStageState;
+    var zone = zones.filter(function (item) { return item.key === zoneKey; })[0];
+    var details = root.querySelector('#e9-world-stage-details');
+    var label = root.querySelector('#e9-world-stage-details-label');
+    var summary = root.querySelector('#e9-world-stage-details-summary');
+    var newbie = root.querySelector('#e9-newbie-mainline');
+    if (!zone || zone.locked) return;
+
+    state.selectedZoneKey = zone.key;
+    root.querySelectorAll('[data-zone]').forEach(function (tile) {
+      var selected = tile.getAttribute('data-zone') === zone.key;
+      tile.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      tile.classList.toggle('is-selected', selected);
+    });
+    if (details) details.hidden = false;
+    if (label) label.textContent = zone.name || zone.key;
+    if (summary) summary.textContent = zone.bossAvailable
+      ? t('index.adv.boss_ready', 'Boss challenge ready')
+      : (zone.cleared ? t('index.adv.boss_cleared', 'Area cleared') : t('index.adv.panel_ready', 'Adventure is ready'));
+    renderBeginnerVillageMainline(root, zone);
+    if (newbie && zone.key !== 'k26_30') newbie.hidden = true;
+    if (focusDetails && details) {
+      var focusTarget = zone.key === 'k26_30' && newbie && !newbie.hidden ? newbie : details;
+      try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
+      if (typeof focusTarget.scrollIntoView === 'function' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+        focusTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
   function renderZones(root, zones) {
     var statusEl = root.querySelector('#e9-world-stage-status');
     var zonesEl = root.querySelector('#e9-world-stage-zones');
     if (!zonesEl) return;
 
+    var state = root.__e9WorldStageState || (root.__e9WorldStageState = { zones: zones, selectedZoneKey: null });
+    state.zones = zones;
     zonesEl.innerHTML = '';
     zones.forEach(function (zone) {
       var tile = document.createElement('div');
@@ -93,6 +126,7 @@
       tile.setAttribute('data-zone', zone.key);
 
       if (!zone.locked) {
+        tile.setAttribute('aria-pressed', 'false');
         tile.tabIndex = 0;
         tile.setAttribute('role', 'button');
       } else {
@@ -128,13 +162,7 @@
             bubbles: true,
             detail: { zoneKey: zone.key, status: zone.status },
           }));
-          try {
-            window.E9.startAdventureFromE9(zone.key);
-          } catch (err) {
-            // Interaction-time failure -- logged, not a critical-recovery
-            // trigger (the shell itself is still healthy and displayed).
-            console.error('[E9] world_stage: failed to start adventure for', zone.key, err);
-          }
+          renderSelectedZone(root, zones, zone.key, true);
         };
         tile.addEventListener('click', activate);
         tile.addEventListener('keydown', function (evt) {
@@ -160,8 +188,8 @@
       // right_cards.js, live-verified during E9.1A2 Rev2).
       statusEl.removeAttribute('data-i18n');
     }
-    var beginnerVillage = zones.filter(function (zone) { return zone.key === 'k26_30'; })[0];
-    renderBeginnerVillageMainline(root, beginnerVillage);
+    var selected = state.selectedZoneKey && zones.filter(function (zone) { return zone.key === state.selectedZoneKey; })[0];
+    if (selected && !selected.locked) renderSelectedZone(root, zones, selected.key, false);
   }
 
   function recoverToLegacy(reason) {
@@ -213,6 +241,15 @@
   function init(root) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
+    root.__e9WorldStageState = { zones: [], selectedZoneKey: null };
+    document.addEventListener('e9:i18n-changed', function () {
+      var state = root.__e9WorldStageState;
+      if (state && state.zones && state.zones.length) renderZones(root, state.zones);
+    });
+    document.addEventListener('e9:i18n-ready', function () {
+      var state = root.__e9WorldStageState;
+      if (state && state.zones && state.zones.length) renderZones(root, state.zones);
+    });
     load(root, false);
   }
 
