@@ -432,12 +432,12 @@ def test_build_script_platform_is_an_overridable_parameter():
     assert "param(" in content
     param_block = content[content.index("param("):content.index("param(") + 400]
     assert "$Platform" in param_block
-    assert "--platform $Platform" in content
+    assert "'--platform', $Platform" in content
 
 
 def test_build_script_passes_explicit_platform_to_buildx():
     content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
-    assert "--platform $Platform" in content
+    assert "'--platform', $Platform" in content
     assert "--load" in content
 
 
@@ -473,7 +473,7 @@ def test_build_script_has_no_silent_fallback_between_capability_check_and_build(
     # its mention in the docstring earlier in the file, which would make a
     # naive first-index slice empty/reversed).
     section_start = content.index("docker buildx version")
-    build_invocation_pos = content.index("docker buildx build `")
+    build_invocation_pos = content.index("'buildx', 'build'")
     capability_section = content[section_start:build_invocation_pos]
     assert "docker buildx version" in capability_section
     # the buildx capability checks themselves must not swallow failures
