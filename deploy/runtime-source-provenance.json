@@ -6,7 +6,7 @@
   "files": [
     {
       "path": "backend_i18n.py",
-      "source_commit": "ec1ef5441e9cdbf79c00a4fcf4b8e9ea4fa14f65",
+      "source_commit": "4db6709dbc93fb9f1b764cd266585ebfd8a287d2",
       "source_branch_or_local_ref": "origin/master",
       "source_commit_subject": "build: reconstruct canonical production image source",
       "source_date": "2026-07-11",
@@ -173,7 +173,7 @@
       "path": "login.html",
       "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: expose canonical Adventure entry to E9",
+      "source_commit_subject": "fix: close E9 core navigation and adventure entry",
       "source_date": "2026-07-11",
       "content_sha256": "515b2c628a6e5889b24e56bb0ced90cdba1563966f269ff8ad83f30ed05b0010",
       "line_ending_policy": "LF",
@@ -195,7 +195,7 @@
     },
     {
       "path": "index.html",
-      "source_commit": "ec1ef5441e9cdbf79c00a4fcf4b8e9ea4fa14f65",
+      "source_commit": "ec1ef54417f2438828eebe3936b568fdf674973c",
       "source_branch_or_local_ref": "feature/e9-governed-rollout-config",
       "source_commit_subject": "fix: expose canonical Adventure entry to E9",
       "source_date": "2026-07-17",
