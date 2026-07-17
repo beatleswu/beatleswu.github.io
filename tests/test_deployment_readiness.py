@@ -40,14 +40,6 @@ def _install_app_import_stubs():
         module.skill_node_en = lambda *args, **kwargs: ''
         module.title_en = lambda *args, **kwargs: ''
         sys.modules['backend_i18n'] = module
-    if 'sgf_engine' not in sys.modules:
-        sys.modules['sgf_engine'] = types.ModuleType('sgf_engine')
-    if 'sgf_engine.parser' not in sys.modules:
-        sys.modules['sgf_engine.parser'] = types.ModuleType('sgf_engine.parser')
-    if 'sgf_engine.parser.sgf_parser' not in sys.modules:
-        module = types.ModuleType('sgf_engine.parser.sgf_parser')
-        module.parse_sgf = lambda *args, **kwargs: None
-        sys.modules['sgf_engine.parser.sgf_parser'] = module
 
 
 @pytest.fixture(scope='module')
