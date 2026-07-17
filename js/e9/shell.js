@@ -251,22 +251,13 @@
   }
 
   function startAdventureFromE9(zoneKey) {
-    try {
-      if (new URLSearchParams(global.location.search || '').get('e9verify') === 'c3-1-trace') {
-        console.info('[E9:C3.1] canonical-entry-owner ' + JSON.stringify({
-          zone: zoneKey,
-          startAvailable: typeof global.startAdventureStage === 'function',
-          path: global.location.pathname,
-        }));
-      }
-    } catch (traceErr) {}
-    if (typeof global.startAdventureStage !== 'function') {
-      // Keep the existing Adventure route as a governed fail-safe when the
-      // legacy inline entry symbol is unavailable during shell handoff.
-      global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';
-      return;
-    }
-    global.startAdventureStage(zoneKey);
+    if (typeof zoneKey !== 'string' || !zoneKey) return;
+    // E9's World Stage owns a separately fetched, canonical bootstrap view.
+    // The legacy in-page entry requires its private _adventureProgress cache,
+    // which is intentionally not populated by the E9 adapter. Hand off via
+    // the existing Adventure route so the normal encounter bootstrap remains
+    // the sole gameplay entry and server-side gates remain authoritative.
+    global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';
   }
 
   global.E9 = global.E9 || {};
