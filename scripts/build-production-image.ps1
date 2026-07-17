@@ -59,7 +59,9 @@ Write-Host "== go-odyssey-app canonical image build (build-only, never deploys) 
 
 # 1. Require a clean checkout (unless explicitly overridden for local iteration).
 if (-not $SkipCleanCheck) {
-    $status = git status --short
+    # Ignore untracked local protection files (for example secret_key.txt) while
+    # still failing closed on every tracked or staged change.
+    $status = git status --short --untracked-files=no
     if ($status) {
         Fail "Working tree is not clean. Commit or stash changes, or pass -SkipCleanCheck for a non-reproducible local iteration build.`n$status"
     }
