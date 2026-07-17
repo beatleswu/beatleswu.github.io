@@ -57,10 +57,6 @@
       "shadow_judging.py",
       "shadow_dashboard.py",
       "shadow_event_storage.py",
-      "puzzle_identity.py",
-      "migrations/__init__.py",
-      "migrations/puzzle_identity_alias_v1.py",
-      "tools/puzzle_identity_backfill.py",
       "katago_explain.py",
       "explain_overrides.py",
       "grimoire_api.py",
@@ -189,10 +185,6 @@
     "/app/shadow_judging.py",
     "/app/shadow_dashboard.py",
     "/app/shadow_event_storage.py",
-    "/app/puzzle_identity.py",
-    "/app/migrations/__init__.py",
-    "/app/migrations/puzzle_identity_alias_v1.py",
-    "/app/tools/puzzle_identity_backfill.py",
     "/app/shadow_dashboard.html",
     "/app/scheduler.py",
     "/app/community_leaderboard_rewards_scheduler.py",
@@ -233,9 +225,9 @@
   },
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
-    "files_covered": 82,
+    "files_covered": 78,
     "source_status": "local Git provenance -- not previously pushed to canonical origin (Graph A / Codex local branches only)",
-    "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus five newly-authored governed modules/scripts (82 files total)",
+    "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the newly-authored shadow_event_storage.py module (78 files total)",
     "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. Newly-authored governed modules record their first reachable byte-identical source commit. See deploy/runtime-source-provenance.json for exact per-file status."
   }
 }

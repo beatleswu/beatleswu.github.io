@@ -901,50 +901,6 @@
       "source_status": "local Git provenance -- not previously pushed to canonical origin; newly-authored governed runtime module whose recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
-      "path": "puzzle_identity.py",
-      "source_commit": "d507df960fc5303229279068d16a5c49c4c83ecf",
-      "source_branch_or_local_ref": "codex/sgf-canonical-identity-20260717",
-      "source_commit_subject": "feat(sgf): add composite canonical puzzle identity",
-      "source_date": "2026-07-17",
-      "content_sha256": "0b0ba05bfc806d9197892bdd133cc73d585e2e628800d3e9b211a4b6bdc8efd1",
-      "line_ending_policy": "LF",
-      "runtime_role": "startup-critical read-only identity resolver imported by app.py; exact composite and unique-only legacy lookups fail closed and never create aliases",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; newly-authored governed identity module whose recorded source_commit is currently reachable in repository history and byte-verified against this file"
-    },
-    {
-      "path": "migrations/__init__.py",
-      "source_commit": "d507df960fc5303229279068d16a5c49c4c83ecf",
-      "source_branch_or_local_ref": "codex/sgf-canonical-identity-20260717",
-      "source_commit_subject": "feat(sgf): add composite canonical puzzle identity",
-      "source_date": "2026-07-17",
-      "content_sha256": "407b7990e34e7b358d7252c776e460d9cacc64c6c5a1355adac41c1edd9ba6bf",
-      "line_ending_policy": "LF",
-      "runtime_role": "explicit package marker for reviewable schema migrations; importing it has no database or application side effects",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; newly-authored governed migration package whose recorded source_commit is currently reachable in repository history and byte-verified against this file"
-    },
-    {
-      "path": "migrations/puzzle_identity_alias_v1.py",
-      "source_commit": "d507df960fc5303229279068d16a5c49c4c83ecf",
-      "source_branch_or_local_ref": "codex/sgf-canonical-identity-20260717",
-      "source_commit_subject": "feat(sgf): add composite canonical puzzle identity",
-      "source_date": "2026-07-17",
-      "content_sha256": "0faef6b73888ad088c5f323ba4e35813001d3c4c42f19319db0248f5636f476c",
-      "line_ending_policy": "LF",
-      "runtime_role": "explicitly invoked additive alias migration with guarded destructive down; packaged for review completeness but not wired into startup, deploy, or rollback",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; newly-authored governed migration whose recorded source_commit is currently reachable in repository history and byte-verified against this file"
-    },
-    {
-      "path": "tools/puzzle_identity_backfill.py",
-      "source_commit": "d507df960fc5303229279068d16a5c49c4c83ecf",
-      "source_branch_or_local_ref": "codex/sgf-canonical-identity-20260717",
-      "source_commit_subject": "feat(sgf): add composite canonical puzzle identity",
-      "source_date": "2026-07-17",
-      "content_sha256": "b450ab3d896b18bdf4ad39d2c9e07d9618fafce70799c2cc5b290791ecc7a979",
-      "line_ending_policy": "LF",
-      "runtime_role": "local/test-only offline SQLite backfill CLI with no default input, database, or Production connection support; never invoked by application startup, deploy, or rollback",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; newly-authored governed local/test tool whose recorded source_commit is currently reachable in repository history and byte-verified against this file"
-    },
-    {
       "path": "newebpay.py",
       "source_commit": "86f5ca4cfb450b511ed0162085b7a98d733ea23b",
       "source_branch_or_local_ref": "recovered-production-tip-20260711 (also reachable via sgf-fe-hotfix1a-node-property-parser and other Graph A branches)",
