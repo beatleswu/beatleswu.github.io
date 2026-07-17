@@ -1,4 +1,4 @@
-"""Verify every recovered runtime dependency (outside sgf_engine) has recorded
+"""Verify every governed runtime dependency (outside sgf_engine) has recorded
 Git provenance, matches its recorded source SHA, uses LF, and that the
 Dockerfile no longer copies arbitrary Python files by wildcard."""
 import json
@@ -18,10 +18,10 @@ def load_manifest():
 def test_manifest_exists_and_valid():
     data = load_manifest()
     assert isinstance(data["files"], list)
-    assert len(data["files"]) == 77
+    assert len(data["files"]) == 78
 
 
-def test_manifest_covers_every_recovered_runtime_file():
+def test_manifest_covers_every_governed_runtime_file():
     data = load_manifest()
     paths = {entry["path"] for entry in data["files"]}
     expected = {
@@ -29,6 +29,7 @@ def test_manifest_covers_every_recovered_runtime_file():
         "css/e9/world_stage.css", "components/adventure/world_stage.html",
         "backend_i18n.py", "chapter_i18n.py", "explain_overrides.py", "grimoire_api.py",
         "katago_explain.py", "monster_taxonomy.py", "question_taxonomy.py", "scheduler.py",
+        "shadow_event_storage.py",
         "community_leaderboard_rewards_scheduler.py",
         "community_leaderboard_rewards.py", "db.py",
         "newebpay.py", "paypal_api.py",

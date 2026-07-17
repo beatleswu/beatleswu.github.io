@@ -29,11 +29,6 @@ def _load_rollout_module():
         for key, value in attrs.items():
             setattr(module, key, value)
         sys.modules[name] = module
-    for name in ("sgf_engine", "sgf_engine.parser"):
-        sys.modules[name] = types.ModuleType(name)
-    parser = types.ModuleType("sgf_engine.parser.sgf_parser")
-    parser.parse_sgf = lambda *a, **k: None
-    sys.modules["sgf_engine.parser.sgf_parser"] = parser
     import app
     return app
 

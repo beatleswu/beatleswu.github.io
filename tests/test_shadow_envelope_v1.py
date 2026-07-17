@@ -151,7 +151,7 @@ def test_successful_shadow_event_emits_new_fields(tmp_path, monkeypatch):
 
     event = _read_event(tmp_path / "shadow_events.jsonl")
 
-    assert event["schema_version"] == "shadow-v3"
+    assert event["schema_version"] == "shadow-v4"
     assert event["route"] == "/api/rating_test/answer"
     assert event["entry_point"] == "rating_test"
     assert event["request_id"] == "req-123"
@@ -266,7 +266,7 @@ def test_feature_flag_off_emits_no_shadow_event(tmp_path, monkeypatch):
     assert not (tmp_path / "shadow_events.jsonl").exists()
 
 
-def test_daily_challenge_route_emits_unsupported_parser_failure(tmp_path, monkeypatch):
+def test_daily_challenge_route_emits_missing_move_parser_failure(tmp_path, monkeypatch):
     monkeypatch.setenv("SHADOW_JUDGING_ENABLED", "1")
     monkeypatch.setenv("SHADOW_EVENTS_PATH", str(tmp_path / "shadow_events.jsonl"))
 
@@ -287,14 +287,14 @@ def test_daily_challenge_route_emits_unsupported_parser_failure(tmp_path, monkey
 
     assert event["route"] == "/api/daily-challenge/submit"
     assert event["entry_point"] == "daily_challenge"
-    assert event["schema_version"] == "shadow-v3"
+    assert event["schema_version"] == "shadow-v4"
     assert event["parser_status"] == "failed"
-    assert event["parser_failure_reason"] == "route unsupported: daily_challenge"
+    assert event["parser_failure_reason"] == "missing canonical moves"
     assert event["shadow_judgement"] == "unsupported"
     assert event["user_facing_judgement_changed"] is False
 
 
-def test_friend_challenge_route_emits_unsupported_parser_failure(tmp_path, monkeypatch):
+def test_friend_challenge_route_emits_missing_move_parser_failure(tmp_path, monkeypatch):
     monkeypatch.setenv("SHADOW_JUDGING_ENABLED", "1")
     monkeypatch.setenv("SHADOW_EVENTS_PATH", str(tmp_path / "shadow_events.jsonl"))
 
@@ -315,9 +315,9 @@ def test_friend_challenge_route_emits_unsupported_parser_failure(tmp_path, monke
 
     assert event["route"] == "/api/challenges/friend/9/answer"
     assert event["entry_point"] == "friend_challenge"
-    assert event["schema_version"] == "shadow-v3"
+    assert event["schema_version"] == "shadow-v4"
     assert event["parser_status"] == "failed"
-    assert event["parser_failure_reason"] == "route unsupported: friend_challenge"
+    assert event["parser_failure_reason"] == "missing canonical moves"
     assert event["shadow_judgement"] == "unsupported"
     assert event["user_facing_judgement_changed"] is False
 
@@ -443,6 +443,11 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     monkeypatch.setattr(app_module, "check_and_award_daily", lambda *args, **kwargs: [])
     monkeypatch.setattr(app_module, "get_daily_submit_streak", lambda *args, **kwargs: 0)
     monkeypatch.setattr(app_module, "give_daily_appearance", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        app_module,
+        "_load_questions",
+        lambda: [{"id": 301, "content": "(;SZ[19];B[aa])", "accepted_moves": []}],
+    )
 
     with client.session_transaction() as sess:
         sess["user_id"] = 7
@@ -493,6 +498,11 @@ def test_friend_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
         app_module,
         "get_db",
         lambda: _FakeConnCtx(_FriendRouteConn(challenge_row)),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_load_questions",
+        lambda: [{"id": 301, "content": "(;SZ[19];B[aa])", "accepted_moves": []}],
     )
 
     with client.session_transaction() as sess:

@@ -94,6 +94,7 @@ $requiredFiles = @(
     'app.py',
     'shadow_judging.py',
     'shadow_dashboard.py',
+    'shadow_event_storage.py',
     'shadow_dashboard.html',
     'scheduler.py',
     'katago_explain.py',
@@ -221,7 +222,47 @@ if ($actualPlatform -ne $Platform) {
 }
 Write-Host "Verified image platform: $actualPlatform" -ForegroundColor Green
 
-# 10. Record what was built. Never push, never deploy.
+# 10. Verify every manifest-declared runtime file is present in the built image.
+# This is one bounded, network-isolated container invocation. It overrides the
+# application entrypoint, supplies no secrets or mounts, and executes only the
+# image's Python interpreter against absolute filesystem paths.
+$verificationFiles = @($manifest.post_build_verification_files)
+if ($verificationFiles.Count -eq 0) {
+    Fail "deploy/build-manifest.json post_build_verification_files must contain at least one path."
+}
+foreach ($verificationFile in $verificationFiles) {
+    $verificationPath = [string]$verificationFile
+    if (
+        [string]::IsNullOrWhiteSpace($verificationPath) -or
+        $verificationPath -notmatch '^/app/[A-Za-z0-9._/-]+$' -or
+        $verificationPath -match '(^|/)\.\.(/|$)' -or
+        $verificationPath.EndsWith('/')
+    ) {
+        Fail "deploy/build-manifest.json contains an invalid post-build verification path."
+    }
+}
+$filesystemCheck = "import os,sys; missing=[p for p in sys.argv[1:] if not os.path.isfile(p)]; print(('missing required image files: '+','.join(missing)) if missing else ('verified required image files: '+str(len(sys.argv)-1))); raise SystemExit(1 if missing else 0)"
+$verificationArguments = @(
+    'run', '--rm',
+    '--platform', $Platform,
+    '--network', 'none',
+    '--read-only',
+    '--entrypoint', 'python',
+    $imageTag,
+    '-c', $filesystemCheck
+)
+$verificationArguments += $verificationFiles
+$filesystemResult = Invoke-BoundedNativeCommand `
+    -FileName 'docker' `
+    -ArgumentList $verificationArguments `
+    -TimeoutSeconds 120 `
+    -OperationLabel 'required built-image filesystem verification'
+Write-Host $filesystemResult.output
+if ($filesystemResult.exit_code -ne 0) {
+    Fail "Built image $imageTag is missing one or more manifest-declared runtime files."
+}
+
+# 11. Record what was built. Never push, never deploy.
 $record = [ordered]@{
     image_tag        = $imageTag
     git_sha           = $GitSha

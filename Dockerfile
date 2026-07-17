@@ -25,14 +25,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Explicit root .py COPY list -- deliberately not a `COPY *.py ./` wildcard.
-# Every file here has recorded Git provenance in
-# deploy/runtime-source-provenance.json. This list must stay in sync with
-# that provenance file and with deploy/build-manifest.json's
-# build_inputs.tracked_in_canonical_branch_this_sprint.
+# Per-file provenance for recovered and explicitly governed supplemental
+# runtime sources is recorded in deploy/runtime-source-provenance.json. Current
+# application modules otherwise retain their ordinary Git lineage. Every COPY
+# here must also stay in sync with deploy/build-manifest.json's tracked inputs.
 COPY app.py ./
 COPY db.py ./
 COPY shadow_judging.py ./
 COPY shadow_dashboard.py ./
+COPY shadow_event_storage.py ./
 COPY scheduler.py ./
 COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
