@@ -84,7 +84,7 @@ function Wait-ForRemoteReleaseConvergence {
         $nginx = Get-RemoteContainerSnapshot -ContainerName $layout.nginx_service_name
         $healthz = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.health_url)").Trim()
         $login = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.login_url)").Trim()
-        $home = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.homepage_url)").Trim()
+        $homeStatusSample = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.homepage_url)").Trim()
         $ok = (
             $app.state -eq 'running' -and $app.health -eq 'healthy' -and
             $app.image_tag -eq $manifest.image_tag -and $app.image_id -eq $manifest.image_id -and
@@ -94,7 +94,7 @@ function Wait-ForRemoteReleaseConvergence {
             $scheduler.compose_project -eq $layout.compose_project -and -not [string]::IsNullOrWhiteSpace($scheduler.compose_service) -and
             $nginx.state -eq 'running' -and $nginx.compose_project -eq $layout.compose_project -and
             -not [string]::IsNullOrWhiteSpace($nginx.compose_service) -and
-            $healthz -eq '200' -and $login -eq '200' -and $home -eq '200'
+            $healthz -eq '200' -and $login -eq '200' -and $homeStatusSample -eq '200'
         )
         $last = [ordered]@{
             app = $app
@@ -102,7 +102,7 @@ function Wait-ForRemoteReleaseConvergence {
             nginx = $nginx
             healthz_status = $healthz
             login_status = $login
-            home_status = $home
+            home_status = $homeStatusSample
         }
         if ($ok) {
             $consecutive++

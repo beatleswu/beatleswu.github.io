@@ -1142,6 +1142,20 @@ def test_deploy_waits_for_recovery_and_reconciles_before_rollback():
     assert "RequiredConsecutiveSamples = 3" in verify
 
 
+def test_health_wait_uses_the_snapshot_state_field_and_verify_avoids_read_only_home():
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    verify = read_text(REPO_ROOT / "scripts" / "release" / "verify-production-release.ps1")
+    for content in (deploy, rollback):
+        assert "$snapshot.state -eq 'running'" in content
+        assert "$snapshot.status -eq 'running'" not in content
+    # Windows PowerShell variable names are case-insensitive and $HOME is a
+    # read-only automatic variable. This exact assignment broke the first
+    # C3.2 production verification and its rollback verification.
+    assert "$home =" not in verify.lower()
+    assert "$homeStatusSample =" in verify
+
+
 def test_deploy_cleans_only_precisely_identified_stale_candidate_projects():
     deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     assert "Remove-RemoteStaleCandidateCanaries" in deploy

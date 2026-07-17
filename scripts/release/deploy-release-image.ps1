@@ -137,7 +137,7 @@ function Wait-ForRemoteContainerHealth {
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
         $snapshot = Get-RemoteContainerSnapshot -ContainerName $ContainerName
-        if ($snapshot.status -eq 'running' -and $snapshot.health -eq 'healthy') {
+        if ($snapshot.state -eq 'running' -and $snapshot.health -eq 'healthy') {
             return $snapshot
         }
         if ((Get-Date) -ge $deadline) {
