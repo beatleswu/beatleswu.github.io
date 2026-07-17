@@ -81,7 +81,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v199-e9-adventure-entry-route-handoff" in SW
+    assert "v200-e9-authenticated-shell-handoff" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 
