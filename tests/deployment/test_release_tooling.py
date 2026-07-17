@@ -379,11 +379,11 @@ def test_canonical_build_uses_exit_code_native_helper_for_stderr_safe_execution(
 
 def test_invoke_git_treats_native_stderr_as_diagnostic_and_checks_exit_code():
     content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
-    assert "2> $stderrPath" in content
-    assert "$previousErrorActionPreference = $ErrorActionPreference" in content
-    assert "$ErrorActionPreference = 'Continue'" in content
-    assert "$ErrorActionPreference = $previousErrorActionPreference" in content
-    assert "$exitCode = $LASTEXITCODE" in content
+    assert "$psi = New-Object System.Diagnostics.ProcessStartInfo" in content
+    assert "$psi.RedirectStandardError = $true" in content
+    assert "$psi.RedirectStandardOutput = $true" in content
+    assert "$process.ExitCode" in content
+    assert "$stderrTask.GetAwaiter().GetResult()" in content
     assert "if ($exitCode -ne 0)" in content
 
 

@@ -39,24 +39,38 @@ function Invoke-Git {
     )
     Push-Location $WorkingDirectory
     $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("go-odyssey-git-stderr-" + [guid]::NewGuid().ToString('N') + '.log')
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("go-odyssey-git-stdout-" + [guid]::NewGuid().ToString('N') + '.log')
     try {
         # Git writes normal progress such as `Preparing worktree...` to stderr.
         # PowerShell 5 promotes native stderr to NativeCommandError when the
         # module-wide ErrorActionPreference is Stop. Keep stderr separate and
         # judge success only by git's actual process exit code.
-        $previousErrorActionPreference = $ErrorActionPreference
-        try {
-            # PowerShell 5 can still promote redirected native stderr to a
-            # terminating NativeCommandError under ErrorActionPreference=Stop.
-            # Relax only this native invocation; restore the module policy
-            # immediately and continue to judge success by the exit code.
-            $ErrorActionPreference = 'Continue'
-            $stdout = @(& git @Arguments 2> $stderrPath)
-            $exitCode = $LASTEXITCODE
-        }
-        finally {
-            $ErrorActionPreference = $previousErrorActionPreference
-        }
+        # Do not invoke git through PowerShell's native-command pipeline here.
+        # Windows PowerShell 5.1 can surface redirected native stderr as a
+        # NativeCommandError in the caller's ErrorActionPreference=Stop scope,
+        # even when the process exits successfully.  ProcessStartInfo keeps
+        # stdout/stderr as data and makes the exit code authoritative.
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = 'git.exe'
+        $psi.WorkingDirectory = $WorkingDirectory
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.Arguments = (($Arguments | ForEach-Object {
+            if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\\"') + '"' } else { $_ }
+        }) -join ' ')
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $psi
+        $process.Start() | Out-Null
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+        $stdout = $stdoutTask.GetAwaiter().GetResult() -split "`r?`n"
+        $stderr = $stderrTask.GetAwaiter().GetResult()
+        $exitCode = $process.ExitCode
+        $stdout | Set-Content -LiteralPath $stdoutPath -Encoding UTF8
+        $stderr | Set-Content -LiteralPath $stderrPath -Encoding UTF8
         $stderr = if (Test-Path -LiteralPath $stderrPath) {
             Get-Content -Raw -LiteralPath $stderrPath
         }
@@ -77,6 +91,7 @@ function Invoke-Git {
     }
     finally {
         Remove-Item -LiteralPath $stderrPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
         Pop-Location
     }
 }
