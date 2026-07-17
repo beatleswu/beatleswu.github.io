@@ -341,6 +341,8 @@ const I18n = (() => {
         'hero.fxLabel':     { en: 'Gear Bonuses', zh: '裝備加成' },
         'hero.vault':       { en: 'Vault · Coins', zh: '金庫 · 金幣' },
         'hero.tab.gear':    { en: '🛡️ Gear', zh: '🛡️ 裝備庫' },
+        'hero.tab.overview': { en: '🧙 Hero Overview', zh: '🧙 角色總覽' },
+        'hero.overview.body': { en: 'Review your character appearance, level, rank, profile details, and equipped summary above.', zh: '查看上方的角色造型、等級、段位、角色資訊與已裝備摘要。' },
         'hero.tab.class':   { en: '⚔️ Attributes', zh: '⚔️ 戰魂屬性' },
         'hero.tab.badges':  { en: '🏅 Medals', zh: '🏅 榮譽勳章' },
         'hero.sec.attr':    { en: 'Four Aspects', zh: '戰魂四象' },
@@ -3210,6 +3212,7 @@ const I18n = (() => {
         localStorage.setItem(LS_KEY, lang);
         apply();
         document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+        document.dispatchEvent(new CustomEvent('e9:i18n-changed', { detail: { lang } }));
         // 通知頁面可選的 callback
         if (typeof window.onLangChange === 'function') window.onLangChange(lang);
     }
@@ -3299,6 +3302,7 @@ const I18n = (() => {
     document.addEventListener('DOMContentLoaded', () => {
         apply();
         document.documentElement.lang = _lang === 'zh' ? 'zh-TW' : 'en';
+        document.dispatchEvent(new CustomEvent('e9:i18n-ready', { detail: { lang: _lang } }));
         // 自動找到所有語言切換器容器並渲染（不需要各頁面手動呼叫 renderSwitcher）
         // 匹配 id="lang-switcher" 和 id="lang-switcher-*" 兩種形式
         document.querySelectorAll('[id="lang-switcher"], [id^="lang-switcher-"]').forEach(el => {

@@ -15,7 +15,11 @@
 <main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-i18n-aria-label="e9.world_stage.aria_label">
   <div class="e9-stage__status" id="e9-world-stage-status" data-i18n="e9.world_stage.loading" aria-live="polite">Loading adventure map…</div>
   <div class="e9-stage__zones" id="e9-world-stage-zones" role="list" hidden></div>
-  <section class="e9-newbie-mainline" id="e9-newbie-mainline" aria-live="polite" hidden>
+  <section class="e9-zone-details" id="e9-world-stage-details" tabindex="-1" aria-live="polite" hidden>
+    <p class="e9-zone-details__label" id="e9-world-stage-details-label"></p>
+    <p class="e9-zone-details__summary" id="e9-world-stage-details-summary"></p>
+  </section>
+  <section class="e9-newbie-mainline" id="e9-newbie-mainline" tabindex="-1" aria-live="polite" hidden>
     <p class="e9-newbie-mainline__kicker" id="e9-newbie-mainline-kicker"></p>
     <h2 class="e9-newbie-mainline__title" id="e9-newbie-mainline-title"></h2>
     <p class="e9-newbie-mainline__summary" id="e9-newbie-mainline-summary"></p>

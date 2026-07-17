@@ -42,7 +42,9 @@ def test_newbie_panel_is_owned_by_world_stage_and_uses_canonical_identity():
     assert 'id="e9-newbie-mainline"' in WORLD_MARKUP
     assert "function renderBeginnerVillageMainline(root, zone)" in WORLD_STAGE
     assert "zone.key !== 'k26_30'" in WORLD_STAGE
-    assert "zones.filter(function (zone) { return zone.key === 'k26_30'; })" in WORLD_STAGE
+    assert "renderSelectedZone(root, zones, zone.key, true)" in WORLD_STAGE
+    assert 'id="e9-world-stage-details"' in WORLD_MARKUP
+    assert 'aria-pressed' in WORLD_STAGE
     assert "localStorage" not in WORLD_STAGE
     assert "location.search" not in WORLD_STAGE
 
@@ -79,7 +81,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v192-e9-admin-shell-activation" in SW
+    assert "v193-e9-adventure-navigation-fix" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 

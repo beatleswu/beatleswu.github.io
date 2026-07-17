@@ -1816,12 +1816,25 @@ header:not(.cg-nav) {
     <!-- ── CENTER COL：分頁列 + 內容面板（合併）── -->
     <div class="center-col">
     <div class="main-tabs">
-      <button class="main-tab active" data-tab="gear" data-sfx="ui_tab" data-i18n="hero.tab.gear">🛡️ 裝備庫</button>
+      <button class="main-tab active" data-tab="hero" data-sfx="ui_tab" data-i18n="hero.tab.overview">🧙 角色總覽</button>
+      <button class="main-tab" data-tab="equipment" data-sfx="ui_tab" data-i18n="hero.tab.gear">🛡️ 裝備庫</button>
       <button class="main-tab" data-tab="pet" data-sfx="ui_tab" data-i18n="hero.tab.pet">🐾 棋靈夥伴</button>
       <button class="main-tab" data-tab="class" data-sfx="ui_tab" data-i18n="hero.tab.class">⚔️ 戰魂屬性</button>
       <button class="main-tab" data-tab="badges" data-sfx="ui_tab" data-i18n="hero.tab.badges">🏅 榮譽勳章</button>
     </div>
     <div class="right-panel" id="right-panel">
+
+      <!-- ══ HERO OVERVIEW TAB ══ -->
+      <div id="tab-hero">
+        <div class="inv-section">
+          <div class="section-header">
+            <div class="section-icon teal">🧙</div>
+            <span class="section-title" data-i18n="hero.tab.overview">角色總覽</span>
+            <div class="section-header-line"></div>
+          </div>
+          <p class="combat-subtitle" data-i18n="hero.overview.body">查看上方的角色造型、等級、段位、角色資訊與已裝備摘要。</p>
+        </div>
+      </div>
 
       <!-- ══ PET TAB ══ -->
       <div id="tab-pet" style="display:none;">
@@ -3208,23 +3221,28 @@ async function renamePet() {
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
-const ALL_TABS = ['gear','pet','class','badges'];
+const ALL_TABS = ['hero','equipment','gear','pet','class','badges'];
 let _badgesLoaded = false;
 let _petLoaded = false;
+function selectHeroTab(tab, push) {
+  const canonical = tab === 'equipment' ? 'gear' : tab;
+  if (!ALL_TABS.includes(tab) || !document.querySelector(`.main-tab[data-tab="${tab}"]`)) return;
+  document.querySelectorAll('.main-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ALL_TABS.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = (t === canonical) ? '' : 'none';
+  });
+  if (canonical !== 'pet') { stopPetFrameAnimation(); stopPetCooldownTicker(); stopPetTypewriter(); }
+  if (canonical === 'gear') renderCombatGearControls();
+  if (canonical === 'pet' && !_petLoaded) { _petLoaded = true; loadPetStatus(); }
+  else if (canonical === 'pet' && _petState?.pet) renderPetCompanion();
+  if (canonical === 'badges' && !_badgesLoaded) loadBadgesTab();
+  if (push) history.pushState({ heroTab: tab }, '', `/hero?tab=${encodeURIComponent(tab)}`);
+}
+
 document.querySelectorAll('.main-tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const tab = btn.dataset.tab;
-    ALL_TABS.forEach(t => {
-      const el = document.getElementById('tab-' + t);
-      if (el) el.style.display = (t === tab) ? '' : 'none';
-    });
-    if (tab !== 'pet') { stopPetFrameAnimation(); stopPetCooldownTicker(); stopPetTypewriter(); }
-    if (tab === 'gear') renderCombatGearControls();
-    if (tab === 'pet' && !_petLoaded) { _petLoaded = true; loadPetStatus(); }
-    else if (tab === 'pet' && _petState?.pet) renderPetCompanion();
-    if (tab === 'badges' && !_badgesLoaded) loadBadgesTab();
+    selectHeroTab(btn.dataset.tab, true);
   });
 });
 
@@ -4435,12 +4453,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadNavAvatar();
   renderCombatGearControls();
 
-  // 支援 ?tab=badges 等 URL 參數直接切換到指定 tab
-  const tabParam = new URLSearchParams(location.search).get('tab');
-  if (tabParam && ALL_TABS.includes(tabParam)) {
-    const btn = document.querySelector(`.main-tab[data-tab="${tabParam}"]`);
-    if (btn) btn.click();
-  }
+  const tabParam = new URLSearchParams(location.search).get('tab') || 'hero';
+  selectHeroTab(ALL_TABS.includes(tabParam) ? tabParam : 'hero', false);
+  window.addEventListener('popstate', () => {
+    const tab = new URLSearchParams(location.search).get('tab') || 'hero';
+    selectHeroTab(ALL_TABS.includes(tab) ? tab : 'hero', false);
+  });
 });
 
 function closePremWelcome() {
