@@ -28,7 +28,11 @@ except ImportError:  # pragma: no cover - Windows test host
 
 
 ALLOWED_KEY = "SHADOW_JUDGING_ENABLED"
-OWNER_GATE = "GO_DEPLOY"
+OWNER_GATES = {
+    "enable": "GO_ENABLE_SHADOW",
+    "disable": "GO_DISABLE_SHADOW",
+    "rollback": "GO_SHADOW_ROLLBACK",
+}
 TARGET_MARKER = "shadow-judging-governed-backup-v1"
 MAX_ENV_BYTES = 1024 * 1024
 TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
@@ -438,7 +442,8 @@ def open_lock(lock_path: Path):
 def validate_mutation_gate(args):
     if not args.execute:
         raise ConfigError("mutation_requires_execute")
-    if args.owner_gate != OWNER_GATE:
+    expected = OWNER_GATES.get(args.operation)
+    if expected is None or args.owner_gate != expected:
         raise ConfigError("owner_gate_mismatch")
 
 

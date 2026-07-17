@@ -23,11 +23,16 @@ if ($layout.production_env_path -ne '/opt/go-odyssey/.env') {
 }
 
 $mutationOperations = @('enable','disable','rollback')
+$ownerGates = @{
+    enable = 'GO_ENABLE_SHADOW'
+    disable = 'GO_DISABLE_SHADOW'
+    rollback = 'GO_SHADOW_ROLLBACK'
+}
 if ($Operation -in $mutationOperations) {
     if (-not $Execute) {
         throw 'Mutating Shadow Judging operations require -Execute.'
     }
-    Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'
+    Assert-OwnerGate -Provided $OwnerGate -Expected $ownerGates[$Operation]
 }
 
 $helperPath = Join-Path $repoRoot 'scripts\release\shadow_judging_config.py'
@@ -60,7 +65,7 @@ function Get-ShadowHelperArguments {
         $parts += @('--desired', (Quote-PosixShellArgument $RequestedDesired))
     }
     if ($RequestedOperation -in $mutationOperations) {
-        $parts += @('--execute', '--owner-gate', (Quote-PosixShellArgument 'GO_DEPLOY'))
+        $parts += @('--execute', '--owner-gate', (Quote-PosixShellArgument $ownerGates[$RequestedOperation]))
     }
     return ($parts -join ' ')
 }
