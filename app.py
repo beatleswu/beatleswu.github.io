@@ -35,7 +35,6 @@ from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i1
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
-from puzzle_identity import resolve_puzzle_identity
 
 app = Flask(__name__)
 _site_url_for_cookie = os.environ.get('SITE_URL', 'https://godokoro.com').lower()
@@ -1837,15 +1836,6 @@ def warmup_katago():
 def get_db():
     from db import get_db as _get_db
     return _get_db()
-
-
-def _resolve_shadow_puzzle_identity(*, record_index=None, legacy_question_id=None):
-    """Resolve a Shadow-only canonical alias through a read-only DB lookup."""
-    return resolve_puzzle_identity(
-        get_db,
-        record_index=record_index,
-        legacy_question_id=legacy_question_id,
-    )
 
 PET_CATALOG = {
     'star_shell_hatchling': {
@@ -11285,9 +11275,6 @@ def dc_submit():
         if shadow_judging.is_enabled():
             qs_map = {q['id']: q for q in _load_questions()}
             shadow_q = qs_map.get(dc['question_id'], {})
-            identity = _resolve_shadow_puzzle_identity(
-                legacy_question_id=dc['question_id'],
-            )
             shadow_judging.observe_answer_route(
                 entry_point='daily_challenge',
                 question_id=dc['question_id'],
@@ -11299,8 +11286,6 @@ def dc_submit():
                 final_correct=bool(correct),
                 katago_best_move=shadow_q.get('katago_best_move', ''),
                 accepted_moves=_question_accepted_moves(shadow_q),
-                canonical_puzzle_id=identity.canonical_puzzle_id,
-                invalid_identity=identity.invalid_identity,
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
@@ -14731,9 +14716,6 @@ def friend_challenge_answer(cid):
         if shadow_judging.is_enabled():
             qs_map = {q['id']: q for q in _load_questions()}
             shadow_q = qs_map.get(qid, {})
-            identity = _resolve_shadow_puzzle_identity(
-                legacy_question_id=qid,
-            )
             shadow_judging.observe_answer_route(
                 entry_point='friend_challenge',
                 question_id=qid,
@@ -14745,8 +14727,6 @@ def friend_challenge_answer(cid):
                 final_correct=bool(correct),
                 katago_best_move=shadow_q.get('katago_best_move', ''),
                 accepted_moves=_question_accepted_moves(shadow_q),
-                canonical_puzzle_id=identity.canonical_puzzle_id,
-                invalid_identity=identity.invalid_identity,
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
@@ -20898,9 +20878,6 @@ def rt_answer():
             import shadow_judging
             if shadow_judging.is_enabled():
                 _t_sh = _rt_transform_idx(sid, pool_q['id'])
-                identity = _resolve_shadow_puzzle_identity(
-                    legacy_question_id=q_id,
-                )
                 shadow_judging.observe_rating_test(
                     question_id=q_id,
                     session_id=sid,
@@ -20911,8 +20888,6 @@ def rt_answer():
                     final_correct=bool(correct),
                     katago_best_move=pool_q.get('katago_best_move') or '',
                     accepted_moves=_question_accepted_moves(pool_q),
-                    canonical_puzzle_id=identity.canonical_puzzle_id,
-                    invalid_identity=identity.invalid_identity,
                 )
         except Exception:
             app.logger.exception('[shadow] observe failed (ignored)')

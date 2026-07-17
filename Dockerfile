@@ -34,9 +34,6 @@ COPY db.py ./
 COPY shadow_judging.py ./
 COPY shadow_dashboard.py ./
 COPY shadow_event_storage.py ./
-COPY puzzle_identity.py ./
-COPY migrations/__init__.py /app/migrations/__init__.py
-COPY migrations/puzzle_identity_alias_v1.py /app/migrations/puzzle_identity_alias_v1.py
 COPY scheduler.py ./
 COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
@@ -63,9 +60,6 @@ COPY tools/community_leaderboard_rewards_export_entries.py /app/tools/community_
 COPY tools/community_leaderboard_rewards_real_grant_preview.py /app/tools/community_leaderboard_rewards_real_grant_preview.py
 COPY tools/community_leaderboard_rewards_real_grant_commit.py /app/tools/community_leaderboard_rewards_real_grant_commit.py
 COPY tools/community_leaderboard_rewards_exact_period.py /app/tools/community_leaderboard_rewards_exact_period.py
-# Canonical identity backfill is a local/test-only, explicitly invoked CLI.
-# Packaging it does not authorize or trigger a Production migration/backfill.
-COPY tools/puzzle_identity_backfill.py /app/tools/puzzle_identity_backfill.py
 COPY sgf_engine ./sgf_engine
 
 # ── Curated root static pages/scripts (explicit list, not a wildcard).

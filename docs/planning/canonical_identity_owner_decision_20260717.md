@@ -1,74 +1,83 @@
 # Canonical Puzzle Identity Owner Decision
 
-Status: **RESOLVED — ADR-021 COMPOSITE ALIAS CONFIRMED**
+Status: **OWNER_DECISION_REQUIRED**
 
 Scope: SGF Engine V1 closure, identity work item only
 
-Owner-confirmed date: 2026-07-17
+Date: 2026-07-17
 
-Historical source: commit
-`4839a065759420c18a0da1140cf5c4c6747ad3bb`,
-`docs/planning/ADR-021-canonical-puzzle-identity.md`
+No identity migration, backfill, resolver, or request-time write is included
+until the alias key is owner-resolved. Legacy judging and all legacy data
+remain unchanged.
 
-The canonical restatement and owner reaffirmation is recorded at
-`docs/architecture/ADR-021-canonical-puzzle-identity.md`. It is an expanded
-restatement of the historical ADR-021 contract, not a byte-for-byte copy of the
-historical file. The 2026-07-17 owner confirmation directly reaffirms the
-historical composite identity decision together with the fail-safe resolution,
-immutability, rollback-survival, and route/mode boundaries stated there.
+## Conflict found during canonical preflight
 
-## Binding decision
-
-Each immutable ingested puzzle record receives one ingestion-generated UUID
-version 4. The effective canonical mapping remains exactly:
+The dispatched task contract asks for one immutable mapping:
 
 ```text
-(record_index, legacy_question_id) → immutable UUID v4
+legacy question_id <-> canonical UUID v4 (1:1)
 ```
 
-`legacy_question_id` is not globally unique. The historical audit recorded 12
-duplicated IDs, including `70450`, `63382`, `71240`, `71238`, and `62011`.
-The interim proposal to use `(source_namespace,
-immutable_source_record_key)` was withdrawn before implementation and is not
-part of the schema, resolver, or backfill.
+The current canonical branch does not contain the referenced ADR-021. A
+preservation-only historical artifact at commit
+`4839a065759420c18a0da1140cf5c4c6747ad3bb` records a different accepted
+contract: legacy IDs were known to be duplicated, so aliases must be keyed by
+`(record_index, legacy_question_id)`, with one UUID per corpus record.
 
-## Runtime resolution
+Current application behavior reinforces that conflict:
 
-- When both key members are available, resolve only the exact composite key.
-- When only `legacy_question_id` is available, resolve only if the alias table
-  contains exactly one row for that ID.
-- Zero rows are missing identity; multiple rows are ambiguous identity.
-- Route, gameplay mode, corpus ordering, filename, SGF bytes, and content hash
-  must never break an ambiguity or mint identity.
-- Missing, ambiguous, invalid, or failed lookup emits
+- several runtime lookups construct dictionaries keyed only by `q['id']`, so
+  duplicate legacy IDs do not retain record identity at answer time;
+- corpus-review helpers explicitly use `record_index` together with
+  `legacy_question_id` to disambiguate records;
+- question creation allocates `max(existing id) + 1`; deleting the highest ID
+  can therefore allow that numeric value to be reused later.
+
+These observations were made from tracked code and the historical ADR only.
+No `questions.json`, database, SGF bytes, or protected artifact was inspected.
+
+## Owner decision A: supersede the historical composite key
+
+Approve a globally unique, permanently non-reusable numeric `question_id` as
+the sole alias key. This also requires owner-approved ingestion governance:
+
+1. prove or remediate every duplicate before backfill;
+2. introduce a durable allocator/tombstone rule so a deleted ID is never
+   reused;
+3. define how historical events distinguish records that previously shared an
+   ID; and
+4. explicitly supersede the historical ADR-021 decision.
+
+Only after those prerequisites can a database uniqueness constraint safely
+enforce `question_id <-> UUIDv4` one-to-one.
+
+## Owner decision B: preserve the historical composite key
+
+Approve `(record_index, legacy_question_id)` as the alias key. This requires
+each covered answer route to obtain an immutable ingestion record identifier;
+the legacy numeric ID alone is insufficient. The route adapter may perform a
+bounded, read-only lookup, but must never infer record identity from SGF bytes
+or lazily create an alias.
+
+This preserves the historical decision, but the owner must define how
+`record_index` survives corpus reorder/re-ingestion or replace it with another
+immutable ingestion key before schema approval.
+
+## Invariants under either decision
+
+- UUIDs are generated once by an offline, idempotent backfill.
+- The alias table is the only canonical identity source.
+- Answer paths perform bounded, read-only lookups with fail-safe null fallback.
+- Missing, ambiguous, or failed lookups emit
   `canonical_puzzle_id=null`, `invalid_identity=true`, and
-  `gf003_related=false`.
-- Player request paths perform SELECT-only lookups and never create aliases.
+  `gf003_related=false` while returning the unchanged Legacy result.
+- No request-time alias creation and no legacy-table writes are permitted.
+- Ordinary application rollback preserves the additive alias table.
+- Production migration/backfill remains `PENDING OWNER-GATED DEPLOYMENT`.
 
-The current Rating Test, Daily Challenge, and Friend Challenge answer-session
-contracts persist only the legacy ID. Their Shadow diagnostics therefore use
-the unique-only fallback. A duplicated legacy ID fails closed rather than
-borrowing a record index from a reconstructed pool or using the first or last
-record in current corpus order. Exact composite lookup remains available only
-to callers that carry both immutable key members as verified source context.
+## Decision requested
 
-## Immutability and rollback
-
-- `puzzle_identity_alias` is the only canonical mapping source.
-- Offline backfill inserts missing mappings only and never updates or replaces
-  an existing UUID.
-- Repeated backfill over the same governed ingestion population must preserve
-  mapping snapshots byte-for-byte.
-- Normal application rollback leaves the additive table and mappings intact.
-- A guarded destructive down migration exists only for review completeness;
-  it is never an automatic or normal rollback step.
-
-## Production boundary
-
-No Production migration, backfill, database access, destructive downgrade,
-GF-003 activation, SGF modification, or authoritative judging change is
-authorized. Production migration and actual row count remain:
-
-```text
-PENDING OWNER-GATED DEPLOYMENT
-```
+The owner must select A or B and approve the corresponding stable alias key
+before identity implementation resumes. This is a data-identity semantic
+choice; selecting it in implementation code would risk binding one UUID to
+multiple puzzles or splitting one puzzle's history.

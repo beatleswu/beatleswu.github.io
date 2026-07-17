@@ -7,7 +7,6 @@ import pytest
 
 import app as app_module
 import shadow_judging
-from puzzle_identity import IdentityResolution
 
 
 DOC_PATH = Path(__file__).resolve().parents[1] / "docs" / "planning" / "shadow_event_envelope_v1.md"
@@ -356,15 +355,7 @@ def test_rating_test_route_legacy_response_is_unchanged_with_shadow_hook(
                 "source_group": "source-a",
                 "rating": 1500.0,
                 "katago_best_move": "Q16",
-            },
-            {
-                "id": 123,
-                "content": "(;SZ[19];B[bb])",
-                "discipline": "tesuji",
-                "source_group": "source-b",
-                "rating": 1500.0,
-                "katago_best_move": "R16",
-            },
+            }
         ],
     )
     monkeypatch.setattr(app_module, "_rt_server_verify", lambda pool_q, sid, moves: True)
@@ -384,17 +375,6 @@ def test_rating_test_route_legacy_response_is_unchanged_with_shadow_hook(
 
     with client.session_transaction() as sess:
         sess["user_id"] = 7
-
-    identity_calls = []
-    canonical_puzzle_id = "00000000-0000-4000-8000-000000000001"
-    monkeypatch.setattr(
-        app_module,
-        "_resolve_shadow_puzzle_identity",
-        lambda **kwargs: (
-            identity_calls.append(kwargs)
-            or IdentityResolution(canonical_puzzle_id, False)
-        ),
-    )
 
     off_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: False)
@@ -439,9 +419,6 @@ def test_rating_test_route_legacy_response_is_unchanged_with_shadow_hook(
     assert off_response.get_json() == on_response.get_json()
     assert off_calls == []
     assert len(on_calls) == 1
-    assert identity_calls == [{"legacy_question_id": 123}]
-    assert on_calls[0]["canonical_puzzle_id"] == canonical_puzzle_id
-    assert on_calls[0]["invalid_identity"] is False
 
 
 def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
@@ -475,17 +452,6 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     with client.session_transaction() as sess:
         sess["user_id"] = 7
 
-    identity_calls = []
-    canonical_puzzle_id = "00000000-0000-4000-9000-000000000002"
-    monkeypatch.setattr(
-        app_module,
-        "_resolve_shadow_puzzle_identity",
-        lambda **kwargs: (
-            identity_calls.append(kwargs)
-            or IdentityResolution(canonical_puzzle_id, False)
-        ),
-    )
-
     off_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: False)
     monkeypatch.setattr(
@@ -515,9 +481,6 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     assert off_response.get_json() == on_response.get_json()
     assert off_calls == []
     assert len(on_calls) == 1
-    assert identity_calls == [{"legacy_question_id": 301}]
-    assert on_calls[0]["canonical_puzzle_id"] == canonical_puzzle_id
-    assert on_calls[0]["invalid_identity"] is False
 
 
 def test_friend_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
@@ -545,16 +508,6 @@ def test_friend_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     with client.session_transaction() as sess:
         sess["user_id"] = 7
 
-    identity_calls = []
-    monkeypatch.setattr(
-        app_module,
-        "_resolve_shadow_puzzle_identity",
-        lambda **kwargs: (
-            identity_calls.append(kwargs)
-            or IdentityResolution(None, True)
-        ),
-    )
-
     off_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: False)
     monkeypatch.setattr(
@@ -584,6 +537,3 @@ def test_friend_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     assert off_response.get_json() == on_response.get_json()
     assert off_calls == []
     assert len(on_calls) == 1
-    assert identity_calls == [{"legacy_question_id": 301}]
-    assert on_calls[0]["canonical_puzzle_id"] is None
-    assert on_calls[0]["invalid_identity"] is True
