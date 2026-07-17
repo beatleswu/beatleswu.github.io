@@ -14479,7 +14479,11 @@ window.onload = async () => {
         }, me.e9_rollout.effective_flags || {});
         window.__GO_E9_FLAGS__ = Object.assign({}, window.__GO_E9_SERVER_FLAGS__);
     }
-    if (!window.__GO_E9_OWNERSHIP_INITIALIZED__) primeInitialE9ShellOwnership();
+    // The initial DOM-ready pass is intentionally fail-closed and may choose
+    // Legacy before authentication resolves. Recompute ownership after the
+    // server-side rollout response so an entitled admin can acquire E9; the
+    // function remains deterministic and keeps practice URLs on Legacy.
+    primeInitialE9ShellOwnership();
     // shell.js initializes at DOMContentLoaded, before authenticated rollout
     // flags are available. Re-run the existing idempotent initializer after
     // the server-side auth handoff so an entitled admin can acquire E9

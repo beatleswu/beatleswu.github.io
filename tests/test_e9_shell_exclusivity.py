@@ -31,7 +31,9 @@ def test_index_gates_legacy_home_runtime_when_e9_owns_shell():
 def test_authenticated_rollout_handoff_reinitializes_shell_after_dom_ready():
     html = _read(INDEX_HTML)
     handoff = html.index("window.__GO_E9_SERVER_FLAGS__ = Object.assign")
+    ownership_refresh = html.index("primeInitialE9ShellOwnership();", handoff)
     reinit = html.index("window.E9.initShell();", handoff)
+    assert ownership_refresh > handoff
     assert reinit > handoff
     assert "typeof window.E9.initShell === 'function'" in html
 
