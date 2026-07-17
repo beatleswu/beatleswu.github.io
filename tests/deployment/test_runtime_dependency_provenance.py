@@ -18,7 +18,7 @@ def load_manifest():
 def test_manifest_exists_and_valid():
     data = load_manifest()
     assert isinstance(data["files"], list)
-    assert len(data["files"]) == 78
+    assert len(data["files"]) == 82
 
 
 def test_manifest_covers_every_governed_runtime_file():
@@ -30,6 +30,10 @@ def test_manifest_covers_every_governed_runtime_file():
         "backend_i18n.py", "chapter_i18n.py", "explain_overrides.py", "grimoire_api.py",
         "katago_explain.py", "monster_taxonomy.py", "question_taxonomy.py", "scheduler.py",
         "shadow_event_storage.py",
+        "puzzle_identity.py",
+        "migrations/__init__.py",
+        "migrations/puzzle_identity_alias_v1.py",
+        "tools/puzzle_identity_backfill.py",
         "community_leaderboard_rewards_scheduler.py",
         "community_leaderboard_rewards.py", "db.py",
         "newebpay.py", "paypal_api.py",

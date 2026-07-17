@@ -105,11 +105,17 @@ Aggregate reads include the active file and retained rotations, deduplicate by
 `event_id`, scan newest first, and publish byte/event/truncation metadata. A
 partial read window must never be labelled as a complete agreement window.
 
-## Identity gate
+## Identity resolution
 
-The canonical repository currently lacks an owner-resolved alias-key contract:
-the dispatched single-key `question_id` mapping conflicts with the historical
-duplicate-aware `(record_index, legacy_question_id)` decision. Until that gate
-is resolved and an additive migration/backfill is owner-approved, new events
-must safely emit `canonical_puzzle_id=null`, `invalid_identity=true`, and
-`gf003_related=false`. No request-time alias creation is permitted.
+The owner-confirmed ADR-021 alias key is
+`(record_index, legacy_question_id)`. Exact composite lookup has precedence.
+When a legacy route carries only `legacy_question_id`, the alias table may
+resolve it only if exactly one row has that ID; zero or multiple rows fail
+closed. No route, gameplay mode, ordering, filename, or SGF/content value may
+break an ambiguity.
+
+Missing, ambiguous, invalid, or failed lookup emits
+`canonical_puzzle_id=null`, `invalid_identity=true`, and
+`gf003_related=false`. Player request paths are read-only and no request-time
+alias creation is permitted. Production migration and backfill remain pending
+a separate owner gate.

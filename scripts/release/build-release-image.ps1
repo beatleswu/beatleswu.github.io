@@ -39,7 +39,7 @@ try {
             Fail "shadow_judging.py --selftest failed with exit code $LASTEXITCODE."
         }
 
-        python -m py_compile app.py db.py scheduler.py shadow_judging.py shadow_dashboard.py shadow_event_storage.py | Out-Host
+        python -m py_compile app.py db.py scheduler.py shadow_judging.py shadow_dashboard.py shadow_event_storage.py puzzle_identity.py migrations/__init__.py migrations/puzzle_identity_alias_v1.py tools/puzzle_identity_backfill.py | Out-Host
         if ($LASTEXITCODE -ne 0) {
             Fail "py_compile failed with exit code $LASTEXITCODE."
         }
