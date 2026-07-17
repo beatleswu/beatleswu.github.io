@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORLD = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
+SHELL = (ROOT / "js/e9/shell.js").read_text(encoding="utf-8")
 MARKUP = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -54,3 +55,4 @@ def test_c3_does_not_introduce_daily_or_second_adventure_state():
 
 def test_canonical_adventure_entry_is_exposed_to_the_e9_adapter():
     assert "window.startAdventureStage = startAdventureStage;" in INDEX
+    assert "global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';" in SHELL
