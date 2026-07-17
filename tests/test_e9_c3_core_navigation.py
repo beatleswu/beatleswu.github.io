@@ -15,6 +15,8 @@ def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract(
     assert "e9:zone-selected" in WORLD
     assert "renderSelectedZone(root, zones, zone.key, true)" in WORLD
     assert "startAdventureFromE9(zone.key)" in WORLD  # CTA only; card activation must not call it
+    assert "cta.addEventListener('click', cta.__e9AdventureHandler)" in WORLD
+    assert "cta.removeEventListener('click', cta.__e9AdventureHandler)" in WORLD
     assert "focusTarget.focus({ preventScroll: true })" in WORLD
     assert "scrollIntoView({ behavior: 'smooth'" in WORLD
     assert 'id="e9-world-stage-details"' in MARKUP

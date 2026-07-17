@@ -71,11 +71,15 @@
           ? 'adventure.newbie.cta_continue'
           : 'adventure.newbie.cta_begin');
       cta.textContent = t(ctaKey, 'Begin the Beginner Village Adventure');
-      cta.onclick = function () {
+      if (cta.__e9AdventureHandler) {
+        cta.removeEventListener('click', cta.__e9AdventureHandler);
+      }
+      cta.__e9AdventureHandler = function () {
         if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
           window.E9.startAdventureFromE9(zone.key);
         }
       };
+      cta.addEventListener('click', cta.__e9AdventureHandler);
     }
     panel.hidden = false;
   }
