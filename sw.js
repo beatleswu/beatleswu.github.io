@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v197-e9-adventure-entry-handoff-trace';
+const VERSION     = 'v198-e9-adventure-entry-contract-trace';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

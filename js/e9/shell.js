@@ -253,11 +253,11 @@
   function startAdventureFromE9(zoneKey) {
     try {
       if (new URLSearchParams(global.location.search || '').get('e9verify') === 'c3-1-trace') {
-        console.info('[E9:C3.1]', 'canonical-entry-owner', {
+        console.info('[E9:C3.1] canonical-entry-owner ' + JSON.stringify({
           zone: zoneKey,
           startAvailable: typeof global.startAdventureStage === 'function',
           path: global.location.pathname,
-        });
+        }));
       }
     } catch (traceErr) {}
     if (typeof global.startAdventureStage !== 'function') {

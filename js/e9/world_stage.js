@@ -28,10 +28,10 @@
     try {
       var params = new URLSearchParams(window.location.search || '');
       if (params.get('e9verify') !== 'c3-1-trace') return;
-      console.info('[E9:C3.1]', name, Object.assign({
+      console.info('[E9:C3.1] ' + name + ' ' + JSON.stringify(Object.assign({
         path: window.location.pathname,
         target: 'e9-newbie-mainline-cta',
-      }, detail || {}));
+      }, detail || {})));
     } catch (err) {}
   }
 
