@@ -62,9 +62,18 @@ try {
         }
 
         $env:APP_BUILD_DATE_OVERRIDE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $worktree 'scripts\build-production-image.ps1') -GitSha $ExpectedGitSha | Out-Host
-        if ($LASTEXITCODE -ne 0) {
-            Fail "build-production-image.ps1 failed with exit code $LASTEXITCODE."
+        $buildResult = Invoke-BoundedNativeCommand `
+            -FileName 'powershell.exe' `
+            -ArgumentList @(
+                '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+                (Join-Path $worktree 'scripts\build-production-image.ps1'),
+                '-GitSha', $ExpectedGitSha
+            ) `
+            -TimeoutSeconds 3900 `
+            -OperationLabel 'canonical production image build script'
+        Write-Host $buildResult.output
+        if ($buildResult.exit_code -ne 0) {
+            Fail "build-production-image.ps1 failed with exit code $($buildResult.exit_code)."
         }
 
         $labels = Assert-ImageRevisionMatches -ImageTag $imageTag -ExpectedGitSha $ExpectedGitSha

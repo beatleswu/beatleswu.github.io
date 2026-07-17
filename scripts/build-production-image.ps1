@@ -189,18 +189,23 @@ if (-not $builderPlatforms -or ($builderPlatforms -split ',\s*') -notcontains $P
 #    pipeline (package-release-image.ps1, deploy-release-image.ps1) can
 #    use it exactly like any other locally-built image. Never deploy,
 #    never `up`, never touch any remote host.
-docker buildx build `
-    --platform $Platform `
-    --load `
-    --build-arg "APP_GIT_SHA=$GitSha" `
-    --build-arg "APP_BUILD_DATE=$buildDate" `
-    --build-arg "SGF_ENGINE_SOURCE_COMMIT=$sgfEngineCommit" `
-    -t $imageTag `
-    -f Dockerfile `
-    .
-
-if ($LASTEXITCODE -ne 0) {
-    Fail "docker buildx build exited with code $LASTEXITCODE."
+$buildResult = Invoke-BoundedNativeCommand `
+    -FileName 'docker' `
+    -ArgumentList @(
+        'buildx', 'build',
+        '--platform', $Platform,
+        '--load',
+        '--build-arg', "APP_GIT_SHA=$GitSha",
+        '--build-arg', "APP_BUILD_DATE=$buildDate",
+        '--build-arg', "SGF_ENGINE_SOURCE_COMMIT=$sgfEngineCommit",
+        '-t', $imageTag,
+        '.'
+    ) `
+    -TimeoutSeconds 3600 `
+    -OperationLabel 'canonical production image build'
+Write-Host $buildResult.output
+if ($buildResult.exit_code -ne 0) {
+    Fail "docker buildx build exited with code $($buildResult.exit_code)."
 }
 
 # 9b. Verify the built image's actual platform, immediately, at build time.
