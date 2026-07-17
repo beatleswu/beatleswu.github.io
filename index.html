@@ -11635,6 +11635,8 @@ async function showStageIntroCinematic(zone) {
     }
 }
 
+ window.startAdventureStage = startAdventureStage;
+
 function getCurrentIntroZone() {
     const overlay = document.getElementById('boss-cinematic');
     const zoneKey = overlay?.dataset?.zoneKey || '';
