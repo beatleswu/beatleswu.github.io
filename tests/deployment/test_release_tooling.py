@@ -360,6 +360,11 @@ def test_build_script_uses_clean_tree_and_detached_worktree():
         assert token in content
 
 
+def test_build_production_clean_check_does_not_inspect_untracked_protection_files():
+    content = read_text(REPO_ROOT / "scripts" / "build-production-image.ps1")
+    assert "git status --short --untracked-files=no" in content
+
+
 def test_canonical_build_uses_exit_code_native_helper_for_stderr_safe_execution():
     release_content = read_text(REPO_ROOT / "scripts" / "release" / "build-release-image.ps1")
     image_content = read_text(BUILD_PRODUCTION_IMAGE_SCRIPT)
