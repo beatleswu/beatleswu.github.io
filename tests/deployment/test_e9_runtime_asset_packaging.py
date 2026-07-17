@@ -150,11 +150,11 @@ def test_all_e9_source_files_actually_exist_on_disk():
 
 
 def test_build_script_platform_contract_unchanged_by_this_fix():
-    # This sprint must not touch the ARM64/buildx contract established by
-    # RELEASE-TOOLING-HOTFIX-02 -- only the Dockerfile's COPY list changes.
+    # Preserve the ARM64/buildx contract established by RELEASE-TOOLING-HOTFIX-02
+    # while allowing the invocation to use the stderr-safe native helper.
     content = _read(BUILD_SCRIPT)
-    assert "docker buildx build" in content
-    assert "--platform $Platform" in content
+    assert "'buildx', 'build'" in content
+    assert "'--platform', $Platform" in content
     assert "--load" in content
     assert "'linux/arm64'" in content
 
