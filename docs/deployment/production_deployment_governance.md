@@ -27,8 +27,20 @@ This document is the operational summary. For the full audit narrative and evide
 - **GO_MERGE** — authorizes merging a PR into `master`. Never implies deployment.
 - **GO_DEPLOY** — authorizes running `deploy-release-image.ps1 -Execute` or
   `deploy-static-release.ps1 -Execute`. Passed via `-OwnerGate GO_DEPLOY`; without `-Execute`, both
-  scripts dry-run only and report identity/readiness.
+  scripts dry-run only and report identity/readiness. It authorizes deployment only.
 - **GO_ROLLBACK** — authorizes `rollback-release.ps1 -Execute -OwnerGate GO_ROLLBACK`.
+
+- **GO_ENABLE_SHADOW** — authorizes only governed Shadow enablement.
+- **GO_DISABLE_SHADOW** — authorizes only governed Shadow disablement.
+- **GO_SHADOW_ROLLBACK** — authorizes only restoration from a governed Shadow
+  configuration backup.
+- **GO_KILL_SWITCH_DRILL** — authorizes only one bounded governed Shadow
+  kill-switch drill.
+
+`GO_DEPLOY` explicitly does not authorize Shadow enable, Shadow disable,
+Shadow rollback, a kill-switch drill, Identity migration, Identity backfill,
+GF-003 activation, or any change to authoritative judging. Operation-specific
+gates are not interchangeable.
 
 Each gate is a separate, explicit owner decision at execution time. A merged PR, a passing test
 suite, or the mere existence of these scripts never substitutes for the gate.

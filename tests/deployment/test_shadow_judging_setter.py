@@ -15,6 +15,18 @@ RELEASE_COMPOSE = ROOT / "docker-compose.release.yml"
 UNSET = object()
 
 
+def load_production_owner_gates():
+    spec = importlib.util.spec_from_file_location(
+        "validated_production_shadow_judging_config", HELPER
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return dict(module.OWNER_GATES)
+
+
+MUTATION_GATES = load_production_owner_gates()
+
+
 def invoke_helper(
     tmp_path,
     operation,
@@ -68,7 +80,7 @@ def mutate(tmp_path, operation, content=UNSET):
         operation,
         content,
         execute=True,
-        owner_gate="GO_DEPLOY",
+        owner_gate=MUTATION_GATES[operation],
     )
 
 
@@ -145,23 +157,41 @@ def test_dry_run_is_non_mutating_and_reports_enable_and_disable_plans(tmp_path):
     assert not (tmp_path / "backups").exists()
 
 
-def test_all_mutations_require_execute_and_exact_owner_gate(tmp_path):
+def test_all_mutations_require_execute_and_exact_operation_owner_gate(tmp_path):
+    assert MUTATION_GATES == {
+        "enable": "GO_ENABLE_SHADOW",
+        "disable": "GO_DISABLE_SHADOW",
+        "rollback": "GO_SHADOW_ROLLBACK",
+    }
     original = "SHADOW_JUDGING_ENABLED=false\nOPAQUE=synthetic\n"
-    result, payload, env_path = invoke_helper(tmp_path, "enable", original)
-    assert result.returncode == 1
-    assert payload == {"reason": "mutation_requires_execute", "status": "fail_closed"}
-    assert env_path.read_text(encoding="utf-8") == original
+    rejected = {
+        None,
+        "",
+        "ARBITRARY",
+        "GO_DEPLOY",
+        "GO_MIGRATE_IDENTITY",
+        "GO_BACKFILL_IDENTITY",
+        *MUTATION_GATES.values(),
+    }
+    for index, operation in enumerate(MUTATION_GATES):
+        operation_dir = tmp_path / str(index)
+        operation_dir.mkdir()
+        result, payload, env_path = invoke_helper(operation_dir, operation, original)
+        assert result.returncode == 1
+        assert payload == {"reason": "mutation_requires_execute", "status": "fail_closed"}
+        assert env_path.read_text(encoding="utf-8") == original
 
-    result, payload, env_path = invoke_helper(
-        tmp_path,
-        "enable",
-        execute=True,
-        owner_gate="NOT_AUTHORIZED",
-    )
-    assert result.returncode == 1
-    assert payload == {"reason": "owner_gate_mismatch", "status": "fail_closed"}
-    assert env_path.read_text(encoding="utf-8") == original
-    assert not (tmp_path / "backups").exists()
+        for gate in rejected - {MUTATION_GATES[operation]}:
+            result, payload, env_path = invoke_helper(
+                operation_dir,
+                operation,
+                execute=True,
+                owner_gate=gate,
+            )
+            assert result.returncode == 1
+            assert payload == {"reason": "owner_gate_mismatch", "status": "fail_closed"}
+            assert env_path.read_text(encoding="utf-8") == original
+            assert not (operation_dir / "backups").exists()
 
 
 def test_enable_changes_only_allowed_key_and_creates_governed_backup(tmp_path):
@@ -318,7 +348,14 @@ def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     assert "SHADOW_JUDGING_ENABLED" in setter
     assert "SHADOW_JUDGING_ENABLED" in helper
     assert "production_env_path -ne '/opt/go-odyssey/.env'" in setter
-    assert "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'" in setter
+    assert "Assert-OwnerGate -Provided $OwnerGate -Expected $ownerGates[$Operation]" in setter
+    assert "enable = 'GO_ENABLE_SHADOW'" in setter
+    assert "disable = 'GO_DISABLE_SHADOW'" in setter
+    assert "rollback = 'GO_SHADOW_ROLLBACK'" in setter
+    assert '"enable": "GO_ENABLE_SHADOW"' in helper
+    assert '"disable": "GO_DISABLE_SHADOW"' in helper
+    assert '"rollback": "GO_SHADOW_ROLLBACK"' in helper
+    assert 'OWNER_GATE = "GO_DEPLOY"' not in helper
     assert "Mutating Shadow Judging operations require -Execute." in setter
     assert "--execute" in setter
     assert "--owner-gate" in setter
@@ -335,10 +372,14 @@ def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     assert "governed pre-change state was restored and verified" in setter
 
 
-def test_runbook_records_owner_gate_and_pending_drill_without_raw_recipes():
+def test_runbook_records_operation_specific_gates_without_raw_recipes():
     runbook = RUNBOOK.read_text(encoding="utf-8")
     assert runbook.count("PENDING OWNER-GATED DRILL") >= 2
-    assert "GO_DEPLOY" in runbook
+    assert "GO_ENABLE_SHADOW" in runbook
+    assert "GO_DISABLE_SHADOW" in runbook
+    assert "GO_SHADOW_ROLLBACK" in runbook
+    assert "GO_KILL_SWITCH_DRILL" in runbook
+    assert "`GO_DEPLOY` does not authorize" in runbook
     assert "DEPLOY-GOV-1" in runbook
     assert "-Operation status" in runbook
     assert "-Operation dry-run" in runbook
@@ -347,7 +388,10 @@ def test_runbook_records_owner_gate_and_pending_drill_without_raw_recipes():
     assert "-Operation rollback" in runbook
     assert "zero new Shadow events" in runbook
     assert "Admin Shadow dashboard remains readable" in runbook
-    assert "Shadow events resume" in runbook
+    assert "Shadow event-store writes resume" in runbook
+    assert "legacy_infrastructure_healthy" in runbook
+    assert "actual Legacy judging canary" in runbook
+    assert "all three Legacy" in runbook
     assert "docker exec" not in runbook.lower()
     assert "docker compose restart" not in runbook.lower()
     assert "/opt/go-odyssey/.env" not in runbook
