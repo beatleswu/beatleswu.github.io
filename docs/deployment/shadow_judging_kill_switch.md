@@ -81,14 +81,26 @@ an ordinary enable, disable, rollback, deployment, Identity mutation, GF-003
 activation, or authoritative-judging change. `GO_DEPLOY` does not authorize
 the drill.
 
-The drill records initial effective state, disables through the governed
-setter, verifies app/scheduler disabled convergence and Legacy health, runs a
-bounded synthetic observation to verify zero new Shadow events, verifies the
-Admin Shadow dashboard reader, and restores the exact initial configuration
-through the governed backup. If the initial state was enabled, a bounded
-synthetic observation must prove Shadow events resume. The report includes the
-initial configuration backup identity, restoration reverse-backup identity,
-final effective state, and partial-state/restoration fields on every failure.
+The drill records initial effective state and requires three independent kinds
+of evidence. `legacy_infrastructure_healthy` covers app/scheduler convergence,
+the health endpoint, homepage, and login only; it is not evidence of judging
+correctness. Real event-store observation proves that Shadow writes stop while
+disabled and, when initially enabled, resume after restoration. The actual
+Legacy judging canary directly invokes the rating answer flow's existing
+server-side Legacy verifier with the tracked in-memory synthetic fixture and
+expects its deterministic `correct` result. It does not load the puzzle corpus,
+use a database or player request, invoke Shadow judging, or cause gameplay side
+effects.
+
+The Legacy judging canary must pass before mutation, while Shadow is disabled,
+and after restoration. An unavailable, unsupported, skipped, indeterminate, or
+unexpected result fails closed. Drill success requires infrastructure health,
+real Shadow event-store observation, dashboard readability, all three Legacy
+canary checkpoints, exact configuration restoration, and event resumption when
+applicable. The report exposes only the canary name and expected/actual result
+labels—never puzzle contents—plus both backup identities, final effective state,
+and partial-state/restoration fields. Failure stages distinguish
+`legacy_baseline`, `legacy_disabled`, and `legacy_restored`.
 
 ## Post-deploy owner drill checklist
 
@@ -99,14 +111,16 @@ record evidence for every step in one approved drill window:
 - [ ] Invoke the wrapper with `GO_KILL_SWITCH_DRILL`; do not run its internal
   steps manually.
 - [ ] Record the governed initial configuration backup identity.
-- [ ] Verify all covered player routes remain healthy and Legacy responses are
-  unchanged.
+- [ ] Verify `legacy_infrastructure_healthy`: app/scheduler convergence and the
+  health, homepage, and login probes pass. Do not treat this as judging proof.
+- [ ] Verify the actual Legacy judging canary returns its deterministic expected
+  result before mutation, while Shadow is disabled, and after restoration.
 - [ ] Verify zero new Shadow events are written during a bounded observation
   window with representative route traffic.
 - [ ] Verify the Admin Shadow dashboard remains readable.
 - [ ] Verify the wrapper restores the exact initial intended state.
-- [ ] If initially enabled, verify Shadow events resume while Legacy responses
-  remain unchanged.
+- [ ] If initially enabled, verify real Shadow event-store writes resume after
+  restoration.
 - [ ] Record final governed flag status and before/disabled/after event counts.
 - [ ] If any gate fails, retain the wrapper's partial-state report and verify
   its restoration attempt and final-state result.

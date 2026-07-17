@@ -13,11 +13,18 @@ RUNBOOK = ROOT / "docs" / "deployment" / "shadow_judging_kill_switch.md"
 PROD_COMPOSE = ROOT / "docker-compose.prod.yml"
 RELEASE_COMPOSE = ROOT / "docker-compose.release.yml"
 UNSET = object()
-MUTATION_GATES = {
-    "enable": "GO_ENABLE_SHADOW",
-    "disable": "GO_DISABLE_SHADOW",
-    "rollback": "GO_SHADOW_ROLLBACK",
-}
+
+
+def load_production_owner_gates():
+    spec = importlib.util.spec_from_file_location(
+        "validated_production_shadow_judging_config", HELPER
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return dict(module.OWNER_GATES)
+
+
+MUTATION_GATES = load_production_owner_gates()
 
 
 def invoke_helper(
@@ -151,6 +158,11 @@ def test_dry_run_is_non_mutating_and_reports_enable_and_disable_plans(tmp_path):
 
 
 def test_all_mutations_require_execute_and_exact_operation_owner_gate(tmp_path):
+    assert MUTATION_GATES == {
+        "enable": "GO_ENABLE_SHADOW",
+        "disable": "GO_DISABLE_SHADOW",
+        "rollback": "GO_SHADOW_ROLLBACK",
+    }
     original = "SHADOW_JUDGING_ENABLED=false\nOPAQUE=synthetic\n"
     rejected = {
         None,
@@ -376,7 +388,10 @@ def test_runbook_records_operation_specific_gates_without_raw_recipes():
     assert "-Operation rollback" in runbook
     assert "zero new Shadow events" in runbook
     assert "Admin Shadow dashboard remains readable" in runbook
-    assert "Shadow events resume" in runbook
+    assert "Shadow event-store writes resume" in runbook
+    assert "legacy_infrastructure_healthy" in runbook
+    assert "actual Legacy judging canary" in runbook
+    assert "all three Legacy" in runbook
     assert "docker exec" not in runbook.lower()
     assert "docker compose restart" not in runbook.lower()
     assert "/opt/go-odyssey/.env" not in runbook

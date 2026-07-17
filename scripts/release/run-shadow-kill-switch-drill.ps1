@@ -56,7 +56,7 @@ function Assert-DrillDisabled {
     }
 }
 
-function Assert-LegacyRoutesHealthy {
+function Assert-LegacyInfrastructureHealthy {
     param($DisableResult)
     if (-not $DisableResult.health -or $DisableResult.health.status -ne 'ok' -or [int]$DisableResult.health.healthz -ne 200) {
         throw 'Legacy health convergence was not preserved after Shadow disable.'
@@ -72,6 +72,54 @@ function Assert-LegacyRoutesHealthy {
             throw "Legacy route $route did not return HTTP 200."
         }
     }
+}
+
+function Invoke-LegacyJudgingCanary {
+    param([Parameter(Mandatory = $true)][ValidateSet('baseline','disabled','restored')][string]$Checkpoint)
+
+    $scriptTemplate = @'
+set -eu
+docker exec -i __APP__ python -X utf8 - <<'__LEGACY_JUDGING_CANARY__'
+import json
+
+import app
+
+# Reuses tests/test_shadow_envelope_v4.py::SYNTHETIC_SGF. The production
+# corpus, database, HTTP routes, player accounts, and Shadow judge are not used.
+fixture = {
+    "id": 123,
+    "content": "(;SZ[19];B[aa])",
+    "accepted_moves": [],
+    "katago_best_move": "",
+}
+moves = [{"x": 0, "y": 0}]
+actual = app._rt_server_verify(fixture, "legacy-canary-0", moves)
+actual_label = "correct" if actual is True else ("incorrect" if actual is False else "indeterminate")
+payload = {
+    "ok": actual is True,
+    "name": "rating_test_synthetic_single_move",
+    "expected_result": "correct",
+    "actual_result": actual_label,
+}
+print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+__LEGACY_JUDGING_CANARY__
+'@
+    $quotedAppService = Quote-PosixShellArgument ([string]$layout.app_service_name)
+    $remoteScript = $scriptTemplate.Replace('__APP__', $quotedAppService)
+    $remote = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -ScriptText $remoteScript -TimeoutSeconds 30 -OperationLabel "Legacy judging canary ($Checkpoint)"
+    if ($remote.timed_out -or $remote.exit_code -ne 0) {
+        throw "Legacy judging canary $Checkpoint failed closed; remote output withheld."
+    }
+    try {
+        $payload = $remote.output | ConvertFrom-Json
+    }
+    catch {
+        throw "Legacy judging canary $Checkpoint returned invalid sanitized JSON."
+    }
+    if (-not $payload -or [string]::IsNullOrWhiteSpace([string]$payload.name)) {
+        throw "Legacy judging canary $Checkpoint was unavailable or indeterminate."
+    }
+    return $payload
 }
 
 function Invoke-ShadowObservationProbe {
@@ -139,7 +187,8 @@ $report = Invoke-ShadowKillSwitchDrillStateMachine `
     -GetState { Invoke-ShadowSetterJson -Operation status } `
     -Disable { Invoke-ShadowSetterJson -Operation disable } `
     -VerifyDisabled { param($result) Assert-DrillDisabled -DisableResult $result } `
-    -VerifyLegacy { param($result) Assert-LegacyRoutesHealthy -DisableResult $result } `
+    -VerifyInfrastructure { param($result) Assert-LegacyInfrastructureHealthy -DisableResult $result } `
+    -VerifyLegacyCanary { param($checkpoint) Invoke-LegacyJudgingCanary -Checkpoint $checkpoint } `
     -VerifyWriteStop { $script:disabledProbe = Invoke-ShadowObservationProbe -ExpectWrite $false } `
     -VerifyDashboard { if (-not $script:disabledProbe -or $script:disabledProbe.dashboard_readable -ne $true) { throw 'Dashboard read verification missing.' } } `
     -Restore {
