@@ -1654,6 +1654,145 @@ function New-StaticReleaseManifestObject {
     }
 }
 
+function Enter-RemoteReleaseOperationLock {
+    <#
+    .SYNOPSIS
+    Atomically serializes production deploy and rollback mutations.
+
+    The lock is a short-lived lease directory on the production host. A lease
+    makes the gate recoverable after a killed local process while the atomic
+    mkdir prevents two release invocations from switching containers together.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$LockPath,
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [int]$LeaseSeconds = 3600
+    )
+    $script = @'
+import json
+import os
+import pathlib
+import sys
+import time
+
+lock = pathlib.Path(sys.argv[1])
+operation_id = sys.argv[2]
+lease_seconds = int(sys.argv[3])
+now = int(time.time())
+
+def read_owner():
+    try:
+        return json.loads((lock / "owner.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+try:
+    lock.mkdir(mode=0o700)
+except FileExistsError:
+    owner = read_owner()
+    created = int(owner.get("created_epoch", 0) or 0)
+    age = max(0, now - created) if created else lease_seconds
+    if age < lease_seconds:
+        print(json.dumps({"acquired": False, "owner": owner.get("operation_id", "unknown"), "age_seconds": age}))
+        raise SystemExit(73)
+    stale = lock.with_name(lock.name + ".stale." + str(now))
+    try:
+        lock.rename(stale)
+        lock.mkdir(mode=0o700)
+    except Exception:
+        print(json.dumps({"acquired": False, "owner": "concurrent-reclaimer", "age_seconds": age}))
+        raise SystemExit(73)
+
+payload = {"operation_id": operation_id, "created_epoch": now, "lease_seconds": lease_seconds}
+(lock / "owner.json").write_text(json.dumps(payload), encoding="utf-8")
+print(json.dumps({"acquired": True, "operation_id": operation_id, "lock_path": str(lock)}))
+'@
+    $command = "python3 - $(Quote-PosixShellArgument $LockPath) $(Quote-PosixShellArgument $OperationId) $LeaseSeconds"
+    $result = Invoke-RemoteShellCommand -SshAlias $SshAlias -Name 'release_operation_lock_enter' -Command $command -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Another production release operation is active. Lock response: $($result.output)"
+    }
+    return ($result.output | ConvertFrom-Json)
+}
+
+function Exit-RemoteReleaseOperationLock {
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$LockPath,
+        [Parameter(Mandatory = $true)][string]$OperationId
+    )
+    $script = @'
+import json
+import pathlib
+import shutil
+import sys
+
+lock = pathlib.Path(sys.argv[1])
+operation_id = sys.argv[2]
+if not lock.exists():
+    print(json.dumps({"released": True, "already_absent": True}))
+    raise SystemExit(0)
+try:
+    owner = json.loads((lock / "owner.json").read_text(encoding="utf-8"))
+except Exception:
+    owner = {}
+if owner.get("operation_id") != operation_id:
+    print(json.dumps({"released": False, "owner": owner.get("operation_id", "unknown")}))
+    raise SystemExit(74)
+shutil.rmtree(lock)
+print(json.dumps({"released": True, "already_absent": False}))
+'@
+    $command = "python3 - $(Quote-PosixShellArgument $LockPath) $(Quote-PosixShellArgument $OperationId)"
+    $result = Invoke-RemoteShellCommand -SshAlias $SshAlias -Name 'release_operation_lock_exit' -Command $command -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Production release operation lock could not be released safely: $($result.output)"
+    }
+    return ($result.output | ConvertFrom-Json)
+}
+
+function Wait-RemoteReleaseOperationLock {
+    <# Standalone verification waits for mutation; nested verification supplies the owning ID. #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$LockPath,
+        [string]$AllowedOperationId,
+        [int]$TimeoutSeconds = 300,
+        [int]$PollIntervalSeconds = 2
+    )
+    $script = @'
+import json
+import pathlib
+import sys
+
+lock = pathlib.Path(sys.argv[1])
+if not lock.exists():
+    print(json.dumps({"locked": False, "owner": ""}))
+else:
+    try:
+        owner = json.loads((lock / "owner.json").read_text(encoding="utf-8")).get("operation_id", "unknown")
+    except Exception:
+        owner = "unknown"
+    print(json.dumps({"locked": True, "owner": owner}))
+'@
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $command = "python3 - $(Quote-PosixShellArgument $LockPath)"
+        $result = Invoke-RemoteShellCommand -SshAlias $SshAlias -Name 'release_operation_lock_wait' -Command $command -StdinText $script
+        if ($result.exit_code -ne 0) {
+            throw "Unable to inspect the production release operation lock: $($result.output)"
+        }
+        $state = $result.output | ConvertFrom-Json
+        if (-not $state.locked -or (-not [string]::IsNullOrWhiteSpace($AllowedOperationId) -and $state.owner -eq $AllowedOperationId)) {
+            return $state
+        }
+        if ((Get-Date) -ge $deadline) {
+            throw "Timed out waiting for production release operation $($state.owner) to finish."
+        }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
+}
+
 Export-ModuleMember -Function @(
     'Assert-ImageRevisionMatches',
     'Assert-OwnerGate',
@@ -1661,6 +1800,8 @@ Export-ModuleMember -Function @(
     'ConvertFrom-NestedPowerShellJson',
     'ConvertTo-Utf8NoBomLfBytes',
     'Ensure-Directory',
+    'Enter-RemoteReleaseOperationLock',
+    'Exit-RemoteReleaseOperationLock',
     'Get-ImagePlatform',
     'Invoke-ProcessWithUtf8NoBomStdin',
     'Invoke-RemoteShellCommand',
@@ -1707,6 +1848,7 @@ Export-ModuleMember -Function @(
     'Get-ArchiveTransferTimeoutSeconds',
     'New-DeterministicStaticArchive',
     'Test-GnuTarExecutableCapability',
+    'Wait-RemoteReleaseOperationLock',
     'Resolve-GnuTarExecutable',
     'Test-StaticArchiveEntrySafety'
 )

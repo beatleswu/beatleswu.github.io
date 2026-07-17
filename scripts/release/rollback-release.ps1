@@ -73,7 +73,7 @@ function Get-RemoteContainerSnapshot {
 function Wait-ForRemoteContainerHealth {
     param(
         [Parameter(Mandatory = $true)][string]$ContainerName,
-        [int]$TimeoutSeconds = 120,
+        [int]$TimeoutSeconds = 300,
         [int]$PollIntervalSeconds = 2
     )
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -82,12 +82,30 @@ function Wait-ForRemoteContainerHealth {
         if ($snapshot.status -eq 'running' -and $snapshot.health -eq 'healthy') {
             return $snapshot
         }
-        if ($snapshot.health -eq 'unhealthy') {
-            return $snapshot
-        }
         if ((Get-Date) -ge $deadline) {
             return $snapshot
         }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
+}
+
+function Wait-ForRemoteContainerRunning {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [int]$TimeoutSeconds = 120,
+        [int]$PollIntervalSeconds = 2,
+        [int]$RequiredConsecutiveSamples = 3
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $consecutive = 0
+    do {
+        $snapshot = Get-RemoteContainerSnapshot -ContainerName $ContainerName
+        if ($snapshot.state -eq 'running') {
+            $consecutive++
+            if ($consecutive -ge $RequiredConsecutiveSamples) { return $snapshot }
+        }
+        else { $consecutive = 0 }
+        if ((Get-Date) -ge $deadline) { return $snapshot }
         Start-Sleep -Seconds $PollIntervalSeconds
     } while ($true)
 }
@@ -359,6 +377,13 @@ if ($rollbackIdentity.previous_app_release_git_sha -and $rollbackIdentity.previo
     throw "Rollback manifest records mismatched app and scheduler release SHAs."
 }
 
+$operationId = "rollback-$((Get-ShortGitSha -GitSha $rollbackGitSha))-$([Guid]::NewGuid().ToString('N'))"
+$remoteOperationLockPath = Join-RemotePath $layout.compose_directory '.release-operation.lock'
+$operationLockHeld = $false
+try {
+$null = Enter-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+$operationLockHeld = $true
+
 $appBefore = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
 $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
 
@@ -387,9 +412,10 @@ Write-JsonFile -InputObject $rollbackVerificationManifest -Path $rollbackVerific
 $rollbackComposeWorkingDir = $layout.compose_directory
 $canonicalComposeFile = Join-RemotePath $layout.compose_directory 'docker-compose.release.yml'
 $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $rollbackImageTag -QuestionsVolumeName $questionsVolumeName
+$composeProjectArg = "-p $(Quote-PosixShellArgument $layout.compose_project)"
 $composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
-$rollbackAppCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
-$rollbackSchedulerCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+$rollbackAppCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $appComposeService"
+$rollbackSchedulerCommand = "cd $(Quote-PosixShellArgument $rollbackComposeWorkingDir) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
 Invoke-RemoteText $rollbackAppCommand
 
@@ -399,6 +425,9 @@ if ($appAfter.image_tag -ne $rollbackImageTag) {
 }
 if ($appAfter.image_id -ne $rollbackImageId) {
     throw "App container image ID does not match the rollback image ID."
+}
+if ($appAfter.compose_project -ne $layout.compose_project -or $appAfter.compose_service -ne $appComposeService) {
+    throw "App container compose identity did not converge during rollback."
 }
 if ($appAfter.health -ne 'healthy') {
     throw "App container is not healthy after rollback."
@@ -412,12 +441,15 @@ Assert-QuestionsReportSatisfiesGate -QuestionsReport $appReadinessReport.questio
 
 Invoke-RemoteText $rollbackSchedulerCommand
 
-$schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+$schedulerAfter = Wait-ForRemoteContainerRunning -ContainerName $layout.scheduler_service_name
 if ($schedulerAfter.image_tag -ne $rollbackImageTag) {
     throw "Scheduler container did not switch to the rollback image."
 }
 if ($schedulerAfter.image_id -ne $rollbackImageId) {
     throw "Scheduler container image ID does not match the rollback image ID."
+}
+if ($schedulerAfter.compose_project -ne $layout.compose_project -or $schedulerAfter.compose_service -ne $schedulerComposeService) {
+    throw "Scheduler container compose identity did not converge during rollback."
 }
 if ($appAfter.image_id -ne $schedulerAfter.image_id) {
     throw "App and scheduler image IDs do not match after rollback."
@@ -425,7 +457,7 @@ if ($appAfter.image_id -ne $schedulerAfter.image_id) {
 
 Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"
 
-$verificationOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify-production-release.ps1') -ReleaseManifest $rollbackVerificationManifestPath -LayoutFile $LayoutFile
+$verificationOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify-production-release.ps1') -ReleaseManifest $rollbackVerificationManifestPath -LayoutFile $LayoutFile -OperationId $operationId
 if ($LASTEXITCODE -ne 0) {
     throw "Rollback verification failed with exit code $LASTEXITCODE."
 }
@@ -461,3 +493,9 @@ Write-JsonFile -InputObject $rollbackRecord -Path $rollbackManifestPath
     app_readiness = $appReadinessReport
     verification = $verificationReport
 } | ConvertTo-Json -Depth 12 | Write-Output
+}
+finally {
+    if ($operationLockHeld) {
+        $null = Exit-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+    }
+}

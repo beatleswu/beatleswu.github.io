@@ -131,7 +131,7 @@ function Get-RemoteContainerSnapshot {
 function Wait-ForRemoteContainerHealth {
     param(
         [Parameter(Mandatory = $true)][string]$ContainerName,
-        [int]$TimeoutSeconds = 120,
+        [int]$TimeoutSeconds = 300,
         [int]$PollIntervalSeconds = 2
     )
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -140,8 +140,32 @@ function Wait-ForRemoteContainerHealth {
         if ($snapshot.status -eq 'running' -and $snapshot.health -eq 'healthy') {
             return $snapshot
         }
-        if ($snapshot.health -eq 'unhealthy') {
+        if ((Get-Date) -ge $deadline) {
             return $snapshot
+        }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
+}
+
+function Wait-ForRemoteContainerRunning {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [int]$TimeoutSeconds = 120,
+        [int]$PollIntervalSeconds = 2,
+        [int]$RequiredConsecutiveSamples = 3
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $consecutive = 0
+    do {
+        $snapshot = Get-RemoteContainerSnapshot -ContainerName $ContainerName
+        if ($snapshot.state -eq 'running') {
+            $consecutive++
+            if ($consecutive -ge $RequiredConsecutiveSamples) {
+                return $snapshot
+            }
+        }
+        else {
+            $consecutive = 0
         }
         if ((Get-Date) -ge $deadline) {
             return $snapshot
@@ -460,6 +484,47 @@ function Remove-RemoteCandidateCanary {
     Invoke-RemoteText "docker rm -f $(Quote-PosixShellArgument $CandidateContainerName) >/dev/null 2>&1 || true" | Out-Null
 }
 
+function Remove-RemoteStaleCandidateCanaries {
+    <#
+    Candidate containers are never production traffic targets. Clean only the
+    release tool's own precisely labelled/name-prefixed canaries so an aborted
+    client cannot leave a conflicting compose project behind.
+    #>
+    $script = @'
+import json
+import pathlib
+import subprocess
+
+prefix = "go-odyssey-candidate-go-odyssey-app_"
+removed = []
+ids = subprocess.check_output(["docker", "ps", "-aq"], text=True).split()
+for container_id in ids:
+    item = json.loads(subprocess.check_output(["docker", "inspect", container_id], text=True))[0]
+    name = (item.get("Name") or "").lstrip("/")
+    labels = (item.get("Config") or {}).get("Labels") or {}
+    project = labels.get("com.docker.compose.project", "")
+    service = labels.get("com.docker.compose.service", "")
+    if not (name.startswith(prefix) and project.startswith(prefix) and service == "candidate"):
+        continue
+    subprocess.run(["docker", "rm", "-f", name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    config_files = labels.get("com.docker.compose.project.config_files", "")
+    for raw_path in config_files.split(","):
+        path = pathlib.Path(raw_path.strip())
+        if str(path).startswith("/tmp/" + prefix) and path.name.endswith(".compose.yml"):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+    removed.append({"container": name, "compose_project": project})
+print(json.dumps({"removed": removed}, ensure_ascii=False))
+'@
+    $result = Invoke-RemoteCommandResult -Name 'stale_candidate_cleanup' -Command 'python3 -' -StdinText $script
+    if ($result.exit_code -ne 0) {
+        throw "Remote stale candidate cleanup failed: $($result.output)"
+    }
+    return ($result.output | ConvertFrom-Json)
+}
+
 function Test-HelperUnavailableOutput {
     param([string]$Output)
     if ([string]::IsNullOrWhiteSpace($Output)) {
@@ -705,6 +770,29 @@ function Save-DeploymentRecord {
     Write-JsonFile -InputObject $Record -Path $Path
 }
 
+function Invoke-ProductionVerificationSeries {
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [int]$Count = 3,
+        [int]$IntervalSeconds = 10
+    )
+    $reports = @()
+    for ($attempt = 1; $attempt -le $Count; $attempt++) {
+        $verificationOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify-production-release.ps1') `
+            -ReleaseManifest $deploymentRecordPath `
+            -LayoutFile $LayoutFile `
+            -OperationId $OperationId
+        if ($LASTEXITCODE -ne 0) {
+            throw "verify-production-release.ps1 failed on stability pass $attempt of $Count with exit code $LASTEXITCODE."
+        }
+        $reports += ,(ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput -Context "verify-production-release.ps1 pass $attempt")
+        if ($attempt -lt $Count) {
+            Start-Sleep -Seconds $IntervalSeconds
+        }
+    }
+    return @($reports)
+}
+
 $localArchiveSha = $null
 if ($archivePath -and (Test-Path -LiteralPath $archivePath)) {
     $localArchiveSha = (Get-FileHash -Algorithm SHA256 -LiteralPath $archivePath).Hash.ToLowerInvariant()
@@ -819,10 +907,17 @@ $appRuntimeContract = $null
 $schedulerRuntimeContract = $null
 $candidateCanary = $null
 $candidateReadinessReport = $null
-$verificationReport = $null
+$verificationReports = @()
 $rollbackRequired = $false
+$staleCandidateCleanup = $null
+$operationId = "deploy-$artifactBaseName-$([Guid]::NewGuid().ToString('N'))"
+$remoteOperationLockPath = Join-RemotePath $layout.compose_directory '.release-operation.lock'
+$operationLockHeld = $false
 
 try {
+    $null = Enter-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+    $operationLockHeld = $true
+    $staleCandidateCleanup = Remove-RemoteStaleCandidateCanaries
     Invoke-RemoteText "mkdir -p $(Quote-PosixShellArgument $layout.remote_release_staging_directory) $(Quote-PosixShellArgument $layout.compose_directory) $(Quote-PosixShellArgument (Join-RemotePath $layout.compose_directory 'nginx'))"
 
     & scp $composeFilePath "$($layout.ssh_alias):$remoteComposePath" | Out-Host
@@ -870,8 +965,9 @@ try {
     $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
     $nginxComposeService = if ([string]::IsNullOrWhiteSpace($nginxBefore.compose_service)) { $layout.nginx_service_name } else { $nginxBefore.compose_service }
     $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -QuestionsVolumeName $questionsVolumeName
+    $composeProjectArg = "-p $(Quote-PosixShellArgument $layout.compose_project)"
     $composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
-    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
+    $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
     $composeServiceList = [regex]::Split($composeServices, '\r?\n') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     foreach ($serviceName in @($appComposeService, $schedulerComposeService, $nginxComposeService)) {
         if ($composeServiceList -notcontains $serviceName) {
@@ -879,7 +975,7 @@ try {
         }
     }
 
-    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --images"
+    $composeImages = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --images"
     $composeImageMatches = ([regex]::Split($composeImages, '\r?\n') | Where-Object { $_.Trim() -eq $manifest.image_tag }).Count
     if ($composeImageMatches -lt 2) {
         throw "docker compose config did not resolve the exact release image for app and scheduler."
@@ -973,7 +1069,7 @@ try {
     }
 
     $rollbackRequired = $true
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
@@ -981,6 +1077,9 @@ try {
     }
     if ($appAfter.image_id -ne $ExpectedImageId) {
         throw "App container image ID does not match the release image ID."
+    }
+    if ($appAfter.compose_project -ne $layout.compose_project -or $appAfter.compose_service -ne $appComposeService) {
+        throw "App container compose identity did not converge to the canonical project/service."
     }
     $appHealthcheckTest = Get-RemoteContainerHealthcheckTest -ContainerName $layout.app_service_name
     Assert-CanonicalExecHealthcheckTest -HealthcheckTest $appHealthcheckTest -Context 'App container'
@@ -1000,14 +1099,17 @@ try {
         throw "Daily challenge returned 503 after the app image switch."
     }
 
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
-    $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+    $schedulerAfter = Wait-ForRemoteContainerRunning -ContainerName $layout.scheduler_service_name
     if ($schedulerAfter.image_tag -ne $manifest.image_tag) {
         throw "Scheduler container is not running the release image."
     }
     if ($schedulerAfter.image_id -ne $ExpectedImageId) {
         throw "Scheduler container image ID does not match the release image ID."
+    }
+    if ($schedulerAfter.compose_project -ne $layout.compose_project -or $schedulerAfter.compose_service -ne $schedulerComposeService) {
+        throw "Scheduler container compose identity did not converge to the canonical project/service."
     }
     if ($appAfter.image_id -ne $schedulerAfter.image_id) {
         throw "App and scheduler image IDs do not match after rollout."
@@ -1015,14 +1117,10 @@ try {
 
     Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"
 
-    $verificationOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify-production-release.ps1') -ReleaseManifest $deploymentRecordPath -LayoutFile $LayoutFile
-    if ($LASTEXITCODE -ne 0) {
-        throw "verify-production-release.ps1 failed with exit code $LASTEXITCODE."
-    }
-    $verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput -Context 'verify-production-release.ps1'
+    $verificationReports = Invoke-ProductionVerificationSeries -OperationId $operationId -Count 3 -IntervalSeconds 10
 
     if ($deploymentRecord.Contains('verification_result')) {
-        $deploymentRecord['verification_result'] = 'production verified'
+        $deploymentRecord['verification_result'] = 'production verified stable 3x'
     }
     Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
     & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
@@ -1056,10 +1154,13 @@ try {
         scheduler_runtime_contract = $schedulerRuntimeContract
         candidate_canary = $candidateCanary
         candidate_readiness = $candidateReadinessReport
+        stale_candidate_cleanup = $staleCandidateCleanup
         app_after = $appAfter
         scheduler_after = $schedulerAfter
         app_readiness = $appReadinessReport
-        verification = $verificationReport
+        verification_1 = $verificationReports[0]
+        verification_2 = $verificationReports[1]
+        verification_3 = $verificationReports[2]
     } | ConvertTo-Json -Depth 12 | Write-Output
 }
 catch {
@@ -1072,20 +1173,83 @@ catch {
         }
     }
     if ($rollbackRequired -and $deploymentRecordPath -and (Test-Path -LiteralPath $deploymentRecordPath)) {
+        $reconciliationFailure = $null
+        try {
+            # A child verification timeout is not proof that the switched
+            # release failed. Re-read the remote final state and require the
+            # complete canonical verification contract three times before a
+            # rollback is even considered.
+            Start-Sleep -Seconds 15
+            $verificationReports = Invoke-ProductionVerificationSeries -OperationId $operationId -Count 3 -IntervalSeconds 10
+        }
+        catch {
+            $reconciliationFailure = $_.Exception.Message
+        }
+        if (@($verificationReports).Count -eq 3) {
+            if ($deploymentRecord.Contains('verification_result')) {
+                $deploymentRecord['verification_result'] = 'production verified stable 3x after transient orchestration failure'
+            }
+            Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
+            $recordSyncError = $null
+            try {
+                & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
+                if ($LASTEXITCODE -ne 0) {
+                    $recordSyncError = "scp failed while reconciling the remote deployment record."
+                }
+            }
+            catch {
+                $recordSyncError = $_.Exception.Message
+            }
+            $appAfter = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
+            $schedulerAfter = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+            [ordered]@{
+                dry_run = $false
+                execute_requested = $true
+                deployment_stable = $true
+                recovered_from_transient_orchestration_failure = $true
+                transient_failure = $deploymentFailureMessage
+                deployment_record_sync_error = $recordSyncError
+                expected_git_sha = $ExpectedGitSha
+                expected_image_tag = $manifest.image_tag
+                expected_image_id = $ExpectedImageId
+                app_after = $appAfter
+                scheduler_after = $schedulerAfter
+                verification_1 = $verificationReports[0]
+                verification_2 = $verificationReports[1]
+                verification_3 = $verificationReports[2]
+                rollback_performed = $false
+            } | ConvertTo-Json -Depth 12 | Write-Output
+            return
+        }
+
+        # Release the deploy lease before handing ownership to the canonical
+        # rollback script. Rollback acquires the same lease independently.
+        if ($operationLockHeld) {
+            $null = Exit-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+            $operationLockHeld = $false
+        }
         try {
             $rollbackOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'rollback-release.ps1') -RollbackManifest $deploymentRecordPath -LayoutFile $LayoutFile -Execute -OwnerGate 'GO_ROLLBACK'
             if ($LASTEXITCODE -ne 0) {
                 throw "rollback-release.ps1 failed with exit code $LASTEXITCODE."
             }
             $null = ConvertFrom-NestedPowerShellJson -RawOutput $rollbackOutput -Context 'rollback-release.ps1'
-            throw "Deployment failed and automatic rollback succeeded: $deploymentFailureMessage"
         }
         catch {
-            throw "Deployment failed: $deploymentFailureMessage`nAutomatic rollback failed: $($_.Exception.Message)"
+            throw "Deployment failed: $deploymentFailureMessage`nFinal-state reconciliation failed: $reconciliationFailure`nAutomatic rollback failed: $($_.Exception.Message)"
         }
+        throw "Deployment failed and automatic rollback succeeded after final-state reconciliation failed: $deploymentFailureMessage"
     }
     throw
 }
 finally {
+    if ($operationLockHeld) {
+        try {
+            $null = Exit-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+        }
+        catch {
+            Write-Warning $_.Exception.Message
+        }
+    }
     Remove-Item -LiteralPath $healthcheckOverridePath -ErrorAction SilentlyContinue
 }

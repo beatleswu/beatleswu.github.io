@@ -838,8 +838,8 @@ def test_deploy_script_orders_release_mutations_safely():
         "$candidateHealthcheckTest = @($candidateCanary.healthcheck_test | ConvertFrom-Json)",
         "$candidateReadinessReport = Get-AppReadinessGateReport -ContainerName $candidateContainerName -UseContainerHttp",
         "if ($candidateReadinessReport.healthz_status -ne '200'",
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
-        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"',
+        'Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"',
         'Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"',
         "Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path",
     )
@@ -934,7 +934,7 @@ def test_rollback_script_defaults_to_dry_run_and_supports_real_rollback():
         "verify-production-release.ps1",
         "compose_config_files",
         "compose_working_dir",
-        "docker compose $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate",
+        "docker compose $composeProjectArg $composeEnvFileArg -f $(Quote-PosixShellArgument $canonicalComposeFile) up -d --no-build --no-deps --force-recreate",
         "image ID does not match the rollback image ID",
     ):
         assert token in content
@@ -1098,10 +1098,8 @@ def test_deploy_and_rollback_scripts_derive_questions_volume_at_runtime():
 def test_deploy_and_rollback_scripts_use_safe_nested_json_parsing():
     deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
-    assert (
-        "$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput "
-        "-Context 'verify-production-release.ps1'" in deploy
-    )
+    assert "ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput" in deploy
+    assert 'Context "verify-production-release.ps1 pass $attempt"' in deploy
     assert "ConvertFrom-NestedPowerShellJson -RawOutput $rollbackOutput -Context 'rollback-release.ps1'" in deploy
     assert (
         "$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput "
@@ -1110,6 +1108,47 @@ def test_deploy_and_rollback_scripts_use_safe_nested_json_parsing():
     assert "$verificationOutput | ConvertFrom-Json" not in deploy
     assert "$verificationOutput | ConvertFrom-Json" not in rollback
     assert "$rollbackOutput | ConvertFrom-Json" not in deploy
+
+
+def test_release_mutations_are_serialized_and_verification_respects_the_owner_lock():
+    tooling = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    verify = read_text(REPO_ROOT / "scripts" / "release" / "verify-production-release.ps1")
+    for token in (
+        "Enter-RemoteReleaseOperationLock",
+        "Exit-RemoteReleaseOperationLock",
+        "Wait-RemoteReleaseOperationLock",
+        "created_epoch",
+        "LeaseSeconds = 3600",
+    ):
+        assert token in tooling
+    assert "Enter-RemoteReleaseOperationLock" in deploy
+    assert "Enter-RemoteReleaseOperationLock" in rollback
+    assert "-AllowedOperationId $OperationId" in verify
+
+
+def test_deploy_waits_for_recovery_and_reconciles_before_rollback():
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
+    verify = read_text(REPO_ROOT / "scripts" / "release" / "verify-production-release.ps1")
+    assert "[int]$TimeoutSeconds = 300" in deploy
+    assert "[int]$TimeoutSeconds = 300" in rollback
+    assert "if ($snapshot.health -eq 'unhealthy')" not in deploy
+    assert "if ($snapshot.health -eq 'unhealthy')" not in rollback
+    assert "Invoke-ProductionVerificationSeries -OperationId $operationId -Count 3" in deploy
+    assert "after final-state reconciliation failed" in deploy
+    assert "Wait-ForRemoteReleaseConvergence -TimeoutSeconds 300" in verify
+    assert "RequiredConsecutiveSamples = 3" in verify
+
+
+def test_deploy_cleans_only_precisely_identified_stale_candidate_projects():
+    deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
+    assert "Remove-RemoteStaleCandidateCanaries" in deploy
+    assert 'name.startswith(prefix)' in deploy
+    assert 'project.startswith(prefix)' in deploy
+    assert 'service == "candidate"' in deploy
+    assert "stale_candidate_cleanup = $staleCandidateCleanup" in deploy
 
 
 def test_convert_to_utf8_no_bom_lf_bytes_has_no_bom_and_normalizes_line_endings(tmp_path):

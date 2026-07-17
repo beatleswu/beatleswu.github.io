@@ -3,6 +3,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ReleaseManifest,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
+    [string]$OperationId,
     [switch]$DryRun
 )
 
@@ -47,6 +48,77 @@ function Get-RemoteHealthStatus {
         return $state.Health.Status
     }
     return 'n/a'
+}
+
+function Get-RemoteContainerSnapshot {
+    param([Parameter(Mandatory = $true)][string]$ContainerName)
+    $raw = Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '{{json .State}}|{{.Config.Image}}|{{.Image}}|{{json .Config.Labels}}'"
+    $parts = $raw -split '\|', 4
+    if ($parts.Count -lt 4) {
+        throw "Unable to read remote container snapshot for $ContainerName."
+    }
+    $state = $parts[0] | ConvertFrom-Json
+    $labels = if ([string]::IsNullOrWhiteSpace($parts[3]) -or $parts[3] -eq 'null') { @{} } else { $parts[3] | ConvertFrom-Json }
+    return [ordered]@{
+        state = $state.Status
+        health = $(if ($state.PSObject.Properties.Name -contains 'Health' -and $state.Health) { $state.Health.Status } else { 'n/a' })
+        image_tag = $parts[1]
+        image_id = $parts[2]
+        compose_project = $labels.'com.docker.compose.project'
+        compose_service = $labels.'com.docker.compose.service'
+    }
+}
+
+function Wait-ForRemoteReleaseConvergence {
+    param(
+        [int]$TimeoutSeconds = 300,
+        [int]$PollIntervalSeconds = 2,
+        [int]$RequiredConsecutiveSamples = 3
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $consecutive = 0
+    $last = $null
+    do {
+        $app = Get-RemoteContainerSnapshot -ContainerName $layout.app_service_name
+        $scheduler = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+        $nginx = Get-RemoteContainerSnapshot -ContainerName $layout.nginx_service_name
+        $healthz = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.health_url)").Trim()
+        $login = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.login_url)").Trim()
+        $home = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.homepage_url)").Trim()
+        $ok = (
+            $app.state -eq 'running' -and $app.health -eq 'healthy' -and
+            $app.image_tag -eq $manifest.image_tag -and $app.image_id -eq $manifest.image_id -and
+            $app.compose_project -eq $layout.compose_project -and -not [string]::IsNullOrWhiteSpace($app.compose_service) -and
+            $scheduler.state -eq 'running' -and
+            $scheduler.image_tag -eq $manifest.image_tag -and $scheduler.image_id -eq $manifest.image_id -and
+            $scheduler.compose_project -eq $layout.compose_project -and -not [string]::IsNullOrWhiteSpace($scheduler.compose_service) -and
+            $nginx.state -eq 'running' -and $nginx.compose_project -eq $layout.compose_project -and
+            -not [string]::IsNullOrWhiteSpace($nginx.compose_service) -and
+            $healthz -eq '200' -and $login -eq '200' -and $home -eq '200'
+        )
+        $last = [ordered]@{
+            app = $app
+            scheduler = $scheduler
+            nginx = $nginx
+            healthz_status = $healthz
+            login_status = $login
+            home_status = $home
+        }
+        if ($ok) {
+            $consecutive++
+            if ($consecutive -ge $RequiredConsecutiveSamples) {
+                $last['consecutive_stable_samples'] = $consecutive
+                return $last
+            }
+        }
+        else {
+            $consecutive = 0
+        }
+        if ((Get-Date) -ge $deadline) {
+            throw "Production release did not converge before timeout. Final sanitized state: $($last | ConvertTo-Json -Compress -Depth 6)"
+        }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
 }
 
 function Get-RemoteContainerEnvMap {
@@ -221,6 +293,10 @@ if ($DryRun) {
     return
 }
 
+$remoteOperationLockPath = ($layout.compose_directory.TrimEnd('/') + '/.release-operation.lock')
+$null = Wait-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -AllowedOperationId $OperationId -TimeoutSeconds 300
+$convergence = Wait-ForRemoteReleaseConvergence -TimeoutSeconds 300 -RequiredConsecutiveSamples 3
+
 $readinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.app_service_name
 $appEnv = Get-RemoteContainerEnvMap -ContainerName $layout.app_service_name
 $expectedQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
@@ -236,6 +312,7 @@ $report = [ordered]@{
     expected_health_endpoints = $manifest.expected_health_endpoints
     helper_available = $readinessMode.helper_available
     readiness_mode = $readinessMode.mode
+    convergence = $convergence
     app_health = Get-RemoteHealthStatus $layout.app_service_name
     scheduler_health = Get-RemoteHealthStatus $layout.scheduler_service_name
     app_image = $appImage
@@ -247,6 +324,9 @@ $report = [ordered]@{
     login_status = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.login_url)").Trim()
     home_status = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $($layout.homepage_url)").Trim()
     daily_challenge_status = (Invoke-RemoteText "curl -sS -o /dev/null -w '%{http_code}' $(Get-DailyChallengeUrl -BaseUrl $layout.homepage_url)").Trim()
+    app_status = $(if ($convergence.app.state -eq 'running' -and $convergence.app.health -eq 'healthy') { '200' } else { '503' })
+    scheduler_status = $(if ($convergence.scheduler.state -eq 'running') { '200' } else { '503' })
+    nginx_status = $(if ($convergence.nginx.state -eq 'running' -and $convergence.home_status -eq '200') { '200' } else { '503' })
     questions_json_path = $questionsPath
     questions = $questionsReport
     shadow_selftest = (Invoke-RemoteText "docker exec $($layout.app_service_name) python shadow_judging.py --selftest").Trim()
@@ -278,6 +358,9 @@ if ($report.remote_image_summary.revision -ne $manifest.release_git_sha -or $rep
 }
 if ($report.app_health -ne 'healthy') {
     throw "App container is not healthy."
+}
+if ($report.app_status -ne '200' -or $report.scheduler_status -ne '200' -or $report.nginx_status -ne '200') {
+    throw "One or more app/scheduler/nginx orchestration probes did not return 200."
 }
 if ($report.healthz_status -ne '200' -or $report.login_status -ne '200' -or $report.home_status -ne '200') {
     throw "One or more required HTTP endpoints did not return 200."
