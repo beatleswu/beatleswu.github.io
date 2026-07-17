@@ -1,8 +1,8 @@
 {
-  "$schema_note": "No secret values are present in this file. Records Git provenance for runtime files recovered outside of the sgf_engine vendoring line. See sgf_engine/VENDORED_FROM.txt for that separate provenance record.",
+  "$schema_note": "No secret values are present in this file. Records Git provenance for governed runtime files outside of the sgf_engine vendoring line, including recovered sources and explicitly governed newly-authored modules. See sgf_engine/VENDORED_FROM.txt for that separate provenance record.",
   "manifest_version": "1.0.0",
   "line_ending_policy": "LF",
-  "source_status_definition": "Per-file Git provenance using conservative review language. Every entry below retains the \"not previously pushed to canonical origin\" warning text required by governance tests, while also referencing a commit object currently reachable in this repository whose blob is byte-identical to the current file content.",
+  "source_status_definition": "Per-file Git provenance for recovered and explicitly governed newly-authored runtime files using conservative review language. Every entry below retains the \"not previously pushed to canonical origin\" warning text required by governance tests, while also referencing a commit object currently reachable in this repository whose blob is byte-identical to the current file content.",
   "files": [
     {
       "path": "backend_i18n.py",
@@ -888,6 +888,17 @@
       "runtime_role": "startup-critical: app.py does `from db import get_db` -- PostgreSQL connection pool",
       "production_hash_status": "diverged from Production in this Sprint to add secret-safe readiness helpers",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; updated in Sprint"
+    },
+    {
+      "path": "shadow_event_storage.py",
+      "source_commit": "eee0a73e172264c01816cae016301c4fd2d174e6",
+      "source_branch_or_local_ref": "codex/sgf-v1-closure-20260717",
+      "source_commit_subject": "feat(sgf): complete shadow judging v1 governance",
+      "source_date": "2026-07-17",
+      "content_sha256": "6007a0ed06b5f456f1624f67cac56593c035c70a276ee603babc367c16bacc05",
+      "line_ending_policy": "LF",
+      "runtime_role": "shared runtime dependency imported at module load by shadow_judging.py and shadow_dashboard.py; provides bounded cross-process-safe JSONL append, rotation, retention, and discovery for Shadow Judging events",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; newly-authored governed runtime module whose recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "newebpay.py",

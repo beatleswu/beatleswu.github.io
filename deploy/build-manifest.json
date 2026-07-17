@@ -56,6 +56,7 @@
       "app.py",
       "shadow_judging.py",
       "shadow_dashboard.py",
+      "shadow_event_storage.py",
       "katago_explain.py",
       "explain_overrides.py",
       "grimoire_api.py",
@@ -183,6 +184,7 @@
     "/app/db.py",
     "/app/shadow_judging.py",
     "/app/shadow_dashboard.py",
+    "/app/shadow_event_storage.py",
     "/app/shadow_dashboard.html",
     "/app/scheduler.py",
     "/app/community_leaderboard_rewards_scheduler.py",
@@ -223,9 +225,9 @@
   },
   "runtime_dependency_provenance": {
     "manifest_path": "deploy/runtime-source-provenance.json",
-    "files_covered": 69,
+    "files_covered": 78,
     "source_status": "local Git provenance -- not previously pushed to canonical origin (Graph A / Codex local branches only)",
-    "status": "recovered from verified Git sources, DEPLOY-GOV-2B-FIX (13 files) + DEPLOY-GOV-2E (db.py + 55 curated static files: 24 HTML, 10 JS/root scripts, wgo/ x5, blog/ x10, + manifest.json/robots.txt/sitemap.xml/og-image.jpg/icon-192.png/icon-512.png)",
-    "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. See deploy/runtime-source-provenance.json entries for exact per-file production_hash_match status."
+    "status": "governed Git provenance outside sgf_engine: 77 recovered or curated runtime files plus the newly-authored shadow_event_storage.py module (78 files total)",
+    "note": "Most curated HTML/JS files use each file's LATEST known Git commit, which does not always byte-match current Production exactly (e.g. cache-busting version-bump drift); this is documented per-file rather than silently copying Production bytes. Newly-authored governed modules record their first reachable byte-identical source commit. See deploy/runtime-source-provenance.json for exact per-file status."
   }
 }

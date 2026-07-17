@@ -33,6 +33,7 @@ REQUIRED_TRACKED_FILES = [
     "app.py",
     "shadow_judging.py",
     "shadow_dashboard.py",
+    "shadow_event_storage.py",
     "shadow_dashboard.html",
     "katago_explain.py",
     "explain_overrides.py",
