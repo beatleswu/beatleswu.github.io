@@ -11285,6 +11285,7 @@ def dc_submit():
                 client_correct=bool(data.get('correct')),
                 final_correct=bool(correct),
                 katago_best_move=shadow_q.get('katago_best_move', ''),
+                accepted_moves=_question_accepted_moves(shadow_q),
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
@@ -14725,6 +14726,7 @@ def friend_challenge_answer(cid):
                 client_correct=bool(data.get('correct')),
                 final_correct=bool(correct),
                 katago_best_move=shadow_q.get('katago_best_move', ''),
+                accepted_moves=_question_accepted_moves(shadow_q),
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
@@ -20885,6 +20887,7 @@ def rt_answer():
                     client_correct=bool(body.get('correct', False)),
                     final_correct=bool(correct),
                     katago_best_move=pool_q.get('katago_best_move') or '',
+                    accepted_moves=_question_accepted_moves(pool_q),
                 )
         except Exception:
             app.logger.exception('[shadow] observe failed (ignored)')

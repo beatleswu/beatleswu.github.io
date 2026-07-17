@@ -158,7 +158,7 @@ def test_import_failure_is_explicit_and_observable(tmp_path, monkeypatch, entry_
     assert event["parser_failure_reason"]
     assert event["exception_class"] == "ModuleNotFoundError"
     assert event["exception_message"]
-    assert event["schema_version"] == "shadow-v3"
+    assert event["schema_version"] == "shadow-v4"
     assert event["route"]
     assert event["request_id"]
     assert isinstance(event["latency_ms"], int) and event["latency_ms"] >= 0

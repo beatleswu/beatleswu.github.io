@@ -133,7 +133,7 @@ def test_daily_and_friend_use_shared_runtime_without_unsupported(tmp_path, monke
             session_id="daily:7:2026-07-11",
             transform_idx=0,
             sgf_transformed="(;SZ[19];B[aa];W[ab];B[ac])",
-            moves=None,
+            moves=[{"x": 0, "y": 0}, {"x": 0, "y": 2}],
             client_correct=True,
             final_correct=True,
             katago_best_move="A19",
@@ -146,7 +146,7 @@ def test_daily_and_friend_use_shared_runtime_without_unsupported(tmp_path, monke
             session_id="friend:9:7",
             transform_idx=0,
             sgf_transformed="(;SZ[19];B[aa];W[ab];B[ac])",
-            moves=None,
+            moves=[{"x": 18, "y": 18}],
             client_correct=False,
             final_correct=False,
             katago_best_move="A19",
@@ -155,7 +155,7 @@ def test_daily_and_friend_use_shared_runtime_without_unsupported(tmp_path, monke
     events = [json.loads(line) for line in event_path.read_text(encoding="utf-8").splitlines()]
     assert len(events) == 2
     for event in events:
-        assert event["schema_version"] == "shadow-v3"
+        assert event["schema_version"] == "shadow-v4"
         assert event["parser_failure_reason"] not in {
             "route unsupported: daily_challenge",
             "route unsupported: friend_challenge",
@@ -181,7 +181,7 @@ def test_parser_failure_is_genuine_parse_issue(tmp_path, monkeypatch):
             session_id="daily:7:2026-07-11",
             transform_idx=0,
             sgf_transformed="not an sgf",
-            moves=None,
+            moves=[{"x": 0, "y": 0}],
             client_correct=True,
             final_correct=True,
             katago_best_move="",
@@ -241,21 +241,29 @@ def test_rating_test_route_legacy_response_is_unchanged_with_shadow_hook(client,
         "status": "in_progress",
         "user_id": 7,
         "cur_rating": 1500.0,
+        "init_rating": 1500.0,
+        "prior_sd": 300.0,
         "round": 0,
         "answers": "[]",
         "trigger": "manual",
+        "current_question_id": 123,
+        "current_question_token": "question-token",
+        "current_question_role": "regular",
+        "bank_version": None,
+        "algorithm_version": "test-algorithm",
     }
     conn = _FakeConn(row)
     monkeypatch.setattr(app_module, "get_db", lambda: _FakeConnCtx(conn))
     monkeypatch.setattr(app_module, "_ensure_rt_pool", lambda: None)
     monkeypatch.setattr(app_module, "_RT_POOL", [{"id": 123, "content": "(;SZ[19];B[aa])", "discipline": "tesuji", "rating": 1500.0, "katago_best_move": "A19"}])
     monkeypatch.setattr(app_module, "_compute_streak", lambda answers, correct: 1)
-    monkeypatch.setattr(app_module, "_k_for_round", lambda round_idx, streak: 32.0)
-    monkeypatch.setattr(app_module, "_elo_update", lambda cur, q_rating, correct, k: 1510.0)
+    monkeypatch.setattr(app_module, "_rt_server_verify", lambda question, sid, moves: True)
+    monkeypatch.setattr(app_module, "_rt_estimate", lambda answers, mean, sd: (1510.0, 100.0))
+    monkeypatch.setattr(app_module, "_finalize_placement", lambda *args, **kwargs: None)
     monkeypatch.setattr(app_module, "_get_recent_seen_ids", lambda uid: set())
     monkeypatch.setattr(app_module, "_pick_question", lambda *args, **kwargs: None)
     monkeypatch.setattr(app_module, "_rating_to_rank", lambda value: "kyu")
-    monkeypatch.setattr(app_module, "_RT_TOTAL_ROUNDS", 1)
+    monkeypatch.setattr(app_module, "_RT_MAX_ROUNDS", 1)
 
     with client.session_transaction() as sess:
         sess["user_id"] = 7
@@ -263,12 +271,19 @@ def test_rating_test_route_legacy_response_is_unchanged_with_shadow_hook(client,
     off_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: False)
     monkeypatch.setattr(shadow_judging, "observe_rating_test", lambda **kwargs: off_calls.append(kwargs))
-    off_response = client.post("/api/rating_test/answer", json={"session_id": "sess-1", "question_id": 123, "correct": True, "moves": [{"x": 0, "y": 0}]})
+    request_body = {
+        "session_id": "sess-1",
+        "question_id": 123,
+        "question_token": "question-token",
+        "correct": True,
+        "moves": [{"x": 0, "y": 0}],
+    }
+    off_response = client.post("/api/rating_test/answer", json=request_body)
 
     on_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: True)
     monkeypatch.setattr(shadow_judging, "observe_rating_test", lambda **kwargs: on_calls.append(kwargs))
-    on_response = client.post("/api/rating_test/answer", json={"session_id": "sess-1", "question_id": 123, "correct": True, "moves": [{"x": 0, "y": 0}]})
+    on_response = client.post("/api/rating_test/answer", json=request_body)
 
     assert off_response.status_code == 200
     assert on_response.status_code == 200

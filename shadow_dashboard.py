@@ -2,7 +2,10 @@ import datetime as _dt
 import json
 import math
 import os
+import time
 from collections import Counter, defaultdict
+
+from shadow_event_storage import discover_event_files
 
 
 DEFAULT_SHADOW_EVENTS_PATH = os.environ.get(
@@ -17,6 +20,8 @@ EXPECTED_ROUTES = (
 )
 
 _PUZZLE_ID_KEYS = (
+    'canonical_puzzle_id',
+    'legacy_question_id',
     'puzzle_id',
     'question_id',
     'canonical_id',
@@ -55,6 +60,19 @@ _JUDGEMENT_KEYS = (
 _RECENT_DEFAULT_LIMIT = 200
 _RECENT_MAX_LIMIT = 500
 _RECENT_MAX_BYTES = 512 * 1024
+_AGGREGATE_DEFAULT_MAX_BYTES = 8 * 1024 * 1024
+_AGGREGATE_DEFAULT_MAX_EVENTS = 50_000
+_AGGREGATE_DEFAULT_LATENCY_MS = 250
+_AGGREGATE_MAX_BYTES = 64 * 1024 * 1024
+_AGGREGATE_MAX_EVENTS = 250_000
+_AGGREGATE_MAX_LATENCY_MS = 5_000
+_AGGREGATE_READ_CHUNK_BYTES = 64 * 1024
+_AGGREGATE_MEMORY_BUDGET_BYTES = 64 * 1024 * 1024
+_AGGREGATE_MAX_GROUP_KEYS = 4_096
+
+_AGGREGATE_MAX_BYTES_ENV = 'SHADOW_DASHBOARD_MAX_BYTES'
+_AGGREGATE_MAX_EVENTS_ENV = 'SHADOW_DASHBOARD_MAX_EVENTS'
+_AGGREGATE_LATENCY_MS_ENV = 'SHADOW_DASHBOARD_LATENCY_BUDGET_MS'
 
 
 def _utc_now():
@@ -155,6 +173,60 @@ def _tail_lines(path, limit, max_bytes=_RECENT_MAX_BYTES):
     return data.decode('utf-8', errors='replace').splitlines()[-limit:]
 
 
+def _iter_reverse_lines_with_budget(path, max_bytes, state):
+    """Yield newest JSONL records first without loading the byte window at once.
+
+    ``state`` receives the exact bytes read and whether the selected file was
+    consumed completely. The largest raw buffer is one read chunk plus one
+    record crossing a chunk boundary; write-side records are capped at 64 KiB.
+    Historical oversized records remain bounded by the total byte budget.
+    """
+    size = os.path.getsize(path)
+    lower_bound = max(0, size - max_bytes)
+    position = size
+    carry = b''
+    state['complete'] = lower_bound == 0
+
+    with open(path, 'rb') as handle:
+        while position > lower_bound:
+            read_size = min(
+                _AGGREGATE_READ_CHUNK_BYTES,
+                position - lower_bound,
+            )
+            position -= read_size
+            handle.seek(position)
+            block = handle.read(read_size)
+            state['bytes_read'] += len(block)
+            if len(block) != read_size:
+                state['complete'] = False
+
+            parts = (block + carry).split(b'\n')
+            carry = parts[0]
+            for raw_line in reversed(parts[1:]):
+                if raw_line.strip():
+                    yield raw_line
+
+        if lower_bound == 0 and carry.strip():
+            yield carry
+
+
+def _bounded_int(value, default, *, minimum, maximum):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    if not minimum <= parsed <= maximum:
+        return default
+    return parsed
+
+
+def _bounded_counter_increment(counter, key, *, fallback='other'):
+    if key in counter or len(counter) < _AGGREGATE_MAX_GROUP_KEYS:
+        counter[key] += 1
+    else:
+        counter[fallback] += 1
+
+
 def _event_is_partial(event):
     required = ('route',)
     for key in required:
@@ -223,11 +295,33 @@ def _default_route_bucket():
     }
 
 
-def _default_result(path, now):
+def _default_result(
+    path,
+    now,
+    *,
+    max_bytes=_AGGREGATE_DEFAULT_MAX_BYTES,
+    max_events=_AGGREGATE_DEFAULT_MAX_EVENTS,
+    latency_budget_ms=_AGGREGATE_DEFAULT_LATENCY_MS,
+):
     routes = {route: _default_route_bucket() for route in EXPECTED_ROUTES}
     return {
         'generated_at': now.isoformat(),
         'source_path': path,
+        'window_complete': True,
+        'files_considered': 0,
+        'files_scanned': 0,
+        'events_scanned': 0,
+        'bytes_scanned': 0,
+        'scan_truncated': False,
+        'duplicate_events_skipped': 0,
+        'scan_errors': 0,
+        'read_budget': {
+            'max_bytes': max_bytes,
+            'max_events': max_events,
+            'latency_budget_ms': latency_budget_ms,
+            'memory_budget_bytes': _AGGREGATE_MEMORY_BUDGET_BYTES,
+            'read_chunk_bytes': _AGGREGATE_READ_CHUNK_BYTES,
+        },
         'summary': _default_summary(),
         'routes': routes,
         'latency': {
@@ -254,6 +348,18 @@ def _default_result(path, now):
         'top_parser_failures': [],
         'top_judgement_errors': [],
         'schema_versions': [],
+        'candidate_diagnostics': {
+            'candidate_only_detected': 0,
+            'by_source': [],
+            'classes': [],
+            'known_legacy_bug': 0,
+        },
+        'agreement_window': {
+            'matches': 0,
+            'mismatches': 0,
+            'rate': None,
+            'window_complete': True,
+        },
     }
 
 
@@ -312,11 +418,22 @@ def _derive_judgement(event, parser_status, parser_failure_reason, exception_cla
 
 
 def _derive_match(event):
+    classification = _coerce_text(event.get('classification'), max_len=80)
+    if classification == 'legacy_accepts_shadow_candidate_match':
+        # Explained candidate-only difference: neither ordinary agreement nor
+        # unexplained disagreement.
+        return None
+    if classification == 'legacy_rejects_transform_candidate':
+        return False
     for key in _MATCH_KEYS:
         coerced = _coerce_bool(event.get(key))
         if coerced is not None:
             return coerced
-    legacy = event.get('legacy_verdict') or event.get('legacy_judgement')
+    legacy = (
+        event.get('source_judgement')
+        or event.get('legacy_verdict')
+        or event.get('legacy_judgement')
+    )
     shadow = event.get('shadow_verdict') or event.get('shadow_judgement')
     if isinstance(legacy, str) and isinstance(shadow, str):
         legacy = legacy.strip()
@@ -338,6 +455,15 @@ def _normalize_recent_event(event, *, line_index):
     exception_message = _sanitize_reason(event.get('exception_message'), max_len=240)
     schema_version = _coerce_text(event.get('schema_version'), max_len=40)
     entry_point = _coerce_text(event.get('entry_point'), max_len=80)
+    classification = _coerce_text(event.get('classification'), max_len=80)
+    canonical_puzzle_id = _coerce_text(event.get('canonical_puzzle_id'), max_len=80) or None
+    candidate_source = _coerce_text(event.get('candidate_source'), max_len=40) or None
+    if candidate_source not in (None, 'accepted_moves', 'katago_best_move'):
+        candidate_source = None
+    candidate_only_detected = _coerce_bool(event.get('candidate_only_detected'))
+    invalid_identity = _coerce_bool(event.get('invalid_identity'))
+    gf003_related = _coerce_bool(event.get('gf003_related'))
+    legacy_unknown = _coerce_bool(event.get('legacy_unknown'))
     latency_ms = _coerce_float(_get_first(event, _LATENCY_KEYS))
     parser_status = _derive_parser_status(event)
     match_value = _derive_match(event)
@@ -366,12 +492,31 @@ def _normalize_recent_event(event, *, line_index):
         'exception_class': exception_class,
         'schema_version': schema_version,
         'entry_point': entry_point,
+        'classification': classification,
+        'canonical_puzzle_id': canonical_puzzle_id,
+        'candidate_only_detected': candidate_only_detected,
+        'candidate_source': candidate_source,
+        'invalid_identity': invalid_identity,
+        'gf003_related': gf003_related,
+        'legacy_unknown': legacy_unknown,
+        'player_color': _coerce_text(event.get('player_color'), max_len=4) or None,
+        'player_move_sgf': _coerce_text(event.get('player_move_sgf'), max_len=24) or None,
+        'player_move_board_coordinate': _coerce_text(
+            event.get('player_move_board_coordinate'), max_len=16
+        ) or None,
         'reason': reason,
         'parser_failure_reason': parser_failure_reason,
         'exception_message': exception_message,
         'details': {
             'schema_version': schema_version or '-',
             'entry_point': entry_point or '-',
+            'classification': classification or '-',
+            'canonical_puzzle_id': canonical_puzzle_id or '-',
+            'candidate_only_detected': candidate_only_detected,
+            'candidate_source': candidate_source or '-',
+            'invalid_identity': invalid_identity,
+            'gf003_related': gf003_related,
+            'legacy_unknown': legacy_unknown,
             'reason': reason or '-',
             'parser_failure_reason': parser_failure_reason or '-',
             'exception_class': exception_class or '-',
@@ -530,10 +675,53 @@ def recent_shadow_dashboard_data(
     return result
 
 
-def aggregate_shadow_events(path=None, now=None):
+def aggregate_shadow_events(
+    path=None,
+    now=None,
+    *,
+    max_bytes=None,
+    max_events=None,
+    latency_budget_ms=None,
+    monotonic=None,
+):
+    """Aggregate the newest bounded window across active and rotated JSONL files.
+
+    Storage discovery defines file precedence (active, then rotations newest
+    first). Records are scanned tail-first, so the first copy of an ``event_id``
+    wins. Aggregates are commutative; timestamps are normalized for time-window
+    metrics without retaining whole event dictionaries in memory.
+    """
     now = now or _utc_now()
     path = path or DEFAULT_SHADOW_EVENTS_PATH
-    result = _default_result(path, now)
+    max_bytes = _bounded_int(
+        os.environ.get(_AGGREGATE_MAX_BYTES_ENV) if max_bytes is None else max_bytes,
+        _AGGREGATE_DEFAULT_MAX_BYTES,
+        minimum=1,
+        maximum=_AGGREGATE_MAX_BYTES,
+    )
+    max_events = _bounded_int(
+        os.environ.get(_AGGREGATE_MAX_EVENTS_ENV) if max_events is None else max_events,
+        _AGGREGATE_DEFAULT_MAX_EVENTS,
+        minimum=1,
+        maximum=_AGGREGATE_MAX_EVENTS,
+    )
+    latency_budget_ms = _bounded_int(
+        (
+            os.environ.get(_AGGREGATE_LATENCY_MS_ENV)
+            if latency_budget_ms is None
+            else latency_budget_ms
+        ),
+        _AGGREGATE_DEFAULT_LATENCY_MS,
+        minimum=1,
+        maximum=_AGGREGATE_MAX_LATENCY_MS,
+    )
+    result = _default_result(
+        path,
+        now,
+        max_bytes=max_bytes,
+        max_events=max_events,
+        latency_budget_ms=latency_budget_ms,
+    )
     latency_values = []
     parser_reasons = Counter()
     judgement_counts = Counter()
@@ -545,107 +733,203 @@ def aggregate_shadow_events(path=None, now=None):
     judgement_error_puzzles = Counter()
     judgement_error_routes = defaultdict(set)
     schema_versions = Counter()
+    candidate_sources = Counter()
+    candidate_classes = Counter()
+    seen_event_ids = set()
 
-    if not os.path.exists(path):
+    event_files = discover_event_files(path)
+    result['files_considered'] = len(event_files)
+    if not event_files:
         return result
 
-    with open(path, 'r', encoding='utf-8') as handle:
-        for line in handle:
-            raw_line = line.strip()
-            if not raw_line:
-                continue
-            try:
-                event = json.loads(raw_line)
-            except json.JSONDecodeError:
-                result['summary']['invalid_lines'] += 1
-                continue
-            if not isinstance(event, dict):
-                result['summary']['invalid_lines'] += 1
-                continue
+    clock = monotonic or time.monotonic
+    deadline = clock() + (latency_budget_ms / 1000.0)
+    stop_scan = False
 
-            result['summary']['total_events'] += 1
+    for file_index, event_path in enumerate(event_files):
+        if result['events_scanned'] >= max_events:
+            result['scan_truncated'] = True
+            break
+        remaining_bytes = max_bytes - result['bytes_scanned']
+        if remaining_bytes <= 0 or clock() >= deadline:
+            result['scan_truncated'] = True
+            break
 
-            if _event_is_partial(event):
-                result['summary']['partial_events'] += 1
-
-            schema_version = _coerce_text(event.get('schema_version'), max_len=40)
-            if schema_version:
-                schema_versions[schema_version] += 1
-                if schema_version not in ('shadow-v2', 'shadow-v3'):
-                    result['summary']['unknown_schema_versions'] += 1
-
-            event_dt = _parse_timestamp(_get_first(event, _TIMESTAMP_KEYS))
-            if event_dt is not None:
-                event_date = event_dt.date()
-                if event_date == now.date():
-                    result['summary']['today_events'] += 1
-                delta_days = (now.date() - event_date).days
-                if 0 <= delta_days < 7:
-                    result['summary']['last_7_days'] += 1
-                if 0 <= delta_days < 30:
-                    result['summary']['last_30_days'] += 1
-
-            route = _normalize_route(event.get('route'))
-            if route and route not in result['routes']:
-                result['routes'][route] = _default_route_bucket()
-
-            route_bucket = result['routes'].get(route)
-            if route_bucket is not None:
-                route_bucket['total'] += 1
-
-            match_value = _derive_match(event)
-            if match_value is True and route_bucket is not None:
-                route_bucket['matches'] += 1
-            elif match_value is False:
-                if route_bucket is not None:
-                    route_bucket['mismatches'] += 1
-                puzzle_id = _puzzle_key(event)
-                mismatch_puzzles[puzzle_id] += 1
-                if route:
-                    mismatch_routes[puzzle_id].add(route)
-
-            parser_status = _derive_parser_status(event)
-            parser_failure_reason = _sanitize_reason(event.get('parser_failure_reason'))
-            exception_class = _coerce_text(event.get('exception_class'), max_len=80)
-            judgement = _derive_judgement(
-                event,
-                parser_status,
-                parser_failure_reason,
-                exception_class,
-                match_value,
+        state = {'bytes_read': 0, 'complete': False}
+        result['files_scanned'] += 1
+        try:
+            raw_lines = _iter_reverse_lines_with_budget(
+                event_path,
+                remaining_bytes,
+                state,
             )
-            if parser_status == 'failed' or parser_failure_reason:
-                result['parser']['failures'] += 1
-                if route_bucket is not None:
-                    route_bucket['parser_failures'] += 1
-                parser_reasons[parser_failure_reason or 'unknown'] += 1
-                puzzle_id = _puzzle_key(event)
-                parser_failure_puzzles[puzzle_id] += 1
-                if route:
-                    parser_failure_routes[puzzle_id].add(route)
+            for raw_bytes in raw_lines:
+                if clock() >= deadline:
+                    result['scan_truncated'] = True
+                    stop_scan = True
+                    break
+                if result['events_scanned'] >= max_events:
+                    result['scan_truncated'] = True
+                    stop_scan = True
+                    break
 
-            if judgement == 'error':
-                result['summary']['judgement_errors'] += 1
-                result['judgement']['errors'] += 1
-                if route_bucket is not None:
-                    route_bucket['judgement_errors'] += 1
-                puzzle_id = _puzzle_key(event)
-                judgement_error_puzzles[puzzle_id] += 1
-                if route:
-                    judgement_error_routes[puzzle_id].add(route)
-                judgement_counts[judgement] += 1
-            elif judgement:
-                judgement_counts[judgement] += 1
+                raw_line = raw_bytes.decode('utf-8', errors='replace').strip()
+                if not raw_line:
+                    continue
+                try:
+                    event = json.loads(raw_line)
+                except (json.JSONDecodeError, ValueError):
+                    result['summary']['invalid_lines'] += 1
+                    continue
+                if not isinstance(event, dict):
+                    result['summary']['invalid_lines'] += 1
+                    continue
 
-            if exception_class:
-                result['exceptions']['total'] += 1
-                exception_classes[exception_class] += 1
-                if route_bucket is not None:
-                    route_bucket['exceptions'] += 1
+                result['events_scanned'] += 1
+                event_id = _coerce_text(event.get('event_id'), max_len=120)
+                if event_id:
+                    if event_id in seen_event_ids:
+                        result['duplicate_events_skipped'] += 1
+                        continue
+                    seen_event_ids.add(event_id)
 
-            latency_ms = _coerce_float(_get_first(event, _LATENCY_KEYS))
-            if latency_ms is not None:
-                latency_values.append(latency_ms)
+                result['summary']['total_events'] += 1
+                if _event_is_partial(event):
+                    result['summary']['partial_events'] += 1
+
+                schema_version = _coerce_text(event.get('schema_version'), max_len=40)
+                if schema_version:
+                    _bounded_counter_increment(schema_versions, schema_version)
+                    if schema_version not in ('shadow-v2', 'shadow-v3', 'shadow-v4'):
+                        result['summary']['unknown_schema_versions'] += 1
+
+                event_dt = _parse_timestamp(_get_first(event, _TIMESTAMP_KEYS))
+                if event_dt is not None:
+                    event_date = event_dt.date()
+                    if event_date == now.date():
+                        result['summary']['today_events'] += 1
+                    delta_days = (now.date() - event_date).days
+                    if 0 <= delta_days < 7:
+                        result['summary']['last_7_days'] += 1
+                    if 0 <= delta_days < 30:
+                        result['summary']['last_30_days'] += 1
+
+                raw_route = _coerce_text(event.get('route'), max_len=120)
+                route = _normalize_route(raw_route)
+                if (
+                    route
+                    and route not in result['routes']
+                    and len(result['routes']) < _AGGREGATE_MAX_GROUP_KEYS
+                ):
+                    result['routes'][route] = _default_route_bucket()
+
+                route_bucket = result['routes'].get(route)
+                if route_bucket is not None:
+                    route_bucket['total'] += 1
+
+                classification = _coerce_text(event.get('classification'), max_len=80)
+                candidate_only = _coerce_bool(event.get('candidate_only_detected'))
+                candidate_source = _coerce_text(event.get('candidate_source'), max_len=40)
+                if candidate_only is True:
+                    result['candidate_diagnostics']['candidate_only_detected'] += 1
+                    if candidate_source not in ('accepted_moves', 'katago_best_move'):
+                        candidate_source = 'unknown'
+                    _bounded_counter_increment(candidate_sources, candidate_source)
+                if classification in (
+                    'legacy_accepts_shadow_candidate_match',
+                    'legacy_rejects_transform_candidate',
+                ):
+                    _bounded_counter_increment(candidate_classes, classification)
+                if classification == 'legacy_rejects_transform_candidate':
+                    result['candidate_diagnostics']['known_legacy_bug'] += 1
+
+                match_value = _derive_match(event)
+                if match_value is True:
+                    result['agreement_window']['matches'] += 1
+                    if route_bucket is not None:
+                        route_bucket['matches'] += 1
+                elif match_value is False:
+                    result['agreement_window']['mismatches'] += 1
+                    if route_bucket is not None:
+                        route_bucket['mismatches'] += 1
+                    puzzle_id = _puzzle_key(event)
+                    _bounded_counter_increment(mismatch_puzzles, puzzle_id)
+                    if route:
+                        mismatch_routes[puzzle_id].add(route)
+
+                parser_status = _derive_parser_status(event)
+                parser_failure_reason = _sanitize_reason(event.get('parser_failure_reason'))
+                exception_class = _coerce_text(event.get('exception_class'), max_len=80)
+                judgement = _derive_judgement(
+                    event,
+                    parser_status,
+                    parser_failure_reason,
+                    exception_class,
+                    match_value,
+                )
+                if parser_status == 'failed' or parser_failure_reason:
+                    result['parser']['failures'] += 1
+                    if route_bucket is not None:
+                        route_bucket['parser_failures'] += 1
+                    _bounded_counter_increment(
+                        parser_reasons,
+                        parser_failure_reason or 'unknown',
+                    )
+                    puzzle_id = _puzzle_key(event)
+                    _bounded_counter_increment(parser_failure_puzzles, puzzle_id)
+                    if route:
+                        parser_failure_routes[puzzle_id].add(route)
+
+                if judgement == 'error':
+                    result['summary']['judgement_errors'] += 1
+                    result['judgement']['errors'] += 1
+                    if route_bucket is not None:
+                        route_bucket['judgement_errors'] += 1
+                    puzzle_id = _puzzle_key(event)
+                    _bounded_counter_increment(judgement_error_puzzles, puzzle_id)
+                    if route:
+                        judgement_error_routes[puzzle_id].add(route)
+                if judgement:
+                    _bounded_counter_increment(judgement_counts, judgement)
+
+                if exception_class:
+                    result['exceptions']['total'] += 1
+                    _bounded_counter_increment(exception_classes, exception_class)
+                    if route_bucket is not None:
+                        route_bucket['exceptions'] += 1
+
+                latency_ms = _coerce_float(_get_first(event, _LATENCY_KEYS))
+                if latency_ms is not None:
+                    latency_values.append(latency_ms)
+        except (OSError, ValueError):
+            result['scan_errors'] += 1
+            result['scan_truncated'] = True
+        finally:
+            result['bytes_scanned'] += state['bytes_read']
+
+        if not state['complete']:
+            result['scan_truncated'] = True
+            stop_scan = True
+        if stop_scan:
+            break
+        if file_index + 1 < len(event_files) and result['bytes_scanned'] >= max_bytes:
+            result['scan_truncated'] = True
+            break
+
+    if result['files_scanned'] < result['files_considered']:
+        result['scan_truncated'] = True
+    result['window_complete'] = not result['scan_truncated'] and result['scan_errors'] == 0
+    result['agreement_window']['window_complete'] = result['window_complete']
+
+    agreement_total = (
+        result['agreement_window']['matches']
+        + result['agreement_window']['mismatches']
+    )
+    if result['window_complete'] and agreement_total:
+        result['agreement_window']['rate'] = round(
+            result['agreement_window']['matches'] / agreement_total,
+            6,
+        )
 
     if latency_values:
         total_latency = sum(latency_values)
@@ -665,4 +949,12 @@ def aggregate_shadow_events(path=None, now=None):
     result['top_parser_failures'] = _puzzle_rows(parser_failure_puzzles, parser_failure_routes)
     result['top_judgement_errors'] = _puzzle_rows(judgement_error_puzzles, judgement_error_routes)
     result['schema_versions'] = _counter_rows(schema_versions, 'schema_version')
+    result['candidate_diagnostics']['by_source'] = _counter_rows(
+        candidate_sources,
+        'candidate_source',
+    )
+    result['candidate_diagnostics']['classes'] = _counter_rows(
+        candidate_classes,
+        'classification',
+    )
     return result
