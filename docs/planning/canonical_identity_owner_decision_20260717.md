@@ -10,16 +10,20 @@ Historical source: commit
 `4839a065759420c18a0da1140cf5c4c6747ad3bb`,
 `docs/planning/ADR-021-canonical-puzzle-identity.md`
 
-The canonical copy is restored at
-`docs/architecture/ADR-021-canonical-puzzle-identity.md`.
+The canonical restatement and owner reaffirmation is recorded at
+`docs/architecture/ADR-021-canonical-puzzle-identity.md`. It is an expanded
+restatement of the historical ADR-021 contract, not a byte-for-byte copy of the
+historical file. The 2026-07-17 owner confirmation directly reaffirms the
+historical composite identity decision together with the fail-safe resolution,
+immutability, rollback-survival, and route/mode boundaries stated there.
 
 ## Binding decision
 
 Each immutable ingested puzzle record receives one ingestion-generated UUID
-version 4. The canonical alias key is exactly:
+version 4. The effective canonical mapping remains exactly:
 
 ```text
-(record_index, legacy_question_id)
+(record_index, legacy_question_id) → immutable UUID v4
 ```
 
 `legacy_question_id` is not globally unique. The historical audit recorded 12

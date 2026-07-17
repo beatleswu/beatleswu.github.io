@@ -2,14 +2,19 @@
 
 ## Status
 
-Accepted. Originally owner-confirmed 2026-07-09 and reconfirmed by the owner
-on 2026-07-17 for SGF Engine V1 closure.
+Accepted. The underlying composite identity decision was owner-confirmed on
+2026-07-09 and directly reaffirmed by the owner on 2026-07-17 for SGF Engine
+V1 closure.
 
-This document restores the accepted contract recorded at historical commit
-`4839a065759420c18a0da1140cf5c4c6747ad3bb` and makes the implementation and
-rollback rules explicit. The duplicate counts below are historical evidence
-from that decision; they were not re-measured from protected corpus data during
-the 2026-07-17 implementation.
+This ADR is the canonical restatement and owner reaffirmation of the historical
+ADR-021 identity contract recorded at commit
+`4839a065759420c18a0da1140cf5c4c6747ad3bb`. The 2026-07-17 reaffirmation
+preserves the historical identity decision while adding the explicitly
+reaffirmed fail-safe resolution, immutability, rollback-survival, and route/mode
+exclusion rules documented here. This document does not reproduce the
+historical file byte-for-byte. The duplicate counts below are historical
+evidence from that decision; they were not re-measured from protected corpus
+data during the 2026-07-17 implementation.
 
 ## Context
 
