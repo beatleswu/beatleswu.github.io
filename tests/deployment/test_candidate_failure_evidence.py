@@ -110,4 +110,3 @@ def test_release_lock_result_is_persisted_without_replacing_failure():
     assert "release_lock_cleanup = [ordered]@{ status = 'completed'" in finally_block
     assert "release_lock_cleanup = [ordered]@{ status = 'failed'" in finally_block
     assert "Save-CandidateEvidenceAtomically" in finally_block
-
