@@ -360,6 +360,80 @@ def test_compose_contract_defaults_only_the_explicit_flag_to_false():
     assert 'SHADOW_JUDGING_ENABLED: "1"' not in release
 
 
+def test_real_wait_convergence_seam_executes_identity_bound_state_machine():
+    setter = SETTER.read_text(encoding="utf-8")
+    prefix = setter.split("$result = $null", 1)[0].replace("'", "''")
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw; Invoke-Expression $source.Substring($source.IndexOf('function Get-ShadowRuntimeFlag'),$source.IndexOf('$result = $null')-$source.IndexOf('function Get-ShadowRuntimeFlag'))
+$script:i=0
+$script:health=@(
+  [pscustomobject]@{{app_container_id='app-old';scheduler_container_id='sch-old';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}},
+  [pscustomobject]@{{app_container_id='app-new';scheduler_container_id='sch-old';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}},
+  [pscustomobject]@{{app_container_id='app-new';scheduler_container_id='sch-new';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}},
+  [pscustomobject]@{{app_container_id='app-new';scheduler_container_id='sch-new';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}}
+)
+function Get-TestHealth {{ $x=$script:health[[Math]::Min($script:i,($script:health.Count-1))]; $script:i++; return $x }}
+$runtime={{ param($a,$s) if($a -ne 'app-new' -or $s -ne 'sch-new'){{throw 'wrong identity'}}; [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;state='enabled'}};scheduler=[pscustomobject]@{{enabled=$true;state='enabled'}}}} }}
+$clockValue=[datetime]'2026-01-01T00:00:00Z'
+$clock={{ $script:clockValue }}
+$sleep={{ param($seconds) $script:clockValue=$script:clockValue.AddSeconds(1) }}
+$before=[pscustomobject]@{{app_container_id='app-old';scheduler_container_id='sch-old';app_image_id='img';scheduler_image_id='img'}}
+$helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='enabled'}}}}
+    $r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 10 -PollIntervalSeconds 1 -HealthProbe ${{function:Get-TestHealth}} -RuntimeProbe $runtime -Clock $clock -SleepAction $sleep
+    if($r.health.app_container_id -ne 'app-new' -or $r.health.scheduler_container_id -ne 'sch-new'){{throw ('identity convergence seam failed: ' + ($r | ConvertTo-Json -Compress))}}
+Write-Output 'OK'
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip().endswith("OK")
+
+
+def test_real_wait_convergence_fail_closed_matrix_and_attempt_isolation():
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw; Invoke-Expression $source.Substring($source.IndexOf('function Get-ShadowRuntimeFlag'),$source.IndexOf('$result = $null')-$source.IndexOf('function Get-ShadowRuntimeFlag'))
+function Invoke-Case {{ param([string]$mode)
+  $script:n=0; $script:t=[datetime]'2026-01-01T00:00:00Z'
+  $before=[pscustomobject]@{{app_container_id='old-app';scheduler_container_id='old-sch';app_image_id='img';scheduler_image_id='img'}}
+  $helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='enabled'}}}}
+  $health={{
+    $script:n++
+    if($mode -eq 'timeout'){{ return [pscustomobject]@{{app_container_id='new-app';scheduler_container_id='old-sch';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}} }}
+    if($mode -eq 'image'){{ return [pscustomobject]@{{app_container_id='new-app';scheduler_container_id='new-sch';app_image_id='wrong';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}} }}
+    if($mode -eq 'replacement' -and $script:n -eq 2){{ return [pscustomobject]@{{app_container_id='new-app-2';scheduler_container_id='new-sch';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}} }}
+    return [pscustomobject]@{{app_container_id='new-app';scheduler_container_id='new-sch';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}}
+  }}
+  $runtime={{ param($a,$s) if($mode -eq 'runtime_throw'){{ throw 'sentinel-secret-runtime' }}; [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;state='enabled'}};scheduler=[pscustomobject]@{{enabled=$true;state='enabled'}}}} }}
+  $clock={{ $script:t }}; $sleep={{ param($s) $script:t=$script:t.AddSeconds(1) }}
+  try {{ $r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 2 -PollIntervalSeconds 1 -HealthProbe $health -RuntimeProbe $runtime -Clock $clock -SleepAction $sleep; [pscustomobject]@{{mode=$mode;success=$true;attempts=$r.attempts;stable=$true}} }}
+  catch {{ [pscustomobject]@{{mode=$mode;success=$false;attempts=$_.Exception.Data['attempts'];stable=$_.Exception.Data['identity_stable'];runtime=if($_.Exception.Data['runtime']){{'present'}}else{{'null'}};message=$_.Exception.Message}} }}
+}}
+@('timeout','image','replacement','runtime_throw') | % {{ Invoke-Case $_ }} | ConvertTo-Json -Compress -Depth 6
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = {row["mode"]: row for row in json.loads(result.stdout.strip())}
+    assert all(not rows[name]["success"] for name in rows if name != "replacement"), result.stdout
+    assert rows["replacement"]["success"] is True
+    assert rows["timeout"]["stable"] is False
+    assert rows["runtime_throw"]["runtime"] == "null"
+    assert "sentinel-secret" not in result.stdout
+
+
+def test_current_attempt_image_observation_is_used_after_retry():
+    script = f"""
+$ErrorActionPreference='Stop'; $source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw; Invoke-Expression $source.Substring($source.IndexOf('function Get-ShadowRuntimeFlag'),$source.IndexOf('$result = $null')-$source.IndexOf('function Get-ShadowRuntimeFlag'))
+$script:n=0; $script:t=[datetime]'2026-01-01Z'; $before=[pscustomobject]@{{app_container_id='old';scheduler_container_id='old-s';app_image_id='img-good';scheduler_image_id='img-good'}}; $helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='enabled'}}}}
+function H {{ $script:n++; if($script:n -eq 1){{ [pscustomobject]@{{app_container_id='new';scheduler_container_id='new-s';app_image_id='img-bad';scheduler_image_id='img-bad'}} }} else {{ [pscustomobject]@{{app_container_id='new';scheduler_container_id='new-s';app_image_id='img-good';scheduler_image_id='img-good'}} }} }}
+$rprobe={{ param($a,$s) [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;state='enabled'}};scheduler=[pscustomobject]@{{enabled=$true;state='enabled'}}}} }}; $clock={{$script:t}}; $sleep={{param($x) $script:t=$script:t.AddSeconds(1)}}
+$r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 4 -PollIntervalSeconds 1 -HealthProbe ${{function:H}} -RuntimeProbe $rprobe -Clock $clock -SleepAction $sleep
+if($r.health.app_image_id -ne 'img-good'){{throw 'current-attempt image was not used'}}; 'OK'
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     setter = SETTER.read_text(encoding="utf-8")
     helper = HELPER.read_text(encoding="utf-8")
@@ -392,6 +466,27 @@ def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     assert ".Config.Image" in setter and ".Image" in setter
     assert ".shadow-judging-backups" in setter
     assert "governed pre-change state was restored and verified" in setter
+    assert "Wait-ShadowPostChangeConvergence" in setter
+    for field in (
+        "app_container_identity_before",
+        "app_container_identity_after",
+        "scheduler_container_identity_before",
+        "scheduler_container_identity_after",
+        "expected_app_image_id",
+        "observed_app_image_id",
+        "identity_stable_during_last_sample",
+    ):
+        assert field in setter
+    for field in (
+        "original_failure_stage",
+        "original_failure_code",
+        "original_failure_message",
+        "verification_attempt_count",
+        "verification_elapsed_seconds",
+        "final_verified_state",
+        "lock_cleanup_result",
+    ):
+        assert field in setter
 
 
 def test_runbook_records_operation_specific_gates_without_raw_recipes():
