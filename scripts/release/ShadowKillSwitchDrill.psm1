@@ -36,6 +36,9 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
         dashboard_readable = $false
         restoration_attempted = $false
         restoration_succeeded = $false
+        outer_restoration_attempted = $false
+        setter_internal_recovery_attempted = $false
+        setter_internal_recovery_succeeded = $false
         restoration_backup_identity = $null
         resume_verified = $null
         final_effective_state = $null
@@ -98,6 +101,15 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
             throw 'Disable did not report the governed initial backup identity.'
         }
         $report.initial_backup_identity = [string]$disableResult.backup.id
+        $report.setter_internal_recovery_attempted = ($null -ne $disableResult.PSObject.Properties['internal_recovery_attempted'] -and $disableResult.internal_recovery_attempted -eq $true)
+        $report.setter_internal_recovery_succeeded = ($null -ne $disableResult.PSObject.Properties['internal_recovery_succeeded'] -and $disableResult.internal_recovery_succeeded -eq $true)
+        if ($report.setter_internal_recovery_succeeded) {
+            $mutationMayHaveStarted = $false
+            if (-not $disableResult.effective -or [bool]$disableResult.effective.enabled -ne [bool]$report.initial_intended_enabled) {
+                throw 'Setter internal recovery did not restore the initial effective state.'
+            }
+            throw 'Disable verification failed after setter internal recovery; initial state restored.'
+        }
 
         $stage = 'disable_verification'
         & $VerifyDisabled $disableResult
@@ -125,6 +137,7 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
     finally {
         if ($mutationMayHaveStarted -and $report.initial_state_captured) {
             $report.restoration_attempted = $true
+            $report.outer_restoration_attempted = $true
             $restoreCompleted = $false
             try {
                 $restoreResult = & $Restore $disableResult $initial

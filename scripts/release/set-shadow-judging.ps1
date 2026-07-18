@@ -51,7 +51,8 @@ $lockPath = "$envPath.shadow-judging.lock"
 function Get-ShadowHelperArguments {
     param(
         [Parameter(Mandatory = $true)][string]$RequestedOperation,
-        [string]$RequestedDesired
+        [string]$RequestedDesired,
+        [string]$RequestedRollbackBackupId
     )
 
     $parts = @(
@@ -64,6 +65,12 @@ function Get-ShadowHelperArguments {
     if ($RequestedOperation -eq 'dry-run') {
         $parts += @('--desired', (Quote-PosixShellArgument $RequestedDesired))
     }
+    if ($RequestedOperation -eq 'rollback') {
+        if ([string]::IsNullOrWhiteSpace($RequestedRollbackBackupId)) {
+            throw 'Explicit rollback backup identity is required for governed recovery.'
+        }
+        $parts += @('--rollback-backup-id', (Quote-PosixShellArgument $RequestedRollbackBackupId))
+    }
     if ($RequestedOperation -in $mutationOperations) {
         $parts += @('--execute', '--owner-gate', (Quote-PosixShellArgument $ownerGates[$RequestedOperation]))
     }
@@ -73,10 +80,11 @@ function Get-ShadowHelperArguments {
 function Invoke-ShadowHelper {
     param(
         [Parameter(Mandatory = $true)][string]$RequestedOperation,
-        [string]$RequestedDesired = 'disable'
+        [string]$RequestedDesired = 'disable',
+        [string]$RequestedRollbackBackupId
     )
 
-    $argumentText = Get-ShadowHelperArguments -RequestedOperation $RequestedOperation -RequestedDesired $RequestedDesired
+    $argumentText = Get-ShadowHelperArguments -RequestedOperation $RequestedOperation -RequestedDesired $RequestedDesired -RequestedRollbackBackupId $RequestedRollbackBackupId
     $remoteScript = "set -eu`nsudo -n python3 - $argumentText <<'__SHADOW_JUDGING_HELPER__'`n$helperSource`n__SHADOW_JUDGING_HELPER__`n"
     $remote = Invoke-BoundedSshCommand `
         -SshAlias $layout.ssh_alias `
@@ -389,6 +397,7 @@ __SHADOW_RUNTIME_HEALTH__
     return $payload
 }
 
+$result = $null
 $result = Invoke-ShadowHelper -RequestedOperation $Operation -RequestedDesired $Desired
 if ($Operation -in $mutationOperations) {
     try {
@@ -402,7 +411,10 @@ if ($Operation -in $mutationOperations) {
     catch {
         $recoverySucceeded = $false
         try {
-            $recovery = Invoke-ShadowHelper -RequestedOperation 'rollback'
+            if (-not $result -or -not $result.backup -or [string]::IsNullOrWhiteSpace([string]$result.backup.id)) {
+                throw 'Shadow Judging mutation did not return an exact recovery backup identity.'
+            }
+            $recovery = Invoke-ShadowHelper -RequestedOperation 'rollback' -RequestedRollbackBackupId ([string]$result.backup.id)
             Invoke-ShadowComposeRecreate
             $recoveryHealth = Get-ShadowRuntimeHealth
             $recoveryRuntime = Get-ShadowRuntimeFlag
@@ -413,7 +425,19 @@ if ($Operation -in $mutationOperations) {
             $recoverySucceeded = $false
         }
         if ($recoverySucceeded) {
-            throw 'Shadow Judging post-change verification failed; the governed pre-change state was restored and verified.'
+            # The governed pre-change state was restored and verified; report the original failure.
+            [ordered]@{
+                operation = $Operation
+                status = 'recovered_failure'
+                internal_recovery_attempted = $true
+                internal_recovery_succeeded = $true
+                backup = $result.backup
+                recovery = $recovery
+                effective = $recovery.effective
+                health = $recoveryHealth
+                runtime = $recoveryRuntime
+            } | ConvertTo-Json -Depth 12 | Write-Output
+            exit 1
         }
         throw 'Shadow Judging post-change verification failed; governed recovery also failed closed and requires owner review.'
     }
