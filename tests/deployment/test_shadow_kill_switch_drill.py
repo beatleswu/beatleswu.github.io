@@ -22,10 +22,20 @@ def run_powershell(script, timeout=30):
     )
 
 
-def state_machine_harness(*, initial_enabled=True, fail_stage=None):
+def state_machine_harness(*, initial_enabled=True, fail_stage=None, disable_shape="nested"):
     module = str(MODULE).replace("'", "''")
     initial = "$true" if initial_enabled else "$false"
     failure = (fail_stage or "").replace("'", "''")
+    disable_results = {
+        "nested": "[pscustomobject]@{ backup = [pscustomobject]@{ id = 'initial-backup' }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "missing_backup": "[pscustomobject]@{ effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "missing_id": "[pscustomobject]@{ backup = [pscustomobject]@{}; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "null_id": "[pscustomobject]@{ backup = [pscustomobject]@{ id = $null }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "empty_id": "[pscustomobject]@{ backup = [pscustomobject]@{ id = '' }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "whitespace_id": "[pscustomobject]@{ backup = [pscustomobject]@{ id = '   ' }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "malformed": "'not-an-object'",
+    }
+    disable_result = disable_results[disable_shape]
     script = f"""
 $ErrorActionPreference = 'Stop'
 Import-Module '{module}' -Force
@@ -44,7 +54,7 @@ $get = {{
 $disable = {{
     $script:enabled = $false
     if(Test-Failure 'disable'){{throw 'injected'}}
-    [pscustomobject]@{{ backup_id = 'initial-backup'; effective = [pscustomobject]@{{ enabled = $false; state = 'disabled' }} }}
+    return {disable_result}
 }}
 $verifyDisabled = {{ param($result) if(Test-Failure 'disable_verification'){{throw 'injected'}}; if($result.effective.enabled){{throw 'not disabled'}} }}
 $verifyInfrastructure = {{ param($result) if(Test-Failure 'legacy_infrastructure'){{throw 'injected'}}; $null = $result }}
@@ -171,6 +181,51 @@ def test_successful_drill_restores_disabled_initial_state_without_resume_probe()
     assert report["resume_verified"] is None
     assert payload["enabled"] is False
     assert payload["resumes"] == 0
+
+
+@pytest.mark.parametrize(
+    "disable_shape",
+    ("missing_backup", "missing_id", "null_id", "empty_id", "whitespace_id", "malformed"),
+)
+def test_disable_backup_identity_contract_fails_closed(disable_shape):
+    returncode, payload = state_machine_harness(disable_shape=disable_shape)
+    report = payload["report"]
+    assert returncode != 0
+    assert report["success"] is False
+    assert report["failure_stage"] == "disable"
+    assert report["initial_backup_identity"] is None
+    assert report["restoration_attempted"] is True
+    assert report["restoration_succeeded"] is True
+    assert report["final_matches_initial"] is True
+
+
+def test_restore_requires_real_flat_rollback_backup_identity():
+    returncode, payload = state_machine_harness(initial_enabled=True, fail_stage="write_stop")
+    report = payload["report"]
+    assert returncode != 0
+    assert report["restoration_backup_identity"] == "restoration-backup"
+
+
+def test_restore_missing_reverse_backup_identity_fails_closed():
+    module = str(MODULE).replace("'", "''")
+    script = f"""
+$ErrorActionPreference = 'Stop'
+Import-Module '{module}' -Force
+$enabled = $true
+$get = {{ [pscustomobject]@{{ effective = [pscustomobject]@{{ enabled = $enabled; state = $(if($enabled){{'enabled'}}else{{'disabled'}}) }} }} }}
+$disable = {{ $enabled = $false; [pscustomobject]@{{ backup = [pscustomobject]@{{ id = 'initial-backup' }} }} }}
+$canary = {{ param($checkpoint) [pscustomobject]@{{ ok=$true; name='synthetic'; expected_result='correct'; actual_result='correct' }} }}
+$restore = {{ param($disableResult,$initialState) $enabled = $true; [pscustomobject]@{{ operation='rollback' }} }}
+$result = Invoke-ShadowKillSwitchDrillStateMachine -GetState $get -Disable $disable -VerifyDisabled {{}} -VerifyInfrastructure {{}} -VerifyLegacyCanary $canary -VerifyWriteStop {{ throw 'stop' }} -VerifyDashboard {{}} -Restore $restore -VerifyResumed {{}}
+[ordered]@{{ report=$result }} | ConvertTo-Json -Depth 12
+if($result.restoration_succeeded){{exit 1}}
+"""
+    result = run_powershell(script)
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)["report"]
+    assert report["restoration_attempted"] is True
+    assert report["restoration_succeeded"] is False
+    assert report["final_matches_initial"] is True
 
 
 @pytest.mark.parametrize(

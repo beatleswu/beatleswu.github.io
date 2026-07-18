@@ -92,10 +92,12 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
         $stage = 'disable'
         $mutationMayHaveStarted = $true
         $disableResult = & $Disable
-        if (-not $disableResult -or [string]::IsNullOrWhiteSpace([string]$disableResult.backup_id)) {
+        if (-not $disableResult -or
+            -not $disableResult.backup -or
+            [string]::IsNullOrWhiteSpace([string]$disableResult.backup.id)) {
             throw 'Disable did not report the governed initial backup identity.'
         }
-        $report.initial_backup_identity = [string]$disableResult.backup_id
+        $report.initial_backup_identity = [string]$disableResult.backup.id
 
         $stage = 'disable_verification'
         & $VerifyDisabled $disableResult
@@ -129,12 +131,11 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
                 if (-not $restoreResult) {
                     throw 'Restore did not report a result.'
                 }
-                if (-not [string]::IsNullOrWhiteSpace([string]$restoreResult.rollback_backup_id)) {
-                    $report.restoration_backup_identity = [string]$restoreResult.rollback_backup_id
-                }
-                elseif ($disableResult -and -not [string]::IsNullOrWhiteSpace([string]$disableResult.backup_id)) {
+                if (-not $restoreResult -or
+                    [string]::IsNullOrWhiteSpace([string]$restoreResult.rollback_backup_id)) {
                     throw 'Restore did not report its governed reverse-backup identity.'
                 }
+                $report.restoration_backup_identity = [string]$restoreResult.rollback_backup_id
                 $restoreCompleted = $true
             }
             catch {
