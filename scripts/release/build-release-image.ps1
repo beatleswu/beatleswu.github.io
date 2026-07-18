@@ -20,7 +20,7 @@ if (-not $ExpectedGitSha) {
     $ExpectedGitSha = Get-CurrentGitSha
 }
 else {
-    $ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $repoRoot).Trim()
+    $ExpectedGitSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $repoRoot)
 }
 
 Assert-TrackedTreeClean -WorkingDirectory $repoRoot
@@ -93,7 +93,7 @@ try {
         $labels = Assert-ImageRevisionMatches -ImageTag $imageTag -ExpectedGitSha $ExpectedGitSha
         [ordered]@{
             image_tag = $imageTag
-            image_id = (& docker image inspect $imageTag --format '{{.Id}}').Trim()
+            image_id = (Get-SafeFirstOutputLine (& docker image inspect $imageTag --format '{{.Id}}'))
             revision = $labels.'org.opencontainers.image.revision'
             source = $labels.'org.opencontainers.image.source'
             sgf_engine_source_commit = $labels.'com.godokoro.sgf-engine.source-commit'

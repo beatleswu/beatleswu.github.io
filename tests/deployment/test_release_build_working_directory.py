@@ -53,6 +53,75 @@ def test_bootstrap_and_module_protected_pattern_contracts_are_identical():
     assert bootstrap_contract == module_contract
 
 
+def test_safe_first_output_line_normalizes_null_empty_whitespace_and_values():
+    script = f"""
+$ErrorActionPreference = 'Stop'
+Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+$values = [ordered]@{{
+    null = Get-SafeFirstOutputLine -Value $null
+    empty = Get-SafeFirstOutputLine -Value ([string]::Empty)
+    whitespace = Get-SafeFirstOutputLine -Value '   '
+    value = Get-SafeFirstOutputLine -Value "  branch-name  "
+}}
+$values | ConvertTo-Json -Compress
+"""
+    result = run_powershell(script)
+    assert result.returncode == 0, result.stdout + result.stderr
+    values = parse_last_json(result.stdout)
+    assert values == {
+        "null": "",
+        "empty": "",
+        "whitespace": "",
+        "value": "branch-name",
+    }
+
+
+def test_invoke_git_failure_is_not_normalized_to_empty_success(tmp_path):
+    repo, _sha = create_synthetic_repo(tmp_path)
+    script = f"""
+$ErrorActionPreference = 'Stop'
+Import-Module '{ps_quote(MODULE)}' -Force -DisableNameChecking
+try {{ Invoke-Git -Arguments @('rev-parse', 'refs/does-not-exist') -WorkingDirectory '{ps_quote(repo)}' | Out-Null; $failed=$false }}
+catch {{ $failed=$true; $message=$_.Exception.Message }}
+[ordered]@{{failed=$failed;message=$message}} | ConvertTo-Json -Compress
+"""
+    result = run_powershell(script)
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = parse_last_json(result.stdout)
+    assert payload["failed"] is True
+    assert "failed with exit code" in payload["message"]
+
+
+def test_actual_bootstrap_accepts_detached_zero_branch_output_and_advances(tmp_path):
+    repo, sha = create_governed_build_repo(tmp_path)
+    assert git(repo, "branch", "--show-current").stdout == ""
+    git(repo, "remote", "add", "origin", str(repo))
+    git(repo, "update-ref", "refs/remotes/origin/master", sha)
+    result = subprocess.run(
+        [
+            "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            str(repo / "scripts" / "build-production-image.ps1"),
+            "-GitSha", sha,
+            "-ExpectedCanonicalWorktreeRoot", str(repo),
+            "-ExpectedExactGitSha", sha,
+            "-ExpectedGitCommonDirectory", str(repo / ".git"),
+            "-ExpectedHeadState", "detached",
+        ],
+        cwd=repo,
+        env={**os.environ, "APP_BUILD_DATE_OVERRIDE": "2026-07-18T00:00:00Z"},
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        check=False,
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "InvokeMethodOnNull" not in combined
+    assert "Required tracked build inputs are missing" in combined
+    assert "== go-odyssey-app canonical image build" in combined
+
+
 def run_powershell(script, timeout=30):
     utf8_preamble = (
         "$OutputEncoding = [Console]::OutputEncoding = "

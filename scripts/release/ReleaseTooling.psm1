@@ -18,7 +18,7 @@ function Get-ImagePlatform {
     format string.
     #>
     param([Parameter(Mandatory = $true)][string]$ImageTag)
-    return (& docker image inspect $ImageTag --format '{{.Os}}/{{.Architecture}}').Trim().ToLowerInvariant()
+    return (Get-SafeFirstOutputLine (& docker image inspect $ImageTag --format '{{.Os}}/{{.Architecture}}')).ToLowerInvariant()
 }
 
 function Resolve-RepoPath {
@@ -97,12 +97,21 @@ function Invoke-Git {
     }
 }
 
+function Get-SafeFirstOutputLine {
+    param([AllowNull()][object]$Value)
+    $items = @($Value)
+    if ($items.Count -eq 0 -or $null -eq $items[0]) {
+        return [string]::Empty
+    }
+    return ([string]$items[0]).Trim()
+}
+
 function Get-CurrentGitSha {
-    return (Invoke-Git -Arguments @('rev-parse', 'HEAD')).Trim()
+    return Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', 'HEAD'))
 }
 
 function Get-OriginMasterSha {
-    return (Invoke-Git -Arguments @('rev-parse', 'origin/master')).Trim()
+    return Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', 'origin/master'))
 }
 
 function Get-ShortGitSha {
@@ -278,7 +287,7 @@ function Assert-CompleteWorktreeClean {
 
 function Get-GitCommonDirectory {
     param([Parameter(Mandatory = $true)][string]$WorkingDirectory)
-    $raw = ((Invoke-Git -Arguments @('rev-parse', '--git-common-dir') -WorkingDirectory $WorkingDirectory) | Select-Object -First 1).Trim()
+    $raw = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', '--git-common-dir') -WorkingDirectory $WorkingDirectory)
     if ([System.IO.Path]::IsPathRooted($raw)) {
         return Get-CanonicalFilesystemPath -Path $raw -Label 'Git common directory'
     }
@@ -301,17 +310,17 @@ function Assert-DetachedWorktreeIdentity {
         throw "Detached worktree path does not exist or is not a directory."
     }
     $resolvedPath = Assert-NoReparsePointPath -Path $resolvedPath -Label 'Detached worktree path'
-    $topLevel = ((Invoke-Git -Arguments @('rev-parse', '--show-toplevel') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $topLevel = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', '--show-toplevel') -WorkingDirectory $resolvedPath)
     $resolvedTopLevel = Get-CanonicalFilesystemPath -Path $topLevel -Label 'Git top-level path'
     if (-not (Test-CanonicalPathEqual -Left $resolvedPath -Right $resolvedTopLevel)) {
         throw "Detached worktree root does not match the supplied isolated path."
     }
-    $head = ((Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
-    $expected = ((Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $head = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $resolvedPath)
+    $expected = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $resolvedPath)
     if ($head -ne $expected) {
         throw "Detached worktree HEAD does not match the expected release Git SHA."
     }
-    $branch = ((Invoke-Git -Arguments @('branch', '--show-current') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $branch = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('branch', '--show-current') -WorkingDirectory $resolvedPath)
     if (-not [string]::IsNullOrWhiteSpace($branch)) {
         throw "Release build worktree must be detached."
     }
@@ -333,7 +342,7 @@ function Assert-GeneratedDetachedWorktreeIdentity {
     if (-not (Test-CanonicalPathEqual -Left $candidate -Right $record.path)) {
         throw "Generated detached worktree path does not exactly match its registered identity."
     }
-    $expected = ((Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $candidate) | Select-Object -First 1).Trim()
+    $expected = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $candidate)
     if ($expected -ne $record.expected_sha) {
         throw "Generated detached worktree expected SHA does not match its registered identity."
     }
@@ -375,7 +384,7 @@ function New-DetachedWorktree {
     $expectedParent = Assert-NoReparsePointPath -Path ([System.IO.Path]::GetTempPath()) -Label 'Generated worktree parent path'
     $worktree = Get-CanonicalFilesystemPath -Path (Join-Path $expectedParent ("{0}-{1}" -f $Prefix, ([guid]::NewGuid().ToString('N')))) -Label 'Generated worktree path'
     Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) | Out-Null
-    $resolvedSha = ((Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $worktree) | Select-Object -First 1).Trim()
+    $resolvedSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $worktree)
     $script:GeneratedDetachedWorktrees[$worktree.ToLowerInvariant()] = [ordered]@{
         path = $worktree
         parent = $expectedParent
@@ -431,7 +440,7 @@ function Remove-DetachedWorktree {
     if (-not (Test-CanonicalPathEqual -Left $candidateCommonDirectory -Right $record.git_common_directory)) {
         throw "Cleanup refused: worktree does not belong to the expected repository common Git directory."
     }
-    $head = ((Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $candidate) | Select-Object -First 1).Trim()
+    $head = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $candidate)
     if ($head -ne $record.expected_sha) {
         throw "Cleanup refused: worktree HEAD does not match its generated identity."
     }
@@ -2119,6 +2128,7 @@ Export-ModuleMember -Function @(
     'Get-CurrentGitSha',
     'Get-ImageLabels',
     'Get-OriginMasterSha',
+    'Get-SafeFirstOutputLine',
     'Get-GitCommonDirectory',
     'Get-ReleaseArtifactBaseName',
     'Get-ReleaseImageTag',
