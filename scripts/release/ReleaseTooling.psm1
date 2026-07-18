@@ -984,6 +984,7 @@ function Invoke-BoundedNativeCommand {
         [Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
     }
     try {
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName = $resolvedFileName
         if ($resolvedWorkingDirectory) {
@@ -1035,10 +1036,14 @@ function Invoke-BoundedNativeCommand {
 
         $stdout = $stdoutTask.GetAwaiter().GetResult()
         $stderr = $stderrTask.GetAwaiter().GetResult()
+        $stopwatch.Stop()
 
         return [ordered]@{
             exit_code = $proc.ExitCode
             output = ($stdout + $stderr).Trim()
+            stdout = $stdout.Trim()
+            stderr = $stderr.Trim()
+            elapsed_seconds = [Math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
             timed_out = $false
             operation = $OperationLabel
         }
