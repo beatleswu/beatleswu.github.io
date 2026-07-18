@@ -39,6 +39,8 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
         outer_restoration_attempted = $false
         setter_internal_recovery_attempted = $false
         setter_internal_recovery_succeeded = $false
+        failed_generation_evidence = $null
+        evidence_capture_status = $null
         restoration_backup_identity = $null
         resume_verified = $null
         final_effective_state = $null
@@ -103,6 +105,10 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
         $report.initial_backup_identity = [string]$disableResult.backup.id
         $report.setter_internal_recovery_attempted = ($null -ne $disableResult.PSObject.Properties['internal_recovery_attempted'] -and $disableResult.internal_recovery_attempted -eq $true)
         $report.setter_internal_recovery_succeeded = ($null -ne $disableResult.PSObject.Properties['internal_recovery_succeeded'] -and $disableResult.internal_recovery_succeeded -eq $true)
+        if ($null -ne $disableResult.PSObject.Properties['failed_generation_evidence']) {
+            $report.failed_generation_evidence = $disableResult.failed_generation_evidence
+            $report.evidence_capture_status = [string]$disableResult.failed_generation_evidence.status
+        }
         if ($report.setter_internal_recovery_succeeded) {
             $mutationMayHaveStarted = $false
             if (-not $disableResult.effective -or [bool]$disableResult.effective.enabled -ne [bool]$report.initial_intended_enabled) {

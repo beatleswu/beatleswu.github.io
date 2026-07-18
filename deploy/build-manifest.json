@@ -54,6 +54,7 @@
       "community_leaderboard_rewards_scheduler.py",
       "nginx/default.conf",
       "app.py",
+      "startup_diagnostics.py",
       "shadow_judging.py",
       "shadow_dashboard.py",
       "shadow_event_storage.py",
@@ -181,6 +182,7 @@
   },
   "post_build_verification_files": [
     "/app/app.py",
+    "/app/startup_diagnostics.py",
     "/app/db.py",
     "/app/shadow_judging.py",
     "/app/shadow_dashboard.py",

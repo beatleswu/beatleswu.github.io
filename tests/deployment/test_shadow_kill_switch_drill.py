@@ -28,7 +28,7 @@ def state_machine_harness(*, initial_enabled=True, fail_stage=None, disable_shap
     failure = (fail_stage or "").replace("'", "''")
     disable_results = {
         "nested": "[pscustomobject]@{ backup = [pscustomobject]@{ id = 'initial-backup' }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
-        "internal_recovery": "[pscustomobject]@{ backup = [pscustomobject]@{ id = 'initial-backup' }; effective = [pscustomobject]@{ enabled = $true; state = 'enabled' }; internal_recovery_attempted = $true; internal_recovery_succeeded = $true }",
+        "internal_recovery": "[pscustomobject]@{ backup = [pscustomobject]@{ id = 'initial-backup' }; effective = [pscustomobject]@{ enabled = $true; state = 'enabled' }; internal_recovery_attempted = $true; internal_recovery_succeeded = $true; failed_generation_evidence = [pscustomobject]@{ status = 'captured'; operation_id = 'operation-1' } }",
         "missing_backup": "[pscustomobject]@{ effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
         "missing_id": "[pscustomobject]@{ backup = [pscustomobject]@{}; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
         "null_id": "[pscustomobject]@{ backup = [pscustomobject]@{ id = $null }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
@@ -207,6 +207,8 @@ def test_internal_recovery_skips_outer_restore_and_preserves_disable_failure():
     assert returncode != 0
     assert report["failure_stage"] == "disable"
     assert report["setter_internal_recovery_succeeded"] is True
+    assert report["evidence_capture_status"] == "captured"
+    assert report["failed_generation_evidence"]["operation_id"] == "operation-1"
     assert report["outer_restoration_attempted"] is False
     assert report["final_matches_initial"] is True
 
