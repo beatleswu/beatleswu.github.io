@@ -1,5 +1,6 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$script:GeneratedDetachedWorktrees = @{}
 
 function Get-RepoRoot {
     return (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -146,32 +147,303 @@ function Assert-TrackedTreeClean {
     }
 }
 
+function Get-CanonicalFilesystemPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$Label = 'Path'
+    )
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not [System.IO.Path]::IsPathRooted($Path)) {
+        throw "$Label must be a nonblank absolute filesystem path."
+    }
+    try {
+        $fullPath = [System.IO.Path]::GetFullPath($Path)
+    }
+    catch {
+        throw "$Label is not a valid absolute filesystem path."
+    }
+    $root = [System.IO.Path]::GetPathRoot($fullPath)
+    if ([string]::Equals($fullPath, $root, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $root
+    }
+    return $fullPath.TrimEnd('\', '/')
+}
+
+function Test-CanonicalPathEqual {
+    param(
+        [Parameter(Mandatory = $true)][string]$Left,
+        [Parameter(Mandatory = $true)][string]$Right
+    )
+    $leftPath = Get-CanonicalFilesystemPath -Path $Left -Label 'Left path'
+    $rightPath = Get-CanonicalFilesystemPath -Path $Right -Label 'Right path'
+    return [string]::Equals($leftPath, $rightPath, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Assert-NoReparsePointPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$Label = 'Path'
+    )
+    $canonical = Get-CanonicalFilesystemPath -Path $Path -Label $Label
+    $root = [System.IO.Path]::GetPathRoot($canonical)
+    $current = $root
+    $components = $canonical.Substring($root.Length) -split '[\\/]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    $pathsToInspect = @($root)
+    foreach ($component in $components) {
+        $current = Join-Path $current $component
+        $pathsToInspect += $current
+    }
+    foreach ($candidate in $pathsToInspect) {
+        if (-not ([System.IO.Directory]::Exists($candidate) -or [System.IO.File]::Exists($candidate))) {
+            throw "$Label contains a missing or unsupported filesystem component."
+        }
+        try {
+            $attributes = [System.IO.File]::GetAttributes($candidate)
+        }
+        catch {
+            throw "$Label contains a filesystem component whose attributes cannot be verified."
+        }
+        if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "$Label must not contain a symbolic link, junction, mount point, or filesystem reparse point."
+        }
+    }
+    return $canonical
+}
+
+function Assert-PathInsideCanonicalRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$CanonicalRoot,
+        [string]$Label = 'Path'
+    )
+    $candidate = Get-CanonicalFilesystemPath -Path $Path -Label $Label
+    $root = Get-CanonicalFilesystemPath -Path $CanonicalRoot -Label 'Canonical root'
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $inside = [string]::Equals($candidate, $root, [System.StringComparison]::OrdinalIgnoreCase) -or
+        $candidate.StartsWith($root + $separator, [System.StringComparison]::OrdinalIgnoreCase)
+    if (-not $inside) {
+        throw "$Label must be inside the exact canonical worktree root."
+    }
+    return $candidate
+}
+
+function Assert-GovernedBuildScriptPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$CanonicalWorktreeRoot
+    )
+    $root = Assert-NoReparsePointPath -Path $CanonicalWorktreeRoot -Label 'Canonical worktree path'
+    $scriptPath = Assert-NoReparsePointPath -Path $Path -Label 'Child build script path'
+    $scriptPath = Assert-PathInsideCanonicalRoot -Path $scriptPath -CanonicalRoot $root -Label 'Child build script path'
+    if (-not [System.IO.File]::Exists($scriptPath)) {
+        throw "Child build script path does not exist or is not a file."
+    }
+    return $scriptPath
+}
+
+function Get-ProtectedUntrackedPattern {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+    $leaf = [System.IO.Path]::GetFileName(($RelativePath -replace '/', '\'))
+    if ($leaf -ieq 'secret_key.txt') { return 'secret_key.txt' }
+    if ($leaf -like '.env*') { return '.env*' }
+    if ($leaf -like '*.db') { return '*.db' }
+    if ($leaf -like '*.sqlite*') { return '*.sqlite*' }
+    if ($leaf -ieq 'questions.json') { return 'questions.json' }
+    if ($leaf -like '*.sgf') { return '*.sgf' }
+    if ($leaf -like '*.pem') { return '*.pem' }
+    if ($leaf -like '*.key') { return '*.key' }
+    if ($leaf -like '*.bak*') { return '*.bak*' }
+    return $null
+}
+
+function Assert-CompleteWorktreeClean {
+    param([Parameter(Mandatory = $true)][string]$WorkingDirectory)
+    $untrackedAndIgnored = @(
+        Invoke-Git -Arguments @('ls-files', '--others', '--exclude-standard') -WorkingDirectory $WorkingDirectory
+        Invoke-Git -Arguments @('ls-files', '--others', '--ignored', '--exclude-standard') -WorkingDirectory $WorkingDirectory
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+    foreach ($relativePath in $untrackedAndIgnored) {
+        $pattern = Get-ProtectedUntrackedPattern -RelativePath $relativePath
+        if ($pattern) {
+            throw "Detached worktree contains protected untracked or ignored path '$relativePath' (pattern '$pattern')."
+        }
+    }
+    $status = @(
+        @(Invoke-Git -Arguments @('status', '--porcelain=v1', '--untracked-files=all') -WorkingDirectory $WorkingDirectory) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if ($status.Count -ne 0) {
+        throw "Detached worktree must be completely clean, including untracked files."
+    }
+}
+
+function Get-GitCommonDirectory {
+    param([Parameter(Mandatory = $true)][string]$WorkingDirectory)
+    $raw = ((Invoke-Git -Arguments @('rev-parse', '--git-common-dir') -WorkingDirectory $WorkingDirectory) | Select-Object -First 1).Trim()
+    if ([System.IO.Path]::IsPathRooted($raw)) {
+        return Get-CanonicalFilesystemPath -Path $raw -Label 'Git common directory'
+    }
+    return Get-CanonicalFilesystemPath -Path (Join-Path $WorkingDirectory $raw) -Label 'Git common directory'
+}
+
+function Get-RegisteredGitWorktreePaths {
+    return @(Invoke-Git -Arguments @('worktree', 'list', '--porcelain') | Where-Object { $_ -like 'worktree *' } | ForEach-Object {
+        Get-CanonicalFilesystemPath -Path $_.Substring('worktree '.Length) -Label 'Registered Git worktree path'
+    })
+}
+
+function Assert-DetachedWorktreeIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitSha
+    )
+    $resolvedPath = Get-CanonicalFilesystemPath -Path $Path -Label 'Detached worktree path'
+    if (-not [System.IO.Directory]::Exists($resolvedPath)) {
+        throw "Detached worktree path does not exist or is not a directory."
+    }
+    $resolvedPath = Assert-NoReparsePointPath -Path $resolvedPath -Label 'Detached worktree path'
+    $topLevel = ((Invoke-Git -Arguments @('rev-parse', '--show-toplevel') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $resolvedTopLevel = Get-CanonicalFilesystemPath -Path $topLevel -Label 'Git top-level path'
+    if (-not (Test-CanonicalPathEqual -Left $resolvedPath -Right $resolvedTopLevel)) {
+        throw "Detached worktree root does not match the supplied isolated path."
+    }
+    $head = ((Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $expected = ((Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    if ($head -ne $expected) {
+        throw "Detached worktree HEAD does not match the expected release Git SHA."
+    }
+    $branch = ((Invoke-Git -Arguments @('branch', '--show-current') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($branch)) {
+        throw "Release build worktree must be detached."
+    }
+    Assert-CompleteWorktreeClean -WorkingDirectory $resolvedPath
+    return $resolvedPath
+}
+
+function Assert-GeneratedDetachedWorktreeIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitSha
+    )
+    $candidate = Get-CanonicalFilesystemPath -Path $Path -Label 'Generated detached worktree path'
+    $key = $candidate.ToLowerInvariant()
+    if (-not $script:GeneratedDetachedWorktrees.ContainsKey($key)) {
+        throw "Generated detached worktree identity is not registered by this operation."
+    }
+    $record = $script:GeneratedDetachedWorktrees[$key]
+    if (-not (Test-CanonicalPathEqual -Left $candidate -Right $record.path)) {
+        throw "Generated detached worktree path does not exactly match its registered identity."
+    }
+    $expected = ((Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $candidate) | Select-Object -First 1).Trim()
+    if ($expected -ne $record.expected_sha) {
+        throw "Generated detached worktree expected SHA does not match its registered identity."
+    }
+    return Assert-DetachedWorktreeIdentity -Path $candidate -ExpectedGitSha $record.expected_sha
+}
+
+function Assert-GovernedBuildChildIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$ExpectedCanonicalWorktreeRoot,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitSha,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitCommonDirectory,
+        [Parameter(Mandatory = $true)][string]$ExecutingBuildScriptPath,
+        [Parameter(Mandatory = $true)][ValidateSet('detached')][string]$ExpectedHeadState
+    )
+    $expectedRoot = Assert-NoReparsePointPath -Path $ExpectedCanonicalWorktreeRoot -Label 'Expected canonical worktree path'
+    $actualCurrentDirectory = Get-CanonicalFilesystemPath -Path ([Environment]::CurrentDirectory) -Label 'Child process current directory'
+    $actualCurrentDirectory = Assert-NoReparsePointPath -Path $actualCurrentDirectory -Label 'Child process current directory'
+    if (-not (Test-CanonicalPathEqual -Left $actualCurrentDirectory -Right $expectedRoot)) {
+        throw "Child process current directory does not equal the expected canonical worktree root."
+    }
+    $validatedRoot = Assert-DetachedWorktreeIdentity -Path $expectedRoot -ExpectedGitSha $ExpectedGitSha
+    $expectedCommonDirectory = Assert-NoReparsePointPath -Path $ExpectedGitCommonDirectory -Label 'Expected Git common directory'
+    $actualCommonDirectory = Assert-NoReparsePointPath -Path (Get-GitCommonDirectory -WorkingDirectory $validatedRoot) -Label 'Actual Git common directory'
+    if (-not (Test-CanonicalPathEqual -Left $actualCommonDirectory -Right $expectedCommonDirectory)) {
+        throw "Child worktree does not belong to the expected repository common Git directory."
+    }
+    Assert-GovernedBuildScriptPath -Path $ExecutingBuildScriptPath -CanonicalWorktreeRoot $validatedRoot | Out-Null
+    return $validatedRoot
+}
+
 function New-DetachedWorktree {
     param(
         [Parameter(Mandatory = $true)][string]$GitSha,
         [string]$Prefix = 'go-odyssey-release'
     )
-    $worktree = Join-Path $env:TEMP ("{0}-{1}" -f $Prefix, ([guid]::NewGuid().ToString('N')))
+    if ($Prefix -notmatch '^[A-Za-z0-9][A-Za-z0-9-]*$') {
+        throw "Detached worktree prefix contains unsupported characters."
+    }
+    $expectedParent = Assert-NoReparsePointPath -Path ([System.IO.Path]::GetTempPath()) -Label 'Generated worktree parent path'
+    $worktree = Get-CanonicalFilesystemPath -Path (Join-Path $expectedParent ("{0}-{1}" -f $Prefix, ([guid]::NewGuid().ToString('N')))) -Label 'Generated worktree path'
     Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) | Out-Null
-    return $worktree
+    $resolvedSha = ((Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $worktree) | Select-Object -First 1).Trim()
+    $script:GeneratedDetachedWorktrees[$worktree.ToLowerInvariant()] = [ordered]@{
+        path = $worktree
+        parent = $expectedParent
+        prefix = $Prefix
+        expected_sha = $resolvedSha
+        repository_root = Get-CanonicalFilesystemPath -Path (Get-RepoRoot) -Label 'Repository root'
+        git_common_directory = Get-GitCommonDirectory -WorkingDirectory (Get-RepoRoot)
+    }
+    try {
+        return Assert-GeneratedDetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $resolvedSha
+    }
+    catch {
+        Remove-DetachedWorktree -Path $worktree
+        throw
+    }
 }
 
 function Remove-DetachedWorktree {
     param([Parameter(Mandatory = $true)][string]$Path)
-    try {
-        if (Test-Path $Path) {
-            Push-Location (Get-RepoRoot)
-            try {
-                Invoke-Git -Arguments @('worktree', 'remove', '--force', $Path) | Out-Null
-            }
-            finally {
-                Pop-Location
-            }
-        }
+    $candidate = Get-CanonicalFilesystemPath -Path $Path -Label 'Cleanup worktree path'
+    $key = $candidate.ToLowerInvariant()
+    if (-not $script:GeneratedDetachedWorktrees.ContainsKey($key)) {
+        throw "Cleanup refused: path was not created by this governed release-tooling operation."
     }
-    finally {
-        Remove-Item -Recurse -Force -LiteralPath $Path -ErrorAction SilentlyContinue
+    $record = $script:GeneratedDetachedWorktrees[$key]
+    if (-not (Test-CanonicalPathEqual -Left $candidate -Right $record.path)) {
+        throw "Cleanup refused: path does not exactly match the generated worktree identity."
     }
+    $parent = Get-CanonicalFilesystemPath -Path ([System.IO.Directory]::GetParent($candidate).FullName) -Label 'Cleanup parent path'
+    if (-not (Test-CanonicalPathEqual -Left $parent -Right $record.parent)) {
+        throw "Cleanup refused: generated worktree parent identity does not match."
+    }
+    $leaf = [System.IO.Path]::GetFileName($candidate)
+    $expectedLeafPattern = '^{0}-[0-9a-f]{{32}}$' -f [regex]::Escape([string]$record.prefix)
+    if ($leaf -notmatch $expectedLeafPattern) {
+        throw "Cleanup refused: generated worktree leaf name is invalid."
+    }
+    $filesystemRoot = [System.IO.Path]::GetPathRoot($candidate)
+    if (
+        (Test-CanonicalPathEqual -Left $candidate -Right $filesystemRoot) -or
+        (Test-CanonicalPathEqual -Left $candidate -Right $record.parent) -or
+        (Test-CanonicalPathEqual -Left $candidate -Right $record.repository_root) -or
+        (Test-CanonicalPathEqual -Left $candidate -Right (Get-RepoRoot))
+    ) {
+        throw "Cleanup refused: protected repository, parent, or filesystem root path."
+    }
+    $candidate = Assert-NoReparsePointPath -Path $candidate -Label 'Cleanup worktree path'
+    $registeredMatches = @(Get-RegisteredGitWorktreePaths | Where-Object { Test-CanonicalPathEqual -Left $_ -Right $candidate })
+    if ($registeredMatches.Count -ne 1) {
+        throw "Cleanup refused: generated path is not exactly one registered Git worktree."
+    }
+    $candidateCommonDirectory = Get-GitCommonDirectory -WorkingDirectory $candidate
+    if (-not (Test-CanonicalPathEqual -Left $candidateCommonDirectory -Right $record.git_common_directory)) {
+        throw "Cleanup refused: worktree does not belong to the expected repository common Git directory."
+    }
+    $head = ((Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $candidate) | Select-Object -First 1).Trim()
+    if ($head -ne $record.expected_sha) {
+        throw "Cleanup refused: worktree HEAD does not match its generated identity."
+    }
+    Invoke-Git -Arguments @('worktree', 'remove', '--force', '--', $candidate) -WorkingDirectory $record.repository_root | Out-Null
+    if ([System.IO.Directory]::Exists($candidate)) {
+        throw "Governed Git worktree removal did not remove the exact path; directory left for manual review."
+    }
+    $stillRegistered = @(Get-RegisteredGitWorktreePaths | Where-Object { Test-CanonicalPathEqual -Left $_ -Right $candidate })
+    if ($stillRegistered.Count -ne 0) {
+        throw "Governed Git worktree removal did not unregister the exact path; state left for manual review."
+    }
+    $script:GeneratedDetachedWorktrees.Remove($key) | Out-Null
 }
 
 function Read-JsonFile {
@@ -662,12 +934,40 @@ function Invoke-BoundedNativeCommand {
         [Parameter(Mandatory = $true)][string]$FileName,
         [Parameter(Mandatory = $true)][string[]]$ArgumentList,
         [AllowEmptyString()][string]$StdinText,
+        [AllowEmptyString()][string]$WorkingDirectory,
+        [switch]$RequireWorkingDirectory,
         [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
         [Parameter(Mandatory = $true)][string]$OperationLabel
     )
+    $workingDirectorySupplied = $PSBoundParameters.ContainsKey('WorkingDirectory')
+    if ($RequireWorkingDirectory -and -not $workingDirectorySupplied) {
+        throw "Invoke-BoundedNativeCommand: an explicit working directory is required for '$OperationLabel'."
+    }
+    $resolvedWorkingDirectory = $null
+    if ($workingDirectorySupplied) {
+        if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+            throw "Invoke-BoundedNativeCommand: working directory must be nonblank for '$OperationLabel'."
+        }
+        if (-not [System.IO.Path]::IsPathRooted($WorkingDirectory)) {
+            throw "Invoke-BoundedNativeCommand: working directory must be an absolute filesystem path for '$OperationLabel'."
+        }
+        $resolvedWorkingDirectory = Get-CanonicalFilesystemPath -Path $WorkingDirectory -Label 'Invoke-BoundedNativeCommand working directory'
+        if (-not [System.IO.Directory]::Exists($resolvedWorkingDirectory)) {
+            throw "Invoke-BoundedNativeCommand: working directory does not exist or is not a directory for '$OperationLabel'."
+        }
+        $resolvedWorkingDirectory = Assert-NoReparsePointPath -Path $resolvedWorkingDirectory -Label 'Invoke-BoundedNativeCommand working directory'
+    }
     if ($TimeoutSeconds -le 0) {
         throw "Invoke-BoundedNativeCommand: TimeoutSeconds must be a positive number of seconds for '$OperationLabel'."
     }
+    if ([string]::IsNullOrWhiteSpace($FileName)) {
+        throw "Invoke-BoundedNativeCommand: native command is required for '$OperationLabel'."
+    }
+    $nativeCommand = Get-Command -Name $FileName -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $nativeCommand -or [string]::IsNullOrWhiteSpace([string]$nativeCommand.Source) -or -not (Test-Path -LiteralPath $nativeCommand.Source -PathType Leaf)) {
+        throw "Invoke-BoundedNativeCommand: native command could not be resolved for '$OperationLabel'."
+    }
+    $resolvedFileName = [System.IO.Path]::GetFullPath($nativeCommand.Source)
     $hasStdin = $PSBoundParameters.ContainsKey('StdinText')
     $previousConsoleInputEncoding = $null
     if ($hasStdin) {
@@ -676,7 +976,10 @@ function Invoke-BoundedNativeCommand {
     }
     try {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = $FileName
+        $psi.FileName = $resolvedFileName
+        if ($resolvedWorkingDirectory) {
+            $psi.WorkingDirectory = $resolvedWorkingDirectory
+        }
         # .NET Framework 4.x under Windows PowerShell 5.1 does not expose
         # ProcessStartInfo.ArgumentList (added later in .NET) -- build a
         # correctly quoted Windows command-line string instead. None of
@@ -1797,6 +2100,11 @@ Export-ModuleMember -Function @(
     'Assert-ImageRevisionMatches',
     'Assert-OwnerGate',
     'Assert-TrackedTreeClean',
+    'Assert-CompleteWorktreeClean',
+    'Assert-NoReparsePointPath',
+    'Assert-PathInsideCanonicalRoot',
+    'Assert-GovernedBuildScriptPath',
+    'Assert-GovernedBuildChildIdentity',
     'ConvertFrom-NestedPowerShellJson',
     'ConvertTo-Utf8NoBomLfBytes',
     'Ensure-Directory',
@@ -1811,6 +2119,7 @@ Export-ModuleMember -Function @(
     'Get-CurrentGitSha',
     'Get-ImageLabels',
     'Get-OriginMasterSha',
+    'Get-GitCommonDirectory',
     'Get-ReleaseArtifactBaseName',
     'Get-ReleaseImageTag',
     'Get-ReleaseLayout',
@@ -1825,6 +2134,8 @@ Export-ModuleMember -Function @(
     'Remove-DetachedWorktree',
     'Resolve-RepoPath',
     'Select-ContainerMountForDestination',
+    'Assert-DetachedWorktreeIdentity',
+    'Assert-GeneratedDetachedWorktreeIdentity',
     'Test-TrackedTreeClean',
     'Write-JsonFile',
     'Get-StaticAssetInventory',

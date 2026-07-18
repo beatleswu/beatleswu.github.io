@@ -43,40 +43,177 @@
 param(
     [string]$GitSha,
     [switch]$SkipCleanCheck,
-    [string]$Platform = 'linux/arm64'
+    [string]$Platform = 'linux/arm64',
+    [Parameter(Mandatory = $true)][string]$ExpectedCanonicalWorktreeRoot,
+    [Parameter(Mandatory = $true)][string]$ExpectedExactGitSha,
+    [Parameter(Mandatory = $true)][string]$ExpectedGitCommonDirectory,
+    [Parameter(Mandatory = $true)][ValidateSet('detached')][string]$ExpectedHeadState
 )
 
 $ErrorActionPreference = 'Stop'
 $Platform = $Platform.Trim().ToLowerInvariant()
-Import-Module (Join-Path $PSScriptRoot 'release\ReleaseTooling.psm1') -Force -DisableNameChecking
+
+# Bootstrap without importing repository code first. This rejects a redirected
+# root or script path before loading ReleaseTooling.psm1. It intentionally uses
+# lexical normalization plus per-component ReparsePoint inspection; resolving
+# through a junction and approving its target would defeat this boundary.
+function Fail-Bootstrap($msg) {
+    Write-Host "BUILD FAILED: $msg" -ForegroundColor Red
+    exit 1
+}
+
+function Get-BootstrapCanonicalPath([string]$Path, [string]$Label) {
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not [System.IO.Path]::IsPathRooted($Path)) {
+        Fail-Bootstrap "$Label must be a nonblank absolute filesystem path."
+    }
+    try { $fullPath = [System.IO.Path]::GetFullPath($Path) }
+    catch { Fail-Bootstrap "$Label is not a valid absolute filesystem path." }
+    $root = [System.IO.Path]::GetPathRoot($fullPath)
+    if ([string]::Equals($fullPath, $root, [System.StringComparison]::OrdinalIgnoreCase)) { return $root }
+    return $fullPath.TrimEnd('\', '/')
+}
+
+function Assert-BootstrapNoReparse([string]$Path, [string]$Label) {
+    $canonical = Get-BootstrapCanonicalPath $Path $Label
+    $root = [System.IO.Path]::GetPathRoot($canonical)
+    $current = $root
+    $components = $canonical.Substring($root.Length) -split '[\\/]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    $paths = @($root)
+    foreach ($component in $components) {
+        $current = Join-Path $current $component
+        $paths += $current
+    }
+    foreach ($candidate in $paths) {
+        if (-not ([System.IO.Directory]::Exists($candidate) -or [System.IO.File]::Exists($candidate))) {
+            Fail-Bootstrap "$Label contains a missing or unsupported filesystem component."
+        }
+        try { $attributes = [System.IO.File]::GetAttributes($candidate) }
+        catch { Fail-Bootstrap "$Label contains a filesystem component whose attributes cannot be verified." }
+        if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            Fail-Bootstrap "$Label must not contain a symbolic link, junction, mount point, or filesystem reparse point."
+        }
+    }
+    return $canonical
+}
+
+$bootstrapRoot = Assert-BootstrapNoReparse $ExpectedCanonicalWorktreeRoot 'Expected canonical worktree path'
+$bootstrapCommonGitDirectory = Assert-BootstrapNoReparse $ExpectedGitCommonDirectory 'Expected Git common directory'
+$bootstrapCurrentDirectory = Assert-BootstrapNoReparse ([Environment]::CurrentDirectory) 'Child process current directory'
+if (-not [string]::Equals($bootstrapRoot, $bootstrapCurrentDirectory, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Bootstrap "Child process current directory does not equal the expected canonical worktree root."
+}
+$bootstrapScript = Assert-BootstrapNoReparse $PSCommandPath 'Executing build script path'
+$rootPrefix = $bootstrapRoot + [System.IO.Path]::DirectorySeparatorChar
+if (-not $bootstrapScript.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Bootstrap "Executing build script is not inside the exact canonical worktree root."
+}
+$bootstrapGitFile = Assert-BootstrapNoReparse (Join-Path $bootstrapRoot '.git') 'Worktree Git administrative path'
+$bootstrapModule = Assert-BootstrapNoReparse (Join-Path $bootstrapRoot 'scripts\release\ReleaseTooling.psm1') 'Release tooling module path'
+if (-not $bootstrapModule.StartsWith($rootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Bootstrap "Release tooling module is not inside the exact canonical worktree root."
+}
+
+function Invoke-BootstrapGit([string[]]$Arguments) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& git -C $bootstrapRoot @Arguments 2>$null)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($exitCode -ne 0) {
+        Fail-Bootstrap "Child bootstrap Git identity command failed closed."
+    }
+    return $output
+}
+
+function Get-BootstrapProtectedPattern([string]$RelativePath) {
+    $leaf = [System.IO.Path]::GetFileName(($RelativePath -replace '/', '\'))
+    if ($leaf -ieq 'secret_key.txt') { return 'secret_key.txt' }
+    if ($leaf -like '.env*') { return '.env*' }
+    if ($leaf -like '*.db') { return '*.db' }
+    if ($leaf -like '*.sqlite*') { return '*.sqlite*' }
+    if ($leaf -ieq 'questions.json') { return 'questions.json' }
+    if ($leaf -like '*.sgf') { return '*.sgf' }
+    if ($leaf -like '*.pem') { return '*.pem' }
+    if ($leaf -like '*.key') { return '*.key' }
+    if ($leaf -like '*.bak*') { return '*.bak*' }
+    return $null
+}
+
+$bootstrapTopLevel = Get-BootstrapCanonicalPath ((Invoke-BootstrapGit @('rev-parse', '--show-toplevel') | Select-Object -First 1).Trim()) 'Bootstrap Git top-level path'
+if (-not [string]::Equals($bootstrapTopLevel, $bootstrapRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Bootstrap "Bootstrap Git top-level path does not equal the expected canonical worktree root."
+}
+$bootstrapHead = (Invoke-BootstrapGit @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+$bootstrapExpectedHead = (Invoke-BootstrapGit @('rev-parse', $ExpectedExactGitSha) | Select-Object -First 1).Trim()
+if ($bootstrapHead -ne $bootstrapExpectedHead) {
+    Fail-Bootstrap "Bootstrap HEAD does not equal the expected exact Git SHA."
+}
+$bootstrapBranch = (Invoke-BootstrapGit @('branch', '--show-current') | Select-Object -First 1).Trim()
+if (-not [string]::IsNullOrWhiteSpace($bootstrapBranch) -or $ExpectedHeadState -ne 'detached') {
+    Fail-Bootstrap "Bootstrap worktree HEAD is not detached as required."
+}
+$bootstrapCommonRaw = (Invoke-BootstrapGit @('rev-parse', '--git-common-dir') | Select-Object -First 1).Trim()
+$bootstrapActualCommon = if ([System.IO.Path]::IsPathRooted($bootstrapCommonRaw)) {
+    Assert-BootstrapNoReparse $bootstrapCommonRaw 'Actual Git common directory'
+}
+else {
+    Assert-BootstrapNoReparse (Join-Path $bootstrapRoot $bootstrapCommonRaw) 'Actual Git common directory'
+}
+if (-not [string]::Equals($bootstrapActualCommon, $bootstrapCommonGitDirectory, [System.StringComparison]::OrdinalIgnoreCase)) {
+    Fail-Bootstrap "Bootstrap worktree does not belong to the expected repository common Git directory."
+}
+$bootstrapUntrackedAndIgnored = @(
+    Invoke-BootstrapGit @('ls-files', '--others', '--exclude-standard')
+    Invoke-BootstrapGit @('ls-files', '--others', '--ignored', '--exclude-standard')
+) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+foreach ($relativePath in $bootstrapUntrackedAndIgnored) {
+    $pattern = Get-BootstrapProtectedPattern $relativePath
+    if ($pattern) {
+        Fail-Bootstrap "Bootstrap found protected untracked or ignored path '$relativePath' (pattern '$pattern')."
+    }
+}
+$bootstrapStatus = @(Invoke-BootstrapGit @('status', '--porcelain=v1', '--untracked-files=all') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+if ($bootstrapStatus.Count -ne 0) {
+    Fail-Bootstrap "Bootstrap worktree must be completely clean, including untracked files."
+}
+
+Import-Module $bootstrapModule -Force -DisableNameChecking
 
 function Fail($msg) {
     Write-Host "BUILD FAILED: $msg" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "== go-odyssey-app canonical image build (build-only, never deploys) ==" -ForegroundColor Cyan
-
-# 1. Require a clean checkout (unless explicitly overridden for local iteration).
-if (-not $SkipCleanCheck) {
-    # Ignore untracked local protection files (for example secret_key.txt) while
-    # still failing closed on every tracked or staged change.
-    $status = git status --short --untracked-files=no
-    if ($status) {
-        Fail "Working tree is not clean. Commit or stash changes, or pass -SkipCleanCheck for a non-reproducible local iteration build.`n$status"
-    }
+$validatedWorktreeRoot = Assert-GovernedBuildChildIdentity `
+    -ExpectedCanonicalWorktreeRoot $bootstrapRoot `
+    -ExpectedGitSha $ExpectedExactGitSha `
+    -ExpectedGitCommonDirectory $bootstrapCommonGitDirectory `
+    -ExecutingBuildScriptPath $bootstrapScript `
+    -ExpectedHeadState $ExpectedHeadState
+if ($SkipCleanCheck) {
+    Fail "SkipCleanCheck is not permitted for a governed detached-worktree build."
 }
 
-# 2. Resolve the commit to build.
 if (-not $GitSha) {
-    $GitSha = (git rev-parse HEAD).Trim()
+    $GitSha = $ExpectedExactGitSha
 }
 else {
-    $GitSha = (git rev-parse $GitSha).Trim()
+    $GitSha = ((Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $validatedWorktreeRoot) | Select-Object -First 1).Trim()
 }
-if (-not $GitSha) {
-    Fail "Could not resolve a Git SHA to build."
+$resolvedExpectedExactGitSha = ((Invoke-Git -Arguments @('rev-parse', $ExpectedExactGitSha) -WorkingDirectory $validatedWorktreeRoot) | Select-Object -First 1).Trim()
+if ($GitSha -ne $resolvedExpectedExactGitSha) {
+    Fail "GitSha does not equal the independently validated expected exact Git SHA."
 }
+
+Write-Host "== go-odyssey-app canonical image build (build-only, never deploys) ==" -ForegroundColor Cyan
+
+# 1-2. The child has now independently proved exact cwd, canonical Git root,
+# exact SHA, detached HEAD, complete cleanliness, script provenance, and no
+# reparse boundary. No Docker/build action occurs above this point.
 $shortSha = $GitSha.Substring(0, 8)
 
 # 3. Verify the commit is based on canonical origin/master.
