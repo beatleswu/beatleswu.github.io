@@ -415,13 +415,21 @@ function Wait-ShadowPostChangeConvergence {
         [Parameter(Mandatory = $true)][ValidateSet('enable','disable')][string]$ExpectedOperation,
         [Parameter(Mandatory = $true)]$BeforeHealth,
         [int]$DeadlineSeconds = 105,
-        [int]$PollIntervalSeconds = 3
+        [int]$PollIntervalSeconds = 3,
+        [scriptblock]$HealthProbe,
+        [scriptblock]$RuntimeProbe,
+        [scriptblock]$SleepAction,
+        [scriptblock]$Clock
     )
-    $started = Get-Date
     $attempt = 0
     $lastHealth = $null
     $lastRuntime = $null
     $lastError = $null
+    if (-not $HealthProbe) { $HealthProbe = { Get-ShadowRuntimeHealth } }
+    if (-not $RuntimeProbe) { $RuntimeProbe = { param($appId,$schedulerId) Get-ShadowRuntimeFlag -AppContainerId $appId -SchedulerContainerId $schedulerId } }
+    if (-not $SleepAction) { $SleepAction = { param($seconds) Start-Sleep -Seconds $seconds } }
+    if (-not $Clock) { $Clock = { (Get-Date).ToUniversalTime() } }
+    $started = & $Clock
     do {
         $attempt++
         $attemptHealth = $null
@@ -433,7 +441,7 @@ function Wait-ShadowPostChangeConvergence {
         $attemptFailureCode = $null
         $attemptFailureMessage = $null
         try {
-            $attemptHealth = Get-ShadowRuntimeHealth
+            $attemptHealth = & $HealthProbe
             $appId = [string]$attemptHealth.app_container_id
             $schedulerId = [string]$attemptHealth.scheduler_container_id
             $attemptAppId = $appId
@@ -441,8 +449,8 @@ function Wait-ShadowPostChangeConvergence {
             if ([string]::IsNullOrWhiteSpace($appId) -or [string]::IsNullOrWhiteSpace($schedulerId) -or
                 $appId -eq [string]$BeforeHealth.app_container_id -or $schedulerId -eq [string]$BeforeHealth.scheduler_container_id) { throw 'Current container identity has not converged.' }
             if ([string]$lastHealth.app_image_id -ne [string]$BeforeHealth.app_image_id -or [string]$lastHealth.scheduler_image_id -ne [string]$BeforeHealth.scheduler_image_id) { throw 'Container image identity changed unexpectedly.' }
-            $attemptRuntime = Get-ShadowRuntimeFlag -AppContainerId $appId -SchedulerContainerId $schedulerId
-            $attemptRecheck = Get-ShadowRuntimeHealth
+            $attemptRuntime = & $RuntimeProbe $appId $schedulerId
+            $attemptRecheck = & $HealthProbe
             if ([string]$attemptRecheck.app_container_id -ne $appId -or [string]$attemptRecheck.scheduler_container_id -ne $schedulerId) { throw 'Container identity changed during convergence sample.' }
             $attemptIdentityStable = $true
             $lastHealth = $attemptRecheck
@@ -457,14 +465,14 @@ function Wait-ShadowPostChangeConvergence {
             $lastHealth = $attemptHealth
             $lastRuntime = $attemptRuntime
         }
-        if (((Get-Date) - $started).TotalSeconds -ge $DeadlineSeconds) { break }
-        Start-Sleep -Seconds $PollIntervalSeconds
+        if (((& $Clock) - $started).TotalSeconds -ge $DeadlineSeconds) { break }
+        & $SleepAction $PollIntervalSeconds
     } while ($true)
     $message = "Shadow Judging post-change convergence failed after $attempt attempt(s): $lastError"
     $errorRecord = New-Object System.Management.Automation.ErrorRecord ([Exception]::new($message)), 'shadow_convergence_timeout', ([System.Management.Automation.ErrorCategory]::OperationTimeout), $null
     $errorRecord.ErrorDetails = [System.Management.Automation.ErrorDetails]::new(($lastRuntime | ConvertTo-Json -Compress -Depth 6))
     $errorRecord.Data['attempts'] = $attempt
-    $errorRecord.Data['elapsed_seconds'] = [math]::Round(((Get-Date) - $started).TotalSeconds, 3)
+    $errorRecord.Data['elapsed_seconds'] = [math]::Round(((& $Clock) - $started).TotalSeconds, 3)
     $errorRecord.Data['runtime'] = $lastRuntime
     $errorRecord.Data['health'] = $lastHealth
     $errorRecord.Data['app_id'] = $attemptAppId

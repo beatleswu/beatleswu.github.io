@@ -360,6 +360,35 @@ def test_compose_contract_defaults_only_the_explicit_flag_to_false():
     assert 'SHADOW_JUDGING_ENABLED: "1"' not in release
 
 
+def test_real_wait_convergence_seam_executes_identity_bound_state_machine():
+    setter = SETTER.read_text(encoding="utf-8")
+    prefix = setter.split("$result = $null", 1)[0].replace("'", "''")
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw; Invoke-Expression $source.Substring($source.IndexOf('function Get-ShadowRuntimeFlag'),$source.IndexOf('$result = $null')-$source.IndexOf('function Get-ShadowRuntimeFlag'))
+$script:i=0
+$script:health=@(
+  [pscustomobject]@{{app_container_id='app-old';scheduler_container_id='sch-old';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}},
+  [pscustomobject]@{{app_container_id='app-new';scheduler_container_id='sch-old';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}},
+  [pscustomobject]@{{app_container_id='app-new';scheduler_container_id='sch-new';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}},
+  [pscustomobject]@{{app_container_id='app-new';scheduler_container_id='sch-new';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}}
+)
+function Get-TestHealth {{ $x=$script:health[[Math]::Min($script:i,($script:health.Count-1))]; $script:i++; return $x }}
+$runtime={{ param($a,$s) if($a -ne 'app-new' -or $s -ne 'sch-new'){{throw 'wrong identity'}}; [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;state='enabled'}};scheduler=[pscustomobject]@{{enabled=$true;state='enabled'}}}} }}
+$clockValue=[datetime]'2026-01-01T00:00:00Z'
+$clock={{ $script:clockValue }}
+$sleep={{ param($seconds) $script:clockValue=$script:clockValue.AddSeconds(1) }}
+$before=[pscustomobject]@{{app_container_id='app-old';scheduler_container_id='sch-old';app_image_id='img';scheduler_image_id='img'}}
+$helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='enabled'}}}}
+    $r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 10 -PollIntervalSeconds 1 -HealthProbe ${{function:Get-TestHealth}} -RuntimeProbe $runtime -Clock $clock -SleepAction $sleep
+    if($r.health.app_container_id -ne 'app-new' -or $r.health.scheduler_container_id -ne 'sch-new'){{throw ('identity convergence seam failed: ' + ($r | ConvertTo-Json -Compress))}}
+Write-Output 'OK'
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip().endswith("OK")
+
+
 def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     setter = SETTER.read_text(encoding="utf-8")
     helper = HELPER.read_text(encoding="utf-8")
