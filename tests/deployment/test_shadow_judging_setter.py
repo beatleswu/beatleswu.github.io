@@ -394,6 +394,16 @@ def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     assert "governed pre-change state was restored and verified" in setter
     assert "Wait-ShadowPostChangeConvergence" in setter
     for field in (
+        "app_container_identity_before",
+        "app_container_identity_after",
+        "scheduler_container_identity_before",
+        "scheduler_container_identity_after",
+        "expected_app_image_id",
+        "observed_app_image_id",
+        "identity_stable_during_last_sample",
+    ):
+        assert field in setter
+    for field in (
         "original_failure_stage",
         "original_failure_code",
         "original_failure_message",

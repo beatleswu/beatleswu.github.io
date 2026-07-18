@@ -198,6 +198,7 @@ test "$NEW_SCHEDULER_VOLUME" = "$APP_VOLUME"
 }
 
 function Get-ShadowRuntimeFlag {
+    param([string]$AppContainerId, [string]$SchedulerContainerId)
     $appJson = ConvertTo-Json -Compress -InputObject ([string]$layout.app_service_name)
     $schedulerJson = ConvertTo-Json -Compress -InputObject ([string]$layout.scheduler_service_name)
     $scriptTemplate = @'
@@ -249,6 +250,8 @@ print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
 sys.exit(0)
 __SHADOW_RUNTIME_FLAG__
 '@
+    if (-not [string]::IsNullOrWhiteSpace($AppContainerId)) { $appJson = ConvertTo-Json -Compress -InputObject $AppContainerId }
+    if (-not [string]::IsNullOrWhiteSpace($SchedulerContainerId)) { $schedulerJson = ConvertTo-Json -Compress -InputObject $SchedulerContainerId }
     $remoteScript = $scriptTemplate.Replace('__APP_JSON__', $appJson).Replace('__SCHEDULER_JSON__', $schedulerJson)
     $remote = Invoke-BoundedSshCommand `
         -SshAlias $layout.ssh_alias `
@@ -321,7 +324,7 @@ HEALTH_URL = __HEALTH_URL_JSON__
 def container_state(name):
     try:
         result = subprocess.run(
-            ["docker", "inspect", name, "--format", "{{json .State}}"],
+            ["docker", "inspect", name, "--format", "{{json .}}"],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             text=True,
@@ -329,12 +332,17 @@ def container_state(name):
             check=False,
         )
         if result.returncode != 0:
-            return "probe_failed", "probe_failed"
+            return {"id": "", "image_id": "", "status": "probe_failed", "health": "probe_failed"}
         state = json.loads(result.stdout)
         health = state.get("Health") or {}
-        return str(state.get("Status") or "unknown"), str(health.get("Status") or "n/a")
+        return {
+            "id": str(state.get("Id") or ""),
+            "image_id": str(state.get("Image") or ""),
+            "status": str(state.get("State", {}).get("Status") or "unknown"),
+            "health": str(health.get("Status") or "n/a"),
+        }
     except (OSError, ValueError, TypeError, subprocess.TimeoutExpired):
-        return "probe_failed", "probe_failed"
+        return {"id": "", "image_id": "", "status": "probe_failed", "health": "probe_failed"}
 
 
 def healthz_status():
@@ -353,21 +361,25 @@ attempt = 0
 last = None
 while time.monotonic() < deadline:
     attempt += 1
-    app_status, app_health = container_state(APP)
-    scheduler_status, _scheduler_health = container_state(SCHEDULER)
-    nginx_status, _nginx_health = container_state(NGINX)
+    app = container_state(APP)
+    scheduler = container_state(SCHEDULER)
+    nginx = container_state(NGINX)
     healthz = healthz_status()
     last = {
-        "app": f"{app_status}|{app_health}",
-        "scheduler": scheduler_status,
-        "nginx": nginx_status,
+        "app": f"{app['status']}|{app['health']}",
+        "scheduler": scheduler["status"],
+        "nginx": nginx["status"],
+        "app_container_id": app["id"],
+        "scheduler_container_id": scheduler["id"],
+        "app_image_id": app["image_id"],
+        "scheduler_image_id": scheduler["image_id"],
         "healthz": healthz,
         "attempts": attempt,
     }
-    if app_status == "running" and app_health == "healthy" and scheduler_status == "running" and nginx_status == "running" and healthz == 200:
+    if app["status"] == "running" and app["health"] == "healthy" and scheduler["status"] == "running" and nginx["status"] == "running" and healthz == 200:
         print(json.dumps({"status": "ok", **last}, sort_keys=True, separators=(",", ":")))
         sys.exit(0)
-    if app_status in {"dead", "exited"} or scheduler_status in {"dead", "exited"} or nginx_status in {"dead", "exited"}:
+    if app["status"] in {"dead", "exited"} or scheduler["status"] in {"dead", "exited"} or nginx["status"] in {"dead", "exited"}:
         print(json.dumps({"status": "fail", "reason": "terminal_container_state", **last}, sort_keys=True, separators=(",", ":")))
         sys.exit(1)
     time.sleep(5)
@@ -401,6 +413,7 @@ function Wait-ShadowPostChangeConvergence {
     param(
         [Parameter(Mandatory = $true)]$HelperResult,
         [Parameter(Mandatory = $true)][ValidateSet('enable','disable')][string]$ExpectedOperation,
+        [Parameter(Mandatory = $true)]$BeforeHealth,
         [int]$DeadlineSeconds = 105,
         [int]$PollIntervalSeconds = 3
     )
@@ -413,7 +426,15 @@ function Wait-ShadowPostChangeConvergence {
         $attempt++
         try {
             $lastHealth = Get-ShadowRuntimeHealth
-            $lastRuntime = Get-ShadowRuntimeFlag
+            $appId = [string]$lastHealth.app_container_id
+            $schedulerId = [string]$lastHealth.scheduler_container_id
+            if ([string]::IsNullOrWhiteSpace($appId) -or [string]::IsNullOrWhiteSpace($schedulerId) -or
+                $appId -eq [string]$BeforeHealth.app_container_id -or $schedulerId -eq [string]$BeforeHealth.scheduler_container_id) { throw 'Current container identity has not converged.' }
+            if ([string]$lastHealth.app_image_id -ne [string]$BeforeHealth.app_image_id -or [string]$lastHealth.scheduler_image_id -ne [string]$BeforeHealth.scheduler_image_id) { throw 'Container image identity changed unexpectedly.' }
+            $lastRuntime = Get-ShadowRuntimeFlag -AppContainerId $appId -SchedulerContainerId $schedulerId
+            $recheck = Get-ShadowRuntimeHealth
+            if ([string]$recheck.app_container_id -ne $appId -or [string]$recheck.scheduler_container_id -ne $schedulerId) { throw 'Container identity changed during convergence sample.' }
+            $lastHealth = $recheck
             Assert-ShadowRuntimeFlag -Runtime $lastRuntime -HelperResult $HelperResult -ExpectedOperation $ExpectedOperation
             return [pscustomobject]@{ health = $lastHealth; runtime = $lastRuntime; attempts = $attempt; elapsed_seconds = [math]::Round(((Get-Date) - $started).TotalSeconds, 3) }
         }
@@ -437,12 +458,21 @@ $postChangeDiagnostics = $null
 $result = Invoke-ShadowHelper -RequestedOperation $Operation -RequestedDesired $Desired
 if ($Operation -in $mutationOperations) {
     try {
+        $beforeHealth = Get-ShadowRuntimeHealth
         Invoke-ShadowComposeRecreate
-        $postChangeDiagnostics = Wait-ShadowPostChangeConvergence -HelperResult $result -ExpectedOperation $Operation
+        $postChangeDiagnostics = Wait-ShadowPostChangeConvergence -HelperResult $result -ExpectedOperation $Operation -BeforeHealth $beforeHealth
         $result | Add-Member -NotePropertyName health -NotePropertyValue $postChangeDiagnostics.health
         $result | Add-Member -NotePropertyName runtime -NotePropertyValue $postChangeDiagnostics.runtime
         $result | Add-Member -NotePropertyName verification_attempt_count -NotePropertyValue $postChangeDiagnostics.attempts
         $result | Add-Member -NotePropertyName verification_elapsed_seconds -NotePropertyValue $postChangeDiagnostics.elapsed_seconds
+        $result | Add-Member -NotePropertyName app_container_identity_before -NotePropertyValue ([string]$beforeHealth.app_container_id)
+        $result | Add-Member -NotePropertyName app_container_identity_after -NotePropertyValue ([string]$postChangeDiagnostics.health.app_container_id)
+        $result | Add-Member -NotePropertyName scheduler_container_identity_before -NotePropertyValue ([string]$beforeHealth.scheduler_container_id)
+        $result | Add-Member -NotePropertyName scheduler_container_identity_after -NotePropertyValue ([string]$postChangeDiagnostics.health.scheduler_container_id)
+        $result | Add-Member -NotePropertyName expected_app_image_id -NotePropertyValue ([string]$beforeHealth.app_image_id)
+        $result | Add-Member -NotePropertyName expected_scheduler_image_id -NotePropertyValue ([string]$beforeHealth.scheduler_image_id)
+        $result | Add-Member -NotePropertyName observed_app_image_id -NotePropertyValue ([string]$postChangeDiagnostics.health.app_image_id)
+        $result | Add-Member -NotePropertyName observed_scheduler_image_id -NotePropertyValue ([string]$postChangeDiagnostics.health.scheduler_image_id)
     }
     catch {
         $postChangeError = $_
@@ -492,6 +522,13 @@ if ($Operation -in $mutationOperations) {
                 final_verified_state = [string]$recovery.effective.state
                 recovery_backup_id = [string]$result.backup.id
                 lock_cleanup_result = 'governed_helper_cleanup'
+                app_container_identity_before = [string]$beforeHealth.app_container_id
+                app_container_identity_after = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.health.app_container_id } else { $null }
+                scheduler_container_identity_before = [string]$beforeHealth.scheduler_container_id
+                scheduler_container_identity_after = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.health.scheduler_container_id } else { $null }
+                last_observed_app_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.runtime.app_container_id } else { $null }
+                last_observed_scheduler_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.runtime.scheduler_container_id } else { $null }
+                identity_stable_during_last_sample = if ($postChangeDiagnostics) { $true } else { $false }
             } | ConvertTo-Json -Depth 12 | Write-Output
             exit 1
         }
