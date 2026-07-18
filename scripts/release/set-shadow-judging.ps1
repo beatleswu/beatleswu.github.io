@@ -356,7 +356,7 @@ def healthz_status():
         return 0
 
 
-deadline = time.monotonic() + 105
+deadline = time.monotonic() + 180
 attempt = 0
 last = None
 while time.monotonic() < deadline:
@@ -392,7 +392,7 @@ __SHADOW_RUNTIME_HEALTH__
     $remote = Invoke-BoundedSshCommand `
         -SshAlias $layout.ssh_alias `
         -ScriptText $remoteScript `
-        -TimeoutSeconds 125 `
+        -TimeoutSeconds 200 `
         -OperationLabel 'Shadow Judging post-change health convergence'
     if ($remote.timed_out -or $remote.exit_code -ne 0) {
         throw 'Shadow Judging post-change health gate failed closed; remote output withheld.'
@@ -414,7 +414,7 @@ function Wait-ShadowPostChangeConvergence {
         [Parameter(Mandatory = $true)]$HelperResult,
         [Parameter(Mandatory = $true)][ValidateSet('enable','disable')][string]$ExpectedOperation,
         [Parameter(Mandatory = $true)]$BeforeHealth,
-        [int]$DeadlineSeconds = 105,
+        [int]$DeadlineSeconds = 180,
         [int]$PollIntervalSeconds = 3,
         [scriptblock]$HealthProbe,
         [scriptblock]$RuntimeProbe,
