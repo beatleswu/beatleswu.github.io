@@ -28,6 +28,7 @@ def state_machine_harness(*, initial_enabled=True, fail_stage=None, disable_shap
     failure = (fail_stage or "").replace("'", "''")
     disable_results = {
         "nested": "[pscustomobject]@{ backup = [pscustomobject]@{ id = 'initial-backup' }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
+        "internal_recovery": "[pscustomobject]@{ backup = [pscustomobject]@{ id = 'initial-backup' }; effective = [pscustomobject]@{ enabled = $true; state = 'enabled' }; internal_recovery_attempted = $true; internal_recovery_succeeded = $true }",
         "missing_backup": "[pscustomobject]@{ effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
         "missing_id": "[pscustomobject]@{ backup = [pscustomobject]@{}; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
         "null_id": "[pscustomobject]@{ backup = [pscustomobject]@{ id = $null }; effective = [pscustomobject]@{ enabled = $false; state = 'disabled' } }",
@@ -54,6 +55,7 @@ $get = {{
 $disable = {{
     $script:enabled = $false
     if(Test-Failure 'disable'){{throw 'injected'}}
+    if('{disable_shape}' -eq 'internal_recovery'){{ $script:enabled = $true }}
     return {disable_result}
 }}
 $verifyDisabled = {{ param($result) if(Test-Failure 'disable_verification'){{throw 'injected'}}; if($result.effective.enabled){{throw 'not disabled'}} }}
@@ -196,6 +198,16 @@ def test_disable_backup_identity_contract_fails_closed(disable_shape):
     assert report["initial_backup_identity"] is None
     assert report["restoration_attempted"] is True
     assert report["restoration_succeeded"] is True
+    assert report["final_matches_initial"] is True
+
+
+def test_internal_recovery_skips_outer_restore_and_preserves_disable_failure():
+    returncode, payload = state_machine_harness(initial_enabled=True, disable_shape="internal_recovery")
+    report = payload["report"]
+    assert returncode != 0
+    assert report["failure_stage"] == "disable"
+    assert report["setter_internal_recovery_succeeded"] is True
+    assert report["outer_restoration_attempted"] is False
     assert report["final_matches_initial"] is True
 
 

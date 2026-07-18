@@ -10,6 +10,7 @@ sanitized: no unrelated environment key or value is ever returned.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -316,7 +317,7 @@ def _valid_snapshot(value) -> bool:
     )
 
 
-def latest_backup(backup_dir: Path, env_path: Path):
+def latest_backup(backup_dir: Path, env_path: Path, requested_backup_id=None):
     if not backup_dir.is_dir() or backup_dir.is_symlink():
         raise ConfigError("no_valid_governed_backup")
     candidates = []
@@ -356,6 +357,12 @@ def latest_backup(backup_dir: Path, env_path: Path):
             continue
     if not candidates:
         raise ConfigError("no_valid_governed_backup")
+    if requested_backup_id is not None:
+        if not isinstance(requested_backup_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", requested_backup_id):
+            raise ConfigError("invalid_backup_identity")
+        candidates = [item for item in candidates if item[1] == requested_backup_id]
+        if not candidates:
+            raise ConfigError("no_valid_governed_backup")
     _created, _backup_id, metadata, backup_path = max(candidates, key=lambda item: (item[0], item[1]))
     return metadata, backup_path
 
@@ -415,6 +422,7 @@ def acquire_lock(handle):
         raise ConfigError("lock_unavailable") from exc
 
 
+@contextlib.contextmanager
 def open_lock(lock_path: Path):
     parent = lock_path.parent
     if not parent.is_dir() or parent.is_symlink():
@@ -433,7 +441,28 @@ def open_lock(lock_path: Path):
         if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
             raise ConfigError("lock_path_invalid")
         os.chmod(lock_path, 0o600)
-        return handle
+        if os.fstat(handle.fileno()).st_size == 0:
+            handle.write("0")
+            handle.flush()
+        handle.seek(0)
+        lock_stat = os.stat(lock_path, follow_symlinks=False)
+        acquire_lock(handle)
+        try:
+            yield handle
+        finally:
+            handle.close()
+            try:
+                current_stat = os.stat(lock_path, follow_symlinks=False)
+                if (
+                    stat.S_ISREG(current_stat.st_mode)
+                    and current_stat.st_dev == lock_stat.st_dev
+                    and current_stat.st_ino == lock_stat.st_ino
+                ):
+                    lock_path.unlink()
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass
     except Exception:
         handle.close()
         raise
@@ -471,12 +500,6 @@ def run(args):
         raise ConfigError("audit_path_invalid")
 
     with open_lock(lock_path) as lock_handle:
-        if lock_path.stat().st_size == 0:
-            lock_handle.write("0")
-            lock_handle.flush()
-        lock_handle.seek(0)
-        acquire_lock(lock_handle)
-
         env_path = env_path.resolve(strict=True)
         backup_dir = backup_dir.resolve(strict=False)
         audit_path = audit_path.resolve(strict=False)
@@ -488,7 +511,7 @@ def run(args):
             return safe_output(value, state, operation="dry-run", desired=args.desired)
 
         if args.operation == "rollback":
-            metadata, source = latest_backup(backup_dir, env_path)
+            metadata, source = latest_backup(backup_dir, env_path, args.rollback_backup_id)
             snapshot = safe_snapshot(env_path)
             rollback_backup = backup(env_path, backup_dir, snapshot)
             try:
@@ -579,6 +602,7 @@ def build_parser():
     parser.add_argument("--backup-dir", required=True)
     parser.add_argument("--audit-path", required=True)
     parser.add_argument("--lock-path", required=True)
+    parser.add_argument("--rollback-backup-id")
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--owner-gate")
     return parser

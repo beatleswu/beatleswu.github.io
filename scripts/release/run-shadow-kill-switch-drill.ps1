@@ -22,7 +22,8 @@ $setterPath = Join-Path $PSScriptRoot 'set-shadow-judging.ps1'
 
 function Invoke-ShadowSetterJson {
     param(
-        [Parameter(Mandatory = $true)][ValidateSet('status','disable','rollback')][string]$Operation
+        [Parameter(Mandatory = $true)][ValidateSet('status','disable','rollback')][string]$Operation,
+        [string]$RollbackBackupId
     )
     $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$setterPath,'-Operation',$Operation,'-LayoutFile',$LayoutFile)
     if ($Operation -eq 'disable') {
@@ -30,17 +31,22 @@ function Invoke-ShadowSetterJson {
     }
     elseif ($Operation -eq 'rollback') {
         $arguments += @('-Execute','-OwnerGate','GO_SHADOW_ROLLBACK')
+        if ([string]::IsNullOrWhiteSpace($RollbackBackupId)) { throw 'Rollback requires an exact backup identity.' }
+        $arguments += @('-RollbackBackupId', $RollbackBackupId)
     }
-    $raw = & powershell @arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Shadow setter $Operation failed closed."
-    }
+    $raw = & powershell @arguments 2>&1
+    $exitCode = $LASTEXITCODE
     try {
-        return ($raw | Out-String) | ConvertFrom-Json
+        $payload = ($raw | Out-String) | ConvertFrom-Json
     }
     catch {
         throw "Shadow setter $Operation returned invalid sanitized JSON."
     }
+    if ($exitCode -ne 0) {
+        if ($payload.status -eq 'recovered_failure' -and $payload.internal_recovery_succeeded -eq $true) { return $payload }
+        throw "Shadow setter $Operation failed closed."
+    }
+    return $payload
 }
 
 function Assert-DrillDisabled {
@@ -193,7 +199,8 @@ $report = Invoke-ShadowKillSwitchDrillStateMachine `
     -VerifyDashboard { if (-not $script:disabledProbe -or $script:disabledProbe.dashboard_readable -ne $true) { throw 'Dashboard read verification missing.' } } `
     -Restore {
         param($disableResult, $initial)
-        Invoke-ShadowSetterJson -Operation rollback
+        if (-not $disableResult.backup -or [string]::IsNullOrWhiteSpace([string]$disableResult.backup.id)) { throw 'Missing exact recovery target.' }
+        Invoke-ShadowSetterJson -Operation rollback -RollbackBackupId ([string]$disableResult.backup.id)
     } `
     -VerifyResumed { $null = Invoke-ShadowObservationProbe -ExpectWrite $true }
 

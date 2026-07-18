@@ -35,6 +35,7 @@ def invoke_helper(
     desired=None,
     execute=False,
     owner_gate=None,
+    rollback_backup_id=None,
 ):
     env_path = tmp_path / ".env"
     if content is not UNSET:
@@ -61,6 +62,8 @@ def invoke_helper(
         args.append("--execute")
     if owner_gate is not None:
         args.extend(("--owner-gate", owner_gate))
+    if rollback_backup_id is not None:
+        args.extend(("--rollback-backup-id", rollback_backup_id))
 
     result = subprocess.run(
         args,
@@ -74,13 +77,14 @@ def invoke_helper(
     return result, payload, env_path
 
 
-def mutate(tmp_path, operation, content=UNSET):
+def mutate(tmp_path, operation, content=UNSET, *, rollback_backup_id=None):
     return invoke_helper(
         tmp_path,
         operation,
         content,
         execute=True,
         owner_gate=MUTATION_GATES[operation],
+        rollback_backup_id=rollback_backup_id,
     )
 
 
@@ -282,7 +286,8 @@ def test_rollback_restores_exact_bytes_and_keeps_a_reverse_backup(tmp_path):
     enabled = env_path.read_bytes()
     assert enabled != original
 
-    result, payload, env_path = mutate(tmp_path, "rollback")
+    target = next((tmp_path / "backups").glob("*.env")).stem
+    result, payload, env_path = mutate(tmp_path, "rollback", rollback_backup_id=target)
     assert result.returncode == 0
     assert env_path.read_bytes() == original
     assert payload["effective"]["state"] == "disabled"
@@ -291,10 +296,10 @@ def test_rollback_restores_exact_bytes_and_keeps_a_reverse_backup(tmp_path):
     assert payload["backup_id"] != payload["rollback_backup_id"]
     assert len(list((tmp_path / "backups").glob("*.env"))) == 2
 
-    result, payload, env_path = mutate(tmp_path, "rollback")
+    result, payload, env_path = mutate(tmp_path, "rollback", rollback_backup_id=target)
     assert result.returncode == 0
-    assert env_path.read_bytes() == enabled
-    assert payload["effective"]["state"] == "enabled"
+    assert env_path.read_bytes() == original
+    assert payload["effective"]["state"] == "disabled"
 
 
 def test_tampered_backup_is_not_accepted_for_rollback(tmp_path):
@@ -309,6 +314,23 @@ def test_tampered_backup_is_not_accepted_for_rollback(tmp_path):
     assert result.returncode == 1
     assert payload == {"reason": "no_valid_governed_backup", "status": "fail_closed"}
     assert env_path.read_bytes() == enabled
+
+
+def test_explicit_unknown_rollback_identity_fails_closed(tmp_path):
+    original = "SHADOW_JUDGING_ENABLED=false\n"
+    result, _, env_path = mutate(tmp_path, "enable", original)
+    assert result.returncode == 0
+    before = env_path.read_bytes()
+    result, payload, _ = mutate(tmp_path, "rollback", rollback_backup_id="missing-backup")
+    assert result.returncode == 1
+    assert payload == {"reason": "no_valid_governed_backup", "status": "fail_closed"}
+    assert env_path.read_bytes() == before
+
+
+def test_lock_file_is_removed_after_governed_operation(tmp_path):
+    result, _, _ = mutate(tmp_path, "enable", "SHADOW_JUDGING_ENABLED=false\n")
+    assert result.returncode == 0
+    assert not (tmp_path / "shadow.lock").exists()
 
 
 def test_lock_is_non_reentrant_for_read_and_write_operations(tmp_path):
