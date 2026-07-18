@@ -389,6 +389,38 @@ Write-Output 'OK'
     assert result.stdout.strip().endswith("OK")
 
 
+def test_real_wait_convergence_fail_closed_matrix_and_attempt_isolation():
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw; Invoke-Expression $source.Substring($source.IndexOf('function Get-ShadowRuntimeFlag'),$source.IndexOf('$result = $null')-$source.IndexOf('function Get-ShadowRuntimeFlag'))
+function Invoke-Case {{ param([string]$mode)
+  $script:n=0; $script:t=[datetime]'2026-01-01T00:00:00Z'
+  $before=[pscustomobject]@{{app_container_id='old-app';scheduler_container_id='old-sch';app_image_id='img';scheduler_image_id='img'}}
+  $helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='enabled'}}}}
+  $health={{
+    $script:n++
+    if($mode -eq 'timeout'){{ return [pscustomobject]@{{app_container_id='new-app';scheduler_container_id='old-sch';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}} }}
+    if($mode -eq 'image'){{ return [pscustomobject]@{{app_container_id='new-app';scheduler_container_id='new-sch';app_image_id='wrong';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}} }}
+    if($mode -eq 'replacement' -and $script:n -eq 2){{ return [pscustomobject]@{{app_container_id='new-app-2';scheduler_container_id='new-sch';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}} }}
+    return [pscustomobject]@{{app_container_id='new-app';scheduler_container_id='new-sch';app_image_id='img';scheduler_image_id='img';app='running|healthy';scheduler='running';healthz=200}}
+  }}
+  $runtime={{ param($a,$s) if($mode -eq 'runtime_throw'){{ throw 'sentinel-secret-runtime' }}; [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;state='enabled'}};scheduler=[pscustomobject]@{{enabled=$true;state='enabled'}}}} }}
+  $clock={{ $script:t }}; $sleep={{ param($s) $script:t=$script:t.AddSeconds(1) }}
+  try {{ $r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 2 -PollIntervalSeconds 1 -HealthProbe $health -RuntimeProbe $runtime -Clock $clock -SleepAction $sleep; [pscustomobject]@{{mode=$mode;success=$true;attempts=$r.attempts;stable=$true}} }}
+  catch {{ [pscustomobject]@{{mode=$mode;success=$false;attempts=$_.Exception.Data['attempts'];stable=$_.Exception.Data['identity_stable'];runtime=if($_.Exception.Data['runtime']){{'present'}}else{{'null'}};message=$_.Exception.Message}} }}
+}}
+@('timeout','image','replacement','runtime_throw') | % {{ Invoke-Case $_ }} | ConvertTo-Json -Compress -Depth 6
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = {row["mode"]: row for row in json.loads(result.stdout.strip())}
+    assert all(not rows[name]["success"] for name in rows if name != "replacement"), result.stdout
+    assert rows["replacement"]["success"] is True
+    assert rows["timeout"]["stable"] is False
+    assert rows["runtime_throw"]["runtime"] == "null"
+    assert "sentinel-secret" not in result.stdout
+
+
 def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     setter = SETTER.read_text(encoding="utf-8")
     helper = HELPER.read_text(encoding="utf-8")

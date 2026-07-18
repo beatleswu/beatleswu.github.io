@@ -459,9 +459,10 @@ function Wait-ShadowPostChangeConvergence {
             return [pscustomobject]@{ health = $lastHealth; runtime = $lastRuntime; attempts = $attempt; elapsed_seconds = [math]::Round(((Get-Date) - $started).TotalSeconds, 3) }
         }
         catch {
-            $lastError = $_.Exception.Message
+            $rawAttemptError = [string]$_.Exception.Message
+            $lastError = if ($rawAttemptError -match 'identity has not converged|image identity changed|identity changed during convergence sample') { $rawAttemptError } else { 'probe_failed_closed' }
             $attemptFailureCode = [string]$_.FullyQualifiedErrorId
-            $attemptFailureMessage = [string]$_.Exception.Message
+            $attemptFailureMessage = $lastError
             $lastHealth = $attemptHealth
             $lastRuntime = $attemptRuntime
         }
@@ -471,15 +472,15 @@ function Wait-ShadowPostChangeConvergence {
     $message = "Shadow Judging post-change convergence failed after $attempt attempt(s): $lastError"
     $errorRecord = New-Object System.Management.Automation.ErrorRecord ([Exception]::new($message)), 'shadow_convergence_timeout', ([System.Management.Automation.ErrorCategory]::OperationTimeout), $null
     $errorRecord.ErrorDetails = [System.Management.Automation.ErrorDetails]::new(($lastRuntime | ConvertTo-Json -Compress -Depth 6))
-    $errorRecord.Data['attempts'] = $attempt
-    $errorRecord.Data['elapsed_seconds'] = [math]::Round(((& $Clock) - $started).TotalSeconds, 3)
-    $errorRecord.Data['runtime'] = $lastRuntime
-    $errorRecord.Data['health'] = $lastHealth
-    $errorRecord.Data['app_id'] = $attemptAppId
-    $errorRecord.Data['scheduler_id'] = $attemptSchedulerId
-    $errorRecord.Data['identity_stable'] = $attemptIdentityStable
-    $errorRecord.Data['failure_code'] = $attemptFailureCode
-    $errorRecord.Data['failure_message'] = $attemptFailureMessage
+    $errorRecord.Exception.Data['attempts'] = $attempt
+    $errorRecord.Exception.Data['elapsed_seconds'] = [math]::Round(((& $Clock) - $started).TotalSeconds, 3)
+    $errorRecord.Exception.Data['runtime'] = $lastRuntime
+    $errorRecord.Exception.Data['health'] = $lastHealth
+    $errorRecord.Exception.Data['app_id'] = $attemptAppId
+    $errorRecord.Exception.Data['scheduler_id'] = $attemptSchedulerId
+    $errorRecord.Exception.Data['identity_stable'] = $attemptIdentityStable
+    $errorRecord.Exception.Data['failure_code'] = $attemptFailureCode
+    $errorRecord.Exception.Data['failure_message'] = $attemptFailureMessage
     throw $errorRecord
 }
 
@@ -525,7 +526,9 @@ if ($Operation -in $mutationOperations) {
             $recovery = Invoke-ShadowHelper -RequestedOperation 'rollback' -RequestedRollbackBackupId ([string]$result.backup.id)
             Invoke-ShadowComposeRecreate
             $recoveryHealth = Get-ShadowRuntimeHealth
-            $recoveryRuntime = Get-ShadowRuntimeFlag
+            if ([string]::IsNullOrWhiteSpace([string]$recoveryHealth.app_container_id) -or [string]::IsNullOrWhiteSpace([string]$recoveryHealth.scheduler_container_id)) { throw 'Recovery container identity was unavailable.' }
+            if ([string]$recoveryHealth.app_image_id -ne [string]$beforeHealth.app_image_id -or [string]$recoveryHealth.scheduler_image_id -ne [string]$beforeHealth.scheduler_image_id) { throw 'Recovery container image identity changed unexpectedly.' }
+            $recoveryRuntime = Get-ShadowRuntimeFlag -AppContainerId ([string]$recoveryHealth.app_container_id) -SchedulerContainerId ([string]$recoveryHealth.scheduler_container_id)
             Assert-ShadowRuntimeFlag -Runtime $recoveryRuntime -HelperResult $recovery -ExpectedOperation 'rollback'
             $recoverySucceeded = $true
         }
