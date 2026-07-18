@@ -397,18 +397,62 @@ __SHADOW_RUNTIME_HEALTH__
     return $payload
 }
 
+function Wait-ShadowPostChangeConvergence {
+    param(
+        [Parameter(Mandatory = $true)]$HelperResult,
+        [Parameter(Mandatory = $true)][ValidateSet('enable','disable')][string]$ExpectedOperation,
+        [int]$DeadlineSeconds = 105,
+        [int]$PollIntervalSeconds = 3
+    )
+    $started = Get-Date
+    $attempt = 0
+    $lastHealth = $null
+    $lastRuntime = $null
+    $lastError = $null
+    do {
+        $attempt++
+        try {
+            $lastHealth = Get-ShadowRuntimeHealth
+            $lastRuntime = Get-ShadowRuntimeFlag
+            Assert-ShadowRuntimeFlag -Runtime $lastRuntime -HelperResult $HelperResult -ExpectedOperation $ExpectedOperation
+            return [pscustomobject]@{ health = $lastHealth; runtime = $lastRuntime; attempts = $attempt; elapsed_seconds = [math]::Round(((Get-Date) - $started).TotalSeconds, 3) }
+        }
+        catch {
+            $lastError = $_.Exception.Message
+        }
+        if (((Get-Date) - $started).TotalSeconds -ge $DeadlineSeconds) { break }
+        Start-Sleep -Seconds $PollIntervalSeconds
+    } while ($true)
+    $message = "Shadow Judging post-change convergence failed after $attempt attempt(s): $lastError"
+    $errorRecord = New-Object System.Management.Automation.ErrorRecord ([Exception]::new($message)), 'shadow_convergence_timeout', ([System.Management.Automation.ErrorCategory]::OperationTimeout), $null
+    $errorRecord.ErrorDetails = [System.Management.Automation.ErrorDetails]::new(($lastRuntime | ConvertTo-Json -Compress -Depth 6))
+    $errorRecord.Data['attempts'] = $attempt
+    $errorRecord.Data['elapsed_seconds'] = [math]::Round(((Get-Date) - $started).TotalSeconds, 3)
+    $errorRecord.Data['runtime'] = $lastRuntime
+    throw $errorRecord
+}
+
 $result = $null
+$postChangeDiagnostics = $null
 $result = Invoke-ShadowHelper -RequestedOperation $Operation -RequestedDesired $Desired
 if ($Operation -in $mutationOperations) {
     try {
         Invoke-ShadowComposeRecreate
-        $health = Get-ShadowRuntimeHealth
-        $runtime = Get-ShadowRuntimeFlag
-        Assert-ShadowRuntimeFlag -Runtime $runtime -HelperResult $result -ExpectedOperation $Operation
-        $result | Add-Member -NotePropertyName health -NotePropertyValue $health
-        $result | Add-Member -NotePropertyName runtime -NotePropertyValue $runtime
+        $postChangeDiagnostics = Wait-ShadowPostChangeConvergence -HelperResult $result -ExpectedOperation $Operation
+        $result | Add-Member -NotePropertyName health -NotePropertyValue $postChangeDiagnostics.health
+        $result | Add-Member -NotePropertyName runtime -NotePropertyValue $postChangeDiagnostics.runtime
+        $result | Add-Member -NotePropertyName verification_attempt_count -NotePropertyValue $postChangeDiagnostics.attempts
+        $result | Add-Member -NotePropertyName verification_elapsed_seconds -NotePropertyValue $postChangeDiagnostics.elapsed_seconds
     }
     catch {
+        $postChangeError = $_
+        if ($postChangeError.Exception.Data['attempts']) {
+            $postChangeDiagnostics = [pscustomobject]@{
+                attempts = [int]$postChangeError.Exception.Data['attempts']
+                elapsed_seconds = [double]$postChangeError.Exception.Data['elapsed_seconds']
+                runtime = $postChangeError.Exception.Data['runtime']
+            }
+        }
         $recoverySucceeded = $false
         try {
             if (-not $result -or -not $result.backup -or [string]::IsNullOrWhiteSpace([string]$result.backup.id)) {
@@ -436,6 +480,18 @@ if ($Operation -in $mutationOperations) {
                 effective = $recovery.effective
                 health = $recoveryHealth
                 runtime = $recoveryRuntime
+                original_failure_stage = 'post_change_verification'
+                original_failure_code = [string]$postChangeError.FullyQualifiedErrorId
+                original_failure_message = [string]$postChangeError.Exception.Message
+                expected_app_state = [string]$result.effective.state
+                expected_scheduler_state = [string]$result.effective.state
+                observed_app_state = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.runtime.app.state } else { $null }
+                observed_scheduler_state = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.runtime.scheduler.state } else { $null }
+                verification_attempt_count = if ($postChangeDiagnostics) { $postChangeDiagnostics.attempts } else { $null }
+                verification_elapsed_seconds = if ($postChangeDiagnostics) { $postChangeDiagnostics.elapsed_seconds } else { $null }
+                final_verified_state = [string]$recovery.effective.state
+                recovery_backup_id = [string]$result.backup.id
+                lock_cleanup_result = 'governed_helper_cleanup'
             } | ConvertTo-Json -Depth 12 | Write-Output
             exit 1
         }

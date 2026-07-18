@@ -392,6 +392,17 @@ def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     assert ".Config.Image" in setter and ".Image" in setter
     assert ".shadow-judging-backups" in setter
     assert "governed pre-change state was restored and verified" in setter
+    assert "Wait-ShadowPostChangeConvergence" in setter
+    for field in (
+        "original_failure_stage",
+        "original_failure_code",
+        "original_failure_message",
+        "verification_attempt_count",
+        "verification_elapsed_seconds",
+        "final_verified_state",
+        "lock_cleanup_result",
+    ):
+        assert field in setter
 
 
 def test_runbook_records_operation_specific_gates_without_raw_recipes():
