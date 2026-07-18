@@ -146,6 +146,36 @@ function Assert-TrackedTreeClean {
     }
 }
 
+function Assert-DetachedWorktreeIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitSha
+    )
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not [System.IO.Path]::IsPathRooted($Path)) {
+        throw "Detached worktree path must be a nonblank absolute filesystem path."
+    }
+    $resolvedPath = [System.IO.Path]::GetFullPath($Path)
+    if (-not [System.IO.Directory]::Exists($resolvedPath)) {
+        throw "Detached worktree path does not exist or is not a directory."
+    }
+    $topLevel = ((Invoke-Git -Arguments @('rev-parse', '--show-toplevel') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $resolvedTopLevel = [System.IO.Path]::GetFullPath($topLevel)
+    if (-not [string]::Equals($resolvedPath.TrimEnd('\','/'), $resolvedTopLevel.TrimEnd('\','/'), [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Detached worktree root does not match the supplied isolated path."
+    }
+    $head = ((Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    $expected = ((Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    if ($head -ne $expected) {
+        throw "Detached worktree HEAD does not match the expected release Git SHA."
+    }
+    $branch = ((Invoke-Git -Arguments @('branch', '--show-current') -WorkingDirectory $resolvedPath) | Select-Object -First 1).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($branch)) {
+        throw "Release build worktree must be detached."
+    }
+    Assert-TrackedTreeClean -WorkingDirectory $resolvedPath
+    return $resolvedPath
+}
+
 function New-DetachedWorktree {
     param(
         [Parameter(Mandatory = $true)][string]$GitSha,
@@ -153,7 +183,13 @@ function New-DetachedWorktree {
     )
     $worktree = Join-Path $env:TEMP ("{0}-{1}" -f $Prefix, ([guid]::NewGuid().ToString('N')))
     Invoke-Git -Arguments @('worktree', 'add', '--detach', $worktree, $GitSha) | Out-Null
-    return $worktree
+    try {
+        return Assert-DetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $GitSha
+    }
+    catch {
+        Remove-DetachedWorktree -Path $worktree
+        throw
+    }
 }
 
 function Remove-DetachedWorktree {
@@ -662,11 +698,39 @@ function Invoke-BoundedNativeCommand {
         [Parameter(Mandatory = $true)][string]$FileName,
         [Parameter(Mandatory = $true)][string[]]$ArgumentList,
         [AllowEmptyString()][string]$StdinText,
+        [AllowEmptyString()][string]$WorkingDirectory,
+        [switch]$RequireWorkingDirectory,
         [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
         [Parameter(Mandatory = $true)][string]$OperationLabel
     )
     if ($TimeoutSeconds -le 0) {
         throw "Invoke-BoundedNativeCommand: TimeoutSeconds must be a positive number of seconds for '$OperationLabel'."
+    }
+    if ([string]::IsNullOrWhiteSpace($FileName)) {
+        throw "Invoke-BoundedNativeCommand: native command is required for '$OperationLabel'."
+    }
+    $nativeCommand = Get-Command -Name $FileName -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $nativeCommand -or [string]::IsNullOrWhiteSpace([string]$nativeCommand.Source) -or -not (Test-Path -LiteralPath $nativeCommand.Source -PathType Leaf)) {
+        throw "Invoke-BoundedNativeCommand: native command could not be resolved for '$OperationLabel'."
+    }
+    $resolvedFileName = [System.IO.Path]::GetFullPath($nativeCommand.Source)
+
+    $workingDirectorySupplied = $PSBoundParameters.ContainsKey('WorkingDirectory')
+    if ($RequireWorkingDirectory -and -not $workingDirectorySupplied) {
+        throw "Invoke-BoundedNativeCommand: an explicit working directory is required for '$OperationLabel'."
+    }
+    $resolvedWorkingDirectory = $null
+    if ($workingDirectorySupplied) {
+        if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+            throw "Invoke-BoundedNativeCommand: working directory must be nonblank for '$OperationLabel'."
+        }
+        if (-not [System.IO.Path]::IsPathRooted($WorkingDirectory)) {
+            throw "Invoke-BoundedNativeCommand: working directory must be an absolute filesystem path for '$OperationLabel'."
+        }
+        $resolvedWorkingDirectory = [System.IO.Path]::GetFullPath($WorkingDirectory)
+        if (-not [System.IO.Directory]::Exists($resolvedWorkingDirectory)) {
+            throw "Invoke-BoundedNativeCommand: working directory does not exist or is not a directory for '$OperationLabel'."
+        }
     }
     $hasStdin = $PSBoundParameters.ContainsKey('StdinText')
     $previousConsoleInputEncoding = $null
@@ -676,7 +740,10 @@ function Invoke-BoundedNativeCommand {
     }
     try {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = $FileName
+        $psi.FileName = $resolvedFileName
+        if ($resolvedWorkingDirectory) {
+            $psi.WorkingDirectory = $resolvedWorkingDirectory
+        }
         # .NET Framework 4.x under Windows PowerShell 5.1 does not expose
         # ProcessStartInfo.ArgumentList (added later in .NET) -- build a
         # correctly quoted Windows command-line string instead. None of
@@ -1825,6 +1892,7 @@ Export-ModuleMember -Function @(
     'Remove-DetachedWorktree',
     'Resolve-RepoPath',
     'Select-ContainerMountForDestination',
+    'Assert-DetachedWorktreeIdentity',
     'Test-TrackedTreeClean',
     'Write-JsonFile',
     'Get-StaticAssetInventory',

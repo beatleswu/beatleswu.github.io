@@ -62,13 +62,20 @@ try {
         }
 
         $env:APP_BUILD_DATE_OVERRIDE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+        $worktree = Assert-DetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $ExpectedGitSha
+        $childBuildScript = Join-Path $worktree 'scripts\build-production-image.ps1'
+        if (-not (Test-Path -LiteralPath $childBuildScript -PathType Leaf)) {
+            Fail "build-production-image.ps1 is missing from the validated release worktree."
+        }
         $buildResult = Invoke-BoundedNativeCommand `
             -FileName 'powershell.exe' `
             -ArgumentList @(
                 '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                (Join-Path $worktree 'scripts\build-production-image.ps1'),
+                $childBuildScript,
                 '-GitSha', $ExpectedGitSha
             ) `
+            -WorkingDirectory $worktree `
+            -RequireWorkingDirectory `
             -TimeoutSeconds 3900 `
             -OperationLabel 'canonical production image build script'
         Write-Host $buildResult.output
