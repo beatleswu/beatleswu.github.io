@@ -467,6 +467,8 @@ def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     assert ".shadow-judging-backups" in setter
     assert "governed pre-change state was restored and verified" in setter
     assert "Wait-ShadowPostChangeConvergence" in setter
+    assert "deadline = time.monotonic() + 180" in setter
+    assert "-TimeoutSeconds 200" in setter
     for field in (
         "app_container_identity_before",
         "app_container_identity_after",
