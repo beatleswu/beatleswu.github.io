@@ -536,14 +536,106 @@ function Test-HelperUnavailableOutput {
     )
 }
 
+function ConvertFrom-FramedReadinessOutput {
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Output)
+
+    $prefix = '__GO_ODYSSEY_READINESS_V1__:'
+    $diagnosticPrefix = '[startup-diagnostic] '
+    $lines = @($Output -split "`r?`n")
+    $records = @($lines | Where-Object { $_.StartsWith($prefix, [System.StringComparison]::Ordinal) })
+    if ($records.Count -ne 1) {
+        throw "Runtime readiness output must contain exactly one framed result; found $($records.Count)."
+    }
+
+    $encoded = $records[0].Substring($prefix.Length)
+    if ([string]::IsNullOrWhiteSpace($encoded)) {
+        throw "Runtime readiness framed result is empty."
+    }
+    try {
+        $bytes = [Convert]::FromBase64String($encoded)
+        $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+        $json = $utf8.GetString($bytes)
+        $report = $json | ConvertFrom-Json
+    }
+    catch {
+        throw "Runtime readiness framed result is malformed."
+    }
+
+    $requiredProperties = @('ok', 'app', 'questions', 'database', 'static_root', 'shadow_events', 'failures')
+    $propertyNames = @($report.PSObject.Properties.Name)
+    foreach ($propertyName in $requiredProperties) {
+        if ($propertyNames -notcontains $propertyName) {
+            throw "Runtime readiness framed result has an invalid schema: missing $propertyName."
+        }
+    }
+    if ($report.ok -isnot [bool]) {
+        throw "Runtime readiness framed result has an invalid schema: ok must be boolean."
+    }
+    foreach ($propertyName in @('app', 'questions', 'database', 'static_root', 'shadow_events')) {
+        if ($null -eq $report.$propertyName -or $report.$propertyName -isnot [psobject]) {
+            throw "Runtime readiness framed result has an invalid schema: $propertyName must be an object."
+        }
+    }
+    if ($null -eq $report.failures) {
+        throw "Runtime readiness framed result has an invalid schema: failures must be an array."
+    }
+
+    # Preserve only the structured, explicitly safe startup diagnostic schema.
+    # Unframed output is never fed to ConvertFrom-Json and is never copied into
+    # the deployment result, so unexpected stderr cannot disclose private data.
+    $diagnostics = @()
+    foreach ($line in $lines) {
+        if ($diagnostics.Count -ge 64 -or -not $line.StartsWith($diagnosticPrefix, [System.StringComparison]::Ordinal)) {
+            continue
+        }
+        try {
+            $source = $line.Substring($diagnosticPrefix.Length) | ConvertFrom-Json
+            $safe = [ordered]@{}
+            foreach ($name in @('schema', 'boot_id', 'timestamp_utc', 'elapsed_seconds', 'pid', 'phase', 'status', 'phase_elapsed_seconds', 'exception_type', 'snapshot_sequence')) {
+                if (@($source.PSObject.Properties.Name) -contains $name) {
+                    $safe[$name] = $source.$name
+                }
+            }
+            if (@($source.PSObject.Properties.Name) -contains 'threads') {
+                $safeThreads = @()
+                foreach ($thread in @($source.threads) | Select-Object -First 16) {
+                    $safeFrames = @()
+                    foreach ($frame in @($thread.frames) | Select-Object -Last 48) {
+                        $safeFrames += [ordered]@{
+                            file = ([string]$frame.file).Substring(0, [Math]::Min(160, ([string]$frame.file).Length))
+                            function = ([string]$frame.function).Substring(0, [Math]::Min(160, ([string]$frame.function).Length))
+                            line = [int]$frame.line
+                        }
+                    }
+                    $safeThreads += [ordered]@{ thread_id = [int]$thread.thread_id; frames = $safeFrames }
+                }
+                $safe['threads'] = $safeThreads
+            }
+            $diagnostics += $safe
+        }
+        catch {
+            # Diagnostic decoding is best effort and must never affect the
+            # separately framed readiness result.
+            continue
+        }
+    }
+
+    return [ordered]@{
+        report = $report
+        startup_diagnostics = $diagnostics
+    }
+}
+
 function Try-Get-RemoteReadinessReport {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $result = Invoke-RemoteCommandResult -Name 'app_helper_readiness' -Command "docker exec $ContainerName python -X utf8 -c 'import json, app; print(json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False))'"
+    $result = Invoke-RemoteCommandResult -Name 'app_helper_readiness' -Command "docker exec $ContainerName python -X utf8 -c 'import base64, json, app; payload=json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False).encode(`"utf-8`"); print(`"__GO_ODYSSEY_READINESS_V1__:`" + base64.b64encode(payload).decode(`"ascii`"))'"
     if ($result.exit_code -eq 0) {
+        $decoded = ConvertFrom-FramedReadinessOutput -Output $result.output
         return [ordered]@{
             mode = 'helper'
-            report = ($result.output | ConvertFrom-Json)
+            report = $decoded.report
             helper_available = $true
+            startup_diagnostics = @($decoded.startup_diagnostics)
         }
     }
     if (Test-HelperUnavailableOutput -Output $result.output) {
@@ -551,9 +643,10 @@ function Try-Get-RemoteReadinessReport {
             mode = 'legacy_fallback'
             report = $null
             helper_available = $false
+            startup_diagnostics = @()
         }
     }
-    throw "Runtime readiness helper failed unexpectedly: $($result.output)"
+    throw "Runtime readiness helper failed unexpectedly with exit code $($result.exit_code)."
 }
 
 function Get-RemoteQuestionsReport {
@@ -691,6 +784,7 @@ function Get-AppReadinessGateReport {
         helper_available = $readinessMode.helper_available
         readiness_mode = $readinessMode.mode
         readiness = $readinessMode.report
+        startup_diagnostics = @($readinessMode.startup_diagnostics)
         questions_json_path = $questionsPath
         questions = $questionsReport
         http_mode = if ($UseContainerHttp) { 'container_local' } else { 'public' }
