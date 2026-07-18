@@ -6,6 +6,8 @@ import hashlib
 import pathlib
 import subprocess
 
+import pytest
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 MANIFEST = REPO_ROOT / "deploy" / "runtime-source-provenance.json"
 DOCKERFILE = REPO_ROOT / "Dockerfile"
@@ -67,6 +69,25 @@ def _is_binary(path):
     return path.endswith(BINARY_EXTENSIONS)
 
 
+def _recorded_blob(entry, repo_root=REPO_ROOT):
+    return subprocess.run(
+        ["git", "cat-file", "blob", f"{entry['source_commit']}:{entry['path']}"],
+        cwd=repo_root,
+        capture_output=True,
+        check=True,
+    ).stdout
+
+
+def _assert_working_tree_matches_recorded_blob(entry, repo_root=REPO_ROOT):
+    source = _recorded_blob(entry, repo_root=repo_root)
+    actual = (repo_root / entry["path"]).read_bytes()
+    if _is_binary(entry["path"]):
+        assert actual == source, f"{entry['path']} does not match its recorded source commit"
+    else:
+        source = source.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        assert actual == source, f"{entry['path']} does not match its recorded source commit"
+
+
 def test_every_entry_has_required_fields():
     data = load_manifest()
     required = {"path", "source_commit", "source_branch_or_local_ref", "source_commit_subject",
@@ -99,16 +120,59 @@ def test_working_tree_matches_recorded_content_sha256():
 def test_working_tree_matches_recorded_source_commit_blob():
     data = load_manifest()
     for entry in data["files"]:
-        out = subprocess.run(
-            ["git", "cat-file", "blob", f"{entry['source_commit']}:{entry['path']}"],
-            cwd=REPO_ROOT, capture_output=True, check=True,
+        _assert_working_tree_matches_recorded_blob(entry)
+
+
+def test_origin_master_provenance_commits_exist_and_are_reachable():
+    entries = [
+        entry for entry in load_manifest()["files"]
+        if entry["source_branch_or_local_ref"] == "origin/master"
+    ]
+    assert entries
+    for entry in entries:
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{entry['source_commit']}^{{commit}}"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=True,
         )
-        actual = (REPO_ROOT / entry["path"]).read_bytes()
-        if _is_binary(entry["path"]):
-            assert actual == out.stdout, f"{entry['path']} does not match its recorded source commit"
-        else:
-            src_norm = out.stdout.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-            assert actual == src_norm, f"{entry['path']} does not match its recorded source commit"
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", entry["source_commit"], "origin/master"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=True,
+        )
+
+
+def _synthetic_provenance_repository(tmp_path):
+    repo = tmp_path / "provenance-repository"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "Provenance Test"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "provenance@example.invalid"], cwd=repo, check=True)
+    source = repo / "governed.txt"
+    source.write_bytes(b"recorded\n")
+    subprocess.run(["git", "add", "governed.txt"], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "record governed blob"], cwd=repo, check=True)
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=True
+    ).stdout.strip()
+    return repo, source, commit
+
+
+def test_missing_provenance_commit_fails_closed(tmp_path):
+    repo, _source, _commit = _synthetic_provenance_repository(tmp_path)
+    entry = {"path": "governed.txt", "source_commit": "0" * 40}
+    with pytest.raises(subprocess.CalledProcessError):
+        _assert_working_tree_matches_recorded_blob(entry, repo_root=repo)
+
+
+def test_wrong_provenance_blob_fails_closed(tmp_path):
+    repo, source, commit = _synthetic_provenance_repository(tmp_path)
+    source.write_bytes(b"different\n")
+    entry = {"path": "governed.txt", "source_commit": commit}
+    with pytest.raises(AssertionError, match="does not match"):
+        _assert_working_tree_matches_recorded_blob(entry, repo_root=repo)
 
 
 def test_no_cr_bytes_in_recovered_text_files():
