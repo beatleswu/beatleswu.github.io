@@ -421,6 +421,19 @@ function Invoke-Case {{ param([string]$mode)
     assert "sentinel-secret" not in result.stdout
 
 
+def test_current_attempt_image_observation_is_used_after_retry():
+    script = f"""
+$ErrorActionPreference='Stop'; $source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw; Invoke-Expression $source.Substring($source.IndexOf('function Get-ShadowRuntimeFlag'),$source.IndexOf('$result = $null')-$source.IndexOf('function Get-ShadowRuntimeFlag'))
+$script:n=0; $script:t=[datetime]'2026-01-01Z'; $before=[pscustomobject]@{{app_container_id='old';scheduler_container_id='old-s';app_image_id='img-good';scheduler_image_id='img-good'}}; $helper=[pscustomobject]@{{effective=[pscustomobject]@{{enabled=$true;state='enabled'}}}}
+function H {{ $script:n++; if($script:n -eq 1){{ [pscustomobject]@{{app_container_id='new';scheduler_container_id='new-s';app_image_id='img-bad';scheduler_image_id='img-bad'}} }} else {{ [pscustomobject]@{{app_container_id='new';scheduler_container_id='new-s';app_image_id='img-good';scheduler_image_id='img-good'}} }} }}
+$rprobe={{ param($a,$s) [pscustomobject]@{{app=[pscustomobject]@{{enabled=$true;state='enabled'}};scheduler=[pscustomobject]@{{enabled=$true;state='enabled'}}}} }}; $clock={{$script:t}}; $sleep={{param($x) $script:t=$script:t.AddSeconds(1)}}
+$r=Wait-ShadowPostChangeConvergence -HelperResult $helper -ExpectedOperation enable -BeforeHealth $before -DeadlineSeconds 4 -PollIntervalSeconds 1 -HealthProbe ${{function:H}} -RuntimeProbe $rprobe -Clock $clock -SleepAction $sleep
+if($r.health.app_image_id -ne 'img-good'){{throw 'current-attempt image was not used'}}; 'OK'
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_setter_is_allowlist_only_owner_gated_and_fully_bounded():
     setter = SETTER.read_text(encoding="utf-8")
     helper = HELPER.read_text(encoding="utf-8")

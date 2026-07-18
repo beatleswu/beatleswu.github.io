@@ -448,7 +448,7 @@ function Wait-ShadowPostChangeConvergence {
             $attemptSchedulerId = $schedulerId
             if ([string]::IsNullOrWhiteSpace($appId) -or [string]::IsNullOrWhiteSpace($schedulerId) -or
                 $appId -eq [string]$BeforeHealth.app_container_id -or $schedulerId -eq [string]$BeforeHealth.scheduler_container_id) { throw 'Current container identity has not converged.' }
-            if ([string]$lastHealth.app_image_id -ne [string]$BeforeHealth.app_image_id -or [string]$lastHealth.scheduler_image_id -ne [string]$BeforeHealth.scheduler_image_id) { throw 'Container image identity changed unexpectedly.' }
+            if ([string]$attemptHealth.app_image_id -ne [string]$BeforeHealth.app_image_id -or [string]$attemptHealth.scheduler_image_id -ne [string]$BeforeHealth.scheduler_image_id) { throw 'Container image identity changed unexpectedly.' }
             $attemptRuntime = & $RuntimeProbe $appId $schedulerId
             $attemptRecheck = & $HealthProbe
             if ([string]$attemptRecheck.app_container_id -ne $appId -or [string]$attemptRecheck.scheduler_container_id -ne $schedulerId) { throw 'Container identity changed during convergence sample.' }
@@ -482,6 +482,46 @@ function Wait-ShadowPostChangeConvergence {
     $errorRecord.Exception.Data['failure_code'] = $attemptFailureCode
     $errorRecord.Exception.Data['failure_message'] = $attemptFailureMessage
     throw $errorRecord
+}
+
+function New-ShadowRecoveredFailureResult {
+    param(
+        [Parameter(Mandatory = $true)]$OriginalResult,
+        [Parameter(Mandatory = $true)]$RecoveryResult,
+        [Parameter(Mandatory = $true)]$Diagnostics,
+        [Parameter(Mandatory = $true)]$RecoveryHealth,
+        [Parameter(Mandatory = $true)]$RecoveryRuntime
+    )
+    [ordered]@{
+        operation = $Operation
+        status = 'recovered_failure'
+        internal_recovery_attempted = $true
+        internal_recovery_succeeded = $true
+        backup = $OriginalResult.backup
+        recovery = $RecoveryResult
+        effective = $RecoveryResult.effective
+        health = $RecoveryHealth
+        runtime = $RecoveryRuntime
+        original_failure_stage = 'post_change_verification'
+        original_failure_code = [string]$postChangeError.FullyQualifiedErrorId
+        original_failure_message = [string]$postChangeError.Exception.Message
+        expected_app_state = [string]$OriginalResult.effective.state
+        expected_scheduler_state = [string]$OriginalResult.effective.state
+        observed_app_state = if ($Diagnostics) { [string]$Diagnostics.runtime.app.state } else { $null }
+        observed_scheduler_state = if ($Diagnostics) { [string]$Diagnostics.runtime.scheduler.state } else { $null }
+        verification_attempt_count = if ($Diagnostics) { $Diagnostics.attempts } else { $null }
+        verification_elapsed_seconds = if ($Diagnostics) { $Diagnostics.elapsed_seconds } else { $null }
+        final_verified_state = [string]$RecoveryResult.effective.state
+        recovery_backup_id = [string]$OriginalResult.backup.id
+        lock_cleanup_result = 'governed_helper_cleanup'
+        app_container_identity_before = [string]$beforeHealth.app_container_id
+        app_container_identity_after = if ($Diagnostics) { [string]$Diagnostics.health.app_container_id } else { $null }
+        scheduler_container_identity_before = [string]$beforeHealth.scheduler_container_id
+        scheduler_container_identity_after = if ($Diagnostics) { [string]$Diagnostics.health.scheduler_container_id } else { $null }
+        last_observed_app_container_identity = if ($Diagnostics) { [string]$Diagnostics.app_id } else { $null }
+        last_observed_scheduler_container_identity = if ($Diagnostics) { [string]$Diagnostics.scheduler_id } else { $null }
+        identity_stable_during_last_sample = if ($Diagnostics) { [bool]$Diagnostics.identity_stable } else { $false }
+    }
 }
 
 $result = $null
@@ -563,9 +603,9 @@ if ($Operation -in $mutationOperations) {
                 app_container_identity_after = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.health.app_container_id } else { $null }
                 scheduler_container_identity_before = [string]$beforeHealth.scheduler_container_id
                 scheduler_container_identity_after = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.health.scheduler_container_id } else { $null }
-                last_observed_app_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.runtime.app_container_id } else { $null }
-                last_observed_scheduler_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.runtime.scheduler_container_id } else { $null }
-                identity_stable_during_last_sample = if ($postChangeDiagnostics) { $true } else { $false }
+                last_observed_app_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.app_id } else { $null }
+                last_observed_scheduler_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.scheduler_id } else { $null }
+                identity_stable_during_last_sample = if ($postChangeDiagnostics) { [bool]$postChangeDiagnostics.identity_stable } else { $false }
             } | ConvertTo-Json -Depth 12 | Write-Output
             exit 1
         }
