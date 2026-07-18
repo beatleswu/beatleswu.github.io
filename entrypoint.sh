@@ -11,6 +11,16 @@
 # ───────────────────────────────────────────────────────────────
 
 DATA_DIR=/app/data
+GO_STARTUP_BOOT_ID="$(cat /proc/sys/kernel/random/uuid)"
+export GO_STARTUP_BOOT_ID
+case " $* " in
+  *" scheduler.py "*) GO_STARTUP_PROCESS_ROLE=scheduler ;;
+  *" app.py "*) GO_STARTUP_PROCESS_ROLE=app ;;
+  *) GO_STARTUP_PROCESS_ROLE=unknown ;;
+esac
+export GO_STARTUP_PROCESS_ROLE
+printf '{"schema":"startup-diagnostic-v1","boot_id":"%s","timestamp_utc":"%s","elapsed_seconds":0,"pid":%s,"phase":"entrypoint_start","status":"point"}\n' \
+  "$GO_STARTUP_BOOT_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$$" >&2
 mkdir -p "$DATA_DIR"
 mkdir -p "$DATA_DIR/tts_cache"
 

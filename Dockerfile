@@ -30,6 +30,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # application modules otherwise retain their ordinary Git lineage. Every COPY
 # here must also stay in sync with deploy/build-manifest.json's tracked inputs.
 COPY app.py ./
+COPY startup_diagnostics.py ./
 COPY db.py ./
 COPY shadow_judging.py ./
 COPY shadow_dashboard.py ./

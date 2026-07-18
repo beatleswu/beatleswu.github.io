@@ -47,6 +47,7 @@ $backupDirectory = "$envDirectory/.shadow-judging-backups"
 $auditDirectory = "$($layout.remote_release_staging_directory.TrimEnd('/'))/.shadow-judging-audit"
 $auditPath = "$auditDirectory/audit.jsonl"
 $lockPath = "$envPath.shadow-judging.lock"
+$evidenceOperationId = [guid]::NewGuid().ToString('N')
 
 function Get-ShadowHelperArguments {
     param(
@@ -484,6 +485,179 @@ function Wait-ShadowPostChangeConvergence {
     throw $errorRecord
 }
 
+function Get-ShadowFailedGenerationEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [scriptblock]$CaptureProbe
+    )
+    if ($CaptureProbe) {
+        return & $CaptureProbe $OperationId
+    }
+
+    $appJson = ConvertTo-Json -Compress -InputObject ([string]$layout.app_service_name)
+    $schedulerJson = ConvertTo-Json -Compress -InputObject ([string]$layout.scheduler_service_name)
+    $operationJson = ConvertTo-Json -Compress -InputObject $OperationId
+    $scriptTemplate = @'
+set -eu
+python3 - <<'__SHADOW_STARTUP_EVIDENCE__'
+import datetime
+import json
+import re
+import subprocess
+
+APP = __APP_JSON__
+SCHEDULER = __SCHEDULER_JSON__
+OPERATION_ID = __OPERATION_JSON__
+MAX_LOG_BYTES = 32768
+MAX_LOG_LINES = 160
+MAX_LINE_CHARS = 512
+PREFIX = "[startup-diagnostic] "
+SUSPICIOUS = re.compile(
+    r"(?i)(secret|password|passwd|token|cookie|authorization|database[_-]?url|private[_ -]?key|credential)"
+)
+URI_USERINFO = re.compile(r"([a-zA-Z][a-zA-Z0-9+.-]*://)[^/@\s]+@")
+
+
+def bounded(command, timeout):
+    try:
+        return subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def metadata(name):
+    template = (
+        '{"id":{{json .Id}},"image_id":{{json .Image}},'
+        '"created":{{json .Created}},"restart_count":{{.RestartCount}},'
+        '"state":{"status":{{json .State.Status}},'
+        '"started_at":{{json .State.StartedAt}},'
+        '"finished_at":{{json .State.FinishedAt}},'
+        '"exit_code":{{.State.ExitCode}},"oom_killed":{{.State.OOMKilled}}}}'
+    )
+    result = bounded(["docker", "inspect", name, "--format", template], 4)
+    if result is None or result.returncode != 0:
+        return {"available": False}
+    try:
+        value = json.loads(result.stdout)
+    except (TypeError, ValueError):
+        return {"available": False}
+    value["available"] = True
+    return value
+
+
+def safe_startup_event(line):
+    if not line.startswith(PREFIX):
+        return None
+    try:
+        source = json.loads(line[len(PREFIX):])
+    except (TypeError, ValueError):
+        return None
+    allowed = {
+        key: source.get(key)
+        for key in (
+            "schema", "boot_id", "timestamp_utc", "elapsed_seconds", "pid",
+            "phase", "status", "phase_elapsed_seconds", "exception_type",
+            "snapshot_sequence",
+        )
+        if key in source
+    }
+    threads = []
+    for thread in (source.get("threads") or [])[:16]:
+        frames = []
+        for frame in (thread.get("frames") or [])[-48:]:
+            frames.append({
+                "file": str(frame.get("file") or "")[:160],
+                "function": str(frame.get("function") or "")[:160],
+                "line": int(frame.get("line") or 0),
+            })
+        threads.append({"thread_id": int(thread.get("thread_id") or 0), "frames": frames})
+    if threads:
+        allowed["threads"] = threads
+    return allowed
+
+
+def safe_logs(container_id):
+    result = bounded(
+        ["docker", "logs", "--since", "15m", "--tail", str(MAX_LOG_LINES), container_id],
+        5,
+    )
+    if result is None:
+        return {"status": "capture_failed", "lines": [], "startup_diagnostics": []}
+    raw = result.stdout[-MAX_LOG_BYTES:]
+    lines = []
+    diagnostics = []
+    for original in raw.splitlines()[-MAX_LOG_LINES:]:
+        line = original[:MAX_LINE_CHARS]
+        event = safe_startup_event(line)
+        if event is not None:
+            diagnostics.append(event)
+            continue
+        if SUSPICIOUS.search(line):
+            lines.append("[redacted suspicious log line]")
+        else:
+            lines.append(URI_USERINFO.sub(r"\1[redacted]@", line))
+    return {"status": "captured", "lines": lines, "startup_diagnostics": diagnostics}
+
+
+def capture(name):
+    info = metadata(name)
+    if not info.get("available"):
+        return {"metadata": info, "logs": {"status": "unavailable", "lines": [], "startup_diagnostics": []}}
+    return {"metadata": info, "logs": safe_logs(info["id"])}
+
+
+payload = {
+    "status": "captured",
+    "operation_id": OPERATION_ID,
+    "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    "bounds": {"container_count": 2, "max_log_bytes_per_container": MAX_LOG_BYTES, "max_log_lines_per_container": MAX_LOG_LINES, "command_timeout_seconds": 5},
+    "containers": {"app": capture(APP), "scheduler": capture(SCHEDULER)},
+}
+print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+__SHADOW_STARTUP_EVIDENCE__
+'@
+    $remoteScript = $scriptTemplate.Replace('__APP_JSON__', $appJson).Replace('__SCHEDULER_JSON__', $schedulerJson).Replace('__OPERATION_JSON__', $operationJson)
+    $remote = Invoke-BoundedSshCommand `
+        -SshAlias $layout.ssh_alias `
+        -ScriptText $remoteScript `
+        -TimeoutSeconds 20 `
+        -OperationLabel 'Shadow Judging failed-generation startup evidence capture'
+    if ($remote.timed_out -or $remote.exit_code -ne 0) {
+        throw 'Shadow Judging startup evidence capture failed closed; remote output withheld.'
+    }
+    try { $payload = $remote.output | ConvertFrom-Json }
+    catch { throw 'Shadow Judging startup evidence capture returned invalid sanitized JSON.' }
+    if (-not $payload -or $payload.status -ne 'captured' -or $payload.operation_id -ne $OperationId -or -not $payload.containers) {
+        throw 'Shadow Judging startup evidence capture response failed closed.'
+    }
+    return $payload
+}
+
+function Get-ShadowFailedGenerationEvidenceSafely {
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [scriptblock]$CaptureProbe
+    )
+    try {
+        return Get-ShadowFailedGenerationEvidence -OperationId $OperationId -CaptureProbe $CaptureProbe
+    }
+    catch {
+        return [pscustomobject]@{
+            status = 'capture_failed'
+            operation_id = $OperationId
+            captured_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+            failure_code = 'startup_evidence_capture_failed_closed'
+        }
+    }
+}
+
 function New-ShadowRecoveredFailureResult {
     param(
         [Parameter(Mandatory = $true)]$OriginalResult,
@@ -558,6 +732,9 @@ if ($Operation -in $mutationOperations) {
                 identity_stable = [bool]$postChangeError.Exception.Data['identity_stable']
             }
         }
+        # Preserve the failed generation before exact-target recovery recreates it.
+        # Capture is strictly bounded and cannot replace the original failure.
+        $failedGenerationEvidence = Get-ShadowFailedGenerationEvidenceSafely -OperationId $evidenceOperationId
         $recoverySucceeded = $false
         try {
             if (-not $result -or -not $result.backup -or [string]::IsNullOrWhiteSpace([string]$result.backup.id)) {
@@ -606,6 +783,7 @@ if ($Operation -in $mutationOperations) {
                 last_observed_app_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.app_id } else { $null }
                 last_observed_scheduler_container_identity = if ($postChangeDiagnostics) { [string]$postChangeDiagnostics.scheduler_id } else { $null }
                 identity_stable_during_last_sample = if ($postChangeDiagnostics) { [bool]$postChangeDiagnostics.identity_stable } else { $false }
+                failed_generation_evidence = $failedGenerationEvidence
             } | ConvertTo-Json -Depth 12 | Write-Output
             exit 1
         }

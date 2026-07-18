@@ -389,6 +389,86 @@ Write-Output 'OK'
     assert result.stdout.strip().endswith("OK")
 
 
+def test_failed_generation_evidence_capture_is_real_bounded_and_fail_closed():
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{str(SETTER).replace("'", "''")}' -Raw
+$start=$source.IndexOf('function Get-ShadowFailedGenerationEvidence')
+$end=$source.IndexOf('function New-ShadowRecoveredFailureResult')
+Invoke-Expression $source.Substring($start,$end-$start)
+$okProbe={{ param($id) [pscustomobject]@{{status='captured';operation_id=$id;containers=[pscustomobject]@{{app=[pscustomobject]@{{metadata=[pscustomobject]@{{id='app-id'}}}};scheduler=[pscustomobject]@{{metadata=[pscustomobject]@{{id='scheduler-id'}}}}}}}} }}
+$badProbe={{ param($id) throw 'sentinel-secret-capture-error' }}
+$ok=Get-ShadowFailedGenerationEvidenceSafely -OperationId 'operation-1' -CaptureProbe $okProbe
+$bad=Get-ShadowFailedGenerationEvidenceSafely -OperationId 'operation-2' -CaptureProbe $badProbe
+[pscustomobject]@{{ok=$ok;bad=$bad}} | ConvertTo-Json -Compress -Depth 8
+"""
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], cwd=ROOT, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip())
+    assert payload["ok"]["status"] == "captured"
+    assert payload["ok"]["operation_id"] == "operation-1"
+    assert payload["bad"]["status"] == "capture_failed"
+    assert payload["bad"]["failure_code"] == "startup_evidence_capture_failed_closed"
+    assert "sentinel-secret" not in result.stdout
+
+
+def test_embedded_evidence_capture_redacts_logs_and_whitelists_stack_fields(monkeypatch):
+    source = SETTER.read_text(encoding="utf-8")
+    embedded = source.split("python3 - <<'__SHADOW_STARTUP_EVIDENCE__'", 1)[1].split("__SHADOW_STARTUP_EVIDENCE__", 1)[0]
+    definitions = embedded.split("payload = {", 1)[0]
+    definitions = definitions.replace("__APP_JSON__", repr("app")).replace("__SCHEDULER_JSON__", repr("scheduler")).replace("__OPERATION_JSON__", repr("operation"))
+    namespace = {}
+    exec(definitions, namespace)
+
+    diagnostic = {
+        "schema": "startup-diagnostic-v1",
+        "boot_id": "12345678-1234-5678-1234-567812345678",
+        "phase": "delayed_start_stack",
+        "status": "snapshot",
+        "threads": [{"thread_id": 1, "frames": [{"file": "app.py", "function": "init_db", "line": 2632, "locals": {"secret": "leak"}}]}],
+        "environment": {"SECRET_KEY": "leak"},
+    }
+    raw = "\n".join(
+        [
+            "[startup-diagnostic] " + json.dumps(diagnostic),
+            "SECRET_KEY=sentinel-private-value",
+            "connecting to postgresql://user:opaquevalue@example.invalid/db",
+            "ordinary bounded log line",
+        ]
+    )
+
+    class Result:
+        returncode = 0
+        stdout = raw
+
+    monkeypatch.setitem(namespace, "bounded", lambda command, timeout: Result())
+    captured = namespace["safe_logs"]("container-id")
+    encoded = json.dumps(captured, sort_keys=True)
+    assert "sentinel-private-value" not in encoded
+    assert "opaquevalue" not in encoded
+    assert "environment" not in encoded
+    assert "locals" not in encoded
+    assert captured["lines"] == [
+        "[redacted suspicious log line]",
+        "connecting to postgresql://[redacted]@example.invalid/db",
+        "ordinary bounded log line",
+    ]
+    frame = captured["startup_diagnostics"][0]["threads"][0]["frames"][0]
+    assert frame == {"file": "app.py", "function": "init_db", "line": 2632}
+
+
+def test_evidence_capture_precedes_exact_target_recovery_and_is_bounded():
+    setter = SETTER.read_text(encoding="utf-8")
+    capture = setter.index("Get-ShadowFailedGenerationEvidenceSafely -OperationId")
+    rollback = setter.index("Invoke-ShadowHelper -RequestedOperation 'rollback'", capture)
+    assert capture < rollback
+    assert "MAX_LOG_BYTES = 32768" in setter
+    assert "MAX_LOG_LINES = 160" in setter
+    assert "-TimeoutSeconds 20" in setter
+    assert 'docker", "inspect", name, "--format", template' in setter
+    assert "Config.Env" not in setter
+
+
 def test_real_wait_convergence_fail_closed_matrix_and_attempt_isolation():
     script = f"""
 $ErrorActionPreference='Stop'

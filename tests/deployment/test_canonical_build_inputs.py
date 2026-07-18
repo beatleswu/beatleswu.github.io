@@ -31,6 +31,7 @@ REQUIRED_TRACKED_FILES = [
     "community_leaderboard_rewards_scheduler.py",
     "nginx/default.conf",
     "app.py",
+    "startup_diagnostics.py",
     "shadow_judging.py",
     "shadow_dashboard.py",
     "shadow_event_storage.py",

@@ -1,3 +1,10 @@
+from startup_diagnostics import diagnostics as _startup_diagnostics
+
+_startup_diagnostics.mark('python_start')
+_startup_diagnostics.mark('app_module_import', 'start')
+_startup_diagnostics.install_exception_hook()
+_startup_diagnostics.start_delayed_snapshots()
+
 from flask import (Flask, jsonify, send_from_directory, request,
                    session, redirect, Response, send_file, abort)
 from flask_cors import CORS
@@ -36,6 +43,7 @@ from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skil
 from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
 
+_startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
 _site_url_for_cookie = os.environ.get('SITE_URL', 'https://godokoro.com').lower()
 app.config.update(
@@ -64,13 +72,16 @@ socketio = SocketIO(app, cors_allowed_origins='*', async_mode=_socketio_async_mo
                     message_queue=os.environ.get('SOCKETIO_MESSAGE_QUEUE') or None,
                     manage_session=False)
 app.register_blueprint(grimoire_bp)
+_startup_diagnostics.mark('application_creation', 'success')
 
 @app.route('/healthz')
 def healthz():
+    _startup_diagnostics.mark_ready('healthz_readiness')
     return jsonify({'ok': True})
 
 @app.route('/api/healthz')
 def api_healthz():
+    _startup_diagnostics.mark_ready('api_healthz_readiness')
     return jsonify({'ok': True})
 
 
@@ -2629,6 +2640,7 @@ def _ensure_question_problem_report_reason_code_constraint(conn, table_name='que
             'definition': verified[0]['definition'],
         }
 
+@_startup_diagnostics.instrument('database_initialization')
 def init_db():
     with get_db() as conn:
         cursor = conn.cursor()
@@ -21382,6 +21394,7 @@ def _env_flag_exact_true(name, default=False):
     return raw.strip().lower() == 'true'
 
 
+@_startup_diagnostics.instrument('premium_scheduler_initialization')
 def _start_premium_weekly_scheduler():
     """Run the idempotent job hourly; generation itself is keyed by report week."""
     if not _env_flag_enabled('PREMIUM_WEEKLY_SCHEDULER_ENABLED'):
@@ -21397,6 +21410,7 @@ def _start_premium_weekly_scheduler():
     threading.Thread(target=worker, name='premium-weekly', daemon=True).start()
 
 
+@_startup_diagnostics.instrument('community_scheduler_initialization', ready_for_role='scheduler')
 def _start_community_leaderboard_weekly_scheduler():
     """Run the weekly leaderboard reward job on a short bounded interval so
     Monday 00:10 Asia/Taipei executes promptly and later restarts catch up."""
@@ -21418,9 +21432,14 @@ def _start_community_leaderboard_weekly_scheduler():
     threading.Thread(target=worker, name='community-leaderboard-weekly', daemon=True).start()
 
 
+_startup_diagnostics.mark('app_module_import', 'success')
+
+
 if __name__ == '__main__':
     init_db()
     _start_premium_weekly_scheduler()
     _start_community_leaderboard_weekly_scheduler()
     port = int(os.environ.get('PORT', '5000'))
-    socketio.run(app, host='0.0.0.0', debug=False, port=port, allow_unsafe_werkzeug=True)
+    _startup_diagnostics.mark('server_launch_handoff', 'start')
+    with _startup_diagnostics.phase('server_runtime'):
+        socketio.run(app, host='0.0.0.0', debug=False, port=port, allow_unsafe_werkzeug=True)
