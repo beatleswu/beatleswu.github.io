@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import time
@@ -12,6 +13,44 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 BUILD_RELEASE = ROOT / "scripts" / "release" / "build-release-image.ps1"
 BUILD_PRODUCTION = ROOT / "scripts" / "build-production-image.ps1"
+
+
+def _protected_pattern_contract(path, function_name):
+    source = path.read_text(encoding="utf-8")
+    start = source.index(f"function {function_name}")
+    end = source.index("\n}", start)
+    body = source[start:end]
+    clauses = re.findall(
+        r"if \(\$leaf (?P<operator>-ieq|-like) '(?P<match>[^']+)'\) "
+        r"\{ return '(?P<returned>[^']+)' \}",
+        body,
+    )
+    assert clauses, f"no protected-pattern clauses found in {function_name}"
+    return clauses
+
+
+def test_bootstrap_and_module_protected_pattern_contracts_are_identical():
+    expected = [
+        ("-ieq", "secret_key.txt", "secret_key.txt"),
+        ("-like", ".env*", ".env*"),
+        ("-like", "*.db", "*.db"),
+        ("-like", "*.sqlite*", "*.sqlite*"),
+        ("-ieq", "questions.json", "questions.json"),
+        ("-like", "*.sgf", "*.sgf"),
+        ("-like", "*.pem", "*.pem"),
+        ("-like", "*.key", "*.key"),
+        ("-like", "*.bak*", "*.bak*"),
+    ]
+    module_contract = _protected_pattern_contract(
+        MODULE, "Get-ProtectedUntrackedPattern"
+    )
+    bootstrap_contract = _protected_pattern_contract(
+        BUILD_PRODUCTION, "Get-BootstrapProtectedPattern"
+    )
+
+    assert module_contract == expected
+    assert bootstrap_contract == expected
+    assert bootstrap_contract == module_contract
 
 
 def run_powershell(script, timeout=30):
