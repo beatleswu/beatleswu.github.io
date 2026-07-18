@@ -334,7 +334,7 @@ def container_state(name):
         if result.returncode != 0:
             return {"id": "", "image_id": "", "status": "probe_failed", "health": "probe_failed"}
         state = json.loads(result.stdout)
-        health = state.get("Health") or {}
+        health = (state.get("State") or {}).get("Health") or {}
         return {
             "id": str(state.get("Id") or ""),
             "image_id": str(state.get("Image") or ""),
@@ -424,22 +424,38 @@ function Wait-ShadowPostChangeConvergence {
     $lastError = $null
     do {
         $attempt++
+        $attemptHealth = $null
+        $attemptRuntime = $null
+        $attemptRecheck = $null
+        $attemptAppId = $null
+        $attemptSchedulerId = $null
+        $attemptIdentityStable = $false
+        $attemptFailureCode = $null
+        $attemptFailureMessage = $null
         try {
-            $lastHealth = Get-ShadowRuntimeHealth
-            $appId = [string]$lastHealth.app_container_id
-            $schedulerId = [string]$lastHealth.scheduler_container_id
+            $attemptHealth = Get-ShadowRuntimeHealth
+            $appId = [string]$attemptHealth.app_container_id
+            $schedulerId = [string]$attemptHealth.scheduler_container_id
+            $attemptAppId = $appId
+            $attemptSchedulerId = $schedulerId
             if ([string]::IsNullOrWhiteSpace($appId) -or [string]::IsNullOrWhiteSpace($schedulerId) -or
                 $appId -eq [string]$BeforeHealth.app_container_id -or $schedulerId -eq [string]$BeforeHealth.scheduler_container_id) { throw 'Current container identity has not converged.' }
             if ([string]$lastHealth.app_image_id -ne [string]$BeforeHealth.app_image_id -or [string]$lastHealth.scheduler_image_id -ne [string]$BeforeHealth.scheduler_image_id) { throw 'Container image identity changed unexpectedly.' }
-            $lastRuntime = Get-ShadowRuntimeFlag -AppContainerId $appId -SchedulerContainerId $schedulerId
-            $recheck = Get-ShadowRuntimeHealth
-            if ([string]$recheck.app_container_id -ne $appId -or [string]$recheck.scheduler_container_id -ne $schedulerId) { throw 'Container identity changed during convergence sample.' }
-            $lastHealth = $recheck
+            $attemptRuntime = Get-ShadowRuntimeFlag -AppContainerId $appId -SchedulerContainerId $schedulerId
+            $attemptRecheck = Get-ShadowRuntimeHealth
+            if ([string]$attemptRecheck.app_container_id -ne $appId -or [string]$attemptRecheck.scheduler_container_id -ne $schedulerId) { throw 'Container identity changed during convergence sample.' }
+            $attemptIdentityStable = $true
+            $lastHealth = $attemptRecheck
+            $lastRuntime = $attemptRuntime
             Assert-ShadowRuntimeFlag -Runtime $lastRuntime -HelperResult $HelperResult -ExpectedOperation $ExpectedOperation
             return [pscustomobject]@{ health = $lastHealth; runtime = $lastRuntime; attempts = $attempt; elapsed_seconds = [math]::Round(((Get-Date) - $started).TotalSeconds, 3) }
         }
         catch {
             $lastError = $_.Exception.Message
+            $attemptFailureCode = [string]$_.FullyQualifiedErrorId
+            $attemptFailureMessage = [string]$_.Exception.Message
+            $lastHealth = $attemptHealth
+            $lastRuntime = $attemptRuntime
         }
         if (((Get-Date) - $started).TotalSeconds -ge $DeadlineSeconds) { break }
         Start-Sleep -Seconds $PollIntervalSeconds
@@ -450,6 +466,12 @@ function Wait-ShadowPostChangeConvergence {
     $errorRecord.Data['attempts'] = $attempt
     $errorRecord.Data['elapsed_seconds'] = [math]::Round(((Get-Date) - $started).TotalSeconds, 3)
     $errorRecord.Data['runtime'] = $lastRuntime
+    $errorRecord.Data['health'] = $lastHealth
+    $errorRecord.Data['app_id'] = $attemptAppId
+    $errorRecord.Data['scheduler_id'] = $attemptSchedulerId
+    $errorRecord.Data['identity_stable'] = $attemptIdentityStable
+    $errorRecord.Data['failure_code'] = $attemptFailureCode
+    $errorRecord.Data['failure_message'] = $attemptFailureMessage
     throw $errorRecord
 }
 
@@ -481,6 +503,10 @@ if ($Operation -in $mutationOperations) {
                 attempts = [int]$postChangeError.Exception.Data['attempts']
                 elapsed_seconds = [double]$postChangeError.Exception.Data['elapsed_seconds']
                 runtime = $postChangeError.Exception.Data['runtime']
+                health = $postChangeError.Exception.Data['health']
+                app_id = $postChangeError.Exception.Data['app_id']
+                scheduler_id = $postChangeError.Exception.Data['scheduler_id']
+                identity_stable = [bool]$postChangeError.Exception.Data['identity_stable']
             }
         }
         $recoverySucceeded = $false
