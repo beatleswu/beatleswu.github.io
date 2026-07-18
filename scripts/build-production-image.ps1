@@ -129,6 +129,14 @@ function Invoke-BootstrapGit([string[]]$Arguments) {
     return $output
 }
 
+function Get-BootstrapSafeFirstOutputLine([AllowNull()][object]$Value) {
+    $items = @($Value)
+    if ($items.Count -eq 0 -or $null -eq $items[0]) {
+        return [string]::Empty
+    }
+    return ([string]$items[0]).Trim()
+}
+
 function Get-BootstrapProtectedPattern([string]$RelativePath) {
     $leaf = [System.IO.Path]::GetFileName(($RelativePath -replace '/', '\'))
     if ($leaf -ieq 'secret_key.txt') { return 'secret_key.txt' }
@@ -143,20 +151,20 @@ function Get-BootstrapProtectedPattern([string]$RelativePath) {
     return $null
 }
 
-$bootstrapTopLevel = Get-BootstrapCanonicalPath ((Invoke-BootstrapGit @('rev-parse', '--show-toplevel') | Select-Object -First 1).Trim()) 'Bootstrap Git top-level path'
+$bootstrapTopLevel = Get-BootstrapCanonicalPath (Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('rev-parse', '--show-toplevel'))) 'Bootstrap Git top-level path'
 if (-not [string]::Equals($bootstrapTopLevel, $bootstrapRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
     Fail-Bootstrap "Bootstrap Git top-level path does not equal the expected canonical worktree root."
 }
-$bootstrapHead = (Invoke-BootstrapGit @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
-$bootstrapExpectedHead = (Invoke-BootstrapGit @('rev-parse', $ExpectedExactGitSha) | Select-Object -First 1).Trim()
+$bootstrapHead = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('rev-parse', 'HEAD'))
+$bootstrapExpectedHead = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('rev-parse', $ExpectedExactGitSha))
 if ($bootstrapHead -ne $bootstrapExpectedHead) {
     Fail-Bootstrap "Bootstrap HEAD does not equal the expected exact Git SHA."
 }
-$bootstrapBranch = (Invoke-BootstrapGit @('branch', '--show-current') | Select-Object -First 1).Trim()
+$bootstrapBranch = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('branch', '--show-current'))
 if (-not [string]::IsNullOrWhiteSpace($bootstrapBranch) -or $ExpectedHeadState -ne 'detached') {
     Fail-Bootstrap "Bootstrap worktree HEAD is not detached as required."
 }
-$bootstrapCommonRaw = (Invoke-BootstrapGit @('rev-parse', '--git-common-dir') | Select-Object -First 1).Trim()
+$bootstrapCommonRaw = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('rev-parse', '--git-common-dir'))
 $bootstrapActualCommon = if ([System.IO.Path]::IsPathRooted($bootstrapCommonRaw)) {
     Assert-BootstrapNoReparse $bootstrapCommonRaw 'Actual Git common directory'
 }
@@ -202,9 +210,9 @@ if (-not $GitSha) {
     $GitSha = $ExpectedExactGitSha
 }
 else {
-    $GitSha = ((Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $validatedWorktreeRoot) | Select-Object -First 1).Trim()
+    $GitSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $validatedWorktreeRoot)
 }
-$resolvedExpectedExactGitSha = ((Invoke-Git -Arguments @('rev-parse', $ExpectedExactGitSha) -WorkingDirectory $validatedWorktreeRoot) | Select-Object -First 1).Trim()
+$resolvedExpectedExactGitSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $ExpectedExactGitSha) -WorkingDirectory $validatedWorktreeRoot)
 if ($GitSha -ne $resolvedExpectedExactGitSha) {
     Fail "GitSha does not equal the independently validated expected exact Git SHA."
 }
