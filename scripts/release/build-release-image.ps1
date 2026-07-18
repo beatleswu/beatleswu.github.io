@@ -14,6 +14,7 @@ function Fail($msg) {
 }
 
 $repoRoot = Get-RepoRoot
+$expectedGitCommonDirectory = Get-GitCommonDirectory -WorkingDirectory $repoRoot
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
 if (-not $ExpectedGitSha) {
     $ExpectedGitSha = Get-CurrentGitSha
@@ -62,17 +63,23 @@ try {
         }
 
         $env:APP_BUILD_DATE_OVERRIDE = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-        $worktree = Assert-DetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $ExpectedGitSha
+        $worktree = Assert-GeneratedDetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $ExpectedGitSha
         $childBuildScript = Join-Path $worktree 'scripts\build-production-image.ps1'
-        if (-not (Test-Path -LiteralPath $childBuildScript -PathType Leaf)) {
-            Fail "build-production-image.ps1 is missing from the validated release worktree."
-        }
+        $childBuildScript = Assert-GovernedBuildScriptPath -Path $childBuildScript -CanonicalWorktreeRoot $worktree
+        # This is the final parent-side identity check immediately before
+        # Process.Start(). The child repeats the same contract before any
+        # Docker/build action; no cross-process filesystem atomicity is claimed.
+        $worktree = Assert-GeneratedDetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $ExpectedGitSha
         $buildResult = Invoke-BoundedNativeCommand `
             -FileName 'powershell.exe' `
             -ArgumentList @(
                 '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                 $childBuildScript,
-                '-GitSha', $ExpectedGitSha
+                '-GitSha', $ExpectedGitSha,
+                '-ExpectedCanonicalWorktreeRoot', $worktree,
+                '-ExpectedExactGitSha', $ExpectedGitSha,
+                '-ExpectedGitCommonDirectory', $expectedGitCommonDirectory,
+                '-ExpectedHeadState', 'detached'
             ) `
             -WorkingDirectory $worktree `
             -RequireWorkingDirectory `

@@ -360,9 +360,14 @@ def test_build_script_uses_clean_tree_and_detached_worktree():
         assert token in content
 
 
-def test_build_production_clean_check_does_not_inspect_untracked_protection_files():
-    content = read_text(REPO_ROOT / "scripts" / "build-production-image.ps1")
-    assert "git status --short --untracked-files=no" in content
+def test_build_production_requires_child_side_complete_clean_worktree_check():
+    image_content = read_text(REPO_ROOT / "scripts" / "build-production-image.ps1")
+    module_content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
+    assert "Assert-GovernedBuildChildIdentity" in image_content
+    assert "Assert-CompleteWorktreeClean" in module_content
+    assert "'status', '--porcelain=v1', '--untracked-files=all'" in module_content
+    assert "'ls-files', '--others', '--ignored', '--exclude-standard'" in module_content
+    assert "secret_key.txt" in module_content
 
 
 def test_canonical_build_uses_exit_code_native_helper_for_stderr_safe_execution():
@@ -389,7 +394,12 @@ def test_invoke_git_treats_native_stderr_as_diagnostic_and_checks_exit_code():
 
 def test_detached_worktree_cleanup_uses_checked_git_helper():
     content = read_text(REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1")
-    assert "Invoke-Git -Arguments @('worktree', 'remove', '--force', $Path)" in content
+    cleanup = content.split("function Remove-DetachedWorktree", 1)[1].split("function Read-JsonFile", 1)[0]
+    assert "Invoke-Git -Arguments @('worktree', 'remove', '--force', '--', $candidate)" in cleanup
+    assert "$script:GeneratedDetachedWorktrees.ContainsKey($key)" in cleanup
+    assert "Get-RegisteredGitWorktreePaths" in cleanup
+    assert "Get-GitCommonDirectory" in cleanup
+    assert "Remove-Item" not in cleanup
     assert "& git worktree remove --force $Path" not in content
 
 
