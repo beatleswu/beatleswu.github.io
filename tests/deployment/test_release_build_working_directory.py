@@ -397,12 +397,13 @@ $result | ConvertTo-Json -Compress
     result = run_powershell(script)
     assert result.returncode == 0, result.stdout + result.stderr
     payload = parse_last_json(result.stdout)
-    assert payload == {
-        "exit_code": 7,
-        "output": "stdout-marker\r\nstderr-marker",
-        "timed_out": False,
-        "operation": "result contract probe",
-    }
+    assert payload["exit_code"] == 7
+    assert payload["output"] == "stdout-marker\r\nstderr-marker"
+    assert payload["stdout"] == "stdout-marker"
+    assert payload["stderr"] == "stderr-marker"
+    assert payload["elapsed_seconds"] >= 0
+    assert payload["timed_out"] is False
+    assert payload["operation"] == "result contract probe"
 
 
 def test_timeout_remains_bounded_and_terminates_child_process_tree(tmp_path):
@@ -914,6 +915,7 @@ $records | ConvertTo-Json -Compress
         ("scripts/release/package-static-release.ps1", "<script>"): (2, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "Invoke-BoundedSshCommand"): (2, "remote_context"),
         ("scripts/release/ReleaseTooling.psm1", "Invoke-BoundedScpUpload"): (1, "remote_context"),
+        ("scripts/release/deploy-release-image.ps1", "Get-RemoteCandidateFailureEvidence"): (1, "remote_context"),
         ("scripts/release/ReleaseTooling.psm1", "Test-GnuTarExecutableCapability"): (2, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "New-DeterministicStaticArchive"): (1, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "Test-StaticArchiveEntrySafety"): (1, "directory_independent"),

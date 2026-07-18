@@ -477,11 +477,218 @@ function Remove-RemoteCandidateCanary {
         [string]$ComposeProjectName,
         [string]$ComposePath
     )
-    if (-not [string]::IsNullOrWhiteSpace($ComposeProjectName) -and -not [string]::IsNullOrWhiteSpace($ComposePath)) {
+    $composeCleanupAttempted = -not [string]::IsNullOrWhiteSpace($ComposeProjectName) -and -not [string]::IsNullOrWhiteSpace($ComposePath)
+    if ($composeCleanupAttempted) {
         Invoke-RemoteText "docker compose -p $(Quote-PosixShellArgument $ComposeProjectName) -f $(Quote-PosixShellArgument $ComposePath) down --remove-orphans >/dev/null 2>&1 || true" | Out-Null
         Invoke-RemoteText "rm -f $(Quote-PosixShellArgument $ComposePath) >/dev/null 2>&1 || true" | Out-Null
     }
     Invoke-RemoteText "docker rm -f $(Quote-PosixShellArgument $CandidateContainerName) >/dev/null 2>&1 || true" | Out-Null
+    $containerState = Invoke-RemoteText "if docker inspect $(Quote-PosixShellArgument $CandidateContainerName) >/dev/null 2>&1; then printf present; else printf absent; fi"
+    $composePathState = if ($composeCleanupAttempted) {
+        Invoke-RemoteText "if test -e $(Quote-PosixShellArgument $ComposePath); then printf present; else printf absent; fi"
+    } else { 'not_applicable' }
+    if ($containerState -ne 'absent' -or $composePathState -eq 'present') {
+        throw 'Candidate cleanup verification failed closed.'
+    }
+    return [ordered]@{
+        status = 'completed'
+        candidate_container = $CandidateContainerName
+        compose_cleanup_attempted = $composeCleanupAttempted
+        container_remove_attempted = $true
+        container_state = $containerState
+        compose_path_state = $composePathState
+    }
+}
+
+function Save-CandidateEvidenceAtomically {
+    param(
+        [Parameter(Mandatory = $true)]$Evidence,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+    $parent = Split-Path -Parent $Path
+    if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    $temporary = "$Path.tmp.$([Guid]::NewGuid().ToString('N'))"
+    try {
+        $Evidence | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $temporary -Encoding UTF8
+        Move-Item -LiteralPath $temporary -Destination $Path -Force
+    }
+    finally {
+        Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-RemoteCandidateFailureEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [Parameter(Mandatory = $true)][string]$CandidateContainerName,
+        [Parameter(Mandatory = $true)][string]$SchedulerContainerName,
+        [Parameter(Mandatory = $true)][string]$NginxContainerName,
+        [scriptblock]$CaptureProbe
+    )
+    if ($CaptureProbe) { return & $CaptureProbe $OperationId $CandidateContainerName }
+    $payload = [ordered]@{
+        operation_id = $OperationId
+        candidate = $CandidateContainerName
+        scheduler = $SchedulerContainerName
+        nginx = $NginxContainerName
+    } | ConvertTo-Json -Compress
+    $script = @'
+import datetime
+import json
+import re
+import subprocess
+import sys
+
+cfg = json.loads(r'''__CANDIDATE_EVIDENCE_CONFIG__''')
+PREFIX = "[startup-diagnostic] "
+MAX_LOG_LINES = 240
+MAX_LOG_CHARS = 32768
+SUSPICIOUS = re.compile(r"(?i)(://|secret|password|passwd|token|cookie|authorization|database[_-]?url|connection[_-]?string|private[_ -]?key|credential)")
+SAFE_LOG = re.compile(r"(?i)(startup-diagnostic|traceback|error|exception|warning|health|connection refused|upstream|listening|ready)")
+
+def bounded(args, timeout=5):
+    try:
+        return subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+def safe_startup(line):
+    if not line.startswith(PREFIX):
+        return None
+    try:
+        source = json.loads(line[len(PREFIX):])
+    except (TypeError, ValueError):
+        return None
+    allowed = {key: source.get(key) for key in (
+        "schema", "boot_id", "timestamp_utc", "elapsed_seconds", "pid", "phase", "status",
+        "phase_elapsed_seconds", "exception_type", "snapshot_sequence"
+    ) if key in source}
+    threads = []
+    for thread in (source.get("threads") or [])[:16]:
+        frames = []
+        for frame in (thread.get("frames") or [])[-48:]:
+            try:
+                line_number = int(frame.get("line") or 0)
+            except (TypeError, ValueError):
+                line_number = 0
+            frames.append({
+                "file": str(frame.get("file") or "")[:160],
+                "function": str(frame.get("function") or "")[:160],
+                "line": line_number,
+            })
+        threads.append({"thread_id": str(thread.get("thread_id") or "")[:64], "frames": frames})
+    if threads:
+        allowed["threads"] = threads
+    return allowed
+
+def capture(name):
+    inspected = bounded(["docker", "inspect", name], 5)
+    if inspected is None or inspected.returncode != 0:
+        return {"available": False, "name": name, "failure_code": "container_inspect_unavailable"}
+    try:
+        item = json.loads(inspected.stdout)[0]
+    except (TypeError, ValueError, IndexError):
+        return {"available": False, "name": name, "failure_code": "container_inspect_invalid"}
+    state = item.get("State") or {}
+    health = state.get("Health") or {}
+    health_history = []
+    for row in (health.get("Log") or [])[-24:]:
+        health_history.append({
+            "start": row.get("Start"), "end": row.get("End"), "exit_code": row.get("ExitCode")
+        })
+    logs = bounded(["docker", "logs", "--since", "20m", "--tail", str(MAX_LOG_LINES), name], 5)
+    startup = []
+    safe_logs = []
+    if logs is not None:
+        for raw_line in (logs.stdout or "").splitlines():
+            event = safe_startup(raw_line)
+            if event is not None:
+                startup.append(event)
+                continue
+            if SUSPICIOUS.search(raw_line) or not SAFE_LOG.search(raw_line):
+                continue
+            safe_logs.append(raw_line[:512])
+    safe_log_text = "\n".join(safe_logs)
+    if len(safe_log_text) > MAX_LOG_CHARS:
+        safe_log_text = safe_log_text[:MAX_LOG_CHARS] + "\n<truncated>"
+    return {
+        "available": True,
+        "name": name,
+        "container_id": item.get("Id"),
+        "image_id": item.get("Image"),
+        "created": item.get("Created"),
+        "started_at": state.get("StartedAt"),
+        "finished_at": state.get("FinishedAt"),
+        "status": state.get("Status"),
+        "health": health.get("Status") if health else "n/a",
+        "health_history": health_history,
+        "restart_count": item.get("RestartCount"),
+        "exit_code": state.get("ExitCode"),
+        "oom_killed": state.get("OOMKilled"),
+        "startup_diagnostics": startup[-160:],
+        "bounded_logs": safe_log_text,
+    }
+
+print(json.dumps({
+    "status": "captured",
+    "operation_id": cfg["operation_id"],
+    "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    "candidate": capture(cfg["candidate"]),
+    "scheduler": capture(cfg["scheduler"]),
+    "nginx": capture(cfg["nginx"]),
+}, sort_keys=True, separators=(",", ":")))
+'@
+    $script = $script.Replace('__CANDIDATE_EVIDENCE_CONFIG__', $payload)
+    $arguments = @((Get-BoundedSshOptionArguments), $layout.ssh_alias, 'python3 -')
+    $result = Invoke-BoundedNativeCommand -FileName 'ssh' -ArgumentList $arguments -StdinText $script -TimeoutSeconds 20 -OperationLabel 'candidate failure evidence capture'
+    if ($result.exit_code -ne 0) { throw 'Candidate evidence capture failed closed; remote output withheld.' }
+    try { $evidence = $result.stdout | ConvertFrom-Json }
+    catch { throw 'Candidate evidence capture returned invalid sanitized JSON.' }
+    if (-not $evidence -or $evidence.status -ne 'captured' -or $evidence.operation_id -ne $OperationId) {
+        throw 'Candidate evidence capture response failed closed.'
+    }
+    return $evidence
+}
+
+function Invoke-CandidateFailurePreservation {
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [Parameter(Mandatory = $true)][string]$CandidateContainerName,
+        [Parameter(Mandatory = $true)]$OriginalFailure,
+        [Parameter(Mandatory = $true)][string]$EvidencePath,
+        $HelperAttempt,
+        [scriptblock]$CaptureAction,
+        [scriptblock]$CleanupAction
+    )
+    $capture = $null
+    $captureFailure = $null
+    try { $capture = & $CaptureAction }
+    catch { $captureFailure = 'candidate_evidence_capture_failed_closed' }
+    $evidence = [ordered]@{
+        schema = 'go-odyssey-candidate-failure-evidence-v1'
+        operation_id = $OperationId
+        recorded_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+        candidate_container_name = $CandidateContainerName
+        original_failure = $OriginalFailure
+        helper_attempt = $HelperAttempt
+        capture = $capture
+        capture_failure = $captureFailure
+        cleanup = [ordered]@{ status = 'not_started' }
+        release_lock_cleanup = [ordered]@{ status = 'pending' }
+    }
+    Save-CandidateEvidenceAtomically -Evidence $evidence -Path $EvidencePath
+    try {
+        $cleanup = & $CleanupAction
+        $evidence.cleanup = if ($cleanup) { $cleanup } else { [ordered]@{ status = 'completed' } }
+    }
+    catch {
+        $evidence.cleanup = [ordered]@{ status = 'failed'; failure_code = 'candidate_cleanup_failed_closed' }
+    }
+    try { Save-CandidateEvidenceAtomically -Evidence $evidence -Path $EvidencePath }
+    catch {}
+    return $evidence
 }
 
 function Remove-RemoteStaleCandidateCanaries {
@@ -626,11 +833,102 @@ function ConvertFrom-FramedReadinessOutput {
     }
 }
 
+function ConvertTo-SafeBoundedHelperText {
+    param(
+        [AllowNull()][string]$Text,
+        [int]$MaximumCharacters = 32768,
+        [int]$MaximumLines = 160
+    )
+    if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
+    $safeLines = @()
+    foreach ($line in @($Text -split "`r?`n")) {
+        if ($safeLines.Count -ge $MaximumLines) { break }
+        $candidate = [string]$line
+        if ($candidate.StartsWith('__GO_ODYSSEY_READINESS_V1__:', [System.StringComparison]::Ordinal)) {
+            $safeLines += '__GO_ODYSSEY_READINESS_V1__:<payload retained separately>'
+            continue
+        }
+        if ($candidate.StartsWith('[startup-diagnostic] ', [System.StringComparison]::Ordinal)) {
+            try {
+                $source = $candidate.Substring(21) | ConvertFrom-Json
+                $safe = [ordered]@{}
+                foreach ($name in @('schema','boot_id','timestamp_utc','elapsed_seconds','pid','phase','status','phase_elapsed_seconds','exception_type','snapshot_sequence')) {
+                    if (@($source.PSObject.Properties.Name) -contains $name) { $safe[$name] = $source.$name }
+                }
+                $safeLines += ('[startup-diagnostic] ' + ($safe | ConvertTo-Json -Compress -Depth 4))
+            }
+            catch {}
+            continue
+        }
+        if ($candidate -match '://' -or $candidate -match '(?i)(secret|password|passwd|token|cookie|authorization|database[_-]?url|connection[_-]?string|private[_ -]?key|credential)') {
+            continue
+        }
+        if ($candidate -match '^(Traceback|During handling|The above exception|\s*File \"[^\"]+\", line \d+|\s*\^+\s*$|[A-Za-z_][A-Za-z0-9_.]*(Error|Exception):)') {
+            $safeLines += $candidate.Substring(0, [Math]::Min(512, $candidate.Length))
+        }
+    }
+    $safeText = ($safeLines -join "`n")
+    if ($safeText.Length -le $MaximumCharacters) { return $safeText }
+    return ($safeText.Substring(0, $MaximumCharacters) + "`n<truncated>")
+}
+
+function ConvertTo-SafeReadinessEvidenceReport {
+    param([AllowNull()]$Report)
+    if ($null -eq $Report) { return $null }
+    return [ordered]@{
+        ok = [bool]$Report.ok
+        app = [ordered]@{
+            git_sha = [string]$Report.app.git_sha
+            image_revision = [string]$Report.app.image_revision
+            build_date = [string]$Report.app.build_date
+        }
+        questions = [ordered]@{
+            exists = [bool]$Report.questions.exists
+            readable = [bool]$Report.questions.readable
+            parseable = [bool]$Report.questions.parseable
+            record_count = [int]$Report.questions.record_count
+            record_count_ok = [bool]$Report.questions.record_count_ok
+            structural_record_check = [bool]$Report.questions.structural_record_check
+        }
+        database = [ordered]@{
+            reachable = [bool]$Report.database.reachable
+            tables = $Report.database.tables
+        }
+        static_root = [ordered]@{
+            exists = [bool]$Report.static_root.exists
+            readable = [bool]$Report.static_root.readable
+        }
+        shadow_events = [ordered]@{
+            exists = [bool]$Report.shadow_events.exists
+            readable = [bool]$Report.shadow_events.readable
+            writable_or_valid = [bool]$Report.shadow_events.writable_or_valid
+        }
+        failure_count = @($Report.failures).Count
+    }
+}
+
 function Try-Get-RemoteReadinessReport {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $result = Invoke-RemoteCommandResult -Name 'app_helper_readiness' -Command "docker exec $ContainerName python -X utf8 -c 'import base64, json, app; payload=json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False).encode(`"utf-8`"); print(`"__GO_ODYSSEY_READINESS_V1__:`" + base64.b64encode(payload).decode(`"ascii`"))'"
+    $command = "docker exec $ContainerName python -X utf8 -c 'import base64, json, app; payload=json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False).encode(`"utf-8`"); print(`"__GO_ODYSSEY_READINESS_V1__:`" + base64.b64encode(payload).decode(`"ascii`"))'"
+    $result = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -Command $command -TimeoutSeconds 45 -OperationLabel 'candidate runtime readiness helper'
+    $combined = (@([string]$result.stdout, [string]$result.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
+    $decoded = $null
+    $decodeFailure = $null
+    try { $decoded = ConvertFrom-FramedReadinessOutput -Output $combined }
+    catch { $decodeFailure = $_.Exception.Message }
+    $script:LastReadinessAttempt = [ordered]@{
+        container_name = $ContainerName
+        exit_code = [int]$result.exit_code
+        elapsed_seconds = [double]$result.elapsed_seconds
+        stdout = ConvertTo-SafeBoundedHelperText -Text ([string]$result.stdout)
+        stderr = ConvertTo-SafeBoundedHelperText -Text ([string]$result.stderr)
+        framed_payload_present = ($null -ne $decoded)
+        framed_report = if ($decoded) { ConvertTo-SafeReadinessEvidenceReport -Report $decoded.report } else { $null }
+        startup_diagnostics = if ($decoded) { @($decoded.startup_diagnostics) } else { @() }
+        framing_failure = if ($decodeFailure) { 'framed_readiness_decode_failed_closed' } else { $null }
+    }
     if ($result.exit_code -eq 0) {
-        $decoded = ConvertFrom-FramedReadinessOutput -Output $result.output
+        if (-not $decoded) { throw $decodeFailure }
         return [ordered]@{
             mode = 'helper'
             report = $decoded.report
@@ -638,7 +936,7 @@ function Try-Get-RemoteReadinessReport {
             startup_diagnostics = @($decoded.startup_diagnostics)
         }
     }
-    if (Test-HelperUnavailableOutput -Output $result.output) {
+    if (Test-HelperUnavailableOutput -Output $combined) {
         return [ordered]@{
             mode = 'legacy_fallback'
             report = $null
@@ -1005,6 +1303,10 @@ $verificationReports = @()
 $rollbackRequired = $false
 $staleCandidateCleanup = $null
 $operationId = "deploy-$artifactBaseName-$([Guid]::NewGuid().ToString('N'))"
+$candidateEvidencePath = Join-Path (Split-Path -Parent $manifestPath) ("{0}.{1}.candidate-evidence.json" -f $artifactBaseName, $operationId)
+$candidateFailureEvidence = $null
+$candidateCreationAttempted = $false
+$script:LastReadinessAttempt = $null
 $remoteOperationLockPath = Join-RemotePath $layout.compose_directory '.release-operation.lock'
 $operationLockHeld = $false
 
@@ -1119,12 +1421,15 @@ try {
         previous_scheduler_runtime_contract = $schedulerRuntimeContract
     }
     $deploymentRecord = New-DeploymentRecord -RollbackIdentity $rollbackIdentity -VerificationResult 'deployment in progress'
+    $deploymentRecord['operation_id'] = $operationId
+    $deploymentRecord['candidate_evidence_filename'] = [IO.Path]::GetFileName($candidateEvidencePath)
     Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
     & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed while transferring the deployment record."
     }
 
+    $candidateCreationAttempted = $true
     $candidateCanary = Start-RemoteCandidateCanary -SourceContainerName $layout.app_service_name -CandidateContainerName $candidateContainerName -ImageTag $manifest.image_tag
     if ($candidateCanary.public_traffic_attached -ne $false) {
         throw "Candidate canary unexpectedly reports public traffic attachment."
@@ -1221,7 +1526,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "scp failed while updating the remote deployment record."
     }
-    Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path
+    $null = Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path
 
     [ordered]@{
         dry_run = $false
@@ -1258,13 +1563,44 @@ try {
     } | ConvertTo-Json -Depth 12 | Write-Output
 }
 catch {
+    $deploymentFailure = $_
     $deploymentFailureMessage = $_.Exception.Message
-    if ($candidateContainerName) {
+    if ($candidateCreationAttempted) {
+        $failureStage = if ($script:LastReadinessAttempt -and $script:LastReadinessAttempt.container_name -eq $candidateContainerName) { 'candidate_readiness_helper' } else { 'candidate_lifecycle' }
+        $originalFailure = [ordered]@{
+            stage = $failureStage
+            code = [string]$deploymentFailure.FullyQualifiedErrorId
+            message = if ($failureStage -eq 'candidate_readiness_helper') { "Candidate readiness helper failed with exit code $([int]$script:LastReadinessAttempt.exit_code)." } else { 'Candidate lifecycle validation failed closed.' }
+        }
+        $captureAction = {
+            Get-RemoteCandidateFailureEvidence `
+                -OperationId $operationId `
+                -CandidateContainerName $candidateContainerName `
+                -SchedulerContainerName $layout.scheduler_service_name `
+                -NginxContainerName $layout.nginx_service_name
+        }
+        $cleanupAction = {
+            Remove-RemoteCandidateCanary `
+                -CandidateContainerName $candidateContainerName `
+                -ComposeProjectName $(if ($candidateCanary) { $candidateCanary.compose_project } else { '' }) `
+                -ComposePath $(if ($candidateCanary) { $candidateCanary.compose_path } else { '' })
+        }
         try {
-            Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $(if ($candidateCanary) { $candidateCanary.compose_project } else { '' }) -ComposePath $(if ($candidateCanary) { $candidateCanary.compose_path } else { '' })
+            $candidateFailureEvidence = Invoke-CandidateFailurePreservation `
+                -OperationId $operationId `
+                -CandidateContainerName $candidateContainerName `
+                -OriginalFailure $originalFailure `
+                -EvidencePath $candidateEvidencePath `
+                -HelperAttempt $script:LastReadinessAttempt `
+                -CaptureAction $captureAction `
+                -CleanupAction $cleanupAction
         }
         catch {
+            try { & $cleanupAction | Out-Null } catch {}
         }
+    }
+    elseif ($candidateContainerName) {
+        try { Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName '' -ComposePath '' | Out-Null } catch {}
     }
     if ($rollbackRequired -and $deploymentRecordPath -and (Test-Path -LiteralPath $deploymentRecordPath)) {
         $reconciliationFailure = $null
@@ -1339,11 +1675,20 @@ catch {
 finally {
     if ($operationLockHeld) {
         try {
-            $null = Exit-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+            $releaseCleanup = Exit-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $remoteOperationLockPath -OperationId $operationId
+            if ($candidateFailureEvidence) {
+                $candidateFailureEvidence.release_lock_cleanup = [ordered]@{ status = 'completed'; result = $releaseCleanup }
+            }
         }
         catch {
+            if ($candidateFailureEvidence) {
+                $candidateFailureEvidence.release_lock_cleanup = [ordered]@{ status = 'failed'; failure_code = 'release_lock_cleanup_failed_closed' }
+            }
             Write-Warning $_.Exception.Message
         }
+    }
+    if ($candidateFailureEvidence) {
+        try { Save-CandidateEvidenceAtomically -Evidence $candidateFailureEvidence -Path $candidateEvidencePath } catch {}
     }
     Remove-Item -LiteralPath $healthcheckOverridePath -ErrorAction SilentlyContinue
 }
