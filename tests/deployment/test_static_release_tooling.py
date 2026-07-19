@@ -73,10 +73,11 @@ def test_inventory_required_in_generation_is_subset_of_eligible():
 
 
 def test_inventory_required_in_generation_matches_confirmed_drift_scope():
-    # Confirmed via direct host inspection (see canonical_static_release_contract.md)
-    # -- exactly these two files were physically present and stale.
+    # i18n.js and sw.js were the original stale live-static files. index.html
+    # is also governed because an older live-static entrypoint can mask the
+    # exact image's application shell wiring.
     inventory = _load_inventory()
-    assert set(inventory["required_in_generation"]["entries"]) == {"i18n.js", "sw.js"}
+    assert set(inventory["required_in_generation"]["entries"]) == {"i18n.js", "sw.js", "index.html"}
 
 
 def test_inventory_excludes_icons_prefix():
