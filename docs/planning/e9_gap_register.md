@@ -2,6 +2,19 @@
 
 Status: evidence-based audit record, 2026-07-19.
 
+## E9-ADMIN-GATE1A update
+
+* Result: `E9_ADMIN_ONLY_ACCEPTED_WITH_NON_ADMIN_EVIDENCE_GAP`.
+* Governed mutation: canonical `set-e9-rollout.ps1 enable-admin-only` executed
+  once under `GO_DEPLOY`; backup `20260719-052125-752f92b05649` was recorded.
+* Admin evidence: `is_admin=true`, `eligible=true`, `reason=admin_entitled`,
+  all six flags true, E9/Legacy exclusive, navigation and refresh stable,
+  logout returned to login.
+* Unauthenticated evidence: no E9 root after logout; public endpoints stayed
+  healthy.
+* Remaining gap: no approved non-admin account and no re-login credential
+  entry. Do not begin lifecycle hardening or rollout expansion until closed.
+
 ## E9-ADMIN-ACCEPT1 update
 
 * Result: `E9_ADMIN_ACCEPTANCE_PARTIAL`.
