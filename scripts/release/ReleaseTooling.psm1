@@ -1741,7 +1741,16 @@ function ConvertFrom-FramedJsonRecord {
 
 function Get-RemoteStandardOutput {
     param([Parameter(Mandatory = $true)]$Result)
-    if (@($Result.PSObject.Properties.Name) -contains 'stdout') {
+    # Invoke-BoundedNativeCommand and Invoke-RemoteShellCommand return
+    # ordered dictionaries. Their keys are accessible through the PowerShell
+    # adapter (`$Result.stdout`), but they are not listed by
+    # PSObject.Properties.Name; that list only contains Count/Keys/Values and
+    # other dictionary members. Detect dictionary keys explicitly so stderr
+    # diagnostics can never make this helper fall back to merged `output`.
+    if ($Result -is [System.Collections.IDictionary] -and $Result.Contains('stdout')) {
+        return [string]$Result['stdout']
+    }
+    if ($null -ne $Result.PSObject.Properties['stdout']) {
         return [string]$Result.stdout
     }
     # Compatibility for existing injected test callbacks. Production remote

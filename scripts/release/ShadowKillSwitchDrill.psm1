@@ -46,6 +46,8 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
         final_effective_state = $null
         final_matches_initial = $false
         failure_stage = $null
+        failure_code = $null
+        failure_message = $null
         partial_state = $true
     }
 
@@ -139,6 +141,8 @@ function Invoke-ShadowKillSwitchDrillStateMachine {
     }
     catch {
         $report.failure_stage = $stage
+        $report.failure_code = 'shadow_kill_switch_drill_failed'
+        $report.failure_message = [string]$_.Exception.Message
     }
     finally {
         if ($mutationMayHaveStarted -and $report.initial_state_captured) {
