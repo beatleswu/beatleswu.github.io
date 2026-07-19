@@ -2,6 +2,17 @@
 
 Status: evidence-based audit record, 2026-07-19.
 
+## E9-ADMIN-ACCEPT2 closure
+
+* Result: `E9_ADMIN_ONLY_PRODUCTION_ACCEPTED`.
+* Owner acceptance closed the admin re-login gap: initial login, refresh,
+  logout, re-login, E9 visibility, and Legacy exclusivity all passed.
+* Owner acceptance closed the non-admin gap with approved ordinary account
+  `test01`: Legacy visible and E9 absent.
+* No runtime, flag, account-role, database, SGF, questions, player-state,
+  deployment, or Shadow mutation occurred during this addendum.
+* Next Sprint: `E9-BETA-LIFECYCLE1`.
+
 ## E9-ADMIN-ACCEPT1 update
 
 * Result: `E9_ADMIN_ACCEPTANCE_PARTIAL`.
