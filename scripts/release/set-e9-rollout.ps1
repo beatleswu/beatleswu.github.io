@@ -35,7 +35,7 @@ function Invoke-E9Helper {
     $remoteScript = "sudo -n python3 - $ArgumentText <<'__E9_ROLLOUT_HELPER__'`n$helper`n__E9_ROLLOUT_HELPER__"
     $result = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name 'e9_rollout_config' -ScriptText $remoteScript
     if ($result.exit_code -ne 0) { throw "E9 setter failed closed: $($result.output)" }
-    try { return ($result.output | ConvertFrom-Json) } catch { throw 'E9 setter returned invalid sanitized JSON.' }
+    try { return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json) } catch { throw 'E9 setter returned invalid sanitized JSON.' }
 }
 
 function Invoke-E9ComposeRecreate {

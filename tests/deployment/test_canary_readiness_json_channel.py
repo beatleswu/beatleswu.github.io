@@ -54,6 +54,7 @@ def run_real_functions(tmp_path, output, *, stderr="", exit_code=0, call_try=Tru
     probe.write_text(
         "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)\n"
         "$ErrorActionPreference = 'Stop'\n"
+        f"Import-Module '{(REPO_ROOT / 'scripts' / 'release' / 'ReleaseTooling.psm1').as_posix()}' -Force -DisableNameChecking\n"
         f"$script:FakeOutput = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{output_b64}'))\n"
         f"$script:FakeStderr = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{stderr_b64}'))\n"
         f"$script:FakeExitCode = {exit_code}\n"
@@ -116,9 +117,9 @@ def test_real_readiness_helper_accepts_stderr_diagnostics_merged_around_stdout_r
 @pytest.mark.parametrize(
     ("output", "error_fragment"),
     [
-        ("diagnostic only", "exactly one framed result; found 0"),
-        (framed(readiness_report()) + "\n" + framed(readiness_report()), "exactly one framed result; found 2"),
-        (PREFIX + "%%%not-base64%%%", "framed result is malformed"),
+        ("diagnostic only", "exactly one framed JSON result; found 0"),
+        (framed(readiness_report()) + "\n" + framed(readiness_report()), "exactly one framed JSON result; found 2"),
+        (PREFIX + "%%%not-base64%%%", "framed JSON result is malformed"),
         (framed({"ok": True}), "invalid schema"),
     ],
     ids=["missing", "duplicate", "malformed", "invalid-schema"],

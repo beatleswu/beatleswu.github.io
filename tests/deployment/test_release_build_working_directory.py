@@ -916,6 +916,9 @@ $records | ConvertTo-Json -Compress
         ("scripts/release/ReleaseTooling.psm1", "Invoke-BoundedSshCommand"): (2, "remote_context"),
         ("scripts/release/ReleaseTooling.psm1", "Invoke-BoundedScpUpload"): (1, "remote_context"),
         ("scripts/release/deploy-release-image.ps1", "Get-RemoteCandidateFailureEvidence"): (1, "remote_context"),
+        ("scripts/release/deploy-release-image.ps1", "Invoke-ProductionVerificationSeries"): (1, "explicit_local_context"),
+        ("scripts/release/deploy-release-image.ps1", "<script>"): (1, "explicit_local_context"),
+        ("scripts/release/rollback-release.ps1", "<script>"): (1, "explicit_local_context"),
         ("scripts/release/ReleaseTooling.psm1", "Test-GnuTarExecutableCapability"): (2, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "New-DeterministicStaticArchive"): (1, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "Test-StaticArchiveEntrySafety"): (1, "directory_independent"),
@@ -939,3 +942,10 @@ $records | ConvertTo-Json -Compress
     assert "@('--version')" in module
     assert "@($script:TarForceLocalFlag, '-tvf', $ArchivePath)" in module
     assert "Invoke-BoundedSshCommand" in module and "Invoke-BoundedScpUpload" in module
+    for key in (
+        ("scripts/release/deploy-release-image.ps1", "Invoke-ProductionVerificationSeries"),
+        ("scripts/release/deploy-release-image.ps1", "<script>"),
+        ("scripts/release/rollback-release.ps1", "<script>"),
+    ):
+        assert "-WorkingDirectory $repoRoot" in actual[key][0]
+        assert "-RequireWorkingDirectory" in actual[key][0]

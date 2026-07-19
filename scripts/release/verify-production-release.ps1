@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][string]$ReleaseManifest,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     [string]$OperationId,
+    [switch]$FramedResult,
     [switch]$DryRun
 )
 
@@ -32,9 +33,9 @@ function Invoke-RemoteText {
     param([Parameter(Mandatory = $true)][string]$Command)
     $result = Invoke-RemoteCommandResult -Name 'remote_command' -Command $Command
     if ($result.exit_code -ne 0) {
-        throw "Remote command failed: $($result.output)"
+        throw "Remote command failed with exit code $($result.exit_code)."
     }
-    return $result.output
+    return $result.stdout
 }
 
 function Get-RemoteHealthStatus {
@@ -151,22 +152,31 @@ function Test-HelperUnavailableOutput {
 
 function Try-Get-RemoteReadinessReport {
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $result = Invoke-RemoteCommandResult -Name 'app_helper_readiness' -Command "docker exec $ContainerName python -X utf8 -c 'import json, app; print(json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False))'"
+    $command = "docker exec $(Quote-PosixShellArgument $ContainerName) python -X utf8 -c 'import base64, json, app; payload=json.dumps(app._read_runtime_deployment_readiness(), ensure_ascii=False).encode(`"utf-8`"); print(`"__GO_ODYSSEY_READINESS_V1__:`" + base64.b64encode(payload).decode(`"ascii`"))'"
+    $result = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -Command $command -TimeoutSeconds 45 -OperationLabel 'production runtime readiness helper'
+    $combined = (@([string]$result.stdout, [string]$result.stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
+    $report = $null
+    try {
+        $report = ConvertFrom-FramedJsonRecord -Output $combined -Prefix '__GO_ODYSSEY_READINESS_V1__:' -Context 'Production runtime readiness' -RequiredProperties @('ok','app','questions','database','static_root','shadow_events','failures')
+    }
+    catch {
+        if ($result.exit_code -eq 0) { throw }
+    }
     if ($result.exit_code -eq 0) {
         return [ordered]@{
             mode = 'helper'
-            report = ($result.output | ConvertFrom-Json)
+            report = $report
             helper_available = $true
         }
     }
-    if (Test-HelperUnavailableOutput -Output $result.output) {
+    if (Test-HelperUnavailableOutput -Output $combined) {
         return [ordered]@{
             mode = 'legacy_fallback'
             report = $null
             helper_available = $false
         }
     }
-    throw "Runtime readiness helper failed unexpectedly: $($result.output)"
+    throw "Runtime readiness helper failed unexpectedly with exit code $($result.exit_code)."
 }
 
 function Get-RemoteQuestionsReport {
@@ -225,7 +235,7 @@ print(json.dumps(report, ensure_ascii=False))
     if ($result.exit_code -ne 0) {
         throw "Remote command failed [questions_report]: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Get-RemoteImageLabels {
@@ -381,4 +391,9 @@ if ($appLogs -match 'premium_weekly_job' -or $appLogs -match 'Traceback \(most r
     throw "premium weekly or traceback evidence was unexpectedly present in the app logs."
 }
 
-Write-Output ($report | ConvertTo-Json -Depth 10)
+if ($FramedResult) {
+    Write-Output (ConvertTo-FramedJsonRecord -InputObject $report -Prefix '__GO_ODYSSEY_POWERSHELL_RESULT_V1__:' -Depth 12)
+}
+else {
+    Write-Output ($report | ConvertTo-Json -Depth 10)
+}

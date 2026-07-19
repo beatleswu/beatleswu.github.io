@@ -59,9 +59,9 @@ function Invoke-RemoteText {
     param([Parameter(Mandatory = $true)][string]$Command)
     $result = Invoke-RemoteCommandResult -Name 'remote_command' -Command $Command
     if ($result.exit_code -ne 0) {
-        throw "Remote command failed: $($result.output)"
+        throw "Remote command failed with exit code $($result.exit_code)."
     }
-    return $result.output
+    return $result.stdout
 }
 
 function Join-RemotePath {
@@ -295,7 +295,7 @@ print(json.dumps(report, ensure_ascii=False))
     if ($result.exit_code -ne 0) {
         throw "Remote command failed [runtime_contract]: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Start-RemoteCandidateCanary {
@@ -468,7 +468,7 @@ print(json.dumps({
     if ($result.exit_code -ne 0) {
         throw "Remote command failed [candidate_canary]: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Remove-RemoteCandidateCanary {
@@ -535,6 +535,7 @@ function Get-RemoteCandidateFailureEvidence {
         nginx = $NginxContainerName
     } | ConvertTo-Json -Compress
     $script = @'
+import base64
 import datetime
 import json
 import re
@@ -584,13 +585,36 @@ def safe_startup(line):
     return allowed
 
 def capture(name):
+    result = {
+        "available": False,
+        "name": name,
+        "capture_errors": [],
+        "container_id": None,
+        "image_id": None,
+        "created": None,
+        "started_at": None,
+        "finished_at": None,
+        "status": None,
+        "health": None,
+        "health_history": [],
+        "restart_count": None,
+        "exit_code": None,
+        "oom_killed": None,
+        "startup_diagnostics": [],
+        "bounded_logs": "",
+    }
     inspected = bounded(["docker", "inspect", name], 5)
-    if inspected is None or inspected.returncode != 0:
-        return {"available": False, "name": name, "failure_code": "container_inspect_unavailable"}
+    if inspected is None:
+        result["capture_errors"].append({"field": "lifecycle", "code": "container_inspect_timeout_or_unavailable"})
+        return result
+    if inspected.returncode != 0:
+        result["capture_errors"].append({"field": "lifecycle", "code": "container_inspect_failed"})
+        return result
     try:
         item = json.loads(inspected.stdout)[0]
     except (TypeError, ValueError, IndexError):
-        return {"available": False, "name": name, "failure_code": "container_inspect_invalid"}
+        result["capture_errors"].append({"field": "lifecycle", "code": "container_inspect_invalid"})
+        return result
     state = item.get("State") or {}
     health = state.get("Health") or {}
     health_history = []
@@ -598,24 +622,8 @@ def capture(name):
         health_history.append({
             "start": row.get("Start"), "end": row.get("End"), "exit_code": row.get("ExitCode")
         })
-    logs = bounded(["docker", "logs", "--since", "20m", "--tail", str(MAX_LOG_LINES), name], 5)
-    startup = []
-    safe_logs = []
-    if logs is not None:
-        for raw_line in (logs.stdout or "").splitlines():
-            event = safe_startup(raw_line)
-            if event is not None:
-                startup.append(event)
-                continue
-            if SUSPICIOUS.search(raw_line) or not SAFE_LOG.search(raw_line):
-                continue
-            safe_logs.append(raw_line[:512])
-    safe_log_text = "\n".join(safe_logs)
-    if len(safe_log_text) > MAX_LOG_CHARS:
-        safe_log_text = safe_log_text[:MAX_LOG_CHARS] + "\n<truncated>"
-    return {
+    result.update({
         "available": True,
-        "name": name,
         "container_id": item.get("Id"),
         "image_id": item.get("Image"),
         "created": item.get("Created"),
@@ -627,24 +635,51 @@ def capture(name):
         "restart_count": item.get("RestartCount"),
         "exit_code": state.get("ExitCode"),
         "oom_killed": state.get("OOMKilled"),
-        "startup_diagnostics": startup[-160:],
-        "bounded_logs": safe_log_text,
-    }
+    })
+    logs = bounded(["docker", "logs", "--since", "20m", "--tail", str(MAX_LOG_LINES), name], 5)
+    startup = []
+    safe_logs = []
+    if logs is None:
+        result["capture_errors"].append({"field": "logs", "code": "container_logs_timeout_or_unavailable"})
+    elif logs.returncode != 0:
+        result["capture_errors"].append({"field": "logs", "code": "container_logs_failed"})
+    else:
+        for raw_line in (logs.stdout or "").splitlines():
+            event = safe_startup(raw_line)
+            if event is not None:
+                startup.append(event)
+                continue
+            if SUSPICIOUS.search(raw_line) or not SAFE_LOG.search(raw_line):
+                continue
+            safe_logs.append(raw_line[:512])
+    safe_log_text = "\n".join(safe_logs)
+    if len(safe_log_text) > MAX_LOG_CHARS:
+        safe_log_text = safe_log_text[:MAX_LOG_CHARS] + "\n<truncated>"
+    result["startup_diagnostics"] = startup[-160:]
+    result["bounded_logs"] = safe_log_text
+    return result
 
-print(json.dumps({
+captured = {
     "status": "captured",
     "operation_id": cfg["operation_id"],
     "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "candidate": capture(cfg["candidate"]),
     "scheduler": capture(cfg["scheduler"]),
     "nginx": capture(cfg["nginx"]),
-}, sort_keys=True, separators=(",", ":")))
+}
+captured["capture_errors"] = [
+    {"container": item["name"], "field": error["field"], "code": error["code"]}
+    for item in (captured["candidate"], captured["scheduler"], captured["nginx"])
+    for error in item.get("capture_errors", [])
+]
+encoded = base64.b64encode(json.dumps(captured, sort_keys=True, separators=(",", ":")).encode("utf-8")).decode("ascii")
+print("__GO_ODYSSEY_EVIDENCE_V1__:" + encoded)
 '@
     $script = $script.Replace('__CANDIDATE_EVIDENCE_CONFIG__', $payload)
     $arguments = @((Get-BoundedSshOptionArguments), $layout.ssh_alias, 'python3 -')
-    $result = Invoke-BoundedNativeCommand -FileName 'ssh' -ArgumentList $arguments -StdinText $script -TimeoutSeconds 20 -OperationLabel 'candidate failure evidence capture'
+    $result = Invoke-BoundedNativeCommand -FileName 'ssh' -ArgumentList $arguments -StdinText $script -TimeoutSeconds 40 -OperationLabel 'candidate failure evidence capture'
     if ($result.exit_code -ne 0) { throw 'Candidate evidence capture failed closed; remote output withheld.' }
-    try { $evidence = $result.stdout | ConvertFrom-Json }
+    try { $evidence = ConvertFrom-FramedJsonRecord -Output $result.stdout -Prefix '__GO_ODYSSEY_EVIDENCE_V1__:' -Context 'Candidate evidence capture' -RequiredProperties @('status','operation_id','candidate','scheduler','nginx','capture_errors') }
     catch { throw 'Candidate evidence capture returned invalid sanitized JSON.' }
     if (-not $evidence -or $evidence.status -ne 'captured' -or $evidence.operation_id -ne $OperationId) {
         throw 'Candidate evidence capture response failed closed.'
@@ -663,18 +698,38 @@ function Invoke-CandidateFailurePreservation {
         [scriptblock]$CleanupAction
     )
     $capture = $null
-    $captureFailure = $null
-    try { $capture = & $CaptureAction }
-    catch { $captureFailure = 'candidate_evidence_capture_failed_closed' }
+    $captureErrors = @()
+    try {
+        $capture = & $CaptureAction
+        if ($capture -is [System.Collections.IDictionary] -and $capture.Contains('capture_errors')) {
+            $captureErrors = @($capture['capture_errors'])
+        }
+        elseif ($capture -and @($capture.PSObject.Properties.Name) -contains 'capture_errors') {
+            $captureErrors = @($capture.capture_errors)
+        }
+    }
+    catch {
+        $captureErrors = @([ordered]@{ field = 'remote_capture'; code = 'candidate_evidence_capture_failed_closed' })
+        $capture = [ordered]@{
+            status = 'partial'
+            operation_id = $OperationId
+            candidate = [ordered]@{
+                available = $false
+                name = $CandidateContainerName
+                capture_errors = $captureErrors
+            }
+            capture_errors = $captureErrors
+        }
+    }
     $evidence = [ordered]@{
-        schema = 'go-odyssey-candidate-failure-evidence-v1'
+        schema = 'go-odyssey-candidate-failure-evidence-v2'
         operation_id = $OperationId
         recorded_at_utc = (Get-Date).ToUniversalTime().ToString('o')
         candidate_container_name = $CandidateContainerName
         original_failure = $OriginalFailure
         helper_attempt = $HelperAttempt
         capture = $capture
-        capture_failure = $captureFailure
+        capture_errors = $captureErrors
         cleanup = [ordered]@{ status = 'not_started' }
         release_lock_cleanup = [ordered]@{ status = 'pending' }
     }
@@ -729,7 +784,7 @@ print(json.dumps({"removed": removed}, ensure_ascii=False))
     if ($result.exit_code -ne 0) {
         throw "Remote stale candidate cleanup failed: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Test-HelperUnavailableOutput {
@@ -749,32 +804,8 @@ function ConvertFrom-FramedReadinessOutput {
     $prefix = '__GO_ODYSSEY_READINESS_V1__:'
     $diagnosticPrefix = '[startup-diagnostic] '
     $lines = @($Output -split "`r?`n")
-    $records = @($lines | Where-Object { $_.StartsWith($prefix, [System.StringComparison]::Ordinal) })
-    if ($records.Count -ne 1) {
-        throw "Runtime readiness output must contain exactly one framed result; found $($records.Count)."
-    }
-
-    $encoded = $records[0].Substring($prefix.Length)
-    if ([string]::IsNullOrWhiteSpace($encoded)) {
-        throw "Runtime readiness framed result is empty."
-    }
-    try {
-        $bytes = [Convert]::FromBase64String($encoded)
-        $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
-        $json = $utf8.GetString($bytes)
-        $report = $json | ConvertFrom-Json
-    }
-    catch {
-        throw "Runtime readiness framed result is malformed."
-    }
-
     $requiredProperties = @('ok', 'app', 'questions', 'database', 'static_root', 'shadow_events', 'failures')
-    $propertyNames = @($report.PSObject.Properties.Name)
-    foreach ($propertyName in $requiredProperties) {
-        if ($propertyNames -notcontains $propertyName) {
-            throw "Runtime readiness framed result has an invalid schema: missing $propertyName."
-        }
-    }
+    $report = ConvertFrom-FramedJsonRecord -Output $Output -Prefix $prefix -Context 'Runtime readiness output' -RequiredProperties $requiredProperties
     if ($report.ok -isnot [bool]) {
         throw "Runtime readiness framed result has an invalid schema: ok must be boolean."
     }
@@ -1003,7 +1034,7 @@ print(json.dumps(report, ensure_ascii=False))
     if ($result.exit_code -ne 0) {
         throw "Remote command failed [questions_report]: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Get-DailyChallengeUrl {
@@ -1170,14 +1201,17 @@ function Invoke-ProductionVerificationSeries {
     )
     $reports = @()
     for ($attempt = 1; $attempt -le $Count; $attempt++) {
-        $verificationOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify-production-release.ps1') `
-            -ReleaseManifest $deploymentRecordPath `
-            -LayoutFile $LayoutFile `
-            -OperationId $OperationId
-        if ($LASTEXITCODE -ne 0) {
-            throw "verify-production-release.ps1 failed on stability pass $attempt of $Count with exit code $LASTEXITCODE."
+        $verificationResult = Invoke-BoundedNativeCommand `
+            -FileName 'powershell' `
+            -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'verify-production-release.ps1'),'-ReleaseManifest',$deploymentRecordPath,'-LayoutFile',$LayoutFile,'-OperationId',$OperationId,'-FramedResult') `
+            -WorkingDirectory $repoRoot `
+            -RequireWorkingDirectory `
+            -TimeoutSeconds 420 `
+            -OperationLabel "verify production release pass $attempt of $Count"
+        if ($verificationResult.exit_code -ne 0) {
+            throw "verify-production-release.ps1 failed on stability pass $attempt of $Count with exit code $($verificationResult.exit_code)."
         }
-        $reports += ,(ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput -Context "verify-production-release.ps1 pass $attempt")
+        $reports += ,(ConvertFrom-NestedPowerShellJson -RawOutput $verificationResult.stdout -Context "verify-production-release.ps1 pass $attempt")
         if ($attempt -lt $Count) {
             Start-Sleep -Seconds $IntervalSeconds
         }
@@ -1468,7 +1502,7 @@ try {
     }
 
     $rollbackRequired = $true
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
+    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $appComposeService"
 
     $appAfter = Wait-ForRemoteContainerHealth -ContainerName $layout.app_service_name
     if ($appAfter.image_tag -ne $manifest.image_tag) {
@@ -1498,7 +1532,7 @@ try {
         throw "Daily challenge returned 503 after the app image switch."
     }
 
-    Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
+    $null = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) up -d --no-build --no-deps --force-recreate $schedulerComposeService"
 
     $schedulerAfter = Wait-ForRemoteContainerRunning -ContainerName $layout.scheduler_service_name
     if ($schedulerAfter.image_tag -ne $manifest.image_tag) {
@@ -1514,7 +1548,7 @@ try {
         throw "App and scheduler image IDs do not match after rollout."
     }
 
-    Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"
+    $null = Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"
 
     $verificationReports = Invoke-ProductionVerificationSeries -OperationId $operationId -Count 3 -IntervalSeconds 10
 
@@ -1659,11 +1693,17 @@ catch {
             $operationLockHeld = $false
         }
         try {
-            $rollbackOutput = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'rollback-release.ps1') -RollbackManifest $deploymentRecordPath -LayoutFile $LayoutFile -Execute -OwnerGate 'GO_ROLLBACK'
-            if ($LASTEXITCODE -ne 0) {
-                throw "rollback-release.ps1 failed with exit code $LASTEXITCODE."
+            $rollbackResult = Invoke-BoundedNativeCommand `
+                -FileName 'powershell' `
+                -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'rollback-release.ps1'),'-RollbackManifest',$deploymentRecordPath,'-LayoutFile',$LayoutFile,'-Execute','-OwnerGate','GO_ROLLBACK','-FramedResult') `
+                -WorkingDirectory $repoRoot `
+                -RequireWorkingDirectory `
+                -TimeoutSeconds 600 `
+                -OperationLabel 'automatic release rollback'
+            if ($rollbackResult.exit_code -ne 0) {
+                throw "rollback-release.ps1 failed with exit code $($rollbackResult.exit_code)."
             }
-            $null = ConvertFrom-NestedPowerShellJson -RawOutput $rollbackOutput -Context 'rollback-release.ps1'
+            $null = ConvertFrom-NestedPowerShellJson -RawOutput $rollbackResult.stdout -Context 'rollback-release.ps1'
         }
         catch {
             throw "Deployment failed: $deploymentFailureMessage`nFinal-state reconciliation failed: $reconciliationFailure`nAutomatic rollback failed: $($_.Exception.Message)"

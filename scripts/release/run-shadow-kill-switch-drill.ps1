@@ -117,7 +117,7 @@ __LEGACY_JUDGING_CANARY__
         throw "Legacy judging canary $Checkpoint failed closed; remote output withheld."
     }
     try {
-        $payload = $remote.output | ConvertFrom-Json
+        $payload = (Get-RemoteStandardOutput -Result $remote) | ConvertFrom-Json
     }
     catch {
         throw "Legacy judging canary $Checkpoint returned invalid sanitized JSON."
@@ -174,7 +174,7 @@ __SHADOW_DRILL_PROBE__
         throw 'Governed Shadow observation probe failed closed; remote output withheld.'
     }
     try {
-        $payload = $remote.output | ConvertFrom-Json
+        $payload = (Get-RemoteStandardOutput -Result $remote) | ConvertFrom-Json
     }
     catch {
         throw 'Governed Shadow observation probe returned invalid sanitized JSON.'

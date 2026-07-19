@@ -96,7 +96,7 @@ function Invoke-ShadowHelper {
         throw "Shadow Judging $RequestedOperation helper failed closed; remote output withheld."
     }
     try {
-        $payload = $remote.output | ConvertFrom-Json
+        $payload = (Get-RemoteStandardOutput -Result $remote) | ConvertFrom-Json
     }
     catch {
         throw "Shadow Judging $RequestedOperation helper returned invalid sanitized JSON."
@@ -263,7 +263,7 @@ __SHADOW_RUNTIME_FLAG__
         throw 'Shadow Judging runtime flag probe failed closed; remote output withheld.'
     }
     try {
-        $payload = $remote.output | ConvertFrom-Json
+        $payload = (Get-RemoteStandardOutput -Result $remote) | ConvertFrom-Json
     }
     catch {
         throw 'Shadow Judging runtime flag probe returned invalid sanitized JSON.'
@@ -399,7 +399,7 @@ __SHADOW_RUNTIME_HEALTH__
         throw 'Shadow Judging post-change health gate failed closed; remote output withheld.'
     }
     try {
-        $payload = $remote.output | ConvertFrom-Json
+        $payload = (Get-RemoteStandardOutput -Result $remote) | ConvertFrom-Json
     }
     catch {
         throw 'Shadow Judging health gate returned invalid sanitized JSON.'
@@ -632,7 +632,7 @@ __SHADOW_STARTUP_EVIDENCE__
     if ($remote.timed_out -or $remote.exit_code -ne 0) {
         throw 'Shadow Judging startup evidence capture failed closed; remote output withheld.'
     }
-    try { $payload = $remote.output | ConvertFrom-Json }
+    try { $payload = (Get-RemoteStandardOutput -Result $remote) | ConvertFrom-Json }
     catch { throw 'Shadow Judging startup evidence capture returned invalid sanitized JSON.' }
     if (-not $payload -or $payload.status -ne 'captured' -or $payload.operation_id -ne $OperationId -or -not $payload.containers) {
         throw 'Shadow Judging startup evidence capture response failed closed.'
