@@ -1,7 +1,7 @@
 # E9 canonical status reconstruction
 
-Status: `E9_STATUS_RECONSTRUCTED_WITH_EVIDENCE_GAPS`  
-Audit date: 2026-07-19  
+Status: `E9_STATUS_RECONSTRUCTED_WITH_EVIDENCE_GAPS`
+Audit date: 2026-07-19
 Audit base: `origin/master` at `d560fed638df8e65ac0b19f85ed7827ff1b99ab2`
 
 ## Executive conclusion
@@ -160,4 +160,3 @@ but its present production decision and authenticated acceptance evidence are
 incomplete.  Deferred work: rollout expansion, RPG Analysis Phase 2, E9.2
 Visual Foundation, and lifecycle hardening until acceptance establishes the
 current beta boundary.
-

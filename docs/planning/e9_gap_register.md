@@ -51,4 +51,3 @@ Status: evidence-based audit record, 2026-07-19.
 * Recommended owner: Product/roadmap owner.
 * Recommended Sprint: `E9-ADMIN-ACCEPT1` documentation addendum, if needed.
 * Blocking: YES for any decision whose approval depends on a C2 label.
-
