@@ -91,9 +91,31 @@ def static_release_healthz():
     if not root or not os.path.isdir(root):
         return jsonify({'ok': False, 'reason': 'static_root_unavailable'}), 503
     files = ('index.html', 'i18n.js', 'sw.js')
-    hashes = {}
+    generation_pattern = re.compile(r'^[0-9]{8}-[0-9]{6}-[0-9a-f]{8}-.+$')
     try:
+        manifest_path = os.path.join(root, 'manifest.json')
+        with open(manifest_path, 'r', encoding='utf-8') as handle:
+            manifest = json.load(handle)
+        generation = manifest.get('static_generation_id')
+        source_sha = manifest.get('release_git_sha')
+        entries = manifest.get('files')
+        if (not isinstance(generation, str) or generation == 'current' or
+                not generation_pattern.fullmatch(generation) or
+                not isinstance(source_sha, str) or
+                not re.fullmatch(r'[0-9a-f]{40}', source_sha) or
+                not isinstance(entries, list)):
+            return jsonify({'ok': False, 'reason': 'invalid_static_manifest'}), 503
+        entry_by_path = {}
+        for entry in entries:
+            if not isinstance(entry, dict) or not isinstance(entry.get('path'), str):
+                return jsonify({'ok': False, 'reason': 'invalid_static_manifest_entries'}), 503
+            entry_by_path[entry['path']] = entry
+        hashes = {}
         for name in files:
+            manifest_entry = entry_by_path.get(name)
+            expected_hash = manifest_entry.get('sha256') if isinstance(manifest_entry, dict) else None
+            if not isinstance(expected_hash, str) or not re.fullmatch(r'[0-9a-f]{64}', expected_hash):
+                return jsonify({'ok': False, 'reason': 'required_static_manifest_entry_missing', 'file': name}), 503
             path = os.path.join(root, name)
             if not os.path.isfile(path):
                 return jsonify({'ok': False, 'reason': 'required_static_file_missing', 'file': name}), 503
@@ -102,12 +124,14 @@ def static_release_healthz():
                 for chunk in iter(lambda: handle.read(1024 * 1024), b''):
                     digest.update(chunk)
             hashes[name] = digest.hexdigest()
-        generation = os.path.basename(os.path.realpath(root))
-    except OSError:
+            if hashes[name] != expected_hash.lower():
+                return jsonify({'ok': False, 'reason': 'static_hash_mismatch', 'file': name}), 503
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
         return jsonify({'ok': False, 'reason': 'static_read_failed'}), 503
     return jsonify({
         'ok': True,
         'generation': generation,
+        'source_sha': source_sha,
         'index_sha256': hashes['index.html'],
         'i18n_sha256': hashes['i18n.js'],
         'sw_sha256': hashes['sw.js'],
