@@ -60,6 +60,16 @@ function Get-SwVersionFromUrl {
     return (Get-SwVersionFromText -SwText $response.Content -SourceLabel $Url)
 }
 
+function Get-PublicStaticReleaseProvenance {
+    param([Parameter(Mandatory = $true)][string]$Url)
+    try {
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
+        if ([int]$response.StatusCode -ne 200) { throw "HTTP status $([int]$response.StatusCode)" }
+        return ($response.Content | ConvertFrom-Json)
+    }
+    catch { throw "Could not fetch static release provenance from $Url`: $($_.Exception.Message)" }
+}
+
 function Get-PublicFileSha256 {
     param([Parameter(Mandatory = $true)][string]$Url)
     try {
@@ -131,6 +141,7 @@ if (-not $appHealthy) {
 
 $publicVerification = @()
 foreach ($entry in $targetManifest.files) {
+    if ($entry.path -eq 'index.html') { continue }
     # Canonical URL verification is mandatory.  Query-string variants are
     # diagnostic only and are not part of the rollback acceptance contract.
     $url = "$publicBase/$($entry.path)"
@@ -140,9 +151,15 @@ foreach ($entry in $targetManifest.files) {
     }
     $publicVerification += [ordered]@{ path = $entry.path; url = $url; sha256_match = $true }
 }
-    $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
+$publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
 if ($publicSwVersion -ne $targetManifest.service_worker_version) {
     throw "Public sw.js VERSION mismatch after rollback. Expected '$($targetManifest.service_worker_version)', observed '$publicSwVersion'."
+}
+$provenance = Get-PublicStaticReleaseProvenance -Url "$publicBase/healthz/static-release"
+$expectedIndexSha = ($targetManifest.files | Where-Object { $_.path -eq 'index.html' }).sha256
+$expectedGeneration = $TargetGenerationPath.Split('/')[-1]
+if (-not $provenance.ok -or $provenance.generation -ne $expectedGeneration -or $provenance.index_sha256 -ne $expectedIndexSha) {
+    throw "Public static provenance mismatch after rollback. Expected generation '$expectedGeneration' and index SHA '$expectedIndexSha'."
 }
 
 [ordered]@{

@@ -193,6 +193,26 @@ def test_query_string_verification_is_diagnostic_only():
     assert "Get-SwVersionFromUrl -Url \"$publicBase/sw.js\"" in content
 
 
+def test_index_shell_uses_narrow_runtime_provenance_endpoint():
+    content = _read(DEPLOY_SCRIPT)
+    assert 'healthz/static-release' in content
+    assert 'index.html' in content
+    assert 'PUBLIC_INDEX_PROVENANCE' in content
+    assert 'publicEntries = @($manifest.files | Where-Object { $_.path -ne \'index.html\' })' in content
+    app_content = _read(APP_PY)
+    assert "@app.route('/healthz/static-release')" in app_content
+    for field in ('generation', 'index_sha256', 'i18n_sha256', 'sw_sha256'):
+        assert "'" + field + "'" in app_content
+    assert "static_root_unavailable" in app_content
+
+
+def test_public_verification_collection_has_explicit_arraylist_type():
+    content = _read(DEPLOY_SCRIPT)
+    assert 'New-Object System.Collections.ArrayList' in content
+    assert '$results.ToArray()' in content
+    assert 'Argument types do not match' in content
+
+
 def test_deploy_script_verifies_sw_version_publicly_not_just_locally():
     content = _read(DEPLOY_SCRIPT)
     assert "Get-SwVersionFromUrl" in content

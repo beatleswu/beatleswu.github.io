@@ -242,7 +242,11 @@ function Invoke-BoundedPublicVerification {
     # be a deserialized PSObject whose runtime type varies by host; passing
     # that value through List[object].Add triggered "Argument types do not
     # match" during a live 1,390-entry adoption run.
-    $results = @()
+    # Keep one concrete collection type throughout the final verification
+    # wave. PowerShell's implicit scalar/array unrolling can throw
+    # "Argument types do not match" when the last job batch returns a
+    # deserialized PSCustomObject.
+    $results = New-Object System.Collections.ArrayList
     $deadline = [DateTime]::UtcNow.AddSeconds($DeadlineSeconds)
     $nextProgress = 100
     for ($offset = 0; $offset -lt $Entries.Count; $offset += $Concurrency) {
@@ -250,7 +254,7 @@ function Invoke-BoundedPublicVerification {
         if ($remaining -le 0) {
             for ($cancelIndex = $offset; $cancelIndex -lt $Entries.Count; $cancelIndex++) {
                 $entry = $Entries[$cancelIndex]
-                $results += [pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' }
+                [void]$results.Add([pscustomobject]@{ path = $entry.path; status = 'cancelled_deadline' })
             }
             break
         }
@@ -271,13 +275,13 @@ function Invoke-BoundedPublicVerification {
             $completed = @(Wait-Job -Job $jobs -Timeout $waitSeconds)
             foreach ($job in $completed) {
                 $received = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
-                if ($received.Count -gt 0) { $results += $received[0] }
-                else { $results += [pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' } }
+                if ($received.Count -gt 0) { [void]$results.Add([pscustomobject]$received[0]) }
+                else { [void]$results.Add([pscustomobject]@{ path = "job:$($job.Id)"; status = 'worker_exception' }) }
             }
             $completedIds = @($completed | ForEach-Object { $_.Id })
             foreach ($job in @($jobs | Where-Object { $_.Id -notin $completedIds })) {
                 $entry = $jobEntries[$job.Id]
-                $results += [pscustomobject]@{ path = $entry.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $entry.sha256 }
+                [void]$results.Add([pscustomobject]@{ path = $entry.path; status = if (([DateTime]::UtcNow -ge $deadline)) { 'cancelled_deadline' } else { 'timeout' }; expected = $entry.sha256 })
             }
         }
         finally {
@@ -292,7 +296,7 @@ function Invoke-BoundedPublicVerification {
             while ($nextProgress -le $results.Count) { $nextProgress += 100 }
         }
     }
-    return @($results)
+    return @($results.ToArray())
 }
 
 function Invoke-RemoteText {
@@ -381,6 +385,16 @@ function Get-PublicFileSha256 {
     finally {
         $hasher.Dispose()
     }
+}
+
+function Get-PublicStaticReleaseProvenance {
+    param([Parameter(Mandatory = $true)][string]$Url)
+    try {
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
+        if ([int]$response.StatusCode -ne 200) { throw "HTTP status $([int]$response.StatusCode)" }
+        return ($response.Content | ConvertFrom-Json)
+    }
+    catch { throw "Could not fetch static release provenance from $Url`: $($_.Exception.Message)" }
 }
 
 function Get-StaticDeploymentReconciliation {
@@ -630,19 +644,23 @@ try {
 
     Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
-    $publicResults = Invoke-BoundedPublicVerification -Entries $manifest.files -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts
+    # index.html is an authenticated/dynamic Flask shell route, not a public
+    # packaged-byte URL. Verify it through the narrow runtime provenance
+    # endpoint; all other governed files retain canonical body-hash checks.
+    $publicEntries = @($manifest.files | Where-Object { $_.path -ne 'index.html' })
+    $publicResults = Invoke-BoundedPublicVerification -Entries $publicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts
     $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)"; sha256_match = $true } })
     $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
-    if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $manifest.files.Count) {
+    if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $publicEntries.Count) {
         $failureSummary = [ordered]@{
-            total = $manifest.files.Count
+            total = $publicEntries.Count
             verified = @($publicResults | Where-Object { $_.status -eq 'passed' }).Count
             http_non_200 = @($publicResults | Where-Object { $_.status -eq 'http_non_200' }).Count
             hash_mismatch = @($publicResults | Where-Object { $_.status -eq 'sha_mismatch' }).Count
             request_timeout = @($publicResults | Where-Object { $_.status -eq 'request_timeout' }).Count
             cancelled_deadline = @($publicResults | Where-Object { $_.status -eq 'cancelled_deadline' }).Count
             unexpected_exception = @($publicResults | Where-Object { $_.status -eq 'unexpected_exception' -or $_.status -eq 'worker_exception' }).Count
-            remaining = [Math]::Max(0, $manifest.files.Count - $publicResults.Count)
+            remaining = [Math]::Max(0, $publicEntries.Count - $publicResults.Count)
             concurrency = $PublicVerificationConcurrency
             per_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
             attempts = $PublicVerificationAttempts
@@ -662,6 +680,14 @@ try {
     }
     Write-StaticDeployTiming 'PUBLIC SW VERSION COMPLETE'
     End-StaticDeployPhase -Phase 'PUBLIC_SW'
+
+    Start-StaticDeployPhase -Phase 'PUBLIC_INDEX_PROVENANCE'
+    $provenance = Get-PublicStaticReleaseProvenance -Url "$publicBase/healthz/static-release"
+    $expectedIndexSha = ($manifest.files | Where-Object { $_.path -eq 'index.html' }).sha256
+    if (-not $provenance.ok -or $provenance.generation -ne $generationId -or $provenance.index_sha256 -ne $expectedIndexSha) {
+        throw "Public static provenance mismatch. Expected generation '$generationId' and index SHA '$expectedIndexSha', observed $($provenance | ConvertTo-Json -Compress)."
+    }
+    End-StaticDeployPhase -Phase 'PUBLIC_INDEX_PROVENANCE'
 
     Start-StaticDeployPhase -Phase 'DEPLOYMENT_RECORD'
     End-StaticDeployPhase -Phase 'DEPLOYMENT_RECORD'
