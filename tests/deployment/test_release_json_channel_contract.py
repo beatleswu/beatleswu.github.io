@@ -156,4 +156,3 @@ def test_production_scripts_request_framed_child_results_and_separate_streams():
     assert "__GO_ODYSSEY_POWERSHELL_RESULT_V1__:" in verify
     assert "$verificationResult.stdout" in deploy
     assert "$rollbackResult.stdout" in deploy
-
