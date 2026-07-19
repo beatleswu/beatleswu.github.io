@@ -30,7 +30,7 @@ def test_public_verification_keeps_complete_fail_closed_result_aggregation():
     assert "cancelled_deadline" in DEPLOY
     assert "worker_exception" in DEPLOY
     assert "Public content verification failed" in DEPLOY
-    assert "$publicResults.Count -ne $manifest.files.Count" in DEPLOY
+    assert "$publicResults.Count -ne $publicEntries.Count" in DEPLOY
 
 
 def test_public_verification_still_runs_before_service_worker_acceptance():

@@ -79,6 +79,40 @@ def healthz():
     _startup_diagnostics.mark_ready('healthz_readiness')
     return jsonify({'ok': True})
 
+@app.route('/healthz/static-release')
+def static_release_healthz():
+    """Expose bounded, non-sensitive provenance for the mounted static release.
+
+    This is intentionally narrower than serving an arbitrary static path: it
+    reports only the generation basename and hashes of the three governed
+    shell files, computed from the files the running app can actually read.
+    """
+    root = (os.environ.get('GO_ODYSSEY_LIVE_STATIC_ROOT') or '').strip()
+    if not root or not os.path.isdir(root):
+        return jsonify({'ok': False, 'reason': 'static_root_unavailable'}), 503
+    files = ('index.html', 'i18n.js', 'sw.js')
+    hashes = {}
+    try:
+        for name in files:
+            path = os.path.join(root, name)
+            if not os.path.isfile(path):
+                return jsonify({'ok': False, 'reason': 'required_static_file_missing', 'file': name}), 503
+            digest = hashlib.sha256()
+            with open(path, 'rb') as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+                    digest.update(chunk)
+            hashes[name] = digest.hexdigest()
+        generation = os.path.basename(os.path.realpath(root))
+    except OSError:
+        return jsonify({'ok': False, 'reason': 'static_read_failed'}), 503
+    return jsonify({
+        'ok': True,
+        'generation': generation,
+        'index_sha256': hashes['index.html'],
+        'i18n_sha256': hashes['i18n.js'],
+        'sw_sha256': hashes['sw.js'],
+    })
+
 @app.route('/api/healthz')
 def api_healthz():
     _startup_diagnostics.mark_ready('api_healthz_readiness')
