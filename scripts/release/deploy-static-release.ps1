@@ -174,7 +174,7 @@ function Write-StaticDeployPhase {
             elapsed_ms = [int64][Math]::Round($phaseClock.Elapsed.TotalMilliseconds)
         }
         if ($Detail) { $event.detail = $Detail }
-        $phaseHistory.Add([pscustomobject]$event)
+        [void]$phaseHistory.Add([pscustomobject]$event)
         [Console]::Error.WriteLine(('STATIC_PHASE ' + ($event | ConvertTo-Json -Compress)))
     }
     catch {
