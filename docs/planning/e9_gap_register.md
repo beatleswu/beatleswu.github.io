@@ -13,6 +13,19 @@ Status: evidence-based audit record, 2026-07-19.
   deployment, or Shadow mutation occurred during this addendum.
 * Next Sprint: `E9-BETA-LIFECYCLE1`.
 
+## E9-ADMIN-GATE1A update
+
+* Result: `E9_ADMIN_ONLY_ACCEPTED_WITH_NON_ADMIN_EVIDENCE_GAP`.
+* Governed mutation: canonical `set-e9-rollout.ps1 enable-admin-only` executed
+  once under `GO_DEPLOY`; backup `20260719-052125-752f92b05649` was recorded.
+* Admin evidence: `is_admin=true`, `eligible=true`, `reason=admin_entitled`,
+  all six flags true, E9/Legacy exclusive, navigation and refresh stable,
+  logout returned to login.
+* Unauthenticated evidence: no E9 root after logout; public endpoints stayed
+  healthy.
+* Remaining gap: no approved non-admin account and no re-login credential
+  entry. Do not begin lifecycle hardening or rollout expansion until closed.
+
 ## E9-ADMIN-ACCEPT1 update
 
 * Result: `E9_ADMIN_ACCEPTANCE_PARTIAL`.
@@ -28,14 +41,13 @@ Status: evidence-based audit record, 2026-07-19.
 ## E9-GAP-001
 
 * Category: Production acceptance
-* Description: No tracked proof covers an eligible admin and non-admin against
-  the currently served release, including refresh, logout, and re-login.
-* Evidence: Stage C source/tests and sanitized fixtures exist; no authenticated
-  production report was found.
-* Impact: The admin-only gate cannot be called accepted.
-* Recommended owner: Product owner plus designated acceptance operator.
-* Recommended Sprint: `E9-ADMIN-ACCEPT1`.
-* Blocking: YES, for rollout expansion or beta-accepted status.
+* Description: Closed by owner acceptance addendum: admin re-login and approved
+  non-admin Legacy boundary both passed.
+* Evidence: `docs/testing/e9_admin_accept2_20260719.md`.
+* Impact: No remaining admin eligibility blocker.
+* Recommended owner: E9 frontend owner.
+* Recommended Sprint: `E9-BETA-LIFECYCLE1`.
+* Blocking: NO for admin-only acceptance.
 
 ## E9-GAP-002
 
@@ -46,8 +58,8 @@ Status: evidence-based audit record, 2026-07-19.
   was not independently exposed by the safe public surface.
 * Impact: Deployment and acceptance must remain separate claims.
 * Recommended owner: Release owner.
-* Recommended Sprint: `E9-ADMIN-ACCEPT1` evidence capture only.
-* Blocking: YES, for a `PRODUCTION_ACCEPTED` assertion.
+* Recommended Sprint: `E9-BETA-LIFECYCLE1` evidence capture only.
+* Blocking: NO for admin-only acceptance.
 
 ## E9-GAP-003
 
@@ -60,7 +72,7 @@ Status: evidence-based audit record, 2026-07-19.
 * Impact: A future same-document session transition could retain stale async
   work or mounted component effects.
 * Recommended owner: E9 frontend owner.
-* Recommended Sprint: `E9-BETA-LIFECYCLE1`, after acceptance closes GAP-001.
+* Recommended Sprint: `E9-BETA-LIFECYCLE1`.
 * Blocking: NO for a strictly navigational admin acceptance; YES before a
   long-lived dynamic-cohort rollout.
 
