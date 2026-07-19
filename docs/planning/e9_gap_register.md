@@ -2,6 +2,18 @@
 
 Status: evidence-based audit record, 2026-07-19.
 
+## E9-ADMIN-ACCEPT1 update
+
+* Result: `E9_ADMIN_ACCEPTANCE_PARTIAL`.
+* Evidence: existing admin session reported `is_admin=true` but the server
+  rollout decision was `eligible=false`, `reason=global_disabled`, with all
+  effective flags false. Logged-out pages returned to Legacy/login without an
+  E9 root. No approved non-admin account was available.
+* Safety: no account role, feature flag, player state, database, container, or
+  deployment mutation occurred.
+* Routing: continue `E9-ADMIN-ACCEPT1`; do not begin lifecycle hardening or
+  rollout expansion until positive admin and non-admin journeys are captured.
+
 ## E9-GAP-001
 
 * Category: Production acceptance
