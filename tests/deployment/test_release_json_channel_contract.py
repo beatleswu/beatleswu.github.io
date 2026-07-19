@@ -55,6 +55,27 @@ def run_ps(tmp_path, body):
 
 
 @pytest.mark.parametrize(
+    "result_expression",
+    [
+        "[ordered]@{stdout='machine-json';stderr='startup-diagnostic';output='machine-jsonstartup-diagnostic'}",
+        "@{stdout='machine-json';stderr='startup-diagnostic';output='machine-jsonstartup-diagnostic'}",
+        "[pscustomobject]@{stdout='machine-json';stderr='startup-diagnostic';output='machine-jsonstartup-diagnostic'}",
+    ],
+    ids=["ordered-dictionary", "hashtable", "pscustomobject"],
+)
+def test_remote_standard_output_never_falls_back_to_merged_diagnostics(tmp_path, result_expression):
+    result = run_ps(
+        tmp_path,
+        f"$remote={result_expression}\n"
+        "$selected=Get-RemoteStandardOutput -Result $remote\n"
+        "$selected|Write-Output\n",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "machine-json"
+    assert "startup-diagnostic" not in result.stdout
+
+
+@pytest.mark.parametrize(
     "lines",
     [
         lambda record: [record],

@@ -8,6 +8,7 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DRILL = ROOT / "scripts" / "release" / "run-shadow-kill-switch-drill.ps1"
 MODULE = ROOT / "scripts" / "release" / "ShadowKillSwitchDrill.psm1"
+RELEASE_TOOLING = ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 APP = ROOT / "app.py"
 
 
@@ -147,6 +148,37 @@ def test_legacy_canary_invokes_real_legacy_verifier_with_only_tracked_synthetic_
     assert "final_correct=bool(correct)" in app_source
 
 
+def test_real_legacy_canary_ignores_startup_diagnostics_on_stderr():
+    content = DRILL.read_text(encoding="utf-8")
+    canary = "function Invoke-LegacyJudgingCanary" + content.split(
+        "function Invoke-LegacyJudgingCanary", 1
+    )[1].split("function Invoke-ShadowObservationProbe", 1)[0]
+    release_tooling = str(RELEASE_TOOLING).replace("'", "''")
+    script = f"""
+$ErrorActionPreference='Stop'
+Import-Module '{release_tooling}' -Force -DisableNameChecking
+$layout=[pscustomobject]@{{ssh_alias='test-host';app_service_name='app-current'}}
+function Invoke-BoundedSshCommand {{
+    [ordered]@{{
+        stdout='{{"actual_result":"correct","expected_result":"correct","name":"rating_test_synthetic_single_move","ok":true}}'
+        stderr='[startup-diagnostic] {{"phase":"python_start","status":"point"}}'
+        output='{{"actual_result":"correct","expected_result":"correct","name":"rating_test_synthetic_single_move","ok":true}}[startup-diagnostic]'
+        exit_code=0
+        elapsed_seconds=1
+        timed_out=$false
+    }}
+}}
+{canary}
+Invoke-LegacyJudgingCanary -Checkpoint baseline | ConvertTo-Json -Compress
+"""
+    result = run_powershell(script)
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip())
+    assert payload["ok"] is True
+    assert payload["actual_result"] == "correct"
+    assert "startup-diagnostic" not in result.stdout
+
+
 def test_successful_drill_restores_enabled_initial_state_and_requires_all_canaries():
     returncode, payload = state_machine_harness(initial_enabled=True)
     report = payload["report"]
@@ -211,6 +243,20 @@ def test_internal_recovery_skips_outer_restore_and_preserves_disable_failure():
     assert report["failed_generation_evidence"]["operation_id"] == "operation-1"
     assert report["outer_restoration_attempted"] is False
     assert report["final_matches_initial"] is True
+
+
+def test_original_drill_failure_message_remains_primary_when_restore_also_fails():
+    returncode, payload = state_machine_harness(
+        initial_enabled=True,
+        fail_stage="write_stop+restoration",
+    )
+    report = payload["report"]
+    assert returncode != 0
+    assert report["failure_stage"] == "write_stop"
+    assert report["failure_code"] == "shadow_kill_switch_drill_failed"
+    assert report["failure_message"] == "injected"
+    assert report["restoration_attempted"] is True
+    assert report["restoration_succeeded"] is False
 
 
 def test_restore_requires_real_flat_rollback_backup_identity():
