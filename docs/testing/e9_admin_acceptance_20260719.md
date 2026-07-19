@@ -1,7 +1,7 @@
 # E9-ADMIN-ACCEPT1 Production acceptance
 
-Status: `E9_ADMIN_ACCEPTANCE_PARTIAL`  
-Date: 2026-07-19  
+Status: `E9_ADMIN_ACCEPTANCE_PARTIAL`
+Date: 2026-07-19
 Repository baseline: `74bfc72f6f0ba72ec570c8556b69422fc6b731fe`
 
 ## Scope and safety
