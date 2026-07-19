@@ -20,17 +20,25 @@ def production_preservation_block():
     return source[start:end]
 
 
-def run_preservation(tmp_path, *, capture_fails=False, cleanup_fails=False):
+def run_preservation(tmp_path, *, capture_fails=False, cleanup_fails=False, partial_capture=False):
     if shutil.which("powershell") is None:
         pytest.fail("Windows PowerShell 5.1 is required")
     evidence_path = tmp_path / "candidate-evidence.json"
     encoded_path = base64.b64encode(str(evidence_path).encode("utf-8")).decode("ascii")
     probe = tmp_path / "preservation-probe.ps1"
-    capture_body = (
-        "throw 'capture sentinel must not become primary'"
-        if capture_fails
-        else "return [ordered]@{ status='captured'; operation_id=$operationId; candidate=[ordered]@{ container_id='candidate-id'; image_id='sha256:image'; created='2026-07-18T22:17:00Z'; started_at='2026-07-18T22:17:01Z'; status='running'; health='healthy'; restart_count=0; exit_code=0; oom_killed=$false; startup_diagnostics=@([ordered]@{ schema='startup-diagnostic-v1'; boot_id='boot-id'; timestamp_utc='2026-07-18T22:17:02Z'; elapsed_seconds=1.5; phase='database'; status='start'; threads=@([ordered]@{ thread_id='1'; frames=@([ordered]@{file='app.py';function='create_app';line=42})}) }) } }"
-    )
+    if capture_fails:
+        capture_body = "throw 'capture sentinel must not become primary'"
+    else:
+        capture_errors = "@([ordered]@{container='candidate-name';field='logs';code='container_logs_failed'})" if partial_capture else "@()"
+        capture_body = (
+            "return [ordered]@{ status='captured'; operation_id=$operationId; "
+            "capture_errors=" + capture_errors + "; candidate=[ordered]@{ container_id='candidate-id'; "
+            "image_id='sha256:image'; created='2026-07-18T22:17:00Z'; started_at='2026-07-18T22:17:01Z'; "
+            "status='running'; health='healthy'; restart_count=0; exit_code=0; oom_killed=$false; "
+            "startup_diagnostics=@([ordered]@{ schema='startup-diagnostic-v1'; boot_id='boot-id'; "
+            "timestamp_utc='2026-07-18T22:17:02Z'; elapsed_seconds=1.5; phase='database'; status='start'; "
+            "threads=@([ordered]@{ thread_id='1'; frames=@([ordered]@{file='app.py';function='create_app';line=42})}) }) } }"
+        )
     cleanup_body = (
         "throw 'cleanup sentinel must remain secondary'"
         if cleanup_fails
@@ -79,10 +87,25 @@ def test_candidate_identity_lifecycle_boot_phases_and_stack_persist_before_clean
 
 def test_evidence_capture_failure_does_not_block_cleanup_or_replace_original(tmp_path):
     evidence = run_preservation(tmp_path, capture_fails=True)["persisted"]
-    assert evidence["capture"] is None
-    assert evidence["capture_failure"] == "candidate_evidence_capture_failed_closed"
+    assert evidence["capture"]["status"] == "partial"
+    assert evidence["capture"]["candidate"]["name"] == "candidate-name"
+    assert evidence["capture_errors"] == [
+        {"field": "remote_capture", "code": "candidate_evidence_capture_failed_closed"}
+    ]
     assert evidence["cleanup"]["status"] == "completed"
     assert evidence["original_failure"]["code"] == "helper_failed"
+
+
+def test_failed_log_subcapture_retains_candidate_identity_lifecycle_and_boot_phases(tmp_path):
+    evidence = run_preservation(tmp_path, partial_capture=True)["persisted"]
+    candidate = evidence["capture"]["candidate"]
+    assert candidate["container_id"] == "candidate-id"
+    assert candidate["image_id"] == "sha256:image"
+    assert candidate["status"] == "running"
+    assert candidate["startup_diagnostics"][0]["boot_id"] == "boot-id"
+    assert evidence["capture_errors"] == [
+        {"container": "candidate-name", "field": "logs", "code": "container_logs_failed"}
+    ]
 
 
 def test_cleanup_failure_is_secondary_and_original_readiness_failure_remains_primary(tmp_path):

@@ -717,7 +717,7 @@ except BaseException:
     $script = $script.Replace('__ENV_PATH__', $EnvPath).Replace('__POSTGRES_CONTAINER_NAME__', $PostgresContainerName)
     $result = Invoke-RemoteShellCommand -SshAlias $SshAlias -Name 'protected_credential_and_tcp_auth' -Command 'python3 -' -StdinText $script
     $sanitized = $null
-    try { $sanitized = $result.output | ConvertFrom-Json } catch { $sanitized = $null }
+    try { $sanitized = (Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json } catch { $sanitized = $null }
     if ($result.exit_code -ne 0 -or -not $sanitized -or $sanitized.status -ne 'ok') {
         $reason = if ($sanitized -and $sanitized.reason) { $sanitized.reason } else { 'unknown' }
         throw "Protected credential / TCP authentication preflight failed (fail closed: no DB role repair, no recreate, no restart will be attempted). reason=$reason"
@@ -805,11 +805,40 @@ function Invoke-ProcessWithUtf8NoBomStdin {
         $proc.WaitForExit()
         return [ordered]@{
             output = ($stdout + $stderr).Trim()
+            stdout = $stdout.Trim()
+            stderr = $stderr.Trim()
             exit_code = $proc.ExitCode
         }
     }
     finally {
         [Console]::InputEncoding = $previousConsoleInputEncoding
+    }
+}
+
+function Invoke-ProcessWithSeparateOutput {
+    param(
+        [Parameter(Mandatory = $true)][string]$FileName,
+        [Parameter(Mandatory = $true)][string]$Arguments
+    )
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $FileName
+    $psi.Arguments = $Arguments
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+    $proc.Start() | Out-Null
+    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $proc.StandardError.ReadToEndAsync()
+    $proc.WaitForExit()
+    $stdout = $stdoutTask.GetAwaiter().GetResult()
+    $stderr = $stderrTask.GetAwaiter().GetResult()
+    return [ordered]@{
+        output = ($stdout + $stderr).Trim()
+        stdout = $stdout.Trim()
+        stderr = $stderr.Trim()
+        exit_code = $proc.ExitCode
     }
 }
 
@@ -889,31 +918,22 @@ function Invoke-RemoteShellCommand {
         return [ordered]@{
             name = $Name
             output = $invokeResult.output
+            stdout = $invokeResult.stdout
+            stderr = $invokeResult.stderr
             exit_code = $invokeResult.exit_code
         }
     }
 
-    $previousErrorActionPreference = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = 'Continue'
-        $rawOutput = & ssh $SshAlias $Command 2>&1
-        $exitCode = $LASTEXITCODE
-    }
-    finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-    $output = ($rawOutput | ForEach-Object {
-        if ($_ -is [System.Management.Automation.ErrorRecord]) {
-            $_.ToString()
-        }
-        else {
-            [string]$_
-        }
-    } | Out-String).Trim()
+    $sshArguments = ((@($SshAlias, $Command) | ForEach-Object {
+        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+    }) -join ' ')
+    $invokeResult = Invoke-ProcessWithSeparateOutput -FileName 'ssh' -Arguments $sshArguments
     return [ordered]@{
         name = $Name
-        output = $output
-        exit_code = $exitCode
+        output = $invokeResult.output
+        stdout = $invokeResult.stdout
+        stderr = $invokeResult.stderr
+        exit_code = $invokeResult.exit_code
     }
 }
 
@@ -1678,19 +1698,78 @@ function Select-ContainerMountForDestination {
     return [ordered]@{ type = 'bind'; source = $match.Source }
 }
 
+function ConvertFrom-FramedJsonRecord {
+    <#
+    .SYNOPSIS
+    Extracts exactly one base64-encoded JSON record from otherwise diagnostic
+    output. Human-readable stdout/stderr is never passed to ConvertFrom-Json.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Output,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Prefix,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [string[]]$RequiredProperties = @()
+    )
+
+    $records = @($Output -split "`r?`n" | Where-Object {
+        $_.StartsWith($Prefix, [System.StringComparison]::Ordinal)
+    })
+    if ($records.Count -ne 1) {
+        throw "$Context must contain exactly one framed JSON result; found $($records.Count)."
+    }
+    $encoded = $records[0].Substring($Prefix.Length)
+    if ([string]::IsNullOrWhiteSpace($encoded)) {
+        throw "$Context framed JSON result is empty."
+    }
+    try {
+        $bytes = [Convert]::FromBase64String($encoded)
+        $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+        $json = $utf8.GetString($bytes)
+        $payload = $json | ConvertFrom-Json
+    }
+    catch {
+        throw "$Context framed JSON result is malformed."
+    }
+    $propertyNames = @($payload.PSObject.Properties.Name)
+    foreach ($name in $RequiredProperties) {
+        if ($propertyNames -notcontains $name) {
+            throw "$Context framed JSON result has an invalid schema: missing $name."
+        }
+    }
+    return $payload
+}
+
+function Get-RemoteStandardOutput {
+    param([Parameter(Mandatory = $true)]$Result)
+    if (@($Result.PSObject.Properties.Name) -contains 'stdout') {
+        return [string]$Result.stdout
+    }
+    # Compatibility for existing injected test callbacks. Production remote
+    # transports always provide stdout and stderr separately.
+    return [string]$Result.output
+}
+
+function ConvertTo-FramedJsonRecord {
+    param(
+        [Parameter(Mandatory = $true)]$InputObject,
+        [Parameter(Mandatory = $true)][ValidateNotNullOrEmpty()][string]$Prefix,
+        [int]$Depth = 20
+    )
+    $json = $InputObject | ConvertTo-Json -Depth $Depth -Compress
+    $bytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($json)
+    return ($Prefix + [Convert]::ToBase64String($bytes))
+}
+
 function ConvertFrom-NestedPowerShellJson {
     param(
         [Parameter(Mandatory = $true)]$RawOutput,
         [Parameter(Mandatory = $true)][string]$Context
     )
     $joined = if ($RawOutput -is [System.Array]) { $RawOutput -join [Environment]::NewLine } else { [string]$RawOutput }
-    try {
-        return ($joined | ConvertFrom-Json)
-    }
-    catch {
-        $preview = if ($joined.Length -gt 2000) { $joined.Substring(0, 2000) + '...' } else { $joined }
-        throw "$Context produced output that could not be parsed as JSON: $($_.Exception.Message)`nRaw output preview:`n$preview"
-    }
+    return ConvertFrom-FramedJsonRecord `
+        -Output $joined `
+        -Prefix '__GO_ODYSSEY_POWERSHELL_RESULT_V1__:' `
+        -Context $Context
 }
 
 function Get-CanonicalAppHealthcheckDefinition {
@@ -2030,7 +2109,7 @@ print(json.dumps({"acquired": True, "operation_id": operation_id, "lock_path": s
     if ($result.exit_code -ne 0) {
         throw "Another production release operation is active. Lock response: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Exit-RemoteReleaseOperationLock {
@@ -2065,7 +2144,7 @@ print(json.dumps({"released": True, "already_absent": False}))
     if ($result.exit_code -ne 0) {
         throw "Production release operation lock could not be released safely: $($result.output)"
     }
-    return ($result.output | ConvertFrom-Json)
+    return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
 function Wait-RemoteReleaseOperationLock {
@@ -2099,7 +2178,7 @@ else:
         if ($result.exit_code -ne 0) {
             throw "Unable to inspect the production release operation lock: $($result.output)"
         }
-        $state = $result.output | ConvertFrom-Json
+        $state = (Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json
         if (-not $state.locked -or (-not [string]::IsNullOrWhiteSpace($AllowedOperationId) -and $state.owner -eq $AllowedOperationId)) {
             return $state
         }
@@ -2120,6 +2199,9 @@ Export-ModuleMember -Function @(
     'Assert-GovernedBuildScriptPath',
     'Assert-GovernedBuildChildIdentity',
     'ConvertFrom-NestedPowerShellJson',
+    'ConvertFrom-FramedJsonRecord',
+    'ConvertTo-FramedJsonRecord',
+    'Get-RemoteStandardOutput',
     'ConvertTo-Utf8NoBomLfBytes',
     'Ensure-Directory',
     'Enter-RemoteReleaseOperationLock',

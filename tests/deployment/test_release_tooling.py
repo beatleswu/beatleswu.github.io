@@ -1,4 +1,5 @@
 """Validate the release tooling added for DEPLOY-GOV-3."""
+import base64
 import json
 import os
 import pathlib
@@ -17,6 +18,14 @@ RELEASE_SCRIPTS = [
     REPO_ROOT / "scripts" / "release" / "rollback-release.ps1",
 ]
 BUILD_PRODUCTION_IMAGE_SCRIPT = REPO_ROOT / "scripts" / "build-production-image.ps1"
+READINESS_PREFIX = "__GO_ODYSSEY_READINESS_V1__:"
+
+
+def framed_json(payload, prefix=READINESS_PREFIX):
+    encoded = base64.b64encode(
+        json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
+    return prefix + encoded
 
 
 def read_text(path):
@@ -125,9 +134,10 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
     }
     if helper_mode == "helper":
         responses["app_helper_readiness"] = {
-            "stdout": json.dumps(
+            "stdout": framed_json(
                 {
                     "ok": True,
+                    "app": {"git_sha": "a" * 40, "image_revision": "a" * 40},
                     "questions": {
                         "path": "/app/data/questions.json",
                         "exists": True,
@@ -139,6 +149,9 @@ def make_fake_preflight_responses(*, helper_mode="helper"):
                         "failures": [],
                     },
                     "database": {"reachable": True, "tables": {}},
+                    "static_root": {"exists": True, "readable": True},
+                    "shadow_events": {"exists": True, "readable": True, "writable_or_valid": True},
+                    "failures": [],
                 }
             )
         }
@@ -555,7 +568,9 @@ def test_release_tooling_module_owns_the_stdin_piping_implementation():
     assert "function Invoke-RemoteShellCommand" in module_content
     assert "function ConvertTo-Utf8NoBomLfBytes" in module_content
     assert '-replace "`r`n", "`n" -replace "`r", "`n"' in module_content
-    assert "[System.Management.Automation.ErrorRecord]" in module_content
+    assert "function Invoke-ProcessWithSeparateOutput" in module_content
+    assert "stdout = $invokeResult.stdout" in module_content
+    assert "stderr = $invokeResult.stderr" in module_content
     assert "System.Text.UTF8Encoding($false)" in module_content
     assert "'Invoke-RemoteShellCommand'" in module_content
     assert "'ConvertTo-Utf8NoBomLfBytes'" in module_content
@@ -1059,17 +1074,11 @@ def test_select_container_mount_for_destination_fails_closed_when_missing(tmp_pa
     assert "probe-container" in result.stdout
 
 
-def test_convert_from_nested_powershell_json_parses_multiline_array_output(tmp_path):
-    # Regression test for the 2026-07-11 incident: a nested `& powershell -File`
-    # invocation's stdout is captured as an ARRAY of per-line strings, and no
-    # single line of a pretty-printed ConvertTo-Json payload is valid JSON on
-    # its own. The real rollback record legitimately contains the substring
-    # "time" (via build_timestamp/deployment_timestamp keys), which is exactly
-    # what surfaced as "invalid JSON primitive: time" when the array was fed
-    # straight into ConvertFrom-Json without being joined first.
+def test_convert_from_nested_powershell_json_extracts_unique_frame_amid_diagnostics(tmp_path):
     probe = (
-        "$payload = @{ a = 1; note = 'time to celebrate'; nested = @{ b = @(1,2,3) } } | ConvertTo-Json -Depth 5\n"
-        "$lines = $payload -split \"`n\"\n"
+        "$payload = @{ a = 1; note = 'time to celebrate'; nested = @{ b = @(1,2,3) } }\n"
+        "$frame = ConvertTo-FramedJsonRecord -InputObject $payload -Prefix '__GO_ODYSSEY_POWERSHELL_RESULT_V1__:'\n"
+        "$lines = @('Container app Recreate','[startup-diagnostic] phase=python_start',$frame,'Container app Started')\n"
         "$parsed = ConvertFrom-NestedPowerShellJson -RawOutput $lines -Context 'probe'\n"
         "Write-Output ($parsed.a)\n"
         "Write-Output ($parsed.note)\n"
@@ -1108,13 +1117,15 @@ def test_deploy_and_rollback_scripts_derive_questions_volume_at_runtime():
 def test_deploy_and_rollback_scripts_use_safe_nested_json_parsing():
     deploy = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     rollback = read_text(REPO_ROOT / "scripts" / "release" / "rollback-release.ps1")
-    assert "ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput" in deploy
+    assert "ConvertFrom-NestedPowerShellJson -RawOutput $verificationResult.stdout" in deploy
     assert 'Context "verify-production-release.ps1 pass $attempt"' in deploy
-    assert "ConvertFrom-NestedPowerShellJson -RawOutput $rollbackOutput -Context 'rollback-release.ps1'" in deploy
+    assert "ConvertFrom-NestedPowerShellJson -RawOutput $rollbackResult.stdout -Context 'rollback-release.ps1'" in deploy
     assert (
-        "$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationOutput "
+        "$verificationReport = ConvertFrom-NestedPowerShellJson -RawOutput $verificationResult.stdout "
         "-Context 'verify-production-release.ps1'" in rollback
     )
+    assert "'-FramedResult'" in deploy
+    assert "'-FramedResult'" in rollback
     assert "$verificationOutput | ConvertFrom-Json" not in deploy
     assert "$verificationOutput | ConvertFrom-Json" not in rollback
     assert "$rollbackOutput | ConvertFrom-Json" not in deploy
