@@ -4,6 +4,7 @@ its evidence, assets/shorts/questions.json are not required at image build
 time, and the questions path is configurable."""
 import json
 import pathlib
+import re
 import subprocess
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -32,6 +33,26 @@ def tracked_files():
     return set(out.stdout.splitlines())
 
 
+_DOC_REPORT_SUFFIXES = {".md", ".txt"}
+_GENERATED_DOC_OUTPUT = re.compile(
+    r"(?:screenshot|trace|network|coverage|artifact|generated|playwright|temp|tmp|output)",
+    re.IGNORECASE,
+)
+
+
+def docs_testing_violations(paths):
+    """Return tracked docs/testing paths that are not human-authored reports."""
+    violations = []
+    for path in paths:
+        if not path.startswith("docs/testing/"):
+            continue
+        name = path.rsplit("/", 1)[-1]
+        suffix = pathlib.PurePosixPath(name).suffix.lower()
+        if suffix not in _DOC_REPORT_SUFFIXES or _GENERATED_DOC_OUTPUT.search(name):
+            violations.append(path)
+    return sorted(violations)
+
+
 def test_srs_db_not_tracked():
     assert "srs.db" not in tracked_files()
 
@@ -48,7 +69,34 @@ def test_srs_db_not_in_entrypoint_persistence():
 
 def test_docs_testing_not_tracked():
     tracked = tracked_files()
-    assert not any(f.startswith("docs/testing/") for f in tracked)
+    assert not docs_testing_violations(tracked)
+
+
+def test_docs_testing_allows_markdown_and_plain_text_reports():
+    assert docs_testing_violations({
+        "docs/testing/e9_acceptance.md",
+        "docs/testing/deployment-notes.txt",
+    }) == []
+
+
+def test_docs_testing_rejects_images_archives_binary_and_generated_output():
+    assert docs_testing_violations({
+        "docs/testing/screenshot.png",
+        "docs/testing/layout.jpg",
+        "docs/testing/render.webp",
+        "docs/testing/results.zip",
+        "docs/testing/trace.json",
+        "docs/testing/generated-output.txt",
+        "docs/testing/playwright-report.txt",
+    }) == sorted([
+        "docs/testing/screenshot.png",
+        "docs/testing/layout.jpg",
+        "docs/testing/render.webp",
+        "docs/testing/results.zip",
+        "docs/testing/trace.json",
+        "docs/testing/generated-output.txt",
+        "docs/testing/playwright-report.txt",
+    ])
 
 
 def test_docs_testing_not_in_dockerfile():
