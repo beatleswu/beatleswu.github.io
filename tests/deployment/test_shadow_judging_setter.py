@@ -457,11 +457,117 @@ def test_embedded_evidence_capture_redacts_logs_and_whitelists_stack_fields(monk
     assert frame == {"file": "app.py", "function": "init_db", "line": 2632}
 
 
+def test_failed_generation_summary_names_blocked_phase_and_latest_safe_stack():
+    source = SETTER.read_text(encoding="utf-8")
+    embedded = source.split("python3 - <<'__SHADOW_STARTUP_EVIDENCE__'", 1)[1].split(
+        "__SHADOW_STARTUP_EVIDENCE__", 1
+    )[0]
+    definitions = embedded.split("payload = {", 1)[0]
+    definitions = definitions.replace("__APP_JSON__", repr("app")).replace(
+        "__SCHEDULER_JSON__", repr("scheduler")
+    ).replace("__OPERATION_JSON__", repr("operation"))
+    namespace = {}
+    exec(definitions, namespace)
+    events = [
+        {"boot_id": "boot-1", "elapsed_seconds": 0.8, "phase": "app_module_import", "status": "success"},
+        {"boot_id": "boot-1", "elapsed_seconds": 0.9, "phase": "database_initialization", "status": "start"},
+        {
+            "boot_id": "boot-1",
+            "elapsed_seconds": 135.9,
+            "phase": "delayed_start_stack",
+            "status": "snapshot",
+            "snapshot_sequence": 3,
+            "threads": [
+                {
+                    "thread_id": 7,
+                    "frames": [
+                        {"file": "app.py", "function": "init_db", "line": 2649},
+                        {"file": "cursor.py", "function": "execute", "line": 88},
+                    ],
+                }
+            ],
+        },
+    ]
+    summary = namespace["summarize_startup"](events)
+    assert summary["boot_id"] == "boot-1"
+    assert summary["last_completed_phase"] == "app_module_import"
+    assert summary["current_phase"] == "database_initialization"
+    assert summary["snapshot_count"] == 1
+    assert summary["latest_stack_threads"][0]["frames"][-1] == {
+        "file": "cursor.py",
+        "function": "execute",
+        "line": 88,
+    }
+
+
+def test_failed_generation_evidence_is_atomically_persisted_before_recovery(tmp_path):
+    setter = str(SETTER).replace("'", "''")
+    destination = str(tmp_path / "evidence").replace("'", "''")
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{setter}' -Raw
+$start=$source.IndexOf('function Get-ShadowFailedGenerationEvidence')
+$end=$source.IndexOf('function New-ShadowRecoveredFailureResult')
+Invoke-Expression $source.Substring($start,$end-$start)
+$evidence=[pscustomobject]@{{status='captured';operation_id='op-safe';summary=[pscustomobject]@{{app=[pscustomobject]@{{current_phase='database_initialization'}}}}}}
+$result=Persist-ShadowFailedGenerationEvidenceSafely -OperationId 'op-safe' -Evidence $evidence -EvidenceDirectory '{destination}'
+[pscustomobject]@{{result=$result;exists=(Test-Path -LiteralPath $result.path);temporary_files=@(Get-ChildItem -LiteralPath '{destination}' -Filter '*.tmp' -ErrorAction SilentlyContinue).Count;payload=(Get-Content -Raw -LiteralPath $result.path|ConvertFrom-Json)}}|ConvertTo-Json -Compress -Depth 8
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip())
+    assert payload["result"]["status"] == "persisted"
+    assert payload["exists"] is True
+    assert payload["temporary_files"] == 0
+    assert payload["payload"]["operation_id"] == "op-safe"
+    assert payload["payload"]["summary"]["app"]["current_phase"] == "database_initialization"
+
+
+def test_failed_generation_persistence_failure_is_sanitized_and_non_throwing(tmp_path):
+    setter = str(SETTER).replace("'", "''")
+    blocking_file = tmp_path / "not-a-directory"
+    blocking_file.write_text("fixture", encoding="utf-8")
+    destination = str(blocking_file).replace("'", "''")
+    script = f"""
+$ErrorActionPreference='Stop'
+$source=Get-Content '{setter}' -Raw
+$start=$source.IndexOf('function Get-ShadowFailedGenerationEvidence')
+$end=$source.IndexOf('function New-ShadowRecoveredFailureResult')
+Invoke-Expression $source.Substring($start,$end-$start)
+$evidence=[pscustomobject]@{{status='captured';operation_id='op-safe';sentinel='must-not-appear-in-error'}}
+$result=Persist-ShadowFailedGenerationEvidenceSafely -OperationId 'op-safe' -Evidence $evidence -EvidenceDirectory '{destination}'
+$result|ConvertTo-Json -Compress
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout.strip())
+    assert payload == {
+        "status": "persistence_failed",
+        "failure_code": "atomic_evidence_persistence_failed",
+    }
+    assert "must-not-appear" not in result.stdout + result.stderr
+
+
 def test_evidence_capture_precedes_exact_target_recovery_and_is_bounded():
     setter = SETTER.read_text(encoding="utf-8")
     capture = setter.index("Get-ShadowFailedGenerationEvidenceSafely -OperationId")
+    persist = setter.index("Persist-ShadowFailedGenerationEvidenceSafely -OperationId", capture)
     rollback = setter.index("Invoke-ShadowHelper -RequestedOperation 'rollback'", capture)
-    assert capture < rollback
+    assert capture < persist < rollback
     assert "MAX_LOG_BYTES = 32768" in setter
     assert "MAX_LOG_LINES = 160" in setter
     assert "-TimeoutSeconds 20" in setter

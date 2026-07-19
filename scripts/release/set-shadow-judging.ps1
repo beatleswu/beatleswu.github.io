@@ -606,21 +606,68 @@ def safe_logs(container_id):
     return {"status": "captured", "lines": lines, "startup_diagnostics": diagnostics}
 
 
+def summarize_startup(events):
+    states = {}
+    boot_id = None
+    last_completed_phase = None
+    latest_snapshot = None
+    snapshot_count = 0
+    last_elapsed = None
+    for event in events:
+        if event.get("boot_id"):
+            boot_id = event["boot_id"]
+        phase = str(event.get("phase") or "")
+        status = str(event.get("status") or "")
+        if event.get("elapsed_seconds") is not None:
+            last_elapsed = event["elapsed_seconds"]
+        if status == "start" and phase:
+            states[phase] = "start"
+        elif status in {"success", "failure", "ready"} and phase:
+            states[phase] = status
+            last_completed_phase = phase
+        if phase == "delayed_start_stack" and status == "snapshot":
+            snapshot_count += 1
+            latest_snapshot = event
+    current_phase = None
+    for event in reversed(events):
+        phase = str(event.get("phase") or "")
+        if event.get("status") == "start" and states.get(phase) == "start":
+            current_phase = phase
+            break
+    latest_threads = []
+    if latest_snapshot:
+        latest_threads = list(latest_snapshot.get("threads") or [])[:16]
+    return {
+        "boot_id": boot_id,
+        "last_completed_phase": last_completed_phase,
+        "current_phase": current_phase,
+        "last_event_elapsed_seconds": last_elapsed,
+        "snapshot_count": snapshot_count,
+        "latest_snapshot_sequence": latest_snapshot.get("snapshot_sequence") if latest_snapshot else None,
+        "latest_stack_threads": latest_threads,
+    }
+
+
 def capture(name):
     info = metadata(name)
     if not info.get("available"):
-        return {"metadata": info, "logs": {"status": "unavailable", "lines": [], "startup_diagnostics": []}}
-    return {"metadata": info, "logs": safe_logs(info["id"])}
+        logs = {"status": "unavailable", "lines": [], "startup_diagnostics": []}
+        return {"metadata": info, "summary": summarize_startup([]), "logs": logs}
+    logs = safe_logs(info["id"])
+    return {"metadata": info, "summary": summarize_startup(logs["startup_diagnostics"]), "logs": logs}
 
 
+app_capture = capture(APP)
+scheduler_capture = capture(SCHEDULER)
 payload = {
     "status": "captured",
     "operation_id": OPERATION_ID,
     "captured_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "bounds": {"container_count": 2, "max_log_bytes_per_container": MAX_LOG_BYTES, "max_log_lines_per_container": MAX_LOG_LINES, "command_timeout_seconds": 5},
-    "containers": {"app": capture(APP), "scheduler": capture(SCHEDULER)},
+    "summary": {"app": app_capture["summary"], "scheduler": scheduler_capture["summary"]},
+    "containers": {"app": app_capture, "scheduler": scheduler_capture},
 }
-print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+print(json.dumps(payload, separators=(",", ":")))
 __SHADOW_STARTUP_EVIDENCE__
 '@
     $remoteScript = $scriptTemplate.Replace('__APP_JSON__', $appJson).Replace('__SCHEDULER_JSON__', $schedulerJson).Replace('__OPERATION_JSON__', $operationJson)
@@ -654,6 +701,41 @@ function Get-ShadowFailedGenerationEvidenceSafely {
             operation_id = $OperationId
             captured_at_utc = (Get-Date).ToUniversalTime().ToString('o')
             failure_code = 'startup_evidence_capture_failed_closed'
+        }
+    }
+}
+
+function Persist-ShadowFailedGenerationEvidenceSafely {
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [Parameter(Mandatory = $true)]$Evidence,
+        [string]$EvidenceDirectory = (Join-Path ([System.IO.Path]::GetTempPath()) 'go-odyssey-shadow-failure-evidence')
+    )
+    if ($OperationId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$') {
+        return [pscustomobject]@{ status = 'persistence_failed'; failure_code = 'operation_id_invalid' }
+    }
+    $temporaryPath = $null
+    try {
+        [System.IO.Directory]::CreateDirectory($EvidenceDirectory) | Out-Null
+        $destinationPath = Join-Path $EvidenceDirectory ("shadow-failure-{0}.json" -f $OperationId)
+        $temporaryPath = Join-Path $EvidenceDirectory (".{0}.{1}.tmp" -f $OperationId, ([guid]::NewGuid().ToString('N')))
+        $json = $Evidence | ConvertTo-Json -Compress -Depth 20
+        $encoding = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($temporaryPath, $json, $encoding)
+        Move-Item -LiteralPath $temporaryPath -Destination $destinationPath -Force
+        $temporaryPath = $null
+        return [pscustomobject]@{
+            status = 'persisted'
+            path = $destinationPath
+            sha256 = (Get-FileHash -LiteralPath $destinationPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+    }
+    catch {
+        return [pscustomobject]@{ status = 'persistence_failed'; failure_code = 'atomic_evidence_persistence_failed' }
+    }
+    finally {
+        if ($temporaryPath -and (Test-Path -LiteralPath $temporaryPath)) {
+            Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
         }
     }
 }
@@ -735,6 +817,8 @@ if ($Operation -in $mutationOperations) {
         # Preserve the failed generation before exact-target recovery recreates it.
         # Capture is strictly bounded and cannot replace the original failure.
         $failedGenerationEvidence = Get-ShadowFailedGenerationEvidenceSafely -OperationId $evidenceOperationId
+        $evidencePersistence = Persist-ShadowFailedGenerationEvidenceSafely -OperationId $evidenceOperationId -Evidence $failedGenerationEvidence
+        $failedGenerationEvidence | Add-Member -NotePropertyName persistence -NotePropertyValue $evidencePersistence -Force
         $recoverySucceeded = $false
         try {
             if (-not $result -or -not $result.backup -or [string]::IsNullOrWhiteSpace([string]$result.backup.id)) {
