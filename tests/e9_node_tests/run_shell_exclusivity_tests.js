@@ -41,6 +41,7 @@ class FakeNode {
     this.hidden = false;
     this.tabIndex = 0;
     this.children = [];
+    this.listeners = {};
   }
   setAttribute(name, value) {
     this.attrs[name] = String(value);
@@ -70,6 +71,12 @@ class FakeNode {
     this.doc.activeElement = this;
   }
   dispatchEvent() {}
+  addEventListener(name, fn) {
+    (this.listeners[name] || (this.listeners[name] = [])).push(fn);
+  }
+  removeEventListener(name, fn) {
+    this.listeners[name] = (this.listeners[name] || []).filter((item) => item !== fn);
+  }
 }
 
 function createHarness(opts) {
@@ -138,7 +145,7 @@ function createHarness(opts) {
     startAdventureStage: function () {},
     E9: {
       getFlags: function () { return Object.assign({}, flags); },
-      loadComponent: function (component, root) {
+      loadComponent: opts.loadComponent || function (component, root) {
         loadCalls.push(component);
         root.setAttribute('data-e9-loaded', '1');
         return Promise.resolve(true);
@@ -290,6 +297,42 @@ test('auth handoff can reacquire E9 ownership after initial legacy init', async 
   assert.strictEqual(h.win.E9.getActiveShell(), 'e9');
   assert.strictEqual(h.e9Root.hidden, false);
   assert.strictEqual(h.legacyRoots[0].hidden, true);
+});
+
+test('destroy removes registered listeners and allows a clean remount', async () => {
+  const h = createHarness({
+    activeShell: 'e9',
+    flags: { e9Shell: true, e9WorldStage: true }
+  });
+  await h.flush();
+  const handler = () => {};
+  h.win.E9.on(h.e9Root, 'click', handler);
+  assert.strictEqual(h.e9Root.listeners.click.length, 1);
+  h.win.E9.destroyShell();
+  assert.strictEqual(h.e9Root.listeners.click.length, 0);
+  assert.strictEqual(h.win.E9.getActiveShell(), 'legacy');
+  h.win.__GO_E9_ACTIVE_SHELL__ = 'e9';
+  h.win.E9.initShell();
+  await h.flush();
+  assert.strictEqual(h.loadCalls.length, 2);
+});
+
+test('stale in-flight mount cannot reacquire E9 after destroy', async () => {
+  let resolveLoad;
+  const calls = [];
+  const h = createHarness({
+    activeShell: 'e9',
+    flags: { e9Shell: true, e9WorldStage: true },
+    loadComponent: function () {
+      calls.push('world_stage');
+      return new Promise((resolve) => { resolveLoad = resolve; });
+    }
+  });
+  h.win.E9.destroyShell();
+  resolveLoad(true);
+  await h.flush();
+  assert.strictEqual(h.win.E9.getActiveShell(), 'legacy');
+  assert.strictEqual(calls.length, 1);
 });
 
 setImmediate(() => {

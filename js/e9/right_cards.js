@@ -36,10 +36,11 @@
     return t('e9.right_cards.error', 'Unavailable');
   }
 
-  function loadDailyChallenge(root) {
+  function loadDailyChallenge(root, current) {
     var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
     if (!adapter) return setBody(root, 'daily_challenge', t('e9.right_cards.error', 'Unavailable'));
     adapter.fetchDailyChallenge().then(function (result) {
+      if (!current()) return;
       if (!result.ok) {
         setBody(root, 'daily_challenge', errorTextFor('daily_challenge', result));
         return;
@@ -49,15 +50,17 @@
         : t('e9.right_cards.daily_challenge_available', 'Available now');
       setBody(root, 'daily_challenge', text);
     }).catch(function (err) {
+      if (!current()) return;
       console.error('[E9] right_cards daily_challenge fetch failed (non-critical):', err);
       setBody(root, 'daily_challenge', t('e9.right_cards.error', 'Unavailable'));
     });
   }
 
-  function loadBossProgress(root) {
+  function loadBossProgress(root, current) {
     var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
     if (!adapter) return setBody(root, 'boss_progress', t('e9.right_cards.error', 'Unavailable'));
     adapter.fetchBossProgress().then(function (result) {
+      if (!current()) return;
       if (!result.ok) {
         setBody(root, 'boss_progress', errorTextFor('boss_progress', result));
         return;
@@ -70,15 +73,17 @@
       setBody(root, 'boss_progress', t('index.adv.summary', '{n} / {t} areas cleared')
         .replace('{n}', d.cleared).replace('{t}', d.total));
     }).catch(function (err) {
+      if (!current()) return;
       console.error('[E9] right_cards boss_progress fetch failed (non-critical):', err);
       setBody(root, 'boss_progress', t('e9.right_cards.error', 'Unavailable'));
     });
   }
 
-  function loadSrsDue(root) {
+  function loadSrsDue(root, current) {
     var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
     if (!adapter) return setBody(root, 'srs_due', t('e9.right_cards.error', 'Unavailable'));
     adapter.fetchSrsDue().then(function (result) {
+      if (!current()) return;
       if (!result.ok) {
         setBody(root, 'srs_due', errorTextFor('srs_due', result));
         return;
@@ -86,15 +91,17 @@
       var count = result.data.count;
       setBody(root, 'srs_due', count !== null && count > 0 ? String(count) : t('e9.right_cards.empty', 'No data yet'));
     }).catch(function (err) {
+      if (!current()) return;
       console.error('[E9] right_cards srs_due fetch failed (non-critical):', err);
       setBody(root, 'srs_due', t('e9.right_cards.error', 'Unavailable'));
     });
   }
 
-  function loadWeakness(root) {
+  function loadWeakness(root, current) {
     var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.ActivityState;
     if (!adapter) return setBody(root, 'weakness', t('e9.right_cards.error', 'Unavailable'));
     adapter.fetchMistakes().then(function (result) {
+      if (!current()) return;
       if (!result.ok) {
         setBody(root, 'weakness', errorTextFor('weakness', result));
         return;
@@ -102,24 +109,28 @@
       var total = result.data.total;
       setBody(root, 'weakness', total !== null && total > 0 ? String(total) : t('e9.right_cards.empty', 'No data yet'));
     }).catch(function (err) {
+      if (!current()) return;
       console.error('[E9] right_cards weakness fetch failed (non-critical):', err);
       setBody(root, 'weakness', t('e9.right_cards.error', 'Unavailable'));
     });
   }
 
-  function init(root) {
+  function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
 
-    loadDailyChallenge(root);
-    loadBossProgress(root);
-    loadSrsDue(root);
-    loadWeakness(root);
+    var current = function () {
+      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
+    };
+    loadDailyChallenge(root, current);
+    loadBossProgress(root, current);
+    loadSrsDue(root, current);
+    loadWeakness(root, current);
   }
 
   document.addEventListener('e9:component-loaded', function (e) {
     if (e.detail && e.detail.component === 'right_cards') {
-      init(e.detail.root);
+      init(e.detail.root, e.detail.generation);
     }
   });
 })(document);
