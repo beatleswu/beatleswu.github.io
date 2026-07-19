@@ -1,4 +1,5 @@
 import json
+import hashlib
 import sys
 import types
 from pathlib import Path
@@ -165,3 +166,78 @@ def test_deployment_readiness_endpoint_returns_report_for_admin(monkeypatch, app
     payload = response.get_json()
     assert payload['ok'] is True
     assert payload['failures'] == []
+
+
+def _write_static_release_fixture(root: Path, generation='20260719-191549-9007ded4-v201-e9-quest-board'):
+    files = {}
+    for name, content in {
+        'index.html': b'<html>quest</html>',
+        'i18n.js': b'window.I18N = {};',
+        'sw.js': b'const VERSION = "v201-e9-quest-board";'
+    }.items():
+        (root / name).write_bytes(content)
+        files[name] = hashlib.sha256(content).hexdigest()
+    (root / 'manifest.json').write_text(json.dumps({
+        'static_generation_id': generation,
+        'release_git_sha': '9007ded4bb1c185995e1a4f570b36dfe47c91cb2',
+        'files': [{'path': name, 'sha256': digest} for name, digest in files.items()]
+    }), encoding='utf-8')
+
+
+def test_static_release_healthz_uses_manifest_generation_for_literal_mount(tmp_path, monkeypatch, app_module):
+    root = tmp_path / 'current'
+    root.mkdir()
+    _write_static_release_fixture(root)
+    monkeypatch.setenv('GO_ODYSSEY_LIVE_STATIC_ROOT', str(root))
+
+    payload = app_module.app.test_client().get('/healthz/static-release').get_json()
+
+    assert payload['ok'] is True
+    assert payload['generation'] == '20260719-191549-9007ded4-v201-e9-quest-board'
+    assert payload['generation'] != 'current'
+    assert payload['source_sha'] == '9007ded4bb1c185995e1a4f570b36dfe47c91cb2'
+
+
+def test_static_release_healthz_uses_manifest_generation_for_symlink(tmp_path, monkeypatch, app_module):
+    target = tmp_path / 'generation'
+    target.mkdir()
+    _write_static_release_fixture(target)
+    current = tmp_path / 'current'
+    try:
+        current.symlink_to(target, target_is_directory=True)
+    except OSError as exc:
+        if getattr(exc, 'winerror', None) == 1314:
+            pytest.skip('symlink creation requires SeCreateSymbolicLinkPrivilege on this Windows host')
+        raise
+    monkeypatch.setenv('GO_ODYSSEY_LIVE_STATIC_ROOT', str(current))
+
+    response = app_module.app.test_client().get('/healthz/static-release')
+
+    assert response.status_code == 200
+    assert response.get_json()['generation'].startswith('20260719-191549-9007ded4-')
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'current', 'malformed', 'bad_hash'])
+def test_static_release_healthz_fails_closed_on_invalid_manifest(tmp_path, monkeypatch, app_module, mutation):
+    root = tmp_path / 'current'
+    root.mkdir()
+    _write_static_release_fixture(root)
+    manifest_path = root / 'manifest.json'
+    if mutation == 'missing':
+        manifest_path.unlink()
+    elif mutation == 'current':
+        data = json.loads(manifest_path.read_text(encoding='utf-8'))
+        data['static_generation_id'] = 'current'
+        manifest_path.write_text(json.dumps(data), encoding='utf-8')
+    elif mutation == 'malformed':
+        manifest_path.write_text('{', encoding='utf-8')
+    else:
+        data = json.loads(manifest_path.read_text(encoding='utf-8'))
+        data['files'][0]['sha256'] = '0' * 64
+        manifest_path.write_text(json.dumps(data), encoding='utf-8')
+    monkeypatch.setenv('GO_ODYSSEY_LIVE_STATIC_ROOT', str(root))
+
+    response = app_module.app.test_client().get('/healthz/static-release')
+
+    assert response.status_code == 503
+    assert response.get_json()['ok'] is False
