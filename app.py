@@ -94,7 +94,9 @@ def static_release_healthz():
     generation_pattern = re.compile(r'^[0-9]{8}-[0-9]{6}-[0-9a-f]{8}-.+$')
     try:
         manifest_path = os.path.join(root, 'manifest.json')
-        with open(manifest_path, 'r', encoding='utf-8') as handle:
+        # package-static-release.ps1 writes JSON with a UTF-8 BOM; accept that
+        # canonical encoding while still parsing only the mounted manifest.
+        with open(manifest_path, 'r', encoding='utf-8-sig') as handle:
             manifest = json.load(handle)
         generation = manifest.get('static_generation_id')
         source_sha = manifest.get('release_git_sha')
