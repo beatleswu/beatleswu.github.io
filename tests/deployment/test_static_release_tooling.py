@@ -173,9 +173,24 @@ def test_deploy_script_uses_atomic_symlink_switch_pattern():
 def test_deploy_script_verifies_public_https_bytes_not_just_filesystem():
     content = _read(DEPLOY_SCRIPT)
     assert "Invoke-WebRequest" in content
-    assert "deploy-verify=" in content
+    assert '"$PublicBase/$($entry.path)"' in content
+    assert "Cache-Control" in content
     assert "Get-PublicFileSha256" in content
     assert "Public content hash mismatch" in content
+
+
+def test_timeout_reconciles_before_rollback_and_accepts_remote_completion():
+    content = _read(DEPLOY_SCRIPT)
+    assert "Get-StaticDeploymentReconciliation" in content
+    assert "REMOTE_COMPLETED_SWITCHED" in content
+    assert "original_local_failure" in content
+    assert content.index("Get-StaticDeploymentReconciliation") < content.index("$rollbackRequired = $false")
+
+
+def test_query_string_verification_is_diagnostic_only():
+    content = _read(DEPLOY_SCRIPT)
+    assert "Query-string cache busting is diagnostic-only" in content
+    assert "Get-SwVersionFromUrl -Url \"$publicBase/sw.js\"" in content
 
 
 def test_deploy_script_verifies_sw_version_publicly_not_just_locally():
