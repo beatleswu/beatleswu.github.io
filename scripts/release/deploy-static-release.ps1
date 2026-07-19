@@ -13,7 +13,7 @@
   exists instead of just fixing that one's hard-coded branch guard.
 
   Never overwrites an existing generation directory. Always verifies the
-  PUBLIC, cache-busted HTTPS response (not just the container filesystem or
+  PUBLIC canonical HTTPS response (not just the container filesystem or
   the host directory) before declaring success, and automatically rolls
   the symlink back on any post-switch verification failure.
 
@@ -209,7 +209,7 @@ function Invoke-BoundedPublicVerification {
     $worker = {
         param($Url, $ExpectedHash, $Path, $TimeoutSeconds)
         try {
-            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSeconds
+            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSeconds -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
             $bytes = $response.Content
             if ($bytes -is [string]) {
                 $bytes = [System.Text.Encoding]::UTF8.GetBytes($bytes)
@@ -259,7 +259,10 @@ function Invoke-BoundedPublicVerification {
         $jobEntries = @{}
         try {
             foreach ($entry in $Entries[$offset..$last]) {
-                $url = "$PublicBase/$($entry.path)?deploy-verify=$ShortSha"
+                # Canonical URLs are the acceptance contract. Query-string cache busting is diagnostic-only
+                # because Flask routes and
+                # proxies are not required to preserve arbitrary queries.
+                $url = "$PublicBase/$($entry.path)"
                 $job = Start-Job -ScriptBlock $worker -ArgumentList $url, $entry.sha256, $entry.path, $RequestTimeoutSeconds
                 $jobs += $job
                 $jobEntries[$job.Id] = $entry
@@ -377,6 +380,53 @@ function Get-PublicFileSha256 {
     }
     finally {
         $hasher.Dispose()
+    }
+}
+
+function Get-StaticDeploymentReconciliation {
+    <#
+    Reconcile after a bounded local SSH/SCP timeout.  A killed local child is
+    not evidence that the remote operation stopped; inspect the remote
+    generation, manifest, current pointer, mounted container content and
+    health before deciding whether rollback is safe.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RemoteReleaseDir,
+        [Parameter(Mandatory = $true)][string]$StaticRoot,
+        [Parameter(Mandatory = $true)][string]$ExpectedManifestSha,
+        [Parameter(Mandatory = $true)][int]$ExpectedFileCount,
+        [Parameter(Mandatory = $true)][string]$ExpectedI18nSha,
+        [Parameter(Mandatory = $true)][string]$ExpectedSwSha,
+        [Parameter(Mandatory = $true)][string]$ExpectedIndexSha
+    )
+    $result = [ordered]@{ state = 'REMOTE_NOT_STARTED'; target = $RemoteReleaseDir }
+    try {
+        $manifestPath = "$RemoteReleaseDir/manifest.json"
+        $manifestPresent = (Invoke-RemoteText "test -f $(Quote-PosixShellArgument $manifestPath) && echo PRESENT || echo ABSENT" -OperationLabel 'reconcile manifest presence').Trim()
+        if ($manifestPresent -ne 'PRESENT') { $result.state = 'REMOTE_IN_PROGRESS'; return [pscustomobject]$result }
+        $count = [int](Invoke-RemoteText "find $(Quote-PosixShellArgument $RemoteReleaseDir) -type f | wc -l" -OperationLabel 'reconcile generation count').Trim()
+        if ($count -ne ($ExpectedFileCount + 1)) { $result.state = 'REMOTE_IN_PROGRESS'; $result.file_count = $count; return [pscustomobject]$result }
+        $manifestHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $manifestPath)" -OperationLabel 'reconcile manifest hash').Split(' ')[0].Trim().ToLowerInvariant()
+        $result.manifest_sha256 = $manifestHash
+        if ($manifestHash -ne $ExpectedManifestSha) { $result.state = 'DEPLOYMENT_FAILED'; return [pscustomobject]$result }
+        $target = Get-RemoteCurrentTarget -StaticRoot $StaticRoot
+        $result.current_target = $target
+        if ($target -ne $RemoteReleaseDir) { $result.state = 'REMOTE_COMPLETED_NOT_SWITCHED'; return [pscustomobject]$result }
+        $i18n = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/i18n.js")" -OperationLabel 'reconcile mounted i18n hash').Split(' ')[0].Trim().ToLowerInvariant()
+        $sw = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/sw.js")" -OperationLabel 'reconcile mounted sw hash').Split(' ')[0].Trim().ToLowerInvariant()
+        $index = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/index.html")" -OperationLabel 'reconcile mounted index hash').Split(' ')[0].Trim().ToLowerInvariant()
+        $result.container_hashes = [ordered]@{ i18n = $i18n; sw = $sw; index = $index }
+        $health = (Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $layout.app_service_name) --format '{{.State.Health.Status}}'" -OperationLabel 'reconcile app health').Trim()
+        $result.app_health = $health
+        if ($health -ne 'healthy' -or $i18n -ne $ExpectedI18nSha -or $sw -ne $ExpectedSwSha -or $index -ne $ExpectedIndexSha) { $result.state = 'PUBLIC_NOT_CONVERGED'; return [pscustomobject]$result }
+        $result.state = 'REMOTE_COMPLETED_SWITCHED'
+        $result.confirmed = $true
+        return [pscustomobject]$result
+    }
+    catch {
+        $result.state = 'REMOTE_IN_PROGRESS'
+        $result.error = $_.Exception.Message
+        return [pscustomobject]$result
     }
 }
 
@@ -581,7 +631,7 @@ try {
     Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
     $publicResults = Invoke-BoundedPublicVerification -Entries $manifest.files -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts
-    $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)?deploy-verify=$shortSha"; sha256_match = $true } })
+    $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)"; sha256_match = $true } })
     $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
     if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $manifest.files.Count) {
         $failureSummary = [ordered]@{
@@ -606,7 +656,7 @@ try {
     End-StaticDeployPhase -Phase 'PUBLIC_HASH_COMPLETE'
 
     Start-StaticDeployPhase -Phase 'PUBLIC_SW'
-    $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js?deploy-verify=$shortSha"
+    $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
     if ($publicSwVersion -ne $manifest.service_worker_version) {
         throw "Public sw.js VERSION mismatch after switch. Expected '$($manifest.service_worker_version)', observed '$publicSwVersion'."
     }
@@ -639,6 +689,44 @@ try {
 catch {
     $failureMessage = $_.Exception.Message
     $failurePhase = $activePhase
+    $reconciliation = $null
+    # A bounded local timeout is not proof of remote failure. Reconcile the
+    # target generation before any rollback decision, allowing a remote
+    # operation that completed after the local child was killed to be
+    # accepted without a deploy/rollback race.
+    try {
+        $expectedI18nSha = ($manifest.files | Where-Object { $_.path -eq 'i18n.js' }).sha256
+        $expectedSwSha = ($manifest.files | Where-Object { $_.path -eq 'sw.js' }).sha256
+        $expectedIndexSha = ($manifest.files | Where-Object { $_.path -eq 'index.html' }).sha256
+        for ($reconcileAttempt = 0; $reconcileAttempt -lt 6; $reconcileAttempt++) {
+            $reconciliation = Get-StaticDeploymentReconciliation `
+                -RemoteReleaseDir $remoteReleaseDir `
+                -StaticRoot $layout.static_release_root `
+                -ExpectedManifestSha $ExpectedManifestSha256 `
+                -ExpectedFileCount $manifest.files.Count `
+                -ExpectedI18nSha $expectedI18nSha `
+                -ExpectedSwSha $expectedSwSha `
+                -ExpectedIndexSha $expectedIndexSha
+            if ($reconciliation.state -eq 'REMOTE_COMPLETED_SWITCHED') { break }
+            if ($reconciliation.state -notin @('REMOTE_IN_PROGRESS','REMOTE_COMPLETED_NOT_SWITCHED')) { break }
+            Start-Sleep -Seconds 10
+        }
+    }
+    catch { $reconciliation = [pscustomobject]@{ state = 'REMOTE_IN_PROGRESS'; error = $_.Exception.Message } }
+    if ($reconciliation -and $reconciliation.state -eq 'REMOTE_COMPLETED_SWITCHED' -and $reconciliation.confirmed) {
+        [ordered]@{
+            accepted = $true
+            result = 'DEPLOYMENT_CONFIRMED'
+            reconciliation_state = $reconciliation.state
+            remote_release_dir = $remoteReleaseDir
+            previous_current_target = $previousCurrentTarget
+            new_current_target = $reconciliation.current_target
+            reconciliation = $reconciliation
+            original_local_failure = $failureMessage
+            phase_history = @($phaseHistory)
+        } | ConvertTo-Json -Depth 10 | Write-Output
+        return
+    }
     $rollbackRequired = $false
     $rollbackStarted = $false
     $rollbackFinished = $false
@@ -689,6 +777,8 @@ catch {
         rollback_failure_phase = $rollbackFailurePhase
         rollback_failure_message = $rollbackFailureMessage
         final_current_generation = $finalCurrentGeneration
+        reconciliation_state = if ($reconciliation) { $reconciliation.state } else { $null }
+        reconciliation = $reconciliation
         phase_history = @($phaseHistory)
     }
     try { [Console]::Error.WriteLine(('STATIC_FAILURE ' + ($failureRecord | ConvertTo-Json -Compress -Depth 8))) } catch { }

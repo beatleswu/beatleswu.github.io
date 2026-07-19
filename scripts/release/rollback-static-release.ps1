@@ -131,14 +131,16 @@ if (-not $appHealthy) {
 
 $publicVerification = @()
 foreach ($entry in $targetManifest.files) {
-    $url = "$publicBase/$($entry.path)?deploy-verify=$shortSha-rollback"
+    # Canonical URL verification is mandatory.  Query-string variants are
+    # diagnostic only and are not part of the rollback acceptance contract.
+    $url = "$publicBase/$($entry.path)"
     $observedHash = Get-PublicFileSha256 -Url $url
     if ($observedHash -ne $entry.sha256) {
         throw "Public content hash mismatch after rollback for '$($entry.path)'. Expected '$($entry.sha256)', observed '$observedHash'."
     }
     $publicVerification += [ordered]@{ path = $entry.path; url = $url; sha256_match = $true }
 }
-$publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js?deploy-verify=$shortSha-rollback"
+    $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
 if ($publicSwVersion -ne $targetManifest.service_worker_version) {
     throw "Public sw.js VERSION mismatch after rollback. Expected '$($targetManifest.service_worker_version)', observed '$publicSwVersion'."
 }
