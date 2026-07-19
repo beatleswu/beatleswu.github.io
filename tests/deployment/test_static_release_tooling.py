@@ -209,6 +209,8 @@ def test_index_shell_uses_narrow_runtime_provenance_endpoint():
 def test_public_verification_collection_has_explicit_arraylist_type():
     content = _read(DEPLOY_SCRIPT)
     assert 'New-Object System.Collections.ArrayList' in content
+    assert '$phaseHistory = New-Object System.Collections.ArrayList' in content
+    assert '[void]$phaseHistory.Add' in content
     assert '$results.ToArray()' in content
     assert 'Argument types do not match' in content
 

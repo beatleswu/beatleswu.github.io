@@ -147,7 +147,10 @@ $PublicVerificationDeadlineSeconds = Get-StaticPublicVerificationDeadlineSeconds
     -RequestTimeoutSeconds $PublicVerificationRequestTimeoutSeconds `
     -AttemptCount $PublicVerificationAttempts
 $phaseClock = [System.Diagnostics.Stopwatch]::StartNew()
-$phaseHistory = New-Object System.Collections.Generic.List[object]
+# Keep phase history on the same concrete collection type as the public
+# verification results. Generic List[object] can trigger PowerShell 5.1's
+# "Argument types do not match" when serialized after a long run.
+$phaseHistory = New-Object System.Collections.ArrayList
 $activePhase = 'PRECHECK'
 
 function Write-StaticDeployTiming {
@@ -171,7 +174,7 @@ function Write-StaticDeployPhase {
             elapsed_ms = [int64][Math]::Round($phaseClock.Elapsed.TotalMilliseconds)
         }
         if ($Detail) { $event.detail = $Detail }
-        $phaseHistory.Add([pscustomobject]$event)
+        [void]$phaseHistory.Add([pscustomobject]$event)
         [Console]::Error.WriteLine(('STATIC_PHASE ' + ($event | ConvertTo-Json -Compress)))
     }
     catch {
