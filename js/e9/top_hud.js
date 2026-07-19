@@ -33,7 +33,7 @@
     return fallback;
   }
 
-  function init(root) {
+  function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
 
@@ -49,7 +49,11 @@
       return;
     }
 
+    var current = function () {
+      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
+    };
     adapter.fetchPlayerState().then(function (result) {
+      if (!current()) return;
       if (!result.ok) {
         if (result.kind === 'unauthorized') {
           applyText(nameEl, t('e9.top_hud.unauthorized', 'Please log in again'));
@@ -77,6 +81,7 @@
         }
       }
     }).catch(function (err) {
+      if (!current()) return;
       console.error('[E9] top_hud data fetch failed (non-critical):', err);
       applyText(nameEl, t('e9.top_hud.error', 'Player status unavailable'));
     });
@@ -84,7 +89,7 @@
 
   document.addEventListener('e9:component-loaded', function (e) {
     if (e.detail && e.detail.component === 'top_hud') {
-      init(e.detail.root);
+      init(e.detail.root, e.detail.generation);
     }
   });
 })(document);

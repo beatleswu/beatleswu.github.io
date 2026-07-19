@@ -60,6 +60,13 @@
       return Promise.resolve(root.getAttribute('data-e9-loaded') === '1');
     }
 
+    var generation = global.E9 && typeof global.E9.getLifecycleGeneration === 'function'
+      ? global.E9.getLifecycleGeneration() : null;
+    function current() {
+      return !global.E9 || typeof global.E9.isLifecycleCurrent !== 'function' ||
+        global.E9.isLifecycleCurrent(generation);
+    }
+
     try {
       root.innerHTML = skeletonHtml(component);
     } catch (skeletonErr) {
@@ -74,6 +81,7 @@
         return res.text();
       })
       .then(function (html) {
+        if (!current()) return false;
         root.innerHTML = html;
         try {
           if (global.I18n && typeof global.I18n.apply === 'function') {
@@ -87,11 +95,12 @@
         root.setAttribute('data-e9-loaded', '1');
         root.dispatchEvent(new CustomEvent('e9:component-loaded', {
           bubbles: true,
-          detail: { component: component, root: root }
+          detail: { component: component, root: root, generation: generation }
         }));
         return true;
       })
       .catch(function (err) {
+        if (!current()) return false;
         console.error('[E9] component load failed:', component, err);
         try {
           root.innerHTML = fallbackHtml(component);

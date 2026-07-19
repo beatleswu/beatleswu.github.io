@@ -8,21 +8,26 @@
 (function (document) {
   'use strict';
 
-  function init(root) {
+  function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
 
     var current = root.querySelector('[data-e9-nav="adventure"]');
     if (current) {
-      current.addEventListener('click', function (evt) {
+      var handler = function (evt) {
         evt.preventDefault(); // already on this view
-      });
+      };
+      if (window.E9 && typeof window.E9.on === 'function') {
+        window.E9.on(current, 'click', handler, null, generation);
+      } else {
+        current.addEventListener('click', handler);
+      }
     }
   }
 
   document.addEventListener('e9:component-loaded', function (e) {
     if (e.detail && e.detail.component === 'left_nav') {
-      init(e.detail.root);
+      init(e.detail.root, e.detail.generation);
     }
   });
 })(document);

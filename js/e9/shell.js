@@ -45,6 +45,61 @@
 
   var activeShellState = null;
   var mountStarted = false;
+  var lifecycleGeneration = 0;
+  var lifecycleActive = false;
+  var lifecycleCleanups = [];
+
+  function beginLifecycle() {
+    lifecycleGeneration += 1;
+    lifecycleActive = true;
+    lifecycleCleanups = [];
+    return lifecycleGeneration;
+  }
+
+  function isLifecycleCurrent(generation) {
+    return lifecycleActive && generation === lifecycleGeneration;
+  }
+
+  function registerCleanup(cleanup, generation) {
+    var token = generation || lifecycleGeneration;
+    if (typeof cleanup !== 'function' || !isLifecycleCurrent(token)) return cleanup;
+    lifecycleCleanups.push(cleanup);
+    return cleanup;
+  }
+
+  function on(target, eventName, handler, options, generation) {
+    if (!target || typeof target.addEventListener !== 'function') return handler;
+    var token = generation || lifecycleGeneration;
+    target.addEventListener(eventName, handler, options);
+    registerCleanup(function () {
+      if (target && typeof target.removeEventListener === 'function') {
+        target.removeEventListener(eventName, handler, options);
+      }
+    }, token);
+    return handler;
+  }
+
+  function destroyLifecycle() {
+    lifecycleActive = false;
+    lifecycleGeneration += 1;
+    lifecycleCleanups.slice().reverse().forEach(function (cleanup) {
+      try { cleanup(); } catch (err) { console.error('[E9] lifecycle cleanup failed:', err); }
+    });
+    lifecycleCleanups = [];
+    document.querySelectorAll('[data-e9-loaded], [data-e9-inited]').forEach(function (root) {
+      root.removeAttribute('data-e9-loaded');
+      root.removeAttribute('data-e9-inited');
+      root.innerHTML = '';
+    });
+    mountStarted = false;
+    activeShellState = null;
+  }
+
+  function destroyShell() {
+    destroyLifecycle();
+    global.__GO_E9_ACTIVE_SHELL__ = 'legacy';
+    applyShellState('legacy');
+  }
 
   function shellEl() {
     return document.querySelector(SHELL_SELECTOR);
@@ -173,6 +228,7 @@
     } catch (labelErr) {
       // cosmetic best-effort only
     }
+    destroyLifecycle();
     applyShellState('legacy');
     var mapReadiness = Promise.resolve(false);
     try {
@@ -226,12 +282,14 @@
 
     if (mountStarted) return;
     mountStarted = true;
+    var generation = beginLifecycle();
 
     var worldStagePromise = flags[CRITICAL_SLOT.flag]
       ? mountSlot(CRITICAL_SLOT)
       : Promise.resolve(true);
 
     worldStagePromise.then(function (ok) {
+      if (!isLifecycleCurrent(generation)) return;
       if (flags[CRITICAL_SLOT.flag] && !ok) {
         recoverToLegacy(new Error('critical component "world_stage" failed to load'));
         return;
@@ -240,7 +298,7 @@
       NON_CRITICAL_SLOTS.forEach(function (slot) {
         if (!flags[slot.flag]) return;
         try {
-          mountSlot(slot);
+          mountSlot(slot, generation);
         } catch (slotErr) {
           console.error('[E9] non-critical slot threw synchronously:', slot.component, slotErr);
         }
@@ -268,6 +326,12 @@
   global.E9.resolveRequestedShellMode = resolveRequestedShellMode;
   global.E9.__getLegacyShellRoots = legacyEls;
   global.E9.initShell = init;
+  global.E9.destroyShell = destroyShell;
+  global.E9.unmountShell = destroyShell;
+  global.E9.isLifecycleCurrent = isLifecycleCurrent;
+  global.E9.registerCleanup = registerCleanup;
+  global.E9.on = on;
+  global.E9.getLifecycleGeneration = function () { return lifecycleGeneration; };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -79,7 +79,11 @@
           window.E9.startAdventureFromE9(zone.key);
         }
       };
-      cta.addEventListener('click', cta.__e9AdventureHandler);
+      if (window.E9 && typeof window.E9.on === 'function') {
+        window.E9.on(cta, 'click', cta.__e9AdventureHandler);
+      } else {
+        cta.addEventListener('click', cta.__e9AdventureHandler);
+      }
     }
     panel.hidden = false;
   }
@@ -168,13 +172,19 @@
           }));
           renderSelectedZone(root, zones, zone.key, true);
         };
-        tile.addEventListener('click', activate);
-        tile.addEventListener('keydown', function (evt) {
+        var keyActivate = function (evt) {
           if (evt.key === 'Enter' || evt.key === ' ') {
             evt.preventDefault();
             activate();
           }
-        });
+        };
+        if (window.E9 && typeof window.E9.on === 'function') {
+          window.E9.on(tile, 'click', activate);
+          window.E9.on(tile, 'keydown', keyActivate);
+        } else {
+          tile.addEventListener('click', activate);
+          tile.addEventListener('keydown', keyActivate);
+        }
       }
 
       zonesEl.appendChild(tile);
@@ -203,7 +213,12 @@
     }
   }
 
-  function load(root, isRetry) {
+  function load(root, isRetry, generation) {
+    var current = function () {
+      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' ||
+        window.E9.isLifecycleCurrent(generation);
+    };
+    if (!current()) return;
     var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.AdventureState;
     if (!adapter) {
       recoverToLegacy(new Error('AdventureState adapter not loaded'));
@@ -211,6 +226,7 @@
     }
 
     adapter.fetchAdventureState().then(function (result) {
+      if (!current()) return;
       if (!result.ok) {
         if (result.kind === 'unauthorized') {
           recoverToLegacy(new Error('unauthorized (status ' + result.status + ')'));
@@ -223,7 +239,7 @@
             bubbles: true,
             detail: { component: 'world_stage', reason: result.kind },
           }));
-          load(root, true);
+          load(root, true, generation);
           return;
         }
         recoverToLegacy(new Error('adventure data fetch failed: ' + result.kind + ' (status ' + result.status + ')'));
@@ -238,28 +254,36 @@
       }
       renderZones(root, result.data.zones);
     }).catch(function (err) {
+      if (!current()) return;
       recoverToLegacy(err);
     });
   }
 
-  function init(root) {
+  function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
     root.__e9WorldStageState = { zones: [], selectedZoneKey: null };
-    document.addEventListener('e9:i18n-changed', function () {
+    var onChanged = function () {
       var state = root.__e9WorldStageState;
-      if (state && state.zones && state.zones.length) renderZones(root, state.zones);
-    });
-    document.addEventListener('e9:i18n-ready', function () {
+      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones);
+    };
+    var onReady = function () {
       var state = root.__e9WorldStageState;
-      if (state && state.zones && state.zones.length) renderZones(root, state.zones);
-    });
-    load(root, false);
+      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones);
+    };
+    if (window.E9 && typeof window.E9.on === 'function') {
+      window.E9.on(document, 'e9:i18n-changed', onChanged, null, generation);
+      window.E9.on(document, 'e9:i18n-ready', onReady, null, generation);
+    } else {
+      document.addEventListener('e9:i18n-changed', onChanged);
+      document.addEventListener('e9:i18n-ready', onReady);
+    }
+    load(root, false, generation);
   }
 
   document.addEventListener('e9:component-loaded', function (e) {
     if (e.detail && e.detail.component === 'world_stage') {
-      init(e.detail.root);
+      init(e.detail.root, e.detail.generation);
     }
   });
 })(document);
