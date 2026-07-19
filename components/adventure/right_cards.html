@@ -11,6 +11,18 @@
   one card failing/empty never affects the others (non-critical isolation).
 -->
 <aside id="right-cards" class="e9-cards" data-e9-component="right_cards" data-i18n-aria-label="e9.right_cards.aria_label">
+  <section class="e9-quest-board" data-e9-quest-board aria-labelledby="e9-quest-title">
+    <header class="e9-quest-board__header">
+      <h3 id="e9-quest-title" data-e9-quest-title data-i18n="e9.quest.title">Quests</h3>
+      <p data-e9-quest-summary aria-live="polite" data-i18n="e9.quest.loading">Loading…</p>
+      <div class="e9-quest-tabs" role="tablist" data-i18n-aria-label="e9.quest.tabs_label" aria-label="Quest categories">
+        <button type="button" role="tab" data-e9-quest-tab="main" aria-selected="true" data-i18n="e9.quest.main_tab">Main</button>
+        <button type="button" role="tab" data-e9-quest-tab="daily" aria-selected="false" data-i18n="e9.quest.daily_tab">Daily</button>
+      </div>
+    </header>
+    <p data-e9-quest-status role="status" aria-live="polite" data-i18n="e9.quest.loading">Loading…</p>
+    <div data-e9-quest-list class="e9-quest-list" role="tabpanel" aria-labelledby="e9-quest-title"></div>
+  </section>
   <div class="e9-card" data-e9-card="daily_challenge">
     <h4 data-i18n="e9.right_cards.daily_challenge_title">Daily Bounty</h4>
     <p class="e9-card__body" data-e9-card-body="daily_challenge" data-i18n="e9.right_cards.loading" aria-live="polite">Loading…</p>

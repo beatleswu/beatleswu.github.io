@@ -14,6 +14,9 @@
 (function (global) {
   'use strict';
 
+  var dailyCached = null;
+  var dailyInFlight = null;
+
   function classifyHttpError(status) {
     if (status === 401 || status === 403) return 'unauthorized';
     return 'error';
@@ -66,8 +69,16 @@
   }
 
   function fetchDailyChallenge(fetchImpl) {
-    return fetchOne('/api/daily-challenge/today', normalizeDailyChallenge, fetchImpl);
+    if (dailyCached) return Promise.resolve(dailyCached);
+    if (dailyInFlight) return dailyInFlight;
+    dailyInFlight = fetchOne('/api/daily-challenge/today', normalizeDailyChallenge, fetchImpl).then(function (result) {
+      dailyInFlight = null;
+      if (result.ok) dailyCached = result;
+      return result;
+    });
+    return dailyInFlight;
   }
+  function invalidateActivityState() { dailyCached = null; dailyInFlight = null; }
   function fetchBossProgress(fetchImpl) {
     var adventureAdapter = global.E9 && global.E9.Adapters && global.E9.Adapters.AdventureState;
     if (!adventureAdapter || typeof adventureAdapter.fetchAdventureState !== 'function') {
@@ -91,6 +102,7 @@
     normalizeSrsDue: normalizeSrsDue,
     normalizeMistakes: normalizeMistakes,
     fetchDailyChallenge: fetchDailyChallenge,
+    invalidateActivityState: invalidateActivityState,
     fetchBossProgress: fetchBossProgress,
     fetchSrsDue: fetchSrsDue,
     fetchMistakes: fetchMistakes,
