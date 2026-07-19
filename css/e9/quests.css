@@ -1,0 +1,26 @@
+.e9-quest-board {
+  background: var(--e9-shell-panel-bg);
+  border: 1px solid var(--e9-shell-panel-border);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: var(--e9-shell-panel-shadow);
+}
+.e9-quest-board__header h3 { margin: 0; font-size: 16px; }
+.e9-quest-board__header p { margin: 4px 0 10px; color: #5f5445; font-size: 12px; }
+.e9-quest-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.e9-quest-tabs button { border: 1px solid var(--e9-shell-panel-border); border-radius: 999px; background: transparent; padding: 6px 10px; cursor: pointer; }
+.e9-quest-tabs button[aria-selected="true"] { background: #2d2636; color: #fff; }
+.e9-quest-list { display: grid; gap: 10px; margin-top: 10px; }
+.e9-quest-card { position: relative; border-top: 1px solid var(--e9-shell-panel-border); padding-top: 10px; }
+.e9-quest-card h4 { margin: 0 0 4px; font-size: 13px; }
+.e9-quest-card p { margin: 0 0 7px; font-size: 12px; color: #5f5445; }
+.e9-quest-badge { display: inline-block; font-size: 11px; margin-bottom: 5px; }
+.e9-quest-progress-label { display: inline-block; margin-left: 6px; font-size: 11px; }
+.e9-quest-card progress { width: 58%; height: 8px; vertical-align: middle; }
+.e9-quest-cta { display: inline-block; margin-top: 7px; font-size: 12px; font-weight: 600; }
+.e9-quest-card.is-just-completed { animation: e9-quest-complete 500ms ease-out both; }
+@keyframes e9-quest-complete { from { transform: translateY(3px); opacity: .6; } to { transform: none; opacity: 1; } }
+@media (max-width: 767px) {
+  .e9-quest-card progress { width: 100%; display: block; margin: 4px 0; }
+  .e9-quest-cta { min-height: 36px; padding-top: 8px; }
+}
