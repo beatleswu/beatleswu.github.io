@@ -302,6 +302,109 @@ def test_rollback_restores_exact_bytes_and_keeps_a_reverse_backup(tmp_path):
     assert payload["effective"]["state"] == "disabled"
 
 
+def test_validate_exact_enabled_backup_is_read_only_and_identity_bound(tmp_path):
+    original = b"OPAQUE=synthetic\nSHADOW_JUDGING_ENABLED=true\n"
+    result, _, env_path = mutate(tmp_path, "disable", original)
+    assert result.returncode == 0
+    disabled = env_path.read_bytes()
+    target = next((tmp_path / "backups").glob("*.env")).stem
+    backups_before = sorted(path.name for path in (tmp_path / "backups").iterdir())
+    audit_path = tmp_path / "audit" / "audit.jsonl"
+    audit_before = audit_path.read_bytes()
+
+    result, payload, env_path = invoke_helper(
+        tmp_path, "validate-rollback", rollback_backup_id=target
+    )
+
+    assert result.returncode == 0
+    assert payload == {
+        "effective": {
+            "canonical_assignment": True,
+            "canonical_value": "true",
+            "configured": True,
+            "enabled": True,
+            "state": "enabled",
+        },
+        "exact_match": True,
+        "key": "SHADOW_JUDGING_ENABLED",
+        "metadata_parse_success": True,
+        "mutation_performed": False,
+        "operation": "validate-rollback",
+        "parsed_backup_id": target,
+        "requested_backup_id": target,
+        "service_recreate_required": False,
+        "target_app": "enabled",
+        "target_scheduler": "enabled",
+        "value_state": "EXPLICIT_TRUE",
+    }
+    assert env_path.read_bytes() == disabled
+    assert sorted(path.name for path in (tmp_path / "backups").iterdir()) == backups_before
+    assert not (tmp_path / "shadow.lock").exists()
+    assert audit_path.read_bytes() == audit_before
+
+
+def test_validate_rejects_disabled_backup_and_exact_identity_errors(tmp_path):
+    original = b"SHADOW_JUDGING_ENABLED=false\n"
+    result, _, env_path = mutate(tmp_path, "enable", original)
+    assert result.returncode == 0
+    enabled = env_path.read_bytes()
+    target = next((tmp_path / "backups").glob("*.env")).stem
+
+    result, payload, _ = invoke_helper(
+        tmp_path, "validate-rollback", rollback_backup_id=target
+    )
+    assert result.returncode == 1
+    assert payload == {
+        "reason": "rollback_backup_target_not_enabled",
+        "status": "fail_closed",
+    }
+    assert env_path.read_bytes() == enabled
+
+    for bad_id in ("", "..", "../backup", r"..\backup", "backup/name", "backup*", "missing"):
+        result, payload, _ = invoke_helper(
+            tmp_path, "validate-rollback", rollback_backup_id=bad_id
+        )
+        assert result.returncode == 1
+        expected = "no_valid_governed_backup" if bad_id == "missing" else "invalid_backup_identity"
+        assert payload == {"reason": expected, "status": "fail_closed"}
+        assert env_path.read_bytes() == enabled
+
+
+def test_exact_backup_metadata_identity_must_match_requested_id(tmp_path):
+    result, _, env_path = mutate(
+        tmp_path, "disable", "SHADOW_JUDGING_ENABLED=true\n"
+    )
+    assert result.returncode == 0
+    disabled = env_path.read_bytes()
+    metadata_path = next((tmp_path / "backups").glob("*.json"))
+    target = metadata_path.stem
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata["backup_id"] = "different-valid-id"
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    result, payload, _ = invoke_helper(
+        tmp_path, "validate-rollback", rollback_backup_id=target
+    )
+    assert result.returncode == 1
+    assert payload == {"reason": "backup_identity_mismatch", "status": "fail_closed"}
+    assert env_path.read_bytes() == disabled
+
+
+def test_public_setter_exact_rollback_parameter_matches_drill_caller():
+    setter = SETTER.read_text(encoding="utf-8")
+    drill = (ROOT / "scripts" / "release" / "run-shadow-kill-switch-drill.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert "[string]$RollbackBackupId" in setter.split("$ErrorActionPreference", 1)[0]
+    assert "Assert-ExactShadowBackupId -BackupId $RollbackBackupId" in setter
+    assert "-RequestedRollbackBackupId $RollbackBackupId" in setter
+    assert "@('validate-rollback','rollback')" in setter
+    assert "$arguments += @('-RollbackBackupId', $RollbackBackupId)" in drill
+    assert "latest_backup" not in (ROOT / "scripts" / "release" / "shadow_judging_config.py").read_text(
+        encoding="utf-8"
+    )
+
+
 def test_tampered_backup_is_not_accepted_for_rollback(tmp_path):
     original = "SHADOW_JUDGING_ENABLED=false\nOPAQUE=synthetic\n"
     result, _, env_path = mutate(tmp_path, "enable", original)
@@ -310,10 +413,21 @@ def test_tampered_backup_is_not_accepted_for_rollback(tmp_path):
     backup = next((tmp_path / "backups").glob("*.env"))
     backup.write_text("SHADOW_JUDGING_ENABLED=true\nTAMPERED=1\n", encoding="utf-8")
 
-    result, payload, env_path = mutate(tmp_path, "rollback")
+    result, payload, env_path = mutate(tmp_path, "rollback", rollback_backup_id=backup.stem)
     assert result.returncode == 1
     assert payload == {"reason": "no_valid_governed_backup", "status": "fail_closed"}
     assert env_path.read_bytes() == enabled
+
+
+def test_rollback_requires_explicit_identity_and_never_resolves_latest(tmp_path):
+    original = "SHADOW_JUDGING_ENABLED=true\n"
+    result, _, env_path = mutate(tmp_path, "disable", original)
+    assert result.returncode == 0
+    disabled = env_path.read_bytes()
+    result, payload, _ = mutate(tmp_path, "rollback")
+    assert result.returncode == 1
+    assert payload == {"reason": "invalid_backup_identity", "status": "fail_closed"}
+    assert env_path.read_bytes() == disabled
 
 
 def test_explicit_unknown_rollback_identity_fails_closed(tmp_path):
