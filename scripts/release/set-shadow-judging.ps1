@@ -2,13 +2,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('status','dry-run','enable','disable','rollback')]
+    [ValidateSet('status','dry-run','validate-rollback','enable','disable','rollback')]
     [string]$Operation,
 
     [ValidateSet('enable','disable')]
     [string]$Desired = 'disable',
 
     [string]$LayoutFile = 'deploy\release-layout.example.json',
+    [string]$RollbackBackupId,
     [switch]$Execute,
     [string]$OwnerGate
 )
@@ -49,6 +50,19 @@ $auditPath = "$auditDirectory/audit.jsonl"
 $lockPath = "$envPath.shadow-judging.lock"
 $evidenceOperationId = [guid]::NewGuid().ToString('N')
 
+function Assert-ExactShadowBackupId {
+    param([string]$BackupId)
+    if ([string]::IsNullOrWhiteSpace($BackupId) -or
+        $BackupId -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$' -or
+        $BackupId.Contains('..')) {
+        throw 'Exact rollback backup identity is invalid.'
+    }
+}
+
+if ($Operation -in @('validate-rollback','rollback')) {
+    Assert-ExactShadowBackupId -BackupId $RollbackBackupId
+}
+
 function Get-ShadowHelperArguments {
     param(
         [Parameter(Mandatory = $true)][string]$RequestedOperation,
@@ -66,7 +80,7 @@ function Get-ShadowHelperArguments {
     if ($RequestedOperation -eq 'dry-run') {
         $parts += @('--desired', (Quote-PosixShellArgument $RequestedDesired))
     }
-    if ($RequestedOperation -eq 'rollback') {
+    if ($RequestedOperation -in @('validate-rollback','rollback')) {
         if ([string]::IsNullOrWhiteSpace($RequestedRollbackBackupId)) {
             throw 'Explicit rollback backup identity is required for governed recovery.'
         }
@@ -782,7 +796,7 @@ function New-ShadowRecoveredFailureResult {
 
 $result = $null
 $postChangeDiagnostics = $null
-$result = Invoke-ShadowHelper -RequestedOperation $Operation -RequestedDesired $Desired
+$result = Invoke-ShadowHelper -RequestedOperation $Operation -RequestedDesired $Desired -RequestedRollbackBackupId $RollbackBackupId
 if ($Operation -in $mutationOperations) {
     try {
         $beforeHealth = Get-ShadowRuntimeHealth

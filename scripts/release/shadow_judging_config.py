@@ -317,54 +317,69 @@ def _valid_snapshot(value) -> bool:
     )
 
 
-def latest_backup(backup_dir: Path, env_path: Path, requested_backup_id=None):
+def exact_backup(backup_dir: Path, env_path: Path, requested_backup_id):
+    if (
+        not isinstance(requested_backup_id, str)
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", requested_backup_id)
+        or ".." in requested_backup_id
+    ):
+        raise ConfigError("invalid_backup_identity")
     if not backup_dir.is_dir() or backup_dir.is_symlink():
         raise ConfigError("no_valid_governed_backup")
-    candidates = []
-    for meta_path in backup_dir.glob("*.json"):
+    meta_path = backup_dir / f"{requested_backup_id}.json"
+    expected_backup = backup_dir / f"{requested_backup_id}.env"
+    try:
         if meta_path.is_symlink() or not meta_path.is_file():
-            continue
-        try:
-            metadata = json.loads(meta_path.read_text(encoding="utf-8"))
-            backup_id = metadata.get("backup_id")
-            if not isinstance(backup_id, str) or not backup_id:
-                continue
-            expected_backup = backup_dir / f"{backup_id}.env"
-            if meta_path != backup_dir / f"{backup_id}.json":
-                continue
-            if metadata.get("marker") != TARGET_MARKER:
-                continue
-            if metadata.get("env_path") != str(env_path):
-                continue
-            if metadata.get("backup_path") != str(expected_backup):
-                continue
-            if not _valid_snapshot(metadata.get("original")):
-                continue
-            if not isinstance(metadata.get("created_at_ns"), int):
-                continue
-            if not expected_backup.is_file() or expected_backup.is_symlink():
-                continue
-            expected_resolved = expected_backup.resolve(strict=True)
-            if expected_resolved.parent != backup_dir.resolve(strict=True):
-                continue
-            digest = sha256_file(expected_backup)
-            if digest != metadata.get("backup_sha256"):
-                continue
-            if digest != metadata["original"]["sha256"]:
-                continue
-            candidates.append((metadata["created_at_ns"], backup_id, metadata, expected_backup))
-        except (OSError, ValueError, TypeError):
-            continue
-    if not candidates:
-        raise ConfigError("no_valid_governed_backup")
-    if requested_backup_id is not None:
-        if not isinstance(requested_backup_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", requested_backup_id):
-            raise ConfigError("invalid_backup_identity")
-        candidates = [item for item in candidates if item[1] == requested_backup_id]
-        if not candidates:
             raise ConfigError("no_valid_governed_backup")
-    _created, _backup_id, metadata, backup_path = max(candidates, key=lambda item: (item[0], item[1]))
-    return metadata, backup_path
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+        if metadata.get("backup_id") != requested_backup_id:
+            raise ConfigError("backup_identity_mismatch")
+        if metadata.get("marker") != TARGET_MARKER:
+            raise ConfigError("no_valid_governed_backup")
+        if metadata.get("env_path") != str(env_path):
+            raise ConfigError("no_valid_governed_backup")
+        if metadata.get("backup_path") != str(expected_backup):
+            raise ConfigError("no_valid_governed_backup")
+        if not _valid_snapshot(metadata.get("original")):
+            raise ConfigError("no_valid_governed_backup")
+        if not isinstance(metadata.get("created_at_ns"), int):
+            raise ConfigError("no_valid_governed_backup")
+        if not expected_backup.is_file() or expected_backup.is_symlink():
+            raise ConfigError("no_valid_governed_backup")
+        if expected_backup.resolve(strict=True).parent != backup_dir.resolve(strict=True):
+            raise ConfigError("no_valid_governed_backup")
+        digest = sha256_file(expected_backup)
+        if digest != metadata.get("backup_sha256") or digest != metadata["original"]["sha256"]:
+            raise ConfigError("no_valid_governed_backup")
+    except ConfigError:
+        raise
+    except (OSError, ValueError, TypeError) as exc:
+        raise ConfigError("no_valid_governed_backup") from exc
+    return metadata, expected_backup
+
+
+def validate_exact_backup(backup_dir: Path, env_path: Path, requested_backup_id):
+    metadata, backup_path = exact_backup(backup_dir, env_path, requested_backup_id)
+    raw = backup_path.read_bytes()
+    _text, lines, target = parse_lines(raw)
+    value = target[1].group("value") if target is not None else None
+    state = effective(value)
+    if state["state"] != "enabled" or state.get("enabled") is not True:
+        raise ConfigError("rollback_backup_target_not_enabled")
+    return {
+        "operation": "validate-rollback",
+        "key": ALLOWED_KEY,
+        "requested_backup_id": requested_backup_id,
+        "parsed_backup_id": metadata["backup_id"],
+        "exact_match": metadata["backup_id"] == requested_backup_id,
+        "metadata_parse_success": True,
+        "target_app": "enabled",
+        "target_scheduler": "enabled",
+        "value_state": _value_state(value, state),
+        "effective": state,
+        "mutation_performed": False,
+        "service_recreate_required": False,
+    }
 
 
 def atomic_replace(env_path: Path, data: bytes, snapshot):
@@ -499,10 +514,13 @@ def run(args):
     if audit_path.is_symlink():
         raise ConfigError("audit_path_invalid")
 
+    env_path = env_path.resolve(strict=True)
+    backup_dir = backup_dir.resolve(strict=False)
+    audit_path = audit_path.resolve(strict=False)
+    if args.operation == "validate-rollback":
+        return validate_exact_backup(backup_dir, env_path, args.rollback_backup_id)
+
     with open_lock(lock_path) as lock_handle:
-        env_path = env_path.resolve(strict=True)
-        backup_dir = backup_dir.resolve(strict=False)
-        audit_path = audit_path.resolve(strict=False)
         raw, _text, lines, target, value, state = read_state(env_path)
 
         if args.operation == "status":
@@ -511,7 +529,7 @@ def run(args):
             return safe_output(value, state, operation="dry-run", desired=args.desired)
 
         if args.operation == "rollback":
-            metadata, source = latest_backup(backup_dir, env_path, args.rollback_backup_id)
+            metadata, source = exact_backup(backup_dir, env_path, args.rollback_backup_id)
             snapshot = safe_snapshot(env_path)
             rollback_backup = backup(env_path, backup_dir, snapshot)
             try:
@@ -594,7 +612,7 @@ def build_parser():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "--operation",
-        choices=("status", "dry-run", "enable", "disable", "rollback"),
+        choices=("status", "dry-run", "validate-rollback", "enable", "disable", "rollback"),
         required=True,
     )
     parser.add_argument("--desired", choices=("enable", "disable"), default="enable")
