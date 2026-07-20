@@ -519,7 +519,7 @@ def test_commit_succeeds_once_then_returns_controlled_noop_without_duplicate_rew
     conn = make_conn()
     seed_commit_fixture(conn)
     snapshot, preview = build_commit_snapshot(conn, monkeypatch)
-    import community_leaderboard_rewards_real_grant_preview as real_preview
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
 
     monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
     monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
@@ -570,8 +570,8 @@ def test_transaction_failure_rolls_back_partial_writes(monkeypatch):
     conn = make_conn()
     seed_commit_fixture(conn)
     snapshot, preview = build_commit_snapshot(conn, monkeypatch)
-    import community_leaderboard_rewards_real_grant_preview as real_preview
-    import community_leaderboard_rewards_real_grant_commit as real_commit
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
+    from tools import community_leaderboard_rewards_real_grant_commit as real_commit
 
     monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
     monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
@@ -608,7 +608,7 @@ def test_exact_period_later_winner_failure_rolls_back_entire_period(monkeypatch)
     conn = make_conn()
     seed_commit_fixture(conn)
     snapshot, preview = build_commit_snapshot(conn, monkeypatch)
-    import community_leaderboard_rewards_real_grant_preview as real_preview
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
 
     class FailOnSecondWinnerApp(FakeAppModule):
         item_calls = 0
@@ -649,7 +649,7 @@ def test_exact_period_coin_failure_rolls_back_everything(monkeypatch):
     conn = make_conn()
     seed_commit_fixture(conn)
     snapshot, preview = build_commit_snapshot(conn, monkeypatch)
-    import community_leaderboard_rewards_real_grant_preview as real_preview
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
 
     class FailCoinsApp(FakeAppModule):
         @staticmethod
@@ -684,7 +684,7 @@ def test_exact_period_badge_failure_rolls_back_everything(monkeypatch):
     conn = make_conn()
     seed_commit_fixture(conn)
     snapshot, preview = build_commit_snapshot(conn, monkeypatch)
-    import community_leaderboard_rewards_real_grant_preview as real_preview
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
 
     class FailBadgeApp(FakeAppModule):
         @staticmethod
@@ -719,7 +719,7 @@ def test_exact_period_granted_state_publication_failure_rolls_back_notifications
     conn = make_conn()
     seed_commit_fixture(conn)
     snapshot, preview = build_commit_snapshot(conn, monkeypatch)
-    import community_leaderboard_rewards_real_grant_preview as real_preview
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
 
     monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
     monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])

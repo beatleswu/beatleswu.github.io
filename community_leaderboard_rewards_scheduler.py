@@ -348,6 +348,23 @@ def log_scheduler_result(logger, result):
     logger.info("[community_leaderboard_weekly] %s", lbr.canonical_json_dumps(payload))
 
 
+def log_scheduler_failure(logger, result):
+    """Emit a Production-visible failure without exception or recipient data.
+
+    Exception messages and tracebacks are deliberately excluded: errors raised by
+    downstream reward adapters may contain user-level or database details.  The
+    stable job/result/period/type fields are sufficient to alert operators while
+    the transaction remains fail-closed.
+    """
+    payload = {
+        "job": "community_leaderboard_weekly",
+        "result": "failed_closed",
+        "period_key": result.get("period_key"),
+        "exception_type": result.get("error_type"),
+    }
+    logger.error("[community_leaderboard_weekly] %s", lbr.canonical_json_dumps(payload))
+
+
 def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_root=None):
     logger = _logger_for(app_module)
     started_at = time.monotonic()
@@ -502,7 +519,7 @@ def run_community_leaderboard_weekly_cycle(app_module, *, now=None, operations_r
             "duration_seconds": round(time.monotonic() - started_at, 3),
             "error_type": type(exc).__name__,
         }
-        log_scheduler_result(logger, failed_result)
+        log_scheduler_failure(logger, failed_result)
         return failed_result
     finally:
         if lock_acquired:
