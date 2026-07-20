@@ -112,6 +112,12 @@ def test_default_deploy_path_remains_conditional_and_requires_normal_gate():
     assert "[switch]$FreezeCommunityLeaderboardRewards" in text
 
 
+def test_controlled_dry_run_describes_every_worker_freeze():
+    text = source(DEPLOY)
+    assert "stop every old Community worker" in text
+    assert "recreate the old app and scheduler on their shared exact image" in text
+
+
 def test_fail_closed_and_secret_redaction_contracts():
     deploy = source(DEPLOY)
     freeze = render("freeze")

@@ -1259,7 +1259,7 @@ if (-not $Execute) {
         required_owner_gate = $(if ($FreezeCommunityLeaderboardRewards) { 'GO_DEPLOY_CONTROLLED_W29' } else { 'GO_DEPLOY' })
         deployment_plan = @(
             'verify manifest and archive checksum',
-            $(if ($FreezeCommunityLeaderboardRewards) { 'verify W29/W30 zero-state and recreate the old scheduler on its exact image with Community automatic execution forced false' } else { 'leave Community automatic execution behavior unchanged' }),
+            $(if ($FreezeCommunityLeaderboardRewards) { 'verify W29/W30 zero-state, stop every old Community worker, then recreate the old app and scheduler on their shared exact image with Community automatic execution forced false' } else { 'leave Community automatic execution behavior unchanged' }),
             'stage compose file and nginx config on the production host',
             'transfer image archive and deployment record',
             'verify remote archive checksum',
