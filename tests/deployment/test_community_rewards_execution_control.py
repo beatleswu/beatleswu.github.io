@@ -24,9 +24,10 @@ def render(operation):
         f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
         f"{function} -SchedulerContainer scheduler -ExpectedSchedulerImageId sha256:old "
         "-AppContainer app "
+        "-PostgresContainer postgres -ExpectedAppImageId sha256:old -ExpectedAppImageTag app:old "
         "-ExpectedSchedulerImageTag app:old -ComposeDirectory /release -ComposeProject project "
         "-ComposeFile /release/docker-compose.release.yml -EnvFile /protected/.env "
-        "-SchedulerService scheduler -ComposeEnvironmentPrefix \"GO_ODYSSEY_IMAGE='app:old' QUESTIONS_CONTENT_VOLUME_NAME='go-data'\""
+        "-SchedulerService scheduler -AppService app -ComposeEnvironmentPrefix \"GO_ODYSSEY_IMAGE='app:old' QUESTIONS_CONTENT_VOLUME_NAME='go-data'\""
     )
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
@@ -62,11 +63,12 @@ def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation()
         "test \"$(docker exec \"$SCHEDULER\" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)\" = true",
         "result['w29_lock']",
         "docker stop \"$SCHEDULER\"",
+        "docker stop \"$APP\"",
         "--format '{{.State.Status}}')\" = exited",
-        "docker exec -i \"$APP\" python - <<'__COMMUNITY_POST_STOP_ZERO_STATE__'",
-        "raise SystemExit(34)",
+        "docker exec -i \"$POSTGRES\"",
+        "test \"$POST_STOP_TOTAL\" = 0",
         "COMMUNITY_LEADERBOARD_REWARDS_ENABLED=false docker compose",
-        "--force-recreate \"$SCHEDULER_SERVICE\"",
+        "--force-recreate \"$APP_SERVICE\" \"$SCHEDULER_SERVICE\"",
         "test \"$(docker inspect \"$SCHEDULER\" --format '{{.Image}}')\" = \"$EXPECTED_IMAGE_ID\"",
         "printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)\" = false",
     )
@@ -79,6 +81,8 @@ def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation()
     assert positions == sorted(positions)
     assert "2026-W29" in script and "2026-W30" in script
     assert script.count("SELECT count(*) FROM leaderboard_reward_claims") == 2
+    assert 'force-recreate "$APP_SERVICE" "$SCHEDULER_SERVICE"' in script
+    assert 'docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false' in script
     assert all(table in script for table in (
         "leaderboard_reward_claims", "leaderboard_snapshots", "leaderboard_reward_component_log", "pg_locks"
     ))
@@ -97,6 +101,7 @@ def test_deploy_carries_freeze_through_fixed_image_and_verifies_before_switch():
     assert "-CommunityRewardsFrozen:$FreezeCommunityLeaderboardRewards" in text
     assert "GO_DEPLOY_CONTROLLED_W29" in text
     assert "ExpectedCurrentAppImageId" in text and "ExpectedCurrentSchedulerImageId" in text
+    assert "requires app and scheduler to share one exact current image" in text
 
 
 def test_default_deploy_path_remains_conditional_and_requires_normal_gate():

@@ -54,6 +54,9 @@ try {
     $script = New-CommunityRewardsResumeRemoteScript `
         -SchedulerContainer $layout.scheduler_service_name `
         -AppContainer $layout.app_service_name `
+        -PostgresContainer $layout.postgres_service_name `
+        -ExpectedAppImageId $actualId `
+        -ExpectedAppImageTag $actualTag `
         -ExpectedSchedulerImageId $actualId `
         -ExpectedSchedulerImageTag $actualTag `
         -ComposeDirectory $layout.compose_directory `
@@ -61,6 +64,7 @@ try {
         -ComposeFile "$($layout.compose_directory.TrimEnd('/'))/docker-compose.release.yml" `
         -EnvFile $layout.production_env_path `
         -SchedulerService 'scheduler' `
+        -AppService 'app' `
         -ComposeEnvironmentPrefix $prefix
     $result = Invoke-RemoteShellCommand -SshAlias $layout.ssh_alias -Name 'community_rewards_resume' -ScriptText $script
     if ($result.exit_code -ne 0) { throw 'Community rewards resume failed closed; remote output withheld.' }

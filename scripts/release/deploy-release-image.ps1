@@ -1418,9 +1418,15 @@ try {
         if ($schedulerBefore.image_id -ne $ExpectedCurrentSchedulerImageId) {
             throw 'Current scheduler image ID does not match the controlled deployment authorization.'
         }
+        if ($appBefore.image_id -ne $schedulerBefore.image_id -or $appBefore.image_tag -ne $schedulerBefore.image_tag) {
+            throw 'Controlled W29 freeze requires app and scheduler to share one exact current image.'
+        }
         $freezeScript = New-CommunityRewardsFreezeRemoteScript `
             -SchedulerContainer $layout.scheduler_service_name `
             -AppContainer $layout.app_service_name `
+            -PostgresContainer $layout.postgres_service_name `
+            -ExpectedAppImageId $appBefore.image_id `
+            -ExpectedAppImageTag $appBefore.image_tag `
             -ExpectedSchedulerImageId $schedulerBefore.image_id `
             -ExpectedSchedulerImageTag $schedulerBefore.image_tag `
             -ComposeDirectory $layout.compose_directory `
@@ -1428,6 +1434,7 @@ try {
             -ComposeFile $remoteComposePath `
             -EnvFile $layout.production_env_path `
             -SchedulerService $schedulerComposeService `
+            -AppService $appComposeService `
             -ComposeEnvironmentPrefix $currentComposeEnvPrefix
         $freezeResult = Invoke-RemoteCommandResult -Name 'community_rewards_freeze' -ScriptText $freezeScript
         if ($freezeResult.exit_code -ne 0) {

@@ -28,10 +28,10 @@ the reviewed Compose command.
 `GO_DEPLOY_CONTROLLED_W29` authorizes one canonical deploy with
 `-FreezeCommunityLeaderboardRewards`. The operation holds the release lock and
 must verify W29 and W30 zero-state plus no W29 advisory lock before mutation.
-It then stops and verifies the exact old scheduler, repeats the zero-state and
-lock checks from the app container while no scheduler process can race, and
-only then recreates the old scheduler on its exact existing image with effective
-`false`. It verifies that freeze before it may load or recreate the corrected
+It then stops and verifies the exact old app and scheduler (both run the
+Community worker), repeats the zero-state and lock checks through PostgreSQL
+while no Community worker can race, and only then recreates both on their exact
+old image with effective `false`. It verifies that freeze before it may load or recreate the corrected
 app and scheduler. Every corrected-image recreate and automatic rollback uses
 the same forced-false override.
 
