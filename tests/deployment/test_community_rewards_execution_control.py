@@ -104,14 +104,14 @@ def render_exact_w29_grant(operation_directory="/operations/w29", snapshot_file_
     return result.stdout
 
 
-def render_operator_evidence(operation_directory, stage="invocation_started", status="started"):
+def render_operator_evidence(operation_directory, stage="invocation_started", status="started", launch_count=0):
     command = (
         f"Import-Module '{ROOT / 'scripts/release/ReleaseTooling.psm1'}' -Force -DisableNameChecking; "
         f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
         "New-CommunityRewardsGrantEvidenceRemoteScript "
         f"-OperationDirectory '{operation_directory}' "
         "-OperationId w29-c866f611-20260720T055453Z-c001bcd0 "
-        f"-Stage {stage} -Status {status} -LaunchCount 0 "
+        f"-Stage {stage} -Status {status} -LaunchCount {launch_count} "
         "-WrapperSourceRevision b019315e5afec532a2e352737bc678b32c62775e"
     )
     result = subprocess.run(
@@ -556,7 +556,7 @@ def test_exact_w29_wrapper_records_operator_and_remote_exit_stages():
     assert "$grantRemoteExitCode = [int]$result.exit_code" in wrapper
     assert "grant-execution-evidence.jsonl" in source(MODULE)
     assert "stage == 'release_lock_released'" in source(MODULE)
-    assert "max([int(item.get('launch_count', 0))" in source(MODULE)
+    assert "current_invocation" in source(MODULE)
 
 
 def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_fields(tmp_path):
@@ -580,7 +580,17 @@ def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_
     )
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
-    for stage, status in (("invocation_started", "started"), ("local_validation_passed", "passed")):
+    old = {
+        "operation_id": "w29-c866f611-20260720T055453Z-c001bcd0", "utc_timestamp": "2026-07-20T00:00:00+00:00",
+        "stage": "invocation_started", "status": "started", "launch_count": 0,
+        "remote_shell_exit_code": None, "child_exit_code": None, "failure_category": None,
+        "wrapper_source_revision": "old",
+    }
+    old_child = dict(old, stage="child_process_created", status="completed", launch_count=1)
+    (operation / "grant-execution-evidence.jsonl").write_text(
+        json.dumps(old) + "\n" + json.dumps(old_child) + "\n", encoding="utf-8"
+    )
+    for stage, status in (("invocation_started", "started"), ("local_validation_passed", "passed"), ("release_lock_released", "completed")):
         generated = render_operator_evidence(operation.as_posix(), stage, status)
         result = subprocess.run(
             [str(git_sh)], input=generated, cwd=ROOT, env=env,
@@ -588,8 +598,8 @@ def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_
         )
         assert result.returncode == 0, result.stderr
     records = [json.loads(line) for line in (operation / "grant-execution-evidence.jsonl").read_text(encoding="utf-8").splitlines()]
-    assert [record["stage"] for record in records] == ["invocation_started", "local_validation_passed"]
-    assert all(record["launch_count"] == 0 for record in records)
+    assert [record["stage"] for record in records[-3:]] == ["invocation_started", "local_validation_passed", "release_lock_released"]
+    assert records[-1]["launch_count"] == 0
     allowed = {
         "operation_id", "utc_timestamp", "stage", "status", "launch_count",
         "remote_shell_exit_code", "child_exit_code", "failure_category",
@@ -647,7 +657,9 @@ def _run_generated_grant_shell(tmp_path, mode):
         if a[:2] == ['printenv', 'COMMUNITY_LEADERBOARD_REWARDS_ENABLED']: print('false'); raise SystemExit(0)
         if a[:2] == ['sh', '-c']: print('absent'); raise SystemExit(0)
         if a[0] == 'mkdir': pathlib.Path(a[-1]).mkdir(mode=0o700); raise SystemExit(0)
-        if a[0] == 'tar': raise SystemExit(subprocess.run(a, stdin=sys.stdin.buffer).returncode)
+        if a[0] == 'tar':
+            if mode == 'interrupted_remote_shell': raise SystemExit(130)
+            raise SystemExit(subprocess.run(a, stdin=sys.stdin.buffer).returncode)
         if a[0] == 'sha256sum':
             p = pathlib.Path(a[1]); digest = hashlib.sha256(p.read_bytes()).hexdigest()
             print(('0' * 64 if mode == 'staged_hash_mismatch' else digest) + '  ' + str(p)); raise SystemExit(0)
@@ -656,6 +668,7 @@ def _run_generated_grant_shell(tmp_path, mode):
         if a[0] == 'cat': sys.stdout.buffer.write(pathlib.Path(a[1]).read_bytes()); raise SystemExit(0)
         if a[0] == 'python':
             if mode in ('child_nonzero', 'interrupted_child'): raise SystemExit(74)
+            if mode == 'process_creation_failure': raise SystemExit(127)
             snap = pathlib.Path(a[a.index('--snapshot-file') + 1])
             result = {
                 'board_type': 'weekly', 'period_key': '2026-W29',
@@ -721,7 +734,7 @@ def test_generated_remote_shell_launches_exactly_one_real_synthetic_child_and_pe
     assert any(record["stage"] == "result_persisted" and record["status"] == "completed" for record in evidence)
 
 
-@pytest.mark.parametrize("mode", ["preflight_identity_mismatch", "staged_hash_mismatch"])
+@pytest.mark.parametrize("mode", ["preflight_identity_mismatch", "staged_hash_mismatch", "interrupted_remote_shell"])
 def test_generated_remote_shell_prelaunch_failures_record_zero_launches(tmp_path, mode):
     result, evidence, operation = _run_generated_grant_shell(tmp_path, mode)
     assert result.returncode != 0
@@ -732,7 +745,7 @@ def test_generated_remote_shell_prelaunch_failures_record_zero_launches(tmp_path
 
 
 @pytest.mark.parametrize("mode", [
-    "child_nonzero", "interrupted_child", "empty_stdout", "malformed_json",
+    "child_nonzero", "interrupted_child", "process_creation_failure", "empty_stdout", "malformed_json",
     "identity_mismatch", "count_mismatch", "coin_mismatch", "temp_write_failure",
     "atomic_rename_failure", "cleanup_failure",
 ])
@@ -749,6 +762,72 @@ def test_generated_remote_shell_failures_are_durable_single_launch_and_fail_clos
     else:
         assert not (operation / "grant-result.json").exists()
     assert "recipient" not in json.dumps(evidence)
+
+
+@pytest.mark.parametrize("mode", ["zero_state_nonzero", "ssh_transport_failure", "lock_release_failure"])
+def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_fail_closed(tmp_path, mode):
+    release = tmp_path / "scripts" / "release"
+    release.mkdir(parents=True)
+    wrapper = release / GRANT.name
+    wrapper.write_text(source(GRANT), encoding="utf-8")
+    event_file = tmp_path / "events.txt"
+    fake_release = release / "ReleaseTooling.psm1"
+    fake_release.write_text(textwrap.dedent(r'''
+        function Assert-OwnerGate { param($Provided,$Expected) if($Provided -ne $Expected){throw 'gate'} }
+        function Resolve-RepoPath { param($Path) return $env:W29_REPO_ROOT }
+        function Get-ReleaseLayout { param($Path) return [pscustomobject]@{compose_directory='/release';ssh_alias='fake';scheduler_service_name='scheduler'} }
+        function Add-Event { param($Value) Add-Content -LiteralPath $env:W29_EVENT_FILE -Value $Value }
+        function Enter-RemoteReleaseOperationLock { Add-Event 'lock_acquired'; return @{} }
+        function Exit-RemoteReleaseOperationLock {
+            Add-Event 'lock_release_called'
+            if($env:W29_WRAPPER_MODE -eq 'lock_release_failure'){throw 'sanitized lock release failure'}
+            return @{}
+        }
+        function Invoke-RemoteShellCommand {
+            param($SshAlias,$Name,$ScriptText)
+            Add-Event $Name
+            if($Name -eq 'community_w29_exact_grant_zero_state'){
+                if($env:W29_WRAPPER_MODE -eq 'ssh_transport_failure'){throw 'sanitized transport failure'}
+                if($env:W29_WRAPPER_MODE -eq 'zero_state_nonzero'){return [pscustomobject]@{exit_code=33;stdout='';stderr='withheld'}}
+                return [pscustomobject]@{exit_code=0;stdout='';stderr=''}
+            }
+            if($Name -eq 'community_w29_exact_grant'){return [pscustomobject]@{exit_code=74;stdout='';stderr='withheld'}}
+            return [pscustomobject]@{exit_code=0;stdout='';stderr=''}
+        }
+        Export-ModuleMember -Function *
+    '''), encoding="utf-8")
+    fake_community = release / "CommunityRewardsExecutionControl.psm1"
+    fake_community.write_text(textwrap.dedent(r'''
+        function New-CommunityRewardsGrantEvidenceRemoteScript { param($OperationDirectory,$OperationId,$Stage,$Status,$LaunchCount,$WrapperSourceRevision,$RemoteShellExitCode,$FailureCategory) return "evidence:${Stage}:${Status}:${LaunchCount}:${RemoteShellExitCode}:${FailureCategory}" }
+        function New-CommunityRewardsZeroStateProbeRemoteScript { param($SchedulerContainer) return 'zero-probe' }
+        function New-CommunityRewardsExactW29GrantRemoteScript {
+            param($SchedulerContainer,$ExpectedSchedulerImageTag,$ExpectedSchedulerImageId,$ExpectedRevision,$OperationDirectory,$OperationId,$SnapshotFileSha256,$PreviewFileSha256,$ManifestFileSha256,$CanonicalSnapshotSha256,$CanonicalPreviewSha256,$WrapperSourceRevision)
+            return 'grant-script'
+        }
+        Export-ModuleMember -Function *
+    '''), encoding="utf-8")
+    env = os.environ.copy()
+    env.update({"W29_WRAPPER_MODE": mode, "W29_EVENT_FILE": str(event_file), "W29_REPO_ROOT": str(ROOT)})
+    result = subprocess.run([
+        "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(wrapper),
+        "-OperationId", "w29-c866f611-20260720T055453Z-c001bcd0",
+        "-ExpectedSchedulerImageTag", "go-odyssey-app:c866f611",
+        "-ExpectedSchedulerImageId", "sha256:e8bafcd1bce435f78782e220f82058112e930c71dcaea6a87ff0adb2462a8ac3",
+        "-ExpectedRevision", "c866f6114232839c2951d02c71f000983098eda6",
+        "-CanonicalSnapshotSha256", "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
+        "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
+        "-Execute", "-OwnerGate", "GO_GRANT_W29",
+    ], cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False)
+    assert result.returncode != 0
+    assert event_file.exists(), result.stderr
+    events = event_file.read_text(encoding="utf-8").splitlines()
+    assert "community_w29_evidence_remote_preflight_started" in events
+    assert "lock_release_called" in events
+    if mode == "lock_release_failure":
+        assert events.count("community_w29_exact_grant") == 1
+    else:
+        assert "community_w29_exact_grant" not in events
+    assert "recipient" not in result.stdout.lower()
 
 
 @pytest.mark.parametrize(

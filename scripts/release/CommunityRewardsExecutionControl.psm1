@@ -508,7 +508,14 @@ path, operation_id, stage, status, launch_count, remote_exit, child_exit, catego
 if stage == 'release_lock_released' and os.path.exists(path):
     with open(path, encoding='utf-8') as existing:
         prior = [json.loads(line) for line in existing if line.strip()]
-    launch_count = str(max([int(item.get('launch_count', 0)) for item in prior] + [int(launch_count)]))
+    current_invocation = []
+    for item in reversed(prior):
+        current_invocation.append(item)
+        if item.get('stage') == 'invocation_started':
+            break
+    if not current_invocation or current_invocation[-1].get('stage') != 'invocation_started':
+        raise SystemExit(92)
+    launch_count = str(max([int(item.get('launch_count', 0)) for item in current_invocation] + [int(launch_count)]))
 record = {
     'operation_id': operation_id,
     'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
