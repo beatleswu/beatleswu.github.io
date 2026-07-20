@@ -253,6 +253,38 @@ def exact_period_component_totals_match(preview_summary, *, expected_component_c
     )
 
 
+def _snapshot_for_live_drift_check(snapshot):
+    """Remove only mutable cosmetic fields from the live-source comparison.
+
+    The persisted snapshot and preview hashes remain exact and unchanged.  This
+    projection is used only when rebuilding the closed period from live source:
+    avatar and rank level can legitimately change after the period closes, but
+    neither affects ranking, eligibility, recipients, or reward amounts.
+    """
+    projected = dict(snapshot)
+    projected["entries"] = [
+        {key: value for key, value in entry.items() if key != "avatar"}
+        for entry in snapshot.get("entries", [])
+    ]
+    projected["top_rows"] = [
+        {
+            key: value
+            for key, value in row.items()
+            if key not in {"avatar", "rank_level"}
+        }
+        for row in snapshot.get("top_rows", [])
+    ]
+    return projected
+
+
+def _live_snapshot_matches_authorized_snapshot(live_snapshot, authorized_snapshot):
+    return lbr.sha256_hex_from_value(
+        _snapshot_for_live_drift_check(live_snapshot)
+    ) == lbr.sha256_hex_from_value(
+        _snapshot_for_live_drift_check(authorized_snapshot)
+    )
+
+
 def fetch_claims_for_period(conn, board_type, period_key):
     columns_sql = ", ".join(_CLAIM_COLUMNS)
     rows = conn.execute(
@@ -493,7 +525,7 @@ def commit_exact_period(
         timezone=snapshot["timezone"],
         limit=len(snapshot["entries"]),
     )
-    if lbr.sha256_hex_from_value(live_snapshot) != actual_snapshot_sha:
+    if not _live_snapshot_matches_authorized_snapshot(live_snapshot, snapshot):
         raise ValueError("eligible ranking changed since preview")
     existing = detect_existing_operation_state(conn, snapshot, preview_result)
     if existing["state"] == "already_granted_noop":

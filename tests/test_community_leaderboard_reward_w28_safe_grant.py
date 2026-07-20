@@ -1,4 +1,5 @@
 import datetime
+import copy
 import json
 import re
 import sqlite3
@@ -14,6 +15,8 @@ sys.path.insert(0, str(REPO_ROOT / "tools"))
 import community_leaderboard_rewards as lbr
 import community_leaderboard_rewards_manual as manual
 from community_leaderboard_rewards_exact_period import (
+    _live_snapshot_matches_authorized_snapshot,
+    _snapshot_for_live_drift_check,
     build_exact_period_preview,
     build_exact_period_snapshot,
     commit_exact_period,
@@ -563,6 +566,139 @@ def test_commit_succeeds_once_then_returns_controlled_noop_without_duplicate_rew
     assert noop["result"] == "already_granted_noop"
     assert conn.execute("SELECT coin_balance FROM users WHERE id = ?", (101,)).fetchone()[0] == coins_after_first
     assert len(lbr.fetch_unacknowledged_granted_reward_claims(conn, 101)) == 1
+    conn.close()
+
+
+def test_commit_allows_post_period_avatar_and_rank_level_changes(monkeypatch):
+    """Regression for W29's child-exit-1 live snapshot false positive.
+
+    Avatar and rank level are mutable profile presentation fields.  Changing
+    them after the exact snapshot must not impersonate ranking drift, while the
+    persisted snapshot remains the source of the granted snapshot metadata.
+    """
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    stored_avatars = {entry["user_id"]: entry["avatar"] for entry in snapshot["entries"]}
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+    conn.execute("UPDATE player_appearance SET character_key = ? WHERE user_id IN (?, ?)",
+                 ("post-period-avatar", 101, 102))
+    conn.execute("UPDATE user_stats SET rank_level = ? WHERE user_id IN (?, ?, ?)",
+                 ("LV99", 101, 102, 103))
+    conn.commit()
+
+    live_snapshot = build_exact_period_snapshot(
+        conn,
+        board_type="weekly",
+        period_key="2026-W28",
+        period_start="2026-07-06",
+        period_end_exclusive="2026-07-13",
+        limit=len(snapshot["entries"]),
+    )
+    # This is the exact old full-object check: it reproduces the Production
+    # exit-1 even though no ranking or reward input changed.
+    assert lbr.sha256_hex_from_value(live_snapshot) != lbr.sha256_hex_from_value(snapshot)
+    assert lbr.sha256_hex_from_value(
+        _snapshot_for_live_drift_check(live_snapshot)
+    ) == lbr.sha256_hex_from_value(_snapshot_for_live_drift_check(snapshot))
+
+    result = commit_exact_period(
+        conn,
+        snapshot=snapshot,
+        expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+        expected_preview_sha256=preview["preview_sha256"],
+        expected_claim_count=preview["summary"]["claims_count"],
+        expected_component_count=preview["summary"]["component_count"],
+        expected_total_coins=preview["summary"]["total_coins"],
+        expected_total_items=preview["summary"]["total_items"],
+        expected_total_badges=preview["summary"]["total_badges"],
+        owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+    )
+
+    assert result["result"] == "committed"
+    persisted = conn.execute(
+        "SELECT user_id, avatar_snapshot FROM leaderboard_snapshots "
+        "WHERE board_type=? AND period_key=?",
+        ("weekly", "2026-W28"),
+    ).fetchall()
+    assert {row[0]: row[1] for row in persisted} == stored_avatars
+    conn.close()
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda live: live["entries"][0].__setitem__("avatar", "new-avatar"),
+        lambda live: live["top_rows"][0].__setitem__("rank_level", "LV99"),
+        lambda live: (
+            live["entries"][0].__setitem__("avatar", "new-avatar"),
+            live["top_rows"][0].__setitem__("avatar", "new-avatar"),
+            live["top_rows"][0].__setitem__("rank_level", "LV99"),
+        ),
+    ],
+    ids=["avatar-only", "rank-level-only", "avatar-and-rank-level"],
+)
+def test_live_drift_projection_allows_only_confirmed_mutable_fields(monkeypatch, mutate):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    authorized, _ = build_commit_snapshot(conn, monkeypatch)
+    live = copy.deepcopy(authorized)
+    before_authorized = copy.deepcopy(authorized)
+    before_live = copy.deepcopy(live)
+    mutate(live)
+    mutated_live = copy.deepcopy(live)
+
+    assert _live_snapshot_matches_authorized_snapshot(live, authorized)
+    assert authorized == before_authorized
+    assert live == mutated_live
+    assert before_live != live
+    conn.close()
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda live: live["entries"][0].__setitem__("user_id", 999999),
+        lambda live: live["entries"][0].__setitem__("display_name", "changed-name"),
+        lambda live: live["top_rows"][0].__setitem__("username", "changed-username"),
+        lambda live: live["entries"].pop(),
+        lambda live: live["entries"][0].__setitem__("rank", 99),
+        lambda live: live["entries"].__setitem__(slice(0, 2), list(reversed(live["entries"][:2]))),
+        lambda live: live["entries"][0].__setitem__("score", live["entries"][0]["score"] + 1),
+        lambda live: live.__setitem__("period_key", "2026-W29"),
+        lambda live: live["entries"][0].__setitem__("final_counted_at", "2026-07-12T23:59:59"),
+        lambda live: live["participant_counts"].__setitem__("reward_eligible_count", 0),
+        lambda live: live["preview_summary"].__setitem__("total_coins", 1),
+        lambda live: live["preview_summary"].__setitem__("component_count", 1),
+        lambda live: live["preview_summary"]["total_items"].__setitem__("xp_potion", 999),
+    ],
+    ids=[
+        "participant-identity",
+        "display-name",
+        "username",
+        "participant-set",
+        "leaderboard-rank",
+        "leaderboard-order",
+        "score",
+        "period-membership",
+        "counted-timestamp",
+        "eligibility-recipient-count",
+        "reward-amount",
+        "reward-component-count",
+        "reward-component-quantity",
+    ],
+)
+def test_live_drift_projection_rejects_reward_relevant_changes(monkeypatch, mutate):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    authorized, _ = build_commit_snapshot(conn, monkeypatch)
+    live = copy.deepcopy(authorized)
+    mutate(live)
+
+    assert not _live_snapshot_matches_authorized_snapshot(live, authorized)
     conn.close()
 
 
