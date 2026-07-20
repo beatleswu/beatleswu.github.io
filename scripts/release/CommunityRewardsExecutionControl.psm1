@@ -384,10 +384,10 @@ test ! -e "$REMOTE_CAPTURE_DIRECTORY"
 record_stage remote_preflight_passed passed 0
 CURRENT_STAGE=child_command_prepared
 record_stage child_command_prepared started 0
-docker exec "$SCHEDULER" mkdir -m 700 "$CONTAINER_OPERATION_DIRECTORY"
 container_prepared=true
-mkdir -m 700 "$REMOTE_CAPTURE_DIRECTORY"
+docker exec "$SCHEDULER" mkdir -m 700 "$CONTAINER_OPERATION_DIRECTORY"
 capture_prepared=true
+mkdir -m 700 "$REMOTE_CAPTURE_DIRECTORY"
 sudo -n tar -C "$OPERATION_DIRECTORY" -cf - snapshot.json preview.json |
     docker exec -i "$SCHEDULER" tar -C "$CONTAINER_OPERATION_DIRECTORY" -xf -
 test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" | cut -d' ' -f1)" = "$SNAPSHOT_FILE_SHA256"
@@ -481,6 +481,7 @@ function New-CommunityRewardsGrantEvidenceRemoteScript {
         [Parameter(Mandatory = $true)][string]$OperationId,
         [Parameter(Mandatory = $true)][ValidateSet(
             'invocation_started', 'local_validation_passed', 'release_lock_acquired',
+            'remote_preflight_started', 'remote_preflight_passed',
             'release_lock_released')][string]$Stage,
         [Parameter(Mandatory = $true)][ValidateSet('started', 'passed', 'completed', 'failed')][string]$Status,
         [Parameter(Mandatory = $true)][ValidateRange(0, 1)][int]$LaunchCount,

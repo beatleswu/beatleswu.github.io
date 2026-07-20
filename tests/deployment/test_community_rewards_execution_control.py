@@ -83,16 +83,16 @@ def resume_probe_source():
     return script[start:end].strip()
 
 
-def render_exact_w29_grant():
+def render_exact_w29_grant(operation_directory="/operations/w29", snapshot_file_sha="snapshot-file", preview_file_sha="preview-file", manifest_file_sha="manifest-file"):
     command = (
         f"Import-Module '{ROOT / 'scripts/release/ReleaseTooling.psm1'}' -Force -DisableNameChecking; "
         f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
         "New-CommunityRewardsExactW29GrantRemoteScript "
         "-SchedulerContainer scheduler -ExpectedSchedulerImageTag app:c866f611 "
         "-ExpectedSchedulerImageId sha256:image -ExpectedRevision c866f611 "
-        "-OperationDirectory /operations/w29 -OperationId w29-c866f611-20260720T055453Z-c001bcd0 "
-        "-SnapshotFileSha256 snapshot-file -PreviewFileSha256 preview-file "
-        "-ManifestFileSha256 manifest-file -CanonicalSnapshotSha256 canonical-snapshot "
+        f"-OperationDirectory '{operation_directory}' -OperationId w29-c866f611-20260720T055453Z-c001bcd0 "
+        f"-SnapshotFileSha256 {snapshot_file_sha} -PreviewFileSha256 {preview_file_sha} "
+        f"-ManifestFileSha256 {manifest_file_sha} -CanonicalSnapshotSha256 canonical-snapshot "
         "-CanonicalPreviewSha256 canonical-preview -WrapperSourceRevision "
         "b019315e5afec532a2e352737bc678b32c62775e"
     )
@@ -596,6 +596,157 @@ def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_
     assert all(set(record) == allowed for record in records)
     serialized = json.dumps(records)
     assert "recipient" not in serialized and "DATABASE_URL" not in serialized
+
+
+def _write_git_sh_command(path, python_source):
+    python_file = path.with_suffix(".py")
+    python_file.write_text(python_source, encoding="utf-8")
+    path.write_text(
+        f'#!/bin/sh\nexec "$(cygpath -u \'{pathlib.Path(os.sys.executable).as_posix()}\')" '
+        f'"$(cygpath -w \'{python_file.as_posix()}\')" "$@"\n',
+        encoding="utf-8",
+    )
+
+
+def _run_generated_grant_shell(tmp_path, mode):
+    git_sh = pathlib.Path(r"C:\Program Files\Git\bin\sh.exe")
+    if not git_sh.exists():
+        pytest.skip("Git sh is unavailable")
+    subprocess.run([
+        str(git_sh), "-c",
+        "rm -rf -- /tmp/community-w29-grant-w29-c866f611-20260720T055453Z-c001bcd0 "
+        "/tmp/community-w29-capture-w29-c866f611-20260720T055453Z-c001bcd0",
+    ], check=True)
+    operation = tmp_path / "operation"
+    operation.mkdir()
+    for name, value in (("snapshot.json", "snapshot"), ("preview.json", "preview"), ("operation-manifest.json", "manifest")):
+        (operation / name).write_text(value, encoding="utf-8")
+    subprocess.run([str(git_sh), "-c", f"chmod 700 '{operation.as_posix()}'"], check=True)
+    hashes = {
+        name: __import__("hashlib").sha256((operation / name).read_bytes()).hexdigest()
+        for name in ("snapshot.json", "preview.json", "operation-manifest.json")
+    }
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    docker = fake_bin / "docker"
+    _write_git_sh_command(docker, textwrap.dedent(r'''
+        import hashlib, json, os, pathlib, shutil, subprocess, sys
+        a = sys.argv[1:]
+        mode = os.environ.get('W29_FAKE_MODE', 'success')
+        if a[0] == 'inspect':
+            fmt = a[a.index('--format') + 1]
+            value = 'running' if 'State.Status' in fmt else ('app:c866f611' if 'Config.Image' in fmt else ('sha256:image' if fmt == '{{.Image}}' else 'c866f611'))
+            print('wrong' if mode == 'preflight_identity_mismatch' and fmt == '{{.Image}}' else value)
+            raise SystemExit(0)
+        if a[0] != 'exec': raise SystemExit(90)
+        a = a[1:]
+        if a and a[0] == '-i': a = a[1:]
+        a = a[1:]
+        if a[:2] == ['printenv', 'COMMUNITY_LEADERBOARD_REWARDS_ENABLED']: print('false'); raise SystemExit(0)
+        if a[:2] == ['sh', '-c']: print('absent'); raise SystemExit(0)
+        if a[0] == 'mkdir': pathlib.Path(a[-1]).mkdir(mode=0o700); raise SystemExit(0)
+        if a[0] == 'tar': raise SystemExit(subprocess.run(a, stdin=sys.stdin.buffer).returncode)
+        if a[0] == 'sha256sum':
+            p = pathlib.Path(a[1]); digest = hashlib.sha256(p.read_bytes()).hexdigest()
+            print(('0' * 64 if mode == 'staged_hash_mismatch' else digest) + '  ' + str(p)); raise SystemExit(0)
+        if a[0] == 'rm': shutil.rmtree(a[-1], ignore_errors=(mode != 'cleanup_failure')); raise SystemExit(88 if mode == 'cleanup_failure' else 0)
+        if a[0] == 'test': raise SystemExit(0 if pathlib.Path(a[-1]).stat().st_size else 1)
+        if a[0] == 'cat': sys.stdout.buffer.write(pathlib.Path(a[1]).read_bytes()); raise SystemExit(0)
+        if a[0] == 'python':
+            if mode in ('child_nonzero', 'interrupted_child'): raise SystemExit(74)
+            snap = pathlib.Path(a[a.index('--snapshot-file') + 1])
+            result = {
+                'board_type': 'weekly', 'period_key': '2026-W29',
+                'snapshot_sha256': 'canonical-snapshot', 'preview_sha256': 'canonical-preview',
+                'result': 'committed', 'summary': {'claims_count': 21, 'component_count': 43,
+                'total_coins': 4060, 'total_items': {'small_xp_potion': 25, 'xp_potion': 4},
+                'total_badges': {'badge_lb_weekly_1': 1}},
+            }
+            if mode == 'identity_mismatch': result['period_key'] = '2026-W30'
+            if mode == 'count_mismatch': result['summary']['claims_count'] = 20
+            if mode == 'coin_mismatch': result['summary']['total_coins'] = 4059
+            target = snap.parent / 'grant-result.json'
+            target.write_text('{' if mode == 'malformed_json' else json.dumps(result), encoding='utf-8')
+            if mode != 'empty_stdout': print('sanitized-child-complete')
+            raise SystemExit(0)
+        raise SystemExit(89)
+    '''))
+    sudo = fake_bin / "sudo"
+    _write_git_sh_command(sudo, textwrap.dedent(r'''
+        import hashlib, os, pathlib, shutil, subprocess, sys
+        a = sys.argv[1:]
+        if a and a[0] == '-n': a = a[1:]
+        mode = os.environ.get('W29_FAKE_MODE', 'success')
+        if mode == 'atomic_rename_failure' and a and a[0] == 'mv': raise SystemExit(83)
+        if mode == 'temp_write_failure' and a and a[0] == 'tee': raise SystemExit(84)
+        if a[0] == 'python3': raise SystemExit(subprocess.run([sys.executable] + a[1:], stdin=sys.stdin.buffer, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer).returncode)
+        if a[0] == 'sha256sum':
+            p = pathlib.Path(a[1]); print(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + str(p)); raise SystemExit(0)
+        if a[0] == 'test': raise SystemExit(0 if (not pathlib.Path(a[-1]).exists() if '!' in a else pathlib.Path(a[-1]).exists()) else 1)
+        if a[0] == 'tee': pathlib.Path(a[1]).write_bytes(sys.stdin.buffer.read()); raise SystemExit(0)
+        if a[0] == 'chmod': os.chmod(a[-1], 0o600); raise SystemExit(0)
+        if a[0] == 'mv': os.replace(a[1], a[2]); raise SystemExit(0)
+        if a[0] == 'rm':
+            for value in a:
+                if not value.startswith('-'): pathlib.Path(value).unlink(missing_ok=True)
+            raise SystemExit(0)
+        if a[0] == 'tar': raise SystemExit(subprocess.run(a, stdin=sys.stdin.buffer, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer).returncode)
+        raise SystemExit(92)
+    '''))
+    stat = fake_bin / "stat"
+    stat.write_text("#!/bin/sh\nif [ \"$2\" = %a ]; then echo 700; else echo root:root; fi\n", encoding="utf-8")
+    python3 = fake_bin / "python3"
+    python3.write_text(f'#!/bin/sh\nexec "$(cygpath -u \'{pathlib.Path(os.sys.executable).as_posix()}\')" "$@"\n', encoding="utf-8")
+    subprocess.run([str(git_sh), "-c", f"chmod 700 '{docker.as_posix()}' '{sudo.as_posix()}' '{stat.as_posix()}' '{python3.as_posix()}'"], check=True)
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+    env["W29_FAKE_MODE"] = mode
+    script = render_exact_w29_grant(operation.as_posix(), hashes["snapshot.json"], hashes["preview.json"], hashes["operation-manifest.json"])
+    shell_prelude = ('stat(){ if [ "$2" = "%a" ]; then echo 700; else echo root:root; fi; }\n'
+                     'mkdir(){ command mkdir -p "$3"; }\n')
+    result = subprocess.run([str(git_sh)], input=shell_prelude + script, cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False)
+    evidence_path = operation / "grant-execution-evidence.jsonl"
+    evidence = [json.loads(line) for line in evidence_path.read_text(encoding="utf-8").splitlines()] if evidence_path.exists() else []
+    return result, evidence, operation
+
+
+def test_generated_remote_shell_launches_exactly_one_real_synthetic_child_and_persists_result(tmp_path):
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, "success")
+    assert result.returncode == 0, result.stderr
+    assert (operation / "grant-result.json").exists()
+    assert max(record["launch_count"] for record in evidence) == 1
+    assert sum(record["stage"] == "child_process_created" and record["status"] == "completed" for record in evidence) == 1
+    assert any(record["stage"] == "result_persisted" and record["status"] == "completed" for record in evidence)
+
+
+@pytest.mark.parametrize("mode", ["preflight_identity_mismatch", "staged_hash_mismatch"])
+def test_generated_remote_shell_prelaunch_failures_record_zero_launches(tmp_path, mode):
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, mode)
+    assert result.returncode != 0
+    assert max(record["launch_count"] for record in evidence) == 0
+    assert not any(record["stage"] == "child_process_created" for record in evidence)
+    assert any(record["status"] == "failed" for record in evidence)
+    assert not (operation / "grant-result.json").exists()
+
+
+@pytest.mark.parametrize("mode", [
+    "child_nonzero", "interrupted_child", "empty_stdout", "malformed_json",
+    "identity_mismatch", "count_mismatch", "coin_mismatch", "temp_write_failure",
+    "atomic_rename_failure", "cleanup_failure",
+])
+def test_generated_remote_shell_failures_are_durable_single_launch_and_fail_closed(tmp_path, mode):
+    result, evidence, operation = _run_generated_grant_shell(tmp_path, mode)
+    assert result.returncode != 0
+    assert max(record["launch_count"] for record in evidence) == 1
+    assert sum(record["stage"] == "child_process_created" and record["status"] == "completed" for record in evidence) == 1
+    assert any(record["status"] == "failed" for record in evidence)
+    if mode == "cleanup_failure":
+        assert (operation / "grant-result.json").exists()
+        assert any(record["stage"] == "result_persisted" and record["status"] == "completed" for record in evidence)
+        assert any(record["stage"] == "cleanup_completed" and record["status"] == "failed" for record in evidence)
+    else:
+        assert not (operation / "grant-result.json").exists()
+    assert "recipient" not in json.dumps(evidence)
 
 
 @pytest.mark.parametrize(

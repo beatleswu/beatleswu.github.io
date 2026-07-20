@@ -28,6 +28,7 @@ $releaseOperationId = "community-w29-grant-$([Guid]::NewGuid().ToString('N'))"
 $lockPath = "$($layout.compose_directory.TrimEnd('/'))/.release-operation.lock"
 $lockHeld = $false
 $grantRemoteExitCode = $null
+$launchCount = 0
 
 function Write-GrantStageEvidence {
     param(
@@ -64,15 +65,34 @@ try {
         -OperationId $releaseOperationId
     $lockHeld = $true
     Write-GrantStageEvidence -Stage release_lock_acquired -Status completed
-    $zeroStateScript = New-CommunityRewardsZeroStateProbeRemoteScript `
-        -SchedulerContainer $layout.scheduler_service_name
-    $zeroStateResult = Invoke-RemoteShellCommand `
-        -SshAlias $layout.ssh_alias `
-        -Name 'community_w29_exact_grant_zero_state' `
-        -ScriptText $zeroStateScript
+    Write-GrantStageEvidence -Stage remote_preflight_started -Status started
+    try {
+        $zeroStateScript = New-CommunityRewardsZeroStateProbeRemoteScript `
+            -SchedulerContainer $layout.scheduler_service_name
+        $zeroStateResult = Invoke-RemoteShellCommand `
+            -SshAlias $layout.ssh_alias `
+            -Name 'community_w29_exact_grant_zero_state' `
+            -ScriptText $zeroStateScript
+    }
+    catch {
+        Write-GrantStageEvidence `
+            -Stage remote_preflight_started `
+            -Status failed `
+            -FailureCategory remote_shell
+        throw
+    }
     if ($zeroStateResult.exit_code -ne 0) {
+        Write-GrantStageEvidence `
+            -Stage remote_preflight_started `
+            -Status failed `
+            -RemoteShellExitCode ([int]$zeroStateResult.exit_code) `
+            -FailureCategory remote_shell
         throw 'Exact W29 grant zero-state probe failed closed; remote output withheld.'
     }
+    Write-GrantStageEvidence `
+        -Stage remote_preflight_passed `
+        -Status passed `
+        -RemoteShellExitCode ([int]$zeroStateResult.exit_code)
     $remoteScript = New-CommunityRewardsExactW29GrantRemoteScript `
         -SchedulerContainer $layout.scheduler_service_name `
         -ExpectedSchedulerImageTag $ExpectedSchedulerImageTag `
@@ -91,6 +111,7 @@ try {
         -Name 'community_w29_exact_grant' `
         -ScriptText $remoteScript
     $grantRemoteExitCode = [int]$result.exit_code
+    if ($result.exit_code -eq 0) { $launchCount = 1 }
     if ($result.exit_code -ne 0) {
         throw 'Exact W29 grant failed closed; recipient-level remote output withheld.'
     }
@@ -119,6 +140,7 @@ finally {
         Write-GrantStageEvidence `
             -Stage release_lock_released `
             -Status completed `
+            -LaunchCount $launchCount `
             -RemoteShellExitCode $grantRemoteExitCode
     }
 }
