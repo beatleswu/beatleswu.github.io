@@ -482,6 +482,7 @@ function New-CommunityRewardsGrantEvidenceRemoteScript {
         [Parameter(Mandatory = $true)][ValidateSet(
             'invocation_started', 'local_validation_passed', 'release_lock_acquired',
             'remote_preflight_started', 'remote_preflight_passed',
+            'child_launch_started',
             'release_lock_released')][string]$Stage,
         [Parameter(Mandatory = $true)][ValidateSet('started', 'passed', 'completed', 'failed')][string]$Status,
         [Parameter(Mandatory = $true)][ValidateRange(0, 1)][int]$LaunchCount,

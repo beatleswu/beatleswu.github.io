@@ -106,10 +106,26 @@ try {
         -CanonicalSnapshotSha256 $CanonicalSnapshotSha256 `
         -CanonicalPreviewSha256 $CanonicalPreviewSha256 `
         -WrapperSourceRevision $wrapperSourceRevision
-    $result = Invoke-RemoteShellCommand `
-        -SshAlias $layout.ssh_alias `
-        -Name 'community_w29_exact_grant' `
-        -ScriptText $remoteScript
+    try {
+        $result = Invoke-RemoteShellCommand `
+            -SshAlias $layout.ssh_alias `
+            -Name 'community_w29_exact_grant' `
+            -ScriptText $remoteScript
+    }
+    catch {
+        try {
+            Write-GrantStageEvidence `
+                -Stage child_launch_started `
+                -Status failed `
+                -LaunchCount $launchCount `
+                -FailureCategory remote_shell
+        }
+        catch {
+            # Preserve the original main-grant transport exception. A failed
+            # diagnostic append never becomes the primary execution error.
+        }
+        throw
+    }
     $grantRemoteExitCode = [int]$result.exit_code
     if ($result.exit_code -eq 0) { $launchCount = 1 }
     if ($result.exit_code -ne 0) {

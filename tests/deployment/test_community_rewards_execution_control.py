@@ -764,7 +764,10 @@ def test_generated_remote_shell_failures_are_durable_single_launch_and_fail_clos
     assert "recipient" not in json.dumps(evidence)
 
 
-@pytest.mark.parametrize("mode", ["zero_state_nonzero", "ssh_transport_failure", "lock_release_failure"])
+@pytest.mark.parametrize("mode", [
+    "zero_state_nonzero", "ssh_transport_failure", "lock_release_failure",
+    "main_transport_failure", "main_transport_evidence_failure",
+])
 def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_fail_closed(tmp_path, mode):
     release = tmp_path / "scripts" / "release"
     release.mkdir(parents=True)
@@ -783,15 +786,19 @@ def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_f
             if($env:W29_WRAPPER_MODE -eq 'lock_release_failure'){throw 'sanitized lock release failure'}
             return @{}
         }
-        function Invoke-RemoteShellCommand {
+            function Invoke-RemoteShellCommand {
             param($SshAlias,$Name,$ScriptText)
-            Add-Event ($Name + '|' + $ScriptText)
+                Add-Event ($Name + '|' + $ScriptText)
+                if($Name -eq 'community_w29_evidence_child_launch_started' -and $env:W29_WRAPPER_MODE -eq 'main_transport_evidence_failure'){throw 'sanitized evidence append failure'}
             if($Name -eq 'community_w29_exact_grant_zero_state'){
                 if($env:W29_WRAPPER_MODE -eq 'ssh_transport_failure'){throw 'sanitized transport failure'}
                 if($env:W29_WRAPPER_MODE -eq 'zero_state_nonzero'){return [pscustomobject]@{exit_code=33;stdout='';stderr='withheld'}}
                 return [pscustomobject]@{exit_code=0;stdout='';stderr=''}
             }
-            if($Name -eq 'community_w29_exact_grant'){return [pscustomobject]@{exit_code=74;stdout='';stderr='withheld'}}
+                if($Name -eq 'community_w29_exact_grant'){
+                    if($env:W29_WRAPPER_MODE -like 'main_transport*'){throw 'primary main grant transport failure'}
+                    return [pscustomobject]@{exit_code=74;stdout='';stderr='withheld'}
+                }
             return [pscustomobject]@{exit_code=0;stdout='';stderr=''}
         }
         Export-ModuleMember -Function *
@@ -831,6 +838,16 @@ def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_f
             and item.endswith(":release_lock")
             for item in events
         )
+    elif mode.startswith("main_transport"):
+        assert sum(item.startswith("community_w29_exact_grant|") for item in events) == 1
+        assert any(
+            item.startswith("community_w29_evidence_child_launch_started|")
+            and "child_launch_started:failed:0::remote_shell" in item
+            for item in events
+        )
+        assert "primary main grant transport failure" in result.stderr
+        assert "sanitized evidence append failure" not in result.stderr
+        assert any(item.startswith("community_w29_evidence_release_lock_released|") for item in events)
     else:
         assert not any(item.startswith("community_w29_exact_grant|") for item in events)
     assert "recipient" not in result.stdout.lower()
