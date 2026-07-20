@@ -100,7 +100,12 @@ __COMMUNITY_CONFIGURED_VALUE__
 test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true
 docker exec -i "$SCHEDULER" python - <<'__COMMUNITY_ZERO_STATE__'
 import json, os, zlib
-import psycopg
+try:
+    import psycopg
+except ModuleNotFoundError as exc:
+    if exc.name != 'psycopg':
+        raise
+    import psycopg2 as psycopg
 conn=psycopg.connect(os.environ['DATABASE_URL'])
 try:
     with conn.cursor() as cur:
