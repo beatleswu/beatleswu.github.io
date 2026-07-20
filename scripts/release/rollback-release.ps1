@@ -3,6 +3,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$RollbackManifest,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
+    [switch]$FreezeCommunityLeaderboardRewards,
     [switch]$FramedResult,
     [switch]$Execute,
     [string]$OwnerGate
@@ -316,9 +317,13 @@ function Get-RemoteComposeEnvironmentPrefix {
         ASSET_CONTAINER_MOUNT_DESTINATION = $layout.asset_container_mount_destination
         SHADOW_EVENT_LOG_PATH = $layout.shadow_event_log_path
     }
-    return (($pairs.GetEnumerator() | ForEach-Object {
+    $prefix = (($pairs.GetEnumerator() | ForEach-Object {
         "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value))
     }) -join ' ')
+    if ($FreezeCommunityLeaderboardRewards) {
+        $prefix = "COMMUNITY_LEADERBOARD_REWARDS_ENABLED='false' $prefix"
+    }
+    return $prefix
 }
 
 function Get-RemoteQuestionsVolumeName {
