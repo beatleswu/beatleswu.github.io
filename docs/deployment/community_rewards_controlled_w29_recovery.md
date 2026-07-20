@@ -63,3 +63,14 @@ the W29 advisory-lock state, exact app/scheduler identities, scheduler state
 and restart count. After each scheduler recreation verify its exact image ID
 and the effective Community flag. Do not print environment maps, database URLs,
 credentials, recipient data, or preview contents.
+
+The exact W29 grant wrapper retains an append-only, root-owned
+`grant-execution-evidence.jsonl` in the governed operation directory. Each
+fsynced record contains only the operation ID, UTC timestamp, stage, sanitized
+status/failure category, launch count, shell/child exit codes, and wrapper
+source revision. It is retained after both success and failure for audit and is
+never treated as proof that rewards committed; only the validated atomic
+`grant-result.json` and authoritative database reconciliation prove success.
+The private host capture directory and the exact container staging directory
+are temporary and are removed by identity-bounded cleanup. Operators must not
+delete or truncate the durable journal during diagnosis.

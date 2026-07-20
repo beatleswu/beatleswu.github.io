@@ -268,7 +268,8 @@ function New-CommunityRewardsExactW29GrantRemoteScript {
         [Parameter(Mandatory = $true)][string]$PreviewFileSha256,
         [Parameter(Mandatory = $true)][string]$ManifestFileSha256,
         [Parameter(Mandatory = $true)][string]$CanonicalSnapshotSha256,
-        [Parameter(Mandatory = $true)][string]$CanonicalPreviewSha256
+        [Parameter(Mandatory = $true)][string]$CanonicalPreviewSha256,
+        [Parameter(Mandatory = $true)][string]$WrapperSourceRevision
     )
     foreach ($value in $PSBoundParameters.Values) {
         if ([string]::IsNullOrWhiteSpace([string]$value) -or ([string]$value).Contains("`n") -or ([string]$value).Contains("`r")) {
@@ -288,10 +289,82 @@ PREVIEW_FILE_SHA256=__PREVIEW_FILE_SHA256__
 MANIFEST_FILE_SHA256=__MANIFEST_FILE_SHA256__
 CANONICAL_SNAPSHOT_SHA256=__CANONICAL_SNAPSHOT_SHA256__
 CANONICAL_PREVIEW_SHA256=__CANONICAL_PREVIEW_SHA256__
+WRAPPER_SOURCE_REVISION=__WRAPPER_SOURCE_REVISION__
 CONTAINER_OPERATION_DIRECTORY="/tmp/community-w29-grant-$OPERATION_ID"
+REMOTE_CAPTURE_DIRECTORY="/tmp/community-w29-capture-$OPERATION_ID"
 RESULT_FILE="$OPERATION_DIRECTORY/grant-result.json"
 RESULT_TEMP_FILE="$OPERATION_DIRECTORY/grant-result.json.tmp"
+CHILD_STDOUT_FILE="$REMOTE_CAPTURE_DIRECTORY/grant-child.stdout"
+CHILD_STDERR_FILE="$REMOTE_CAPTURE_DIRECTORY/grant-child.stderr"
+EVIDENCE_FILE="$OPERATION_DIRECTORY/grant-execution-evidence.jsonl"
+CURRENT_STAGE=remote_preflight_started
+LAUNCH_COUNT=0
+CHILD_EXIT=
 
+record_stage() {
+    stage=$1 status=$2 launch_count=$3 remote_exit=${4:-} child_exit=${5:-} failure_category=${6:-}
+    sudo -n python3 - "$EVIDENCE_FILE" "$OPERATION_ID" "$stage" "$status" "$launch_count" "$remote_exit" "$child_exit" "$failure_category" "$WRAPPER_SOURCE_REVISION" <<'__COMMUNITY_W29_EVIDENCE__'
+import datetime, json, os, sys
+path, operation_id, stage, status, launch_count, remote_exit, child_exit, category, revision = sys.argv[1:]
+allowed_stages = {
+    'invocation_started', 'local_validation_passed', 'release_lock_acquired',
+    'remote_preflight_started', 'remote_preflight_passed', 'child_command_prepared',
+    'child_launch_started', 'child_process_created', 'child_exit_received',
+    'result_read_started', 'result_parsed', 'result_validated', 'result_persisted',
+    'cleanup_started', 'cleanup_completed', 'release_lock_released',
+}
+
+if stage not in allowed_stages or status not in {'started', 'passed', 'completed', 'failed'}:
+    raise SystemExit(91)
+record = {
+    'operation_id': operation_id,
+    'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'stage': stage,
+    'status': status,
+    'launch_count': int(launch_count),
+    'remote_shell_exit_code': None if remote_exit == '' else int(remote_exit),
+    'child_exit_code': None if child_exit == '' else int(child_exit),
+    'failure_category': category or None,
+    'wrapper_source_revision': revision,
+}
+flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+fd = os.open(path, flags, 0o600)
+try:
+    os.write(fd, (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'))
+    os.fsync(fd)
+finally:
+    os.close(fd)
+os.chmod(path, 0o600)
+__COMMUNITY_W29_EVIDENCE__
+}
+
+result_persisted=false
+container_prepared=false
+capture_prepared=false
+temp_path_authorized=false
+cleanup() {
+    cleanup_rc=$?
+    trap - EXIT INT TERM
+    if test "$cleanup_rc" -ne 0; then
+        record_stage "$CURRENT_STAGE" failed "$LAUNCH_COUNT" "$cleanup_rc" "$CHILD_EXIT" "${CURRENT_STAGE}_failure" || true
+    fi
+    record_stage cleanup_started started "$LAUNCH_COUNT" '' "$CHILD_EXIT" || true
+    cleanup_failed=false
+    if test "$container_prepared" = true; then docker exec "$SCHEDULER" rm -rf -- "$CONTAINER_OPERATION_DIRECTORY" >/dev/null 2>&1 || cleanup_failed=true; fi
+    if test "$capture_prepared" = true; then rm -rf -- "$REMOTE_CAPTURE_DIRECTORY" >/dev/null 2>&1 || cleanup_failed=true; fi
+    if test "$result_persisted" != true && test "$temp_path_authorized" = true; then sudo -n rm -f -- "$RESULT_TEMP_FILE" >/dev/null 2>&1 || cleanup_failed=true; fi
+    if test "$cleanup_failed" = true; then
+        record_stage cleanup_completed failed "$LAUNCH_COUNT" "$cleanup_rc" "$CHILD_EXIT" cleanup_failure || true
+        if test "$cleanup_rc" -eq 0; then cleanup_rc=82; fi
+    else
+        record_stage cleanup_completed completed "$LAUNCH_COUNT" "$cleanup_rc" "$CHILD_EXIT" || true
+    fi
+    exit "$cleanup_rc"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+record_stage remote_preflight_started started 0
 test "$OPERATION_ID" = w29-c866f611-20260720T055453Z-c001bcd0
 test "$(docker inspect "$SCHEDULER" --format '{{.State.Status}}')" = running
 test "$(docker inspect "$SCHEDULER" --format '{{.Config.Image}}')" = "$EXPECTED_IMAGE_TAG"
@@ -305,23 +378,27 @@ test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/preview.json" | cut -d' ' -f1)" 
 test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/operation-manifest.json" | cut -d' ' -f1)" = "$MANIFEST_FILE_SHA256"
 sudo -n test ! -e "$RESULT_FILE"
 sudo -n test ! -e "$RESULT_TEMP_FILE"
+temp_path_authorized=true
 test "$(docker exec "$SCHEDULER" sh -c "if test -e '$CONTAINER_OPERATION_DIRECTORY'; then echo present; else echo absent; fi")" = absent
-
-result_persisted=false
-cleanup() {
-    docker exec "$SCHEDULER" rm -rf -- "$CONTAINER_OPERATION_DIRECTORY" >/dev/null 2>&1 || true
-    if test "$result_persisted" != true; then sudo -n rm -f -- "$RESULT_TEMP_FILE" >/dev/null 2>&1 || true; fi
-}
-trap cleanup EXIT INT TERM
+test ! -e "$REMOTE_CAPTURE_DIRECTORY"
+record_stage remote_preflight_passed passed 0
+CURRENT_STAGE=child_command_prepared
+record_stage child_command_prepared started 0
+container_prepared=true
 docker exec "$SCHEDULER" mkdir -m 700 "$CONTAINER_OPERATION_DIRECTORY"
+capture_prepared=true
+mkdir -m 700 "$REMOTE_CAPTURE_DIRECTORY"
 sudo -n tar -C "$OPERATION_DIRECTORY" -cf - snapshot.json preview.json |
     docker exec -i "$SCHEDULER" tar -C "$CONTAINER_OPERATION_DIRECTORY" -xf -
 test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" | cut -d' ' -f1)" = "$SNAPSHOT_FILE_SHA256"
 test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/preview.json" | cut -d' ' -f1)" = "$PREVIEW_FILE_SHA256"
 
-# Capture stdout in the remote host shell. Never redirect a host shell to a
-# container-only path, and never emit recipient-level command output.
-GRANT_OUTPUT="$(docker exec "$SCHEDULER" python tools/community_leaderboard_rewards_manual.py grant-exact-period-commit \
+# Capture stdout and stderr in exact private remote-host files. This exposes
+# process-creation and exit evidence without emitting recipient-level command output.
+record_stage child_command_prepared completed 0
+CURRENT_STAGE=child_launch_started
+record_stage child_launch_started started 0
+docker exec "$SCHEDULER" python tools/community_leaderboard_rewards_manual.py grant-exact-period-commit \
     --snapshot-file "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" \
     --preview-file "$CONTAINER_OPERATION_DIRECTORY/preview.json" \
     --expected-snapshot-sha256 "$CANONICAL_SNAPSHOT_SHA256" \
@@ -331,13 +408,30 @@ GRANT_OUTPUT="$(docker exec "$SCHEDULER" python tools/community_leaderboard_rewa
     --expected-total-coins 4060 \
     --expected-total-items-json '{"small_xp_potion":25,"xp_potion":4}' \
     --expected-total-badges-json '{"badge_lb_weekly_1":1}' \
-    --owner-gate GO_COMMUNITY_LEADERBOARD_REWARD_GRANT)"
-test -n "$GRANT_OUTPUT"
-unset GRANT_OUTPUT
+    --owner-gate GO_COMMUNITY_LEADERBOARD_REWARD_GRANT \
+    >"$CHILD_STDOUT_FILE" 2>"$CHILD_STDERR_FILE" &
+CHILD_PID=$!
+LAUNCH_COUNT=1
+CURRENT_STAGE=child_process_created
+record_stage child_process_created completed 1
+set +e
+wait "$CHILD_PID"
+CHILD_EXIT=$?
+set -e
+CURRENT_STAGE=child_exit_received
+if test "$CHILD_EXIT" -ne 0; then
+    record_stage child_exit_received failed 1 '' "$CHILD_EXIT" child_nonzero
+    exit "$CHILD_EXIT"
+fi
+record_stage child_exit_received completed 1 '' 0
+test -s "$CHILD_STDOUT_FILE" || { record_stage child_exit_received failed 1 '' 0 empty_stdout; exit 81; }
+CURRENT_STAGE=result_read_started
+record_stage result_read_started started 1 '' 0
 docker exec "$SCHEDULER" test -s "$CONTAINER_OPERATION_DIRECTORY/grant-result.json"
 docker exec "$SCHEDULER" cat "$CONTAINER_OPERATION_DIRECTORY/grant-result.json" |
     sudo -n tee "$RESULT_TEMP_FILE" >/dev/null
 sudo -n chmod 600 "$RESULT_TEMP_FILE"
+CURRENT_STAGE=result_parsed
 sudo -n python3 - "$RESULT_TEMP_FILE" "$CANONICAL_SNAPSHOT_SHA256" "$CANONICAL_PREVIEW_SHA256" <<'__COMMUNITY_W29_RESULT__'
 import json, sys
 path, snapshot_sha, preview_sha = sys.argv[1:]
@@ -353,8 +447,13 @@ if summary.get('total_items') != {'small_xp_potion': 25, 'xp_potion': 4}: raise 
 if summary.get('total_badges') != {'badge_lb_weekly_1': 1}: raise SystemExit(57)
 print(json.dumps({'result': result['result'], 'period_key': result['period_key'], 'claims': 21, 'components': 43, 'coins': 4060}, sort_keys=True))
 __COMMUNITY_W29_RESULT__
+record_stage result_parsed completed 1 '' 0
+CURRENT_STAGE=result_validated
+record_stage result_validated passed 1 '' 0
 sudo -n mv "$RESULT_TEMP_FILE" "$RESULT_FILE"
 result_persisted=true
+CURRENT_STAGE=result_persisted
+record_stage result_persisted completed 1 '' 0
 printf '%s\n' '{"operation":"exact_w29_grant","result_persisted":true,"recipient_output_emitted":false}'
 '@
     $replacements = [ordered]@{
@@ -369,9 +468,88 @@ printf '%s\n' '{"operation":"exact_w29_grant","result_persisted":true,"recipient
         '__MANIFEST_FILE_SHA256__' = Quote-PosixShellArgument $ManifestFileSha256
         '__CANONICAL_SNAPSHOT_SHA256__' = Quote-PosixShellArgument $CanonicalSnapshotSha256
         '__CANONICAL_PREVIEW_SHA256__' = Quote-PosixShellArgument $CanonicalPreviewSha256
+        '__WRAPPER_SOURCE_REVISION__' = Quote-PosixShellArgument $WrapperSourceRevision
     }
     foreach ($item in $replacements.GetEnumerator()) { $template = $template.Replace($item.Key, $item.Value) }
     return $template
+}
+
+function New-CommunityRewardsGrantEvidenceRemoteScript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$OperationDirectory,
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [Parameter(Mandatory = $true)][ValidateSet(
+            'invocation_started', 'local_validation_passed', 'release_lock_acquired',
+            'remote_preflight_started', 'remote_preflight_passed',
+            'child_launch_started',
+            'release_lock_released')][string]$Stage,
+        [Parameter(Mandatory = $true)][ValidateSet('started', 'passed', 'completed', 'failed')][string]$Status,
+        [Parameter(Mandatory = $true)][ValidateRange(0, 1)][int]$LaunchCount,
+        [Parameter(Mandatory = $true)][string]$WrapperSourceRevision,
+        [Nullable[int]]$RemoteShellExitCode,
+        [Nullable[int]]$ChildExitCode,
+        [ValidateSet('', 'local_validation', 'release_lock', 'remote_shell')][string]$FailureCategory = ''
+    )
+    foreach ($value in @($OperationDirectory, $OperationId, $Stage, $Status, $WrapperSourceRevision)) {
+        if ([string]::IsNullOrWhiteSpace($value) -or $value.Contains("`n") -or $value.Contains("`r")) {
+            throw 'Community W29 evidence parameters must be nonblank single-line values.'
+        }
+    }
+    $remoteExit = if ($null -eq $RemoteShellExitCode) { '' } else { [string]$RemoteShellExitCode }
+    $childExit = if ($null -eq $ChildExitCode) { '' } else { [string]$ChildExitCode }
+    $remoteExitArgument = if ($remoteExit -eq '') { "''" } else { Quote-PosixShellArgument $remoteExit }
+    $childExitArgument = if ($childExit -eq '') { "''" } else { Quote-PosixShellArgument $childExit }
+    $failureCategoryArgument = if ($FailureCategory -eq '') { "''" } else { Quote-PosixShellArgument $FailureCategory }
+    $script = @'
+set -eu
+sudo -n python3 - __EVIDENCE_FILE__ __OPERATION_ID__ __STAGE__ __STATUS__ __LAUNCH_COUNT__ __REMOTE_EXIT__ __CHILD_EXIT__ __CATEGORY__ __REVISION__ <<'__COMMUNITY_W29_OPERATOR_EVIDENCE__'
+import datetime, json, os, sys
+path, operation_id, stage, status, launch_count, remote_exit, child_exit, category, revision = sys.argv[1:]
+if stage == 'release_lock_released' and os.path.exists(path):
+    with open(path, encoding='utf-8') as existing:
+        prior = [json.loads(line) for line in existing if line.strip()]
+    current_invocation = []
+    for item in reversed(prior):
+        current_invocation.append(item)
+        if item.get('stage') == 'invocation_started':
+            break
+    if not current_invocation or current_invocation[-1].get('stage') != 'invocation_started':
+        raise SystemExit(92)
+    launch_count = str(max([int(item.get('launch_count', 0)) for item in current_invocation] + [int(launch_count)]))
+record = {
+    'operation_id': operation_id,
+    'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'stage': stage,
+    'status': status,
+    'launch_count': int(launch_count),
+    'remote_shell_exit_code': None if remote_exit == '' else int(remote_exit),
+    'child_exit_code': None if child_exit == '' else int(child_exit),
+    'failure_category': category or None,
+    'wrapper_source_revision': revision,
+}
+fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+try:
+    os.write(fd, (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8'))
+    os.fsync(fd)
+finally:
+    os.close(fd)
+os.chmod(path, 0o600)
+__COMMUNITY_W29_OPERATOR_EVIDENCE__
+'@
+    $replacements = [ordered]@{
+        '__EVIDENCE_FILE__' = Quote-PosixShellArgument "$OperationDirectory/grant-execution-evidence.jsonl"
+        '__OPERATION_ID__' = Quote-PosixShellArgument $OperationId
+        '__STAGE__' = Quote-PosixShellArgument $Stage
+        '__STATUS__' = Quote-PosixShellArgument $Status
+        '__LAUNCH_COUNT__' = Quote-PosixShellArgument ([string]$LaunchCount)
+        '__REMOTE_EXIT__' = $remoteExitArgument
+        '__CHILD_EXIT__' = $childExitArgument
+        '__CATEGORY__' = $failureCategoryArgument
+        '__REVISION__' = Quote-PosixShellArgument $WrapperSourceRevision
+    }
+    foreach ($item in $replacements.GetEnumerator()) { $script = $script.Replace($item.Key, $item.Value) }
+    return $script
 }
 
 Export-ModuleMember -Function @(
@@ -379,5 +557,6 @@ Export-ModuleMember -Function @(
     'New-CommunityRewardsZeroStateProbeRemoteScript',
     'New-CommunityRewardsFreezeRemoteScript',
     'New-CommunityRewardsResumeRemoteScript',
-    'New-CommunityRewardsExactW29GrantRemoteScript'
+    'New-CommunityRewardsExactW29GrantRemoteScript',
+    'New-CommunityRewardsGrantEvidenceRemoteScript'
 )
