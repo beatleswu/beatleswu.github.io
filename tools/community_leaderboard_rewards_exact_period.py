@@ -505,10 +505,10 @@ def commit_exact_period(
         }
     if existing["state"] != "absent":
         raise ValueError(existing.get("reason", "existing claims prevent exact-period commit"))
-    from community_leaderboard_rewards_real_grant_preview import (
+    from tools.community_leaderboard_rewards_real_grant_preview import (
         load_app_module, verify_real_grant_targets_for_claims,
     )
-    from community_leaderboard_rewards_real_grant_commit import execute_exact_period_grant_commit
+    from tools.community_leaderboard_rewards_real_grant_commit import execute_exact_period_grant_commit
 
     finalize_result = lbr.finalize_leaderboard_reward_period(
         conn,

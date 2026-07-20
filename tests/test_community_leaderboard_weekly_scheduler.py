@@ -33,6 +33,9 @@ class FakeLogger:
     def info(self, message, payload):
         self.messages.append((message, payload))
 
+    def error(self, message, payload):
+        self.messages.append((message, payload))
+
 
 class FakeConn:
     def __init__(self):
@@ -230,6 +233,7 @@ def test_success_flow_writes_operation_files_uses_scheduler_auth_and_commits(mon
     snapshot, preview = _make_snapshot()
     release_calls = []
     commit_kwargs = {}
+    commit_calls = []
 
     monkeypatch.setattr(scheduler, "try_acquire_period_lock", lambda conn, board_type, period_key: True)
     monkeypatch.setattr(
@@ -241,6 +245,7 @@ def test_success_flow_writes_operation_files_uses_scheduler_auth_and_commits(mon
     monkeypatch.setattr(scheduler, "build_exact_period_preview", lambda payload: preview)
 
     def fake_commit(*args, **kwargs):
+        commit_calls.append((args, kwargs))
         commit_kwargs.update(kwargs)
         return {
             "result": "committed",
@@ -280,6 +285,7 @@ def test_success_flow_writes_operation_files_uses_scheduler_auth_and_commits(mon
     assert conn.commit_calls == 1
     assert conn.rollback_calls == 0
     assert conn.close_calls == 1
+    assert len(commit_calls) == 1
     assert release_calls == [("weekly", "2026-W28")]
     assert (op_dir / "snapshot.json").exists()
     assert (op_dir / "preview.json").exists()
@@ -365,8 +371,59 @@ def test_failed_closed_logs_and_rolls_back(monkeypatch, tmp_path):
     assert conn.close_calls == 1
     payload = _result_payload(app_module.app.logger)
     assert payload["result"] == "failed_closed"
-    assert payload["snapshot_sha_prefix"] == ""
-    assert payload["preview_sha_prefix"] == ""
+    assert payload["job"] == "community_leaderboard_weekly"
+    assert payload["period_key"] == "2026-W28"
+    assert payload["exception_type"] == "RuntimeError"
+
+
+def test_post_preview_exception_is_sanitized_and_persists_nothing(monkeypatch, tmp_path):
+    conn = FakeConn()
+    app_module = FakeAppModule(enabled=True, conn=conn)
+    snapshot, preview = _make_snapshot(period_key="2026-W29")
+    sensitive_marker = "recipient@example.invalid balance=999 DATABASE_URL=private"
+
+    monkeypatch.setattr(scheduler, "try_acquire_period_lock", lambda *args: True)
+    monkeypatch.setattr(scheduler, "release_period_lock", lambda *args: None)
+    monkeypatch.setattr(scheduler, "build_exact_period_snapshot", lambda *args, **kwargs: snapshot)
+    monkeypatch.setattr(scheduler, "build_exact_period_preview", lambda payload: preview)
+    monkeypatch.setattr(
+        scheduler,
+        "commit_exact_period",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ModuleNotFoundError(sensitive_marker)),
+    )
+    monkeypatch.setenv("DATABASE_URL", "postgresql://go:secret@postgres:5432/go_odyssey")
+    monkeypatch.setenv("PRODUCTION", "1")
+    monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
+
+    result = scheduler.run_community_leaderboard_weekly_cycle(
+        app_module,
+        now=datetime.datetime(2026, 7, 20, 0, 10, tzinfo=ZoneInfo("Asia/Taipei")),
+        operations_root=tmp_path,
+    )
+
+    operation_dir = tmp_path / "2026-W29"
+    assert result["result"] == "failed_closed"
+    assert result["error_type"] == "ModuleNotFoundError"
+    assert conn.rollback_calls == 1
+    assert conn.commit_calls == 0
+    assert conn.close_calls == 1
+    assert (operation_dir / "snapshot.json").is_file()
+    assert (operation_dir / "preview.json").is_file()
+    assert not (operation_dir / "grant-result.json").exists()
+
+    message, serialized = app_module.app.logger.messages[-1]
+    payload = json.loads(serialized)
+    assert message == "[community_leaderboard_weekly] %s"
+    assert payload == {
+        "exception_type": "ModuleNotFoundError",
+        "job": "community_leaderboard_weekly",
+        "period_key": "2026-W29",
+        "result": "failed_closed",
+    }
+    combined_log = message + serialized
+    assert sensitive_marker not in combined_log
+    assert "recipient@example.invalid" not in combined_log
+    assert "DATABASE_URL" not in combined_log
 
 
 def test_preview_identity_rejects_changed_snapshot_bytes_database_and_environment(monkeypatch, tmp_path):
@@ -904,7 +961,7 @@ def test_disposable_postgres_concurrency_lock_and_cleanup(monkeypatch, tmp_path)
         monkeypatch.setenv("DATABASE_URL", pg["database_url"])
         monkeypatch.setenv("PRODUCTION", "1")
         monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
-        import community_leaderboard_rewards_real_grant_preview as real_preview
+        from tools import community_leaderboard_rewards_real_grant_preview as real_preview
 
         monkeypatch.setattr(real_preview, "load_app_module", lambda: _PgFakeRewardApp)
         monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
