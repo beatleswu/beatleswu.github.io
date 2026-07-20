@@ -1420,6 +1420,7 @@ try {
         }
         $freezeScript = New-CommunityRewardsFreezeRemoteScript `
             -SchedulerContainer $layout.scheduler_service_name `
+            -AppContainer $layout.app_service_name `
             -ExpectedSchedulerImageId $schedulerBefore.image_id `
             -ExpectedSchedulerImageTag $schedulerBefore.image_tag `
             -ComposeDirectory $layout.compose_directory `

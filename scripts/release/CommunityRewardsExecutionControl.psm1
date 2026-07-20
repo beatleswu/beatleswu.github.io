@@ -44,6 +44,7 @@ function New-CommunityRewardsFreezeRemoteScript {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$SchedulerContainer,
+        [Parameter(Mandatory = $true)][string]$AppContainer,
         [Parameter(Mandatory = $true)][string]$ExpectedSchedulerImageId,
         [Parameter(Mandatory = $true)][string]$ExpectedSchedulerImageTag,
         [Parameter(Mandatory = $true)][string]$ComposeDirectory,
@@ -61,6 +62,7 @@ function New-CommunityRewardsFreezeRemoteScript {
     $template = @'
 set -eu
 SCHEDULER=__SCHEDULER__
+APP=__APP__
 EXPECTED_IMAGE_ID=__EXPECTED_IMAGE_ID__
 EXPECTED_IMAGE_TAG=__EXPECTED_IMAGE_TAG__
 COMPOSE_DIRECTORY=__COMPOSE_DIRECTORY__
@@ -113,6 +115,34 @@ finally:
     conn.close()
 __COMMUNITY_ZERO_STATE__
 
+docker stop "$SCHEDULER" >/dev/null
+test "$(docker inspect "$SCHEDULER" --format '{{.State.Status}}')" = exited
+test "$(docker inspect "$SCHEDULER" --format '{{.Image}}')" = "$EXPECTED_IMAGE_ID"
+docker exec -i "$APP" python - <<'__COMMUNITY_POST_STOP_ZERO_STATE__'
+import json, os, zlib
+import psycopg
+conn=psycopg.connect(os.environ['DATABASE_URL'])
+try:
+    with conn.cursor() as cur:
+        def one(sql, args=()):
+            cur.execute(sql,args); return int(cur.fetchone()[0])
+        result={}
+        for period in ('2026-W29','2026-W30'):
+            result[period]={
+              'claims':one('SELECT count(*) FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s',('weekly',period)),
+              'snapshots':one('SELECT count(*) FROM leaderboard_snapshots WHERE board_type=%s AND period_key=%s',('weekly',period)),
+              'components':one('SELECT count(*) FROM leaderboard_reward_component_log l JOIN leaderboard_reward_claims c ON c.id=l.claim_id WHERE c.board_type=%s AND c.period_key=%s',('weekly',period)),
+            }
+        ns=zlib.crc32(b'community_leaderboard_rewards') & 0x7fffffff
+        scope=zlib.crc32(b'weekly:2026-W29') & 0x7fffffff
+        result['w29_lock']=one("SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND granted AND classid=%s AND objid=%s",(ns,scope))
+    if any(result[p][k] for p in ('2026-W29','2026-W30') for k in ('claims','snapshots','components')) or result['w29_lock']:
+        raise SystemExit(34)
+    print(json.dumps(result,sort_keys=True))
+finally:
+    conn.close()
+__COMMUNITY_POST_STOP_ZERO_STATE__
+
 cd "$COMPOSE_DIRECTORY"
 __COMPOSE_PREFIX__ COMMUNITY_LEADERBOARD_REWARDS_ENABLED=false docker compose -p "$COMPOSE_PROJECT" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build --no-deps --force-recreate "$SCHEDULER_SERVICE"
 test "$(docker inspect "$SCHEDULER" --format '{{.State.Status}}')" = running
@@ -124,6 +154,7 @@ printf '%s\n' '{"operation":"freeze","effective":"false","old_image_preserved":t
 '@
     $replacements = [ordered]@{
         '__SCHEDULER__' = Quote-PosixShellArgument $SchedulerContainer
+        '__APP__' = Quote-PosixShellArgument $AppContainer
         '__EXPECTED_IMAGE_ID__' = Quote-PosixShellArgument $ExpectedSchedulerImageId
         '__EXPECTED_IMAGE_TAG__' = Quote-PosixShellArgument $ExpectedSchedulerImageTag
         '__COMPOSE_DIRECTORY__' = Quote-PosixShellArgument $ComposeDirectory
@@ -141,6 +172,7 @@ function New-CommunityRewardsResumeRemoteScript {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$SchedulerContainer,
+        [Parameter(Mandatory = $true)][string]$AppContainer,
         [Parameter(Mandatory = $true)][string]$ExpectedSchedulerImageId,
         [Parameter(Mandatory = $true)][string]$ExpectedSchedulerImageTag,
         [Parameter(Mandatory = $true)][string]$ComposeDirectory,

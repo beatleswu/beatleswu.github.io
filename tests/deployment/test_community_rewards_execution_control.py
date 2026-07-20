@@ -23,6 +23,7 @@ def render(operation):
         f"Import-Module '{ROOT / 'scripts/release/ReleaseTooling.psm1'}' -Force -DisableNameChecking; "
         f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
         f"{function} -SchedulerContainer scheduler -ExpectedSchedulerImageId sha256:old "
+        "-AppContainer app "
         "-ExpectedSchedulerImageTag app:old -ComposeDirectory /release -ComposeProject project "
         "-ComposeFile /release/docker-compose.release.yml -EnvFile /protected/.env "
         "-SchedulerService scheduler -ComposeEnvironmentPrefix \"GO_ODYSSEY_IMAGE='app:old' QUESTIONS_CONTENT_VOLUME_NAME='go-data'\""
@@ -60,6 +61,10 @@ def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation()
         "values != [b\"true\"]",
         "test \"$(docker exec \"$SCHEDULER\" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)\" = true",
         "result['w29_lock']",
+        "docker stop \"$SCHEDULER\"",
+        "--format '{{.State.Status}}')\" = exited",
+        "docker exec -i \"$APP\" python - <<'__COMMUNITY_POST_STOP_ZERO_STATE__'",
+        "raise SystemExit(34)",
         "COMMUNITY_LEADERBOARD_REWARDS_ENABLED=false docker compose",
         "--force-recreate \"$SCHEDULER_SERVICE\"",
         "test \"$(docker inspect \"$SCHEDULER\" --format '{{.Image}}')\" = \"$EXPECTED_IMAGE_ID\"",
@@ -73,6 +78,7 @@ def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation()
         cursor += len(item)
     assert positions == sorted(positions)
     assert "2026-W29" in script and "2026-W30" in script
+    assert script.count("SELECT count(*) FROM leaderboard_reward_claims") == 2
     assert all(table in script for table in (
         "leaderboard_reward_claims", "leaderboard_snapshots", "leaderboard_reward_component_log", "pg_locks"
     ))

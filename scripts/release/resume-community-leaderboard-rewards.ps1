@@ -53,6 +53,7 @@ try {
     $prefix = (($pairs.GetEnumerator() | ForEach-Object { "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value)) }) -join ' ')
     $script = New-CommunityRewardsResumeRemoteScript `
         -SchedulerContainer $layout.scheduler_service_name `
+        -AppContainer $layout.app_service_name `
         -ExpectedSchedulerImageId $actualId `
         -ExpectedSchedulerImageTag $actualTag `
         -ComposeDirectory $layout.compose_directory `
