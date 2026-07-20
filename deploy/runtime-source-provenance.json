@@ -94,11 +94,11 @@
     },
     {
       "path": "community_leaderboard_rewards_scheduler.py",
-      "source_commit": "9c7e74295f8db03b545ad395e7a385e93306fc11",
-      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
-      "source_commit_subject": "fix(rewards): require exact true for community scheduler flag",
-      "source_date": "2026-07-13",
-      "content_sha256": "1fc261fe2489959efe97846a58ea9c23943c98e05a0c22a20f9017019157867d",
+      "source_commit": "173188aec1082fe4a9d8781ddc17575a2b4537fb",
+      "source_branch_or_local_ref": "fix/w29-scheduler-import-observability",
+      "source_commit_subject": "fix(rewards): repair W29 scheduler grant imports",
+      "source_date": "2026-07-20",
+      "content_sha256": "ae62cfbd601a50981a1b55b8ee5599100263cb03a95d7ecb0de52d53f798c058",
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred import inside _start_community_leaderboard_weekly_scheduler() and scheduler.py-started runtime reward loop; weekly scheduler runtime-critical when COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true",
       "source_status": "local Git provenance -- not previously pushed to canonical origin"
@@ -138,11 +138,11 @@
     },
     {
       "path": "tools/community_leaderboard_rewards_exact_period.py",
-      "source_commit": "8d9f0f82df8e41c323ae4ecd680f2a6a1a136bd2",
-      "source_branch_or_local_ref": "feature/community-leaderboard-automated-weekly-scheduler",
-      "source_commit_subject": "feat(rewards): harden automated weekly leaderboard scheduler",
-      "source_date": "2026-07-13",
-      "content_sha256": "0b502fc0547d9f03bc94e253a66d534ce1dae7e972c92ea9abacd70691ffd7ec",
+      "source_commit": "173188aec1082fe4a9d8781ddc17575a2b4537fb",
+      "source_branch_or_local_ref": "fix/w29-scheduler-import-observability",
+      "source_commit_subject": "fix(rewards): repair W29 scheduler grant imports",
+      "source_date": "2026-07-20",
+      "content_sha256": "7e9f30a0a10234ca2ad66af44de5a0967725ce9c5c63f15ad112a7cd1f638c94",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; exact closed-period snapshot/preview/commit guard rail for leaderboard rewards; depends on community_leaderboard_rewards.py and tools/community_leaderboard_rewards_real_grant_* helpers",
       "source_status": "local Git provenance -- not previously pushed to canonical origin"
