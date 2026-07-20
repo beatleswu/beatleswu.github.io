@@ -2,6 +2,7 @@ import pathlib
 import subprocess
 import textwrap
 import os
+import json
 
 import pytest
 
@@ -92,7 +93,26 @@ def render_exact_w29_grant():
         "-OperationDirectory /operations/w29 -OperationId w29-c866f611-20260720T055453Z-c001bcd0 "
         "-SnapshotFileSha256 snapshot-file -PreviewFileSha256 preview-file "
         "-ManifestFileSha256 manifest-file -CanonicalSnapshotSha256 canonical-snapshot "
-        "-CanonicalPreviewSha256 canonical-preview"
+        "-CanonicalPreviewSha256 canonical-preview -WrapperSourceRevision "
+        "b019315e5afec532a2e352737bc678b32c62775e"
+    )
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
+def render_operator_evidence(operation_directory, stage="invocation_started", status="started"):
+    command = (
+        f"Import-Module '{ROOT / 'scripts/release/ReleaseTooling.psm1'}' -Force -DisableNameChecking; "
+        f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
+        "New-CommunityRewardsGrantEvidenceRemoteScript "
+        f"-OperationDirectory '{operation_directory}' "
+        "-OperationId w29-c866f611-20260720T055453Z-c001bcd0 "
+        f"-Stage {stage} -Status {status} -LaunchCount 0 "
+        "-WrapperSourceRevision b019315e5afec532a2e352737bc678b32c62775e"
     )
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
@@ -457,9 +477,9 @@ def test_runbook_separates_configured_override_effective_and_owner_gates():
 
 def test_exact_w29_grant_captures_child_stdout_in_remote_host_shell():
     script = render_exact_w29_grant()
-    assert 'GRANT_OUTPUT="$(docker exec "$SCHEDULER" python ' in script
-    assert 'test -n "$GRANT_OUTPUT"' in script
-    assert "unset GRANT_OUTPUT" in script
+    assert '>"$CHILD_STDOUT_FILE" 2>"$CHILD_STDERR_FILE" &' in script
+    assert 'wait "$CHILD_PID"' in script
+    assert 'test -s "$CHILD_STDOUT_FILE"' in script
     assert ' >"$CONTAINER_OPERATION_DIRECTORY/' not in script
     assert "docker cp" not in script
     assert "recipient-level command output" in script
@@ -485,12 +505,12 @@ def test_exact_w29_capture_contract_launches_real_synthetic_child(tmp_path):
     sanitized = {"result": persisted["result"], "period_key": persisted["period_key"], "claims": 21}
     assert sanitized == {"result": "committed", "period_key": "2026-W29", "claims": 21}
     assert "recipient-sentinel" not in __import__("json").dumps(sanitized)
-    assert 'GRANT_OUTPUT="$(docker exec' in render_exact_w29_grant()
+    assert 'LAUNCH_COUNT=1' in render_exact_w29_grant()
 
 
 def test_exact_w29_grant_validates_before_child_launch_and_persists_atomically():
     script = render_exact_w29_grant()
-    launch = script.index('GRANT_OUTPUT="$(docker exec')
+    launch = script.index('docker exec "$SCHEDULER" python tools/community_leaderboard_rewards_manual.py')
     for gate in (
         "COMMUNITY_LEADERBOARD_REWARDS_ENABLED",
         "EXPECTED_IMAGE_TAG",
@@ -506,6 +526,93 @@ def test_exact_w29_grant_validates_before_child_launch_and_persists_atomically()
     atomic_move = script.index('sudo -n mv "$RESULT_TEMP_FILE" "$RESULT_FILE"')
     assert launch < result_check < atomic_move
     assert "result_persisted=true" in script[atomic_move:]
+
+
+def test_exact_w29_grant_has_append_safe_sanitized_stage_evidence():
+    script = render_exact_w29_grant()
+    stages = (
+        "remote_preflight_started", "remote_preflight_passed", "child_command_prepared",
+        "child_launch_started", "child_process_created", "child_exit_received",
+        "result_read_started", "result_parsed", "result_validated", "result_persisted",
+        "cleanup_started", "cleanup_completed",
+    )
+    for stage in stages:
+        assert stage in script
+    assert "os.O_APPEND" in script and "os.fsync(fd)" in script
+    assert "recipient" not in script[script.index("allowed_stages"):script.index("__COMMUNITY_W29_EVIDENCE__", script.index("allowed_stages"))]
+    assert "LAUNCH_COUNT=0" in script
+    assert script.count("LAUNCH_COUNT=1") == 1
+    assert script.count('docker exec "$SCHEDULER" python tools/community_leaderboard_rewards_manual.py') == 1
+
+
+def test_exact_w29_wrapper_records_operator_and_remote_exit_stages():
+    wrapper = source(GRANT)
+    for stage in (
+        "invocation_started", "local_validation_passed", "release_lock_acquired",
+        "release_lock_released",
+    ):
+        assert stage in wrapper
+    assert "WrapperSourceRevision $wrapperSourceRevision" in wrapper
+    assert "$grantRemoteExitCode = [int]$result.exit_code" in wrapper
+    assert "grant-execution-evidence.jsonl" in source(MODULE)
+
+
+def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_fields(tmp_path):
+    git_sh = pathlib.Path(r"C:\Program Files\Git\bin\sh.exe")
+    if not git_sh.exists():
+        pytest.skip("Git sh is unavailable")
+    operation = tmp_path / "operation"
+    operation.mkdir()
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    sudo = fake_bin / "sudo"
+    sudo.write_text('#!/bin/sh\nif [ "$1" = -n ]; then shift; fi\nexec "$@"\n', encoding="utf-8")
+    python3 = fake_bin / "python3"
+    python3.write_text(
+        f'#!/bin/sh\nexec "$(cygpath -u \'{pathlib.Path(os.sys.executable).as_posix()}\')" "$@"\n',
+        encoding="utf-8",
+    )
+    subprocess.run(
+        [str(git_sh), "-c", f"chmod 700 '{sudo.as_posix()}' '{python3.as_posix()}'"],
+        check=True,
+    )
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
+    for stage, status in (("invocation_started", "started"), ("local_validation_passed", "passed")):
+        generated = render_operator_evidence(operation.as_posix(), stage, status)
+        result = subprocess.run(
+            [str(git_sh)], input=generated, cwd=ROOT, env=env,
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+        assert result.returncode == 0, result.stderr
+    records = [json.loads(line) for line in (operation / "grant-execution-evidence.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [record["stage"] for record in records] == ["invocation_started", "local_validation_passed"]
+    assert all(record["launch_count"] == 0 for record in records)
+    allowed = {
+        "operation_id", "utc_timestamp", "stage", "status", "launch_count",
+        "remote_shell_exit_code", "child_exit_code", "failure_category",
+        "wrapper_source_revision",
+    }
+    assert all(set(record) == allowed for record in records)
+    serialized = json.dumps(records)
+    assert "recipient" not in serialized and "DATABASE_URL" not in serialized
+
+
+@pytest.mark.parametrize(
+    "failure_marker",
+    [
+        "remote_preflight_started", "child_command_prepared", "child_launch_started",
+        "child_process_created", "child_exit_received", "result_read_started",
+        "result_parsed", "result_validated", "result_persisted", "cleanup_started",
+    ],
+)
+def test_exact_w29_failure_stages_are_durable_and_fail_closed(failure_marker):
+    script = render_exact_w29_grant()
+    assert failure_marker in script
+    assert 'record_stage "$CURRENT_STAGE" failed' in script
+    assert "grant-execution-evidence.jsonl" in script
+    assert "set -x" not in script
+    assert "DATABASE_URL" not in script
 
 
 def test_exact_w29_grant_is_bound_to_authorized_operation_and_totals():

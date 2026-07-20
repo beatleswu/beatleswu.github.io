@@ -20,16 +20,50 @@ if (-not $Execute) { throw 'Exact W29 grant requires -Execute.' }
 Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_GRANT_W29'
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
 $remoteOperationDirectory = "/opt/go-odyssey/reward-operations/$OperationId"
+$wrapperSourceRevision = (& git -C (Resolve-RepoPath '.') rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $wrapperSourceRevision -notmatch '^[0-9a-f]{40}$') {
+    throw 'Unable to resolve the exact wrapper source revision.'
+}
 $releaseOperationId = "community-w29-grant-$([Guid]::NewGuid().ToString('N'))"
 $lockPath = "$($layout.compose_directory.TrimEnd('/'))/.release-operation.lock"
 $lockHeld = $false
+$grantRemoteExitCode = $null
+
+function Write-GrantStageEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Stage,
+        [Parameter(Mandatory = $true)][string]$Status,
+        [int]$LaunchCount = 0,
+        [Nullable[int]]$RemoteShellExitCode,
+        [string]$FailureCategory = ''
+    )
+    $script = New-CommunityRewardsGrantEvidenceRemoteScript `
+        -OperationDirectory $remoteOperationDirectory `
+        -OperationId $OperationId `
+        -Stage $Stage `
+        -Status $Status `
+        -LaunchCount $LaunchCount `
+        -WrapperSourceRevision $wrapperSourceRevision `
+        -RemoteShellExitCode $RemoteShellExitCode `
+        -FailureCategory $FailureCategory
+    $evidenceResult = Invoke-RemoteShellCommand `
+        -SshAlias $layout.ssh_alias `
+        -Name "community_w29_evidence_$Stage" `
+        -ScriptText $script
+    if ($evidenceResult.exit_code -ne 0) {
+        throw "Exact W29 grant evidence persistence failed closed at $Stage."
+    }
+}
 
 try {
+    Write-GrantStageEvidence -Stage invocation_started -Status started
+    Write-GrantStageEvidence -Stage local_validation_passed -Status passed
     $null = Enter-RemoteReleaseOperationLock `
         -SshAlias $layout.ssh_alias `
         -LockPath $lockPath `
         -OperationId $releaseOperationId
     $lockHeld = $true
+    Write-GrantStageEvidence -Stage release_lock_acquired -Status completed
     $zeroStateScript = New-CommunityRewardsZeroStateProbeRemoteScript `
         -SchedulerContainer $layout.scheduler_service_name
     $zeroStateResult = Invoke-RemoteShellCommand `
@@ -50,11 +84,13 @@ try {
         -PreviewFileSha256 '8cefc8925b5b142c0e58f10ce04cd2d723102e9c554e1f2332240d63080ab0fa' `
         -ManifestFileSha256 '6d42e5bc7ac7c0494df3492fd480201a20b523ee2884b410edbdd2fc919b752d' `
         -CanonicalSnapshotSha256 $CanonicalSnapshotSha256 `
-        -CanonicalPreviewSha256 $CanonicalPreviewSha256
+        -CanonicalPreviewSha256 $CanonicalPreviewSha256 `
+        -WrapperSourceRevision $wrapperSourceRevision
     $result = Invoke-RemoteShellCommand `
         -SshAlias $layout.ssh_alias `
         -Name 'community_w29_exact_grant' `
         -ScriptText $remoteScript
+    $grantRemoteExitCode = [int]$result.exit_code
     if ($result.exit_code -ne 0) {
         throw 'Exact W29 grant failed closed; recipient-level remote output withheld.'
     }
@@ -79,5 +115,10 @@ finally {
             -SshAlias $layout.ssh_alias `
             -LockPath $lockPath `
             -OperationId $releaseOperationId
+        $lockHeld = $false
+        Write-GrantStageEvidence `
+            -Stage release_lock_released `
+            -Status completed `
+            -RemoteShellExitCode $grantRemoteExitCode
     }
 }
