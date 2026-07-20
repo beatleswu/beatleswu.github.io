@@ -54,11 +54,39 @@ def pre_stop_probe_source():
     return script[start:end].strip()
 
 
-def run_pre_stop_probe(mode, *, nonzero_period="", lock="0", malformed="0"):
+def post_deploy_probe_source():
+    command = (
+        f"Import-Module '{ROOT / 'scripts/release/ReleaseTooling.psm1'}' -Force -DisableNameChecking; "
+        f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
+        "New-CommunityRewardsZeroStateProbeRemoteScript -SchedulerContainer scheduler"
+    )
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    opening = "<<'__COMMUNITY_ZERO_STATE__'\n"
+    closing = "\n__COMMUNITY_ZERO_STATE__"
+    start = result.stdout.index(opening) + len(opening)
+    end = result.stdout.index(closing, start)
+    return result.stdout[start:end].strip()
+
+
+def resume_probe_source():
+    script = render("resume")
+    opening = "<<'__COMMUNITY_SETTLED_STATE__'\n"
+    closing = "\n__COMMUNITY_SETTLED_STATE__"
+    start = script.index(opening) + len(opening)
+    end = script.index(closing, start)
+    return script[start:end].strip()
+
+
+def run_generated_probe(probe_source, mode, *, probe_kind="zero", nonzero_period="", lock="0", malformed="0", failure_field=""):
     prelude = textwrap.dedent(
         r'''
         import builtins, os, sys, types
         mode = os.environ['FAKE_DRIVER_MODE']
+        probe_kind = os.environ['FAKE_PROBE_KIND']
         real_import = builtins.__import__
 
         class Cursor:
@@ -70,6 +98,15 @@ def run_pre_stop_probe(mode, *, nonzero_period="", lock="0", malformed="0"):
             def fetchone(self):
                 if os.environ['FAKE_MALFORMED'] == '1': return ()
                 if 'pg_locks' in self.sql: return (int(os.environ['FAKE_LOCK']),)
+                if probe_kind == 'resume':
+                    field = os.environ['FAKE_FAILURE_FIELD']
+                    if "status <> 'granted'" in self.sql: return (int(field == 'unsettled'),)
+                    if "status = 'pending'" in self.sql: return (int(field == 'pending'),)
+                    if "status = 'failed'" in self.sql: return (int(field == 'failed'),)
+                    if 'GROUP BY user_id' in self.sql: return (int(field == 'duplicate_claims'),)
+                    if 'GROUP BY l.claim_id' in self.sql: return (int(field == 'duplicate_components'),)
+                    if '2026-W30' in self.args: return (int(field == 'w30'),)
+                    if '2026-W29' in self.args: return (21,)
                 if os.environ['FAKE_NONZERO_PERIOD'] and os.environ['FAKE_NONZERO_PERIOD'] in self.args:
                     return (1,)
                 return (0,)
@@ -109,9 +146,11 @@ def run_pre_stop_probe(mode, *, nonzero_period="", lock="0", malformed="0"):
         "FAKE_NONZERO_PERIOD": nonzero_period,
         "FAKE_LOCK": lock,
         "FAKE_MALFORMED": malformed,
+        "FAKE_PROBE_KIND": probe_kind,
+        "FAKE_FAILURE_FIELD": failure_field,
     })
     return subprocess.run(
-        ["python", "-c", prelude + "\n" + pre_stop_probe_source()],
+        ["python", "-c", prelude + "\n" + probe_source],
         cwd=ROOT,
         env=env,
         capture_output=True,
@@ -119,6 +158,10 @@ def run_pre_stop_probe(mode, *, nonzero_period="", lock="0", malformed="0"):
         timeout=30,
         check=False,
     )
+
+
+def run_pre_stop_probe(mode, **kwargs):
+    return run_generated_probe(pre_stop_probe_source(), mode, **kwargs)
 
 
 def test_changed_powershell_files_parse():
@@ -184,6 +227,97 @@ def test_pre_stop_probe_nonzero_state_and_lock_are_fail_closed(mode, period, loc
 def test_pre_stop_probe_malformed_results_are_fail_closed(mode):
     result = run_pre_stop_probe(mode, malformed="1")
     assert result.returncode != 0
+
+
+def test_all_three_probe_paths_share_one_driver_compatibility_contract():
+    module = source(MODULE)
+    assert module.count("except ModuleNotFoundError as exc:") == 1
+    for probe in (pre_stop_probe_source(), post_deploy_probe_source(), resume_probe_source()):
+        assert "import psycopg" in probe
+        assert "import psycopg2 as psycopg" in probe
+        assert "if exc.name != 'psycopg':" in probe
+
+
+@pytest.mark.parametrize("probe_source", [post_deploy_probe_source, resume_probe_source])
+def test_remaining_probes_produce_identical_results_for_v3_and_v2(probe_source):
+    kind = "resume" if probe_source is resume_probe_source else "zero"
+    v3 = run_generated_probe(probe_source(), "v3", probe_kind=kind)
+    v2 = run_generated_probe(probe_source(), "v2", probe_kind=kind)
+    assert v3.returncode == 0, v3.stderr
+    assert v2.returncode == 0, v2.stderr
+    assert v3.stdout == v2.stdout
+    assert "DRIVER=psycopg" in v3.stderr
+    assert "DRIVER=psycopg2" in v2.stderr
+
+
+@pytest.mark.parametrize("probe_source", [post_deploy_probe_source, resume_probe_source])
+@pytest.mark.parametrize("mode", ["none", "unexpected_import_failure", "nested_missing"])
+def test_remaining_probes_import_failures_are_fail_closed(probe_source, mode):
+    kind = "resume" if probe_source is resume_probe_source else "zero"
+    result = run_generated_probe(probe_source(), mode, probe_kind=kind)
+    assert result.returncode != 0
+    assert "DRIVER=" not in result.stderr
+
+
+@pytest.mark.parametrize("probe_source", [post_deploy_probe_source, resume_probe_source])
+@pytest.mark.parametrize("mode", ["connection_failure", "connection_failure_v2", "sql_failure", "sql_failure_v2"])
+def test_remaining_probes_connection_query_failures_are_redacted(probe_source, mode):
+    kind = "resume" if probe_source is resume_probe_source else "zero"
+    result = run_generated_probe(probe_source(), mode, probe_kind=kind)
+    assert result.returncode != 0
+    assert "protected-password" not in result.stderr
+    assert "protected-user" not in result.stderr
+    assert "postgresql://" not in result.stderr
+
+
+@pytest.mark.parametrize("probe_source", [post_deploy_probe_source, resume_probe_source])
+@pytest.mark.parametrize("mode", ["v3", "v2"])
+def test_remaining_probes_malformed_results_are_fail_closed(probe_source, mode):
+    kind = "resume" if probe_source is resume_probe_source else "zero"
+    result = run_generated_probe(probe_source(), mode, probe_kind=kind, malformed="1")
+    assert result.returncode != 0
+
+
+@pytest.mark.parametrize("mode", ["v3", "v2"])
+def test_post_deploy_probe_rejects_w29_w30_and_lock(mode):
+    for period, lock in (("2026-W29", "0"), ("2026-W30", "0"), ("", "1")):
+        result = run_generated_probe(
+            post_deploy_probe_source(), mode, nonzero_period=period, lock=lock
+        )
+        assert result.returncode == 33
+
+
+@pytest.mark.parametrize("mode", ["v3", "v2"])
+@pytest.mark.parametrize(
+    "failure_field",
+    ["unsettled", "pending", "failed", "duplicate_claims", "duplicate_components", "w30"],
+)
+def test_resume_probe_rejects_unsettled_duplicate_and_w30_state(mode, failure_field):
+    result = run_generated_probe(
+        resume_probe_source(), mode, probe_kind="resume", failure_field=failure_field
+    )
+    assert result.returncode == 41
+
+
+@pytest.mark.parametrize("mode", ["v3", "v2"])
+def test_resume_probe_rejects_active_w29_lock(mode):
+    result = run_generated_probe(
+        resume_probe_source(), mode, probe_kind="resume", lock="1"
+    )
+    assert result.returncode == 41
+
+
+def test_resume_recreates_both_workers_only_after_settled_probe_and_verifies_true():
+    script = render("resume")
+    settled = script.index("__COMMUNITY_SETTLED_STATE__")
+    settled_end = script.index("__COMMUNITY_SETTLED_STATE__", settled + 1)
+    recreate = script.index('--force-recreate "$APP_SERVICE" "$SCHEDULER_SERVICE"')
+    app_true = script.index('docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true')
+    scheduler_true = script.index('docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true')
+    assert settled < settled_end < recreate < app_true < scheduler_true
+    assert "w29_duplicate_claims" in script
+    assert "w29_duplicate_components" in script
+    assert "w29_lock" in script
 
 
 def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation():

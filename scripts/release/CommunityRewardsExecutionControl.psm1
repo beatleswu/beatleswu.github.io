@@ -6,6 +6,18 @@ function Get-CommunityRewardsFrozenComposePrefix {
     return "COMMUNITY_LEADERBOARD_REWARDS_ENABLED='false'"
 }
 
+function Get-CommunityDatabaseDriverPreamble {
+    return @'
+try:
+    import psycopg
+except ModuleNotFoundError as exc:
+    if exc.name != 'psycopg':
+        raise
+    import psycopg2 as psycopg
+conn=psycopg.connect(os.environ['DATABASE_URL'])
+'@
+}
+
 function New-CommunityRewardsZeroStateProbeRemoteScript {
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$SchedulerContainer)
@@ -13,12 +25,12 @@ function New-CommunityRewardsZeroStateProbeRemoteScript {
         throw 'Scheduler container identity must be a nonblank single-line value.'
     }
     $scheduler = Quote-PosixShellArgument $SchedulerContainer
+    $driverPreamble = Get-CommunityDatabaseDriverPreamble
     return @"
 set -eu
 docker exec -i $scheduler python - <<'__COMMUNITY_ZERO_STATE__'
 import json, os, zlib
-import psycopg
-conn=psycopg.connect(os.environ['DATABASE_URL'])
+$driverPreamble
 try:
     with conn.cursor() as cur:
         def one(sql, args=()): cur.execute(sql,args); return int(cur.fetchone()[0])
@@ -100,13 +112,7 @@ __COMMUNITY_CONFIGURED_VALUE__
 test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true
 docker exec -i "$SCHEDULER" python - <<'__COMMUNITY_ZERO_STATE__'
 import json, os, zlib
-try:
-    import psycopg
-except ModuleNotFoundError as exc:
-    if exc.name != 'psycopg':
-        raise
-    import psycopg2 as psycopg
-conn=psycopg.connect(os.environ['DATABASE_URL'])
+__DATABASE_DRIVER_PREAMBLE__
 try:
     with conn.cursor() as cur:
         def one(sql, args=()):
@@ -174,6 +180,7 @@ printf '%s\n' '{"operation":"freeze","effective":"false","old_image_preserved":t
         '__SCHEDULER_SERVICE__' = Quote-PosixShellArgument $SchedulerService
         '__APP_SERVICE__' = Quote-PosixShellArgument $AppService
         '__COMPOSE_PREFIX__' = $ComposeEnvironmentPrefix
+        '__DATABASE_DRIVER_PREAMBLE__' = Get-CommunityDatabaseDriverPreamble
     }
     foreach ($item in $replacements.GetEnumerator()) { $template = $template.Replace($item.Key, $item.Value) }
     return $template
@@ -201,25 +208,41 @@ function New-CommunityRewardsResumeRemoteScript {
     $resumeMarker = 'test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true'
     $resume = $freeze.Substring(0, $freeze.IndexOf($resumeMarker))
     $resume += @'
+test "$(docker inspect "$APP" --format '{{.State.Status}}')" = running
+test "$(docker inspect "$APP" --format '{{.Image}}')" = "$EXPECTED_APP_IMAGE_ID"
+test "$(docker inspect "$APP" --format '{{.Config.Image}}')" = "$EXPECTED_APP_IMAGE_TAG"
+test "$(docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false
 test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false
 docker exec -i "$SCHEDULER" python - <<'__COMMUNITY_SETTLED_STATE__'
-import json, os
-import psycopg
-conn=psycopg.connect(os.environ['DATABASE_URL'])
+import json, os, zlib
+__DATABASE_DRIVER_PREAMBLE__
 try:
     with conn.cursor() as cur:
         def one(sql,args=()): cur.execute(sql,args); return int(cur.fetchone()[0])
         claims=one('SELECT count(*) FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s',('weekly','2026-W29'))
         unsettled=one("SELECT count(*) FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s AND status <> 'granted'",('weekly','2026-W29'))
+        pending=one("SELECT count(*) FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s AND status = 'pending'",('weekly','2026-W29'))
+        failed=one("SELECT count(*) FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s AND status = 'failed'",('weekly','2026-W29'))
+        duplicate_claims=one("SELECT COALESCE(SUM(n-1),0) FROM (SELECT COUNT(*) n FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s GROUP BY user_id HAVING COUNT(*) > 1) d",('weekly','2026-W29'))
+        duplicate_components=one("SELECT COALESCE(SUM(n-1),0) FROM (SELECT COUNT(*) n FROM leaderboard_reward_component_log l JOIN leaderboard_reward_claims c ON c.id=l.claim_id WHERE c.board_type=%s AND c.period_key=%s GROUP BY l.claim_id,l.component,l.reward_key HAVING COUNT(*) > 1) d",('weekly','2026-W29'))
         w30_claims=one('SELECT count(*) FROM leaderboard_reward_claims WHERE board_type=%s AND period_key=%s',('weekly','2026-W30'))
         w30_snapshots=one('SELECT count(*) FROM leaderboard_snapshots WHERE board_type=%s AND period_key=%s',('weekly','2026-W30'))
         w30_components=one('SELECT count(*) FROM leaderboard_reward_component_log l JOIN leaderboard_reward_claims c ON c.id=l.claim_id WHERE c.board_type=%s AND c.period_key=%s',('weekly','2026-W30'))
-    if claims <= 0 or unsettled or w30_claims or w30_snapshots or w30_components: raise SystemExit(41)
-    print(json.dumps({'w29_claims':claims,'w29_unsettled':unsettled,'w30_claims':w30_claims,'w30_snapshots':w30_snapshots,'w30_components':w30_components},sort_keys=True))
+        ns=zlib.crc32(b'community_leaderboard_rewards') & 0x7fffffff
+        scope=zlib.crc32(b'weekly:2026-W29') & 0x7fffffff
+        w29_lock=one("SELECT count(*) FROM pg_locks WHERE locktype='advisory' AND granted AND classid=%s AND objid=%s",(ns,scope))
+    if claims <= 0 or unsettled or pending or failed or duplicate_claims or duplicate_components or w29_lock or w30_claims or w30_snapshots or w30_components: raise SystemExit(41)
+    print(json.dumps({'w29_claims':claims,'w29_unsettled':unsettled,'w29_pending':pending,'w29_failed':failed,'w29_duplicate_claims':duplicate_claims,'w29_duplicate_components':duplicate_components,'w29_lock':w29_lock,'w30_claims':w30_claims,'w30_snapshots':w30_snapshots,'w30_components':w30_components},sort_keys=True))
 finally: conn.close()
 __COMMUNITY_SETTLED_STATE__
 cd "$COMPOSE_DIRECTORY"
-__COMPOSE_PREFIX__ docker compose -p "$COMPOSE_PROJECT" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build --no-deps --force-recreate "$SCHEDULER_SERVICE"
+__COMPOSE_PREFIX__ docker compose -p "$COMPOSE_PROJECT" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build --no-deps --force-recreate "$APP_SERVICE" "$SCHEDULER_SERVICE"
+test "$(docker inspect "$APP" --format '{{.State.Status}}')" = running
+test "$(docker inspect "$APP" --format '{{.State.Health.Status}}')" = healthy
+test "$(docker inspect "$APP" --format '{{.Image}}')" = "$EXPECTED_APP_IMAGE_ID"
+test "$(docker inspect "$APP" --format '{{.Config.Image}}')" = "$EXPECTED_APP_IMAGE_TAG"
+test "$(docker inspect "$APP" --format '{{.RestartCount}}')" = 0
+test "$(docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true
 test "$(docker inspect "$SCHEDULER" --format '{{.State.Status}}')" = running
 test "$(docker inspect "$SCHEDULER" --format '{{.Image}}')" = "$EXPECTED_IMAGE_ID"
 test "$(docker inspect "$SCHEDULER" --format '{{.Config.Image}}')" = "$EXPECTED_IMAGE_TAG"
@@ -228,6 +251,7 @@ test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)
 printf '%s\n' '{"operation":"resume","effective":"true","image_preserved":true,"w29_settled":true}'
 '@
     $resume = $resume.Replace('__COMPOSE_PREFIX__', $ComposeEnvironmentPrefix)
+    $resume = $resume.Replace('__DATABASE_DRIVER_PREAMBLE__', (Get-CommunityDatabaseDriverPreamble))
     return $resume
 }
 
