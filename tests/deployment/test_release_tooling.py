@@ -850,7 +850,7 @@ def test_deploy_script_orders_release_mutations_safely():
     content = read_text(REPO_ROOT / "scripts" / "release" / "deploy-release-image.ps1")
     assert_tokens_in_order(
         content,
-        "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'",
+        "Assert-OwnerGate -Provided $OwnerGate -Expected $requiredDeployGate",
         "Assert-ProtectedHostEnvCredentialAndTcpAuthentication -SshAlias $layout.ssh_alias -EnvPath $layout.production_env_path -PostgresContainerName $layout.postgres_service_name",
         "$appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }",
         "$composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag",

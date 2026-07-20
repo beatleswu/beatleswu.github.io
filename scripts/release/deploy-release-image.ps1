@@ -8,12 +8,16 @@ param(
     [string]$ExpectedArchiveSha256,
     [string]$ExpectedPlatform = 'linux/arm64',
     [string]$LayoutFile = 'deploy\release-layout.example.json',
+    [switch]$FreezeCommunityLeaderboardRewards,
+    [string]$ExpectedCurrentAppImageId,
+    [string]$ExpectedCurrentSchedulerImageId,
     [switch]$Execute,
     [string]$OwnerGate
 )
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ReleaseTooling.psm1') -Force -DisableNameChecking
+Import-Module (Join-Path $PSScriptRoot 'CommunityRewardsExecutionControl.psm1') -Force -DisableNameChecking
 
 $repoRoot = Get-RepoRoot
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
@@ -82,7 +86,8 @@ function Get-RemoteComposeEnvironmentPrefix {
     #>
     param(
         [Parameter(Mandatory = $true)][string]$ImageTag,
-        [Parameter(Mandatory = $true)][string]$QuestionsVolumeName
+        [Parameter(Mandatory = $true)][string]$QuestionsVolumeName,
+        [switch]$CommunityRewardsFrozen
     )
     $pairs = [ordered]@{
         GO_ODYSSEY_IMAGE = $ImageTag
@@ -92,9 +97,13 @@ function Get-RemoteComposeEnvironmentPrefix {
         ASSET_CONTAINER_MOUNT_DESTINATION = $layout.asset_container_mount_destination
         SHADOW_EVENT_LOG_PATH = $layout.shadow_event_log_path
     }
-    return (($pairs.GetEnumerator() | ForEach-Object {
+    $prefix = (($pairs.GetEnumerator() | ForEach-Object {
         "{0}={1}" -f $_.Key, (Quote-PosixShellArgument ([string]$_.Value))
     }) -join ' ')
+    if ($CommunityRewardsFrozen) {
+        $prefix = "$(Get-CommunityRewardsFrozenComposePrefix) $prefix"
+    }
+    return $prefix
 }
 
 function Get-RemoteQuestionsVolumeName {
@@ -1246,9 +1255,11 @@ if (-not $Execute) {
         release_manifest = $manifest
         compose_project = $layout.compose_project
         target_services = @($layout.app_service_name, $layout.scheduler_service_name)
-        required_owner_gate = 'GO_DEPLOY'
+        community_rewards_control = $(if ($FreezeCommunityLeaderboardRewards) { 'freeze_before_deploy' } else { 'unchanged' })
+        required_owner_gate = $(if ($FreezeCommunityLeaderboardRewards) { 'GO_DEPLOY_CONTROLLED_W29' } else { 'GO_DEPLOY' })
         deployment_plan = @(
             'verify manifest and archive checksum',
+            $(if ($FreezeCommunityLeaderboardRewards) { 'verify W29/W30 zero-state and recreate the old scheduler on its exact image with Community automatic execution forced false' } else { 'leave Community automatic execution behavior unchanged' }),
             'stage compose file and nginx config on the production host',
             'transfer image archive and deployment record',
             'verify remote archive checksum',
@@ -1269,7 +1280,12 @@ if (-not $Execute) {
     return
 }
 
-Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'
+$requiredDeployGate = if ($FreezeCommunityLeaderboardRewards) { 'GO_DEPLOY_CONTROLLED_W29' } else { 'GO_DEPLOY' }
+Assert-OwnerGate -Provided $OwnerGate -Expected $requiredDeployGate
+if ($FreezeCommunityLeaderboardRewards -and
+    ([string]::IsNullOrWhiteSpace($ExpectedCurrentAppImageId) -or [string]::IsNullOrWhiteSpace($ExpectedCurrentSchedulerImageId))) {
+    throw 'Controlled W29 deployment requires exact current app and scheduler image IDs.'
+}
 if ($manifest.release_git_sha -ne $ExpectedGitSha) {
     throw "Release manifest SHA does not match expected Git SHA."
 }
@@ -1394,7 +1410,42 @@ try {
     $appComposeService = if ([string]::IsNullOrWhiteSpace($appBefore.compose_service)) { $layout.app_service_name } else { $appBefore.compose_service }
     $schedulerComposeService = if ([string]::IsNullOrWhiteSpace($schedulerBefore.compose_service)) { $layout.scheduler_service_name } else { $schedulerBefore.compose_service }
     $nginxComposeService = if ([string]::IsNullOrWhiteSpace($nginxBefore.compose_service)) { $layout.nginx_service_name } else { $nginxBefore.compose_service }
-    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -QuestionsVolumeName $questionsVolumeName
+    $currentComposeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $schedulerBefore.image_tag -QuestionsVolumeName $questionsVolumeName
+    if ($FreezeCommunityLeaderboardRewards) {
+        if ($appBefore.image_id -ne $ExpectedCurrentAppImageId) {
+            throw 'Current app image ID does not match the controlled deployment authorization.'
+        }
+        if ($schedulerBefore.image_id -ne $ExpectedCurrentSchedulerImageId) {
+            throw 'Current scheduler image ID does not match the controlled deployment authorization.'
+        }
+        if ($appBefore.image_id -ne $schedulerBefore.image_id -or $appBefore.image_tag -ne $schedulerBefore.image_tag) {
+            throw 'Controlled W29 freeze requires app and scheduler to share one exact current image.'
+        }
+        $freezeScript = New-CommunityRewardsFreezeRemoteScript `
+            -SchedulerContainer $layout.scheduler_service_name `
+            -AppContainer $layout.app_service_name `
+            -PostgresContainer $layout.postgres_service_name `
+            -ExpectedAppImageId $appBefore.image_id `
+            -ExpectedAppImageTag $appBefore.image_tag `
+            -ExpectedSchedulerImageId $schedulerBefore.image_id `
+            -ExpectedSchedulerImageTag $schedulerBefore.image_tag `
+            -ComposeDirectory $layout.compose_directory `
+            -ComposeProject $layout.compose_project `
+            -ComposeFile $remoteComposePath `
+            -EnvFile $layout.production_env_path `
+            -SchedulerService $schedulerComposeService `
+            -AppService $appComposeService `
+            -ComposeEnvironmentPrefix $currentComposeEnvPrefix
+        $freezeResult = Invoke-RemoteCommandResult -Name 'community_rewards_freeze' -ScriptText $freezeScript
+        if ($freezeResult.exit_code -ne 0) {
+            throw 'Community rewards freeze failed closed; sanitized remote output withheld.'
+        }
+        $schedulerBefore = Get-RemoteContainerSnapshot -ContainerName $layout.scheduler_service_name
+        if ($schedulerBefore.image_id -ne $ExpectedCurrentSchedulerImageId -or $schedulerBefore.state -ne 'running') {
+            throw 'Community rewards freeze did not preserve the authorized old scheduler image in running state.'
+        }
+    }
+    $composeEnvPrefix = Get-RemoteComposeEnvironmentPrefix -ImageTag $manifest.image_tag -QuestionsVolumeName $questionsVolumeName -CommunityRewardsFrozen:$FreezeCommunityLeaderboardRewards
     $composeProjectArg = "-p $(Quote-PosixShellArgument $layout.compose_project)"
     $composeEnvFileArg = "--env-file $(Quote-PosixShellArgument $layout.production_env_path)"
     $composeServices = Invoke-RemoteText "cd $(Quote-PosixShellArgument $layout.compose_directory) && $composeEnvPrefix docker compose $composeProjectArg $composeEnvFileArg -f docker-compose.release.yml -f $(Quote-PosixShellArgument $remoteHealthcheckOverridePath) config --services"
@@ -1519,6 +1570,12 @@ try {
     if ($appAfter.health -ne 'healthy') {
         throw "App container is not healthy after the image switch."
     }
+    if ($FreezeCommunityLeaderboardRewards) {
+        $appCommunityFlag = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED").Trim()
+        if ($appCommunityFlag -ne 'false') {
+            throw 'Controlled W29 deployment app did not retain the frozen Community flag.'
+        }
+    }
 
     $appReadinessReport = Get-AppReadinessGateReport -ContainerName $layout.app_service_name
     if ($appReadinessReport.readiness_mode -eq 'helper' -and $appReadinessReport.readiness.ok -ne $true) {
@@ -1546,6 +1603,17 @@ try {
     }
     if ($appAfter.image_id -ne $schedulerAfter.image_id) {
         throw "App and scheduler image IDs do not match after rollout."
+    }
+    if ($FreezeCommunityLeaderboardRewards) {
+        $schedulerCommunityFlag = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.scheduler_service_name) printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED").Trim()
+        if ($schedulerCommunityFlag -ne 'false') {
+            throw 'Controlled W29 deployment scheduler did not retain the frozen Community flag.'
+        }
+        $postDeployZeroStateScript = New-CommunityRewardsZeroStateProbeRemoteScript -SchedulerContainer $layout.scheduler_service_name
+        $postDeployZeroStateResult = Invoke-RemoteCommandResult -Name 'community_rewards_post_deploy_zero_state' -ScriptText $postDeployZeroStateScript
+        if ($postDeployZeroStateResult.exit_code -ne 0) {
+            throw 'Controlled W29 deployment changed W29/W30 zero-state or observed a reward lock; sanitized remote output withheld.'
+        }
     }
 
     $null = Invoke-RemoteText "docker restart $(Quote-PosixShellArgument $layout.nginx_service_name)"
@@ -1693,9 +1761,11 @@ catch {
             $operationLockHeld = $false
         }
         try {
+            $rollbackArguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'rollback-release.ps1'),'-RollbackManifest',$deploymentRecordPath,'-LayoutFile',$LayoutFile,'-Execute','-OwnerGate','GO_ROLLBACK','-FramedResult')
+            if ($FreezeCommunityLeaderboardRewards) { $rollbackArguments += '-FreezeCommunityLeaderboardRewards' }
             $rollbackResult = Invoke-BoundedNativeCommand `
                 -FileName 'powershell' `
-                -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'rollback-release.ps1'),'-RollbackManifest',$deploymentRecordPath,'-LayoutFile',$LayoutFile,'-Execute','-OwnerGate','GO_ROLLBACK','-FramedResult') `
+                -ArgumentList $rollbackArguments `
                 -WorkingDirectory $repoRoot `
                 -RequireWorkingDirectory `
                 -TimeoutSeconds 600 `
