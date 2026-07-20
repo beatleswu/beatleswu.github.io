@@ -1,5 +1,9 @@
 import pathlib
 import subprocess
+import textwrap
+import os
+
+import pytest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -41,6 +45,82 @@ def render(operation):
     return result.stdout
 
 
+def pre_stop_probe_source():
+    script = render("freeze")
+    opening = "<<'__COMMUNITY_ZERO_STATE__'\n"
+    closing = "\n__COMMUNITY_ZERO_STATE__"
+    start = script.index(opening) + len(opening)
+    end = script.index(closing, start)
+    return script[start:end].strip()
+
+
+def run_pre_stop_probe(mode, *, nonzero_period="", lock="0", malformed="0"):
+    prelude = textwrap.dedent(
+        r'''
+        import builtins, os, sys, types
+        mode = os.environ['FAKE_DRIVER_MODE']
+        real_import = builtins.__import__
+
+        class Cursor:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def execute(self, sql, args=()):
+                if mode.startswith('sql_failure'): raise RuntimeError('sanitized sql failure')
+                self.sql, self.args = sql, args
+            def fetchone(self):
+                if os.environ['FAKE_MALFORMED'] == '1': return ()
+                if 'pg_locks' in self.sql: return (int(os.environ['FAKE_LOCK']),)
+                if os.environ['FAKE_NONZERO_PERIOD'] and os.environ['FAKE_NONZERO_PERIOD'] in self.args:
+                    return (1,)
+                return (0,)
+
+        class Connection:
+            def cursor(self): return Cursor()
+            def close(self): pass
+
+        def module(name):
+            value = types.ModuleType(name)
+            def connect(dsn):
+                print('DRIVER=' + name, file=sys.stderr)
+                if mode.startswith('connection_failure'): raise RuntimeError('sanitized connection failure')
+                return Connection()
+            value.connect = connect
+            return value
+
+        def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == 'psycopg':
+                if mode in ('v3', 'connection_failure', 'sql_failure'): return module('psycopg')
+                if mode == 'unexpected_import_failure': raise RuntimeError('unexpected import failure')
+                if mode == 'nested_missing': raise ModuleNotFoundError("No module named 'dependency'", name='dependency')
+                raise ModuleNotFoundError("No module named 'psycopg'", name='psycopg')
+            if name == 'psycopg2':
+                if mode in ('v2', 'connection_failure_v2', 'sql_failure_v2'):
+                    return module('psycopg2')
+                raise ModuleNotFoundError("No module named 'psycopg2'", name='psycopg2')
+            return real_import(name, globals, locals, fromlist, level)
+
+        builtins.__import__ = fake_import
+        '''
+    )
+    env = os.environ.copy()
+    env.update({
+        "DATABASE_URL": "postgresql://protected-user:protected-password@db/private",
+        "FAKE_DRIVER_MODE": mode,
+        "FAKE_NONZERO_PERIOD": nonzero_period,
+        "FAKE_LOCK": lock,
+        "FAKE_MALFORMED": malformed,
+    })
+    return subprocess.run(
+        ["python", "-c", prelude + "\n" + pre_stop_probe_source()],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+
 def test_changed_powershell_files_parse():
     paths = (MODULE, DEPLOY, ROLLBACK, RESUME)
     command = ";".join(
@@ -53,6 +133,57 @@ def test_changed_powershell_files_parse():
         timeout=30,
         check=False,
     ).returncode == 0
+
+
+def test_pre_stop_probe_prefers_psycopg_v3_and_normalizes_zero_state():
+    result = run_pre_stop_probe("v3")
+    assert result.returncode == 0, result.stderr
+    assert "DRIVER=psycopg" in result.stderr
+    assert "DRIVER=psycopg2" not in result.stderr
+    assert '"w29_lock": 0' in result.stdout
+
+
+def test_pre_stop_probe_falls_back_to_psycopg2_only_when_v3_is_missing():
+    v3 = run_pre_stop_probe("v3")
+    v2 = run_pre_stop_probe("v2")
+    assert v2.returncode == 0, v2.stderr
+    assert "DRIVER=psycopg2" in v2.stderr
+    assert v2.stdout == v3.stdout
+
+
+@pytest.mark.parametrize("mode", ["none", "unexpected_import_failure", "nested_missing"])
+def test_pre_stop_probe_driver_import_failures_are_fail_closed(mode):
+    result = run_pre_stop_probe(mode)
+    assert result.returncode != 0
+    assert "DRIVER=" not in result.stderr
+    assert "docker stop" not in pre_stop_probe_source()
+
+
+@pytest.mark.parametrize(
+    "mode", ["connection_failure", "connection_failure_v2", "sql_failure", "sql_failure_v2"]
+)
+def test_pre_stop_probe_connection_and_query_failures_are_fail_closed_and_redacted(mode):
+    result = run_pre_stop_probe(mode)
+    assert result.returncode != 0
+    assert "protected-password" not in result.stderr
+    assert "protected-user" not in result.stderr
+    assert "postgresql://" not in result.stderr
+    assert "docker stop" not in pre_stop_probe_source()
+
+
+@pytest.mark.parametrize(
+    ("mode", "period", "lock"),
+    [("v3", "2026-W29", "0"), ("v2", "2026-W30", "0"), ("v3", "", "1"), ("v2", "", "1")],
+)
+def test_pre_stop_probe_nonzero_state_and_lock_are_fail_closed(mode, period, lock):
+    result = run_pre_stop_probe(mode, nonzero_period=period, lock=lock)
+    assert result.returncode == 33
+
+
+@pytest.mark.parametrize("mode", ["v3", "v2"])
+def test_pre_stop_probe_malformed_results_are_fail_closed(mode):
+    result = run_pre_stop_probe(mode, malformed="1")
+    assert result.returncode != 0
 
 
 def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation():
