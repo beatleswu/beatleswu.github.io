@@ -785,7 +785,7 @@ def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_f
         }
         function Invoke-RemoteShellCommand {
             param($SshAlias,$Name,$ScriptText)
-            Add-Event $Name
+            Add-Event ($Name + '|' + $ScriptText)
             if($Name -eq 'community_w29_exact_grant_zero_state'){
                 if($env:W29_WRAPPER_MODE -eq 'ssh_transport_failure'){throw 'sanitized transport failure'}
                 if($env:W29_WRAPPER_MODE -eq 'zero_state_nonzero'){return [pscustomobject]@{exit_code=33;stdout='';stderr='withheld'}}
@@ -821,12 +821,18 @@ def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_f
     assert result.returncode != 0
     assert event_file.exists(), result.stderr
     events = event_file.read_text(encoding="utf-8").splitlines()
-    assert "community_w29_evidence_remote_preflight_started" in events
+    assert any(item.startswith("community_w29_evidence_remote_preflight_started|") for item in events)
     assert "lock_release_called" in events
     if mode == "lock_release_failure":
-        assert events.count("community_w29_exact_grant") == 1
+        assert sum(item.startswith("community_w29_exact_grant|") for item in events) == 1
+        assert any(
+            item.startswith("community_w29_evidence_release_lock_released|")
+            and "release_lock_released:failed" in item
+            and item.endswith(":release_lock")
+            for item in events
+        )
     else:
-        assert "community_w29_exact_grant" not in events
+        assert not any(item.startswith("community_w29_exact_grant|") for item in events)
     assert "recipient" not in result.stdout.lower()
 
 

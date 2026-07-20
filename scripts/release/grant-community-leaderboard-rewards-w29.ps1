@@ -132,10 +132,27 @@ try {
 }
 finally {
     if ($lockHeld) {
-        $null = Exit-RemoteReleaseOperationLock `
-            -SshAlias $layout.ssh_alias `
-            -LockPath $lockPath `
-            -OperationId $releaseOperationId
+        try {
+            $null = Exit-RemoteReleaseOperationLock `
+                -SshAlias $layout.ssh_alias `
+                -LockPath $lockPath `
+                -OperationId $releaseOperationId
+        }
+        catch {
+            try {
+                Write-GrantStageEvidence `
+                    -Stage release_lock_released `
+                    -Status failed `
+                    -LaunchCount $launchCount `
+                    -RemoteShellExitCode $grantRemoteExitCode `
+                    -FailureCategory release_lock
+            }
+            catch {
+                # Preserve the original lock-release failure. The earlier
+                # invocation journal still proves the last completed stage.
+            }
+            throw
+        }
         $lockHeld = $false
         Write-GrantStageEvidence `
             -Stage release_lock_released `
