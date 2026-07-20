@@ -255,9 +255,129 @@ printf '%s\n' '{"operation":"resume","effective":"true","image_preserved":true,"
     return $resume
 }
 
+function New-CommunityRewardsExactW29GrantRemoteScript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$SchedulerContainer,
+        [Parameter(Mandatory = $true)][string]$ExpectedSchedulerImageTag,
+        [Parameter(Mandatory = $true)][string]$ExpectedSchedulerImageId,
+        [Parameter(Mandatory = $true)][string]$ExpectedRevision,
+        [Parameter(Mandatory = $true)][string]$OperationDirectory,
+        [Parameter(Mandatory = $true)][string]$OperationId,
+        [Parameter(Mandatory = $true)][string]$SnapshotFileSha256,
+        [Parameter(Mandatory = $true)][string]$PreviewFileSha256,
+        [Parameter(Mandatory = $true)][string]$ManifestFileSha256,
+        [Parameter(Mandatory = $true)][string]$CanonicalSnapshotSha256,
+        [Parameter(Mandatory = $true)][string]$CanonicalPreviewSha256
+    )
+    foreach ($value in $PSBoundParameters.Values) {
+        if ([string]::IsNullOrWhiteSpace([string]$value) -or ([string]$value).Contains("`n") -or ([string]$value).Contains("`r")) {
+            throw 'Community W29 grant parameters must be nonblank single-line values.'
+        }
+    }
+    $template = @'
+set -eu
+SCHEDULER=__SCHEDULER__
+EXPECTED_IMAGE_TAG=__EXPECTED_IMAGE_TAG__
+EXPECTED_IMAGE_ID=__EXPECTED_IMAGE_ID__
+EXPECTED_REVISION=__EXPECTED_REVISION__
+OPERATION_DIRECTORY=__OPERATION_DIRECTORY__
+OPERATION_ID=__OPERATION_ID__
+SNAPSHOT_FILE_SHA256=__SNAPSHOT_FILE_SHA256__
+PREVIEW_FILE_SHA256=__PREVIEW_FILE_SHA256__
+MANIFEST_FILE_SHA256=__MANIFEST_FILE_SHA256__
+CANONICAL_SNAPSHOT_SHA256=__CANONICAL_SNAPSHOT_SHA256__
+CANONICAL_PREVIEW_SHA256=__CANONICAL_PREVIEW_SHA256__
+CONTAINER_OPERATION_DIRECTORY="/tmp/community-w29-grant-$OPERATION_ID"
+RESULT_FILE="$OPERATION_DIRECTORY/grant-result.json"
+RESULT_TEMP_FILE="$OPERATION_DIRECTORY/grant-result.json.tmp"
+
+test "$OPERATION_ID" = w29-c866f611-20260720T055453Z-c001bcd0
+test "$(docker inspect "$SCHEDULER" --format '{{.State.Status}}')" = running
+test "$(docker inspect "$SCHEDULER" --format '{{.Config.Image}}')" = "$EXPECTED_IMAGE_TAG"
+test "$(docker inspect "$SCHEDULER" --format '{{.Image}}')" = "$EXPECTED_IMAGE_ID"
+test "$(docker inspect "$SCHEDULER" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$EXPECTED_REVISION"
+test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false
+test "$(stat -c '%a' "$OPERATION_DIRECTORY")" = 700
+test "$(stat -c '%U:%G' "$OPERATION_DIRECTORY")" = root:root
+test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/snapshot.json" | cut -d' ' -f1)" = "$SNAPSHOT_FILE_SHA256"
+test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/preview.json" | cut -d' ' -f1)" = "$PREVIEW_FILE_SHA256"
+test "$(sudo -n sha256sum "$OPERATION_DIRECTORY/operation-manifest.json" | cut -d' ' -f1)" = "$MANIFEST_FILE_SHA256"
+sudo -n test ! -e "$RESULT_FILE"
+sudo -n test ! -e "$RESULT_TEMP_FILE"
+test "$(docker exec "$SCHEDULER" sh -c "if test -e '$CONTAINER_OPERATION_DIRECTORY'; then echo present; else echo absent; fi")" = absent
+
+result_persisted=false
+cleanup() {
+    docker exec "$SCHEDULER" rm -rf -- "$CONTAINER_OPERATION_DIRECTORY" >/dev/null 2>&1 || true
+    if test "$result_persisted" != true; then sudo -n rm -f -- "$RESULT_TEMP_FILE" >/dev/null 2>&1 || true; fi
+}
+trap cleanup EXIT INT TERM
+docker exec "$SCHEDULER" mkdir -m 700 "$CONTAINER_OPERATION_DIRECTORY"
+sudo -n tar -C "$OPERATION_DIRECTORY" -cf - snapshot.json preview.json |
+    docker exec -i "$SCHEDULER" tar -C "$CONTAINER_OPERATION_DIRECTORY" -xf -
+test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" | cut -d' ' -f1)" = "$SNAPSHOT_FILE_SHA256"
+test "$(docker exec "$SCHEDULER" sha256sum "$CONTAINER_OPERATION_DIRECTORY/preview.json" | cut -d' ' -f1)" = "$PREVIEW_FILE_SHA256"
+
+# Capture stdout in the remote host shell. Never redirect a host shell to a
+# container-only path, and never emit recipient-level command output.
+GRANT_OUTPUT="$(docker exec "$SCHEDULER" python tools/community_leaderboard_rewards_manual.py grant-exact-period-commit \
+    --snapshot-file "$CONTAINER_OPERATION_DIRECTORY/snapshot.json" \
+    --preview-file "$CONTAINER_OPERATION_DIRECTORY/preview.json" \
+    --expected-snapshot-sha256 "$CANONICAL_SNAPSHOT_SHA256" \
+    --expected-preview-sha256 "$CANONICAL_PREVIEW_SHA256" \
+    --expected-claim-count 21 \
+    --expected-component-count 43 \
+    --expected-total-coins 4060 \
+    --expected-total-items-json '{"small_xp_potion":25,"xp_potion":4}' \
+    --expected-total-badges-json '{"badge_lb_weekly_1":1}' \
+    --owner-gate GO_COMMUNITY_LEADERBOARD_REWARD_GRANT)"
+test -n "$GRANT_OUTPUT"
+unset GRANT_OUTPUT
+docker exec "$SCHEDULER" test -s "$CONTAINER_OPERATION_DIRECTORY/grant-result.json"
+docker exec "$SCHEDULER" cat "$CONTAINER_OPERATION_DIRECTORY/grant-result.json" |
+    sudo -n tee "$RESULT_TEMP_FILE" >/dev/null
+sudo -n chmod 600 "$RESULT_TEMP_FILE"
+sudo -n python3 - "$RESULT_TEMP_FILE" "$CANONICAL_SNAPSHOT_SHA256" "$CANONICAL_PREVIEW_SHA256" <<'__COMMUNITY_W29_RESULT__'
+import json, sys
+path, snapshot_sha, preview_sha = sys.argv[1:]
+with open(path, encoding='utf-8') as fh:
+    result = json.load(fh)
+summary = result.get('summary') or {}
+if result.get('board_type') != 'weekly' or result.get('period_key') != '2026-W29': raise SystemExit(51)
+if result.get('snapshot_sha256') != snapshot_sha or result.get('preview_sha256') != preview_sha: raise SystemExit(52)
+if result.get('result') not in ('committed', 'already_granted_noop'): raise SystemExit(53)
+if int(summary.get('claims_count', -1)) != 21 or int(summary.get('component_count', -1)) != 43: raise SystemExit(54)
+if int(summary.get('total_coins', -1)) != 4060: raise SystemExit(55)
+if summary.get('total_items') != {'small_xp_potion': 25, 'xp_potion': 4}: raise SystemExit(56)
+if summary.get('total_badges') != {'badge_lb_weekly_1': 1}: raise SystemExit(57)
+print(json.dumps({'result': result['result'], 'period_key': result['period_key'], 'claims': 21, 'components': 43, 'coins': 4060}, sort_keys=True))
+__COMMUNITY_W29_RESULT__
+sudo -n mv "$RESULT_TEMP_FILE" "$RESULT_FILE"
+result_persisted=true
+printf '%s\n' '{"operation":"exact_w29_grant","result_persisted":true,"recipient_output_emitted":false}'
+'@
+    $replacements = [ordered]@{
+        '__SCHEDULER__' = Quote-PosixShellArgument $SchedulerContainer
+        '__EXPECTED_IMAGE_TAG__' = Quote-PosixShellArgument $ExpectedSchedulerImageTag
+        '__EXPECTED_IMAGE_ID__' = Quote-PosixShellArgument $ExpectedSchedulerImageId
+        '__EXPECTED_REVISION__' = Quote-PosixShellArgument $ExpectedRevision
+        '__OPERATION_DIRECTORY__' = Quote-PosixShellArgument $OperationDirectory
+        '__OPERATION_ID__' = Quote-PosixShellArgument $OperationId
+        '__SNAPSHOT_FILE_SHA256__' = Quote-PosixShellArgument $SnapshotFileSha256
+        '__PREVIEW_FILE_SHA256__' = Quote-PosixShellArgument $PreviewFileSha256
+        '__MANIFEST_FILE_SHA256__' = Quote-PosixShellArgument $ManifestFileSha256
+        '__CANONICAL_SNAPSHOT_SHA256__' = Quote-PosixShellArgument $CanonicalSnapshotSha256
+        '__CANONICAL_PREVIEW_SHA256__' = Quote-PosixShellArgument $CanonicalPreviewSha256
+    }
+    foreach ($item in $replacements.GetEnumerator()) { $template = $template.Replace($item.Key, $item.Value) }
+    return $template
+}
+
 Export-ModuleMember -Function @(
     'Get-CommunityRewardsFrozenComposePrefix',
     'New-CommunityRewardsZeroStateProbeRemoteScript',
     'New-CommunityRewardsFreezeRemoteScript',
-    'New-CommunityRewardsResumeRemoteScript'
+    'New-CommunityRewardsResumeRemoteScript',
+    'New-CommunityRewardsExactW29GrantRemoteScript'
 )

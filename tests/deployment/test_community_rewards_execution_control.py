@@ -11,6 +11,7 @@ MODULE = ROOT / "scripts/release/CommunityRewardsExecutionControl.psm1"
 DEPLOY = ROOT / "scripts/release/deploy-release-image.ps1"
 ROLLBACK = ROOT / "scripts/release/rollback-release.ps1"
 RESUME = ROOT / "scripts/release/resume-community-leaderboard-rewards.ps1"
+GRANT = ROOT / "scripts/release/grant-community-leaderboard-rewards-w29.ps1"
 RUNBOOK = ROOT / "docs/deployment/community_rewards_controlled_w29_recovery.md"
 
 
@@ -79,6 +80,26 @@ def resume_probe_source():
     start = script.index(opening) + len(opening)
     end = script.index(closing, start)
     return script[start:end].strip()
+
+
+def render_exact_w29_grant():
+    command = (
+        f"Import-Module '{ROOT / 'scripts/release/ReleaseTooling.psm1'}' -Force -DisableNameChecking; "
+        f"Import-Module '{MODULE}' -Force -DisableNameChecking; "
+        "New-CommunityRewardsExactW29GrantRemoteScript "
+        "-SchedulerContainer scheduler -ExpectedSchedulerImageTag app:c866f611 "
+        "-ExpectedSchedulerImageId sha256:image -ExpectedRevision c866f611 "
+        "-OperationDirectory /operations/w29 -OperationId w29-c866f611-20260720T055453Z-c001bcd0 "
+        "-SnapshotFileSha256 snapshot-file -PreviewFileSha256 preview-file "
+        "-ManifestFileSha256 manifest-file -CanonicalSnapshotSha256 canonical-snapshot "
+        "-CanonicalPreviewSha256 canonical-preview"
+    )
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
 
 
 def run_generated_probe(probe_source, mode, *, probe_kind="zero", nonzero_period="", lock="0", malformed="0", failure_field=""):
@@ -165,7 +186,7 @@ def run_pre_stop_probe(mode, **kwargs):
 
 
 def test_changed_powershell_files_parse():
-    paths = (MODULE, DEPLOY, ROLLBACK, RESUME)
+    paths = (MODULE, DEPLOY, ROLLBACK, RESUME, GRANT)
     command = ";".join(
         f"$t=$null;$e=$null;[Management.Automation.Language.Parser]::ParseFile('{p}',[ref]$t,[ref]$e)|Out-Null;if($e.Count){{exit 9}}"
         for p in paths
@@ -432,3 +453,118 @@ def test_runbook_separates_configured_override_effective_and_owner_gates():
         "remains frozen",
     ):
         assert phrase in text
+
+
+def test_exact_w29_grant_captures_child_stdout_in_remote_host_shell():
+    script = render_exact_w29_grant()
+    assert 'GRANT_OUTPUT="$(docker exec "$SCHEDULER" python ' in script
+    assert 'test -n "$GRANT_OUTPUT"' in script
+    assert "unset GRANT_OUTPUT" in script
+    assert ' >"$CONTAINER_OPERATION_DIRECTORY/' not in script
+    assert "docker cp" not in script
+    assert "recipient-level command output" in script
+
+
+def test_exact_w29_capture_contract_launches_real_synthetic_child(tmp_path):
+    child = tmp_path / "synthetic_grant_child.py"
+    result_file = tmp_path / "grant-result.json"
+    child.write_text(
+        "import json, pathlib, sys\n"
+        "pathlib.Path(sys.argv[1]).write_text(json.dumps({"
+        "'result':'committed','period_key':'2026-W29','claims':21}), encoding='utf-8')\n"
+        "print('recipient-sentinel-must-not-be-reported')\n",
+        encoding="utf-8",
+    )
+    child_result = subprocess.run(
+        [os.sys.executable, str(child), str(result_file)],
+        cwd=tmp_path, capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert child_result.returncode == 0
+    assert "recipient-sentinel" in child_result.stdout
+    persisted = __import__("json").loads(result_file.read_text(encoding="utf-8"))
+    sanitized = {"result": persisted["result"], "period_key": persisted["period_key"], "claims": 21}
+    assert sanitized == {"result": "committed", "period_key": "2026-W29", "claims": 21}
+    assert "recipient-sentinel" not in __import__("json").dumps(sanitized)
+    assert 'GRANT_OUTPUT="$(docker exec' in render_exact_w29_grant()
+
+
+def test_exact_w29_grant_validates_before_child_launch_and_persists_atomically():
+    script = render_exact_w29_grant()
+    launch = script.index('GRANT_OUTPUT="$(docker exec')
+    for gate in (
+        "COMMUNITY_LEADERBOARD_REWARDS_ENABLED",
+        "EXPECTED_IMAGE_TAG",
+        "EXPECTED_IMAGE_ID",
+        "EXPECTED_REVISION",
+        "SNAPSHOT_FILE_SHA256",
+        "PREVIEW_FILE_SHA256",
+        "MANIFEST_FILE_SHA256",
+        "sudo -n test ! -e \"$RESULT_FILE\"",
+    ):
+        assert script.index(gate) < launch
+    result_check = script.index("__COMMUNITY_W29_RESULT__")
+    atomic_move = script.index('sudo -n mv "$RESULT_TEMP_FILE" "$RESULT_FILE"')
+    assert launch < result_check < atomic_move
+    assert "result_persisted=true" in script[atomic_move:]
+
+
+def test_exact_w29_grant_is_bound_to_authorized_operation_and_totals():
+    combined = source(MODULE) + source(GRANT)
+    for identity in (
+        "w29-c866f611-20260720T055453Z-c001bcd0",
+        "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
+        "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
+        "53c256c5517e4e9bfa9a1eaf80beeb910eb3a329cbfb3780072d7c2cb76b91cc",
+        "8cefc8925b5b142c0e58f10ce04cd2d723102e9c554e1f2332240d63080ab0fa",
+        "6d42e5bc7ac7c0494df3492fd480201a20b523ee2884b410edbdd2fc919b752d",
+        "--expected-claim-count 21",
+        "--expected-component-count 43",
+        "--expected-total-coins 4060",
+        "small_xp_potion",
+        "xp_potion",
+        "badge_lb_weekly_1",
+    ):
+        assert identity in combined
+
+
+def test_exact_w29_grant_wrapper_is_execute_and_owner_gated_with_release_lock():
+    wrapper = source(GRANT)
+    assert "if (-not $Execute)" in wrapper
+    assert "Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_GRANT_W29'" in wrapper
+    assert "Enter-RemoteReleaseOperationLock" in wrapper
+    assert "Exit-RemoteReleaseOperationLock" in wrapper
+    assert "Invoke-RemoteShellCommand" in wrapper
+    assert "recipient-level remote output withheld" in wrapper
+    assert "Invoke-BoundedSshCommand" not in wrapper
+    zero_state = wrapper.index("New-CommunityRewardsZeroStateProbeRemoteScript")
+    grant_script = wrapper.index("New-CommunityRewardsExactW29GrantRemoteScript")
+    assert wrapper.index("Enter-RemoteReleaseOperationLock") < zero_state < grant_script
+
+
+def test_exact_w29_grant_cleanup_is_exact_and_does_not_touch_reward_logic():
+    script = render_exact_w29_grant()
+    assert 'rm -rf -- "$CONTAINER_OPERATION_DIRECTORY"' in script
+    assert 'rm -f -- "$RESULT_TEMP_FILE"' in script
+    assert "grant-result.json.tmp" in script
+    assert "leaderboard_reward_claims" not in script
+    assert "INSERT " not in script
+    assert "UPDATE " not in script
+    assert "DELETE " not in script
+
+
+def test_exact_w29_grant_without_execute_fails_before_remote_access():
+    result = subprocess.run(
+        [
+            "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(GRANT),
+            "-OperationId", "w29-c866f611-20260720T055453Z-c001bcd0",
+            "-ExpectedSchedulerImageTag", "go-odyssey-app:c866f611",
+            "-ExpectedSchedulerImageId", "sha256:e8bafcd1bce435f78782e220f82058112e930c71dcaea6a87ff0adb2462a8ac3",
+            "-ExpectedRevision", "c866f6114232839c2951d02c71f000983098eda6",
+            "-CanonicalSnapshotSha256", "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
+            "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
+        ],
+        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert result.returncode != 0
+    assert "Exact W29 grant requires -Execute" in result.stderr
+    assert "ssh" not in result.stderr.lower()
