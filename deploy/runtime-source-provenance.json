@@ -138,14 +138,14 @@
     },
     {
       "path": "tools/community_leaderboard_rewards_exact_period.py",
-      "source_commit": "173188aec1082fe4a9d8781ddc17575a2b4537fb",
-      "source_branch_or_local_ref": "fix/w29-scheduler-import-observability",
-      "source_commit_subject": "fix(rewards): repair W29 scheduler grant imports",
-      "source_date": "2026-07-20",
-      "content_sha256": "7e9f30a0a10234ca2ad66af44de5a0967725ce9c5c63f15ad112a7cd1f638c94",
+      "source_commit": "2318e093f82eeb2e52922822c41cd0f20f055ccf",
+      "source_branch_or_local_ref": "fix/w29-live-snapshot-cosmetic-drift",
+      "source_commit_subject": "fix(rewards): ignore W29 cosmetic live drift",
+      "source_date": "2026-07-21",
+      "content_sha256": "c4c6cce3314f7dd1daf8c6263d995e172442eda18cd507cb12682454833cde1d",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; exact closed-period snapshot/preview/commit guard rail for leaderboard rewards; depends on community_leaderboard_rewards.py and tools/community_leaderboard_rewards_real_grant_* helpers",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "source_status": "canonical origin/master ancestry verified after PR #195 merge"
     },
     {
       "path": "tools/community_leaderboard_rewards_real_grant_preview.py",
