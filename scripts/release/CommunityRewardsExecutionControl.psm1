@@ -505,6 +505,10 @@ set -eu
 sudo -n python3 - __EVIDENCE_FILE__ __OPERATION_ID__ __STAGE__ __STATUS__ __LAUNCH_COUNT__ __REMOTE_EXIT__ __CHILD_EXIT__ __CATEGORY__ __REVISION__ <<'__COMMUNITY_W29_OPERATOR_EVIDENCE__'
 import datetime, json, os, sys
 path, operation_id, stage, status, launch_count, remote_exit, child_exit, category, revision = sys.argv[1:]
+if stage == 'release_lock_released' and os.path.exists(path):
+    with open(path, encoding='utf-8') as existing:
+        prior = [json.loads(line) for line in existing if line.strip()]
+    launch_count = str(max([int(item.get('launch_count', 0)) for item in prior] + [int(launch_count)]))
 record = {
     'operation_id': operation_id,
     'utc_timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),

@@ -555,6 +555,8 @@ def test_exact_w29_wrapper_records_operator_and_remote_exit_stages():
     assert "WrapperSourceRevision $wrapperSourceRevision" in wrapper
     assert "$grantRemoteExitCode = [int]$result.exit_code" in wrapper
     assert "grant-execution-evidence.jsonl" in source(MODULE)
+    assert "stage == 'release_lock_released'" in source(MODULE)
+    assert "max([int(item.get('launch_count', 0))" in source(MODULE)
 
 
 def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_fields(tmp_path):
