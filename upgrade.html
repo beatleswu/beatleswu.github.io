@@ -147,6 +147,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
           <li><span class="fi" data-i18n="up.icon.reward">獎勵</span><span data-i18n="up.pro.f5">Premium 專屬外觀、徽章與收藏獎勵</span></li>
         </ul>
         <button class="plan-cta cta-pro" id="upgrade-btn" onclick="handleUpgrade()" data-i18n="up.pro.cta" data-analytics-premium-cta="1" data-analytics-surface="upgrade_plan_card" data-analytics-variant="plan_primary" data-analytics-destination="upgrade_modal">申請開通金徽通行證</button>
+        <div id="already-premium" hidden aria-live="polite"></div>
       </article>
     </div>
   </section>
@@ -479,6 +480,8 @@ async function loadSubscription(){
     const s=await r.json();
     const box=document.getElementById('already-premium');
     if(!box)return;
+    box.hidden=false;
+    box.replaceChildren();
     let extra='';
     if(s.premium_until){
       const d=new Date(s.premium_until);
