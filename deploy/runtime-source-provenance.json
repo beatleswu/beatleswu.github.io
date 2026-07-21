@@ -94,14 +94,14 @@
     },
     {
       "path": "community_leaderboard_rewards_scheduler.py",
-      "source_commit": "173188aec1082fe4a9d8781ddc17575a2b4537fb",
-      "source_branch_or_local_ref": "fix/w29-scheduler-import-observability",
-      "source_commit_subject": "fix(rewards): repair W29 scheduler grant imports",
-      "source_date": "2026-07-20",
-      "content_sha256": "ae62cfbd601a50981a1b55b8ee5599100263cb03a95d7ecb0de52d53f798c058",
+      "source_commit": "9386107df1a111a6bf863973f8627590115cc7d9",
+      "source_branch_or_local_ref": "fix/w29-preview-identity-hostname-check",
+      "source_commit_subject": "fix(rewards): stop preview identity check from failing on container hostname churn",
+      "source_date": "2026-07-21",
+      "content_sha256": "1b8c7a11f35f0435458a6d841811f05b977e2e8b63eaf72c64237260a3c46e63",
       "line_ending_policy": "LF",
       "runtime_role": "app.py deferred import inside _start_community_leaderboard_weekly_scheduler() and scheduler.py-started runtime reward loop; weekly scheduler runtime-critical when COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin"
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "tools/community_leaderboard_rewards_export_entries.py",
@@ -116,11 +116,11 @@
     },
     {
       "path": "tools/community_leaderboard_rewards_manual.py",
-      "source_commit": "c80b92d1a0e99ac9e3f511b70f0d3f5e41d3213a",
-      "source_branch_or_local_ref": "feature/community-leaderboard-w28-safe-grant",
-      "source_commit_subject": "test(rewards): harden exact-period operator snapshot flow",
-      "source_date": "2026-07-13",
-      "content_sha256": "4c74e1b436c5720720f383f00bc040132246c8b6cacfe893ee493cc8084af612",
+      "source_commit": "9386107df1a111a6bf863973f8627590115cc7d9",
+      "source_branch_or_local_ref": "fix/w29-preview-identity-hostname-check",
+      "source_commit_subject": "fix(rewards): stop preview identity check from failing on container hostname churn",
+      "source_date": "2026-07-21",
+      "content_sha256": "c56e38ce2752f25330904f674ce7202a7e76621cb7494ca8f5c86969ddb91235",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
