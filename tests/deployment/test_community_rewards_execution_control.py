@@ -366,7 +366,10 @@ def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation()
     ordered = (
         "test \"$(docker inspect \"$SCHEDULER\" --format '{{.Image}}')\" = \"$EXPECTED_IMAGE_ID\"",
         "values != [b\"true\"]",
-        "test \"$(docker exec \"$SCHEDULER\" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)\" = true",
+        'APP_COMMUNITY="$(docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)"',
+        'SCHEDULER_COMMUNITY="$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)"',
+        "true:true) COMMUNITY_FREEZE_START_STATE=active",
+        "false:false) COMMUNITY_FREEZE_START_STATE=already_frozen",
         "result['w29_lock']",
         "docker stop \"$SCHEDULER\"",
         "docker stop \"$APP\"",
@@ -393,6 +396,104 @@ def test_freeze_remote_contract_has_zero_race_order_and_old_image_preservation()
         "leaderboard_reward_claims", "leaderboard_snapshots", "leaderboard_reward_component_log", "pg_locks"
     ))
     assert "latest" not in script.lower()
+
+
+def test_freeze_accepts_only_exact_active_or_already_frozen_runtime_matrix():
+    script = render("freeze")
+    assert 'case "$APP_COMMUNITY" in true|false) ;; *) exit 34 ;; esac' in script
+    assert 'case "$SCHEDULER_COMMUNITY" in true|false) ;; *) exit 35 ;; esac' in script
+    assert "true:true) COMMUNITY_FREEZE_START_STATE=active" in script
+    assert "false:false) COMMUNITY_FREEZE_START_STATE=already_frozen" in script
+    assert "*) exit 36 ;;" in script
+    assert "start_state" in script
+    assert "values != [b\"true\"]" in script
+
+
+def test_already_frozen_contract_keeps_explicit_false_and_never_reenables_community():
+    script = render("freeze")
+    already_frozen = script.index("false:false) COMMUNITY_FREEZE_START_STATE=already_frozen")
+    recreate = script.index('--force-recreate "$APP_SERVICE" "$SCHEDULER_SERVICE"')
+    app_false = script.index('docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false')
+    scheduler_false = script.index('docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false')
+    assert already_frozen < recreate < app_false < scheduler_false
+    assert "COMMUNITY_LEADERBOARD_REWARDS_ENABLED=false docker compose" in script
+    assert "COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true docker compose" not in script
+    assert "grant-exact-period-commit" not in script
+    assert "community_leaderboard_rewards_manual.py" not in script
+
+
+def run_freeze_start_state_branch(tmp_path, app_value, scheduler_value):
+    git_sh = pathlib.Path(r"C:\Program Files\Git\bin\sh.exe")
+    if not git_sh.exists():
+        pytest.skip("Git sh is unavailable")
+    script = render("freeze")
+    start = script.index('APP_COMMUNITY="$(docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)"')
+    end = script.index('docker exec -i "$SCHEDULER" python', start)
+    branch = script[start:end]
+    env = os.environ.copy()
+    env.update({
+        "APP_EFFECTIVE": app_value,
+        "SCHEDULER_EFFECTIVE": scheduler_value,
+    })
+    fake_docker = textwrap.dedent(r'''\
+        docker() {
+          if [ "$1" = exec ] && [ "$3" = printenv ] && [ "$4" = COMMUNITY_LEADERBOARD_REWARDS_ENABLED ]; then
+            case "$2" in
+              app) printf '%s\n' "$APP_EFFECTIVE" ;;
+              scheduler) printf '%s\n' "$SCHEDULER_EFFECTIVE" ;;
+              *) return 90 ;;
+            esac
+            return 0
+          fi
+          return 91
+        }
+    ''')
+    return subprocess.run(
+        [str(git_sh), "-c", f'{fake_docker}\nAPP=app; SCHEDULER=scheduler; {branch}'],
+        cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False,
+    )
+
+
+def run_freeze_configured_value_check(tmp_path, content=None):
+    script = render("freeze")
+    opening = "<<'__COMMUNITY_CONFIGURED_VALUE__'\n"
+    closing = "\n__COMMUNITY_CONFIGURED_VALUE__"
+    start = script.index(opening) + len(opening)
+    end = script.index(closing, start)
+    env_file = tmp_path / "protected.env"
+    if content is not None:
+        env_file.write_text(content, encoding="utf-8")
+    return subprocess.run(
+        ["python", "-c", script[start:end], str(env_file)],
+        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+    )
+
+
+@pytest.mark.parametrize("app_value,scheduler_value", [("true", "true"), ("false", "false")])
+def test_freeze_start_state_accepts_only_coherent_active_or_already_frozen_pairs(tmp_path, app_value, scheduler_value):
+    result = run_freeze_start_state_branch(tmp_path, app_value, scheduler_value)
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("app_value,scheduler_value,exit_code", [
+    ("true", "false", 36), ("false", "true", 36),
+    ("invalid", "false", 34), ("false", "invalid", 35),
+])
+def test_freeze_start_state_rejects_inconsistent_or_malformed_runtime_pairs(tmp_path, app_value, scheduler_value, exit_code):
+    result = run_freeze_start_state_branch(tmp_path, app_value, scheduler_value)
+    assert result.returncode == exit_code
+
+
+@pytest.mark.parametrize("content,exit_code", [
+    ("COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true\n", 0),
+    ("COMMUNITY_LEADERBOARD_REWARDS_ENABLED=false\n", 32),
+    ("COMMUNITY_LEADERBOARD_REWARDS_ENABLED=yes\n", 32),
+    ("", 32),
+    (None, 31),
+])
+def test_freeze_requires_exact_configured_true_value(tmp_path, content, exit_code):
+    result = run_freeze_configured_value_check(tmp_path, content)
+    assert result.returncode == exit_code
 
 
 def test_deploy_carries_freeze_through_fixed_image_and_verifies_before_switch():
