@@ -271,8 +271,13 @@ def _load_and_validate_preview_identity(preview_file, *, snapshot, snapshot_file
         raise ValueError("preview identity snapshot SHA mismatch")
     if preview_identity.get("database_identity") != _database_identity(database_url):
         raise ValueError("preview identity database mismatch")
+    # Only production_flag is a meaningful identity signal here; hostname is
+    # the container's ephemeral Docker-assigned ID and changes on every
+    # deploy/force-recreate, which would otherwise fail-close every preview
+    # captured before a later, unrelated redeploy.
     expected_env = _environment_identity()
-    if preview_identity.get("environment_identity") != expected_env:
+    stored_env = preview_identity.get("environment_identity") or {}
+    if stored_env.get("production_flag") != expected_env["production_flag"]:
         raise ValueError("preview identity environment mismatch")
     for key in ("board_type", "period_key", "period_start", "period_end_exclusive", "timezone"):
         if preview_identity.get(key) != snapshot.get(key):
