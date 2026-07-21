@@ -109,7 +109,15 @@ if values != [b"true"]: raise SystemExit(32)
 print('{"configured":"true"}')
 __COMMUNITY_CONFIGURED_VALUE__
 
-test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = true
+APP_COMMUNITY="$(docker exec "$APP" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)"
+SCHEDULER_COMMUNITY="$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)"
+case "$APP_COMMUNITY" in true|false) ;; *) exit 34 ;; esac
+case "$SCHEDULER_COMMUNITY" in true|false) ;; *) exit 35 ;; esac
+case "$APP_COMMUNITY:$SCHEDULER_COMMUNITY" in
+  true:true) COMMUNITY_FREEZE_START_STATE=active ;;
+  false:false) COMMUNITY_FREEZE_START_STATE=already_frozen ;;
+  *) exit 36 ;;
+esac
 docker exec -i "$SCHEDULER" python - <<'__COMMUNITY_ZERO_STATE__'
 import json, os, zlib
 __DATABASE_DRIVER_PREAMBLE__
@@ -163,7 +171,7 @@ test "$(docker inspect "$SCHEDULER" --format '{{.Image}}')" = "$EXPECTED_IMAGE_I
 test "$(docker inspect "$SCHEDULER" --format '{{.Config.Image}}')" = "$EXPECTED_IMAGE_TAG"
 test "$(docker inspect "$SCHEDULER" --format '{{.RestartCount}}')" = 0
 test "$(docker exec "$SCHEDULER" printenv COMMUNITY_LEADERBOARD_REWARDS_ENABLED)" = false
-printf '%s\n' '{"operation":"freeze","effective":"false","old_image_preserved":true,"zero_state_verified":true}'
+printf '%s\n' "{\"operation\":\"freeze\",\"start_state\":\"$COMMUNITY_FREEZE_START_STATE\",\"effective\":\"false\",\"old_image_preserved\":true,\"zero_state_verified\":true}"
 '@
     $replacements = [ordered]@{
         '__SCHEDULER__' = Quote-PosixShellArgument $SchedulerContainer
