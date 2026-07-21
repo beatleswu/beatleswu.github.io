@@ -179,3 +179,28 @@ def test_grant_exact_period_commit_requires_matching_preview_identity(monkeypatc
             snapshot_file=snapshot_path,
             database_url="postgresql://go:go@db:5432/go_odyssey",
         )
+
+    stale_env_preview = dict(preview_identity)
+    stale_env_preview["environment_identity"] = dict(stale_env_preview["environment_identity"])
+    stale_env_preview["environment_identity"]["hostname"] = "stale-container-id-from-before-deploy"
+    stale_env_path = op_dir / "stale-env-preview-test.json"
+    stale_env_path.write_text(json.dumps(stale_env_preview), encoding="utf-8")
+    manual._load_and_validate_preview_identity(
+        stale_env_path,
+        snapshot=snapshot,
+        snapshot_file=snapshot_path,
+        database_url="postgresql://go:go@db:5432/go_odyssey",
+    )
+
+    bad_flag_preview = dict(preview_identity)
+    bad_flag_preview["environment_identity"] = dict(bad_flag_preview["environment_identity"])
+    bad_flag_preview["environment_identity"]["production_flag"] = "not-the-real-flag"
+    bad_flag_path = op_dir / "bad-flag-preview-test.json"
+    bad_flag_path.write_text(json.dumps(bad_flag_preview), encoding="utf-8")
+    with pytest.raises(ValueError, match="environment mismatch"):
+        manual._load_and_validate_preview_identity(
+            bad_flag_path,
+            snapshot=snapshot,
+            snapshot_file=snapshot_path,
+            database_url="postgresql://go:go@db:5432/go_odyssey",
+        )

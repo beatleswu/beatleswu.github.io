@@ -478,6 +478,35 @@ def test_preview_identity_rejects_changed_snapshot_bytes_database_and_environmen
         )
 
 
+def test_preview_identity_tolerates_hostname_churn_across_container_recreation(monkeypatch, tmp_path):
+    snapshot, preview = _make_snapshot()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://go:secret@postgres:5432/go_odyssey")
+    monkeypatch.setenv("PRODUCTION", "1")
+    snapshot_file = scheduler._write_exact_json(tmp_path / "snapshot.json", snapshot)
+    preview_identity = scheduler.build_preview_identity_record(
+        snapshot,
+        preview,
+        database_url=os.environ["DATABASE_URL"],
+        snapshot_file=snapshot_file,
+    )
+    assert preview_identity["environment_identity"]["hostname"] == socket.gethostname()
+
+    # Simulate the preview having been captured on a now-gone container
+    # instance (e.g. a deploy force-recreated it after preview capture, but
+    # before grant commit). Docker assigns a fresh hostname on every
+    # recreation, so this must not fail-close a same-PRODUCTION-flag commit.
+    stale = dict(preview_identity)
+    stale["environment_identity"] = dict(stale["environment_identity"])
+    stale["environment_identity"]["hostname"] = "stale-container-id-from-before-deploy"
+
+    scheduler.validate_preview_identity(
+        stale,
+        snapshot=snapshot,
+        snapshot_file=snapshot_file,
+        database_url=os.environ["DATABASE_URL"],
+    )
+
+
 def test_operation_dir_rejects_relative_git_worktree_symlink_and_world_writable_paths(tmp_path):
     with pytest.raises(ValueError, match="absolute path"):
         scheduler._validate_operation_dir(Path("relative"), "2026-W28")
