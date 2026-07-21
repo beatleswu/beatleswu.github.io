@@ -919,9 +919,9 @@ def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_f
     result = subprocess.run([
         "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(wrapper),
         "-OperationId", "w29-c866f611-20260720T055453Z-c001bcd0",
-        "-ExpectedSchedulerImageTag", "go-odyssey-app:11a16674",
-        "-ExpectedSchedulerImageId", "sha256:3dc3209ea45d497ec2e913486200ebeb7895f82c12c0c41fbbdfad859ed353c2",
-        "-ExpectedRevision", "11a1667491afab89b9957ced2f17d4b6904da6e9",
+        "-ExpectedSchedulerImageTag", "go-odyssey-app:35603efd",
+        "-ExpectedSchedulerImageId", "sha256:e3864680e3f88c40afda6d1baa3c7b91ffcddf98a03cdca8b5429c070428c1c2",
+        "-ExpectedRevision", "35603efd89bf39d498d23aabc6dbe1b70f0a681c",
         "-CanonicalSnapshotSha256", "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
         "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
         "-Execute", "-OwnerGate", "GO_GRANT_W29",
@@ -1020,9 +1020,9 @@ def test_exact_w29_grant_without_execute_fails_before_remote_access():
         [
             "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(GRANT),
             "-OperationId", "w29-c866f611-20260720T055453Z-c001bcd0",
-            "-ExpectedSchedulerImageTag", "go-odyssey-app:11a16674",
-            "-ExpectedSchedulerImageId", "sha256:3dc3209ea45d497ec2e913486200ebeb7895f82c12c0c41fbbdfad859ed353c2",
-            "-ExpectedRevision", "11a1667491afab89b9957ced2f17d4b6904da6e9",
+            "-ExpectedSchedulerImageTag", "go-odyssey-app:35603efd",
+            "-ExpectedSchedulerImageId", "sha256:e3864680e3f88c40afda6d1baa3c7b91ffcddf98a03cdca8b5429c070428c1c2",
+            "-ExpectedRevision", "35603efd89bf39d498d23aabc6dbe1b70f0a681c",
             "-CanonicalSnapshotSha256", "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
             "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
         ],
@@ -1058,14 +1058,17 @@ def test_exact_w29_grant_wrapper_rejects_obsolete_image_identity():
 def test_exact_w29_grant_wrapper_is_bound_to_current_deployed_image_identity():
     wrapper = source(GRANT)
     for identity in (
-        "go-odyssey-app:11a16674",
-        "sha256:3dc3209ea45d497ec2e913486200ebeb7895f82c12c0c41fbbdfad859ed353c2",
-        "11a1667491afab89b9957ced2f17d4b6904da6e9",
+        "go-odyssey-app:35603efd",
+        "sha256:e3864680e3f88c40afda6d1baa3c7b91ffcddf98a03cdca8b5429c070428c1c2",
+        "35603efd89bf39d498d23aabc6dbe1b70f0a681c",
     ):
         assert identity in wrapper
     for obsolete in (
         "go-odyssey-app:c866f611",
         "sha256:e8bafcd1bce435f78782e220f82058112e930c71dcaea6a87ff0adb2462a8ac3",
         "c866f6114232839c2951d02c71f000983098eda6",
+        "go-odyssey-app:11a16674",
+        "sha256:3dc3209ea45d497ec2e913486200ebeb7895f82c12c0c41fbbdfad859ed353c2",
+        "11a1667491afab89b9957ced2f17d4b6904da6e9",
     ):
         assert obsolete not in wrapper
