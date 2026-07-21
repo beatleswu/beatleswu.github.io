@@ -2,9 +2,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][ValidateSet('w29-c866f611-20260720T055453Z-c001bcd0')][string]$OperationId,
-    [Parameter(Mandatory = $true)][ValidateSet('go-odyssey-app:c866f611')][string]$ExpectedSchedulerImageTag,
-    [Parameter(Mandatory = $true)][ValidateSet('sha256:e8bafcd1bce435f78782e220f82058112e930c71dcaea6a87ff0adb2462a8ac3')][string]$ExpectedSchedulerImageId,
-    [Parameter(Mandatory = $true)][ValidateSet('c866f6114232839c2951d02c71f000983098eda6')][string]$ExpectedRevision,
+    [Parameter(Mandatory = $true)][ValidateSet('go-odyssey-app:11a16674')][string]$ExpectedSchedulerImageTag,
+    [Parameter(Mandatory = $true)][ValidateSet('sha256:3dc3209ea45d497ec2e913486200ebeb7895f82c12c0c41fbbdfad859ed353c2')][string]$ExpectedSchedulerImageId,
+    [Parameter(Mandatory = $true)][ValidateSet('11a1667491afab89b9957ced2f17d4b6904da6e9')][string]$ExpectedRevision,
     [Parameter(Mandatory = $true)][ValidateSet('4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740')][string]$CanonicalSnapshotSha256,
     [Parameter(Mandatory = $true)][ValidateSet('449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc')][string]$CanonicalPreviewSha256,
     [string]$LayoutFile = 'deploy\release-layout.production.json',
