@@ -151,6 +151,50 @@ def test_loader_is_idempotent_per_root():
     assert "Already settled" in loader_js or "already" in loader_js.lower()
 
 
+# ---------------------------------------------------------------------------
+# 6b. E9 Phase 1: component_loader.js timeout hardening (closes the confirmed
+#     infinite-spinner gap for a permanently-pending fragment fetch).
+# ---------------------------------------------------------------------------
+
+def test_loader_has_bounded_overridable_timeout():
+    loader_js = _read(JS_DIR / "component_loader.js")
+    assert "AbortController" in loader_js
+    assert "DEFAULT_COMPONENT_FETCH_TIMEOUT_MS" in loader_js
+    assert "global.E9.COMPONENT_FETCH_TIMEOUT_MS" in loader_js, (
+        "timeout must be overridable via window.E9.COMPONENT_FETCH_TIMEOUT_MS "
+        "so tests are not forced to wait out the real default"
+    )
+    assert "signal: controller.signal" in loader_js
+
+
+def test_loader_timeout_reuses_shell_registercleanup_not_a_parallel_mechanism():
+    loader_js = _read(JS_DIR / "component_loader.js")
+    assert "global.E9.registerCleanup" in loader_js, (
+        "abort-on-destroy must reuse shell.js's existing generation-scoped "
+        "registerCleanup/lifecycleCleanups mechanism, not a second cleanup path"
+    )
+
+
+def test_loader_does_not_introduce_a_separate_timedout_flag():
+    loader_js = _read(JS_DIR / "component_loader.js")
+    # Check for an actual variable declaration, not just the word appearing in
+    # the explanatory comment about why one isn't needed.
+    assert not re.search(r"\b(?:var|let|const)\s+timedOut\b", loader_js), (
+        "the current()-plus-AbortError reasoning (documented inline) makes a "
+        "separate timedOut boolean unnecessary; its presence would mean the "
+        "two-abort-call-site invariant was broken without updating this test"
+    )
+
+
+def test_loader_timeout_and_destroy_are_the_only_two_abort_call_sites():
+    loader_js = _read(JS_DIR / "component_loader.js")
+    assert loader_js.count("controller.abort()") == 2, (
+        "exactly two abort() call sites are required for the catch handler's "
+        "current()+AbortError reasoning to hold -- a third call site must "
+        "come with a re-examination of that reasoning, not silently appear"
+    )
+
+
 def test_shell_init_is_wrapped_in_try_catch():
     shell_js = _read(JS_DIR / "shell.js")
     assert "try {" in shell_js and "} catch (err)" in shell_js, (
