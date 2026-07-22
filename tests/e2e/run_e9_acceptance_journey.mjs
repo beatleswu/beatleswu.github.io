@@ -289,6 +289,31 @@ async function logoutViaApp(page) {
   await page.waitForURL((url) => url.pathname.startsWith('/login'), { timeout: 15000 });
 }
 
+// The 5 fragment-bearing slot roots (mirrors js/e9/shell.js's CRITICAL_SLOT +
+// NON_CRITICAL_SLOTS). loadComponent() is asynchronous (fetch-based) and
+// initShell() returns long before those fetches settle, so any listener-count
+// read taken immediately after initShell() legitimately observes zero adds
+// -- not because nothing was mounted, but because mounting hasn't finished
+// yet. Waiting for every slot to reach a settled data-e9-loaded state (set
+// unconditionally by component_loader.js on both its success and fallback
+// paths) closes that race before the spy is read.
+const E9_SLOT_SELECTORS = [
+  '#e9-world-stage-slot',
+  '#e9-top-hud-slot',
+  '#e9-left-nav-slot',
+  '#e9-right-cards-slot',
+  '#e9-bottom-dock-slot',
+];
+
+async function waitForSlotsSettled(page, { timeout = 10000 } = {}) {
+  await page.waitForFunction((selectors) => (
+    selectors.every((sel) => {
+      const el = document.querySelector(sel);
+      return !!el && el.hasAttribute('data-e9-loaded');
+    })
+  ), E9_SLOT_SELECTORS, { timeout });
+}
+
 async function shellSnapshot(page) {
   return page.evaluate(() => {
     const hasE9 = !!(window.E9 && typeof window.E9.getActiveShell === 'function');
@@ -328,40 +353,62 @@ export function assertFlagsAllEqual(flags, expected, label) {
   }
 }
 
-// Installs a narrowly-scoped addEventListener/removeEventListener spy on the
-// E9 shell + slot roots (not document/window — see E9_INSTRUMENTED_SELECTORS
-// above). Safe to call again after a destroy/remount cycle; each call
-// re-installs on whatever matches the selectors right now.
+// Installs a narrowly-scoped addEventListener/removeEventListener spy
+// attributing calls to the E9 shell + slot roots (not document/window — see
+// E9_INSTRUMENTED_SELECTORS above) OR any of their current descendants.
+//
+// Patches EventTarget.prototype rather than wrapping each root element's own
+// method: the real E9 shell (js/e9/shell.js's on()) and the real slot modules
+// (js/e9/{top_hud,left_nav,right_cards,bottom_dock,world_stage}.js) attach
+// their interactive listeners to elements created by loadComponent()'s
+// innerHTML injection -- buttons, zone tiles, CTAs -- nested INSIDE each slot
+// root, never on the root container element itself. A per-element wrapper
+// (the original approach here, validated only against a hand-written fixture
+// that happened to attach listeners to the roots directly) is structurally
+// blind to that real pattern: it would report zero adds/removes on every
+// real destroy/remount cycle even though the app's own generation-scoped
+// cleanup (shell.js's `registerCleanup`/`lifecycleCleanups`) is working
+// correctly. Confirmed against the real app during the Stage C acceptance
+// sprint (2026-07-22): the previous per-element spy reported
+// `destroy1Delta.remove === 0` on every real login, a false negative --
+// walking shell.js's `on()` and the slot modules directly showed listeners
+// are always attached to injected children, not slot roots.
+//
+// A global prototype patch is idempotent-guarded so repeated
+// installListenerSpy() calls (the lifecycle scenario re-installs after each
+// remount) never double-wrap. It only counts a call when `this` is one of
+// the instrumented roots or `<root>.contains(this)` at call time -- this
+// still requires no document/window attribution (they are never contained
+// by any of the 6 named roots) and correctly attributes descendants
+// rendered after installation, since containment is re-checked live on
+// every call rather than snapshotted once at install time.
 export async function installListenerSpy(page) {
   await page.evaluate((selectors) => {
-    // The log object must persist across repeated installListenerSpy()
-    // calls (the lifecycle scenario re-installs after each remount, on
-    // elements that may already be instrumented from an earlier call) --
-    // creating a fresh log every call would orphan counts from
-    // already-wrapped elements, whose closures still reference the old log.
     if (!window.__E9_TEST_LISTENER_SPY__) {
       window.__E9_TEST_LISTENER_SPY__ = { add: 0, remove: 0 };
     }
+    if (window.__E9_TEST_LISTENER_SPY_INSTALLED__) return;
+    window.__E9_TEST_LISTENER_SPY_INSTALLED__ = true;
+    window.__E9_TEST_LISTENER_SPY_SELECTORS__ = selectors;
     const log = window.__E9_TEST_LISTENER_SPY__;
-    const targets = new Set();
-    selectors.forEach((sel) => {
-      const el = document.querySelector(sel);
-      if (el) targets.add(el);
-    });
-    targets.forEach((target) => {
-      if (target.__e9TestSpyInstalled) return;
-      target.__e9TestSpyInstalled = true;
-      const origAdd = target.addEventListener.bind(target);
-      const origRemove = target.removeEventListener.bind(target);
-      target.addEventListener = function (...args) {
-        log.add += 1;
-        return origAdd(...args);
-      };
-      target.removeEventListener = function (...args) {
-        log.remove += 1;
-        return origRemove(...args);
-      };
-    });
+    function isWatchedTarget(target) {
+      if (!target || target === document || target === window) return false;
+      if (typeof target.nodeType !== 'number') return false; // not a DOM node -- excludes document/window and any other non-node EventTarget
+      return window.__E9_TEST_LISTENER_SPY_SELECTORS__.some((sel) => {
+        const root = document.querySelector(sel);
+        return !!root && (root === target || root.contains(target));
+      });
+    }
+    const origAdd = EventTarget.prototype.addEventListener;
+    const origRemove = EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.addEventListener = function (...args) {
+      if (isWatchedTarget(this)) log.add += 1;
+      return origAdd.apply(this, args);
+    };
+    EventTarget.prototype.removeEventListener = function (...args) {
+      if (isWatchedTarget(this)) log.remove += 1;
+      return origRemove.apply(this, args);
+    };
   }, E9_INSTRUMENTED_SELECTORS);
 }
 
@@ -458,9 +505,11 @@ async function main() {
           if (remounted1 !== 'e9') throw new Error(`expected 'e9' after first remount, got ${remounted1}`);
           const midGen = await page.evaluate(() => window.E9.getLifecycleGeneration());
           if (!(midGen > beforeGen)) throw new Error(`expected lifecycle generation to advance on first remount (before=${beforeGen}, mid=${midGen})`);
-          await installListenerSpy(page); // re-attach to freshly (re-)rendered slot roots
+          await waitForSlotsSettled(page); // let the async fragment fetches actually finish before reading the spy
           const remount1Delta = await readListenerSpyDelta(page);
-          if (!(remount1Delta.add >= 0)) throw new Error('listener spy read failed after first remount');
+          if (!(remount1Delta.add > 0)) {
+            throw new Error(`expected the first remount to register at least one new listener on E9 roots, got add=${remount1Delta.add}`);
+          }
 
           // --- Cycle 2: destroy again; removes on THIS destroy must not be
           // fewer than what the immediately-preceding remount added, i.e.
