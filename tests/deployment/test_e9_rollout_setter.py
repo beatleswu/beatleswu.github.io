@@ -23,6 +23,46 @@ def run_helper(tmp_path, operation, content, extra=()):
     return result, payload, env
 
 
+def _extract_ps_function(source, name):
+    # Brace-balancing extraction so the test always exercises the exact
+    # function body shipped in set-e9-rollout.ps1 -- not a reimplementation
+    # that could silently drift from the real script.
+    marker = "function " + name
+    start = source.index(marker)
+    brace_start = source.index("{", start)
+    depth = 0
+    i = brace_start
+    while i < len(source):
+        if source[i] == "{":
+            depth += 1
+        elif source[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start:i + 1]
+        i += 1
+    raise ValueError("unbalanced braces in " + name)
+
+
+def run_assert_canonical_allowlist_ids(raw):
+    """Invoke the REAL Assert-CanonicalAllowlistIds function body from
+    set-e9-rollout.ps1 in an isolated PowerShell process. This is the only
+    runtime (not just syntax-parse) exercise of that function -- it must
+    reject the exact same malformed/duplicate inputs app.py and
+    e9_rollout_config.py reject, since Assert-CanonicalAllowlistIds runs as a
+    local pre-flight check before either of those is ever reached.
+    """
+    fn_source = _extract_ps_function(SETTER.read_text(encoding="utf-8"), "Assert-CanonicalAllowlistIds")
+    escaped_raw = raw.replace("'", "''")
+    script = (
+        fn_source
+        + "\n$ErrorActionPreference = 'Stop'\n"
+        + "try { $r = Assert-CanonicalAllowlistIds -Raw '" + escaped_raw + "'; Write-Output ('OK:' + $r) }"
+        + " catch { Write-Output ('THROW:' + $_.Exception.Message) }"
+    )
+    result = subprocess.run(["powershell", "-NoProfile", "-Command", script], capture_output=True, text=True, check=False)
+    return result.stdout.strip().splitlines()[-1] if result.stdout.strip() else ("ERROR:" + result.stderr)
+
+
 def test_status_distinguishes_unset_and_defaults_without_other_env_values(tmp_path):
     result, payload, _ = run_helper(tmp_path, "status", "SECRET_KEY=do-not-print\n# comment\n")
     assert result.returncode == 0
@@ -117,31 +157,79 @@ def test_setter_is_not_generic_and_compose_wires_five_keys():
 
 # --- enable-allowlist (E9 Phase 1) ---
 
-def test_enable_allowlist_dry_run_previews_sorted_deduped_ids_without_mutation(tmp_path):
+def test_enable_allowlist_dry_run_previews_sorted_unique_ids_without_mutation(tmp_path):
+    # NOTE: input here ("42,7,100") is already duplicate-free -- this proves
+    # SORTING only. Duplicate input is a separate, REJECTED case (see
+    # test_enable_allowlist_rejects_duplicate_ids_at_every_layer below); the
+    # two must not be conflated in a single test or its name.
     content = "SECRET_KEY=opaque\nE9_ROLLOUT_SCOPE=admin_only\n"
     result, payload, env = run_helper(tmp_path, "dry-run", content, ("--desired", "enable-allowlist", "--allowlist", "42,7,100"))
     assert result.returncode == 0
     assert env.read_text(encoding="utf-8") == content  # dry-run must never mutate
-    assert payload["desired"]["E9_ROLLOUT_ALLOWLIST"] == "7,42,100"  # sorted numerically
+    assert payload["desired"]["E9_ROLLOUT_ALLOWLIST"] == "7,42,100"  # sorted numerically, same set of IDs
     assert payload["desired"]["E9_ROLLOUT_SCOPE"] == "named_allowlist"
     assert "E9_ROLLOUT_ALLOWLIST" in payload["keys_to_add"]
 
 
-def test_enable_allowlist_rejects_duplicate_ids_matching_apps_own_behavior(tmp_path):
+def test_enable_allowlist_rejects_duplicate_ids_at_every_layer(tmp_path):
+    # Merge-audit finding: prove the SAME duplicate-containing input ("12,12,34",
+    # the exact example raised in review) is rejected -- never silently
+    # deduplicated -- at all four points in the pipeline: the Python helper's
+    # execute path, its dry-run preview path, its parse_allowlist() directly,
+    # and the PowerShell pre-flight check that runs before either is reached.
+    dup_input = "12,12,34"
     content = "E9_ROLLOUT_SCOPE=admin_only\n"
-    result, payload, env = run_helper(tmp_path, "enable-allowlist", content, ("--allowlist", "42,7,7"))
+
+    result, payload, env = run_helper(tmp_path, "enable-allowlist", content, ("--allowlist", dup_input))
     assert result.returncode == 1
     assert payload["status"] == "fail_closed"
     assert env.read_text(encoding="utf-8") == content  # rejected before any write
 
+    dry_result, dry_payload, _ = run_helper(tmp_path, "dry-run", content, ("--desired", "enable-allowlist", "--allowlist", dup_input))
+    assert dry_result.returncode == 1
+    assert dry_payload["status"] == "fail_closed"
+
+    sys.path.insert(0, str(HELPER.parent))
+    import e9_rollout_config
+    assert e9_rollout_config.parse_allowlist(dup_input) is None
+
+    ps_output = run_assert_canonical_allowlist_ids(dup_input)
+    assert ps_output.startswith("THROW:"), ps_output
+    assert "duplicate" in ps_output.lower(), ps_output
+
 
 def test_enable_allowlist_rejects_non_canonical_ids(tmp_path):
     content = "E9_ROLLOUT_SCOPE=admin_only\n"
-    for bad in ("007", "+42", "-1", "3.5", "alice", ""):
+    for bad in ("007", "+42", "-1", "3.5", "alice", "", "1abc", "  ", "1.0"):
         result, payload, env = run_helper(tmp_path, "enable-allowlist", content, ("--allowlist", bad))
         assert result.returncode == 1, bad
         assert payload["status"] == "fail_closed", bad
         assert env.read_text(encoding="utf-8") == content, bad
+
+
+def test_powershell_assert_canonical_allowlist_ids_matches_python_layer_exactly(tmp_path):
+    # Merge-audit finding: Assert-CanonicalAllowlistIds (the PowerShell
+    # pre-flight check) previously had zero runtime test coverage -- only a
+    # whole-file syntax-parse check exercised the script at all. This calls
+    # the REAL function body (extracted from set-e9-rollout.ps1, not
+    # reimplemented) and confirms it accepts/rejects the identical set of
+    # canonical-ID edge cases as the Python layer (regex is anchored with
+    # ^...$ and used via -match/-notmatch on an already-.Trim()'d entry,
+    # which is PowerShell's equivalent of Python's re.fullmatch -- neither
+    # layer uses an unanchored match/search that a suffix like "123abc"
+    # could pass by matching only a prefix).
+    accept = {"1": "1", "42": "42", "9999999999": "9999999999"}
+    for raw, expected in accept.items():
+        assert run_assert_canonical_allowlist_ids(raw) == "OK:" + expected, raw
+
+    for bad in ("01", "007", "+1", "-1", "1.0", "1abc", "", "  ", "alice"):
+        output = run_assert_canonical_allowlist_ids(bad)
+        assert output.startswith("THROW:"), (bad, output)
+
+    # Sorting proof at the PowerShell layer too, mirroring the Python-layer
+    # dry-run sort test above (not a duplicate case -- these three IDs are
+    # already unique).
+    assert run_assert_canonical_allowlist_ids("42,7,100") == "OK:7,42,100"
 
 
 def test_enable_allowlist_applies_and_preserves_non_e9_lines(tmp_path):

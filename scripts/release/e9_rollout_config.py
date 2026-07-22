@@ -47,13 +47,18 @@ ASSIGNMENT = re.compile(r"^(?P<indent>[ \t]*)(?P<key>[A-Za-z_][A-Za-z0-9_]*)(?P<
 def parse_allowlist(raw):
     """Parse a comma-separated canonical-user-ID allowlist string.
 
-    Returns a sorted, de-duplicated tuple of decimal ID strings (empty tuple
-    for an unset/blank allowlist), or None if any entry fails the canonical
-    format (^[1-9][0-9]*$: positive decimal integers only -- no leading
-    zeros, no sign, no decimal point, no username/email text). None is a
-    fail-closed signal for callers, mirroring app.py's own E9_ROLLOUT_ALLOWLIST
-    validation in _e9_rollout_config() -- this helper and the app must reject
-    the same malformed inputs, not diverge.
+    For valid input, returns a SORTED tuple of the given decimal ID strings,
+    unchanged in membership (empty tuple for an unset/blank allowlist).
+    Returns None -- a fail-closed signal, never a silent correction -- if any
+    entry fails the canonical format (^[1-9][0-9]*$: positive decimal
+    integers only, no leading zeros, no sign, no decimal point, no
+    username/email text) OR if the input contains ANY duplicate entry.
+    Duplicates are REJECTED, not de-duplicated: this mirrors app.py's own
+    E9_ROLLOUT_ALLOWLIST validation in _e9_rollout_config() exactly (`if
+    len(entries) != len(set(entries)): return None`), so a malformed or
+    duplicate-containing allowlist is never silently repaired by one layer
+    while another would have rejected it -- the two must reject the same
+    inputs, not diverge.
     """
     raw = (raw or "").strip()
     if not raw:
@@ -63,7 +68,9 @@ def parse_allowlist(raw):
         return None
     if len(entries) != len(set(entries)):
         return None
-    return tuple(sorted(set(entries), key=int))
+    # No duplicates survive to this point (rejected above), so this is a
+    # plain sort of already-unique entries, never a de-duplication step.
+    return tuple(sorted(entries, key=int))
 
 
 class ConfigError(RuntimeError):
