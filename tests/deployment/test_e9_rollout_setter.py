@@ -43,6 +43,29 @@ def _extract_ps_function(source, name):
     raise ValueError("unbalanced braces in " + name)
 
 
+def run_assert_e9_runtime_flags(flags, expected_operation, expected_allowlist_ids=""):
+    """Invoke the REAL Assert-E9RuntimeFlags function body from
+    set-e9-rollout.ps1 in an isolated PowerShell process, against a
+    synthetic runtime-flags hashtable (standing in for what
+    Get-E9RuntimeFlags would have parsed from `docker exec printenv`).
+    """
+    fn_source = _extract_ps_function(SETTER.read_text(encoding="utf-8"), "Assert-E9RuntimeFlags")
+    pairs = "; ".join("'{0}' = '{1}'".format(k, v.replace("'", "''")) for k, v in flags.items())
+    hashtable_literal = "@{" + pairs + "}"
+    escaped_op = expected_operation.replace("'", "''")
+    escaped_ids = (expected_allowlist_ids or "").replace("'", "''")
+    script = (
+        fn_source
+        + "\n$ErrorActionPreference = 'Stop'\n"
+        + "$flags = " + hashtable_literal + "\n"
+        + "try { Assert-E9RuntimeFlags -Flags $flags -ExpectedOperation '" + escaped_op
+        + "' -ExpectedAllowlistIds '" + escaped_ids + "'; Write-Output 'OK' }"
+        + " catch { Write-Output ('THROW:' + $_.Exception.Message) }"
+    )
+    result = subprocess.run(["powershell", "-NoProfile", "-Command", script], capture_output=True, text=True, check=False)
+    return result.stdout.strip().splitlines()[-1] if result.stdout.strip() else ("ERROR:" + result.stderr)
+
+
 def run_assert_canonical_allowlist_ids(raw):
     """Invoke the REAL Assert-CanonicalAllowlistIds function body from
     set-e9-rollout.ps1 in an isolated PowerShell process. This is the only
@@ -230,6 +253,56 @@ def test_powershell_assert_canonical_allowlist_ids_matches_python_layer_exactly(
     # dry-run sort test above (not a duplicate case -- these three IDs are
     # already unique).
     assert run_assert_canonical_allowlist_ids("42,7,100") == "OK:7,42,100"
+
+
+def test_assert_e9_runtime_flags_verifies_disable_and_rollback_scope(tmp_path):
+    # Merge-audit finding: at pre-Phase-1 baseline, admin_only was the ONLY
+    # possible scope, so an unconditional top-level "scope must be
+    # admin_only" check implicitly covered every operation including
+    # 'disable' and 'rollback'. Splitting the check into per-operation
+    # branches for named_allowlist support silently dropped that coverage
+    # for 'disable' and 'rollback' specifically -- this test is the direct
+    # regression check for the fix (a general admin_only+non-empty-allowlist
+    # invariant, plus disable's scope restored explicitly).
+    correct_disabled = {
+        "E9_ROLLOUT_GLOBAL_ENABLED": "false", "E9_ROLLOUT_ADMIN_ENABLED": "false",
+        "E9_ROLLOUT_SCOPE": "admin_only", "E9_ROLLOUT_FLAGS": FLAGS, "E9_ROLLOUT_ALLOWLIST": "",
+    }
+    assert run_assert_e9_runtime_flags(correct_disabled, "disable") == "OK"
+
+    # The exact bug this fix closes: before it, 'disable' never checked
+    # scope at all, so a runtime that was actually still in named_allowlist
+    # scope (e.g. a botched disable that only flipped the boolean flags)
+    # would have passed verification silently.
+    wrong_scope_disabled = {**correct_disabled, "E9_ROLLOUT_SCOPE": "named_allowlist", "E9_ROLLOUT_ALLOWLIST": "7"}
+    result = run_assert_e9_runtime_flags(wrong_scope_disabled, "disable")
+    assert result.startswith("THROW:"), result
+
+    # 'rollback' has no single fixed target (it can restore any prior
+    # governed snapshot), so it relies on the general structural invariant:
+    # admin_only scope must never coexist with a non-empty allowlist. A
+    # valid restored admin_only state passes;
+    valid_rolled_back = {
+        "E9_ROLLOUT_GLOBAL_ENABLED": "true", "E9_ROLLOUT_ADMIN_ENABLED": "true",
+        "E9_ROLLOUT_SCOPE": "admin_only", "E9_ROLLOUT_FLAGS": FLAGS, "E9_ROLLOUT_ALLOWLIST": "",
+    }
+    assert run_assert_e9_runtime_flags(valid_rolled_back, "rollback") == "OK"
+
+    # a corrupted/inconsistent one (admin_only with a leftover allowlist --
+    # the exact combination app.py's own _e9_rollout_config() would itself
+    # treat as invalid_config, locking out even admins) does not.
+    corrupted_rolled_back = {**valid_rolled_back, "E9_ROLLOUT_ALLOWLIST": "7,42"}
+    result = run_assert_e9_runtime_flags(corrupted_rolled_back, "rollback")
+    assert result.startswith("THROW:"), result
+
+    # A valid restored named_allowlist state also passes 'rollback' (no
+    # operation-specific branch matches 'rollback', only the general
+    # invariant applies, and named_allowlist + non-empty allowlist is fine).
+    valid_named_allowlist_rolled_back = {
+        "E9_ROLLOUT_GLOBAL_ENABLED": "true", "E9_ROLLOUT_ADMIN_ENABLED": "true",
+        "E9_ROLLOUT_SCOPE": "named_allowlist", "E9_ROLLOUT_FLAGS": FLAGS, "E9_ROLLOUT_ALLOWLIST": "7,42",
+    }
+    assert run_assert_e9_runtime_flags(valid_named_allowlist_rolled_back, "rollback") == "OK"
 
 
 def test_enable_allowlist_applies_and_preserves_non_e9_lines(tmp_path):

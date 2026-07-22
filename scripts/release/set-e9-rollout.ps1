@@ -158,11 +158,21 @@ function Get-E9RuntimeFlags {
 function Assert-E9RuntimeFlags {
     param([hashtable]$Flags, [string]$ExpectedOperation, [string]$ExpectedAllowlistIds)
     if ($Flags.E9_ROLLOUT_FLAGS -ne 'e9Shell,e9TopHud,e9LeftNav,e9RightCards,e9BottomDock,e9WorldStage') { throw 'E9 runtime flags failed closed.' }
-    if ($ExpectedOperation -eq 'enable-admin-only') {
-        if ($Flags.E9_ROLLOUT_SCOPE -ne 'admin_only' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'true' -or $Flags.E9_ROLLOUT_ADMIN_ENABLED -ne 'true') { throw 'E9 admin-only runtime flags failed closed.' }
-        if ($Flags.E9_ROLLOUT_ALLOWLIST) { throw 'E9 admin-only runtime state failed closed: allowlist must be empty.' }
+    # Structural invariant that must hold regardless of which operation
+    # produced the current state -- including 'rollback', which can restore
+    # any prior governed snapshot and so has no single fixed target to
+    # assert below. Mirrors app.py's own _e9_rollout_config() fail-closed
+    # rule (`if raw_scope == 'admin_only' and entries: return None`):
+    # admin_only scope must never coexist with a non-empty allowlist.
+    if ($Flags.E9_ROLLOUT_SCOPE -eq 'admin_only' -and $Flags.E9_ROLLOUT_ALLOWLIST) {
+        throw 'E9 runtime state failed closed: admin_only scope must never have a non-empty allowlist.'
     }
-    if ($ExpectedOperation -eq 'disable' -and ($Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'false' -or $Flags.E9_ROLLOUT_ADMIN_ENABLED -ne 'false')) { throw 'E9 disabled runtime flags failed closed.' }
+    if ($ExpectedOperation -eq 'enable-admin-only' -and ($Flags.E9_ROLLOUT_SCOPE -ne 'admin_only' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'true' -or $Flags.E9_ROLLOUT_ADMIN_ENABLED -ne 'true')) { throw 'E9 admin-only runtime flags failed closed.' }
+    # 'disable' also always targets admin_only scope (desired_for('disable')
+    # sets it explicitly) -- this branch used to be covered for free by an
+    # unconditional (pre-named_allowlist-era) top-level scope check; restored
+    # here explicitly now that scope varies by operation.
+    if ($ExpectedOperation -eq 'disable' -and ($Flags.E9_ROLLOUT_SCOPE -ne 'admin_only' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'false' -or $Flags.E9_ROLLOUT_ADMIN_ENABLED -ne 'false')) { throw 'E9 disabled runtime flags failed closed.' }
     if ($ExpectedOperation -eq 'enable-allowlist') {
         if ($Flags.E9_ROLLOUT_SCOPE -ne 'named_allowlist' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'true') { throw 'E9 allowlist runtime scope failed closed.' }
         if ($Flags.E9_ROLLOUT_ALLOWLIST -ne $ExpectedAllowlistIds) { throw "E9 allowlist runtime content failed closed: expected '$ExpectedAllowlistIds', got '$($Flags.E9_ROLLOUT_ALLOWLIST)'." }
