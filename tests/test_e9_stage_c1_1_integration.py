@@ -106,3 +106,106 @@ def test_synthetic_rollout_matrix_uses_server_identity_and_cleans_environment():
             else:
                 os.environ[name] = value
     assert all(name not in os.environ or os.environ[name] == old[name] for name in names)
+
+
+def test_named_allowlist_matches_canonical_user_id_not_username(monkeypatch):
+    # Real runtime proof (not just a source-string check) that the E9 Phase 1
+    # identity fix behaves correctly: allowlist membership is decided by
+    # user_id, is independent of username, and a non-numeric/mismatched
+    # username on an allowlisted ID does not block eligibility, while an
+    # allowlisted username string (the old, incorrect model) does NOT grant
+    # access on its own.
+    app = _load_rollout_module()
+    monkeypatch.setenv("E9_ROLLOUT_GLOBAL_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_ADMIN_ENABLED", "false")
+    monkeypatch.setenv("E9_ROLLOUT_SCOPE", "named_allowlist")
+    monkeypatch.setenv("E9_ROLLOUT_ALLOWLIST", "7,42,100")
+
+    allowlisted = app._e9_rollout_decision(user_id=42, username="totally-unrelated-display-name", is_admin=False)
+    assert allowlisted["reason"] == "named_allowlist" and allowlisted["eligible"]
+
+    not_allowlisted = app._e9_rollout_decision(user_id=999, username="also-not-on-the-list", is_admin=False)
+    assert not_allowlisted["reason"] == "not_allowed" and not not_allowlisted["eligible"]
+
+    # The literal string "42" would also happen to be a substring match if the
+    # implementation still matched on username -- confirm a user whose
+    # USERNAME happens to equal an allowlisted ID string, but whose user_id
+    # does not, is correctly rejected (proves there is no username-based path
+    # remaining, not just that a differently-named user is rejected).
+    username_collision = app._e9_rollout_decision(user_id=999, username="42", is_admin=False)
+    assert username_collision["reason"] == "not_allowed" and not username_collision["eligible"]
+
+    admin_bypass_alongside_allowlist = app._e9_rollout_decision(user_id=999, username="admin-user", is_admin=True)
+    assert admin_bypass_alongside_allowlist["reason"] == "not_allowed" and not admin_bypass_alongside_allowlist["eligible"]
+    # admin_enabled is false above, so is_admin alone must not grant entry --
+    # confirms admin_entitled and named_allowlist are independently gated, not
+    # silently coupled.
+
+
+def test_invalid_rollout_config_fails_closed_for_everyone_including_admins(monkeypatch):
+    # Task book WI-4 eligibility matrix, row 5: a malformed rollout config
+    # must fail closed to invalid_config for EVERY caller, including admins --
+    # distinct from global_disabled (which is a valid config that is simply
+    # turned off) and distinct from not_allowed (a valid config that just
+    # doesn't cover this user). Covers all three ways _e9_rollout_config()
+    # can return None: bad scope, bad allowlist format, bad flags.
+    app = _load_rollout_module()
+    base_env = {
+        "E9_ROLLOUT_GLOBAL_ENABLED": "true",
+        "E9_ROLLOUT_ADMIN_ENABLED": "true",
+        "E9_ROLLOUT_SCOPE": "named_allowlist",
+        "E9_ROLLOUT_ALLOWLIST": "7,42",
+        "E9_ROLLOUT_FLAGS": "e9Shell,e9TopHud,e9LeftNav,e9RightCards,e9BottomDock,e9WorldStage",
+    }
+
+    def apply(overrides):
+        for key, value in {**base_env, **overrides}.items():
+            monkeypatch.setenv(key, value)
+
+    malformed_configs = {
+        "bad_scope": {"E9_ROLLOUT_SCOPE": "public"},
+        "bad_allowlist_format": {"E9_ROLLOUT_ALLOWLIST": "007"},
+        "bad_allowlist_duplicate": {"E9_ROLLOUT_ALLOWLIST": "7,7"},
+        "bad_flags": {"E9_ROLLOUT_FLAGS": "e9Shell,not_a_real_flag"},
+        "flags_missing_e9shell": {"E9_ROLLOUT_FLAGS": "e9TopHud,e9LeftNav"},
+    }
+    for label, overrides in malformed_configs.items():
+        apply(overrides)
+        for is_admin in (True, False):
+            decision = app._e9_rollout_decision(user_id=42, username="someone", is_admin=is_admin)
+            assert decision["reason"] == "invalid_config", (label, is_admin, decision)
+            assert decision["eligible"] is False, (label, is_admin, decision)
+            assert all(not value for value in decision["effective_flags"].values()), (label, is_admin, decision)
+            # invalid_config must never be confused with a merely-off valid
+            # config -- kill_switch is a separate, coarser signal, but the
+            # reason code itself is the one WI-4 requires kept distinct.
+            assert decision["reason"] != "global_disabled", (label, is_admin, decision)
+
+
+def test_authenticated_request_with_no_resolvable_user_id_never_matches_or_admin_bypasses(monkeypatch):
+    # Task book WI-4 eligibility matrix, row 6: an "authenticated" caller (a
+    # session/is_admin flag may be present) but with no resolvable canonical
+    # user_id must fail closed -- never named_allowlist, never admin_entitled,
+    # regardless of is_admin. This is a distinct security property from row 4
+    # (a genuinely logged-out visitor): here is_admin=True is passed
+    # deliberately to prove a missing user_id cannot be overridden by an
+    # admin flag on the same call.
+    app = _load_rollout_module()
+    monkeypatch.setenv("E9_ROLLOUT_GLOBAL_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_ADMIN_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_SCOPE", "named_allowlist")
+    monkeypatch.setenv("E9_ROLLOUT_ALLOWLIST", "7,42")
+
+    for missing_user_id in (None, 0, ""):
+        decision = app._e9_rollout_decision(user_id=missing_user_id, username="admin-with-no-id", is_admin=True)
+        assert decision["reason"] == "unauthenticated", (missing_user_id, decision)
+        assert decision["reason"] != "named_allowlist", (missing_user_id, decision)
+        assert decision["reason"] != "admin_entitled", (missing_user_id, decision)
+        assert decision["eligible"] is False, (missing_user_id, decision)
+        assert all(not value for value in decision["effective_flags"].values()), (missing_user_id, decision)
+
+    # Symmetric check: a resolvable user_id but no resolvable username must
+    # also fail closed the same way, not fall through to some other path.
+    decision = app._e9_rollout_decision(user_id=42, username="", is_admin=True)
+    assert decision["reason"] == "unauthenticated"
+    assert decision["eligible"] is False

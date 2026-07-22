@@ -32,9 +32,45 @@ ALLOWED_KEYS = (
     "E9_ROLLOUT_SCOPE",
     "E9_ROLLOUT_FLAGS",
 )
+# E9_ROLLOUT_ALLOWLIST is deliberately not folded into ALLOWED_KEYS: unlike
+# the four fixed enum/boolean keys above, it holds a variable-length list of
+# canonical user IDs with its own validation rules (see CANONICAL_USER_ID_PATTERN
+# and parse_allowlist below). It has always been tolerated by parse_lines()'s
+# unknown-key check; this revision is what first reads/writes it.
+ALLOWLIST_KEY = "E9_ROLLOUT_ALLOWLIST"
+CANONICAL_USER_ID_PATTERN = re.compile(r"^[1-9][0-9]*$")
 FLAGS = "e9Shell,e9TopHud,e9LeftNav,e9RightCards,e9BottomDock,e9WorldStage"
 TARGET_MARKER = "e9-rollout-governed-backup-v1"
 ASSIGNMENT = re.compile(r"^(?P<indent>[ \t]*)(?P<key>[A-Za-z_][A-Za-z0-9_]*)(?P<sep>[ \t]*=[ \t]*)(?P<value>.*?)(?P<newline>\r?\n?)$")
+
+
+def parse_allowlist(raw):
+    """Parse a comma-separated canonical-user-ID allowlist string.
+
+    For valid input, returns a SORTED tuple of the given decimal ID strings,
+    unchanged in membership (empty tuple for an unset/blank allowlist).
+    Returns None -- a fail-closed signal, never a silent correction -- if any
+    entry fails the canonical format (^[1-9][0-9]*$: positive decimal
+    integers only, no leading zeros, no sign, no decimal point, no
+    username/email text) OR if the input contains ANY duplicate entry.
+    Duplicates are REJECTED, not de-duplicated: this mirrors app.py's own
+    E9_ROLLOUT_ALLOWLIST validation in _e9_rollout_config() exactly (`if
+    len(entries) != len(set(entries)): return None`), so a malformed or
+    duplicate-containing allowlist is never silently repaired by one layer
+    while another would have rejected it -- the two must reject the same
+    inputs, not diverge.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return ()
+    entries = [x.strip() for x in raw.split(",")]
+    if any(not x or not CANONICAL_USER_ID_PATTERN.fullmatch(x) for x in entries):
+        return None
+    if len(entries) != len(set(entries)):
+        return None
+    # No duplicates survive to this point (rejected above), so this is a
+    # plain sort of already-unique entries, never a de-duplication step.
+    return tuple(sorted(entries, key=int))
 
 
 class ConfigError(RuntimeError):
@@ -70,7 +106,7 @@ def parse_lines(raw: bytes):
         if key in entries:
             raise ConfigError(f"duplicate assignment: {key}")
         entries[key] = (index, match)
-    unknown = [key for key in entries if key.startswith("E9_ROLLOUT_") and key not in (*ALLOWED_KEYS, "E9_ROLLOUT_ALLOWLIST")]
+    unknown = [key for key in entries if key.startswith("E9_ROLLOUT_") and key not in (*ALLOWED_KEYS, ALLOWLIST_KEY)]
     if unknown:
         raise ConfigError("unknown_e9_key")
     return text, lines, entries
@@ -85,17 +121,31 @@ def effective(values, allowlist):
     global_enabled = (values["E9_ROLLOUT_GLOBAL_ENABLED"] or "").strip().lower() == "true"
     admin_enabled = (values["E9_ROLLOUT_ADMIN_ENABLED"] or "").strip().lower() == "true"
     flags = values["E9_ROLLOUT_FLAGS"] or FLAGS
+    allowlist_ids = parse_allowlist(allowlist)
     valid = (
         scope in {"admin_only", "named_allowlist"}
         and not (scope == "admin_only" and allowlist.strip())
         and flags == FLAGS
         and (values["E9_ROLLOUT_GLOBAL_ENABLED"] in {None, "true", "false"})
         and (values["E9_ROLLOUT_ADMIN_ENABLED"] in {None, "true", "false"})
+        and allowlist_ids is not None
     )
     if not valid:
-        return {"state": "invalid_fail_closed", "global": False, "admin": False, "scope": "admin_only", "flags": FLAGS}
-    state = "admin_only" if global_enabled and admin_enabled and scope == "admin_only" else "disabled"
-    return {"state": state, "global": global_enabled, "admin": admin_enabled, "scope": scope, "flags": flags}
+        return {"state": "invalid_fail_closed", "global": False, "admin": False, "scope": "admin_only", "flags": FLAGS, "allowlist": ()}
+    # Mirrors app.py's _e9_rollout_decision() precedence: admin_entitled and
+    # named_allowlist are independent, coexisting paths gated by global_enabled,
+    # not mutually exclusive states -- so "state" reflects the configured scope
+    # once global_enabled is true, with admin/allowlist reported as separate,
+    # inspectable facts rather than collapsed into one opaque string.
+    if not global_enabled:
+        state = "disabled"
+    elif scope == "named_allowlist":
+        state = "named_allowlist"
+    elif admin_enabled and scope == "admin_only":
+        state = "admin_only"
+    else:
+        state = "disabled"
+    return {"state": state, "global": global_enabled, "admin": admin_enabled, "scope": scope, "flags": flags, "allowlist": allowlist_ids}
 
 
 def read_state(env_path: Path):
@@ -104,9 +154,9 @@ def read_state(env_path: Path):
     raw = env_path.read_bytes()
     text, lines, entries = parse_lines(raw)
     values = e9_values(entries)
-    allowlist = entries.get("E9_ROLLOUT_ALLOWLIST")
+    allowlist = entries.get(ALLOWLIST_KEY)
     allowlist_value = allowlist[1].group("value") if allowlist else ""
-    return raw, text, lines, entries, values, effective(values, allowlist_value)
+    return raw, text, lines, entries, values, allowlist_value, effective(values, allowlist_value)
 
 
 def safe_snapshot(env_path: Path):
@@ -114,20 +164,30 @@ def safe_snapshot(env_path: Path):
     return {"uid": info.st_uid, "gid": info.st_gid, "mode": stat.S_IMODE(info.st_mode), "sha256": sha256_file(env_path)}
 
 
-def safe_output(values, eff, *, operation, desired=None, backup=None, changed=None):
+# Keys this tool is allowed to write/verify, as opposed to any other line in
+# the .env file, which must be left byte-identical. ALLOWED_KEYS alone is
+# still used where code specifically means "the four fixed enum/boolean
+# keys" (e9_values, effective's per-key validation); MANAGED_KEYS is used
+# wherever code means "any key this tool may touch."
+MANAGED_KEYS = ALLOWED_KEYS + (ALLOWLIST_KEY,)
+
+
+def safe_output(values, eff, *, operation, allowlist_raw="", desired=None, backup=None, changed=None):
     def value_state(value):
         return "UNSET — APPLICATION DEFAULT APPLIES" if value is None else f"EXPLICIT VALUE: {value}"
 
     result = {
         "operation": operation,
         "values": {key: value_state(values[key]) for key in ALLOWED_KEYS},
+        "allowlist_value": value_state(allowlist_raw if allowlist_raw else None),
         "effective": eff,
     }
     if desired is not None:
         result["desired"] = desired
-        result["keys_to_add"] = [key for key in ALLOWED_KEYS if values[key] is None and desired[key] is not None]
-        result["keys_to_update"] = [key for key in ALLOWED_KEYS if values[key] is not None and values[key] != desired[key]]
-        result["keys_unchanged"] = [key for key in ALLOWED_KEYS if values[key] == desired[key]]
+        current = {**values, ALLOWLIST_KEY: allowlist_raw or None}
+        result["keys_to_add"] = [key for key in MANAGED_KEYS if current[key] is None and desired.get(key) is not None]
+        result["keys_to_update"] = [key for key in MANAGED_KEYS if current[key] is not None and current[key] != desired.get(key)]
+        result["keys_unchanged"] = [key for key in MANAGED_KEYS if current[key] == desired.get(key)]
     if backup:
         result["backup"] = backup
     if changed is not None:
@@ -135,18 +195,32 @@ def safe_output(values, eff, *, operation, desired=None, backup=None, changed=No
     return result
 
 
-def desired_for(operation):
+def desired_for(operation, allowlist_csv=None):
     if operation == "enable-admin-only":
-        return {key: value for key, value in zip(ALLOWED_KEYS, ("true", "true", "admin_only", FLAGS))}
+        base = dict(zip(ALLOWED_KEYS, ("true", "true", "admin_only", FLAGS)))
+        base[ALLOWLIST_KEY] = ""  # admin_only requires an empty allowlist (app.py's own invariant) --
+        # always clear it here so a prior named_allowlist enablement can never
+        # leave a stale non-empty allowlist behind, which _e9_rollout_config()
+        # would treat as a wholly invalid config (locking out even admins).
+        return base
     if operation == "disable":
-        return {key: value for key, value in zip(ALLOWED_KEYS, ("false", "false", "admin_only", FLAGS))}
+        base = dict(zip(ALLOWED_KEYS, ("false", "false", "admin_only", FLAGS)))
+        base[ALLOWLIST_KEY] = ""
+        return base
+    if operation == "enable-allowlist":
+        ids = parse_allowlist(allowlist_csv)
+        if not ids:
+            raise ConfigError("invalid_or_empty_allowlist")
+        base = dict(zip(ALLOWED_KEYS, ("true", "true", "named_allowlist", FLAGS)))
+        base[ALLOWLIST_KEY] = ",".join(ids)
+        return base
     return None
 
 
 def render(lines, entries, desired):
     output = list(lines)
     changed = []
-    for key in ALLOWED_KEYS:
+    for key in desired:
         if key in entries:
             index, match = entries[key]
             newline = match.group("newline") or ("\n" if output[index].endswith("\n") else "")
@@ -169,9 +243,9 @@ def verify_only_e9_changed(before: bytes, after: bytes, env_path: Path, desired)
         ma = ASSIGNMENT.match(line_after)
         kb = mb.group("key") if mb else None
         ka = ma.group("key") if ma else None
-        if kb != ka and kb not in ALLOWED_KEYS:
+        if kb != ka and kb not in MANAGED_KEYS:
             raise ConfigError("non-E9 line identity changed")
-        if kb not in ALLOWED_KEYS and line_before != line_after:
+        if kb not in MANAGED_KEYS and line_before != line_after:
             # Adding the first new assignment must terminate a legacy final
             # line that lacked a newline; the non-newline bytes remain exact.
             if not (line_before.rstrip("\r\n") == line_after.rstrip("\r\n") and not line_before.endswith(("\n", "\r"))):
@@ -283,15 +357,21 @@ def run(args):
             lock_handle.flush()
         lock_handle.seek(0)
         acquire_lock(lock_handle)
-        raw, _text, lines, entries, values, eff = read_state(env_path)
+        raw, _text, lines, entries, values, allowlist_value, eff = read_state(env_path)
         if args.operation in {"status", "dry-run"}:
-            desired = desired_for(args.desired) if args.operation == "dry-run" else None
-            result = safe_output(values, eff, operation=args.operation, desired=desired)
+            desired = desired_for(args.desired, args.allowlist) if args.operation == "dry-run" else None
+            result = safe_output(values, eff, operation=args.operation, allowlist_raw=allowlist_value, desired=desired)
             if args.operation == "dry-run":
                 result.update({"restart_plan": ["app", "scheduler", "nginx"], "backup_plan": "timestamped governed backup before atomic write"})
             print(json.dumps(result, sort_keys=True))
             return
         if args.operation == "rollback":
+            # Generic, operation-agnostic exact-state restore: this always
+            # restores whatever the most recent governed backup snapshot was,
+            # byte-for-byte, regardless of which operation created it. This is
+            # also what the PowerShell wrapper's enable-allowlist auto-rollback
+            # relies on -- restoring the exact pre-operation rollout state
+            # (e.g. admin_only) rather than a hard-coded target.
             meta, source = latest_backup(backup_dir, env_path)
             snapshot = safe_snapshot(env_path)
             data = source.read_bytes()
@@ -299,10 +379,10 @@ def run(args):
             audit(audit_path, {"marker": TARGET_MARKER, "operation": "rollback", "backup_id": source.stem, "restored_sha256": sha256_file(env_path), "timestamp": int(time.time())})
             print(json.dumps({"operation": "rollback", "backup_id": source.stem, "restored_sha256": sha256_file(env_path), "previous_sha256": snapshot["sha256"]}, sort_keys=True))
             return
-        desired = desired_for(args.operation)
+        desired = desired_for(args.operation, args.allowlist)
         if desired is None:
             raise ConfigError("unsupported_operation")
-        if eff["state"] == "invalid_fail_closed" and args.operation == "enable-admin-only":
+        if eff["state"] == "invalid_fail_closed" and args.operation in {"enable-admin-only", "enable-allowlist"}:
             raise ConfigError("current_e9_configuration_invalid")
         snapshot = safe_snapshot(env_path)
         backup_info = backup(env_path, backup_dir, snapshot)
@@ -315,12 +395,19 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--operation", choices=("status", "dry-run", "enable-admin-only", "disable", "rollback"), required=True)
-    parser.add_argument("--desired", choices=("enable-admin-only", "disable"))
+    parser.add_argument("--operation", choices=("status", "dry-run", "enable-admin-only", "disable", "rollback", "enable-allowlist"), required=True)
+    parser.add_argument("--desired", choices=("enable-admin-only", "disable", "enable-allowlist"))
     parser.add_argument("--env-path", required=True)
     parser.add_argument("--backup-dir", required=True)
     parser.add_argument("--audit-path", required=True)
     parser.add_argument("--lock-path", required=True)
+    parser.add_argument(
+        "--allowlist", default="",
+        help="Comma-separated canonical user IDs (decimal positive integers, "
+             "^[1-9][0-9]*$ each). Required for --operation enable-allowlist "
+             "and for --desired enable-allowlist dry-run previews; ignored "
+             "(and always cleared to empty) for enable-admin-only/disable.",
+    )
     args = parser.parse_args()
     try:
         run(args)
