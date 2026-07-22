@@ -174,8 +174,15 @@ _E9_REASON_CODES = {
 def _e9_truthy_env(name):
     return os.environ.get(name, '').strip().lower() in {'1', 'true', 'yes', 'on'}
 
-def _e9_normalize_identity(value):
-    return str(value or '').strip().casefold()
+# E9_ROLLOUT_ALLOWLIST holds canonical user IDs (users.id, a Postgres SERIAL
+# positive-integer primary key) -- decimal positive integers only, no leading
+# zero, no sign, no decimal point. Deliberately not username/email text: a
+# prior revision matched on username, which is fragile (mutable in principle,
+# case/normalization-dependent, and reused after account deletion) for what
+# is effectively a permission/rollout decision. There is no username fallback
+# and none should be added -- see scripts/release/e9_rollout_config.py's
+# identical CANONICAL_USER_ID_PATTERN, which this must stay in sync with.
+_E9_CANONICAL_USER_ID_PATTERN = re.compile(r'[1-9][0-9]*')
 
 def _e9_rollout_config():
     """Load server-only E9 targeting config; malformed config fails closed."""
@@ -183,8 +190,8 @@ def _e9_rollout_config():
     if raw_scope not in {'admin_only', 'named_allowlist'}:
         return None
     raw_allowlist = os.environ.get('E9_ROLLOUT_ALLOWLIST', '')
-    entries = [_e9_normalize_identity(x) for x in raw_allowlist.split(',') if x.strip()]
-    if any(not x or not re.fullmatch(r'[a-z0-9_@.+-]{1,160}', x) for x in entries):
+    entries = [x.strip() for x in raw_allowlist.split(',') if x.strip()]
+    if any(not _E9_CANONICAL_USER_ID_PATTERN.fullmatch(x) for x in entries):
         return None
     if len(entries) != len(set(entries)):
         return None
@@ -220,7 +227,7 @@ def _e9_rollout_decision(*, user_id=None, username=None, is_admin=False):
         reason = 'global_disabled'
     elif config['admin_enabled'] and is_admin:
         reason = 'admin_entitled'
-    elif config['scope'] == 'named_allowlist' and _e9_normalize_identity(username) in config['allowlist']:
+    elif config['scope'] == 'named_allowlist' and str(user_id) in config['allowlist']:
         reason = 'named_allowlist'
     else:
         reason = 'not_allowed'

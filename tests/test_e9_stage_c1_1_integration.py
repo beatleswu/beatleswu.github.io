@@ -106,3 +106,37 @@ def test_synthetic_rollout_matrix_uses_server_identity_and_cleans_environment():
             else:
                 os.environ[name] = value
     assert all(name not in os.environ or os.environ[name] == old[name] for name in names)
+
+
+def test_named_allowlist_matches_canonical_user_id_not_username(monkeypatch):
+    # Real runtime proof (not just a source-string check) that the E9 Phase 1
+    # identity fix behaves correctly: allowlist membership is decided by
+    # user_id, is independent of username, and a non-numeric/mismatched
+    # username on an allowlisted ID does not block eligibility, while an
+    # allowlisted username string (the old, incorrect model) does NOT grant
+    # access on its own.
+    app = _load_rollout_module()
+    monkeypatch.setenv("E9_ROLLOUT_GLOBAL_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_ADMIN_ENABLED", "false")
+    monkeypatch.setenv("E9_ROLLOUT_SCOPE", "named_allowlist")
+    monkeypatch.setenv("E9_ROLLOUT_ALLOWLIST", "7,42,100")
+
+    allowlisted = app._e9_rollout_decision(user_id=42, username="totally-unrelated-display-name", is_admin=False)
+    assert allowlisted["reason"] == "named_allowlist" and allowlisted["eligible"]
+
+    not_allowlisted = app._e9_rollout_decision(user_id=999, username="also-not-on-the-list", is_admin=False)
+    assert not_allowlisted["reason"] == "not_allowed" and not not_allowlisted["eligible"]
+
+    # The literal string "42" would also happen to be a substring match if the
+    # implementation still matched on username -- confirm a user whose
+    # USERNAME happens to equal an allowlisted ID string, but whose user_id
+    # does not, is correctly rejected (proves there is no username-based path
+    # remaining, not just that a differently-named user is rejected).
+    username_collision = app._e9_rollout_decision(user_id=999, username="42", is_admin=False)
+    assert username_collision["reason"] == "not_allowed" and not username_collision["eligible"]
+
+    admin_bypass_alongside_allowlist = app._e9_rollout_decision(user_id=999, username="admin-user", is_admin=True)
+    assert admin_bypass_alongside_allowlist["reason"] == "not_allowed" and not admin_bypass_alongside_allowlist["eligible"]
+    # admin_enabled is false above, so is_admin alone must not grant entry --
+    # confirms admin_entitled and named_allowlist are independently gated, not
+    # silently coupled.

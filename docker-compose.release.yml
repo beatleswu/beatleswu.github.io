@@ -62,6 +62,7 @@ services:
       E9_ROLLOUT_ADMIN_ENABLED: ${E9_ROLLOUT_ADMIN_ENABLED:-false}
       E9_ROLLOUT_SCOPE: ${E9_ROLLOUT_SCOPE:-admin_only}
       E9_ROLLOUT_FLAGS: ${E9_ROLLOUT_FLAGS:-e9Shell,e9TopHud,e9LeftNav,e9RightCards,e9BottomDock,e9WorldStage}
+      E9_ROLLOUT_ALLOWLIST: ${E9_ROLLOUT_ALLOWLIST:-}
       GO_ODYSSEY_LIVE_STATIC_ROOT: ${ASSET_CONTAINER_MOUNT_DESTINATION:?ASSET_CONTAINER_MOUNT_DESTINATION must be set}
       QUESTIONS_JSON_PATH: ${QUESTIONS_JSON_PATH:-/app/data/questions.json}
     volumes:
@@ -128,6 +129,7 @@ services:
       E9_ROLLOUT_ADMIN_ENABLED: ${E9_ROLLOUT_ADMIN_ENABLED:-false}
       E9_ROLLOUT_SCOPE: ${E9_ROLLOUT_SCOPE:-admin_only}
       E9_ROLLOUT_FLAGS: ${E9_ROLLOUT_FLAGS:-e9Shell,e9TopHud,e9LeftNav,e9RightCards,e9BottomDock,e9WorldStage}
+      E9_ROLLOUT_ALLOWLIST: ${E9_ROLLOUT_ALLOWLIST:-}
     volumes:
       - go-data:${QUESTIONS_CONTENT_MOUNT_DESTINATION:?QUESTIONS_CONTENT_MOUNT_DESTINATION must be set}
       - ${KATAGO_CACHE_SOURCE_PATH:-./katago_cache.db}:/app/katago_cache.db:ro
