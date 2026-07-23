@@ -8,14 +8,14 @@ import { chromium } from 'playwright-core';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const viewports = [
-  [1440, 900],
-  [1366, 768],
-  [1280, 800],
-  [1024, 768],
+  [360, 800],
+  [390, 844],
+  [430, 932],
   [768, 1024],
-  [640, 960],
-  [480, 854],
-  [320, 568]
+  [1024, 768],
+  [1366, 768],
+  [1440, 900],
+  [1920, 1080]
 ];
 const legacySelectors = [
   '#welcome-state > .guild-hall-hero',
@@ -117,12 +117,12 @@ function buildMockResponse(pathname, method) {
   if (pathname === '/api/adventure/bootstrap') {
     return {
       zones: [
-        { key: 'forest', label: '森林', name: 'Ancient Forest of Endless Training', icon: 'forest', status: 'available', locked: false, can_enter: true, cleared: true, stars: 3, bossAvailable: false },
-        { key: 'cave', label: '洞窟', name: 'Crystal Cave', icon: 'cave', status: 'available', locked: false, can_enter: true, cleared: false, stars: 1, bossAvailable: true },
-        { key: 'lake', label: '湖泊', name: 'Mirror Lake of Reflection', icon: 'lake', status: 'available', locked: false, can_enter: true, cleared: false, stars: 0, bossAvailable: false },
-        { key: 'tower', label: '高塔', name: 'Tower of Tactical Reading', icon: 'tower', status: 'locked', locked: true, can_enter: false, cleared: false, stars: 0, bossAvailable: false },
-        { key: 'ruins', label: '遺跡', name: 'Sunken Ruins', icon: 'ruins', status: 'available', locked: false, can_enter: true, cleared: true, stars: 2, bossAvailable: false },
-        { key: 'summit', label: '峰頂', name: 'Storm Summit', icon: 'summit', status: 'available', locked: false, can_enter: true, cleared: false, stars: 0, bossAvailable: true }
+        { key: 'k26_30', label: '新手村', name: 'Beginner Village', icon: 'village', status: 'completed', locked: false, can_enter: true, cleared: true, stars: 3, boss: { available: false } },
+        { key: 'k21_25', label: '史萊姆平原', name: 'Slime Plains with a Long Localized Zone Name', icon: 'plains', status: 'unlocked', locked: false, can_enter: true, cleared: false, stars: 1, boss: { available: true }, seen: 12, total: 20 },
+        { key: 'k16_20', label: '鏡湖', name: 'Mirror Lake of Reflection', icon: 'lake', status: 'unlocked', locked: false, can_enter: true, cleared: false, stars: 0, boss: { available: false } },
+        { key: 'k11_15', label: '高塔', name: 'Tower of Tactical Reading', icon: 'tower', status: 'locked', locked: true, can_enter: false, cleared: false, stars: 0, bossAvailable: false },
+        { key: 'ruins', label: '遺跡', name: 'Sunken Ruins', icon: 'ruins', status: 'completed', locked: false, can_enter: true, cleared: true, stars: 2, boss: { available: false } },
+        { key: 'summit', label: '峰頂', name: 'Storm Summit', icon: 'summit', status: 'unlocked', locked: false, can_enter: true, cleared: false, stars: 0, boss: { available: true } }
       ]
     };
   }
@@ -146,6 +146,66 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
     document.querySelector('.practice')?.scrollTo(0, 0);
   });
   await page.waitForTimeout(1000);
+  const cta = state === 'on'
+    ? await page.evaluate(() => {
+        const inspectButton = (selector) => {
+          const el = document.querySelector(selector);
+          if (!el) return null;
+          const rect = el.getBoundingClientRect();
+          const style = getComputedStyle(el);
+          return {
+            hidden: el.hidden,
+            className: el.className,
+            type: el.getAttribute('type'),
+            text: el.textContent,
+            width: rect.width,
+            height: rect.height,
+            backgroundColor: style.backgroundColor,
+            borderStyle: style.borderStyle,
+            overflowX: el.scrollWidth - el.clientWidth
+          };
+        };
+        const select = (zoneKey) => {
+          const tile = document.querySelector(`[data-zone="${zoneKey}"]`);
+          if (!tile) throw new Error(`missing zone tile ${zoneKey}`);
+          tile.click();
+        };
+
+        select('k26_30');
+        const beginner = inspectButton('#e9-newbie-mainline-cta');
+        const beginnerGenericHidden = document.querySelector('#e9-world-stage-details-cta')?.hidden;
+
+        select('k21_25');
+        const slimePlains = inspectButton('#e9-world-stage-details-cta');
+        const slimeDetails = document.querySelector('#e9-world-stage-details')?.getBoundingClientRect();
+        const slimeSummary = document.querySelector('#e9-world-stage-details-summary')?.textContent;
+
+        select('k16_20');
+        const anotherGeneric = inspectButton('#e9-world-stage-details-cta');
+        const anotherGenericElement = document.querySelector('#e9-world-stage-details-cta');
+        anotherGenericElement?.focus({ preventScroll: true });
+        const focusOutlineStyle = anotherGenericElement
+          ? getComputedStyle(anotherGenericElement).outlineStyle
+          : null;
+        const selectedBeforeLocked = document.querySelector('[aria-pressed="true"]')?.getAttribute('data-zone');
+        const locked = document.querySelector('[data-zone="k11_15"]');
+        locked?.click();
+        const selectedAfterLocked = document.querySelector('[aria-pressed="true"]')?.getAttribute('data-zone');
+
+        return {
+          beginner,
+          beginnerGenericHidden,
+          slimePlains,
+          slimeDetailsWidth: slimeDetails?.width || 0,
+          slimeSummary,
+          anotherGeneric,
+          focusOutlineStyle,
+          lockedAriaDisabled: locked?.getAttribute('aria-disabled'),
+          selectedBeforeLocked,
+          selectedAfterLocked
+        };
+      })
+    : null;
   const metrics = await page.evaluate(({ legacySelectors }) => {
     const rect = (selector) => {
       const el = document.querySelector(selector);
@@ -216,6 +276,7 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
     viewport: `${width}x${height}`,
     state,
     metrics,
+    cta,
     requests: {
       components: requestLog.filter((item) => item.startsWith('/components/adventure/')).length
     }
@@ -238,7 +299,7 @@ function assertContracts(results) {
   });
 
   byState.on.forEach((result) => {
-    const { viewport, metrics } = result;
+    const { viewport, metrics, cta } = result;
     if (metrics.activeShell !== 'e9') failures.push(`${viewport} ON: active shell expected e9, got ${metrics.activeShell}`);
     if (!metrics.shell || metrics.shell.height <= 0) failures.push(`${viewport} ON: shell missing or zero height`);
     if (!metrics.stage || metrics.stage.width <= 0 || metrics.stage.height <= 0) failures.push(`${viewport} ON: world stage collapsed`);
@@ -247,6 +308,37 @@ function assertContracts(results) {
     if (metrics.legacyFocusables !== 0) failures.push(`${viewport} ON: legacy focusables should be 0, got ${metrics.legacyFocusables}`);
     if (metrics.dock && metrics.cards && metrics.dock.top + 1 < metrics.cards.bottom) {
       failures.push(`${viewport} ON: bottom dock overlaps cards/stage flow`);
+    }
+    if (!cta?.beginner || cta.beginner.hidden) failures.push(`${viewport} ON: Beginner CTA missing`);
+    if (cta?.beginner?.type !== 'button') failures.push(`${viewport} ON: Beginner CTA type changed`);
+    if (cta?.beginnerGenericHidden !== true) failures.push(`${viewport} ON: Beginner duplicate generic CTA visible`);
+    for (const [zone, button] of [
+      ['Slime Plains', cta?.slimePlains],
+      ['another generic zone', cta?.anotherGeneric]
+    ]) {
+      if (!button || button.hidden) failures.push(`${viewport} ON: ${zone} CTA missing`);
+      if (button?.type !== 'button') failures.push(`${viewport} ON: ${zone} CTA type changed`);
+      if (!button?.className?.split(/\s+/).includes('e9-adventure-cta')) {
+        failures.push(`${viewport} ON: ${zone} CTA missing shared class`);
+      }
+      if ((button?.height || 0) < 44) failures.push(`${viewport} ON: ${zone} CTA under 44px`);
+      if (button?.backgroundColor === 'rgba(0, 0, 0, 0)') {
+        failures.push(`${viewport} ON: ${zone} CTA has browser-default transparent background`);
+      }
+      if ((button?.overflowX || 0) > 0) failures.push(`${viewport} ON: ${zone} CTA text overflows`);
+    }
+    if ((cta?.slimePlains?.width || 0) > (cta?.slimeDetailsWidth || 0) + 1) {
+      failures.push(`${viewport} ON: Slime Plains CTA exceeds details panel width`);
+    }
+    if (cta?.slimeSummary?.includes('{seen}') || cta?.slimeSummary?.includes('{total}')) {
+      failures.push(`${viewport} ON: Slime Plains summary exposes raw progress placeholders`);
+    }
+    if (!cta?.focusOutlineStyle || cta.focusOutlineStyle === 'none') {
+      failures.push(`${viewport} ON: Generic CTA lacks a visible focus outline`);
+    }
+    if (cta?.lockedAriaDisabled !== 'true') failures.push(`${viewport} ON: locked zone is actionable`);
+    if (cta?.selectedBeforeLocked !== cta?.selectedAfterLocked) {
+      failures.push(`${viewport} ON: clicking locked zone changed selection`);
     }
     if (parseInt(viewport.split('x')[0], 10) >= 1280) {
       if (!metrics.leftNav || metrics.leftNav.width < 200 || metrics.leftNav.width > 270) {
