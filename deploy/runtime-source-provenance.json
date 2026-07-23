@@ -471,15 +471,15 @@
     },
     {
       "path": "components/adventure/world_stage.html",
-      "source_commit": "87155e8a94f0101289db08513b7ada97a8aa114b",
+      "source_commit": "8b4be9f146a8a9120a76c15fab7fe196edb63f8f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #209 from beatleswu/fix/e9-zone-name-i18n",
+      "source_commit_subject": "fix: wire E9 multi-zone adventure start CTA and seen/total display (#213)",
       "source_date": "2026-07-23",
-      "content_sha256": "9b7653911cf2980a755477ebd64d8e7ba8ed9812edd32e3fb4d64cc32a730db5",
+      "content_sha256": "605df42378086e55bec06411a4e2acd07a62dc6eff58560f042e925528b2f696",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage component markup; served by app.py static route",
-      "production_hash_status": "not deployed; Production remains on the pre-#209 runtime (predates the zone-name English translation fix)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "not deployed; Production remains on the pre-#213 runtime (predates the multi-zone adventure start CTA / seen-total fix)",
+      "source_status": "local Git provenance -- verified against origin/master merge commit #213; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "css/e9/world_stage.css",
@@ -507,27 +507,27 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "87155e8a94f0101289db08513b7ada97a8aa114b",
+      "source_commit": "8b4be9f146a8a9120a76c15fab7fe196edb63f8f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #209 from beatleswu/fix/e9-zone-name-i18n",
+      "source_commit_subject": "fix: wire E9 multi-zone adventure start CTA and seen/total display (#213)",
       "source_date": "2026-07-23",
-      "content_sha256": "62591e1302341c2b9cc3d3e71955eb3d0cc11105c6ea4a772ec13c65d75fb2c5",
+      "content_sha256": "bf5b4970d9327e766fa32971b37549efa9e9d7d3752b988357f9cdc9dd79f6fa",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "not deployed; Production remains on the pre-#209 runtime (predates the zone-name English translation fix)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "not deployed; Production remains on the pre-#213 runtime (predates the multi-zone adventure start CTA / seen-total fix)",
+      "source_status": "local Git provenance -- verified against origin/master merge commit #213; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "sw.js",
-      "source_commit": "87155e8a94f0101289db08513b7ada97a8aa114b",
+      "source_commit": "8b4be9f146a8a9120a76c15fab7fe196edb63f8f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #209 from beatleswu/fix/e9-zone-name-i18n",
+      "source_commit_subject": "fix: wire E9 multi-zone adventure start CTA and seen/total display (#213)",
       "source_date": "2026-07-23",
-      "content_sha256": "58ddf80049a05e724a3b233f09bb2d85588ef8d1de60f3ad2c0b79f609a261c0",
+      "content_sha256": "364e7a83b13e74b7323c5febe1238d332e3dd33fd20c3c080d5a8062814d9f5f",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 C1.1 assets",
-      "production_hash_status": "does NOT byte-match current Production -- PR #209 (VERSION bump to v203-e9-zone-name-i18n-fix) is merged but not yet deployed; Production still serves the prior static release (generation 20260723-015327-fd86776a-v202-e9-component-loader-timeout-fix) as of this record",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "does NOT byte-match current Production -- PR #213 (VERSION bump to v204-e9-multi-zone-adventure-cta) is merged but not yet deployed; Production still serves the prior static release built from PR #212 (v203-e9-zone-name-i18n-fix) as of this record",
+      "source_status": "local Git provenance -- verified against origin/master merge commit #213; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "srs.js",
