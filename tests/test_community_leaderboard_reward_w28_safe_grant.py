@@ -33,7 +33,12 @@ class SqliteConnWrapper:
         self._conn.row_factory = sqlite3.Row
 
     def execute(self, sql, parameters=None):
-        if "pg_advisory_xact_lock" in sql:
+        if (
+            "pg_try_advisory_lock" in sql
+            or "pg_advisory_unlock" in sql
+            or "pg_advisory_xact_lock" in sql
+            or "FROM pg_locks" in sql
+        ):
             return self._conn.execute("SELECT 1")
         if "ADD COLUMN IF NOT EXISTS notification_acknowledged_at" in sql:
             cols = [row[1] for row in self._conn.execute("PRAGMA table_info(leaderboard_reward_claims)").fetchall()]
@@ -515,6 +520,38 @@ def test_scheduler_authorization_cannot_bypass_manual_owner_gate_without_lock(mo
             expected_total_badges=preview["summary"]["total_badges"],
             scheduler_authorization=auth,
         )
+    conn.close()
+
+
+def test_manual_owner_gate_commit_rejected_without_held_advisory_lock(monkeypatch):
+    """COMMUNITY-REWARD-LOCK-1: a manual/owner-gate commit must hold the same per-period
+    advisory lock the scheduler requires -- it is not exempt just because
+    it authorizes via owner_gate instead of scheduler_authorization. Before
+    this fix, only the scheduler_authorization branch checked
+    scheduler_period_lock_is_held; a manual commit with a correct owner
+    gate but no held lock would proceed straight into the real grant-commit
+    step, racing any concurrent scheduler cycle or other manual commit."""
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    monkeypatch.setattr(
+        "community_leaderboard_rewards_exact_period.scheduler_period_lock_is_held",
+        lambda conn, board_type, period_key: False,
+    )
+    with pytest.raises(ValueError, match="held advisory lock"):
+        commit_exact_period(
+            conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=lbr.sha256_hex_from_value(snapshot),
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        )
+    assert conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
     conn.close()
 
 
