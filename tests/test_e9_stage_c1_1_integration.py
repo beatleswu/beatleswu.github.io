@@ -76,7 +76,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v201-e9-quest-board" in SW
+    assert "v202-e9-component-loader-timeout-fix" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 

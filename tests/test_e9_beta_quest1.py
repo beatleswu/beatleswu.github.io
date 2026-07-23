@@ -55,4 +55,4 @@ def test_static_manifest_contains_quest_assets_and_i18n_keys():
 
 def test_asset_version_was_bumped_for_static_quest_files():
     assert "e9-q1-quest-board" in read("js/e9/feature_flags.js")
-    assert "v201-e9-quest-board" in read("sw.js")
+    assert "v202-e9-component-loader-timeout-fix" in read("sw.js")
