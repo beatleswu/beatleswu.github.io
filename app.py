@@ -7987,6 +7987,10 @@ BOSS_UNLOCK_PCT = 30
 BOSS_EXAM_SIZE = 20
 BOSS_PASS_SCORE = 16
 BOSS_FAIL_COOLDOWN = 30
+# Boss attempt evidence window: how long after boss/start a review_log row
+# may still count as evidence for that attempt. Bounds "stale answer" replay
+# without being so tight it punishes normal play pace on a 20-question exam.
+BOSS_ATTEMPT_MAX_MINUTES = 60
 
 # 每關綁定的劇情主線書（topic）。地圖通關只算這幾本，避免題量爆炸；
 # 額外大題庫（初階元素魔法導論、萬陣試煉、懸賞令…）不綁關卡，留給自由練習。
@@ -8754,17 +8758,87 @@ def adventure_boss_start():
         'pass_score': min(BOSS_PASS_SCORE, len(qids)),
     })
 
+class _AdventureBossAttemptError(Exception):
+    """Fail-closed reason for a boss/finish evaluation that cannot be safely
+    scored from server-owned evidence. The `code` is returned to the client
+    verbatim as `error` and must never imply a pass/fail result."""
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def _adventure_boss_authoritative_result(conn, uid, exam):
+    """Recompute (correct, total) for a boss attempt from review_log
+    evidence recorded server-side during the attempt window. Client-supplied
+    correct/total values have zero authority over this result.
+
+    A question_id counts as correct if at least one review_log row for that
+    (user_id, question_id) pair inside the window has grade>=3 -- the same
+    threshold the client itself uses to tally a correct answer. Every
+    question_id in the exam must have at least one row in the window or the
+    whole attempt fails closed as incomplete (no partial credit).
+    """
+    question_ids = exam.get('question_ids')
+    started_at_raw = exam.get('started_at')
+    if not isinstance(question_ids, list) or not question_ids or not started_at_raw:
+        raise _AdventureBossAttemptError('malformed_session')
+    try:
+        qids = [int(q) for q in question_ids]
+    except (TypeError, ValueError):
+        raise _AdventureBossAttemptError('malformed_session')
+    try:
+        started_at = datetime.datetime.fromisoformat(str(started_at_raw))
+    except (TypeError, ValueError):
+        raise _AdventureBossAttemptError('malformed_session')
+
+    deadline = started_at + datetime.timedelta(minutes=BOSS_ATTEMPT_MAX_MINUTES)
+    if datetime.datetime.now() > deadline:
+        raise _AdventureBossAttemptError('attempt_expired')
+
+    placeholders = ','.join('?' for _ in qids)
+    rows = conn.execute(
+        'SELECT question_id, grade FROM review_log '
+        f'WHERE user_id=? AND question_id IN ({placeholders}) '
+        'AND reviewed_at >= ? AND reviewed_at <= ?',
+        (uid, *qids, started_at.isoformat(), deadline.isoformat())
+    ).fetchall()
+
+    best_grade_by_qid = {}
+    for row in rows:
+        qid = row['question_id']
+        grade = row['grade']
+        if qid not in best_grade_by_qid or grade > best_grade_by_qid[qid]:
+            best_grade_by_qid[qid] = grade
+
+    if any(qid not in best_grade_by_qid for qid in qids):
+        raise _AdventureBossAttemptError('incomplete_attempt')
+
+    total = len(qids)
+    correct = sum(1 for qid in qids if best_grade_by_qid[qid] >= 3)
+    return correct, total
+
+
 @app.route('/api/adventure/boss/finish', methods=['POST'])
 @login_required
 def adventure_boss_finish():
     uid = session['user_id']
-    data = request.get_json() or {}
+    # Parsed for backward-compatible request-body tolerance only. Client
+    # correct/total fields (if present) are never read below -- the score is
+    # always recomputed server-side from review_log evidence.
+    request.get_json(silent=True)
     exam = session.get('adventure_boss_exam') or {}
     zone_key = exam.get('zone_key')
     if not zone_key:
         return jsonify({'ok': False, 'error': 'no_active_exam'}), 400
-    correct = max(0, int(data.get('correct') or 0))
-    total = max(1, int(data.get('total') or len(exam.get('question_ids') or []) or BOSS_EXAM_SIZE))
+
+    with get_db() as conn:
+        try:
+            correct, total = _adventure_boss_authoritative_result(conn, uid, exam)
+        except _AdventureBossAttemptError as exc:
+            if exc.code in ('malformed_session', 'attempt_expired'):
+                session.pop('adventure_boss_exam', None)
+            return jsonify({'ok': False, 'error': exc.code}), 400
+
     pass_score = min(BOSS_PASS_SCORE, total)
     passed = correct >= pass_score
     now = datetime.datetime.now().isoformat(timespec='seconds')
