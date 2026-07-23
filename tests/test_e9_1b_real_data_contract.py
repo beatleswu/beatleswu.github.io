@@ -14,6 +14,8 @@ Two kinds of tests:
 """
 import re
 import subprocess
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -24,6 +26,52 @@ ADAPTERS_DIR = JS_DIR / "adapters"
 COMPONENTS_DIR = REPO_ROOT / "components" / "adventure"
 CONTRACT_DOC = REPO_ROOT / "docs" / "planning" / "e9_1b_real_data_contract.md"
 NODE_TEST_SCRIPT = REPO_ROOT / "tests" / "e9_node_tests" / "run_adapter_tests.js"
+
+# Canonical English zone names -- these are NOT invented here. They already
+# ship in index.html's own ADVENTURE_ZONES (nameEn field, consumed by the
+# legacy Adventure Map's _zoneName()/_zoneEn()), corroborated by
+# chapter_i18n.py's book/chapter titles. Reused verbatim rather than
+# creating a second, divergent naming scheme for the same ten zones.
+CANONICAL_ZONE_NAMES_EN = {
+    'k26_30': 'Beginner Village',
+    'k21_25': 'Slime Plains',
+    'k16_20': 'Goblin Cave',
+    'k11_15': 'Misty Forest',
+    'k6_10': 'Orc Tribe',
+    'k1_5': 'Dragon Valley',
+    'd1_2': 'Sage Tower',
+    'd3_4': 'Demon Castle Front',
+    'd5_6': 'Ragnarök',
+    'd7_plus': 'Ancient Doom Temple',
+}
+
+_CJK_PATTERN = re.compile(r"[一-鿿]")
+
+
+def _load_app_module():
+    # Same stub-swap pattern as tests/test_e9_stage_c1_1_integration.py's
+    # _load_rollout_module(): app.py's heavier real dependencies (KataGo,
+    # grimoire, taxonomy modules) are stubbed so importing it here only
+    # exercises the plain module-level data (ADVENTURE_ZONES), not those
+    # subsystems -- this test does not need or touch them.
+    from flask import Blueprint
+
+    modules = {
+        "katago_explain": {"KataGoExplainer": type("KataGoExplainer", (), {})},
+        "explain_overrides": {"get_override": lambda *a, **k: None},
+        "question_taxonomy": {"get_taxonomy": lambda *a, **k: {}},
+        "monster_taxonomy": {"get_monster_taxonomy": lambda *a, **k: {}, "mark_encounters": lambda *a, **k: None},
+        "chapter_i18n": {"localize_topic": lambda *a, **k: "", "localize_level": lambda *a, **k: ""},
+        "backend_i18n": {"badge_en": lambda *a, **k: "", "skill_node_en": lambda *a, **k: "", "title_en": lambda *a, **k: ""},
+        "grimoire_api": {"grimoire_bp": Blueprint("e9_1b_zone_name_stub", __name__)},
+    }
+    for name, attrs in modules.items():
+        module = types.ModuleType(name)
+        for key, value in attrs.items():
+            setattr(module, key, value)
+        sys.modules[name] = module
+    import app
+    return app
 
 FORBIDDEN_FABRICATED_TERMS = [
     "Global Stars", "GlobalStars", "global_stars",
@@ -298,3 +346,91 @@ def test_questions_json_not_referenced_by_new_e9_1b_code():
     for f in list(ADAPTERS_DIR.glob("*.js")):
         text = _read(f)
         assert "questions.json" not in text
+
+
+# ---------------------------------------------------------------------------
+# Zone name English locale fix -- root cause was the zone name SOURCE
+# (app.py's ADVENTURE_ZONES) having no English field at all, not a missing
+# i18n.js translation or a lookup bug (confirmed by direct investigation).
+# These tests cover the real data (server-side ADVENTURE_ZONES) and the
+# real adapter (js/e9/adapters/adventure_state.js, covered by the Node
+# harness above) together with the client-side selection contract.
+# ---------------------------------------------------------------------------
+
+def test_all_ten_adventure_zones_have_canonical_english_names():
+    app = _load_app_module()
+    assert len(app.ADVENTURE_ZONES) == 10
+    by_key = {z['key']: z for z in app.ADVENTURE_ZONES}
+    assert set(by_key.keys()) == set(CANONICAL_ZONE_NAMES_EN.keys())
+    for key, expected_en in CANONICAL_ZONE_NAMES_EN.items():
+        assert by_key[key]['name_en'] == expected_en, (
+            f"{key}: expected canonical English name {expected_en!r}, got {by_key[key].get('name_en')!r}"
+        )
+        # Chinese name is untouched by this fix -- only adding name_en.
+        assert _CJK_PATTERN.search(by_key[key]['name'])
+
+
+def test_english_locale_zone_names_never_contain_chinese_characters():
+    # The exact regression scenario reported: locale=en, 10 zones, 0
+    # rendered zone titles containing a Chinese character. This mirrors
+    # world_stage.js's zoneDisplayName() precedence in Python, over the
+    # REAL ADVENTURE_ZONES data (not synthetic zones), since that JS
+    # function itself cannot be executed outside a browser/DOM -- this is
+    # the real-data-layer half of the regression guard; the JS-layer half
+    # (the actual precedence logic shipped) is covered by the source
+    # contract test below and by Node-level adapter tests confirming
+    # name_en survives normalization intact.
+    app = _load_app_module()
+    zones = app.ADVENTURE_ZONES
+    assert len(zones) == 10
+
+    def zone_display_name_en_locale(zone):
+        # Same precedence as world_stage.js's zoneDisplayName(): prefer
+        # name_en under English locale, fall back to name if missing.
+        return zone.get('name_en') or zone['name']
+
+    rendered = [zone_display_name_en_locale(z) for z in zones]
+    chinese_titles = [name for name in rendered if _CJK_PATTERN.search(name)]
+    assert len(chinese_titles) == 0, f"zones still rendering Chinese under English locale: {chinese_titles}"
+
+
+def test_chinese_locale_zone_names_still_render_correct_chinese():
+    app = _load_app_module()
+    by_key = {z['key']: z for z in app.ADVENTURE_ZONES}
+    expected_zh = {
+        'k26_30': '圍棋新手村', 'k21_25': '史萊姆平原', 'k16_20': '哥布林洞穴',
+        'k11_15': '迷霧森林', 'k6_10': '獸人部落', 'k1_5': '龍之谷',
+        'd1_2': '賢者之塔', 'd3_4': '魔王城前線', 'd5_6': '諸神黃昏',
+        'd7_plus': '上古終焉神殿',
+    }
+    for key, expected_name in expected_zh.items():
+        assert by_key[key]['name'] == expected_name
+
+
+def test_world_stage_zone_display_name_prefers_english_locale_with_safe_fallback():
+    js = _read(JS_DIR / "world_stage.js")
+    assert "function isEnglishLocale()" in js
+    assert "window.I18n.getLang() === 'en'" in js
+    assert "function zoneDisplayName(zone)" in js
+    # Fallback order: English locale + nameEn present -> nameEn; otherwise
+    # -> name. Never a raw i18n key (zone names never go through t()).
+    body = js[js.index("function zoneDisplayName(zone)"):]
+    body = body[:body.index("\n  }") + 4]
+    assert "if (isEnglishLocale() && zone.nameEn) return zone.nameEn;" in body
+    assert "return zone.name;" in body
+
+
+def test_world_stage_zone_tile_and_detail_use_same_display_name_function():
+    # List (tile) and detail views must show the identical name for the
+    # same zone -- both call sites must go through zoneDisplayName(), not
+    # a duplicated/independent lookup that could drift.
+    js = _read(JS_DIR / "world_stage.js")
+    assert js.count("zoneDisplayName(zone)") >= 2
+    assert "label.textContent = zoneDisplayName(zone);" in js  # zone tile (renderZones)
+    assert "label.textContent = zoneDisplayName(zone) || zone.key;" in js  # zone detail (renderSelectedZone)
+
+
+def test_adventure_state_adapter_exposes_name_en_as_nameEn():
+    js = _read(ADAPTERS_DIR / "adventure_state.js")
+    assert "raw.name_en" in js
+    assert "nameEn: nameEn" in js

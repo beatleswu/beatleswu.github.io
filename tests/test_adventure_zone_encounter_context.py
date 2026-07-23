@@ -64,7 +64,7 @@ def test_adventure_i18n_key_and_sw_version():
     assert "index.battle.adventure_encounter" in I18N
     assert "Adventure Encounter" in I18N
     assert "冒險遭遇" in I18N
-    assert re.search(r"const VERSION\s*=\s*'v202-e9-component-loader-timeout-fix'", SW)
+    assert re.search(r"const VERSION\s*=\s*'v203-e9-zone-name-i18n-fix'", SW)
 
 
 def test_ten_zone_keys_are_defined():

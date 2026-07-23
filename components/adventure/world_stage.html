@@ -2,13 +2,15 @@
   Component: Adventure World Stage (CRITICAL slot — see js/e9/shell.js)
   Stable root id: adventure-stage  (Rule #6)
   Real data source: GET /api/adventure/bootstrap (same endpoint the legacy
-  Adventure Map uses) -- response.zones[] with {key,label,name,icon,status,
-  can_enter,completed,stars,boss:{available,name,name_en}}. No new API.
+  Adventure Map uses) -- response.zones[] with {key,label,name,name_en,icon,
+  status,can_enter,completed,stars,boss:{available,name,name_en}}. No new API.
   Zone-state text reuses the EXISTING index.adv.* i18n keys (zone_locked,
   boss_ready, boss_cleared, summary, load_fail, start_challenge) -- no
-  second translation dictionary for adventure semantics. Zone display
-  names (zone.name) are passed through verbatim, same as legacy, since
-  the API has no separate English zone-name field today.
+  second translation dictionary for adventure semantics. Zone display names
+  pick zone.nameEn under English locale (falling back to zone.name, the
+  Chinese source string, if missing), via world_stage.js's zoneDisplayName()
+  -- the same precedence the legacy Adventure Map's own _zoneName() uses,
+  not a second naming scheme.
   No Avatar, Monster, Boss art, or Fog of War -- placeholder tiles only,
   per E9.1A2 scope.
 -->
