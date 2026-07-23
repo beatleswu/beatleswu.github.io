@@ -12,6 +12,7 @@ sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 import community_leaderboard_rewards as lbr
 import community_leaderboard_rewards_exact_period as exact_period
+import community_leaderboard_rewards_scheduler as scheduler_mod
 import tools.community_leaderboard_rewards_manual as manual
 
 
@@ -152,6 +153,11 @@ def test_grant_exact_period_commit_requires_matching_preview_identity(monkeypatc
             "summary": preview["summary"],
         },
     )
+    # cmd_grant_exact_period_commit acquires/releases the reward-sync
+    # advisory lock around the (here mocked) commit_exact_period call --
+    # DummyConn has no real execute(), so stub the lock functions too.
+    monkeypatch.setattr(scheduler_mod, "try_acquire_period_lock", lambda conn, board_type, period_key: True)
+    monkeypatch.setattr(scheduler_mod, "release_period_lock", lambda conn, board_type, period_key: None)
     args = types.SimpleNamespace(
         snapshot_file=str(snapshot_path),
         preview_file=str(preview_path),

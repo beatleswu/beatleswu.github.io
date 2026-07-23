@@ -581,6 +581,10 @@ def cmd_preview_exact_period(args):
 
 def cmd_grant_exact_period_commit(args):
     from community_leaderboard_rewards_exact_period import commit_exact_period
+    from community_leaderboard_rewards_scheduler import (
+        release_period_lock,
+        try_acquire_period_lock,
+    )
     snapshot_file = _validate_operation_file(args.snapshot_file, require_exists=True)
     snapshot = _load_json_file(snapshot_file)
     preview_file = _validate_operation_file(
@@ -597,7 +601,26 @@ def cmd_grant_exact_period_commit(args):
         database_url=args.database_url,
     )
     conn = _connect(args.database_url)
+    lock_acquired = False
     try:
+        # Same per-(board_type, period_key) advisory lock the scheduler
+        # holds for the whole commit_exact_period call (see
+        # community_leaderboard_rewards_scheduler.run_community_leaderboard_weekly_cycle)
+        # -- required so a manual commit can never race a concurrent
+        # scheduler cycle (or another concurrent manual commit) for the
+        # same period. _validate_commit_authorization also asserts this
+        # lock is held before it will authorize a manual/owner-gate
+        # commit; acquiring it here is what makes that assertion true.
+        lock_acquired = try_acquire_period_lock(conn, snapshot["board_type"], snapshot["period_key"])
+        if not lock_acquired:
+            conn.rollback()
+            print(
+                f"Refusing: could not acquire the reward-sync advisory lock for "
+                f"board_type={snapshot['board_type']!r} period_key={snapshot['period_key']!r} "
+                "-- another grant commit (scheduler or manual) is currently in progress.",
+                file=sys.stderr,
+            )
+            return 2
         try:
             result = commit_exact_period(
                 conn,
@@ -618,6 +641,11 @@ def cmd_grant_exact_period_commit(args):
             raise
         conn.commit()
     finally:
+        if lock_acquired:
+            try:
+                release_period_lock(conn, snapshot["board_type"], snapshot["period_key"])
+            except Exception:
+                pass
         conn.close()
     grant_result_path = snapshot_file.parent / GRANT_RESULT_FILENAME
     grant_result_record = {
