@@ -146,6 +146,38 @@ test('normalizeZone: non-string name_en normalizes to null (never renders a raw 
   const z = AdventureState.normalizeZone({ key: 'k1', name: '中文', name_en: 123, status: 'unlocked' });
   assert.strictEqual(z.nameEn, null);
 });
+
+// --- AdventureState.normalizeZone: seen/total (E9 Multi-Zone Progression) ---
+test('normalizeZone: seen/total pass through when valid numbers', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', seen: 18, total: 30 });
+  assert.strictEqual(z.seen, 18);
+  assert.strictEqual(z.total, 30);
+});
+test('normalizeZone: seen/total missing normalize to 0, not undefined/NaN', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'locked' });
+  assert.strictEqual(z.seen, 0);
+  assert.strictEqual(z.total, 0);
+});
+test('normalizeZone: seen/total non-numeric normalize to 0 (never a raw string reaches the UI)', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', seen: '18', total: '30' });
+  assert.strictEqual(z.seen, 0);
+  assert.strictEqual(z.total, 0);
+});
+test('normalizeZone: negative seen/total clamp to 0', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', seen: -5, total: -1 });
+  assert.strictEqual(z.seen, 0);
+  assert.strictEqual(z.total, 0);
+});
+test('normalizeZone: NaN seen/total normalize to 0', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', seen: NaN, total: NaN });
+  assert.strictEqual(z.seen, 0);
+  assert.strictEqual(z.total, 0);
+});
+test('normalizeZone: fractional seen/total round to nearest integer', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', seen: 17.6, total: 30.2 });
+  assert.strictEqual(z.seen, 18);
+  assert.strictEqual(z.total, 30);
+});
 test('normalizeZones: drops invalid entries, keeps valid ones', () => {
   const r = AdventureState.normalizeZones({
     zones: [

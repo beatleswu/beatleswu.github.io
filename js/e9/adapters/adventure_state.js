@@ -37,6 +37,13 @@
     // (see world_stage.js's zoneDisplayName()), never a raw key.
     var nameEn = (typeof raw.name_en === 'string' && raw.name_en) ? raw.name_en : null;
 
+    // seen/total feed the "{seen}/{total}" progress text (world_stage.js).
+    // Same safe-numeric-or-zero normalization as `stars` above -- a
+    // missing/non-numeric/negative value must never reach the UI as
+    // NaN/undefined/a raw string.
+    var seen = (typeof raw.seen === 'number' && !isNaN(raw.seen)) ? Math.max(0, Math.round(raw.seen)) : 0;
+    var total = (typeof raw.total === 'number' && !isNaN(raw.total)) ? Math.max(0, Math.round(raw.total)) : 0;
+
     return {
       key: raw.key,
       name: raw.name,
@@ -46,6 +53,8 @@
       cleared: status === 'completed',
       stars: stars,
       bossAvailable: bossAvailable,
+      seen: seen,
+      total: total,
     };
   }
 

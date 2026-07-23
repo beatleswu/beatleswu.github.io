@@ -103,14 +103,36 @@
     panel.hidden = false;
   }
 
+  // Every state text shown here reuses an existing index.adv.* key (see
+  // world_stage.html's header comment) -- this file adds no second
+  // translation dictionary. index.adv.boss_ready is a template
+  // ('Seal broken: {seen}/{total}' / '封印解除：{seen}/{total} 題'); callers
+  // MUST substitute both placeholders themselves (I18nFallback.t() only
+  // returns the raw string -- same contract as legacy's own I18n.t()
+  // callers, e.g. index.html's node_title `.replace('{seen}',...)` chain).
+  function bossReadyText(zone) {
+    return t('index.adv.boss_ready', 'Seal broken: {seen}/{total}')
+      .replace('{seen}', String(zone.seen))
+      .replace('{total}', String(zone.total));
+  }
+
   function renderSelectedZone(root, zones, zoneKey, focusDetails) {
     var state = root.__e9WorldStageState;
     var zone = zones.filter(function (item) { return item.key === zoneKey; })[0];
     var details = root.querySelector('#e9-world-stage-details');
     var label = root.querySelector('#e9-world-stage-details-label');
     var summary = root.querySelector('#e9-world-stage-details-summary');
+    var cta = root.querySelector('#e9-world-stage-details-cta');
     var newbie = root.querySelector('#e9-newbie-mainline');
-    if (!zone || zone.locked) return;
+    if (!zone || zone.locked) {
+      // Locked zones are never reachable here (no click handler is ever
+      // attached to a locked tile -- see renderZones()'s `if (!zone.locked)`
+      // guard), but hide the CTA defensively too: the requirement is that a
+      // locked zone can never launch an encounter, and that must not rest
+      // on the click handler alone.
+      if (cta) cta.hidden = true;
+      return;
+    }
 
     state.selectedZoneKey = zone.key;
     root.querySelectorAll('[data-zone]').forEach(function (tile) {
@@ -121,8 +143,34 @@
     if (details) details.hidden = false;
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (summary) summary.textContent = zone.bossAvailable
-      ? t('index.adv.boss_ready', 'Boss challenge ready')
+      ? bossReadyText(zone)
       : (zone.cleared ? t('index.adv.boss_cleared', 'Area cleared') : t('index.adv.panel_ready', 'Adventure is ready'));
+
+    if (cta) {
+      if (zone.key === 'k26_30') {
+        // Beginner Village owns its own tutorial CTA below
+        // (renderBeginnerVillageMainline's #e9-newbie-mainline-cta) --
+        // never show a second, duplicate "start" button for it here.
+        cta.hidden = true;
+      } else {
+        cta.hidden = false;
+        cta.textContent = t('index.adv.start_challenge', 'Start Challenge');
+        if (cta.__e9AdventureHandler) {
+          cta.removeEventListener('click', cta.__e9AdventureHandler);
+        }
+        cta.__e9AdventureHandler = function () {
+          if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+            window.E9.startAdventureFromE9(zone.key);
+          }
+        };
+        if (window.E9 && typeof window.E9.on === 'function') {
+          window.E9.on(cta, 'click', cta.__e9AdventureHandler);
+        } else {
+          cta.addEventListener('click', cta.__e9AdventureHandler);
+        }
+      }
+    }
+
     renderBeginnerVillageMainline(root, zone);
     if (newbie && zone.key !== 'k26_30') newbie.hidden = true;
     if (focusDetails && details) {

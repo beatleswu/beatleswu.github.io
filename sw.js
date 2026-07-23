@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v203-e9-zone-name-i18n-fix';
+const VERSION     = 'v204-e9-multi-zone-adventure-cta';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 
