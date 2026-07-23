@@ -24,12 +24,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WORLD_STAGE = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
 WORLD_STAGE_HTML = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
+WORLD_STAGE_CSS = (ROOT / "css/e9/world_stage.css").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "js/e9/shell.js").read_text(encoding="utf-8")
 ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v204-e9-multi-zone-adventure-cta"
+NEW_SW_VERSION = "v205-e9-zone-cta-visual-parity"
 
 
 def _render_selected_zone_body():
@@ -163,7 +164,82 @@ def test_html_has_exactly_one_generic_cta_button_hidden_by_default():
     assert details_section.count("<button") == 1
     button_tag = re.search(r"<button[^>]*>", details_section).group(0)
     assert 'id="e9-world-stage-details-cta"' in button_tag
+    assert 'type="button"' in button_tag
+    classes = re.search(r'class="([^"]+)"', button_tag).group(1).split()
+    assert "e9-zone-details__cta" in classes
+    assert "e9-adventure-cta" in classes
     assert "hidden" in button_tag
+
+
+def test_beginner_and_generic_ctas_share_one_adventure_button_class():
+    buttons = {
+        element_id: re.search(
+            rf'<button[^>]*id="{re.escape(element_id)}"[^>]*>',
+            WORLD_STAGE_HTML,
+        ).group(0)
+        for element_id in (
+            "e9-world-stage-details-cta",
+            "e9-newbie-mainline-cta",
+        )
+    }
+    for button_tag in buttons.values():
+        classes = re.search(r'class="([^"]+)"', button_tag).group(1).split()
+        assert "e9-adventure-cta" in classes
+        assert 'type="button"' in button_tag
+
+
+def _shared_cta_rule(selector):
+    match = re.search(
+        re.escape(selector) + r"\s*\{(?P<body>[^}]*)\}",
+        WORLD_STAGE_CSS,
+    )
+    assert match, f"{selector} rule missing"
+    return match.group("body")
+
+
+def test_shared_cta_has_non_default_primary_action_styling():
+    rule = _shared_cta_rule(".e9-adventure-cta")
+    required_properties = {
+        "min-height": "44px",
+        "border": "0",
+        "border-radius": "10px",
+        "background": "#6b5b3a",
+        "color": "#fff",
+        "font-weight": "700",
+        "cursor": "pointer",
+    }
+    for prop, value in required_properties.items():
+        assert re.search(
+            rf"{re.escape(prop)}\s*:\s*{re.escape(value)}\s*;",
+            rule,
+        ), f"{prop}: {value} missing from shared CTA rule"
+
+
+def test_shared_cta_has_pointer_keyboard_and_disabled_states():
+    assert _shared_cta_rule(".e9-adventure-cta:hover")
+    assert _shared_cta_rule(".e9-adventure-cta:active")
+    focus = _shared_cta_rule(".e9-adventure-cta:focus-visible")
+    assert "outline:" in focus
+    assert ".e9-adventure-cta:disabled," in WORLD_STAGE_CSS
+    assert '.e9-adventure-cta[aria-disabled="true"]' in WORLD_STAGE_CSS
+    assert "cursor: not-allowed;" in WORLD_STAGE_CSS
+
+
+def test_shared_cta_is_mobile_safe_and_allows_long_copy_to_wrap():
+    base = _shared_cta_rule(".e9-adventure-cta")
+    assert "max-width: 100%;" in base
+    assert "white-space: normal;" in base
+    assert "overflow-wrap: anywhere;" in base
+    mobile = re.search(
+        r"@media\s*\(max-width:\s*600px\)\s*\{"
+        r"(?P<body>.*?)"
+        r"\n\}",
+        WORLD_STAGE_CSS,
+        re.DOTALL,
+    )
+    assert mobile, "mobile CTA rule missing"
+    assert ".e9-adventure-cta" in mobile.group("body")
+    assert "width: 100%;" in mobile.group("body")
 
 
 # ---------------------------------------------------------------------
