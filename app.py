@@ -7991,6 +7991,9 @@ BOSS_FAIL_COOLDOWN = 30
 # may still count as evidence for that attempt. Bounds "stale answer" replay
 # without being so tight it punishes normal play pace on a 20-question exam.
 BOSS_ATTEMPT_MAX_MINUTES = 60
+# Fixed, same for every zone. Achievement-style, one-time reward -- granted
+# via _grant_coins(bypass_daily_cap=True), never subject to the daily coin cap.
+ADVENTURE_FIRST_CLEAR_REWARD_COINS = 200
 
 # 每關綁定的劇情主線書（topic）。地圖通關只算這幾本，避免題量爆炸；
 # 額外大題庫（初階元素魔法導論、萬陣試煉、懸賞令…）不綁關卡，留給自由練習。
@@ -8852,11 +8855,12 @@ def adventure_boss_finish():
             'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
             (uid, zone_key)
         ).fetchone()
+        is_first_clear = bool(passed and not (existing and existing['cleared']))
         attempts = (existing['attempts'] if existing else 0) + 1
         best_score = max(correct, existing['best_score'] if existing else 0)
         cleared = 1 if passed else (existing['cleared'] if existing else 0)
         stars = max(1 if passed else 0, existing['stars'] if existing else 0)
-        cleared_at = now if passed and not (existing and existing['cleared']) else (existing['cleared_at'] if existing else None)
+        cleared_at = now if is_first_clear else (existing['cleared_at'] if existing else None)
         conn.execute('''
             INSERT INTO adventure_boss_progress
                 (user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,last_attempt_at,cleared_at,updated_at)
@@ -8872,6 +8876,17 @@ def adventure_boss_finish():
                 updated_at=excluded.updated_at
         ''', (uid, zone_key, cleared, stars, attempts, best_score, cooldown_until, now, cleared_at, now))
 
+        # Same transaction as the clear-progress upsert above: if the reward
+        # grant fails, the whole `with` block rolls back (db.py commits on
+        # clean exit, rolls back on exception) -- a boss clear can never be
+        # recorded without its first-clear reward, or vice versa.
+        reward_coins = 0
+        if is_first_clear:
+            reward_coins = _grant_coins(
+                conn, uid, ADVENTURE_FIRST_CLEAR_REWARD_COINS,
+                f'adventure_first_clear:{zone_key}', bypass_daily_cap=True,
+            )
+
     session.pop('adventure_boss_exam', None)
     _clear_adventure_state_cache(uid)
     map_state = _adventure_map_state(uid)
@@ -8882,6 +8897,7 @@ def adventure_boss_finish():
         'total': total,
         'pass_score': pass_score,
         'cooldown_left': 0 if passed else BOSS_FAIL_COOLDOWN,
+        'reward': {'coins': reward_coins, 'first_clear': is_first_clear},
         **map_state,
     })
 

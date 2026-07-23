@@ -118,6 +118,21 @@ def sqlite_conn():
         updated_at          TEXT,
         PRIMARY KEY (user_id, zone_key)
     )''')
+    # Needed since the Adventure First Zone Clear Reward Sprint: a genuine
+    # first-clear now calls the existing _grant_coins() helper, which reads
+    # and writes these two tables.
+    conn.execute('''CREATE TABLE user_stats (
+        user_id INTEGER PRIMARY KEY,
+        coins INTEGER NOT NULL DEFAULT 0
+    )''')
+    conn.execute('''CREATE TABLE currency_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        delta INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )''')
     conn.commit()
     yield conn
     conn.close()
@@ -432,11 +447,19 @@ class TestFinishRouteReplayAndIdempotency:
 
 
 class TestFinishRouteNoRewardSideEffects:
-    def test_no_reward_helper_is_invoked_on_a_passing_finish(self, client, app_module, patched_get_db, stub_adventure_state, monkeypatch):
+    # NOTE: as of the Adventure First Zone Clear Reward Sprint (feat: grant
+    # first-clear adventure rewards), a genuine first clear DOES call
+    # _grant_coins() -- that is the intended, owner-authorized behavior of
+    # that Sprint, exercised thoroughly in
+    # tests/test_adventure_first_clear_reward.py. What THIS PR's scope still
+    # guarantees, and what stays pinned here, is narrower: _spend_coins is
+    # never invoked by boss/finish (nothing is ever deducted here), and
+    # when _grant_coins is invoked it is always with bypass_daily_cap=True
+    # (the one-time achievement path), never the ordinary farmable path.
+    def test_spend_coins_never_invoked_on_a_passing_finish(self, client, app_module, patched_get_db, stub_adventure_state, monkeypatch):
         calls = []
-        for name in ('_grant_coins', '_spend_coins'):
-            if hasattr(app_module, name):
-                monkeypatch.setattr(app_module, name, lambda *a, name=name, **k: calls.append(name))
+        if hasattr(app_module, '_spend_coins'):
+            monkeypatch.setattr(app_module, '_spend_coins', lambda *a, **k: calls.append('_spend_coins'))
 
         uid = 11
         qids = list(range(5001, 5021))
@@ -450,12 +473,38 @@ class TestFinishRouteNoRewardSideEffects:
         assert resp.get_json()['passed'] is True
         assert calls == []
 
-    def test_source_contains_no_reward_grant_reference(self):
+    def test_grant_coins_when_invoked_always_bypasses_daily_cap(self, client, app_module, patched_get_db, stub_adventure_state, monkeypatch):
+        calls = []
+        real_grant_coins = app_module._grant_coins
+
+        def spy(conn, uid, amount, reason, bypass_daily_cap=False):
+            calls.append({'amount': amount, 'reason': reason, 'bypass_daily_cap': bypass_daily_cap})
+            return real_grant_coins(conn, uid, amount, reason, bypass_daily_cap=bypass_daily_cap)
+
+        monkeypatch.setattr(app_module, '_grant_coins', spy)
+
+        uid = 12
+        qids = list(range(5101, 5121))
+        for qid in qids:
+            _seed_review(patched_get_db, uid=uid, question_id=qid, grade=5, reviewed_at=within_window())
+        _login(client, uid)
+        _set_exam(client, _exam(qids))
+
+        resp = client.post('/api/adventure/boss/finish', json={})
+        assert resp.status_code == 200
+        assert len(calls) == 1
+        assert calls[0]['bypass_daily_cap'] is True
+
+    def test_source_contains_no_direct_currency_writes_bypassing_grant_coins(self):
+        # boss/finish may call the reused, audited _grant_coins() helper,
+        # but must never write currency_log/_coin_balance/spend directly --
+        # that would be a second, ungoverned reward path.
         app_py = _read(REPO_ROOT / 'app.py')
         start = app_py.index("class _AdventureBossAttemptError")
         end = app_py.index("@app.route('/api/adventure/boss/finish'")
         finish_start = app_py.index("def adventure_boss_finish()")
         finish_end = app_py.index("\n@app.route(", finish_start + 1)
         section = app_py[start:end] + app_py[finish_start:finish_end]
-        for forbidden in ('_grant_coins', '_spend_coins', 'currency_log', '_coin_balance'):
-            assert forbidden not in section, f"{forbidden} must not appear in boss/finish scoring logic"
+        for forbidden in ('_spend_coins', '_coin_balance', 'INSERT INTO currency_log', 'UPDATE user_stats'):
+            assert forbidden not in section, f"{forbidden} must not appear directly in boss/finish scoring logic"
+        assert app_py.count('def _grant_coins(') == 1, "must reuse the single existing _grant_coins(), not fork it"
