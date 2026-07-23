@@ -10,6 +10,7 @@ import subprocess
 import sys
 import threading
 import time
+import types
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,7 +23,9 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 import community_leaderboard_rewards as lbr
+import community_leaderboard_rewards_exact_period as exact_period
 import community_leaderboard_rewards_scheduler as scheduler
+import tools.community_leaderboard_rewards_manual as manual
 from community_leaderboard_rewards_exact_period import create_scheduler_commit_authorization
 
 
@@ -774,6 +777,20 @@ def test_scheduler_commit_authorization_requires_flag_and_lock(monkeypatch):
     conn.close()
 
 
+def test_scheduler_and_exact_period_compute_the_same_advisory_lock_key():
+    """COMMUNITY-REWARD-LOCK-1: the scheduler's own lock helper
+    (advisory_lock_keys, used by try_acquire_period_lock/release_period_lock)
+    and the exact-period module's independent lock helper
+    (_advisory_lock_keys, used by scheduler_period_lock_is_held) must
+    resolve the same (board_type, period_key) to the identical
+    (namespace_key, scope_key) pair -- otherwise a manual commit acquiring
+    "the lock" and a check reading "is the lock held" could silently talk
+    past each other despite both compiling successfully."""
+    from community_leaderboard_rewards_exact_period import _advisory_lock_keys
+    for board_type, period_key in [("weekly", "2026-W28"), ("monthly", "2026-07")]:
+        assert scheduler.advisory_lock_keys(board_type, period_key) == _advisory_lock_keys(board_type, period_key)
+
+
 def _docker_available():
     if shutil.which("docker") is None:
         return False
@@ -979,6 +996,75 @@ class _PgAppModule:
         return _pg_connect(self.database_url)
 
 
+class _CloseSpyConn:
+    """Wraps a real PostgresConnectionWrapper and records whether close()
+    was called, so tests can prove cmd_grant_exact_period_commit's own
+    `finally: conn.close()` actually ran on every code path (success,
+    lock-busy refusal, and an exception from commit_exact_period) without
+    having to reach into the CLI function's local variables."""
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.closed = False
+
+    def execute(self, *args, **kwargs):
+        return self._inner.execute(*args, **kwargs)
+
+    def commit(self):
+        self._inner.commit()
+
+    def rollback(self):
+        self._inner.rollback()
+
+    def close(self):
+        self.closed = True
+        self._inner.close()
+
+
+def _snapshot_and_grant_args(*, database_url, operation_dir):
+    """Build the two argparse-shaped Namespaces cmd_snapshot_exact_period
+    and cmd_grant_exact_period_commit expect, for board_type='weekly',
+    period_key='2026-W28' against the seeded _create_pg_schema fixture."""
+    snapshot_args = types.SimpleNamespace(
+        database_url=database_url,
+        board="weekly",
+        period_key="2026-W28",
+        period_start="2026-07-06",
+        period_end="2026-07-13",
+        timezone="Asia/Taipei",
+        limit=50,
+        operation_dir=str(operation_dir),
+    )
+    return snapshot_args
+
+
+def _build_real_grant_args(*, database_url, operation_dir):
+    """Runs the real cmd_snapshot_exact_period CLI command to produce real
+    snapshot.json/preview.json files on disk, then returns the args
+    Namespace cmd_grant_exact_period_commit needs to consume them -- so
+    callers exercise the actual CLI wiring end to end instead of
+    hand-building snapshot/preview dicts in-process."""
+    snapshot_args = _snapshot_and_grant_args(database_url=database_url, operation_dir=operation_dir)
+    assert manual.cmd_snapshot_exact_period(snapshot_args) == 0
+    snapshot_path = Path(operation_dir) / manual.SNAPSHOT_FILENAME
+    preview_path = Path(operation_dir) / manual.PREVIEW_FILENAME
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    preview = scheduler.build_exact_period_preview(snapshot)
+    return types.SimpleNamespace(
+        snapshot_file=str(snapshot_path),
+        preview_file=str(preview_path),
+        expected_snapshot_sha256=preview["snapshot_sha256"],
+        expected_preview_sha256=preview["preview_sha256"],
+        expected_claim_count=preview["summary"]["claims_count"],
+        expected_component_count=preview["summary"]["component_count"],
+        expected_total_coins=preview["summary"]["total_coins"],
+        expected_total_items_json=json.dumps(preview["summary"]["total_items"]),
+        expected_total_badges_json=json.dumps(preview["summary"]["total_badges"]),
+        owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+        database_url=database_url,
+    )
+
+
 def test_disposable_postgres_concurrency_lock_and_cleanup(monkeypatch, tmp_path):
     with _postgres_container() as pg:
         admin_conn = _pg_connect(pg["database_url"])
@@ -1112,13 +1198,123 @@ def test_disposable_postgres_failed_transaction_releases_lock_and_keeps_zero_wri
             verify_conn.close()
 
 
-def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypatch, tmp_path):
-    """ECON-RS-1: a manual/owner-gate commit (community_leaderboard_rewards_manual's
-    grant-exact-period-commit CLI, exercised here at the acquire-lock +
-    commit_exact_period level rather than through argparse/files) must not
-    be able to grant the same period a second time while a scheduler cycle
-    is still mid-flight for it -- and vice versa. Before ECON-RS-1, only
-    the scheduler_authorization branch of _validate_commit_authorization
+def test_disposable_postgres_cli_grant_commit_fails_closed_when_lock_busy(monkeypatch, tmp_path, capsys):
+    """COMMUNITY-REWARD-LOCK-1: calling the REAL cmd_grant_exact_period_commit()
+    CLI entry point (not a hand-rolled reimplementation of its
+    acquire/commit/release sequence) while something else already holds
+    the same advisory-lock key it would use must fail closed: exit code
+    2, a clear stderr message, zero writes, and the CLI's own connection
+    still closed despite the early return."""
+    with _postgres_container() as pg:
+        admin_conn = _pg_connect(pg["database_url"])
+        try:
+            _create_pg_schema(admin_conn)
+        finally:
+            admin_conn.close()
+
+        spies = []
+        real_connect = manual._connect
+
+        def spying_connect(database_url):
+            spy = _CloseSpyConn(real_connect(database_url))
+            spies.append(spy)
+            return spy
+
+        monkeypatch.setattr(manual, "_connect", spying_connect)
+        monkeypatch.setattr(manual, "DEFAULT_OPERATIONS_ROOT", (tmp_path / "reward-operations").resolve())
+
+        op_dir = manual.DEFAULT_OPERATIONS_ROOT / "2026-W28"
+        grant_args = _build_real_grant_args(database_url=pg["database_url"], operation_dir=op_dir)
+
+        # Hold the exact same advisory-lock key a live scheduler cycle
+        # would hold for this (board_type, period_key).
+        blocker_conn = _pg_connect(pg["database_url"])
+        assert scheduler.try_acquire_period_lock(blocker_conn, "weekly", "2026-W28") is True
+        try:
+            rc = manual.cmd_grant_exact_period_commit(grant_args)
+        finally:
+            scheduler.release_period_lock(blocker_conn, "weekly", "2026-W28")
+            blocker_conn.close()
+
+        assert rc == 2
+        assert "could not acquire the reward-sync advisory lock" in capsys.readouterr().err
+        assert not (op_dir / manual.GRANT_RESULT_FILENAME).exists()
+        # Every connection cmd_grant_exact_period_commit (and the
+        # cmd_snapshot_exact_period call used to build its input files)
+        # opened via manual._connect was closed, including on this
+        # early-return path.
+        assert spies and all(spy.closed for spy in spies)
+
+        verify_conn = _pg_connect(pg["database_url"])
+        try:
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+        finally:
+            verify_conn.close()
+
+
+def test_disposable_postgres_cli_grant_commit_rollback_releases_lock_and_closes_connection(monkeypatch, tmp_path):
+    """COMMUNITY-REWARD-LOCK-1: when the REAL cmd_grant_exact_period_commit()
+    CLI's own commit_exact_period call raises, the CLI must roll back
+    (zero writes survive), release the advisory lock via its `finally`
+    (a fresh caller can immediately reacquire it), and still close its
+    connection -- all despite the exception propagating to the caller."""
+    with _postgres_container() as pg:
+        admin_conn = _pg_connect(pg["database_url"])
+        try:
+            _create_pg_schema(admin_conn)
+        finally:
+            admin_conn.close()
+
+        monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
+
+        spies = []
+        real_connect = manual._connect
+
+        def spying_connect(database_url):
+            spy = _CloseSpyConn(real_connect(database_url))
+            spies.append(spy)
+            return spy
+
+        monkeypatch.setattr(manual, "_connect", spying_connect)
+        monkeypatch.setattr(manual, "DEFAULT_OPERATIONS_ROOT", (tmp_path / "reward-operations").resolve())
+
+        op_dir = manual.DEFAULT_OPERATIONS_ROOT / "2026-W28"
+        grant_args = _build_real_grant_args(database_url=pg["database_url"], operation_dir=op_dir)
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("planned failure for rollback test")
+
+        monkeypatch.setattr(exact_period, "commit_exact_period", boom)
+
+        with pytest.raises(RuntimeError, match="planned failure for rollback test"):
+            manual.cmd_grant_exact_period_commit(grant_args)
+
+        assert spies and all(spy.closed for spy in spies)
+        assert not (op_dir / manual.GRANT_RESULT_FILENAME).exists()
+
+        verify_conn = _pg_connect(pg["database_url"])
+        try:
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+            # If the lock had leaked (finally-release skipped or failed),
+            # this reacquisition would fail.
+            assert scheduler.try_acquire_period_lock(verify_conn, "weekly", "2026-W28") is True
+            scheduler.release_period_lock(verify_conn, "weekly", "2026-W28")
+        finally:
+            verify_conn.close()
+
+
+def test_disposable_postgres_cli_grant_commit_races_scheduler_cycle(monkeypatch, tmp_path):
+    """COMMUNITY-REWARD-LOCK-1: the REAL cmd_grant_exact_period_commit() CLI
+    entry point, invoked with real argparse-shaped args against real
+    snapshot.json/preview.json files it wrote itself (via the real
+    cmd_snapshot_exact_period command), must not be able to grant the
+    same period a second time while a scheduler cycle is still
+    mid-flight for it -- and vice versa. Before COMMUNITY-REWARD-LOCK-1,
+    only the scheduler_authorization branch of _validate_commit_authorization
     checked the advisory lock; a manual commit with a valid owner gate
     could reach the real grant-commit step regardless of a concurrently
     running scheduler cycle."""
@@ -1150,14 +1346,28 @@ def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypat
 
         # Only the scheduler path's own commit call is slowed down -- this
         # widens the window during which it holds the advisory lock, so the
-        # manual thread reliably attempts (and, per this fix, is refused)
-        # its own lock acquisition while the scheduler cycle is still
-        # holding it, instead of the two runs happening to not overlap.
+        # CLI thread reliably attempts (and, per this fix, is refused) its
+        # own lock acquisition while the scheduler cycle is still holding
+        # it, instead of the two runs happening to not overlap.
         monkeypatch.setattr(scheduler, "commit_exact_period", delayed_commit)
+
+        spies = []
+        real_connect = manual._connect
+
+        def spying_connect(database_url):
+            spy = _CloseSpyConn(real_connect(database_url))
+            spies.append(spy)
+            return spy
+
+        monkeypatch.setattr(manual, "_connect", spying_connect)
+        # A distinctly-named subdirectory of tmp_path from the scheduler's
+        # own operations_root=tmp_path above, so the two sides' operation
+        # files (snapshot.json/preview.json/grant-result.json) never collide.
+        monkeypatch.setattr(manual, "DEFAULT_OPERATIONS_ROOT", (tmp_path / "manual-reward-operations").resolve())
 
         app_module = _PgAppModule(pg["database_url"])
         scheduler_results = []
-        manual_results = []
+        cli_results = []
         now = datetime.datetime(2026, 7, 13, 0, 10, tzinfo=ZoneInfo("Asia/Taipei"))
 
         def run_scheduler_cycle():
@@ -1167,50 +1377,22 @@ def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypat
                 )
             )
 
-        def run_manual_commit():
-            manual_conn = _pg_connect(pg["database_url"])
-            lock_acquired = False
+        def run_cli_grant_commit():
+            op_dir = manual.DEFAULT_OPERATIONS_ROOT / "2026-W28"
+            grant_args = _build_real_grant_args(database_url=pg["database_url"], operation_dir=op_dir)
             try:
-                lock_acquired = scheduler.try_acquire_period_lock(manual_conn, "weekly", "2026-W28")
-                if not lock_acquired:
-                    manual_results.append({"result": "lock_busy_noop"})
-                    return
-                snapshot = scheduler.build_exact_period_snapshot(
-                    manual_conn,
-                    board_type="weekly",
-                    period_key="2026-W28",
-                    period_start="2026-07-06",
-                    period_end_exclusive="2026-07-13",
-                    timezone="Asia/Taipei",
-                    limit=50,
-                )
-                preview = scheduler.build_exact_period_preview(snapshot)
-                try:
-                    result = real_commit(
-                        manual_conn,
-                        snapshot=snapshot,
-                        expected_snapshot_sha256=preview["snapshot_sha256"],
-                        expected_preview_sha256=preview["preview_sha256"],
-                        expected_claim_count=preview["summary"]["claims_count"],
-                        expected_component_count=preview["summary"]["component_count"],
-                        expected_total_coins=preview["summary"]["total_coins"],
-                        expected_total_items=preview["summary"]["total_items"],
-                        expected_total_badges=preview["summary"]["total_badges"],
-                        owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
-                        now=now,
-                    )
-                except Exception as exc:
-                    manual_conn.rollback()
-                    manual_results.append({"result": "failed", "error": str(exc)})
-                    return
-                manual_conn.commit()
-                manual_results.append(result)
-            finally:
-                if lock_acquired:
-                    scheduler.release_period_lock(manual_conn, "weekly", "2026-W28")
-                manual_conn.close()
+                rc = manual.cmd_grant_exact_period_commit(grant_args)
+            except Exception as exc:
+                cli_results.append({"result": "raised", "error": str(exc)})
+                return
+            if rc == 2:
+                cli_results.append({"result": "lock_busy_noop"})
+                return
+            assert rc == 0
+            grant_result = json.loads((op_dir / manual.GRANT_RESULT_FILENAME).read_text(encoding="utf-8"))
+            cli_results.append({"result": grant_result["result"]})
 
-        threads = [threading.Thread(target=run_scheduler_cycle), threading.Thread(target=run_manual_commit)]
+        threads = [threading.Thread(target=run_scheduler_cycle), threading.Thread(target=run_cli_grant_commit)]
         for thread in threads:
             thread.start()
         for thread in threads:
@@ -1218,16 +1400,17 @@ def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypat
             assert not thread.is_alive()
 
         assert len(scheduler_results) == 1
-        assert len(manual_results) == 1
+        assert len(cli_results) == 1
         # The two sides label a real grant differently -- the scheduler
         # wrapper translates commit_exact_period's "committed" to "granted"
-        # (see run_community_leaderboard_weekly_cycle), while the manual
-        # thread here calls commit_exact_period directly and sees
-        # "committed" verbatim. Either side can win the race, so check by
-        # side rather than assuming a fixed pair of outcome strings.
+        # (see run_community_leaderboard_weekly_cycle), while the CLI
+        # thread here reads commit_exact_period's own grant-result file
+        # and sees "committed" verbatim. Either side can win the race, so
+        # check by side rather than assuming a fixed pair of outcome
+        # strings.
         side_outcomes = {
             "scheduler": scheduler_results[0]["result"],
-            "manual": manual_results[0]["result"],
+            "cli": cli_results[0]["result"],
         }
         busy_sides = [side for side, outcome in side_outcomes.items() if outcome == "lock_busy_noop"]
         won_sides = [side for side, outcome in side_outcomes.items() if outcome in ("granted", "committed")]
@@ -1236,6 +1419,11 @@ def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypat
         # second real grant.
         assert busy_sides and won_sides, side_outcomes
         assert len(busy_sides) == 1 and len(won_sides) == 1, side_outcomes
+        assert all(outcome != "raised" for outcome in side_outcomes.values()), side_outcomes
+        # Every connection the CLI thread opened via manual._connect
+        # (cmd_snapshot_exact_period's own conn plus
+        # cmd_grant_exact_period_commit's) was closed, win or lose.
+        assert spies and all(spy.closed for spy in spies)
 
         verify_conn = _pg_connect(pg["database_url"])
         try:
@@ -1253,7 +1441,7 @@ def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypat
             ).fetchone()[0]
             balances = verify_conn.execute("SELECT COALESCE(SUM(coin_balance), 0) FROM users").fetchone()[0]
             # Every eligible claim's coins were granted exactly once -- a
-            # duplicate grant (the ECON-RS-1 failure mode) would double this.
+            # duplicate grant would double this.
             assert balances == total_coins
             component_rows = verify_conn.execute(
                 "SELECT claim_id, component, reward_key, COUNT(*) FROM leaderboard_reward_component_log "
@@ -1265,7 +1453,7 @@ def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypat
 
 
 def test_disposable_postgres_connection_drop_before_commit_leaves_zero_writes(monkeypatch, tmp_path):
-    """ECON-RS-1 crash-safety: if the process/connection dies after partial
+    """COMMUNITY-REWARD-LOCK-1 crash-safety: if the process/connection dies after partial
     work (claims inserted, coins granted, all still inside one
     transaction) but before the final commit(), nothing must survive --
     no claim marked granted without its coins, no coins granted without a

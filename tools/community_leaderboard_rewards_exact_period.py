@@ -100,7 +100,7 @@ def _validate_commit_authorization(
     if using_owner_gate:
         if owner_gate != required_owner_gate:
             raise ValueError(f"owner gate mismatch: expected {required_owner_gate}")
-        # Phase ECON-RS-1: a manual/operator commit is just as capable of
+        # Phase COMMUNITY-REWARD-LOCK-1: a manual/operator commit is just as capable of
         # racing a concurrent scheduler cycle (or another concurrent manual
         # commit) as the scheduler is of racing itself -- see
         # community_leaderboard_rewards_scheduler.try_acquire_period_lock.

@@ -524,7 +524,7 @@ def test_scheduler_authorization_cannot_bypass_manual_owner_gate_without_lock(mo
 
 
 def test_manual_owner_gate_commit_rejected_without_held_advisory_lock(monkeypatch):
-    """ECON-RS-1: a manual/owner-gate commit must hold the same per-period
+    """COMMUNITY-REWARD-LOCK-1: a manual/owner-gate commit must hold the same per-period
     advisory lock the scheduler requires -- it is not exempt just because
     it authorizes via owner_gate instead of scheduler_authorization. Before
     this fix, only the scheduler_authorization branch checked
