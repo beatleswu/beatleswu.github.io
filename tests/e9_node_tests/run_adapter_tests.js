@@ -133,6 +133,19 @@ test('normalizeZone: boss.available missing defaults to false, never fabricated 
   const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked' });
   assert.strictEqual(z.bossAvailable, false);
 });
+test('normalizeZone: name_en passes through as nameEn', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: '中文', name_en: 'English', status: 'unlocked' });
+  assert.strictEqual(z.nameEn, 'English');
+  assert.strictEqual(z.name, '中文');
+});
+test('normalizeZone: missing name_en normalizes to null, not undefined or a fabricated value', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: '中文', status: 'unlocked' });
+  assert.strictEqual(z.nameEn, null);
+});
+test('normalizeZone: non-string name_en normalizes to null (never renders a raw object/number)', () => {
+  const z = AdventureState.normalizeZone({ key: 'k1', name: '中文', name_en: 123, status: 'unlocked' });
+  assert.strictEqual(z.nameEn, null);
+});
 test('normalizeZones: drops invalid entries, keeps valid ones', () => {
   const r = AdventureState.normalizeZones({
     zones: [

@@ -31,6 +31,21 @@
     return fallback;
   }
 
+  // Same locale check the legacy Adventure Map's own _zoneEn()/_zoneName()
+  // already use (index.html) -- zone names are plain strings, not i18n.js
+  // dictionary keys, so this picks between the two API-provided fields
+  // directly rather than going through t()/I18nFallback. Falls back to
+  // `name` (the Chinese source string) whenever English isn't selected OR
+  // a zone's `nameEn` is missing -- never a blank label or a raw key.
+  function isEnglishLocale() {
+    return typeof window.I18n !== 'undefined' && typeof window.I18n.getLang === 'function' && window.I18n.getLang() === 'en';
+  }
+  function zoneDisplayName(zone) {
+    if (!zone) return '';
+    if (isEnglishLocale() && zone.nameEn) return zone.nameEn;
+    return zone.name;
+  }
+
   function renderBeginnerVillageMainline(root, zone) {
     var panel = root.querySelector('#e9-newbie-mainline');
     if (!panel || !zone || zone.key !== 'k26_30') return;
@@ -104,7 +119,7 @@
       tile.classList.toggle('is-selected', selected);
     });
     if (details) details.hidden = false;
-    if (label) label.textContent = zone.name || zone.key;
+    if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (summary) summary.textContent = zone.bossAvailable
       ? t('index.adv.boss_ready', 'Boss challenge ready')
       : (zone.cleared ? t('index.adv.boss_cleared', 'Area cleared') : t('index.adv.panel_ready', 'Adventure is ready'));
@@ -142,12 +157,13 @@
         tile.title = t('index.adv.zone_locked', 'This area is still sealed by mist.');
       }
 
-      // Zone display name comes straight from the API (zone.name), same
-      // as the legacy map -- there is no separate English zone-name field
-      // to translate against.
+      // Zone display name: English locale prefers zone.nameEn (from the
+      // API's name_en field), falling back to zone.name (Chinese) if
+      // English isn't selected or nameEn is missing -- same precedence
+      // the legacy Adventure Map's own _zoneName() already uses.
       var label = document.createElement('span');
       label.className = 'e9-zone__name';
-      label.textContent = zone.name;
+      label.textContent = zoneDisplayName(zone);
       tile.appendChild(label);
 
       if (zone.cleared || zone.stars > 0) {

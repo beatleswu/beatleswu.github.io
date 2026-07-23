@@ -7991,16 +7991,16 @@ BOSS_FAIL_COOLDOWN = 30
 # 每關綁定的劇情主線書（topic）。地圖通關只算這幾本，避免題量爆炸；
 # 額外大題庫（初階元素魔法導論、萬陣試煉、懸賞令…）不綁關卡，留給自由練習。
 ADVENTURE_ZONES = [
-    {'key':'k26_30', 'label':'26–30級', 'name':'圍棋新手村',   'icon':'🟢', 'min':0,  'max':4,   'stage':'LV1',  'books':['1圍棋新手村','2新手村的考驗']},
-    {'key':'k21_25', 'label':'21–25級', 'name':'史萊姆平原',   'icon':'🟦', 'min':5,  'max':9,   'stage':'LV2',  'books':['3史萊姆平原','4史萊姆討伐戰']},
-    {'key':'k16_20', 'label':'16–20級', 'name':'哥布林洞穴',   'icon':'🦇', 'min':10, 'max':14,  'stage':'LV3',  'books':['5哥布林洞穴','6哥布林巡邏隊']},
-    {'key':'k11_15', 'label':'11–15級', 'name':'迷霧森林',     'icon':'🌲', 'min':15, 'max':19,  'stage':'LV4',  'books':['7迷霧森林','8迷霧森林深處']},
-    {'key':'k6_10',  'label':'6–10級',  'name':'獸人部落',     'icon':'🪓', 'min':20, 'max':24,  'stage':'LV5',  'books':['9獸人部落','10獸人角鬥場']},
-    {'key':'k1_5',   'label':'1–5級',   'name':'龍之谷',       'icon':'🐉', 'min':25, 'max':29,  'stage':'LV6',  'books':['11飛龍討伐','12龍之谷守衛']},
-    {'key':'d1_2',   'label':'1–2段',   'name':'賢者之塔',     'icon':'🔮', 'min':30, 'max':31,  'stage':'LV7',  'books':['13賢者之塔','14大魔法師試煉']},
-    {'key':'d3_4',   'label':'3–4段',   'name':'魔王城前線',   'icon':'👺', 'min':32, 'max':33,  'stage':'LV8',  'books':['15皇家騎士團遠征','16魔王城前線','17混沌領主的考驗']},
-    {'key':'d5_6',   'label':'5–6段',   'name':'諸神黃昏',     'icon':'🗿', 'min':34, 'max':35,  'stage':'LV9',  'books':['18諸神黃昏']},
-    {'key':'d7_plus','label':'7段＋',   'name':'上古終焉神殿', 'icon':'✨', 'min':36, 'max':998, 'stage':'LV10', 'books':['19東方神祕結界','20上古終焉神殿']},
+    {'key':'k26_30', 'label':'26–30級', 'name':'圍棋新手村',   'name_en':'Beginner Village',     'icon':'🟢', 'min':0,  'max':4,   'stage':'LV1',  'books':['1圍棋新手村','2新手村的考驗']},
+    {'key':'k21_25', 'label':'21–25級', 'name':'史萊姆平原',   'name_en':'Slime Plains',         'icon':'🟦', 'min':5,  'max':9,   'stage':'LV2',  'books':['3史萊姆平原','4史萊姆討伐戰']},
+    {'key':'k16_20', 'label':'16–20級', 'name':'哥布林洞穴',   'name_en':'Goblin Cave',          'icon':'🦇', 'min':10, 'max':14,  'stage':'LV3',  'books':['5哥布林洞穴','6哥布林巡邏隊']},
+    {'key':'k11_15', 'label':'11–15級', 'name':'迷霧森林',     'name_en':'Misty Forest',         'icon':'🌲', 'min':15, 'max':19,  'stage':'LV4',  'books':['7迷霧森林','8迷霧森林深處']},
+    {'key':'k6_10',  'label':'6–10級',  'name':'獸人部落',     'name_en':'Orc Tribe',            'icon':'🪓', 'min':20, 'max':24,  'stage':'LV5',  'books':['9獸人部落','10獸人角鬥場']},
+    {'key':'k1_5',   'label':'1–5級',   'name':'龍之谷',       'name_en':'Dragon Valley',        'icon':'🐉', 'min':25, 'max':29,  'stage':'LV6',  'books':['11飛龍討伐','12龍之谷守衛']},
+    {'key':'d1_2',   'label':'1–2段',   'name':'賢者之塔',     'name_en':'Sage Tower',           'icon':'🔮', 'min':30, 'max':31,  'stage':'LV7',  'books':['13賢者之塔','14大魔法師試煉']},
+    {'key':'d3_4',   'label':'3–4段',   'name':'魔王城前線',   'name_en':'Demon Castle Front',   'icon':'👺', 'min':32, 'max':33,  'stage':'LV8',  'books':['15皇家騎士團遠征','16魔王城前線','17混沌領主的考驗']},
+    {'key':'d5_6',   'label':'5–6段',   'name':'諸神黃昏',     'name_en':'Ragnarök',             'icon':'🗿', 'min':34, 'max':35,  'stage':'LV9',  'books':['18諸神黃昏']},
+    {'key':'d7_plus','label':'7段＋',   'name':'上古終焉神殿', 'name_en':'Ancient Doom Temple',  'icon':'✨', 'min':36, 'max':998, 'stage':'LV10', 'books':['19東方神祕結界','20上古終焉神殿']},
 ]
 
 ADVENTURE_BOSS_META = {

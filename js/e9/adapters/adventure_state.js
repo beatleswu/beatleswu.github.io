@@ -32,9 +32,15 @@
 
     var bossAvailable = !!(raw.boss && raw.boss.available === true);
 
+    // name_en is optional -- an older API response or a zone missing a
+    // translation still normalizes successfully, falling back to `name`
+    // (see world_stage.js's zoneDisplayName()), never a raw key.
+    var nameEn = (typeof raw.name_en === 'string' && raw.name_en) ? raw.name_en : null;
+
     return {
       key: raw.key,
       name: raw.name,
+      nameEn: nameEn,
       status: status,
       locked: status === 'locked',
       cleared: status === 'completed',
