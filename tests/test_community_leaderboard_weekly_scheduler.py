@@ -1110,3 +1110,223 @@ def test_disposable_postgres_failed_transaction_releases_lock_and_keeps_zero_wri
             scheduler.release_period_lock(verify_conn, "weekly", "2026-W28")
         finally:
             verify_conn.close()
+
+
+def test_disposable_postgres_manual_commit_cannot_race_scheduler_cycle(monkeypatch, tmp_path):
+    """ECON-RS-1: a manual/owner-gate commit (community_leaderboard_rewards_manual's
+    grant-exact-period-commit CLI, exercised here at the acquire-lock +
+    commit_exact_period level rather than through argparse/files) must not
+    be able to grant the same period a second time while a scheduler cycle
+    is still mid-flight for it -- and vice versa. Before ECON-RS-1, only
+    the scheduler_authorization branch of _validate_commit_authorization
+    checked the advisory lock; a manual commit with a valid owner gate
+    could reach the real grant-commit step regardless of a concurrently
+    running scheduler cycle."""
+    with _postgres_container() as pg:
+        admin_conn = _pg_connect(pg["database_url"])
+        try:
+            _create_pg_schema(admin_conn)
+        finally:
+            admin_conn.close()
+
+        monkeypatch.setenv("DATABASE_URL", pg["database_url"])
+        monkeypatch.setenv("PRODUCTION", "1")
+        monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
+        from tools import community_leaderboard_rewards_real_grant_preview as real_preview
+
+        monkeypatch.setattr(real_preview, "load_app_module", lambda: _PgFakeRewardApp)
+        monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+
+        real_commit = scheduler.commit_exact_period
+        delay_once = {"done": False}
+        delay_lock = threading.Lock()
+
+        def delayed_commit(*args, **kwargs):
+            with delay_lock:
+                if not delay_once["done"]:
+                    delay_once["done"] = True
+                    time.sleep(0.75)
+            return real_commit(*args, **kwargs)
+
+        # Only the scheduler path's own commit call is slowed down -- this
+        # widens the window during which it holds the advisory lock, so the
+        # manual thread reliably attempts (and, per this fix, is refused)
+        # its own lock acquisition while the scheduler cycle is still
+        # holding it, instead of the two runs happening to not overlap.
+        monkeypatch.setattr(scheduler, "commit_exact_period", delayed_commit)
+
+        app_module = _PgAppModule(pg["database_url"])
+        scheduler_results = []
+        manual_results = []
+        now = datetime.datetime(2026, 7, 13, 0, 10, tzinfo=ZoneInfo("Asia/Taipei"))
+
+        def run_scheduler_cycle():
+            scheduler_results.append(
+                scheduler.run_community_leaderboard_weekly_cycle(
+                    app_module, now=now, operations_root=tmp_path,
+                )
+            )
+
+        def run_manual_commit():
+            manual_conn = _pg_connect(pg["database_url"])
+            lock_acquired = False
+            try:
+                lock_acquired = scheduler.try_acquire_period_lock(manual_conn, "weekly", "2026-W28")
+                if not lock_acquired:
+                    manual_results.append({"result": "lock_busy_noop"})
+                    return
+                snapshot = scheduler.build_exact_period_snapshot(
+                    manual_conn,
+                    board_type="weekly",
+                    period_key="2026-W28",
+                    period_start="2026-07-06",
+                    period_end_exclusive="2026-07-13",
+                    timezone="Asia/Taipei",
+                    limit=50,
+                )
+                preview = scheduler.build_exact_period_preview(snapshot)
+                try:
+                    result = real_commit(
+                        manual_conn,
+                        snapshot=snapshot,
+                        expected_snapshot_sha256=preview["snapshot_sha256"],
+                        expected_preview_sha256=preview["preview_sha256"],
+                        expected_claim_count=preview["summary"]["claims_count"],
+                        expected_component_count=preview["summary"]["component_count"],
+                        expected_total_coins=preview["summary"]["total_coins"],
+                        expected_total_items=preview["summary"]["total_items"],
+                        expected_total_badges=preview["summary"]["total_badges"],
+                        owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+                        now=now,
+                    )
+                except Exception as exc:
+                    manual_conn.rollback()
+                    manual_results.append({"result": "failed", "error": str(exc)})
+                    return
+                manual_conn.commit()
+                manual_results.append(result)
+            finally:
+                if lock_acquired:
+                    scheduler.release_period_lock(manual_conn, "weekly", "2026-W28")
+                manual_conn.close()
+
+        threads = [threading.Thread(target=run_scheduler_cycle), threading.Thread(target=run_manual_commit)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+            assert not thread.is_alive()
+
+        assert len(scheduler_results) == 1
+        assert len(manual_results) == 1
+        # The two sides label a real grant differently -- the scheduler
+        # wrapper translates commit_exact_period's "committed" to "granted"
+        # (see run_community_leaderboard_weekly_cycle), while the manual
+        # thread here calls commit_exact_period directly and sees
+        # "committed" verbatim. Either side can win the race, so check by
+        # side rather than assuming a fixed pair of outcome strings.
+        side_outcomes = {
+            "scheduler": scheduler_results[0]["result"],
+            "manual": manual_results[0]["result"],
+        }
+        busy_sides = [side for side, outcome in side_outcomes.items() if outcome == "lock_busy_noop"]
+        won_sides = [side for side, outcome in side_outcomes.items() if outcome in ("granted", "committed")]
+        # Whichever side loses the race must cleanly refuse (lock busy) --
+        # never raise an unhandled deadlock, and never fall through to a
+        # second real grant.
+        assert busy_sides and won_sides, side_outcomes
+        assert len(busy_sides) == 1 and len(won_sides) == 1, side_outcomes
+
+        verify_conn = _pg_connect(pg["database_url"])
+        try:
+            claims = verify_conn.execute(
+                "SELECT COUNT(*), SUM(CASE WHEN status = 'granted' THEN 1 ELSE 0 END) "
+                "FROM leaderboard_reward_claims WHERE board_type = %s AND period_key = %s",
+                ("weekly", "2026-W28"),
+            ).fetchone()
+            assert claims[0] > 0
+            assert claims[0] == claims[1]
+            total_coins = verify_conn.execute(
+                "SELECT COALESCE(SUM(granted_coins), 0) FROM leaderboard_reward_claims "
+                "WHERE board_type = %s AND period_key = %s AND status = 'granted'",
+                ("weekly", "2026-W28"),
+            ).fetchone()[0]
+            balances = verify_conn.execute("SELECT COALESCE(SUM(coin_balance), 0) FROM users").fetchone()[0]
+            # Every eligible claim's coins were granted exactly once -- a
+            # duplicate grant (the ECON-RS-1 failure mode) would double this.
+            assert balances == total_coins
+            component_rows = verify_conn.execute(
+                "SELECT claim_id, component, reward_key, COUNT(*) FROM leaderboard_reward_component_log "
+                "GROUP BY claim_id, component, reward_key HAVING COUNT(*) > 1"
+            ).fetchall()
+            assert component_rows == []
+        finally:
+            verify_conn.close()
+
+
+def test_disposable_postgres_connection_drop_before_commit_leaves_zero_writes(monkeypatch, tmp_path):
+    """ECON-RS-1 crash-safety: if the process/connection dies after partial
+    work (claims inserted, coins granted, all still inside one
+    transaction) but before the final commit(), nothing must survive --
+    no claim marked granted without its coins, no coins granted without a
+    matching granted claim. Simulated by closing the connection WITHOUT
+    commit() or rollback() (an abrupt drop, unlike the sibling
+    failed-transaction test above which rolls back via an exception
+    handler), then reconnecting fresh to verify. Also verifies the
+    session-scoped advisory lock dies with the crashed connection instead
+    of leaving the period stuck locked forever."""
+    with _postgres_container() as pg:
+        admin_conn = _pg_connect(pg["database_url"])
+        try:
+            _create_pg_schema(admin_conn)
+        finally:
+            admin_conn.close()
+
+        monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
+        from tools import community_leaderboard_rewards_real_grant_preview as real_preview
+
+        monkeypatch.setattr(real_preview, "load_app_module", lambda: _PgFakeRewardApp)
+        monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+
+        crash_conn = _pg_connect(pg["database_url"])
+        lock_acquired = scheduler.try_acquire_period_lock(crash_conn, "weekly", "2026-W28")
+        assert lock_acquired is True
+        snapshot = scheduler.build_exact_period_snapshot(
+            crash_conn,
+            board_type="weekly",
+            period_key="2026-W28",
+            period_start="2026-07-06",
+            period_end_exclusive="2026-07-13",
+            timezone="Asia/Taipei",
+            limit=50,
+        )
+        preview = scheduler.build_exact_period_preview(snapshot)
+        result = scheduler.commit_exact_period(
+            crash_conn,
+            snapshot=snapshot,
+            expected_snapshot_sha256=preview["snapshot_sha256"],
+            expected_preview_sha256=preview["preview_sha256"],
+            expected_claim_count=preview["summary"]["claims_count"],
+            expected_component_count=preview["summary"]["component_count"],
+            expected_total_coins=preview["summary"]["total_coins"],
+            expected_total_items=preview["summary"]["total_items"],
+            expected_total_badges=preview["summary"]["total_badges"],
+            owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+            now=datetime.datetime(2026, 7, 13, 0, 10, tzinfo=ZoneInfo("Asia/Taipei")),
+        )
+        assert result["result"] == "committed"
+        # Simulate a hard crash: drop the connection without commit() or
+        # rollback(), and without releasing the advisory lock -- a real
+        # process kill would never get to run that cleanup code either.
+        crash_conn.close()
+
+        verify_conn = _pg_connect(pg["database_url"])
+        try:
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_snapshots").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0] == 0
+            assert verify_conn.execute("SELECT COALESCE(SUM(coin_balance), 0) FROM users").fetchone()[0] == 0
+            assert scheduler.try_acquire_period_lock(verify_conn, "weekly", "2026-W28") is True
+            scheduler.release_period_lock(verify_conn, "weekly", "2026-W28")
+        finally:
+            verify_conn.close()

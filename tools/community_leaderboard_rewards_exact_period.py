@@ -67,6 +67,24 @@ def scheduler_period_lock_is_held(conn, *, board_type, period_key):
     return bool(row[0]) if row else False
 
 
+def _require_period_lock_held(conn, snapshot, *, caller_label):
+    """Raise unless the per-(board_type, period_key) advisory lock is held
+    by this exact connection/backend (see scheduler_period_lock_is_held).
+
+    This is the single mutual-exclusion gate `commit_exact_period` relies on
+    to guarantee at most one caller -- scheduler or manual/owner-gate --
+    ever reaches the real grant-commit step for a given period at a time.
+    Every authorization path funnels through this same check so a future
+    caller can never accidentally bypass it by picking the "wrong" branch.
+    """
+    if not scheduler_period_lock_is_held(
+        conn,
+        board_type=snapshot["board_type"],
+        period_key=snapshot["period_key"],
+    ):
+        raise ValueError(f"{caller_label} requires a held advisory lock")
+
+
 def _validate_commit_authorization(
     conn,
     snapshot,
@@ -82,6 +100,15 @@ def _validate_commit_authorization(
     if using_owner_gate:
         if owner_gate != required_owner_gate:
             raise ValueError(f"owner gate mismatch: expected {required_owner_gate}")
+        # Phase ECON-RS-1: a manual/operator commit is just as capable of
+        # racing a concurrent scheduler cycle (or another concurrent manual
+        # commit) as the scheduler is of racing itself -- see
+        # community_leaderboard_rewards_scheduler.try_acquire_period_lock.
+        # Requiring the caller to already hold that same advisory lock here
+        # closes that gap instead of relying on incidental UNIQUE-constraint
+        # row-locking in the claims-finalize step to serialize concurrent
+        # commits (which can deadlock-abort instead of cleanly refusing).
+        _require_period_lock_held(conn, snapshot, caller_label="manual commit")
         return "manual"
     if not isinstance(scheduler_authorization, _SchedulerCommitAuthorization):
         raise ValueError("scheduler authorization token mismatch")
@@ -93,12 +120,7 @@ def _validate_commit_authorization(
         raise ValueError("scheduler authorization requires COMMUNITY_LEADERBOARD_REWARDS_ENABLED=true")
     if scheduler_authorization.board_type != snapshot["board_type"] or scheduler_authorization.period_key != snapshot["period_key"]:
         raise ValueError("scheduler authorization period mismatch")
-    if not scheduler_period_lock_is_held(
-        conn,
-        board_type=snapshot["board_type"],
-        period_key=snapshot["period_key"],
-    ):
-        raise ValueError("scheduler authorization requires a held advisory lock")
+    _require_period_lock_held(conn, snapshot, caller_label="scheduler authorization")
     return "scheduler"
 
 
