@@ -519,14 +519,14 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "99c9485cffd710451ad41f61f0a2a8900ede08b3",
-      "source_branch_or_local_ref": "feature/e9-beta-quest1",
-      "source_commit_subject": "feat(e9): add read-only quest board",
-      "source_date": "2026-07-19",
-      "content_sha256": "a84af02f68ac30f57461eb131eef4fd6504f0153f830d416fce21d44b9d2f245",
+      "source_commit": "fd86776ac8ba9eb0b88b59cf13942b581e95ddea",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "Merge pull request #207 from beatleswu/fix/e9-sw-version-bump-cachebust",
+      "source_date": "2026-07-23",
+      "content_sha256": "ae9b4d55739fb612715deec52c8584c7eebb5c7e7369a4a68bfeed5483079712",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 C1.1 assets",
-      "production_hash_status": "does NOT byte-match current Production (this incident-fix branch is not deployed; Production still serves the pre-fix sw.js) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
+      "production_hash_status": "byte-matches current Production -- verified live via deploy-static-release.ps1's public per-file SHA-256 check against https://godokoro.com/sw.js immediately after the 2026-07-23 static release switch (generation 20260723-015327-fd86776a-v202-e9-component-loader-timeout-fix)",
       "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
