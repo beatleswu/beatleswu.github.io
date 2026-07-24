@@ -116,6 +116,34 @@
       .replace('{total}', String(zone.total));
   }
 
+  // index.adv.boss_cleared is likewise a template ('Defeated {stars}' /
+  // '已擊破 {stars}') -- same substitution contract as bossReadyText above.
+  function clearedText(zone) {
+    return t('index.adv.boss_cleared', 'Defeated {stars}')
+      .replace('{stars}', String(zone.stars));
+  }
+
+  // The small zone-tile badge only ever shows index.adv.boss_ready's
+  // short lead-in ("Seal broken" / "封印解除") -- it never substitutes
+  // {seen}/{total} at all (see bossReadyText(zone) above for the full,
+  // substituted summary-panel text). Truncating on the current
+  // dictionary values' colon (ASCII ':' or full-width '：') is NOT
+  // sufficient on its own: a future translation could carry the same
+  // {seen}/{total} placeholders with no colon at all (e.g. "Seal broken
+  // {seen}/{total}"), which a colon-only split would pass through
+  // unchanged. This drops everything from the first colon onward first
+  // (current values), THEN independently drops everything from the
+  // first literal "{seen}" or "{total}" token onward (any future,
+  // delimiter-free value) -- so neither placeholder can survive the
+  // badge regardless of what punctuation (if any) a translation uses.
+  function bossReadyBadgeText() {
+    var text = t('index.adv.boss_ready', 'Seal broken: {seen}/{total}');
+    return text
+      .split(/[:：]/)[0]
+      .split(/\{seen\}|\{total\}/)[0]
+      .trim();
+  }
+
   function renderSelectedZone(root, zones, zoneKey, focusDetails) {
     var state = root.__e9WorldStageState;
     var zone = zones.filter(function (item) { return item.key === zoneKey; })[0];
@@ -144,7 +172,7 @@
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
-      : (zone.cleared ? t('index.adv.boss_cleared', 'Area cleared') : t('index.adv.panel_ready', 'Adventure is ready'));
+      : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
 
     if (cta) {
       if (zone.key === 'k26_30') {
@@ -224,7 +252,7 @@
       if (zone.bossAvailable) {
         var bossEl = document.createElement('span');
         bossEl.className = 'e9-zone__boss-ready';
-        bossEl.textContent = t('index.adv.boss_ready', 'Seal broken').split(':')[0];
+        bossEl.textContent = bossReadyBadgeText();
         tile.appendChild(bossEl);
       }
 

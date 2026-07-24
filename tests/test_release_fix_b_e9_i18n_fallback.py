@@ -119,8 +119,48 @@ def test_right_cards_preserves_replace_interpolation_contract():
 def test_world_stage_preserves_replace_and_split_interpolation_contract():
     js = _read(JS_DIR / "world_stage.js")
     assert "t('index.adv.summary', '{n} / {t} areas cleared')" in js
-    assert "t('index.adv.boss_ready', 'Seal broken')" in js
-    assert ".split(':')[0]" in js
+
+    # boss_cleared: {stars} substitution for cleared-zone copy must survive.
+    assert "t('index.adv.boss_cleared', 'Defeated {stars}')" in js
+    assert ".replace('{stars}', String(zone.stars))" in js
+
+    # boss_ready tile badge: must go through a dedicated, named safe helper,
+    # not the original ASCII-only inline split, which silently failed to
+    # truncate the full-width-colon Chinese dictionary value (leaking the
+    # raw "{seen}/{total}" template in that locale) and would also pass a
+    # delimiter-free translation straight through untouched.
+    assert "function bossReadyBadgeText()" in js
+    assert ".split(':')[0]" not in js, (
+        "the original ASCII-only colon split must not reappear -- it "
+        "silently fails to match the Chinese dictionary value's full-width '：'"
+    )
+    assert "t('index.adv.boss_ready', 'Seal broken')" not in js, (
+        "the original un-templated fallback must not reappear -- the real "
+        "fallback is the full template 'Seal broken: {seen}/{total}'"
+    )
+    assert "t('index.adv.boss_ready', 'Seal broken: {seen}/{total}')" in js
+
+    # Confirm the i18n.js source values this contract depends on -- source
+    # content only, no truncation logic re-derived here.
+    i18n_text = _read(I18N_JS)
+    match = re.search(
+        r"'index\.adv\.boss_ready'\s*:\s*\{\s*en:\s*'((?:[^'\\]|\\.)*)'\s*,\s*zh:\s*'((?:[^'\\]|\\.)*)'",
+        i18n_text,
+    )
+    assert match, "index.adv.boss_ready not found in i18n.js in the expected { en: '...', zh: '...' } shape"
+    en_value, zh_value = match.group(1), match.group(2)
+    assert en_value == 'Seal broken: {seen}/{total}'
+    assert zh_value == '封印解除：{seen}/{total} 題'
+
+    # The actual behavioral proof -- that bossReadyBadgeText() resolves the
+    # real EN/ZH dictionary values AND hypothetical delimiter-free
+    # translations to the short lead-in with no {seen}/{total} leak in any
+    # case -- is proven by executing the real, current function body
+    # (extracted verbatim and run in a Node vm context, not reimplemented
+    # in Python) in
+    # test_e9_multi_zone_adventure_cta.py::test_bossreadybadgetext_production_linked_behavior_via_node.
+    # Not duplicated here to avoid two divergent copies of the same
+    # production-linked harness.
 
 
 # ---------------------------------------------------------------------------
