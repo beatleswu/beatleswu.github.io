@@ -140,14 +140,8 @@ def test_world_stage_preserves_replace_and_split_interpolation_contract():
     )
     assert "t('index.adv.boss_ready', 'Seal broken: {seen}/{total}')" in js
 
-    # Behavioral proof: apply the badge helper's required truncation
-    # contract (drop from the first colon of either width, THEN
-    # independently drop from the first literal {seen}/{total} token) to
-    # the REAL current i18n.js dictionary values and to synthetic
-    # delimiter-free translations. This intentionally does not require any
-    # one exact source expression -- a different, equally safe
-    # implementation must still be allowed to pass -- it only proves the
-    # resulting behavior and that neither placeholder can leak.
+    # Confirm the i18n.js source values this contract depends on -- source
+    # content only, no truncation logic re-derived here.
     i18n_text = _read(I18N_JS)
     match = re.search(
         r"'index\.adv\.boss_ready'\s*:\s*\{\s*en:\s*'((?:[^'\\]|\\.)*)'\s*,\s*zh:\s*'((?:[^'\\]|\\.)*)'",
@@ -158,23 +152,15 @@ def test_world_stage_preserves_replace_and_split_interpolation_contract():
     assert en_value == 'Seal broken: {seen}/{total}'
     assert zh_value == '封印解除：{seen}/{total} 題'
 
-    def _badge_text(raw_value):
-        result = re.split(r'[:：]', raw_value)[0]
-        result = re.split(r'\{seen\}|\{total\}', result)[0]
-        return result.strip()
-
-    cases = {
-        en_value: 'Seal broken',
-        zh_value: '封印解除',
-        'Seal broken {seen}/{total}': 'Seal broken',
-        '封印解除 {seen}/{total} 題': '封印解除',
-    }
-    for raw_value, expected in cases.items():
-        result = _badge_text(raw_value)
-        assert result == expected, f"{raw_value!r} resolved to {result!r}, expected {expected!r}"
-        assert '{seen}' not in result and '{total}' not in result, (
-            f"{raw_value!r} leaked a placeholder into the tile badge: {result!r}"
-        )
+    # The actual behavioral proof -- that bossReadyBadgeText() resolves the
+    # real EN/ZH dictionary values AND hypothetical delimiter-free
+    # translations to the short lead-in with no {seen}/{total} leak in any
+    # case -- is proven by executing the real, current function body
+    # (extracted verbatim and run in a Node vm context, not reimplemented
+    # in Python) in
+    # test_e9_multi_zone_adventure_cta.py::test_bossreadybadgetext_production_linked_behavior_via_node.
+    # Not duplicated here to avoid two divergent copies of the same
+    # production-linked harness.
 
 
 # ---------------------------------------------------------------------------

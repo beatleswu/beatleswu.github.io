@@ -18,11 +18,14 @@ mock. `normalizeZone()`'s seen/total behavior is covered with full
 execution fidelity by the new Node tests in
 tests/e9_node_tests/run_adapter_tests.js, not duplicated here.
 """
+import json
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-WORLD_STAGE = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
+WORLD_STAGE_PATH = ROOT / "js/e9/world_stage.js"
+WORLD_STAGE = WORLD_STAGE_PATH.read_text(encoding="utf-8")
 WORLD_STAGE_HTML = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
 WORLD_STAGE_CSS = (ROOT / "css/e9/world_stage.css").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "js/e9/shell.js").read_text(encoding="utf-8")
@@ -198,10 +201,14 @@ def test_renderselectedzone_uses_clearedtext_helper_not_raw_t_call():
 # equally valid implementation of that same guarantee must be allowed
 # to pass. Instead they (a) prove the tile badge is produced through a
 # single named, testable helper rather than inline logic duplicated at
-# the call site, and (b) apply the required truncation algorithm to the
-# REAL current i18n.js dictionary strings *and* to synthetic
-# delimiter-free translations, proving actual resolved behavior in both
-# cases rather than only pattern-matching the source.
+# the call site, and (b) prove actual resolved behavior by extracting
+# bossReadyBadgeText()'s exact, current source out of the real
+# world_stage.js and EXECUTING it for real inside a Node vm context
+# (with a controlled t() stub standing in for I18nFallback) -- not by
+# restating its truncation algorithm a second time in Python. world_stage.js
+# is a browser-only file (a single top-level IIFE, no module.exports), so
+# this is the only way to run its actual code from a Python test; see
+# _run_boss_ready_badge_text_node_harness() below.
 # ---------------------------------------------------------------------
 
 def _i18n_entry_values(key):
@@ -211,19 +218,6 @@ def _i18n_entry_values(key):
     )
     assert match, f"{key} not found in i18n.js in the expected {{ en: '...', zh: '...' }} shape"
     return match.group(1), match.group(2)
-
-
-def _boss_ready_badge_text(raw_value):
-    """Required truncation contract for the zone-tile boss-ready badge:
-    drop everything from the first colon (ASCII or full-width) onward,
-    THEN independently drop everything from the first literal {seen} or
-    {total} placeholder token onward, then trim. Neither placeholder may
-    survive, regardless of whether the translation uses a colon, a
-    different delimiter, or no delimiter at all.
-    """
-    result = re.split(r'[:：]', raw_value)[0]
-    result = re.split(r'\{seen\}|\{total\}', result)[0]
-    return result.strip()
 
 
 def test_renderzones_uses_bossreadybadgetext_helper_not_inline_logic():
@@ -246,48 +240,106 @@ def test_bossreadybadgetext_never_uses_ascii_only_colon_split():
     assert "split(':')[0]" not in WORLD_STAGE
 
 
-def test_boss_ready_badge_resolves_to_seal_broken_in_english():
-    en_value, _zh_value = _i18n_entry_values('index.adv.boss_ready')
-    assert en_value == 'Seal broken: {seen}/{total}'
-    result = _boss_ready_badge_text(en_value)
-    assert result == 'Seal broken'
-    assert '{seen}' not in result and '{total}' not in result
+# Node harness: extracts bossReadyBadgeText()'s EXACT function source out
+# of the real world_stage.js on disk (brace-matched substring, not
+# retyped), then executes that exact source in a fresh vm context with an
+# injectable t(key, fallback) stub, for each required (input, expected)
+# case supplied via argv. This runs the real production code -- it does
+# not reimplement the truncation algorithm.
+_BOSS_READY_BADGE_NODE_HARNESS = r"""
+'use strict';
+const fs = require('fs');
+const assert = require('assert');
+const vm = require('vm');
+
+const WORLD_STAGE_PATH = process.argv[1];
+const CASES = JSON.parse(process.argv[2]);
+const FUNCTION_NAME = 'bossReadyBadgeText';
+
+function extractFunctionSource(fullSource, functionName) {
+  const marker = 'function ' + functionName + '(';
+  const startIdx = fullSource.indexOf(marker);
+  if (startIdx === -1) throw new Error('function ' + functionName + '() not found');
+  const braceStart = fullSource.indexOf('{', startIdx);
+  if (braceStart === -1) throw new Error('opening brace not found for ' + functionName + '()');
+  let depth = 0, endIdx = -1;
+  for (let i = braceStart; i < fullSource.length; i++) {
+    const ch = fullSource[i];
+    if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) { endIdx = i + 1; break; } }
+  }
+  if (endIdx === -1) throw new Error('matching closing brace not found for ' + functionName + '()');
+  const extracted = fullSource.slice(startIdx, endIdx);
+  if (!new RegExp('^function\\s+' + functionName + '\\s*\\(\\s*\\)\\s*\\{').test(extracted)) {
+    throw new Error('extracted text does not look like a bare ' + functionName + '() declaration:\n' + extracted);
+  }
+  return extracted;
+}
+
+const worldStageSource = fs.readFileSync(WORLD_STAGE_PATH, 'utf8');
+const functionSource = extractFunctionSource(worldStageSource, FUNCTION_NAME);
+if (!/\bt\s*\(/.test(functionSource)) {
+  throw new Error(FUNCTION_NAME + '() no longer calls t(...) -- cannot inject a controlled translation');
+}
+
+function runWithTranslation(translationValue) {
+  const sandbox = { t: function () { return translationValue; }, __result: undefined };
+  vm.createContext(sandbox);
+  new vm.Script(functionSource + '\n__result = ' + FUNCTION_NAME + '();').runInContext(sandbox);
+  return sandbox.__result;
+}
+
+let failures = [];
+let passCount = 0;
+CASES.forEach(function (c) {
+  try {
+    const result = runWithTranslation(c.input);
+    assert.strictEqual(result, c.expected,
+      'input ' + JSON.stringify(c.input) + ' resolved to ' + JSON.stringify(result) +
+      ', expected ' + JSON.stringify(c.expected));
+    assert.ok(result.indexOf('{seen}') === -1, 'leaked {seen} into badge text: ' + JSON.stringify(result));
+    assert.ok(result.indexOf('{total}') === -1, 'leaked {total} into badge text: ' + JSON.stringify(result));
+    passCount++;
+  } catch (err) {
+    failures.push(c.label + ': ' + (err.message || String(err)));
+  }
+});
+
+if (failures.length) {
+  console.error('FAILURES:');
+  failures.forEach(f => console.error('  - ' + f));
+  console.error('\n' + passCount + ' passed, ' + failures.length + ' failed');
+  process.exit(1);
+} else {
+  console.log(passCount + ' passed, 0 failed');
+  process.exit(0);
+}
+"""
+
+BOSS_READY_BADGE_REQUIRED_CASES = [
+    {"label": "current English dictionary value", "input": "Seal broken: {seen}/{total}", "expected": "Seal broken"},
+    {"label": "current Chinese dictionary value (full-width colon)", "input": "封印解除：{seen}/{total} 題", "expected": "封印解除"},
+    {"label": "hypothetical delimiter-free English translation", "input": "Seal broken {seen}/{total}", "expected": "Seal broken"},
+    {"label": "hypothetical delimiter-free Chinese translation", "input": "封印解除 {seen}/{total} 題", "expected": "封印解除"},
+]
 
 
-def test_boss_ready_badge_resolves_to_short_chinese_form_without_leak():
-    _en_value, zh_value = _i18n_entry_values('index.adv.boss_ready')
-    assert zh_value == '封印解除：{seen}/{total} 題'
-    result = _boss_ready_badge_text(zh_value)
-    assert result == '封印解除'
-    assert '{seen}' not in result and '{total}' not in result
-
-
-def test_boss_ready_badge_handles_delimiter_free_english_translation():
-    # A hypothetical future translation with no colon at all -- the
-    # colon-only split alone would pass this straight through unchanged.
-    result = _boss_ready_badge_text('Seal broken {seen}/{total}')
-    assert result == 'Seal broken'
-    assert '{seen}' not in result and '{total}' not in result
-
-
-def test_boss_ready_badge_handles_delimiter_free_chinese_translation():
-    result = _boss_ready_badge_text('封印解除 {seen}/{total} 題')
-    assert result == '封印解除'
-    assert '{seen}' not in result and '{total}' not in result
-
-
-def test_boss_ready_badge_never_leaks_seen_or_total_placeholder_in_any_case():
+def test_bossreadybadgetext_production_linked_behavior_via_node():
     en_value, zh_value = _i18n_entry_values('index.adv.boss_ready')
-    cases = [
-        en_value,
-        zh_value,
-        'Seal broken {seen}/{total}',
-        '封印解除 {seen}/{total} 題',
-    ]
-    for raw_value in cases:
-        result = _boss_ready_badge_text(raw_value)
-        assert '{seen}' not in result, f"{raw_value!r} leaked {{seen}} into {result!r}"
-        assert '{total}' not in result, f"{raw_value!r} leaked {{total}} into {result!r}"
+    assert en_value == 'Seal broken: {seen}/{total}'
+    assert zh_value == '封印解除：{seen}/{total} 題'
+
+    result = subprocess.run(
+        ["node", "-e", _BOSS_READY_BADGE_NODE_HARNESS, "--",
+         str(WORLD_STAGE_PATH), json.dumps(BOSS_READY_BADGE_REQUIRED_CASES)],
+        capture_output=True, text=True, timeout=30, cwd=str(ROOT),
+    )
+    assert result.returncode == 0, (
+        f"production-linked bossReadyBadgeText() behavioral tests failed:\n"
+        f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    )
+    assert "passed" in result.stdout
+    assert "0 failed" in result.stdout
 
 
 # ---------------------------------------------------------------------
