@@ -116,14 +116,14 @@
     },
     {
       "path": "tools/community_leaderboard_rewards_manual.py",
-      "source_commit": "9386107df1a111a6bf863973f8627590115cc7d9",
-      "source_branch_or_local_ref": "fix/w29-preview-identity-hostname-check",
-      "source_commit_subject": "fix(rewards): stop preview identity check from failing on container hostname churn",
-      "source_date": "2026-07-21",
-      "content_sha256": "c56e38ce2752f25330904f674ce7202a7e76621cb7494ca8f5c86969ddb91235",
+      "source_commit": "d60cf10866fb09e6194dd4c6493eea9ef5102f9b",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix: serialize manual and scheduled leaderboard reward grants (#217)",
+      "source_date": "2026-07-24",
+      "content_sha256": "8410a6640ff843b542c5c91649ad34f2968f729e59147f1c41882db76b36a2c7",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; depends on community_leaderboard_rewards.py (see below)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master Git provenance -- recorded source_commit is reachable from origin/master and raw-byte-verified against this file"
     },
     {
       "path": "tools/community_leaderboard_rewards_real_grant_commit.py",
@@ -138,14 +138,14 @@
     },
     {
       "path": "tools/community_leaderboard_rewards_exact_period.py",
-      "source_commit": "2318e093f82eeb2e52922822c41cd0f20f055ccf",
-      "source_branch_or_local_ref": "fix/w29-live-snapshot-cosmetic-drift",
-      "source_commit_subject": "fix(rewards): ignore W29 cosmetic live drift",
-      "source_date": "2026-07-21",
-      "content_sha256": "c4c6cce3314f7dd1daf8c6263d995e172442eda18cd507cb12682454833cde1d",
+      "source_commit": "d60cf10866fb09e6194dd4c6493eea9ef5102f9b",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix: serialize manual and scheduled leaderboard reward grants (#217)",
+      "source_date": "2026-07-24",
+      "content_sha256": "417a331b020a70aa5b5381ec4e464bcef7a26f249a0061ae9cbfa52c22b54211",
       "line_ending_policy": "LF",
       "runtime_role": "administrative CLI tooling; not imported by app.py/shadow_judging.py/scheduler.py; exact closed-period snapshot/preview/commit guard rail for leaderboard rewards; depends on community_leaderboard_rewards.py and tools/community_leaderboard_rewards_real_grant_* helpers",
-      "source_status": "canonical origin/master ancestry verified after PR #195 merge"
+      "source_status": "canonical origin/master Git provenance -- recorded source_commit is reachable from origin/master and raw-byte-verified against this file"
     },
     {
       "path": "tools/community_leaderboard_rewards_real_grant_preview.py",
