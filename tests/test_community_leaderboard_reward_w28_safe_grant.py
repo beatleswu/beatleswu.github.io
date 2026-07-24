@@ -886,6 +886,7 @@ def test_already_owned_badge_commit_converges_and_second_cycle_is_zero_mutation(
         "claims": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0],
         "components": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0],
         "coins": conn.execute("SELECT SUM(coin_balance) FROM users").fetchone()[0],
+        "xp": conn.execute("SELECT SUM(xp) FROM user_stats").fetchone()[0],
         "items": conn.execute("SELECT COALESCE(SUM(qty),0) FROM shop_inventory").fetchone()[0],
         "badges": conn.execute("SELECT COUNT(*) FROM badges_earned").fetchone()[0],
     }
@@ -902,6 +903,7 @@ def test_already_owned_badge_commit_converges_and_second_cycle_is_zero_mutation(
         "claims": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0],
         "components": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0],
         "coins": conn.execute("SELECT SUM(coin_balance) FROM users").fetchone()[0],
+        "xp": conn.execute("SELECT SUM(xp) FROM user_stats").fetchone()[0],
         "items": conn.execute("SELECT COALESCE(SUM(qty),0) FROM shop_inventory").fetchone()[0],
         "badges": conn.execute("SELECT COUNT(*) FROM badges_earned").fetchone()[0],
     }
