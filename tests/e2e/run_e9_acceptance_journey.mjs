@@ -80,6 +80,34 @@ const ALL_E9_FLAG_KEYS = [
   'e9Shell', 'e9TopHud', 'e9LeftNav', 'e9RightCards', 'e9BottomDock', 'e9WorldStage',
 ];
 
+// All E9-owned root selectors, keyed by a human label for duplicate-DOM
+// reporting. Mirrors js/e9/shell.js's CRITICAL_SLOT + NON_CRITICAL_SLOTS +
+// its own shell root id.
+const E9_ALL_ROOT_SELECTORS = {
+  shell: '#e9-adventure-shell',
+  worldStage: '#e9-world-stage-slot',
+  topHud: '#e9-top-hud-slot',
+  leftNav: '#e9-left-nav-slot',
+  rightCards: '#e9-right-cards-slot',
+  bottomDock: '#e9-bottom-dock-slot',
+};
+
+// Very narrow allowlist: exact regex matches for specific, individually
+// justified benign messages only. Empty by default -- an entry may only be
+// added once a message is independently confirmed to be expected noise, with
+// a comment stating why. This must never become a broad category suppression
+// (e.g. "ignore all console.error").
+const BROWSER_ERROR_ALLOWLIST = [];
+
+function isAllowedBrowserError(text) {
+  return BROWSER_ERROR_ALLOWLIST.some((entry) => entry.match.test(text));
+}
+
+// E9-relevant network paths worth flagging on outright failure or a 5xx --
+// deliberately scoped to E9 assets/APIs, not "any failed request on the
+// page" (an unrelated third-party asset 404 is not this harness's concern).
+const E9_RELEVANT_REQUEST_PATTERN = /\/(api\/auth\/me|api\/auth\/logout|components\/adventure\/|js\/e9\/)/;
+
 // Slot/shell roots instrumented by the lifecycle listener spy. Deliberately
 // narrow (not `document`, not `window`) to keep the signal attributable to
 // E9's own on()-registered listeners rather than picking up unrelated
@@ -253,7 +281,47 @@ async function resolveBaseUrl() {
       `production run is genuinely intended, set E2E_ALLOW_PRODUCTION=${PRODUCTION_OPT_IN_VALUE} explicitly.`
     );
   }
-  return verdict.origin;
+  return { origin: verdict.origin, initialGuardVerdict: verdict };
+}
+
+// Defense in depth against a target that only becomes production-identified
+// AFTER a redirect (E2E_BASE_URL itself passed the guard, but the server
+// sent the browser somewhere else). Re-evaluates the guard against the
+// page's ACTUAL current URL and must run before any credential is filled in
+// or submitted -- callers invoke this immediately after every page.goto()
+// that precedes a login form interaction.
+async function guardPageNotOnProductionTarget(page, context) {
+  const verdict = await evaluateProductionGuard(page.url());
+  if (verdict.blocked && process.env.E2E_ALLOW_PRODUCTION !== PRODUCTION_OPT_IN_VALUE) {
+    throw new Error(
+      `Refusing to continue past "${context}": the page navigated to a production target ` +
+      `(${verdict.reason}) at ${page.url()}, even though E2E_BASE_URL did not resolve as one -- ` +
+      `this can happen if the target redirects to Production. Set E2E_ALLOW_PRODUCTION=` +
+      `${PRODUCTION_OPT_IN_VALUE} explicitly only for a genuinely intended production run.`
+    );
+  }
+  return verdict;
+}
+
+// Pure exit-classification helpers, deliberately extracted from main() so
+// the required-behavior matrix (Phase 9) is directly unit-testable without
+// spawning the real script as a subprocess for every case.
+export function classifyOutcome({ failed, skipped, allowIncomplete }) {
+  if (failed > 0) return 'FAILED';
+  const complete = failed === 0 && skipped === 0;
+  if (!complete) return allowIncomplete ? 'INCOMPLETE_PASS_OPTED_IN' : 'INCOMPLETE_BLOCKED';
+  return 'COMPLETE_PASS';
+}
+
+export function exitCodeForClassification(classification) {
+  switch (classification) {
+    case 'FAILED': return 1;
+    case 'INCOMPLETE_BLOCKED': return 2;
+    case 'INCOMPLETE_PASS_OPTED_IN': return 0;
+    case 'COMPLETE_PASS': return 0;
+    case 'PRODUCTION_TARGET_REJECTED': return 1;
+    default: throw new Error(`unknown exit classification: ${classification}`);
+  }
 }
 
 function credsFromEnv(prefix) {
@@ -272,6 +340,7 @@ async function fetchMe(page) {
 
 async function loginViaForm(page, baseUrl, creds) {
   await page.goto(baseUrl + '/login', { waitUntil: 'networkidle' });
+  await guardPageNotOnProductionTarget(page, 'loginViaForm navigation to /login');
   await page.fill('#username', creds.username);
   await page.fill('#password', creds.password);
   await Promise.all([
@@ -422,25 +491,219 @@ export async function readListenerSpyDelta(page) {
   });
 }
 
+// Registers a test-only probe listener via the REAL E9.on()/registerCleanup()
+// mechanism (the exact function every real component module uses to attach
+// a listener AND register its removal in one call), bound to whatever
+// lifecycle generation is current at call time, on the persistent shell
+// root (#e9-adventure-shell itself is never removed/recreated by
+// destroy/remount -- only its descendants are wiped -- so a listener
+// attached directly to it survives physically across a destroy; only
+// correct removeEventListener bookkeeping can actually detach it). This
+// lets us prove the real cleanup mechanism removes a generation's listener
+// without depending on any specific component's own (possibly
+// side-effectful, e.g. real navigation) interactive elements.
+export async function registerGenerationProbe(page) {
+  await page.evaluate(() => {
+    var root = document.querySelector('#e9-adventure-shell');
+    window.E9.on(root, 'e9:test-probe', function () {
+      window.__E9_TEST_PROBE_COUNT__ = (window.__E9_TEST_PROBE_COUNT__ || 0) + 1;
+    }, null, window.E9.getLifecycleGeneration());
+  });
+}
+
+// Dispatches exactly one 'e9:test-probe' event on the shell root and
+// returns how many probe handlers actually fired. If a prior generation's
+// probe was not correctly removed, this returns >1 for a single dispatch.
+export async function dispatchProbeAndCountInvocations(page) {
+  return page.evaluate(() => {
+    window.__E9_TEST_PROBE_COUNT__ = 0;
+    document.querySelector('#e9-adventure-shell').dispatchEvent(new CustomEvent('e9:test-probe'));
+    return window.__E9_TEST_PROBE_COUNT__;
+  });
+}
+
+// Checks structural invariants across all six E9-owned roots: exactly one
+// of each root selector must exist (never zero, never duplicated), no id
+// used by any node inside the shell root may be duplicated anywhere else in
+// the document, activeShell must match what's expected, the shell root's
+// `hidden` state must be consistent with activeShell, and -- when legacy is
+// active -- every non-critical/critical slot must show neither mount marker
+// nor leftover innerHTML (proving destroyLifecycle()'s cleanup actually ran,
+// not merely that the shell root itself got hidden).
+export async function assertNoDuplicateE9Dom(page, expectedActiveShell) {
+  const result = await page.evaluate((selectors) => {
+    const counts = {};
+    Object.keys(selectors).forEach((label) => {
+      counts[label] = document.querySelectorAll(selectors[label]).length;
+    });
+    const shellRoot = document.querySelector(selectors.shell);
+    const idsToCheck = new Set();
+    if (shellRoot) {
+      if (shellRoot.id) idsToCheck.add(shellRoot.id);
+      shellRoot.querySelectorAll('[id]').forEach((el) => idsToCheck.add(el.id));
+    }
+    const duplicateIds = [];
+    idsToCheck.forEach((id) => {
+      if (!id) return;
+      const n = document.querySelectorAll('#' + CSS.escape(id)).length;
+      if (n > 1) duplicateIds.push({ id, count: n });
+    });
+    const shellEl = document.querySelector(selectors.shell);
+    const activeShell = (window.E9 && typeof window.E9.getActiveShell === 'function')
+      ? window.E9.getActiveShell() : null;
+    const staleSlotResidue = [];
+    if (activeShell === 'legacy') {
+      ['worldStage', 'topHud', 'leftNav', 'rightCards', 'bottomDock'].forEach((label) => {
+        const el = document.querySelector(selectors[label]);
+        if (!el) return;
+        const hasMarkers = el.hasAttribute('data-e9-loaded') || el.hasAttribute('data-e9-inited');
+        const hasContent = el.innerHTML.trim().length > 0;
+        if (hasMarkers || hasContent) staleSlotResidue.push({ label, hasMarkers, hasContent });
+      });
+    }
+    return { counts, duplicateIds, activeShell, shellHidden: shellEl ? shellEl.hidden : null, staleSlotResidue };
+  }, E9_ALL_ROOT_SELECTORS);
+
+  const overCounted = Object.entries(result.counts).filter(([, n]) => n > 1);
+  if (overCounted.length) {
+    throw new Error(`duplicate E9 root(s) detected: ${JSON.stringify(overCounted)} (full counts: ${JSON.stringify(result.counts)})`);
+  }
+  const missing = Object.entries(result.counts).filter(([, n]) => n < 1);
+  if (missing.length) {
+    throw new Error(`missing E9 root(s) detected: ${JSON.stringify(missing)} (full counts: ${JSON.stringify(result.counts)})`);
+  }
+  if (result.duplicateIds.length) {
+    throw new Error(`duplicate id(s) found document-wide for E9-owned node(s): ${JSON.stringify(result.duplicateIds)}`);
+  }
+  if (result.activeShell !== expectedActiveShell) {
+    throw new Error(`expected activeShell='${expectedActiveShell}', got '${result.activeShell}'`);
+  }
+  const expectedHidden = expectedActiveShell !== 'e9';
+  if (result.shellHidden !== expectedHidden) {
+    throw new Error(`activeShell='${expectedActiveShell}' but #e9-adventure-shell.hidden=${result.shellHidden} (expected ${expectedHidden})`);
+  }
+  if (result.staleSlotResidue.length) {
+    throw new Error(`legacy active but stale E9 slot residue found: ${JSON.stringify(result.staleSlotResidue)}`);
+  }
+  return result;
+}
+
+// Attaches page-level browser-error capture: console.error messages,
+// uncaught exceptions (pageerror), and failed/5xx responses scoped to
+// E9-relevant network paths. Pushes structured entries into `sink`
+// (a plain array, typically report.browser_errors) so every scenario's
+// activity contributes to one aggregate, independently-reportable total.
+export function installBrowserErrorMonitor(page, sink) {
+  page.on('console', (msg) => {
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (isAllowedBrowserError(text)) return;
+    const loc = msg.location();
+    sink.push({ kind: 'console.error', text, location: `${loc.url}:${loc.lineNumber}:${loc.columnNumber}` });
+  });
+  page.on('pageerror', (err) => {
+    const text = (err && err.message) || String(err);
+    if (isAllowedBrowserError(text)) return;
+    sink.push({ kind: 'pageerror', text, stack: err && err.stack });
+  });
+  page.on('requestfailed', (req) => {
+    if (!E9_RELEVANT_REQUEST_PATTERN.test(req.url())) return;
+    const failure = req.failure();
+    sink.push({ kind: 'requestfailed', url: req.url(), error: failure ? failure.errorText : 'unknown' });
+  });
+  page.on('response', (resp) => {
+    if (!E9_RELEVANT_REQUEST_PATTERN.test(resp.url())) return;
+    if (resp.status() >= 500) sink.push({ kind: 'response_5xx', url: resp.url(), status: resp.status() });
+  });
+}
+
+// Playwright has no direct browser-level "unhandledrejection" event, so an
+// in-page listener is registered via addInitScript -- this runs before any
+// page script on every navigation/reload within this page, unlike a plain
+// page.evaluate() (which would only apply to the current document and be
+// lost on the next navigation).
+export async function installUnhandledRejectionCapture(page) {
+  await page.addInitScript(() => {
+    window.__E9_TEST_UNHANDLED_REJECTIONS__ = [];
+    window.addEventListener('unhandledrejection', (event) => {
+      var reason = event && event.reason;
+      var text = (reason && reason.stack) ? reason.stack : String(reason);
+      window.__E9_TEST_UNHANDLED_REJECTIONS__.push(text);
+    });
+  });
+}
+
+// Drains any unhandled promise rejections captured since the last drain
+// into `sink`. Safe to call even if the page has already navigated away or
+// closed (evaluate failures are swallowed, not thrown).
+export async function drainUnhandledRejections(page, sink) {
+  const rejections = await page.evaluate(() => {
+    var list = window.__E9_TEST_UNHANDLED_REJECTIONS__ || [];
+    window.__E9_TEST_UNHANDLED_REJECTIONS__ = [];
+    return list;
+  }).catch(() => []);
+  rejections.filter((text) => !isAllowedBrowserError(text)).forEach((text) => {
+    sink.push({ kind: 'unhandledrejection', text });
+  });
+}
+
 async function main() {
-  const baseUrl = await resolveBaseUrl();
+  let baseUrl;
+  let initialGuardVerdict;
+  const report = { base_url: null, cases: [], browser_errors: [], production_guard_result: null };
+  try {
+    const resolved = await resolveBaseUrl();
+    baseUrl = resolved.origin;
+    initialGuardVerdict = resolved.initialGuardVerdict;
+  } catch (err) {
+    // Preflight guard rejection: no browser launched, no credential ever
+    // touched. Still print a machine-readable summary so tooling consuming
+    // this script's stdout never has to special-case "it threw before
+    // producing JSON" -- production rejection is itself a reportable,
+    // structured outcome, not a bare stack trace.
+    report.production_guard_result = { blocked: true, reason: String((err && err.message) || err) };
+    report.final_exit_classification = 'PRODUCTION_TARGET_REJECTED';
+    Object.assign(report, { ok: false, complete: false, scenarios_total: 0, passed: 0, skipped: 0, failed: 0 });
+    console.log(JSON.stringify(report, null, 2));
+    console.error(String((err && err.message) || err));
+    process.exit(1);
+    return;
+  }
+  report.base_url = baseUrl;
+  report.production_guard_result = initialGuardVerdict;
+
   const adminCreds = credsFromEnv('ADMIN');
   const nonAdminCreds = credsFromEnv('NONADMIN');
-  const report = { base_url: baseUrl, cases: [] };
+
+  // Threaded from lifecycle_destroy_remount to lifecycle_listener_cleanup_accounting
+  // so the cleanup-accounting requirement is reported as its own distinct,
+  // independently-visible result (Phase 10 item 7) without re-running the
+  // (expensive, browser-driving) destroy/remount cycle a second time.
+  let lifecycleDeltas = null;
+
+  function newMonitoredPage() {
+    return browser.newPage().then(async (page) => {
+      await installUnhandledRejectionCapture(page);
+      installBrowserErrorMonitor(page, report.browser_errors);
+      return page;
+    });
+  }
 
   const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
   try {
     // Connectivity smoke check — always runs, no credentials required.
     await runScenario('connectivity_login_page_reachable', async () => {
-      const page = await browser.newPage();
+      const page = await newMonitoredPage();
       try {
         await page.goto(baseUrl + '/login', { waitUntil: 'networkidle', timeout: 20000 });
+        await guardPageNotOnProductionTarget(page, 'connectivity_login_page_reachable navigation');
         const hasForm = await page.evaluate(() => (
           !!document.querySelector('#username') &&
           !!document.querySelector('#password') &&
           !!document.querySelector('#login-btn')
         ));
         if (!hasForm) throw new Error('login form (#username/#password/#login-btn) not found');
+        await drainUnhandledRejections(page, report.browser_errors);
         return { reachable: true };
       } finally {
         await page.close();
@@ -452,9 +715,13 @@ async function main() {
       skipScenario('admin_login_journey_and_gate', reason, report);
       skipScenario('reload_stability', reason, report);
       skipScenario('lifecycle_destroy_remount', reason, report);
+      skipScenario('lifecycle_listener_cleanup_accounting', reason, report);
+      skipScenario('lifecycle_no_duplicate_action_dispatch', reason, report);
+      skipScenario('lifecycle_stale_async_generation_rejection', reason, report);
+      skipScenario('lifecycle_duplicate_dom_invariants', reason, report);
       skipScenario('relogin_journey', reason, report);
     } else {
-      const page = await browser.newPage();
+      const page = await newMonitoredPage();
       try {
         await runScenario('admin_login_journey_and_gate', async () => {
           await loginViaForm(page, baseUrl, adminCreds);
@@ -468,7 +735,10 @@ async function main() {
           assertFlagsAllEqual(rollout.effective_flags, true, 'admin_login_journey_and_gate');
           const shell = await shellSnapshot(page);
           if (shell.activeShell !== 'e9') throw new Error(`expected active shell 'e9', got ${JSON.stringify(shell)}`);
-          return { rollout_reason: rollout.reason, shell };
+          await waitForSlotsSettled(page);
+          const dom = await assertNoDuplicateE9Dom(page, 'e9');
+          await drainUnhandledRejections(page, report.browser_errors);
+          return { rollout_reason: rollout.reason, shell, dom };
         }, report);
 
         await runScenario('reload_stability', async () => {
@@ -478,7 +748,10 @@ async function main() {
           if (rollout.eligible !== true) throw new Error(`post-reload expected eligible=true, got ${JSON.stringify(rollout)}`);
           const shell = await shellSnapshot(page);
           if (shell.activeShell !== 'e9') throw new Error(`post-reload expected active shell 'e9', got ${JSON.stringify(shell)}`);
-          return { shell };
+          await waitForSlotsSettled(page);
+          const dom = await assertNoDuplicateE9Dom(page, 'e9');
+          await drainUnhandledRejections(page, report.browser_errors);
+          return { shell, dom };
         }, report);
 
         await runScenario('lifecycle_destroy_remount', async () => {
@@ -533,7 +806,13 @@ async function main() {
             );
           }
 
-          // --- Remount again: second cycle stays stable ---
+          // --- Remount again: second cycle stays stable. Reading a THIRD
+          // listener-add delta and comparing it directly to the first
+          // remount's is the actual anti-accumulation proof required by
+          // Phase 4 item 5 ("listener counts return to one active
+          // generation's expected level, rather than accumulating") — >0
+          // alone only proves re-registration happened, not that it didn't
+          // ALSO grow across cycles.
           const remounted2 = await page.evaluate(() => {
             window.primeInitialE9ShellOwnership();
             window.E9.initShell();
@@ -542,13 +821,76 @@ async function main() {
           if (remounted2 !== 'e9') throw new Error(`expected 'e9' after second remount, got ${remounted2}`);
           const afterGen = await page.evaluate(() => window.E9.getLifecycleGeneration());
           if (!(afterGen > midGen)) throw new Error(`expected lifecycle generation to advance again on second remount (mid=${midGen}, after=${afterGen})`);
+          await waitForSlotsSettled(page);
+          const remount2Delta = await readListenerSpyDelta(page);
+          if (!(remount2Delta.add > 0)) {
+            throw new Error(`expected the second remount to register at least one new listener on E9 roots, got add=${remount2Delta.add}`);
+          }
+          if (remount2Delta.add !== remount1Delta.add) {
+            throw new Error(
+              `listener count did not return to one active generation's expected level: first remount added ` +
+              `${remount1Delta.add}, second remount added ${remount2Delta.add} — possible accumulation across cycles`
+            );
+          }
 
-          // --- Stale in-flight async callback: delay one non-critical
-          // slot's fragment fetch with a deterministic, engineered delay
-          // (not a blind sleep — the delay is fixed by us, and we wait
-          // slightly longer than that fixed delay before asserting), destroy
-          // mid-flight, and confirm the late-arriving completion did not
-          // resurrect the destroyed slot's mounted markers. ---
+          lifecycleDeltas = { beforeGen, midGen, afterGen, destroy1Delta, remount1Delta, destroy2Delta, remount2Delta };
+          await drainUnhandledRejections(page, report.browser_errors);
+          return lifecycleDeltas;
+        }, report);
+
+        await runScenario('lifecycle_listener_cleanup_accounting', async () => {
+          if (!lifecycleDeltas) throw new Error('lifecycle_destroy_remount did not produce listener-delta data to account for');
+          const { destroy1Delta, remount1Delta, destroy2Delta, remount2Delta } = lifecycleDeltas;
+          if (!(destroy1Delta.remove > 0)) throw new Error(`cycle 1 destroy removed no listeners (remove=${destroy1Delta.remove})`);
+          if (!(remount1Delta.add > 0)) throw new Error(`cycle 1 remount added no listeners (add=${remount1Delta.add})`);
+          if (destroy2Delta.remove < remount1Delta.add) {
+            throw new Error(`cycle 2 destroy removed fewer (${destroy2Delta.remove}) than cycle 1 remount added (${remount1Delta.add})`);
+          }
+          if (remount2Delta.add !== remount1Delta.add) {
+            throw new Error(`cycle 2 remount added ${remount2Delta.add}, expected exactly ${remount1Delta.add} (no accumulation)`);
+          }
+          return lifecycleDeltas;
+        }, report);
+
+        await runScenario('lifecycle_no_duplicate_action_dispatch', async () => {
+          // Registers a probe bound to the CURRENT (post lifecycle_destroy_
+          // remount) generation, dispatches once, and expects exactly one
+          // invocation. Then does one more destroy/remount cycle and repeats
+          // — if the prior generation's probe listener were not actually
+          // removed (only its containing markup wiped, which would NOT
+          // detach a listener on the persistent shell root itself), this
+          // second dispatch would report 2 invocations, not 1.
+          await registerGenerationProbe(page);
+          const firstCount = await dispatchProbeAndCountInvocations(page);
+          if (firstCount !== 1) throw new Error(`expected exactly 1 probe invocation, got ${firstCount}`);
+
+          await page.evaluate(() => { window.E9.destroyShell(); });
+          await page.evaluate(() => { window.primeInitialE9ShellOwnership(); window.E9.initShell(); });
+          await waitForSlotsSettled(page);
+          await registerGenerationProbe(page);
+          const secondCount = await dispatchProbeAndCountInvocations(page);
+          if (secondCount !== 1) {
+            throw new Error(
+              `expected exactly 1 probe invocation after a further destroy/remount, got ${secondCount} — ` +
+              `a prior generation's listener may not have been removed (duplicate action dispatch)`
+            );
+          }
+          await drainUnhandledRejections(page, report.browser_errors);
+          return { firstCount, secondCount };
+        }, report);
+
+        await runScenario('lifecycle_stale_async_generation_rejection', async () => {
+          // Delay one non-critical slot's fragment fetch with a
+          // deterministic, engineered delay (not a blind sleep — the delay
+          // is fixed by us, and we wait slightly longer than that fixed
+          // delay before asserting), destroy mid-flight, and confirm the
+          // late-arriving completion did not resurrect the destroyed slot's
+          // mounted markers. Waiting-then-asserting-absence (rather than
+          // waitForFunction on a positive condition) is the correct pattern
+          // here: a correctly-invalidated callback will NEVER set the
+          // marker, so there is nothing to positively wait for — only a
+          // fixed, deterministic delay past the engineered fetch delay lets
+          // us safely assert the negative.
           const STALE_DELAY_MS = 1200;
           await page.route('**/components/adventure/top_hud.html', async (route) => {
             await new Promise((resolve) => setTimeout(resolve, STALE_DELAY_MS));
@@ -576,19 +918,34 @@ async function main() {
             if (staleState.slotLoaded || staleState.slotInited) {
               throw new Error(`stale-callback check: top_hud slot shows mounted markers after the owning generation was destroyed (${JSON.stringify(staleState)}) — a stale async callback may have mutated the DOM after invalidation`);
             }
+            const dom = await assertNoDuplicateE9Dom(page, 'legacy');
+            await drainUnhandledRejections(page, report.browser_errors);
+            return { staleState, dom };
           } finally {
             await page.unroute('**/components/adventure/top_hud.html');
+            // Leave the page back in a mounted 'e9' state for later
+            // scenarios in this shared session.
+            await page.evaluate(() => {
+              window.primeInitialE9ShellOwnership();
+              window.E9.initShell();
+            });
+            await waitForSlotsSettled(page);
           }
+        }, report);
 
-          // Leave the page back in a mounted 'e9' state for later scenarios
-          // in this shared session (relogin_journey navigates away next
-          // anyway, but keep this scenario's exit state unsurprising).
-          await page.evaluate(() => {
-            window.primeInitialE9ShellOwnership();
-            window.E9.initShell();
-          });
-
-          return { beforeGen, midGen, afterGen, destroy1Delta, remount1Delta, destroy2Delta };
+        await runScenario('lifecycle_duplicate_dom_invariants', async () => {
+          // Fresh destroy/remount cycle dedicated to checking BOTH states:
+          // exactly-one-root/no-duplicate-id/correct-hidden-state while e9
+          // is active, and zero-active-root/no-stale-slot-residue while
+          // legacy is active.
+          const domWhileE9 = await assertNoDuplicateE9Dom(page, 'e9');
+          await page.evaluate(() => { window.E9.destroyShell(); });
+          const domWhileLegacy = await assertNoDuplicateE9Dom(page, 'legacy');
+          await page.evaluate(() => { window.primeInitialE9ShellOwnership(); window.E9.initShell(); });
+          await waitForSlotsSettled(page);
+          const domAfterRemount = await assertNoDuplicateE9Dom(page, 'e9');
+          await drainUnhandledRejections(page, report.browser_errors);
+          return { domWhileE9, domWhileLegacy, domAfterRemount };
         }, report);
 
         await runScenario('relogin_journey', async () => {
@@ -603,7 +960,10 @@ async function main() {
           if (rollout.eligible !== true) throw new Error(`post-relogin expected eligible=true, got ${JSON.stringify(rollout)}`);
           const shell = await shellSnapshot(page);
           if (shell.activeShell !== 'e9') throw new Error(`post-relogin expected active shell 'e9', got ${JSON.stringify(shell)}`);
-          return { shell };
+          await waitForSlotsSettled(page);
+          const dom = await assertNoDuplicateE9Dom(page, 'e9');
+          await drainUnhandledRejections(page, report.browser_errors);
+          return { shell, dom };
         }, report);
       } finally {
         await page.close();
@@ -613,7 +973,7 @@ async function main() {
     if (!nonAdminCreds) {
       skipScenario('non_admin_legacy_boundary', 'E2E_NONADMIN_USERNAME/E2E_NONADMIN_PASSWORD not set', report);
     } else {
-      const page = await browser.newPage();
+      const page = await newMonitoredPage();
       try {
         await runScenario('non_admin_legacy_boundary', async () => {
           await loginViaForm(page, baseUrl, nonAdminCreds);
@@ -626,12 +986,26 @@ async function main() {
           assertFlagsAllEqual(rollout.effective_flags, false, 'non_admin_legacy_boundary');
           const shell = await shellSnapshot(page);
           if (shell.activeShell !== 'legacy') throw new Error(`expected non-admin active shell 'legacy', got ${JSON.stringify(shell)}`);
-          return { rollout_reason: rollout.reason, shell };
+          const dom = await assertNoDuplicateE9Dom(page, 'legacy');
+          await drainUnhandledRejections(page, report.browser_errors);
+          return { rollout_reason: rollout.reason, shell, dom };
         }, report);
       } finally {
         await page.close();
       }
     }
+
+    // Final, unconditional aggregate check — always runs regardless of
+    // which credential-dependent scenarios above were skipped, since it
+    // only inspects errors already collected in report.browser_errors from
+    // whichever scenarios DID run (at minimum, connectivity_login_page_
+    // reachable always runs).
+    await runScenario('browser_runtime_error_free', async () => {
+      if (report.browser_errors.length > 0) {
+        throw new Error(`${report.browser_errors.length} browser runtime error(s) captured: ${JSON.stringify(report.browser_errors)}`);
+      }
+      return { errors_captured: 0 };
+    }, report);
   } finally {
     await browser.close();
   }
@@ -641,29 +1015,29 @@ async function main() {
   const failed = report.cases.filter((c) => c.status === 'failed').length;
   const ok = failed === 0;
   const complete = failed === 0 && skipped === 0;
+  const allowIncomplete = process.env.E2E_ALLOW_INCOMPLETE === INCOMPLETE_OPT_IN_VALUE;
+  const classification = classifyOutcome({ failed, skipped, allowIncomplete });
+  const exitCode = exitCodeForClassification(classification);
 
-  Object.assign(report, { ok, complete, passed, skipped, failed });
+  Object.assign(report, {
+    ok, complete, scenarios_total: report.cases.length, passed, skipped, failed,
+    final_exit_classification: classification,
+  });
   console.log(JSON.stringify(report, null, 2));
 
-  if (failed > 0) {
-    process.exit(1);
-  }
-  if (!complete) {
-    if (process.env.E2E_ALLOW_INCOMPLETE === INCOMPLETE_OPT_IN_VALUE) {
-      console.warn(
-        `[INCOMPLETE] ${skipped} scenario(s) were skipped (missing credentials). Exiting 0 only because ` +
-        `E2E_ALLOW_INCOMPLETE=${INCOMPLETE_OPT_IN_VALUE} was set explicitly. This is NOT a complete acceptance pass.`
-      );
-      process.exit(0);
-    }
+  if (classification === 'INCOMPLETE_PASS_OPTED_IN') {
+    console.warn(
+      `[INCOMPLETE] ${skipped} scenario(s) were skipped (missing credentials). Exiting 0 only because ` +
+      `E2E_ALLOW_INCOMPLETE=${INCOMPLETE_OPT_IN_VALUE} was set explicitly. This is NOT a complete acceptance pass.`
+    );
+  } else if (classification === 'INCOMPLETE_BLOCKED') {
     console.error(
       `[INCOMPLETE] ${skipped} scenario(s) were skipped (missing credentials) — this is not a complete acceptance ` +
       `pass. Supply the missing credentials, or set E2E_ALLOW_INCOMPLETE=${INCOMPLETE_OPT_IN_VALUE} to allow an ` +
       `intentional partial local run to exit 0 anyway.`
     );
-    process.exit(2);
   }
-  process.exit(0);
+  process.exit(exitCode);
 }
 
 async function runScenario(name, fn, report) {
