@@ -920,9 +920,63 @@ async function main() {
             }
             const dom = await assertNoDuplicateE9Dom(page, 'legacy');
             await drainUnhandledRejections(page, report.browser_errors);
-            return { staleState, dom };
+
+            // --- Stronger variant: release the stale response AFTER a NEW
+            // generation has already mounted, not merely while legacy is
+            // showing. This is the more rigorous form of this check
+            // (identified during independent review) -- the earlier check
+            // above only proves a late response can't resurrect a
+            // destroyed slot while nothing is mounted; it does not prove a
+            // late response can't corrupt whatever generation IS currently
+            // active by the time it finally arrives. Only the FIRST
+            // matching request is delayed (route unregisters itself after
+            // one interception via `intercepted`), so the next generation's
+            // own fragment fetch completes quickly and mounts normally;
+            // the first generation's stale response then arrives well after
+            // that, once a different generation is already active. ---
+            let intercepted = false;
+            await page.route('**/components/adventure/top_hud.html', async (route) => {
+              if (intercepted) { await route.continue(); return; }
+              intercepted = true;
+              await new Promise((resolve) => setTimeout(resolve, STALE_DELAY_MS));
+              await route.continue();
+            });
+            try {
+              const genA = await page.evaluate(() => {
+                window.E9.destroyShell();
+                window.primeInitialE9ShellOwnership();
+                window.E9.initShell(); // gen A begins; kicks off the delayed top_hud fetch
+                return window.E9.getLifecycleGeneration();
+              });
+              await page.evaluate(() => { window.E9.destroyShell(); }); // invalidate gen A while its fetch is still delayed
+              await page.evaluate(() => { window.primeInitialE9ShellOwnership(); window.E9.initShell(); }); // gen B: its own top_hud fetch is NOT delayed (route already consumed)
+              await waitForSlotsSettled(page);
+              const genB = await page.evaluate(() => window.E9.getLifecycleGeneration());
+              if (!(genB > genA)) throw new Error(`expected a new generation B > A after remount, got A=${genA} B=${genB}`);
+              await page.waitForTimeout(STALE_DELAY_MS + 400); // let gen A's stale response finally arrive
+              const afterStaleArrival = await page.evaluate(() => {
+                const slot = document.querySelector('#e9-top-hud-slot');
+                return {
+                  activeShell: window.E9.getActiveShell(),
+                  generation: window.E9.getLifecycleGeneration(),
+                  slotLoaded: slot ? slot.hasAttribute('data-e9-loaded') : null,
+                };
+              });
+              if (afterStaleArrival.activeShell !== 'e9') {
+                throw new Error(`gen B's shell was corrupted by gen A's late-arriving stale response: activeShell=${afterStaleArrival.activeShell}`);
+              }
+              if (afterStaleArrival.generation !== genB) {
+                throw new Error(`lifecycle generation changed unexpectedly after a stale response arrived post-remount (expected ${genB}, got ${afterStaleArrival.generation})`);
+              }
+              if (!afterStaleArrival.slotLoaded) {
+                throw new Error(`gen B's top_hud slot lost its mounted marker after gen A's stale response arrived`);
+              }
+              await drainUnhandledRejections(page, report.browser_errors);
+              return { staleState, dom, releaseAfterRemount: { genA, genB, afterStaleArrival } };
+            } finally {
+              await page.unroute('**/components/adventure/top_hud.html');
+            }
           } finally {
-            await page.unroute('**/components/adventure/top_hud.html');
             // Leave the page back in a mounted 'e9' state for later
             // scenarios in this shared session.
             await page.evaluate(() => {
