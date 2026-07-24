@@ -30,7 +30,8 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v205-e9-zone-cta-visual-parity"
+NEW_SW_VERSION = "v206-e9-i18n-placeholder-fix"
+PREVIOUS_SW_VERSION = "v205-e9-zone-cta-visual-parity"
 
 
 def _render_selected_zone_body():
@@ -128,17 +129,116 @@ def test_renderselectedzone_uses_bossreadytext_helper_not_raw_t_call():
     assert "t('index.adv.boss_ready', 'Boss challenge ready')" not in body
 
 
-def test_no_unsubstituted_seen_total_placeholder_survives_in_world_stage_js():
-    # Every literal '{seen}' or '{total}' in the file must appear as the
-    # first argument of a .replace(...) call -- never as a bare template
-    # left to reach the DOM unsubstituted.
-    for literal in ("{seen}", "{total}"):
+def test_no_unsubstituted_seen_total_or_stars_placeholder_survives_in_world_stage_js():
+    # Every literal '{seen}', '{total}', or '{stars}' in the file must
+    # appear as the first argument of a .replace(...) call -- never as a
+    # bare template left to reach the DOM unsubstituted. '{stars}' is
+    # included here (generalizing the original {seen}/{total}-only scan)
+    # specifically because that narrower scan is exactly what let the
+    # "Defeated {stars}" / "已擊破 {stars}" bug ship through PR #213
+    # undetected -- this closes that gap.
+    for literal in ("{seen}", "{total}", "{stars}"):
         for match in re.finditer(re.escape("'" + literal + "'"), WORLD_STAGE):
             window = WORLD_STAGE[max(0, match.start() - 12):match.start()]
             assert ".replace(" in window, (
                 f"found {literal!r} not immediately preceded by .replace( -- "
                 f"context: {WORLD_STAGE[max(0, match.start()-40):match.start()+40]!r}"
             )
+
+
+# ---------------------------------------------------------------------
+# E9-UI-POLISH-PREFLIGHT-1 / GO_IMPLEMENT_E9_I18N_PLACEHOLDER_FIX:
+# Bug A -- cleared-zone summary rendered the literal, unsubstituted
+# "Defeated {stars}" / "已擊破 {stars}" template (index.adv.boss_cleared)
+# for ANY cleared zone (server-side, a cleared zone's bossAvailable is
+# always false, so the cleared branch is the only one ever reached once
+# a zone is cleared). Fixed via a clearedText(zone) helper mirroring the
+# pre-existing bossReadyText(zone) pattern exactly.
+# ---------------------------------------------------------------------
+
+def test_cleared_text_helper_substitutes_actual_stars_value():
+    start = WORLD_STAGE.index("function clearedText(zone)")
+    end = WORLD_STAGE.index("\n  function renderSelectedZone(", start)
+    fn_body = WORLD_STAGE[start:end]
+    assert "t('index.adv.boss_cleared'" in fn_body
+    assert ".replace('{stars}', String(zone.stars))" in fn_body
+
+
+def test_renderselectedzone_uses_clearedtext_helper_not_raw_t_call():
+    body = _render_selected_zone_body()
+    assert "clearedText(zone)" in body
+    # The raw, unsubstituted call this bug consisted of must not reappear.
+    assert "t('index.adv.boss_cleared', 'Area cleared')" not in body
+    assert re.search(r"t\(\s*'index\.adv\.boss_cleared'", body) is None, (
+        "index.adv.boss_cleared must only ever be read through "
+        "clearedText(), never called directly without interpolation"
+    )
+
+
+# ---------------------------------------------------------------------
+# Bug B -- the zone-tile "boss ready" badge truncated
+# t('index.adv.boss_ready', ...) with .split(':')[0] to drop the
+# "{seen}/{total}" portion for the compact tile badge. The Chinese
+# dictionary string uses a FULL-WIDTH colon ('：', U+FF1A), not the
+# ASCII ':' (U+003A) the English string uses -- so .split(':') silently
+# failed to match in Chinese, leaking "封印解除：{seen}/{total} 題"
+# verbatim onto the badge in that locale only. Fixed by splitting on a
+# character class covering both colon variants. These tests apply the
+# EXACT SAME split algorithm world_stage.js now uses to the REAL,
+# current i18n.js dictionary strings, proving actual resolved behavior
+# rather than only pattern-matching the source.
+# ---------------------------------------------------------------------
+
+def _i18n_entry_values(key):
+    match = re.search(
+        re.escape("'" + key + "'") + r"\s*:\s*\{\s*en:\s*'((?:[^'\\]|\\.)*)'\s*,\s*zh:\s*'((?:[^'\\]|\\.)*)'",
+        I18N,
+    )
+    assert match, f"{key} not found in i18n.js in the expected {{ en: '...', zh: '...' }} shape"
+    return match.group(1), match.group(2)
+
+
+def test_boss_ready_tile_badge_split_handles_both_colon_variants_in_source():
+    start = WORLD_STAGE.index("function renderZones(")
+    end = WORLD_STAGE.index("\n  function recoverToLegacy(", start)
+    fn_body = WORLD_STAGE[start:end]
+    assert "split(/[:：]/)[0]" in fn_body
+    assert "split(':')[0]" not in fn_body
+
+
+def test_boss_ready_badge_resolves_to_seal_broken_in_english():
+    en_value, _zh_value = _i18n_entry_values('index.adv.boss_ready')
+    assert en_value == 'Seal broken: {seen}/{total}'
+    result = re.split(r'[:：]', en_value)[0]
+    assert result == 'Seal broken'
+    assert '{seen}' not in result and '{total}' not in result
+
+
+def test_boss_ready_badge_resolves_to_short_chinese_form_without_leak():
+    _en_value, zh_value = _i18n_entry_values('index.adv.boss_ready')
+    assert zh_value == '封印解除：{seen}/{total} 題'
+    result = re.split(r'[:：]', zh_value)[0]
+    assert result == '封印解除'
+    assert '{seen}' not in result and '{total}' not in result
+
+
+# ---------------------------------------------------------------------
+# i18n template guards: if a future copy edit ever removes these
+# placeholders from the dictionary, the substitution calls above become
+# silent no-ops rather than loud failures -- these guards make that
+# scenario fail closed instead.
+# ---------------------------------------------------------------------
+
+def test_i18n_boss_cleared_retains_stars_placeholder():
+    en_value, zh_value = _i18n_entry_values('index.adv.boss_cleared')
+    assert '{stars}' in en_value
+    assert '{stars}' in zh_value
+
+
+def test_i18n_boss_ready_retains_seen_and_total_placeholders():
+    en_value, zh_value = _i18n_entry_values('index.adv.boss_ready')
+    assert '{seen}' in en_value and '{total}' in en_value
+    assert '{seen}' in zh_value and '{total}' in zh_value
 
 
 # ---------------------------------------------------------------------
@@ -292,7 +392,7 @@ def test_legacy_own_href_builder_uses_the_same_format():
 
 def test_sw_version_bumped_for_this_change():
     assert NEW_SW_VERSION in SW
-    assert "v203-e9-zone-name-i18n-fix" not in SW
+    assert PREVIOUS_SW_VERSION not in SW
 
 
 def test_sw_diff_is_version_line_only():

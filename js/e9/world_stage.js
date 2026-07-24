@@ -116,6 +116,13 @@
       .replace('{total}', String(zone.total));
   }
 
+  // index.adv.boss_cleared is likewise a template ('Defeated {stars}' /
+  // '已擊破 {stars}') -- same substitution contract as bossReadyText above.
+  function clearedText(zone) {
+    return t('index.adv.boss_cleared', 'Defeated {stars}')
+      .replace('{stars}', String(zone.stars));
+  }
+
   function renderSelectedZone(root, zones, zoneKey, focusDetails) {
     var state = root.__e9WorldStageState;
     var zone = zones.filter(function (item) { return item.key === zoneKey; })[0];
@@ -144,7 +151,7 @@
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
-      : (zone.cleared ? t('index.adv.boss_cleared', 'Area cleared') : t('index.adv.panel_ready', 'Adventure is ready'));
+      : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
 
     if (cta) {
       if (zone.key === 'k26_30') {
@@ -224,7 +231,13 @@
       if (zone.bossAvailable) {
         var bossEl = document.createElement('span');
         bossEl.className = 'e9-zone__boss-ready';
-        bossEl.textContent = t('index.adv.boss_ready', 'Seal broken').split(':')[0];
+        // Truncate to the short lead-in only ("Seal broken" / "封印解除"),
+        // discarding the "{seen}/{total}" portion for this compact tile
+        // badge. Must split on BOTH the ASCII ':' (English) and the
+        // full-width '：' (Chinese, U+FF1A) -- splitting on ':' alone
+        // leaves the Chinese string unmatched and untouched, leaking the
+        // raw "{seen}/{total}" template onto the badge in that locale.
+        bossEl.textContent = t('index.adv.boss_ready', 'Seal broken: {seen}/{total}').split(/[:：]/)[0];
         tile.appendChild(bossEl);
       }
 
