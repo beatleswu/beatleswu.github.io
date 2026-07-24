@@ -3,3 +3,4 @@ __pycache__/
 .env
 release-artifacts/
 docs/testing/
+tests/e2e/node_modules/
