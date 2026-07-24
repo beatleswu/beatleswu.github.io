@@ -4350,7 +4350,7 @@ def group_label(q):
 PREMIUM_ITEMS = [a['id'] for a in APPEARANCE_DEFS if a.get('premium_only')]
 PREMIUM_BADGES = [b['id'] for b in BADGE_DEFS if b.get('premium_only')]
 
-def grant_premium_rewards(uid, conn, equip_default=True):
+def _grant_premium_rewards_in_tx(uid, conn, equip_default=True):
     """授予 Premium 專屬外觀物品、徽章。
 
     equip_default=True 用於首次升級/付款，會預設穿上 Premium 套裝。
@@ -4370,7 +4370,6 @@ def grant_premium_rewards(uid, conn, equip_default=True):
     # 預設裝備：御袍 + 冠冕 + 光環 + 麒麟 + 尊爵稱號 + 金墜
     eq = conn.execute('SELECT * FROM player_appearance WHERE user_id=?', (uid,)).fetchone()
     if eq and not equip_default:
-        conn.commit()
         return
     if eq:
         conn.execute('''UPDATE player_appearance
@@ -4387,6 +4386,11 @@ def grant_premium_rewards(uid, conn, equip_default=True):
             VALUES(?,?,?,?,?,?,?)''',
             (uid,'robe_premium','hat_premium','aura_premium',
              'pet_premium','title_premium','acc_premium'))
+
+
+def grant_premium_rewards(uid, conn, equip_default=True):
+    """Standalone compatibility wrapper for Premium reward grants."""
+    _grant_premium_rewards_in_tx(uid, conn, equip_default=equip_default)
     conn.commit()
 
 def ensure_premium_rewards(uid, conn, equip_default=False):
@@ -16504,8 +16508,8 @@ def _period_point(plan_key):
     return f'{today.month:02d}{today.day:02d}'
 
 
-def _extend_premium(conn, uid, days, source):
-    """延長 premium_until（從現有效期或現在起算較晚者），並開通 Premium。"""
+def _extend_premium_in_tx(conn, uid, days, source):
+    """Apply a Premium extension inside a caller-owned transaction."""
     row = conn.execute(
         'SELECT plan, premium_until FROM users WHERE id=?', (uid,)).fetchone()
     if not row:
@@ -16523,13 +16527,20 @@ def _extend_premium(conn, uid, days, source):
     first_time = row['plan'] != 'premium'
     conn.execute("UPDATE users SET plan='premium', premium_until=? WHERE id=?",
                  (new_until, uid))
-    conn.commit()
     if first_time:
-        grant_premium_rewards(uid, conn)
+        _grant_premium_rewards_in_tx(uid, conn)
     try:
         print(f'[payment] uid={uid} premium 延長至 {new_until}（{source}）')
     except ValueError:
         pass
+    return new_until
+
+
+def _extend_premium(conn, uid, days, source):
+    """Standalone compatibility wrapper for Premium extensions."""
+    new_until = _extend_premium_in_tx(conn, uid, days, source)
+    if new_until is not None:
+        conn.commit()
     return new_until
 
 
@@ -16996,9 +17007,9 @@ def _handle_period_notify(data, raw):
             'VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT (mer_order_no) DO NOTHING',
             (f'{mer_order_no}-{already}', sub['user_id'], 'newebpay',
              sub['plan_key'], sub['amount'], 'TWD', 'paid', raw[:8000], now, now))
+        _extend_premium_in_tx(conn, sub['user_id'], plan['days'],
+                              f'newebpay 第 {already} 期')
         conn.commit()
-        _extend_premium(conn, sub['user_id'], plan['days'],
-                        f'newebpay 第 {already} 期')
     return True, 'ok'
 
 
@@ -17169,8 +17180,8 @@ def _paypal_ensure_plan(plan_key):
     return plan_id
 
 
-def _set_premium_until(conn, uid, until_iso, source):
-    """把 premium_until 設為指定時間（只前進不倒退），必要時開通 Premium。"""
+def _set_premium_until_in_tx(conn, uid, until_iso, source):
+    """Set Premium expiry inside a caller-owned transaction."""
     row = conn.execute(
         'SELECT plan, premium_until FROM users WHERE id=?', (uid,)).fetchone()
     if not row:
@@ -17181,11 +17192,18 @@ def _set_premium_until(conn, uid, until_iso, source):
     first_time = row['plan'] != 'premium'
     conn.execute("UPDATE users SET plan='premium', premium_until=? WHERE id=?",
                  (until_iso, uid))
-    conn.commit()
     if first_time:
-        grant_premium_rewards(uid, conn)
+        _grant_premium_rewards_in_tx(uid, conn)
     print(f'[payment] uid={uid} premium 效期設為 {until_iso}（{source}）')
     return until_iso
+
+
+def _set_premium_until(conn, uid, until_iso, source):
+    """Standalone compatibility wrapper for setting Premium expiry."""
+    result = _set_premium_until_in_tx(conn, uid, until_iso, source)
+    if result is not None:
+        conn.commit()
+    return result
 
 
 def _paypal_sync_subscription(sub_id, event_key=None):
@@ -17245,9 +17263,9 @@ def _paypal_sync_subscription(sub_id, event_key=None):
                 (f'{sub_id}-{charged}', uid, 'paypal', sub['plan_key'],
                  plan['usd'], 'USD', 'paid',
                  json.dumps(sub_data)[:8000], now, now))
+            _set_premium_until_in_tx(conn, uid, until,
+                                     f'paypal 第 {charged} 期')
             conn.commit()
-            _set_premium_until(conn, uid, until,
-                               f'paypal 第 {charged} 期')
             return True, 'ok'
 
         if status in ('CANCELLED', 'SUSPENDED', 'EXPIRED'):
