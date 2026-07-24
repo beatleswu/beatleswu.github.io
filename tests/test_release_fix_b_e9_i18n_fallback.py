@@ -119,8 +119,62 @@ def test_right_cards_preserves_replace_interpolation_contract():
 def test_world_stage_preserves_replace_and_split_interpolation_contract():
     js = _read(JS_DIR / "world_stage.js")
     assert "t('index.adv.summary', '{n} / {t} areas cleared')" in js
-    assert "t('index.adv.boss_ready', 'Seal broken')" in js
-    assert ".split(':')[0]" in js
+
+    # boss_cleared: {stars} substitution for cleared-zone copy must survive.
+    assert "t('index.adv.boss_cleared', 'Defeated {stars}')" in js
+    assert ".replace('{stars}', String(zone.stars))" in js
+
+    # boss_ready tile badge: must go through a dedicated, named safe helper,
+    # not the original ASCII-only inline split, which silently failed to
+    # truncate the full-width-colon Chinese dictionary value (leaking the
+    # raw "{seen}/{total}" template in that locale) and would also pass a
+    # delimiter-free translation straight through untouched.
+    assert "function bossReadyBadgeText()" in js
+    assert ".split(':')[0]" not in js, (
+        "the original ASCII-only colon split must not reappear -- it "
+        "silently fails to match the Chinese dictionary value's full-width '：'"
+    )
+    assert "t('index.adv.boss_ready', 'Seal broken')" not in js, (
+        "the original un-templated fallback must not reappear -- the real "
+        "fallback is the full template 'Seal broken: {seen}/{total}'"
+    )
+    assert "t('index.adv.boss_ready', 'Seal broken: {seen}/{total}')" in js
+
+    # Behavioral proof: apply the badge helper's required truncation
+    # contract (drop from the first colon of either width, THEN
+    # independently drop from the first literal {seen}/{total} token) to
+    # the REAL current i18n.js dictionary values and to synthetic
+    # delimiter-free translations. This intentionally does not require any
+    # one exact source expression -- a different, equally safe
+    # implementation must still be allowed to pass -- it only proves the
+    # resulting behavior and that neither placeholder can leak.
+    i18n_text = _read(I18N_JS)
+    match = re.search(
+        r"'index\.adv\.boss_ready'\s*:\s*\{\s*en:\s*'((?:[^'\\]|\\.)*)'\s*,\s*zh:\s*'((?:[^'\\]|\\.)*)'",
+        i18n_text,
+    )
+    assert match, "index.adv.boss_ready not found in i18n.js in the expected { en: '...', zh: '...' } shape"
+    en_value, zh_value = match.group(1), match.group(2)
+    assert en_value == 'Seal broken: {seen}/{total}'
+    assert zh_value == '封印解除：{seen}/{total} 題'
+
+    def _badge_text(raw_value):
+        result = re.split(r'[:：]', raw_value)[0]
+        result = re.split(r'\{seen\}|\{total\}', result)[0]
+        return result.strip()
+
+    cases = {
+        en_value: 'Seal broken',
+        zh_value: '封印解除',
+        'Seal broken {seen}/{total}': 'Seal broken',
+        '封印解除 {seen}/{total} 題': '封印解除',
+    }
+    for raw_value, expected in cases.items():
+        result = _badge_text(raw_value)
+        assert result == expected, f"{raw_value!r} resolved to {result!r}, expected {expected!r}"
+        assert '{seen}' not in result and '{total}' not in result, (
+            f"{raw_value!r} leaked a placeholder into the tile badge: {result!r}"
+        )
 
 
 # ---------------------------------------------------------------------------
