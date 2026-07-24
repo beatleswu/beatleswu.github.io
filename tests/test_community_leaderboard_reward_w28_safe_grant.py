@@ -14,7 +14,9 @@ sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 import community_leaderboard_rewards as lbr
 import community_leaderboard_rewards_manual as manual
+import community_leaderboard_rewards_exact_period as exact_period
 from community_leaderboard_rewards_exact_period import (
+    ComponentSettlementError,
     _live_snapshot_matches_authorized_snapshot,
     _snapshot_for_live_drift_check,
     build_exact_period_preview,
@@ -22,6 +24,8 @@ from community_leaderboard_rewards_exact_period import (
     commit_exact_period,
     create_scheduler_commit_authorization,
     detect_existing_operation_state,
+    evaluate_settled_components,
+    expected_component_rows,
 )
 
 
@@ -603,6 +607,516 @@ def test_commit_succeeds_once_then_returns_controlled_noop_without_duplicate_rew
     assert noop["result"] == "already_granted_noop"
     assert conn.execute("SELECT coin_balance FROM users WHERE id = ?", (101,)).fetchone()[0] == coins_after_first
     assert len(lbr.fetch_unacknowledged_granted_reward_claims(conn, 101)) == 1
+    conn.close()
+
+
+def _component(rank, user_id, component, reward_key, quantity, result="granted", detail=None):
+    return {
+        "rank": rank,
+        "user_id": user_id,
+        "component": component,
+        "reward_key": reward_key,
+        "quantity": quantity,
+        "result": result,
+        "detail": detail,
+    }
+
+
+def _canonical_w29_fixture():
+    """Build de-identified W29 rows through the canonical pure reward builder."""
+    participant_count = 21
+    snapshot = {
+        "board_type": "weekly",
+        "period_key": "2026-W29",
+        "period_start": "2026-07-13",
+        "period_end_exclusive": "2026-07-20",
+        "timezone": "Asia/Taipei",
+        "participant_counts": {
+            "original_participant_count": participant_count,
+            "ranked_participant_count": participant_count,
+            "top_ranked_row_count": participant_count,
+            "reward_eligible_count": participant_count,
+        },
+        "excluded_accounts": [],
+        "entries": [
+            {
+                "user_id": 1000 + rank,
+                "display_name": f"Deidentified Player {rank}",
+                "avatar": None,
+                "rank": rank,
+                "score": 1000 - rank,
+            }
+            for rank in range(1, participant_count + 1)
+        ],
+    }
+    preview_result = build_exact_period_preview(snapshot)
+    preview_entries = preview_result["preview"]
+    expected_components = expected_component_rows(preview_entries)
+    claims = []
+    snapshots = []
+    component_logs = []
+    for entry in preview_entries:
+        rank = int(entry["rank"])
+        reward_payload = entry["reward_payload"]
+        claims.append({
+            "id": rank,
+            "user_id": int(entry["user_id"]),
+            "rank": rank,
+            "score": int(entry["score"]),
+            "eligible": bool(entry["eligible"]),
+            "rank_band": entry["rank_band"],
+            "ineligible_reason": entry["ineligible_reason"],
+            "reward_bundle_key": entry["reward_bundle_key"],
+            "granted_coins": int(reward_payload["coins"]),
+            "granted_items_json": json.dumps(reward_payload["items"], sort_keys=True),
+            "granted_badges_json": json.dumps(reward_payload["badges"]),
+            "granted_titles_json": json.dumps(reward_payload["titles"]),
+            "status": lbr.CLAIM_STATUS_GRANTED,
+        })
+        snapshots.append({
+            "rank": rank,
+            "user_id": int(entry["user_id"]),
+            "score": int(entry["score"]),
+        })
+    for component in expected_components:
+        component_logs.append({
+            "claim_id": int(component["rank"]),
+            "component": component["component"],
+            "reward_key": component["reward_key"],
+            "quantity": int(component["quantity"]),
+            "result": (
+                "skipped_existing"
+                if component["component"] == "badge"
+                else "granted"
+            ),
+            "detail": (
+                "already owned"
+                if component["component"] == "badge"
+                else None
+            ),
+        })
+    return {
+        "snapshot": snapshot,
+        "preview_result": preview_result,
+        "preview_entries": preview_entries,
+        "expected_components": expected_components,
+        "claims": claims,
+        "snapshots": snapshots,
+        "component_logs": component_logs,
+    }
+
+
+def test_w29_shaped_settled_components_accepts_one_verified_already_owned_badge():
+    fixture = _canonical_w29_fixture()
+    expected = fixture["expected_components"]
+    actual = [
+        {
+            "rank": int(fixture["claims"][int(row["claim_id"]) - 1]["rank"]),
+            "user_id": int(fixture["claims"][int(row["claim_id"]) - 1]["user_id"]),
+            "component": row["component"],
+            "reward_key": row["reward_key"],
+            "quantity": int(row["quantity"]),
+            "result": row["result"],
+            "detail": row["detail"],
+        }
+        for row in fixture["component_logs"]
+    ]
+
+    settlement = evaluate_settled_components(
+        expected,
+        actual,
+        badge_ownership_checker=lambda user_id, badge_key: (
+            user_id == 1001 and badge_key == "badge_lb_weekly_1"
+        ),
+    )
+
+    assert len(expected) == 43
+    assert len(actual) == 43
+    assert sum(row["quantity"] for row in expected if row["component"] == "coin") == 4060
+    assert sum(
+        row["quantity"] for row in expected
+        if row["component"] == "item" and row["reward_key"] == "small_xp_potion"
+    ) == 25
+    assert sum(
+        row["quantity"] for row in expected
+        if row["component"] == "item" and row["reward_key"] == "xp_potion"
+    ) == 4
+    assert settlement["settled"] is True
+    assert len(settlement["satisfied_components"]) == 43
+
+
+def test_w29_fixture_exactly_matches_canonical_rank_bands_bundles_and_components():
+    fixture = _canonical_w29_fixture()
+    preview_by_rank = {
+        int(entry["rank"]): entry for entry in fixture["preview_entries"]
+    }
+    claim_by_rank = {int(claim["rank"]): claim for claim in fixture["claims"]}
+    expected_component_multiset = sorted(
+        (
+            int(row["rank"]),
+            int(row["user_id"]),
+            row["component"],
+            row["reward_key"],
+            int(row["quantity"]),
+        )
+        for row in fixture["expected_components"]
+    )
+    persisted_component_multiset = sorted(
+        (
+            int(claim_by_rank[int(row["claim_id"])]["rank"]),
+            int(claim_by_rank[int(row["claim_id"])]["user_id"]),
+            row["component"],
+            row["reward_key"],
+            int(row["quantity"]),
+        )
+        for row in fixture["component_logs"]
+    )
+
+    expected_boundaries = {
+        1: ("top1", "weekly_top1", 500, "xp_potion", 2),
+        2: ("top3", "weekly_top3", 350, "xp_potion", 1),
+        3: ("top3", "weekly_top3", 350, "xp_potion", 1),
+        4: ("top10", "weekly_top10", 220, "small_xp_potion", 2),
+        10: ("top10", "weekly_top10", 220, "small_xp_potion", 2),
+        11: ("top25", "weekly_top25", 120, "small_xp_potion", 1),
+        20: ("top25", "weekly_top25", 120, "small_xp_potion", 1),
+        21: ("top25", "weekly_top25", 120, "small_xp_potion", 1),
+    }
+    for rank, (band, bundle_key, coins, item_key, item_quantity) in expected_boundaries.items():
+        entry = preview_by_rank[rank]
+        claim = claim_by_rank[rank]
+        assert entry["rank_band"] == claim["rank_band"] == band
+        assert entry["reward_bundle_key"] == claim["reward_bundle_key"] == bundle_key
+        assert entry["reward_payload"]["coins"] == claim["granted_coins"] == coins
+        assert entry["reward_payload"]["items"] == {item_key: item_quantity}
+
+    assert expected_component_multiset == persisted_component_multiset
+    assert len(fixture["claims"]) == 21
+    assert len(fixture["component_logs"]) == 43
+    assert sum(
+        row["quantity"]
+        for row in fixture["expected_components"]
+        if row["component"] == "coin"
+    ) == 4060
+    assert sum(
+        row["quantity"]
+        for row in fixture["expected_components"]
+        if row["component"] == "item"
+        and row["reward_key"] == "small_xp_potion"
+    ) == 25
+    assert sum(
+        row["quantity"]
+        for row in fixture["expected_components"]
+        if row["component"] == "item" and row["reward_key"] == "xp_potion"
+    ) == 4
+    badge_rows = [
+        row for row in fixture["component_logs"] if row["component"] == "badge"
+    ]
+    assert badge_rows == [{
+        "claim_id": 1,
+        "component": "badge",
+        "reward_key": "badge_lb_weekly_1",
+        "quantity": 1,
+        "result": "skipped_existing",
+        "detail": "already owned",
+    }]
+
+
+def test_w29_aggregate_equivalent_but_component_wrong_rows_fail_closed():
+    fixture = _canonical_w29_fixture()
+    actual = [
+        dict(
+            expected,
+            result=(
+                "skipped_existing"
+                if expected["component"] == "badge"
+                else "granted"
+            ),
+            detail=(
+                "already owned"
+                if expected["component"] == "badge"
+                else None
+            ),
+        )
+        for expected in fixture["expected_components"]
+    ]
+    rank4_coin = next(
+        row
+        for row in actual
+        if row["rank"] == 4 and row["component"] == "coin"
+    )
+    rank11_coin = next(
+        row
+        for row in actual
+        if row["rank"] == 11 and row["component"] == "coin"
+    )
+    rank4_coin["quantity"] = 200
+    rank11_coin["quantity"] = 140
+
+    assert sum(
+        row["quantity"] for row in actual if row["component"] == "coin"
+    ) == 4060
+    settlement = evaluate_settled_components(
+        fixture["expected_components"],
+        actual,
+        badge_ownership_checker=lambda user_id, badge_key: (
+            user_id == 1001 and badge_key == "badge_lb_weekly_1"
+        ),
+    )
+    assert settlement["settled"] is False
+    assert settlement["reason_code"] == "component_mismatch"
+
+
+@pytest.mark.parametrize(
+    ("actual", "owns_badge", "reason_code"),
+    [
+        (
+            _component(1, 101, "badge", "badge_lb_weekly_1", 1, "skipped_existing", "already owned"),
+            False,
+            "skipped_existing_without_ownership",
+        ),
+        (
+            _component(1, 101, "badge", "badge_lb_weekly_other", 1, "skipped_existing", "already owned"),
+            True,
+            "component_mismatch",
+        ),
+        (
+            _component(1, 101, "item", "xp_potion", 1, "skipped_existing", "already owned"),
+            True,
+            "unsupported_terminal_result",
+        ),
+        (
+            _component(1, 101, "coin", "coins", 500, "skipped_existing", "already owned"),
+            True,
+            "unsupported_terminal_result",
+        ),
+        (
+            _component(1, 101, "xp", "xp", 100, "skipped_existing", "already owned"),
+            True,
+            "unsupported_terminal_result",
+        ),
+        (
+            _component(1, 101, "badge", "badge_lb_weekly_1", 1, "failed", "grant failed"),
+            True,
+            "component_failed",
+        ),
+        (
+            _component(1, 101, "badge", "badge_lb_weekly_1", 2, "granted"),
+            True,
+            "component_mismatch",
+        ),
+        (
+            _component(1, 101, "badge", "badge_lb_weekly_1", 1, "skipped_existing", "arbitrary skip"),
+            True,
+            "unsupported_terminal_result",
+        ),
+    ],
+)
+def test_component_settlement_fails_closed_for_invalid_terminal_states(
+    actual, owns_badge, reason_code
+):
+    if actual["reward_key"] == "badge_lb_weekly_other":
+        expected = [_component(1, 101, "badge", "badge_lb_weekly_1", 1)]
+    else:
+        expected_quantity = 1 if actual["quantity"] == 2 else actual["quantity"]
+        expected = [_component(
+            1,
+            101,
+            actual["component"],
+            actual["reward_key"],
+            expected_quantity,
+        )]
+    settlement = evaluate_settled_components(
+        expected,
+        [actual],
+        badge_ownership_checker=lambda user_id, badge_key: owns_badge,
+    )
+    assert settlement["settled"] is False
+    assert settlement["reason_code"] == reason_code
+
+
+def test_component_settlement_rejects_missing_and_duplicate_logs():
+    expected = [_component(1, 101, "coin", "coins", 500)]
+    missing = evaluate_settled_components(expected, [])
+    duplicate = evaluate_settled_components(
+        expected,
+        [
+            _component(1, 101, "coin", "coins", 500),
+            _component(1, 101, "coin", "coins", 500),
+        ],
+    )
+    assert missing["reason_code"] == "component_missing"
+    assert duplicate["reason_code"] == "component_mismatch"
+
+
+def test_w29_shaped_existing_operation_returns_controlled_noop(monkeypatch):
+    fixture = _canonical_w29_fixture()
+    claims = fixture["claims"]
+    snapshots = fixture["snapshots"]
+    component_logs = fixture["component_logs"]
+    preview = {
+        "preview": fixture["preview_entries"],
+        "summary": {"snapshot_row_count": 21},
+    }
+    snapshot = fixture["snapshot"]
+    monkeypatch.setattr(exact_period, "fetch_claims_for_period", lambda *args: claims)
+    monkeypatch.setattr(exact_period, "fetch_snapshot_rows_for_period", lambda *args: snapshots)
+    monkeypatch.setattr(exact_period, "fetch_component_logs_for_claim_ids", lambda *args: component_logs)
+
+    state = detect_existing_operation_state(
+        None,
+        snapshot,
+        preview,
+        badge_ownership_checker=lambda user_id, badge_key: (
+            user_id == 1001 and badge_key == "badge_lb_weekly_1"
+        ),
+    )
+
+    assert len(claims) == 21
+    assert len(component_logs) == 43
+    assert state["state"] == "already_granted_noop"
+    assert state["component_settlement"]["settled"] is True
+
+
+def test_already_owned_badge_commit_converges_and_second_cycle_is_zero_mutation(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    top_user_id = int(preview["preview"][0]["user_id"])
+    conn.execute(
+        "INSERT INTO badges_earned(user_id, badge_id, earned_at, seen) VALUES(?,?,?,0)",
+        (top_user_id, "badge_lb_weekly_1", "2026-07-01T00:00:00"),
+    )
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
+    from community_leaderboard_rewards_scheduler import summarize_post_grant_state
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+    badge_ownership_checker = lambda user_id, badge_key: (
+        FakeAppModule.is_community_reward_badge_owned(
+            conn, user_id=user_id, badge_key=badge_key
+        )
+    )
+    kwargs = {
+        "snapshot": snapshot,
+        "expected_snapshot_sha256": lbr.sha256_hex_from_value(snapshot),
+        "expected_preview_sha256": preview["preview_sha256"],
+        "expected_claim_count": preview["summary"]["claims_count"],
+        "expected_component_count": preview["summary"]["component_count"],
+        "expected_total_coins": preview["summary"]["total_coins"],
+        "expected_total_items": preview["summary"]["total_items"],
+        "expected_total_badges": preview["summary"]["total_badges"],
+        "owner_gate": lbr.EXACT_PERIOD_OWNER_GATE,
+        "badge_ownership_checker": badge_ownership_checker,
+    }
+
+    first = commit_exact_period(conn, **kwargs)
+    conn.commit()
+    badge_log = conn.execute(
+        "SELECT result, detail FROM leaderboard_reward_component_log "
+        "WHERE component=? AND reward_key=?",
+        ("badge", "badge_lb_weekly_1"),
+    ).fetchone()
+    before = {
+        "claims": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0],
+        "components": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0],
+        "coins": conn.execute("SELECT SUM(coin_balance) FROM users").fetchone()[0],
+        "xp": conn.execute("SELECT SUM(xp) FROM user_stats").fetchone()[0],
+        "items": conn.execute("SELECT COALESCE(SUM(qty),0) FROM shop_inventory").fetchone()[0],
+        "badges": conn.execute("SELECT COUNT(*) FROM badges_earned").fetchone()[0],
+    }
+
+    second = commit_exact_period(conn, **kwargs)
+    post_state = summarize_post_grant_state(
+        conn,
+        board_type=snapshot["board_type"],
+        period_key=snapshot["period_key"],
+        expected_components=expected_component_rows(preview["preview"]),
+        badge_ownership_checker=badge_ownership_checker,
+    )
+    after = {
+        "claims": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_claims").fetchone()[0],
+        "components": conn.execute("SELECT COUNT(*) FROM leaderboard_reward_component_log").fetchone()[0],
+        "coins": conn.execute("SELECT SUM(coin_balance) FROM users").fetchone()[0],
+        "xp": conn.execute("SELECT SUM(xp) FROM user_stats").fetchone()[0],
+        "items": conn.execute("SELECT COALESCE(SUM(qty),0) FROM shop_inventory").fetchone()[0],
+        "badges": conn.execute("SELECT COUNT(*) FROM badges_earned").fetchone()[0],
+    }
+
+    assert first["result"] == "committed"
+    assert tuple(badge_log) == ("skipped_existing", "already owned")
+    assert second["result"] == "already_granted_noop"
+    assert post_state["component_settlement"]["settled"] is True
+    assert post_state["total_badges"] == {"badge_lb_weekly_1": 1}
+    assert after == before
+    conn.execute(
+        "UPDATE leaderboard_reward_component_log SET result=?, detail=? "
+        "WHERE component=? AND reward_key=?",
+        ("failed", "synthetic failure", "badge", "badge_lb_weekly_1"),
+    )
+    failed_post_state = summarize_post_grant_state(
+        conn,
+        board_type=snapshot["board_type"],
+        period_key=snapshot["period_key"],
+        expected_components=expected_component_rows(preview["preview"]),
+        badge_ownership_checker=badge_ownership_checker,
+    )
+    assert failed_post_state["component_settlement"]["settled"] is False
+    assert failed_post_state["component_settlement"]["reason_code"] == "component_failed"
+    conn.close()
+
+
+def test_existing_skipped_badge_without_ownership_raises_stable_reason(monkeypatch):
+    conn = make_conn()
+    seed_commit_fixture(conn)
+    snapshot, preview = build_commit_snapshot(conn, monkeypatch)
+    top_user_id = int(preview["preview"][0]["user_id"])
+    from tools import community_leaderboard_rewards_real_grant_preview as real_preview
+
+    monkeypatch.setattr(real_preview, "load_app_module", lambda: FakeAppModule)
+    monkeypatch.setattr(real_preview, "verify_real_grant_targets_for_claims", lambda app_module, conn, claims: [])
+    checker = lambda user_id, badge_key: FakeAppModule.is_community_reward_badge_owned(
+        conn, user_id=user_id, badge_key=badge_key
+    )
+    kwargs = {
+        "snapshot": snapshot,
+        "expected_snapshot_sha256": lbr.sha256_hex_from_value(snapshot),
+        "expected_preview_sha256": preview["preview_sha256"],
+        "expected_claim_count": preview["summary"]["claims_count"],
+        "expected_component_count": preview["summary"]["component_count"],
+        "expected_total_coins": preview["summary"]["total_coins"],
+        "expected_total_items": preview["summary"]["total_items"],
+        "expected_total_badges": preview["summary"]["total_badges"],
+        "owner_gate": lbr.EXACT_PERIOD_OWNER_GATE,
+        "badge_ownership_checker": checker,
+    }
+    commit_exact_period(conn, **kwargs)
+    conn.commit()
+    conn.execute(
+        "DELETE FROM badges_earned WHERE user_id=? AND badge_id=?",
+        (top_user_id, "badge_lb_weekly_1"),
+    )
+    conn.execute(
+        "UPDATE leaderboard_reward_component_log SET result=?, detail=? "
+        "WHERE component=? AND reward_key=?",
+        ("skipped_existing", "already owned", "badge", "badge_lb_weekly_1"),
+    )
+    conn.commit()
+
+    from community_leaderboard_rewards_scheduler import summarize_post_grant_state
+    post_state = summarize_post_grant_state(
+        conn,
+        board_type=snapshot["board_type"],
+        period_key=snapshot["period_key"],
+        expected_components=expected_component_rows(preview["preview"]),
+        badge_ownership_checker=checker,
+    )
+    assert post_state["component_settlement"]["reason_code"] == (
+        "skipped_existing_without_ownership"
+    )
+    with pytest.raises(ComponentSettlementError) as exc_info:
+        commit_exact_period(conn, **kwargs)
+    assert exc_info.value.reason_code == "skipped_existing_without_ownership"
     conn.close()
 
 

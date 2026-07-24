@@ -23,6 +23,14 @@ COMMUNITY_LEADERBOARD_REWARDS_ENABLED = "COMMUNITY_LEADERBOARD_REWARDS_ENABLED"
 _SCHEDULER_LOCK_NAMESPACE = "community_leaderboard_rewards"
 
 
+class ComponentSettlementError(ValueError):
+    """Fail-closed component convergence error with a log-safe reason code."""
+
+    def __init__(self, reason_code, message):
+        super().__init__(message)
+        self.reason_code = str(reason_code)
+
+
 class _SchedulerCommitAuthorization:
     __slots__ = ("board_type", "period_key", "flag_name", "flag_enabled")
 
@@ -387,6 +395,116 @@ def expected_component_rows(preview_entries):
     return rows
 
 
+def _component_identity(row):
+    return (
+        int(row["rank"]),
+        int(row["user_id"]),
+        str(row["component"]),
+        str(row["reward_key"]),
+    )
+
+
+def _is_already_owned_detail(detail):
+    """Accept only the canonical legacy text or a structured reason code."""
+    if not isinstance(detail, str):
+        return False
+    normalized = detail.strip()
+    if normalized.lower() in {"already owned", "already_owned"}:
+        return True
+    try:
+        payload = json.loads(normalized)
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    reason = payload.get("reason_code", payload.get("reason"))
+    return isinstance(reason, str) and reason.strip().lower() == "already_owned"
+
+
+def evaluate_settled_components(expected_components, actual_components, *, badge_ownership_checker=None):
+    """Classify exact-period component logs using one fail-closed policy.
+
+    `granted` is terminal for every expected component. `skipped_existing`
+    is terminal only for an expected badge whose stored reason says it was
+    already owned and whose ownership is still verified by the canonical
+    application helper. No other skipped/failed/unknown result is accepted.
+    """
+    expected_by_identity = {}
+    for expected in expected_components:
+        identity = _component_identity(expected)
+        if identity in expected_by_identity:
+            return {
+                "settled": False,
+                "reason_code": "component_mismatch",
+                "reason": "duplicate expected component identity",
+            }
+        expected_by_identity[identity] = expected
+
+    seen = set()
+    satisfied = []
+    for actual in actual_components:
+        identity = _component_identity(actual)
+        expected = expected_by_identity.get(identity)
+        if expected is None or identity in seen:
+            return {
+                "settled": False,
+                "reason_code": "component_mismatch",
+                "reason": "unexpected or duplicate component log",
+            }
+        seen.add(identity)
+        if int(actual["quantity"]) != int(expected["quantity"]):
+            return {
+                "settled": False,
+                "reason_code": "component_mismatch",
+                "reason": "component quantity mismatch",
+            }
+
+        result = str(actual.get("result") or "")
+        if result == "granted":
+            satisfied.append(expected)
+            continue
+        if result == "failed":
+            return {
+                "settled": False,
+                "reason_code": "component_failed",
+                "reason": "component log records a failed result",
+            }
+        if result != "skipped_existing":
+            return {
+                "settled": False,
+                "reason_code": "unsupported_terminal_result",
+                "reason": "component log has an unsupported terminal result",
+            }
+        if expected["component"] != "badge" or not _is_already_owned_detail(actual.get("detail")):
+            return {
+                "settled": False,
+                "reason_code": "unsupported_terminal_result",
+                "reason": "skipped_existing is not a verified already-owned badge",
+            }
+        if not callable(badge_ownership_checker) or not badge_ownership_checker(
+            int(expected["user_id"]), str(expected["reward_key"])
+        ):
+            return {
+                "settled": False,
+                "reason_code": "skipped_existing_without_ownership",
+                "reason": "skipped_existing badge has no current ownership evidence",
+            }
+        satisfied.append(expected)
+
+    if len(seen) != len(expected_by_identity):
+        return {
+            "settled": False,
+            "reason_code": "component_missing",
+            "reason": "one or more expected component logs are missing",
+        }
+    return {
+        "settled": True,
+        "reason_code": None,
+        "reason": None,
+        "satisfied_components": satisfied,
+    }
+
+
 def _preview_claim_expectations(preview_entries):
     expectations = []
     for entry in preview_entries:
@@ -409,7 +527,9 @@ def _preview_claim_expectations(preview_entries):
     return expectations
 
 
-def detect_existing_operation_state(conn, snapshot, preview_result):
+def detect_existing_operation_state(
+    conn, snapshot, preview_result, *, badge_ownership_checker=None
+):
     claims = fetch_claims_for_period(conn, snapshot["board_type"], snapshot["period_key"])
     snapshots = fetch_snapshot_rows_for_period(conn, snapshot["board_type"], snapshot["period_key"])
     if not claims and not snapshots:
@@ -469,21 +589,25 @@ def detect_existing_operation_state(conn, snapshot, preview_result):
             "reward_key": item["reward_key"],
             "quantity": int(item["quantity"]),
             "result": item["result"],
+            "detail": item.get("detail"),
         })
-    expected_component_keys = sorted(
-        (r["rank"], r["user_id"], r["component"], r["reward_key"], r["quantity"]) for r in expected_components
+    settlement = evaluate_settled_components(
+        expected_components,
+        actual_components,
+        badge_ownership_checker=badge_ownership_checker,
     )
-    actual_component_keys = sorted(
-        (r["rank"], r["user_id"], r["component"], r["reward_key"], r["quantity"])
-        for r in actual_components if r["result"] == "granted"
-    )
-    if actual_component_keys != expected_component_keys:
-        return {"state": "conflict", "reason": "existing component log mismatch"}
+    if not settlement["settled"]:
+        return {
+            "state": "conflict",
+            "reason": settlement["reason"],
+            "reason_code": settlement["reason_code"],
+        }
     return {
         "state": "already_granted_noop",
         "claims": claims,
         "snapshots": snapshots,
         "component_logs": component_logs,
+        "component_settlement": settlement,
     }
 
 
@@ -501,6 +625,7 @@ def commit_exact_period(
     owner_gate=None,
     required_owner_gate=None,
     scheduler_authorization=None,
+    badge_ownership_checker=None,
     now=None,
 ):
     if required_owner_gate is None:
@@ -549,7 +674,12 @@ def commit_exact_period(
     )
     if not _live_snapshot_matches_authorized_snapshot(live_snapshot, snapshot):
         raise ValueError("eligible ranking changed since preview")
-    existing = detect_existing_operation_state(conn, snapshot, preview_result)
+    existing = detect_existing_operation_state(
+        conn,
+        snapshot,
+        preview_result,
+        badge_ownership_checker=badge_ownership_checker,
+    )
     if existing["state"] == "already_granted_noop":
         return {
             "result": "already_granted_noop",
@@ -558,6 +688,11 @@ def commit_exact_period(
             "summary": preview_result["summary"],
         }
     if existing["state"] != "absent":
+        if existing.get("reason_code"):
+            raise ComponentSettlementError(
+                existing["reason_code"],
+                existing.get("reason", "existing components prevent exact-period commit"),
+            )
         raise ValueError(existing.get("reason", "existing claims prevent exact-period commit"))
     from tools.community_leaderboard_rewards_real_grant_preview import (
         load_app_module, verify_real_grant_targets_for_claims,
