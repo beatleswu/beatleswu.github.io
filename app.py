@@ -7,6 +7,7 @@ _startup_diagnostics.start_delayed_snapshots()
 
 from flask import (Flask, jsonify, send_from_directory, request,
                    session, redirect, Response, send_file, abort)
+from flask import g as flask_g
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -4422,6 +4423,46 @@ def check_premium_expiry(conn, uid, plan, premium_until):
     print(f'[payment] uid={uid} premium 到期（{premium_until}），已降回 free')
     return 'free'
 
+
+def _evaluate_premium_entitlement(plan, premium_until, now=None):
+    """Return whether a durable entitlement is currently Premium.
+
+    This is deliberately pure: authorization must not introduce a hidden
+    database commit.  A NULL expiry remains the legacy/manual lifetime plan.
+    """
+    if plan != 'premium':
+        return False
+    if not premium_until:
+        return True
+    try:
+        expiry = datetime.datetime.fromisoformat(str(premium_until).replace('Z', '+00:00'))
+        if now is not None:
+            current = now
+        elif expiry.tzinfo:
+            current = datetime.datetime.now(expiry.tzinfo)
+        else:
+            current = datetime.datetime.now()
+        return expiry >= current
+    except (TypeError, ValueError):
+        # A malformed durable expiry must never turn a cached Premium session
+        # into authorization.
+        return False
+
+
+def _load_current_premium_entitlement(uid):
+    """Read the durable entitlement once per request for one user id."""
+    cache = getattr(flask_g, '_premium_entitlement_cache', None)
+    if cache is None:
+        cache = flask_g._premium_entitlement_cache = {}
+    if uid not in cache:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT plan, premium_until FROM users WHERE id=?", (uid,)).fetchone()
+        cache[uid] = bool(row and _evaluate_premium_entitlement(
+            row['plan'], row['premium_until'] if 'premium_until' in row.keys() else None))
+    return cache[uid]
+
+
 def is_premium(uid=None):
     """回傳 True 若用戶為付費方案或管理員。"""
     if session.get('is_admin'):
@@ -4429,17 +4470,12 @@ def is_premium(uid=None):
     uid = uid or session.get('user_id')
     if not uid:
         return False
-    # 優先讀 session 快取，避免每次都查 DB
-    if session.get('plan') == 'premium':
-        return True
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT plan, premium_until FROM users WHERE id=?", (uid,)).fetchone()
-        if not row:
-            return False
-        plan = check_premium_expiry(conn, uid, row['plan'],
-                                    row['premium_until'] if 'premium_until' in row.keys() else None)
-    return plan == 'premium'
+    # The signed session is a cache only: every request first resolves the
+    # authoritative users.plan/users.premium_until entitlement.
+    premium = _load_current_premium_entitlement(uid)
+    if session.get('user_id') == uid:
+        session['plan'] = 'premium' if premium else 'free'
+    return premium
 
 def question_is_free(q):
     """免費版題庫鎖：開放至 FREE_RANK_MAX（含）的入門/基礎題；更高階鎖 Premium。
