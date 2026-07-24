@@ -622,29 +622,105 @@ def _component(rank, user_id, component, reward_key, quantity, result="granted",
     }
 
 
+def _canonical_w29_fixture():
+    """Build de-identified W29 rows through the canonical pure reward builder."""
+    participant_count = 21
+    snapshot = {
+        "board_type": "weekly",
+        "period_key": "2026-W29",
+        "period_start": "2026-07-13",
+        "period_end_exclusive": "2026-07-20",
+        "timezone": "Asia/Taipei",
+        "participant_counts": {
+            "original_participant_count": participant_count,
+            "ranked_participant_count": participant_count,
+            "top_ranked_row_count": participant_count,
+            "reward_eligible_count": participant_count,
+        },
+        "excluded_accounts": [],
+        "entries": [
+            {
+                "user_id": 1000 + rank,
+                "display_name": f"Deidentified Player {rank}",
+                "avatar": None,
+                "rank": rank,
+                "score": 1000 - rank,
+            }
+            for rank in range(1, participant_count + 1)
+        ],
+    }
+    preview_result = build_exact_period_preview(snapshot)
+    preview_entries = preview_result["preview"]
+    expected_components = expected_component_rows(preview_entries)
+    claims = []
+    snapshots = []
+    component_logs = []
+    for entry in preview_entries:
+        rank = int(entry["rank"])
+        reward_payload = entry["reward_payload"]
+        claims.append({
+            "id": rank,
+            "user_id": int(entry["user_id"]),
+            "rank": rank,
+            "score": int(entry["score"]),
+            "eligible": bool(entry["eligible"]),
+            "rank_band": entry["rank_band"],
+            "ineligible_reason": entry["ineligible_reason"],
+            "reward_bundle_key": entry["reward_bundle_key"],
+            "granted_coins": int(reward_payload["coins"]),
+            "granted_items_json": json.dumps(reward_payload["items"], sort_keys=True),
+            "granted_badges_json": json.dumps(reward_payload["badges"]),
+            "granted_titles_json": json.dumps(reward_payload["titles"]),
+            "status": lbr.CLAIM_STATUS_GRANTED,
+        })
+        snapshots.append({
+            "rank": rank,
+            "user_id": int(entry["user_id"]),
+            "score": int(entry["score"]),
+        })
+    for component in expected_components:
+        component_logs.append({
+            "claim_id": int(component["rank"]),
+            "component": component["component"],
+            "reward_key": component["reward_key"],
+            "quantity": int(component["quantity"]),
+            "result": (
+                "skipped_existing"
+                if component["component"] == "badge"
+                else "granted"
+            ),
+            "detail": (
+                "already owned"
+                if component["component"] == "badge"
+                else None
+            ),
+        })
+    return {
+        "snapshot": snapshot,
+        "preview_result": preview_result,
+        "preview_entries": preview_entries,
+        "expected_components": expected_components,
+        "claims": claims,
+        "snapshots": snapshots,
+        "component_logs": component_logs,
+    }
+
+
 def test_w29_shaped_settled_components_accepts_one_verified_already_owned_badge():
-    expected = []
-    actual = []
-    coin_amounts = [500, 350, 350, *([200] * 7), *([130] * 10), 160]
-    for rank in range(1, 22):
-        item_key = "xp_potion" if rank <= 3 else "small_xp_potion"
-        item_quantity = 2 if rank == 1 or 4 <= rank <= 10 else 1
-        expected.append(_component(rank, 1000 + rank, "coin", "coins", coin_amounts[rank - 1]))
-        expected.append(_component(rank, 1000 + rank, "item", item_key, item_quantity))
-        actual.extend([
-            dict(expected[-2], result="granted"),
-            dict(expected[-1], result="granted"),
-        ])
-    expected.append(_component(1, 1001, "badge", "badge_lb_weekly_1", 1))
-    actual.append(_component(
-        1,
-        1001,
-        "badge",
-        "badge_lb_weekly_1",
-        1,
-        result="skipped_existing",
-        detail="already owned",
-    ))
+    fixture = _canonical_w29_fixture()
+    expected = fixture["expected_components"]
+    actual = [
+        {
+            "rank": int(fixture["claims"][int(row["claim_id"]) - 1]["rank"]),
+            "user_id": int(fixture["claims"][int(row["claim_id"]) - 1]["user_id"]),
+            "component": row["component"],
+            "reward_key": row["reward_key"],
+            "quantity": int(row["quantity"]),
+            "result": row["result"],
+            "detail": row["detail"],
+        }
+        for row in fixture["component_logs"]
+    ]
 
     settlement = evaluate_settled_components(
         expected,
@@ -667,6 +743,128 @@ def test_w29_shaped_settled_components_accepts_one_verified_already_owned_badge(
     ) == 4
     assert settlement["settled"] is True
     assert len(settlement["satisfied_components"]) == 43
+
+
+def test_w29_fixture_exactly_matches_canonical_rank_bands_bundles_and_components():
+    fixture = _canonical_w29_fixture()
+    preview_by_rank = {
+        int(entry["rank"]): entry for entry in fixture["preview_entries"]
+    }
+    claim_by_rank = {int(claim["rank"]): claim for claim in fixture["claims"]}
+    expected_component_multiset = sorted(
+        (
+            int(row["rank"]),
+            int(row["user_id"]),
+            row["component"],
+            row["reward_key"],
+            int(row["quantity"]),
+        )
+        for row in fixture["expected_components"]
+    )
+    persisted_component_multiset = sorted(
+        (
+            int(claim_by_rank[int(row["claim_id"])]["rank"]),
+            int(claim_by_rank[int(row["claim_id"])]["user_id"]),
+            row["component"],
+            row["reward_key"],
+            int(row["quantity"]),
+        )
+        for row in fixture["component_logs"]
+    )
+
+    expected_boundaries = {
+        1: ("top1", "weekly_top1", 500, "xp_potion", 2),
+        2: ("top3", "weekly_top3", 350, "xp_potion", 1),
+        3: ("top3", "weekly_top3", 350, "xp_potion", 1),
+        4: ("top10", "weekly_top10", 220, "small_xp_potion", 2),
+        10: ("top10", "weekly_top10", 220, "small_xp_potion", 2),
+        11: ("top25", "weekly_top25", 120, "small_xp_potion", 1),
+        20: ("top25", "weekly_top25", 120, "small_xp_potion", 1),
+        21: ("top25", "weekly_top25", 120, "small_xp_potion", 1),
+    }
+    for rank, (band, bundle_key, coins, item_key, item_quantity) in expected_boundaries.items():
+        entry = preview_by_rank[rank]
+        claim = claim_by_rank[rank]
+        assert entry["rank_band"] == claim["rank_band"] == band
+        assert entry["reward_bundle_key"] == claim["reward_bundle_key"] == bundle_key
+        assert entry["reward_payload"]["coins"] == claim["granted_coins"] == coins
+        assert entry["reward_payload"]["items"] == {item_key: item_quantity}
+
+    assert expected_component_multiset == persisted_component_multiset
+    assert len(fixture["claims"]) == 21
+    assert len(fixture["component_logs"]) == 43
+    assert sum(
+        row["quantity"]
+        for row in fixture["expected_components"]
+        if row["component"] == "coin"
+    ) == 4060
+    assert sum(
+        row["quantity"]
+        for row in fixture["expected_components"]
+        if row["component"] == "item"
+        and row["reward_key"] == "small_xp_potion"
+    ) == 25
+    assert sum(
+        row["quantity"]
+        for row in fixture["expected_components"]
+        if row["component"] == "item" and row["reward_key"] == "xp_potion"
+    ) == 4
+    badge_rows = [
+        row for row in fixture["component_logs"] if row["component"] == "badge"
+    ]
+    assert badge_rows == [{
+        "claim_id": 1,
+        "component": "badge",
+        "reward_key": "badge_lb_weekly_1",
+        "quantity": 1,
+        "result": "skipped_existing",
+        "detail": "already owned",
+    }]
+
+
+def test_w29_aggregate_equivalent_but_component_wrong_rows_fail_closed():
+    fixture = _canonical_w29_fixture()
+    actual = [
+        dict(
+            expected,
+            result=(
+                "skipped_existing"
+                if expected["component"] == "badge"
+                else "granted"
+            ),
+            detail=(
+                "already owned"
+                if expected["component"] == "badge"
+                else None
+            ),
+        )
+        for expected in fixture["expected_components"]
+    ]
+    rank4_coin = next(
+        row
+        for row in actual
+        if row["rank"] == 4 and row["component"] == "coin"
+    )
+    rank11_coin = next(
+        row
+        for row in actual
+        if row["rank"] == 11 and row["component"] == "coin"
+    )
+    rank4_coin["quantity"] = 200
+    rank11_coin["quantity"] = 140
+
+    assert sum(
+        row["quantity"] for row in actual if row["component"] == "coin"
+    ) == 4060
+    settlement = evaluate_settled_components(
+        fixture["expected_components"],
+        actual,
+        badge_ownership_checker=lambda user_id, badge_key: (
+            user_id == 1001 and badge_key == "badge_lb_weekly_1"
+        ),
+    )
+    assert settlement["settled"] is False
+    assert settlement["reason_code"] == "component_mismatch"
 
 
 @pytest.mark.parametrize(
@@ -752,78 +950,15 @@ def test_component_settlement_rejects_missing_and_duplicate_logs():
 
 
 def test_w29_shaped_existing_operation_returns_controlled_noop(monkeypatch):
-    preview_entries = []
-    claims = []
-    snapshots = []
-    component_logs = []
-    coin_amounts = [500, 350, 350, *([200] * 7), *([130] * 10), 160]
-    for rank in range(1, 22):
-        user_id = 1000 + rank
-        item_key = "xp_potion" if rank <= 3 else "small_xp_potion"
-        item_quantity = 2 if rank == 1 or 4 <= rank <= 10 else 1
-        reward_payload = {
-            "coins": coin_amounts[rank - 1],
-            "items": {item_key: item_quantity},
-            "badges": ["badge_lb_weekly_1"] if rank == 1 else [],
-            "titles": [],
-        }
-        preview_entries.append({
-            "user_id": user_id,
-            "rank": rank,
-            "score": 1000 - rank,
-            "eligible": True,
-            "rank_band": "top1" if rank == 1 else "top25",
-            "ineligible_reason": None,
-            "reward_bundle_key": "weekly_top1" if rank == 1 else "weekly_top25",
-            "reward_payload": reward_payload,
-        })
-        claims.append({
-            "id": rank,
-            "user_id": user_id,
-            "rank": rank,
-            "score": 1000 - rank,
-            "eligible": True,
-            "rank_band": "top1" if rank == 1 else "top25",
-            "ineligible_reason": None,
-            "reward_bundle_key": "weekly_top1" if rank == 1 else "weekly_top25",
-            "granted_coins": reward_payload["coins"],
-            "granted_items_json": json.dumps(reward_payload["items"], sort_keys=True),
-            "granted_badges_json": json.dumps(reward_payload["badges"]),
-            "granted_titles_json": "[]",
-            "status": lbr.CLAIM_STATUS_GRANTED,
-        })
-        snapshots.append({"rank": rank, "user_id": user_id, "score": 1000 - rank})
-        component_logs.extend([
-            {
-                "claim_id": rank,
-                "component": "coin",
-                "reward_key": "coins",
-                "quantity": reward_payload["coins"],
-                "result": "granted",
-                "detail": None,
-            },
-            {
-                "claim_id": rank,
-                "component": "item",
-                "reward_key": item_key,
-                "quantity": item_quantity,
-                "result": "granted",
-                "detail": None,
-            },
-        ])
-    component_logs.append({
-        "claim_id": 1,
-        "component": "badge",
-        "reward_key": "badge_lb_weekly_1",
-        "quantity": 1,
-        "result": "skipped_existing",
-        "detail": "already owned",
-    })
+    fixture = _canonical_w29_fixture()
+    claims = fixture["claims"]
+    snapshots = fixture["snapshots"]
+    component_logs = fixture["component_logs"]
     preview = {
-        "preview": preview_entries,
+        "preview": fixture["preview_entries"],
         "summary": {"snapshot_row_count": 21},
     }
-    snapshot = {"board_type": "weekly", "period_key": "2026-W29"}
+    snapshot = fixture["snapshot"]
     monkeypatch.setattr(exact_period, "fetch_claims_for_period", lambda *args: claims)
     monkeypatch.setattr(exact_period, "fetch_snapshot_rows_for_period", lambda *args: snapshots)
     monkeypatch.setattr(exact_period, "fetch_component_logs_for_claim_ids", lambda *args: component_logs)
