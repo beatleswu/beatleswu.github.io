@@ -10529,23 +10529,32 @@ def rewards_sync():
         new_keys = [k for k in completed if k not in claimed]
 
         granted = []; tot_c = tot_x = 0
+        won_keys = []
         for k in new_keys:
             seg = segments.get(k)
             if not seg:
                 continue
             c, x = int(seg.get('coins') or 0), int(seg.get('xp') or 0)
-            conn.execute(
+            cur = conn.execute(
                 'INSERT OR IGNORE INTO reward_claimed(user_id,stage_key,coins,xp,claimed_at) VALUES(?,?,?,?,?)',
                 (uid, k, c, x, now))
+            # rowcount == 0 means this (user_id, stage_key) claim already
+            # exists -- a concurrent request (or an earlier one racing this
+            # same request) won it first. Only the transaction whose
+            # INSERT actually lands may grant coins/XP or clear quest
+            # state for this key; a losing transaction grants nothing.
+            if cur.rowcount != 1:
+                continue
+            won_keys.append(k)
             tot_c += c; tot_x += x
             granted.append(_quest_public_meta(seg, practiced_ids))
-        if new_keys:
+        if won_keys:
             conn.execute(
                 'INSERT INTO user_stats(user_id,coins,xp,updated_at) VALUES(?,?,?,?) '
                 'ON CONFLICT(user_id) DO UPDATE SET coins=user_stats.coins+?, xp=user_stats.xp+?, updated_at=?',
                 (uid, tot_c, tot_x, now, tot_c, tot_x, now))
-            # 已完成領賞的委託自動從接取清單移除
-            for k in new_keys:
+            # 已完成領賞的委託自動從接取清單移除（僅限本次實際搶到的 key）
+            for k in won_keys:
                 conn.execute('DELETE FROM quest_accepted WHERE user_id=? AND quest_key=?', (uid, k))
         row = conn.execute('SELECT coins, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         conn.commit()
