@@ -267,9 +267,10 @@ def test_success_flow_writes_operation_files_uses_scheduler_auth_and_commits(mon
             "non_granted_claim_count": 0,
             "total_coins": 500,
             "unacknowledged_notification_count": 1,
-            "component_count": 3,
-            "total_items": {"xp_potion": 2},
-            "total_badges": {"badge_lb_weekly_1": 1},
+                "component_count": 3,
+                "total_items": {"xp_potion": 2},
+                "total_badges": {"badge_lb_weekly_1": 1},
+                "component_settlement": {"settled": True},
         },
     )
     monkeypatch.setenv("DATABASE_URL", "postgresql://go:secret@postgres:5432/go_odyssey")
@@ -333,9 +334,10 @@ def test_existing_claim_path_returns_controlled_noop(monkeypatch, tmp_path):
             "non_granted_claim_count": 0,
             "total_coins": 500,
             "unacknowledged_notification_count": 1,
-            "component_count": 3,
-            "total_items": {"xp_potion": 2},
-            "total_badges": {"badge_lb_weekly_1": 1},
+                "component_count": 3,
+                "total_items": {"xp_potion": 2},
+                "total_badges": {"badge_lb_weekly_1": 1},
+                "component_settlement": {"settled": True},
         },
     )
     monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
@@ -377,6 +379,49 @@ def test_failed_closed_logs_and_rolls_back(monkeypatch, tmp_path):
     assert payload["job"] == "community_leaderboard_weekly"
     assert payload["period_key"] == "2026-W28"
     assert payload["exception_type"] == "RuntimeError"
+
+
+def test_component_failure_logs_stable_reason_code_and_releases_lock(monkeypatch, tmp_path):
+    conn = FakeConn()
+    app_module = FakeAppModule(enabled=True, conn=conn)
+    snapshot, preview = _make_snapshot(period_key="2026-W29")
+    release_calls = []
+
+    monkeypatch.setattr(scheduler, "try_acquire_period_lock", lambda *args: True)
+    monkeypatch.setattr(
+        scheduler,
+        "release_period_lock",
+        lambda conn, board_type, period_key: release_calls.append((board_type, period_key)),
+    )
+    monkeypatch.setattr(scheduler, "build_exact_period_snapshot", lambda *args, **kwargs: snapshot)
+    monkeypatch.setattr(scheduler, "build_exact_period_preview", lambda payload: preview)
+    monkeypatch.setattr(
+        scheduler,
+        "commit_exact_period",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            scheduler.ComponentSettlementError(
+                "skipped_existing_without_ownership",
+                "sensitive diagnostic omitted from scheduler log",
+            )
+        ),
+    )
+    monkeypatch.setenv("COMMUNITY_LEADERBOARD_REWARDS_ENABLED", "true")
+
+    result = scheduler.run_community_leaderboard_weekly_cycle(
+        app_module,
+        now=datetime.datetime(2026, 7, 20, 0, 10, tzinfo=ZoneInfo("Asia/Taipei")),
+        operations_root=tmp_path,
+    )
+
+    payload = _result_payload(app_module.app.logger)
+    assert result["result"] == "failed_closed"
+    assert result["error_type"] == "ValueError"
+    assert result["reason_code"] == "skipped_existing_without_ownership"
+    assert payload["reason_code"] == "skipped_existing_without_ownership"
+    assert "sensitive diagnostic" not in json.dumps(payload)
+    assert release_calls == [("weekly", "2026-W29")]
+    assert conn.rollback_calls == 1
+    assert conn.commit_calls == 0
 
 
 def test_post_preview_exception_is_sanitized_and_persists_nothing(monkeypatch, tmp_path):
