@@ -581,6 +581,7 @@ def cmd_preview_exact_period(args):
 
 def cmd_grant_exact_period_commit(args):
     from community_leaderboard_rewards_exact_period import commit_exact_period
+    from community_leaderboard_rewards_real_grant_preview import load_app_module
     from community_leaderboard_rewards_scheduler import (
         release_period_lock,
         try_acquire_period_lock,
@@ -603,6 +604,12 @@ def cmd_grant_exact_period_commit(args):
     conn = _connect(args.database_url)
     lock_acquired = False
     try:
+        app_module = load_app_module()
+        badge_ownership_checker = lambda user_id, badge_key: (
+            app_module.is_community_reward_badge_owned(
+                conn, user_id=user_id, badge_key=badge_key
+            )
+        )
         # Same per-(board_type, period_key) advisory lock the scheduler
         # holds for the whole commit_exact_period call (see
         # community_leaderboard_rewards_scheduler.run_community_leaderboard_weekly_cycle)
@@ -634,6 +641,7 @@ def cmd_grant_exact_period_commit(args):
                 expected_total_badges=expected_total_badges,
                 owner_gate=args.owner_gate,
                 required_owner_gate=lbr.EXACT_PERIOD_OWNER_GATE,
+                badge_ownership_checker=badge_ownership_checker,
                 now=datetime.datetime.now(datetime.timezone.utc),
             )
         except Exception:
