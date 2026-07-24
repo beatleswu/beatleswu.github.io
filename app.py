@@ -17009,7 +17009,6 @@ def _handle_period_notify(data, raw):
              sub['plan_key'], sub['amount'], 'TWD', 'paid', raw[:8000], now, now))
         _extend_premium_in_tx(conn, sub['user_id'], plan['days'],
                               f'newebpay 第 {already} 期')
-        conn.commit()
     return True, 'ok'
 
 
@@ -17265,7 +17264,6 @@ def _paypal_sync_subscription(sub_id, event_key=None):
                  json.dumps(sub_data)[:8000], now, now))
             _set_premium_until_in_tx(conn, uid, until,
                                      f'paypal 第 {charged} 期')
-            conn.commit()
             return True, 'ok'
 
         if status in ('CANCELLED', 'SUSPENDED', 'EXPIRED'):
