@@ -627,8 +627,11 @@ export async function installUnhandledRejectionCapture(page) {
     window.__E9_TEST_UNHANDLED_REJECTIONS__ = [];
     window.addEventListener('unhandledrejection', (event) => {
       var reason = event && event.reason;
-      var text = (reason && reason.stack) ? reason.stack : String(reason);
-      window.__E9_TEST_UNHANDLED_REJECTIONS__.push(text);
+      // message (not the full stack) so it's directly comparable to
+      // pageerror's own err.message -- see drainUnhandledRejections for why.
+      var message = (reason && reason.message) ? reason.message : String(reason);
+      var stack = (reason && reason.stack) ? reason.stack : null;
+      window.__E9_TEST_UNHANDLED_REJECTIONS__.push({ message: message, stack: stack });
     });
   });
 }
@@ -642,8 +645,20 @@ export async function drainUnhandledRejections(page, sink) {
     window.__E9_TEST_UNHANDLED_REJECTIONS__ = [];
     return list;
   }).catch(() => []);
-  rejections.filter((text) => !isAllowedBrowserError(text)).forEach((text) => {
-    sink.push({ kind: 'unhandledrejection', text });
+  rejections.filter((r) => !isAllowedBrowserError(r.message)).forEach((r) => {
+    // Empirically confirmed: this Chromium/CDP build ALSO surfaces a
+    // genuinely unhandled promise rejection through Playwright's own
+    // 'pageerror' event (installBrowserErrorMonitor's page.on('pageerror')
+    // handler, whose `text` is err.message), not just synchronous throws --
+    // so without this check, one real rejection would be double-counted
+    // under two different `kind` labels. Compared by message text (not the
+    // full stack, which differs in formatting between the two paths). Skip
+    // adding this entry if one with the exact same message is already
+    // present; if a different Playwright/Chromium build does NOT
+    // double-fire, this check is simply a no-op and the entry is still
+    // added normally.
+    if (sink.some((e) => e.text === r.message)) return;
+    sink.push({ kind: 'unhandledrejection', text: r.message, stack: r.stack });
   });
 }
 

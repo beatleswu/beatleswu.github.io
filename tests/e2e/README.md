@@ -11,6 +11,7 @@ aliases in `package.json`.
 | `run_e9_fetch_contract.mjs` | mocked (`page.route` fulfills every `/api/*`) | E9 client-side request-dedup/fallback contracts |
 | `run_e9_acceptance_journey.mjs` | **real** — no mocking | E9 admin login, reload, logout/relogin, shell destroy/remount lifecycle, admin gate, non-admin Legacy boundary |
 | `run_e9_acceptance_helpers_unit_tests.mjs` | n/a — no browser, no network | Direct unit tests for the acceptance journey's pure/near-pure helpers (production guard, strict flag assertion, exit classification) |
+| `run_e9_acceptance_error_monitor_contract.mjs` | n/a — real browser, self-contained `data:` fixture, no backend | Regression test for the browser console/pageerror/unhandledrejection monitoring itself |
 
 ## `run_e9_acceptance_journey.mjs`
 
@@ -168,6 +169,19 @@ suppression. The final `browser_runtime_error_free` scenario asserts the
 aggregate array is empty and includes full captured detail in its failure
 message if not.
 
+**Real-browser regression test:** `run_e9_acceptance_error_monitor_contract.mjs`
+(`npm run e9:acceptance:errors`) loads a self-contained `data:` URL fixture
+(no backend, no credentials) that deliberately triggers a `console.error`,
+an uncaught exception, and an unhandled promise rejection, and asserts all
+three are captured exactly once. This exists because an independent-review
+adversarial check found a real bug during this hardening pass: this
+Chromium/CDP build ALSO surfaces a genuinely unhandled promise rejection
+through Playwright's own `pageerror` event, not just synchronous throws — so
+the initial implementation double-counted one real problem as two report
+entries under different `kind` labels. Fixed via message-text deduplication
+in `drainUnhandledRejections()` (compares against `text`, not the differently-
+formatted full stack, which is why the first fix attempt didn't work).
+
 ### effective_flags shape validation
 
 Before comparing any of the six flags, the response must have
@@ -313,6 +327,10 @@ npm install   # first time only
 # Pure helper unit tests — no server, no browser, no credentials needed:
 npm run e9:acceptance:unit
 
+# Browser-error-monitor contract test — needs a real browser, but no
+# backend or credentials (loads a self-contained data: URL fixture):
+npm run e9:acceptance:errors
+
 # Full acceptance journey against a real local/staging instance:
 E2E_BASE_URL=http://localhost:5000 \
 E2E_ADMIN_USERNAME=... E2E_ADMIN_PASSWORD=... \
@@ -337,17 +355,27 @@ see "Production guard" above.
   against the target environment should still happen once.
 - **Does not create test accounts** — the accounts it logs into must already
   exist wherever `E2E_BASE_URL` points.
-- **Not yet executed end-to-end against a real app, and this hardening pass
-  did not change that.** This was already true of the 2026-07-22 scaffold
-  and remains true after the 2026-07-24 hardening pass: running the
-  admin/non-admin scenarios needs pre-existing test account credentials, and
-  this scaffold deliberately never creates accounts itself (that would be a
-  database mutation, which it — and the sprint that hardened it — is
-  explicitly not authorized to do). Verified so far without a live app:
-  `node --check` syntax on every changed file; the full
-  `run_e9_acceptance_helpers_unit_tests.mjs` suite (production guard, strict
-  flag assertion, exit-classification matrix — see the relevant sections
-  above for exact case counts); the repository's static/source-level E9
+- **The credential-gated admin/non-admin scenarios have not been executed
+  against a real app, and this hardening pass did not change that.** This
+  was already true of the 2026-07-22 scaffold and remains true after the
+  2026-07-24 hardening pass: running them needs pre-existing test account
+  credentials, and this scaffold deliberately never creates accounts itself
+  (that would be a database mutation, which it — and the sprint that
+  hardened it — is explicitly not authorized to do). What WAS verified with
+  a real browser in this hardening pass, without needing the real backend or
+  any credentials: `run_e9_acceptance_error_monitor_contract.mjs` (console
+  error/pageerror/unhandledrejection capture, including finding and fixing a
+  real double-counting bug — see "Browser error monitoring" above); the
+  `connectivity_login_page_reachable` and `browser_runtime_error_free`
+  scenarios run for real (against an intentionally-unreachable port, to
+  prove the `FAILED` exit path end-to-end without needing a live server);
+  and the `PRODUCTION_TARGET_REJECTED` path run for real as a full
+  subprocess invocation (`E2E_BASE_URL=http://godokoro.com/ node
+  run_e9_acceptance_journey.mjs`, confirmed exit code 1 with the correct
+  structured summary). Also verified: `node --check` syntax on every changed
+  file; the full `run_e9_acceptance_helpers_unit_tests.mjs` suite (59 cases —
+  production guard, strict flag assertion, exit-classification matrix — see
+  the relevant sections above); the repository's static/source-level E9
   lifecycle and rollout contract suites (`tests/test_e9_shell_exclusivity.py`
   and the 13 other E9/Adventure test files, plus
   `tests/e9_node_tests/run_shell_exclusivity_tests.js`) all still pass
