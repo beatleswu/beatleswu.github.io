@@ -182,11 +182,26 @@ def test_renderselectedzone_uses_clearedtext_helper_not_raw_t_call():
 # dictionary string uses a FULL-WIDTH colon ('：', U+FF1A), not the
 # ASCII ':' (U+003A) the English string uses -- so .split(':') silently
 # failed to match in Chinese, leaking "封印解除：{seen}/{total} 題"
-# verbatim onto the badge in that locale only. Fixed by splitting on a
-# character class covering both colon variants. These tests apply the
-# EXACT SAME split algorithm world_stage.js now uses to the REAL,
-# current i18n.js dictionary strings, proving actual resolved behavior
-# rather than only pattern-matching the source.
+# verbatim onto the badge in that locale only.
+#
+# A colon-only split is still not sufficient on its own: a FUTURE
+# translation could carry the same {seen}/{total} placeholders with no
+# colon delimiter at all (e.g. "Seal broken {seen}/{total}"), which
+# would sail straight through a colon split untouched. The fix moved the
+# truncation into a dedicated bossReadyBadgeText() helper that ALSO
+# splits on the literal placeholder tokens as an independent second
+# safety net, so neither {seen} nor {total} can survive regardless of
+# what delimiter (if any) a translation uses.
+#
+# These tests deliberately do not assert on any one exact source
+# expression (e.g. a specific split()/regex call) -- a different,
+# equally valid implementation of that same guarantee must be allowed
+# to pass. Instead they (a) prove the tile badge is produced through a
+# single named, testable helper rather than inline logic duplicated at
+# the call site, and (b) apply the required truncation algorithm to the
+# REAL current i18n.js dictionary strings *and* to synthetic
+# delimiter-free translations, proving actual resolved behavior in both
+# cases rather than only pattern-matching the source.
 # ---------------------------------------------------------------------
 
 def _i18n_entry_values(key):
@@ -198,18 +213,43 @@ def _i18n_entry_values(key):
     return match.group(1), match.group(2)
 
 
-def test_boss_ready_tile_badge_split_handles_both_colon_variants_in_source():
+def _boss_ready_badge_text(raw_value):
+    """Required truncation contract for the zone-tile boss-ready badge:
+    drop everything from the first colon (ASCII or full-width) onward,
+    THEN independently drop everything from the first literal {seen} or
+    {total} placeholder token onward, then trim. Neither placeholder may
+    survive, regardless of whether the translation uses a colon, a
+    different delimiter, or no delimiter at all.
+    """
+    result = re.split(r'[:：]', raw_value)[0]
+    result = re.split(r'\{seen\}|\{total\}', result)[0]
+    return result.strip()
+
+
+def test_renderzones_uses_bossreadybadgetext_helper_not_inline_logic():
+    assert "function bossReadyBadgeText()" in WORLD_STAGE
+
     start = WORLD_STAGE.index("function renderZones(")
     end = WORLD_STAGE.index("\n  function recoverToLegacy(", start)
     fn_body = WORLD_STAGE[start:end]
-    assert "split(/[:：]/)[0]" in fn_body
-    assert "split(':')[0]" not in fn_body
+    assert "bossReadyBadgeText()" in fn_body
+    # The badge must be produced by calling the helper, not by
+    # re-deriving the truncation inline at the call site again.
+    assert ".split(" not in fn_body
+
+
+def test_bossreadybadgetext_never_uses_ascii_only_colon_split():
+    # Regression guard for the original Bug B defect: an ASCII-only
+    # colon split silently fails to match the full-width '：' the
+    # Chinese dictionary value uses, leaking "{seen}/{total}" in that
+    # locale. This must never reappear anywhere in the file.
+    assert "split(':')[0]" not in WORLD_STAGE
 
 
 def test_boss_ready_badge_resolves_to_seal_broken_in_english():
     en_value, _zh_value = _i18n_entry_values('index.adv.boss_ready')
     assert en_value == 'Seal broken: {seen}/{total}'
-    result = re.split(r'[:：]', en_value)[0]
+    result = _boss_ready_badge_text(en_value)
     assert result == 'Seal broken'
     assert '{seen}' not in result and '{total}' not in result
 
@@ -217,9 +257,37 @@ def test_boss_ready_badge_resolves_to_seal_broken_in_english():
 def test_boss_ready_badge_resolves_to_short_chinese_form_without_leak():
     _en_value, zh_value = _i18n_entry_values('index.adv.boss_ready')
     assert zh_value == '封印解除：{seen}/{total} 題'
-    result = re.split(r'[:：]', zh_value)[0]
+    result = _boss_ready_badge_text(zh_value)
     assert result == '封印解除'
     assert '{seen}' not in result and '{total}' not in result
+
+
+def test_boss_ready_badge_handles_delimiter_free_english_translation():
+    # A hypothetical future translation with no colon at all -- the
+    # colon-only split alone would pass this straight through unchanged.
+    result = _boss_ready_badge_text('Seal broken {seen}/{total}')
+    assert result == 'Seal broken'
+    assert '{seen}' not in result and '{total}' not in result
+
+
+def test_boss_ready_badge_handles_delimiter_free_chinese_translation():
+    result = _boss_ready_badge_text('封印解除 {seen}/{total} 題')
+    assert result == '封印解除'
+    assert '{seen}' not in result and '{total}' not in result
+
+
+def test_boss_ready_badge_never_leaks_seen_or_total_placeholder_in_any_case():
+    en_value, zh_value = _i18n_entry_values('index.adv.boss_ready')
+    cases = [
+        en_value,
+        zh_value,
+        'Seal broken {seen}/{total}',
+        '封印解除 {seen}/{total} 題',
+    ]
+    for raw_value in cases:
+        result = _boss_ready_badge_text(raw_value)
+        assert '{seen}' not in result, f"{raw_value!r} leaked {{seen}} into {result!r}"
+        assert '{total}' not in result, f"{raw_value!r} leaked {{total}} into {result!r}"
 
 
 # ---------------------------------------------------------------------

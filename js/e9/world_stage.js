@@ -123,6 +123,27 @@
       .replace('{stars}', String(zone.stars));
   }
 
+  // The small zone-tile badge only ever shows index.adv.boss_ready's
+  // short lead-in ("Seal broken" / "封印解除") -- it never substitutes
+  // {seen}/{total} at all (see bossReadyText(zone) above for the full,
+  // substituted summary-panel text). Truncating on the current
+  // dictionary values' colon (ASCII ':' or full-width '：') is NOT
+  // sufficient on its own: a future translation could carry the same
+  // {seen}/{total} placeholders with no colon at all (e.g. "Seal broken
+  // {seen}/{total}"), which a colon-only split would pass through
+  // unchanged. This drops everything from the first colon onward first
+  // (current values), THEN independently drops everything from the
+  // first literal "{seen}" or "{total}" token onward (any future,
+  // delimiter-free value) -- so neither placeholder can survive the
+  // badge regardless of what punctuation (if any) a translation uses.
+  function bossReadyBadgeText() {
+    var text = t('index.adv.boss_ready', 'Seal broken: {seen}/{total}');
+    return text
+      .split(/[:：]/)[0]
+      .split(/\{seen\}|\{total\}/)[0]
+      .trim();
+  }
+
   function renderSelectedZone(root, zones, zoneKey, focusDetails) {
     var state = root.__e9WorldStageState;
     var zone = zones.filter(function (item) { return item.key === zoneKey; })[0];
@@ -231,13 +252,7 @@
       if (zone.bossAvailable) {
         var bossEl = document.createElement('span');
         bossEl.className = 'e9-zone__boss-ready';
-        // Truncate to the short lead-in only ("Seal broken" / "封印解除"),
-        // discarding the "{seen}/{total}" portion for this compact tile
-        // badge. Must split on BOTH the ASCII ':' (English) and the
-        // full-width '：' (Chinese, U+FF1A) -- splitting on ':' alone
-        // leaves the Chinese string unmatched and untouched, leaking the
-        // raw "{seen}/{total}" template onto the badge in that locale.
-        bossEl.textContent = t('index.adv.boss_ready', 'Seal broken: {seen}/{total}').split(/[:：]/)[0];
+        bossEl.textContent = bossReadyBadgeText();
         tile.appendChild(bossEl);
       }
 
