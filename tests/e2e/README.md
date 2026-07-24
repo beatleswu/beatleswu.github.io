@@ -285,14 +285,21 @@ userinfo, subdomains at multiple depths, a combined subdomain+port+userinfo
 case, the plain production IP with and without a port, both IPv4-mapped-IPv6
 textual forms as direct literals, a DNS-resolved address carrying an IPv6
 zone id, and a hostname that only resolves to the production IP via a mocked
-DNS resolver), 12 allowed cases (localhost, `127.0.0.1`, an unrelated staging
-domain, a hostname that merely starts with `godokoro.com.` as a longer
-suffix — not a real subdomain boundary — in both directions, the production
-domain embedded in a path/query/both with a safe host, an unrelated IPv4 and
-IPv6 literal), a DNS-resolution-failure case (confirmed not to block), and a
-syntactically invalid URL (confirmed to throw a clear parse error rather
-than silently proceeding). Note: a bracketed IPv6 literal carrying a zone id
-(e.g. `[fe80::1%eth0]`) is not constructible as a `new URL(...)` at all —
+DNS resolver), **5 additional blocked cases for integer-encoded IPv4 host
+obfuscation** (decimal, hex, per-octet octal, per-octet hex, and mixed
+octal/decimal representations of the exact production IP — a well-known
+SSRF-bypass class, caught here purely because the guard reads
+`url.hostname`, which WHATWG URL parsing already canonicalizes into
+standard dotted-quad notation before this code ever sees it, not because of
+any bespoke integer-parsing logic), 12 allowed cases (localhost,
+`127.0.0.1`, an unrelated staging domain, a hostname that merely starts with
+`godokoro.com.` as a longer suffix — not a real subdomain boundary — in both
+directions, the production domain embedded in a path/query/both with a safe
+host, an unrelated IPv4 and IPv6 literal), a DNS-resolution-failure case
+(confirmed not to block), and a syntactically invalid URL (confirmed to
+throw a clear parse error rather than silently proceeding). Note: a
+bracketed IPv6 literal carrying a zone id (e.g. `[fe80::1%eth0]`) is not
+constructible as a `new URL(...)` at all —
 confirmed empirically — so `stripBracketsAndZone()`'s zone-handling is only
 reachable via a DNS-resolved address string, which is what its dedicated
 test exercises.

@@ -72,6 +72,28 @@ const ALLOWED_CASES = [
   ['unrelated IPv6 literal', 'http://[2001:db8::1]/'],
 ];
 
+// Integer-encoded IPv4 host obfuscation is a well-known SSRF-bypass class
+// (decimal/octal/hex forms of an IP that a naive dotted-quad-only check
+// would miss). These are all correctly caught today purely because the
+// guard reads url.hostname, which WHATWG URL parsing already canonicalizes
+// into standard dotted-quad notation before this code ever sees it — not
+// because of any bespoke integer-parsing logic here. Locking this in as a
+// regression test since it was previously unverified.
+const OBFUSCATED_IP_BLOCKED_CASES = [
+  ['decimal-encoded 32-bit integer', 'http://2554710121/'],
+  ['hex-encoded 32-bit integer', 'http://0x9845c869/'],
+  ['per-octet octal (leading zeros)', 'http://0230.0105.0310.0151/'],
+  ['per-octet hex', 'http://0x98.0x45.0xc8.0x69/'],
+  ['mixed octal/decimal octets', 'http://152.0105.200.105/'],
+];
+
+for (const [label, url] of OBFUSCATED_IP_BLOCKED_CASES) {
+  test(`production guard blocks obfuscated production IP: ${label} (${url})`, async () => {
+    const verdict = await evaluateProductionGuard(url, { resolveHostnameIps: noopResolver });
+    assert.equal(verdict.blocked, true, `expected blocked=true for ${url}, got ${JSON.stringify(verdict)}`);
+  });
+}
+
 for (const [label, url] of ALLOWED_CASES) {
   test(`production guard allows: ${label} (${url})`, async () => {
     const verdict = await evaluateProductionGuard(url, { resolveHostnameIps: noopResolver });
