@@ -28,27 +28,92 @@
 }
 
 .e9-zone {
+  /* Zone identity is intentionally separate from gameplay state.  The
+     canonical API key already exists on every tile as data-zone; no new
+     progression mapping or persistence is introduced for presentation. */
+  --zone-bg-base: #355c43;
+  --zone-bg-highlight: #7bb47e;
+  --zone-bg-shadow: #173023;
+  --zone-accent: #e6c979;
+  --zone-overlay: rgba(11, 24, 18, 0.70);
+  --zone-text-shadow: rgba(0, 0, 0, 0.70);
+  --zone-motif-opacity: 0.26;
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   min-height: 112px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(125, 99, 58, 0.18);
+  overflow: hidden;
+  background:
+    linear-gradient(150deg, var(--zone-overlay), rgba(8, 17, 13, 0.38)),
+    linear-gradient(135deg, var(--zone-bg-highlight), var(--zone-bg-base) 55%, var(--zone-bg-shadow));
+  border: 1px solid color-mix(in srgb, var(--zone-accent) 56%, transparent);
   border-radius: 16px;
   text-align: left;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  color: #fffdf4;
+  text-shadow: 0 1px 2px var(--zone-text-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px rgba(31, 45, 34, 0.12);
+}
+
+/* Decorative, non-interactive atmosphere layer. It never changes zone
+   state, receives focus, or intercepts a pointer. */
+.e9-zone::before,
+.e9-zone::after {
+  content: '';
+  position: absolute;
+    z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.e9-zone::before {
+  inset: -30% 28% 38% -12%;
+  opacity: var(--zone-motif-opacity);
+  background: radial-gradient(circle, var(--zone-accent) 0 4%, transparent 5% 13%, var(--zone-bg-highlight) 14% 16%, transparent 17%);
+  background-size: 54px 54px;
+  transform: rotate(-10deg);
+}
+
+.e9-zone::after {
+  inset: 0;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.16), transparent 38%);
+}
+
+/* Canonical ten-zone identity hooks. The values are presentation-only and
+   align with the existing intro-film zone keys; state styling stays below. */
+.e9-zone[data-zone="k26_30"] { --zone-bg-base: #396742; --zone-bg-highlight: #a5cf83; --zone-bg-shadow: #183725; --zone-accent: #f2d47e; }
+.e9-zone[data-zone="k21_25"] { --zone-bg-base: #2b6680; --zone-bg-highlight: #8ed4db; --zone-bg-shadow: #17354e; --zone-accent: #d7edf0; }
+.e9-zone[data-zone="k16_20"] { --zone-bg-base: #536d99; --zone-bg-highlight: #b0b9ed; --zone-bg-shadow: #29365d; --zone-accent: #f0d8ad; }
+.e9-zone[data-zone="k11_15"] { --zone-bg-base: #775f91; --zone-bg-highlight: #d0aee7; --zone-bg-shadow: #39284f; --zone-accent: #f3d3a3; }
+.e9-zone[data-zone="k6_10"]  { --zone-bg-base: #8b5841; --zone-bg-highlight: #e5a06b; --zone-bg-shadow: #4b2a23; --zone-accent: #f3d17b; }
+.e9-zone[data-zone="k1_5"]   { --zone-bg-base: #8b3f3d; --zone-bg-highlight: #e8826f; --zone-bg-shadow: #4b2028; --zone-accent: #ffd186; }
+.e9-zone[data-zone="d1_2"]   { --zone-bg-base: #3f6572; --zone-bg-highlight: #81c5ca; --zone-bg-shadow: #1d3646; --zone-accent: #d3eef0; }
+.e9-zone[data-zone="d3_4"]   { --zone-bg-base: #5c536d; --zone-bg-highlight: #aca1d0; --zone-bg-shadow: #2c293f; --zone-accent: #e4d9c0; }
+.e9-zone[data-zone="d5_6"]   { --zone-bg-base: #526a47; --zone-bg-highlight: #b6c97a; --zone-bg-shadow: #273e27; --zone-accent: #f2da86; }
+.e9-zone[data-zone="d7_plus"] { --zone-bg-base: #51465f; --zone-bg-highlight: #a98aca; --zone-bg-shadow: #211d31; --zone-accent: #f1d486; }
+
+.e9-zone > * {
+  position: relative;
+  z-index: 1;
 }
 
 .e9-zone--locked {
   cursor: not-allowed;
-  opacity: 0.55;
+  color: #fbfbfb;
+  text-shadow: 0 1px 2px #19212a;
+  background:
+    linear-gradient(rgba(37, 48, 61, 0.66), rgba(37, 48, 61, 0.82)),
+    linear-gradient(135deg, var(--zone-bg-highlight), var(--zone-bg-base) 55%, var(--zone-bg-shadow));
+  border-color: rgba(224, 233, 241, 0.56);
 }
 
 .e9-zone--completed {
-  border-color: #d9c060;
-  background: #fffbe8;
+  border-color: #ffe293;
+  box-shadow: inset 0 0 0 1px rgba(255, 226, 147, 0.45), 0 8px 18px rgba(31, 45, 34, 0.16);
 }
 
 .e9-zone__name {
@@ -58,12 +123,13 @@
 
 .e9-zone__stars {
   font-size: 12px;
-  color: #c99b1e;
+  color: #fff0a8;
 }
 
 .e9-zone__boss-ready {
   font-size: 11px;
-  color: #b00020;
+  color: #ffe1de;
+  font-weight: 700;
 }
 
 .e9-zone:focus-visible {
@@ -72,8 +138,13 @@
 }
 
 .e9-zone[aria-pressed="true"] {
-  border-color: #6b5b3a;
-  box-shadow: 0 0 0 2px rgba(107, 91, 58, .18);
+  border-color: #fff1a8;
+  box-shadow: 0 0 0 3px rgba(107, 91, 58, .28), 0 0 0 6px var(--zone-accent), 0 10px 24px rgba(31, 45, 34, 0.22);
+}
+
+.e9-zone:focus-visible {
+  outline-color: #fff;
+  outline-width: 3px;
 }
 
 .e9-zone-details {
@@ -178,7 +249,17 @@
 }
 
 @media (max-width: 600px) {
+  .e9-stage { padding: 14px; border-radius: 18px; }
+  .e9-stage__zones { gap: 10px; }
+  .e9-zone { min-height: 116px; }
   .e9-adventure-cta {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e9-zone,
+  .e9-adventure-cta {
+    transition: none;
   }
 }
