@@ -1,0 +1,47 @@
+# Defense in depth only: production builds use a clean detached worktree at
+# the exact release commit as their Docker context. These rules reduce the
+# blast radius if a developer invokes Docker manually from another checkout.
+.git
+.git/**
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments and dependency caches
+venv/
+venv*/
+.venv/
+node_modules/
+**/node_modules/
+
+# Local configuration, credentials, databases, and runtime state
+.env
+.env.*
+secret_key.txt
+*.pem
+*.key
+*.p12
+*.pfx
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.log
+logs/
+tmp/
+temp/
+backups/
+*.bak
+*.bak.*
+
+# Large local engines, generated artifacts, and operator-only residue
+2023-06-15-windows64+katago/
+katago/
+KataGo*/
+release-artifacts/
+docs/testing/

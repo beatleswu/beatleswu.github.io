@@ -312,6 +312,16 @@ Write-Host "APP_GIT_SHA:        $GitSha"
 Write-Host "APP_BUILD_DATE:     $buildDate"
 Write-Host "SGF_ENGINE_SOURCE_COMMIT: $sgfEngineCommit"
 
+# The Docker context is deliberately the independently validated detached
+# worktree, never the ambient current-directory shorthand (`.`).  That
+# worktree was generated for this exact Git SHA by build-release-image.ps1;
+# Assert-DetachedWorktreeIdentity also proves it contains no untracked or
+# ignored files.  Therefore the daemon receives tracked source for precisely
+# $GitSha, rather than any local files beside the operator's checkout.
+$dockerBuildContext = Assert-DetachedWorktreeIdentity `
+    -Path $validatedWorktreeRoot `
+    -ExpectedGitSha $GitSha
+
 # 8. Verify docker AND buildx are available, and that the active builder
 #    actually supports the target platform. RELEASE-TOOLING-HOTFIX-02: do
 #    not silently fall back to a plain `docker build` (which targets the
@@ -347,7 +357,7 @@ $buildResult = Invoke-BoundedNativeCommand `
         '--build-arg', "APP_BUILD_DATE=$buildDate",
         '--build-arg', "SGF_ENGINE_SOURCE_COMMIT=$sgfEngineCommit",
         '-t', $imageTag,
-        '.'
+        $dockerBuildContext
     ) `
     -TimeoutSeconds 3600 `
     -OperationLabel 'canonical production image build'
