@@ -78,13 +78,16 @@ explorable RPG beginning.*
 
 ## 5. Companion canon
 
-- Working name: **Mori** (temporary production name; not player-facing copy).
-- Species: small moss-green caterpillar-drake familiar; rounded segmented body, four tiny feet visible per side, two flexible antennae, no wings.
-- Proportion: about forearm length; head approximately one-third body length; never larger than the hero's torso.
-- Features: leaf-green body, warmer olive segmentation, large blue-grey eyes, small amber ring markings on two middle segments, no clothing.
-- Go mark: a single subtle black-and-white star-point marking on the back segment; it is not a repeated checkerboard pattern.
-- Relationship: quiet early-warning companion and emotional anchor, not a combat mascot.
-- Required appearances: Scene 01 must show Mori beside the waking hero; Scene 03 should show Mori near the training area or watching from a safe perch. Scene 02/04 may omit it only when the composition is explicitly a solemn two-person beat. Scene 05 may use a small non-central cameo.
+- Chinese canonical art-direction name: **水靈馬**.
+- English working name: **Water Spirit Horse**. This is art-direction working terminology, not an assertion that player-facing English i18n copy is complete.
+- Role: Newbie Village's first canonical spirit companion: a quiet early-warning companion and emotional anchor, not a combat mascot, mount, or prize animal.
+- Species/read: a small, juvenile water-element horse spirit. It is friendly and grounded enough for a starter village; it must not read as a large riding horse, elite divine beast, Boss, Western unicorn, seahorse, or final-game summon.
+- Proportion: about forearm-to-waist height beside the adolescent hero; rounded juvenile proportions, short legs, a compact head, and large clear blue-grey eyes. It is never taller than the hero's shoulder or broad enough to imply riding.
+- Body and colour: pale water-blue body with a restrained aqua-to-teal translucent water mane and tail; soft, clean water contours, a few small ripples/droplets, and no opaque armour or heavy particle effects.
+- Go identity: one small black-and-white stone-shaped forehead marking or pendant, plus a subtle star-point accent. These are limited identifiers, never a full checkerboard coat.
+- Forbidden traits: wings, horn, armour, weapon, fire, lightning-first theme, dark-undead styling, royal regalia, oversized anatomy, realistic warhorse anatomy, or a saddle/riding pose.
+- Scene continuity: Scene 02 may show Water Spirit Horse as a quiet fate-resonance or awakening clue; it must not displace the hero/Elder beat. Scene 03 shows the same individual as the hero's witness during wooden-sword practice. Scene 05 may omit it so the persistent World Stage remains environment-first.
+- Scene 01 handling: the retained Scene 01 is historical visual reference for the hero, morning tone, and intimate framing only. Its existing green creature must not be used as a canonical first-companion reference after this update. This documentation change does not authorize modifying Scene 01; any future role for Mori is outside this document and undecided.
 
 ## 6. Elder canon
 
@@ -136,7 +139,7 @@ Scene progression: 01 warm sunrise and dust; 02 cool-to-warm dramatic cloud brea
 
 ## 10. Rendering style lock
 
-The canonical target is **high-quality stylized 3D animated adventure illustration**. Scene 04 is the closer target for world-scale lighting and Go trial material treatment; Scene 01 is the closer target for the hero/companion's intimate emotional readability. Future art must combine those strengths.
+The canonical target is **high-quality stylized 3D animated adventure illustration**. Scene 04 is the closer target for world-scale lighting and Go trial material treatment; Scene 01 is the closer target for the hero's intimate emotional readability. Future art must combine those strengths.
 
 Characteristics: cinematic but readable lighting, simplified believable materials, expressive faces, natural hands, adolescent/general-audience appeal, and layer-friendly environmental depth. Do not mix painterly concept art, flat 2D anime, photorealism, chibi, watercolor, Western dark fantasy, or generic mobile-game splash art.
 
@@ -144,23 +147,24 @@ Characteristics: cinematic but readable lighting, simplified believable material
 
 ### Scene 01 — Awakening (KEEP)
 
-- Preserve: warm dawn bedroom, hero face/hair/teal tunic/pendant, Mori's leaf-green segmented design, intimate wake-up framing.
+- Preserve: warm dawn bedroom, hero face/hair/teal tunic/pendant, and intimate wake-up framing.
 - Tolerate: crop is a cinematic close-up; it need not function as persistent scene art.
-- Lock: hero's blue-grey eyes, dark tousled hair, teal fabric, pendant, companion scale/color/eyes.
+- Lock: hero's blue-grey eyes, dark tousled hair, teal fabric, and pendant. Its existing green creature is not the Water Spirit Horse canon and must not be copied into new production art.
 
 ### Scene 02 — Fate Whisper (REPLACE)
 
-- Include the canonical hero in the same outfit; both hands or pendant reacting to restrained black/white currents; a visible village/road horizon; and the canonical Elder if a guide is present.
+- Include the canonical hero in the same outfit; both hands or pendant reacting to restrained black/white currents; a visible village/road horizon; and the canonical Elder.
+- Water Spirit Horse appears as a small, friendly awakening/resonance cue near the hero or forming quietly in the currents. It must use the canonical water-blue juvenile design and must not take over the narrative centre.
 - Beat: an ancient call and imbalance, not a mural, costume transformation, or high-level magic.
 - Compose for a 16:9 master with hero within the central 40% width and horizon/road remaining legible when cropped vertically.
-- Reject: painterly protagonist, unrelated elder, elite hero gear, or an all-symbolic prophecy image.
+- Reject: painterly protagonist, unrelated elder, elite hero gear, a riding/summoning spectacle, purple portal, readable or garbled text, or an all-symbolic prophecy image.
 
 ### Scene 03 — Wooden Sword Trial (REPLACE)
 
 - Include the canonical hero, exact wooden sword, village training yard, and an effort/courage moment: recovering from a stumble, setting a stance, or striking a training target.
 - Include one grounded Go-training cue: star-point foot markers, a board-line target, or a restrained balance seal.
-- Mori or a supportive villager should be visible as a witness.
-- Reject: formal slime battle, monster swarm, Western castle, Japanese text, heavy armor, explosion magic, or victory-pose power fantasy.
+- Include the same Water Spirit Horse as a small supportive witness; it retains the exact water-blue body, aqua-to-teal water mane/tail, blue-grey eyes, and Go forehead mark/pendant from Scene 02. It is not a mount or another animal.
+- Reject: formal slime battle, monster swarm, Western castle, any readable/garbled text, heavy armor, explosion magic, victory-pose power fantasy, or riding imagery.
 
 ### Scene 04 — Elder's Test (KEEP)
 
@@ -189,7 +193,7 @@ All production images must be reviewed at 16:9 desktop, 4:3 tablet, and approxim
 ## 13. Rejection rules
 
 Reject an asset immediately if any major condition occurs: incorrect hero face/hair/outfit/sword;
-companion mutation; incorrect Elder; non-canonical rendering style; unreadable or foreign/garbled text;
+Water Spirit Horse mutation (wrong species, scale, colour, mane/tail, Go mark, or riding implication); incorrect Elder; non-canonical rendering style; unreadable or foreign/garbled text;
 watermark/brand; chess icon; malformed board grid/stones; extra fingers; weapon intersections; broken
 anatomy; sudden wholly Western/Japanese village; chibi/photorealism; unsafe responsive crop; Scene 03
 as monster combat; Scene 05 as character close-up; or black/white Go imagery used as cheap decoration.
@@ -227,10 +231,9 @@ Premium, SGF Engine, deployment, or Production.
 
 After independent review and Owner merge of this document only:
 
-1. **E10-NV-1C:** Scene 02 replacement production and its own continuity/crop/Owner review.
-2. **E10-NV-1D:** Scene 03 replacement production and its own continuity/crop/Owner review.
-3. **E10-NV-1E:** Scene 05 persistent master production and its own environmental/crop/Owner review.
+1. **E10-NV-1C1:** produce Scene 02, Scene 03, and Scene 05 as isolated final-candidate source files only; review character/Water Spirit Horse continuity and responsive crops as a pack.
+2. **Owner visual acceptance:** accept or reject each candidate before repository mutation.
+3. **E10-NV-1C2:** import only Owner-accepted source files through the governed canonical asset and manifest process.
 
-No batch of three generated images may be integrated together merely because it exists. Each target
-must pass generation, continuity review, responsive review, Owner acceptance, and canonical asset
-finalization before later runtime integration work.
+Candidate art is never a canonical asset merely because it exists. No candidate image may be imported,
+connected to runtime, or deployed before Owner acceptance and canonical asset finalization.
