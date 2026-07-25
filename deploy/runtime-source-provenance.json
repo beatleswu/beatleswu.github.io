@@ -483,15 +483,15 @@
     },
     {
       "path": "css/e9/world_stage.css",
-      "source_commit": "90044a0776be9d5c52204f16989c337d0c133035",
+      "source_commit": "0d1554ccf8efe3f81e6e4618556d555057a78c20",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #215 from beatleswu/fix/e9-generic-zone-cta-visual-parity",
-      "source_date": "2026-07-24",
-      "content_sha256": "6ff2ba8ce6dcfda0108229e732275445a173c620b06c52a60169a12e2780e64d",
+      "source_commit_subject": "Merge pull request #228 from beatleswu/feat/e10-art1-zone-visual-foundation",
+      "source_date": "2026-07-25",
+      "content_sha256": "044cdec6ba53a4821736ceeca7e50129b61b25f1fd81a1c573ebaf53e2ed72a5",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage component styling; served by app.py static route",
-      "production_hash_status": "does NOT byte-match current Production -- PR #215 is merged but not deployed; Production remains on 56234fa9 / v204-e9-multi-zone-adventure-cta",
-      "source_status": "local Git provenance -- verified against origin/master merge commit #215; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "does NOT byte-match current Production -- PR #228 is merged but not deployed; Production remains on 56234fa9 / v204-e9-multi-zone-adventure-cta",
+      "source_status": "local Git provenance -- verified against origin/master merge commit #228; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "js/e9/feature_flags.js",
@@ -519,15 +519,15 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "74b91f26c3770840bb35b098eb48647706d750d7",
+      "source_commit": "0d1554ccf8efe3f81e6e4618556d555057a78c20",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #220 from beatleswu/fix/e9-i18n-placeholder-substitution",
-      "source_date": "2026-07-24",
-      "content_sha256": "64becd4be96ea175ffc41054508e52fcf4f0edcf5d4249851ae1c4849df7d484",
+      "source_commit_subject": "Merge pull request #228 from beatleswu/feat/e10-art1-zone-visual-foundation",
+      "source_date": "2026-07-25",
+      "content_sha256": "c3e8baf46c0ece68faf55db7dfec5c04304419c678752537ac5b65f76d2080e4",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "does NOT byte-match current Production -- PR #215 (VERSION bump to v205-e9-zone-cta-visual-parity) is merged but not deployed; Production still serves 56234fa9 / v204-e9-multi-zone-adventure-cta",
-      "source_status": "local Git provenance -- verified against origin/master merge commit #215; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "does NOT byte-match current Production -- PR #228 (VERSION bump to v207-e10-zone-visual-foundation) is merged but not deployed; Production still serves 56234fa9 / v204-e9-multi-zone-adventure-cta",
+      "source_status": "local Git provenance -- verified against origin/master merge commit #228; recorded source_commit is currently reachable in repository history and byte-verified against this file"
     },
     {
       "path": "srs.js",
