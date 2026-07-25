@@ -20,6 +20,31 @@ def source(path):
     return path.read_text(encoding="utf-8")
 
 
+def _win_to_posix(path):
+    """Pure-Python equivalent of `cygpath -u` for absolute drive-letter
+    paths (e.g. r'C:\\foo\\bar.exe' -> '/c/foo/bar.exe').
+
+    The fake docker/sudo/python3 wrapper scripts below used to resolve
+    sys.executable via `"$(cygpath -u '...')"` inside their #!/bin/sh
+    shebang-exec line. Every single invocation of those wrappers -- and a
+    single test run invokes them dozens of times (once per generated
+    production script docker/sudo call, and once per evidence-append stage)
+    -- forked an extra sh.exe subshell purely to run cygpath.exe and
+    capture its output, on top of the sh -> bash -> bash -> sh chain
+    Git-for-Windows already uses to interpret a #!/bin/sh script. Under
+    that many rapid nested process creations, Windows/MSYS occasionally
+    deadlocked the outer subprocess.run(capture_output=True) call, which
+    only times out its *immediate* child -- an orphaned grandchild still
+    holding the inherited stdout/stderr pipe write handle then blocks the
+    post-timeout communicate() drain forever. Resolving the path in-process
+    removes that per-invocation subshell+cygpath fork entirely.
+    """
+    text = str(path).replace('\\', '/')
+    if len(text) >= 2 and text[1] == ':':
+        text = '/' + text[0].lower() + text[2:]
+    return text
+
+
 def render(operation):
     function = {
         "freeze": "New-CommunityRewardsFreezeRemoteScript",
@@ -39,7 +64,7 @@ def render(operation):
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
         cwd=ROOT,
         capture_output=True,
-        text=True,
+        text=True, errors='replace',
         timeout=30,
         check=False,
     )
@@ -64,7 +89,7 @@ def post_deploy_probe_source():
     )
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
     assert result.returncode == 0, result.stderr
     opening = "<<'__COMMUNITY_ZERO_STATE__'\n"
@@ -98,7 +123,7 @@ def render_exact_w29_grant(operation_directory="/operations/w29", snapshot_file_
     )
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -116,7 +141,7 @@ def render_operator_evidence(operation_directory, stage="invocation_started", st
     )
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -195,7 +220,7 @@ def run_generated_probe(probe_source, mode, *, probe_kind="zero", nonzero_period
         cwd=ROOT,
         env=env,
         capture_output=True,
-        text=True,
+        text=True, errors='replace',
         timeout=30,
         check=False,
     )
@@ -450,7 +475,7 @@ def run_freeze_start_state_branch(tmp_path, app_value, scheduler_value):
     ''')
     return subprocess.run(
         [str(git_sh), "-c", f'{fake_docker}\nAPP=app; SCHEDULER=scheduler; {branch}'],
-        cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, env=env, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
 
 
@@ -465,7 +490,7 @@ def run_freeze_configured_value_check(tmp_path, content=None):
         env_file.write_text(content, encoding="utf-8")
     return subprocess.run(
         ["python", "-c", script[start:end], str(env_file)],
-        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
 
 
@@ -598,7 +623,7 @@ def test_exact_w29_capture_contract_launches_real_synthetic_child(tmp_path):
     )
     child_result = subprocess.run(
         [os.sys.executable, str(child), str(result_file)],
-        cwd=tmp_path, capture_output=True, text=True, timeout=30, check=False,
+        cwd=tmp_path, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
     assert child_result.returncode == 0
     assert "recipient-sentinel" in child_result.stdout
@@ -672,7 +697,7 @@ def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_
     sudo.write_text('#!/bin/sh\nif [ "$1" = -n ]; then shift; fi\nexec "$@"\n', encoding="utf-8")
     python3 = fake_bin / "python3"
     python3.write_text(
-        f'#!/bin/sh\nexec "$(cygpath -u \'{pathlib.Path(os.sys.executable).as_posix()}\')" "$@"\n',
+        f"#!/bin/sh\nexec '{_win_to_posix(os.sys.executable)}' \"$@\"\n",
         encoding="utf-8",
     )
     subprocess.run(
@@ -695,7 +720,7 @@ def test_operator_stage_evidence_executes_append_only_and_contains_only_allowed_
         generated = render_operator_evidence(operation.as_posix(), stage, status)
         result = subprocess.run(
             [str(git_sh)], input=generated, cwd=ROOT, env=env,
-            capture_output=True, text=True, timeout=30, check=False,
+            capture_output=True, text=True, errors='replace', timeout=30, check=False,
         )
         assert result.returncode == 0, result.stderr
     records = [json.loads(line) for line in (operation / "grant-execution-evidence.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -715,8 +740,7 @@ def _write_git_sh_command(path, python_source):
     python_file = path.with_suffix(".py")
     python_file.write_text(python_source, encoding="utf-8")
     path.write_text(
-        f'#!/bin/sh\nexec "$(cygpath -u \'{pathlib.Path(os.sys.executable).as_posix()}\')" '
-        f'"$(cygpath -w \'{python_file.as_posix()}\')" "$@"\n',
+        f"#!/bin/sh\nexec '{_win_to_posix(os.sys.executable)}' '{python_file}' \"$@\"\n",
         encoding="utf-8",
     )
 
@@ -812,7 +836,7 @@ def _run_generated_grant_shell(tmp_path, mode):
     stat = fake_bin / "stat"
     stat.write_text("#!/bin/sh\nif [ \"$2\" = %a ]; then echo 700; else echo root:root; fi\n", encoding="utf-8")
     python3 = fake_bin / "python3"
-    python3.write_text(f'#!/bin/sh\nexec "$(cygpath -u \'{pathlib.Path(os.sys.executable).as_posix()}\')" "$@"\n', encoding="utf-8")
+    python3.write_text(f"#!/bin/sh\nexec '{_win_to_posix(os.sys.executable)}' \"$@\"\n", encoding="utf-8")
     subprocess.run([str(git_sh), "-c", f"chmod 700 '{docker.as_posix()}' '{sudo.as_posix()}' '{stat.as_posix()}' '{python3.as_posix()}'"], check=True)
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
@@ -820,7 +844,7 @@ def _run_generated_grant_shell(tmp_path, mode):
     script = render_exact_w29_grant(operation.as_posix(), hashes["snapshot.json"], hashes["preview.json"], hashes["operation-manifest.json"])
     shell_prelude = ('stat(){ if [ "$2" = "%a" ]; then echo 700; else echo root:root; fi; }\n'
                      'mkdir(){ command mkdir -p "$3"; }\n')
-    result = subprocess.run([str(git_sh)], input=shell_prelude + script, cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False)
+    result = subprocess.run([str(git_sh)], input=shell_prelude + script, cwd=ROOT, env=env, capture_output=True, text=True, errors='replace', timeout=30, check=False)
     evidence_path = operation / "grant-execution-evidence.jsonl"
     evidence = [json.loads(line) for line in evidence_path.read_text(encoding="utf-8").splitlines()] if evidence_path.exists() else []
     return result, evidence, operation
@@ -925,7 +949,7 @@ def test_wrapper_preflight_transport_and_lock_release_failures_are_ordered_and_f
         "-CanonicalSnapshotSha256", "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
         "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
         "-Execute", "-OwnerGate", "GO_GRANT_W29",
-    ], cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False)
+    ], cwd=ROOT, env=env, capture_output=True, text=True, errors='replace', timeout=30, check=False)
     assert result.returncode != 0
     assert event_file.exists(), result.stderr
     events = event_file.read_text(encoding="utf-8").splitlines()
@@ -1026,7 +1050,7 @@ def test_exact_w29_grant_without_execute_fails_before_remote_access():
             "-CanonicalSnapshotSha256", "4c7aa3ea6d9c477fe34951054d89ecb2c11e6f2bac925142c06e1c44beff7740",
             "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
         ],
-        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
     assert result.returncode != 0
     assert "Exact W29 grant requires -Execute" in result.stderr
@@ -1049,7 +1073,7 @@ def test_exact_w29_grant_wrapper_rejects_obsolete_image_identity():
             "-CanonicalPreviewSha256", "449f33defce8a134990f61448316a9bf4e3ceae8e75f0a803fb1822aa1f8d0dc",
             "-Execute", "-OwnerGate", "GO_GRANT_W29",
         ],
-        cwd=ROOT, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT, capture_output=True, text=True, errors='replace', timeout=30, check=False,
     )
     assert result.returncode != 0
     assert "ssh" not in result.stderr.lower()
