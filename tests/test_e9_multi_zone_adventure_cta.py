@@ -33,8 +33,8 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v206-e9-i18n-placeholder-fix"
-PREVIOUS_SW_VERSION = "v205-e9-zone-cta-visual-parity"
+NEW_SW_VERSION = "v207-e10-zone-visual-foundation"
+PREVIOUS_SW_VERSION = "v206-e9-i18n-placeholder-fix"
 
 
 def _render_selected_zone_body():
