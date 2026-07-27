@@ -3,12 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1298,
-  "total_bytes": 753319229,
+  "total_files": 1300,
+  "total_bytes": 757283152,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
-    "candidate-mismatch-needs-review": 0
+    "candidate-mismatch-needs-review": 0,
+    "owner-approved-project-created": 2
   },
   "files": [
     {
@@ -6610,6 +6611,26 @@
       "height": 562,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/maps/e10_world_stage_v1_base.png",
+      "size": 3312491,
+      "sha256": "bfa114a68aa80c7797712921ff67c40a13068aa632d28aecab45b559780b46dd",
+      "mime": "image/png",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved VS1B3 visual/layout reference, accepted by VS1C-1 audit and governed by VS1C-2. SHA-256 and size verified against the approved review source; no prompt, credential, or private generation metadata is recorded."
+    },
+    {
+      "path": "assets/maps/e10_world_stage_v1_base.webp",
+      "size": 651432,
+      "sha256": "f092dd37507e1ba5d9a7cfeca2951de8aa9b313ffa7d4ff911d18be123d4256a",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "VS1C-1 audit accepted WebP derivative of the owner-approved base PNG, encoded with Pillow WebP quality=90, method=6. SHA-256 and size verified; no prompt, credential, or private generation metadata is recorded."
     },
     {
       "path": "assets/maps/main_adventure_map.png",
