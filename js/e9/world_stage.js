@@ -46,6 +46,43 @@
     return zone.name;
   }
 
+  // VS1D-1 canonical map-stage-local coordinates, normalized against the
+  // 900 x 506 SVG frame. The same values position L5 nodes, reserved L6
+  // boss anchors, and the L7 current-player marker; never viewport pixels.
+  var ZONE_ANCHORS = {
+    k26_30: { x: 26.0, y: 69.6 }, k21_25: { x: 36.3, y: 48.6 },
+    k16_20: { x: 33.1, y: 29.4 }, k11_15: { x: 46.0, y: 26.3 },
+    k6_10: { x: 57.6, y: 32.6 }, k1_5: { x: 71.4, y: 31.4 },
+    d1_2: { x: 80.0, y: 44.7 }, d3_4: { x: 70.3, y: 65.0 },
+    d5_6: { x: 56.0, y: 74.3 }, d7_plus: { x: 84.8, y: 23.1 }
+  };
+  var BOSS_ANCHORS = {
+    k26_30: { x: 19.1, y: 65.8 }, k21_25: { x: 42.3, y: 56.9 },
+    k16_20: { x: 28.0, y: 23.9 }, k11_15: { x: 51.1, y: 22.3 },
+    k6_10: { x: 64.0, y: 27.1 }, k1_5: { x: 76.3, y: 36.8 },
+    d1_2: { x: 75.1, y: 50.4 }, d3_4: { x: 77.6, y: 68.8 },
+    d5_6: { x: 50.8, y: 68.8 }, d7_plus: { x: 79.1, y: 17.6 }
+  };
+
+  function applyAnchor(el, anchor) {
+    if (!el || !anchor) return;
+    el.style.setProperty('--anchor-x', anchor.x + '%');
+    el.style.setProperty('--anchor-y', anchor.y + '%');
+  }
+
+  function updatePlayerMarker(root, zoneKey) {
+    var marker = root.querySelector('#e9-world-stage-player');
+    var anchor = ZONE_ANCHORS[zoneKey];
+    var mapStage = root.querySelector('#e9-map-stage');
+    if (!marker || !anchor) return;
+    applyAnchor(marker, anchor);
+    if (mapStage) {
+      mapStage.style.setProperty('--focus-x', anchor.x + '%');
+      mapStage.style.setProperty('--focus-y', anchor.y + '%');
+    }
+    marker.hidden = false;
+  }
+
   function renderBeginnerVillageMainline(root, zone) {
     var panel = root.querySelector('#e9-newbie-mainline');
     if (!panel || !zone || zone.key !== 'k26_30') return;
@@ -168,6 +205,7 @@
       tile.setAttribute('aria-pressed', selected ? 'true' : 'false');
       tile.classList.toggle('is-selected', selected);
     });
+    updatePlayerMarker(root, zone.key);
     if (details) details.hidden = false;
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (summary) summary.textContent = zone.bossAvailable
@@ -205,7 +243,10 @@
       var focusTarget = zone.key === 'k26_30' && newbie && !newbie.hidden ? newbie : details;
       try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
       if (typeof focusTarget.scrollIntoView === 'function' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
-        focusTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Preserve the selected detail's keyboard focus, but pan the visual
+        // viewport to the selected-zone map crop on small screens.
+        var mobileFocus = root.querySelector('#e9-map-stage') || focusTarget;
+        mobileFocus.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   }
@@ -213,22 +254,30 @@
   function renderZones(root, zones) {
     var statusEl = root.querySelector('#e9-world-stage-status');
     var zonesEl = root.querySelector('#e9-world-stage-zones');
-    if (!zonesEl) return;
+    var mapStage = root.querySelector('#e9-map-stage');
+    var bossAnchorsEl = root.querySelector('#e9-world-stage-boss-anchors');
+    if (!zonesEl || !mapStage || !bossAnchorsEl) return;
 
     var state = root.__e9WorldStageState || (root.__e9WorldStageState = { zones: zones, selectedZoneKey: null });
     state.zones = zones;
     zonesEl.innerHTML = '';
+    bossAnchorsEl.innerHTML = '';
     zones.forEach(function (zone) {
-      var tile = document.createElement('div');
+      var anchor = ZONE_ANCHORS[zone.key];
+      var bossAnchor = BOSS_ANCHORS[zone.key];
+      if (!anchor || !bossAnchor) return; // unknown API data never receives fabricated coordinates
+      var tile = document.createElement('button');
+      tile.type = 'button';
       tile.className = 'e9-zone e9-zone--' + (zone.status || 'locked');
-      tile.setAttribute('role', 'listitem');
       tile.setAttribute('data-zone', zone.key);
+      tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
+      tile.setAttribute('aria-label', zoneDisplayName(zone));
+      applyAnchor(tile, anchor);
 
       if (!zone.locked) {
         tile.setAttribute('aria-pressed', 'false');
-        tile.tabIndex = 0;
-        tile.setAttribute('role', 'button');
       } else {
+        tile.disabled = true;
         tile.setAttribute('aria-disabled', 'true');
         tile.title = t('index.adv.zone_locked', 'This area is still sealed by mist.');
       }
@@ -280,8 +329,17 @@
       }
 
       zonesEl.appendChild(tile);
+
+      // L6 contract: preserve each canonical safe-box coordinate without
+      // displaying a false Boss asset in this sprint.
+      var reserved = document.createElement('span');
+      reserved.setAttribute('data-zone-boss-anchor', zone.key);
+      reserved.setAttribute('data-normalized-anchor', bossAnchor.x + ',' + bossAnchor.y);
+      applyAnchor(reserved, bossAnchor);
+      bossAnchorsEl.appendChild(reserved);
     });
 
+    mapStage.hidden = false;
     zonesEl.hidden = false;
     if (statusEl) {
       var clearedCount = zones.filter(function (z) { return z.cleared; }).length;

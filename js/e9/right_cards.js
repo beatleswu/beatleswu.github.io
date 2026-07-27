@@ -66,6 +66,8 @@
         return;
       }
       var d = result.data;
+      var summary = root.querySelector('#e9-right-drawer-summary');
+      if (summary) summary.textContent = (d.cleared || 0) + ' / ' + (d.total || 0) + ' areas cleared';
       if (!d.total) {
         setBody(root, 'boss_progress', t('e9.right_cards.empty', 'No data yet'));
         return;
@@ -118,6 +120,26 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var panel = root.querySelector('#e9-right-drawer-panel');
+    var setOpen = function (open) {
+      if (!toggle || !panel) return;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      panel.hidden = !open;
+      root.classList.toggle('is-drawer-open', open);
+    };
+    if (toggle && panel) {
+      var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
+      var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
+      setOpen(false);
+      if (window.E9 && typeof window.E9.on === 'function') {
+        window.E9.on(toggle, 'click', onToggle, null, generation);
+        window.E9.on(document, 'keydown', onKey, null, generation);
+      } else {
+        toggle.addEventListener('click', onToggle);
+        document.addEventListener('keydown', onKey);
+      }
+    }
 
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);

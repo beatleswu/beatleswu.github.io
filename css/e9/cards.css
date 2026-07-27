@@ -8,6 +8,11 @@
   flex-direction: column;
   gap: 12px;
 }
+.e9-drawer-toggle { min-height: 44px; border: 1px solid var(--e9-shell-panel-border); border-radius: 12px; background: var(--e9-shell-panel-bg); cursor: pointer; }
+.e9-drawer-summary { margin: 0; padding: 10px; border-radius: 12px; background: rgba(255,248,234,.94); font-size: 12px; }
+.e9-drawer-panel[hidden] { display: none; }
+@media (min-width: 1280px) { body[data-adventure-shell-active="e9"] #e9-right-cards-slot { position: absolute; right: 16px; top: 76px; width: min(320px, 28vw); z-index: 4; } body[data-adventure-shell-active="e9"] #e9-adventure-shell .e9-body { grid-template-columns: minmax(0,var(--e9-shell-nav-width)) minmax(0,1fr); } .e9-drawer-panel { max-height: calc(100vh - 150px); overflow: auto; } }
+@media (max-width: 767px) { .e9-drawer-toggle { display:none; } .e9-drawer-summary { display:block; } .e9-drawer-panel { display:none; } }
 
 .e9-card {
   min-width: 0;

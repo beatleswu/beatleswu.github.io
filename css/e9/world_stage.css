@@ -263,3 +263,38 @@
     transition: none;
   }
 }
+
+/* VS1D-1 immersive World Stage. Every overlay is positioned inside the
+   contained image frame; no viewport-coordinate math or image crop is used. */
+.e9-stage { padding: 12px; overflow: visible; }
+.e9-map-stage { position: relative; width: 100%; aspect-ratio: 1672 / 941; overflow: hidden; border-radius: 18px; background: #18344d; box-shadow: 0 12px 28px rgba(12, 25, 35, .28); }
+.e9-map-stage[hidden] { display: none; }
+.e9-map-stage__base, .e9-map-stage__route, .e9-map-stage__nodes, .e9-map-stage__boss-anchors { position: absolute; inset: 0; width: 100%; height: 100%; }
+.e9-map-stage__base { display: block; object-fit: contain; }
+.e9-map-stage__route { pointer-events: none; overflow: visible; }
+.e9-route__ground-shadow, .e9-route__ground, .e9-route__ascension-shadow, .e9-route__ascension { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.e9-route__ground-shadow { stroke: rgba(39, 25, 9, .66); stroke-width: 12; }
+.e9-route__ground { stroke: #e9c75e; stroke-width: 6; }
+.e9-route__ascension-shadow { stroke: rgba(9, 44, 58, .82); stroke-width: 14; }
+.e9-route__ascension { stroke: #69e8ff; stroke-width: 6; stroke-dasharray: 12 7; }
+.e9-map-stage__nodes, .e9-map-stage__boss-anchors { pointer-events: none; }
+.e9-zone, .e9-map-stage__player, .e9-map-stage__boss-anchors > span { position: absolute; left: var(--anchor-x); top: var(--anchor-y); transform: translate(-50%, -50%); }
+.e9-zone { pointer-events: auto; width: max(44px, 3.5vw); min-width: 44px; height: max(44px, 3.5vw); min-height: 44px; padding: 0; border-radius: 999px; display: grid; place-items: center; background: radial-gradient(circle at 32% 28%, #fff8b8 0 8%, #e4b83b 24%, #7a4515 72%); border: 3px solid #fff4b8; color: #241503; font: 700 14px/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 0 #5c3310, 0 5px 16px rgba(0,0,0,.48); text-shadow: none; }
+.e9-zone[disabled] { opacity: .55; filter: grayscale(.7); cursor: not-allowed; }
+.e9-zone.is-selected { outline: 4px solid #77efff; outline-offset: 3px; }
+.e9-zone__name { position: absolute; top: calc(100% + 5px); max-width: 120px; padding: 2px 6px; border-radius: 5px; background: rgba(16, 25, 35, .78); color: #fff; font-size: 11px; line-height: 1.2; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.e9-zone__stars, .e9-zone__boss-ready { display: none; }
+.e9-map-stage__boss-anchors > span { width: 1px; height: 1px; }
+.e9-map-stage__player { width: 17px; height: 17px; margin: -31px 0 0 22px; border: 3px solid #fff; border-radius: 50%; background: #2ad57a; box-shadow: 0 0 0 3px rgba(16, 74, 45, .8); pointer-events: none; }
+
+@media (max-width: 1279px) { .e9-zone { width: 44px; height: 44px; } }
+@media (max-width: 767px) {
+  .e9-map-stage { --focus-x: 50%; --focus-y: 50%; aspect-ratio: auto; min-height: 920px; overflow: visible; background: #18344d; box-shadow: none; }
+  /* Selected-zone focus pan: crop the same governed 16:9 base around the
+     current node instead of shrinking the full world map into a tiny target. */
+  .e9-map-stage__base { display: block; inset: 0 0 auto; width: 100%; height: 228px; object-fit: cover; object-position: var(--focus-x) var(--focus-y); }
+  .e9-map-stage__route, .e9-map-stage__boss-anchors, .e9-map-stage__player { display: none; }
+  .e9-map-stage__nodes { position: absolute; inset: auto 0 0 !important; top: 242px !important; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: visible; padding: 0 2px 12px; }
+  .e9-zone { position: relative; left: auto; top: auto; transform: none; width: 100%; min-height: 52px; height: auto; justify-items: start; padding: 0 16px; border-radius: 12px; }
+  .e9-zone__name { position: static; max-width: none; padding: 0; background: transparent; font-size: 15px; white-space: normal; overflow: visible; }
+}
