@@ -2,10 +2,11 @@
   "$schema_note": "Declarative canonical closure for every currently-referenced /assets/** file (RELEASE-FIX-A2). This is the source of truth for what the static-release tooling stages under assets/** -- see docs/deployment/canonical_static_release_contract.md. Do not add files here that are not referenced by a runtime scan (see docs/incidents/2026-07-12-full-site-asset-outage.md Phase 1); do not blindly package the full historical asset tree.",
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A2 / 2026-07-12-full-site-asset-outage",
-  "total_files": 180,
-  "total_bytes": 53045226,
+  "total_files": 181,
+  "total_bytes": 53696658,
   "provenance_summary": {
     "historical-git-verified": 178,
+    "owner-approved-project-created": 1,
     "production-host-recovered": 2
   },
   "files": [
@@ -38,6 +39,16 @@
       "height": 256,
       "provenance": "production-host-recovered",
       "source_evidence": "Recovered read-only from production host orphaned generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/ (RELEASE-FIX-A2 incident); absent from C:\\go-website and unresolved to any Git blob -- provenance is the production host copy itself, honestly recorded as such."
+    },
+    {
+      "path": "assets/maps/e10_world_stage_v1_base.webp",
+      "size": 651432,
+      "sha256": "f092dd37507e1ba5d9a7cfeca2951de8aa9b313ffa7d4ff911d18be123d4256a",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved VS1B3 visual/layout reference; governed by VS1C-2 canonical image manifest. SHA-256 and size verified against the approved WebP derivative; no prompt, credential, or private generation metadata is recorded."
     },
     {
       "path": "assets/go_rpg_assets/daily_bounty_icon.webp",
