@@ -31,6 +31,26 @@
     el.removeAttribute('data-i18n');
   }
 
+  function formatCompactProgress(cleared, total) {
+    return t('e10.world_stage.progress_compact', '')
+      .replace('{n}', cleared || 0).replace('{t}', total || 0);
+  }
+
+  function setCompactProgress(root, cleared, total) {
+    var compact = formatCompactProgress(cleared, total);
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var mobileSummary = root.querySelector('#e9-right-drawer-mobile-summary');
+    if (toggle) {
+      toggle.textContent = compact + ' ▾';
+      toggle.setAttribute('aria-label', compact);
+      toggle.removeAttribute('data-i18n');
+    }
+    if (mobileSummary) {
+      mobileSummary.textContent = compact;
+      mobileSummary.removeAttribute('data-i18n');
+    }
+  }
+
   function errorTextFor(cardKey, result) {
     if (result.kind === 'unauthorized') return t('e9.right_cards.unauthorized', 'Please log in again');
     return t('e9.right_cards.error', 'Unavailable');
@@ -66,6 +86,7 @@
         return;
       }
       var d = result.data;
+      setCompactProgress(root, d.cleared, d.total);
       if (!d.total) {
         setBody(root, 'boss_progress', t('e9.right_cards.empty', 'No data yet'));
         return;
@@ -118,6 +139,27 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
+    setCompactProgress(root, 0, 0);
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var panel = root.querySelector('#e9-right-drawer-panel');
+    var setOpen = function (open) {
+      if (!toggle || !panel) return;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      panel.hidden = !open;
+      root.classList.toggle('is-drawer-open', open);
+    };
+    if (toggle && panel) {
+      var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
+      var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
+      setOpen(false);
+      if (window.E9 && typeof window.E9.on === 'function') {
+        window.E9.on(toggle, 'click', onToggle, null, generation);
+        window.E9.on(document, 'keydown', onKey, null, generation);
+      } else {
+        toggle.addEventListener('click', onToggle);
+        document.addEventListener('keydown', onKey);
+      }
+    }
 
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);

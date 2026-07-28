@@ -5,8 +5,8 @@
 :root {
   --e9-shell-max-width: 1480px;
   --e9-shell-gap: 16px;
-  --e9-shell-nav-width: clamp(208px, 17vw, 252px);
-  --e9-shell-cards-width: clamp(248px, 23vw, 320px);
+  --e9-shell-nav-width: clamp(148px, 12vw, 188px);
+  --e9-shell-cards-width: clamp(220px, 18vw, 280px);
   --e9-shell-mobile-dock-reserve: 104px;
   --e9-shell-panel-bg: rgba(255, 248, 234, 0.94);
   --e9-shell-panel-border: rgba(121, 87, 40, 0.24);
@@ -146,7 +146,7 @@ body[data-adventure-shell-active="e9"] #e9-right-cards-slot {
 
 body[data-adventure-shell-active="e9"] #e9-world-stage-slot {
   min-width: 0;
-  min-height: 420px;
+  min-height: 0;
 }
 
 .e9-visually-hidden {

@@ -53,6 +53,6 @@ def test_static_manifest_contains_quest_assets_and_i18n_keys():
         assert key in i18n
 
 
-def test_asset_version_was_bumped_for_static_quest_files():
-    assert "e9-q1-quest-board" in read("js/e9/feature_flags.js")
-    assert "v206-e9-i18n-placeholder-fix" in read("sw.js")
+def test_asset_version_is_coupled_to_current_static_runtime():
+    assert "ASSET_VERSION = 'e10-world-stage-v1d1-i18n-a11y'" in read("js/e9/feature_flags.js")
+    assert "v209-e10-world-stage-v1d1-i18n-a11y" in read("sw.js")

@@ -16,7 +16,22 @@
 -->
 <main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-i18n-aria-label="e9.world_stage.aria_label">
   <div class="e9-stage__status" id="e9-world-stage-status" data-i18n="e9.world_stage.loading" aria-live="polite">Loading adventure map…</div>
-  <div class="e9-stage__zones" id="e9-world-stage-zones" role="list" hidden></div>
+  <!-- Base L0-L3 is the governed, static V1 asset. L4 route and L5 nodes
+       remain independent DOM/SVG overlays in this map-stage-local frame. -->
+  <section class="e9-map-stage" id="e9-map-stage" data-i18n-aria-label="e10.world_stage.map_aria_label" hidden>
+    <img class="e9-map-stage__base" src="/assets/maps/e10_world_stage_v1_base.webp" alt="" width="1672" height="941">
+    <svg class="e9-map-stage__route" viewBox="0 0 900 506" aria-hidden="true" focusable="false">
+      <path class="e9-route__ground-shadow" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
+      <path class="e9-route__ground" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
+      <!-- The cyan causeway crosses the ground route at a different visual grade;
+           it has no node, branch, hit target, or pointer interaction. -->
+      <path class="e9-route__ascension-shadow" d="M504 376 C560 310 685 135 763 117"/>
+      <path class="e9-route__ascension" d="M504 376 C560 310 685 135 763 117"/>
+    </svg>
+    <div class="e9-map-stage__boss-anchors" id="e9-world-stage-boss-anchors" aria-hidden="true"></div>
+    <div class="e9-map-stage__nodes" id="e9-world-stage-zones" data-i18n-aria-label="e10.world_stage.zones_aria_label"></div>
+    <div class="e9-map-stage__player" id="e9-world-stage-player" aria-hidden="true" hidden></div>
+  </section>
   <section class="e9-zone-details" id="e9-world-stage-details" tabindex="-1" aria-live="polite" hidden>
     <p class="e9-zone-details__label" id="e9-world-stage-details-label"></p>
     <p class="e9-zone-details__summary" id="e9-world-stage-details-summary"></p>

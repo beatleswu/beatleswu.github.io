@@ -11,6 +11,9 @@
   one card failing/empty never affects the others (non-critical isolation).
 -->
 <aside id="right-cards" class="e9-cards" data-e9-component="right_cards" data-i18n-aria-label="e9.right_cards.aria_label">
+  <button type="button" class="e9-drawer-toggle" id="e9-right-drawer-toggle" aria-controls="e9-right-drawer-panel" aria-expanded="false" data-i18n="e10.world_stage.progress_compact"></button>
+  <p class="e9-drawer-mobile-summary" id="e9-right-drawer-mobile-summary" aria-live="polite" data-i18n="e10.world_stage.progress_compact"></p>
+  <div class="e9-drawer-panel" id="e9-right-drawer-panel" hidden>
   <section class="e9-quest-board" data-e9-quest-board aria-labelledby="e9-quest-title">
     <header class="e9-quest-board__header">
       <h3 id="e9-quest-title" data-e9-quest-title data-i18n="e9.quest.title">Quests</h3>
@@ -38,5 +41,6 @@
   <div class="e9-card" data-e9-card="weakness">
     <h4 data-i18n="e9.right_cards.weakness_title">Weakness Summary</h4>
     <p class="e9-card__body" data-e9-card-body="weakness" data-i18n="e9.right_cards.loading" aria-live="polite">Loading…</p>
+  </div>
   </div>
 </aside>
