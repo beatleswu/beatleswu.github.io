@@ -309,7 +309,9 @@
       var stateBadge = document.createElement('span');
       stateBadge.className = 'e9-zone__state';
       stateBadge.setAttribute('aria-hidden', 'true');
-      stateBadge.textContent = zone.locked ? '🔒' : ((zone.cleared || zone.status === 'completed') ? '✓' : '');
+      var isCompleted = zone.cleared || zone.status === 'completed';
+      stateBadge.setAttribute('data-zone-state', zone.locked ? 'locked' : (isCompleted ? 'completed' : 'available'));
+      stateBadge.textContent = isCompleted ? '\u2713' : '';
       tile.appendChild(stateBadge);
 
       if (!zone.locked) {

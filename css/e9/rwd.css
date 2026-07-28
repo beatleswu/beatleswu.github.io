@@ -30,6 +30,33 @@
   }
 }
 
+/* VS1D-1B: Tablet keeps the contained map geometry stable. The supporting
+   drawer is removed from the grid track when opened, then overlays it. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  body[data-adventure-shell-active="e9"] #right-cards {
+    display: block;
+  }
+
+  body[data-adventure-shell-active="e9"] #e9-right-cards-slot {
+    min-height: 44px;
+  }
+
+  body[data-adventure-shell-active="e9"] #right-cards .e9-drawer-toggle {
+    height: auto;
+    align-self: start;
+  }
+
+  body[data-adventure-shell-active="e9"] #right-cards .e9-drawer-panel:not([hidden]) {
+    position: fixed;
+    top: 72px;
+    right: 12px;
+    z-index: 20;
+    width: min(360px, calc(100vw - 24px));
+    max-height: calc(100dvh - 88px);
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 1024px) {
   body[data-adventure-shell-active="e9"] .practice {
     padding: 14px 12px 96px !important;

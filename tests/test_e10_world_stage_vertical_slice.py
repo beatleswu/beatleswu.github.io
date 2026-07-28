@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parent.parent
 HTML = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
 JS = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
 CSS = (ROOT / "css/e9/world_stage.css").read_text(encoding="utf-8")
+RWD_CSS = (ROOT / "css/e9/rwd.css").read_text(encoding="utf-8")
 CARDS_JS = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
 CARDS_HTML = (ROOT / "components/adventure/right_cards.html").read_text(encoding="utf-8")
 
@@ -61,5 +62,18 @@ def test_right_drawer_escape_and_lifecycle_listener_contract():
 def test_nodes_have_dom_number_and_state_markers_and_hidden_details_do_not_render():
     assert "e9-zone__number" in JS
     assert "e9-zone__state" in JS
-    assert "zone.locked ? '🔒'" in JS
+    assert "data-zone-state" in JS
+    assert "isCompleted ? '\\u2713' : ''" in JS
+    assert 'data-zone-state="locked"' in CSS
+    assert '.e9-zone__state[data-zone-state="locked"]::before' in CSS
+    assert 'right: 2px; top: 2px;' in CSS
+    assert '.e9-zone__number { position: relative; z-index: 3;' in CSS
     assert '.e9-zone-details[hidden] { display: none; }' in CSS
+
+
+def test_tablet_drawer_is_an_overlay_and_hidden_detail_panel_has_no_layout_box():
+    assert '.e9-zone-details[hidden] { display: none; }' in CSS
+    assert '@media (min-width: 768px) and (max-width: 1279px)' in RWD_CSS
+    assert '#right-cards .e9-drawer-panel:not([hidden])' in RWD_CSS
+    assert 'position: fixed;' in RWD_CSS
+    assert 'overflow-y: auto;' in RWD_CSS
