@@ -66,8 +66,19 @@
         return;
       }
       var d = result.data;
-      var summary = root.querySelector('#e9-right-drawer-summary');
-      if (summary) summary.textContent = (d.cleared || 0) + ' / ' + (d.total || 0) + ' areas cleared';
+      var compact = t('e10.world_stage.progress_compact', 'Progress {n}/{t}')
+        .replace('{n}', d.cleared || 0).replace('{t}', d.total || 0);
+      var toggle = root.querySelector('#e9-right-drawer-toggle');
+      var mobileSummary = root.querySelector('#e9-right-drawer-mobile-summary');
+      if (toggle) {
+        toggle.textContent = compact + ' ▾';
+        toggle.setAttribute('aria-label', compact);
+        toggle.removeAttribute('data-i18n');
+      }
+      if (mobileSummary) {
+        mobileSummary.textContent = compact;
+        mobileSummary.removeAttribute('data-i18n');
+      }
       if (!d.total) {
         setBody(root, 'boss_progress', t('e9.right_cards.empty', 'No data yet'));
         return;

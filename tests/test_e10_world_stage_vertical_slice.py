@@ -36,6 +36,9 @@ def test_mobile_uses_ordered_dom_journey_instead_of_shrinking_the_map():
     assert '.e9-map-stage__nodes { position: absolute;' in CSS
     assert 'object-position: var(--focus-x) var(--focus-y)' in CSS
     assert "mapStage.style.setProperty('--focus-x'" in JS
+    assert "e9-zone__inline-details" in JS
+    assert "behavior: 'smooth'" in JS
+    assert 'grid-auto-rows: minmax(75px, auto)' in CSS
 
 
 def test_right_drawer_is_closed_by_default_and_uses_existing_payload_summary():
@@ -44,6 +47,8 @@ def test_right_drawer_is_closed_by_default_and_uses_existing_payload_summary():
     assert 'aria-expanded="false"' in CARDS_HTML
     assert 'setOpen(false);' in CARDS_JS
     assert "d.cleared" in CARDS_JS and "d.total" in CARDS_JS
+    assert 'e10.world_stage.progress_compact' in CARDS_JS
+    assert 'e9-drawer-mobile-summary' in CARDS_HTML
 
 
 def test_right_drawer_escape_and_lifecycle_listener_contract():
@@ -51,3 +56,10 @@ def test_right_drawer_escape_and_lifecycle_listener_contract():
     assert "window.E9.on(toggle, 'click'" in CARDS_JS
     assert "window.E9.on(document, 'keydown'" in CARDS_JS
     assert 'localStorage' not in CARDS_JS
+
+
+def test_nodes_have_dom_number_and_state_markers_and_hidden_details_do_not_render():
+    assert "e9-zone__number" in JS
+    assert "e9-zone__state" in JS
+    assert "zone.locked ? '🔒'" in JS
+    assert '.e9-zone-details[hidden] { display: none; }' in CSS

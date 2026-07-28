@@ -206,7 +206,8 @@
       tile.classList.toggle('is-selected', selected);
     });
     updatePlayerMarker(root, zone.key);
-    if (details) details.hidden = false;
+    var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+    if (details) details.hidden = isMobile;
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
@@ -237,6 +238,30 @@
       }
     }
 
+    root.querySelectorAll('.e9-zone__inline-details').forEach(function (panel) { panel.remove(); });
+    if (isMobile) {
+      var selectedTile = root.querySelector('[data-zone="' + zone.key + '"]');
+      if (selectedTile) {
+        var inline = document.createElement('div');
+        inline.className = 'e9-zone__inline-details';
+        var inlineSummary = document.createElement('p');
+        inlineSummary.textContent = summary ? summary.textContent : '';
+        inline.appendChild(inlineSummary);
+        if (zone.key !== 'k26_30') {
+          var inlineCta = document.createElement('button');
+          inlineCta.type = 'button';
+          inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
+          inlineCta.textContent = t('index.adv.start_challenge', 'Start Challenge');
+          inlineCta.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
+          });
+          inline.appendChild(inlineCta);
+        }
+        selectedTile.appendChild(inline);
+      }
+    }
+
     renderBeginnerVillageMainline(root, zone);
     if (newbie && zone.key !== 'k26_30') newbie.hidden = true;
     if (focusDetails && details) {
@@ -245,7 +270,7 @@
       if (typeof focusTarget.scrollIntoView === 'function' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
         // Preserve the selected detail's keyboard focus, but pan the visual
         // viewport to the selected-zone map crop on small screens.
-        var mobileFocus = root.querySelector('#e9-map-stage') || focusTarget;
+        var mobileFocus = isMobile ? root.querySelector('[data-zone="' + zone.key + '"]') : (root.querySelector('#e9-map-stage') || focusTarget);
         mobileFocus.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
@@ -262,7 +287,7 @@
     state.zones = zones;
     zonesEl.innerHTML = '';
     bossAnchorsEl.innerHTML = '';
-    zones.forEach(function (zone) {
+    zones.forEach(function (zone, index) {
       var anchor = ZONE_ANCHORS[zone.key];
       var bossAnchor = BOSS_ANCHORS[zone.key];
       if (!anchor || !bossAnchor) return; // unknown API data never receives fabricated coordinates
@@ -273,6 +298,19 @@
       tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
       tile.setAttribute('aria-label', zoneDisplayName(zone));
       applyAnchor(tile, anchor);
+      if (zone.current || zone.selected || (!zone.locked && zone.status === 'unlocked')) tile.classList.add('is-current');
+
+      var number = document.createElement('span');
+      number.className = 'e9-zone__number';
+      number.textContent = String(index + 1);
+      number.setAttribute('aria-hidden', 'true');
+      tile.appendChild(number);
+
+      var stateBadge = document.createElement('span');
+      stateBadge.className = 'e9-zone__state';
+      stateBadge.setAttribute('aria-hidden', 'true');
+      stateBadge.textContent = zone.locked ? '🔒' : ((zone.cleared || zone.status === 'completed') ? '✓' : '');
+      tile.appendChild(stateBadge);
 
       if (!zone.locked) {
         tile.setAttribute('aria-pressed', 'false');
