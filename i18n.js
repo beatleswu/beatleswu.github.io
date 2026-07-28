@@ -2979,6 +2979,8 @@ const I18n = (() => {
         'e9.right_cards.srs_due_title':         { en: 'SRS Due', zh: '複習到期' },
         'e9.right_cards.weakness_title':        { en: 'Weakness Summary', zh: '弱點總覽' },
         'e10.world_stage.progress_compact':     { en: 'Progress {n}/{t}', zh: '進度 {n}/{t}' },
+        'e10.world_stage.map_aria_label':       { en: 'Adventure world map', zh: '冒險世界地圖' },
+        'e10.world_stage.zones_aria_label':     { en: 'Adventure zones', zh: '冒險區域' },
         'e9.right_cards.loading':       { en: 'Loading…', zh: '載入中…' },
         'e9.right_cards.empty':         { en: 'No data yet', zh: '尚無資料' },
         'e9.right_cards.error':         { en: 'Unavailable', zh: '暫時無法取得' },

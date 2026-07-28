@@ -31,6 +31,26 @@
     el.removeAttribute('data-i18n');
   }
 
+  function formatCompactProgress(cleared, total) {
+    return t('e10.world_stage.progress_compact', '')
+      .replace('{n}', cleared || 0).replace('{t}', total || 0);
+  }
+
+  function setCompactProgress(root, cleared, total) {
+    var compact = formatCompactProgress(cleared, total);
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var mobileSummary = root.querySelector('#e9-right-drawer-mobile-summary');
+    if (toggle) {
+      toggle.textContent = compact + ' ▾';
+      toggle.setAttribute('aria-label', compact);
+      toggle.removeAttribute('data-i18n');
+    }
+    if (mobileSummary) {
+      mobileSummary.textContent = compact;
+      mobileSummary.removeAttribute('data-i18n');
+    }
+  }
+
   function errorTextFor(cardKey, result) {
     if (result.kind === 'unauthorized') return t('e9.right_cards.unauthorized', 'Please log in again');
     return t('e9.right_cards.error', 'Unavailable');
@@ -66,19 +86,7 @@
         return;
       }
       var d = result.data;
-      var compact = t('e10.world_stage.progress_compact', 'Progress {n}/{t}')
-        .replace('{n}', d.cleared || 0).replace('{t}', d.total || 0);
-      var toggle = root.querySelector('#e9-right-drawer-toggle');
-      var mobileSummary = root.querySelector('#e9-right-drawer-mobile-summary');
-      if (toggle) {
-        toggle.textContent = compact + ' ▾';
-        toggle.setAttribute('aria-label', compact);
-        toggle.removeAttribute('data-i18n');
-      }
-      if (mobileSummary) {
-        mobileSummary.textContent = compact;
-        mobileSummary.removeAttribute('data-i18n');
-      }
+      setCompactProgress(root, d.cleared, d.total);
       if (!d.total) {
         setBody(root, 'boss_progress', t('e9.right_cards.empty', 'No data yet'));
         return;
@@ -131,6 +139,7 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
+    setCompactProgress(root, 0, 0);
     var toggle = root.querySelector('#e9-right-drawer-toggle');
     var panel = root.querySelector('#e9-right-drawer-panel');
     var setOpen = function (open) {

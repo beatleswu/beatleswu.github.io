@@ -33,8 +33,8 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v208-e10-world-stage-v1d1"
-PREVIOUS_SW_VERSION = "v207-e10-zone-visual-foundation"
+NEW_SW_VERSION = "v209-e10-world-stage-v1d1-i18n-a11y"
+PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 
 def _render_selected_zone_body():

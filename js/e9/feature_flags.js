@@ -19,7 +19,7 @@
   // Bump alongside sw.js VERSION whenever E9 JS/CSS changes ship, so the
   // cache-first strategy in sw.js for *.js/*.css does not strand users on
   // a stale bundle. Also appended as ?v= on every component fragment URL.
-  var ASSET_VERSION = 'e10-world-stage-v1d1';
+  var ASSET_VERSION = 'e10-world-stage-v1d1-i18n-a11y';
 
   var PRODUCTION_FLAGS = {
     e9Shell: false,

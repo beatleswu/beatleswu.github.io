@@ -1,4 +1,5 @@
 """VS1D-1 static contracts for the immersive World Stage layers."""
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -8,6 +9,7 @@ CSS = (ROOT / "css/e9/world_stage.css").read_text(encoding="utf-8")
 RWD_CSS = (ROOT / "css/e9/rwd.css").read_text(encoding="utf-8")
 CARDS_JS = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
 CARDS_HTML = (ROOT / "components/adventure/right_cards.html").read_text(encoding="utf-8")
+I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 
 
 def test_governed_base_map_and_independent_route_are_present():
@@ -50,6 +52,39 @@ def test_right_drawer_is_closed_by_default_and_uses_existing_payload_summary():
     assert "d.cleared" in CARDS_JS and "d.total" in CARDS_JS
     assert 'e10.world_stage.progress_compact' in CARDS_JS
     assert 'e9-drawer-mobile-summary' in CARDS_HTML
+
+
+def test_progress_initial_copy_and_map_aria_labels_use_runtime_i18n_contracts():
+    assert CARDS_HTML.count('data-i18n="e10.world_stage.progress_compact"') == 2
+    assert '進度 0/0' not in CARDS_HTML
+    assert 'Progress {n}/{t}' not in CARDS_JS
+    assert "function formatCompactProgress(cleared, total)" in CARDS_JS
+    assert "return t('e10.world_stage.progress_compact', '')" in CARDS_JS
+    assert "setCompactProgress(root, 0, 0);" in CARDS_JS
+    assert "setCompactProgress(root, d.cleared, d.total);" in CARDS_JS
+    assert 'data-i18n-aria-label="e10.world_stage.map_aria_label"' in HTML
+    assert 'data-i18n-aria-label="e10.world_stage.zones_aria_label"' in HTML
+    assert 'aria-label="Adventure world map"' not in HTML
+    assert 'aria-label="Adventure zones"' not in HTML
+    for key, en, zh in (
+        ('e10.world_stage.progress_compact', 'Progress {n}/{t}', '進度 {n}/{t}'),
+        ('e10.world_stage.map_aria_label', 'Adventure world map', '冒險世界地圖'),
+        ('e10.world_stage.zones_aria_label', 'Adventure zones', '冒險區域'),
+    ):
+        assert key in I18N and en in I18N and zh in I18N
+    assert "aria-controls=\"e9-right-drawer-panel\"" in CARDS_HTML
+    assert "aria-expanded=\"false\"" in CARDS_HTML
+
+    start = CARDS_JS.index('function formatCompactProgress(cleared, total)')
+    end = CARDS_JS.index('\n  function setCompactProgress', start)
+    formatter = CARDS_JS[start:end]
+    result = subprocess.run(
+        ['node', '-e', "function t() { return 'Progress {n}/{t}'; }\n" + formatter + "\nconsole.log(formatCompactProgress(9, 10));"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.strip() == 'Progress 9/10'
 
 
 def test_right_drawer_escape_and_lifecycle_listener_contract():
