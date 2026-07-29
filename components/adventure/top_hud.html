@@ -10,8 +10,18 @@
   here would be fabricated data. See docs/planning/e9_1a2_legacy_shell_integration.md.
 -->
 <section id="top-hud" class="e9-hud" data-e9-component="top_hud" role="region" data-i18n-aria-label="e9.top_hud.aria_label">
+  <div class="e10-hud-brand">
+    <svg class="e10-hud-brand__crest" viewBox="0 0 48 56" aria-hidden="true" focusable="false">
+      <path d="M24 2 44 10v15c0 13-8 23-20 29C12 48 4 38 4 25V10Z"/>
+      <circle cx="19" cy="25" r="8"/>
+      <circle cx="29" cy="31" r="8"/>
+    </svg>
+    <span class="e10-hud-brand__copy">
+      <strong data-i18n="common.brand">Go Odyssey</strong>
+      <span data-i18n="e10.rpg.world_stage_label">World Stage</span>
+    </span>
+  </div>
   <div class="e9-hud__player">
-    <span class="e9-hud__avatar" id="top-hud-avatar">🧑</span>
     <span class="e9-hud__name" id="top-hud-name" data-i18n="e9.top_hud.loading" aria-live="polite">Loading player status…</span>
     <span class="e9-hud__level" id="top-hud-level" hidden>
       <span data-i18n="e9.top_hud.level_label">Lv.</span>
@@ -19,6 +29,6 @@
     </span>
   </div>
   <div class="e9-hud__resources">
-    <span class="e9-hud__coins" id="top-hud-coins" hidden>🪙 --</span>
+    <span class="e9-hud__coins" id="top-hud-coins" hidden>--</span>
   </div>
 </section>

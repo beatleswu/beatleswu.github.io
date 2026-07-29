@@ -5,8 +5,9 @@
  * persisted here). Real data source only:
  *   GET /api/adventure/bootstrap -> zones[] (same endpoint the legacy
  *   Adventure Map uses; no new API, no fabricated zone data).
- * Zone-state text reuses the EXISTING index.adv.* i18n keys -- no second
- * translation dictionary for adventure semantics.
+ * Progression summaries reuse the EXISTING index.adv.* i18n keys; compact
+ * presentation labels use the shared i18n.js registry. No component-local
+ * translation dictionary or progression mapping is created.
  * If the data fetch fails (or the session is unauthorized), this is
  * treated as a CRITICAL failure (a World Stage that can't show real
  * state is non-functional) and triggers full shell recovery to the
@@ -63,11 +64,30 @@
     d1_2: { x: 75.1, y: 50.4 }, d3_4: { x: 77.6, y: 68.8 },
     d5_6: { x: 50.8, y: 68.8 }, d7_plus: { x: 79.1, y: 17.6 }
   };
+  var ZONE_PLAQUE_SIDES = {
+    k26_30: 'right', k21_25: 'left', k16_20: 'left', k11_15: 'top',
+    k6_10: 'bottom', k1_5: 'left', d1_2: 'left', d3_4: 'right',
+    d5_6: 'left', d7_plus: 'left'
+  };
 
   function applyAnchor(el, anchor) {
     if (!el || !anchor) return;
     el.style.setProperty('--anchor-x', anchor.x + '%');
     el.style.setProperty('--anchor-y', anchor.y + '%');
+  }
+
+  function enableImmersiveRpgSkin(root, generation) {
+    var shell = root && root.closest ? root.closest('#e9-adventure-shell') : null;
+    if (!shell) return;
+    shell.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    document.body.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    if (window.E9 && typeof window.E9.registerCleanup === 'function') {
+      window.E9.registerCleanup(function () {
+        shell.removeAttribute('data-e10-visual-skin');
+        document.body.removeAttribute('data-e10-visual-skin');
+        if (window.E9) delete window.E9.latestZoneSelection;
+      }, generation);
+    }
   }
 
   function updatePlayerMarker(root, zoneKey) {
@@ -81,6 +101,15 @@
       mapStage.style.setProperty('--focus-y', anchor.y + '%');
     }
     marker.hidden = false;
+  }
+
+  function newbieCtaText(zone) {
+    var ctaKey = zone && zone.bossAvailable
+      ? 'adventure.newbie.cta_boss'
+      : (zone && (zone.cleared || zone.stars > 0)
+        ? 'adventure.newbie.cta_continue'
+        : 'adventure.newbie.cta_begin');
+    return t(ctaKey, 'Begin the Beginner Village Adventure');
   }
 
   function renderBeginnerVillageMainline(root, zone) {
@@ -117,12 +146,7 @@
 
     var cta = panel.querySelector('#e9-newbie-mainline-cta');
     if (cta) {
-      var ctaKey = zone.bossAvailable
-        ? 'adventure.newbie.cta_boss'
-        : (zone.cleared || zone.stars > 0
-          ? 'adventure.newbie.cta_continue'
-          : 'adventure.newbie.cta_begin');
-      cta.textContent = t(ctaKey, 'Begin the Beginner Village Adventure');
+      cta.textContent = newbieCtaText(zone);
       if (cta.__e9AdventureHandler) {
         cta.removeEventListener('click', cta.__e9AdventureHandler);
       }
@@ -140,9 +164,9 @@
     panel.hidden = false;
   }
 
-  // Every state text shown here reuses an existing index.adv.* key (see
-  // world_stage.html's header comment) -- this file adds no second
-  // translation dictionary. index.adv.boss_ready is a template
+  // Progression summaries reuse existing index.adv.* keys (see
+  // world_stage.html's header comment), while compact state labels resolve
+  // through the shared i18n registry. index.adv.boss_ready is a template
   // ('Seal broken: {seen}/{total}' / '封印解除：{seen}/{total} 題'); callers
   // MUST substitute both placeholders themselves (I18nFallback.t() only
   // returns the raw string -- same contract as legacy's own I18n.t()
@@ -158,6 +182,94 @@
   function clearedText(zone) {
     return t('index.adv.boss_cleared', 'Defeated {stars}')
       .replace('{stars}', String(zone.stars));
+  }
+
+  function zoneStateText(zone) {
+    if (zone.locked) return t('e10.world_stage.state_locked', 'Locked');
+    if (zone.cleared || zone.status === 'completed') {
+      return t('e10.world_stage.state_completed', 'Completed');
+    }
+    return t('e10.world_stage.state_available', 'Available');
+  }
+
+  function zoneSummaryText(zone) {
+    return zone.bossAvailable
+      ? bossReadyText(zone)
+      : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
+  }
+
+  function zoneProgressText(zone) {
+    return t('e10.world_stage.zone_progress', 'Quest progress {seen}/{total}')
+      .replace('{seen}', String(zone.seen || 0))
+      .replace('{total}', String(zone.total || 0));
+  }
+
+  function setSelectedTileState(root, zoneKey) {
+    root.querySelectorAll('[data-zone]').forEach(function (tile) {
+      var selected = tile.getAttribute('data-zone') === zoneKey;
+      if (tile.getAttribute('aria-disabled') !== 'true') {
+        tile.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      }
+      tile.classList.toggle('is-selected', selected);
+    });
+  }
+
+  function configureAdventureButton(button, zone, text) {
+    if (!button || !zone || zone.locked) {
+      if (button) button.hidden = true;
+      return;
+    }
+    button.hidden = false;
+    button.textContent = text;
+    if (button.__e9AdventureHandler) {
+      button.removeEventListener('click', button.__e9AdventureHandler);
+    }
+    button.__e9AdventureHandler = function () {
+      if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+        window.E9.startAdventureFromE9(zone.key);
+      }
+    };
+    if (window.E9 && typeof window.E9.on === 'function') {
+      window.E9.on(button, 'click', button.__e9AdventureHandler);
+    } else {
+      button.addEventListener('click', button.__e9AdventureHandler);
+    }
+  }
+
+  function configurePrimaryCta(root, zone) {
+    var primary = root.querySelector('#e9-world-stage-primary-cta');
+    var label = zone && zone.key === 'k26_30'
+      ? newbieCtaText(zone)
+      : t('e10.world_stage.continue_adventure', 'Continue Adventure');
+    configureAdventureButton(primary, zone, label);
+  }
+
+  function updateSelectedZoneCopy(root, zone) {
+    var label = root.querySelector('#e9-world-stage-details-label');
+    var stateText = root.querySelector('#e9-world-stage-details-state');
+    var summary = root.querySelector('#e9-world-stage-details-summary');
+    var progress = root.querySelector('#e9-world-stage-details-progress');
+    if (label) label.textContent = zoneDisplayName(zone) || zone.key;
+    if (stateText) stateText.textContent = zoneStateText(zone);
+    if (summary) summary.textContent = zoneSummaryText(zone);
+    if (progress) progress.textContent = zoneProgressText(zone);
+  }
+
+  function zoneSelectionDetail(zone) {
+    return {
+      zoneKey: zone.key,
+      status: zone.status,
+      name: zoneDisplayName(zone) || zone.key,
+      statusText: zoneStateText(zone),
+      summary: zoneSummaryText(zone),
+      progress: zoneProgressText(zone),
+    };
+  }
+
+  function dispatchZoneSelection(root, zone) {
+    var detail = zoneSelectionDetail(zone);
+    if (window.E9) window.E9.latestZoneSelection = detail;
+    root.dispatchEvent(new CustomEvent('e9:zone-selected', { bubbles: true, detail: detail }));
   }
 
   // The small zone-tile badge only ever shows index.adv.boss_ready's
@@ -185,7 +297,6 @@
     var state = root.__e9WorldStageState;
     var zone = zones.filter(function (item) { return item.key === zoneKey; })[0];
     var details = root.querySelector('#e9-world-stage-details');
-    var label = root.querySelector('#e9-world-stage-details-label');
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var cta = root.querySelector('#e9-world-stage-details-cta');
     var newbie = root.querySelector('#e9-newbie-mainline');
@@ -200,18 +311,18 @@
     }
 
     state.selectedZoneKey = zone.key;
-    root.querySelectorAll('[data-zone]').forEach(function (tile) {
-      var selected = tile.getAttribute('data-zone') === zone.key;
-      tile.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      tile.classList.toggle('is-selected', selected);
-    });
+    setSelectedTileState(root, zone.key);
     updatePlayerMarker(root, zone.key);
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-    if (details) details.hidden = isMobile;
-    if (label) label.textContent = zoneDisplayName(zone) || zone.key;
+    var isPortraitTablet = window.matchMedia && window.matchMedia(
+      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
+    ).matches;
+    if (details) details.hidden = !isPortraitTablet;
+    updateSelectedZoneCopy(root, zone);
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
       : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
+    configurePrimaryCta(root, zone);
 
     if (cta) {
       if (zone.key === 'k26_30') {
@@ -240,6 +351,7 @@
 
     root.querySelectorAll('.e9-zone__inline-details').forEach(function (panel) { panel.remove(); });
     if (isMobile) {
+      var inlineIsNewbie = !!(cta && cta.hidden);
       var selectedTile = root.querySelector('[data-zone="' + zone.key + '"]');
       if (selectedTile) {
         var inline = document.createElement('div');
@@ -247,23 +359,23 @@
         var inlineSummary = document.createElement('p');
         inlineSummary.textContent = summary ? summary.textContent : '';
         inline.appendChild(inlineSummary);
-        if (zone.key !== 'k26_30') {
-          var inlineCta = document.createElement('button');
-          inlineCta.type = 'button';
-          inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
-          inlineCta.textContent = t('index.adv.start_challenge', 'Start Challenge');
-          inlineCta.addEventListener('click', function (evt) {
-            evt.stopPropagation();
-            if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
-          });
-          inline.appendChild(inlineCta);
-        }
+        var inlineCta = document.createElement('button');
+        inlineCta.type = 'button';
+        inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
+        inlineCta.textContent = inlineIsNewbie
+          ? newbieCtaText(zone)
+          : t('index.adv.start_challenge', 'Start Challenge');
+        inlineCta.addEventListener('click', function (evt) {
+          evt.stopPropagation();
+          if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
+        });
+        inline.appendChild(inlineCta);
         selectedTile.appendChild(inline);
       }
     }
 
     renderBeginnerVillageMainline(root, zone);
-    if (newbie && zone.key !== 'k26_30') newbie.hidden = true;
+    if (newbie && (isMobile || zone.key !== 'k26_30')) newbie.hidden = true;
     if (focusDetails && details) {
       var focusTarget = zone.key === 'k26_30' && newbie && !newbie.hidden ? newbie : details;
       try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
@@ -295,6 +407,7 @@
       tile.type = 'button';
       tile.className = 'e9-zone e9-zone--' + (zone.status || 'locked');
       tile.setAttribute('data-zone', zone.key);
+      tile.setAttribute('data-plaque-side', ZONE_PLAQUE_SIDES[zone.key] || 'right');
       tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
       tile.setAttribute('aria-label', zoneDisplayName(zone));
       applyAnchor(tile, anchor);
@@ -326,10 +439,17 @@
       // API's name_en field), falling back to zone.name (Chinese) if
       // English isn't selected or nameEn is missing -- same precedence
       // the legacy Adventure Map's own _zoneName() already uses.
+      var plaque = document.createElement('span');
+      plaque.className = 'e9-zone__plaque';
       var label = document.createElement('span');
       label.className = 'e9-zone__name';
       label.textContent = zoneDisplayName(zone);
-      tile.appendChild(label);
+      plaque.appendChild(label);
+      var compactState = document.createElement('span');
+      compactState.className = 'e9-zone__status-text';
+      compactState.textContent = zoneStateText(zone);
+      plaque.appendChild(compactState);
+      tile.appendChild(plaque);
 
       if (zone.cleared || zone.stars > 0) {
         var starsEl = document.createElement('span');
@@ -347,9 +467,11 @@
 
       if (!zone.locked) {
         var activate = function () {
+          var selectionDetail = zoneSelectionDetail(zone);
+          if (window.E9) window.E9.latestZoneSelection = selectionDetail;
           tile.dispatchEvent(new CustomEvent('e9:zone-selected', {
             bubbles: true,
-            detail: { zoneKey: zone.key, status: zone.status },
+            detail: selectionDetail,
           }));
           renderSelectedZone(root, zones, zone.key, true);
         };
@@ -393,7 +515,27 @@
       statusEl.removeAttribute('data-i18n');
     }
     var selected = state.selectedZoneKey && zones.filter(function (zone) { return zone.key === state.selectedZoneKey; })[0];
-    if (selected && !selected.locked) renderSelectedZone(root, zones, selected.key, false);
+    if (selected && !selected.locked) {
+      renderSelectedZone(root, zones, selected.key, false);
+      dispatchZoneSelection(root, selected);
+    } else {
+      var recommended = zones.filter(function (zone) {
+        return !zone.locked && (zone.current || zone.selected || zone.status === 'unlocked');
+      })[0] || zones.filter(function (zone) { return !zone.locked; })[0];
+      if (recommended) {
+        state.selectedZoneKey = recommended.key;
+        setSelectedTileState(root, recommended.key);
+        updatePlayerMarker(root, recommended.key);
+        updateSelectedZoneCopy(root, recommended);
+        configurePrimaryCta(root, recommended);
+        dispatchZoneSelection(root, recommended);
+        var portraitDetails = root.querySelector('#e9-world-stage-details');
+        var portraitTablet = window.matchMedia && window.matchMedia(
+          '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
+        ).matches;
+        if (portraitDetails) portraitDetails.hidden = !portraitTablet;
+      }
+    }
   }
 
   function recoverToLegacy(reason) {
@@ -443,6 +585,7 @@
         return;
       }
       renderZones(root, result.data.zones);
+      enableImmersiveRpgSkin(root, generation);
     }).catch(function (err) {
       if (!current()) return;
       recoverToLegacy(err);

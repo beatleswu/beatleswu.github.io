@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v209-e10-world-stage-v1d1-i18n-a11y';
+const VERSION     = 'v213-e10-vs1e-review-closure';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

@@ -4,9 +4,9 @@
   Real data source: GET /api/adventure/bootstrap (same endpoint the legacy
   Adventure Map uses) -- response.zones[] with {key,label,name,name_en,icon,
   status,can_enter,completed,stars,boss:{available,name,name_en}}. No new API.
-  Zone-state text reuses the EXISTING index.adv.* i18n keys (zone_locked,
-  boss_ready, boss_cleared, summary, load_fail, start_challenge) -- no
-  second translation dictionary for adventure semantics. Zone display names
+  Progression summaries reuse the EXISTING index.adv.* i18n keys; compact
+  presentation labels live in the shared i18n.js registry, never a
+  component-local dictionary. Zone display names
   pick zone.nameEn under English locale (falling back to zone.name, the
   Chinese source string, if missing), via world_stage.js's zoneDisplayName()
   -- the same precedence the legacy Adventure Map's own _zoneName() uses,
@@ -15,7 +15,6 @@
   per E9.1A2 scope.
 -->
 <main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-i18n-aria-label="e9.world_stage.aria_label">
-  <div class="e9-stage__status" id="e9-world-stage-status" data-i18n="e9.world_stage.loading" aria-live="polite">Loading adventure map…</div>
   <!-- Base L0-L3 is the governed, static V1 asset. L4 route and L5 nodes
        remain independent DOM/SVG overlays in this map-stage-local frame. -->
   <section class="e9-map-stage" id="e9-map-stage" data-i18n-aria-label="e10.world_stage.map_aria_label" hidden>
@@ -31,10 +30,15 @@
     <div class="e9-map-stage__boss-anchors" id="e9-world-stage-boss-anchors" aria-hidden="true"></div>
     <div class="e9-map-stage__nodes" id="e9-world-stage-zones" data-i18n-aria-label="e10.world_stage.zones_aria_label"></div>
     <div class="e9-map-stage__player" id="e9-world-stage-player" aria-hidden="true" hidden></div>
+    <div class="e9-stage__status" id="e9-world-stage-status" data-i18n="e9.world_stage.loading" aria-live="polite">Loading adventure map…</div>
+    <button class="e10-map-primary-cta e9-adventure-cta" id="e9-world-stage-primary-cta" type="button" hidden></button>
   </section>
   <section class="e9-zone-details" id="e9-world-stage-details" tabindex="-1" aria-live="polite" hidden>
+    <p class="e9-zone-details__kicker" data-i18n="e10.world_stage.selected_quest">Selected quest</p>
     <p class="e9-zone-details__label" id="e9-world-stage-details-label"></p>
+    <p class="e9-zone-details__state" id="e9-world-stage-details-state"></p>
     <p class="e9-zone-details__summary" id="e9-world-stage-details-summary"></p>
+    <p class="e9-zone-details__progress" id="e9-world-stage-details-progress"></p>
     <button class="e9-zone-details__cta e9-adventure-cta" id="e9-world-stage-details-cta" type="button" hidden></button>
   </section>
   <section class="e9-newbie-mainline" id="e9-newbie-mainline" tabindex="-1" aria-live="polite" hidden>

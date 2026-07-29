@@ -37,6 +37,7 @@
   }
 
   function setCompactProgress(root, cleared, total) {
+    root.__e9CompactProgress = { cleared: cleared, total: total };
     var compact = formatCompactProgress(cleared, total);
     var toggle = root.querySelector('#e9-right-drawer-toggle');
     var mobileSummary = root.querySelector('#e9-right-drawer-mobile-summary');
@@ -48,6 +49,22 @@
     if (mobileSummary) {
       mobileSummary.textContent = compact;
       mobileSummary.removeAttribute('data-i18n');
+    }
+  }
+
+  function updateDrawerZoneSummary(root, detail) {
+    if (!detail) return;
+    var title = root.querySelector('#e10-drawer-zone-title');
+    var state = root.querySelector('#e10-drawer-zone-state');
+    var body = root.querySelector('#e10-drawer-zone-body');
+    if (title) {
+      title.textContent = detail.name || detail.zoneKey || '';
+      title.removeAttribute('data-i18n');
+    }
+    if (state) state.textContent = detail.statusText || '';
+    if (body) {
+      body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
+      body.removeAttribute('data-i18n');
     }
   }
 
@@ -142,6 +159,9 @@
     setCompactProgress(root, 0, 0);
     var toggle = root.querySelector('#e9-right-drawer-toggle');
     var panel = root.querySelector('#e9-right-drawer-panel');
+    var current = function () {
+      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
+    };
     var setOpen = function (open) {
       if (!toggle || !panel) return;
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -151,19 +171,37 @@
     if (toggle && panel) {
       var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
       var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
+      var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
+      var onI18nChanged = function () {
+        if (!current()) return;
+        var progress = root.__e9CompactProgress;
+        if (progress) setCompactProgress(root, progress.cleared, progress.total);
+        if (window.E9 && window.E9.latestZoneSelection) {
+          updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
+        }
+      };
       setOpen(false);
+      if (window.E9 && window.E9.latestZoneSelection) {
+        updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
+      }
       if (window.E9 && typeof window.E9.on === 'function') {
         window.E9.on(toggle, 'click', onToggle, null, generation);
         window.E9.on(document, 'keydown', onKey, null, generation);
+        window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
+        window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
       } else {
         toggle.addEventListener('click', onToggle);
         document.addEventListener('keydown', onKey);
+        document.addEventListener('e9:zone-selected', onZoneSelected);
+        document.addEventListener('e9:i18n-changed', onI18nChanged);
       }
     }
 
-    var current = function () {
-      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
-    };
+    if (window.E9 && typeof window.E9.registerCleanup === 'function') {
+      window.E9.registerCleanup(function () {
+        delete root.__e9CompactProgress;
+      }, generation);
+    }
     loadDailyChallenge(root, current);
     loadBossProgress(root, current);
     loadSrsDue(root, current);

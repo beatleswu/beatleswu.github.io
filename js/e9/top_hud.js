@@ -76,7 +76,12 @@
 
       if (data.coins !== null) {
         if (coinsEl) {
-          coinsEl.textContent = '🪙 ' + data.coins.toLocaleString();
+          var formattedCoins = data.coins.toLocaleString();
+          coinsEl.textContent = formattedCoins;
+          coinsEl.setAttribute(
+            'aria-label',
+            t('e10.rpg.coins_label', '{n} coins').replace('{n}', formattedCoins)
+          );
           coinsEl.hidden = false;
         }
       }
