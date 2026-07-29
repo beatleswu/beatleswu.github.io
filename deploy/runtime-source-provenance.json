@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "99c9485cffd710451ad41f61f0a2a8900ede08b3",
-      "source_branch_or_local_ref": "feature/e9-beta-quest1",
-      "source_commit_subject": "feat(e9): add read-only quest board",
-      "source_date": "2026-07-19",
-      "content_sha256": "0ae02e3720b682c0072918cc1469db0a6579f9459dbe7ee797d73f8b641f93e7",
+      "source_commit": "b561798217cad7e694e3a018187679edc6132d03",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix: close VS1E packaging and i18n review gaps",
+      "source_date": "2026-07-30",
+      "content_sha256": "d21b280fe9c2ae7757798d8f21cba83679092626854a41e1277c7753bb42a865",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (PR #106 is merged but not deployed) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "merged to origin/master and deployed to GitHub Pages at merge 7113d701749da2c1b36a1bf37630c4119b1d9988; not released to godokoro.com / Go Odyssey Production in this Sprint",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -459,27 +459,27 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "c02f31de2c8b1c34538d58722907c79d582232eb",
+      "source_commit": "9b47f792bea8449f28db5b2201853064ca545194",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: localize E10 world stage initial and aria copy",
-      "source_date": "2026-07-28",
-      "content_sha256": "7c575c46dd5975b36d9f0dc54bfe15b6c38112642b58a5b59ee77b0fd96f2f24",
+      "source_commit_subject": "fix: complete E10 VS1E on-map RPG layout",
+      "source_date": "2026-07-29",
+      "content_sha256": "d8219780ca6b36547bc5af6b4f8c549dc1f716d30ecd0a54bcb66f0b96d9b1c6",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and byte-verified against current content"
+      "production_hash_status": "merged to origin/master and deployed to GitHub Pages at merge 7113d701749da2c1b36a1bf37630c4119b1d9988; not released to godokoro.com / Go Odyssey Production in this Sprint",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "components/adventure/world_stage.html",
-      "source_commit": "c02f31de2c8b1c34538d58722907c79d582232eb",
+      "source_commit": "9b47f792bea8449f28db5b2201853064ca545194",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: localize E10 world stage initial and aria copy",
-      "source_date": "2026-07-28",
-      "content_sha256": "a20c5eaf1e3a7dd4f44cb868bc07067ed5c59ff34a20a775e5980b139ebd1c85",
+      "source_commit_subject": "fix: complete E10 VS1E on-map RPG layout",
+      "source_date": "2026-07-29",
+      "content_sha256": "95774196da1be3548b119e673dfb51e3c49f36fb11061fad0c796962e2e85453",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage component markup; served by app.py static route",
-      "production_hash_status": "does NOT byte-match current Production -- PR #215 is merged but not deployed; Production remains on 56234fa9 / v204-e9-multi-zone-adventure-cta",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and byte-verified against current content"
+      "production_hash_status": "merged to origin/master and deployed to GitHub Pages at merge 7113d701749da2c1b36a1bf37630c4119b1d9988; not released to godokoro.com / Go Odyssey Production in this Sprint",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "css/e9/world_stage.css",
@@ -495,39 +495,39 @@
     },
     {
       "path": "js/e9/feature_flags.js",
-      "source_commit": "c02f31de2c8b1c34538d58722907c79d582232eb",
+      "source_commit": "b561798217cad7e694e3a018187679edc6132d03",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: localize E10 world stage initial and aria copy",
-      "source_date": "2026-07-28",
-      "content_sha256": "179867eb927d5cfdefd501d41ea83c64ae7e68c8ba1d7fdd12c6f5f7a507d16b",
+      "source_commit_subject": "fix: close VS1E packaging and i18n review gaps",
+      "source_date": "2026-07-30",
+      "content_sha256": "a746e51bf2af76c2e92d11627a1c4c483f8fd415057a3790433b825408422b9a",
       "line_ending_policy": "LF",
       "runtime_role": "E9 feature flag bootstrap; all production flags remain false",
-      "production_hash_status": "not deployed; Production remains on the pre-C1.1 runtime",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and byte-verified against current content"
+      "production_hash_status": "merged to origin/master and deployed to GitHub Pages at merge 7113d701749da2c1b36a1bf37630c4119b1d9988; not released to godokoro.com / Go Odyssey Production in this Sprint",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "c02f31de2c8b1c34538d58722907c79d582232eb",
+      "source_commit": "b561798217cad7e694e3a018187679edc6132d03",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: localize E10 world stage initial and aria copy",
-      "source_date": "2026-07-28",
-      "content_sha256": "6696b1c8e2788d50ad65956f3cdc9d24ed0e9315c2f2c2d83ed38c19aaa16b3e",
+      "source_commit_subject": "fix: close VS1E packaging and i18n review gaps",
+      "source_date": "2026-07-30",
+      "content_sha256": "e294180bd6c6dbf49b8889899ab7d5d5558e36265371abec35cfee91898bc650",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "not deployed; Production remains on the pre-#213 runtime (predates the multi-zone adventure start CTA / seen-total fix)",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and byte-verified against current content"
+      "production_hash_status": "merged to origin/master and deployed to GitHub Pages at merge 7113d701749da2c1b36a1bf37630c4119b1d9988; not released to godokoro.com / Go Odyssey Production in this Sprint",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "sw.js",
-      "source_commit": "c02f31de2c8b1c34538d58722907c79d582232eb",
+      "source_commit": "b561798217cad7e694e3a018187679edc6132d03",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: localize E10 world stage initial and aria copy",
-      "source_date": "2026-07-28",
-      "content_sha256": "9d3480c91fddf13ce355d19d11a8856901e1bdf776e6daaffe95a0fc1cd3a0c2",
+      "source_commit_subject": "fix: close VS1E packaging and i18n review gaps",
+      "source_date": "2026-07-30",
+      "content_sha256": "70e0aba997a461fd01dc4b8cb52e3e24b01284e1b4719b3524b9df8a22a72417",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "does NOT byte-match current Production -- PR #228 (VERSION bump to v207-e10-zone-visual-foundation) is merged but not deployed; Production still serves 56234fa9 / v204-e9-multi-zone-adventure-cta",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and byte-verified against current content"
+      "production_hash_status": "merged to origin/master and deployed to GitHub Pages at merge 7113d701749da2c1b36a1bf37630c4119b1d9988; not released to godokoro.com / Go Odyssey Production in this Sprint",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",
