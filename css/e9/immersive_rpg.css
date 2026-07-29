@@ -799,6 +799,7 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
 
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] {
     --e9-shell-gap: 10px;
+    --e10-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"]::before {
@@ -851,7 +852,7 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
     position: fixed;
     z-index: 30;
     right: 6px;
-    bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(6px + var(--e10-safe-area-bottom));
     left: 6px;
     width: auto;
     padding: 6px;
@@ -865,15 +866,31 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
     gap: 4px;
   }
 
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__list > li {
+    min-width: 0;
+  }
+
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item {
     flex-direction: column;
     justify-content: center;
     gap: 3px;
-    width: auto;
+    width: 100%;
+    min-width: 0;
     min-height: 54px;
     padding: 4px 2px;
-    font-size: 9px;
+    overflow: hidden;
+    font-size: clamp(8px, 2.3vw, 9px);
     text-align: center;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item > span {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__icon {
@@ -1332,7 +1349,15 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
 
 @media (max-width: 767px) {
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage {
-    min-height: 1100px;
+    box-sizing: border-box;
+    min-height: 0;
+    padding-top: 242px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage__nodes {
+    position: relative;
+    inset: auto !important;
+    top: auto !important;
   }
 
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage__status,

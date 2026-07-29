@@ -166,6 +166,33 @@ async function runtimeSnapshot(page) {
     const duplicateIds = Array.from(document.querySelectorAll('[id]'))
       .map((element) => element.id)
       .filter((id, index, ids) => ids.indexOf(id) !== index);
+    const navItems = Array.from(document.querySelectorAll('.e9-nav__item'))
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return box.width > 0 && box.height > 0;
+      });
+    const navItemRects = navItems.map((element) => element.getBoundingClientRect());
+    const zoneRects = Array.from(document.querySelectorAll('#e9-world-stage-zones [data-zone]'))
+      .map((element) => element.getBoundingClientRect());
+    const overlapCount = (rects) => rects.reduce((count, current, index) => (
+      count + rects.slice(index + 1).filter((other) => (
+        current.left < other.right
+        && current.right > other.left
+        && current.top < other.bottom
+        && current.bottom > other.top
+      )).length
+    ), 0);
+    const labelWrapCount = navItems.filter((item) => {
+      const label = item.querySelector('span');
+      if (!label) return false;
+      const style = getComputedStyle(label);
+      const lineHeight = Number.parseFloat(style.lineHeight);
+      return style.whiteSpace !== 'nowrap'
+        || (Number.isFinite(lineHeight) && label.getBoundingClientRect().height > lineHeight * 1.25);
+    }).length;
+    const map = document.querySelector('#e9-map-stage')?.getBoundingClientRect();
+    const lastZone = zoneRects.at(-1);
+    const nav = document.querySelector('#left-nav')?.getBoundingClientRect();
     return {
       activeShell: document.body.getAttribute('data-adventure-shell-active'),
       skin: document.body.getAttribute('data-e10-visual-skin'),
@@ -197,6 +224,14 @@ async function runtimeSnapshot(page) {
       navPosition: getComputedStyle(document.querySelector('#left-nav')).position,
       navSlotPosition: getComputedStyle(document.querySelector('#e9-left-nav-slot')).position,
       navColumns: getComputedStyle(document.querySelector('.e9-nav__list')).gridTemplateColumns,
+      navItemCount: navItems.length,
+      navRowCount: new Set(navItemRects.map((box) => Math.round(box.top))).size,
+      navLabelWrapCount: labelWrapCount,
+      navOverlapCount: overlapCount(navItemRects),
+      zoneOverlapCount: overlapCount(zoneRects),
+      journeyTailGap: map && lastZone ? Math.round((map.bottom - lastZone.bottom) * 100) / 100 : null,
+      lastZoneDockClearance: lastZone && nav ? Math.round((nav.top - lastZone.bottom) * 100) / 100 : null,
+      dockBottomClearance: nav ? Math.round((window.innerHeight - nav.bottom) * 100) / 100 : null,
       horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
       minimumTarget: allTargets.reduce((smallest, element) => {
         const target = element.getBoundingClientRect();
@@ -233,6 +268,28 @@ async function runCase(browser, origin, outputDir, spec) {
   const url = `${origin}/index.html?lang=${spec.lang}&${shellFlags}`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await waitForShell(page);
+
+  if (spec.safeAreaBottom) {
+    await page.locator('#e9-adventure-shell').evaluate((shell, safeAreaBottom) => {
+      shell.style.setProperty('--e10-safe-area-bottom', `${safeAreaBottom}px`);
+    }, spec.safeAreaBottom);
+  }
+
+  if (spec.longLabelStress) {
+    await page.locator('.e9-nav__item > span').evaluateAll((labels) => {
+      const stressLabels = [
+        'Adventure Chronicle',
+        'Legendary Hero',
+        'Equipment Workshop',
+        'Expedition Backpack',
+        'Kingdom Missions',
+        'Enchanted Shop',
+      ];
+      labels.forEach((label, index) => {
+        label.textContent = stressLabels[index];
+      });
+    });
+  }
 
   let detailMapBefore = null;
   if (spec.zone) {
@@ -317,6 +374,29 @@ function assertCase(result) {
     }
     if (!snapshot.navColumns || snapshot.navColumns.split(' ').length !== 6) {
       failures.push(`${specName}: bottom dock is not one six-item row`);
+    }
+    if (result.viewport.width < 768) {
+      if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 1) {
+        failures.push(`${specName}: mobile dock is not one six-item row`);
+      }
+      if (snapshot.navLabelWrapCount !== 0) {
+        failures.push(`${specName}: mobile dock label wrapping ${snapshot.navLabelWrapCount}`);
+      }
+      if (snapshot.navOverlapCount !== 0) {
+        failures.push(`${specName}: mobile dock overlap ${snapshot.navOverlapCount}`);
+      }
+      if (snapshot.zoneOverlapCount !== 0) {
+        failures.push(`${specName}: mobile journey overlap ${snapshot.zoneOverlapCount}`);
+      }
+      if (result.zoneTailCheck && snapshot.journeyTailGap > 32) {
+        failures.push(`${specName}: abnormal journey tail ${snapshot.journeyTailGap}px`);
+      }
+      if (result.zoneTailCheck && snapshot.lastZoneDockClearance < 0) {
+        failures.push(`${specName}: last zone is obscured by the dock`);
+      }
+      if (result.safeAreaBottom && snapshot.dockBottomClearance < result.safeAreaBottom + 5) {
+        failures.push(`${specName}: safe-area clearance ${snapshot.dockBottomClearance}px`);
+      }
     }
     if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
     if (result.viewport.width >= 768 && (!snapshot.primaryCta || !snapshot.progressOverlay)) {
@@ -433,7 +513,10 @@ async function main() {
       { specName: 'tablet-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'mobile-zone-1', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-1-zh.png', zone: 'k26_30', mobileInline: true, layout: 'bottom-dock' },
       { specName: 'mobile-zone-6', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-6-inline-en.png', zone: 'k1_5', mobileInline: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-10', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-10-zh.png', zone: 'd7_plus', layout: 'bottom-dock' },
+      { specName: 'mobile-zone-10-zh', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-10-zh.png', zone: 'd7_plus', zoneTailCheck: true, layout: 'bottom-dock' },
+      { specName: 'mobile-zone-10-en', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-10-en.png', zone: 'd7_plus', zoneTailCheck: true, layout: 'bottom-dock' },
+      { specName: 'mobile-long-label-stress', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-stress-en.png', longLabelStress: true, layout: 'bottom-dock' },
+      { specName: 'mobile-safe-area', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
     ];
     const results = [];
     for (const spec of specs) results.push(await runCase(browser, origin, outputDir, spec));

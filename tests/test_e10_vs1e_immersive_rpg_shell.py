@@ -105,13 +105,13 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-vs1e-on-map-rpg-layout'" in FLAGS
-    assert "const VERSION     = 'v211-e10-vs1e-on-map-rpg-layout'" in SW
-    assert "/i18n.js?v=20260729e10vs1e2" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260729e10vs1e2" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260729e10vs1e2" in INDEX
-    assert "/js/e9/right_cards.js?v=20260729e10vs1e2" in INDEX
-    assert "/js/e9/world_stage.js?v=20260729e10vs1e2" in INDEX
+    assert "ASSET_VERSION = 'e10-vs1e-mobile-closure'" in FLAGS
+    assert "const VERSION     = 'v212-e10-vs1e-mobile-closure'" in SW
+    assert "/i18n.js?v=20260729e10vs1e3" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260729e10vs1e3" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260729e10vs1e3" in INDEX
+    assert "/js/e9/right_cards.js?v=20260729e10vs1e3" in INDEX
+    assert "/js/e9/world_stage.js?v=20260729e10vs1e3" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():
@@ -145,6 +145,12 @@ def test_responsive_navigation_and_details_follow_orientation_contract():
     assert "newbieCtaText(zone)" in WORLD_JS
     assert "isMobile || zone.key !== 'k26_30'" in WORLD_JS
     assert "scrollWidth" not in CSS  # no runtime geometry mutation
+    assert "--e10-safe-area-bottom: env(safe-area-inset-bottom, 0px)" in CSS
+    assert "white-space: nowrap" in CSS
+    assert "text-overflow: ellipsis" in CSS
+    assert "padding-top: 242px" in CSS
+    assert "position: relative" in CSS
+    assert "min-height: 1100px" not in CSS
 
 
 def test_boss_anchor_visibility_and_state_non_color_cues_remain():
