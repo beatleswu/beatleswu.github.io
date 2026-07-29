@@ -51,6 +51,22 @@
     }
   }
 
+  function updateDrawerZoneSummary(root, detail) {
+    if (!detail) return;
+    var title = root.querySelector('#e10-drawer-zone-title');
+    var state = root.querySelector('#e10-drawer-zone-state');
+    var body = root.querySelector('#e10-drawer-zone-body');
+    if (title) {
+      title.textContent = detail.name || detail.zoneKey || '';
+      title.removeAttribute('data-i18n');
+    }
+    if (state) state.textContent = detail.statusText || '';
+    if (body) {
+      body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
+      body.removeAttribute('data-i18n');
+    }
+  }
+
   function errorTextFor(cardKey, result) {
     if (result.kind === 'unauthorized') return t('e9.right_cards.unauthorized', 'Please log in again');
     return t('e9.right_cards.error', 'Unavailable');
@@ -151,13 +167,19 @@
     if (toggle && panel) {
       var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
       var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
+      var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
       setOpen(false);
+      if (window.E9 && window.E9.latestZoneSelection) {
+        updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
+      }
       if (window.E9 && typeof window.E9.on === 'function') {
         window.E9.on(toggle, 'click', onToggle, null, generation);
         window.E9.on(document, 'keydown', onKey, null, generation);
+        window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
       } else {
         toggle.addEventListener('click', onToggle);
         document.addEventListener('keydown', onKey);
+        document.addEventListener('e9:zone-selected', onZoneSelected);
       }
     }
 

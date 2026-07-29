@@ -179,7 +179,11 @@ async function runtimeSnapshot(page) {
       stage: roundRect(rect('#adventure-stage')),
       nav: roundRect(rect('#left-nav')),
       drawer: roundRect(rect('#e9-right-drawer-panel')),
+      primaryCta: roundRect(rect('#e9-world-stage-primary-cta:not([hidden])')),
+      progressOverlay: roundRect(rect('#e9-world-stage-status')),
       details: roundRect(rect('#e9-world-stage-details:not([hidden]), #e9-newbie-mainline:not([hidden])')),
+      plaqueCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__plaque').length,
+      plaqueStatusCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__status-text').length,
       drawerExpanded: document.querySelector('#e9-right-drawer-toggle')?.getAttribute('aria-expanded'),
       detailsVisible: !!document.querySelector('#e9-world-stage-details:not([hidden]), #e9-newbie-mainline:not([hidden])'),
       inlineDetailsVisible: !!document.querySelector('.e9-zone[aria-pressed="true"] > .e9-zone__inline-details'),
@@ -254,6 +258,9 @@ async function runCase(browser, origin, outputDir, spec) {
       await page.keyboard.press('Escape');
       escaped = await page.locator('#e9-right-drawer-toggle').getAttribute('aria-expanded');
       await resetViewportScroll(page);
+      await toggle.click();
+      await page.locator('#e9-right-drawer-panel').waitFor({ state: 'visible' });
+      await resetViewportScroll(page);
     }
   }
 
@@ -271,6 +278,9 @@ function assertCase(result) {
     failures.push(`${specName}: RPG skin marker missing`);
   }
   if (snapshot.nodeCount !== 10) failures.push(`${specName}: node count ${snapshot.nodeCount}`);
+  if (snapshot.plaqueCount !== 10 || snapshot.plaqueStatusCount !== 10) {
+    failures.push(`${specName}: persistent map plaques are incomplete`);
+  }
   if (snapshot.legacyVisible) failures.push(`${specName}: Legacy shell remains visible`);
   if (snapshot.horizontalOverflow !== 0) failures.push(`${specName}: horizontal overflow ${snapshot.horizontalOverflow}`);
   if (snapshot.minimumTarget < 44) failures.push(`${specName}: interactive target below 44px (${snapshot.minimumTarget})`);
@@ -286,10 +296,19 @@ function assertCase(result) {
       if (before[key] !== after[key]) failures.push(`${specName}: drawer changed map ${key}`);
     }
   }
+  if (result.progressDrawerCheck && (
+    snapshot.drawerExpanded !== 'true'
+    || !snapshot.drawer
+    || snapshot.drawer.width <= 0
+    || snapshot.drawer.height <= 0
+  )) failures.push(`${specName}: open screenshot does not contain the quest drawer`);
   if (result.escapeCheck && result.escaped !== 'false') failures.push(`${specName}: Escape did not close drawer`);
   if (result.layout === 'rail') {
     if (!snapshot.nav || !snapshot.map || snapshot.nav.right > snapshot.map.left) {
       failures.push(`${specName}: vertical navigation rail is not left of map`);
+    }
+    if (!snapshot.primaryCta || !snapshot.progressOverlay) {
+      failures.push(`${specName}: closed-state map CTA/progress overlay missing`);
     }
   }
   if (result.layout === 'bottom-dock') {
@@ -300,15 +319,15 @@ function assertCase(result) {
       failures.push(`${specName}: bottom dock is not one six-item row`);
     }
     if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
+    if (result.viewport.width >= 768 && (!snapshot.primaryCta || !snapshot.progressOverlay)) {
+      failures.push(`${specName}: portrait map CTA/progress overlay missing`);
+    }
   }
-  if (result.detailOpen) {
+  if (result.portraitContext) {
     if (!snapshot.detailsVisible || !snapshot.details) failures.push(`${specName}: detail overlay is not visible`);
-    if (snapshot.details && snapshot.map && (
-      snapshot.details.left < snapshot.map.left
-      || snapshot.details.right > snapshot.map.right
-      || snapshot.details.top < snapshot.map.top
-      || snapshot.details.bottom > snapshot.map.bottom
-    )) failures.push(`${specName}: detail overlay escapes map bounds`);
+    if (snapshot.details && snapshot.map && snapshot.details.top < snapshot.map.bottom) {
+      failures.push(`${specName}: portrait quest context is not below the map`);
+    }
     if (result.detailMapBefore && (
       result.detailMapBefore.map.width !== snapshot.map.width
       || result.detailMapBefore.map.height !== snapshot.map.height
@@ -406,12 +425,12 @@ async function main() {
   try {
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
-      { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', detailOpen: true, layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'desktop-1440', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-zh.png', layout: 'rail' },
       { specName: 'tablet-landscape-closed', viewport: { width: 1024, height: 768 }, lang: 'en', filename: 'tablet-1024x768-closed-en.png', layout: 'rail' },
-      { specName: 'tablet-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', detailOpen: true, layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'tablet-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'tablet-portrait-closed', viewport: { width: 768, height: 1024 }, lang: 'en', filename: 'tablet-768x1024-portrait-closed-en.png', layout: 'bottom-dock' },
-      { specName: 'tablet-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', detailOpen: true, layout: 'bottom-dock' },
+      { specName: 'tablet-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'mobile-zone-1', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-1-zh.png', zone: 'k26_30', mobileInline: true, layout: 'bottom-dock' },
       { specName: 'mobile-zone-6', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-6-inline-en.png', zone: 'k1_5', mobileInline: true, layout: 'bottom-dock' },
       { specName: 'mobile-zone-10', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-10-zh.png', zone: 'd7_plus', layout: 'bottom-dock' },

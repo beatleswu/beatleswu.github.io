@@ -172,7 +172,7 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
         };
         const isMobile = window.matchMedia('(max-width: 767px)').matches;
         const activeCta = (desktopSelector) => inspectButton(
-          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-cta' : desktopSelector
+          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-cta' : '#e9-world-stage-primary-cta'
         );
 
         select('k26_30');
@@ -182,14 +182,14 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
         select('k21_25');
         const slimePlains = activeCta('#e9-world-stage-details-cta');
         const slimeDetails = document.querySelector(
-          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-details' : '#e9-world-stage-details'
+          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-details' : '#e9-map-stage'
         )?.getBoundingClientRect();
         const slimeSummary = document.querySelector('#e9-world-stage-details-summary')?.textContent;
 
         select('k16_20');
         const anotherGeneric = activeCta('#e9-world-stage-details-cta');
         const anotherGenericElement = document.querySelector(
-          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-cta' : '#e9-world-stage-details-cta'
+          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-cta' : '#e9-world-stage-primary-cta'
         );
         anotherGenericElement?.focus({ preventScroll: true });
         const focusOutlineStyle = anotherGenericElement

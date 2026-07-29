@@ -94,12 +94,24 @@ def test_hud_has_no_fabricated_avatar_or_placeholder_resource():
 def test_i18n_and_cache_versions_are_coupled():
     assert "'e10.rpg.world_stage_label'" in I18N
     assert "'e10.rpg.coins_label'" in I18N
-    assert "ASSET_VERSION = 'e10-vs1e-immersive-rpg-shell'" in FLAGS
-    assert "const VERSION     = 'v210-e10-vs1e-immersive-rpg-shell'" in SW
-    assert "/css/e9/immersive_rpg.css?v=20260729e10vs1e" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260729e10vs1e" in INDEX
-    assert "/js/e9/top_hud.js?v=20260729e10vs1e" in INDEX
-    assert "/js/e9/world_stage.js?v=20260729e10vs1e" in INDEX
+    for key in (
+        "e10.world_stage.state_locked",
+        "e10.world_stage.state_completed",
+        "e10.world_stage.state_available",
+        "e10.world_stage.continue_adventure",
+        "e10.world_stage.selected_quest",
+        "e10.world_stage.select_zone",
+        "e10.world_stage.select_zone_hint",
+        "e10.world_stage.zone_progress",
+    ):
+        assert f"'{key}'" in I18N
+    assert "ASSET_VERSION = 'e10-vs1e-on-map-rpg-layout'" in FLAGS
+    assert "const VERSION     = 'v211-e10-vs1e-on-map-rpg-layout'" in SW
+    assert "/i18n.js?v=20260729e10vs1e2" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260729e10vs1e2" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260729e10vs1e2" in INDEX
+    assert "/js/e9/right_cards.js?v=20260729e10vs1e2" in INDEX
+    assert "/js/e9/world_stage.js?v=20260729e10vs1e2" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():
@@ -143,3 +155,23 @@ def test_boss_anchor_visibility_and_state_non_color_cues_remain():
     assert ".e9-zone--completed" in CSS
     assert ".e9-zone[disabled]" in CSS
     assert '.e9-zone[aria-pressed="true"]' in CSS
+
+
+def test_owner_correction_keeps_map_ui_persistent_and_drawer_structural():
+    world_html = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
+    cards_html = (ROOT / "components/adventure/right_cards.html").read_text(encoding="utf-8")
+    cards_js = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
+    for required in (
+        "e9-world-stage-primary-cta",
+        "e9-world-stage-details-progress",
+        "e9-zone__plaque",
+        "e9-zone__status-text",
+        "configurePrimaryCta",
+        "dispatchZoneSelection",
+    ):
+        assert required in (world_html + WORLD_JS)
+    assert "e10-drawer-zone-summary" in cards_html
+    assert "updateDrawerZoneSummary" in cards_js
+    assert "latestZoneSelection" in WORLD_JS
+    assert "latestZoneSelection" in cards_js
+    assert "delete window.E9.latestZoneSelection" in WORLD_JS

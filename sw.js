@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v210-e10-vs1e-immersive-rpg-shell';
+const VERSION     = 'v211-e10-vs1e-on-map-rpg-layout';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

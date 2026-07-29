@@ -361,7 +361,7 @@ def test_reuses_existing_window_onlangchange_mechanism_not_a_new_one():
 def test_sw_version_bumped():
     sw_js = _read(SW_JS)
     assert OLD_SW_VERSION not in sw_js, "sw.js VERSION must be bumped, not left at the pre-E9.1A2 value"
-    assert "v210-e10-vs1e-immersive-rpg-shell" in sw_js
+    assert "v211-e10-vs1e-on-map-rpg-layout" in sw_js
 
 
 def test_sw_cache_strategy_functions_unchanged():
