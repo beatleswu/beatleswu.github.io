@@ -104,9 +104,21 @@ function buildMockResponse(pathname) {
   if (pathname === '/api/adventure/bootstrap') {
     return {
       zones: [
-        { key: 'forest', name: 'Forest', status: 'completed', stars: 3, boss: { available: false } },
-        { key: 'cave', name: 'Cave', status: 'unlocked', stars: 1, boss: { available: true } },
-        { key: 'lake', name: 'Lake', status: 'locked', stars: 0, boss: { available: false } },
+        {
+          key: 'k26_30', name: '圍棋新手村', name_en: 'Beginner Village',
+          status: 'completed', stars: 3, seen: 30, total: 30,
+          boss: { available: false },
+        },
+        {
+          key: 'k21_25', name: '史萊姆平原', name_en: 'Slime Plains',
+          status: 'unlocked', stars: 1, seen: 18, total: 25,
+          boss: { available: true },
+        },
+        {
+          key: 'k16_20', name: '哥布林洞穴', name_en: 'Goblin Cave',
+          status: 'locked', stars: 0, seen: 0, total: 20,
+          boss: { available: false },
+        },
       ],
     };
   }
@@ -431,8 +443,51 @@ async function main() {
       '/api/mistakes/stats': 0,
     }));
 
-    report.cases.push(await runCase(browser, origin, 'language_switch_not_refetch', {}, async (page) => {
-      await page.evaluate(() => { window.I18n.setLang(window.I18n.getLang() === 'en' ? 'zh' : 'en'); });
+    report.cases.push(await runCase(browser, origin, 'language_switch_not_refetch', {
+      verify: async (page) => {
+        const state = await page.evaluate(() => window.__E9_TEST_LANGUAGE_SWITCH_STATE__);
+        const expected = {
+          zh: {
+            compact: '進度 1/3',
+            title: '史萊姆平原',
+            zoneState: '可挑戰',
+            bodyIncludes: '任務進度 18/25',
+          },
+          en: {
+            compact: 'Progress 1/3',
+            title: 'Slime Plains',
+            zoneState: 'Available',
+            bodyIncludes: 'Quest progress 18/25',
+          },
+        };
+        for (const lang of ['zh', 'en', 'zhAgain']) {
+          const wanted = expected[lang === 'zhAgain' ? 'zh' : lang];
+          const actual = state[lang];
+          if (
+            actual.compact !== wanted.compact
+            || actual.title !== wanted.title
+            || actual.zoneState !== wanted.zoneState
+            || !actual.body.includes(wanted.bodyIncludes)
+          ) {
+            throw new Error(`language_switch_not_refetch: ${lang} localization mismatch ${JSON.stringify(actual)}`);
+          }
+        }
+      },
+    }, async (page) => {
+      await page.evaluate(() => {
+        const snapshot = () => ({
+          compact: document.querySelector('#e9-right-drawer-mobile-summary')?.textContent.trim(),
+          title: document.querySelector('#e10-drawer-zone-title')?.textContent.trim(),
+          zoneState: document.querySelector('#e10-drawer-zone-state')?.textContent.trim(),
+          body: document.querySelector('#e10-drawer-zone-body')?.textContent.trim(),
+        });
+        window.I18n.setLang('zh');
+        const zh = snapshot();
+        window.I18n.setLang('en');
+        const en = snapshot();
+        window.I18n.setLang('zh');
+        window.__E9_TEST_LANGUAGE_SWITCH_STATE__ = { zh, en, zhAgain: snapshot() };
+      });
     }, {
       '/api/skills/profile': 0,
       '/api/user/coins': 0,

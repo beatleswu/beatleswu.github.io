@@ -44,7 +44,8 @@ E9_JS_FILES = [
     "adapters/player_state.js", "adapters/adventure_state.js", "adapters/activity_state.js",
 ]
 E9_CSS_FILES = [
-    "cards.css", "navigation.css", "rwd.css", "shell.css", "top_hud.css", "world_stage.css",
+    "cards.css", "immersive_rpg.css", "navigation.css", "quests.css",
+    "rwd.css", "shell.css", "top_hud.css", "world_stage.css",
 ]
 E9_COMPONENT_FILES = [
     "bottom_dock.html", "left_nav.html", "right_cards.html", "top_hud.html", "world_stage.html",
@@ -147,6 +148,15 @@ def test_all_e9_source_files_actually_exist_on_disk():
         assert (REPO_ROOT / "css" / "e9" / f).is_file()
     for f in E9_COMPONENT_FILES:
         assert (REPO_ROOT / "components" / "adventure" / f).is_file()
+
+
+def test_e9_css_inventory_exactly_matches_source_directory():
+    source_files = {
+        path.name
+        for path in (REPO_ROOT / "css" / "e9").iterdir()
+        if path.is_file() and path.suffix == ".css"
+    }
+    assert set(E9_CSS_FILES) == source_files
 
 
 def test_build_script_platform_contract_unchanged_by_this_fix():

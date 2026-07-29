@@ -105,13 +105,13 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-vs1e-mobile-closure'" in FLAGS
-    assert "const VERSION     = 'v212-e10-vs1e-mobile-closure'" in SW
-    assert "/i18n.js?v=20260729e10vs1e3" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260729e10vs1e3" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260729e10vs1e3" in INDEX
-    assert "/js/e9/right_cards.js?v=20260729e10vs1e3" in INDEX
-    assert "/js/e9/world_stage.js?v=20260729e10vs1e3" in INDEX
+    assert "ASSET_VERSION = 'e10-vs1e-review-closure'" in FLAGS
+    assert "const VERSION     = 'v213-e10-vs1e-review-closure'" in SW
+    assert "/i18n.js?v=20260729e10vs1e4" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260729e10vs1e4" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260729e10vs1e4" in INDEX
+    assert "/js/e9/right_cards.js?v=20260729e10vs1e4" in INDEX
+    assert "/js/e9/world_stage.js?v=20260729e10vs1e4" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():
@@ -181,3 +181,15 @@ def test_owner_correction_keeps_map_ui_persistent_and_drawer_structural():
     assert "latestZoneSelection" in WORLD_JS
     assert "latestZoneSelection" in cards_js
     assert "delete window.E9.latestZoneSelection" in WORLD_JS
+
+
+def test_live_language_switch_relocalizes_progress_and_selected_drawer_state():
+    cards_js = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
+    assert "root.__e9CompactProgress" in cards_js
+    assert "setCompactProgress(root, progress.cleared, progress.total)" in cards_js
+    assert "window.E9.latestZoneSelection" in cards_js
+    assert "window.E9.on(document, 'e9:i18n-changed', onI18nChanged" in cards_js
+    assert "delete root.__e9CompactProgress" in cards_js
+    selected_rerender = "renderSelectedZone(root, zones, selected.key, false);"
+    localized_dispatch = "dispatchZoneSelection(root, selected);"
+    assert WORLD_JS.index(selected_rerender) < WORLD_JS.index(localized_dispatch)

@@ -517,6 +517,7 @@
     var selected = state.selectedZoneKey && zones.filter(function (zone) { return zone.key === state.selectedZoneKey; })[0];
     if (selected && !selected.locked) {
       renderSelectedZone(root, zones, selected.key, false);
+      dispatchZoneSelection(root, selected);
     } else {
       var recommended = zones.filter(function (zone) {
         return !zone.locked && (zone.current || zone.selected || zone.status === 'unlocked');
