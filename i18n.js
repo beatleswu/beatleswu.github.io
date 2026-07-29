@@ -2966,6 +2966,8 @@ const I18n = (() => {
         'e9.top_hud.error':             { en: 'Player status unavailable', zh: '玩家狀態暫時無法取得' },
         'e9.top_hud.unauthorized':      { en: 'Please log in again', zh: '請重新登入' },
         'e9.top_hud.level_label':       { en: 'Lv.', zh: '等級' },
+        'e10.rpg.world_stage_label':     { en: 'World Stage', zh: '世界舞台' },
+        'e10.rpg.coins_label':           { en: '{n} coins', zh: '{n} 枚金幣' },
         'e9.left_nav.aria_label':       { en: 'Adventure navigation', zh: '冒險導覽' },
         'e9.left_nav.adventure':        { en: 'Adventure', zh: '冒險' },
         'e9.left_nav.hero':             { en: 'Hero', zh: '英雄' },

@@ -70,6 +70,19 @@
     el.style.setProperty('--anchor-y', anchor.y + '%');
   }
 
+  function enableImmersiveRpgSkin(root, generation) {
+    var shell = root && root.closest ? root.closest('#e9-adventure-shell') : null;
+    if (!shell) return;
+    shell.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    document.body.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    if (window.E9 && typeof window.E9.registerCleanup === 'function') {
+      window.E9.registerCleanup(function () {
+        shell.removeAttribute('data-e10-visual-skin');
+        document.body.removeAttribute('data-e10-visual-skin');
+      }, generation);
+    }
+  }
+
   function updatePlayerMarker(root, zoneKey) {
     var marker = root.querySelector('#e9-world-stage-player');
     var anchor = ZONE_ANCHORS[zoneKey];
@@ -81,6 +94,15 @@
       mapStage.style.setProperty('--focus-y', anchor.y + '%');
     }
     marker.hidden = false;
+  }
+
+  function newbieCtaText(zone) {
+    var ctaKey = zone && zone.bossAvailable
+      ? 'adventure.newbie.cta_boss'
+      : (zone && (zone.cleared || zone.stars > 0)
+        ? 'adventure.newbie.cta_continue'
+        : 'adventure.newbie.cta_begin');
+    return t(ctaKey, 'Begin the Beginner Village Adventure');
   }
 
   function renderBeginnerVillageMainline(root, zone) {
@@ -117,12 +139,7 @@
 
     var cta = panel.querySelector('#e9-newbie-mainline-cta');
     if (cta) {
-      var ctaKey = zone.bossAvailable
-        ? 'adventure.newbie.cta_boss'
-        : (zone.cleared || zone.stars > 0
-          ? 'adventure.newbie.cta_continue'
-          : 'adventure.newbie.cta_begin');
-      cta.textContent = t(ctaKey, 'Begin the Beginner Village Adventure');
+      cta.textContent = newbieCtaText(zone);
       if (cta.__e9AdventureHandler) {
         cta.removeEventListener('click', cta.__e9AdventureHandler);
       }
@@ -240,6 +257,7 @@
 
     root.querySelectorAll('.e9-zone__inline-details').forEach(function (panel) { panel.remove(); });
     if (isMobile) {
+      var inlineIsNewbie = !!(cta && cta.hidden);
       var selectedTile = root.querySelector('[data-zone="' + zone.key + '"]');
       if (selectedTile) {
         var inline = document.createElement('div');
@@ -247,23 +265,23 @@
         var inlineSummary = document.createElement('p');
         inlineSummary.textContent = summary ? summary.textContent : '';
         inline.appendChild(inlineSummary);
-        if (zone.key !== 'k26_30') {
-          var inlineCta = document.createElement('button');
-          inlineCta.type = 'button';
-          inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
-          inlineCta.textContent = t('index.adv.start_challenge', 'Start Challenge');
-          inlineCta.addEventListener('click', function (evt) {
-            evt.stopPropagation();
-            if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
-          });
-          inline.appendChild(inlineCta);
-        }
+        var inlineCta = document.createElement('button');
+        inlineCta.type = 'button';
+        inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
+        inlineCta.textContent = inlineIsNewbie
+          ? newbieCtaText(zone)
+          : t('index.adv.start_challenge', 'Start Challenge');
+        inlineCta.addEventListener('click', function (evt) {
+          evt.stopPropagation();
+          if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
+        });
+        inline.appendChild(inlineCta);
         selectedTile.appendChild(inline);
       }
     }
 
     renderBeginnerVillageMainline(root, zone);
-    if (newbie && zone.key !== 'k26_30') newbie.hidden = true;
+    if (newbie && (isMobile || zone.key !== 'k26_30')) newbie.hidden = true;
     if (focusDetails && details) {
       var focusTarget = zone.key === 'k26_30' && newbie && !newbie.hidden ? newbie : details;
       try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
@@ -443,6 +461,7 @@
         return;
       }
       renderZones(root, result.data.zones);
+      enableImmersiveRpgSkin(root, generation);
     }).catch(function (err) {
       if (!current()) return;
       recoverToLegacy(err);

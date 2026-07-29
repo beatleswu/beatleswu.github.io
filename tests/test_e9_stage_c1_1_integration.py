@@ -76,7 +76,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v209-e10-world-stage-v1d1-i18n-a11y" in SW
+    assert "v210-e10-vs1e-immersive-rpg-shell" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 

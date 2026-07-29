@@ -170,19 +170,27 @@ async function collectMetrics(page, state, viewport, origin, requestLog, screens
           if (!tile) throw new Error(`missing zone tile ${zoneKey}`);
           tile.click();
         };
+        const isMobile = window.matchMedia('(max-width: 767px)').matches;
+        const activeCta = (desktopSelector) => inspectButton(
+          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-cta' : desktopSelector
+        );
 
         select('k26_30');
-        const beginner = inspectButton('#e9-newbie-mainline-cta');
+        const beginner = activeCta('#e9-newbie-mainline-cta');
         const beginnerGenericHidden = document.querySelector('#e9-world-stage-details-cta')?.hidden;
 
         select('k21_25');
-        const slimePlains = inspectButton('#e9-world-stage-details-cta');
-        const slimeDetails = document.querySelector('#e9-world-stage-details')?.getBoundingClientRect();
+        const slimePlains = activeCta('#e9-world-stage-details-cta');
+        const slimeDetails = document.querySelector(
+          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-details' : '#e9-world-stage-details'
+        )?.getBoundingClientRect();
         const slimeSummary = document.querySelector('#e9-world-stage-details-summary')?.textContent;
 
         select('k16_20');
-        const anotherGeneric = inspectButton('#e9-world-stage-details-cta');
-        const anotherGenericElement = document.querySelector('#e9-world-stage-details-cta');
+        const anotherGeneric = activeCta('#e9-world-stage-details-cta');
+        const anotherGenericElement = document.querySelector(
+          isMobile ? '.e9-zone[aria-pressed="true"] .e9-zone__inline-cta' : '#e9-world-stage-details-cta'
+        );
         anotherGenericElement?.focus({ preventScroll: true });
         const focusOutlineStyle = anotherGenericElement
           ? getComputedStyle(anotherGenericElement).outlineStyle
@@ -306,7 +314,13 @@ function assertContracts(results) {
     if (metrics.shell && metrics.shell.top < 0) failures.push(`${viewport} ON: shell top ${metrics.shell.top} is clipped above viewport`);
     if (metrics.overflowX > 0) failures.push(`${viewport} ON: horizontal overflow ${metrics.overflowX}`);
     if (metrics.legacyFocusables !== 0) failures.push(`${viewport} ON: legacy focusables should be 0, got ${metrics.legacyFocusables}`);
-    if (metrics.dock && metrics.cards && metrics.dock.top + 1 < metrics.cards.bottom) {
+    if (
+      metrics.dock?.display !== 'none'
+      && metrics.dock.width > 0
+      && metrics.dock.height > 0
+      && metrics.cards
+      && metrics.dock.top + 1 < metrics.cards.bottom
+    ) {
       failures.push(`${viewport} ON: bottom dock overlaps cards/stage flow`);
     }
     if (!cta?.beginner || cta.beginner.hidden) failures.push(`${viewport} ON: Beginner CTA missing`);
@@ -341,11 +355,12 @@ function assertContracts(results) {
       failures.push(`${viewport} ON: clicking locked zone changed selection`);
     }
     if (parseInt(viewport.split('x')[0], 10) >= 1280) {
-      if (!metrics.leftNav || metrics.leftNav.width < 200 || metrics.leftNav.width > 270) {
+      if (!metrics.leftNav || metrics.leftNav.width < 148 || metrics.leftNav.width > 190) {
         failures.push(`${viewport} ON: desktop left-nav width out of contract`);
       }
     }
-    if (parseInt(viewport.split('x')[0], 10) <= 1024) {
+    const [viewportWidth, viewportHeight] = viewport.split('x').map(Number);
+    if (viewportWidth <= 1024 && viewportHeight > viewportWidth) {
       if (!metrics.stage || !metrics.shell || metrics.stage.width + 1 < metrics.shell.width) {
         failures.push(`${viewport} ON: stacked stage should occupy the shell width`);
       }

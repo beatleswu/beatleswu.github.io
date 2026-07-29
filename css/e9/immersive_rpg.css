@@ -1,0 +1,1016 @@
+/*
+ * E10 VS1E — immersive RPG shell visual pass.
+ *
+ * This stylesheet is loaded with the ordinary E9 assets but is inert until
+ * the critical World Stage has loaded real adventure data and
+ * world_stage.js sets data-e10-visual-skin="immersive-rpg". Legacy and
+ * mixed-version fallback therefore retain their existing presentation.
+ */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] {
+  --e10-ink: #24170f;
+  --e10-ink-soft: #5f4931;
+  --e10-parchment: #fff2cf;
+  --e10-parchment-deep: #e7c98e;
+  --e10-parchment-edge: #b98743;
+  --e10-gold: #f3cf73;
+  --e10-gold-bright: #fff0ad;
+  --e10-gold-deep: #8d5a1e;
+  --e10-metal: #344b54;
+  --e10-metal-light: #68818a;
+  --e10-metal-dark: #14262d;
+  --e10-wood: #694024;
+  --e10-wood-light: #a86f3e;
+  --e10-wood-dark: #2b190f;
+  --e10-teal: #087f78;
+  --e10-teal-bright: #20b7a7;
+  --e10-teal-dark: #034c4a;
+  --e10-success: #2f8458;
+  --e10-focus: #fff2a8;
+  --e10-frame-shadow: 0 18px 38px rgba(17, 25, 27, .30);
+  position: relative;
+  isolation: isolate;
+  color: var(--e10-ink);
+}
+
+body[data-e10-visual-skin="immersive-rpg"] main .practice {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(255, 235, 170, .34), transparent 32%),
+    radial-gradient(circle at 88% 24%, rgba(48, 167, 148, .18), transparent 30%),
+    linear-gradient(180deg, #d8e3d7 0, #b9cfbe 42%, #e6d5af 100%);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -12px;
+  border: 1px solid rgba(255, 241, 186, .42);
+  border-radius: 28px;
+  background:
+    linear-gradient(90deg, transparent 0 48%, rgba(255, 255, 255, .10) 50%, transparent 52%),
+    linear-gradient(180deg, rgba(38, 73, 67, .28), rgba(74, 49, 27, .20));
+  box-shadow: 0 24px 60px rgba(31, 44, 38, .22);
+  pointer-events: none;
+}
+
+/* Top HUD */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 82px;
+  padding: 10px 16px;
+  color: #fff8df;
+  border: 2px solid var(--e10-gold);
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .09), transparent 18% 82%, rgba(255, 255, 255, .07)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 7px),
+    linear-gradient(150deg, var(--e10-metal-light), var(--e10-metal) 32%, var(--e10-metal-dark));
+  box-shadow:
+    inset 0 0 0 3px rgba(30, 17, 8, .62),
+    inset 0 1px 0 rgba(255, 255, 255, .24),
+    var(--e10-frame-shadow);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__crest {
+  width: 44px;
+  height: 52px;
+  flex: 0 0 auto;
+  overflow: visible;
+  fill: var(--e10-wood);
+  stroke: var(--e10-gold-bright);
+  stroke-width: 2;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .34));
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__crest circle:first-of-type {
+  fill: #f7efe0;
+  stroke: #3f3125;
+  stroke-width: 1.5;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__crest circle:last-of-type {
+  fill: #28333a;
+  stroke: #f4d789;
+  stroke-width: 1.5;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__copy strong {
+  color: var(--e10-gold-bright);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(18px, 1.7vw, 25px);
+  letter-spacing: .025em;
+  text-shadow: 0 2px 0 #4c2b10, 0 3px 8px rgba(0, 0, 0, .55);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__copy > span {
+  margin-top: 3px;
+  color: #d9ede7;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__player {
+  justify-self: center;
+  width: min(100%, 360px);
+  min-height: 50px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 225, 143, .48);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(24, 11, 5, .18), rgba(24, 11, 5, .48)),
+    linear-gradient(90deg, var(--e10-wood-light), var(--e10-wood));
+  box-shadow: inset 0 0 0 2px rgba(40, 20, 8, .42);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__name {
+  color: #fffaf0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  text-shadow: 0 2px 2px #29150c;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__level,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__coins {
+  min-height: 40px;
+  padding: 7px 12px;
+  border: 1px solid var(--e10-gold);
+  border-radius: 9px;
+  color: #fff7d8;
+  background: linear-gradient(180deg, rgba(12, 54, 54, .80), rgba(4, 42, 42, .92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 2px 5px rgba(0, 0, 0, .28);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__resources {
+  justify-self: end;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__coins::before {
+  content: "";
+  width: 19px;
+  height: 19px;
+  border: 2px solid #fff1aa;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3a8, #dba637 58%, #7d4c16);
+  box-shadow: inset 0 0 0 2px rgba(107, 63, 13, .44);
+}
+
+/* Navigation */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav {
+  padding: 12px;
+  border: 2px solid var(--e10-gold);
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 9px),
+    linear-gradient(100deg, var(--e10-wood-light), var(--e10-wood) 40%, var(--e10-wood-dark));
+  box-shadow:
+    inset 0 0 0 3px rgba(36, 18, 8, .55),
+    var(--e10-frame-shadow);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__list {
+  gap: 9px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid rgba(246, 213, 129, .48);
+  border-radius: 10px;
+  color: #fff5d9;
+  font-weight: 750;
+  line-height: 1.2;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(0, 0, 0, .12)),
+    linear-gradient(100deg, #3f5961, #20383f);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 3px 7px rgba(20, 10, 4, .30);
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__icon {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--e10-gold-bright);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item:hover {
+  border-color: var(--e10-gold-bright);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .13), rgba(0, 0, 0, .08)),
+    linear-gradient(100deg, #55717a, #2b4a51);
+  transform: translateY(-1px);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item.is-active {
+  color: #fffdf0;
+  border-color: #fff0a6;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(0, 0, 0, .10)),
+    linear-gradient(110deg, var(--e10-teal-bright), var(--e10-teal) 48%, var(--e10-teal-dark));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 233, 162, .23),
+    0 0 0 2px rgba(78, 43, 16, .44),
+    0 4px 10px rgba(4, 48, 47, .36);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item:focus-visible,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-dock__item:focus-visible,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-drawer-toggle:focus-visible {
+  outline: 3px solid var(--e10-focus);
+  outline-offset: 3px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item[aria-disabled="true"],
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item:disabled {
+  opacity: .52;
+  filter: saturate(.35);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* World Stage frame */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage {
+  position: relative;
+  padding: 12px;
+  overflow: visible;
+  border: 3px solid var(--e10-gold);
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .08), transparent 12% 88%, rgba(255, 255, 255, .06)),
+    linear-gradient(160deg, #49646b, var(--e10-metal) 40%, var(--e10-metal-dark));
+  box-shadow:
+    inset 0 0 0 4px rgba(32, 16, 8, .58),
+    inset 0 0 24px rgba(0, 0, 0, .28),
+    var(--e10-frame-shadow);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage::before,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  top: -7px;
+  width: 54px;
+  height: 16px;
+  border: 2px solid var(--e10-gold);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--e10-gold-bright), var(--e10-gold-deep));
+  box-shadow: inset 0 0 0 3px var(--e10-wood);
+  pointer-events: none;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage::before { left: 28px; }
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage::after { right: 28px; }
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage__status {
+  position: absolute;
+  z-index: 8;
+  top: 24px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 18px;
+  border: 1px solid var(--e10-gold);
+  border-radius: 5px 5px 12px 12px;
+  color: #fff5d7;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .035em;
+  background: linear-gradient(180deg, var(--e10-wood-light), var(--e10-wood-dark));
+  box-shadow: 0 4px 9px rgba(28, 14, 6, .34);
+  transform: translateX(-50%);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage {
+  border: 2px solid #ffd97c;
+  border-radius: 12px;
+  background: #18344d;
+  box-shadow:
+    inset 0 0 0 4px rgba(33, 19, 9, .70),
+    inset 0 0 24px rgba(0, 0, 0, .34),
+    0 9px 18px rgba(13, 20, 22, .34);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage__base {
+  filter: saturate(1.06) contrast(1.025) brightness(1.035);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-route__ground-shadow {
+  stroke: rgba(54, 28, 7, .76);
+  stroke-width: 13;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-route__ground {
+  stroke: #ffe38b;
+  stroke-width: 6;
+  filter: drop-shadow(0 0 3px rgba(255, 226, 128, .55));
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-route__ascension {
+  stroke: #73f1dc;
+  filter: drop-shadow(0 0 4px rgba(54, 226, 203, .62));
+}
+
+/* Zone plaques and state semantics */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone {
+  width: clamp(48px, 3.8vw, 58px);
+  min-width: 48px;
+  height: clamp(48px, 3.8vw, 58px);
+  min-height: 48px;
+  border: 3px solid var(--e10-gold-bright);
+  border-radius: 12px 12px 16px 16px;
+  color: #2a1608;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .55), transparent 28%),
+    linear-gradient(180deg, #ffe59a, #d99c36 58%, #804913);
+  box-shadow:
+    inset 0 0 0 2px rgba(106, 55, 12, .45),
+    0 3px 0 #5b3212,
+    0 7px 14px rgba(14, 24, 24, .46);
+  text-shadow: 0 1px 0 rgba(255, 249, 213, .74);
+  transition: transform 130ms ease, filter 130ms ease, box-shadow 130ms ease;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone::before {
+  inset: 5px;
+  border: 1px solid rgba(116, 62, 15, .46);
+  border-radius: 7px 7px 10px 10px;
+  background: transparent;
+  opacity: 1;
+  transform: none;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone::after {
+  inset: auto 12px -7px;
+  height: 9px;
+  border: 1px solid #6d3e17;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(180deg, var(--e10-gold), var(--e10-gold-deep));
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone:hover:not([disabled]) {
+  transform: translate(-50%, calc(-50% - 2px));
+  filter: brightness(1.08);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__number {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__state {
+  right: -6px;
+  top: -7px;
+  min-width: 21px;
+  min-height: 21px;
+  border: 2px solid var(--e10-gold-bright);
+  color: #fff;
+  background: var(--e10-teal-dark);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .48);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone--completed {
+  border-color: #fff2a6;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .48), transparent 30%),
+    linear-gradient(180deg, #8ee2aa, #3c9a68 56%, #19543c);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone--completed .e9-zone__state {
+  background: var(--e10-success);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone[disabled] {
+  opacity: .82;
+  filter: grayscale(.78) brightness(.72);
+  border-style: double;
+  border-width: 4px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone.is-selected,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone[aria-pressed="true"] {
+  border-color: #fff8c5;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .42), transparent 30%),
+    linear-gradient(180deg, #46d6c2, var(--e10-teal) 56%, var(--e10-teal-dark));
+  color: #fff;
+  text-shadow: 0 1px 2px #022f30;
+  outline: 3px solid #fff1a3;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(19, 178, 157, .42), 0 8px 18px rgba(2, 46, 45, .50);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone.is-current:not(.is-selected) {
+  outline: 3px solid #7ff3dd;
+  outline-offset: 3px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone:focus-visible {
+  outline: 4px solid var(--e10-focus);
+  outline-offset: 4px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__name {
+  top: calc(100% + 9px);
+  max-width: 132px;
+  padding: 4px 8px;
+  border: 1px solid var(--e10-gold);
+  border-radius: 5px;
+  color: #fff7dd;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 11px;
+  font-weight: 800;
+  background: linear-gradient(180deg, rgba(100, 60, 31, .96), rgba(39, 25, 17, .96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 3px 7px rgba(0, 0, 0, .38);
+  text-shadow: 0 1px 2px #1b0d07;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage__boss-anchors {
+  visibility: hidden;
+}
+
+/* Parchment details and drawer */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-newbie-mainline,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-card,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-board {
+  border: 2px solid var(--e10-parchment-edge);
+  border-radius: 12px;
+  color: var(--e10-ink);
+  background:
+    radial-gradient(circle at 12% 16%, rgba(137, 82, 31, .08) 0 2px, transparent 3px),
+    linear-gradient(100deg, rgba(255, 255, 255, .38), transparent 24% 78%, rgba(126, 73, 29, .09)),
+    var(--e10-parchment);
+  box-shadow:
+    inset 0 0 18px rgba(133, 77, 30, .16),
+    0 5px 12px rgba(31, 20, 11, .28);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-newbie-mainline {
+  padding: 18px 20px;
+}
+
+@media (min-width: 768px) {
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-newbie-mainline {
+    position: absolute;
+    z-index: 7;
+    top: 76px;
+    right: 24px;
+    width: min(350px, calc(100% - 48px));
+    max-height: calc(100% - 112px);
+    overflow-y: auto;
+  }
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details::before,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-newbie-mainline::before,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-card::before,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-board::before {
+  content: "";
+  display: block;
+  height: 3px;
+  margin: -6px 0 11px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--e10-gold-deep) 16% 84%, transparent);
+  opacity: .72;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__label,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-newbie-mainline__title,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-card h4,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-board h3,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-card h4 {
+  color: #4b2d17;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__summary,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-card__body,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-board__header p,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-card p {
+  color: var(--e10-ink-soft);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage__note {
+  color: #e9e0bf;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-adventure-cta,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-cta {
+  min-height: 46px;
+  border: 2px solid var(--e10-gold-bright);
+  border-radius: 8px;
+  color: #fffdf1;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .18), transparent 45%),
+    linear-gradient(110deg, var(--e10-teal-bright), var(--e10-teal) 52%, var(--e10-teal-dark));
+  background-color: var(--e10-teal);
+  box-shadow:
+    inset 0 0 0 2px rgba(7, 59, 57, .48),
+    0 3px 0 #473018,
+    0 6px 12px rgba(4, 61, 58, .28);
+  text-decoration: none;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-adventure-cta:hover,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-cta:hover {
+  filter: brightness(1.08);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-adventure-cta:focus-visible,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-cta:focus-visible {
+  outline: 3px solid var(--e10-focus);
+  outline-offset: 3px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-drawer-toggle {
+  position: relative;
+  min-height: 48px;
+  padding: 9px 42px 9px 14px;
+  border: 2px solid var(--e10-gold);
+  border-radius: 10px;
+  color: #fff7dc;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(0, 0, 0, .15)),
+    linear-gradient(100deg, var(--e10-wood-light), var(--e10-wood-dark));
+  box-shadow: inset 0 0 0 2px rgba(39, 19, 8, .46), 0 5px 12px rgba(26, 14, 7, .32);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-drawer-toggle::after {
+  content: "";
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-right: 3px solid var(--e10-gold-bright);
+  border-bottom: 3px solid var(--e10-gold-bright);
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 140ms ease;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-drawer-toggle[aria-expanded="true"]::after {
+  transform: translateY(-30%) rotate(225deg);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-drawer-panel:not([hidden]) {
+  padding: 10px;
+  border: 2px solid var(--e10-gold);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .05), transparent 18% 82%, rgba(255, 255, 255, .04)),
+    linear-gradient(155deg, var(--e10-metal-light), var(--e10-metal-dark));
+  box-shadow: inset 0 0 0 3px rgba(31, 16, 8, .52), var(--e10-frame-shadow);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-card,
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-board {
+  padding: 14px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-tabs button {
+  min-height: 44px;
+  border: 1px solid var(--e10-parchment-edge);
+  color: var(--e10-ink);
+  background: rgba(255, 248, 220, .72);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-tabs button[aria-selected="true"] {
+  border-color: var(--e10-gold-deep);
+  color: #fff;
+  background: var(--e10-teal-dark);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-quest-card {
+  border-top-color: rgba(121, 72, 30, .35);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] progress {
+  overflow: hidden;
+  border: 1px solid #8f612f;
+  border-radius: 999px;
+  background: #d9bd89;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] progress::-webkit-progress-bar {
+  background: #d9bd89;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--e10-teal), var(--e10-teal-bright));
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] progress::-moz-progress-bar {
+  background: linear-gradient(90deg, var(--e10-teal), var(--e10-teal-bright));
+}
+
+/* Bottom function dock */
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-dock {
+  gap: 9px;
+  padding: 10px 14px;
+  border: 2px solid var(--e10-gold);
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 8px),
+    linear-gradient(150deg, #4f666d, var(--e10-metal-dark));
+  box-shadow: inset 0 0 0 3px rgba(32, 16, 8, .52), 0 10px 22px rgba(18, 26, 27, .30);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-dock__item {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 224, 139, .58);
+  border-radius: 8px;
+  color: #fff7dd;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(65, 37, 19, .62));
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-dock__item:hover {
+  border-color: var(--e10-gold-bright);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .15), rgba(9, 102, 95, .72));
+}
+
+/* Landscape tablet retains the desktop hierarchy: a vertical command rail
+   beside the map. Supporting progress remains an overlay and never claims a
+   map grid track. */
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body {
+    grid-template-columns: minmax(0, 188px) minmax(0, 1fr);
+    grid-template-areas: "nav stage";
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    grid-area: nav;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-slot {
+    grid-area: stage;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot {
+    position: absolute;
+    z-index: 9;
+    top: 104px;
+    right: 16px;
+    width: auto;
+    min-height: 48px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud {
+    grid-template-columns: minmax(210px, 1fr) minmax(220px, 1fr) auto;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav {
+    padding: 9px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item {
+    justify-content: flex-start;
+    min-height: 50px;
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] #e9-right-drawer-panel:not([hidden]) {
+    border-color: var(--e10-gold);
+  }
+}
+
+/* Portrait tablet promotes the six real navigation routes to one bottom
+   command dock. The map keeps the full content width and progress overlays
+   it; the secondary legacy dock is omitted to avoid competing controls. */
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  body[data-e10-visual-skin="immersive-rpg"] main .practice {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body {
+    display: block;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot {
+    position: fixed;
+    z-index: 30;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot {
+    position: absolute;
+    z-index: 9;
+    top: 104px;
+    right: 16px;
+    width: auto;
+    min-height: 48px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-bottom-dock-slot {
+    display: none;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav {
+    padding: 7px;
+    border-radius: 14px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__list {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-height: 62px;
+    padding: 5px 3px;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Mobile: compact HUD, safe-area-aware bottom navigation, vertical journey
+   and parchment inline detail. No desktop sidebars are carried over. */
+
+@media (max-width: 767px) {
+  body[data-e10-visual-skin="immersive-rpg"] main .practice {
+    padding-inline: 7px !important;
+    padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] {
+    --e9-shell-gap: 10px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"]::before {
+    inset: -5px;
+    border-radius: 18px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 72px;
+    padding: 8px 10px;
+    gap: 8px 10px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand {
+    grid-column: 1 / -1;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__crest {
+    width: 29px;
+    height: 34px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__copy strong {
+    font-size: 17px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-hud-brand__copy > span {
+    font-size: 9px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__player {
+    justify-self: stretch;
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__name {
+    font-size: 15px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__level,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-hud__coins {
+    min-height: 38px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav {
+    position: fixed;
+    z-index: 30;
+    right: 6px;
+    bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    left: 6px;
+    width: auto;
+    padding: 6px;
+    border-radius: 13px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__list {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: 100%;
+    gap: 4px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    width: auto;
+    min-height: 54px;
+    padding: 4px 2px;
+    font-size: 9px;
+    text-align: center;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-nav__icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage::before,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage::after {
+    display: none;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-stage__status {
+    top: 16px;
+    width: calc(100% - 32px);
+    justify-content: center;
+    padding-inline: 10px;
+    text-align: center;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage {
+    border-width: 2px;
+    border-radius: 9px;
+    background:
+      linear-gradient(180deg, #274a51 0 228px, #705037 228px 100%);
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-map-stage__nodes {
+    gap: 9px;
+    padding: 0 8px 14px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone {
+    transform: none;
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    height: auto;
+    padding: 8px 12px;
+    border-radius: 9px;
+    grid-template-columns: 30px minmax(0, 1fr) 28px;
+    color: #2a1608;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone:hover:not([disabled]) {
+    transform: translateY(-1px);
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone::before {
+    inset: 4px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone::after {
+    inset: 12px -5px 12px auto;
+    width: 8px;
+    height: auto;
+    border-radius: 0 6px 6px 0;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__state {
+    position: static;
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 25px;
+    min-height: 25px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__name {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    max-width: none;
+    padding: 0;
+    border: 0;
+    color: #3f2817;
+    background: transparent;
+    box-shadow: none;
+    font-size: 15px;
+    text-align: left;
+    text-shadow: none;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone.is-selected .e9-zone__name,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone[aria-pressed="true"] .e9-zone__name {
+    color: #fff;
+    text-shadow: 0 1px 2px #033d3c;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__inline-details {
+    margin: 4px -3px -2px;
+    padding: 12px;
+    border: 1px solid var(--e10-parchment-edge);
+    border-radius: 8px;
+    color: var(--e10-ink);
+    background: var(--e10-parchment);
+    box-shadow: inset 0 0 12px rgba(124, 73, 30, .14);
+    text-shadow: none;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone__inline-cta {
+    min-height: 46px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-newbie-mainline {
+    position: static;
+    padding: 14px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-drawer-mobile-summary {
+    display: block;
+    min-height: 44px;
+    padding: 11px 14px;
+    border: 2px solid var(--e10-parchment-edge);
+    border-radius: 9px;
+    color: var(--e10-ink);
+    background: var(--e10-parchment);
+    box-shadow: inset 0 0 12px rgba(124, 73, 30, .14);
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-dock {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] *,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] *::before,
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
