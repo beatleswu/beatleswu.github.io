@@ -10,6 +10,8 @@ WORLD_JS = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
 CSS = (ROOT / "css/e9/immersive_rpg.css").read_text(encoding="utf-8")
 LEFT_NAV = (ROOT / "components/adventure/left_nav.html").read_text(encoding="utf-8")
 BOTTOM_DOCK = (ROOT / "components/adventure/bottom_dock.html").read_text(encoding="utf-8")
+LEFT_NAV_JS = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
+BOTTOM_DOCK_JS = (ROOT / "js/e9/bottom_dock.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
@@ -82,16 +84,27 @@ def test_landmarks_are_decorative_and_only_created_for_mobile_cards():
     assert "landmark.loading = 'lazy'" in gated_block.group(0)
 
 
-def test_route_topology_is_exact_and_material_layers_do_not_add_paths():
+def test_route_topology_is_base_safe_and_material_layers_are_exact_marker_only():
     route_paths = re.findall(r'<path[^>]+d="([^"]+)"', WORLD_STAGE)
     assert set(route_paths) == {GROUND_ROUTE, ASCENSION_ROUTE}
-    assert route_paths.count(GROUND_ROUTE) == 5
-    assert route_paths.count(ASCENSION_ROUTE) == 3
+    assert route_paths.count(GROUND_ROUTE) == 2
+    assert route_paths.count(ASCENSION_ROUTE) == 2
+    assert "e9-route__material" not in WORLD_STAGE
+    assert "data-e10-vs1f-route-layer" not in WORLD_STAGE
+    gated_builder = re.search(
+        r"function ensureVs1fRouteLayers\(root\) \{.*?\n  \}",
+        WORLD_JS,
+        re.S,
+    )
+    assert gated_builder
+    assert "if (!VS1E_STATIC_CONTRACT_ACTIVE) return;" in gated_builder.group(0)
+    assert "createElementNS('http://www.w3.org/2000/svg', 'path')" in gated_builder.group(0)
+    assert "data-e10-vs1f-route-layer" in gated_builder.group(0)
     for material in ("locked", "available", "completed", "current"):
-        assert f"e9-route__material--{material}" in WORLD_STAGE
+        assert f"e9-route__material--{material}" in gated_builder.group(0)
         assert f".e9-route__material--{material}" in CSS
-    assert 'data-e10-route-progress="completed"' in WORLD_STAGE
-    assert 'data-e10-route-progress="current"' in WORLD_STAGE
+    assert "'completed'" in gated_builder.group(0)
+    assert "'current'" in gated_builder.group(0)
     assert "pointer-events: none" in CSS
     assert "@media (prefers-reduced-motion: reduce)" in CSS
 
@@ -106,10 +119,13 @@ def test_unified_frame_original_icons_and_four_state_landmark_treatments():
         ".e9-zone[disabled] .e10-zone-landmark",
     ):
         assert selector in CSS
-    assert LEFT_NAV.count('class="e9-nav__icon"') == 6
-    assert BOTTOM_DOCK.count('class="e9-dock__icon"') == 4
-    assert LEFT_NAV.count('aria-hidden="true"') == 6
-    assert BOTTOM_DOCK.count('aria-hidden="true"') == 4
+    assert 'class="e9-nav__icon"' not in LEFT_NAV
+    assert 'viewBox="0 0 32 32"' not in LEFT_NAV
+    assert 'class="e9-dock__icon"' not in BOTTOM_DOCK
+    assert "function exactVs1fStaticContract()" in LEFT_NAV_JS
+    assert LEFT_NAV_JS.count("data-e10-vs1f-icon") == 1
+    assert "marker.getAttribute('content') !== VS1F_STATIC_CONTRACT" in BOTTOM_DOCK_JS
+    assert BOTTOM_DOCK_JS.count("data-e10-vs1f-icon") == 1
     assert "e10-drawer-zone-summary__landmark" in (
         ROOT / "components/adventure/right_cards.html"
     ).read_text(encoding="utf-8")
@@ -138,8 +154,23 @@ def test_player_location_is_progression_owned_and_selection_independent():
         re.S,
     )
     assert selected_renderer
-    assert "updatePlayerMarker" not in selected_renderer.group(0)
+    assert "if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);" in selected_renderer.group(0)
     assert "data-player-location" in WORLD_JS
+
+
+def test_vs1d_fallback_restores_base_safe_dom_before_runtime_render():
+    fallback = re.search(
+        r"function prepareVs1dDom\(root\) \{.*?\n  \}",
+        WORLD_JS,
+        re.S,
+    )
+    assert fallback
+    body = fallback.group(0)
+    assert "if (VS1E_STATIC_CONTRACT_ACTIVE) return;" in body
+    assert "data-e10-vs1f-route-layer" in body
+    assert "setAttribute('class', 'e9-route__ground')" in body
+    assert "setAttribute('class', 'e9-route__ascension')" in body
+    assert ".e10-current-hero, .e10-zone-landmark" in body
 
 
 def test_base_map_identity_is_unchanged():

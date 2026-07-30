@@ -157,6 +157,24 @@
 
   function prepareVs1dDom(root) {
     if (VS1E_STATIC_CONTRACT_ACTIVE) return;
+    root.querySelectorAll('[data-e10-vs1f-route-layer]').forEach(function (path) { path.remove(); });
+    var ground = root.querySelector('.e9-route__ground');
+    var ascension = root.querySelector('.e9-route__ascension');
+    if (ground) {
+      ground.setAttribute('class', 'e9-route__ground');
+      ground.removeAttribute('pathLength');
+    }
+    if (ascension) {
+      ascension.setAttribute('class', 'e9-route__ascension');
+      ascension.removeAttribute('pathLength');
+    }
+    root.querySelectorAll('[data-player-location]').forEach(function (tile) {
+      tile.removeAttribute('data-player-location');
+      tile.classList.remove('is-current');
+    });
+    root.querySelectorAll('.e10-current-hero, .e10-zone-landmark').forEach(function (element) {
+      element.remove();
+    });
     var mapStage = root.querySelector('#e9-map-stage');
     var status = root.querySelector('#e9-world-stage-status');
     if (mapStage && status && status.parentNode === mapStage) {
@@ -171,6 +189,39 @@
       var element = root.querySelector(selector);
       if (element) element.hidden = true;
     });
+  }
+
+  function ensureVs1fRouteLayers(root) {
+    if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
+    var route = root.querySelector('.e9-map-stage__route');
+    var ground = route && route.querySelector('.e9-route__ground');
+    var ascension = route && route.querySelector('.e9-route__ascension');
+    if (!route || !ground || !ascension) return;
+    if (route.querySelector('[data-e10-vs1f-route-layer]')) return;
+
+    ground.setAttribute('class', 'e9-route__ground e9-route__material e9-route__material--locked');
+    ground.setAttribute('pathLength', '100');
+    ascension.setAttribute('class', 'e9-route__ascension e9-route__material e9-route__material--locked');
+    ascension.setAttribute('pathLength', '100');
+
+    var createLayer = function (reference, className, progressName) {
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('class', 'e9-route__material ' + className);
+      path.setAttribute('d', reference.getAttribute('d'));
+      path.setAttribute('pathLength', '100');
+      path.setAttribute('data-e10-vs1f-route-layer', '');
+      if (progressName) path.setAttribute('data-e10-route-progress', progressName);
+      reference.parentNode.insertBefore(path, reference.nextSibling);
+      return path;
+    };
+
+    var availableGround = createLayer(ground, 'e9-route__material--available');
+    var completedGround = createLayer(ground, 'e9-route__material--completed', 'completed');
+    var currentGround = createLayer(ground, 'e9-route__material--current', 'current');
+    ground.parentNode.insertBefore(availableGround, ground.nextSibling);
+    ground.parentNode.insertBefore(completedGround, availableGround.nextSibling);
+    ground.parentNode.insertBefore(currentGround, completedGround.nextSibling);
+    createLayer(ascension, 'e9-route__material--available');
   }
 
   function updatePlayerMarker(root, zone) {
@@ -440,6 +491,7 @@
 
     state.selectedZoneKey = zone.key;
     setSelectedTileState(root, zone.key);
+    if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
     var isPortraitTablet = window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
@@ -529,10 +581,11 @@
 
     var state = root.__e9WorldStageState || (root.__e9WorldStageState = { zones: zones, selectedZoneKey: null });
     state.zones = zones;
-    var playerLocation = resolvePlayerLocation(zones);
+    var playerLocation = VS1E_STATIC_CONTRACT_ACTIVE ? resolvePlayerLocation(zones) : null;
     zones.forEach(function (zone) {
-      zone.__e10PlayerLocation = !!(playerLocation && zone.key === playerLocation.key);
+      zone.__e10PlayerLocation = !!(VS1E_STATIC_CONTRACT_ACTIVE && playerLocation && zone.key === playerLocation.key);
     });
+    ensureVs1fRouteLayers(root);
     updateRouteProgress(root, zones);
     zonesEl.innerHTML = '';
     bossAnchorsEl.innerHTML = '';
@@ -563,9 +616,13 @@
       tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
       tile.setAttribute('aria-label', zoneDisplayName(zone));
       applyAnchor(tile, anchor);
-      if (playerLocation && zone.key === playerLocation.key) {
+      if (VS1E_STATIC_CONTRACT_ACTIVE && playerLocation && zone.key === playerLocation.key) {
         tile.classList.add('is-current');
         tile.setAttribute('data-player-location', 'true');
+      } else if (!VS1E_STATIC_CONTRACT_ACTIVE && (
+        zone.current || zone.selected || (!zone.locked && zone.status === 'unlocked')
+      )) {
+        tile.classList.add('is-current');
       }
 
       var number = document.createElement('span');
@@ -671,7 +728,7 @@
 
     mapStage.hidden = false;
     zonesEl.hidden = false;
-    updatePlayerMarker(root, playerLocation);
+    if (VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, playerLocation);
     if (statusEl) {
       var clearedCount = zones.filter(function (z) { return z.cleared; }).length;
       statusEl.textContent = t('index.adv.summary', '{n} / {t} areas cleared')

@@ -12,6 +12,27 @@
 (function (document) {
   'use strict';
 
+  var VS1F_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
+
+  function applyVs1fBrand(root) {
+    var marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
+    if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;
+    var player = root.querySelector('.e9-hud__player');
+    var avatar = root.querySelector('#top-hud-avatar');
+    if (!player || !player.parentNode) return;
+    if (avatar) avatar.remove();
+    var brand = document.createElement('div');
+    brand.className = 'e10-hud-brand';
+    brand.setAttribute('data-e10-vs1f-brand', '');
+    brand.innerHTML = '<svg class="e10-hud-brand__crest" viewBox="0 0 48 56" aria-hidden="true" focusable="false">'
+      + '<path d="M24 2 44 10v15c0 13-8 23-20 29C12 48 4 38 4 25V10Z"/>'
+      + '<circle cx="19" cy="25" r="8"/><circle cx="29" cy="31" r="8"/></svg>'
+      + '<span class="e10-hud-brand__copy"><strong data-i18n="common.brand">Go Odyssey</strong>'
+      + '<span data-i18n="e10.rpg.world_stage_label">World Stage</span></span>';
+    player.parentNode.insertBefore(brand, player);
+    if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(brand);
+  }
+
   function applyText(el, text) {
     if (!el) return;
     el.textContent = text;
@@ -36,6 +57,7 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
+    applyVs1fBrand(root);
 
     var nameEl = root.querySelector('#top-hud-name');
     var levelWrap = root.querySelector('#top-hud-level');

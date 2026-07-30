@@ -133,6 +133,20 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     statusParent: document.querySelector('#e9-world-stage-status')?.parentElement?.id,
     stateCopyHidden: document.querySelector('#e9-world-stage-details-state')?.hidden,
     progressCopyHidden: document.querySelector('#e9-world-stage-details-progress')?.hidden,
+    routePathCount: document.querySelectorAll('.e9-map-stage__route path').length,
+    routeMaterialCount: document.querySelectorAll('.e9-route__material, [data-e10-vs1f-route-layer]').length,
+    routeFilledCount: [...document.querySelectorAll('.e9-map-stage__route path')]
+      .filter((path) => getComputedStyle(path).fill !== 'none').length,
+    landmarkCount: document.querySelectorAll('.e10-zone-landmark').length,
+    vs1fPlayerCount: document.querySelectorAll('[data-player-location], .e10-current-hero').length,
+    vs1fIconCount: document.querySelectorAll('[data-e10-vs1f-icon], .e9-dock__icon').length,
+    nav32Count: document.querySelectorAll('.e9-nav__icon[viewBox="0 0 32 32"]').length,
+    oversizedBlackSvgCount: [...document.querySelectorAll('svg path, svg polygon')]
+      .filter((shape) => {
+        const style = getComputedStyle(shape);
+        const box = shape.getBoundingClientRect();
+        return style.fill === 'rgb(0, 0, 0)' && box.width * box.height > 4096;
+      }).length,
   }));
   const screenshot = await saveViewportScreenshot(
     page,
@@ -154,6 +168,16 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     || !snapshot.stateCopyHidden
     || !snapshot.progressCopyHidden
   ) failures.push(`${contractCase}: VS1D DOM contract was not restored`);
+  if (
+    snapshot.routePathCount !== 4
+    || snapshot.routeMaterialCount !== 0
+    || snapshot.routeFilledCount !== 0
+    || snapshot.landmarkCount !== 0
+    || snapshot.vs1fPlayerCount !== 0
+    || snapshot.vs1fIconCount !== 0
+    || snapshot.nav32Count !== 0
+    || snapshot.oversizedBlackSvgCount !== 0
+  ) failures.push(`${contractCase}: VS1F SVG/mask/landmark DOM leaked into fallback`);
   if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
   return { contractCase, screenshot, snapshot, browserErrors, failures };
 }

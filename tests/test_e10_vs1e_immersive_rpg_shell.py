@@ -63,10 +63,12 @@ def test_visual_direction_tokens_and_touch_targets_are_explicit():
     assert "transition-duration: .001ms" in CSS
 
 
-def test_navigation_uses_decorative_repo_native_svg_without_emoji():
-    assert NAV_HTML.count('class="e9-nav__icon"') == 6
-    assert NAV_HTML.count('aria-hidden="true"') == 6
-    assert NAV_HTML.count('focusable="false"') == 6
+def test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_marker():
+    nav_js = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
+    assert 'class="e9-nav__icon"' not in NAV_HTML
+    assert "function exactVs1fStaticContract()" in nav_js
+    assert "createElementNS('http://www.w3.org/2000/svg', 'svg')" in nav_js
+    assert "data-e10-vs1f-icon" in nav_js
     for route in (
         'href="#"',
         'href="/hero?tab=hero"',
@@ -79,10 +81,13 @@ def test_navigation_uses_decorative_repo_native_svg_without_emoji():
     assert not re.search(r"[\U0001F300-\U0001FAFF]", NAV_HTML)
 
 
-def test_hud_has_no_fabricated_avatar_or_placeholder_resource():
-    assert "top-hud-avatar" not in TOP_HTML
-    assert "e10-hud-brand__crest" in TOP_HTML
-    assert 'aria-hidden="true"' in TOP_HTML
+def test_hud_restores_vs1d_fallback_and_builds_vs1f_brand_after_marker():
+    assert "top-hud-avatar" in TOP_HTML
+    assert "e10-hud-brand__crest" not in TOP_HTML
+    assert "if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;" in TOP_JS
+    assert "data-e10-vs1f-brand" in TOP_JS
+    assert "e10-hud-brand__crest" in TOP_JS
+    assert "if (avatar) avatar.remove();" in TOP_JS
     assert 'id="top-hud-level" hidden' in TOP_HTML
     assert 'id="top-hud-coins" hidden' in TOP_HTML
     assert "🪙" not in TOP_HTML
