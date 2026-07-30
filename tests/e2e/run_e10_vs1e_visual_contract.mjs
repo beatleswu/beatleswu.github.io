@@ -64,7 +64,9 @@ function contentTypeFor(filePath) {
   })[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
 }
 
-async function startStaticServer() {
+const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1e-compatibility-bridge">';
+
+async function startStaticServer({ contractCase = 'target', indexOverridePath = null } = {}) {
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
@@ -77,6 +79,22 @@ async function startStaticServer() {
         response.end('not found');
         return;
       }
+      if (relative === '/index.html' && (contractCase !== 'target' || indexOverridePath)) {
+        let html = await fs.readFile(indexOverridePath || absolute, 'utf8');
+        if (contractCase === 'missing') {
+          html = html.replace(staticContractMarker, '');
+        } else if (contractCase === 'wrong') {
+          html = html.replace(
+            staticContractMarker,
+            '<meta name="go-odyssey-static-contract" content="v209-e10-world-stage-v1d1-i18n-a11y">'
+          );
+        } else if (!indexOverridePath) {
+          throw new Error(`unknown contract case: ${contractCase}`);
+        }
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        response.end(html);
+        return;
+      }
       response.writeHead(200, { 'Content-Type': contentTypeFor(absolute) });
       fssync.createReadStream(absolute).pipe(response);
     } catch (error) {
@@ -86,6 +104,53 @@ async function startStaticServer() {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   return { server, origin: `http://127.0.0.1:${server.address().port}` };
+}
+
+async function runCompatibilityFallbackCase(browser, origin, contractCase) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const browserErrors = [];
+  await installApiFixture(page, browserErrors);
+  await page.addInitScript((contract) => {
+    localStorage.setItem('go-odyssey-static-contract', contract);
+    localStorage.setItem('e10-vs1e', 'immersive-rpg');
+  }, 'e10-vs1e-compatibility-bridge');
+  await page.goto(
+    `${origin}/index.html?lang=en&${shellFlags}`
+      + '&go-odyssey-static-contract=e10-vs1e-compatibility-bridge'
+      + '&staticContract=e10-vs1e-compatibility-bridge'
+      + '&host=godokoro.com',
+    { waitUntil: 'networkidle' }
+  );
+  await page.locator('#e9-world-stage-zones [data-zone="k26_30"]').waitFor({ state: 'visible' });
+  const snapshot = await page.evaluate(() => ({
+    activeShell: document.body.getAttribute('data-adventure-shell-active'),
+    bodySkin: document.body.getAttribute('data-e10-visual-skin'),
+    shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+    nodeCount: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
+    plaqueCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__plaque').length,
+    selectedCount: document.querySelectorAll('#e9-world-stage-zones .is-selected').length,
+    primaryCtaHidden: document.querySelector('#e9-world-stage-primary-cta')?.hidden,
+    statusParent: document.querySelector('#e9-world-stage-status')?.parentElement?.id,
+    stateCopyHidden: document.querySelector('#e9-world-stage-details-state')?.hidden,
+    progressCopyHidden: document.querySelector('#e9-world-stage-details-progress')?.hidden,
+  }));
+  await page.close();
+  const failures = [];
+  if (snapshot.activeShell !== 'e9') failures.push(`${contractCase}: E9 shell did not mount`);
+  if (snapshot.bodySkin !== null || snapshot.shellSkin !== null) {
+    failures.push(`${contractCase}: VS1E skin was enabled without the exact static marker`);
+  }
+  if (snapshot.nodeCount !== 10) failures.push(`${contractCase}: VS1D node rendering is incomplete`);
+  if (snapshot.plaqueCount !== 0 || snapshot.selectedCount !== 0 || !snapshot.primaryCtaHidden) {
+    failures.push(`${contractCase}: VS1E on-map UI leaked into the VS1D fallback`);
+  }
+  if (
+    snapshot.statusParent !== 'adventure-stage'
+    || !snapshot.stateCopyHidden
+    || !snapshot.progressCopyHidden
+  ) failures.push(`${contractCase}: VS1D DOM contract was not restored`);
+  if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
+  return { contractCase, snapshot, browserErrors, failures };
 }
 
 function apiResponse(pathname, method) {
@@ -497,11 +562,19 @@ async function main() {
   const outputIndex = args.indexOf('--out');
   if (outputIndex < 0 || !args[outputIndex + 1]) throw new Error('--out <unique-directory> is required');
   const outputDir = path.resolve(args[outputIndex + 1]);
+  const currentIndexArgument = args.indexOf('--current-index');
+  const currentIndexPath = currentIndexArgument >= 0
+    ? path.resolve(args[currentIndexArgument + 1] || '')
+    : null;
+  if (currentIndexArgument >= 0 && !fssync.existsSync(currentIndexPath)) {
+    throw new Error(`--current-index does not exist: ${currentIndexPath}`);
+  }
   if (fssync.existsSync(outputDir)) throw new Error(`output directory already exists: ${outputDir}`);
   await fs.mkdir(outputDir, { recursive: true });
 
   const { server, origin } = await startStaticServer();
   const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
+  const compatibilityServers = [];
   try {
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
@@ -522,7 +595,32 @@ async function main() {
     for (const spec of specs) results.push(await runCase(browser, origin, outputDir, spec));
     const legacy = await runLegacyCase(browser, origin, outputDir);
     const lifecycle = await runLifecycleCase(browser, origin);
-    const failures = results.flatMap(assertCase).concat(legacy.failures, lifecycle.failures);
+    const compatibilityBridge = [];
+    for (const contractCase of ['missing', 'wrong']) {
+      const fixture = await startStaticServer({ contractCase });
+      compatibilityServers.push(fixture.server);
+      const fallbackOrigin = contractCase === 'wrong'
+        ? fixture.origin.replace('127.0.0.1', 'localhost')
+        : fixture.origin;
+      compatibilityBridge.push(
+        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase)
+      );
+    }
+    if (currentIndexPath) {
+      const fixture = await startStaticServer({
+        contractCase: 'current-v209',
+        indexOverridePath: currentIndexPath,
+      });
+      compatibilityServers.push(fixture.server);
+      compatibilityBridge.push(
+        await runCompatibilityFallbackCase(browser, fixture.origin, 'current-v209')
+      );
+    }
+    const failures = results.flatMap(assertCase).concat(
+      legacy.failures,
+      lifecycle.failures,
+      compatibilityBridge.flatMap((result) => result.failures),
+    );
     const report = {
       ok: failures.length === 0,
       source_root: repoRoot,
@@ -530,6 +628,7 @@ async function main() {
       results,
       legacy,
       lifecycle,
+      compatibilityBridge,
       failures,
     };
     await fs.writeFile(path.join(outputDir, 'e10-vs1e-visual-contract.json'), JSON.stringify(report, null, 2));
@@ -538,6 +637,9 @@ async function main() {
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
+    for (const compatibilityServer of compatibilityServers) {
+      await new Promise((resolve) => compatibilityServer.close(resolve));
+    }
   }
 }
 
