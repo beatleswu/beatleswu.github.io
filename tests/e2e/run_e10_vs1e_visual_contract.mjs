@@ -64,7 +64,7 @@ function contentTypeFor(filePath) {
   })[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
 }
 
-const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1e-compatibility-bridge">';
+const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">';
 
 async function startStaticServer({ contractCase = 'target', indexOverridePath = null } = {}) {
   const server = http.createServer(async (request, response) => {
@@ -106,18 +106,18 @@ async function startStaticServer({ contractCase = 'target', indexOverridePath = 
   return { server, origin: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function runCompatibilityFallbackCase(browser, origin, contractCase) {
+async function runCompatibilityFallbackCase(browser, origin, contractCase, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
   await page.addInitScript((contract) => {
     localStorage.setItem('go-odyssey-static-contract', contract);
     localStorage.setItem('e10-vs1e', 'immersive-rpg');
-  }, 'e10-vs1e-compatibility-bridge');
+  }, 'e10-vs1f-integrated-world-map');
   await page.goto(
     `${origin}/index.html?lang=en&${shellFlags}`
-      + '&go-odyssey-static-contract=e10-vs1e-compatibility-bridge'
-      + '&staticContract=e10-vs1e-compatibility-bridge'
+      + '&go-odyssey-static-contract=e10-vs1f-integrated-world-map'
+      + '&staticContract=e10-vs1f-integrated-world-map'
       + '&host=godokoro.com',
     { waitUntil: 'networkidle' }
   );
@@ -134,6 +134,11 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase) {
     stateCopyHidden: document.querySelector('#e9-world-stage-details-state')?.hidden,
     progressCopyHidden: document.querySelector('#e9-world-stage-details-progress')?.hidden,
   }));
+  const screenshot = await saveViewportScreenshot(
+    page,
+    outputDir,
+    `compatibility-${contractCase}-vs1d-fallback-1440x900-en.png`
+  );
   await page.close();
   const failures = [];
   if (snapshot.activeShell !== 'e9') failures.push(`${contractCase}: E9 shell did not mount`);
@@ -150,7 +155,7 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase) {
     || !snapshot.progressCopyHidden
   ) failures.push(`${contractCase}: VS1D DOM contract was not restored`);
   if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
-  return { contractCase, snapshot, browserErrors, failures };
+  return { contractCase, screenshot, snapshot, browserErrors, failures };
 }
 
 function apiResponse(pathname, method) {
@@ -212,6 +217,13 @@ async function waitForShell(page) {
 
 async function runtimeSnapshot(page) {
   return page.evaluate(() => {
+    const isVisible = (element) => {
+      if (!element || element.hidden) return false;
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden'
+        && box.width > 0 && box.height > 0;
+    };
     const roundRect = (value) => value && Object.fromEntries(
       ['x', 'y', 'width', 'height', 'top', 'right', 'bottom', 'left']
         .map((key) => [key, Math.round(value[key] * 100) / 100])
@@ -264,6 +276,18 @@ async function runtimeSnapshot(page) {
       shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
       lang: window.I18n?.getLang?.(),
       nodeCount: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
+      landmarkCount: document.querySelectorAll('#e9-world-stage-zones .e10-zone-landmark').length,
+      drawerLandmarkVisible: isVisible(document.querySelector('#e10-drawer-zone-landmark')),
+      portraitLandmarkVisible: isVisible(document.querySelector('#e9-world-stage-details-landmark')),
+      playerLocationCount: document.querySelectorAll('#e9-world-stage-zones [data-player-location="true"]').length,
+      playerLocationZone: document.querySelector('#e9-world-stage-zones [data-player-location="true"]')?.getAttribute('data-zone'),
+      selectedZone: document.querySelector('#e9-world-stage-zones .is-selected')?.getAttribute('data-zone'),
+      visibleHeroCount: [
+        document.querySelector('#e9-world-stage-player'),
+        ...document.querySelectorAll('.e10-current-hero'),
+      ].filter(isVisible).length,
+      landmarkRequestCount: performance.getEntriesByType('resource')
+        .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/')).length,
       legacyVisible: Array.from(document.querySelectorAll(
         '#welcome-state > .guild-hall-hero, #welcome-state > .guild-entry-grid, #skill-map, #welcome-state > .home-left-col, #welcome-state > .home-report'
       )).some((element) => !element.hidden),
@@ -362,7 +386,11 @@ async function runCase(browser, origin, outputDir, spec) {
     const zone = page.locator(`[data-zone="${spec.zone}"]`);
     if (await zone.count() !== 1) throw new Error(`missing unique zone ${spec.zone}`);
     await zone.scrollIntoViewIfNeeded();
-    if (await zone.isEnabled()) await zone.click();
+    if (await zone.isEnabled()) {
+      // Dispatch the real DOM activation without Playwright waiting for the
+      // content-driven inline expansion to become geometrically stable.
+      await zone.evaluate((element) => element.click());
+    }
   }
 
   let beforeOpen = null;
@@ -410,6 +438,16 @@ function assertCase(result) {
   if (snapshot.bossAnchorsVisibility !== 'hidden') failures.push(`${specName}: Boss anchors visible`);
   if (snapshot.aria.drawerControls !== 'e9-right-drawer-panel') failures.push(`${specName}: aria-controls drift`);
   if (!snapshot.aria.mapLabel) failures.push(`${specName}: map accessible label missing`);
+  if (snapshot.playerLocationCount !== 1 || snapshot.visibleHeroCount !== 1) {
+    failures.push(`${specName}: authoritative player marker count ${snapshot.playerLocationCount}/${snapshot.visibleHeroCount}`);
+  }
+  if (snapshot.playerLocationZone !== 'k21_25') {
+    failures.push(`${specName}: authoritative player location ${snapshot.playerLocationZone}`);
+  }
+  if (result.detailMapBefore && (
+    result.detailMapBefore.playerLocationZone !== snapshot.playerLocationZone
+    || result.detailMapBefore.visibleHeroCount !== snapshot.visibleHeroCount
+  )) failures.push(`${specName}: selection moved the player marker`);
   if (browserErrors.length) failures.push(`${specName}: browser errors ${JSON.stringify(browserErrors)}`);
   if (result.beforeOpen && result.afterOpen) {
     const before = result.beforeOpen.map;
@@ -426,11 +464,21 @@ function assertCase(result) {
   )) failures.push(`${specName}: open screenshot does not contain the quest drawer`);
   if (result.escapeCheck && result.escaped !== 'false') failures.push(`${specName}: Escape did not close drawer`);
   if (result.layout === 'rail') {
+    if (snapshot.landmarkCount !== 0) {
+      failures.push(`${specName}: full landmark art duplicated the Desktop map`);
+    }
+    const expectedLandmarkRequests = result.zone ? 1 : 0;
+    if (snapshot.landmarkRequestCount !== expectedLandmarkRequests) {
+      failures.push(`${specName}: Desktop landmark requests ${snapshot.landmarkRequestCount}`);
+    }
     if (!snapshot.nav || !snapshot.map || snapshot.nav.right > snapshot.map.left) {
       failures.push(`${specName}: vertical navigation rail is not left of map`);
     }
     if (!snapshot.primaryCta || !snapshot.progressOverlay) {
       failures.push(`${specName}: closed-state map CTA/progress overlay missing`);
+    }
+    if (result.zone && !snapshot.drawerLandmarkVisible) {
+      failures.push(`${specName}: selected landmark is missing from the quest panel`);
     }
   }
   if (result.layout === 'bottom-dock') {
@@ -441,6 +489,9 @@ function assertCase(result) {
       failures.push(`${specName}: bottom dock is not one six-item row`);
     }
     if (result.viewport.width < 768) {
+      if (snapshot.landmarkCount !== 10) {
+        failures.push(`${specName}: mobile landmark card count ${snapshot.landmarkCount}`);
+      }
       if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 1) {
         failures.push(`${specName}: mobile dock is not one six-item row`);
       }
@@ -477,6 +528,9 @@ function assertCase(result) {
       result.detailMapBefore.map.width !== snapshot.map.width
       || result.detailMapBefore.map.height !== snapshot.map.height
     )) failures.push(`${specName}: opening details changed map size`);
+    if (!snapshot.portraitLandmarkVisible) {
+      failures.push(`${specName}: selected portrait landmark is missing`);
+    }
   }
   if (result.mobileInline) {
     if (!snapshot.inlineDetailsVisible || snapshot.detailsVisible) {
@@ -592,7 +646,10 @@ async function main() {
       { specName: 'mobile-safe-area', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
     ];
     const results = [];
-    for (const spec of specs) results.push(await runCase(browser, origin, outputDir, spec));
+    for (const spec of specs) {
+      process.stdout.write(`capture ${spec.specName}\n`);
+      results.push(await runCase(browser, origin, outputDir, spec));
+    }
     const legacy = await runLegacyCase(browser, origin, outputDir);
     const lifecycle = await runLifecycleCase(browser, origin);
     const compatibilityBridge = [];
@@ -603,7 +660,7 @@ async function main() {
         ? fixture.origin.replace('127.0.0.1', 'localhost')
         : fixture.origin;
       compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase)
+        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
       );
     }
     if (currentIndexPath) {
@@ -613,7 +670,7 @@ async function main() {
       });
       compatibilityServers.push(fixture.server);
       compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fixture.origin, 'current-v209')
+        await runCompatibilityFallbackCase(browser, fixture.origin, 'current-v209', outputDir)
       );
     }
     const failures = results.flatMap(assertCase).concat(
@@ -631,7 +688,7 @@ async function main() {
       compatibilityBridge,
       failures,
     };
-    await fs.writeFile(path.join(outputDir, 'e10-vs1e-visual-contract.json'), JSON.stringify(report, null, 2));
+    await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
     if (failures.length) throw new Error(failures.join('\n'));
     process.stdout.write(JSON.stringify({ ok: true, output_dir: outputDir, screenshots: results.length + 1 }, null, 2));
   } finally {

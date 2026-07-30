@@ -2985,6 +2985,7 @@ const I18n = (() => {
         'e10.world_stage.zones_aria_label':     { en: 'Adventure zones', zh: '冒險區域' },
         'e10.world_stage.state_locked':         { en: 'Locked', zh: '尚未解鎖' },
         'e10.world_stage.state_completed':      { en: 'Completed', zh: '已完成' },
+        'e10.world_stage.state_current':        { en: 'Current location', zh: '目前位置' },
         'e10.world_stage.state_available':      { en: 'Available', zh: '可挑戰' },
         'e10.world_stage.continue_adventure':   { en: 'Continue Adventure', zh: '繼續冒險' },
         'e10.world_stage.selected_quest':       { en: 'Selected quest', zh: '目前任務' },

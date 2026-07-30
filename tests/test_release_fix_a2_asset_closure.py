@@ -249,12 +249,12 @@ def test_partial_generation_fails_closed_corrupted_hash():
 
 
 def test_no_unreferenced_historical_files_in_closure_manifest():
-    # The manifest must be exactly the 181 currently-referenced files, not
+    # The manifest must be exactly the 191 currently-referenced files, not
     # the full 757MB historical tree this incident's audit found on the
     # production host (1,391 files) -- no blind wholesale import.
     manifest = _load_closure_manifest()
-    assert manifest["total_files"] == 181
-    assert len(manifest["files"]) == 181
+    assert manifest["total_files"] == 191
+    assert len(manifest["files"]) == 191
     referenced = scan_runtime_image_references()
     governed = {"/" + f["path"] for f in manifest["files"]}
     over_broad = governed - referenced
@@ -292,8 +292,8 @@ def test_deploy_script_does_not_hardcode_a_two_file_assumption():
 
 
 # ---------------------------------------------------------------------------
-# Provenance sanity -- the 2 production-host-recovered files are honestly
-# recorded, not silently blended in with the git-verified 178.
+# Provenance sanity -- recovered, historical, and Owner-authorized
+# project-created assets remain separate exact classes.
 # ---------------------------------------------------------------------------
 
 def test_manifest_provenance_classes_are_honest():
@@ -304,6 +304,16 @@ def test_manifest_provenance_classes_are_honest():
     assert len(by_class.get("historical-git-verified", [])) == 178
     assert len(by_class.get("production-host-recovered", [])) == 2
     assert by_class.get("owner-approved-project-created") == [
+        "assets/maps/e10-vs1f-landmarks/zone-01-beginner-village.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-02-slime-plains.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-07-star-sea-passage.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-08-abyssal-forge.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp",
         "assets/maps/e10_world_stage_v1_base.webp",
     ]
     assert set(by_class["production-host-recovered"]) == {

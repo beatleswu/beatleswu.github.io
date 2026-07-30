@@ -52,11 +52,30 @@
     }
   }
 
+  function syncDrawerLandmark(root) {
+    var landmark = root.querySelector('#e10-drawer-zone-landmark');
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var desktopSurface = window.matchMedia && window.matchMedia(
+      '(min-width: 768px) and (orientation: landscape), (min-width: 1280px)'
+    ).matches;
+    var source = root.__e10SelectedLandmarkSrc;
+    if (!landmark) return;
+    if (desktopSurface && toggle && toggle.getAttribute('aria-expanded') === 'true' && source) {
+      if (landmark.getAttribute('src') !== source) landmark.setAttribute('src', source);
+      landmark.hidden = false;
+    } else {
+      landmark.hidden = true;
+      landmark.removeAttribute('src');
+    }
+  }
+
   function updateDrawerZoneSummary(root, detail) {
     if (!detail) return;
     var title = root.querySelector('#e10-drawer-zone-title');
     var state = root.querySelector('#e10-drawer-zone-state');
     var body = root.querySelector('#e10-drawer-zone-body');
+    root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
+    syncDrawerLandmark(root);
     if (title) {
       title.textContent = detail.name || detail.zoneKey || '';
       title.removeAttribute('data-i18n');
@@ -167,6 +186,7 @@
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       panel.hidden = !open;
       root.classList.toggle('is-drawer-open', open);
+      syncDrawerLandmark(root);
     };
     if (toggle && panel) {
       var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
@@ -200,6 +220,7 @@
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
       window.E9.registerCleanup(function () {
         delete root.__e9CompactProgress;
+        delete root.__e10SelectedLandmarkSrc;
       }, generation);
     }
     loadDailyChallenge(root, current);

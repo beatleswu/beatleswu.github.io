@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1300,
-  "total_bytes": 757283152,
+  "total_files": 1310,
+  "total_bytes": 758233568,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 2
+    "owner-approved-project-created": 12
   },
   "files": [
     {
@@ -6621,6 +6621,106 @@
       "height": 941,
       "provenance": "owner-approved-project-created",
       "source_evidence": "Owner-approved VS1B3 visual/layout reference, accepted by VS1C-1 audit and governed by VS1C-2. SHA-256 and size verified against the approved review source; no prompt, credential, or private generation metadata is recorded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-01-beginner-village.webp",
+      "size": 118210,
+      "sha256": "e29295515f0db984fa2a35548e79488cb8f967f551293fcca8d6b37213ed9a94",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-02-slime-plains.webp",
+      "size": 102048,
+      "sha256": "1437c3fe20be39cc58793d987831d8c156b870e3f37b3d8e1cb4e2220d88cb30",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+      "size": 98708,
+      "sha256": "a9f611c9d24c7f1bf17ee0bac28978a5a12b736ed8b6dd09f34b97cb59864027",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+      "size": 121564,
+      "sha256": "66ce21d485273fe4420a3737d761faf02e382d701fc03a43a85925b7c9bb0103",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp",
+      "size": 61774,
+      "sha256": "70d59b55b4892a46bce7910f91f4a4ffab067a4e6d6b868b753511c6523c9309",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp",
+      "size": 89776,
+      "sha256": "4f31af85ad90eaad73a22c885d4afe5aa9995afb36000122d34c56734b29678f",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-07-star-sea-passage.webp",
+      "size": 75136,
+      "sha256": "062bd5eda25becb644b19c832e627e727f7d332a8aeccdab6d71928d7a6c74d0",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-08-abyssal-forge.webp",
+      "size": 84142,
+      "sha256": "be1cccd1a0ebf933559a16867a2957c061301e74d0fd343b3840b1927af1d762",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp",
+      "size": 84862,
+      "sha256": "75a1ded2dd22d79f32a1db36df75c9cfba44827894abf4e12c79f84b6fa4ff87",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp",
+      "size": 114196,
+      "sha256": "a592d2f65474c321bc63ce344cdb9937691e0437169797afd11dc3173303d647",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
     },
     {
       "path": "assets/maps/e10_world_stage_v1_base.webp",

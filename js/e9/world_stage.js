@@ -28,7 +28,7 @@
   // Static/runtime compatibility bridge. This value is intentionally read
   // once from an exact marker baked into the static index. Query parameters,
   // hostname, browser storage and mutable window globals are not inputs.
-  var VS1E_STATIC_CONTRACT = 'e10-vs1e-compatibility-bridge';
+  var VS1E_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
   var staticContractMarker = document.querySelector(
     'meta[name="go-odyssey-static-contract"]'
   );
@@ -79,11 +79,61 @@
     k6_10: 'bottom', k1_5: 'left', d1_2: 'left', d3_4: 'right',
     d5_6: 'left', d7_plus: 'left'
   };
+  var ZONE_LANDMARKS = {
+    k26_30: '/assets/maps/e10-vs1f-landmarks/zone-01-beginner-village.webp',
+    k21_25: '/assets/maps/e10-vs1f-landmarks/zone-02-slime-plains.webp',
+    k16_20: '/assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp',
+    k11_15: '/assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp',
+    k6_10: '/assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp',
+    k1_5: '/assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp',
+    d1_2: '/assets/maps/e10-vs1f-landmarks/zone-07-star-sea-passage.webp',
+    d3_4: '/assets/maps/e10-vs1f-landmarks/zone-08-abyssal-forge.webp',
+    d5_6: '/assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp',
+    d7_plus: '/assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp'
+  };
 
   function applyAnchor(el, anchor) {
     if (!el || !anchor) return;
     el.style.setProperty('--anchor-x', anchor.x + '%');
     el.style.setProperty('--anchor-y', anchor.y + '%');
+  }
+
+  function resolvePlayerLocation(zones) {
+    // The normalized API status is progression state; selectedZoneKey is
+    // ephemeral inspection state and is deliberately not an input. The first
+    // canonical unlocked frontier is the current location. If the progression
+    // response exposes no unlocked frontier, fail closed with no hero marker.
+    return zones.filter(function (zone) {
+      return !zone.locked && zone.status === 'unlocked';
+    })[0] || null;
+  }
+
+  function usesLandmarkCards() {
+    return !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+  }
+
+  function updateRouteProgress(root, zones) {
+    if (!VS1E_STATIC_CONTRACT_ACTIVE || !zones.length) return;
+    var completed = zones.filter(function (zone) {
+      return zone.cleared || zone.status === 'completed';
+    }).length;
+    var currentZone = resolvePlayerLocation(zones);
+    var currentIndex = currentZone ? zones.indexOf(currentZone) : completed - 1;
+    if (currentIndex < completed) currentIndex = completed;
+    var completedPercent = Math.max(0, Math.min(100, completed / (zones.length - 1) * 100));
+    var currentPercent = Math.max(completedPercent, Math.min(
+      100,
+      (currentIndex + 1) / (zones.length - 1) * 100
+    ));
+    var completedRoute = root.querySelector('[data-e10-route-progress="completed"]');
+    var currentRoute = root.querySelector('[data-e10-route-progress="current"]');
+    if (completedRoute) {
+      completedRoute.style.strokeDasharray = completedPercent + ' ' + (100 - completedPercent);
+    }
+    if (currentRoute) {
+      currentRoute.style.strokeDasharray = Math.max(0, currentPercent - completedPercent) + ' 100';
+      currentRoute.style.strokeDashoffset = String(-completedPercent);
+    }
   }
 
   function enableImmersiveRpgSkin(root, generation) {
@@ -123,11 +173,27 @@
     });
   }
 
-  function updatePlayerMarker(root, zoneKey) {
+  function updatePlayerMarker(root, zone) {
     var marker = root.querySelector('#e9-world-stage-player');
-    var anchor = ZONE_ANCHORS[zoneKey];
+    var anchor = zone && ZONE_ANCHORS[zone.key];
     var mapStage = root.querySelector('#e9-map-stage');
-    if (!marker || !anchor) return;
+    root.querySelectorAll('.e10-current-hero').forEach(function (hero) { hero.remove(); });
+    if (!marker) return;
+    if (!zone || !anchor) {
+      marker.hidden = true;
+      return;
+    }
+    if (usesLandmarkCards()) {
+      marker.hidden = true;
+      var currentTile = root.querySelector('[data-zone="' + zone.key + '"]');
+      if (currentTile) {
+        var mobileHero = document.createElement('span');
+        mobileHero.className = 'e10-current-hero';
+        mobileHero.setAttribute('aria-hidden', 'true');
+        currentTile.appendChild(mobileHero);
+      }
+      return;
+    }
     applyAnchor(marker, anchor);
     if (mapStage) {
       mapStage.style.setProperty('--focus-x', anchor.x + '%');
@@ -222,6 +288,9 @@
     if (zone.cleared || zone.status === 'completed') {
       return t('e10.world_stage.state_completed', 'Completed');
     }
+    if (zone.__e10PlayerLocation) {
+      return t('e10.world_stage.state_current', 'Current location');
+    }
     return t('e10.world_stage.state_available', 'Available');
   }
 
@@ -282,6 +351,7 @@
   }
 
   function updateSelectedZoneCopy(root, zone) {
+    var landmark = root.querySelector('#e9-world-stage-details-landmark');
     var label = root.querySelector('#e9-world-stage-details-label');
     var stateText = root.querySelector('#e9-world-stage-details-state');
     var summary = root.querySelector('#e9-world-stage-details-summary');
@@ -296,6 +366,20 @@
       progress.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
       if (VS1E_STATIC_CONTRACT_ACTIVE) progress.textContent = zoneProgressText(zone);
     }
+    var portraitSurface = window.matchMedia && window.matchMedia(
+      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
+    ).matches;
+    if (landmark) {
+      if (portraitSurface && ZONE_LANDMARKS[zone.key]) {
+        if (landmark.getAttribute('src') !== ZONE_LANDMARKS[zone.key]) {
+          landmark.setAttribute('src', ZONE_LANDMARKS[zone.key]);
+        }
+        landmark.hidden = false;
+      } else {
+        landmark.hidden = true;
+        landmark.removeAttribute('src');
+      }
+    }
   }
 
   function zoneSelectionDetail(zone) {
@@ -306,6 +390,7 @@
       statusText: zoneStateText(zone),
       summary: zoneSummaryText(zone),
       progress: zoneProgressText(zone),
+      landmarkSrc: ZONE_LANDMARKS[zone.key] || '',
     };
   }
 
@@ -355,7 +440,6 @@
 
     state.selectedZoneKey = zone.key;
     setSelectedTileState(root, zone.key);
-    updatePlayerMarker(root, zone.key);
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
     var isPortraitTablet = window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
@@ -445,6 +529,11 @@
 
     var state = root.__e9WorldStageState || (root.__e9WorldStageState = { zones: zones, selectedZoneKey: null });
     state.zones = zones;
+    var playerLocation = resolvePlayerLocation(zones);
+    zones.forEach(function (zone) {
+      zone.__e10PlayerLocation = !!(playerLocation && zone.key === playerLocation.key);
+    });
+    updateRouteProgress(root, zones);
     zonesEl.innerHTML = '';
     bossAnchorsEl.innerHTML = '';
     zones.forEach(function (zone, index) {
@@ -458,10 +547,26 @@
       if (VS1E_STATIC_CONTRACT_ACTIVE) {
         tile.setAttribute('data-plaque-side', ZONE_PLAQUE_SIDES[zone.key] || 'right');
       }
+      if (VS1E_STATIC_CONTRACT_ACTIVE && usesLandmarkCards()) {
+        var landmark = document.createElement('img');
+        landmark.className = 'e10-zone-landmark';
+        landmark.src = ZONE_LANDMARKS[zone.key];
+        landmark.alt = '';
+        landmark.width = 320;
+        landmark.height = 320;
+        landmark.loading = 'lazy';
+        landmark.decoding = 'async';
+        landmark.draggable = false;
+        landmark.setAttribute('aria-hidden', 'true');
+        tile.appendChild(landmark);
+      }
       tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
       tile.setAttribute('aria-label', zoneDisplayName(zone));
       applyAnchor(tile, anchor);
-      if (zone.current || zone.selected || (!zone.locked && zone.status === 'unlocked')) tile.classList.add('is-current');
+      if (playerLocation && zone.key === playerLocation.key) {
+        tile.classList.add('is-current');
+        tile.setAttribute('data-player-location', 'true');
+      }
 
       var number = document.createElement('span');
       number.className = 'e9-zone__number';
@@ -473,7 +578,12 @@
       stateBadge.className = 'e9-zone__state';
       stateBadge.setAttribute('aria-hidden', 'true');
       var isCompleted = zone.cleared || zone.status === 'completed';
-      stateBadge.setAttribute('data-zone-state', zone.locked ? 'locked' : (isCompleted ? 'completed' : 'available'));
+      stateBadge.setAttribute(
+        'data-zone-state',
+        zone.locked ? 'locked' : (isCompleted ? 'completed' : (
+          playerLocation && zone.key === playerLocation.key ? 'current' : 'available'
+        ))
+      );
       stateBadge.textContent = isCompleted ? '\u2713' : '';
       tile.appendChild(stateBadge);
 
@@ -561,6 +671,7 @@
 
     mapStage.hidden = false;
     zonesEl.hidden = false;
+    updatePlayerMarker(root, playerLocation);
     if (statusEl) {
       var clearedCount = zones.filter(function (z) { return z.cleared; }).length;
       statusEl.textContent = t('index.adv.summary', '{n} / {t} areas cleared')
@@ -577,13 +688,10 @@
       renderSelectedZone(root, zones, selected.key, false);
       if (VS1E_STATIC_CONTRACT_ACTIVE) dispatchZoneSelection(root, selected);
     } else if (VS1E_STATIC_CONTRACT_ACTIVE) {
-      var recommended = zones.filter(function (zone) {
-        return !zone.locked && (zone.current || zone.selected || zone.status === 'unlocked');
-      })[0] || zones.filter(function (zone) { return !zone.locked; })[0];
+      var recommended = playerLocation || zones.filter(function (zone) { return !zone.locked; })[0];
       if (recommended) {
         state.selectedZoneKey = recommended.key;
         setSelectedTileState(root, recommended.key);
-        updatePlayerMarker(root, recommended.key);
         updateSelectedZoneCopy(root, recommended);
         configurePrimaryCta(root, recommended);
         dispatchZoneSelection(root, recommended);

@@ -21,11 +21,15 @@
     <img class="e9-map-stage__base" src="/assets/maps/e10_world_stage_v1_base.webp" alt="" width="1672" height="941">
     <svg class="e9-map-stage__route" viewBox="0 0 900 506" aria-hidden="true" focusable="false">
       <path class="e9-route__ground-shadow" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
-      <path class="e9-route__ground" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
+      <path class="e9-route__ground e9-route__material e9-route__material--locked" pathLength="100" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
+      <path class="e9-route__material e9-route__material--available" pathLength="100" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
+      <path class="e9-route__material e9-route__material--completed" data-e10-route-progress="completed" pathLength="100" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
+      <path class="e9-route__material e9-route__material--current" data-e10-route-progress="current" pathLength="100" d="M234 352 C280 315 296 276 327 246 C315 212 297 181 298 149 C337 137 375 129 414 133 C451 145 482 158 518 165 C560 164 608 156 643 159 C674 180 698 204 720 226 C692 258 654 294 633 329 C592 350 548 367 504 376"/>
       <!-- The cyan causeway crosses the ground route at a different visual grade;
            it has no node, branch, hit target, or pointer interaction. -->
       <path class="e9-route__ascension-shadow" d="M504 376 C560 310 685 135 763 117"/>
-      <path class="e9-route__ascension" d="M504 376 C560 310 685 135 763 117"/>
+      <path class="e9-route__ascension e9-route__material e9-route__material--locked" pathLength="100" d="M504 376 C560 310 685 135 763 117"/>
+      <path class="e9-route__material e9-route__material--available" pathLength="100" d="M504 376 C560 310 685 135 763 117"/>
     </svg>
     <div class="e9-map-stage__boss-anchors" id="e9-world-stage-boss-anchors" aria-hidden="true"></div>
     <div class="e9-map-stage__nodes" id="e9-world-stage-zones" data-i18n-aria-label="e10.world_stage.zones_aria_label"></div>
@@ -35,6 +39,7 @@
   </section>
   <section class="e9-zone-details" id="e9-world-stage-details" tabindex="-1" aria-live="polite" hidden>
     <p class="e9-zone-details__kicker" data-i18n="e10.world_stage.selected_quest">Selected quest</p>
+    <img class="e9-zone-details__landmark" id="e9-world-stage-details-landmark" alt="" width="320" height="320" aria-hidden="true" hidden>
     <p class="e9-zone-details__label" id="e9-world-stage-details-label"></p>
     <p class="e9-zone-details__state" id="e9-world-stage-details-state"></p>
     <p class="e9-zone-details__summary" id="e9-world-stage-details-summary"></p>
