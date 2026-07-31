@@ -8,18 +8,25 @@
     var control = document.createElement(item.disabled || item.command ? 'button' : 'a');
     control.className = 'e9-nav__item e10-nav-item--' + item.key;
     control.setAttribute('data-e10-nav-key', item.key);
+    control.setAttribute('data-e10-state', 'default');
     if (item.target) control.setAttribute('href', item.target);
     if (item.command) control.setAttribute('data-e10-command', item.command);
     if (item.disabled) {
       control.disabled = true;
       control.setAttribute('aria-disabled', 'true');
       control.setAttribute('data-e10-disabled', '');
+      control.setAttribute('data-e10-state', 'locked');
       control.setAttribute('aria-describedby', 'e10-nav-status-' + item.key);
     }
     control.innerHTML = registry.icon(item.icon, 'e9-nav__icon')
       + '<span data-i18n="' + item.labelKey + '"></span>'
-      + (item.disabled ? '<span class="e10-nav-status-lock" aria-hidden="true"></span>'
+      + (item.disabled ? registry.icon('lock', 'e10-nav-status-lock')
         + '<small class="e9-visually-hidden" id="e10-nav-status-' + item.key + '" data-i18n="inv.comingSoon"></small>' : '');
+    if (item.command === 'adventure') {
+      control.classList.add('is-active');
+      control.setAttribute('data-e10-state', 'active');
+      control.setAttribute('aria-current', 'page');
+    }
     li.appendChild(control);
     return li;
   }

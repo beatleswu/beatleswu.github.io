@@ -15,6 +15,7 @@
       link.href = item.target;
       link.setAttribute('data-e10-nav-key', item.key);
       link.setAttribute('data-e10-vs1f-nav', item.key);
+      link.setAttribute('data-e10-state', 'default');
       link.innerHTML = registry.icon(item.icon, 'e9-dock__icon') + '<span data-i18n="' + item.labelKey + '"></span>';
       list.appendChild(link);
     });

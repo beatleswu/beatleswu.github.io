@@ -283,6 +283,9 @@ async function runtimeSnapshot(page) {
         const box = element.getBoundingClientRect();
         return box.width > 0 && box.height > 0;
       });
+    const visibleNavigationControls = Array.from(document.querySelectorAll(
+      '#e9-adventure-shell [data-e10-nav-key], #e9-adventure-shell [data-e10-vs1f-nav="more"]'
+    )).filter(isVisible);
     const navItemRects = navItems.map((element) => element.getBoundingClientRect());
     const zoneRects = Array.from(document.querySelectorAll('#e9-world-stage-zones [data-zone]'))
       .map((element) => element.getBoundingClientRect());
@@ -376,6 +379,28 @@ async function runtimeSnapshot(page) {
         return Math.min(smallest, target.width, target.height);
       }, Number.POSITIVE_INFINITY),
       duplicateIds: [...new Set(duplicateIds)],
+      rpgIconCount: document.querySelectorAll('#e9-adventure-shell .e10-rpg-icon[data-e10-icon-id]').length,
+      visibleControlMissingIconCount: visibleNavigationControls.filter((control) => (
+        !control.querySelector('.e10-rpg-icon[data-e10-icon-id]')
+      )).length,
+      svgTextCount: document.querySelectorAll('#e9-adventure-shell svg text').length,
+      iconIds: [...new Set(Array.from(document.querySelectorAll('#e9-adventure-shell [data-e10-icon-id]'))
+        .map((icon) => icon.getAttribute('data-e10-icon-id')))].sort(),
+      adventureCurrent: document.querySelector('[data-e10-nav-key="adventure"]')?.getAttribute('aria-current'),
+      avatarFit: getComputedStyle(document.querySelector('#top-hud-avatar-image')).objectFit,
+      moreColumns: getComputedStyle(document.querySelector('.e10-more-grid')).gridTemplateColumns.split(' ').length,
+      soundToggle: (() => {
+        const input = document.querySelector('#e10-settings-sound');
+        const track = document.querySelector('.e10-settings-switch__track');
+        const state = document.querySelector('#e10-settings-sound-state');
+        return {
+          type: input?.type,
+          appearance: input ? getComputedStyle(input).appearance : null,
+          trackWidth: track?.getBoundingClientRect().width || 0,
+          state: state?.textContent.trim() || '',
+          ariaLabel: input?.getAttribute('aria-label') || '',
+        };
+      })(),
       legacyNavCount: document.querySelectorAll('.cg-nav-link[data-nav-key]').length,
       sessionControls: {
         presence: !!document.querySelector('#cg-presence-chip'),
@@ -489,7 +514,8 @@ async function runCase(browser, origin, outputDir, spec) {
 
   if (spec.openMore) {
     const trigger = page.locator('[data-e10-vs1f-nav="more"]');
-    await trigger.click();
+    if (await trigger.isVisible()) await trigger.click();
+    else await trigger.evaluate((element) => element.click());
     await page.locator('#e10-all-features-overlay').waitFor({ state: 'visible' });
   }
   if (spec.openSettings) {
@@ -533,6 +559,78 @@ async function runCase(browser, origin, outputDir, spec) {
   return { ...spec, screenshot, beforeOpen, afterOpen, escaped, detailMapBefore, adventureCommand, snapshot, browserErrors };
 }
 
+async function capturePolishStateEvidence(browser, origin, outputDir) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const browserErrors = [];
+  await installApiFixture(page, browserErrors, 'mage');
+  await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'networkidle' });
+  await waitForShell(page);
+
+  const captures = [];
+  async function capture(locator, filename) {
+    const target = locator.first();
+    if (await target.count() !== 1) throw new Error(`state evidence target missing: ${filename}`);
+    const outputPath = path.join(outputDir, filename);
+    await target.screenshot({ path: outputPath });
+    captures.push(outputPath);
+  }
+  async function captureStates(prefix, rootSelector, selectors, synthesizeDisabled = false) {
+    const root = page.locator(rootSelector);
+    const controls = Object.fromEntries(
+      Object.entries(selectors).map(([state, selector]) => [state, root.locator(selector)])
+    );
+    await capture(controls.default, `${prefix}-state-default.png`);
+    await controls.hover.hover();
+    await capture(controls.hover, `${prefix}-state-hover.png`);
+    await controls.focus.focus();
+    await capture(controls.focus, `${prefix}-state-focus.png`);
+    await controls.pressed.hover();
+    const box = await controls.pressed.boundingBox();
+    if (!box) throw new Error(`state evidence pressed target hidden: ${prefix}`);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await capture(controls.pressed, `${prefix}-state-pressed.png`);
+    await page.mouse.move(1, 1);
+    await page.mouse.up();
+    await controls.active.evaluate((element) => {
+      element.classList.add('is-active');
+      element.setAttribute('data-e10-state', 'active');
+      element.setAttribute('aria-current', 'page');
+    });
+    await capture(controls.active, `${prefix}-state-active.png`);
+    if (synthesizeDisabled) {
+      await controls.disabled.evaluate((element) => {
+        element.classList.remove('is-active');
+        element.removeAttribute('aria-current');
+        element.setAttribute('data-e10-state', 'locked');
+        element.setAttribute('aria-disabled', 'true');
+      });
+    }
+    await capture(controls.disabled, `${prefix}-state-disabled.png`);
+  }
+
+  await captureStates('left-rail', '#left-nav', {
+    default: '[data-e10-nav-key="hero"]',
+    hover: '[data-e10-nav-key="equipment"]',
+    focus: '[data-e10-nav-key="go_spirit"]',
+    pressed: '[data-e10-nav-key="shop"]',
+    active: '[data-e10-nav-key="hero"]',
+    disabled: '[data-e10-nav-key="backpack"]',
+  });
+  await captureStates('bottom-dock', '#bottom-dock', {
+    default: '[data-e10-nav-key="battle_log"]',
+    hover: '[data-e10-nav-key="tavern"]',
+    focus: '[data-e10-nav-key="star_chart"]',
+    pressed: '[data-e10-nav-key="arena"]',
+    active: '[data-e10-nav-key="soul_records"]',
+    disabled: '[data-e10-nav-key="soul_records"]',
+  }, true);
+  await capture(page.locator('.e9-hud__player'), 'avatar-runtime-closeup.png');
+  await capture(page.locator('.e10-hud__right'), 'utility-group-closeup.png');
+  await page.close();
+  return { captures, browserErrors };
+}
+
 function assertCase(result) {
   const failures = [];
   const { snapshot, specName, browserErrors } = result;
@@ -549,6 +647,11 @@ function assertCase(result) {
   if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${specName}: session controls are not reachable`);
   if (!snapshot.avatar.src || snapshot.avatar.src.includes('GO')) failures.push(`${specName}: runtime avatar is missing`);
   if (!snapshot.avatar.identityLabel) failures.push(`${specName}: player identity accessible name is missing`);
+  if (snapshot.avatarFit !== 'cover') failures.push(`${specName}: runtime avatar is not portrait-cropped`);
+  if (snapshot.rpgIconCount < 22) failures.push(`${specName}: RPG icon registry render is incomplete (${snapshot.rpgIconCount})`);
+  if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
+  if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
+  if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
   if (!snapshot.backpack.disabled || !snapshot.backpack.lockVisible) failures.push(`${specName}: Backpack disabled lock state is incomplete`);
   if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
   if (snapshot.horizontalOverflow !== 0) failures.push(`${specName}: horizontal overflow ${snapshot.horizontalOverflow}`);
@@ -648,7 +751,18 @@ function assertCase(result) {
     }
   }
   if (result.openMore && !result.openSettings && !result.snapshot.moreOverlayVisible) failures.push(`${specName}: All Features did not open`);
+  if (result.openMore && !result.openSettings) {
+    const expectedColumns = result.viewport.width <= 600 ? 2 : 3;
+    if (snapshot.moreColumns !== expectedColumns) failures.push(`${specName}: All Features columns ${snapshot.moreColumns}`);
+  }
   if (result.openSettings && !result.snapshot.settingsOverlayVisible) failures.push(`${specName}: Settings did not open`);
+  if (result.openSettings && (
+    snapshot.soundToggle.type !== 'checkbox'
+    || snapshot.soundToggle.appearance !== 'none'
+    || snapshot.soundToggle.trackWidth < 44
+    || !snapshot.soundToggle.state
+    || !snapshot.soundToggle.ariaLabel
+  )) failures.push(`${specName}: custom semantic Sound toggle contract failed`);
   if (result.adventureCommand) {
     const command = result.adventureCommand;
     if (command.before.selectedZone !== command.after.selectedZone) failures.push(`${specName}: Adventure changed selected zone`);
@@ -774,11 +888,13 @@ async function main() {
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true },
+      { specName: 'desktop-1440-more', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-all-features-zh.png', layout: 'rail', openMore: true },
       { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character' },
       { specName: 'tablet-1180-landscape-closed', viewport: { width: 1180, height: 820 }, lang: 'zh', filename: 'tablet-1180x820-closed-zh.png', layout: 'bottom-dock' },
       { specName: 'tablet-1180-landscape-more', viewport: { width: 1180, height: 820 }, lang: 'en', filename: 'tablet-1180x820-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'tablet-820-portrait-settings', viewport: { width: 820, height: 1180 }, lang: 'zh', filename: 'tablet-820x1180-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
       { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'mobile-430-more', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'mobile-430-settings', viewport: { width: 430, height: 932 }, lang: 'zh', filename: 'mobile-430x932-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
@@ -790,6 +906,7 @@ async function main() {
       process.stdout.write(`capture ${spec.specName}\n`);
       results.push(await runCase(browser, origin, outputDir, spec));
     }
+    const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
     const legacy = await runLegacyCase(browser, origin, outputDir);
     const lifecycle = await runLifecycleCase(browser, origin);
     const compatibilityBridge = [];
@@ -814,6 +931,7 @@ async function main() {
       );
     }
     const failures = results.flatMap(assertCase).concat(
+      polishStateEvidence.browserErrors.map((error) => `polish state evidence: ${error}`),
       legacy.failures,
       lifecycle.failures,
       compatibilityBridge.flatMap((result) => result.failures),
@@ -823,6 +941,7 @@ async function main() {
       source_root: repoRoot,
       runtime_origin: origin,
       results,
+      polishStateEvidence,
       legacy,
       lifecycle,
       compatibilityBridge,
@@ -830,7 +949,11 @@ async function main() {
     };
     await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
     if (failures.length) throw new Error(failures.join('\n'));
-    process.stdout.write(JSON.stringify({ ok: true, output_dir: outputDir, screenshots: results.length + 1 }, null, 2));
+    process.stdout.write(JSON.stringify({
+      ok: true,
+      output_dir: outputDir,
+      screenshots: results.length + 1 + polishStateEvidence.captures.length,
+    }, null, 2));
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

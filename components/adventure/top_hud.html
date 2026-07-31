@@ -27,15 +27,22 @@
   </div>
   <div class="e10-nav-overlay" id="e10-all-features-overlay" hidden data-e10-vs1f-nav="all-features-overlay">
     <section class="e10-nav-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-all-features-title">
-      <header><h2 id="e10-all-features-title" data-i18n="e10.nav.all_features">All Features</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close">X</button></header>
+      <header><h2 id="e10-all-features-title" data-i18n="e10.nav.all_features">All Features</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close"></button></header>
       <nav class="e10-more-grid" data-e10-more-list data-i18n-aria-label="e10.nav.all_features"></nav>
     </section>
   </div>
   <div class="e10-nav-overlay" id="e10-settings-overlay" hidden data-e10-vs1f-nav="settings-overlay">
     <section class="e10-nav-dialog e10-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-settings-title">
-      <header><h2 id="e10-settings-title" data-i18n="e9.bottom_dock.settings">Settings</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close">X</button></header>
+      <header><h2 id="e10-settings-title" data-i18n="e9.bottom_dock.settings">Settings</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close"></button></header>
       <fieldset><legend data-i18n="e10.nav.language">Language</legend><div id="e10-settings-language"></div></fieldset>
-      <label class="e10-settings-toggle"><span data-i18n="e10.nav.sound">Sound</span><input id="e10-settings-sound" type="checkbox"></label>
+      <label class="e10-settings-toggle">
+        <span data-i18n="e10.nav.sound">Sound</span>
+        <span class="e10-settings-switch">
+          <input id="e10-settings-sound" type="checkbox">
+          <span class="e10-settings-switch__track" aria-hidden="true"><span class="e10-settings-switch__thumb"></span></span>
+        </span>
+        <span class="e10-settings-toggle__state" id="e10-settings-sound-state" aria-live="polite"></span>
+      </label>
     </section>
   </div>
 </section>

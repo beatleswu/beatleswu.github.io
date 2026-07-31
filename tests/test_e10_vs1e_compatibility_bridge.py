@@ -70,8 +70,8 @@ def test_vs1d_render_path_is_preserved_without_the_contract():
 
 
 def test_bridge_versions_are_exactly_coupled():
-    assert "ASSET_VERSION = 'e10-rpg-navigation-visual-fix'" in FLAGS
-    assert "const VERSION     = 'v217-e10-rpg-navigation-visual-fix'" in SW
+    assert "ASSET_VERSION = 'e10-rpg-navigation-polish'" in FLAGS
+    assert "const VERSION     = 'v218-e10-rpg-navigation-polish'" in SW
     assert "e10-vs1e-review-closure" not in FLAGS
     assert "v213-e10-vs1e-review-closure" not in SW
     queries = re.findall(
@@ -79,4 +79,4 @@ def test_bridge_versions_are_exactly_coupled():
         r'\?v=([^"\']+)',
         INDEX,
     )
-    assert queries == ["20260731e10navfix1"] * 5
+    assert queries == ["20260731e10navpolish1"] * 5

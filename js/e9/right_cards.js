@@ -185,6 +185,7 @@
     var exactVs1f = !!(registry && registry.exactContract && registry.exactContract());
     var backdrop = null;
     if (exactVs1f && slot) {
+      if (closeButton) closeButton.innerHTML = registry.icon('close', 'e10-close-icon');
       backdrop = document.createElement('button');
       backdrop.type = 'button';
       backdrop.className = 'e10-drawer-backdrop';

@@ -2980,6 +2980,8 @@ const I18n = (() => {
         'e10.nav.close':                 { en: 'Close', zh: '關閉' },
         'e10.nav.language':              { en: 'Language', zh: '語言' },
         'e10.nav.sound':                 { en: 'Sound', zh: '音效' },
+        'e10.nav.sound_on':              { en: 'On', zh: '開啟' },
+        'e10.nav.sound_off':             { en: 'Off', zh: '關閉' },
         'e10.nav.player_profile':        { en: 'Open player profile', zh: '開啟玩家資料' },
         'e9.right_cards.aria_label':    { en: 'Mission and progress cards', zh: '任務與進度卡片' },
         'e9.right_cards.daily_challenge_title': { en: 'Daily Bounty', zh: '每日懸賞令' },

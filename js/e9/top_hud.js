@@ -86,6 +86,7 @@
       control.className = 'e10-utility-control ' + (extraClass || '');
       control.setAttribute('data-e10-nav-key', item.key);
       control.setAttribute('data-e10-vs1f-nav', item.key);
+      control.setAttribute('data-e10-state', 'default');
       if (item.target) control.href = item.target;
       if (!item.target) control.type = 'button';
       if (item.command) {
@@ -147,9 +148,10 @@
     moreTrigger.type = 'button';
     moreTrigger.className = 'e10-utility-control e10-more-trigger';
     moreTrigger.setAttribute('data-e10-vs1f-nav', 'more');
+    moreTrigger.setAttribute('data-e10-state', 'default');
     moreTrigger.setAttribute('aria-controls', 'e10-all-features-overlay');
     moreTrigger.setAttribute('aria-expanded', 'false');
-    moreTrigger.innerHTML = registry.icon('compass', 'e10-utility-icon') + '<span data-i18n="e10.nav.all_features"></span>';
+    moreTrigger.innerHTML = registry.icon('all_features', 'e10-utility-icon') + '<span data-i18n="e10.nav.all_features"></span>';
     utilities.appendChild(moreTrigger);
 
     registry.itemsFor('more').forEach(function (item) {
@@ -162,6 +164,7 @@
       moreTrigger.setAttribute('aria-expanded', 'true');
     }, null, generation);
     root.querySelectorAll('[data-e10-dialog-close]').forEach(function (button) {
+      button.innerHTML = registry.icon('close', 'e10-dialog-close-icon');
       window.E9.on(button, 'click', function () { closeAll(true); }, null, generation);
     });
     window.E9.on(document, 'keydown', onDialogKey, null, generation);
@@ -171,9 +174,28 @@
     var language = root.querySelector('#e10-settings-language');
     if (language && window.I18n && window.I18n.renderSwitcher) window.I18n.renderSwitcher(language);
     var sound = root.querySelector('#e10-settings-sound');
+    var soundState = root.querySelector('#e10-settings-sound-state');
+    var syncSoundState = function () {
+      if (!sound || !soundState) return;
+      var key = sound.checked ? 'e10.nav.sound_on' : 'e10.nav.sound_off';
+      var localizedState = window.I18n && typeof window.I18n.t === 'function'
+        ? window.I18n.t(key)
+        : (sound.checked ? 'On' : 'Off');
+      var localizedSound = window.I18n && typeof window.I18n.t === 'function'
+        ? window.I18n.t('e10.nav.sound')
+        : 'Sound';
+      soundState.setAttribute('data-i18n', key);
+      soundState.textContent = localizedState;
+      sound.setAttribute('aria-label', localizedSound + ': ' + localizedState);
+    };
     if (sound && window.SFX) {
       sound.checked = !window.SFX.muted;
-      window.E9.on(sound, 'change', function () { window.SFX.muted = !sound.checked; }, null, generation);
+      syncSoundState();
+      window.E9.on(sound, 'change', function () {
+        window.SFX.muted = !sound.checked;
+        syncSoundState();
+      }, null, generation);
+      window.E9.on(document, 'e9:i18n-changed', syncSoundState, null, generation);
     } else if (sound && sound.parentNode) {
       sound.parentNode.hidden = true;
     }
@@ -243,7 +265,14 @@
       if (data.coins !== null) {
         if (coinsEl) {
           var formattedCoins = data.coins.toLocaleString();
-          coinsEl.textContent = formattedCoins;
+          var registry = window.E9 && window.E9.NavigationRegistry;
+          coinsEl.textContent = '';
+          if (registry && registry.exactContract()) {
+            coinsEl.insertAdjacentHTML('afterbegin', registry.icon('coin', 'e10-coin-icon'));
+          }
+          var amount = document.createElement('span');
+          amount.textContent = formattedCoins;
+          coinsEl.appendChild(amount);
           coinsEl.setAttribute(
             'aria-label',
             t('e10.rpg.coins_label', '{n} coins').replace('{n}', formattedCoins)
