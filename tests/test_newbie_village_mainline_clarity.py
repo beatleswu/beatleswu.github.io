@@ -61,7 +61,7 @@ def test_first_journey_does_not_change_adventure_question_or_battlefield_boundar
 
 
 def test_service_worker_version_is_current_for_this_frontend_change():
-    assert "const VERSION     = 'v216-e10-rpg-navigation-shell'" in SW
+    assert "const VERSION     = 'v217-e10-rpg-navigation-visual-fix'" in SW
 
 
 def test_beginner_village_post_answer_continuation_controls_are_localized():

@@ -14,10 +14,12 @@
       control.disabled = true;
       control.setAttribute('aria-disabled', 'true');
       control.setAttribute('data-e10-disabled', '');
+      control.setAttribute('aria-describedby', 'e10-nav-status-' + item.key);
     }
     control.innerHTML = registry.icon(item.icon, 'e9-nav__icon')
       + '<span data-i18n="' + item.labelKey + '"></span>'
-      + (item.disabled ? '<small data-i18n="inv.comingSoon"></small>' : '');
+      + (item.disabled ? '<span class="e10-nav-status-lock" aria-hidden="true"></span>'
+        + '<small class="e9-visually-hidden" id="e10-nav-status-' + item.key + '" data-i18n="inv.comingSoon"></small>' : '');
     li.appendChild(control);
     return li;
   }

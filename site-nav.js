@@ -30,6 +30,13 @@
     rating: '<circle cx="16" cy="16" r="10"/><circle cx="16" cy="16" r="4"/><path d="M16 6v3M16 23v3M6 16h3M23 16h3M9.1 9.1l2.1 2.1M20.8 20.8l2.1 2.1M9.1 22.9l2.1-2.1M20.8 11.2l2.1-2.1"/>',
   };
 
+  const E10_VS1F_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
+
+  function ownsE10Navigation() {
+    const marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
+    return marker?.getAttribute('content') === E10_VS1F_STATIC_CONTRACT;
+  }
+
   function normalize(path) {
     return (path || '/').replace(/\/+$/, '') || '/';
   }
@@ -78,6 +85,10 @@
           <button class="cg-nav-logout" type="button" data-i18n="nav.logout">登出</button>
         </div>
       </div>`;
+    if (ownsE10Navigation()) {
+      header.dataset.e10SessionStrip = '1';
+      header.querySelector('.cg-nav-links')?.remove();
+    }
     old.replaceWith(header);
     // 語言切換鈕：搬移既有的；若該頁沒有，就現場生成一個（涵蓋所有用共用 nav 的頁面）
     const langSlot = header.querySelector('.cg-nav-lang');

@@ -178,26 +178,49 @@
     setCompactProgress(root, 0, 0);
     var toggle = root.querySelector('#e9-right-drawer-toggle');
     var panel = root.querySelector('#e9-right-drawer-panel');
+    var closeButton = root.querySelector('#e10-right-drawer-close');
+    var slot = root.parentElement;
+    var shell = document.querySelector('.e9-body');
+    var registry = window.E9 && window.E9.NavigationRegistry;
+    var exactVs1f = !!(registry && registry.exactContract && registry.exactContract());
+    var backdrop = null;
+    if (exactVs1f && slot) {
+      backdrop = document.createElement('button');
+      backdrop.type = 'button';
+      backdrop.className = 'e10-drawer-backdrop';
+      backdrop.hidden = true;
+      backdrop.tabIndex = -1;
+      backdrop.setAttribute('aria-hidden', 'true');
+      slot.insertAdjacentElement('beforebegin', backdrop);
+    } else if (closeButton) {
+      closeButton.remove();
+      closeButton = null;
+    }
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
     };
-    var setOpen = function (open) {
+    var setOpen = function (open, restoreFocus) {
       if (!toggle || !panel) return;
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       panel.hidden = !open;
       root.classList.toggle('is-drawer-open', open);
+      if (slot) slot.classList.toggle('is-drawer-open', open);
+      if (shell) shell.classList.toggle('is-right-drawer-open', open);
+      if (backdrop) backdrop.hidden = !open;
       syncDrawerLandmark(root);
-      if (!open && root.__e9DrawerTrigger && document.activeElement && panel.contains(document.activeElement)) {
+      if (!open && restoreFocus && root.__e9DrawerTrigger) {
         root.__e9DrawerTrigger.focus();
       }
     };
     if (toggle && panel) {
       var onToggle = function () {
         root.__e9DrawerTrigger = toggle;
-        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+        setOpen(toggle.getAttribute('aria-expanded') !== 'true', false);
       };
-      var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
-      var onAdventure = function () { setOpen(false); };
+      var onKey = function (evt) {
+        if (evt.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') setOpen(false, true);
+      };
+      var onAdventure = function () { setOpen(false, false); };
       var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
       var onI18nChanged = function () {
         if (!current()) return;
@@ -207,18 +230,22 @@
           updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
         }
       };
-      setOpen(false);
+      setOpen(false, false);
       if (window.E9 && window.E9.latestZoneSelection) {
         updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
       }
       if (window.E9 && typeof window.E9.on === 'function') {
         window.E9.on(toggle, 'click', onToggle, null, generation);
+        if (closeButton) window.E9.on(closeButton, 'click', function () { setOpen(false, true); }, null, generation);
+        if (backdrop) window.E9.on(backdrop, 'click', function () { setOpen(false, true); }, null, generation);
         window.E9.on(document, 'keydown', onKey, null, generation);
         window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
         window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
         window.E9.on(document, 'e9:adventure-command', onAdventure, null, generation);
       } else {
         toggle.addEventListener('click', onToggle);
+        if (closeButton) closeButton.addEventListener('click', function () { setOpen(false, true); });
+        if (backdrop) backdrop.addEventListener('click', function () { setOpen(false, true); });
         document.addEventListener('keydown', onKey);
         document.addEventListener('e9:zone-selected', onZoneSelected);
         document.addEventListener('e9:adventure-command', onAdventure);
@@ -230,6 +257,9 @@
       window.E9.registerCleanup(function () {
         delete root.__e9CompactProgress;
         delete root.__e10SelectedLandmarkSrc;
+        if (backdrop) backdrop.remove();
+        if (slot) slot.classList.remove('is-drawer-open');
+        if (shell) shell.classList.remove('is-right-drawer-open');
       }, generation);
     }
     loadDailyChallenge(root, current);

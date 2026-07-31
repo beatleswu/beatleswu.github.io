@@ -140,13 +140,20 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     landmarkCount: document.querySelectorAll('.e10-zone-landmark').length,
     vs1fPlayerCount: document.querySelectorAll('[data-player-location], .e10-current-hero').length,
     vs1fIconCount: document.querySelectorAll('[data-e10-vs1f-icon], .e9-dock__icon').length,
+    vs1fAvatarCount: document.querySelectorAll('#top-hud-avatar-image').length,
     nav32Count: document.querySelectorAll('.e9-nav__icon[viewBox="0 0 32 32"]').length,
     oversizedBlackSvgCount: [...document.querySelectorAll('svg path, svg polygon')]
       .filter((shape) => {
         const style = getComputedStyle(shape);
         const box = shape.getBoundingClientRect();
         return style.fill === 'rgb(0, 0, 0)' && box.width * box.height > 4096;
-      }).length,
+       }).length,
+    legacyNavCount: document.querySelectorAll('.cg-nav-link[data-nav-key]').length,
+    sessionControls: {
+      presence: !!document.querySelector('#cg-presence-chip'),
+      language: !!document.querySelector('.cg-nav-lang'),
+      logout: !!document.querySelector('.cg-nav-logout'),
+    },
   }));
   const screenshot = await saveViewportScreenshot(
     page,
@@ -175,14 +182,17 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     || snapshot.landmarkCount !== 0
     || snapshot.vs1fPlayerCount !== 0
     || snapshot.vs1fIconCount !== 0
+    || snapshot.vs1fAvatarCount !== 0
     || snapshot.nav32Count !== 0
     || snapshot.oversizedBlackSvgCount !== 0
   ) failures.push(`${contractCase}: VS1F SVG/mask/landmark DOM leaked into fallback`);
+  if (snapshot.legacyNavCount !== 9) failures.push(`${contractCase}: Legacy header navigation was not preserved`);
+  if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${contractCase}: session controls are incomplete`);
   if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
   return { contractCase, screenshot, snapshot, browserErrors, failures };
 }
 
-function apiResponse(pathname, method) {
+function apiResponse(pathname, method, avatarKey = 'mage') {
   if (pathname === '/api/auth/me') {
     return {
       logged_in: true,
@@ -200,6 +210,7 @@ function apiResponse(pathname, method) {
   }
   if (pathname === '/api/skills/profile') return { display_name: '晨星騎士', rank_level: 'LV12' };
   if (pathname === '/api/user/coins') return { coins: 123456 };
+  if (pathname === '/api/player/appearance') return { character_key: avatarKey };
   if (pathname === '/api/adventure/bootstrap') return { zones };
   if (pathname === '/api/daily-challenge/today') return { submitted: false };
   if (pathname === '/api/srs/due') return { count: 17, due: [] };
@@ -210,7 +221,7 @@ function apiResponse(pathname, method) {
   return { ok: true };
 }
 
-async function installApiFixture(page, browserErrors) {
+async function installApiFixture(page, browserErrors, avatarKey = 'mage') {
   page.on('console', (message) => {
     if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
   });
@@ -225,7 +236,7 @@ async function installApiFixture(page, browserErrors) {
   });
   await page.route('**/api/**', async (route) => {
     const request = route.request();
-    const payload = apiResponse(new URL(request.url()).pathname, request.method());
+    const payload = apiResponse(new URL(request.url()).pathname, request.method(), avatarKey);
     await route.fulfill(payload === null
       ? { status: 204, body: '' }
       : { status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
@@ -365,6 +376,29 @@ async function runtimeSnapshot(page) {
         return Math.min(smallest, target.width, target.height);
       }, Number.POSITIVE_INFINITY),
       duplicateIds: [...new Set(duplicateIds)],
+      legacyNavCount: document.querySelectorAll('.cg-nav-link[data-nav-key]').length,
+      sessionControls: {
+        presence: !!document.querySelector('#cg-presence-chip'),
+        language: isVisible(document.querySelector('.cg-nav-lang'))
+          || (
+            isVisible(document.querySelector('[data-e10-vs1f-nav="more"]'))
+            && !!document.querySelector('[data-e10-nav-key="settings"]')
+          ),
+        logout: isVisible(document.querySelector('.cg-nav-logout')),
+      },
+      avatar: {
+        src: document.querySelector('#top-hud-avatar-image')?.getAttribute('src'),
+        fallback: document.querySelector('#top-hud-avatar-image')?.hasAttribute('data-e10-avatar-fallback'),
+        identityLabel: document.querySelector('.e9-hud__player')?.getAttribute('aria-label'),
+      },
+      playerIdentity: roundRect(rect('.e9-hud__player')),
+      utilityGroup: roundRect(rect('.e10-hud__right')),
+      drawerCloseVisible: isVisible(document.querySelector('#e10-right-drawer-close')),
+      backpack: {
+        disabled: document.querySelector('[data-e10-nav-key="backpack"]')?.disabled,
+        label: document.querySelector('[data-e10-nav-key="backpack"] > span:not(.e10-nav-status-lock)')?.textContent.trim(),
+        lockVisible: isVisible(document.querySelector('[data-e10-nav-key="backpack"] .e10-nav-status-lock')),
+      },
       bossAnchorsVisibility: getComputedStyle(document.querySelector('#e9-world-stage-boss-anchors')).visibility,
       aria: {
         drawerControls: document.querySelector('#e9-right-drawer-toggle')?.getAttribute('aria-controls'),
@@ -391,7 +425,7 @@ async function resetViewportScroll(page) {
 async function runCase(browser, origin, outputDir, spec) {
   const page = await browser.newPage({ viewport: spec.viewport });
   const browserErrors = [];
-  await installApiFixture(page, browserErrors);
+  await installApiFixture(page, browserErrors, spec.avatarKey || 'mage');
   const url = `${origin}/index.html?lang=${spec.lang}&${shellFlags}`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await waitForShell(page);
@@ -403,17 +437,18 @@ async function runCase(browser, origin, outputDir, spec) {
   }
 
   if (spec.longLabelStress) {
-    await page.locator('.e9-nav__item > span').evaluateAll((labels) => {
-      const stressLabels = [
-        'Hero',
-        'Equipment',
-        'Backpack',
-        'Go Spirit Companion',
-        'Shop',
-        'Adventure',
-      ];
-      labels.forEach((label, index) => {
-        label.textContent = stressLabels[index];
+    await page.locator('.e9-nav__item').evaluateAll((items) => {
+      const stressLabels = {
+        adventure: 'Adventure',
+        hero: 'Hero',
+        equipment: 'Equipment',
+        go_spirit: 'Go Spirit Companion',
+        backpack: 'Backpack',
+        shop: 'Shop',
+      };
+      items.forEach((item) => {
+        const label = item.querySelector(':scope > span:not(.e10-nav-status-lock)');
+        if (label) label.textContent = stressLabels[item.dataset.e10NavKey];
       });
     });
   }
@@ -510,6 +545,12 @@ function assertCase(result) {
     failures.push(`${specName}: persistent map plaques are incomplete`);
   }
   if (snapshot.legacyVisible) failures.push(`${specName}: Legacy shell remains visible`);
+  if (snapshot.legacyNavCount !== 0) failures.push(`${specName}: Legacy header navigation remains in exact VS1F`);
+  if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${specName}: session controls are not reachable`);
+  if (!snapshot.avatar.src || snapshot.avatar.src.includes('GO')) failures.push(`${specName}: runtime avatar is missing`);
+  if (!snapshot.avatar.identityLabel) failures.push(`${specName}: player identity accessible name is missing`);
+  if (!snapshot.backpack.disabled || !snapshot.backpack.lockVisible) failures.push(`${specName}: Backpack disabled lock state is incomplete`);
+  if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
   if (snapshot.horizontalOverflow !== 0) failures.push(`${specName}: horizontal overflow ${snapshot.horizontalOverflow}`);
   if (snapshot.minimumTarget < 44) failures.push(`${specName}: interactive target below 44px (${snapshot.minimumTarget})`);
   if (snapshot.duplicateIds.length) failures.push(`${specName}: duplicate IDs ${snapshot.duplicateIds.join(', ')}`);
@@ -530,8 +571,10 @@ function assertCase(result) {
   if (result.beforeOpen && result.afterOpen) {
     const before = result.beforeOpen.map;
     const after = result.afterOpen.map;
-    for (const key of ['left', 'right', 'width', 'height']) {
-      if (before[key] !== after[key]) failures.push(`${specName}: drawer changed map ${key}`);
+    if (result.portraitContext) {
+      if (before.width !== after.width) failures.push(`${specName}: portrait overlay changed map width`);
+    } else if (before.width <= after.width) {
+      failures.push(`${specName}: closed map width ${before.width} is not greater than open width ${after.width}`);
     }
   }
   if (result.progressDrawerCheck && (
@@ -540,8 +583,12 @@ function assertCase(result) {
     || snapshot.drawer.width <= 0
     || snapshot.drawer.height <= 0
   )) failures.push(`${specName}: open screenshot does not contain the quest drawer`);
+  if (result.progressDrawerCheck && !snapshot.drawerCloseVisible) failures.push(`${specName}: drawer close control is not visible`);
   if (result.escapeCheck && result.escaped !== 'false') failures.push(`${specName}: Escape did not close drawer`);
   if (result.layout === 'rail') {
+    if (snapshot.playerIdentity && snapshot.utilityGroup && snapshot.playerIdentity.left >= snapshot.utilityGroup.left) {
+      failures.push(`${specName}: player identity is not left of utility group`);
+    }
     if (snapshot.landmarkCount !== 0) {
       failures.push(`${specName}: full landmark art duplicated the Desktop map`);
     }
@@ -727,6 +774,7 @@ async function main() {
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true },
+      { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character' },
       { specName: 'tablet-1180-landscape-closed', viewport: { width: 1180, height: 820 }, lang: 'zh', filename: 'tablet-1180x820-closed-zh.png', layout: 'bottom-dock' },
       { specName: 'tablet-1180-landscape-more', viewport: { width: 1180, height: 820 }, lang: 'en', filename: 'tablet-1180x820-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },

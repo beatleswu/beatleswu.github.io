@@ -42,12 +42,12 @@ def _manifest(relative_path):
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
 
 
-def test_exact_v216_static_runtime_version_coupling():
+def test_exact_v217_static_runtime_version_coupling():
     assert f'content="{CONTRACT}"' in INDEX
     assert f"VS1E_STATIC_CONTRACT = '{CONTRACT}'" in WORLD_JS
-    assert "ASSET_VERSION = 'e10-rpg-navigation-shell'" in FLAGS
-    assert "const VERSION     = 'v216-e10-rpg-navigation-shell'" in SW
-    assert INDEX.count("20260731e10nav1") >= 8
+    assert "ASSET_VERSION = 'e10-rpg-navigation-visual-fix'" in FLAGS
+    assert "const VERSION     = 'v217-e10-rpg-navigation-visual-fix'" in SW
+    assert INDEX.count("20260731e10navfix1") >= 8
 
 
 def test_ten_original_landmarks_are_runtime_referenced_and_governed():

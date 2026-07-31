@@ -48,7 +48,7 @@ def test_right_drawer_is_closed_by_default_and_uses_existing_payload_summary():
     assert 'id="e9-right-drawer-toggle"' in CARDS_HTML
     assert 'aria-controls="e9-right-drawer-panel"' in CARDS_HTML
     assert 'aria-expanded="false"' in CARDS_HTML
-    assert 'setOpen(false);' in CARDS_JS
+    assert 'setOpen(false, false);' in CARDS_JS
     assert "d.cleared" in CARDS_JS and "d.total" in CARDS_JS
     assert 'e10.world_stage.progress_compact' in CARDS_JS
     assert 'e9-drawer-mobile-summary' in CARDS_HTML

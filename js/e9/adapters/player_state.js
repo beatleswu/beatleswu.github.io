@@ -4,6 +4,7 @@
  * Canonical sources (see docs/planning/e9_1b_real_data_contract.md):
  *   GET /api/skills/profile -> { display_name, rank_level: 'LV<n>', ... }
  *   GET /api/user/coins     -> { coins, challenge_wins, ... }
+ *   GET /api/player/appearance -> { character_key, ... }
  *
  * Responsibility: fetch, validate, normalize into a stable view model.
  * Never persists a second copy of canonical state (no localStorage, no
@@ -12,6 +13,30 @@
  */
 (function (global) {
   'use strict';
+
+  var CHARACTER_ROOT = '/assets/hero/characters/';
+  var FALLBACK_AVATAR = CHARACTER_ROOT + 'chibi_reference_normalized.webp';
+  var CHARACTER_ASSETS = {
+    apprentice: 'chibi_apprentice_normalized.webp',
+    apprentice_girl: 'chibi_apprentice_girl_normalized.webp',
+    swordsman: 'chibi_swordsman_normalized.webp',
+    rogue: 'chibi_rogue_normalized.webp',
+    ranger: 'chibi_ranger_normalized.webp',
+    berserker: 'chibi_berserker_normalized.webp',
+    guardian: 'chibi_guardian_normalized.webp',
+    paladin: 'chibi_paladin_normalized.webp',
+    mage: 'chibi_mage_normalized.webp',
+    sage: 'chibi_sage_normalized.webp',
+  };
+
+  function normalizeAppearance(raw) {
+    var key = raw && typeof raw.character_key === 'string' ? raw.character_key.trim() : '';
+    var filename = CHARACTER_ASSETS[key];
+    return {
+      avatarSrc: filename ? CHARACTER_ROOT + filename : FALLBACK_AVATAR,
+      avatarFallbackSrc: FALLBACK_AVATAR,
+    };
+  }
 
   /**
    * Pure normalization: raw /api/skills/profile JSON -> { name, level } or
@@ -65,7 +90,7 @@
    * fetchImpl is injectable so this file can be unit-tested under Node
    * without a real network/browser (see tests/e9_node_tests/).
    * Returns a Promise resolving to either:
-   *   { ok: true, data: { name, level, coins } }
+   *   { ok: true, data: { name, level, coins, avatarSrc, avatarFallbackSrc } }
    *   { ok: false, kind: 'unauthorized'|'error'|'network', status }
    */
   function fetchPlayerState(fetchImpl) {
@@ -75,6 +100,10 @@
     return Promise.all([
       doFetch('/api/skills/profile', { credentials: 'same-origin' }),
       doFetch('/api/user/coins', { credentials: 'same-origin' }),
+      doFetch('/api/player/appearance', { credentials: 'same-origin' }).then(function (response) {
+        if (!response.ok) return normalizeAppearance(null);
+        return response.json().then(normalizeAppearance, function () { return normalizeAppearance(null); });
+      }, function () { return normalizeAppearance(null); }),
     ]).then(function (responses) {
       var profileRes = responses[0];
       var coinsRes = responses[1];
@@ -83,7 +112,14 @@
       return Promise.all([profileRes.json(), coinsRes.json()]).then(function (bodies) {
         var profile = normalizeProfile(bodies[0]);
         var coins = normalizeCoins(bodies[1]);
-        return { ok: true, data: { name: profile.name, level: profile.level, coins: coins.coins } };
+        var appearance = responses[2];
+        return { ok: true, data: {
+          name: profile.name,
+          level: profile.level,
+          coins: coins.coins,
+          avatarSrc: appearance.avatarSrc,
+          avatarFallbackSrc: appearance.avatarFallbackSrc,
+        } };
       });
     }).catch(function () {
       return { ok: false, kind: 'network', status: null };
@@ -93,6 +129,7 @@
   var api = {
     normalizeProfile: normalizeProfile,
     normalizeCoins: normalizeCoins,
+    normalizeAppearance: normalizeAppearance,
     fetchPlayerState: fetchPlayerState,
   };
 

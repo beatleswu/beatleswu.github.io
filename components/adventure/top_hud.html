@@ -4,6 +4,7 @@
   Real data sources (no new API):
     GET /api/skills/profile -> display_name, rank_level
     GET /api/user/coins     -> coins
+    GET /api/player/appearance -> character_key
   Deliberately does NOT show Stars/HP/SP -- Stars is a per-zone 0-3 rating
   (belongs on World Stage, not a global player stat), HP/SP only exist as
   transient in-battle state with no persistence API. Showing 0/0 for those
@@ -18,10 +19,12 @@
       <span id="top-hud-level-value">--</span>
     </span>
   </a>
-  <div class="e9-hud__resources">
-    <span class="e9-hud__coins" id="top-hud-coins" hidden>--</span>
+  <div class="e10-hud__right">
+    <div class="e9-hud__resources">
+      <span class="e9-hud__coins" id="top-hud-coins" hidden>--</span>
+    </div>
+    <div class="e10-hud__utilities" data-e10-utility-list></div>
   </div>
-  <div class="e10-hud__utilities" data-e10-utility-list></div>
   <div class="e10-nav-overlay" id="e10-all-features-overlay" hidden data-e10-vs1f-nav="all-features-overlay">
     <section class="e10-nav-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-all-features-title">
       <header><h2 id="e10-all-features-title" data-i18n="e10.nav.all_features">All Features</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close">X</button></header>
