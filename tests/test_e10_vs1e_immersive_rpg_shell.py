@@ -65,19 +65,13 @@ def test_visual_direction_tokens_and_touch_targets_are_explicit():
 
 def test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_marker():
     nav_js = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
+    registry = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
     assert 'class="e9-nav__icon"' not in NAV_HTML
-    assert "function exactVs1fStaticContract()" in nav_js
-    assert "createElementNS('http://www.w3.org/2000/svg', 'svg')" in nav_js
-    assert "data-e10-vs1f-icon" in nav_js
-    for route in (
-        'href="#"',
-        'href="/hero?tab=hero"',
-        'href="/hero?tab=equipment"',
-        'href="/inventory"',
-        'href="/daily_challenge"',
-        'href="/shop"',
-    ):
-        assert route in NAV_HTML
+    assert "registry.exactContract()" in nav_js
+    assert "data-e10-vs1f-icon" in registry
+    for route in ('/hero?tab=hero', '/hero?tab=equipment', '/hero?tab=pet', '/shop', '/daily-challenge'):
+        assert route in registry
+    assert "target: null" in registry
     assert not re.search(r"[\U0001F300-\U0001FAFF]", NAV_HTML)
 
 
@@ -87,7 +81,7 @@ def test_hud_restores_vs1d_fallback_and_builds_vs1f_brand_after_marker():
     assert "if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;" in TOP_JS
     assert "data-e10-vs1f-brand" in TOP_JS
     assert "e10-hud-brand__crest" in TOP_JS
-    assert "if (avatar) avatar.remove();" in TOP_JS
+    assert "if (avatar) avatar.remove();" not in TOP_JS
     assert 'id="top-hud-level" hidden' in TOP_HTML
     assert 'id="top-hud-coins" hidden' in TOP_HTML
     assert "🪙" not in TOP_HTML
@@ -111,13 +105,13 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-vs1f-integrated-world-map'" in FLAGS
-    assert "const VERSION     = 'v215-e10-vs1f-integrated-world-map'" in SW
-    assert "/i18n.js?v=20260730e10vs1f1" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260730e10vs1f1" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260730e10vs1f1" in INDEX
-    assert "/js/e9/right_cards.js?v=20260730e10vs1f1" in INDEX
-    assert "/js/e9/world_stage.js?v=20260730e10vs1f1" in INDEX
+    assert "ASSET_VERSION = 'e10-rpg-navigation-shell'" in FLAGS
+    assert "const VERSION     = 'v216-e10-rpg-navigation-shell'" in SW
+    assert "/i18n.js?v=20260731e10nav1" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260731e10nav1" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260731e10nav1" in INDEX
+    assert "/js/e9/right_cards.js?v=20260731e10nav1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260731e10nav1" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():

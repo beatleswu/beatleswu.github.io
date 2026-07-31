@@ -42,3 +42,87 @@
   outline: 2px solid #6b5b3a;
   outline-offset: 2px;
 }
+
+.e9-nav__item small {
+  display: block;
+  font-size: 9px;
+  line-height: 1.1;
+}
+
+.e9-nav__item:disabled {
+  cursor: not-allowed;
+  opacity: .56;
+}
+
+.e9-dock__list {
+  display: contents;
+}
+
+.e10-nav-overlay[hidden] {
+  display: none !important;
+}
+
+.e10-nav-overlay {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  background: rgba(12, 18, 19, .72);
+}
+
+.e10-nav-dialog {
+  width: min(620px, 100%);
+  max-height: min(720px, calc(100dvh - 32px));
+  overflow: auto;
+  padding: 18px;
+  border: 2px solid #cf9e3f;
+  border-radius: 8px;
+  color: #2f2412;
+  background: #fff8e7;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .38);
+}
+
+.e10-nav-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.e10-nav-dialog > header {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  color: #2f2412 !important;
+  background: transparent !important;
+}
+
+.e10-nav-dialog h2 { display: block !important; margin: 0; color: #2f2412 !important; font-size: 22px; }
+.e10-nav-dialog header button { display: inline-flex !important; align-items: center; justify-content: center; width: 44px; height: 44px; color: #2f2412 !important; }
+
+.e10-more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.e10-more-item {
+  min-height: 64px;
+  color: #2f2412;
+  background: #fff;
+}
+
+.e10-settings-dialog fieldset { margin: 0 0 18px; padding: 14px; }
+.e10-settings-toggle { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+.e10-settings-toggle input { width: 24px; height: 24px; }
+.e10-settings-dialog .i18n-switcher-btn { min-width: 44px; min-height: 44px; }
+
+@media (max-width: 600px) {
+  .e10-more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

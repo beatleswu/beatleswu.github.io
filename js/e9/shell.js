@@ -318,8 +318,23 @@
     global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';
   }
 
+  function runAdventureCommand() {
+    var stage = document.querySelector('#adventure-stage');
+    var map = document.querySelector('#e9-map-stage') || stage;
+    document.dispatchEvent(new CustomEvent('e9:adventure-command'));
+    if (!map) return false;
+    if (!map.hasAttribute('tabindex')) map.setAttribute('tabindex', '-1');
+    var reduced = !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (typeof map.scrollIntoView === 'function') map.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    if (typeof map.focus === 'function') {
+      try { map.focus({ preventScroll: true }); } catch (err) { map.focus(); }
+    }
+    return true;
+  }
+
   global.E9 = global.E9 || {};
   global.E9.startAdventureFromE9 = startAdventureFromE9;
+  global.E9.runAdventureCommand = runAdventureCommand;
   global.E9.recoverToLegacy = recoverToLegacy;
   global.E9.applyShellState = applyShellState;
   global.E9.getActiveShell = function () { return activeShellState || 'legacy'; };

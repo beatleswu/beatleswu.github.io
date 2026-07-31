@@ -70,8 +70,8 @@ def test_vs1d_render_path_is_preserved_without_the_contract():
 
 
 def test_bridge_versions_are_exactly_coupled():
-    assert f"ASSET_VERSION = '{CONTRACT}'" in FLAGS
-    assert f"const VERSION     = 'v215-{CONTRACT}'" in SW
+    assert "ASSET_VERSION = 'e10-rpg-navigation-shell'" in FLAGS
+    assert "const VERSION     = 'v216-e10-rpg-navigation-shell'" in SW
     assert "e10-vs1e-review-closure" not in FLAGS
     assert "v213-e10-vs1e-review-closure" not in SW
     queries = re.findall(
@@ -79,4 +79,4 @@ def test_bridge_versions_are_exactly_coupled():
         r'\?v=([^"\']+)',
         INDEX,
     )
-    assert queries == ["20260730e10vs1f1"] * 5
+    assert queries == ["20260731e10nav1"] * 5

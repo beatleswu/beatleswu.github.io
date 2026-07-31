@@ -187,10 +187,17 @@
       panel.hidden = !open;
       root.classList.toggle('is-drawer-open', open);
       syncDrawerLandmark(root);
+      if (!open && root.__e9DrawerTrigger && document.activeElement && panel.contains(document.activeElement)) {
+        root.__e9DrawerTrigger.focus();
+      }
     };
     if (toggle && panel) {
-      var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
+      var onToggle = function () {
+        root.__e9DrawerTrigger = toggle;
+        setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+      };
       var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
+      var onAdventure = function () { setOpen(false); };
       var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
       var onI18nChanged = function () {
         if (!current()) return;
@@ -209,10 +216,12 @@
         window.E9.on(document, 'keydown', onKey, null, generation);
         window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
         window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
+        window.E9.on(document, 'e9:adventure-command', onAdventure, null, generation);
       } else {
         toggle.addEventListener('click', onToggle);
         document.addEventListener('keydown', onKey);
         document.addEventListener('e9:zone-selected', onZoneSelected);
+        document.addEventListener('e9:adventure-command', onAdventure);
         document.addEventListener('e9:i18n-changed', onI18nChanged);
       }
     }

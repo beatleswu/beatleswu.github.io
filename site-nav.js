@@ -61,7 +61,7 @@
         </a>
         <nav class="cg-nav-links" aria-label="主要導覽" data-i18n-aria-label="common.nav.aria">
           ${NAV_ITEMS.map(item => `
-            <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}">
+            <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}" data-i18n-aria-label="${item.i18n}" ${isActive(item.href) ? 'aria-current="page"' : ''}>
               ${icon(item.icon)}
               <span data-i18n="${item.i18n}">${item.label}</span>
               ${item.key === 'mistake' ? '<span id="mistake-badge" class="cg-nav-badge" style="display:none;"></span>' : ''}
@@ -476,7 +476,7 @@
         .cg-nav-lang { display: none; }
         .cg-brand-text { display: none; }
         .cg-nav-links { justify-content: flex-start; }
-        .cg-nav-link { width: 38px; padding: 0; justify-content: center; }
+        .cg-nav-link { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-link span { display: none; }
         .cg-nav-link .cg-nav-badge { display: none !important; }
         .cg-nav-icon { width: 20px; height: 20px; }
@@ -484,7 +484,7 @@
       @media (max-width: 520px) {
         :root { --cg-nav-h: 52px; }
         .cg-brand-mark { width: 28px; height: 28px; }
-        .cg-nav-link { width: 36px; height: 36px; border-radius: 11px; }
+        .cg-nav-link { width: 44px; height: 44px; border-radius: 11px; }
         .cg-nav-logout { width: 36px; height: 36px; border-radius: 11px; }
       }
     `;

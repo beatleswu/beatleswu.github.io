@@ -9,6 +9,7 @@ I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 HERO = (ROOT / "hero.html").read_text(encoding="utf-8")
 LEFT_NAV = (ROOT / "components/adventure/left_nav.html").read_text(encoding="utf-8")
+NAV_REGISTRY = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
 
 
 def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract():
@@ -51,8 +52,9 @@ def test_locale_changes_rerender_existing_world_stage_without_new_dictionary():
 
 
 def test_hero_and_equipment_have_distinct_canonical_tabs_and_history_contract():
-    assert 'href="/hero?tab=hero"' in LEFT_NAV
-    assert 'href="/hero?tab=equipment"' in LEFT_NAV
+    assert "key: 'hero', target: '/hero?tab=hero'" in NAV_REGISTRY
+    assert "key: 'equipment', target: '/hero?tab=equipment'" in NAV_REGISTRY
+    assert "data-e10-navigation-list" in LEFT_NAV
     assert "const ALL_TABS = ['hero','equipment','gear','pet','class','badges'];" in HERO
     assert "history.pushState({ heroTab: tab }" in HERO
     assert "window.addEventListener('popstate'" in HERO

@@ -54,5 +54,5 @@ def test_static_manifest_contains_quest_assets_and_i18n_keys():
 
 
 def test_asset_version_is_coupled_to_current_static_runtime():
-    assert "ASSET_VERSION = 'e10-vs1f-integrated-world-map'" in read("js/e9/feature_flags.js")
-    assert "v215-e10-vs1f-integrated-world-map" in read("sw.js")
+    assert "ASSET_VERSION = 'e10-rpg-navigation-shell'" in read("js/e9/feature_flags.js")
+    assert "v216-e10-rpg-navigation-shell" in read("sw.js")

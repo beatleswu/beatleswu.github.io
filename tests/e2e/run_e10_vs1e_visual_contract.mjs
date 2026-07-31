@@ -13,12 +13,12 @@ const zones = [
   ['k26_30', '圍棋新手村', 'Beginner Village', 'completed', false, true, 3, 30, 30],
   ['k21_25', '史萊姆平原', 'Slime Plains', 'unlocked', false, false, 1, 18, 25],
   ['k16_20', '哥布林洞穴', 'Goblin Cave', 'unlocked', false, false, 0, 12, 20],
-  ['k11_15', '暮光森林', 'Twilight Forest', 'locked', true, false, 0, 0, 20],
-  ['k6_10', '天空之塔', 'Sky Tower', 'locked', true, false, 0, 0, 20],
-  ['k1_5', '王者城堡', 'Royal Castle', 'unlocked', false, false, 0, 8, 20],
-  ['d1_2', '星海迴廊', 'Star Sea Passage', 'locked', true, false, 0, 0, 20],
-  ['d3_4', '深淵熔爐', 'Abyssal Forge', 'locked', true, false, 0, 0, 20],
-  ['d5_6', '永夜聖殿', 'Eternal Night Shrine', 'locked', true, false, 0, 0, 20],
+  ['k11_15', '迷霧森林', 'Misty Forest', 'locked', true, false, 0, 0, 20],
+  ['k6_10', '獸人部落', 'Orc Tribe', 'locked', true, false, 0, 0, 20],
+  ['k1_5', '龍之谷', 'Dragon Valley', 'unlocked', false, false, 0, 8, 20],
+  ['d1_2', '賢者之塔', 'Sage Tower', 'locked', true, false, 0, 0, 20],
+  ['d3_4', '魔王城前線', 'Demon Castle Front', 'locked', true, false, 0, 0, 20],
+  ['d5_6', '諸神黃昏', 'Ragnarök', 'locked', true, false, 0, 0, 20],
   ['d7_plus', '上古終焉神殿', 'Ancient Doom Temple', 'locked', true, false, 0, 0, 20],
 ].map(([key, name, name_en, status, locked, cleared, stars, seen, total]) => ({
   key,
@@ -291,6 +291,12 @@ async function runtimeSnapshot(page) {
       return style.whiteSpace !== 'nowrap'
         || (Number.isFinite(lineHeight) && label.getBoundingClientRect().height > lineHeight * 1.25);
     }).length;
+    const labelOverTwoLineCount = navItems.filter((item) => {
+      const label = item.querySelector('span');
+      if (!label) return false;
+      const lineHeight = Number.parseFloat(getComputedStyle(label).lineHeight);
+      return Number.isFinite(lineHeight) && label.getBoundingClientRect().height > lineHeight * 2.25;
+    }).length;
     const map = document.querySelector('#e9-map-stage')?.getBoundingClientRect();
     const lastZone = zoneRects.at(-1);
     const nav = document.querySelector('#left-nav')?.getBoundingClientRect();
@@ -340,6 +346,14 @@ async function runtimeSnapshot(page) {
       navItemCount: navItems.length,
       navRowCount: new Set(navItemRects.map((box) => Math.round(box.top))).size,
       navLabelWrapCount: labelWrapCount,
+      navLabelOverTwoLineCount: labelOverTwoLineCount,
+      navKeys: navItems.map((item) => item.getAttribute('data-e10-nav-key')),
+      navVisualKeys: navItems.slice().sort((a, b) => (
+        a.getBoundingClientRect().left - b.getBoundingClientRect().left
+      )).map((item) => item.getAttribute('data-e10-nav-key')),
+      moreOverlayVisible: isVisible(document.querySelector('#e10-all-features-overlay')),
+      settingsOverlayVisible: isVisible(document.querySelector('#e10-settings-overlay')),
+      focusedId: document.activeElement?.id || null,
       navOverlapCount: overlapCount(navItemRects),
       zoneOverlapCount: overlapCount(zoneRects),
       journeyTailGap: map && lastZone ? Math.round((map.bottom - lastZone.bottom) * 100) / 100 : null,
@@ -391,12 +405,12 @@ async function runCase(browser, origin, outputDir, spec) {
   if (spec.longLabelStress) {
     await page.locator('.e9-nav__item > span').evaluateAll((labels) => {
       const stressLabels = [
-        'Adventure Chronicle',
-        'Legendary Hero',
-        'Equipment Workshop',
-        'Expedition Backpack',
-        'Kingdom Missions',
-        'Enchanted Shop',
+        'Hero',
+        'Equipment',
+        'Backpack',
+        'Go Spirit Companion',
+        'Shop',
+        'Adventure',
       ];
       labels.forEach((label, index) => {
         label.textContent = stressLabels[index];
@@ -438,10 +452,50 @@ async function runCase(browser, origin, outputDir, spec) {
     }
   }
 
+  if (spec.openMore) {
+    const trigger = page.locator('[data-e10-vs1f-nav="more"]');
+    await trigger.click();
+    await page.locator('#e10-all-features-overlay').waitFor({ state: 'visible' });
+  }
+  if (spec.openSettings) {
+    const visibleSettings = page.locator('[data-e10-nav-key="settings"]:visible').first();
+    await visibleSettings.click();
+    await page.locator('#e10-settings-overlay').waitFor({ state: 'visible' });
+  }
+
+  let adventureCommand = null;
+  if (spec.adventureCommandCheck) {
+    const zone = page.locator('[data-zone="k1_5"]');
+    await zone.evaluate((element) => element.click());
+    const drawerToggle = page.locator('#e9-right-drawer-toggle');
+    if (await drawerToggle.getAttribute('aria-expanded') !== 'true') {
+      await drawerToggle.evaluate((element) => element.click());
+    }
+    const more = page.locator('[data-e10-vs1f-nav="more"]');
+    await more.click();
+    const before = await runtimeSnapshot(page);
+    const beforeUrl = page.url();
+    await page.evaluate(() => {
+      window.__e10ChallengeCalls = 0;
+      const original = window.E9.startAdventureFromE9;
+      window.E9.startAdventureFromE9 = function () { window.__e10ChallengeCalls += 1; };
+      window.E9.runAdventureCommand();
+      window.E9.startAdventureFromE9 = original;
+    });
+    const after = await runtimeSnapshot(page);
+    adventureCommand = {
+      before,
+      after,
+      beforeUrl,
+      afterUrl: page.url(),
+      challengeCalls: await page.evaluate(() => window.__e10ChallengeCalls),
+    };
+  }
+
   const snapshot = await runtimeSnapshot(page);
   const screenshot = await saveViewportScreenshot(page, outputDir, spec.filename);
   await page.close();
-  return { ...spec, screenshot, beforeOpen, afterOpen, escaped, detailMapBefore, snapshot, browserErrors };
+  return { ...spec, screenshot, beforeOpen, afterOpen, escaped, detailMapBefore, adventureCommand, snapshot, browserErrors };
 }
 
 function assertCase(result) {
@@ -519,8 +573,8 @@ function assertCase(result) {
       if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 1) {
         failures.push(`${specName}: mobile dock is not one six-item row`);
       }
-      if (snapshot.navLabelWrapCount !== 0) {
-        failures.push(`${specName}: mobile dock label wrapping ${snapshot.navLabelWrapCount}`);
+      if (snapshot.navLabelOverTwoLineCount !== 0) {
+        failures.push(`${specName}: mobile dock label exceeds two lines ${snapshot.navLabelOverTwoLineCount}`);
       }
       if (snapshot.navOverlapCount !== 0) {
         failures.push(`${specName}: mobile dock overlap ${snapshot.navOverlapCount}`);
@@ -539,9 +593,24 @@ function assertCase(result) {
       }
     }
     if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
+    if (snapshot.navVisualKeys.join(',') !== 'adventure,hero,equipment,go_spirit,backpack,shop') {
+      failures.push(`${specName}: mobile navigation order ${snapshot.navVisualKeys.join(',')}`);
+    }
     if (result.viewport.width >= 768 && (!snapshot.primaryCta || !snapshot.progressOverlay)) {
       failures.push(`${specName}: portrait map CTA/progress overlay missing`);
     }
+  }
+  if (result.openMore && !result.openSettings && !result.snapshot.moreOverlayVisible) failures.push(`${specName}: All Features did not open`);
+  if (result.openSettings && !result.snapshot.settingsOverlayVisible) failures.push(`${specName}: Settings did not open`);
+  if (result.adventureCommand) {
+    const command = result.adventureCommand;
+    if (command.before.selectedZone !== command.after.selectedZone) failures.push(`${specName}: Adventure changed selected zone`);
+    if (command.before.playerLocationZone !== command.after.playerLocationZone) failures.push(`${specName}: Adventure moved player location`);
+    if (command.challengeCalls !== 0 || command.beforeUrl !== command.afterUrl) failures.push(`${specName}: Adventure started challenge navigation`);
+    if (command.after.drawerExpanded !== 'false' || command.after.moreOverlayVisible || command.after.settingsOverlayVisible) {
+      failures.push(`${specName}: Adventure did not close overlays`);
+    }
+    if (command.after.focusedId !== 'e9-map-stage') failures.push(`${specName}: Adventure did not focus map top`);
   }
   if (result.portraitContext) {
     if (!snapshot.detailsVisible || !snapshot.details) failures.push(`${specName}: detail overlay is not visible`);
@@ -657,17 +726,16 @@ async function main() {
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
-      { specName: 'desktop-1440', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-zh.png', layout: 'rail' },
-      { specName: 'tablet-landscape-closed', viewport: { width: 1024, height: 768 }, lang: 'en', filename: 'tablet-1024x768-closed-en.png', layout: 'rail' },
-      { specName: 'tablet-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
-      { specName: 'tablet-portrait-closed', viewport: { width: 768, height: 1024 }, lang: 'en', filename: 'tablet-768x1024-portrait-closed-en.png', layout: 'bottom-dock' },
-      { specName: 'tablet-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
-      { specName: 'mobile-zone-1', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-1-zh.png', zone: 'k26_30', mobileInline: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-6', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-6-inline-en.png', zone: 'k1_5', mobileInline: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-10-zh', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-10-zh.png', zone: 'd7_plus', zoneTailCheck: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-10-en', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-10-en.png', zone: 'd7_plus', zoneTailCheck: true, layout: 'bottom-dock' },
-      { specName: 'mobile-long-label-stress', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-stress-en.png', longLabelStress: true, layout: 'bottom-dock' },
-      { specName: 'mobile-safe-area', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
+      { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true },
+      { specName: 'tablet-1180-landscape-closed', viewport: { width: 1180, height: 820 }, lang: 'zh', filename: 'tablet-1180x820-closed-zh.png', layout: 'bottom-dock' },
+      { specName: 'tablet-1180-landscape-more', viewport: { width: 1180, height: 820 }, lang: 'en', filename: 'tablet-1180x820-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'mobile-430-more', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'mobile-430-settings', viewport: { width: 430, height: 932 }, lang: 'zh', filename: 'mobile-430x932-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
+      { specName: 'mobile-390-long-label', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-en.png', longLabelStress: true, adventureCommandCheck: true, layout: 'bottom-dock' },
+      { specName: 'mobile-360-safe-area', viewport: { width: 360, height: 800 }, lang: 'zh', filename: 'mobile-360x800-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
     ];
     const results = [];
     for (const spec of specs) {

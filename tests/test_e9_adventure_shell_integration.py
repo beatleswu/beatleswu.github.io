@@ -299,8 +299,8 @@ def test_no_fragment_has_hardcoded_interactive_labels():
     # Every nav/dock/card interactive element must carry a data-i18n
     # attribute rather than relying on its literal innerHTML text alone.
     checks = {
-        "left_nav.html": ["data-i18n=\"e9.left_nav.hero\""],
-        "bottom_dock.html": ["data-i18n=\"e9.bottom_dock.leaderboard\""],
+        "left_nav.html": ["data-e10-navigation-list"],
+        "bottom_dock.html": ["data-e10-navigation-list"],
         "right_cards.html": ["data-i18n=\"e9.right_cards.daily_challenge_title\""],
         "top_hud.html": ["data-i18n=\"e9.top_hud.level_label\""],
     }
@@ -361,7 +361,7 @@ def test_reuses_existing_window_onlangchange_mechanism_not_a_new_one():
 def test_sw_version_bumped():
     sw_js = _read(SW_JS)
     assert OLD_SW_VERSION not in sw_js, "sw.js VERSION must be bumped, not left at the pre-E9.1A2 value"
-    assert "v215-e10-vs1f-integrated-world-map" in sw_js
+    assert "v216-e10-rpg-navigation-shell" in sw_js
 
 
 def test_sw_cache_strategy_functions_unchanged():

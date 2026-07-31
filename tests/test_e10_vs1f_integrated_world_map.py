@@ -42,12 +42,12 @@ def _manifest(relative_path):
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
 
 
-def test_exact_v215_static_runtime_version_coupling():
+def test_exact_v216_static_runtime_version_coupling():
     assert f'content="{CONTRACT}"' in INDEX
     assert f"VS1E_STATIC_CONTRACT = '{CONTRACT}'" in WORLD_JS
-    assert f"ASSET_VERSION = '{CONTRACT}'" in FLAGS
-    assert "const VERSION     = 'v215-e10-vs1f-integrated-world-map'" in SW
-    assert INDEX.count("20260730e10vs1f1") == 5
+    assert "ASSET_VERSION = 'e10-rpg-navigation-shell'" in FLAGS
+    assert "const VERSION     = 'v216-e10-rpg-navigation-shell'" in SW
+    assert INDEX.count("20260731e10nav1") >= 8
 
 
 def test_ten_original_landmarks_are_runtime_referenced_and_governed():
@@ -110,6 +110,7 @@ def test_route_topology_is_base_safe_and_material_layers_are_exact_marker_only()
 
 
 def test_unified_frame_original_icons_and_four_state_landmark_treatments():
+    registry = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
     assert "--e10-integrated-rail: 84px" in CSS
     assert "--e10-integrated-panel:" in CSS
     assert ".e10-zone-landmark" in CSS
@@ -122,10 +123,9 @@ def test_unified_frame_original_icons_and_four_state_landmark_treatments():
     assert 'class="e9-nav__icon"' not in LEFT_NAV
     assert 'viewBox="0 0 32 32"' not in LEFT_NAV
     assert 'class="e9-dock__icon"' not in BOTTOM_DOCK
-    assert "function exactVs1fStaticContract()" in LEFT_NAV_JS
-    assert LEFT_NAV_JS.count("data-e10-vs1f-icon") == 1
-    assert "marker.getAttribute('content') !== VS1F_STATIC_CONTRACT" in BOTTOM_DOCK_JS
-    assert BOTTOM_DOCK_JS.count("data-e10-vs1f-icon") == 1
+    assert "registry.exactContract()" in LEFT_NAV_JS
+    assert "registry.exactContract()" in BOTTOM_DOCK_JS
+    assert "data-e10-vs1f-icon" in registry
     assert "e10-drawer-zone-summary__landmark" in (
         ROOT / "components/adventure/right_cards.html"
     ).read_text(encoding="utf-8")

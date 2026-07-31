@@ -18,9 +18,7 @@
     var marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
     if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;
     var player = root.querySelector('.e9-hud__player');
-    var avatar = root.querySelector('#top-hud-avatar');
     if (!player || !player.parentNode) return;
-    if (avatar) avatar.remove();
     var brand = document.createElement('div');
     brand.className = 'e10-hud-brand';
     brand.setAttribute('data-e10-vs1f-brand', '');
@@ -54,10 +52,124 @@
     return fallback;
   }
 
+  function setupNavigationShell(root, generation) {
+    var registry = window.E9 && window.E9.NavigationRegistry;
+    if (!registry || !registry.exactContract()) {
+      root.querySelectorAll('[data-e10-vs1f-nav]').forEach(function (node) { node.remove(); });
+      return;
+    }
+    root.setAttribute('data-e10-vs1f-nav', 'utility');
+    var utilities = root.querySelector('[data-e10-utility-list]');
+    var moreOverlay = root.querySelector('#e10-all-features-overlay');
+    var settingsOverlay = root.querySelector('#e10-settings-overlay');
+    var moreTrigger = null;
+    var lastTrigger = null;
+    var previousBodyOverflow = '';
+
+    function makeControl(item, extraClass) {
+      var control = document.createElement(item.target ? 'a' : 'button');
+      control.className = 'e10-utility-control ' + (extraClass || '');
+      control.setAttribute('data-e10-nav-key', item.key);
+      control.setAttribute('data-e10-vs1f-nav', item.key);
+      if (item.target) control.href = item.target;
+      if (!item.target) control.type = 'button';
+      if (item.command) {
+        control.setAttribute('data-e10-command', item.command);
+        control.setAttribute('aria-controls', 'e10-' + item.command + '-overlay');
+        control.setAttribute('aria-expanded', 'false');
+      }
+      control.innerHTML = registry.icon(item.icon, 'e10-utility-icon') + '<span data-i18n="' + item.labelKey + '"></span>';
+      return control;
+    }
+
+    function focusables(overlay) {
+      return Array.prototype.slice.call(overlay.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+    }
+
+    function closeAll(restoreFocus) {
+      moreOverlay.hidden = true;
+      settingsOverlay.hidden = true;
+      if (moreTrigger) moreTrigger.setAttribute('aria-expanded', 'false');
+      root.querySelectorAll('[data-e10-command="settings"]').forEach(function (control) { control.setAttribute('aria-expanded', 'false'); });
+      document.body.style.overflow = previousBodyOverflow;
+      if (restoreFocus && lastTrigger && document.contains(lastTrigger)) lastTrigger.focus();
+    }
+
+    function openOverlay(overlay, trigger, returnTrigger) {
+      closeAll(false);
+      lastTrigger = returnTrigger || trigger;
+      previousBodyOverflow = document.body.style.overflow;
+      overlay.hidden = false;
+      if (trigger && trigger.getAttribute('aria-expanded') !== null) trigger.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+      var targets = focusables(overlay);
+      if (targets.length) targets[0].focus();
+    }
+
+    function onDialogKey(event) {
+      var overlay = !moreOverlay.hidden ? moreOverlay : (!settingsOverlay.hidden ? settingsOverlay : null);
+      if (!overlay) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeAll(true);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var targets = focusables(overlay);
+      if (!targets.length) return;
+      var first = targets[0];
+      var last = targets[targets.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+
+    registry.itemsFor('utility').forEach(function (item) {
+      var control = makeControl(item);
+      utilities.appendChild(control);
+      if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control); }, null, generation);
+    });
+    moreTrigger = document.createElement('button');
+    moreTrigger.type = 'button';
+    moreTrigger.className = 'e10-utility-control e10-more-trigger';
+    moreTrigger.setAttribute('data-e10-vs1f-nav', 'more');
+    moreTrigger.setAttribute('aria-controls', 'e10-all-features-overlay');
+    moreTrigger.setAttribute('aria-expanded', 'false');
+    moreTrigger.innerHTML = registry.icon('compass', 'e10-utility-icon') + '<span data-i18n="e10.nav.all_features"></span>';
+    utilities.appendChild(moreTrigger);
+
+    registry.itemsFor('more').forEach(function (item) {
+      var control = makeControl(item, 'e10-more-item');
+      root.querySelector('[data-e10-more-list]').appendChild(control);
+      if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control, moreTrigger); }, null, generation);
+    });
+    window.E9.on(moreTrigger, 'click', function () {
+      openOverlay(moreOverlay, moreTrigger);
+      moreTrigger.setAttribute('aria-expanded', 'true');
+    }, null, generation);
+    root.querySelectorAll('[data-e10-dialog-close]').forEach(function (button) {
+      window.E9.on(button, 'click', function () { closeAll(true); }, null, generation);
+    });
+    window.E9.on(document, 'keydown', onDialogKey, null, generation);
+    window.E9.on(document, 'e9:adventure-command', function () { closeAll(false); }, null, generation);
+    window.E9.registerCleanup(function () { closeAll(false); }, generation);
+
+    var language = root.querySelector('#e10-settings-language');
+    if (language && window.I18n && window.I18n.renderSwitcher) window.I18n.renderSwitcher(language);
+    var sound = root.querySelector('#e10-settings-sound');
+    if (sound && window.SFX) {
+      sound.checked = !window.SFX.muted;
+      window.E9.on(sound, 'change', function () { window.SFX.muted = !sound.checked; }, null, generation);
+    } else if (sound && sound.parentNode) {
+      sound.parentNode.hidden = true;
+    }
+    if (window.I18n && window.I18n.apply) window.I18n.apply();
+  }
+
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
     applyVs1fBrand(root);
+    setupNavigationShell(root, generation);
 
     var nameEl = root.querySelector('#top-hud-name');
     var levelWrap = root.querySelector('#top-hud-level');
