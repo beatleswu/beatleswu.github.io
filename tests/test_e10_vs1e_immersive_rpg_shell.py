@@ -105,13 +105,13 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-reference-world-map'" in FLAGS
-    assert "const VERSION     = 'v219-e10-reference-world-map'" in SW
-    assert "/i18n.js?v=20260731e10reference1" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260731e10reference1" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260731e10reference1" in INDEX
-    assert "/js/e9/right_cards.js?v=20260731e10reference1" in INDEX
-    assert "/js/e9/world_stage.js?v=20260731e10reference1" in INDEX
+    assert "ASSET_VERSION = 'e10-world-map-final-fidelity'" in FLAGS
+    assert "const VERSION     = 'v220-e10-world-map-final-fidelity'" in SW
+    assert "/i18n.js?v=20260801e10fidelity1" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260801e10fidelity1" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260801e10fidelity1" in INDEX
+    assert "/js/e9/right_cards.js?v=20260801e10fidelity1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260801e10fidelity1" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():
@@ -191,5 +191,5 @@ def test_live_language_switch_relocalizes_progress_and_selected_drawer_state():
     assert "window.E9.on(document, 'e9:i18n-changed', onI18nChanged" in cards_js
     assert "delete root.__e9CompactProgress" in cards_js
     selected_rerender = "renderSelectedZone(root, zones, selected.key, false);"
-    localized_dispatch = "dispatchZoneSelection(root, selected);"
+    localized_dispatch = "dispatchZoneSelection(root, selected, state);"
     assert WORLD_JS.index(selected_rerender) < WORLD_JS.index(localized_dispatch)

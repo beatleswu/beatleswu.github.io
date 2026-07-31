@@ -122,6 +122,27 @@ test('normalizeZone: cleared zone with full stars', () => {
   assert.strictEqual(z.cleared, true);
   assert.strictEqual(z.stars, 3);
 });
+test('normalizeZone: placement skip remains distinct from completed', () => {
+  const z = AdventureState.normalizeZone({
+    key: 'k1', name: 'Zone 1', status: 'skipped_by_placement',
+    skipped_by_placement: true, completed: false, can_enter: true, stars: 0,
+  });
+  assert.strictEqual(z.skippedByPlacement, true);
+  assert.strictEqual(z.cleared, false);
+  assert.strictEqual(z.canEnter, true);
+  assert.strictEqual(z.stars, 0);
+});
+test('normalizeZones: preserves canonical placement and frontier metadata', () => {
+  const normalized = AdventureState.normalizeZones({
+    placement: { effective_start_zone_key: 'k1_5' },
+    recommended: { zone_key: 'k1_5' },
+    selected: { zone_key: 'k1_5' },
+    zones: [{ key: 'k1_5', name: 'Dragon Valley', status: 'unlocked', can_enter: true }],
+  });
+  assert.strictEqual(normalized.placement.effective_start_zone_key, 'k1_5');
+  assert.strictEqual(normalized.recommended.zone_key, 'k1_5');
+  assert.strictEqual(normalized.selected.zone_key, 'k1_5');
+});
 test('normalizeZone: stars clamped above range', () => {
   const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', stars: 99 });
   assert.strictEqual(z.stars, 3);

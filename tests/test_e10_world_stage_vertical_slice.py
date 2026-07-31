@@ -27,11 +27,11 @@ def test_all_ten_canonical_keys_have_normalized_node_and_reserved_boss_anchors()
     assert "data-zone-boss-anchor" in JS
 
 
-def test_nodes_are_real_buttons_and_locked_nodes_never_receive_activation_handlers():
+def test_nodes_are_real_buttons_and_locked_nodes_only_allow_detail_selection():
     assert "document.createElement('button')" in JS
-    assert 'tile.disabled = true;' in JS
-    assert 'if (!zone.locked) {' in JS
-    assert "window.E9.startAdventureFromE9(zone.key)" in JS
+    assert "data-zone-locked" in JS
+    assert "enabled: false, targetZoneKey: null" in JS
+    assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in JS
 
 
 def test_mobile_uses_ordered_dom_journey_instead_of_shrinking_the_map():

@@ -2984,6 +2984,7 @@ const I18n = (() => {
         'e10.nav.sound_off':             { en: 'Off', zh: '關閉' },
         'e10.world_stage.title':          { en: '奔境奇兵 Go Odyssey', zh: '奔境奇兵 Go Odyssey' },
         'e10.world_stage.current_zone':   { en: 'Current Zone', zh: '目前區域' },
+        'e10.world_stage.selected_zone':  { en: 'Selected Zone', zh: '選取區域' },
         'e10.world_stage.adventure_progress': { en: 'Adventure progress', zh: '冒險進度' },
         'e10.world_stage.task_progress':  { en: 'Quest progress', zh: '任務進度' },
         'e10.world_stage.region_progress': { en: 'Zone progress', zh: '區域進度' },

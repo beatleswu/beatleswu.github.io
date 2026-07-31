@@ -71,6 +71,7 @@
 
   function updateDrawerZoneSummary(root, detail) {
     if (!detail) return;
+    var kicker = root.querySelector('.e10-drawer-zone-summary__kicker');
     var title = root.querySelector('#e10-drawer-zone-title');
     var state = root.querySelector('#e10-drawer-zone-state');
     var body = root.querySelector('#e10-drawer-zone-body');
@@ -83,9 +84,16 @@
     var cta = root.querySelector('[data-e10-zone-cta]');
     root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
     root.__e10SelectedZoneKey = detail.zoneKey || '';
+    root.__e10ChallengeTargetZoneKey = detail.challengeTargetZoneKey || '';
+    root.__e10ChallengeTargetEnabled = detail.ctaEnabled === true;
     syncDrawerLandmark(root);
+    if (kicker) {
+      kicker.textContent = detail.headingText || t(detail.headingKey, 'Selected Zone');
+      kicker.setAttribute('data-zone-heading', detail.isCurrentPlayerZone ? 'current' : 'selected');
+      kicker.removeAttribute('data-i18n');
+    }
     if (title) {
-      title.textContent = detail.name || detail.zoneKey || '';
+      title.textContent = (detail.zoneNumber ? 'Zone ' + detail.zoneNumber + ' · ' : '') + (detail.name || detail.zoneKey || '');
       title.removeAttribute('data-i18n');
     }
     if (state) state.textContent = detail.statusText || '';
@@ -97,7 +105,14 @@
     if (questBar) questBar.style.width = questPercent + '%';
     if (regionValue) regionValue.textContent = (detail.zoneNumber || 0) + ' / 10';
     if (regionBar) regionBar.style.width = regionPercent + '%';
-    if (cta) cta.hidden = !!detail.locked;
+    if (cta) {
+      cta.hidden = false;
+      cta.disabled = detail.ctaEnabled !== true;
+      cta.setAttribute('aria-disabled', detail.ctaEnabled === true ? 'false' : 'true');
+      cta.setAttribute('data-challenge-target-zone', detail.challengeTargetZoneKey || '');
+      cta.textContent = detail.ctaLabel || t('e10.world_stage.state_locked', 'Locked');
+      cta.removeAttribute('data-i18n');
+    }
     if (body) {
       body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
       body.removeAttribute('data-i18n');
@@ -219,8 +234,9 @@
         var zoneCta = presentation.querySelector('[data-e10-zone-cta]');
         if (zoneCta) {
           window.E9.on(zoneCta, 'click', function () {
-            if (root.__e10SelectedZoneKey && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-              window.E9.startAdventureFromE9(root.__e10SelectedZoneKey);
+            if (root.__e10ChallengeTargetEnabled && root.__e10ChallengeTargetZoneKey
+              && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+              window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey);
             }
           }, null, generation);
         }
@@ -299,6 +315,8 @@
         delete root.__e9CompactProgress;
         delete root.__e10SelectedLandmarkSrc;
         delete root.__e10SelectedZoneKey;
+        delete root.__e10ChallengeTargetZoneKey;
+        delete root.__e10ChallengeTargetEnabled;
         if (backdrop) backdrop.remove();
         if (slot) slot.classList.remove('is-drawer-open');
         if (shell) shell.classList.remove('is-right-drawer-open');

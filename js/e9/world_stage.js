@@ -68,11 +68,11 @@
     d5_6: { x: 56.0, y: 74.3 }, d7_plus: { x: 84.8, y: 23.1 }
   };
   var VS1F_ZONE_ANCHORS = {
-    k26_30: { x: 16.5, y: 84.5 }, k21_25: { x: 28.0, y: 69.4 },
+    k26_30: { x: 14.5, y: 77.0 }, k21_25: { x: 28.0, y: 67.5 },
     k16_20: { x: 16.5, y: 39.1 }, k11_15: { x: 36.0, y: 53.4 },
     k6_10: { x: 62.0, y: 53.4 }, k1_5: { x: 75.0, y: 38.3 },
-    d1_2: { x: 90.0, y: 53.4 }, d3_4: { x: 76.0, y: 79.2 },
-    d5_6: { x: 53.0, y: 39.1 }, d7_plus: { x: 43.0, y: 16.0 }
+    d1_2: { x: 87.0, y: 51.5 }, d3_4: { x: 75.0, y: 76.5 },
+    d5_6: { x: 53.0, y: 39.1 }, d7_plus: { x: 43.0, y: 18.5 }
   };
   var BOSS_ANCHORS = {
     k26_30: { x: 19.1, y: 65.8 }, k21_25: { x: 42.3, y: 56.9 },
@@ -115,6 +115,43 @@
     })[0] || null;
   }
 
+  function findZone(zones, zoneKey) {
+    return zones.filter(function (zone) { return zone.key === zoneKey; })[0] || null;
+  }
+
+  function resolveChallengeTargetZoneKey(zone) {
+    return zone && !zone.locked && zone.canEnter !== false ? zone.key : null;
+  }
+
+  function syncInteractionState(state, zones) {
+    var current = resolvePlayerLocation(zones);
+    var selected = findZone(zones, state.selectedZoneKey) || current || zones[0] || null;
+    state.currentPlayerZoneKey = current ? current.key : null;
+    state.selectedZoneKey = selected ? selected.key : null;
+    state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(selected);
+    return { current: current, selected: selected };
+  }
+
+  function ctaContract(zone, state) {
+    var target = resolveChallengeTargetZoneKey(zone);
+    if (!target) {
+      return { enabled: false, targetZoneKey: null, label: t('e10.world_stage.state_locked', 'Locked') };
+    }
+    if (zone.status === 'completed') {
+      return { enabled: true, targetZoneKey: target, label: t('index.adv.quest_replay_training', 'Star training') };
+    }
+    if (zone.status === 'skipped_by_placement') {
+      return { enabled: true, targetZoneKey: target, label: t('index.adv.skipped_replay', 'Star training available') };
+    }
+    return {
+      enabled: true,
+      targetZoneKey: target,
+      label: target === state.currentPlayerZoneKey
+        ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
+        : t('index.adv.start_challenge', 'Start Challenge'),
+    };
+  }
+
   function usesLandmarkCards() {
     return !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
   }
@@ -124,23 +161,6 @@
     var completed = zones.filter(function (zone) {
       return zone.cleared || zone.status === 'completed';
     }).length;
-    var currentZone = resolvePlayerLocation(zones);
-    var currentIndex = currentZone ? zones.indexOf(currentZone) : completed - 1;
-    if (currentIndex < completed) currentIndex = completed;
-    var completedPercent = Math.max(0, Math.min(100, completed / (zones.length - 1) * 100));
-    var currentPercent = Math.max(completedPercent, Math.min(
-      100,
-      (currentIndex + 1) / (zones.length - 1) * 100
-    ));
-    var completedRoute = root.querySelector('[data-e10-route-progress="completed"]');
-    var currentRoute = root.querySelector('[data-e10-route-progress="current"]');
-    if (completedRoute) {
-      completedRoute.style.strokeDasharray = completedPercent + ' ' + (100 - completedPercent);
-    }
-    if (currentRoute) {
-      currentRoute.style.strokeDasharray = Math.max(0, currentPercent - completedPercent) + ' 100';
-      currentRoute.style.strokeDashoffset = String(-completedPercent);
-    }
     var progressValue = root.querySelector('[data-e10-adventure-progress-value]');
     var progressBar = root.querySelector('[data-e10-adventure-progress-bar]');
     if (progressValue) progressValue.textContent = completed + ' / ' + zones.length;
@@ -232,47 +252,40 @@
     base.removeAttribute('data-e10-vs1f-clean-map');
   }
 
-  function ensureVs1fRouteLayers(root) {
+  function ensureVs1fRouteLayers(root, zones) {
     if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
     var route = root.querySelector('.e9-map-stage__route');
     var ground = route && route.querySelector('.e9-route__ground');
     var ascension = route && route.querySelector('.e9-route__ascension');
     if (!route || !ground || !ascension) return;
-    if (route.querySelector('[data-e10-vs1f-route-layer]')) return;
-
-    var groundPath = 'M165 475 C220 450 255 420 280 390 C235 335 195 280 165 220 C235 245 305 280 360 300 C450 320 535 320 620 300 C675 275 720 240 750 215 C810 240 860 275 900 300 C865 360 815 415 760 445 C680 390 605 300 530 220';
-    var ascensionPath = 'M530 220 C500 175 465 125 430 90';
     route.setAttribute('viewBox', '0 0 1000 562');
-    ground.setAttribute('d', groundPath);
-    ascension.setAttribute('d', ascensionPath);
-    var groundShadow = route.querySelector('.e9-route__ground-shadow');
-    var ascensionShadow = route.querySelector('.e9-route__ascension-shadow');
-    if (groundShadow) groundShadow.setAttribute('d', groundPath);
-    if (ascensionShadow) ascensionShadow.setAttribute('d', ascensionPath);
-
-    ground.setAttribute('class', 'e9-route__ground e9-route__material e9-route__material--locked');
-    ground.setAttribute('pathLength', '100');
-    ascension.setAttribute('class', 'e9-route__ascension e9-route__material e9-route__material--locked');
-    ascension.setAttribute('pathLength', '100');
-
-    var createLayer = function (reference, className, progressName) {
+    route.querySelectorAll('[data-e10-vs1f-route-layer]').forEach(function (path) { path.remove(); });
+    zones.forEach(function (zone, index) {
+      var next = zones[index + 1];
+      var from = VS1F_ZONE_ANCHORS[zone.key];
+      var to = next && VS1F_ZONE_ANCHORS[next.key];
+      if (!next || !from || !to) return;
+      var x1 = from.x * 10;
+      var y1 = from.y * 5.62;
+      var x2 = to.x * 10;
+      var y2 = to.y * 5.62;
+      var bend = index % 2 === 0 ? -18 : 18;
+      var pathData = 'M' + x1 + ' ' + y1
+        + ' C' + (x1 + (x2 - x1) * 0.34) + ' ' + (y1 + bend)
+        + ' ' + (x1 + (x2 - x1) * 0.66) + ' ' + (y2 - bend)
+        + ' ' + x2 + ' ' + y2;
+      var state = (zone.status === 'completed' || next.status === 'completed')
+        ? 'completed'
+        : (next.locked ? 'locked' : 'available');
       var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('class', 'e9-route__material ' + className);
-      path.setAttribute('d', reference.getAttribute('d'));
-      path.setAttribute('pathLength', '100');
+      path.setAttribute('class', 'e9-route__material e9-route__material--' + state);
+      path.setAttribute('d', pathData);
+      path.setAttribute('data-e10-route-from', zone.key);
+      path.setAttribute('data-e10-route-to', next.key);
+      path.setAttribute('data-e10-route-state', state);
       path.setAttribute('data-e10-vs1f-route-layer', '');
-      if (progressName) path.setAttribute('data-e10-route-progress', progressName);
-      reference.parentNode.insertBefore(path, reference.nextSibling);
-      return path;
-    };
-
-    var availableGround = createLayer(ground, 'e9-route__material--available');
-    var completedGround = createLayer(ground, 'e9-route__material--completed', 'completed');
-    var currentGround = createLayer(ground, 'e9-route__material--current', 'current');
-    ground.parentNode.insertBefore(availableGround, ground.nextSibling);
-    ground.parentNode.insertBefore(completedGround, availableGround.nextSibling);
-    ground.parentNode.insertBefore(currentGround, completedGround.nextSibling);
-    createLayer(ascension, 'e9-route__material--available');
+      route.appendChild(path);
+    });
   }
 
   function updatePlayerMarker(root, zone) {
@@ -390,6 +403,9 @@
     if (zone.cleared || zone.status === 'completed') {
       return t('e10.world_stage.state_completed', 'Completed');
     }
+    if (zone.status === 'skipped_by_placement') {
+      return t('index.adv.status_skipped_by_placement', 'Star training available');
+    }
     if (zone.__e10PlayerLocation) {
       return t('e10.world_stage.state_current', 'Current location');
     }
@@ -397,6 +413,10 @@
   }
 
   function zoneSummaryText(zone) {
+    if (zone.status === 'skipped_by_placement') {
+      return t('index.adv.skipped_help', 'Use this area to earn stars and strengthen your basics.');
+    }
+    if (zone.locked) return t('index.adv.zone_locked', 'This area is still sealed by mist.');
     return zone.bossAvailable
       ? bossReadyText(zone)
       : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
@@ -418,19 +438,22 @@
     });
   }
 
-  function configureAdventureButton(button, zone, text) {
-    if (!button || !zone || zone.locked) {
+  function configureAdventureButton(button, zone, contract) {
+    if (!button || !zone || !contract) {
       if (button) button.hidden = true;
       return;
     }
     button.hidden = false;
-    button.textContent = text;
+    button.disabled = !contract.enabled;
+    button.setAttribute('aria-disabled', contract.enabled ? 'false' : 'true');
+    button.setAttribute('data-challenge-target-zone', contract.targetZoneKey || '');
+    button.textContent = contract.label;
     if (button.__e9AdventureHandler) {
       button.removeEventListener('click', button.__e9AdventureHandler);
     }
     button.__e9AdventureHandler = function () {
-      if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-        window.E9.startAdventureFromE9(zone.key);
+      if (contract.enabled && contract.targetZoneKey && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+        window.E9.startAdventureFromE9(contract.targetZoneKey);
       }
     };
     if (window.E9 && typeof window.E9.on === 'function') {
@@ -440,16 +463,15 @@
     }
   }
 
-  function configurePrimaryCta(root, zone) {
+  function configurePrimaryCta(root, zone, state) {
     var primary = root.querySelector('#e9-world-stage-primary-cta');
     if (!VS1E_STATIC_CONTRACT_ACTIVE) {
       if (primary) primary.hidden = true;
       return;
     }
-    var label = zone && zone.key === 'k26_30'
-      ? newbieCtaText(zone)
-      : t('e10.world_stage.continue_adventure', 'Continue Adventure');
-    configureAdventureButton(primary, zone, label);
+    var contract = zone && ctaContract(zone, state);
+    var label = contract ? contract.label : '';
+    configureAdventureButton(primary, zone, contract);
     if (primary && zone && !primary.hidden) {
       var registry = window.E9 && window.E9.NavigationRegistry;
       primary.innerHTML = (registry ? registry.icon('equipment', 'e10-map-primary-cta__icon') : '')
@@ -491,9 +513,19 @@
     }
   }
 
-  function zoneSelectionDetail(zone) {
+  function zoneSelectionDetail(zone, state) {
+    var contract = ctaContract(zone, state);
+    var isCurrent = zone.key === state.currentPlayerZoneKey;
     return {
       zoneKey: zone.key,
+      currentPlayerZoneKey: state.currentPlayerZoneKey,
+      selectedZoneKey: state.selectedZoneKey,
+      challengeTargetZoneKey: contract.targetZoneKey,
+      isCurrentPlayerZone: isCurrent,
+      headingKey: isCurrent ? 'e10.world_stage.current_zone' : 'e10.world_stage.selected_zone',
+      headingText: isCurrent
+        ? t('e10.world_stage.current_zone', 'Current Zone')
+        : t('e10.world_stage.selected_zone', 'Selected Zone'),
       status: zone.status,
       name: zoneDisplayName(zone) || zone.key,
       statusText: zoneStateText(zone),
@@ -505,11 +537,13 @@
       seen: zone.seen || 0,
       total: zone.total || 0,
       locked: !!zone.locked,
+      ctaEnabled: contract.enabled,
+      ctaLabel: contract.label,
     };
   }
 
-  function dispatchZoneSelection(root, zone) {
-    var detail = zoneSelectionDetail(zone);
+  function dispatchZoneSelection(root, zone, state) {
+    var detail = zoneSelectionDetail(zone, state);
     if (window.E9) window.E9.latestZoneSelection = detail;
     root.dispatchEvent(new CustomEvent('e9:zone-selected', { bubbles: true, detail: detail }));
   }
@@ -542,17 +576,13 @@
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var cta = root.querySelector('#e9-world-stage-details-cta');
     var newbie = root.querySelector('#e9-newbie-mainline');
-    if (!zone || zone.locked) {
-      // Locked zones are never reachable here (no click handler is ever
-      // attached to a locked tile -- see renderZones()'s `if (!zone.locked)`
-      // guard), but hide the CTA defensively too: the requirement is that a
-      // locked zone can never launch an encounter, and that must not rest
-      // on the click handler alone.
+    if (!zone) {
       if (cta) cta.hidden = true;
       return;
     }
 
     state.selectedZoneKey = zone.key;
+    state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(zone);
     setSelectedTileState(root, zone.key);
     if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
@@ -564,30 +594,16 @@
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
       : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
-    configurePrimaryCta(root, zone);
+    configurePrimaryCta(root, zone, state);
 
     if (cta) {
-      if (zone.key === 'k26_30') {
+      if (!VS1E_STATIC_CONTRACT_ACTIVE && zone.key === 'k26_30') {
         // Beginner Village owns its own tutorial CTA below
         // (renderBeginnerVillageMainline's #e9-newbie-mainline-cta) --
         // never show a second, duplicate "start" button for it here.
         cta.hidden = true;
       } else {
-        cta.hidden = false;
-        cta.textContent = t('index.adv.start_challenge', 'Start Challenge');
-        if (cta.__e9AdventureHandler) {
-          cta.removeEventListener('click', cta.__e9AdventureHandler);
-        }
-        cta.__e9AdventureHandler = function () {
-          if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-            window.E9.startAdventureFromE9(zone.key);
-          }
-        };
-        if (window.E9 && typeof window.E9.on === 'function') {
-          window.E9.on(cta, 'click', cta.__e9AdventureHandler);
-        } else {
-          cta.addEventListener('click', cta.__e9AdventureHandler);
-        }
+        configureAdventureButton(cta, zone, ctaContract(zone, state));
       }
     }
 
@@ -605,12 +621,16 @@
           var inlineCta = document.createElement('button');
           inlineCta.type = 'button';
           inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
-          inlineCta.textContent = inlineIsNewbie
-            ? newbieCtaText(zone)
-            : t('index.adv.start_challenge', 'Start Challenge');
+          var inlineContract = ctaContract(zone, state);
+          inlineCta.textContent = inlineContract.label;
+          inlineCta.disabled = !inlineContract.enabled;
+          inlineCta.setAttribute('aria-disabled', inlineContract.enabled ? 'false' : 'true');
+          inlineCta.setAttribute('data-challenge-target-zone', inlineContract.targetZoneKey || '');
           inlineCta.addEventListener('click', function (evt) {
             evt.stopPropagation();
-            if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
+            if (inlineContract.enabled && inlineContract.targetZoneKey && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+              window.E9.startAdventureFromE9(inlineContract.targetZoneKey);
+            }
           });
           inline.appendChild(inlineCta);
         }
@@ -642,13 +662,21 @@
     var bossAnchorsEl = root.querySelector('#e9-world-stage-boss-anchors');
     if (!zonesEl || !mapStage || !bossAnchorsEl) return;
 
-    var state = root.__e9WorldStageState || (root.__e9WorldStageState = { zones: zones, selectedZoneKey: null });
+    var state = root.__e9WorldStageState || (root.__e9WorldStageState = {
+      zones: zones,
+      currentPlayerZoneKey: null,
+      selectedZoneKey: null,
+      challengeTargetZoneKey: null,
+    });
     state.zones = zones;
-    var playerLocation = VS1E_STATIC_CONTRACT_ACTIVE ? resolvePlayerLocation(zones) : null;
+    var identities = VS1E_STATIC_CONTRACT_ACTIVE
+      ? syncInteractionState(state, zones)
+      : { current: null, selected: null };
+    var playerLocation = identities.current;
     zones.forEach(function (zone) {
       zone.__e10PlayerLocation = !!(VS1E_STATIC_CONTRACT_ACTIVE && playerLocation && zone.key === playerLocation.key);
     });
-    ensureVs1fRouteLayers(root);
+    ensureVs1fRouteLayers(root, zones);
     updateRouteProgress(root, zones);
     zonesEl.innerHTML = '';
     bossAnchorsEl.innerHTML = '';
@@ -678,7 +706,7 @@
         tile.appendChild(landmark);
       }
       tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
-      tile.setAttribute('aria-label', zoneDisplayName(zone));
+      tile.setAttribute('aria-label', zoneDisplayName(zone) + ': ' + zoneStateText(zone));
       applyAnchor(tile, anchor);
       if (VS1E_STATIC_CONTRACT_ACTIVE && playerLocation && zone.key === playerLocation.key) {
         tile.classList.add('is-current');
@@ -708,11 +736,9 @@
       stateBadge.textContent = isCompleted ? '\u2713' : '';
       tile.appendChild(stateBadge);
 
-      if (!zone.locked) {
-        tile.setAttribute('aria-pressed', 'false');
-      } else {
-        tile.disabled = true;
-        tile.setAttribute('aria-disabled', 'true');
+      tile.setAttribute('aria-pressed', 'false');
+      if (zone.locked) {
+        tile.setAttribute('data-zone-locked', 'true');
         tile.title = t('index.adv.zone_locked', 'This area is still sealed by mist.');
       }
 
@@ -750,10 +776,10 @@
         tile.appendChild(bossEl);
       }
 
-      if (!zone.locked) {
-        var activate = function () {
+      var activate = function () {
+          renderSelectedZone(root, zones, zone.key, true);
           var selectionDetail = VS1E_STATIC_CONTRACT_ACTIVE
-            ? zoneSelectionDetail(zone)
+            ? zoneSelectionDetail(zone, state)
             : { zoneKey: zone.key, status: zone.status };
           if (VS1E_STATIC_CONTRACT_ACTIVE && window.E9) {
             window.E9.latestZoneSelection = selectionDetail;
@@ -762,21 +788,19 @@
             bubbles: true,
             detail: selectionDetail,
           }));
-          renderSelectedZone(root, zones, zone.key, true);
-        };
-        var keyActivate = function (evt) {
+      };
+      var keyActivate = function (evt) {
           if (evt.key === 'Enter' || evt.key === ' ') {
             evt.preventDefault();
             activate();
           }
-        };
-        if (window.E9 && typeof window.E9.on === 'function') {
+      };
+      if (window.E9 && typeof window.E9.on === 'function') {
           window.E9.on(tile, 'click', activate);
           window.E9.on(tile, 'keydown', keyActivate);
-        } else {
+      } else {
           tile.addEventListener('click', activate);
           tile.addEventListener('keydown', keyActivate);
-        }
       }
 
       zonesEl.appendChild(tile);
@@ -805,17 +829,18 @@
       statusEl.removeAttribute('data-i18n');
     }
     var selected = state.selectedZoneKey && zones.filter(function (zone) { return zone.key === state.selectedZoneKey; })[0];
-    if (selected && !selected.locked) {
+    if (selected) {
       renderSelectedZone(root, zones, selected.key, false);
-      if (VS1E_STATIC_CONTRACT_ACTIVE) dispatchZoneSelection(root, selected);
+      if (VS1E_STATIC_CONTRACT_ACTIVE) dispatchZoneSelection(root, selected, state);
     } else if (VS1E_STATIC_CONTRACT_ACTIVE) {
       var recommended = playerLocation || zones.filter(function (zone) { return !zone.locked; })[0];
       if (recommended) {
         state.selectedZoneKey = recommended.key;
         setSelectedTileState(root, recommended.key);
         updateSelectedZoneCopy(root, recommended);
-        configurePrimaryCta(root, recommended);
-        dispatchZoneSelection(root, recommended);
+        state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(recommended);
+        configurePrimaryCta(root, recommended, state);
+        dispatchZoneSelection(root, recommended, state);
         var portraitDetails = root.querySelector('#e9-world-stage-details');
         var portraitTablet = window.matchMedia && window.matchMedia(
           '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
@@ -884,7 +909,12 @@
     root.setAttribute('data-e9-inited', '1');
     configureBaseMap(root);
     prepareVs1dDom(root);
-    root.__e9WorldStageState = { zones: [], selectedZoneKey: null };
+    root.__e9WorldStageState = {
+      zones: [],
+      currentPlayerZoneKey: null,
+      selectedZoneKey: null,
+      challengeTargetZoneKey: null,
+    };
     var onChanged = function () {
       var state = root.__e9WorldStageState;
       if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones);

@@ -107,14 +107,16 @@ def test_overlay_zone_panel_does_not_own_grid_width():
 
 
 def test_dynamic_primary_and_panel_ctas_share_runtime_adapter():
-    assert "root.__e10SelectedZoneKey" in RIGHT
-    assert "window.E9.startAdventureFromE9(root.__e10SelectedZoneKey)" in RIGHT
-    assert "window.E9.startAdventureFromE9(zone.key)" in WORLD
+    assert "root.__e10ChallengeTargetZoneKey" in RIGHT
+    assert "window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey)" in RIGHT
+    assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in WORLD
     assert "e10-map-primary-cta__copy" in WORLD
 
 
 def test_dotted_routes_compact_nodes_and_single_player_marker_contract():
-    assert "stroke-dasharray: 1 6" in CSS
+    assert "stroke-dasharray: .1 5.4" in CSS
+    assert "stroke-linecap: round" in CSS
+    assert "stroke-width: 2.25" in CSS
     assert "width: 44px" in CSS and "height: 44px" in CSS
     assert "updatePlayerMarker" in WORLD
     assert "VS1F_ZONE_ANCHORS" in WORLD
@@ -157,9 +159,32 @@ def test_accessibility_and_reduced_motion_contracts_remain_present():
 def test_service_worker_and_query_cache_identity_are_current():
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
     flags = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
-    assert "v219-e10-reference-world-map" in sw
-    assert "ASSET_VERSION = 'e10-reference-world-map'" in flags
-    assert INDEX.count("20260731e10reference1") >= 8
+    assert "v220-e10-world-map-final-fidelity" in sw
+    assert "ASSET_VERSION = 'e10-world-map-final-fidelity'" in flags
+    assert INDEX.count("20260801e10fidelity1") >= 6
+
+
+def test_final_zone_identity_and_placement_semantics_are_explicit():
+    for identity in ("currentPlayerZoneKey", "selectedZoneKey", "challengeTargetZoneKey"):
+        assert identity in WORLD
+    assert "skipped_by_placement" in WORLD
+    assert "index.adv.status_skipped_by_placement" in WORLD
+    assert "zone.status === 'completed'" in WORLD
+
+
+def test_panel_heading_and_dual_cta_contract_are_dynamic():
+    assert "e10.world_stage.current_zone" in WORLD
+    assert "e10.world_stage.selected_zone" in WORLD
+    assert "data-zone-heading" in RIGHT
+    assert "data-challenge-target-zone" in WORLD
+    assert "data-challenge-target-zone" in RIGHT
+
+
+def test_final_route_has_nine_sequential_runtime_segments():
+    assert "data-e10-route-from" in WORLD
+    assert "data-e10-route-to" in WORLD
+    assert "zones.forEach(function (zone, index)" in WORLD
+    assert "var next = zones[index + 1]" in WORLD
 
 
 def test_reference_stylesheet_is_loaded_after_immersive_base():

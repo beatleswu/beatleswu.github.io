@@ -45,9 +45,9 @@ def _manifest(relative_path):
 def test_exact_v218_static_runtime_version_coupling():
     assert f'content="{CONTRACT}"' in INDEX
     assert f"VS1E_STATIC_CONTRACT = '{CONTRACT}'" in WORLD_JS
-    assert "ASSET_VERSION = 'e10-reference-world-map'" in FLAGS
-    assert "const VERSION     = 'v219-e10-reference-world-map'" in SW
-    assert INDEX.count("20260731e10reference1") >= 8
+    assert "ASSET_VERSION = 'e10-world-map-final-fidelity'" in FLAGS
+    assert "const VERSION     = 'v220-e10-world-map-final-fidelity'" in SW
+    assert INDEX.count("20260801e10fidelity1") >= 8
 
 
 def test_ten_original_landmarks_are_runtime_referenced_and_governed():
@@ -92,7 +92,7 @@ def test_route_topology_is_base_safe_and_material_layers_are_exact_marker_only()
     assert "e9-route__material" not in WORLD_STAGE
     assert "data-e10-vs1f-route-layer" not in WORLD_STAGE
     gated_builder = re.search(
-        r"function ensureVs1fRouteLayers\(root\) \{.*?\n  \}",
+        r"function ensureVs1fRouteLayers\(root, zones\) \{.*?\n  \}",
         WORLD_JS,
         re.S,
     )
@@ -100,11 +100,12 @@ def test_route_topology_is_base_safe_and_material_layers_are_exact_marker_only()
     assert "if (!VS1E_STATIC_CONTRACT_ACTIVE) return;" in gated_builder.group(0)
     assert "createElementNS('http://www.w3.org/2000/svg', 'path')" in gated_builder.group(0)
     assert "data-e10-vs1f-route-layer" in gated_builder.group(0)
-    for material in ("locked", "available", "completed", "current"):
-        assert f"e9-route__material--{material}" in gated_builder.group(0)
+    assert "e9-route__material--' + state" in gated_builder.group(0)
+    for material in ("locked", "available", "completed"):
+        assert f"e9-route__material--{material}" in CSS
         assert f".e9-route__material--{material}" in CSS
     assert "'completed'" in gated_builder.group(0)
-    assert "'current'" in gated_builder.group(0)
+    assert "'available'" in gated_builder.group(0)
     assert "pointer-events: none" in CSS
     assert "@media (prefers-reduced-motion: reduce)" in CSS
 

@@ -89,6 +89,9 @@ def main() -> None:
 
     desktop = opened(p("desktop-1920x1080-closed-zh.png"))
     desktop_open = opened(p("desktop-1920x1080-drawer-open-en.png"))
+    desktop_current = opened(p("desktop-1920x1080-current-zone-en.png"))
+    desktop_locked = opened(p("desktop-1920x1080-locked-zone-zh.png"))
+    placement_high = opened(p("desktop-1920x1080-placement-high-zh.png"))
     desktop_1440 = opened(p("desktop-1440x900-closed-en.png"))
 
     sheet(p("owner-reference-comparison-contact-sheet.png"), "Owner reference | Runtime 1920 | Runtime 1440", [
@@ -114,11 +117,41 @@ def main() -> None:
         ("Closed handle", desktop.crop((1360, 130, 1920, 900))),
         ("Open selected-zone panel", desktop_open.crop((1360, 130, 1920, 900))),
     ])
+    sheet(p("panel-current-selected-contact-sheet.png"), "Current zone and selected zone are distinct", [
+        ("Current Zone: Zone 2 / Continue Adventure", desktop_current.crop((1320, 140, 1920, 1080))),
+        ("Selected Zone: Zone 6 / Start Challenge", desktop_open.crop((1320, 140, 1920, 1080))),
+    ])
+    sheet(p("placement-high-skill-current-location-contact-sheet.png"), "Placement frontier: Zone 6 is authoritative", [
+        ("Lower zones are reviewable, not completed", placement_high),
+    ], columns=1)
+    sheet(p("skipped-by-placement-contact-sheet.png"), "Skipped by placement is not completed", [
+        ("Zones 1-5 have no completed check or fabricated stars", placement_high.crop((190, 350, 1250, 900))),
+        ("Current player marker remains at Zone 6", placement_high.crop((1160, 300, 1540, 540))),
+    ])
+    sheet(p("dual-cta-identity-contact-sheet.png"), "Panel and bottom CTA share one target", [
+        ("Zone 2: Continue Adventure", desktop_current.crop((1320, 520, 1920, 1080))),
+        ("Zone 6: Start Challenge", desktop_open.crop((1320, 520, 1920, 1080))),
+        ("Locked Zone 7: both disabled", desktop_locked.crop((1320, 520, 1920, 1080))),
+    ], columns=3)
     sheet(p("route-node-states-contact-sheet.png"), "Dotted route and compact node states", [
         ("Completed / available / locked", desktop.crop((250, 150, 1640, 900))),
     ], columns=1)
+    sheet(p("dotted-route-closeup.png"), "Fine round dotted route", [
+        ("Teal completed and warm-gold remaining segments", desktop.crop((240, 390, 1450, 860))),
+    ], columns=1)
+    sheet(p("zone-1-safe-boundary-contact-sheet.png"), "Zone 1 remains above the bottom HUD", [
+        ("Desktop 1920 Zone 1 safe boundary", desktop.crop((180, 700, 720, 1080))),
+        ("Landscape iPad Zone 1 safe boundary", opened(p("tablet-1180x820-closed-zh.png"), (80, 530, 520, 820))),
+    ])
     sheet(p("current-player-marker-contact-sheet.png"), "Single authoritative current-player marker", [
         ("Current location at zone 2", desktop.crop((300, 610, 730, 900))),
+    ], columns=1)
+    sheet(p("player-marker-before-after-selection-contact-sheet.png"), "Selection does not move the player marker", [
+        ("Before selection: marker at Zone 2", desktop.crop((300, 600, 760, 900))),
+        ("After selecting Zone 6: marker still at Zone 2", desktop_open.crop((300, 600, 760, 900))),
+    ])
+    sheet(p("top-hud-closeup.png"), "Reference-proportioned top HUD", [
+        ("Player identity / title plaque / utilities", desktop.crop((20, 20, 1900, 160))),
     ], columns=1)
     sheet(p("ipad-landscape-portrait-contact-sheet.png"), "iPad landscape and portrait", [
         ("1180x820 landscape", opened(p("tablet-1180x820-closed-zh.png"))),

@@ -33,7 +33,7 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v219-e10-reference-world-map"
+NEW_SW_VERSION = "v220-e10-world-map-final-fidelity"
 PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 
@@ -75,15 +75,14 @@ def test_generic_cta_shown_and_wired_for_any_non_newbie_unlocked_zone():
     # other zone -- so zone 2, zone 3, ... zone 10 all share one path.
     assert cta_block.count("zone.key === 'k26_30'") == 1
     else_branch = cta_block[cta_block.index("} else {"):]
-    assert "cta.hidden = false;" in else_branch
-    assert "window.E9.startAdventureFromE9(zone.key);" in else_branch
-    assert "t('index.adv.start_challenge', 'Start Challenge')" in else_branch
+    assert "configureAdventureButton(cta, zone, ctaContract(zone, state));" in else_branch
+    assert "contract.targetZoneKey" in WORLD_STAGE
+    assert "t('index.adv.start_challenge', 'Start Challenge')" in WORLD_STAGE
 
 
 def test_cta_click_handler_is_rebound_per_selection_not_stacked():
-    body = _render_selected_zone_body()
-    assert "cta.__e9AdventureHandler" in body
-    assert "cta.removeEventListener('click', cta.__e9AdventureHandler)" in body
+    assert "button.__e9AdventureHandler" in WORLD_STAGE
+    assert "button.removeEventListener('click', button.__e9AdventureHandler)" in WORLD_STAGE
 
 
 # ---------------------------------------------------------------------
@@ -94,21 +93,21 @@ def test_cta_click_handler_is_rebound_per_selection_not_stacked():
 #    launch one either.
 # ---------------------------------------------------------------------
 
-def test_locked_zone_early_return_hides_cta_before_any_wiring():
-    body = _render_selected_zone_body()
-    guard = body[body.index("if (!zone || zone.locked)"):body.index("state.selectedZoneKey")]
-    assert "cta.hidden = true;" in guard
-    assert "return;" in guard
-    assert "startAdventureFromE9" not in guard
+def test_locked_zone_can_be_inspected_but_has_no_challenge_target():
+    assert "if (!target)" in WORLD_STAGE
+    assert "enabled: false, targetZoneKey: null" in WORLD_STAGE
+    assert "button.disabled = !contract.enabled" in WORLD_STAGE
 
 
-def test_locked_tiles_never_receive_a_click_handler_in_render_zones():
+def test_locked_tiles_only_select_details_and_never_start_challenge_directly():
     start = WORLD_STAGE.index("function renderZones(")
     end = WORLD_STAGE.index("\n  function recoverToLegacy(", start)
     render_zones_body = WORLD_STAGE[start:end]
-    guarded = render_zones_body[render_zones_body.index("if (!zone.locked) {\n        var activate"):]
-    assert "e9:zone-selected" in guarded
-    assert "renderSelectedZone(root, zones, zone.key, true);" in guarded
+    assert "data-zone-locked" in render_zones_body
+    activate = render_zones_body[render_zones_body.index("var activate = function ()"):render_zones_body.index("var keyActivate")]
+    assert "e9:zone-selected" in activate
+    assert "renderSelectedZone(root, zones, zone.key, true);" in activate
+    assert "startAdventureFromE9" not in activate
 
 
 # ---------------------------------------------------------------------
@@ -483,6 +482,8 @@ def test_no_new_i18n_key_introduced_for_this_fix():
     expected = {
         'index.adv.boss_ready', 'index.adv.boss_cleared', 'index.adv.panel_ready',
         'index.adv.summary', 'index.adv.zone_locked', 'index.adv.start_challenge',
+        'index.adv.status_skipped_by_placement', 'index.adv.quest_replay_training',
+        'index.adv.skipped_replay', 'index.adv.skipped_help',
     }
     assert referenced == expected, f"unexpected index.adv.* keys: {referenced - expected}"
     for key in referenced:

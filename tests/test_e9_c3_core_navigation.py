@@ -25,18 +25,10 @@ def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract(
     assert "onclick=" not in MARKUP
 
 
-def test_locked_zones_do_not_get_selection_or_entry_handlers():
-    assert "if (!zone.locked)" in WORLD
-    # renderSelectedZone() must return immediately for any locked/missing
-    # zone, before any CTA wiring -- and (E9 Multi-Zone Progression) must
-    # also defensively hide the CTA in that same guard, not rely on the
-    # click handler (renderZones()'s own `if (!zone.locked)`) alone.
-    guard_start = WORLD.index("if (!zone || zone.locked) {")
-    guard_end = WORLD.index("state.selectedZoneKey", guard_start)
-    guard_body = WORLD[guard_start:guard_end]
-    assert "cta.hidden = true;" in guard_body
-    assert "return;" in guard_body
-    assert "startAdventureFromE9" not in guard_body
+def test_locked_zones_allow_detail_selection_but_never_get_an_entry_target():
+    assert "data-zone-locked" in WORLD
+    assert "enabled: false, targetZoneKey: null" in WORLD
+    assert "button.disabled = !contract.enabled" in WORLD
 
 
 def test_locale_changes_rerender_existing_world_stage_without_new_dictionary():
