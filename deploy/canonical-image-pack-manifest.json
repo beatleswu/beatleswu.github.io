@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1310,
-  "total_bytes": 758233568,
+  "total_files": 1311,
+  "total_bytes": 758987774,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 12
+    "owner-approved-project-created": 13
   },
   "files": [
     {
@@ -6731,6 +6731,16 @@
       "height": 941,
       "provenance": "owner-approved-project-created",
       "source_evidence": "VS1C-1 audit accepted WebP derivative of the owner-approved base PNG, encoded with Pillow WebP quality=90, method=6. SHA-256 and size verified; no prompt, credential, or private generation metadata is recorded."
+    },
+    {
+      "path": "assets/maps/e10_world_stage_v2_clean.webp",
+      "size": 754206,
+      "sha256": "32c6b137422a3b897677564d1f4e11002308b96807e0b27e2d3a3c3243d6ceb5",
+      "mime": "image/webp",
+      "width": 2048,
+      "height": 1152,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Deterministic Pillow WebP quality=90, method=6 derivative of the Owner-provided 2048x1152 clean PNG (SHA-256 f735798ad1e072fad57ca5d9286facea0656dee5d409ad9ddabf39e96b961b4); build identity is enforced by tools/build_e10_world_stage_v2_asset.py."
     },
     {
       "path": "assets/maps/main_adventure_map.png",

@@ -67,6 +67,13 @@
     d1_2: { x: 80.0, y: 44.7 }, d3_4: { x: 70.3, y: 65.0 },
     d5_6: { x: 56.0, y: 74.3 }, d7_plus: { x: 84.8, y: 23.1 }
   };
+  var VS1F_ZONE_ANCHORS = {
+    k26_30: { x: 16.5, y: 84.5 }, k21_25: { x: 28.0, y: 69.4 },
+    k16_20: { x: 16.5, y: 39.1 }, k11_15: { x: 36.0, y: 53.4 },
+    k6_10: { x: 62.0, y: 53.4 }, k1_5: { x: 75.0, y: 38.3 },
+    d1_2: { x: 90.0, y: 53.4 }, d3_4: { x: 76.0, y: 79.2 },
+    d5_6: { x: 53.0, y: 39.1 }, d7_plus: { x: 43.0, y: 16.0 }
+  };
   var BOSS_ANCHORS = {
     k26_30: { x: 19.1, y: 65.8 }, k21_25: { x: 42.3, y: 56.9 },
     k16_20: { x: 28.0, y: 23.9 }, k11_15: { x: 51.1, y: 22.3 },
@@ -134,6 +141,10 @@
       currentRoute.style.strokeDasharray = Math.max(0, currentPercent - completedPercent) + ' 100';
       currentRoute.style.strokeDashoffset = String(-completedPercent);
     }
+    var progressValue = root.querySelector('[data-e10-adventure-progress-value]');
+    var progressBar = root.querySelector('[data-e10-adventure-progress-bar]');
+    if (progressValue) progressValue.textContent = completed + ' / ' + zones.length;
+    if (progressBar) progressBar.style.width = Math.max(0, Math.min(100, completed / zones.length * 100)) + '%';
   }
 
   function enableImmersiveRpgSkin(root, generation) {
@@ -146,6 +157,20 @@
     }
     shell.setAttribute('data-e10-visual-skin', 'immersive-rpg');
     document.body.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    var mapStage = root.querySelector('#e9-map-stage');
+    if (mapStage && !mapStage.querySelector('[data-e10-adventure-progress]')) {
+      var progress = document.createElement('section');
+      progress.className = 'e10-adventure-progress';
+      progress.setAttribute('data-e10-adventure-progress', '');
+      progress.setAttribute('aria-label', t('e10.world_stage.adventure_progress', 'Adventure progress'));
+      var registry = window.E9 && window.E9.NavigationRegistry;
+      progress.innerHTML = (registry ? registry.icon('compass', 'e10-adventure-progress__icon') : '')
+        + '<span class="e10-adventure-progress__copy"><strong data-i18n="e10.world_stage.adventure_progress"></strong>'
+        + '<span data-e10-adventure-progress-value>0 / 10</span></span>'
+        + '<span class="e10-adventure-progress__track" aria-hidden="true"><span data-e10-adventure-progress-bar></span></span>';
+      mapStage.appendChild(progress);
+      if (window.I18n && window.I18n.apply) window.I18n.apply(progress);
+    }
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
       window.E9.registerCleanup(function () {
         shell.removeAttribute('data-e10-visual-skin');
@@ -191,6 +216,22 @@
     });
   }
 
+  function configureBaseMap(root) {
+    var base = root.querySelector('.e9-map-stage__base');
+    if (!base) return;
+    if (VS1E_STATIC_CONTRACT_ACTIVE) {
+      base.src = '/assets/maps/e10_world_stage_v2_clean.webp';
+      base.width = 2048;
+      base.height = 1152;
+      base.setAttribute('data-e10-vs1f-clean-map', 'v2');
+      return;
+    }
+    base.src = base.getAttribute('data-vs1d-src') || '/assets/maps/e10_world_stage_v1_base.webp';
+    base.width = 1672;
+    base.height = 941;
+    base.removeAttribute('data-e10-vs1f-clean-map');
+  }
+
   function ensureVs1fRouteLayers(root) {
     if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
     var route = root.querySelector('.e9-map-stage__route');
@@ -198,6 +239,16 @@
     var ascension = route && route.querySelector('.e9-route__ascension');
     if (!route || !ground || !ascension) return;
     if (route.querySelector('[data-e10-vs1f-route-layer]')) return;
+
+    var groundPath = 'M165 475 C220 450 255 420 280 390 C235 335 195 280 165 220 C235 245 305 280 360 300 C450 320 535 320 620 300 C675 275 720 240 750 215 C810 240 860 275 900 300 C865 360 815 415 760 445 C680 390 605 300 530 220';
+    var ascensionPath = 'M530 220 C500 175 465 125 430 90';
+    route.setAttribute('viewBox', '0 0 1000 562');
+    ground.setAttribute('d', groundPath);
+    ascension.setAttribute('d', ascensionPath);
+    var groundShadow = route.querySelector('.e9-route__ground-shadow');
+    var ascensionShadow = route.querySelector('.e9-route__ascension-shadow');
+    if (groundShadow) groundShadow.setAttribute('d', groundPath);
+    if (ascensionShadow) ascensionShadow.setAttribute('d', ascensionPath);
 
     ground.setAttribute('class', 'e9-route__ground e9-route__material e9-route__material--locked');
     ground.setAttribute('pathLength', '100');
@@ -226,7 +277,7 @@
 
   function updatePlayerMarker(root, zone) {
     var marker = root.querySelector('#e9-world-stage-player');
-    var anchor = zone && ZONE_ANCHORS[zone.key];
+    var anchor = zone && (VS1E_STATIC_CONTRACT_ACTIVE ? VS1F_ZONE_ANCHORS : ZONE_ANCHORS)[zone.key];
     var mapStage = root.querySelector('#e9-map-stage');
     root.querySelectorAll('.e10-current-hero').forEach(function (hero) { hero.remove(); });
     if (!marker) return;
@@ -399,6 +450,13 @@
       ? newbieCtaText(zone)
       : t('e10.world_stage.continue_adventure', 'Continue Adventure');
     configureAdventureButton(primary, zone, label);
+    if (primary && zone && !primary.hidden) {
+      var registry = window.E9 && window.E9.NavigationRegistry;
+      primary.innerHTML = (registry ? registry.icon('equipment', 'e10-map-primary-cta__icon') : '')
+        + '<span class="e10-map-primary-cta__copy"><strong>' + label + '</strong>'
+        + '<span>' + (zoneDisplayName(zone) || zone.key) + '</span></span>';
+      primary.setAttribute('aria-label', label + ': ' + (zoneDisplayName(zone) || zone.key));
+    }
   }
 
   function updateSelectedZoneCopy(root, zone) {
@@ -442,6 +500,11 @@
       summary: zoneSummaryText(zone),
       progress: zoneProgressText(zone),
       landmarkSrc: ZONE_LANDMARKS[zone.key] || '',
+      zoneNumber: zone.__e10Index || 0,
+      stars: zone.stars || 0,
+      seen: zone.seen || 0,
+      total: zone.total || 0,
+      locked: !!zone.locked,
     };
   }
 
@@ -590,7 +653,8 @@
     zonesEl.innerHTML = '';
     bossAnchorsEl.innerHTML = '';
     zones.forEach(function (zone, index) {
-      var anchor = ZONE_ANCHORS[zone.key];
+      zone.__e10Index = index + 1;
+      var anchor = (VS1E_STATIC_CONTRACT_ACTIVE ? VS1F_ZONE_ANCHORS : ZONE_ANCHORS)[zone.key];
       var bossAnchor = BOSS_ANCHORS[zone.key];
       if (!anchor || !bossAnchor) return; // unknown API data never receives fabricated coordinates
       var tile = document.createElement('button');
@@ -818,6 +882,7 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
+    configureBaseMap(root);
     prepareVs1dDom(root);
     root.__e9WorldStageState = { zones: [], selectedZoneKey: null };
     var onChanged = function () {

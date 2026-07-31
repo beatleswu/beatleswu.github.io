@@ -120,6 +120,6 @@ def test_reduced_motion_and_cache_coupling_are_current():
     assert "@media (prefers-reduced-motion: reduce)" in CSS
     assert "transition-duration: .001ms" in CSS
     assert "animation: none" in CSS
-    assert "ASSET_VERSION = 'e10-rpg-navigation-polish'" in FLAGS
-    assert "const VERSION     = 'v218-e10-rpg-navigation-polish'" in SW
-    assert INDEX.count("20260731e10navpolish1") >= 8
+    assert "ASSET_VERSION = 'e10-reference-world-map'" in FLAGS
+    assert "const VERSION     = 'v219-e10-reference-world-map'" in SW
+    assert INDEX.count("20260731e10reference1") >= 8

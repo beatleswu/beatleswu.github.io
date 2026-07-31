@@ -80,7 +80,7 @@ def test_hud_restores_vs1d_fallback_and_builds_vs1f_brand_after_marker():
     assert "e10-hud-brand__crest" not in TOP_HTML
     assert "if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;" in TOP_JS
     assert "data-e10-vs1f-brand" in TOP_JS
-    assert "e10-hud-brand__crest" in TOP_JS
+    assert "e10.world_stage.title" in TOP_JS
     assert "if (avatar) avatar.remove();" not in TOP_JS
     assert 'id="top-hud-level" hidden' in TOP_HTML
     assert 'id="top-hud-coins" hidden' in TOP_HTML
@@ -105,13 +105,13 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-rpg-navigation-polish'" in FLAGS
-    assert "const VERSION     = 'v218-e10-rpg-navigation-polish'" in SW
-    assert "/i18n.js?v=20260731e10navpolish1" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260731e10navpolish1" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260731e10navpolish1" in INDEX
-    assert "/js/e9/right_cards.js?v=20260731e10navpolish1" in INDEX
-    assert "/js/e9/world_stage.js?v=20260731e10navpolish1" in INDEX
+    assert "ASSET_VERSION = 'e10-reference-world-map'" in FLAGS
+    assert "const VERSION     = 'v219-e10-reference-world-map'" in SW
+    assert "/i18n.js?v=20260731e10reference1" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260731e10reference1" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260731e10reference1" in INDEX
+    assert "/js/e9/right_cards.js?v=20260731e10reference1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260731e10reference1" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():

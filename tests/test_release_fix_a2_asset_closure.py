@@ -249,12 +249,12 @@ def test_partial_generation_fails_closed_corrupted_hash():
 
 
 def test_no_unreferenced_historical_files_in_closure_manifest():
-    # The manifest must be exactly the 191 currently-referenced files, not
+    # The manifest must be exactly the 192 currently-referenced files, not
     # the full 757MB historical tree this incident's audit found on the
     # production host (1,391 files) -- no blind wholesale import.
     manifest = _load_closure_manifest()
-    assert manifest["total_files"] == 191
-    assert len(manifest["files"]) == 191
+    assert manifest["total_files"] == 192
+    assert len(manifest["files"]) == 192
     referenced = scan_runtime_image_references()
     governed = {"/" + f["path"] for f in manifest["files"]}
     over_broad = governed - referenced
@@ -315,6 +315,7 @@ def test_manifest_provenance_classes_are_honest():
         "assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp",
         "assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp",
         "assets/maps/e10_world_stage_v1_base.webp",
+        "assets/maps/e10_world_stage_v2_clean.webp",
     ]
     assert set(by_class["production-host-recovered"]) == {
         "assets/go_rpg_assets/claire_avatar.webp",

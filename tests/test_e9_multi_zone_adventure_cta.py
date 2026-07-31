@@ -33,7 +33,7 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v218-e10-rpg-navigation-polish"
+NEW_SW_VERSION = "v219-e10-reference-world-map"
 PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 

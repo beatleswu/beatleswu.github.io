@@ -138,6 +138,8 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     routeFilledCount: [...document.querySelectorAll('.e9-map-stage__route path')]
       .filter((path) => getComputedStyle(path).fill !== 'none').length,
     landmarkCount: document.querySelectorAll('.e10-zone-landmark').length,
+    v2CleanMapCount: performance.getEntriesByType('resource')
+      .filter((entry) => entry.name.includes('/assets/maps/e10_world_stage_v2_clean.webp')).length,
     vs1fPlayerCount: document.querySelectorAll('[data-player-location], .e10-current-hero').length,
     vs1fIconCount: document.querySelectorAll('[data-e10-vs1f-icon], .e9-dock__icon').length,
     vs1fAvatarCount: document.querySelectorAll('#top-hud-avatar-image').length,
@@ -180,6 +182,7 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     || snapshot.routeMaterialCount !== 0
     || snapshot.routeFilledCount !== 0
     || snapshot.landmarkCount !== 0
+    || snapshot.v2CleanMapCount !== 0
     || snapshot.vs1fPlayerCount !== 0
     || snapshot.vs1fIconCount !== 0
     || snapshot.vs1fAvatarCount !== 0
@@ -336,11 +339,12 @@ async function runtimeSnapshot(page) {
         '#welcome-state > .guild-hall-hero, #welcome-state > .guild-entry-grid, #skill-map, #welcome-state > .home-left-col, #welcome-state > .home-report'
       )).some((element) => !element.hidden),
       map: roundRect(rect('#e9-map-stage')),
+      shell: roundRect(rect('#e9-adventure-shell')),
       stage: roundRect(rect('#adventure-stage')),
       nav: roundRect(rect('#left-nav')),
       drawer: roundRect(rect('#e9-right-drawer-panel')),
       primaryCta: roundRect(rect('#e9-world-stage-primary-cta:not([hidden])')),
-      progressOverlay: roundRect(rect('#e9-world-stage-status')),
+      progressOverlay: roundRect(rect('[data-e10-adventure-progress]')),
       details: roundRect(rect('#e9-world-stage-details:not([hidden]), #e9-newbie-mainline:not([hidden])')),
       plaqueCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__plaque').length,
       plaqueStatusCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__status-text').length,
@@ -405,11 +409,17 @@ async function runtimeSnapshot(page) {
       sessionControls: {
         presence: !!document.querySelector('#cg-presence-chip'),
         language: isVisible(document.querySelector('.cg-nav-lang'))
-          || (
-            isVisible(document.querySelector('[data-e10-vs1f-nav="more"]'))
-            && !!document.querySelector('[data-e10-nav-key="settings"]')
-          ),
-        logout: isVisible(document.querySelector('.cg-nav-logout')),
+          || !!document.querySelector('#e10-settings-language'),
+        logout: isVisible(document.querySelector('.cg-nav-logout'))
+          || !!document.querySelector('[data-e10-player-logout]'),
+      },
+      cleanMap: {
+        src: document.querySelector('.e9-map-stage__base')?.getAttribute('src'),
+        marker: document.querySelector('.e9-map-stage__base')?.getAttribute('data-e10-vs1f-clean-map'),
+        requests: performance.getEntriesByType('resource')
+          .filter((entry) => entry.name.includes('/assets/maps/e10_world_stage_v2_clean.webp')).length,
+        legacyRequests: performance.getEntriesByType('resource')
+          .filter((entry) => entry.name.includes('/assets/maps/e10_world_stage_v1_base.webp')).length,
       },
       avatar: {
         src: document.querySelector('#top-hud-avatar-image')?.getAttribute('src'),
@@ -639,6 +649,12 @@ function assertCase(result) {
     failures.push(`${specName}: RPG skin marker missing`);
   }
   if (snapshot.nodeCount !== 10) failures.push(`${specName}: node count ${snapshot.nodeCount}`);
+  if (
+    snapshot.cleanMap.src !== '/assets/maps/e10_world_stage_v2_clean.webp'
+    || snapshot.cleanMap.marker !== 'v2'
+    || snapshot.cleanMap.requests !== 1
+    || snapshot.cleanMap.legacyRequests !== 0
+  ) failures.push(`${specName}: exact VS1F clean-map ownership failed ${JSON.stringify(snapshot.cleanMap)}`);
   if (snapshot.plaqueCount !== 10 || snapshot.plaqueStatusCount !== 10) {
     failures.push(`${specName}: persistent map plaques are incomplete`);
   }
@@ -674,10 +690,8 @@ function assertCase(result) {
   if (result.beforeOpen && result.afterOpen) {
     const before = result.beforeOpen.map;
     const after = result.afterOpen.map;
-    if (result.portraitContext) {
-      if (before.width !== after.width) failures.push(`${specName}: portrait overlay changed map width`);
-    } else if (before.width <= after.width) {
-      failures.push(`${specName}: closed map width ${before.width} is not greater than open width ${after.width}`);
+    if (before.width !== after.width || before.height !== after.height) {
+      failures.push(`${specName}: overlay drawer changed map geometry`);
     }
   }
   if (result.progressDrawerCheck && (
@@ -699,8 +713,11 @@ function assertCase(result) {
     if (snapshot.landmarkRequestCount !== expectedLandmarkRequests) {
       failures.push(`${specName}: Desktop landmark requests ${snapshot.landmarkRequestCount}`);
     }
-    if (!snapshot.nav || !snapshot.map || snapshot.nav.right > snapshot.map.left) {
-      failures.push(`${specName}: vertical navigation rail is not left of map`);
+    if (!snapshot.nav || !snapshot.map || snapshot.nav.left < snapshot.map.left || snapshot.nav.right > snapshot.map.right) {
+      failures.push(`${specName}: floating navigation badges are outside the map frame`);
+    }
+    if (!snapshot.shell || !snapshot.map || (snapshot.map.width * snapshot.map.height) / (snapshot.shell.width * snapshot.shell.height) < .75) {
+      failures.push(`${specName}: map does not cover at least 75% of the shell`);
     }
     if (!snapshot.primaryCta || !snapshot.progressOverlay) {
       failures.push(`${specName}: closed-state map CTA/progress overlay missing`);
@@ -710,13 +727,13 @@ function assertCase(result) {
     }
   }
   if (result.layout === 'bottom-dock') {
-    if (snapshot.navPosition !== 'fixed' && snapshot.navSlotPosition !== 'fixed') {
-      failures.push(`${specName}: navigation is not a fixed bottom dock`);
-    }
-    if (!snapshot.navColumns || snapshot.navColumns.split(' ').length !== 6) {
-      failures.push(`${specName}: bottom dock is not one six-item row`);
-    }
     if (result.viewport.width < 768) {
+      if (snapshot.navPosition !== 'fixed' && snapshot.navSlotPosition !== 'fixed') {
+        failures.push(`${specName}: navigation is not a fixed bottom dock`);
+      }
+      if (!snapshot.navColumns || snapshot.navColumns.split(' ').length !== 6) {
+        failures.push(`${specName}: bottom dock is not one six-item row`);
+      }
       if (snapshot.landmarkCount !== 10) {
         failures.push(`${specName}: mobile landmark card count ${snapshot.landmarkCount}`);
       }
@@ -741,13 +758,18 @@ function assertCase(result) {
       if (result.safeAreaBottom && snapshot.dockBottomClearance < result.safeAreaBottom + 5) {
         failures.push(`${specName}: safe-area clearance ${snapshot.dockBottomClearance}px`);
       }
-    }
-    if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
-    if (snapshot.navVisualKeys.join(',') !== 'adventure,hero,equipment,go_spirit,backpack,shop') {
-      failures.push(`${specName}: mobile navigation order ${snapshot.navVisualKeys.join(',')}`);
-    }
-    if (result.viewport.width >= 768 && (!snapshot.primaryCta || !snapshot.progressOverlay)) {
-      failures.push(`${specName}: portrait map CTA/progress overlay missing`);
+      if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
+      if (snapshot.navVisualKeys.join(',') !== 'adventure,hero,equipment,go_spirit,backpack,shop') {
+        failures.push(`${specName}: mobile navigation order ${snapshot.navVisualKeys.join(',')}`);
+      }
+    } else if (result.viewport.width > result.viewport.height) {
+      if (snapshot.navItemCount !== 5 || snapshot.navRowCount !== 5) failures.push(`${specName}: landscape floating badge structure drifted`);
+      if (!snapshot.bottomDockVisible) failures.push(`${specName}: landscape Legacy medallion dock is missing`);
+      if (!snapshot.primaryCta || !snapshot.progressOverlay) failures.push(`${specName}: landscape bottom HUD is incomplete`);
+    } else {
+      if (snapshot.navPosition !== 'fixed' && snapshot.navSlotPosition !== 'fixed') failures.push(`${specName}: portrait navigation is not fixed`);
+      if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 1) failures.push(`${specName}: portrait dock is not one six-item row`);
+      if (snapshot.bottomDockVisible) failures.push(`${specName}: portrait secondary dock competes with primary navigation`);
     }
   }
   if (result.openMore && !result.openSettings && !result.snapshot.moreOverlayVisible) failures.push(`${specName}: All Features did not open`);
@@ -887,6 +909,7 @@ async function main() {
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'desktop-1440-closed', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-closed-en.png', layout: 'rail' },
       { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true },
       { specName: 'desktop-1440-more', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-all-features-zh.png', layout: 'rail', openMore: true },
       { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character' },

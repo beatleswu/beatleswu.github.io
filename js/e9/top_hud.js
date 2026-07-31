@@ -23,11 +23,7 @@
     var brand = document.createElement('div');
     brand.className = 'e10-hud-brand';
     brand.setAttribute('data-e10-vs1f-brand', '');
-    brand.innerHTML = '<svg class="e10-hud-brand__crest" viewBox="0 0 48 56" aria-hidden="true" focusable="false">'
-      + '<path d="M24 2 44 10v15c0 13-8 23-20 29C12 48 4 38 4 25V10Z"/>'
-      + '<circle cx="19" cy="25" r="8"/><circle cx="29" cy="31" r="8"/></svg>'
-      + '<span class="e10-hud-brand__copy"><strong data-i18n="common.brand">Go Odyssey</strong>'
-      + '<span data-i18n="e10.rpg.world_stage_label">World Stage</span></span>';
+    brand.innerHTML = '<span class="e10-hud-brand__copy"><strong data-i18n="e10.world_stage.title">奔境奇兵 Go Odyssey</strong></span>';
     player.insertAdjacentElement('afterend', brand);
     if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(brand);
   }
@@ -80,6 +76,22 @@
     var moreTrigger = null;
     var lastTrigger = null;
     var previousBodyOverflow = '';
+    var playerTrigger = root.querySelector('.e9-hud__player');
+    var playerMenu = document.createElement('div');
+    playerMenu.className = 'e10-player-menu';
+    playerMenu.id = 'e10-player-menu';
+    playerMenu.hidden = true;
+    playerMenu.setAttribute('data-e10-vs1f-nav', 'player-menu');
+    playerMenu.setAttribute('role', 'menu');
+    playerMenu.innerHTML = '<a role="menuitem" href="/hero?tab=hero" data-i18n="e10.nav.player_profile"></a>'
+      + '<button role="menuitem" type="button" data-e10-player-logout data-i18n="nav.logout"></button>';
+    root.appendChild(playerMenu);
+    if (playerTrigger) {
+      playerTrigger.setAttribute('aria-haspopup', 'menu');
+      playerTrigger.setAttribute('aria-controls', playerMenu.id);
+      playerTrigger.setAttribute('aria-expanded', 'false');
+      playerTrigger.insertAdjacentHTML('beforeend', '<span class="e10-player-menu-arrow" aria-hidden="true"></span>');
+    }
 
     function makeControl(item, extraClass) {
       var control = document.createElement(item.target ? 'a' : 'button');
@@ -105,6 +117,8 @@
     function closeAll(restoreFocus) {
       moreOverlay.hidden = true;
       settingsOverlay.hidden = true;
+      playerMenu.hidden = true;
+      if (playerTrigger) playerTrigger.setAttribute('aria-expanded', 'false');
       if (moreTrigger) moreTrigger.setAttribute('aria-expanded', 'false');
       root.querySelectorAll('[data-e10-command="settings"]').forEach(function (control) { control.setAttribute('aria-expanded', 'false'); });
       document.body.style.overflow = previousBodyOverflow;
@@ -124,6 +138,12 @@
 
     function onDialogKey(event) {
       var overlay = !moreOverlay.hidden ? moreOverlay : (!settingsOverlay.hidden ? settingsOverlay : null);
+      if (!overlay && !playerMenu.hidden && event.key === 'Escape') {
+        event.preventDefault();
+        closeAll(false);
+        if (playerTrigger) playerTrigger.focus();
+        return;
+      }
       if (!overlay) return;
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -163,6 +183,27 @@
       openOverlay(moreOverlay, moreTrigger);
       moreTrigger.setAttribute('aria-expanded', 'true');
     }, null, generation);
+    if (playerTrigger) {
+      window.E9.on(playerTrigger, 'click', function (event) {
+        event.preventDefault();
+        var opening = playerMenu.hidden;
+        closeAll(false);
+        playerMenu.hidden = !opening;
+        playerTrigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) {
+          var first = playerMenu.querySelector('[role="menuitem"]');
+          if (first) first.focus();
+        }
+      }, null, generation);
+    }
+    var logout = playerMenu.querySelector('[data-e10-player-logout]');
+    if (logout) {
+      window.E9.on(logout, 'click', function () {
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+          .catch(function () {})
+          .then(function () { window.location.href = '/login?from=logout'; });
+      }, null, generation);
+    }
     root.querySelectorAll('[data-e10-dialog-close]').forEach(function (button) {
       button.innerHTML = registry.icon('close', 'e10-dialog-close-icon');
       window.E9.on(button, 'click', function () { closeAll(true); }, null, generation);

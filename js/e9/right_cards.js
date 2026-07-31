@@ -74,13 +74,30 @@
     var title = root.querySelector('#e10-drawer-zone-title');
     var state = root.querySelector('#e10-drawer-zone-state');
     var body = root.querySelector('#e10-drawer-zone-body');
+    var number = root.querySelector('[data-e10-zone-number]');
+    var stars = root.querySelector('[data-e10-zone-stars]');
+    var questValue = root.querySelector('[data-e10-zone-quest-value]');
+    var questBar = root.querySelector('[data-e10-zone-quest-bar]');
+    var regionValue = root.querySelector('[data-e10-zone-region-value]');
+    var regionBar = root.querySelector('[data-e10-zone-region-bar]');
+    var cta = root.querySelector('[data-e10-zone-cta]');
     root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
+    root.__e10SelectedZoneKey = detail.zoneKey || '';
     syncDrawerLandmark(root);
     if (title) {
       title.textContent = detail.name || detail.zoneKey || '';
       title.removeAttribute('data-i18n');
     }
     if (state) state.textContent = detail.statusText || '';
+    if (number) number.textContent = String(detail.zoneNumber || '');
+    if (stars) stars.textContent = '★'.repeat(detail.stars || 0) + '☆'.repeat(3 - (detail.stars || 0));
+    var questPercent = detail.total ? Math.max(0, Math.min(100, detail.seen / detail.total * 100)) : 0;
+    var regionPercent = detail.zoneNumber ? Math.max(0, Math.min(100, detail.zoneNumber / 10 * 100)) : 0;
+    if (questValue) questValue.textContent = (detail.seen || 0) + ' / ' + (detail.total || 0);
+    if (questBar) questBar.style.width = questPercent + '%';
+    if (regionValue) regionValue.textContent = (detail.zoneNumber || 0) + ' / 10';
+    if (regionBar) regionBar.style.width = regionPercent + '%';
+    if (cta) cta.hidden = !!detail.locked;
     if (body) {
       body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
       body.removeAttribute('data-i18n');
@@ -186,6 +203,29 @@
     var backdrop = null;
     if (exactVs1f && slot) {
       if (closeButton) closeButton.innerHTML = registry.icon('close', 'e10-close-icon');
+      var zoneSummary = root.querySelector('.e10-drawer-zone-summary');
+      if (zoneSummary) {
+        var kicker = zoneSummary.querySelector('.e10-drawer-zone-summary__kicker');
+        if (kicker) kicker.setAttribute('data-i18n', 'e10.world_stage.current_zone');
+        var presentation = document.createElement('div');
+        presentation.className = 'e10-zone-panel-runtime';
+        presentation.setAttribute('data-e10-vs1f-zone-panel', '');
+        presentation.innerHTML = '<span class="e10-zone-panel-runtime__number" data-e10-zone-number></span>'
+          + '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars aria-label="3 stars"></span>'
+          + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.task_progress"></span><strong data-e10-zone-quest-value></strong><i><b data-e10-zone-quest-bar></b></i></div>'
+          + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.region_progress"></span><strong data-e10-zone-region-value></strong><i><b data-e10-zone-region-bar></b></i></div>'
+          + '<button type="button" class="e10-zone-panel-runtime__cta" data-e10-zone-cta data-i18n="e10.world_stage.continue_adventure"></button>';
+        zoneSummary.appendChild(presentation);
+        var zoneCta = presentation.querySelector('[data-e10-zone-cta]');
+        if (zoneCta) {
+          window.E9.on(zoneCta, 'click', function () {
+            if (root.__e10SelectedZoneKey && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+              window.E9.startAdventureFromE9(root.__e10SelectedZoneKey);
+            }
+          }, null, generation);
+        }
+        if (window.I18n && window.I18n.apply) window.I18n.apply(zoneSummary);
+      }
       backdrop = document.createElement('button');
       backdrop.type = 'button';
       backdrop.className = 'e10-drawer-backdrop';
@@ -258,6 +298,7 @@
       window.E9.registerCleanup(function () {
         delete root.__e9CompactProgress;
         delete root.__e10SelectedLandmarkSrc;
+        delete root.__e10SelectedZoneKey;
         if (backdrop) backdrop.remove();
         if (slot) slot.classList.remove('is-drawer-open');
         if (shell) shell.classList.remove('is-right-drawer-open');

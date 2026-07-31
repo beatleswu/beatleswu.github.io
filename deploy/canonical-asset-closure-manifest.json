@@ -2,11 +2,11 @@
   "$schema_note": "Declarative canonical closure for every currently-referenced /assets/** file (RELEASE-FIX-A2). This is the source of truth for what the static-release tooling stages under assets/** -- see docs/deployment/canonical_static_release_contract.md. Do not add files here that are not referenced by a runtime scan (see docs/incidents/2026-07-12-full-site-asset-outage.md Phase 1); do not blindly package the full historical asset tree.",
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A2 / 2026-07-12-full-site-asset-outage",
-  "total_files": 191,
-  "total_bytes": 54647074,
+  "total_files": 192,
+  "total_bytes": 55401280,
   "provenance_summary": {
     "historical-git-verified": 178,
-    "owner-approved-project-created": 11,
+    "owner-approved-project-created": 12,
     "production-host-recovered": 2
   },
   "files": [
@@ -149,6 +149,16 @@
       "height": 941,
       "provenance": "owner-approved-project-created",
       "source_evidence": "Owner-approved VS1B3 visual/layout reference; governed by VS1C-2 canonical image manifest. SHA-256 and size verified against the approved WebP derivative; no prompt, credential, or private generation metadata is recorded."
+    },
+    {
+      "path": "assets/maps/e10_world_stage_v2_clean.webp",
+      "size": 754206,
+      "sha256": "32c6b137422a3b897677564d1f4e11002308b96807e0b27e2d3a3c3243d6ceb5",
+      "mime": "image/webp",
+      "width": 2048,
+      "height": 1152,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Deterministic Pillow WebP quality=90, method=6 derivative of the Owner-provided 2048x1152 clean PNG (SHA-256 f735798ad1e072fad57ca5d9286facea0656dee5d409ad9ddabf39e96b961b4); build identity is enforced by tools/build_e10_world_stage_v2_asset.py."
     },
     {
       "path": "assets/go_rpg_assets/daily_bounty_icon.webp",
