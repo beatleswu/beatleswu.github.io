@@ -25,6 +25,16 @@
 (function (document) {
   'use strict';
 
+  // Static/runtime compatibility bridge. This value is intentionally read
+  // once from an exact marker baked into the static index. Query parameters,
+  // hostname, browser storage and mutable window globals are not inputs.
+  var VS1E_STATIC_CONTRACT = 'e10-vs1e-compatibility-bridge';
+  var staticContractMarker = document.querySelector(
+    'meta[name="go-odyssey-static-contract"]'
+  );
+  var VS1E_STATIC_CONTRACT_ACTIVE = !!staticContractMarker
+    && staticContractMarker.getAttribute('content') === VS1E_STATIC_CONTRACT;
+
   function t(key, fallback) {
     if (window.E9 && window.E9.I18nFallback && typeof window.E9.I18nFallback.t === 'function') {
       return window.E9.I18nFallback.t(key, fallback);
@@ -79,6 +89,11 @@
   function enableImmersiveRpgSkin(root, generation) {
     var shell = root && root.closest ? root.closest('#e9-adventure-shell') : null;
     if (!shell) return;
+    if (!VS1E_STATIC_CONTRACT_ACTIVE) {
+      shell.removeAttribute('data-e10-visual-skin');
+      document.body.removeAttribute('data-e10-visual-skin');
+      return;
+    }
     shell.setAttribute('data-e10-visual-skin', 'immersive-rpg');
     document.body.setAttribute('data-e10-visual-skin', 'immersive-rpg');
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
@@ -88,6 +103,24 @@
         if (window.E9) delete window.E9.latestZoneSelection;
       }, generation);
     }
+  }
+
+  function prepareVs1dDom(root) {
+    if (VS1E_STATIC_CONTRACT_ACTIVE) return;
+    var mapStage = root.querySelector('#e9-map-stage');
+    var status = root.querySelector('#e9-world-stage-status');
+    if (mapStage && status && status.parentNode === mapStage) {
+      mapStage.parentNode.insertBefore(status, mapStage);
+    }
+    [
+      '#e9-world-stage-primary-cta',
+      '.e9-zone-details__kicker',
+      '#e9-world-stage-details-state',
+      '#e9-world-stage-details-progress',
+    ].forEach(function (selector) {
+      var element = root.querySelector(selector);
+      if (element) element.hidden = true;
+    });
   }
 
   function updatePlayerMarker(root, zoneKey) {
@@ -238,6 +271,10 @@
 
   function configurePrimaryCta(root, zone) {
     var primary = root.querySelector('#e9-world-stage-primary-cta');
+    if (!VS1E_STATIC_CONTRACT_ACTIVE) {
+      if (primary) primary.hidden = true;
+      return;
+    }
     var label = zone && zone.key === 'k26_30'
       ? newbieCtaText(zone)
       : t('e10.world_stage.continue_adventure', 'Continue Adventure');
@@ -250,9 +287,15 @@
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var progress = root.querySelector('#e9-world-stage-details-progress');
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
-    if (stateText) stateText.textContent = zoneStateText(zone);
+    if (stateText) {
+      stateText.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
+      if (VS1E_STATIC_CONTRACT_ACTIVE) stateText.textContent = zoneStateText(zone);
+    }
     if (summary) summary.textContent = zoneSummaryText(zone);
-    if (progress) progress.textContent = zoneProgressText(zone);
+    if (progress) {
+      progress.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
+      if (VS1E_STATIC_CONTRACT_ACTIVE) progress.textContent = zoneProgressText(zone);
+    }
   }
 
   function zoneSelectionDetail(zone) {
@@ -317,7 +360,7 @@
     var isPortraitTablet = window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
     ).matches;
-    if (details) details.hidden = !isPortraitTablet;
+    if (details) details.hidden = VS1E_STATIC_CONTRACT_ACTIVE ? !isPortraitTablet : isMobile;
     updateSelectedZoneCopy(root, zone);
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
@@ -359,23 +402,28 @@
         var inlineSummary = document.createElement('p');
         inlineSummary.textContent = summary ? summary.textContent : '';
         inline.appendChild(inlineSummary);
-        var inlineCta = document.createElement('button');
-        inlineCta.type = 'button';
-        inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
-        inlineCta.textContent = inlineIsNewbie
-          ? newbieCtaText(zone)
-          : t('index.adv.start_challenge', 'Start Challenge');
-        inlineCta.addEventListener('click', function (evt) {
-          evt.stopPropagation();
-          if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
-        });
-        inline.appendChild(inlineCta);
+        if (VS1E_STATIC_CONTRACT_ACTIVE || !inlineIsNewbie) {
+          var inlineCta = document.createElement('button');
+          inlineCta.type = 'button';
+          inlineCta.className = 'e9-zone__inline-cta e9-adventure-cta';
+          inlineCta.textContent = inlineIsNewbie
+            ? newbieCtaText(zone)
+            : t('index.adv.start_challenge', 'Start Challenge');
+          inlineCta.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') window.E9.startAdventureFromE9(zone.key);
+          });
+          inline.appendChild(inlineCta);
+        }
         selectedTile.appendChild(inline);
       }
     }
 
     renderBeginnerVillageMainline(root, zone);
-    if (newbie && (isMobile || zone.key !== 'k26_30')) newbie.hidden = true;
+    if (newbie && (
+      (VS1E_STATIC_CONTRACT_ACTIVE && (isMobile || zone.key !== 'k26_30'))
+      || (!VS1E_STATIC_CONTRACT_ACTIVE && zone.key !== 'k26_30')
+    )) newbie.hidden = true;
     if (focusDetails && details) {
       var focusTarget = zone.key === 'k26_30' && newbie && !newbie.hidden ? newbie : details;
       try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
@@ -407,7 +455,9 @@
       tile.type = 'button';
       tile.className = 'e9-zone e9-zone--' + (zone.status || 'locked');
       tile.setAttribute('data-zone', zone.key);
-      tile.setAttribute('data-plaque-side', ZONE_PLAQUE_SIDES[zone.key] || 'right');
+      if (VS1E_STATIC_CONTRACT_ACTIVE) {
+        tile.setAttribute('data-plaque-side', ZONE_PLAQUE_SIDES[zone.key] || 'right');
+      }
       tile.setAttribute('data-normalized-anchor', anchor.x + ',' + anchor.y);
       tile.setAttribute('aria-label', zoneDisplayName(zone));
       applyAnchor(tile, anchor);
@@ -439,17 +489,21 @@
       // API's name_en field), falling back to zone.name (Chinese) if
       // English isn't selected or nameEn is missing -- same precedence
       // the legacy Adventure Map's own _zoneName() already uses.
-      var plaque = document.createElement('span');
-      plaque.className = 'e9-zone__plaque';
       var label = document.createElement('span');
       label.className = 'e9-zone__name';
       label.textContent = zoneDisplayName(zone);
-      plaque.appendChild(label);
-      var compactState = document.createElement('span');
-      compactState.className = 'e9-zone__status-text';
-      compactState.textContent = zoneStateText(zone);
-      plaque.appendChild(compactState);
-      tile.appendChild(plaque);
+      if (VS1E_STATIC_CONTRACT_ACTIVE) {
+        var plaque = document.createElement('span');
+        plaque.className = 'e9-zone__plaque';
+        plaque.appendChild(label);
+        var compactState = document.createElement('span');
+        compactState.className = 'e9-zone__status-text';
+        compactState.textContent = zoneStateText(zone);
+        plaque.appendChild(compactState);
+        tile.appendChild(plaque);
+      } else {
+        tile.appendChild(label);
+      }
 
       if (zone.cleared || zone.stars > 0) {
         var starsEl = document.createElement('span');
@@ -467,8 +521,12 @@
 
       if (!zone.locked) {
         var activate = function () {
-          var selectionDetail = zoneSelectionDetail(zone);
-          if (window.E9) window.E9.latestZoneSelection = selectionDetail;
+          var selectionDetail = VS1E_STATIC_CONTRACT_ACTIVE
+            ? zoneSelectionDetail(zone)
+            : { zoneKey: zone.key, status: zone.status };
+          if (VS1E_STATIC_CONTRACT_ACTIVE && window.E9) {
+            window.E9.latestZoneSelection = selectionDetail;
+          }
           tile.dispatchEvent(new CustomEvent('e9:zone-selected', {
             bubbles: true,
             detail: selectionDetail,
@@ -517,8 +575,8 @@
     var selected = state.selectedZoneKey && zones.filter(function (zone) { return zone.key === state.selectedZoneKey; })[0];
     if (selected && !selected.locked) {
       renderSelectedZone(root, zones, selected.key, false);
-      dispatchZoneSelection(root, selected);
-    } else {
+      if (VS1E_STATIC_CONTRACT_ACTIVE) dispatchZoneSelection(root, selected);
+    } else if (VS1E_STATIC_CONTRACT_ACTIVE) {
       var recommended = zones.filter(function (zone) {
         return !zone.locked && (zone.current || zone.selected || zone.status === 'unlocked');
       })[0] || zones.filter(function (zone) { return !zone.locked; })[0];
@@ -595,6 +653,7 @@
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
+    prepareVs1dDom(root);
     root.__e9WorldStageState = { zones: [], selectedZoneKey: null };
     var onChanged = function () {
       var state = root.__e9WorldStageState;
