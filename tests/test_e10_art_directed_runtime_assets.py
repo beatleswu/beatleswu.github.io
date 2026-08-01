@@ -123,6 +123,28 @@ def test_interaction_and_responsive_state_contracts_are_explicit():
     assert "word-break: normal" in CSS and "overflow-wrap: normal" in CSS
 
 
+def test_final_visual_refinement_contracts_are_explicit_and_asset_preserving():
+    player = CSS[CSS.index('#e9-adventure-shell .e9-hud__player {'):]
+    player = player[:player.index('}')]
+    assert "display: grid" in player
+    assert "grid-template-columns: 90px minmax(0, 1fr) 26px" in player
+    assert "clamp(40px, 13.6%, 57px)" in player
+
+    dock = CSS[CSS.index('#e9-adventure-shell .e9-dock {'):]
+    dock = dock[:dock.index('}')]
+    for declaration in (
+        "background-color: transparent", "background-image: var(--e10-art-dock-frame)",
+        "overflow: visible", "filter: none", "backdrop-filter: none", "box-shadow: none",
+    ):
+        assert declaration in dock
+
+    assert ".e9-zone.is-current::before" in CSS
+    assert "background-image: none" in CSS
+    assert "width: 31px" in CSS and "height: 38px" in CSS
+    assert "margin: -16px 0 0 18px" in CSS
+    assert "player-location-pin.webp" in CSS
+
+
 def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
     assert "registry.icon('compass', 'e10-map-primary-cta__icon')" in WORLD
     assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in WORLD
@@ -132,7 +154,7 @@ def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
 
 
 def test_final_cache_identity_and_stylesheet_order_are_single_bump():
-    assert "const VERSION     = 'v222-e10-art-directed-runtime-ui'" in SW
+    assert "const VERSION     = 'v223-e10-final-visual-refinement'" in SW
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
     assert INDEX.count("20260801e10art1") >= 9
     assert "/css/e9/art_directed_runtime.css?v=20260801e10art1" in INDEX

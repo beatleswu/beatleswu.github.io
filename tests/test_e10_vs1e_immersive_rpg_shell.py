@@ -106,7 +106,7 @@ def test_i18n_and_cache_versions_are_coupled():
     ):
         assert f"'{key}'" in I18N
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v222-e10-art-directed-runtime-ui'" in SW
+    assert "const VERSION     = 'v223-e10-final-visual-refinement'" in SW
     assert "/i18n.js?v=20260801e10art1" in INDEX
     assert "/css/e9/immersive_rpg.css?v=20260801e10art1" in INDEX
     assert "/js/e9/feature_flags.js?v=20260801e10art1" in INDEX

@@ -361,7 +361,7 @@ def test_reuses_existing_window_onlangchange_mechanism_not_a_new_one():
 def test_sw_version_bumped():
     sw_js = _read(SW_JS)
     assert OLD_SW_VERSION not in sw_js, "sw.js VERSION must be bumped, not left at the pre-E9.1A2 value"
-    assert "v222-e10-art-directed-runtime-ui" in sw_js
+    assert "v223-e10-final-visual-refinement" in sw_js
 
 
 def test_sw_cache_strategy_functions_unchanged():

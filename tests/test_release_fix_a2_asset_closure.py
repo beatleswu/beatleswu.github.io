@@ -156,6 +156,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
+        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
         shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
         shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
@@ -174,7 +175,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         governed_paths = (
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
-            | {"i18n.js", "sw.js"}
+            | {"i18n.js", "sw.js", "index.html"}
         )
         assert set(staged_by_path.keys()) == governed_paths, (
             "staged file set must be exactly the governed closure -- no more, no less "
@@ -192,6 +193,7 @@ def test_partial_generation_fails_closed_missing_file():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
+        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
         shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
         shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
@@ -221,6 +223,7 @@ def test_partial_generation_fails_closed_corrupted_hash():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
+        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
         shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
         shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
         shutil.copytree(REPO_ROOT / "assets", source / "assets")

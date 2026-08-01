@@ -82,7 +82,7 @@ function contentTypeFor(filePath) {
 
 const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">';
 
-async function startStaticServer({ contractCase = 'target', indexOverridePath = null } = {}) {
+async function startStaticServer({ contractCase = 'target' } = {}) {
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
@@ -95,16 +95,21 @@ async function startStaticServer({ contractCase = 'target', indexOverridePath = 
         response.end('not found');
         return;
       }
-      if (relative === '/index.html' && (contractCase !== 'target' || indexOverridePath)) {
-        let html = await fs.readFile(indexOverridePath || absolute, 'utf8');
+      if (relative === '/index.html' && contractCase !== 'target') {
+        let html = await fs.readFile(absolute, 'utf8');
         if (contractCase === 'missing') {
           html = html.replace(staticContractMarker, '');
         } else if (contractCase === 'wrong') {
           html = html.replace(
             staticContractMarker,
+            '<meta name="go-odyssey-static-contract" content="unexpected-static-contract">'
+          );
+        } else if (contractCase === 'current-v209') {
+          html = html.replace(
+            staticContractMarker,
             '<meta name="go-odyssey-static-contract" content="v209-e10-world-stage-v1d1-i18n-a11y">'
           );
-        } else if (!indexOverridePath) {
+        } else {
           throw new Error(`unknown contract case: ${contractCase}`);
         }
         response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -221,14 +226,14 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
   return { contractCase, screenshot, snapshot, browserErrors, failures };
 }
 
-function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'default') {
+function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'default', playerName = '晨星騎士') {
   if (pathname === '/api/auth/me') {
     return {
       logged_in: true,
       user_id: 42,
       username: 'visual_fixture',
-      nickname: '晨星騎士',
-      display_name: '晨星騎士',
+      nickname: playerName,
+      display_name: playerName,
       is_admin: false,
       is_premium: false,
       needs_onboarding_choice: false,
@@ -237,7 +242,7 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
       newbie_quest_eligible: false,
     };
   }
-  if (pathname === '/api/skills/profile') return { display_name: '晨星騎士', rank_level: 'LV12' };
+  if (pathname === '/api/skills/profile') return { display_name: playerName, rank_level: 'LV12' };
   if (pathname === '/api/user/coins') return { coins: 123456 };
   if (pathname === '/api/player/appearance') return { character_key: avatarKey };
   if (pathname === '/api/adventure/bootstrap') {
@@ -259,7 +264,13 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
   return { ok: true };
 }
 
-async function installApiFixture(page, browserErrors, avatarKey = 'mage', fixtureMode = 'default') {
+async function installApiFixture(
+  page,
+  browserErrors,
+  avatarKey = 'mage',
+  fixtureMode = 'default',
+  playerName = '晨星騎士'
+) {
   page.on('console', (message) => {
     if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
   });
@@ -274,7 +285,13 @@ async function installApiFixture(page, browserErrors, avatarKey = 'mage', fixtur
   });
   await page.route('**/api/**', async (route) => {
     const request = route.request();
-    const payload = apiResponse(new URL(request.url()).pathname, request.method(), avatarKey, fixtureMode);
+    const payload = apiResponse(
+      new URL(request.url()).pathname,
+      request.method(),
+      avatarKey,
+      fixtureMode,
+      playerName
+    );
     await route.fulfill(payload === null
       ? { status: 204, body: '' }
       : { status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
@@ -353,8 +370,57 @@ async function runtimeSnapshot(page) {
     const lastZone = zoneRects.at(-1);
     const nav = document.querySelector('#left-nav')?.getBoundingClientRect();
     const intersects = (a, b) => !!(a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top);
+    const rectFromEdges = (left, top, right, bottom) => ({
+      x: left, y: top, width: right - left, height: bottom - top,
+      left, top, right, bottom,
+    });
     const routeSegments = Array.from(document.querySelectorAll('[data-e10-route-from][data-e10-route-to]'));
     const worldState = window.E9?.latestZoneSelection || {};
+    const playerIdentity = document.querySelector('.e9-hud__player');
+    const playerAvatar = document.querySelector('.e9-hud__avatar');
+    const playerName = document.querySelector('.e9-hud__name');
+    const playerLevel = document.querySelector('.e9-hud__level');
+    const playerDropdown = document.querySelector('.e10-player-menu-arrow');
+    const playerNameBox = playerName?.getBoundingClientRect();
+    const playerLevelBox = playerLevel?.getBoundingClientRect();
+    const playerContentBox = playerNameBox && playerLevelBox
+      ? rectFromEdges(
+        Math.min(playerNameBox.left, playerLevelBox.left),
+        Math.min(playerNameBox.top, playerLevelBox.top),
+        Math.max(playerNameBox.right, playerLevelBox.right),
+        Math.max(playerNameBox.bottom, playerLevelBox.bottom)
+      )
+      : null;
+    const dock = document.querySelector('.e9-dock');
+    const dockParent = dock?.parentElement;
+    const dockStyle = dock ? getComputedStyle(dock) : null;
+    const dockBefore = dock ? getComputedStyle(dock, '::before') : null;
+    const dockAfter = dock ? getComputedStyle(dock, '::after') : null;
+    const currentZone = document.querySelector('[data-player-location="true"]');
+    const marker = [
+      document.querySelector('#e9-world-stage-player'),
+      ...document.querySelectorAll('.e10-current-hero'),
+    ].find(isVisible) || null;
+    const currentNodeBox = currentZone?.getBoundingClientRect();
+    const markerBox = marker?.getBoundingClientRect();
+    const currentPlaqueBox = currentZone?.querySelector('.e9-zone__plaque')?.getBoundingClientRect();
+    const markerUnion = currentNodeBox && markerBox
+      ? rectFromEdges(
+        Math.min(currentNodeBox.left, markerBox.left),
+        Math.min(currentNodeBox.top, markerBox.top),
+        Math.max(currentNodeBox.right, markerBox.right),
+        Math.max(currentNodeBox.bottom, markerBox.bottom)
+      )
+      : null;
+    const markerLabelGap = markerUnion && currentPlaqueBox
+      ? Math.max(
+        0,
+        currentPlaqueBox.left - markerUnion.right,
+        markerUnion.left - currentPlaqueBox.right,
+        currentPlaqueBox.top - markerUnion.bottom,
+        markerUnion.top - currentPlaqueBox.bottom
+      )
+      : null;
     const panelNumber = document.querySelector('[data-e10-zone-number]')?.getBoundingClientRect();
     const panelState = document.querySelector('#e10-drawer-zone-state')?.getBoundingClientRect();
     const panelBody = document.querySelector('#e10-drawer-zone-body')?.getBoundingClientRect();
@@ -416,6 +482,44 @@ async function runtimeSnapshot(page) {
       primaryCtaCopy: roundRect(rect('.e10-map-primary-cta__copy')),
       playerMarker: roundRect(rect('#e9-world-stage-player')),
       currentZoneNumber: roundRect(rect('[data-player-location="true"] .e9-zone__number')),
+      plaqueLayout: {
+        display: playerIdentity ? getComputedStyle(playerIdentity).display : null,
+        columns: playerIdentity ? getComputedStyle(playerIdentity).gridTemplateColumns : null,
+        avatar: roundRect(playerAvatar?.getBoundingClientRect()),
+        name: roundRect(playerNameBox),
+        level: roundRect(playerLevelBox),
+        content: roundRect(playerContentBox),
+        dropdown: roundRect(playerDropdown?.getBoundingClientRect()),
+        nameOverflow: playerName ? Math.max(0, playerName.scrollWidth - playerName.clientWidth) : null,
+      },
+      dockMaterial: {
+        backgroundImage: dockStyle?.backgroundImage || '',
+        backgroundColor: dockStyle?.backgroundColor || '',
+        filter: dockStyle?.filter || '',
+        backdropFilter: dockStyle?.backdropFilter || '',
+        overflow: dockStyle?.overflow || '',
+        boxShadow: dockStyle?.boxShadow || '',
+        parentBackgroundColor: dockParent ? getComputedStyle(dockParent).backgroundColor : '',
+        parentBackgroundImage: dockParent ? getComputedStyle(dockParent).backgroundImage : '',
+        beforeBackground: dockBefore?.background || '',
+        afterBackground: dockAfter?.background || '',
+      },
+      playerMarkerContract: {
+        node: roundRect(currentNodeBox),
+        marker: roundRect(markerBox),
+        relativeToNode: markerBox && currentNodeBox ? roundRect(rectFromEdges(
+          markerBox.left - currentNodeBox.left,
+          markerBox.top - currentNodeBox.top,
+          markerBox.right - currentNodeBox.left,
+          markerBox.bottom - currentNodeBox.top
+        )) : null,
+        union: roundRect(markerUnion),
+        maximumDiameterRatio: markerUnion && currentNodeBox
+          ? Math.max(markerUnion.right - markerUnion.left, markerUnion.bottom - markerUnion.top)
+            / Math.max(currentNodeBox.width, currentNodeBox.height)
+          : null,
+        labelGap: markerLabelGap === null ? null : Math.round(markerLabelGap * 100) / 100,
+      },
       routeContract: {
         count: routeSegments.length,
         topology: routeSegments.map((segment) => `${segment.dataset.e10RouteFrom}>${segment.dataset.e10RouteTo}`),
@@ -610,7 +714,14 @@ async function resetViewportScroll(page) {
 async function runCase(browser, origin, outputDir, spec) {
   const page = await browser.newPage({ viewport: spec.viewport });
   const browserErrors = [];
-  await installApiFixture(page, browserErrors, spec.avatarKey || 'mage', spec.fixtureMode || 'default');
+  const playerName = spec.playerName || (spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
+  await installApiFixture(
+    page,
+    browserErrors,
+    spec.avatarKey || 'mage',
+    spec.fixtureMode || 'default',
+    playerName
+  );
   const url = `${origin}/index.html?lang=${spec.lang}&${shellFlags}`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await waitForShell(page);
@@ -639,6 +750,7 @@ async function runCase(browser, origin, outputDir, spec) {
   }
 
   let detailMapBefore = null;
+  let detailMapAfterSelection = null;
   if (spec.zone) {
     detailMapBefore = await runtimeSnapshot(page);
     const zone = page.locator(`[data-zone="${spec.zone}"]`);
@@ -649,6 +761,7 @@ async function runCase(browser, origin, outputDir, spec) {
       // content-driven inline expansion to become geometrically stable.
       await zone.evaluate((element) => element.click());
     }
+    detailMapAfterSelection = await runtimeSnapshot(page);
   }
 
   let beforeOpen = null;
@@ -735,7 +848,19 @@ async function runCase(browser, origin, outputDir, spec) {
   const snapshot = await runtimeSnapshot(page);
   const screenshot = await saveViewportScreenshot(page, outputDir, spec.filename);
   await page.close();
-  return { ...spec, screenshot, beforeOpen, afterOpen, escaped, detailMapBefore, adventureCommand, challengeAction, snapshot, browserErrors };
+  return {
+    ...spec,
+    screenshot,
+    beforeOpen,
+    afterOpen,
+    escaped,
+    detailMapBefore,
+    detailMapAfterSelection,
+    adventureCommand,
+    challengeAction,
+    snapshot,
+    browserErrors,
+  };
 }
 
 async function capturePolishStateEvidence(browser, origin, outputDir) {
@@ -850,6 +975,46 @@ function assertCase(result) {
     failures.push(`${specName}: runtime art asset contract ${snapshot.artAssetNodeCount}/${snapshot.artAssetRequestCount}/${snapshot.artAssetErrorCount}`);
   }
   if (snapshot.playerMarkerPortraitCount !== 1) failures.push(`${specName}: player marker portrait count ${snapshot.playerMarkerPortraitCount}`);
+  const landscapeContract = result.viewport.width >= 768 && result.viewport.width > result.viewport.height;
+  if (landscapeContract) {
+    const plaque = snapshot.plaqueLayout;
+    if (
+      plaque.display !== 'grid'
+      || !plaque.avatar
+      || !plaque.content
+      || !plaque.name
+      || !plaque.level
+      || !plaque.dropdown
+      || plaque.avatar.right >= plaque.content.left
+      || plaque.content.right >= plaque.dropdown.left
+      || plaque.avatar.right >= plaque.name.left
+      || plaque.avatar.right >= plaque.level.left
+      || plaque.name.right >= plaque.dropdown.left
+      || plaque.level.right >= plaque.dropdown.left
+      || plaque.nameOverflow > 1
+    ) failures.push(`${specName}: player plaque columns overlap ${JSON.stringify(plaque)}`);
+
+    const dock = snapshot.dockMaterial;
+    if (
+      dock.backgroundColor !== 'rgba(0, 0, 0, 0)'
+      || !dock.backgroundImage.includes('/assets/e10/ui/frames/legacy-dock-frame.webp')
+      || dock.filter !== 'none'
+      || dock.backdropFilter !== 'none'
+      || dock.overflow !== 'visible'
+      || dock.boxShadow !== 'none'
+    ) failures.push(`${specName}: dock base material is not transparent ${JSON.stringify(dock)}`);
+  }
+  if (
+    !snapshot.playerMarkerContract.marker
+    || Math.abs(snapshot.playerMarkerContract.marker.width - 31) > .1
+    || Math.abs(snapshot.playerMarkerContract.marker.height - 38) > .1
+  ) failures.push(`${specName}: player marker pin geometry ${JSON.stringify(snapshot.playerMarkerContract)}`);
+  if (result.layout === 'rail' && (
+    snapshot.playerMarkerContract.maximumDiameterRatio < 1.2
+    || snapshot.playerMarkerContract.maximumDiameterRatio > 1.35
+    || snapshot.playerMarkerContract.labelGap < 6
+    || snapshot.playerMarkerContract.labelGap > 10
+  )) failures.push(`${specName}: player marker stack geometry ${JSON.stringify(snapshot.playerMarkerContract)}`);
   if (Object.values(snapshot.artSurfaces).some((value) => !value.includes('/assets/e10/ui/'))) {
     failures.push(`${specName}: one or more art-directed shell surfaces are missing`);
   }
@@ -902,6 +1067,14 @@ function assertCase(result) {
     result.detailMapBefore.playerLocationZone !== snapshot.playerLocationZone
     || result.detailMapBefore.visibleHeroCount !== snapshot.visibleHeroCount
   )) failures.push(`${specName}: selection moved the player marker`);
+  if (result.detailMapBefore && result.detailMapAfterSelection) {
+    const coordinateSpace = result.layout === 'rail' ? 'marker' : 'relativeToNode';
+    const before = result.detailMapBefore.playerMarkerContract[coordinateSpace];
+    const after = result.detailMapAfterSelection.playerMarkerContract[coordinateSpace];
+    if (!before || !after || ['x', 'y', 'width', 'height'].some((key) => Math.abs(before[key] - after[key]) > .1)) {
+      failures.push(`${specName}: selection changed player marker bounds ${JSON.stringify({ before, after })}`);
+    }
+  }
   if (browserErrors.length) failures.push(`${specName}: browser errors ${JSON.stringify(browserErrors)}`);
   if (result.beforeOpen && result.afterOpen) {
     const before = result.beforeOpen.map;
@@ -1154,13 +1327,6 @@ async function main() {
   const outputIndex = args.indexOf('--out');
   if (outputIndex < 0 || !args[outputIndex + 1]) throw new Error('--out <unique-directory> is required');
   const outputDir = path.resolve(args[outputIndex + 1]);
-  const currentIndexArgument = args.indexOf('--current-index');
-  const currentIndexPath = currentIndexArgument >= 0
-    ? path.resolve(args[currentIndexArgument + 1] || '')
-    : null;
-  if (currentIndexArgument >= 0 && !fssync.existsSync(currentIndexPath)) {
-    throw new Error(`--current-index does not exist: ${currentIndexPath}`);
-  }
   if (fssync.existsSync(outputDir)) throw new Error(`output directory already exists: ${outputDir}`);
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -1190,6 +1356,7 @@ async function main() {
       { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-820-portrait-settings', viewport: { width: 820, height: 1180 }, lang: 'zh', filename: 'tablet-820x1180-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
       { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'mobile-430-closed', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-closed-en.png', layout: 'bottom-dock' },
       { specName: 'mobile-430-more', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'mobile-430-settings', viewport: { width: 430, height: 932 }, lang: 'zh', filename: 'mobile-430x932-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
       { specName: 'mobile-390-long-label', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-en.png', zone: 'k1_5', longLabelStress: true, adventureCommandCheck: true, layout: 'bottom-dock' },
@@ -1204,7 +1371,7 @@ async function main() {
     const legacy = await runLegacyCase(browser, origin, outputDir);
     const lifecycle = await runLifecycleCase(browser, origin);
     const compatibilityBridge = [];
-    for (const contractCase of ['missing', 'wrong']) {
+    for (const contractCase of ['missing', 'wrong', 'current-v209']) {
       const fixture = await startStaticServer({ contractCase });
       compatibilityServers.push(fixture.server);
       const fallbackOrigin = contractCase === 'wrong'
@@ -1212,16 +1379,6 @@ async function main() {
         : fixture.origin;
       compatibilityBridge.push(
         await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
-      );
-    }
-    if (currentIndexPath) {
-      const fixture = await startStaticServer({
-        contractCase: 'current-v209',
-        indexOverridePath: currentIndexPath,
-      });
-      compatibilityServers.push(fixture.server);
-      compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fixture.origin, 'current-v209', outputDir)
       );
     }
     const failures = results.flatMap(assertCase).concat(

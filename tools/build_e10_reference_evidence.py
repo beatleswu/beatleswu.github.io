@@ -126,6 +126,11 @@ def main() -> None:
         ("Runtime Desktop 1920", desktop),
         ("Runtime Desktop 1440", desktop_1440),
     ], columns=3)
+    sheet(p("owner-reference-vs-final-desktop-contact-sheet.png"), "Owner reference vs final Desktop", [
+        ("Owner reference", opened(args.reference)),
+        ("Final Desktop 1920", desktop),
+        ("Final Desktop 1440", desktop_1440),
+    ], columns=3)
     sheet(p("desktop-open-closed-contact-sheet.png"), "Desktop immersive map", [
         ("1920 closed zh", desktop),
         ("1920 zone panel open en", desktop_open),
@@ -211,6 +216,11 @@ def main() -> None:
         ("Runtime head-and-shoulders crop", desktop.crop((20, 20, 520, 170))),
         ("Project fallback avatar", opened(p("desktop-1440x900-avatar-fallback-zh.png"), (20, 45, 430, 175))),
     ])
+    sheet(p("player-plaque-zh-en-fallback-contact-sheet.png"), "Text-safe player plaque", [
+        ("Traditional Chinese runtime", desktop.crop((20, 20, 520, 170))),
+        ("English runtime", desktop_1440.crop((20, 35, 430, 175))),
+        ("Project fallback avatar", opened(p("desktop-1440x900-avatar-fallback-zh.png"), (20, 35, 430, 175))),
+    ], columns=3)
     sheet(p("title-plaque-closeup.png"), "Live localized central title plaque", [
         ("Desktop title plaque", desktop.crop((590, 20, 1410, 170))),
     ], columns=1)
@@ -226,6 +236,9 @@ def main() -> None:
         (state.title(), opened(p(f"bottom-dock-state-{state}.png")))
         for state in ("default", "hover", "focus", "pressed", "active", "disabled")
     ], columns=3)
+    sheet(p("bottom-dock-final-closeup.png"), "Final carved dock silhouette", [
+        ("Transparent frame outside the carved silhouette", desktop.crop((340, 870, 1510, 1080))),
+    ], columns=1)
     sheet(p("primary-cta-closeup.png"), "Dynamic Adventure primary CTA", [
         ("Continue Adventure / current zone", desktop.crop((1450, 880, 1900, 1060))),
         ("Start Challenge / selected zone", desktop_open.crop((1450, 880, 1900, 1060))),
@@ -253,6 +266,18 @@ def main() -> None:
         ("Portrait iPad", opened(p("tablet-820x1180-settings-zh.png"))),
         ("Mobile 430", opened(p("mobile-430x932-settings-zh.png"))),
     ], columns=3)
+
+    desktop.save(p("desktop-1920-closed-zh.png"), "PNG", optimize=True)
+    desktop_open.save(p("desktop-1920-panel-open-en.png"), "PNG", optimize=True)
+    desktop_1440.save(p("desktop-1440-closed-en.png"), "PNG", optimize=True)
+    placement_high.crop((1120, 260, 1560, 570)).save(
+        p("placement-zone6-player-marker.png"), "PNG", optimize=True
+    )
+    sheet(p("ipad-landscape-final-contact-sheet.png"), "Final iPad landscape", [
+        ("1180 x 820", opened(p("tablet-1180x820-closed-zh.png"))),
+        ("1024 x 768 panel open", opened(p("tablet-1024x768-drawer-open-zh.png"))),
+    ])
+    opened(p("mobile-430x932-closed-en.png")).save(p("mobile-430-regression.png"), "PNG", optimize=True)
 
     representative_assets = [
         "assets/e10/ui/plaques/player-identity-plaque.webp",
@@ -350,8 +375,17 @@ def main() -> None:
         (55, "Visual contract JSON", ["e10-vs1f-visual-contract.json"]),
         (56, "Asset inventory", ["e10-runtime-ui-asset-inventory.json"]),
         (57, "SHA256 sums", ["SHA256SUMS.txt"]),
+        (58, "Owner reference vs final Desktop", ["owner-reference-vs-final-desktop-contact-sheet.png"]),
+        (59, "Player plaque Traditional Chinese English fallback", ["player-plaque-zh-en-fallback-contact-sheet.png"]),
+        (60, "Desktop 1920 closed Traditional Chinese", ["desktop-1920-closed-zh.png"]),
+        (61, "Desktop 1920 panel open English", ["desktop-1920-panel-open-en.png"]),
+        (62, "Desktop 1440 closed English", ["desktop-1440-closed-en.png"]),
+        (63, "Bottom dock final closeup", ["bottom-dock-final-closeup.png"]),
+        (64, "Placement Zone 6 player marker", ["placement-zone6-player-marker.png"]),
+        (65, "iPad landscape final", ["ipad-landscape-final-contact-sheet.png"]),
+        (66, "Mobile 430 regression", ["mobile-430-regression.png"]),
     ]
-    assert [item[0] for item in requirements] == list(range(1, 58))
+    assert [item[0] for item in requirements] == list(range(1, 67))
     evidence_index = {
         "contract": "e10-owner-evidence-index-v1",
         "requirements": [
