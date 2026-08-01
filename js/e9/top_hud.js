@@ -56,6 +56,13 @@
     el.removeAttribute('data-i18n');
   }
 
+  function announcePlayerAvatar(source) {
+    if (!source) return;
+    document.dispatchEvent(new CustomEvent('e9:player-avatar-updated', {
+      detail: { source: source },
+    }));
+  }
+
   function t(key, fallback) {
     if (window.E9 && window.E9.I18nFallback && typeof window.E9.I18nFallback.t === 'function') {
       return window.E9.I18nFallback.t(key, fallback);
@@ -285,8 +292,10 @@
           avatarEl.onerror = null;
           avatarEl.src = data.avatarFallbackSrc;
           avatarEl.setAttribute('data-e10-avatar-fallback', '');
+          announcePlayerAvatar(data.avatarFallbackSrc);
         };
         avatarEl.src = data.avatarSrc;
+        announcePlayerAvatar(data.avatarSrc);
       }
 
       // level is a plain number (adapter already stripped the 'LV' prefix

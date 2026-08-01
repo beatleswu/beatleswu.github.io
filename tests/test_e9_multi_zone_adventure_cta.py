@@ -33,7 +33,7 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v221-e10-final-two-blockers"
+NEW_SW_VERSION = "v222-e10-art-directed-runtime-ui"
 PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 
@@ -483,7 +483,7 @@ def test_no_new_i18n_key_introduced_for_this_fix():
         'index.adv.boss_ready', 'index.adv.boss_cleared', 'index.adv.panel_ready',
         'index.adv.summary', 'index.adv.zone_locked', 'index.adv.start_challenge',
         'index.adv.status_skipped_by_placement', 'index.adv.quest_replay_training',
-        'index.adv.skipped_replay', 'index.adv.skipped_help',
+        'index.adv.skipped_replay', 'index.adv.skipped_help', 'index.adv.stars_label',
     }
     assert referenced == expected, f"unexpected index.adv.* keys: {referenced - expected}"
     for key in referenced:

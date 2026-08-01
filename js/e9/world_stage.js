@@ -176,7 +176,9 @@
       return;
     }
     shell.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    shell.setAttribute('data-e10-art-kit', 'runtime-v1');
     document.body.setAttribute('data-e10-visual-skin', 'immersive-rpg');
+    document.body.setAttribute('data-e10-art-kit', 'runtime-v1');
     var mapStage = root.querySelector('#e9-map-stage');
     if (mapStage && !mapStage.querySelector('[data-e10-adventure-progress]')) {
       var progress = document.createElement('section');
@@ -194,7 +196,9 @@
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
       window.E9.registerCleanup(function () {
         shell.removeAttribute('data-e10-visual-skin');
+        shell.removeAttribute('data-e10-art-kit');
         document.body.removeAttribute('data-e10-visual-skin');
+        document.body.removeAttribute('data-e10-art-kit');
         if (window.E9) delete window.E9.latestZoneSelection;
       }, generation);
     }
@@ -288,6 +292,35 @@
     });
   }
 
+  function syncPlayerMarkerPortrait(root, explicitSource) {
+    if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
+    var hudAvatar = document.querySelector('#top-hud-avatar-image');
+    var source = explicitSource || (hudAvatar && hudAvatar.getAttribute('src')) || '';
+    if (!source) return;
+    var mobileCards = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+    var hosts = Array.prototype.slice.call(root.querySelectorAll(
+      mobileCards ? '.e10-current-hero' : '#e9-world-stage-player'
+    ));
+    root.querySelectorAll('.e10-player-marker-portrait').forEach(function (portrait) {
+      if (hosts.indexOf(portrait.parentNode) === -1) portrait.remove();
+    });
+    hosts.forEach(function (host) {
+      var portrait = host.querySelector('.e10-player-marker-portrait');
+      if (!portrait) {
+        portrait = document.createElement('img');
+        portrait.className = 'e10-player-marker-portrait';
+        portrait.alt = '';
+        portrait.width = 64;
+        portrait.height = 64;
+        portrait.decoding = 'async';
+        portrait.draggable = false;
+        portrait.setAttribute('aria-hidden', 'true');
+        host.appendChild(portrait);
+      }
+      if (portrait.getAttribute('src') !== source) portrait.setAttribute('src', source);
+    });
+  }
+
   function updatePlayerMarker(root, zone) {
     var marker = root.querySelector('#e9-world-stage-player');
     var anchor = zone && (VS1E_STATIC_CONTRACT_ACTIVE ? VS1F_ZONE_ANCHORS : ZONE_ANCHORS)[zone.key];
@@ -306,6 +339,7 @@
         mobileHero.className = 'e10-current-hero';
         mobileHero.setAttribute('aria-hidden', 'true');
         currentTile.appendChild(mobileHero);
+        syncPlayerMarkerPortrait(root);
       }
       return;
     }
@@ -315,6 +349,7 @@
       mapStage.style.setProperty('--focus-y', anchor.y + '%');
     }
     marker.hidden = false;
+    syncPlayerMarkerPortrait(root);
   }
 
   function newbieCtaText(zone) {
@@ -474,7 +509,7 @@
     configureAdventureButton(primary, zone, contract);
     if (primary && zone && !primary.hidden) {
       var registry = window.E9 && window.E9.NavigationRegistry;
-      primary.innerHTML = (registry ? registry.icon('equipment', 'e10-map-primary-cta__icon') : '')
+      primary.innerHTML = (registry ? registry.icon('compass', 'e10-map-primary-cta__icon') : '')
         + '<span class="e10-map-primary-cta__copy"><strong>' + label + '</strong>'
         + '<span>' + (zoneDisplayName(zone) || zone.key) + '</span></span>';
       primary.setAttribute('aria-label', label + ': ' + (zoneDisplayName(zone) || zone.key));
@@ -765,7 +800,13 @@
       if (zone.cleared || zone.stars > 0) {
         var starsEl = document.createElement('span');
         starsEl.className = 'e9-zone__stars';
-        starsEl.textContent = '★'.repeat(zone.stars) + '☆'.repeat(3 - zone.stars);
+        starsEl.setAttribute('aria-label', t('index.adv.stars_label', 'Stars') + ': ' + zone.stars + ' / 3');
+        for (var starIndex = 0; starIndex < 3; starIndex += 1) {
+          var star = document.createElement('i');
+          star.className = 'e10-art-star' + (starIndex < zone.stars ? ' is-earned' : ' is-empty');
+          star.setAttribute('aria-hidden', 'true');
+          starsEl.appendChild(star);
+        }
         tile.appendChild(starsEl);
       }
 
@@ -923,12 +964,18 @@
       var state = root.__e9WorldStageState;
       if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones);
     };
+    var onAvatar = function (event) {
+      var source = event && event.detail && event.detail.source;
+      syncPlayerMarkerPortrait(root, source);
+    };
     if (window.E9 && typeof window.E9.on === 'function') {
       window.E9.on(document, 'e9:i18n-changed', onChanged, null, generation);
       window.E9.on(document, 'e9:i18n-ready', onReady, null, generation);
+      window.E9.on(document, 'e9:player-avatar-updated', onAvatar, null, generation);
     } else {
       document.addEventListener('e9:i18n-changed', onChanged);
       document.addEventListener('e9:i18n-ready', onReady);
+      document.addEventListener('e9:player-avatar-updated', onAvatar);
     }
     load(root, false, generation);
   }

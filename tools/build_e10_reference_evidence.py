@@ -60,7 +60,12 @@ def sheet(output: Path, title: str, items: list[tuple[str, Image.Image]], column
 
 def opened(path: Path, crop: tuple[int, int, int, int] | None = None) -> Image.Image:
     with Image.open(path) as image:
-        converted = image.convert("RGB")
+        if "A" in image.getbands():
+            rgba = image.convert("RGBA")
+            converted = Image.new("RGB", rgba.size, BG)
+            converted.paste(rgba, mask=rgba.getchannel("A"))
+        else:
+            converted = image.convert("RGB")
     return converted.crop(crop) if crop else converted
 
 
@@ -190,6 +195,83 @@ def main() -> None:
         ("Portrait iPad Settings", opened(p("tablet-820x1180-settings-zh.png"))),
         ("Mobile All Features", opened(p("mobile-430x932-all-features-en.png"))),
     ])
+    sheet(p("final-desktop-closed-contact-sheet.png"), "Final Desktop closed: English and Traditional Chinese", [
+        ("Desktop 1440 English", desktop_1440),
+        ("Desktop 1920 Traditional Chinese", desktop),
+    ])
+    sheet(p("panel-state-language-contact-sheet.png"), "Right Zone Panel states in English and Traditional Chinese", [
+        ("Current / English", desktop_current.crop((1390, 135, 1920, 850))),
+        ("Current / Traditional Chinese", desktop_current_zh.crop((1390, 135, 1920, 850))),
+        ("Selected / English", desktop_open.crop((1390, 135, 1920, 850))),
+        ("Selected / Traditional Chinese", desktop_selected_zh.crop((1390, 135, 1920, 850))),
+        ("Locked / English", desktop_locked_en.crop((1390, 135, 1920, 850))),
+        ("Locked / Traditional Chinese", desktop_locked.crop((1390, 135, 1920, 850))),
+    ], columns=3)
+    sheet(p("player-identity-avatar-contact-sheet.png"), "Runtime player identity and stable fallback", [
+        ("Runtime head-and-shoulders crop", desktop.crop((20, 20, 520, 170))),
+        ("Project fallback avatar", opened(p("desktop-1440x900-avatar-fallback-zh.png"), (20, 45, 430, 175))),
+    ])
+    sheet(p("title-plaque-closeup.png"), "Live localized central title plaque", [
+        ("Desktop title plaque", desktop.crop((590, 20, 1410, 170))),
+    ], columns=1)
+    sheet(p("utility-group-art-closeup.png"), "Coins, Pass, Messages, and Settings", [
+        ("Desktop utility medallions", desktop.crop((1440, 20, 1900, 170))),
+        ("Landscape iPad compact utilities", opened(p("tablet-1180x820-closed-zh.png"), (800, 10, 1170, 125))),
+    ])
+    sheet(p("left-badge-interaction-states-contact-sheet.png"), "Left badge interaction states", [
+        (state.title(), opened(p(f"left-rail-state-{state}.png")))
+        for state in ("default", "hover", "focus", "pressed", "active", "disabled")
+    ], columns=3)
+    sheet(p("bottom-dock-interaction-states-contact-sheet.png"), "Bottom medallion interaction states", [
+        (state.title(), opened(p(f"bottom-dock-state-{state}.png")))
+        for state in ("default", "hover", "focus", "pressed", "active", "disabled")
+    ], columns=3)
+    sheet(p("primary-cta-closeup.png"), "Dynamic Adventure primary CTA", [
+        ("Continue Adventure / current zone", desktop.crop((1450, 880, 1900, 1060))),
+        ("Start Challenge / selected zone", desktop_open.crop((1450, 880, 1900, 1060))),
+    ])
+    sheet(p("primary-cta-interaction-states-contact-sheet.png"), "Primary CTA interaction states", [
+        (state.title(), opened(p(f"primary-cta-state-{state}.png")))
+        for state in ("default", "hover", "focus", "pressed", "active", "disabled")
+    ], columns=3)
+    sheet(p("right-zone-panel-art-closeup.png"), "Parchment Right Zone Panel art", [
+        ("Current", desktop_current.crop((1450, 145, 1900, 850))),
+        ("Selected", desktop_open.crop((1450, 145, 1900, 850))),
+        ("Locked", desktop_locked.crop((1450, 145, 1900, 850))),
+    ], columns=3)
+    sheet(p("zone-10-safe-boundary-contact-sheet.png"), "Zone 10 remains below the title HUD", [
+        ("Desktop 1920 Zone 10", desktop.crop((650, 125, 1050, 360))),
+        ("Landscape iPad Zone 10", opened(p("tablet-1180x820-closed-zh.png"), (350, 90, 690, 310))),
+    ])
+    sheet(p("all-features-responsive-contact-sheet.png"), "All Features: Desktop, iPad, and Mobile", [
+        ("Desktop", opened(p("desktop-1440x900-all-features-zh.png"))),
+        ("Portrait iPad", opened(p("tablet-820x1180-all-features-en.png"))),
+        ("Mobile 430", opened(p("mobile-430x932-all-features-en.png"))),
+    ], columns=3)
+    sheet(p("settings-responsive-contact-sheet.png"), "Settings: Desktop, iPad, and Mobile", [
+        ("Desktop", opened(p("desktop-1440x900-settings-en.png"))),
+        ("Portrait iPad", opened(p("tablet-820x1180-settings-zh.png"))),
+        ("Mobile 430", opened(p("mobile-430x932-settings-zh.png"))),
+    ], columns=3)
+
+    representative_assets = [
+        "assets/e10/ui/plaques/player-identity-plaque.webp",
+        "assets/e10/ui/plaques/title-plaque.webp",
+        "assets/e10/ui/medallions/navigation-badge-frame.webp",
+        "assets/e10/ui/medallions/utility-medallion-frame.webp",
+        "assets/e10/ui/frames/legacy-dock-frame.webp",
+        "assets/e10/ui/panels/zone-panel-frame.webp",
+        "assets/e10/ui/cta/adventure-primary-frame.webp",
+        "assets/e10/ui/ornaments/outer-frame-corner.webp",
+        "assets/e10/ui/states/player-location-pin.webp",
+        "assets/e10/ui/states/selected-halo.webp",
+        "assets/e10/ui/states/locked-ring.webp",
+        "assets/e10/ui/icons/adventure.webp",
+    ]
+    sheet(p("runtime-art-kit-contact-sheet.png"), "Bespoke modular E10 runtime art kit", [
+        (Path(asset).stem.replace("-", " ").title(), opened(repo / asset))
+        for asset in representative_assets
+    ], columns=4)
     sheet(p("compatibility-fallback-contact-sheet.png"), "VS1D compatibility fallbacks", [
         ("Missing marker", opened(p("compatibility-missing-vs1d-fallback-1440x900-en.png"))),
         ("Wrong marker", opened(p("compatibility-wrong-vs1d-fallback-1440x900-en.png"))),
@@ -203,6 +285,84 @@ def main() -> None:
         "v2_clean_derivative": image_identity(repo / "assets/maps/e10_world_stage_v2_clean.webp"),
     }
     p("e10-v2-asset-identity.json").write_text(json.dumps(identity, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    asset_inventory = json.loads((repo / "assets/e10/ui/e10-ui-assets.json").read_text(encoding="utf-8"))
+    p("e10-runtime-ui-asset-inventory.json").write_text(
+        json.dumps(asset_inventory, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    requirements = [
+        (1, "Owner reference vs final Desktop 1920", ["owner-reference-comparison-contact-sheet.png"]),
+        (2, "Owner reference vs final Desktop 1440", ["owner-reference-comparison-contact-sheet.png"]),
+        (3, "Final Desktop closed English", ["desktop-1440x900-closed-en.png"]),
+        (4, "Final Desktop closed Traditional Chinese", ["desktop-1920x1080-closed-zh.png"]),
+        (5, "Current Zone panel English", ["desktop-1920x1080-current-zone-en.png"]),
+        (6, "Current Zone panel Traditional Chinese", ["desktop-1920x1080-current-zone-zh.png"]),
+        (7, "Selected Zone panel English", ["desktop-1920x1080-drawer-open-en.png"]),
+        (8, "Selected Zone panel Traditional Chinese", ["desktop-1920x1080-selected-zone-zh.png"]),
+        (9, "Locked Zone panel English", ["desktop-1920x1080-locked-zone-en.png"]),
+        (10, "Locked Zone panel Traditional Chinese", ["desktop-1920x1080-locked-zone-zh.png"]),
+        (11, "Right Zone Panel collision close-up", ["phase-a-panel-collision-contact-sheet.png"]),
+        (12, "Desktop 1440 immersive-stage proof", ["phase-a-desktop-1440-immersive-contact-sheet.png"]),
+        (13, "Player identity plaque close-up", ["player-identity-avatar-contact-sheet.png"]),
+        (14, "Avatar runtime and fallback close-up", ["player-identity-avatar-contact-sheet.png"]),
+        (15, "Central title plaque close-up", ["title-plaque-closeup.png"]),
+        (16, "Utility group close-up", ["utility-group-art-closeup.png"]),
+        (17, "Five left RPG badges close-up", ["left-floating-badges-closeup.png"]),
+        (18, "Left badge default", ["left-rail-state-default.png"]),
+        (19, "Left badge hover", ["left-rail-state-hover.png"]),
+        (20, "Left badge focus", ["left-rail-state-focus.png"]),
+        (21, "Left badge pressed", ["left-rail-state-pressed.png"]),
+        (22, "Left badge active", ["left-rail-state-active.png"]),
+        (23, "Left badge disabled", ["left-rail-state-disabled.png"]),
+        (24, "Five bottom medallions close-up", ["bottom-medallion-dock-closeup.png"]),
+        (25, "Bottom default", ["bottom-dock-state-default.png"]),
+        (26, "Bottom hover", ["bottom-dock-state-hover.png"]),
+        (27, "Bottom focus", ["bottom-dock-state-focus.png"]),
+        (28, "Bottom pressed", ["bottom-dock-state-pressed.png"]),
+        (29, "Bottom active", ["bottom-dock-state-active.png"]),
+        (30, "Bottom disabled", ["bottom-dock-state-disabled.png"]),
+        (31, "Primary CTA close-up", ["primary-cta-closeup.png"]),
+        (32, "Primary CTA interaction states", ["primary-cta-interaction-states-contact-sheet.png"]),
+        (33, "Right Zone Panel art close-up", ["right-zone-panel-art-closeup.png"]),
+        (34, "Dotted route close-up", ["dotted-route-closeup.png"]),
+        (35, "Route-node states", ["route-node-states-contact-sheet.png"]),
+        (36, "Zone 1 safe boundary", ["zone-1-safe-boundary-contact-sheet.png"]),
+        (37, "Zone 10 safe boundary", ["zone-10-safe-boundary-contact-sheet.png"]),
+        (38, "Single player marker before and after selection", ["player-marker-before-after-selection-contact-sheet.png"]),
+        (39, "High-skill placement", ["placement-high-skill-current-location-contact-sheet.png"]),
+        (40, "Skipped by placement", ["skipped-by-placement-contact-sheet.png"]),
+        (41, "Dual CTA target identity", ["dual-cta-identity-contact-sheet.png"]),
+        (42, "All Features Desktop iPad Mobile", ["all-features-responsive-contact-sheet.png"]),
+        (43, "Settings Desktop iPad Mobile", ["settings-responsive-contact-sheet.png"]),
+        (44, "iPad landscape", ["tablet-1180x820-closed-zh.png"]),
+        (45, "iPad portrait", ["tablet-768x1024-portrait-drawer-open-zh.png"]),
+        (46, "Mobile 430", ["mobile-430x932-all-features-en.png"]),
+        (47, "Mobile 390", ["mobile-390x844-long-label-en.png"]),
+        (48, "Mobile 360", ["mobile-360x800-safe-area-zh.png"]),
+        (49, "Long-label Mobile English", ["mobile-390x844-long-label-en.png"]),
+        (50, "Mobile Traditional Chinese safe area", ["mobile-360x800-safe-area-zh.png"]),
+        (51, "Missing-marker VS1D fallback", ["compatibility-missing-vs1d-fallback-1440x900-en.png"]),
+        (52, "Wrong-marker VS1D fallback", ["compatibility-wrong-vs1d-fallback-1440x900-en.png"]),
+        (53, "Exact-v209 VS1D fallback", ["compatibility-current-v209-vs1d-fallback-1440x900-en.png"]),
+        (54, "Non-allowlisted Legacy", ["legacy-nonallowlisted-1440x900-zh.png"]),
+        (55, "Visual contract JSON", ["e10-vs1f-visual-contract.json"]),
+        (56, "Asset inventory", ["e10-runtime-ui-asset-inventory.json"]),
+        (57, "SHA256 sums", ["SHA256SUMS.txt"]),
+    ]
+    assert [item[0] for item in requirements] == list(range(1, 58))
+    evidence_index = {
+        "contract": "e10-owner-evidence-index-v1",
+        "requirements": [
+            {"id": number, "requirement": requirement, "files": files}
+            for number, requirement, files in requirements
+        ],
+    }
+    p("e10-owner-evidence-index.json").write_text(
+        json.dumps(evidence_index, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     governed = sorted(path for path in evidence.iterdir() if path.is_file() and path.name != "SHA256SUMS.txt")
     sums = "".join(f"{sha256(path)}  {path.name}\n" for path in governed)

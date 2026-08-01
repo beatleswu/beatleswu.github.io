@@ -70,8 +70,8 @@ def test_vs1d_render_path_is_preserved_without_the_contract():
 
 
 def test_bridge_versions_are_exactly_coupled():
-    assert "ASSET_VERSION = 'e10-final-two-blockers'" in FLAGS
-    assert "const VERSION     = 'v221-e10-final-two-blockers'" in SW
+    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
+    assert "const VERSION     = 'v222-e10-art-directed-runtime-ui'" in SW
     assert "e10-vs1e-review-closure" not in FLAGS
     assert "v213-e10-vs1e-review-closure" not in SW
     queries = re.findall(
@@ -79,4 +79,4 @@ def test_bridge_versions_are_exactly_coupled():
         r'\?v=([^"\']+)',
         INDEX,
     )
-    assert queries == ["20260801e10blocker1"] * 5
+    assert queries == ["20260801e10art1"] * 5

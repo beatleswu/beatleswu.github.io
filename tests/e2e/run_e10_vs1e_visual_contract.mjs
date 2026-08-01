@@ -141,7 +141,9 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
   const snapshot = await page.evaluate(() => ({
     activeShell: document.body.getAttribute('data-adventure-shell-active'),
     bodySkin: document.body.getAttribute('data-e10-visual-skin'),
+    bodyArtKit: document.body.getAttribute('data-e10-art-kit'),
     shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+    shellArtKit: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-art-kit'),
     nodeCount: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
     plaqueCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__plaque').length,
     selectedCount: document.querySelectorAll('#e9-world-stage-zones .is-selected').length,
@@ -159,6 +161,9 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     vs1fPlayerCount: document.querySelectorAll('[data-player-location], .e10-current-hero').length,
     vs1fIconCount: document.querySelectorAll('[data-e10-vs1f-icon], .e9-dock__icon').length,
     vs1fAvatarCount: document.querySelectorAll('#top-hud-avatar-image').length,
+    artAssetNodeCount: document.querySelectorAll('[data-e10-art-asset], img[src*="/assets/e10/ui/"]').length,
+    artAssetRequestCount: performance.getEntriesByType('resource')
+      .filter((entry) => entry.name.includes('/assets/e10/ui/')).length,
     nav32Count: document.querySelectorAll('.e9-nav__icon[viewBox="0 0 32 32"]').length,
     oversizedBlackSvgCount: [...document.querySelectorAll('svg path, svg polygon')]
       .filter((shape) => {
@@ -181,7 +186,10 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
   await page.close();
   const failures = [];
   if (snapshot.activeShell !== 'e9') failures.push(`${contractCase}: E9 shell did not mount`);
-  if (snapshot.bodySkin !== null || snapshot.shellSkin !== null) {
+  if (
+    snapshot.bodySkin !== null || snapshot.shellSkin !== null
+    || snapshot.bodyArtKit !== null || snapshot.shellArtKit !== null
+  ) {
     failures.push(`${contractCase}: VS1E skin was enabled without the exact static marker`);
   }
   if (snapshot.nodeCount !== 10) failures.push(`${contractCase}: VS1D node rendering is incomplete`);
@@ -202,6 +210,8 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     || snapshot.vs1fPlayerCount !== 0
     || snapshot.vs1fIconCount !== 0
     || snapshot.vs1fAvatarCount !== 0
+    || snapshot.artAssetNodeCount !== 0
+    || snapshot.artAssetRequestCount !== 0
     || snapshot.nav32Count !== 0
     || snapshot.oversizedBlackSvgCount !== 0
   ) failures.push(`${contractCase}: VS1F SVG/mask/landmark DOM leaked into fallback`);
@@ -350,10 +360,24 @@ async function runtimeSnapshot(page) {
     const panelBody = document.querySelector('#e10-drawer-zone-body')?.getBoundingClientRect();
     const viewportBottomElement = document.elementFromPoint(window.innerWidth / 2, window.innerHeight - 2);
     const viewportBottomStyle = viewportBottomElement ? getComputedStyle(viewportBottomElement) : null;
+    const targetMeasurements = allTargets.map((element) => {
+      const target = element.getBoundingClientRect();
+      return {
+        element,
+        width: target.width,
+        height: target.height,
+        minimum: Math.min(target.width, target.height),
+      };
+    });
+    const minimumTargetElement = targetMeasurements.reduce((smallest, candidate) => (
+      !smallest || candidate.minimum < smallest.minimum ? candidate : smallest
+    ), null);
     return {
       activeShell: document.body.getAttribute('data-adventure-shell-active'),
       skin: document.body.getAttribute('data-e10-visual-skin'),
+      artKit: document.body.getAttribute('data-e10-art-kit'),
       shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+      shellArtKit: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-art-kit'),
       lang: window.I18n?.getLang?.(),
       nodeCount: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
       landmarkCount: document.querySelectorAll('#e9-world-stage-zones .e10-zone-landmark').length,
@@ -373,6 +397,9 @@ async function runtimeSnapshot(page) {
       ].filter(isVisible).length,
       landmarkRequestCount: performance.getEntriesByType('resource')
         .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/')).length,
+      landmarkRequestUrls: [...new Set(performance.getEntriesByType('resource')
+        .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/'))
+        .map((entry) => new URL(entry.name).pathname))],
       legacyVisible: Array.from(document.querySelectorAll(
         '#welcome-state > .guild-hall-hero, #welcome-state > .guild-entry-grid, #skill-map, #welcome-state > .home-left-col, #welcome-state > .home-report'
       )).some((element) => !element.hidden),
@@ -480,12 +507,33 @@ async function runtimeSnapshot(page) {
       lastZoneDockClearance: lastZone && nav ? Math.round((nav.top - lastZone.bottom) * 100) / 100 : null,
       dockBottomClearance: nav ? Math.round((window.innerHeight - nav.bottom) * 100) / 100 : null,
       horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
-      minimumTarget: allTargets.reduce((smallest, element) => {
-        const target = element.getBoundingClientRect();
-        return Math.min(smallest, target.width, target.height);
-      }, Number.POSITIVE_INFINITY),
+      minimumTarget: minimumTargetElement ? minimumTargetElement.minimum : Number.POSITIVE_INFINITY,
+      minimumTargetElement: minimumTargetElement ? {
+        tag: minimumTargetElement.element.tagName.toLowerCase(),
+        id: minimumTargetElement.element.id || null,
+        className: minimumTargetElement.element.className || null,
+        navKey: minimumTargetElement.element.getAttribute('data-e10-nav-key'),
+        width: minimumTargetElement.width,
+        height: minimumTargetElement.height,
+      } : null,
       duplicateIds: [...new Set(duplicateIds)],
       rpgIconCount: document.querySelectorAll('#e9-adventure-shell .e10-rpg-icon[data-e10-icon-id]').length,
+      artAssetNodeCount: document.querySelectorAll('#e9-adventure-shell [data-e10-art-asset]').length,
+      artAssetRequestCount: performance.getEntriesByType('resource')
+        .filter((entry) => entry.name.includes('/assets/e10/ui/')).length,
+      artAssetErrorCount: Array.from(document.querySelectorAll('#e9-adventure-shell img[src*="/assets/e10/ui/"]'))
+        .filter((image) => !image.complete || image.naturalWidth === 0).length,
+      playerMarkerPortraitCount: document.querySelectorAll(
+        '#e9-world-stage-player .e10-player-marker-portrait, .e10-current-hero .e10-player-marker-portrait'
+      ).length,
+      artSurfaces: {
+        playerPlaque: getComputedStyle(document.querySelector('.e9-hud__player')).backgroundImage,
+        titlePlaque: getComputedStyle(document.querySelector('.e10-hud-brand')).backgroundImage,
+        utilityFrame: getComputedStyle(document.querySelector('.e10-utility-control')).backgroundImage,
+        leftBadge: getComputedStyle(document.querySelector('.e9-nav__icon')).backgroundImage,
+        dockFrame: getComputedStyle(document.querySelector('.e9-dock')).backgroundImage,
+        primaryCta: getComputedStyle(document.querySelector('.e10-map-primary-cta')).backgroundImage,
+      },
       visibleControlMissingIconCount: visibleNavigationControls.filter((control) => (
         !control.querySelector('.e10-rpg-icon[data-e10-icon-id]')
       )).length,
@@ -735,6 +783,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
         element.removeAttribute('aria-current');
         element.setAttribute('data-e10-state', 'locked');
         element.setAttribute('aria-disabled', 'true');
+        if ('disabled' in element) element.disabled = true;
       });
     }
     await capture(controls.disabled, `${prefix}-state-disabled.png`);
@@ -756,6 +805,14 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
     active: '[data-e10-nav-key="soul_records"]',
     disabled: '[data-e10-nav-key="soul_records"]',
   }, true);
+  await captureStates('primary-cta', '#e9-map-stage', {
+    default: '#e9-world-stage-primary-cta',
+    hover: '#e9-world-stage-primary-cta',
+    focus: '#e9-world-stage-primary-cta',
+    pressed: '#e9-world-stage-primary-cta',
+    active: '#e9-world-stage-primary-cta',
+    disabled: '#e9-world-stage-primary-cta',
+  }, true);
   await capture(page.locator('.e9-hud__player'), 'avatar-runtime-closeup.png');
   await capture(page.locator('.e10-hud__right'), 'utility-group-closeup.png');
   await page.close();
@@ -768,6 +825,9 @@ function assertCase(result) {
   if (snapshot.activeShell !== 'e9') failures.push(`${specName}: E9 shell not active`);
   if (snapshot.skin !== 'immersive-rpg' || snapshot.shellSkin !== 'immersive-rpg') {
     failures.push(`${specName}: RPG skin marker missing`);
+  }
+  if (snapshot.artKit !== 'runtime-v1' || snapshot.shellArtKit !== 'runtime-v1') {
+    failures.push(`${specName}: art-directed runtime ownership marker missing`);
   }
   if (snapshot.nodeCount !== 10) failures.push(`${specName}: node count ${snapshot.nodeCount}`);
   if (
@@ -786,6 +846,13 @@ function assertCase(result) {
   if (!snapshot.avatar.identityLabel) failures.push(`${specName}: player identity accessible name is missing`);
   if (snapshot.avatarFit !== 'cover') failures.push(`${specName}: runtime avatar is not portrait-cropped`);
   if (snapshot.rpgIconCount < 22) failures.push(`${specName}: RPG icon registry render is incomplete (${snapshot.rpgIconCount})`);
+  if (snapshot.artAssetNodeCount < 22 || snapshot.artAssetRequestCount < 22 || snapshot.artAssetErrorCount !== 0) {
+    failures.push(`${specName}: runtime art asset contract ${snapshot.artAssetNodeCount}/${snapshot.artAssetRequestCount}/${snapshot.artAssetErrorCount}`);
+  }
+  if (snapshot.playerMarkerPortraitCount !== 1) failures.push(`${specName}: player marker portrait count ${snapshot.playerMarkerPortraitCount}`);
+  if (Object.values(snapshot.artSurfaces).some((value) => !value.includes('/assets/e10/ui/'))) {
+    failures.push(`${specName}: one or more art-directed shell surfaces are missing`);
+  }
   if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
   if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
   if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
@@ -871,8 +938,8 @@ function assertCase(result) {
     if (snapshot.landmarkCount !== 0) {
       failures.push(`${specName}: full landmark art duplicated the Desktop map`);
     }
-    if (snapshot.landmarkRequestCount > 1) {
-      failures.push(`${specName}: Desktop landmark requests ${snapshot.landmarkRequestCount}`);
+    if (snapshot.landmarkRequestUrls.length > 1) {
+      failures.push(`${specName}: Desktop landmark URLs ${snapshot.landmarkRequestUrls.join(',')}`);
     }
     if (!snapshot.nav || !snapshot.map || snapshot.nav.left < snapshot.map.left || snapshot.nav.right > snapshot.map.right) {
       failures.push(`${specName}: floating navigation badges are outside the map frame`);
@@ -1017,6 +1084,7 @@ async function runLegacyCase(browser, origin, outputDir) {
   const snapshot = await page.evaluate(() => ({
     activeShell: document.body.getAttribute('data-adventure-shell-active'),
     skin: document.body.getAttribute('data-e10-visual-skin'),
+    artKit: document.body.getAttribute('data-e10-art-kit'),
     shellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
     worldNodes: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
     drawerVisible: !!document.querySelector('#e9-right-drawer-toggle'),
@@ -1025,7 +1093,7 @@ async function runLegacyCase(browser, origin, outputDir) {
   await page.close();
   const failures = [];
   if (snapshot.activeShell !== 'legacy') failures.push('Legacy: query/host activated E9 shell');
-  if (snapshot.skin !== null) failures.push('Legacy: RPG skin marker leaked');
+  if (snapshot.skin !== null || snapshot.artKit !== null) failures.push('Legacy: RPG skin/art marker leaked');
   if (!snapshot.shellHidden) failures.push('Legacy: E9 shell is not hidden');
   if (snapshot.worldNodes !== 0 || snapshot.drawerVisible) failures.push('Legacy: World Stage UI leaked');
   if (browserErrors.length) failures.push(`Legacy: browser errors ${JSON.stringify(browserErrors)}`);
@@ -1044,7 +1112,9 @@ async function runLifecycleCase(browser, origin) {
     return {
       activeShell: document.body.getAttribute('data-adventure-shell-active'),
       bodySkin: document.body.getAttribute('data-e10-visual-skin'),
+      bodyArtKit: document.body.getAttribute('data-e10-art-kit'),
       shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+      shellArtKit: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-art-kit'),
       shellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
       mountedSlots: document.querySelectorAll('[data-e9-loaded], [data-e9-inited]').length,
     };
@@ -1061,13 +1131,16 @@ async function runLifecycleCase(browser, origin) {
   if (
     destroyed.activeShell !== 'legacy'
     || destroyed.bodySkin !== null
+    || destroyed.bodyArtKit !== null
     || destroyed.shellSkin !== null
+    || destroyed.shellArtKit !== null
     || !destroyed.shellHidden
     || destroyed.mountedSlots !== 0
   ) failures.push('lifecycle: destroy did not clean shell and skin ownership');
   if (
     remounted.activeShell !== 'e9'
     || remounted.skin !== 'immersive-rpg'
+    || remounted.artKit !== 'runtime-v1'
     || remounted.nodeCount !== 10
     || remounted.duplicateIds.length
     || afterGeneration <= beforeGeneration

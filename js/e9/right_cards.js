@@ -98,7 +98,17 @@
     }
     if (state) state.textContent = detail.statusText || '';
     if (number) number.textContent = String(detail.zoneNumber || '');
-    if (stars) stars.textContent = '★'.repeat(detail.stars || 0) + '☆'.repeat(3 - (detail.stars || 0));
+    if (stars) {
+      var earnedStars = Math.max(0, Math.min(3, detail.stars || 0));
+      stars.textContent = '';
+      stars.setAttribute('aria-label', t('index.adv.stars_label', 'Stars') + ': ' + earnedStars + ' / 3');
+      for (var starIndex = 0; starIndex < 3; starIndex += 1) {
+        var star = document.createElement('i');
+        star.className = 'e10-art-star' + (starIndex < earnedStars ? ' is-earned' : ' is-empty');
+        star.setAttribute('aria-hidden', 'true');
+        stars.appendChild(star);
+      }
+    }
     var questPercent = detail.total ? Math.max(0, Math.min(100, detail.seen / detail.total * 100)) : 0;
     var regionPercent = detail.zoneNumber ? Math.max(0, Math.min(100, detail.zoneNumber / 10 * 100)) : 0;
     if (questValue) questValue.textContent = (detail.seen || 0) + ' / ' + (detail.total || 0);
@@ -238,7 +248,7 @@
         var presentation = document.createElement('div');
         presentation.className = 'e10-zone-panel-runtime';
         presentation.setAttribute('data-e10-vs1f-zone-panel', '');
-        presentation.innerHTML = '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars aria-label="3 stars"></span>'
+        presentation.innerHTML = '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars></span>'
           + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.task_progress"></span><strong data-e10-zone-quest-value></strong><i><b data-e10-zone-quest-bar></b></i></div>'
           + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.region_progress"></span><strong data-e10-zone-region-value></strong><i><b data-e10-zone-region-bar></b></i></div>'
           + '<button type="button" class="e10-zone-panel-runtime__cta" data-e10-zone-cta data-i18n="e10.world_stage.continue_adventure"></button>';

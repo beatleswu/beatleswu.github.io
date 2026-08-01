@@ -49,6 +49,32 @@
     lock: '<rect class="e10-icon__body" x="8" y="13" width="16" height="14" rx="3"/><path class="e10-icon__accent" d="M11 13V9a5 5 0 0 1 10 0v4"/><circle class="e10-icon__gem" cx="16" cy="20" r="2"/>'
   };
 
+  var ART_ICON_ROOT = '/assets/e10/ui/icons/';
+  var ICON_ASSETS = {
+    compass: 'adventure.webp',
+    hero: 'hero.webp',
+    equipment: 'equipment.webp',
+    backpack: 'backpack.webp',
+    spirit: 'go-spirit.webp',
+    shop: 'shop.webp',
+    records: 'soul-records.webp',
+    battle_log: 'battle-log.webp',
+    tavern: 'tavern.webp',
+    hall: 'heroes-hall.webp',
+    star_chart: 'star-chart.webp',
+    arena: 'arena.webp',
+    pass: 'pass.webp',
+    messages: 'messages.webp',
+    settings: 'settings.webp',
+    daily: 'daily-challenge.webp',
+    badge: 'badges.webp',
+    game_records: 'game-records.webp',
+    coin: 'coins.webp',
+    all_features: 'all-features.webp',
+    close: 'close.webp',
+    lock: 'lock.webp'
+  };
+
   function exactContract() {
     var marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
     return !!marker && marker.getAttribute('content') === CONTRACT;
@@ -62,15 +88,20 @@
 
   function icon(iconId, className) {
     if (!exactContract()) return '';
-    var resolved = ICONS[iconId] ? iconId : 'compass';
-    return '<svg class="e10-rpg-icon ' + (className || 'e10-nav-icon') + '" viewBox="0 0 32 32" aria-hidden="true" focusable="false" data-e10-vs1f-icon data-e10-icon-id="' + resolved + '">' + ICONS[resolved] + '</svg>';
+    var resolved = ICON_ASSETS[iconId] ? iconId : 'compass';
+    var source = ART_ICON_ROOT + ICON_ASSETS[resolved];
+    return '<i class="e10-rpg-icon e10-art-icon ' + (className || 'e10-nav-icon')
+      + '" aria-hidden="true" data-e10-vs1f-icon data-e10-icon-id="' + resolved
+      + '" data-e10-art-asset="' + source + '"><img src="' + source
+      + '" alt="" width="256" height="256" decoding="async" draggable="false"></i>';
   }
 
   global.E9 = global.E9 || {};
   global.E9.NavigationRegistry = {
     contract: CONTRACT,
     exactContract: exactContract,
-    iconIds: Object.keys(ICONS),
+    iconIds: Object.keys(ICON_ASSETS),
+    iconAssets: Object.assign({}, ICON_ASSETS),
     items: ITEMS.slice(),
     itemsFor: itemsFor,
     get: function (key) { return ITEMS.filter(function (item) { return item.key === key; })[0] || null; },
