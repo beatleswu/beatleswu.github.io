@@ -145,6 +145,30 @@ def test_final_visual_refinement_contracts_are_explicit_and_asset_preserving():
     assert "player-location-pin.webp" in CSS
 
 
+def test_bottom_dock_badge_slot_alignment_uses_one_shared_five_column_contract():
+    dock = CSS[CSS.index('#e9-adventure-shell .e9-dock {'):]
+    dock = dock[:dock.index('}')]
+    assert "padding: 6px 12.890625%" in dock
+
+    dock_list = CSS[CSS.index('#e9-adventure-shell .e9-dock__list {'):]
+    dock_list = dock_list[:dock_list.index('}')]
+    assert "grid-template-columns: repeat(5, minmax(0, 1fr))" in dock_list
+    assert "gap: 0" in dock_list
+    assert "height: 100%" in dock_list
+
+    dock_item = CSS[CSS.index('#e9-adventure-shell .e9-dock__item {'):]
+    dock_item = dock_item[:dock_item.index('}')]
+    assert "display: grid" in dock_item
+    assert 'grid-template: "dock-stack" 100% / 100%' in dock_item
+    assert "justify-items: center" in dock_item
+
+    assert "grid-area: dock-stack" in CSS
+    assert "width: 50% !important" in CSS
+    assert "width: 51.5% !important" in CSS
+    assert "transform: translateX(-50%)" in CSS
+    assert ".e9-dock__item:nth-child" not in CSS
+
+
 def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
     assert "registry.icon('compass', 'e10-map-primary-cta__icon')" in WORLD
     assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in WORLD
@@ -154,7 +178,7 @@ def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
 
 
 def test_final_cache_identity_and_stylesheet_order_are_single_bump():
-    assert "const VERSION     = 'v223-e10-final-visual-refinement'" in SW
+    assert "const VERSION     = 'v224-e10-bottom-dock-alignment'" in SW
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
     assert INDEX.count("20260801e10art1") >= 9
     assert "/css/e9/art_directed_runtime.css?v=20260801e10art1" in INDEX

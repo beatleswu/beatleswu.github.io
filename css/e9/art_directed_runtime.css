@@ -273,7 +273,7 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-dock {
-  padding: 8px 34px 5px;
+  padding: 6px 12.890625%;
   border: 0;
   border-radius: 0;
   overflow: visible;
@@ -290,10 +290,25 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-dock__list {
-  gap: 5px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  height: 100%;
+}
+
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-dock__item {
+  display: grid;
+  grid-template: "dock-stack" 100% / 100%;
+  align-items: stretch;
+  justify-items: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-dock__icon {
+  grid-area: dock-stack;
+  align-self: center;
+  justify-self: center;
   width: clamp(70px, 5.1vw, 94px);
   height: clamp(72px, 5.25vw, 97px);
   padding: 16px;
@@ -304,6 +319,9 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-dock__item > span {
+  grid-area: dock-stack;
+  align-self: end;
+  justify-self: center;
   min-height: 28px;
   margin-top: -10px;
   padding: 6px 11px;
@@ -311,6 +329,13 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   border-radius: 0;
   background: var(--e10-art-label-plaque) center / 100% 100% no-repeat;
   text-decoration: none;
+}
+
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-bottom-dock-slot {
+  right: auto;
+  left: 50%;
+  width: 50% !important;
+  transform: translateX(-50%);
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e10-adventure-progress {
@@ -656,6 +681,10 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 }
 
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-bottom-dock-slot {
+    width: 51.5% !important;
+  }
+
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-more-trigger {
     display: inline-flex !important;
   }

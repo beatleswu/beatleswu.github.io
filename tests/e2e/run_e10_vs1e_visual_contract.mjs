@@ -396,6 +396,34 @@ async function runtimeSnapshot(page) {
     const dockStyle = dock ? getComputedStyle(dock) : null;
     const dockBefore = dock ? getComputedStyle(dock, '::before') : null;
     const dockAfter = dock ? getComputedStyle(dock, '::after') : null;
+    const dockBox = dock?.getBoundingClientRect() || null;
+    const dockItems = dock ? Array.from(dock.querySelectorAll('.e9-dock__item')) : [];
+    const dockSlotCenterFractions = [260, 450, 640, 830, 1020].map((value) => value / 1280);
+    const dockGeometryItems = dockBox ? dockItems.map((item, index) => {
+      const badge = item.querySelector('.e9-dock__icon')?.getBoundingClientRect();
+      const label = item.querySelector(':scope > span')?.getBoundingClientRect();
+      const badgeCenterX = badge ? badge.left + badge.width / 2 : null;
+      const badgeCenterY = badge ? badge.top + badge.height / 2 : null;
+      const slotCenterX = dockBox.left + dockBox.width * dockSlotCenterFractions[index];
+      const slotCenterY = dockBox.top + dockBox.height / 2;
+      const labelCenterX = label ? label.left + label.width / 2 : null;
+      return {
+        key: item.getAttribute('data-e10-nav-key'),
+        label: item.querySelector(':scope > span')?.textContent.trim() || '',
+        badge_center_x: badgeCenterX,
+        badge_center_y: badgeCenterY,
+        slot_center_x: slotCenterX,
+        slot_center_y: slotCenterY,
+        label_center_x: labelCenterX,
+        badge_slot_delta_x: badgeCenterX === null ? null : badgeCenterX - slotCenterX,
+        badge_slot_delta_y: badgeCenterY === null ? null : badgeCenterY - slotCenterY,
+        label_badge_delta_x: labelCenterX === null || badgeCenterX === null ? null : labelCenterX - badgeCenterX,
+      };
+    }) : [];
+    const roundDockValue = (value) => value === null ? null : Math.round(value * 100) / 100;
+    const dockBadgeCentersY = dockGeometryItems.map((item) => item.badge_center_y).filter(Number.isFinite);
+    const dockSlotCentersX = dockGeometryItems.map((item) => item.slot_center_x).filter(Number.isFinite);
+    const dockSlotSpacings = dockSlotCentersX.slice(1).map((value, index) => value - dockSlotCentersX[index]);
     const currentZone = document.querySelector('[data-player-location="true"]');
     const marker = [
       document.querySelector('#e9-world-stage-player'),
@@ -503,6 +531,23 @@ async function runtimeSnapshot(page) {
         parentBackgroundImage: dockParent ? getComputedStyle(dockParent).backgroundImage : '',
         beforeBackground: dockBefore?.background || '',
         afterBackground: dockAfter?.background || '',
+      },
+      dockGeometry: {
+        items: dockGeometryItems.map((item) => Object.fromEntries(
+          Object.entries(item).map(([key, value]) => [key, typeof value === 'number' ? roundDockValue(value) : value])
+        )),
+        max_badge_slot_delta_x: roundDockValue(Math.max(0, ...dockGeometryItems.map((item) => Math.abs(item.badge_slot_delta_x || 0)))),
+        max_badge_slot_delta_y: roundDockValue(Math.max(0, ...dockGeometryItems.map((item) => Math.abs(item.badge_slot_delta_y || 0)))),
+        max_label_badge_delta_x: roundDockValue(Math.max(0, ...dockGeometryItems.map((item) => Math.abs(item.label_badge_delta_x || 0)))),
+        max_badge_center_y_spread: roundDockValue(dockBadgeCentersY.length
+          ? Math.max(...dockBadgeCentersY) - Math.min(...dockBadgeCentersY)
+          : 0),
+        max_slot_spacing_variance: roundDockValue(dockSlotSpacings.length
+          ? Math.max(...dockSlotSpacings) - Math.min(...dockSlotSpacings)
+          : 0),
+        dock_stage_center_delta_x: roundDockValue(dockBox && map
+          ? (dockBox.left + dockBox.width / 2) - (map.left + map.width / 2)
+          : null),
       },
       playerMarkerContract: {
         node: roundRect(currentNodeBox),
@@ -878,22 +923,62 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
     await target.screenshot({ path: outputPath });
     captures.push(outputPath);
   }
+  async function measureDockControl(locator) {
+    return locator.evaluate((element) => {
+      const dock = element.closest('.e9-dock');
+      const items = Array.from(dock.querySelectorAll('.e9-dock__item'));
+      const itemIndex = items.indexOf(element);
+      const dockBox = dock.getBoundingClientRect();
+      const badge = element.querySelector('.e9-dock__icon').getBoundingClientRect();
+      const label = element.querySelector(':scope > span').getBoundingClientRect();
+      const slotFractions = [260, 450, 640, 830, 1020].map((value) => value / 1280);
+      const round = (value) => Math.round(value * 100) / 100;
+      return {
+        key: element.getAttribute('data-e10-nav-key'),
+        badge_center_x: round(badge.left + badge.width / 2),
+        badge_center_y: round(badge.top + badge.height / 2),
+        slot_center_x: round(dockBox.left + dockBox.width * slotFractions[itemIndex]),
+        slot_center_y: round(dockBox.top + dockBox.height / 2),
+        label_center_x: round(label.left + label.width / 2),
+      };
+    });
+  }
   async function captureStates(prefix, rootSelector, selectors, synthesizeDisabled = false) {
     const root = page.locator(rootSelector);
     const controls = Object.fromEntries(
       Object.entries(selectors).map(([state, selector]) => [state, root.locator(selector)])
     );
+    const stateGeometry = prefix === 'bottom-dock' ? {} : null;
+    if (stateGeometry) {
+      for (const [state, control] of Object.entries(controls)) {
+        stateGeometry[state] = { before: await measureDockControl(control) };
+      }
+    }
+    async function recordGeometry(state) {
+      if (!stateGeometry) return;
+      const after = await measureDockControl(controls[state]);
+      const before = stateGeometry[state].before;
+      stateGeometry[state].after = after;
+      stateGeometry[state].deltas = Object.fromEntries(
+        ['badge_center_x', 'badge_center_y', 'slot_center_x', 'slot_center_y', 'label_center_x']
+          .map((key) => [key, Math.round(Math.abs(after[key] - before[key]) * 100) / 100])
+      );
+    }
     await capture(controls.default, `${prefix}-state-default.png`);
+    await recordGeometry('default');
     await controls.hover.hover();
     await capture(controls.hover, `${prefix}-state-hover.png`);
+    await recordGeometry('hover');
     await controls.focus.focus();
     await capture(controls.focus, `${prefix}-state-focus.png`);
+    await recordGeometry('focus');
     await controls.pressed.hover();
     const box = await controls.pressed.boundingBox();
     if (!box) throw new Error(`state evidence pressed target hidden: ${prefix}`);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await capture(controls.pressed, `${prefix}-state-pressed.png`);
+    await recordGeometry('pressed');
     await page.mouse.move(1, 1);
     await page.mouse.up();
     await controls.active.evaluate((element) => {
@@ -902,6 +987,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
       element.setAttribute('aria-current', 'page');
     });
     await capture(controls.active, `${prefix}-state-active.png`);
+    await recordGeometry('active');
     if (synthesizeDisabled) {
       await controls.disabled.evaluate((element) => {
         element.classList.remove('is-active');
@@ -912,6 +998,8 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
       });
     }
     await capture(controls.disabled, `${prefix}-state-disabled.png`);
+    await recordGeometry('disabled');
+    return stateGeometry;
   }
 
   await captureStates('left-rail', '#left-nav', {
@@ -922,7 +1010,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
     active: '[data-e10-nav-key="hero"]',
     disabled: '[data-e10-nav-key="backpack"]',
   });
-  await captureStates('bottom-dock', '#bottom-dock', {
+  const dockInteractionGeometry = await captureStates('bottom-dock', '#bottom-dock', {
     default: '[data-e10-nav-key="battle_log"]',
     hover: '[data-e10-nav-key="tavern"]',
     focus: '[data-e10-nav-key="star_chart"]',
@@ -941,7 +1029,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
   await capture(page.locator('.e9-hud__player'), 'avatar-runtime-closeup.png');
   await capture(page.locator('.e10-hud__right'), 'utility-group-closeup.png');
   await page.close();
-  return { captures, browserErrors };
+  return { captures, browserErrors, dockInteractionGeometry };
 }
 
 function assertCase(result) {
@@ -1003,6 +1091,17 @@ function assertCase(result) {
       || dock.overflow !== 'visible'
       || dock.boxShadow !== 'none'
     ) failures.push(`${specName}: dock base material is not transparent ${JSON.stringify(dock)}`);
+
+    const geometry = snapshot.dockGeometry;
+    if (
+      geometry.items.length !== 5
+      || geometry.max_badge_slot_delta_x > 1
+      || geometry.max_badge_slot_delta_y > 1
+      || geometry.max_label_badge_delta_x > 1
+      || geometry.max_badge_center_y_spread > 1
+      || geometry.max_slot_spacing_variance > 1
+      || Math.abs(geometry.dock_stage_center_delta_x) > 1
+    ) failures.push(`${specName}: bottom dock badge-slot alignment ${JSON.stringify(geometry)}`);
   }
   if (
     !snapshot.playerMarkerContract.marker
@@ -1336,6 +1435,7 @@ async function main() {
   try {
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
+      { specName: 'desktop-1920-closed-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-closed-en.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true, challengeActionCheck: true },
       { specName: 'desktop-1920-current-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-current-zone-en.png', zone: 'k21_25', layout: 'rail', progressDrawerCheck: true },
       { specName: 'desktop-1920-current-details-zh', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-current-zone-zh.png', zone: 'k21_25', layout: 'rail', progressDrawerCheck: true },
@@ -1346,12 +1446,14 @@ async function main() {
       { specName: 'desktop-1920-skipped-details', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-skipped-zone-zh.png', zone: 'k21_25', layout: 'rail', fixtureMode: 'placement-high', progressDrawerCheck: true },
       { specName: 'desktop-1920-placement-high', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-placement-high-zh.png', layout: 'rail', fixtureMode: 'placement-high' },
       { specName: 'desktop-1440-closed', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-closed-en.png', layout: 'rail', immersiveViewportCheck: true },
+      { specName: 'desktop-1440-closed-zh', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-closed-zh.png', layout: 'rail', immersiveViewportCheck: true },
       { specName: 'desktop-1440-panel-open', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-panel-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, immersiveViewportCheck: true },
       { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true, immersiveViewportCheck: true },
       { specName: 'desktop-1440-more', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-all-features-zh.png', layout: 'rail', openMore: true, immersiveViewportCheck: true },
       { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character', immersiveViewportCheck: true },
       { specName: 'tablet-1180-landscape-closed', viewport: { width: 1180, height: 820 }, lang: 'zh', filename: 'tablet-1180x820-closed-zh.png', layout: 'bottom-dock' },
       { specName: 'tablet-1180-landscape-more', viewport: { width: 1180, height: 820 }, lang: 'en', filename: 'tablet-1180x820-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'tablet-1024-landscape-closed', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-closed-zh.png', layout: 'bottom-dock' },
       { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-820-portrait-settings', viewport: { width: 820, height: 1180 }, lang: 'zh', filename: 'tablet-820x1180-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
@@ -1381,8 +1483,58 @@ async function main() {
         await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
       );
     }
+    const dockGeometryViewports = results
+      .filter((result) => result.viewport.width >= 768 && result.viewport.width > result.viewport.height)
+      .map((result) => ({
+        spec_name: result.specName,
+        viewport: result.viewport,
+        language: result.lang,
+        geometry: result.snapshot.dockGeometry,
+      }));
+    const dockGeometryFailures = dockGeometryViewports.flatMap((entry) => {
+      const geometry = entry.geometry;
+      const failures = [];
+      if (geometry.items.length !== 5) failures.push(`${entry.spec_name}: expected five dock items`);
+      if (geometry.max_badge_slot_delta_x > 1) failures.push(`${entry.spec_name}: badge-slot X delta ${geometry.max_badge_slot_delta_x}`);
+      if (geometry.max_badge_slot_delta_y > 1) failures.push(`${entry.spec_name}: badge-slot Y delta ${geometry.max_badge_slot_delta_y}`);
+      if (geometry.max_label_badge_delta_x > 1) failures.push(`${entry.spec_name}: label-badge X delta ${geometry.max_label_badge_delta_x}`);
+      if (geometry.max_badge_center_y_spread > 1) failures.push(`${entry.spec_name}: badge Y spread ${geometry.max_badge_center_y_spread}`);
+      if (geometry.max_slot_spacing_variance > 1) failures.push(`${entry.spec_name}: slot spacing variance ${geometry.max_slot_spacing_variance}`);
+      if (Math.abs(geometry.dock_stage_center_delta_x) > 1) failures.push(`${entry.spec_name}: dock-stage X delta ${geometry.dock_stage_center_delta_x}`);
+      return failures;
+    });
+    const geometryReport = {
+      contract: 'e10-bottom-dock-badge-slot-alignment-v1',
+      slot_source: {
+        asset: 'assets/e10/ui/frames/legacy-dock-frame.webp',
+        dimensions: { width: 1280, height: 384 },
+        slot_centers: [
+          { x: 260, y: 192 }, { x: 450, y: 192 }, { x: 640, y: 192 },
+          { x: 830, y: 192 }, { x: 1020, y: 192 },
+        ],
+      },
+      ok: dockGeometryFailures.length === 0,
+      max_badge_slot_delta_x: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_badge_slot_delta_x)),
+      max_badge_slot_delta_y: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_badge_slot_delta_y)),
+      max_badge_center_y_spread: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_badge_center_y_spread)),
+      max_slot_spacing_variance: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_slot_spacing_variance)),
+      max_label_badge_delta_x: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_label_badge_delta_x)),
+      max_dock_stage_center_delta_x: Math.max(0, ...dockGeometryViewports.map((entry) => Math.abs(entry.geometry.dock_stage_center_delta_x))),
+      interaction_states: polishStateEvidence.dockInteractionGeometry,
+      viewports: dockGeometryViewports,
+      failures: dockGeometryFailures,
+    };
+    await fs.writeFile(path.join(outputDir, 'bottom-dock-geometry.json'), JSON.stringify(geometryReport, null, 2));
     const failures = results.flatMap(assertCase).concat(
       polishStateEvidence.browserErrors.map((error) => `polish state evidence: ${error}`),
+      Object.entries(polishStateEvidence.dockInteractionGeometry || {}).flatMap(([state, measurement]) => {
+        const failures = [];
+        for (const key of ['badge_center_x', 'badge_center_y', 'slot_center_x', 'slot_center_y', 'label_center_x']) {
+          if (measurement.deltas[key] > 1) failures.push(`bottom-dock ${state}: ${key} moved ${measurement.deltas[key]}px`);
+        }
+        return failures;
+      }),
+      dockGeometryFailures,
       legacy.failures,
       lifecycle.failures,
       compatibilityBridge.flatMap((result) => result.failures),
