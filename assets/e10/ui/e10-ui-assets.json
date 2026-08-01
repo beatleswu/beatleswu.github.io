@@ -1,0 +1,625 @@
+{
+  "contract": "e10-art-directed-runtime-ui-v1",
+  "owner_reference_sha256": "d8040aa9f43e8792e572b3cea1056e6be431eb3916da53872a7393c0965fed60",
+  "source_atlases": [
+    {
+      "role": "frames",
+      "filename": "e10-ui-frame-kit-alpha.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "bytes": 1122484,
+      "sha256": "ed84b5301ebbd8372d8ecd35020c5cf142bccdc81097e05189291945b2ff4ff3"
+    },
+    {
+      "role": "icons",
+      "filename": "e10-ui-icon-atlas-alpha.png",
+      "dimensions": [
+        1570,
+        1002
+      ],
+      "bytes": 1377945,
+      "sha256": "4102db995c1cd4b42236637884f08b7c74358371dc9882a03e9a4d8232854d24"
+    },
+    {
+      "role": "states",
+      "filename": "e10-ui-state-atlas-alpha.png",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 825309,
+      "sha256": "d17792e5b5b9a1369328a0d17eb798c3407b63395cbaf591ad7798ddbab89409"
+    },
+    {
+      "role": "supplement",
+      "filename": "e10-ui-supplement-atlas-alpha.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "bytes": 929959,
+      "sha256": "007840a97b01d93ec6af49575aed4be498218bf5d2dc00842c5c5cb487fcb639"
+    }
+  ],
+  "post_processing": "Flat chroma key removed with soft matte and despill; fixed semantic crops; premultiplied-alpha Lanczos resize; WebP quality=92 method=6 exact alpha.",
+  "total_assets": 41,
+  "total_bytes": 887242,
+  "assets": [
+    {
+      "path": "assets/e10/ui/cta/adventure-primary-frame.webp",
+      "purpose": "Teal enamel and gold primary CTA frame",
+      "format": "WEBP",
+      "dimensions": [
+        1024,
+        288
+      ],
+      "bytes": 30516,
+      "sha256": "1373fdaf1e6a7bd9e55db78b9912fb68cbfce5608643f74d965a0e9e26ce0c00",
+      "runtime_component": "Desktop primary CTA and panel CTA",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/frames/legacy-dock-frame.webp",
+      "purpose": "Five-socket carved legacy dock base",
+      "format": "WEBP",
+      "dimensions": [
+        1280,
+        384
+      ],
+      "bytes": 62286,
+      "sha256": "deee57f81a25377dc2c06410267c73dcf22493fb27238c0c86b27d8ed4d1cac6",
+      "runtime_component": "Desktop bottom legacy dock",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/icons/adventure.webp",
+      "purpose": "Adventure compass and crossed-swords symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 23094,
+      "sha256": "865c7c49c3f490e2ba7246b6d23b66b2325f1a4209301bde3a90cfc28fe42ebd",
+      "runtime_component": "progress, CTA, and mobile dock",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/all-features.webp",
+      "purpose": "All Features tool-grid symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 21434,
+      "sha256": "5102acc7ede1f5b822319296c9c44620ea946a0d232319ea6b8c0e12c6ee86dc",
+      "runtime_component": "compact HUD and All Features trigger",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/arena.webp",
+      "purpose": "Arena navigation symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 20080,
+      "sha256": "c10c7ff309ac6880b2883a345f80d14594610c1dde380c3b8c710a3260d24d2d",
+      "runtime_component": "legacy dock and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/backpack.webp",
+      "purpose": "Locked Backpack navigation symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 23796,
+      "sha256": "2ccf393babaf72170792f4156469f7e0a8239313a4377dd99ba29029a1467a0a",
+      "runtime_component": "left badge and mobile dock",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/badges.webp",
+      "purpose": "Badges medal symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 14900,
+      "sha256": "2a9036cad16a1891e9b3bb206d4e1316721513df199f1a1c41dbe6dbbf7536c8",
+      "runtime_component": "All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/battle-log.webp",
+      "purpose": "Battle Log banner symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 15708,
+      "sha256": "d4988614969a68889fcb053c0eb36ca4e7859d43ab4c790599b0cd7736f65022",
+      "runtime_component": "legacy dock and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/close.webp",
+      "purpose": "Gold close symbol on teal medallion",
+      "format": "WEBP",
+      "dimensions": [
+        192,
+        192
+      ],
+      "bytes": 14898,
+      "sha256": "472bca55f99875cd61cd00d57485b167810368eb9d64d81a2b27b2bfc25f5a23",
+      "runtime_component": "Dialog and zone-panel close controls",
+      "responsive_relationship": "shared",
+      "source_atlas": "supplement"
+    },
+    {
+      "path": "assets/e10/ui/icons/coins.webp",
+      "purpose": "Gold coin counter symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 21944,
+      "sha256": "85fb508549c61e57c5a70f7c5697b1335443a474e7fcfe710375c7b431ab44f5",
+      "runtime_component": "top HUD Coins counter",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/daily-challenge.webp",
+      "purpose": "Daily Challenge sun-scroll symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 19092,
+      "sha256": "186f1e90c4e7eb2d0cf0779b258849930cf2cbf4a7071b040ff5742b25977e17",
+      "runtime_component": "All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/equipment.webp",
+      "purpose": "Equipment navigation symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 20096,
+      "sha256": "6864993ecdd00b810abf79dd556992e9d104fad215b7ad81bc4101f42f885515",
+      "runtime_component": "left badge and mobile dock",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/game-records.webp",
+      "purpose": "Game Records book symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 17182,
+      "sha256": "e5ee3d7ccc06e2d184678214501fca92a4c2474fbb41542fce1b2c2c1d2fc5c6",
+      "runtime_component": "All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/go-spirit.webp",
+      "purpose": "Go Spirit Companion symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 23158,
+      "sha256": "f125efab693d4320bf829d4e3860679cbb41f6e8d8dab01ddf7341d49094b0d1",
+      "runtime_component": "left badge and mobile dock",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/hero.webp",
+      "purpose": "Hero navigation symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 19904,
+      "sha256": "58dd70ccf0dfad2ab757e509c046f7f37ccd58d9177cdf6380501a362cff1f3b",
+      "runtime_component": "left badge and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/heroes-hall.webp",
+      "purpose": "Crowned laurel Hero's Hall symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 28722,
+      "sha256": "901480df7e9c54edf0433270bd7f5160ae8a30c96d0d4d08dda4240a19035e7c",
+      "runtime_component": "All Features Hero's Hall",
+      "responsive_relationship": "shared",
+      "source_atlas": "supplement"
+    },
+    {
+      "path": "assets/e10/ui/icons/lock.webp",
+      "purpose": "Brass lock symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 15078,
+      "sha256": "fceb29ef8b0fa468232655a40cb3d45f380dba965f591de21f89aaa7f1876330",
+      "runtime_component": "locked navigation and map states",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/messages.webp",
+      "purpose": "Sealed message envelope symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 12894,
+      "sha256": "4801cf9442166ba07e3034aa4293d615b84ce393a55261820d95376a46d8becb",
+      "runtime_component": "top HUD and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/pass.webp",
+      "purpose": "Gem Pass symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 19232,
+      "sha256": "0fcf056c26aebf3e093e9bf97c36efdd7640ae62dc58d1639561992c28dc97a0",
+      "runtime_component": "top HUD and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/settings.webp",
+      "purpose": "Brass Settings gear symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 22722,
+      "sha256": "60ea84e53c855f0199a78027645f88fee395f2ba23209fd7e8215aa14d3f2c30",
+      "runtime_component": "top HUD, Settings, and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/shop.webp",
+      "purpose": "Fantasy Shop navigation symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 21526,
+      "sha256": "51feb7490dceca426f2ce2d284c5de1878fc76cdefe704a2c47f55fddbcea310",
+      "runtime_component": "left badge and mobile dock",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/soul-records.webp",
+      "purpose": "Soul Records scroll symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 20156,
+      "sha256": "f1c8205f9c927b0ee1232d6b8afd9c54e3080cb223c418ad4ad87079950acd3e",
+      "runtime_component": "legacy dock and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/star-chart.webp",
+      "purpose": "Star Chart astrolabe symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 14292,
+      "sha256": "ed6c55e92f05631a5a06f8cb0afe1eb1abdf35db67f1784061b2dffc0c76aca5",
+      "runtime_component": "legacy dock and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/icons/tavern.webp",
+      "purpose": "Child-friendly Tavern mug symbol",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 20874,
+      "sha256": "765a4642e0d5ed2f78b75c33631becc5fc4b8dc06b3dfe5897c6ec3f7d1edc30",
+      "runtime_component": "legacy dock and All Features",
+      "responsive_relationship": "shared",
+      "source_atlas": "icons"
+    },
+    {
+      "path": "assets/e10/ui/medallions/navigation-badge-frame.webp",
+      "purpose": "Double-layer teal and gold navigation badge frame",
+      "format": "WEBP",
+      "dimensions": [
+        320,
+        336
+      ],
+      "bytes": 32024,
+      "sha256": "9eb5f70645f999d14f412c36848a6ed8e8cad083b6faf1621c06672bcf3c3d0d",
+      "runtime_component": "Left badges and bottom legacy medallions",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/medallions/utility-medallion-frame.webp",
+      "purpose": "Compact teal and gold utility medallion frame",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        260
+      ],
+      "bytes": 19992,
+      "sha256": "fa04bcdf3822d109db93fe5f454a2051780ac4a16896bd8c5332c5485017a4a7",
+      "runtime_component": "Pass, Messages, Settings, and compact controls",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/medallions/zone-number-frame.webp",
+      "purpose": "Empty live-number medallion frame",
+      "format": "WEBP",
+      "dimensions": [
+        224,
+        224
+      ],
+      "bytes": 16960,
+      "sha256": "1cd93c7dda903d810489e0b1cc493df97e8f142b71fffe175b27a332a8296c8e",
+      "runtime_component": "Map nodes and Right Zone Panel number",
+      "responsive_relationship": "shared",
+      "source_atlas": "supplement"
+    },
+    {
+      "path": "assets/e10/ui/ornaments/dropdown-chevron.webp",
+      "purpose": "Gold dropdown chevron with teal jewel",
+      "format": "WEBP",
+      "dimensions": [
+        160,
+        112
+      ],
+      "bytes": 6268,
+      "sha256": "aea72cbecc617efcba46e9264e675c47a4d1105fb0414c3b7b952468423fb8f0",
+      "runtime_component": "Player identity menu trigger",
+      "responsive_relationship": "shared",
+      "source_atlas": "supplement"
+    },
+    {
+      "path": "assets/e10/ui/ornaments/outer-frame-corner.webp",
+      "purpose": "Carved gold outer-frame corner ornament",
+      "format": "WEBP",
+      "dimensions": [
+        384,
+        384
+      ],
+      "bytes": 14406,
+      "sha256": "434ff8b3f02db7db4c1e28631570722341a3272ece1d4c8168496bb9223567cf",
+      "runtime_component": "Desktop and landscape world-stage frame",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/panels/zone-panel-frame.webp",
+      "purpose": "Parchment panel with layered gold corners",
+      "format": "WEBP",
+      "dimensions": [
+        640,
+        640
+      ],
+      "bytes": 44754,
+      "sha256": "52c4b7909d4369287c7aeae6d235f8552aa3a9d8f114e3096efc85cd3d0bf484",
+      "runtime_component": "Right Zone Panel, All Features, and Settings",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/plaques/navigation-label.webp",
+      "purpose": "Compact carved live-text label plaque",
+      "format": "WEBP",
+      "dimensions": [
+        384,
+        104
+      ],
+      "bytes": 8846,
+      "sha256": "5c9919e2752be81d45ea9336bb4062695ccb6532f4dc72d8abe1904a34c5bb5e",
+      "runtime_component": "Left badges and legacy medallion labels",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/plaques/player-identity-plaque.webp",
+      "purpose": "Ivory player identity plaque with portrait socket",
+      "format": "WEBP",
+      "dimensions": [
+        768,
+        240
+      ],
+      "bytes": 22986,
+      "sha256": "124f5d1020afa45d88b6533169770050b44afb7095f7a6904da840c7e72a07bf",
+      "runtime_component": "Desktop and compact player identity",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/plaques/title-plaque.webp",
+      "purpose": "Carved central title plaque",
+      "format": "WEBP",
+      "dimensions": [
+        1024,
+        270
+      ],
+      "bytes": 34430,
+      "sha256": "d18e928d97edc1f2f4bceddc520fd683e1f28cc6c26a81cb4de40f87d7b2a15c",
+      "runtime_component": "Desktop world-stage title",
+      "responsive_relationship": "shared",
+      "source_atlas": "frames"
+    },
+    {
+      "path": "assets/e10/ui/states/available-halo.webp",
+      "purpose": "Warm-gold available-zone halo",
+      "format": "WEBP",
+      "dimensions": [
+        320,
+        240
+      ],
+      "bytes": 27108,
+      "sha256": "e05d93abb18d4e022e0e160fb714d69094fc281b01768d642ba283ce7caed342",
+      "runtime_component": "Available map nodes",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/completed-seal.webp",
+      "purpose": "Completed-zone brass seal",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        256
+      ],
+      "bytes": 22172,
+      "sha256": "e55dd6d3c6a9e4e7d45bdd3ba585ae68c1c779b83d0bca2bba67cbe24577504e",
+      "runtime_component": "Completed map-node state",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/locked-ring.webp",
+      "purpose": "Muted brass locked-zone ring",
+      "format": "WEBP",
+      "dimensions": [
+        288,
+        272
+      ],
+      "bytes": 18828,
+      "sha256": "03534a9b4cee91ee69792393ffd868b277edbea28d505eec3899496da4a74b95",
+      "runtime_component": "Locked map-node state",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/player-location-pin.webp",
+      "purpose": "Authoritative player-location portrait pin",
+      "format": "WEBP",
+      "dimensions": [
+        256,
+        320
+      ],
+      "bytes": 17906,
+      "sha256": "7a39d548a85523cc9cb02d5567ba63bb3945963e54eee5442fdeb95a3e9141d9",
+      "runtime_component": "Single world-stage player marker",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/progress-rail.webp",
+      "purpose": "Teal enamel progress-rail frame",
+      "format": "WEBP",
+      "dimensions": [
+        512,
+        160
+      ],
+      "bytes": 14984,
+      "sha256": "d7050550359118ec3e5872a7391e65f99b669a9128c3f949f3e0ea45dcb9ee92",
+      "runtime_component": "Adventure and zone progress meters",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/selected-halo.webp",
+      "purpose": "Teal selected-zone magical halo",
+      "format": "WEBP",
+      "dimensions": [
+        320,
+        256
+      ],
+      "bytes": 25434,
+      "sha256": "6fe0dc907cf23f4cc8922847434075b71d9a19cef9b81a92294a79906a1265f5",
+      "runtime_component": "Selected and current map nodes",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/skipped-review-ring.webp",
+      "purpose": "Placement-skipped review ring",
+      "format": "WEBP",
+      "dimensions": [
+        288,
+        272
+      ],
+      "bytes": 22534,
+      "sha256": "409a500599c43bc006055f0ecbdb1ff71fd6f7b39fecf6671532379afb915f21",
+      "runtime_component": "skipped_by_placement map-node state",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    },
+    {
+      "path": "assets/e10/ui/states/star.webp",
+      "purpose": "Polished gold progress star",
+      "format": "WEBP",
+      "dimensions": [
+        224,
+        224
+      ],
+      "bytes": 14026,
+      "sha256": "4ee4bf8ef3d89e73a5f2ac5c0d0fe5f8fff55f20ec52637ffc6c24c71acc4934",
+      "runtime_component": "Zone stars and completion display",
+      "responsive_relationship": "shared",
+      "source_atlas": "states"
+    }
+  ]
+}
