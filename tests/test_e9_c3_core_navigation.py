@@ -9,6 +9,7 @@ I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 HERO = (ROOT / "hero.html").read_text(encoding="utf-8")
 LEFT_NAV = (ROOT / "components/adventure/left_nav.html").read_text(encoding="utf-8")
+NAV_REGISTRY = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
 
 
 def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract():
@@ -24,18 +25,10 @@ def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract(
     assert "onclick=" not in MARKUP
 
 
-def test_locked_zones_do_not_get_selection_or_entry_handlers():
-    assert "if (!zone.locked)" in WORLD
-    # renderSelectedZone() must return immediately for any locked/missing
-    # zone, before any CTA wiring -- and (E9 Multi-Zone Progression) must
-    # also defensively hide the CTA in that same guard, not rely on the
-    # click handler (renderZones()'s own `if (!zone.locked)`) alone.
-    guard_start = WORLD.index("if (!zone || zone.locked) {")
-    guard_end = WORLD.index("state.selectedZoneKey", guard_start)
-    guard_body = WORLD[guard_start:guard_end]
-    assert "cta.hidden = true;" in guard_body
-    assert "return;" in guard_body
-    assert "startAdventureFromE9" not in guard_body
+def test_locked_zones_allow_detail_selection_but_never_get_an_entry_target():
+    assert "data-zone-locked" in WORLD
+    assert "enabled: false, targetZoneKey: null" in WORLD
+    assert "button.disabled = !contract.enabled" in WORLD
 
 
 def test_locale_changes_rerender_existing_world_stage_without_new_dictionary():
@@ -51,8 +44,9 @@ def test_locale_changes_rerender_existing_world_stage_without_new_dictionary():
 
 
 def test_hero_and_equipment_have_distinct_canonical_tabs_and_history_contract():
-    assert 'href="/hero?tab=hero"' in LEFT_NAV
-    assert 'href="/hero?tab=equipment"' in LEFT_NAV
+    assert "key: 'hero', target: '/hero?tab=hero'" in NAV_REGISTRY
+    assert "key: 'equipment', target: '/hero?tab=equipment'" in NAV_REGISTRY
+    assert "data-e10-navigation-list" in LEFT_NAV
     assert "const ALL_TABS = ['hero','equipment','gear','pet','class','badges'];" in HERO
     assert "history.pushState({ heroTab: tab }" in HERO
     assert "window.addEventListener('popstate'" in HERO

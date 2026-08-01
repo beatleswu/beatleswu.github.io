@@ -1,71 +1,28 @@
-/*
- * E9 Bottom Dock — component init (non-critical).
- * Operates only on its own root. Every action navigates to an existing
- * real route: /community (leaderboard + friends hub), /badges
- * (achievements), /profile/<username> (game records — own profile).
- * "Settings" has no route in this app and was deliberately dropped from
- * the fragment rather than linked to nothing.
- */
+/* Desktop legacy dock, generated from NavigationRegistry. */
 (function (document) {
   'use strict';
 
-  var ROUTES = {
-    leaderboard: '/community',
-    achievements: '/badges',
-    friends: '/community'
-  };
-
-  function goToOwnProfile(generation) {
-    var current = function () {
-      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
-    };
-    fetch('/api/auth/me', { credentials: 'same-origin' })
-      .then(function (r) {
-        if (!r.ok) throw new Error('auth/me HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function (me) {
-        if (!current()) return;
-        if (me && me.username) {
-          window.location.href = '/profile/' + encodeURIComponent(me.username);
-        } else {
-          throw new Error('no username in /api/auth/me response');
-        }
-      })
-      .catch(function (err) {
-        console.error('[E9] bottom_dock: could not resolve own profile route (non-critical):', err);
-      });
-  }
-
-  function init(root, generation) {
+  function init(root) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
-
-    root.querySelectorAll('[data-e9-dock]').forEach(function (btn) {
-      var action = btn.getAttribute('data-e9-dock');
-      var handler = function () {
-        if (action === 'records') {
-          goToOwnProfile(generation);
-          return;
-        }
-        var route = ROUTES[action];
-        if (route) {
-          window.location.href = route;
-        } else {
-          console.error('[E9] bottom_dock: no route mapped for action', action);
-        }
-      };
-      if (window.E9 && typeof window.E9.on === 'function') {
-        window.E9.on(btn, 'click', handler, null, generation);
-      } else {
-        btn.addEventListener('click', handler);
-      }
+    var registry = window.E9 && window.E9.NavigationRegistry;
+    if (!registry || !registry.exactContract()) return;
+    root.setAttribute('data-e10-vs1f-nav', 'legacy-dock');
+    var list = root.querySelector('[data-e10-navigation-list]');
+    registry.itemsFor('desktop-legacy').forEach(function (item) {
+      var link = document.createElement('a');
+      link.className = 'e9-dock__item';
+      link.href = item.target;
+      link.setAttribute('data-e10-nav-key', item.key);
+      link.setAttribute('data-e10-vs1f-nav', item.key);
+      link.setAttribute('data-e10-state', 'default');
+      link.innerHTML = registry.icon(item.icon, 'e9-dock__icon') + '<span data-i18n="' + item.labelKey + '"></span>';
+      list.appendChild(link);
     });
+    if (window.I18n && window.I18n.apply) window.I18n.apply();
   }
 
-  document.addEventListener('e9:component-loaded', function (e) {
-    if (e.detail && e.detail.component === 'bottom_dock') {
-      init(e.detail.root, e.detail.generation);
-    }
+  document.addEventListener('e9:component-loaded', function (event) {
+    if (event.detail && event.detail.component === 'bottom_dock') init(event.detail.root);
   });
 })(document);

@@ -52,16 +52,77 @@
     }
   }
 
+  function syncDrawerLandmark(root) {
+    var landmark = root.querySelector('#e10-drawer-zone-landmark');
+    var toggle = root.querySelector('#e9-right-drawer-toggle');
+    var desktopSurface = window.matchMedia && window.matchMedia(
+      '(min-width: 768px) and (orientation: landscape), (min-width: 1280px)'
+    ).matches;
+    var source = root.__e10SelectedLandmarkSrc;
+    if (!landmark) return;
+    if (desktopSurface && toggle && toggle.getAttribute('aria-expanded') === 'true' && source) {
+      if (landmark.getAttribute('src') !== source) landmark.setAttribute('src', source);
+      landmark.hidden = false;
+    } else {
+      landmark.hidden = true;
+      landmark.removeAttribute('src');
+    }
+  }
+
   function updateDrawerZoneSummary(root, detail) {
     if (!detail) return;
+    var kicker = root.querySelector('.e10-drawer-zone-summary__kicker');
     var title = root.querySelector('#e10-drawer-zone-title');
     var state = root.querySelector('#e10-drawer-zone-state');
     var body = root.querySelector('#e10-drawer-zone-body');
+    var number = root.querySelector('[data-e10-zone-number]');
+    var stars = root.querySelector('[data-e10-zone-stars]');
+    var questValue = root.querySelector('[data-e10-zone-quest-value]');
+    var questBar = root.querySelector('[data-e10-zone-quest-bar]');
+    var regionValue = root.querySelector('[data-e10-zone-region-value]');
+    var regionBar = root.querySelector('[data-e10-zone-region-bar]');
+    var cta = root.querySelector('[data-e10-zone-cta]');
+    root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
+    root.__e10SelectedZoneKey = detail.zoneKey || '';
+    root.__e10ChallengeTargetZoneKey = detail.challengeTargetZoneKey || '';
+    root.__e10ChallengeTargetEnabled = detail.ctaEnabled === true;
+    syncDrawerLandmark(root);
+    if (kicker) {
+      kicker.textContent = detail.headingText || t(detail.headingKey, 'Selected Zone');
+      kicker.setAttribute('data-zone-heading', detail.isCurrentPlayerZone ? 'current' : 'selected');
+      kicker.removeAttribute('data-i18n');
+    }
     if (title) {
-      title.textContent = detail.name || detail.zoneKey || '';
+      title.textContent = (detail.zoneNumber ? 'Zone ' + detail.zoneNumber + ' · ' : '') + (detail.name || detail.zoneKey || '');
       title.removeAttribute('data-i18n');
     }
     if (state) state.textContent = detail.statusText || '';
+    if (number) number.textContent = String(detail.zoneNumber || '');
+    if (stars) {
+      var earnedStars = Math.max(0, Math.min(3, detail.stars || 0));
+      stars.textContent = '';
+      stars.setAttribute('aria-label', t('index.adv.stars_label', 'Stars') + ': ' + earnedStars + ' / 3');
+      for (var starIndex = 0; starIndex < 3; starIndex += 1) {
+        var star = document.createElement('i');
+        star.className = 'e10-art-star' + (starIndex < earnedStars ? ' is-earned' : ' is-empty');
+        star.setAttribute('aria-hidden', 'true');
+        stars.appendChild(star);
+      }
+    }
+    var questPercent = detail.total ? Math.max(0, Math.min(100, detail.seen / detail.total * 100)) : 0;
+    var regionPercent = detail.zoneNumber ? Math.max(0, Math.min(100, detail.zoneNumber / 10 * 100)) : 0;
+    if (questValue) questValue.textContent = (detail.seen || 0) + ' / ' + (detail.total || 0);
+    if (questBar) questBar.style.width = questPercent + '%';
+    if (regionValue) regionValue.textContent = (detail.zoneNumber || 0) + ' / 10';
+    if (regionBar) regionBar.style.width = regionPercent + '%';
+    if (cta) {
+      cta.hidden = false;
+      cta.disabled = detail.ctaEnabled !== true;
+      cta.setAttribute('aria-disabled', detail.ctaEnabled === true ? 'false' : 'true');
+      cta.setAttribute('data-challenge-target-zone', detail.challengeTargetZoneKey || '');
+      cta.textContent = detail.ctaLabel || t('e10.world_stage.state_locked', 'Locked');
+      cta.removeAttribute('data-i18n');
+    }
     if (body) {
       body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
       body.removeAttribute('data-i18n');
@@ -159,18 +220,86 @@
     setCompactProgress(root, 0, 0);
     var toggle = root.querySelector('#e9-right-drawer-toggle');
     var panel = root.querySelector('#e9-right-drawer-panel');
+    var closeButton = root.querySelector('#e10-right-drawer-close');
+    var slot = root.parentElement;
+    var shell = document.querySelector('.e9-body');
+    var registry = window.E9 && window.E9.NavigationRegistry;
+    var exactVs1f = !!(registry && registry.exactContract && registry.exactContract());
+    var backdrop = null;
+    if (exactVs1f && slot) {
+      if (closeButton) closeButton.innerHTML = registry.icon('close', 'e10-close-icon');
+      var zoneSummary = root.querySelector('.e10-drawer-zone-summary');
+      if (zoneSummary) {
+        var kicker = zoneSummary.querySelector('.e10-drawer-zone-summary__kicker');
+        if (kicker) kicker.setAttribute('data-i18n', 'e10.world_stage.current_zone');
+        var state = zoneSummary.querySelector('#e10-drawer-zone-state');
+        var body = zoneSummary.querySelector('#e10-drawer-zone-body');
+        var information = document.createElement('div');
+        information.className = 'e10-zone-panel-information';
+        information.setAttribute('data-e10-zone-information', '');
+        information.innerHTML = '<span class="e10-zone-panel-runtime__number" data-e10-zone-number></span>'
+          + '<div class="e10-zone-panel-information__copy"></div>';
+        var informationCopy = information.querySelector('.e10-zone-panel-information__copy');
+        if (informationCopy) {
+          if (state) informationCopy.appendChild(state);
+          if (body) informationCopy.appendChild(body);
+        }
+        zoneSummary.appendChild(information);
+        var presentation = document.createElement('div');
+        presentation.className = 'e10-zone-panel-runtime';
+        presentation.setAttribute('data-e10-vs1f-zone-panel', '');
+        presentation.innerHTML = '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars></span>'
+          + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.task_progress"></span><strong data-e10-zone-quest-value></strong><i><b data-e10-zone-quest-bar></b></i></div>'
+          + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.region_progress"></span><strong data-e10-zone-region-value></strong><i><b data-e10-zone-region-bar></b></i></div>'
+          + '<button type="button" class="e10-zone-panel-runtime__cta" data-e10-zone-cta data-i18n="e10.world_stage.continue_adventure"></button>';
+        zoneSummary.appendChild(presentation);
+        var zoneCta = presentation.querySelector('[data-e10-zone-cta]');
+        if (zoneCta) {
+          window.E9.on(zoneCta, 'click', function () {
+            if (root.__e10ChallengeTargetEnabled && root.__e10ChallengeTargetZoneKey
+              && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+              window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey);
+            }
+          }, null, generation);
+        }
+        if (window.I18n && window.I18n.apply) window.I18n.apply(zoneSummary);
+      }
+      backdrop = document.createElement('button');
+      backdrop.type = 'button';
+      backdrop.className = 'e10-drawer-backdrop';
+      backdrop.hidden = true;
+      backdrop.tabIndex = -1;
+      backdrop.setAttribute('aria-hidden', 'true');
+      slot.insertAdjacentElement('beforebegin', backdrop);
+    } else if (closeButton) {
+      closeButton.remove();
+      closeButton = null;
+    }
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation);
     };
-    var setOpen = function (open) {
+    var setOpen = function (open, restoreFocus) {
       if (!toggle || !panel) return;
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       panel.hidden = !open;
       root.classList.toggle('is-drawer-open', open);
+      if (slot) slot.classList.toggle('is-drawer-open', open);
+      if (shell) shell.classList.toggle('is-right-drawer-open', open);
+      if (backdrop) backdrop.hidden = !open;
+      syncDrawerLandmark(root);
+      if (!open && restoreFocus && root.__e9DrawerTrigger) {
+        root.__e9DrawerTrigger.focus();
+      }
     };
     if (toggle && panel) {
-      var onToggle = function () { setOpen(toggle.getAttribute('aria-expanded') !== 'true'); };
-      var onKey = function (evt) { if (evt.key === 'Escape') setOpen(false); };
+      var onToggle = function () {
+        root.__e9DrawerTrigger = toggle;
+        setOpen(toggle.getAttribute('aria-expanded') !== 'true', false);
+      };
+      var onKey = function (evt) {
+        if (evt.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') setOpen(false, true);
+      };
+      var onAdventure = function () { setOpen(false, false); };
       var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
       var onI18nChanged = function () {
         if (!current()) return;
@@ -180,19 +309,25 @@
           updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
         }
       };
-      setOpen(false);
+      setOpen(false, false);
       if (window.E9 && window.E9.latestZoneSelection) {
         updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
       }
       if (window.E9 && typeof window.E9.on === 'function') {
         window.E9.on(toggle, 'click', onToggle, null, generation);
+        if (closeButton) window.E9.on(closeButton, 'click', function () { setOpen(false, true); }, null, generation);
+        if (backdrop) window.E9.on(backdrop, 'click', function () { setOpen(false, true); }, null, generation);
         window.E9.on(document, 'keydown', onKey, null, generation);
         window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
         window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
+        window.E9.on(document, 'e9:adventure-command', onAdventure, null, generation);
       } else {
         toggle.addEventListener('click', onToggle);
+        if (closeButton) closeButton.addEventListener('click', function () { setOpen(false, true); });
+        if (backdrop) backdrop.addEventListener('click', function () { setOpen(false, true); });
         document.addEventListener('keydown', onKey);
         document.addEventListener('e9:zone-selected', onZoneSelected);
+        document.addEventListener('e9:adventure-command', onAdventure);
         document.addEventListener('e9:i18n-changed', onI18nChanged);
       }
     }
@@ -200,6 +335,13 @@
     if (window.E9 && typeof window.E9.registerCleanup === 'function') {
       window.E9.registerCleanup(function () {
         delete root.__e9CompactProgress;
+        delete root.__e10SelectedLandmarkSrc;
+        delete root.__e10SelectedZoneKey;
+        delete root.__e10ChallengeTargetZoneKey;
+        delete root.__e10ChallengeTargetEnabled;
+        if (backdrop) backdrop.remove();
+        if (slot) slot.classList.remove('is-drawer-open');
+        if (shell) shell.classList.remove('is-right-drawer-open');
       }, generation);
     }
     loadDailyChallenge(root, current);

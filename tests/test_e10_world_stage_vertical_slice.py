@@ -27,11 +27,11 @@ def test_all_ten_canonical_keys_have_normalized_node_and_reserved_boss_anchors()
     assert "data-zone-boss-anchor" in JS
 
 
-def test_nodes_are_real_buttons_and_locked_nodes_never_receive_activation_handlers():
+def test_nodes_are_real_buttons_and_locked_nodes_only_allow_detail_selection():
     assert "document.createElement('button')" in JS
-    assert 'tile.disabled = true;' in JS
-    assert 'if (!zone.locked) {' in JS
-    assert "window.E9.startAdventureFromE9(zone.key)" in JS
+    assert "data-zone-locked" in JS
+    assert "enabled: false, targetZoneKey: null" in JS
+    assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in JS
 
 
 def test_mobile_uses_ordered_dom_journey_instead_of_shrinking_the_map():
@@ -48,7 +48,7 @@ def test_right_drawer_is_closed_by_default_and_uses_existing_payload_summary():
     assert 'id="e9-right-drawer-toggle"' in CARDS_HTML
     assert 'aria-controls="e9-right-drawer-panel"' in CARDS_HTML
     assert 'aria-expanded="false"' in CARDS_HTML
-    assert 'setOpen(false);' in CARDS_JS
+    assert 'setOpen(false, false);' in CARDS_JS
     assert "d.cleared" in CARDS_JS and "d.total" in CARDS_JS
     assert 'e10.world_stage.progress_compact' in CARDS_JS
     assert 'e9-drawer-mobile-summary' in CARDS_HTML

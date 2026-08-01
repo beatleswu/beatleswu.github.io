@@ -51,6 +51,10 @@
       status: status,
       locked: status === 'locked',
       cleared: status === 'completed',
+      canEnter: raw.can_enter === true && status !== 'locked',
+      skippedByPlacement: status === 'skipped_by_placement' || raw.skipped_by_placement === true,
+      recommended: raw.recommended === true,
+      selected: raw.selected === true,
       stars: stars,
       bossAvailable: bossAvailable,
       seen: seen,
@@ -72,7 +76,12 @@
       var z = normalizeZone(raw.zones[i]);
       if (z) zones.push(z);
     }
-    return { zones: zones };
+    return {
+      zones: zones,
+      placement: raw.placement || null,
+      recommended: raw.recommended || null,
+      selected: raw.selected || null,
+    };
   }
 
   function classifyHttpError(status) {

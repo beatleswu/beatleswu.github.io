@@ -10,7 +10,7 @@ WORLD_JS = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
 FLAGS = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-CONTRACT = "e10-vs1e-compatibility-bridge"
+CONTRACT = "e10-vs1f-integrated-world-map"
 MARKER = f'<meta name="go-odyssey-static-contract" content="{CONTRACT}">'
 
 
@@ -70,8 +70,8 @@ def test_vs1d_render_path_is_preserved_without_the_contract():
 
 
 def test_bridge_versions_are_exactly_coupled():
-    assert f"ASSET_VERSION = '{CONTRACT}'" in FLAGS
-    assert f"const VERSION     = 'v214-{CONTRACT}'" in SW
+    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
+    assert "const VERSION     = 'v224-e10-bottom-dock-alignment'" in SW
     assert "e10-vs1e-review-closure" not in FLAGS
     assert "v213-e10-vs1e-review-closure" not in SW
     queries = re.findall(
@@ -79,4 +79,4 @@ def test_bridge_versions_are_exactly_coupled():
         r'\?v=([^"\']+)',
         INDEX,
     )
-    assert queries == ["20260730e10vs1e5"] * 5
+    assert queries == ["20260801e10art1"] * 5

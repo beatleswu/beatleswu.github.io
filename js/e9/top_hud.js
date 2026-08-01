@@ -5,12 +5,42 @@
  * here). Real data sources only:
  *   GET /api/skills/profile -> display_name, rank_level
  *   GET /api/user/coins     -> coins
+ *   GET /api/player/appearance -> character_key
  * No Stars/HP/SP here by design (see components/adventure/top_hud.html).
  * A fetch failure shows a translated error/unauthorized state, never a
  * fabricated number, and never affects any other component.
  */
 (function (document) {
   'use strict';
+
+  var VS1F_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
+
+  function applyVs1fBrand(root) {
+    var marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
+    if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;
+    var player = root.querySelector('.e9-hud__player');
+    if (!player || !player.parentNode) return;
+    var brand = document.createElement('div');
+    brand.className = 'e10-hud-brand';
+    brand.setAttribute('data-e10-vs1f-brand', '');
+    brand.innerHTML = '<span class="e10-hud-brand__copy"><strong data-i18n="e10.world_stage.title">奔境奇兵 Go Odyssey</strong></span>';
+    player.insertAdjacentElement('afterend', brand);
+    if (window.I18n && typeof window.I18n.apply === 'function') window.I18n.apply(brand);
+  }
+
+  function applyVs1fAvatar(root) {
+    var marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
+    if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;
+    var avatar = root.querySelector('#top-hud-avatar');
+    if (!avatar) return;
+    avatar.textContent = '';
+    var image = document.createElement('img');
+    image.id = 'top-hud-avatar-image';
+    image.alt = '';
+    image.width = 64;
+    image.height = 64;
+    avatar.appendChild(image);
+  }
 
   function applyText(el, text) {
     if (!el) return;
@@ -26,6 +56,13 @@
     el.removeAttribute('data-i18n');
   }
 
+  function announcePlayerAvatar(source) {
+    if (!source) return;
+    document.dispatchEvent(new CustomEvent('e9:player-avatar-updated', {
+      detail: { source: source },
+    }));
+  }
+
   function t(key, fallback) {
     if (window.E9 && window.E9.I18nFallback && typeof window.E9.I18nFallback.t === 'function') {
       return window.E9.I18nFallback.t(key, fallback);
@@ -33,11 +70,196 @@
     return fallback;
   }
 
+  function setupNavigationShell(root, generation) {
+    var registry = window.E9 && window.E9.NavigationRegistry;
+    if (!registry || !registry.exactContract()) {
+      root.querySelectorAll('[data-e10-vs1f-nav]').forEach(function (node) { node.remove(); });
+      return;
+    }
+    root.setAttribute('data-e10-vs1f-nav', 'utility');
+    var utilities = root.querySelector('[data-e10-utility-list]');
+    var moreOverlay = root.querySelector('#e10-all-features-overlay');
+    var settingsOverlay = root.querySelector('#e10-settings-overlay');
+    var moreTrigger = null;
+    var lastTrigger = null;
+    var previousBodyOverflow = '';
+    var playerTrigger = root.querySelector('.e9-hud__player');
+    var playerMenu = document.createElement('div');
+    playerMenu.className = 'e10-player-menu';
+    playerMenu.id = 'e10-player-menu';
+    playerMenu.hidden = true;
+    playerMenu.setAttribute('data-e10-vs1f-nav', 'player-menu');
+    playerMenu.setAttribute('role', 'menu');
+    playerMenu.innerHTML = '<a role="menuitem" href="/hero?tab=hero" data-i18n="e10.nav.player_profile"></a>'
+      + '<button role="menuitem" type="button" data-e10-player-logout data-i18n="nav.logout"></button>';
+    root.appendChild(playerMenu);
+    if (playerTrigger) {
+      playerTrigger.setAttribute('aria-haspopup', 'menu');
+      playerTrigger.setAttribute('aria-controls', playerMenu.id);
+      playerTrigger.setAttribute('aria-expanded', 'false');
+      playerTrigger.insertAdjacentHTML('beforeend', '<span class="e10-player-menu-arrow" aria-hidden="true"></span>');
+    }
+
+    function makeControl(item, extraClass) {
+      var control = document.createElement(item.target ? 'a' : 'button');
+      control.className = 'e10-utility-control ' + (extraClass || '');
+      control.setAttribute('data-e10-nav-key', item.key);
+      control.setAttribute('data-e10-vs1f-nav', item.key);
+      control.setAttribute('data-e10-state', 'default');
+      if (item.target) control.href = item.target;
+      if (!item.target) control.type = 'button';
+      if (item.command) {
+        control.setAttribute('data-e10-command', item.command);
+        control.setAttribute('aria-controls', 'e10-' + item.command + '-overlay');
+        control.setAttribute('aria-expanded', 'false');
+      }
+      control.innerHTML = registry.icon(item.icon, 'e10-utility-icon') + '<span data-i18n="' + item.labelKey + '"></span>';
+      return control;
+    }
+
+    function focusables(overlay) {
+      return Array.prototype.slice.call(overlay.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+    }
+
+    function closeAll(restoreFocus) {
+      moreOverlay.hidden = true;
+      settingsOverlay.hidden = true;
+      playerMenu.hidden = true;
+      if (playerTrigger) playerTrigger.setAttribute('aria-expanded', 'false');
+      if (moreTrigger) moreTrigger.setAttribute('aria-expanded', 'false');
+      root.querySelectorAll('[data-e10-command="settings"]').forEach(function (control) { control.setAttribute('aria-expanded', 'false'); });
+      document.body.style.overflow = previousBodyOverflow;
+      if (restoreFocus && lastTrigger && document.contains(lastTrigger)) lastTrigger.focus();
+    }
+
+    function openOverlay(overlay, trigger, returnTrigger) {
+      closeAll(false);
+      lastTrigger = returnTrigger || trigger;
+      previousBodyOverflow = document.body.style.overflow;
+      overlay.hidden = false;
+      if (trigger && trigger.getAttribute('aria-expanded') !== null) trigger.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+      var targets = focusables(overlay);
+      if (targets.length) targets[0].focus();
+    }
+
+    function onDialogKey(event) {
+      var overlay = !moreOverlay.hidden ? moreOverlay : (!settingsOverlay.hidden ? settingsOverlay : null);
+      if (!overlay && !playerMenu.hidden && event.key === 'Escape') {
+        event.preventDefault();
+        closeAll(false);
+        if (playerTrigger) playerTrigger.focus();
+        return;
+      }
+      if (!overlay) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeAll(true);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      var targets = focusables(overlay);
+      if (!targets.length) return;
+      var first = targets[0];
+      var last = targets[targets.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+
+    registry.itemsFor('utility').forEach(function (item) {
+      var control = makeControl(item);
+      utilities.appendChild(control);
+      if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control); }, null, generation);
+    });
+    moreTrigger = document.createElement('button');
+    moreTrigger.type = 'button';
+    moreTrigger.className = 'e10-utility-control e10-more-trigger';
+    moreTrigger.setAttribute('data-e10-vs1f-nav', 'more');
+    moreTrigger.setAttribute('data-e10-state', 'default');
+    moreTrigger.setAttribute('aria-controls', 'e10-all-features-overlay');
+    moreTrigger.setAttribute('aria-expanded', 'false');
+    moreTrigger.innerHTML = registry.icon('all_features', 'e10-utility-icon') + '<span data-i18n="e10.nav.all_features"></span>';
+    utilities.appendChild(moreTrigger);
+
+    registry.itemsFor('more').forEach(function (item) {
+      var control = makeControl(item, 'e10-more-item');
+      root.querySelector('[data-e10-more-list]').appendChild(control);
+      if (item.command === 'settings') window.E9.on(control, 'click', function () { openOverlay(settingsOverlay, control, moreTrigger); }, null, generation);
+    });
+    window.E9.on(moreTrigger, 'click', function () {
+      openOverlay(moreOverlay, moreTrigger);
+      moreTrigger.setAttribute('aria-expanded', 'true');
+    }, null, generation);
+    if (playerTrigger) {
+      window.E9.on(playerTrigger, 'click', function (event) {
+        event.preventDefault();
+        var opening = playerMenu.hidden;
+        closeAll(false);
+        playerMenu.hidden = !opening;
+        playerTrigger.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) {
+          var first = playerMenu.querySelector('[role="menuitem"]');
+          if (first) first.focus();
+        }
+      }, null, generation);
+    }
+    var logout = playerMenu.querySelector('[data-e10-player-logout]');
+    if (logout) {
+      window.E9.on(logout, 'click', function () {
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+          .catch(function () {})
+          .then(function () { window.location.href = '/login?from=logout'; });
+      }, null, generation);
+    }
+    root.querySelectorAll('[data-e10-dialog-close]').forEach(function (button) {
+      button.innerHTML = registry.icon('close', 'e10-dialog-close-icon');
+      window.E9.on(button, 'click', function () { closeAll(true); }, null, generation);
+    });
+    window.E9.on(document, 'keydown', onDialogKey, null, generation);
+    window.E9.on(document, 'e9:adventure-command', function () { closeAll(false); }, null, generation);
+    window.E9.registerCleanup(function () { closeAll(false); }, generation);
+
+    var language = root.querySelector('#e10-settings-language');
+    if (language && window.I18n && window.I18n.renderSwitcher) window.I18n.renderSwitcher(language);
+    var sound = root.querySelector('#e10-settings-sound');
+    var soundState = root.querySelector('#e10-settings-sound-state');
+    var syncSoundState = function () {
+      if (!sound || !soundState) return;
+      var key = sound.checked ? 'e10.nav.sound_on' : 'e10.nav.sound_off';
+      var localizedState = window.I18n && typeof window.I18n.t === 'function'
+        ? window.I18n.t(key)
+        : (sound.checked ? 'On' : 'Off');
+      var localizedSound = window.I18n && typeof window.I18n.t === 'function'
+        ? window.I18n.t('e10.nav.sound')
+        : 'Sound';
+      soundState.setAttribute('data-i18n', key);
+      soundState.textContent = localizedState;
+      sound.setAttribute('aria-label', localizedSound + ': ' + localizedState);
+    };
+    if (sound && window.SFX) {
+      sound.checked = !window.SFX.muted;
+      syncSoundState();
+      window.E9.on(sound, 'change', function () {
+        window.SFX.muted = !sound.checked;
+        syncSoundState();
+      }, null, generation);
+      window.E9.on(document, 'e9:i18n-changed', syncSoundState, null, generation);
+    } else if (sound && sound.parentNode) {
+      sound.parentNode.hidden = true;
+    }
+    if (window.I18n && window.I18n.apply) window.I18n.apply();
+  }
+
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return; // no duplicate binding
     root.setAttribute('data-e9-inited', '1');
+    applyVs1fBrand(root);
+    applyVs1fAvatar(root);
+    setupNavigationShell(root, generation);
 
     var nameEl = root.querySelector('#top-hud-name');
+    var playerEl = root.querySelector('.e9-hud__player');
+    var avatarEl = root.querySelector('#top-hud-avatar-image');
     var levelWrap = root.querySelector('#top-hud-level');
     var levelValueEl = root.querySelector('#top-hud-level-value');
     var coinsEl = root.querySelector('#top-hud-coins');
@@ -65,6 +287,16 @@
 
       var data = result.data;
       applyText(nameEl, data.name || t('e9.top_hud.error', 'Player status unavailable'));
+      if (avatarEl) {
+        avatarEl.onerror = function () {
+          avatarEl.onerror = null;
+          avatarEl.src = data.avatarFallbackSrc;
+          avatarEl.setAttribute('data-e10-avatar-fallback', '');
+          announcePlayerAvatar(data.avatarFallbackSrc);
+        };
+        avatarEl.src = data.avatarSrc;
+        announcePlayerAvatar(data.avatarSrc);
+      }
 
       // level is a plain number (adapter already stripped the 'LV' prefix
       // from rank_level) -- rendered next to the existing "Lv." label, so
@@ -73,11 +305,24 @@
         if (levelValueEl) levelValueEl.textContent = String(data.level);
         if (levelWrap) levelWrap.hidden = false;
       }
+      if (playerEl) {
+        var identityName = data.name || t('e9.top_hud.error', 'Player status unavailable');
+        var identityLevel = data.level !== null ? ' ' + t('e9.top_hud.level_label', 'Lv.') + ' ' + data.level : '';
+        playerEl.setAttribute('aria-label', identityName + identityLevel);
+        playerEl.removeAttribute('data-i18n-aria-label');
+      }
 
       if (data.coins !== null) {
         if (coinsEl) {
           var formattedCoins = data.coins.toLocaleString();
-          coinsEl.textContent = formattedCoins;
+          var registry = window.E9 && window.E9.NavigationRegistry;
+          coinsEl.textContent = '';
+          if (registry && registry.exactContract()) {
+            coinsEl.insertAdjacentHTML('afterbegin', registry.icon('coin', 'e10-coin-icon'));
+          }
+          var amount = document.createElement('span');
+          amount.textContent = formattedCoins;
+          coinsEl.appendChild(amount);
           coinsEl.setAttribute(
             'aria-label',
             t('e10.rpg.coins_label', '{n} coins').replace('{n}', formattedCoins)

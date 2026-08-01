@@ -156,6 +156,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
+        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
         shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
         shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
@@ -174,7 +175,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         governed_paths = (
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
-            | {"i18n.js", "sw.js"}
+            | {"i18n.js", "sw.js", "index.html"}
         )
         assert set(staged_by_path.keys()) == governed_paths, (
             "staged file set must be exactly the governed closure -- no more, no less "
@@ -192,6 +193,7 @@ def test_partial_generation_fails_closed_missing_file():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
+        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
         shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
         shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
@@ -221,6 +223,7 @@ def test_partial_generation_fails_closed_corrupted_hash():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
+        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
         shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
         shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
@@ -249,13 +252,20 @@ def test_partial_generation_fails_closed_corrupted_hash():
 
 
 def test_no_unreferenced_historical_files_in_closure_manifest():
-    # The manifest must be exactly the 181 currently-referenced files, not
+    # The manifest must be exactly the 192 previously referenced files plus
+    # the 41 Owner-authorized E10 runtime UI assets, not
     # the full 757MB historical tree this incident's audit found on the
     # production host (1,391 files) -- no blind wholesale import.
     manifest = _load_closure_manifest()
-    assert manifest["total_files"] == 181
-    assert len(manifest["files"]) == 181
+    assert manifest["total_files"] == 233
+    assert len(manifest["files"]) == 233
     referenced = scan_runtime_image_references()
+    # The E10 icon registry composes its local root and file names at runtime,
+    # so those URLs are intentionally not discoverable as full literals by the
+    # legacy grep scanner. Their dedicated inventory test proves every entry is
+    # consumed by the exact-marker registry or art stylesheet.
+    ui_inventory = json.loads(_read(REPO_ROOT / "assets" / "e10" / "ui" / "e10-ui-assets.json"))
+    referenced.update("/" + asset["path"] for asset in ui_inventory["assets"])
     governed = {"/" + f["path"] for f in manifest["files"]}
     over_broad = governed - referenced
     assert not over_broad, (
@@ -292,8 +302,8 @@ def test_deploy_script_does_not_hardcode_a_two_file_assumption():
 
 
 # ---------------------------------------------------------------------------
-# Provenance sanity -- the 2 production-host-recovered files are honestly
-# recorded, not silently blended in with the git-verified 178.
+# Provenance sanity -- recovered, historical, and Owner-authorized
+# project-created assets remain separate exact classes.
 # ---------------------------------------------------------------------------
 
 def test_manifest_provenance_classes_are_honest():
@@ -303,9 +313,23 @@ def test_manifest_provenance_classes_are_honest():
         by_class.setdefault(f["provenance"], []).append(f["path"])
     assert len(by_class.get("historical-git-verified", [])) == 178
     assert len(by_class.get("production-host-recovered", [])) == 2
-    assert by_class.get("owner-approved-project-created") == [
+    expected_owner_created = {
+        "assets/maps/e10-vs1f-landmarks/zone-01-beginner-village.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-02-slime-plains.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-07-star-sea-passage.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-08-abyssal-forge.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp",
+        "assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp",
         "assets/maps/e10_world_stage_v1_base.webp",
-    ]
+        "assets/maps/e10_world_stage_v2_clean.webp",
+    }
+    ui_inventory = json.loads(_read(REPO_ROOT / "assets" / "e10" / "ui" / "e10-ui-assets.json"))
+    expected_owner_created.update(asset["path"] for asset in ui_inventory["assets"])
+    assert by_class.get("owner-approved-project-created") == sorted(expected_owner_created)
     assert set(by_class["production-host-recovered"]) == {
         "assets/go_rpg_assets/claire_avatar.webp",
         "assets/shop/title_badge_recruit.webp",

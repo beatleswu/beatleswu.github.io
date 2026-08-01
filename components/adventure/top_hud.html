@@ -4,31 +4,45 @@
   Real data sources (no new API):
     GET /api/skills/profile -> display_name, rank_level
     GET /api/user/coins     -> coins
+    GET /api/player/appearance -> character_key
   Deliberately does NOT show Stars/HP/SP -- Stars is a per-zone 0-3 rating
   (belongs on World Stage, not a global player stat), HP/SP only exist as
   transient in-battle state with no persistence API. Showing 0/0 for those
   here would be fabricated data. See docs/planning/e9_1a2_legacy_shell_integration.md.
 -->
 <section id="top-hud" class="e9-hud" data-e9-component="top_hud" role="region" data-i18n-aria-label="e9.top_hud.aria_label">
-  <div class="e10-hud-brand">
-    <svg class="e10-hud-brand__crest" viewBox="0 0 48 56" aria-hidden="true" focusable="false">
-      <path d="M24 2 44 10v15c0 13-8 23-20 29C12 48 4 38 4 25V10Z"/>
-      <circle cx="19" cy="25" r="8"/>
-      <circle cx="29" cy="31" r="8"/>
-    </svg>
-    <span class="e10-hud-brand__copy">
-      <strong data-i18n="common.brand">Go Odyssey</strong>
-      <span data-i18n="e10.rpg.world_stage_label">World Stage</span>
-    </span>
-  </div>
-  <div class="e9-hud__player">
+  <a class="e9-hud__player" href="/hero?tab=hero" data-i18n-aria-label="e10.nav.player_profile">
+    <span class="e9-hud__avatar" id="top-hud-avatar" aria-hidden="true">GO</span>
     <span class="e9-hud__name" id="top-hud-name" data-i18n="e9.top_hud.loading" aria-live="polite">Loading player status…</span>
     <span class="e9-hud__level" id="top-hud-level" hidden>
       <span data-i18n="e9.top_hud.level_label">Lv.</span>
       <span id="top-hud-level-value">--</span>
     </span>
+  </a>
+  <div class="e10-hud__right">
+    <div class="e9-hud__resources">
+      <span class="e9-hud__coins" id="top-hud-coins" hidden>--</span>
+    </div>
+    <div class="e10-hud__utilities" data-e10-utility-list></div>
   </div>
-  <div class="e9-hud__resources">
-    <span class="e9-hud__coins" id="top-hud-coins" hidden>--</span>
+  <div class="e10-nav-overlay" id="e10-all-features-overlay" hidden data-e10-vs1f-nav="all-features-overlay">
+    <section class="e10-nav-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-all-features-title">
+      <header><h2 id="e10-all-features-title" data-i18n="e10.nav.all_features">All Features</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close"></button></header>
+      <nav class="e10-more-grid" data-e10-more-list data-i18n-aria-label="e10.nav.all_features"></nav>
+    </section>
+  </div>
+  <div class="e10-nav-overlay" id="e10-settings-overlay" hidden data-e10-vs1f-nav="settings-overlay">
+    <section class="e10-nav-dialog e10-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-settings-title">
+      <header><h2 id="e10-settings-title" data-i18n="e9.bottom_dock.settings">Settings</h2><button type="button" data-e10-dialog-close data-i18n-aria-label="e10.nav.close"></button></header>
+      <fieldset><legend data-i18n="e10.nav.language">Language</legend><div id="e10-settings-language"></div></fieldset>
+      <label class="e10-settings-toggle">
+        <span data-i18n="e10.nav.sound">Sound</span>
+        <span class="e10-settings-switch">
+          <input id="e10-settings-sound" type="checkbox">
+          <span class="e10-settings-switch__track" aria-hidden="true"><span class="e10-settings-switch__thumb"></span></span>
+        </span>
+        <span class="e10-settings-toggle__state" id="e10-settings-sound-state" aria-live="polite"></span>
+      </label>
+    </section>
   </div>
 </section>

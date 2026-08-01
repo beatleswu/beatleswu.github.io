@@ -99,6 +99,17 @@ test('normalizeCoins: string coerced value rejected (must be real number type)',
   assert.strictEqual(r.coins, null);
 });
 
+test('normalizeAppearance: known runtime character uses the formal asset', () => {
+  const r = PlayerState.normalizeAppearance({ character_key: 'mage' });
+  assert.strictEqual(r.avatarSrc, '/assets/hero/characters/chibi_mage_normalized.webp');
+});
+test('normalizeAppearance: unknown or missing character uses the neutral project fallback', () => {
+  const missing = PlayerState.normalizeAppearance(null);
+  const unknown = PlayerState.normalizeAppearance({ character_key: 'not-a-runtime-character' });
+  assert.strictEqual(missing.avatarSrc, '/assets/hero/characters/chibi_reference_normalized.webp');
+  assert.strictEqual(unknown.avatarSrc, missing.avatarSrc);
+});
+
 // --- AdventureState.normalizeZone -------------------------------------------
 test('normalizeZone: valid locked zone', () => {
   const z = AdventureState.normalizeZone({ key: 'k1', name: 'Zone 1', status: 'locked', stars: 0 });
@@ -110,6 +121,27 @@ test('normalizeZone: cleared zone with full stars', () => {
   const z = AdventureState.normalizeZone({ key: 'k1', name: 'Zone 1', status: 'completed', stars: 3, boss: { available: false } });
   assert.strictEqual(z.cleared, true);
   assert.strictEqual(z.stars, 3);
+});
+test('normalizeZone: placement skip remains distinct from completed', () => {
+  const z = AdventureState.normalizeZone({
+    key: 'k1', name: 'Zone 1', status: 'skipped_by_placement',
+    skipped_by_placement: true, completed: false, can_enter: true, stars: 0,
+  });
+  assert.strictEqual(z.skippedByPlacement, true);
+  assert.strictEqual(z.cleared, false);
+  assert.strictEqual(z.canEnter, true);
+  assert.strictEqual(z.stars, 0);
+});
+test('normalizeZones: preserves canonical placement and frontier metadata', () => {
+  const normalized = AdventureState.normalizeZones({
+    placement: { effective_start_zone_key: 'k1_5' },
+    recommended: { zone_key: 'k1_5' },
+    selected: { zone_key: 'k1_5' },
+    zones: [{ key: 'k1_5', name: 'Dragon Valley', status: 'unlocked', can_enter: true }],
+  });
+  assert.strictEqual(normalized.placement.effective_start_zone_key, 'k1_5');
+  assert.strictEqual(normalized.recommended.zone_key, 'k1_5');
+  assert.strictEqual(normalized.selected.zone_key, 'k1_5');
 });
 test('normalizeZone: stars clamped above range', () => {
   const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', stars: 99 });
@@ -234,18 +266,18 @@ test('normalizeMistakes: negative rejected', () => {
 // --- fetch-layer HTTP status classification (401/403/500/network) ---------
 async function run() {
   await testAsync('fetchPlayerState: 401 classified as unauthorized', async () => {
-    const fetchImpl = fakeFetch([{ ok: false, status: 401 }, { ok: true, status: 200, body: { coins: 0 } }]);
+    const fetchImpl = fakeFetch([{ ok: false, status: 401 }, { ok: true, status: 200, body: { coins: 0 } }, { ok: false, status: 500 }]);
     const r = await PlayerState.fetchPlayerState(fetchImpl);
     assert.strictEqual(r.ok, false);
     assert.strictEqual(r.kind, 'unauthorized');
   });
   await testAsync('fetchPlayerState: 403 classified as unauthorized', async () => {
-    const fetchImpl = fakeFetch([{ ok: false, status: 403 }, { ok: true, status: 200, body: { coins: 0 } }]);
+    const fetchImpl = fakeFetch([{ ok: false, status: 403 }, { ok: true, status: 200, body: { coins: 0 } }, { ok: false, status: 500 }]);
     const r = await PlayerState.fetchPlayerState(fetchImpl);
     assert.strictEqual(r.kind, 'unauthorized');
   });
   await testAsync('fetchPlayerState: 500 classified as error', async () => {
-    const fetchImpl = fakeFetch([{ ok: false, status: 500 }, { ok: true, status: 200, body: { coins: 0 } }]);
+    const fetchImpl = fakeFetch([{ ok: false, status: 500 }, { ok: true, status: 200, body: { coins: 0 } }, { ok: false, status: 500 }]);
     const r = await PlayerState.fetchPlayerState(fetchImpl);
     assert.strictEqual(r.kind, 'error');
   });
@@ -253,12 +285,14 @@ async function run() {
     const fetchImpl = fakeFetch([
       { ok: true, status: 200, body: { display_name: 'test01', rank_level: 'LV8' } },
       { ok: true, status: 200, body: { coins: 250 } },
+      { ok: true, status: 200, body: { character_key: 'mage' } },
     ]);
     const r = await PlayerState.fetchPlayerState(fetchImpl);
     assert.strictEqual(r.ok, true);
     assert.strictEqual(r.data.name, 'test01');
     assert.strictEqual(r.data.level, 8);
     assert.strictEqual(r.data.coins, 250);
+    assert.strictEqual(r.data.avatarSrc, '/assets/hero/characters/chibi_mage_normalized.webp');
   });
   await testAsync('fetchAdventureState: network failure classified as network', async () => {
     const fetchImpl = function () { return Promise.reject(new Error('boom')); };

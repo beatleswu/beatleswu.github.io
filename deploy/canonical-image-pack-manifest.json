@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1300,
-  "total_bytes": 757283152,
+  "total_files": 1352,
+  "total_bytes": 759875016,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 2
+    "owner-approved-project-created": 54
   },
   "files": [
     {
@@ -331,6 +331,416 @@
       "height": 720,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/e10/ui/cta/adventure-primary-frame.webp",
+      "size": 30516,
+      "sha256": "1373fdaf1e6a7bd9e55db78b9912fb68cbfce5608643f74d965a0e9e26ce0c00",
+      "mime": "image/webp",
+      "width": 1024,
+      "height": 288,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/frames/legacy-dock-frame.webp",
+      "size": 62286,
+      "sha256": "deee57f81a25377dc2c06410267c73dcf22493fb27238c0c86b27d8ed4d1cac6",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 384,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/adventure.webp",
+      "size": 23094,
+      "sha256": "865c7c49c3f490e2ba7246b6d23b66b2325f1a4209301bde3a90cfc28fe42ebd",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/all-features.webp",
+      "size": 21434,
+      "sha256": "5102acc7ede1f5b822319296c9c44620ea946a0d232319ea6b8c0e12c6ee86dc",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/arena.webp",
+      "size": 20080,
+      "sha256": "c10c7ff309ac6880b2883a345f80d14594610c1dde380c3b8c710a3260d24d2d",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/backpack.webp",
+      "size": 23796,
+      "sha256": "2ccf393babaf72170792f4156469f7e0a8239313a4377dd99ba29029a1467a0a",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/badges.webp",
+      "size": 14900,
+      "sha256": "2a9036cad16a1891e9b3bb206d4e1316721513df199f1a1c41dbe6dbbf7536c8",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/battle-log.webp",
+      "size": 15708,
+      "sha256": "d4988614969a68889fcb053c0eb36ca4e7859d43ab4c790599b0cd7736f65022",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/close.webp",
+      "size": 14898,
+      "sha256": "472bca55f99875cd61cd00d57485b167810368eb9d64d81a2b27b2bfc25f5a23",
+      "mime": "image/webp",
+      "width": 192,
+      "height": 192,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/coins.webp",
+      "size": 21944,
+      "sha256": "85fb508549c61e57c5a70f7c5697b1335443a474e7fcfe710375c7b431ab44f5",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/daily-challenge.webp",
+      "size": 19092,
+      "sha256": "186f1e90c4e7eb2d0cf0779b258849930cf2cbf4a7071b040ff5742b25977e17",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/equipment.webp",
+      "size": 20096,
+      "sha256": "6864993ecdd00b810abf79dd556992e9d104fad215b7ad81bc4101f42f885515",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/game-records.webp",
+      "size": 17182,
+      "sha256": "e5ee3d7ccc06e2d184678214501fca92a4c2474fbb41542fce1b2c2c1d2fc5c6",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/go-spirit.webp",
+      "size": 23158,
+      "sha256": "f125efab693d4320bf829d4e3860679cbb41f6e8d8dab01ddf7341d49094b0d1",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/hero.webp",
+      "size": 19904,
+      "sha256": "58dd70ccf0dfad2ab757e509c046f7f37ccd58d9177cdf6380501a362cff1f3b",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/heroes-hall.webp",
+      "size": 28722,
+      "sha256": "901480df7e9c54edf0433270bd7f5160ae8a30c96d0d4d08dda4240a19035e7c",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/lock.webp",
+      "size": 15078,
+      "sha256": "fceb29ef8b0fa468232655a40cb3d45f380dba965f591de21f89aaa7f1876330",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/messages.webp",
+      "size": 12894,
+      "sha256": "4801cf9442166ba07e3034aa4293d615b84ce393a55261820d95376a46d8becb",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/pass.webp",
+      "size": 19232,
+      "sha256": "0fcf056c26aebf3e093e9bf97c36efdd7640ae62dc58d1639561992c28dc97a0",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/settings.webp",
+      "size": 22722,
+      "sha256": "60ea84e53c855f0199a78027645f88fee395f2ba23209fd7e8215aa14d3f2c30",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/shop.webp",
+      "size": 21526,
+      "sha256": "51feb7490dceca426f2ce2d284c5de1878fc76cdefe704a2c47f55fddbcea310",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/soul-records.webp",
+      "size": 20156,
+      "sha256": "f1c8205f9c927b0ee1232d6b8afd9c54e3080cb223c418ad4ad87079950acd3e",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/star-chart.webp",
+      "size": 14292,
+      "sha256": "ed6c55e92f05631a5a06f8cb0afe1eb1abdf35db67f1784061b2dffc0c76aca5",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/icons/tavern.webp",
+      "size": 20874,
+      "sha256": "765a4642e0d5ed2f78b75c33631becc5fc4b8dc06b3dfe5897c6ec3f7d1edc30",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/medallions/navigation-badge-frame.webp",
+      "size": 32024,
+      "sha256": "9eb5f70645f999d14f412c36848a6ed8e8cad083b6faf1621c06672bcf3c3d0d",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 336,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/medallions/utility-medallion-frame.webp",
+      "size": 19992,
+      "sha256": "fa04bcdf3822d109db93fe5f454a2051780ac4a16896bd8c5332c5485017a4a7",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 260,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/medallions/zone-number-frame.webp",
+      "size": 16960,
+      "sha256": "1cd93c7dda903d810489e0b1cc493df97e8f142b71fffe175b27a332a8296c8e",
+      "mime": "image/webp",
+      "width": 224,
+      "height": 224,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/ornaments/dropdown-chevron.webp",
+      "size": 6268,
+      "sha256": "aea72cbecc617efcba46e9264e675c47a4d1105fb0414c3b7b952468423fb8f0",
+      "mime": "image/webp",
+      "width": 160,
+      "height": 112,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/ornaments/outer-frame-corner.webp",
+      "size": 14406,
+      "sha256": "434ff8b3f02db7db4c1e28631570722341a3272ece1d4c8168496bb9223567cf",
+      "mime": "image/webp",
+      "width": 384,
+      "height": 384,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/panels/zone-panel-frame.webp",
+      "size": 44754,
+      "sha256": "52c4b7909d4369287c7aeae6d235f8552aa3a9d8f114e3096efc85cd3d0bf484",
+      "mime": "image/webp",
+      "width": 640,
+      "height": 640,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/plaques/navigation-label.webp",
+      "size": 8846,
+      "sha256": "5c9919e2752be81d45ea9336bb4062695ccb6532f4dc72d8abe1904a34c5bb5e",
+      "mime": "image/webp",
+      "width": 384,
+      "height": 104,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/plaques/player-identity-plaque.webp",
+      "size": 22986,
+      "sha256": "124f5d1020afa45d88b6533169770050b44afb7095f7a6904da840c7e72a07bf",
+      "mime": "image/webp",
+      "width": 768,
+      "height": 240,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/plaques/title-plaque.webp",
+      "size": 34430,
+      "sha256": "d18e928d97edc1f2f4bceddc520fd683e1f28cc6c26a81cb4de40f87d7b2a15c",
+      "mime": "image/webp",
+      "width": 1024,
+      "height": 270,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/available-halo.webp",
+      "size": 27108,
+      "sha256": "e05d93abb18d4e022e0e160fb714d69094fc281b01768d642ba283ce7caed342",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 240,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/completed-seal.webp",
+      "size": 22172,
+      "sha256": "e55dd6d3c6a9e4e7d45bdd3ba585ae68c1c779b83d0bca2bba67cbe24577504e",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/locked-ring.webp",
+      "size": 18828,
+      "sha256": "03534a9b4cee91ee69792393ffd868b277edbea28d505eec3899496da4a74b95",
+      "mime": "image/webp",
+      "width": 288,
+      "height": 272,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/player-location-pin.webp",
+      "size": 17906,
+      "sha256": "7a39d548a85523cc9cb02d5567ba63bb3945963e54eee5442fdeb95a3e9141d9",
+      "mime": "image/webp",
+      "width": 256,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/progress-rail.webp",
+      "size": 14984,
+      "sha256": "d7050550359118ec3e5872a7391e65f99b669a9128c3f949f3e0ea45dcb9ee92",
+      "mime": "image/webp",
+      "width": 512,
+      "height": 160,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/selected-halo.webp",
+      "size": 25434,
+      "sha256": "6fe0dc907cf23f4cc8922847434075b71d9a19cef9b81a92294a79906a1265f5",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/skipped-review-ring.webp",
+      "size": 22534,
+      "sha256": "409a500599c43bc006055f0ecbdb1ff71fd6f7b39fecf6671532379afb915f21",
+      "mime": "image/webp",
+      "width": 288,
+      "height": 272,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
+    },
+    {
+      "path": "assets/e10/ui/states/star.webp",
+      "size": 14026,
+      "sha256": "4ee4bf8ef3d89e73a5f2ac5c0d0fe5f8fff55f20ec52637ffc6c24c71acc4934",
+      "mime": "image/webp",
+      "width": 224,
+      "height": 224,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized Phase B modular E10 runtime UI artwork generated under the authoritative Owner reference, chroma-key removed with soft matte and despill, deterministically cropped and encoded by tools/build_e10_art_directed_ui_assets.py; no live or localized text is embedded."
     },
     {
       "path": "assets/go_rpg_assets/battle_record_icon.png",
@@ -6613,6 +7023,106 @@
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
     },
     {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-01-beginner-village.webp",
+      "size": 118210,
+      "sha256": "e29295515f0db984fa2a35548e79488cb8f967f551293fcca8d6b37213ed9a94",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-02-slime-plains.webp",
+      "size": 102048,
+      "sha256": "1437c3fe20be39cc58793d987831d8c156b870e3f37b3d8e1cb4e2220d88cb30",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-03-goblin-cave.webp",
+      "size": 98708,
+      "sha256": "a9f611c9d24c7f1bf17ee0bac28978a5a12b736ed8b6dd09f34b97cb59864027",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-04-twilight-forest.webp",
+      "size": 121564,
+      "sha256": "66ce21d485273fe4420a3737d761faf02e382d701fc03a43a85925b7c9bb0103",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp",
+      "size": 61774,
+      "sha256": "70d59b55b4892a46bce7910f91f4a4ffab067a4e6d6b868b753511c6523c9309",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-06-royal-castle.webp",
+      "size": 89776,
+      "sha256": "4f31af85ad90eaad73a22c885d4afe5aa9995afb36000122d34c56734b29678f",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-07-star-sea-passage.webp",
+      "size": 75136,
+      "sha256": "062bd5eda25becb644b19c832e627e727f7d332a8aeccdab6d71928d7a6c74d0",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-08-abyssal-forge.webp",
+      "size": 84142,
+      "sha256": "be1cccd1a0ebf933559a16867a2957c061301e74d0fd343b3840b1927af1d762",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-09-eternal-night-shrine.webp",
+      "size": 84862,
+      "sha256": "75a1ded2dd22d79f32a1db36df75c9cfba44827894abf4e12c79f84b6fa4ff87",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
+      "path": "assets/maps/e10-vs1f-landmarks/zone-10-ancient-doom-temple.webp",
+      "size": 114196,
+      "sha256": "a592d2f65474c321bc63ce344cdb9937691e0437169797afd11dc3173303d647",
+      "mime": "image/webp",
+      "width": 320,
+      "height": 320,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-authorized E10 VS1F original landmark, independently generated for this sprint and converted from a retained lossless chroma-key source to a transparent Runtime WebP; no concept-image pixels, labels, status, credentials, prompts, or private generation metadata are embedded."
+    },
+    {
       "path": "assets/maps/e10_world_stage_v1_base.png",
       "size": 3312491,
       "sha256": "bfa114a68aa80c7797712921ff67c40a13068aa632d28aecab45b559780b46dd",
@@ -6631,6 +7141,16 @@
       "height": 941,
       "provenance": "owner-approved-project-created",
       "source_evidence": "VS1C-1 audit accepted WebP derivative of the owner-approved base PNG, encoded with Pillow WebP quality=90, method=6. SHA-256 and size verified; no prompt, credential, or private generation metadata is recorded."
+    },
+    {
+      "path": "assets/maps/e10_world_stage_v2_clean.webp",
+      "size": 754206,
+      "sha256": "32c6b137422a3b897677564d1f4e11002308b96807e0b27e2d3a3c3243d6ceb5",
+      "mime": "image/webp",
+      "width": 2048,
+      "height": 1152,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Deterministic Pillow WebP quality=90, method=6 derivative of the Owner-provided 2048x1152 clean PNG (SHA-256 f735798ad1e072fad57ca5d9286facea0656dee5d409ad9ddabf39e96b961b4); build identity is enforced by tools/build_e10_world_stage_v2_asset.py."
     },
     {
       "path": "assets/maps/main_adventure_map.png",

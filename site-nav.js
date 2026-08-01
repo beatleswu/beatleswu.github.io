@@ -30,6 +30,13 @@
     rating: '<circle cx="16" cy="16" r="10"/><circle cx="16" cy="16" r="4"/><path d="M16 6v3M16 23v3M6 16h3M23 16h3M9.1 9.1l2.1 2.1M20.8 20.8l2.1 2.1M9.1 22.9l2.1-2.1M20.8 11.2l2.1-2.1"/>',
   };
 
+  const E10_VS1F_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
+
+  function ownsE10Navigation() {
+    const marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
+    return marker?.getAttribute('content') === E10_VS1F_STATIC_CONTRACT;
+  }
+
   function normalize(path) {
     return (path || '/').replace(/\/+$/, '') || '/';
   }
@@ -61,7 +68,7 @@
         </a>
         <nav class="cg-nav-links" aria-label="主要導覽" data-i18n-aria-label="common.nav.aria">
           ${NAV_ITEMS.map(item => `
-            <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}">
+            <a class="cg-nav-link ${isActive(item.href) ? 'active' : ''}" href="${item.href}" data-nav-key="${item.key}" data-i18n-aria-label="${item.i18n}" ${isActive(item.href) ? 'aria-current="page"' : ''}>
               ${icon(item.icon)}
               <span data-i18n="${item.i18n}">${item.label}</span>
               ${item.key === 'mistake' ? '<span id="mistake-badge" class="cg-nav-badge" style="display:none;"></span>' : ''}
@@ -78,6 +85,10 @@
           <button class="cg-nav-logout" type="button" data-i18n="nav.logout">登出</button>
         </div>
       </div>`;
+    if (ownsE10Navigation()) {
+      header.dataset.e10SessionStrip = '1';
+      header.querySelector('.cg-nav-links')?.remove();
+    }
     old.replaceWith(header);
     // 語言切換鈕：搬移既有的；若該頁沒有，就現場生成一個（涵蓋所有用共用 nav 的頁面）
     const langSlot = header.querySelector('.cg-nav-lang');
@@ -476,7 +487,7 @@
         .cg-nav-lang { display: none; }
         .cg-brand-text { display: none; }
         .cg-nav-links { justify-content: flex-start; }
-        .cg-nav-link { width: 38px; padding: 0; justify-content: center; }
+        .cg-nav-link { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
         .cg-nav-link span { display: none; }
         .cg-nav-link .cg-nav-badge { display: none !important; }
         .cg-nav-icon { width: 20px; height: 20px; }
@@ -484,7 +495,7 @@
       @media (max-width: 520px) {
         :root { --cg-nav-h: 52px; }
         .cg-brand-mark { width: 28px; height: 28px; }
-        .cg-nav-link { width: 36px; height: 36px; border-radius: 11px; }
+        .cg-nav-link { width: 44px; height: 44px; border-radius: 11px; }
         .cg-nav-logout { width: 36px; height: 36px; border-radius: 11px; }
       }
     `;

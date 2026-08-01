@@ -13,12 +13,12 @@ const zones = [
   ['k26_30', '圍棋新手村', 'Beginner Village', 'completed', false, true, 3, 30, 30],
   ['k21_25', '史萊姆平原', 'Slime Plains', 'unlocked', false, false, 1, 18, 25],
   ['k16_20', '哥布林洞穴', 'Goblin Cave', 'unlocked', false, false, 0, 12, 20],
-  ['k11_15', '暮光森林', 'Twilight Forest', 'locked', true, false, 0, 0, 20],
-  ['k6_10', '天空之塔', 'Sky Tower', 'locked', true, false, 0, 0, 20],
-  ['k1_5', '王者城堡', 'Royal Castle', 'unlocked', false, false, 0, 8, 20],
-  ['d1_2', '星海迴廊', 'Star Sea Passage', 'locked', true, false, 0, 0, 20],
-  ['d3_4', '深淵熔爐', 'Abyssal Forge', 'locked', true, false, 0, 0, 20],
-  ['d5_6', '永夜聖殿', 'Eternal Night Shrine', 'locked', true, false, 0, 0, 20],
+  ['k11_15', '迷霧森林', 'Misty Forest', 'locked', true, false, 0, 0, 20],
+  ['k6_10', '獸人部落', 'Orc Tribe', 'locked', true, false, 0, 0, 20],
+  ['k1_5', '龍之谷', 'Dragon Valley', 'unlocked', false, false, 0, 8, 20],
+  ['d1_2', '賢者之塔', 'Sage Tower', 'locked', true, false, 0, 0, 20],
+  ['d3_4', '魔王城前線', 'Demon Castle Front', 'locked', true, false, 0, 0, 20],
+  ['d5_6', '諸神黃昏', 'Ragnarök', 'locked', true, false, 0, 0, 20],
   ['d7_plus', '上古終焉神殿', 'Ancient Doom Temple', 'locked', true, false, 0, 0, 20],
 ].map(([key, name, name_en, status, locked, cleared, stars, seen, total]) => ({
   key,
@@ -35,7 +35,23 @@ const zones = [
   seen,
   total,
   boss: { available: !locked && !cleared },
+  skipped_by_placement: status === 'skipped_by_placement',
 }));
+
+function fixtureZones(mode = 'default') {
+  if (mode !== 'placement-high') return zones;
+  return zones.map((zone, index) => ({
+    ...zone,
+    status: index < 5 ? 'skipped_by_placement' : (index === 5 ? 'unlocked' : 'locked'),
+    locked: index > 5,
+    can_enter: index <= 5,
+    cleared: false,
+    completed: false,
+    skipped_by_placement: index < 5,
+    stars: 0,
+    boss: { available: index === 5 },
+  }));
+}
 
 function findChrome() {
   const candidates = [
@@ -64,9 +80,9 @@ function contentTypeFor(filePath) {
   })[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
 }
 
-const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1e-compatibility-bridge">';
+const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">';
 
-async function startStaticServer({ contractCase = 'target', indexOverridePath = null } = {}) {
+async function startStaticServer({ contractCase = 'target' } = {}) {
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
@@ -79,16 +95,21 @@ async function startStaticServer({ contractCase = 'target', indexOverridePath = 
         response.end('not found');
         return;
       }
-      if (relative === '/index.html' && (contractCase !== 'target' || indexOverridePath)) {
-        let html = await fs.readFile(indexOverridePath || absolute, 'utf8');
+      if (relative === '/index.html' && contractCase !== 'target') {
+        let html = await fs.readFile(absolute, 'utf8');
         if (contractCase === 'missing') {
           html = html.replace(staticContractMarker, '');
         } else if (contractCase === 'wrong') {
           html = html.replace(
             staticContractMarker,
+            '<meta name="go-odyssey-static-contract" content="unexpected-static-contract">'
+          );
+        } else if (contractCase === 'current-v209') {
+          html = html.replace(
+            staticContractMarker,
             '<meta name="go-odyssey-static-contract" content="v209-e10-world-stage-v1d1-i18n-a11y">'
           );
-        } else if (!indexOverridePath) {
+        } else {
           throw new Error(`unknown contract case: ${contractCase}`);
         }
         response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -106,18 +127,18 @@ async function startStaticServer({ contractCase = 'target', indexOverridePath = 
   return { server, origin: `http://127.0.0.1:${server.address().port}` };
 }
 
-async function runCompatibilityFallbackCase(browser, origin, contractCase) {
+async function runCompatibilityFallbackCase(browser, origin, contractCase, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
   await page.addInitScript((contract) => {
     localStorage.setItem('go-odyssey-static-contract', contract);
     localStorage.setItem('e10-vs1e', 'immersive-rpg');
-  }, 'e10-vs1e-compatibility-bridge');
+  }, 'e10-vs1f-integrated-world-map');
   await page.goto(
     `${origin}/index.html?lang=en&${shellFlags}`
-      + '&go-odyssey-static-contract=e10-vs1e-compatibility-bridge'
-      + '&staticContract=e10-vs1e-compatibility-bridge'
+      + '&go-odyssey-static-contract=e10-vs1f-integrated-world-map'
+      + '&staticContract=e10-vs1f-integrated-world-map'
       + '&host=godokoro.com',
     { waitUntil: 'networkidle' }
   );
@@ -125,7 +146,9 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase) {
   const snapshot = await page.evaluate(() => ({
     activeShell: document.body.getAttribute('data-adventure-shell-active'),
     bodySkin: document.body.getAttribute('data-e10-visual-skin'),
+    bodyArtKit: document.body.getAttribute('data-e10-art-kit'),
     shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+    shellArtKit: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-art-kit'),
     nodeCount: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
     plaqueCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__plaque').length,
     selectedCount: document.querySelectorAll('#e9-world-stage-zones .is-selected').length,
@@ -133,11 +156,45 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase) {
     statusParent: document.querySelector('#e9-world-stage-status')?.parentElement?.id,
     stateCopyHidden: document.querySelector('#e9-world-stage-details-state')?.hidden,
     progressCopyHidden: document.querySelector('#e9-world-stage-details-progress')?.hidden,
+    routePathCount: document.querySelectorAll('.e9-map-stage__route path').length,
+    routeMaterialCount: document.querySelectorAll('.e9-route__material, [data-e10-vs1f-route-layer]').length,
+    routeFilledCount: [...document.querySelectorAll('.e9-map-stage__route path')]
+      .filter((path) => getComputedStyle(path).fill !== 'none').length,
+    landmarkCount: document.querySelectorAll('.e10-zone-landmark').length,
+    v2CleanMapCount: performance.getEntriesByType('resource')
+      .filter((entry) => entry.name.includes('/assets/maps/e10_world_stage_v2_clean.webp')).length,
+    vs1fPlayerCount: document.querySelectorAll('[data-player-location], .e10-current-hero').length,
+    vs1fIconCount: document.querySelectorAll('[data-e10-vs1f-icon], .e9-dock__icon').length,
+    vs1fAvatarCount: document.querySelectorAll('#top-hud-avatar-image').length,
+    artAssetNodeCount: document.querySelectorAll('[data-e10-art-asset], img[src*="/assets/e10/ui/"]').length,
+    artAssetRequestCount: performance.getEntriesByType('resource')
+      .filter((entry) => entry.name.includes('/assets/e10/ui/')).length,
+    nav32Count: document.querySelectorAll('.e9-nav__icon[viewBox="0 0 32 32"]').length,
+    oversizedBlackSvgCount: [...document.querySelectorAll('svg path, svg polygon')]
+      .filter((shape) => {
+        const style = getComputedStyle(shape);
+        const box = shape.getBoundingClientRect();
+        return style.fill === 'rgb(0, 0, 0)' && box.width * box.height > 4096;
+       }).length,
+    legacyNavCount: document.querySelectorAll('.cg-nav-link[data-nav-key]').length,
+    sessionControls: {
+      presence: !!document.querySelector('#cg-presence-chip'),
+      language: !!document.querySelector('.cg-nav-lang'),
+      logout: !!document.querySelector('.cg-nav-logout'),
+    },
   }));
+  const screenshot = await saveViewportScreenshot(
+    page,
+    outputDir,
+    `compatibility-${contractCase}-vs1d-fallback-1440x900-en.png`
+  );
   await page.close();
   const failures = [];
   if (snapshot.activeShell !== 'e9') failures.push(`${contractCase}: E9 shell did not mount`);
-  if (snapshot.bodySkin !== null || snapshot.shellSkin !== null) {
+  if (
+    snapshot.bodySkin !== null || snapshot.shellSkin !== null
+    || snapshot.bodyArtKit !== null || snapshot.shellArtKit !== null
+  ) {
     failures.push(`${contractCase}: VS1E skin was enabled without the exact static marker`);
   }
   if (snapshot.nodeCount !== 10) failures.push(`${contractCase}: VS1D node rendering is incomplete`);
@@ -149,18 +206,34 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase) {
     || !snapshot.stateCopyHidden
     || !snapshot.progressCopyHidden
   ) failures.push(`${contractCase}: VS1D DOM contract was not restored`);
+  if (
+    snapshot.routePathCount !== 4
+    || snapshot.routeMaterialCount !== 0
+    || snapshot.routeFilledCount !== 0
+    || snapshot.landmarkCount !== 0
+    || snapshot.v2CleanMapCount !== 0
+    || snapshot.vs1fPlayerCount !== 0
+    || snapshot.vs1fIconCount !== 0
+    || snapshot.vs1fAvatarCount !== 0
+    || snapshot.artAssetNodeCount !== 0
+    || snapshot.artAssetRequestCount !== 0
+    || snapshot.nav32Count !== 0
+    || snapshot.oversizedBlackSvgCount !== 0
+  ) failures.push(`${contractCase}: VS1F SVG/mask/landmark DOM leaked into fallback`);
+  if (snapshot.legacyNavCount !== 9) failures.push(`${contractCase}: Legacy header navigation was not preserved`);
+  if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${contractCase}: session controls are incomplete`);
   if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
-  return { contractCase, snapshot, browserErrors, failures };
+  return { contractCase, screenshot, snapshot, browserErrors, failures };
 }
 
-function apiResponse(pathname, method) {
+function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'default', playerName = '晨星騎士') {
   if (pathname === '/api/auth/me') {
     return {
       logged_in: true,
       user_id: 42,
       username: 'visual_fixture',
-      nickname: '晨星騎士',
-      display_name: '晨星騎士',
+      nickname: playerName,
+      display_name: playerName,
       is_admin: false,
       is_premium: false,
       needs_onboarding_choice: false,
@@ -169,9 +242,19 @@ function apiResponse(pathname, method) {
       newbie_quest_eligible: false,
     };
   }
-  if (pathname === '/api/skills/profile') return { display_name: '晨星騎士', rank_level: 'LV12' };
+  if (pathname === '/api/skills/profile') return { display_name: playerName, rank_level: 'LV12' };
   if (pathname === '/api/user/coins') return { coins: 123456 };
-  if (pathname === '/api/adventure/bootstrap') return { zones };
+  if (pathname === '/api/player/appearance') return { character_key: avatarKey };
+  if (pathname === '/api/adventure/bootstrap') {
+    const responseZones = fixtureZones(fixtureMode);
+    const current = responseZones.find((zone) => zone.status === 'unlocked');
+    return {
+      zones: responseZones,
+      placement: fixtureMode === 'placement-high' ? { effective_start_zone_key: 'k1_5' } : null,
+      recommended: current ? { zone_key: current.key } : null,
+      selected: current ? { zone_key: current.key } : null,
+    };
+  }
   if (pathname === '/api/daily-challenge/today') return { submitted: false };
   if (pathname === '/api/srs/due') return { count: 17, due: [] };
   if (pathname === '/api/mistakes/stats') return { total: 28, corrected: 9, worst5: [] };
@@ -181,7 +264,13 @@ function apiResponse(pathname, method) {
   return { ok: true };
 }
 
-async function installApiFixture(page, browserErrors) {
+async function installApiFixture(
+  page,
+  browserErrors,
+  avatarKey = 'mage',
+  fixtureMode = 'default',
+  playerName = '晨星騎士'
+) {
   page.on('console', (message) => {
     if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
   });
@@ -196,7 +285,13 @@ async function installApiFixture(page, browserErrors) {
   });
   await page.route('**/api/**', async (route) => {
     const request = route.request();
-    const payload = apiResponse(new URL(request.url()).pathname, request.method());
+    const payload = apiResponse(
+      new URL(request.url()).pathname,
+      request.method(),
+      avatarKey,
+      fixtureMode,
+      playerName
+    );
     await route.fulfill(payload === null
       ? { status: 204, body: '' }
       : { status: 200, contentType: 'application/json', body: JSON.stringify(payload) });
@@ -212,6 +307,13 @@ async function waitForShell(page) {
 
 async function runtimeSnapshot(page) {
   return page.evaluate(() => {
+    const isVisible = (element) => {
+      if (!element || element.hidden) return false;
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden'
+        && box.width > 0 && box.height > 0;
+    };
     const roundRect = (value) => value && Object.fromEntries(
       ['x', 'y', 'width', 'height', 'top', 'right', 'bottom', 'left']
         .map((key) => [key, Math.round(value[key] * 100) / 100])
@@ -236,6 +338,9 @@ async function runtimeSnapshot(page) {
         const box = element.getBoundingClientRect();
         return box.width > 0 && box.height > 0;
       });
+    const visibleNavigationControls = Array.from(document.querySelectorAll(
+      '#e9-adventure-shell [data-e10-nav-key], #e9-adventure-shell [data-e10-vs1f-nav="more"]'
+    )).filter(isVisible);
     const navItemRects = navItems.map((element) => element.getBoundingClientRect());
     const zoneRects = Array.from(document.querySelectorAll('#e9-world-stage-zones [data-zone]'))
       .map((element) => element.getBoundingClientRect());
@@ -255,24 +360,269 @@ async function runtimeSnapshot(page) {
       return style.whiteSpace !== 'nowrap'
         || (Number.isFinite(lineHeight) && label.getBoundingClientRect().height > lineHeight * 1.25);
     }).length;
+    const labelOverTwoLineCount = navItems.filter((item) => {
+      const label = item.querySelector('span');
+      if (!label) return false;
+      const lineHeight = Number.parseFloat(getComputedStyle(label).lineHeight);
+      return Number.isFinite(lineHeight) && label.getBoundingClientRect().height > lineHeight * 2.25;
+    }).length;
     const map = document.querySelector('#e9-map-stage')?.getBoundingClientRect();
     const lastZone = zoneRects.at(-1);
     const nav = document.querySelector('#left-nav')?.getBoundingClientRect();
+    const intersects = (a, b) => !!(a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top);
+    const rectFromEdges = (left, top, right, bottom) => ({
+      x: left, y: top, width: right - left, height: bottom - top,
+      left, top, right, bottom,
+    });
+    const routeSegments = Array.from(document.querySelectorAll('[data-e10-route-from][data-e10-route-to]'));
+    const worldState = window.E9?.latestZoneSelection || {};
+    const playerIdentity = document.querySelector('.e9-hud__player');
+    const playerAvatar = document.querySelector('.e9-hud__avatar');
+    const playerName = document.querySelector('.e9-hud__name');
+    const playerLevel = document.querySelector('.e9-hud__level');
+    const playerDropdown = document.querySelector('.e10-player-menu-arrow');
+    const playerNameBox = playerName?.getBoundingClientRect();
+    const playerLevelBox = playerLevel?.getBoundingClientRect();
+    const playerContentBox = playerNameBox && playerLevelBox
+      ? rectFromEdges(
+        Math.min(playerNameBox.left, playerLevelBox.left),
+        Math.min(playerNameBox.top, playerLevelBox.top),
+        Math.max(playerNameBox.right, playerLevelBox.right),
+        Math.max(playerNameBox.bottom, playerLevelBox.bottom)
+      )
+      : null;
+    const dock = document.querySelector('.e9-dock');
+    const dockParent = dock?.parentElement;
+    const dockStyle = dock ? getComputedStyle(dock) : null;
+    const dockBefore = dock ? getComputedStyle(dock, '::before') : null;
+    const dockAfter = dock ? getComputedStyle(dock, '::after') : null;
+    const dockBox = dock?.getBoundingClientRect() || null;
+    const dockItems = dock ? Array.from(dock.querySelectorAll('.e9-dock__item')) : [];
+    const dockSlotCenterFractions = [260, 450, 640, 830, 1020].map((value) => value / 1280);
+    const dockGeometryItems = dockBox ? dockItems.map((item, index) => {
+      const badge = item.querySelector('.e9-dock__icon')?.getBoundingClientRect();
+      const label = item.querySelector(':scope > span')?.getBoundingClientRect();
+      const badgeCenterX = badge ? badge.left + badge.width / 2 : null;
+      const badgeCenterY = badge ? badge.top + badge.height / 2 : null;
+      const slotCenterX = dockBox.left + dockBox.width * dockSlotCenterFractions[index];
+      const slotCenterY = dockBox.top + dockBox.height / 2;
+      const labelCenterX = label ? label.left + label.width / 2 : null;
+      return {
+        key: item.getAttribute('data-e10-nav-key'),
+        label: item.querySelector(':scope > span')?.textContent.trim() || '',
+        badge_center_x: badgeCenterX,
+        badge_center_y: badgeCenterY,
+        slot_center_x: slotCenterX,
+        slot_center_y: slotCenterY,
+        label_center_x: labelCenterX,
+        badge_slot_delta_x: badgeCenterX === null ? null : badgeCenterX - slotCenterX,
+        badge_slot_delta_y: badgeCenterY === null ? null : badgeCenterY - slotCenterY,
+        label_badge_delta_x: labelCenterX === null || badgeCenterX === null ? null : labelCenterX - badgeCenterX,
+      };
+    }) : [];
+    const roundDockValue = (value) => value === null ? null : Math.round(value * 100) / 100;
+    const dockBadgeCentersY = dockGeometryItems.map((item) => item.badge_center_y).filter(Number.isFinite);
+    const dockSlotCentersX = dockGeometryItems.map((item) => item.slot_center_x).filter(Number.isFinite);
+    const dockSlotSpacings = dockSlotCentersX.slice(1).map((value, index) => value - dockSlotCentersX[index]);
+    const currentZone = document.querySelector('[data-player-location="true"]');
+    const marker = [
+      document.querySelector('#e9-world-stage-player'),
+      ...document.querySelectorAll('.e10-current-hero'),
+    ].find(isVisible) || null;
+    const currentNodeBox = currentZone?.getBoundingClientRect();
+    const markerBox = marker?.getBoundingClientRect();
+    const currentPlaqueBox = currentZone?.querySelector('.e9-zone__plaque')?.getBoundingClientRect();
+    const markerUnion = currentNodeBox && markerBox
+      ? rectFromEdges(
+        Math.min(currentNodeBox.left, markerBox.left),
+        Math.min(currentNodeBox.top, markerBox.top),
+        Math.max(currentNodeBox.right, markerBox.right),
+        Math.max(currentNodeBox.bottom, markerBox.bottom)
+      )
+      : null;
+    const markerLabelGap = markerUnion && currentPlaqueBox
+      ? Math.max(
+        0,
+        currentPlaqueBox.left - markerUnion.right,
+        markerUnion.left - currentPlaqueBox.right,
+        currentPlaqueBox.top - markerUnion.bottom,
+        markerUnion.top - currentPlaqueBox.bottom
+      )
+      : null;
+    const panelNumber = document.querySelector('[data-e10-zone-number]')?.getBoundingClientRect();
+    const panelState = document.querySelector('#e10-drawer-zone-state')?.getBoundingClientRect();
+    const panelBody = document.querySelector('#e10-drawer-zone-body')?.getBoundingClientRect();
+    const viewportBottomElement = document.elementFromPoint(window.innerWidth / 2, window.innerHeight - 2);
+    const viewportBottomStyle = viewportBottomElement ? getComputedStyle(viewportBottomElement) : null;
+    const targetMeasurements = allTargets.map((element) => {
+      const target = element.getBoundingClientRect();
+      return {
+        element,
+        width: target.width,
+        height: target.height,
+        minimum: Math.min(target.width, target.height),
+      };
+    });
+    const minimumTargetElement = targetMeasurements.reduce((smallest, candidate) => (
+      !smallest || candidate.minimum < smallest.minimum ? candidate : smallest
+    ), null);
     return {
       activeShell: document.body.getAttribute('data-adventure-shell-active'),
       skin: document.body.getAttribute('data-e10-visual-skin'),
+      artKit: document.body.getAttribute('data-e10-art-kit'),
       shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+      shellArtKit: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-art-kit'),
       lang: window.I18n?.getLang?.(),
       nodeCount: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
+      landmarkCount: document.querySelectorAll('#e9-world-stage-zones .e10-zone-landmark').length,
+      drawerLandmarkVisible: isVisible(document.querySelector('#e10-drawer-zone-landmark')),
+      portraitLandmarkVisible: isVisible(document.querySelector('#e9-world-stage-details-landmark')),
+      playerLocationCount: document.querySelectorAll('#e9-world-stage-zones [data-player-location="true"]').length,
+      playerLocationZone: document.querySelector('#e9-world-stage-zones [data-player-location="true"]')?.getAttribute('data-zone'),
+      selectedZone: document.querySelector('#e9-world-stage-zones .is-selected')?.getAttribute('data-zone'),
+      zoneIdentities: {
+        currentPlayerZoneKey: worldState.currentPlayerZoneKey || null,
+        selectedZoneKey: worldState.selectedZoneKey || null,
+        challengeTargetZoneKey: worldState.challengeTargetZoneKey || null,
+      },
+      visibleHeroCount: [
+        document.querySelector('#e9-world-stage-player'),
+        ...document.querySelectorAll('.e10-current-hero'),
+      ].filter(isVisible).length,
+      landmarkRequestCount: performance.getEntriesByType('resource')
+        .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/')).length,
+      landmarkRequestUrls: [...new Set(performance.getEntriesByType('resource')
+        .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/'))
+        .map((entry) => new URL(entry.name).pathname))],
       legacyVisible: Array.from(document.querySelectorAll(
         '#welcome-state > .guild-hall-hero, #welcome-state > .guild-entry-grid, #skill-map, #welcome-state > .home-left-col, #welcome-state > .home-report'
       )).some((element) => !element.hidden),
       map: roundRect(rect('#e9-map-stage')),
+      shell: roundRect(rect('#e9-adventure-shell')),
       stage: roundRect(rect('#adventure-stage')),
       nav: roundRect(rect('#left-nav')),
       drawer: roundRect(rect('#e9-right-drawer-panel')),
+      topHud: roundRect(rect('#e9-top-hud-slot')),
+      titlePlaque: roundRect(rect('.e10-hud-brand')),
+      bottomDock: roundRect(rect('#e9-bottom-dock-slot')),
+      leftBadgeIcon: roundRect(rect('.e9-nav__icon')),
+      bottomMedallion: roundRect(rect('.e9-dock__icon')),
+      primaryCtaCopy: roundRect(rect('.e10-map-primary-cta__copy')),
+      playerMarker: roundRect(rect('#e9-world-stage-player')),
+      currentZoneNumber: roundRect(rect('[data-player-location="true"] .e9-zone__number')),
+      plaqueLayout: {
+        display: playerIdentity ? getComputedStyle(playerIdentity).display : null,
+        columns: playerIdentity ? getComputedStyle(playerIdentity).gridTemplateColumns : null,
+        avatar: roundRect(playerAvatar?.getBoundingClientRect()),
+        name: roundRect(playerNameBox),
+        level: roundRect(playerLevelBox),
+        content: roundRect(playerContentBox),
+        dropdown: roundRect(playerDropdown?.getBoundingClientRect()),
+        nameOverflow: playerName ? Math.max(0, playerName.scrollWidth - playerName.clientWidth) : null,
+      },
+      dockMaterial: {
+        backgroundImage: dockStyle?.backgroundImage || '',
+        backgroundColor: dockStyle?.backgroundColor || '',
+        filter: dockStyle?.filter || '',
+        backdropFilter: dockStyle?.backdropFilter || '',
+        overflow: dockStyle?.overflow || '',
+        boxShadow: dockStyle?.boxShadow || '',
+        parentBackgroundColor: dockParent ? getComputedStyle(dockParent).backgroundColor : '',
+        parentBackgroundImage: dockParent ? getComputedStyle(dockParent).backgroundImage : '',
+        beforeBackground: dockBefore?.background || '',
+        afterBackground: dockAfter?.background || '',
+      },
+      dockGeometry: {
+        items: dockGeometryItems.map((item) => Object.fromEntries(
+          Object.entries(item).map(([key, value]) => [key, typeof value === 'number' ? roundDockValue(value) : value])
+        )),
+        max_badge_slot_delta_x: roundDockValue(Math.max(0, ...dockGeometryItems.map((item) => Math.abs(item.badge_slot_delta_x || 0)))),
+        max_badge_slot_delta_y: roundDockValue(Math.max(0, ...dockGeometryItems.map((item) => Math.abs(item.badge_slot_delta_y || 0)))),
+        max_label_badge_delta_x: roundDockValue(Math.max(0, ...dockGeometryItems.map((item) => Math.abs(item.label_badge_delta_x || 0)))),
+        max_badge_center_y_spread: roundDockValue(dockBadgeCentersY.length
+          ? Math.max(...dockBadgeCentersY) - Math.min(...dockBadgeCentersY)
+          : 0),
+        max_slot_spacing_variance: roundDockValue(dockSlotSpacings.length
+          ? Math.max(...dockSlotSpacings) - Math.min(...dockSlotSpacings)
+          : 0),
+        dock_stage_center_delta_x: roundDockValue(dockBox && map
+          ? (dockBox.left + dockBox.width / 2) - (map.left + map.width / 2)
+          : null),
+      },
+      playerMarkerContract: {
+        node: roundRect(currentNodeBox),
+        marker: roundRect(markerBox),
+        relativeToNode: markerBox && currentNodeBox ? roundRect(rectFromEdges(
+          markerBox.left - currentNodeBox.left,
+          markerBox.top - currentNodeBox.top,
+          markerBox.right - currentNodeBox.left,
+          markerBox.bottom - currentNodeBox.top
+        )) : null,
+        union: roundRect(markerUnion),
+        maximumDiameterRatio: markerUnion && currentNodeBox
+          ? Math.max(markerUnion.right - markerUnion.left, markerUnion.bottom - markerUnion.top)
+            / Math.max(currentNodeBox.width, currentNodeBox.height)
+          : null,
+        labelGap: markerLabelGap === null ? null : Math.round(markerLabelGap * 100) / 100,
+      },
+      routeContract: {
+        count: routeSegments.length,
+        topology: routeSegments.map((segment) => `${segment.dataset.e10RouteFrom}>${segment.dataset.e10RouteTo}`),
+        styles: routeSegments.map((segment) => {
+          const style = getComputedStyle(segment);
+          return { cap: style.strokeLinecap, join: style.strokeLinejoin, width: Number.parseFloat(style.strokeWidth), dash: style.strokeDasharray };
+        }),
+      },
+      nodeHudOverlap: (() => {
+        const hudRects = ['#e9-top-hud-slot', '#e9-left-nav-slot', '#e9-bottom-dock-slot', '.e10-adventure-progress', '.e10-map-primary-cta']
+          .map((selector) => document.querySelector(selector)?.getBoundingClientRect()).filter(Boolean);
+        return Array.from(document.querySelectorAll('#e9-world-stage-zones [data-zone]')).filter((node) => (
+          hudRects.some((hud) => intersects(node.getBoundingClientRect(), hud))
+        )).map((node) => node.dataset.zone);
+      })(),
+      zone1: roundRect(rect('[data-zone="k26_30"]')),
+      zone10: roundRect(rect('[data-zone="d7_plus"]')),
+      panelHeading: {
+        kind: document.querySelector('.e10-drawer-zone-summary__kicker')?.getAttribute('data-zone-heading'),
+        text: document.querySelector('.e10-drawer-zone-summary__kicker')?.textContent.trim(),
+        title: document.querySelector('#e10-drawer-zone-title')?.textContent.trim(),
+        status: document.querySelector('#e10-drawer-zone-state')?.textContent.trim(),
+      },
+      panelInformation: {
+        row: roundRect(rect('[data-e10-zone-information]')),
+        number: panelNumber ? roundRect(panelNumber) : null,
+        state: panelState ? roundRect(panelState) : null,
+        body: panelBody ? roundRect(panelBody) : null,
+        collisionCount: [panelState, panelBody].filter((copyRect) => intersects(panelNumber, copyRect)).length,
+        columns: document.querySelector('[data-e10-zone-information]')
+          ? getComputedStyle(document.querySelector('[data-e10-zone-information]')).gridTemplateColumns
+          : '',
+      },
+      immersiveViewport: {
+        topGap: document.querySelector('#e9-adventure-shell')?.getBoundingClientRect().top,
+        bottomGap: document.querySelector('#e9-adventure-shell')
+          ? window.innerHeight - document.querySelector('#e9-adventure-shell').getBoundingClientRect().bottom
+          : null,
+        bottomElement: viewportBottomElement
+          ? `${viewportBottomElement.tagName.toLowerCase()}#${viewportBottomElement.id}.${viewportBottomElement.className}`
+          : '',
+        bottomBackgroundColor: viewportBottomStyle?.backgroundColor || '',
+        bottomBackgroundImage: viewportBottomStyle?.backgroundImage || '',
+      },
+      ctas: {
+        primary: {
+          target: document.querySelector('#e9-world-stage-primary-cta')?.getAttribute('data-challenge-target-zone'),
+          disabled: document.querySelector('#e9-world-stage-primary-cta')?.disabled,
+          label: document.querySelector('#e9-world-stage-primary-cta strong')?.textContent.trim(),
+        },
+        panel: {
+          target: document.querySelector('[data-e10-zone-cta]')?.getAttribute('data-challenge-target-zone'),
+          disabled: document.querySelector('[data-e10-zone-cta]')?.disabled,
+          label: document.querySelector('[data-e10-zone-cta]')?.textContent.trim(),
+        },
+      },
       primaryCta: roundRect(rect('#e9-world-stage-primary-cta:not([hidden])')),
-      progressOverlay: roundRect(rect('#e9-world-stage-status')),
+      progressOverlay: roundRect(rect('[data-e10-adventure-progress]')),
       details: roundRect(rect('#e9-world-stage-details:not([hidden]), #e9-newbie-mainline:not([hidden])')),
       plaqueCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__plaque').length,
       plaqueStatusCount: document.querySelectorAll('#e9-world-stage-zones .e9-zone__status-text').length,
@@ -292,17 +642,97 @@ async function runtimeSnapshot(page) {
       navItemCount: navItems.length,
       navRowCount: new Set(navItemRects.map((box) => Math.round(box.top))).size,
       navLabelWrapCount: labelWrapCount,
+      navLabelOverTwoLineCount: labelOverTwoLineCount,
+      navKeys: navItems.map((item) => item.getAttribute('data-e10-nav-key')),
+      navVisualKeys: navItems.slice().sort((a, b) => (
+        a.getBoundingClientRect().left - b.getBoundingClientRect().left
+      )).map((item) => item.getAttribute('data-e10-nav-key')),
+      moreOverlayVisible: isVisible(document.querySelector('#e10-all-features-overlay')),
+      settingsOverlayVisible: isVisible(document.querySelector('#e10-settings-overlay')),
+      focusedId: document.activeElement?.id || null,
       navOverlapCount: overlapCount(navItemRects),
       zoneOverlapCount: overlapCount(zoneRects),
       journeyTailGap: map && lastZone ? Math.round((map.bottom - lastZone.bottom) * 100) / 100 : null,
       lastZoneDockClearance: lastZone && nav ? Math.round((nav.top - lastZone.bottom) * 100) / 100 : null,
       dockBottomClearance: nav ? Math.round((window.innerHeight - nav.bottom) * 100) / 100 : null,
       horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
-      minimumTarget: allTargets.reduce((smallest, element) => {
-        const target = element.getBoundingClientRect();
-        return Math.min(smallest, target.width, target.height);
-      }, Number.POSITIVE_INFINITY),
+      minimumTarget: minimumTargetElement ? minimumTargetElement.minimum : Number.POSITIVE_INFINITY,
+      minimumTargetElement: minimumTargetElement ? {
+        tag: minimumTargetElement.element.tagName.toLowerCase(),
+        id: minimumTargetElement.element.id || null,
+        className: minimumTargetElement.element.className || null,
+        navKey: minimumTargetElement.element.getAttribute('data-e10-nav-key'),
+        width: minimumTargetElement.width,
+        height: minimumTargetElement.height,
+      } : null,
       duplicateIds: [...new Set(duplicateIds)],
+      rpgIconCount: document.querySelectorAll('#e9-adventure-shell .e10-rpg-icon[data-e10-icon-id]').length,
+      artAssetNodeCount: document.querySelectorAll('#e9-adventure-shell [data-e10-art-asset]').length,
+      artAssetRequestCount: performance.getEntriesByType('resource')
+        .filter((entry) => entry.name.includes('/assets/e10/ui/')).length,
+      artAssetErrorCount: Array.from(document.querySelectorAll('#e9-adventure-shell img[src*="/assets/e10/ui/"]'))
+        .filter((image) => !image.complete || image.naturalWidth === 0).length,
+      playerMarkerPortraitCount: document.querySelectorAll(
+        '#e9-world-stage-player .e10-player-marker-portrait, .e10-current-hero .e10-player-marker-portrait'
+      ).length,
+      artSurfaces: {
+        playerPlaque: getComputedStyle(document.querySelector('.e9-hud__player')).backgroundImage,
+        titlePlaque: getComputedStyle(document.querySelector('.e10-hud-brand')).backgroundImage,
+        utilityFrame: getComputedStyle(document.querySelector('.e10-utility-control')).backgroundImage,
+        leftBadge: getComputedStyle(document.querySelector('.e9-nav__icon')).backgroundImage,
+        dockFrame: getComputedStyle(document.querySelector('.e9-dock')).backgroundImage,
+        primaryCta: getComputedStyle(document.querySelector('.e10-map-primary-cta')).backgroundImage,
+      },
+      visibleControlMissingIconCount: visibleNavigationControls.filter((control) => (
+        !control.querySelector('.e10-rpg-icon[data-e10-icon-id]')
+      )).length,
+      svgTextCount: document.querySelectorAll('#e9-adventure-shell svg text').length,
+      iconIds: [...new Set(Array.from(document.querySelectorAll('#e9-adventure-shell [data-e10-icon-id]'))
+        .map((icon) => icon.getAttribute('data-e10-icon-id')))].sort(),
+      adventureCurrent: document.querySelector('[data-e10-nav-key="adventure"]')?.getAttribute('aria-current'),
+      avatarFit: getComputedStyle(document.querySelector('#top-hud-avatar-image')).objectFit,
+      moreColumns: getComputedStyle(document.querySelector('.e10-more-grid')).gridTemplateColumns.split(' ').length,
+      soundToggle: (() => {
+        const input = document.querySelector('#e10-settings-sound');
+        const track = document.querySelector('.e10-settings-switch__track');
+        const state = document.querySelector('#e10-settings-sound-state');
+        return {
+          type: input?.type,
+          appearance: input ? getComputedStyle(input).appearance : null,
+          trackWidth: track?.getBoundingClientRect().width || 0,
+          state: state?.textContent.trim() || '',
+          ariaLabel: input?.getAttribute('aria-label') || '',
+        };
+      })(),
+      legacyNavCount: document.querySelectorAll('.cg-nav-link[data-nav-key]').length,
+      sessionControls: {
+        presence: !!document.querySelector('#cg-presence-chip'),
+        language: isVisible(document.querySelector('.cg-nav-lang'))
+          || !!document.querySelector('#e10-settings-language'),
+        logout: isVisible(document.querySelector('.cg-nav-logout'))
+          || !!document.querySelector('[data-e10-player-logout]'),
+      },
+      cleanMap: {
+        src: document.querySelector('.e9-map-stage__base')?.getAttribute('src'),
+        marker: document.querySelector('.e9-map-stage__base')?.getAttribute('data-e10-vs1f-clean-map'),
+        requests: performance.getEntriesByType('resource')
+          .filter((entry) => entry.name.includes('/assets/maps/e10_world_stage_v2_clean.webp')).length,
+        legacyRequests: performance.getEntriesByType('resource')
+          .filter((entry) => entry.name.includes('/assets/maps/e10_world_stage_v1_base.webp')).length,
+      },
+      avatar: {
+        src: document.querySelector('#top-hud-avatar-image')?.getAttribute('src'),
+        fallback: document.querySelector('#top-hud-avatar-image')?.hasAttribute('data-e10-avatar-fallback'),
+        identityLabel: document.querySelector('.e9-hud__player')?.getAttribute('aria-label'),
+      },
+      playerIdentity: roundRect(rect('.e9-hud__player')),
+      utilityGroup: roundRect(rect('.e10-hud__right')),
+      drawerCloseVisible: isVisible(document.querySelector('#e10-right-drawer-close')),
+      backpack: {
+        disabled: document.querySelector('[data-e10-nav-key="backpack"]')?.disabled,
+        label: document.querySelector('[data-e10-nav-key="backpack"] > span:not(.e10-nav-status-lock)')?.textContent.trim(),
+        lockVisible: isVisible(document.querySelector('[data-e10-nav-key="backpack"] .e10-nav-status-lock')),
+      },
       bossAnchorsVisibility: getComputedStyle(document.querySelector('#e9-world-stage-boss-anchors')).visibility,
       aria: {
         drawerControls: document.querySelector('#e9-right-drawer-toggle')?.getAttribute('aria-controls'),
@@ -329,7 +759,14 @@ async function resetViewportScroll(page) {
 async function runCase(browser, origin, outputDir, spec) {
   const page = await browser.newPage({ viewport: spec.viewport });
   const browserErrors = [];
-  await installApiFixture(page, browserErrors);
+  const playerName = spec.playerName || (spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
+  await installApiFixture(
+    page,
+    browserErrors,
+    spec.avatarKey || 'mage',
+    spec.fixtureMode || 'default',
+    playerName
+  );
   const url = `${origin}/index.html?lang=${spec.lang}&${shellFlags}`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await waitForShell(page);
@@ -341,28 +778,35 @@ async function runCase(browser, origin, outputDir, spec) {
   }
 
   if (spec.longLabelStress) {
-    await page.locator('.e9-nav__item > span').evaluateAll((labels) => {
-      const stressLabels = [
-        'Adventure Chronicle',
-        'Legendary Hero',
-        'Equipment Workshop',
-        'Expedition Backpack',
-        'Kingdom Missions',
-        'Enchanted Shop',
-      ];
-      labels.forEach((label, index) => {
-        label.textContent = stressLabels[index];
+    await page.locator('.e9-nav__item').evaluateAll((items) => {
+      const stressLabels = {
+        adventure: 'Adventure',
+        hero: 'Hero',
+        equipment: 'Equipment',
+        go_spirit: 'Go Spirit Companion',
+        backpack: 'Backpack',
+        shop: 'Shop',
+      };
+      items.forEach((item) => {
+        const label = item.querySelector(':scope > span:not(.e10-nav-status-lock)');
+        if (label) label.textContent = stressLabels[item.dataset.e10NavKey];
       });
     });
   }
 
   let detailMapBefore = null;
+  let detailMapAfterSelection = null;
   if (spec.zone) {
     detailMapBefore = await runtimeSnapshot(page);
     const zone = page.locator(`[data-zone="${spec.zone}"]`);
     if (await zone.count() !== 1) throw new Error(`missing unique zone ${spec.zone}`);
     await zone.scrollIntoViewIfNeeded();
-    if (await zone.isEnabled()) await zone.click();
+    if (await zone.isEnabled()) {
+      // Dispatch the real DOM activation without Playwright waiting for the
+      // content-driven inline expansion to become geometrically stable.
+      await zone.evaluate((element) => element.click());
+    }
+    detailMapAfterSelection = await runtimeSnapshot(page);
   }
 
   let beforeOpen = null;
@@ -386,10 +830,206 @@ async function runCase(browser, origin, outputDir, spec) {
     }
   }
 
+  if (spec.openMore) {
+    const trigger = page.locator('[data-e10-vs1f-nav="more"]');
+    if (await trigger.isVisible()) await trigger.click();
+    else await trigger.evaluate((element) => element.click());
+    await page.locator('#e10-all-features-overlay').waitFor({ state: 'visible' });
+  }
+  if (spec.openSettings) {
+    const visibleSettings = page.locator('[data-e10-nav-key="settings"]:visible').first();
+    await visibleSettings.click();
+    await page.locator('#e10-settings-overlay').waitFor({ state: 'visible' });
+  }
+
+  let adventureCommand = null;
+  if (spec.adventureCommandCheck) {
+    const zone = page.locator('[data-zone="k1_5"]');
+    await zone.evaluate((element) => element.click());
+    const drawerToggle = page.locator('#e9-right-drawer-toggle');
+    if (await drawerToggle.getAttribute('aria-expanded') !== 'true') {
+      await drawerToggle.evaluate((element) => element.click());
+    }
+    const more = page.locator('[data-e10-vs1f-nav="more"]');
+    await more.click();
+    const before = await runtimeSnapshot(page);
+    const beforeUrl = page.url();
+    await page.evaluate(() => {
+      window.__e10ChallengeCalls = 0;
+      const original = window.E9.startAdventureFromE9;
+      window.E9.startAdventureFromE9 = function () { window.__e10ChallengeCalls += 1; };
+      window.E9.runAdventureCommand();
+      window.E9.startAdventureFromE9 = original;
+    });
+    const after = await runtimeSnapshot(page);
+    adventureCommand = {
+      before,
+      after,
+      beforeUrl,
+      afterUrl: page.url(),
+      challengeCalls: await page.evaluate(() => window.__e10ChallengeCalls),
+    };
+  }
+
+  let challengeAction = null;
+  if (spec.challengeActionCheck || spec.lockedChallengeCheck) {
+    const before = await runtimeSnapshot(page);
+    await page.evaluate(() => {
+      window.__e10ChallengeTargets = [];
+      window.__e10OriginalStart = window.E9.startAdventureFromE9;
+      window.E9.startAdventureFromE9 = function (zoneKey) { window.__e10ChallengeTargets.push(zoneKey); };
+    });
+    await page.locator('#e9-world-stage-primary-cta').evaluate((element) => element.click());
+    const after = await runtimeSnapshot(page);
+    const targets = await page.evaluate(() => {
+      const values = window.__e10ChallengeTargets.slice();
+      window.E9.startAdventureFromE9 = window.__e10OriginalStart;
+      delete window.__e10OriginalStart;
+      return values;
+    });
+    challengeAction = { before, after, targets };
+  }
+
   const snapshot = await runtimeSnapshot(page);
   const screenshot = await saveViewportScreenshot(page, outputDir, spec.filename);
   await page.close();
-  return { ...spec, screenshot, beforeOpen, afterOpen, escaped, detailMapBefore, snapshot, browserErrors };
+  return {
+    ...spec,
+    screenshot,
+    beforeOpen,
+    afterOpen,
+    escaped,
+    detailMapBefore,
+    detailMapAfterSelection,
+    adventureCommand,
+    challengeAction,
+    snapshot,
+    browserErrors,
+  };
+}
+
+async function capturePolishStateEvidence(browser, origin, outputDir) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const browserErrors = [];
+  await installApiFixture(page, browserErrors, 'mage');
+  await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'networkidle' });
+  await waitForShell(page);
+
+  const captures = [];
+  async function capture(locator, filename) {
+    const target = locator.first();
+    if (await target.count() !== 1) throw new Error(`state evidence target missing: ${filename}`);
+    const outputPath = path.join(outputDir, filename);
+    await target.screenshot({ path: outputPath });
+    captures.push(outputPath);
+  }
+  async function measureDockControl(locator) {
+    return locator.evaluate((element) => {
+      const dock = element.closest('.e9-dock');
+      const items = Array.from(dock.querySelectorAll('.e9-dock__item'));
+      const itemIndex = items.indexOf(element);
+      const dockBox = dock.getBoundingClientRect();
+      const badge = element.querySelector('.e9-dock__icon').getBoundingClientRect();
+      const label = element.querySelector(':scope > span').getBoundingClientRect();
+      const slotFractions = [260, 450, 640, 830, 1020].map((value) => value / 1280);
+      const round = (value) => Math.round(value * 100) / 100;
+      return {
+        key: element.getAttribute('data-e10-nav-key'),
+        badge_center_x: round(badge.left + badge.width / 2),
+        badge_center_y: round(badge.top + badge.height / 2),
+        slot_center_x: round(dockBox.left + dockBox.width * slotFractions[itemIndex]),
+        slot_center_y: round(dockBox.top + dockBox.height / 2),
+        label_center_x: round(label.left + label.width / 2),
+      };
+    });
+  }
+  async function captureStates(prefix, rootSelector, selectors, synthesizeDisabled = false) {
+    const root = page.locator(rootSelector);
+    const controls = Object.fromEntries(
+      Object.entries(selectors).map(([state, selector]) => [state, root.locator(selector)])
+    );
+    const stateGeometry = prefix === 'bottom-dock' ? {} : null;
+    if (stateGeometry) {
+      for (const [state, control] of Object.entries(controls)) {
+        stateGeometry[state] = { before: await measureDockControl(control) };
+      }
+    }
+    async function recordGeometry(state) {
+      if (!stateGeometry) return;
+      const after = await measureDockControl(controls[state]);
+      const before = stateGeometry[state].before;
+      stateGeometry[state].after = after;
+      stateGeometry[state].deltas = Object.fromEntries(
+        ['badge_center_x', 'badge_center_y', 'slot_center_x', 'slot_center_y', 'label_center_x']
+          .map((key) => [key, Math.round(Math.abs(after[key] - before[key]) * 100) / 100])
+      );
+    }
+    await capture(controls.default, `${prefix}-state-default.png`);
+    await recordGeometry('default');
+    await controls.hover.hover();
+    await capture(controls.hover, `${prefix}-state-hover.png`);
+    await recordGeometry('hover');
+    await controls.focus.focus();
+    await capture(controls.focus, `${prefix}-state-focus.png`);
+    await recordGeometry('focus');
+    await controls.pressed.hover();
+    const box = await controls.pressed.boundingBox();
+    if (!box) throw new Error(`state evidence pressed target hidden: ${prefix}`);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await capture(controls.pressed, `${prefix}-state-pressed.png`);
+    await recordGeometry('pressed');
+    await page.mouse.move(1, 1);
+    await page.mouse.up();
+    await controls.active.evaluate((element) => {
+      element.classList.add('is-active');
+      element.setAttribute('data-e10-state', 'active');
+      element.setAttribute('aria-current', 'page');
+    });
+    await capture(controls.active, `${prefix}-state-active.png`);
+    await recordGeometry('active');
+    if (synthesizeDisabled) {
+      await controls.disabled.evaluate((element) => {
+        element.classList.remove('is-active');
+        element.removeAttribute('aria-current');
+        element.setAttribute('data-e10-state', 'locked');
+        element.setAttribute('aria-disabled', 'true');
+        if ('disabled' in element) element.disabled = true;
+      });
+    }
+    await capture(controls.disabled, `${prefix}-state-disabled.png`);
+    await recordGeometry('disabled');
+    return stateGeometry;
+  }
+
+  await captureStates('left-rail', '#left-nav', {
+    default: '[data-e10-nav-key="hero"]',
+    hover: '[data-e10-nav-key="equipment"]',
+    focus: '[data-e10-nav-key="go_spirit"]',
+    pressed: '[data-e10-nav-key="shop"]',
+    active: '[data-e10-nav-key="hero"]',
+    disabled: '[data-e10-nav-key="backpack"]',
+  });
+  const dockInteractionGeometry = await captureStates('bottom-dock', '#bottom-dock', {
+    default: '[data-e10-nav-key="battle_log"]',
+    hover: '[data-e10-nav-key="tavern"]',
+    focus: '[data-e10-nav-key="star_chart"]',
+    pressed: '[data-e10-nav-key="arena"]',
+    active: '[data-e10-nav-key="soul_records"]',
+    disabled: '[data-e10-nav-key="soul_records"]',
+  }, true);
+  await captureStates('primary-cta', '#e9-map-stage', {
+    default: '#e9-world-stage-primary-cta',
+    hover: '#e9-world-stage-primary-cta',
+    focus: '#e9-world-stage-primary-cta',
+    pressed: '#e9-world-stage-primary-cta',
+    active: '#e9-world-stage-primary-cta',
+    disabled: '#e9-world-stage-primary-cta',
+  }, true);
+  await capture(page.locator('.e9-hud__player'), 'avatar-runtime-closeup.png');
+  await capture(page.locator('.e10-hud__right'), 'utility-group-closeup.png');
+  await page.close();
+  return { captures, browserErrors, dockInteractionGeometry };
 }
 
 function assertCase(result) {
@@ -399,23 +1039,147 @@ function assertCase(result) {
   if (snapshot.skin !== 'immersive-rpg' || snapshot.shellSkin !== 'immersive-rpg') {
     failures.push(`${specName}: RPG skin marker missing`);
   }
+  if (snapshot.artKit !== 'runtime-v1' || snapshot.shellArtKit !== 'runtime-v1') {
+    failures.push(`${specName}: art-directed runtime ownership marker missing`);
+  }
   if (snapshot.nodeCount !== 10) failures.push(`${specName}: node count ${snapshot.nodeCount}`);
+  if (
+    snapshot.cleanMap.src !== '/assets/maps/e10_world_stage_v2_clean.webp'
+    || snapshot.cleanMap.marker !== 'v2'
+    || snapshot.cleanMap.requests !== 1
+    || snapshot.cleanMap.legacyRequests !== 0
+  ) failures.push(`${specName}: exact VS1F clean-map ownership failed ${JSON.stringify(snapshot.cleanMap)}`);
   if (snapshot.plaqueCount !== 10 || snapshot.plaqueStatusCount !== 10) {
     failures.push(`${specName}: persistent map plaques are incomplete`);
   }
   if (snapshot.legacyVisible) failures.push(`${specName}: Legacy shell remains visible`);
+  if (snapshot.legacyNavCount !== 0) failures.push(`${specName}: Legacy header navigation remains in exact VS1F`);
+  if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${specName}: session controls are not reachable`);
+  if (!snapshot.avatar.src || snapshot.avatar.src.includes('GO')) failures.push(`${specName}: runtime avatar is missing`);
+  if (!snapshot.avatar.identityLabel) failures.push(`${specName}: player identity accessible name is missing`);
+  if (snapshot.avatarFit !== 'cover') failures.push(`${specName}: runtime avatar is not portrait-cropped`);
+  if (snapshot.rpgIconCount < 22) failures.push(`${specName}: RPG icon registry render is incomplete (${snapshot.rpgIconCount})`);
+  if (snapshot.artAssetNodeCount < 22 || snapshot.artAssetRequestCount < 22 || snapshot.artAssetErrorCount !== 0) {
+    failures.push(`${specName}: runtime art asset contract ${snapshot.artAssetNodeCount}/${snapshot.artAssetRequestCount}/${snapshot.artAssetErrorCount}`);
+  }
+  if (snapshot.playerMarkerPortraitCount !== 1) failures.push(`${specName}: player marker portrait count ${snapshot.playerMarkerPortraitCount}`);
+  const landscapeContract = result.viewport.width >= 768 && result.viewport.width > result.viewport.height;
+  if (landscapeContract) {
+    const plaque = snapshot.plaqueLayout;
+    if (
+      plaque.display !== 'grid'
+      || !plaque.avatar
+      || !plaque.content
+      || !plaque.name
+      || !plaque.level
+      || !plaque.dropdown
+      || plaque.avatar.right >= plaque.content.left
+      || plaque.content.right >= plaque.dropdown.left
+      || plaque.avatar.right >= plaque.name.left
+      || plaque.avatar.right >= plaque.level.left
+      || plaque.name.right >= plaque.dropdown.left
+      || plaque.level.right >= plaque.dropdown.left
+      || plaque.nameOverflow > 1
+    ) failures.push(`${specName}: player plaque columns overlap ${JSON.stringify(plaque)}`);
+
+    const dock = snapshot.dockMaterial;
+    if (
+      dock.backgroundColor !== 'rgba(0, 0, 0, 0)'
+      || !dock.backgroundImage.includes('/assets/e10/ui/frames/legacy-dock-frame.webp')
+      || dock.filter !== 'none'
+      || dock.backdropFilter !== 'none'
+      || dock.overflow !== 'visible'
+      || dock.boxShadow !== 'none'
+    ) failures.push(`${specName}: dock base material is not transparent ${JSON.stringify(dock)}`);
+
+    const geometry = snapshot.dockGeometry;
+    if (
+      geometry.items.length !== 5
+      || geometry.max_badge_slot_delta_x > 1
+      || geometry.max_badge_slot_delta_y > 1
+      || geometry.max_label_badge_delta_x > 1
+      || geometry.max_badge_center_y_spread > 1
+      || geometry.max_slot_spacing_variance > 1
+      || Math.abs(geometry.dock_stage_center_delta_x) > 1
+    ) failures.push(`${specName}: bottom dock badge-slot alignment ${JSON.stringify(geometry)}`);
+  }
+  if (
+    !snapshot.playerMarkerContract.marker
+    || Math.abs(snapshot.playerMarkerContract.marker.width - 31) > .1
+    || Math.abs(snapshot.playerMarkerContract.marker.height - 38) > .1
+  ) failures.push(`${specName}: player marker pin geometry ${JSON.stringify(snapshot.playerMarkerContract)}`);
+  if (result.layout === 'rail' && (
+    snapshot.playerMarkerContract.maximumDiameterRatio < 1.2
+    || snapshot.playerMarkerContract.maximumDiameterRatio > 1.35
+    || snapshot.playerMarkerContract.labelGap < 6
+    || snapshot.playerMarkerContract.labelGap > 10
+  )) failures.push(`${specName}: player marker stack geometry ${JSON.stringify(snapshot.playerMarkerContract)}`);
+  if (Object.values(snapshot.artSurfaces).some((value) => !value.includes('/assets/e10/ui/'))) {
+    failures.push(`${specName}: one or more art-directed shell surfaces are missing`);
+  }
+  if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
+  if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
+  if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
+  if (!snapshot.backpack.disabled || !snapshot.backpack.lockVisible) failures.push(`${specName}: Backpack disabled lock state is incomplete`);
+  if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
   if (snapshot.horizontalOverflow !== 0) failures.push(`${specName}: horizontal overflow ${snapshot.horizontalOverflow}`);
   if (snapshot.minimumTarget < 44) failures.push(`${specName}: interactive target below 44px (${snapshot.minimumTarget})`);
   if (snapshot.duplicateIds.length) failures.push(`${specName}: duplicate IDs ${snapshot.duplicateIds.join(', ')}`);
   if (snapshot.bossAnchorsVisibility !== 'hidden') failures.push(`${specName}: Boss anchors visible`);
   if (snapshot.aria.drawerControls !== 'e9-right-drawer-panel') failures.push(`${specName}: aria-controls drift`);
   if (!snapshot.aria.mapLabel) failures.push(`${specName}: map accessible label missing`);
+  if (snapshot.playerLocationCount !== 1 || snapshot.visibleHeroCount !== 1) {
+    failures.push(`${specName}: authoritative player marker count ${snapshot.playerLocationCount}/${snapshot.visibleHeroCount}`);
+  }
+  const expectedCurrent = result.fixtureMode === 'placement-high' ? 'k1_5' : 'k21_25';
+  if (snapshot.playerLocationZone !== expectedCurrent) {
+    failures.push(`${specName}: authoritative player location ${snapshot.playerLocationZone}`);
+  }
+  if (snapshot.zoneIdentities.currentPlayerZoneKey !== expectedCurrent) {
+    failures.push(`${specName}: currentPlayerZoneKey ${snapshot.zoneIdentities.currentPlayerZoneKey}`);
+  }
+  const expectedSelected = result.zone || expectedCurrent;
+  if (snapshot.zoneIdentities.selectedZoneKey !== expectedSelected || snapshot.selectedZone !== expectedSelected) {
+    failures.push(`${specName}: selectedZoneKey ${snapshot.zoneIdentities.selectedZoneKey}/${snapshot.selectedZone}`);
+  }
+  const expectedChallenge = result.zone === 'd1_2' ? null : expectedSelected;
+  if (snapshot.zoneIdentities.challengeTargetZoneKey !== expectedChallenge) {
+    failures.push(`${specName}: challengeTargetZoneKey ${snapshot.zoneIdentities.challengeTargetZoneKey}`);
+  }
+  if (snapshot.ctas.primary.target !== (expectedChallenge || '') || snapshot.ctas.panel.target !== (expectedChallenge || '')) {
+    failures.push(`${specName}: dual CTA target mismatch ${snapshot.ctas.primary.target}/${snapshot.ctas.panel.target}`);
+  }
+  if (snapshot.ctas.primary.disabled !== snapshot.ctas.panel.disabled || snapshot.ctas.primary.disabled !== (expectedChallenge === null)) {
+    failures.push(`${specName}: dual CTA enabled state mismatch`);
+  }
+  const expectedTopology = ['k26_30>k21_25','k21_25>k16_20','k16_20>k11_15','k11_15>k6_10','k6_10>k1_5','k1_5>d1_2','d1_2>d3_4','d3_4>d5_6','d5_6>d7_plus'];
+  if (snapshot.routeContract.count !== 9 || snapshot.routeContract.topology.join(',') !== expectedTopology.join(',')) {
+    failures.push(`${specName}: route topology ${snapshot.routeContract.topology.join(',')}`);
+  }
+  snapshot.routeContract.styles.forEach((style, index) => {
+    const dash = String(style.dash).match(/[0-9.]+/g)?.map(Number) || [];
+    if (style.cap !== 'round' || style.join !== 'round' || style.width > 2.5 || dash.length < 2 || dash[0] > 1 || dash[1] > 6) {
+      failures.push(`${specName}: route segment ${index + 1} style ${JSON.stringify(style)}`);
+    }
+  });
+  if (result.detailMapBefore && (
+    result.detailMapBefore.playerLocationZone !== snapshot.playerLocationZone
+    || result.detailMapBefore.visibleHeroCount !== snapshot.visibleHeroCount
+  )) failures.push(`${specName}: selection moved the player marker`);
+  if (result.detailMapBefore && result.detailMapAfterSelection) {
+    const coordinateSpace = result.layout === 'rail' ? 'marker' : 'relativeToNode';
+    const before = result.detailMapBefore.playerMarkerContract[coordinateSpace];
+    const after = result.detailMapAfterSelection.playerMarkerContract[coordinateSpace];
+    if (!before || !after || ['x', 'y', 'width', 'height'].some((key) => Math.abs(before[key] - after[key]) > .1)) {
+      failures.push(`${specName}: selection changed player marker bounds ${JSON.stringify({ before, after })}`);
+    }
+  }
   if (browserErrors.length) failures.push(`${specName}: browser errors ${JSON.stringify(browserErrors)}`);
   if (result.beforeOpen && result.afterOpen) {
     const before = result.beforeOpen.map;
     const after = result.afterOpen.map;
-    for (const key of ['left', 'right', 'width', 'height']) {
-      if (before[key] !== after[key]) failures.push(`${specName}: drawer changed map ${key}`);
+    if (before.width !== after.width || before.height !== after.height) {
+      failures.push(`${specName}: overlay drawer changed map geometry`);
     }
   }
   if (result.progressDrawerCheck && (
@@ -424,28 +1188,79 @@ function assertCase(result) {
     || snapshot.drawer.width <= 0
     || snapshot.drawer.height <= 0
   )) failures.push(`${specName}: open screenshot does not contain the quest drawer`);
+  if (result.progressDrawerCheck && !snapshot.drawerCloseVisible) failures.push(`${specName}: drawer close control is not visible`);
+  if (result.progressDrawerCheck) {
+    const expectedHeading = expectedSelected === expectedCurrent ? 'current' : 'selected';
+    if (snapshot.panelHeading.kind !== expectedHeading) failures.push(`${specName}: panel heading ${snapshot.panelHeading.kind}`);
+    if (!snapshot.panelHeading.title.startsWith(`Zone ${zones.findIndex((zone) => zone.key === expectedSelected) + 1}`)) {
+      failures.push(`${specName}: panel title ${snapshot.panelHeading.title}`);
+    }
+    if (!snapshot.panelInformation.row || snapshot.panelInformation.collisionCount !== 0) {
+      failures.push(`${specName}: panel information collision ${snapshot.panelInformation.collisionCount}`);
+    }
+    if (snapshot.panelInformation.columns.trim().split(/\s+/).length !== 2) {
+      failures.push(`${specName}: panel information grid ${snapshot.panelInformation.columns}`);
+    }
+  }
   if (result.escapeCheck && result.escaped !== 'false') failures.push(`${specName}: Escape did not close drawer`);
   if (result.layout === 'rail') {
-    if (!snapshot.nav || !snapshot.map || snapshot.nav.right > snapshot.map.left) {
-      failures.push(`${specName}: vertical navigation rail is not left of map`);
+    if (snapshot.playerIdentity && snapshot.utilityGroup && snapshot.playerIdentity.left >= snapshot.utilityGroup.left) {
+      failures.push(`${specName}: player identity is not left of utility group`);
+    }
+    if (snapshot.landmarkCount !== 0) {
+      failures.push(`${specName}: full landmark art duplicated the Desktop map`);
+    }
+    if (snapshot.landmarkRequestUrls.length > 1) {
+      failures.push(`${specName}: Desktop landmark URLs ${snapshot.landmarkRequestUrls.join(',')}`);
+    }
+    if (!snapshot.nav || !snapshot.map || snapshot.nav.left < snapshot.map.left || snapshot.nav.right > snapshot.map.right) {
+      failures.push(`${specName}: floating navigation badges are outside the map frame`);
+    }
+    if (!snapshot.shell || !snapshot.map || (snapshot.map.width * snapshot.map.height) / (snapshot.shell.width * snapshot.shell.height) < .75) {
+      failures.push(`${specName}: map does not cover at least 75% of the shell`);
     }
     if (!snapshot.primaryCta || !snapshot.progressOverlay) {
       failures.push(`${specName}: closed-state map CTA/progress overlay missing`);
     }
+    if (snapshot.nodeHudOverlap.length) failures.push(`${specName}: nodes overlap HUD ${snapshot.nodeHudOverlap.join(',')}`);
+    if (!snapshot.topHud || !snapshot.shell || snapshot.topHud.height / snapshot.shell.height < .10 || snapshot.topHud.height / snapshot.shell.height > .12) {
+      failures.push(`${specName}: top HUD ratio drift`);
+    }
+    if (!snapshot.titlePlaque || snapshot.titlePlaque.width / snapshot.shell.width < .38 || snapshot.titlePlaque.width / snapshot.shell.width > .46) {
+      failures.push(`${specName}: title plaque ratio drift`);
+    }
+    if (!snapshot.leftBadgeIcon || snapshot.leftBadgeIcon.width < 70) failures.push(`${specName}: left badge scale drift`);
+    if (!snapshot.bottomMedallion || snapshot.bottomMedallion.width < 58) failures.push(`${specName}: bottom medallion scale drift`);
+    if (result.zone && !snapshot.drawerLandmarkVisible) {
+      failures.push(`${specName}: selected landmark is missing from the quest panel`);
+    }
+    if (result.immersiveViewportCheck) {
+      const color = snapshot.immersiveViewport.bottomBackgroundColor.match(/[0-9.]+/g)?.map(Number) || [];
+      const isDark = color.length >= 3 && (color[0] + color[1] + color[2]) / 3 < 90;
+      if (!isDark || snapshot.immersiveViewport.bottomBackgroundImage === 'none') {
+        failures.push(`${specName}: viewport letterbox is not intentionally dark/art-directed`);
+      }
+      if (Math.abs(snapshot.immersiveViewport.topGap - snapshot.immersiveViewport.bottomGap) > 3) {
+        failures.push(`${specName}: stage is not vertically centered ${snapshot.immersiveViewport.topGap}/${snapshot.immersiveViewport.bottomGap}`);
+      }
+    }
   }
   if (result.layout === 'bottom-dock') {
-    if (snapshot.navPosition !== 'fixed' && snapshot.navSlotPosition !== 'fixed') {
-      failures.push(`${specName}: navigation is not a fixed bottom dock`);
-    }
-    if (!snapshot.navColumns || snapshot.navColumns.split(' ').length !== 6) {
-      failures.push(`${specName}: bottom dock is not one six-item row`);
-    }
     if (result.viewport.width < 768) {
+      if (snapshot.navPosition !== 'fixed' && snapshot.navSlotPosition !== 'fixed') {
+        failures.push(`${specName}: navigation is not a fixed bottom dock`);
+      }
+      if (!snapshot.navColumns || snapshot.navColumns.split(' ').length !== 6) {
+        failures.push(`${specName}: bottom dock is not one six-item row`);
+      }
+      if (snapshot.landmarkCount !== 10) {
+        failures.push(`${specName}: mobile landmark card count ${snapshot.landmarkCount}`);
+      }
       if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 1) {
         failures.push(`${specName}: mobile dock is not one six-item row`);
       }
-      if (snapshot.navLabelWrapCount !== 0) {
-        failures.push(`${specName}: mobile dock label wrapping ${snapshot.navLabelWrapCount}`);
+      if (snapshot.navLabelOverTwoLineCount !== 0) {
+        failures.push(`${specName}: mobile dock label exceeds two lines ${snapshot.navLabelOverTwoLineCount}`);
       }
       if (snapshot.navOverlapCount !== 0) {
         failures.push(`${specName}: mobile dock overlap ${snapshot.navOverlapCount}`);
@@ -462,10 +1277,50 @@ function assertCase(result) {
       if (result.safeAreaBottom && snapshot.dockBottomClearance < result.safeAreaBottom + 5) {
         failures.push(`${specName}: safe-area clearance ${snapshot.dockBottomClearance}px`);
       }
+      if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
+      if (snapshot.navVisualKeys.join(',') !== 'adventure,hero,equipment,go_spirit,backpack,shop') {
+        failures.push(`${specName}: mobile navigation order ${snapshot.navVisualKeys.join(',')}`);
+      }
+    } else if (result.viewport.width > result.viewport.height) {
+      if (snapshot.navItemCount !== 5 || snapshot.navRowCount !== 5) failures.push(`${specName}: landscape floating badge structure drifted`);
+      if (!snapshot.bottomDockVisible) failures.push(`${specName}: landscape Legacy medallion dock is missing`);
+      if (!snapshot.primaryCta || !snapshot.progressOverlay) failures.push(`${specName}: landscape bottom HUD is incomplete`);
+    } else {
+      if (snapshot.navPosition !== 'fixed' && snapshot.navSlotPosition !== 'fixed') failures.push(`${specName}: portrait navigation is not fixed`);
+      if (snapshot.navItemCount !== 6 || snapshot.navRowCount !== 1) failures.push(`${specName}: portrait dock is not one six-item row`);
+      if (snapshot.bottomDockVisible) failures.push(`${specName}: portrait secondary dock competes with primary navigation`);
     }
-    if (snapshot.bottomDockVisible) failures.push(`${specName}: secondary dock competes with primary navigation`);
-    if (result.viewport.width >= 768 && (!snapshot.primaryCta || !snapshot.progressOverlay)) {
-      failures.push(`${specName}: portrait map CTA/progress overlay missing`);
+  }
+  if (result.openMore && !result.openSettings && !result.snapshot.moreOverlayVisible) failures.push(`${specName}: All Features did not open`);
+  if (result.openMore && !result.openSettings) {
+    const expectedColumns = result.viewport.width <= 600 ? 2 : 3;
+    if (snapshot.moreColumns !== expectedColumns) failures.push(`${specName}: All Features columns ${snapshot.moreColumns}`);
+  }
+  if (result.openSettings && !result.snapshot.settingsOverlayVisible) failures.push(`${specName}: Settings did not open`);
+  if (result.openSettings && (
+    snapshot.soundToggle.type !== 'checkbox'
+    || snapshot.soundToggle.appearance !== 'none'
+    || snapshot.soundToggle.trackWidth < 44
+    || !snapshot.soundToggle.state
+    || !snapshot.soundToggle.ariaLabel
+  )) failures.push(`${specName}: custom semantic Sound toggle contract failed`);
+  if (result.adventureCommand) {
+    const command = result.adventureCommand;
+    if (command.before.selectedZone !== command.after.selectedZone) failures.push(`${specName}: Adventure changed selected zone`);
+    if (command.before.playerLocationZone !== command.after.playerLocationZone) failures.push(`${specName}: Adventure moved player location`);
+    if (command.challengeCalls !== 0 || command.beforeUrl !== command.afterUrl) failures.push(`${specName}: Adventure started challenge navigation`);
+    if (command.after.drawerExpanded !== 'false' || command.after.moreOverlayVisible || command.after.settingsOverlayVisible) {
+      failures.push(`${specName}: Adventure did not close overlays`);
+    }
+    if (command.after.focusedId !== 'e9-map-stage') failures.push(`${specName}: Adventure did not focus map top`);
+  }
+  if (result.challengeAction) {
+    const action = result.challengeAction;
+    const expectedTargets = result.lockedChallengeCheck ? [] : [snapshot.zoneIdentities.challengeTargetZoneKey];
+    if (action.targets.join(',') !== expectedTargets.join(',')) failures.push(`${specName}: challenge targets ${action.targets.join(',')}`);
+    if (action.before.playerLocationZone !== action.after.playerLocationZone) failures.push(`${specName}: starting challenge immediately moved player`);
+    if (action.before.zoneIdentities.currentPlayerZoneKey !== action.after.zoneIdentities.currentPlayerZoneKey) {
+      failures.push(`${specName}: starting challenge changed authoritative frontier`);
     }
   }
   if (result.portraitContext) {
@@ -477,6 +1332,9 @@ function assertCase(result) {
       result.detailMapBefore.map.width !== snapshot.map.width
       || result.detailMapBefore.map.height !== snapshot.map.height
     )) failures.push(`${specName}: opening details changed map size`);
+    if (!snapshot.portraitLandmarkVisible) {
+      failures.push(`${specName}: selected portrait landmark is missing`);
+    }
   }
   if (result.mobileInline) {
     if (!snapshot.inlineDetailsVisible || snapshot.detailsVisible) {
@@ -498,6 +1356,7 @@ async function runLegacyCase(browser, origin, outputDir) {
   const snapshot = await page.evaluate(() => ({
     activeShell: document.body.getAttribute('data-adventure-shell-active'),
     skin: document.body.getAttribute('data-e10-visual-skin'),
+    artKit: document.body.getAttribute('data-e10-art-kit'),
     shellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
     worldNodes: document.querySelectorAll('#e9-world-stage-zones [data-zone]').length,
     drawerVisible: !!document.querySelector('#e9-right-drawer-toggle'),
@@ -506,7 +1365,7 @@ async function runLegacyCase(browser, origin, outputDir) {
   await page.close();
   const failures = [];
   if (snapshot.activeShell !== 'legacy') failures.push('Legacy: query/host activated E9 shell');
-  if (snapshot.skin !== null) failures.push('Legacy: RPG skin marker leaked');
+  if (snapshot.skin !== null || snapshot.artKit !== null) failures.push('Legacy: RPG skin/art marker leaked');
   if (!snapshot.shellHidden) failures.push('Legacy: E9 shell is not hidden');
   if (snapshot.worldNodes !== 0 || snapshot.drawerVisible) failures.push('Legacy: World Stage UI leaked');
   if (browserErrors.length) failures.push(`Legacy: browser errors ${JSON.stringify(browserErrors)}`);
@@ -525,7 +1384,9 @@ async function runLifecycleCase(browser, origin) {
     return {
       activeShell: document.body.getAttribute('data-adventure-shell-active'),
       bodySkin: document.body.getAttribute('data-e10-visual-skin'),
+      bodyArtKit: document.body.getAttribute('data-e10-art-kit'),
       shellSkin: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-visual-skin'),
+      shellArtKit: document.querySelector('#e9-adventure-shell')?.getAttribute('data-e10-art-kit'),
       shellHidden: document.querySelector('#e9-adventure-shell')?.hidden,
       mountedSlots: document.querySelectorAll('[data-e9-loaded], [data-e9-inited]').length,
     };
@@ -542,13 +1403,16 @@ async function runLifecycleCase(browser, origin) {
   if (
     destroyed.activeShell !== 'legacy'
     || destroyed.bodySkin !== null
+    || destroyed.bodyArtKit !== null
     || destroyed.shellSkin !== null
+    || destroyed.shellArtKit !== null
     || !destroyed.shellHidden
     || destroyed.mountedSlots !== 0
   ) failures.push('lifecycle: destroy did not clean shell and skin ownership');
   if (
     remounted.activeShell !== 'e9'
     || remounted.skin !== 'immersive-rpg'
+    || remounted.artKit !== 'runtime-v1'
     || remounted.nodeCount !== 10
     || remounted.duplicateIds.length
     || afterGeneration <= beforeGeneration
@@ -562,13 +1426,6 @@ async function main() {
   const outputIndex = args.indexOf('--out');
   if (outputIndex < 0 || !args[outputIndex + 1]) throw new Error('--out <unique-directory> is required');
   const outputDir = path.resolve(args[outputIndex + 1]);
-  const currentIndexArgument = args.indexOf('--current-index');
-  const currentIndexPath = currentIndexArgument >= 0
-    ? path.resolve(args[currentIndexArgument + 1] || '')
-    : null;
-  if (currentIndexArgument >= 0 && !fssync.existsSync(currentIndexPath)) {
-    throw new Error(`--current-index does not exist: ${currentIndexPath}`);
-  }
   if (fssync.existsSync(outputDir)) throw new Error(`output directory already exists: ${outputDir}`);
   await fs.mkdir(outputDir, { recursive: true });
 
@@ -578,45 +1435,106 @@ async function main() {
   try {
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
-      { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
-      { specName: 'desktop-1440', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-zh.png', layout: 'rail' },
-      { specName: 'tablet-landscape-closed', viewport: { width: 1024, height: 768 }, lang: 'en', filename: 'tablet-1024x768-closed-en.png', layout: 'rail' },
-      { specName: 'tablet-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true },
-      { specName: 'tablet-portrait-closed', viewport: { width: 768, height: 1024 }, lang: 'en', filename: 'tablet-768x1024-portrait-closed-en.png', layout: 'bottom-dock' },
-      { specName: 'tablet-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
-      { specName: 'mobile-zone-1', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-1-zh.png', zone: 'k26_30', mobileInline: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-6', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-6-inline-en.png', zone: 'k1_5', mobileInline: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-10-zh', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-zone-10-zh.png', zone: 'd7_plus', zoneTailCheck: true, layout: 'bottom-dock' },
-      { specName: 'mobile-zone-10-en', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-zone-10-en.png', zone: 'd7_plus', zoneTailCheck: true, layout: 'bottom-dock' },
-      { specName: 'mobile-long-label-stress', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-stress-en.png', longLabelStress: true, layout: 'bottom-dock' },
-      { specName: 'mobile-safe-area', viewport: { width: 390, height: 844 }, lang: 'zh', filename: 'mobile-390x844-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
+      { specName: 'desktop-1920-closed-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-closed-en.png', layout: 'rail' },
+      { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true, challengeActionCheck: true },
+      { specName: 'desktop-1920-current-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-current-zone-en.png', zone: 'k21_25', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-current-details-zh', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-current-zone-zh.png', zone: 'k21_25', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-selected-details-zh', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-selected-zone-zh.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-locked-details-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-locked-zone-en.png', zone: 'd1_2', layout: 'rail', progressDrawerCheck: true, lockedChallengeCheck: true },
+      { specName: 'desktop-1920-locked-details', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-locked-zone-zh.png', zone: 'd1_2', layout: 'rail', progressDrawerCheck: true, lockedChallengeCheck: true },
+      { specName: 'desktop-1920-completed-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-completed-zone-en.png', zone: 'k26_30', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-skipped-details', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-skipped-zone-zh.png', zone: 'k21_25', layout: 'rail', fixtureMode: 'placement-high', progressDrawerCheck: true },
+      { specName: 'desktop-1920-placement-high', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-placement-high-zh.png', layout: 'rail', fixtureMode: 'placement-high' },
+      { specName: 'desktop-1440-closed', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-closed-en.png', layout: 'rail', immersiveViewportCheck: true },
+      { specName: 'desktop-1440-closed-zh', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-closed-zh.png', layout: 'rail', immersiveViewportCheck: true },
+      { specName: 'desktop-1440-panel-open', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-panel-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, immersiveViewportCheck: true },
+      { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true, immersiveViewportCheck: true },
+      { specName: 'desktop-1440-more', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-all-features-zh.png', layout: 'rail', openMore: true, immersiveViewportCheck: true },
+      { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character', immersiveViewportCheck: true },
+      { specName: 'tablet-1180-landscape-closed', viewport: { width: 1180, height: 820 }, lang: 'zh', filename: 'tablet-1180x820-closed-zh.png', layout: 'bottom-dock' },
+      { specName: 'tablet-1180-landscape-more', viewport: { width: 1180, height: 820 }, lang: 'en', filename: 'tablet-1180x820-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'tablet-1024-landscape-closed', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-closed-zh.png', layout: 'bottom-dock' },
+      { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'tablet-820-portrait-settings', viewport: { width: 820, height: 1180 }, lang: 'zh', filename: 'tablet-820x1180-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
+      { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'mobile-430-closed', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-closed-en.png', layout: 'bottom-dock' },
+      { specName: 'mobile-430-more', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-all-features-en.png', layout: 'bottom-dock', openMore: true },
+      { specName: 'mobile-430-settings', viewport: { width: 430, height: 932 }, lang: 'zh', filename: 'mobile-430x932-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
+      { specName: 'mobile-390-long-label', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-en.png', zone: 'k1_5', longLabelStress: true, adventureCommandCheck: true, layout: 'bottom-dock' },
+      { specName: 'mobile-360-safe-area', viewport: { width: 360, height: 800 }, lang: 'zh', filename: 'mobile-360x800-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
     ];
     const results = [];
-    for (const spec of specs) results.push(await runCase(browser, origin, outputDir, spec));
+    for (const spec of specs) {
+      process.stdout.write(`capture ${spec.specName}\n`);
+      results.push(await runCase(browser, origin, outputDir, spec));
+    }
+    const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
     const legacy = await runLegacyCase(browser, origin, outputDir);
     const lifecycle = await runLifecycleCase(browser, origin);
     const compatibilityBridge = [];
-    for (const contractCase of ['missing', 'wrong']) {
+    for (const contractCase of ['missing', 'wrong', 'current-v209']) {
       const fixture = await startStaticServer({ contractCase });
       compatibilityServers.push(fixture.server);
       const fallbackOrigin = contractCase === 'wrong'
         ? fixture.origin.replace('127.0.0.1', 'localhost')
         : fixture.origin;
       compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase)
+        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
       );
     }
-    if (currentIndexPath) {
-      const fixture = await startStaticServer({
-        contractCase: 'current-v209',
-        indexOverridePath: currentIndexPath,
-      });
-      compatibilityServers.push(fixture.server);
-      compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fixture.origin, 'current-v209')
-      );
-    }
+    const dockGeometryViewports = results
+      .filter((result) => result.viewport.width >= 768 && result.viewport.width > result.viewport.height)
+      .map((result) => ({
+        spec_name: result.specName,
+        viewport: result.viewport,
+        language: result.lang,
+        geometry: result.snapshot.dockGeometry,
+      }));
+    const dockGeometryFailures = dockGeometryViewports.flatMap((entry) => {
+      const geometry = entry.geometry;
+      const failures = [];
+      if (geometry.items.length !== 5) failures.push(`${entry.spec_name}: expected five dock items`);
+      if (geometry.max_badge_slot_delta_x > 1) failures.push(`${entry.spec_name}: badge-slot X delta ${geometry.max_badge_slot_delta_x}`);
+      if (geometry.max_badge_slot_delta_y > 1) failures.push(`${entry.spec_name}: badge-slot Y delta ${geometry.max_badge_slot_delta_y}`);
+      if (geometry.max_label_badge_delta_x > 1) failures.push(`${entry.spec_name}: label-badge X delta ${geometry.max_label_badge_delta_x}`);
+      if (geometry.max_badge_center_y_spread > 1) failures.push(`${entry.spec_name}: badge Y spread ${geometry.max_badge_center_y_spread}`);
+      if (geometry.max_slot_spacing_variance > 1) failures.push(`${entry.spec_name}: slot spacing variance ${geometry.max_slot_spacing_variance}`);
+      if (Math.abs(geometry.dock_stage_center_delta_x) > 1) failures.push(`${entry.spec_name}: dock-stage X delta ${geometry.dock_stage_center_delta_x}`);
+      return failures;
+    });
+    const geometryReport = {
+      contract: 'e10-bottom-dock-badge-slot-alignment-v1',
+      slot_source: {
+        asset: 'assets/e10/ui/frames/legacy-dock-frame.webp',
+        dimensions: { width: 1280, height: 384 },
+        slot_centers: [
+          { x: 260, y: 192 }, { x: 450, y: 192 }, { x: 640, y: 192 },
+          { x: 830, y: 192 }, { x: 1020, y: 192 },
+        ],
+      },
+      ok: dockGeometryFailures.length === 0,
+      max_badge_slot_delta_x: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_badge_slot_delta_x)),
+      max_badge_slot_delta_y: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_badge_slot_delta_y)),
+      max_badge_center_y_spread: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_badge_center_y_spread)),
+      max_slot_spacing_variance: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_slot_spacing_variance)),
+      max_label_badge_delta_x: Math.max(0, ...dockGeometryViewports.map((entry) => entry.geometry.max_label_badge_delta_x)),
+      max_dock_stage_center_delta_x: Math.max(0, ...dockGeometryViewports.map((entry) => Math.abs(entry.geometry.dock_stage_center_delta_x))),
+      interaction_states: polishStateEvidence.dockInteractionGeometry,
+      viewports: dockGeometryViewports,
+      failures: dockGeometryFailures,
+    };
+    await fs.writeFile(path.join(outputDir, 'bottom-dock-geometry.json'), JSON.stringify(geometryReport, null, 2));
     const failures = results.flatMap(assertCase).concat(
+      polishStateEvidence.browserErrors.map((error) => `polish state evidence: ${error}`),
+      Object.entries(polishStateEvidence.dockInteractionGeometry || {}).flatMap(([state, measurement]) => {
+        const failures = [];
+        for (const key of ['badge_center_x', 'badge_center_y', 'slot_center_x', 'slot_center_y', 'label_center_x']) {
+          if (measurement.deltas[key] > 1) failures.push(`bottom-dock ${state}: ${key} moved ${measurement.deltas[key]}px`);
+        }
+        return failures;
+      }),
+      dockGeometryFailures,
       legacy.failures,
       lifecycle.failures,
       compatibilityBridge.flatMap((result) => result.failures),
@@ -626,14 +1544,19 @@ async function main() {
       source_root: repoRoot,
       runtime_origin: origin,
       results,
+      polishStateEvidence,
       legacy,
       lifecycle,
       compatibilityBridge,
       failures,
     };
-    await fs.writeFile(path.join(outputDir, 'e10-vs1e-visual-contract.json'), JSON.stringify(report, null, 2));
+    await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
     if (failures.length) throw new Error(failures.join('\n'));
-    process.stdout.write(JSON.stringify({ ok: true, output_dir: outputDir, screenshots: results.length + 1 }, null, 2));
+    process.stdout.write(JSON.stringify({
+      ok: true,
+      output_dir: outputDir,
+      screenshots: results.length + 1 + polishStateEvidence.captures.length,
+    }, null, 2));
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));

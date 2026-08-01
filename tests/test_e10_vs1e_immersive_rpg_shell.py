@@ -63,26 +63,25 @@ def test_visual_direction_tokens_and_touch_targets_are_explicit():
     assert "transition-duration: .001ms" in CSS
 
 
-def test_navigation_uses_decorative_repo_native_svg_without_emoji():
-    assert NAV_HTML.count('class="e9-nav__icon"') == 6
-    assert NAV_HTML.count('aria-hidden="true"') == 6
-    assert NAV_HTML.count('focusable="false"') == 6
-    for route in (
-        'href="#"',
-        'href="/hero?tab=hero"',
-        'href="/hero?tab=equipment"',
-        'href="/inventory"',
-        'href="/daily_challenge"',
-        'href="/shop"',
-    ):
-        assert route in NAV_HTML
+def test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_marker():
+    nav_js = (ROOT / "js/e9/left_nav.js").read_text(encoding="utf-8")
+    registry = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
+    assert 'class="e9-nav__icon"' not in NAV_HTML
+    assert "registry.exactContract()" in nav_js
+    assert "data-e10-vs1f-icon" in registry
+    for route in ('/hero?tab=hero', '/hero?tab=equipment', '/hero?tab=pet', '/shop', '/daily-challenge'):
+        assert route in registry
+    assert "target: null" in registry
     assert not re.search(r"[\U0001F300-\U0001FAFF]", NAV_HTML)
 
 
-def test_hud_has_no_fabricated_avatar_or_placeholder_resource():
-    assert "top-hud-avatar" not in TOP_HTML
-    assert "e10-hud-brand__crest" in TOP_HTML
-    assert 'aria-hidden="true"' in TOP_HTML
+def test_hud_restores_vs1d_fallback_and_builds_vs1f_brand_after_marker():
+    assert "top-hud-avatar" in TOP_HTML
+    assert "e10-hud-brand__crest" not in TOP_HTML
+    assert "if (!marker || marker.getAttribute('content') !== VS1F_STATIC_CONTRACT) return;" in TOP_JS
+    assert "data-e10-vs1f-brand" in TOP_JS
+    assert "e10.world_stage.title" in TOP_JS
+    assert "if (avatar) avatar.remove();" not in TOP_JS
     assert 'id="top-hud-level" hidden' in TOP_HTML
     assert 'id="top-hud-coins" hidden' in TOP_HTML
     assert "🪙" not in TOP_HTML
@@ -97,6 +96,7 @@ def test_i18n_and_cache_versions_are_coupled():
     for key in (
         "e10.world_stage.state_locked",
         "e10.world_stage.state_completed",
+        "e10.world_stage.state_current",
         "e10.world_stage.state_available",
         "e10.world_stage.continue_adventure",
         "e10.world_stage.selected_quest",
@@ -105,13 +105,13 @@ def test_i18n_and_cache_versions_are_coupled():
         "e10.world_stage.zone_progress",
     ):
         assert f"'{key}'" in I18N
-    assert "ASSET_VERSION = 'e10-vs1e-compatibility-bridge'" in FLAGS
-    assert "const VERSION     = 'v214-e10-vs1e-compatibility-bridge'" in SW
-    assert "/i18n.js?v=20260730e10vs1e5" in INDEX
-    assert "/css/e9/immersive_rpg.css?v=20260730e10vs1e5" in INDEX
-    assert "/js/e9/feature_flags.js?v=20260730e10vs1e5" in INDEX
-    assert "/js/e9/right_cards.js?v=20260730e10vs1e5" in INDEX
-    assert "/js/e9/world_stage.js?v=20260730e10vs1e5" in INDEX
+    assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
+    assert "const VERSION     = 'v224-e10-bottom-dock-alignment'" in SW
+    assert "/i18n.js?v=20260801e10art1" in INDEX
+    assert "/css/e9/immersive_rpg.css?v=20260801e10art1" in INDEX
+    assert "/js/e9/feature_flags.js?v=20260801e10art1" in INDEX
+    assert "/js/e9/right_cards.js?v=20260801e10art1" in INDEX
+    assert "/js/e9/world_stage.js?v=20260801e10art1" in INDEX
 
 
 def test_skin_does_not_embed_art_or_text_in_image_assets():
@@ -191,5 +191,5 @@ def test_live_language_switch_relocalizes_progress_and_selected_drawer_state():
     assert "window.E9.on(document, 'e9:i18n-changed', onI18nChanged" in cards_js
     assert "delete root.__e9CompactProgress" in cards_js
     selected_rerender = "renderSelectedZone(root, zones, selected.key, false);"
-    localized_dispatch = "dispatchZoneSelection(root, selected);"
+    localized_dispatch = "dispatchZoneSelection(root, selected, state);"
     assert WORLD_JS.index(selected_rerender) < WORLD_JS.index(localized_dispatch)

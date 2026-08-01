@@ -76,7 +76,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v214-e10-vs1e-compatibility-bridge" in SW
+    assert "v224-e10-bottom-dock-alignment" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 

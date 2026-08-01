@@ -1,33 +1,56 @@
-/*
- * E9 Left Nav — component init (non-critical).
- * Operates only on its own root. All links except "Adventure" are real
- * <a href> targets and need no JS to navigate — the browser handles them
- * natively. "Adventure" is the current view, so its click is a no-op
- * (prevented) rather than a real navigation.
- */
+/* Responsive primary navigation, generated from NavigationRegistry. */
 (function (document) {
   'use strict';
+
+  function renderItem(item, registry) {
+    var li = document.createElement('li');
+    li.setAttribute('data-e10-vs1f-nav', item.key);
+    var control = document.createElement(item.disabled || item.command ? 'button' : 'a');
+    control.className = 'e9-nav__item e10-nav-item--' + item.key;
+    control.setAttribute('data-e10-nav-key', item.key);
+    control.setAttribute('data-e10-state', 'default');
+    if (item.target) control.setAttribute('href', item.target);
+    if (item.command) control.setAttribute('data-e10-command', item.command);
+    if (item.disabled) {
+      control.disabled = true;
+      control.setAttribute('aria-disabled', 'true');
+      control.setAttribute('data-e10-disabled', '');
+      control.setAttribute('data-e10-state', 'locked');
+      control.setAttribute('aria-describedby', 'e10-nav-status-' + item.key);
+    }
+    control.innerHTML = registry.icon(item.icon, 'e9-nav__icon')
+      + '<span data-i18n="' + item.labelKey + '"></span>'
+      + (item.disabled ? registry.icon('lock', 'e10-nav-status-lock')
+        + '<small class="e9-visually-hidden" id="e10-nav-status-' + item.key + '" data-i18n="inv.comingSoon"></small>' : '');
+    if (item.command === 'adventure') {
+      control.classList.add('is-active');
+      control.setAttribute('data-e10-state', 'active');
+      control.setAttribute('aria-current', 'page');
+    }
+    li.appendChild(control);
+    return li;
+  }
 
   function init(root, generation) {
     if (root.getAttribute('data-e9-inited') === '1') return;
     root.setAttribute('data-e9-inited', '1');
-
-    var current = root.querySelector('[data-e9-nav="adventure"]');
-    if (current) {
-      var handler = function (evt) {
-        evt.preventDefault(); // already on this view
-      };
-      if (window.E9 && typeof window.E9.on === 'function') {
-        window.E9.on(current, 'click', handler, null, generation);
-      } else {
-        current.addEventListener('click', handler);
-      }
+    var registry = window.E9 && window.E9.NavigationRegistry;
+    if (!registry || !registry.exactContract()) return;
+    root.setAttribute('data-e10-vs1f-nav', 'primary');
+    var list = root.querySelector('[data-e10-navigation-list]');
+    registry.itemsFor('desktop-primary').forEach(function (item) { list.appendChild(renderItem(item, registry)); });
+    registry.itemsFor('mobile-primary').forEach(function (item) {
+      if (!list.querySelector('[data-e10-nav-key="' + item.key + '"]')) list.appendChild(renderItem(item, registry));
+    });
+    var adventure = list.querySelector('[data-e10-command="adventure"]');
+    if (adventure) {
+      var run = function () { if (window.E9 && window.E9.runAdventureCommand) window.E9.runAdventureCommand(); };
+      window.E9.on(adventure, 'click', run, null, generation);
     }
+    if (window.I18n && window.I18n.apply) window.I18n.apply();
   }
 
-  document.addEventListener('e9:component-loaded', function (e) {
-    if (e.detail && e.detail.component === 'left_nav') {
-      init(e.detail.root, e.detail.generation);
-    }
+  document.addEventListener('e9:component-loaded', function (event) {
+    if (event.detail && event.detail.component === 'left_nav') init(event.detail.root, event.detail.generation);
   });
 })(document);
