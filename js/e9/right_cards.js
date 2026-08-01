@@ -222,11 +222,23 @@
       if (zoneSummary) {
         var kicker = zoneSummary.querySelector('.e10-drawer-zone-summary__kicker');
         if (kicker) kicker.setAttribute('data-i18n', 'e10.world_stage.current_zone');
+        var state = zoneSummary.querySelector('#e10-drawer-zone-state');
+        var body = zoneSummary.querySelector('#e10-drawer-zone-body');
+        var information = document.createElement('div');
+        information.className = 'e10-zone-panel-information';
+        information.setAttribute('data-e10-zone-information', '');
+        information.innerHTML = '<span class="e10-zone-panel-runtime__number" data-e10-zone-number></span>'
+          + '<div class="e10-zone-panel-information__copy"></div>';
+        var informationCopy = information.querySelector('.e10-zone-panel-information__copy');
+        if (informationCopy) {
+          if (state) informationCopy.appendChild(state);
+          if (body) informationCopy.appendChild(body);
+        }
+        zoneSummary.appendChild(information);
         var presentation = document.createElement('div');
         presentation.className = 'e10-zone-panel-runtime';
         presentation.setAttribute('data-e10-vs1f-zone-panel', '');
-        presentation.innerHTML = '<span class="e10-zone-panel-runtime__number" data-e10-zone-number></span>'
-          + '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars aria-label="3 stars"></span>'
+        presentation.innerHTML = '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars aria-label="3 stars"></span>'
           + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.task_progress"></span><strong data-e10-zone-quest-value></strong><i><b data-e10-zone-quest-bar></b></i></div>'
           + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.region_progress"></span><strong data-e10-zone-region-value></strong><i><b data-e10-zone-region-bar></b></i></div>'
           + '<button type="button" class="e10-zone-panel-runtime__cta" data-e10-zone-cta data-i18n="e10.world_stage.continue_adventure"></button>';

@@ -33,7 +33,7 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
   width: min(100vw, 1920px, 177.778dvh);
   aspect-ratio: 16 / 9;
   min-height: 0;
-  margin: max(0px, calc((100dvh - min(100vw * .5625, 1080px)) / 2)) auto;
+  margin: max(0px, calc((100dvh - min(56.25vw, 1080px)) / 2)) auto;
   overflow: hidden;
   border: 5px solid var(--e10-ref-gold);
   border-radius: 24px;
@@ -43,6 +43,41 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
     inset 0 0 0 6px var(--e10-ref-gold-deep),
     0 0 0 2px #25150d,
     0 18px 45px rgba(24, 13, 7, .46);
+}
+
+@media (min-width: 1280px) {
+  body[data-e10-visual-skin="immersive-rpg"] main,
+  body[data-e10-visual-skin="immersive-rpg"] main .practice,
+  body[data-e10-visual-skin="immersive-rpg"] #main-row,
+  body[data-e10-visual-skin="immersive-rpg"] #main-left,
+  body[data-e10-visual-skin="immersive-rpg"] #welcome-state {
+    min-height: 100dvh;
+    background:
+      linear-gradient(180deg, rgba(255, 218, 119, .07), transparent 18% 82%, rgba(255, 218, 119, .07)),
+      repeating-linear-gradient(90deg, rgba(232, 185, 79, .035) 0 1px, transparent 1px 22px),
+      #24160d !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] main .practice,
+  body[data-e10-visual-skin="immersive-rpg"] #main-row,
+  body[data-e10-visual-skin="immersive-rpg"] #main-left,
+  body[data-e10-visual-skin="immersive-rpg"] #welcome-state {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-adventure-shell-active="e9"] #main-row #main-left #welcome-state {
+    display: grid !important;
+    place-items: center;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    margin: 0 auto;
+    transform: translate(-50%, -50%);
+  }
 }
 
 body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::before,
@@ -560,6 +595,28 @@ body[data-e10-visual-skin="immersive-rpg"] #e10-drawer-zone-title { color: var(-
 body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary__state { display: inline-block; padding: 4px 12px; border-radius: 999px; color: #fff; background: var(--e10-ref-teal); }
 body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary__body { color: #614629; font-size: 12px; }
 
+body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-information {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin: 8px 0 10px;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-information__copy {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-information .e10-drawer-zone-summary__state,
+body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-information .e10-drawer-zone-summary__body {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+}
+
 body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-runtime {
   position: relative;
   display: grid;
@@ -569,9 +626,7 @@ body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-runtime {
 }
 
 body[data-e10-visual-skin="immersive-rpg"] .e10-zone-panel-runtime__number {
-  position: absolute;
-  top: -46px;
-  left: 0;
+  position: static;
   display: grid;
   place-items: center;
   width: 38px;

@@ -45,9 +45,9 @@ def _manifest(relative_path):
 def test_exact_v218_static_runtime_version_coupling():
     assert f'content="{CONTRACT}"' in INDEX
     assert f"VS1E_STATIC_CONTRACT = '{CONTRACT}'" in WORLD_JS
-    assert "ASSET_VERSION = 'e10-world-map-final-fidelity'" in FLAGS
-    assert "const VERSION     = 'v220-e10-world-map-final-fidelity'" in SW
-    assert INDEX.count("20260801e10fidelity1") >= 8
+    assert "ASSET_VERSION = 'e10-final-two-blockers'" in FLAGS
+    assert "const VERSION     = 'v221-e10-final-two-blockers'" in SW
+    assert INDEX.count("20260801e10blocker1") >= 8
 
 
 def test_ten_original_landmarks_are_runtime_referenced_and_governed():

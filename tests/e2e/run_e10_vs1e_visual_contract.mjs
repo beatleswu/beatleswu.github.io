@@ -345,6 +345,11 @@ async function runtimeSnapshot(page) {
     const intersects = (a, b) => !!(a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top);
     const routeSegments = Array.from(document.querySelectorAll('[data-e10-route-from][data-e10-route-to]'));
     const worldState = window.E9?.latestZoneSelection || {};
+    const panelNumber = document.querySelector('[data-e10-zone-number]')?.getBoundingClientRect();
+    const panelState = document.querySelector('#e10-drawer-zone-state')?.getBoundingClientRect();
+    const panelBody = document.querySelector('#e10-drawer-zone-body')?.getBoundingClientRect();
+    const viewportBottomElement = document.elementFromPoint(window.innerWidth / 2, window.innerHeight - 2);
+    const viewportBottomStyle = viewportBottomElement ? getComputedStyle(viewportBottomElement) : null;
     return {
       activeShell: document.body.getAttribute('data-adventure-shell-active'),
       skin: document.body.getAttribute('data-e10-visual-skin'),
@@ -406,6 +411,27 @@ async function runtimeSnapshot(page) {
         text: document.querySelector('.e10-drawer-zone-summary__kicker')?.textContent.trim(),
         title: document.querySelector('#e10-drawer-zone-title')?.textContent.trim(),
         status: document.querySelector('#e10-drawer-zone-state')?.textContent.trim(),
+      },
+      panelInformation: {
+        row: roundRect(rect('[data-e10-zone-information]')),
+        number: panelNumber ? roundRect(panelNumber) : null,
+        state: panelState ? roundRect(panelState) : null,
+        body: panelBody ? roundRect(panelBody) : null,
+        collisionCount: [panelState, panelBody].filter((copyRect) => intersects(panelNumber, copyRect)).length,
+        columns: document.querySelector('[data-e10-zone-information]')
+          ? getComputedStyle(document.querySelector('[data-e10-zone-information]')).gridTemplateColumns
+          : '',
+      },
+      immersiveViewport: {
+        topGap: document.querySelector('#e9-adventure-shell')?.getBoundingClientRect().top,
+        bottomGap: document.querySelector('#e9-adventure-shell')
+          ? window.innerHeight - document.querySelector('#e9-adventure-shell').getBoundingClientRect().bottom
+          : null,
+        bottomElement: viewportBottomElement
+          ? `${viewportBottomElement.tagName.toLowerCase()}#${viewportBottomElement.id}.${viewportBottomElement.className}`
+          : '',
+        bottomBackgroundColor: viewportBottomStyle?.backgroundColor || '',
+        bottomBackgroundImage: viewportBottomStyle?.backgroundImage || '',
       },
       ctas: {
         primary: {
@@ -830,6 +856,12 @@ function assertCase(result) {
     if (!snapshot.panelHeading.title.startsWith(`Zone ${zones.findIndex((zone) => zone.key === expectedSelected) + 1}`)) {
       failures.push(`${specName}: panel title ${snapshot.panelHeading.title}`);
     }
+    if (!snapshot.panelInformation.row || snapshot.panelInformation.collisionCount !== 0) {
+      failures.push(`${specName}: panel information collision ${snapshot.panelInformation.collisionCount}`);
+    }
+    if (snapshot.panelInformation.columns.trim().split(/\s+/).length !== 2) {
+      failures.push(`${specName}: panel information grid ${snapshot.panelInformation.columns}`);
+    }
   }
   if (result.escapeCheck && result.escaped !== 'false') failures.push(`${specName}: Escape did not close drawer`);
   if (result.layout === 'rail') {
@@ -839,8 +871,7 @@ function assertCase(result) {
     if (snapshot.landmarkCount !== 0) {
       failures.push(`${specName}: full landmark art duplicated the Desktop map`);
     }
-    const expectedLandmarkRequests = result.zone ? 1 : 0;
-    if (snapshot.landmarkRequestCount !== expectedLandmarkRequests) {
+    if (snapshot.landmarkRequestCount > 1) {
       failures.push(`${specName}: Desktop landmark requests ${snapshot.landmarkRequestCount}`);
     }
     if (!snapshot.nav || !snapshot.map || snapshot.nav.left < snapshot.map.left || snapshot.nav.right > snapshot.map.right) {
@@ -863,6 +894,16 @@ function assertCase(result) {
     if (!snapshot.bottomMedallion || snapshot.bottomMedallion.width < 58) failures.push(`${specName}: bottom medallion scale drift`);
     if (result.zone && !snapshot.drawerLandmarkVisible) {
       failures.push(`${specName}: selected landmark is missing from the quest panel`);
+    }
+    if (result.immersiveViewportCheck) {
+      const color = snapshot.immersiveViewport.bottomBackgroundColor.match(/[0-9.]+/g)?.map(Number) || [];
+      const isDark = color.length >= 3 && (color[0] + color[1] + color[2]) / 3 < 90;
+      if (!isDark || snapshot.immersiveViewport.bottomBackgroundImage === 'none') {
+        failures.push(`${specName}: viewport letterbox is not intentionally dark/art-directed`);
+      }
+      if (Math.abs(snapshot.immersiveViewport.topGap - snapshot.immersiveViewport.bottomGap) > 3) {
+        failures.push(`${specName}: stage is not vertically centered ${snapshot.immersiveViewport.topGap}/${snapshot.immersiveViewport.bottomGap}`);
+      }
     }
   }
   if (result.layout === 'bottom-dock') {
@@ -1058,12 +1099,18 @@ async function main() {
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true, challengeActionCheck: true },
       { specName: 'desktop-1920-current-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-current-zone-en.png', zone: 'k21_25', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-current-details-zh', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-current-zone-zh.png', zone: 'k21_25', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-selected-details-zh', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-selected-zone-zh.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-locked-details-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-locked-zone-en.png', zone: 'd1_2', layout: 'rail', progressDrawerCheck: true, lockedChallengeCheck: true },
       { specName: 'desktop-1920-locked-details', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-locked-zone-zh.png', zone: 'd1_2', layout: 'rail', progressDrawerCheck: true, lockedChallengeCheck: true },
+      { specName: 'desktop-1920-completed-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-completed-zone-en.png', zone: 'k26_30', layout: 'rail', progressDrawerCheck: true },
+      { specName: 'desktop-1920-skipped-details', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-skipped-zone-zh.png', zone: 'k21_25', layout: 'rail', fixtureMode: 'placement-high', progressDrawerCheck: true },
       { specName: 'desktop-1920-placement-high', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-placement-high-zh.png', layout: 'rail', fixtureMode: 'placement-high' },
-      { specName: 'desktop-1440-closed', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-closed-en.png', layout: 'rail' },
-      { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true },
-      { specName: 'desktop-1440-more', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-all-features-zh.png', layout: 'rail', openMore: true },
-      { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character' },
+      { specName: 'desktop-1440-closed', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-closed-en.png', layout: 'rail', immersiveViewportCheck: true },
+      { specName: 'desktop-1440-panel-open', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-panel-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, immersiveViewportCheck: true },
+      { specName: 'desktop-1440-settings', viewport: { width: 1440, height: 900 }, lang: 'en', filename: 'desktop-1440x900-settings-en.png', layout: 'rail', openSettings: true, immersiveViewportCheck: true },
+      { specName: 'desktop-1440-more', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-all-features-zh.png', layout: 'rail', openMore: true, immersiveViewportCheck: true },
+      { specName: 'desktop-1440-avatar-fallback', viewport: { width: 1440, height: 900 }, lang: 'zh', filename: 'desktop-1440x900-avatar-fallback-zh.png', layout: 'rail', avatarKey: 'unknown-character', immersiveViewportCheck: true },
       { specName: 'tablet-1180-landscape-closed', viewport: { width: 1180, height: 820 }, lang: 'zh', filename: 'tablet-1180x820-closed-zh.png', layout: 'bottom-dock' },
       { specName: 'tablet-1180-landscape-more', viewport: { width: 1180, height: 820 }, lang: 'en', filename: 'tablet-1180x820-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },

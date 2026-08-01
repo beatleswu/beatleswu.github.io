@@ -90,9 +90,31 @@ def main() -> None:
     desktop = opened(p("desktop-1920x1080-closed-zh.png"))
     desktop_open = opened(p("desktop-1920x1080-drawer-open-en.png"))
     desktop_current = opened(p("desktop-1920x1080-current-zone-en.png"))
+    desktop_current_zh = opened(p("desktop-1920x1080-current-zone-zh.png"))
+    desktop_selected_zh = opened(p("desktop-1920x1080-selected-zone-zh.png"))
+    desktop_locked_en = opened(p("desktop-1920x1080-locked-zone-en.png"))
     desktop_locked = opened(p("desktop-1920x1080-locked-zone-zh.png"))
+    desktop_completed = opened(p("desktop-1920x1080-completed-zone-en.png"))
+    desktop_skipped = opened(p("desktop-1920x1080-skipped-zone-zh.png"))
     placement_high = opened(p("desktop-1920x1080-placement-high-zh.png"))
     desktop_1440 = opened(p("desktop-1440x900-closed-en.png"))
+
+    sheet(p("phase-a-panel-collision-contact-sheet.png"), "Phase A: stable zone information row", [
+        ("Current Zone / English", desktop_current.crop((1440, 150, 1920, 800))),
+        ("Current Zone / Traditional Chinese", desktop_current_zh.crop((1440, 150, 1920, 800))),
+        ("Selected Zone / English", desktop_open.crop((1440, 150, 1920, 800))),
+        ("Selected Zone / Traditional Chinese", desktop_selected_zh.crop((1440, 150, 1920, 800))),
+        ("Locked / English", desktop_locked_en.crop((1440, 150, 1920, 800))),
+        ("Locked / Traditional Chinese", desktop_locked.crop((1440, 150, 1920, 800))),
+        ("Completed / replay", desktop_completed.crop((1440, 150, 1920, 800))),
+        ("Skipped by placement / review", desktop_skipped.crop((1440, 150, 1920, 800))),
+    ], columns=2)
+    sheet(p("phase-a-desktop-1440-immersive-contact-sheet.png"), "Phase A: Desktop 1440 immersive stage", [
+        ("Closed", desktop_1440),
+        ("Panel open", opened(p("desktop-1440x900-panel-open-en.png"))),
+        ("All Features", opened(p("desktop-1440x900-all-features-zh.png"))),
+        ("Settings", opened(p("desktop-1440x900-settings-en.png"))),
+    ], columns=2)
 
     sheet(p("owner-reference-comparison-contact-sheet.png"), "Owner reference | Runtime 1920 | Runtime 1440", [
         ("Owner reference", opened(args.reference)),

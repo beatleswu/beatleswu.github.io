@@ -106,6 +106,23 @@ def test_overlay_zone_panel_does_not_own_grid_width():
     assert "data-e10-vs1f-zone-panel" in RIGHT
 
 
+def test_zone_panel_information_row_prevents_number_copy_collisions():
+    assert "e10-zone-panel-information" in RIGHT
+    assert "e10-zone-panel-information__copy" in RIGHT
+    assert "grid-template-columns: 40px minmax(0, 1fr)" in CSS
+    number_rule = re.search(r"\.e10-zone-panel-runtime__number \{([\s\S]+?)\n\}", CSS)
+    assert number_rule
+    assert "position: static" in number_rule.group(1)
+    assert "top: -" not in number_rule.group(1)
+
+
+def test_desktop_stage_has_balanced_dark_letterbox_environment():
+    assert "min-height: 100dvh" in CSS
+    assert "place-items: center" in CSS
+    assert "#24160d !important" in CSS
+    assert "min(56.25vw, 1080px)" in CSS
+
+
 def test_dynamic_primary_and_panel_ctas_share_runtime_adapter():
     assert "root.__e10ChallengeTargetZoneKey" in RIGHT
     assert "window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey)" in RIGHT
@@ -159,9 +176,9 @@ def test_accessibility_and_reduced_motion_contracts_remain_present():
 def test_service_worker_and_query_cache_identity_are_current():
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
     flags = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
-    assert "v220-e10-world-map-final-fidelity" in sw
-    assert "ASSET_VERSION = 'e10-world-map-final-fidelity'" in flags
-    assert INDEX.count("20260801e10fidelity1") >= 6
+    assert "v221-e10-final-two-blockers" in sw
+    assert "ASSET_VERSION = 'e10-final-two-blockers'" in flags
+    assert INDEX.count("20260801e10blocker1") >= 6
 
 
 def test_final_zone_identity_and_placement_semantics_are_explicit():
