@@ -3858,6 +3858,11 @@ def init_db():
     with get_db() as conn:
         ensure_leaderboard_reward_tables(conn)
 
+    # ── Map Battle v1: additive schema only, feature default-off ─────────
+    from map_battle_persistence import ensure_map_battle_tables
+    with get_db() as conn:
+        ensure_map_battle_tables(conn)
+
 # ── 認證裝飾器 ─────────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
