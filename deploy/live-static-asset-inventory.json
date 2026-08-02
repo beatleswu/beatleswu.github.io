@@ -1,14 +1,15 @@
 {
-  "$schema_note": "Declarative allowlist of root-level runtime files that app.py's _LIVE_STATIC_ELIGIBLE_FILES (app.py, ~line 17721) permits to be served from the live-static override root (GO_ODYSSEY_LIVE_STATIC_ROOT / /opt/go-odyssey-static/current) before falling back to the file baked into the Docker image. This file is the single tracked source of truth for that allowlist's contents -- tests/deployment/test_static_release_inventory.py asserts it stays byte-for-byte in sync with app.py's own frozenset so the two can never silently drift apart.",
+  "$schema_note": "Declarative allowlist of runtime files that app.py's _LIVE_STATIC_ELIGIBLE_FILES (app.py, ~line 17721) or an explicitly routed subpath permits to be served from the live-static override root (GO_ODYSSEY_LIVE_STATIC_ROOT / /opt/go-odyssey-static/current) before falling back to the file baked into the Docker image. This file is the single tracked source of truth for the static release tooling's eligible paths; root-level entries remain synchronized with app.py and explicitly routed subpath assets are listed here when they are required in a generation.",
   "manifest_version": "1.0.0",
   "root_cause_reference": "docs/deployment/canonical_static_release_contract.md",
   "eligible_files": {
-    "description": "Every filename app.py will check the live-static root for. Not all of these are part of every static release generation -- see required_in_generation below for which ones this Sprint's tooling actually manages.",
+    "description": "Every repository-relative file path the static release tooling may stage. Root-level entries mirror app.py's flat live-static allowlist; explicitly routed subpath assets are included when the application serves them through the live-static-aware subpath contract. Not all eligible files are part of every static release generation -- see required_in_generation below.",
     "entries": [
       "i18n.js", "sw.js",
       "srs.js", "monster_trash.js", "sound.js", "mobile-nav.js",
       "site-nav.js", "community_reward_notifications.js",
       "community_reward_rules.js", "pwa.js",
+      "js/map_battle_v1_adapter.js",
       "manifest.json", "robots.txt", "sitemap.xml",
       "login.html", "landing.html", "index.html", "terms.html",
       "manage.html", "admin.html", "shadow_dashboard.html", "bot.html", "daily_challenge.html",
@@ -20,8 +21,8 @@
     ]
   },
   "required_in_generation": {
-    "description": "The subset of eligible_files this Sprint's static release tooling (scripts/release/package-static-release.ps1 / deploy-static-release.ps1) actually stages, ships, and verifies in every generation. i18n.js and sw.js remain governed because they were observed stale in live-static. index.html is also governed because it is a live-static eligible application entrypoint: leaving an older copy in current can mask the exact app image's QUEST1 shell wiring. Other eligible pages remain intentionally baked-image fallback content and are outside this focused contract.",
-    "entries": ["i18n.js", "sw.js", "index.html"]
+    "description": "The subset of eligible_files this Sprint's static release tooling (scripts/release/package-static-release.ps1 / deploy-static-release.ps1) actually stages, ships, and verifies in every generation. i18n.js and sw.js remain governed because they were observed stale in live-static. index.html is governed because an older live-static entrypoint can mask the exact app image's shell wiring. site-nav.js and js/map_battle_v1_adapter.js are required because index.html references both exact application assets. Other eligible pages remain intentionally baked-image fallback content and are outside this focused contract.",
+    "entries": ["i18n.js", "sw.js", "index.html", "site-nav.js", "js/map_battle_v1_adapter.js"]
   },
   "required_subtrees": {
     "description": "RELEASE-FIX-A2 (see docs/incidents/2026-07-12-full-site-asset-outage.md): RELEASE-FIX-A's narrow i18n.js/sw.js-only scope left assets/ management to whatever the production host happened to have mounted -- an undocumented, untracked 757MB tree that RELEASE-FIX-A's own generation switch silently orphaned, breaking every image on the site. assets/ is no longer excluded_prefixes; it is now release-bound and generation-managed, staged from the declarative closure manifest below -- NOT by copying an entire directory tree wholesale (that reintroduces exactly the untracked-content problem this fixes). RELEASE-FIX-A3 superseded the original 180-file runtime-reference-derived closure with the complete verified historical image pack (1,298 files) -- a runtime reference scan proved to be an incomplete ownership boundary (query-string and dynamically-constructed paths were invisible to it; see docs/incidents/2026-07-12-full-site-asset-outage.md's RELEASE-FIX-A3 addendum). Reference scanning remains a regression/observability layer (tests/test_release_fix_a2_asset_closure.py), not the source of truth for what ships. A second, narrower entry was added for assets/storyboards/*.mp3 narration audio (2026-07-15) -- canonical-image-pack-manifest.json is validated image/*-MIME-only (test_manifest_contains_only_image_mime_types) and its own $schema_note documents deliberately excluding these 90 files, so a companion audio-specific closure manifest governs them instead of weakening the image contract. See docs/deployment/canonical_static_narration_audio_contract.md.",

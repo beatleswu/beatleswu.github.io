@@ -1942,6 +1942,48 @@ function Get-StaticReleaseGenerationName {
     return "{0}-{1}-{2}" -f $stamp, $shortSha, $safeLabel
 }
 
+function Add-StaticReleasePathToSet {
+    <#
+    Register one normalized repository-relative path for a static release.
+    The comparer is intentionally case-insensitive because the release
+    staging/build contract must not produce two archive entries that collide
+    on a case-insensitive filesystem.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]$SeenPaths,
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+    $normalized = $RelativePath.Replace('\', '/')
+    if ([string]::IsNullOrWhiteSpace($normalized)) {
+        throw "Static release path must not be empty."
+    }
+    if (-not $SeenPaths.Add($normalized)) {
+        throw "Duplicate normalized static release path (including case collision): $normalized"
+    }
+    return $normalized
+}
+
+function Get-StaticReleaseStageTargetPath {
+    <#
+    Resolve a staged repository-relative path and prove it remains inside the
+    staging root. Path validation happens before this helper; this second
+    boundary check keeps the copy/archive contract explicit and fail-closed.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$StagePath,
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+    $stageRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $StagePath).Path)
+    $targetPath = [System.IO.Path]::GetFullPath((Join-Path $stageRoot $RelativePath))
+    $separator = [System.IO.Path]::DirectorySeparatorChar
+    $alternateSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+    $stagePrefix = $stageRoot.TrimEnd([char[]]@($separator, $alternateSeparator)) + $separator
+    if (-not $targetPath.StartsWith($stagePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Static release path escapes staging root: $RelativePath"
+    }
+    return $targetPath
+}
+
 function New-StaticReleaseBundle {
     <#
     .SYNOPSIS
@@ -1963,13 +2005,26 @@ function New-StaticReleaseBundle {
     New-Item -ItemType Directory -Path $StagePath -Force | Out-Null
 
     $files = @()
+    $seenPaths = New-Object 'System.Collections.Generic.HashSet[string]' -ArgumentList ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($relativePath in $Inventory.required_in_generation.entries) {
+        $relativePath = ([string]$relativePath).Replace('\', '/')
         Assert-SafeStaticRelativePath -RelativePath $relativePath -Inventory $Inventory
+        $relativePath = Add-StaticReleasePathToSet -SeenPaths $seenPaths -RelativePath $relativePath
         $sourceFile = Join-Path $SourceRoot $relativePath
+        if (Test-Path -LiteralPath $sourceFile -PathType Container) {
+            throw "Static release source path is a directory, expected a file: $relativePath"
+        }
         if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
             throw "Static release source file missing: $sourceFile"
         }
-        $targetFile = Join-Path $StagePath $relativePath
+        $targetFile = Get-StaticReleaseStageTargetPath -StagePath $StagePath -RelativePath $relativePath
+        $targetParent = Split-Path -Parent $targetFile
+        if (-not (Test-Path -LiteralPath $targetParent -PathType Container)) {
+            New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
+        }
+        if (Test-Path -LiteralPath $targetFile -PathType Container) {
+            throw "Static release staging path is a directory, expected a file: $relativePath"
+        }
         Copy-Item -LiteralPath $sourceFile -Destination $targetFile -Force
         $hash = (Get-FileHash -LiteralPath $targetFile -Algorithm SHA256).Hash.ToLowerInvariant()
         $size = (Get-Item -LiteralPath $targetFile).Length
@@ -1986,14 +2041,22 @@ function New-StaticReleaseBundle {
     foreach ($subtree in @($Inventory.required_subtrees.entries)) {
         $closureManifest = Get-CanonicalAssetClosureManifest -ManifestPath $subtree.manifest
         foreach ($entry in @($closureManifest.files)) {
-            $relativePath = $entry.path
+            $relativePath = ([string]$entry.path).Replace('\', '/')
             Assert-SafeStaticSubtreeRelativePath -RelativePath $relativePath -Prefix $subtree.prefix -Inventory $Inventory
+            $relativePath = Add-StaticReleasePathToSet -SeenPaths $seenPaths -RelativePath $relativePath
             $sourceFile = Join-Path $SourceRoot $relativePath
+            if (Test-Path -LiteralPath $sourceFile -PathType Container) {
+                throw "Governed subtree source path is a directory, expected a file: $relativePath"
+            }
             if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
                 throw "Governed subtree file declared in closure manifest is missing from source checkout (fail closed -- partial generation refused): $relativePath"
             }
-            $targetFile = Join-Path $StagePath $relativePath
-            New-Item -ItemType Directory -Path (Split-Path -Parent $targetFile) -Force | Out-Null
+            $targetFile = Get-StaticReleaseStageTargetPath -StagePath $StagePath -RelativePath $relativePath
+            $targetParent = Split-Path -Parent $targetFile
+            New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
+            if (Test-Path -LiteralPath $targetFile -PathType Container) {
+                throw "Static release staging path is a directory, expected a file: $relativePath"
+            }
             Copy-Item -LiteralPath $sourceFile -Destination $targetFile -Force
             $hash = (Get-FileHash -LiteralPath $targetFile -Algorithm SHA256).Hash.ToLowerInvariant()
             $size = (Get-Item -LiteralPath $targetFile).Length

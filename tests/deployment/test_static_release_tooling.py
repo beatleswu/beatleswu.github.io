@@ -21,6 +21,8 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 INVENTORY_PATH = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 APP_PY = REPO_ROOT / "app.py"
+DOCKERFILE = REPO_ROOT / "Dockerfile"
+INDEX_HTML = REPO_ROOT / "index.html"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 PACKAGE_SCRIPT = REPO_ROOT / "scripts" / "release" / "package-static-release.ps1"
 DEPLOY_SCRIPT = REPO_ROOT / "scripts" / "release" / "deploy-static-release.ps1"
@@ -37,6 +39,35 @@ def _read(path):
 
 def _load_inventory():
     return json.loads(_read(INVENTORY_PATH))
+
+
+def _ps_quote(value):
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def _ps_array(values):
+    return "@(" + ", ".join(_ps_quote(value) for value in values) + ")"
+
+
+def _run_powershell(tmp_path, body):
+    script = tmp_path / "release_tooling_test.ps1"
+    script.write_text(body, encoding="utf-8")
+    return subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+        capture_output=True, text=True, timeout=120,
+    )
+
+
+def _bundle_inventory(entries):
+    entries_ps = _ps_array(entries)
+    return f"""
+$inventory = [pscustomobject]@{{
+    required_in_generation = [pscustomobject]@{{ entries = {entries_ps} }}
+    eligible_files = [pscustomobject]@{{ entries = {entries_ps} }}
+    forbidden_patterns = [pscustomobject]@{{ path_patterns = @() }}
+    required_subtrees = [pscustomobject]@{{ entries = @() }}
+}}
+"""
 
 
 def _app_py_eligible_files():
@@ -58,11 +89,24 @@ def test_inventory_eligible_files_matches_app_py_allowlist_exactly():
     inventory = _load_inventory()
     inventory_files = set(inventory["eligible_files"]["entries"])
     app_py_files = set(_app_py_eligible_files())
-    assert inventory_files == app_py_files, (
-        f"deploy/live-static-asset-inventory.json has drifted from app.py's "
+    # app.py's frozenset is intentionally root-level. Explicitly routed
+    # subpath assets are also eligible for the static release, but are not
+    # part of that flat runtime allowlist.
+    inventory_root_files = {path for path in inventory_files if "/" not in path and "\\" not in path}
+    assert inventory_root_files == app_py_files, (
+        f"deploy/live-static-asset-inventory.json root entries have drifted from app.py's "
         f"_LIVE_STATIC_ELIGIBLE_FILES.\nOnly in inventory: {inventory_files - app_py_files}\n"
-        f"Only in app.py: {app_py_files - inventory_files}"
+        f"Only in app.py: {app_py_files - inventory_root_files}"
     )
+
+
+def test_inventory_explicit_subpath_asset_has_a_live_static_route():
+    inventory = _load_inventory()
+    app_content = _read(APP_PY)
+    adapter_path = "js/map_battle_v1_adapter.js"
+    assert adapter_path in inventory["eligible_files"]["entries"]
+    assert adapter_path in inventory["required_in_generation"]["entries"]
+    assert "@app.route('/js/map_battle_v1_adapter.js')" in app_content
 
 
 def test_inventory_required_in_generation_is_subset_of_eligible():
@@ -77,7 +121,9 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     # is also governed because an older live-static entrypoint can mask the
     # exact image's application shell wiring.
     inventory = _load_inventory()
-    assert set(inventory["required_in_generation"]["entries"]) == {"i18n.js", "sw.js", "index.html"}
+    assert set(inventory["required_in_generation"]["entries"]) == {
+        "i18n.js", "sw.js", "index.html", "site-nav.js", "js/map_battle_v1_adapter.js",
+    }
 
 
 def test_inventory_excludes_icons_prefix():
@@ -114,6 +160,29 @@ def test_inventory_is_valid_json_with_no_secrets():
     lower = raw.lower()
     for token in ("password", "secret_key=", "api_key=", "-----begin"):
         assert token not in lower
+
+
+def test_html_required_legacy_assets_have_image_and_static_contract_entries():
+    html = _read(INDEX_HTML)
+    dockerfile = _read(DOCKERFILE)
+    inventory = _load_inventory()
+    eligible = set(inventory["eligible_files"]["entries"])
+    required = set(inventory["required_in_generation"]["entries"])
+
+    assert "/js/map_battle_v1_adapter.js" in html
+    assert "/site-nav.js" in html
+    assert "COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js" in dockerfile
+    assert "site-nav.js" in dockerfile
+    assert {"site-nav.js", "js/map_battle_v1_adapter.js"} <= eligible
+    assert {"site-nav.js", "js/map_battle_v1_adapter.js"} <= required
+
+
+def test_dockerfile_legacy_asset_sources_exist_and_are_narrow():
+    dockerfile = _read(DOCKERFILE)
+    assert re.search(r"COPY\s+js/map_battle_v1_adapter\.js\s+\./js/map_battle_v1_adapter\.js", dockerfile)
+    assert not re.search(r"COPY\s+\.\s+\.", dockerfile)
+    assert (REPO_ROOT / "site-nav.js").is_file()
+    assert (REPO_ROOT / "js" / "map_battle_v1_adapter.js").is_file()
 
 
 # ---------------------------------------------------------------------------
@@ -337,6 +406,100 @@ def test_static_release_generation_name_matches_existing_host_convention():
     # Confirmed via direct host inspection: releases/<YYYYMMDD-HHMMSS>-<short-sha>-<label>/
     content = _read(PSM1)
     assert "yyyyMMdd-HHmmss" in content
+
+
+def test_nested_and_root_flat_files_copy_into_manifest_and_archive(tmp_path):
+    source = tmp_path / "source"
+    (source / "js").mkdir(parents=True)
+    (source / "root.txt").write_text("root-file\n", encoding="utf-8")
+    (source / "js" / "nested.js").write_text("nested-file\n", encoding="utf-8")
+    stage = tmp_path / "stage"
+    archive = tmp_path / "static.tar"
+    entries = ["root.txt", "js/nested.js"]
+
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+{_bundle_inventory(entries)}
+$files = @(New-StaticReleaseBundle -SourceRoot {_ps_quote(source)} -StagePath {_ps_quote(stage)} -Inventory $inventory)
+$tar = Resolve-GnuTarExecutable
+New-DeterministicStaticArchive -BundlePath {_ps_quote(stage)} -RelativePaths @($files | ForEach-Object {{ $_.path }}) -ArchivePath {_ps_quote(archive)} -GnuTarExecutablePath $tar.path -TimeoutSeconds 120 | Out-Null
+Test-StaticArchiveEntrySafety -ArchivePath {_ps_quote(archive)} -GnuTarExecutablePath $tar.path -TimeoutSeconds 120
+$manifest = New-StaticReleaseManifestObject -GitSha ('a' * 40) -GenerationId 'test-generation' -SwVersion 'test-sw' -Files $files -CreatedAtUtc '2026-08-03T00:00:00Z' -ArchiveFileName 'static.tar' -ArchiveSha256 'b' -ArchiveSize 1 -ArchiveEntryCount $files.Count -GnuTarExecutablePath $tar.path -GnuTarVersion 'test'
+[ordered]@{{ files = $files; manifest_files = $manifest.files; archive = {_ps_quote(archive)} }} | ConvertTo-Json -Depth 8
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"nested static bundle failed:\n{result.stdout}\n{result.stderr}"
+    result_json = json.loads(result.stdout)
+    expected_paths = set(entries)
+    assert {entry["path"] for entry in result_json["files"]} == expected_paths
+    assert {entry["path"] for entry in result_json["manifest_files"]} == expected_paths
+    assert (stage / "root.txt").is_file()
+    assert (stage / "js" / "nested.js").is_file()
+
+    archive_list = subprocess.run(
+        ["tar.exe", "-tf", archive.name],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=True,
+    ).stdout.splitlines()
+    assert set(archive_list) == expected_paths
+
+
+def _assert_bundle_rejected(tmp_path, entries, source_files=(), source_directories=()):
+    source = tmp_path / "source"
+    for relative_path in source_files:
+        path = source / Path(relative_path.replace("\\", "/"))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("fixture\n", encoding="utf-8")
+    for relative_path in source_directories:
+        (source / Path(relative_path.replace("\\", "/"))).mkdir(parents=True, exist_ok=True)
+    stage = tmp_path / "stage"
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+{_bundle_inventory(entries)}
+try {{
+    @(New-StaticReleaseBundle -SourceRoot {_ps_quote(source)} -StagePath {_ps_quote(stage)} -Inventory $inventory) | Out-Null
+    Write-Output 'UNEXPECTED_SUCCESS'
+    exit 1
+}} catch {{
+    Write-Output $_.Exception.Message
+    exit 0
+}}
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"expected bundle rejection:\n{result.stdout}\n{result.stderr}"
+    assert "UNEXPECTED_SUCCESS" not in result.stdout
+    return result.stdout
+
+
+@pytest.mark.parametrize(
+    ("entries", "source_files", "expected_message"),
+    [
+        (["js/missing.js"], [], "source file missing"),
+        (["../escape.js"], [], "Path traversal"),
+        (["js/../../escape.js"], [], "Path traversal"),
+        (["C:/escape.js"], [], "Absolute drive paths"),
+        (["/escape.js"], [], "Absolute paths"),
+        (["js/foo.js", "js\\foo.js"], ["js/foo.js"], "Duplicate normalized"),
+        (["js/Foo.js", "js/foo.js"], ["js/foo.js"], "Duplicate normalized"),
+    ],
+)
+def test_nested_static_path_safety_and_duplicate_contract(
+    tmp_path, entries, source_files, expected_message
+):
+    message = _assert_bundle_rejected(tmp_path, entries, source_files=source_files)
+    assert expected_message.lower() in message.lower()
+
+
+def test_nested_directory_entry_is_rejected_as_non_file(tmp_path):
+    message = _assert_bundle_rejected(
+        tmp_path,
+        ["js/not-a-file"],
+        source_directories=["js/not-a-file"],
+    )
+    assert "directory" in message.lower()
 
 
 # ---------------------------------------------------------------------------
