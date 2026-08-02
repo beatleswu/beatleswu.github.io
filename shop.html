@@ -493,6 +493,16 @@ h1 {
   transition: opacity .2s ease, transform .2s ease;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.purchase-confirmation {
+  position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 1100;
+  width: min(390px, calc(100vw - 36px)); display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 14px 16px; border: 1px solid rgba(240,191,87,.48); border-radius: var(--radius);
+  background: rgba(15,10,7,.97); color: var(--text); box-shadow: var(--shadow);
+}
+.purchase-confirmation[hidden] { display: none; }
+.purchase-confirmation strong { display:block; color:var(--gold); margin-bottom:4px; }
+.purchase-confirmation div div { color:var(--muted); font-size:12px; line-height:1.45; }
+.purchase-confirmation a { flex:0 0 auto; min-height:40px; display:inline-flex; align-items:center; padding:0 12px; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; text-decoration:none; }
 .skeleton {
   min-height: 210px;
   border-radius: var(--radius);
@@ -662,23 +672,13 @@ h1 {
     </div>
   </section>
 
-  <section class="section panel" aria-labelledby="mine-title">
-    <div class="panel-pad">
-      <div class="section-head">
-        <div>
-          <div class="section-kicker">BAG</div>
-          <div class="section-title" id="mine-title" data-i18n="shop.mine.title">我的背包</div>
-        </div>
-          <div class="section-sub" data-i18n="shop.mine.sub">已購入的道具在這裡使用，可隨時啟動效果。</div>
-      </div>
-      <div class="grid" id="mine-grid">
-        <div class="empty" data-i18n="shop.mine.empty">背包裡還沒有可用的商店道具。</div>
-      </div>
-    </div>
-  </section>
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<aside class="purchase-confirmation" id="purchase-confirmation" role="status" aria-live="polite" hidden>
+  <div><strong id="purchase-confirmation-title"></strong><div id="purchase-confirmation-copy"></div></div>
+  <a id="purchase-confirmation-backpack" href="/inventory" data-i18n="shop.purchase.goBackpack">前往背包</a>
+</aside>
 
 <script>
 let catalog = null;
@@ -1167,7 +1167,6 @@ async function loadCatalog() {
   renderWeekly(res);
   renderMonthly(res);
   renderItems(res);
-  renderMine(res);
 }
 function renderDaily(res) {
   const grid = document.getElementById("daily-grid");
@@ -1211,47 +1210,11 @@ function renderCatalogSection(gridId, items, emptyMessage, badgeText) {
   });
 }
 
-function renderMine(res) {
-  const grid = document.getElementById("mine-grid");
-  const inv = res.inventory || {};
-  const owned = (res.items || []).filter(item => Number(inv[item.key] || 0) > 0);
-  grid.innerHTML = "";
-  if (!owned.length) {
-    grid.innerHTML = `<div class="empty">${isEn() ? "Your bag has no shop tools yet." : "背包裡還沒有可用的商店道具。"}</div>`;
-    return;
-  }
-  owned.forEach(item => {
-    const card = document.createElement("article");
-    card.className = "item-card";
-    const qty = Number(inv[item.key] || 0);
-    const canUse = item.usable === "activate";
-    const usableLabel = canUse
-      ? (isEn() ? "Activatable" : "可使用")
-      : item.usable === "in_question"
-        ? (isEn() ? "Use while solving" : "題目中使用")
-        : (isEn() ? "Collectible" : "收藏品");
-    const ownedLabel = isEn() ? `Owned: ${qty}` : `已擁有 ${qty}`;
-    card.innerHTML = `
-      <div class="item-top">
-      <div class="item-art">${artHtml(item.key, item.icon)}</div>
-      <div>
-        <div class="item-name">${nameOf(item)}</div>
-        <div class="item-meta">${categoryOf(item)} · ${ownedLabel}</div>
-      </div>
-      </div>
-      <div class="item-desc">${descOf(item)}</div>
-      <div class="card-foot">
-        <span class="item-meta">${usableLabel}</span>
-        ${canUse ? `<button class="btn secondary" type="button">${isEn() ? "Activate" : "使用"}</button>` : `<button class="btn ghost" type="button" disabled>${isEn() ? "Waiting" : "待使用"}</button>`}
-      </div>`;
-    if (canUse) card.querySelector("button").addEventListener("click", () => useItem(item.key));
-    grid.appendChild(card);
-  });
-}
 function itemCard(item, saleOrOptions = false) {
   const card = document.createElement("article");
   card.className = "item-card";
   const key = item.key || item.item_key;
+  card.dataset.itemKey = key;
   const owned = Number(catalog?.inventory?.[key] || 0);
   const opts = typeof saleOrOptions === "object" ? saleOrOptions : { sale: !!saleOrOptions };
   const sale = !!opts.sale;
@@ -1295,6 +1258,49 @@ function appearanceCard(slot) {
   card.querySelector("button").addEventListener("click", () => buyAppearance(slot.item_key));
   return card;
 }
+async function resolvePurchaseGrants(res, purchasedKey) {
+  const itemDefs = new Map((catalog?.items || []).map(item => [item.key, item]));
+  const grants = (Array.isArray(res.granted_items) ? res.granted_items : []).map(grant => ({
+    kind:'item',
+    key:grant.item_key || purchasedKey,
+    name:nameOf(itemDefs.get(grant.item_key || purchasedKey) || { key:grant.item_key || purchasedKey }),
+    quantity:Number(catalog?.inventory?.[grant.item_key || purchasedKey] || 0),
+  }));
+  const foodGrants = Array.isArray(res.granted_food) ? res.granted_food : [];
+  if (foodGrants.length) {
+    const response = await fetch('/api/pet/status', { credentials:'include', cache:'no-store' });
+    if (!response.ok) throw new Error(`Pet inventory HTTP ${response.status}`);
+    const petStatus = await response.json();
+    const petInventory = new Map((petStatus.inventory || []).map(item => [item.key, item]));
+    foodGrants.forEach(grant => {
+      const item = petInventory.get(grant.item_key) || { key:grant.item_key, name:grant.item_key, name_en:grant.item_key, qty:0 };
+      grants.push({ kind:'pet_food', key:grant.item_key, name:nameOf(item), quantity:Number(item.qty || 0) });
+    });
+  }
+  if (!grants.length) {
+    grants.push({
+      kind:'item',
+      key:purchasedKey,
+      name:nameOf(itemDefs.get(purchasedKey) || { key:purchasedKey }),
+      quantity:Number(catalog?.inventory?.[purchasedKey] || 0),
+    });
+  }
+  return grants;
+}
+
+async function showPurchaseConfirmation(res, purchasedKey) {
+  const panel = document.getElementById('purchase-confirmation');
+  const title = document.getElementById('purchase-confirmation-title');
+  const copy = document.getElementById('purchase-confirmation-copy');
+  const destination = document.getElementById('purchase-confirmation-backpack');
+  const grants = await resolvePurchaseGrants(res, purchasedKey);
+  title.textContent = isEn() ? 'Purchase successful' : '購買成功';
+  const quantities = grants.map(grant => `${grant.name}: ${grant.quantity}`).join(isEn() ? '; ' : '；');
+  copy.textContent = isEn() ? `Added to Backpack · Owned: ${quantities}` : `已加入背包 · 目前持有：${quantities}`;
+  destination.href = grants.length === 1 ? `/inventory?focus=${encodeURIComponent(grants[0].key)}` : '/inventory';
+  destination.textContent = isEn() ? 'Go to Backpack' : '前往背包';
+  panel.hidden = false;
+}
 async function buyItem(key) {
   setMerchant("talk", "talk");
   const res = await api("/api/shop/buy", {
@@ -1309,12 +1315,9 @@ async function buyItem(key) {
   }
   setMerchant("happy", "happy");
   _nqCheckShopPurchase();
-  const itemGrants = Array.isArray(res.granted_items) ? res.granted_items.length : 0;
-  const foodGrants = Array.isArray(res.granted_food) ? res.granted_food.length : 0;
-  showToast(itemGrants || foodGrants
-    ? (isEn() ? "Purchase successful — rewards granted." : "購買成功，獎勵已發放。")
-    : (isEn() ? "Purchase successful." : "購買成功。"));
   await loadCatalog();
+  await showPurchaseConfirmation(res, key);
+  showToast(isEn() ? "Purchase successful." : "購買成功。");
 }
 
 async function buyAppearance(itemId) {
@@ -1331,46 +1334,6 @@ async function buyAppearance(itemId) {
   }
   setMerchant("happy", "happy");
   showToast(isEn() ? "Appearance added to wardrobe." : "外觀已收入衣櫃。");
-  await loadCatalog();
-}
-
-async function useItem(key) {
-  setMerchant("talk", "use");
-  const res = await api("/api/shop/use", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ item_key: key })
-  });
-  if (res.error) {
-    setMerchant("idle", "idle");
-    showToast(errorMessage(res.error, res.message));
-    return;
-  }
-  const messages = isEn() ? {
-    extra_questions: `Extra questions active — today's limit +${res.value || 0}!`,
-    xp_potion: `XP potion active — ×${res.value || 1.5} boost!`,
-    streak_shield: `Streak shield active — protects ${res.value || 1} miss(es).`,
-    hint: "Hint sent.",
-    appearance_fragment: res.reward_name_en
-      ? `Appearance unlocked: ${res.reward_name_en}.`
-      : `${res.reward_coins || 0} coins returned.`,
-    pet_xp: res.pet_level
-      ? `Companion growth +${res.value || 0} XP. Level ${res.pet_level}.`
-      : `Companion growth +${res.value || 0} XP.`
-  } : {
-    extra_questions: `額外題量已啟用，今日上限 +${res.value || 0}。`,
-    xp_potion: `XP 藥水已啟用，倍率 x${res.value || 1.5}。`,
-    streak_shield: `連勝護盾已啟用，可保護 ${res.value || 1} 次。`,
-    hint: "提示已送出。",
-    appearance_fragment: res.reward_name
-      ? `外觀已解鎖：${res.reward_name}。`
-      : `圖鑑已滿，退回 ${res.reward_coins || 0} 金幣。`,
-    pet_xp: res.pet_level
-      ? `寵物成長 +${res.value || 0} XP，目前 Lv.${res.pet_level}。`
-      : `寵物成長 +${res.value || 0} XP。`
-  };
-  setMerchant("happy", "use_done");
-  showToast(messages[res.effect] || (isEn() ? "Tool used." : "道具已使用。"));
   await loadCatalog();
 }
 
@@ -1652,11 +1615,6 @@ async function _nqCheckShopPurchase() {
 </div>
 </body>
 </html>
-
-
-
-
-
 
 
 

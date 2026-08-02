@@ -16,8 +16,8 @@
  * (non-auth) error, dispatching "e9:refresh-requested" before falling
  * back to recovery if the retry also fails.
  * Adventure Start uses the thin adapter window.E9.startAdventureFromE9()
- * (defined in shell.js), which calls the existing legacy
- * startAdventureStage() global -- no gameplay logic is duplicated here.
+ * (defined in shell.js), which calls the existing canonical in-page
+ * question entry -- no gameplay logic is duplicated here.
  * Zone selection dispatches "e9:zone-selected" (bubbles) and updates the
  * ephemeral detail selection. Only the detail CTA invokes the adapter, so
  * selecting a card never starts an encounter or changes progression state.
@@ -518,10 +518,15 @@
 
   function updateSelectedZoneCopy(root, zone) {
     var landmark = root.querySelector('#e9-world-stage-details-landmark');
+    var number = root.querySelector('#e9-world-stage-details-number');
+    var stars = root.querySelector('#e9-world-stage-details-stars');
     var label = root.querySelector('#e9-world-stage-details-label');
     var stateText = root.querySelector('#e9-world-stage-details-state');
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var progress = root.querySelector('#e9-world-stage-details-progress');
+    var regionProgress = root.querySelector('#e9-world-stage-details-region-progress');
+    if (number) number.textContent = 'Zone ' + (zone.__e10Index || 0);
+    if (stars) stars.textContent = '\u2605 ' + String(zone.stars || 0);
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
     if (stateText) {
       stateText.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
@@ -530,8 +535,9 @@
     if (summary) summary.textContent = zoneSummaryText(zone);
     if (progress) {
       progress.hidden = !VS1E_STATIC_CONTRACT_ACTIVE;
-      if (VS1E_STATIC_CONTRACT_ACTIVE) progress.textContent = zoneProgressText(zone);
+      if (VS1E_STATIC_CONTRACT_ACTIVE) progress.textContent = (zone.seen || 0) + ' / ' + (zone.total || 0);
     }
+    if (regionProgress) regionProgress.textContent = (zone.__e10Index || 0) + ' / 10';
     var portraitSurface = window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
     ).matches;
@@ -683,9 +689,22 @@
       try { focusTarget.focus({ preventScroll: true }); } catch (err) { focusTarget.focus(); }
       if (typeof focusTarget.scrollIntoView === 'function' && window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
         // Preserve the selected detail's keyboard focus, but pan the visual
-        // viewport to the selected-zone map crop on small screens.
-        var mobileFocus = isMobile ? root.querySelector('[data-zone="' + zone.key + '"]') : (root.querySelector('#e9-map-stage') || focusTarget);
-        mobileFocus.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // viewport to the selected-zone action on mobile. Centering the real
+        // CTA keeps it above the fixed navigation instead of leaving the
+        // bottom half of an expanded Zone card underneath that dock.
+        var mobileFocus = isMobile
+          ? (root.querySelector('[data-zone="' + zone.key + '"] .e9-zone__inline-cta') || root.querySelector('[data-zone="' + zone.key + '"]'))
+          : (root.querySelector('#e9-map-stage') || focusTarget);
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var scrollOptions = {
+          behavior: isMobile || reduced ? 'auto' : 'smooth',
+          block: isMobile ? 'center' : 'start'
+        };
+        if (scrollOptions.behavior === 'smooth') {
+          mobileFocus.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          mobileFocus.scrollIntoView(scrollOptions);
+        }
       }
     }
   }

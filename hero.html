@@ -398,13 +398,53 @@ header:not(.cg-nav) {
 }
 .main-tab:not(.active):hover { background: var(--cream3); color: var(--ink); }
 
+.hero-overview-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+}
+.hero-overview-card {
+  min-width: 0; border: 1px solid var(--border); border-radius: 12px;
+  background: rgba(255,255,255,.52); padding: 12px;
+}
+.hero-overview-card.wide { grid-column: 1 / -1; }
+.hero-overview-label {
+  color: var(--ink3); font: 700 10px/1.3 'DM Mono', monospace;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.hero-overview-value { margin-top: 5px; color: var(--ink); font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.hero-quick-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.hero-quick-link {
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 10px; background: #fff7dc;
+  color: var(--ink2); font-size: 12px; font-weight: 800; text-decoration: none; cursor: pointer;
+}
+.hero-quick-link:hover, .hero-quick-link:focus-visible { border-color: var(--teal); color: var(--teal-dark); }
+.hero-domain-note { margin: 0 0 14px; color: var(--ink3); font-size: 11px; line-height: 1.6; }
+.combat-item .combat-item-effect { display: block; color: var(--teal-dark); font: 700 9px/1.3 'DM Mono', monospace; }
+body:not([data-hero-tab="equipment"]) .forge-col { display: none; }
+
 /* ── TWO-COLUMN LAYOUT ── */
 .content-layout {
   display: grid; grid-template-columns: 300px minmax(0,1fr) 300px; gap: 22px; align-items: start;
 }
 .content-layout .char-panel { order: 1; }   /* 頭像欄移到最右 */
-@media (max-width: 1180px) { .content-layout { grid-template-columns: 1fr 220px; } .content-layout .forge-col { display: none; } }
-@media (max-width: 700px) { .content-layout { grid-template-columns: 1fr; } .content-layout .char-panel { order: 0; } }
+body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: minmax(0,1fr) 300px; }
+@media (max-width: 1180px) {
+  .content-layout,
+  body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: minmax(0,1fr) 220px; }
+  .content-layout .forge-col { display: none; }
+}
+@media (max-width: 700px) {
+  .content-layout,
+  body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: minmax(0,1fr); }
+  .content-layout .char-panel { order: 0; }
+}
+@media (max-width: 1024px) and (orientation: portrait) {
+  .content-layout,
+  body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: minmax(0, 1fr); }
+  .content-layout .char-panel { order: 0; position: static; }
+  .center-col { order: 1; }
+  .hero-quick-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* 左欄鐵匠 NPC：站在地上（貼著視窗底）、在火爐旁 */
 .forge-col {
@@ -1297,7 +1337,7 @@ header:not(.cg-nav) {
   .pet-choice-grid { grid-template-columns: 1fr; }
   .pet-main-card { grid-template-columns: 1fr; }
   .pet-food-help { max-width: 200px; }
-  .main-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .main-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
   .main-tab {
     flex: 1 1 0;
     min-width: 0;
@@ -1313,7 +1353,9 @@ header:not(.cg-nav) {
 
 /* ── SLOT GRID ── */
 .slot-grid { display: grid; gap: 10px; }
-#tab-gear .slot-grid {
+#tab-equipment .slot-grid,
+#tab-appearance .slot-grid,
+#tab-pet .slot-grid {
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
 }
 .wardrobe-slot-block {
@@ -1341,6 +1383,7 @@ header:not(.cg-nav) {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 5px;
   cursor: pointer; transition: all .18s; position: relative;
+  padding: 0; color: inherit; font: inherit;
 }
 .slot-item:not(.locked):hover {
   transform: translateY(-2px);
@@ -1387,7 +1430,7 @@ header:not(.cg-nav) {
   display: block; object-fit: contain;
   filter: drop-shadow(0 8px 14px rgba(28,20,9,.22));
 }
-#tab-gear .slot-art { width: min(72%, 86px); height: min(72%, 86px); }
+:is(#tab-appearance, #tab-pet) .slot-art { width: min(72%, 86px); height: min(72%, 86px); }
 .slot-item.locked .slot-art { filter: grayscale(.75) drop-shadow(0 6px 10px rgba(28,20,9,.16)); opacity: .78; }
 .title-item-icon.art {
   width: 34px; height: 34px; border-radius: 10px; overflow: hidden;
@@ -1435,10 +1478,10 @@ header:not(.cg-nav) {
 }
 
 /* gear tab slot sizing */
-#tab-gear .slot-emoji { font-size: 40px; }
-#tab-gear .slot-label { font-size: 10px; }
-#tab-gear .slot-equipped-dot { width: 10px; height: 10px; top: 8px; right: 8px; }
-#tab-gear .rarity-dot { width: 8px; height: 8px; top: 8px; left: 8px; }
+:is(#tab-appearance, #tab-pet) .slot-emoji { font-size: 40px; }
+:is(#tab-appearance, #tab-pet) .slot-label { font-size: 10px; }
+:is(#tab-appearance, #tab-pet) .slot-equipped-dot { width: 10px; height: 10px; top: 8px; right: 8px; }
+:is(#tab-appearance, #tab-pet) .rarity-dot { width: 8px; height: 8px; top: 8px; left: 8px; }
 
 /* ── TITLE LIST (non-square) ── */
 .title-item {
@@ -1597,11 +1640,21 @@ header:not(.cg-nav) {
   .page-hero-stats { width: 100%; justify-content: stretch; }
   .hero-stat-pill { flex: 1; }
   .char-panel { position: static; }
-  #tab-gear .slot-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
-  #tab-gear .slot-emoji { font-size: 36px; }
+  .main-tabs { display: flex; overflow-x: auto; scroll-snap-type: x proximity; }
+  .main-tab { flex: 0 0 auto; min-width: 108px; scroll-snap-align: start; }
+  .hero-overview-grid { grid-template-columns: 1fr; }
+  .hero-overview-card.wide { grid-column: auto; }
+  #tab-equipment .slot-grid,
+  #tab-appearance .slot-grid,
+  #tab-pet .slot-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+  #tab-equipment .slot-emoji,
+  #tab-appearance .slot-emoji,
+  #tab-pet .slot-emoji { font-size: 36px; }
 }
 @media (max-width: 400px) {
-  #tab-gear .slot-grid { grid-template-columns: repeat(3, 1fr); }
+  #tab-equipment .slot-grid,
+  #tab-appearance .slot-grid,
+  #tab-pet .slot-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
     /* ── ≤1366px：手機/iPad 用統一 32x32 圖示 nav ── */
@@ -1653,7 +1706,7 @@ header:not(.cg-nav) {
 </style>
 <script src="/pwa.js"></script>
 </head>
-<body>
+<body data-hero-tab="hero">
 
 <!-- ── HEADER ── -->
 <header>
@@ -1815,29 +1868,66 @@ header:not(.cg-nav) {
 
     <!-- ── CENTER COL：分頁列 + 內容面板（合併）── -->
     <div class="center-col">
-    <div class="main-tabs">
-      <button class="main-tab active" data-tab="hero" data-sfx="ui_tab" data-i18n="hero.tab.overview">🧙 角色總覽</button>
-      <button class="main-tab" data-tab="equipment" data-sfx="ui_tab" data-i18n="hero.tab.gear">🛡️ 裝備庫</button>
-      <button class="main-tab" data-tab="pet" data-sfx="ui_tab" data-i18n="hero.tab.pet">🐾 棋靈夥伴</button>
-      <button class="main-tab" data-tab="class" data-sfx="ui_tab" data-i18n="hero.tab.class">⚔️ 戰魂屬性</button>
-      <button class="main-tab" data-tab="badges" data-sfx="ui_tab" data-i18n="hero.tab.badges">🏅 榮譽勳章</button>
+    <div class="main-tabs" role="tablist" aria-label="Hero domains" data-i18n-aria-label="hero.tabs.aria">
+      <button id="hero-tab-hero" class="main-tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-hero" data-tab="hero" data-sfx="ui_tab" data-i18n="hero.tab.character">🧙 角色</button>
+      <button id="hero-tab-equipment" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-equipment" tabindex="-1" data-tab="equipment" data-sfx="ui_tab" data-i18n="hero.tab.equipment">🛡️ 裝備</button>
+      <button id="hero-tab-appearance" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-appearance" tabindex="-1" data-tab="appearance" data-sfx="ui_tab" data-i18n="hero.tab.appearance">🎨 外觀</button>
+      <button id="hero-tab-pet" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-pet" tabindex="-1" data-tab="pet" data-sfx="ui_tab" data-i18n="hero.tab.spirit">🐾 棋靈</button>
+      <button id="hero-tab-honors" class="main-tab" type="button" role="tab" aria-selected="false" aria-controls="tab-honors" tabindex="-1" data-tab="honors" data-sfx="ui_tab" data-i18n="hero.tab.honors">🏅 榮譽</button>
     </div>
     <div class="right-panel" id="right-panel">
 
       <!-- ══ HERO OVERVIEW TAB ══ -->
-      <div id="tab-hero">
+      <div id="tab-hero" role="tabpanel" aria-labelledby="hero-tab-hero" data-hero-domain="character">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon teal">🧙</div>
-            <span class="section-title" data-i18n="hero.tab.overview">角色總覽</span>
+            <span class="section-title" data-i18n="hero.character.summary">角色摘要</span>
             <div class="section-header-line"></div>
           </div>
-          <p class="combat-subtitle" data-i18n="hero.overview.body">查看上方的角色造型、等級、段位、角色資訊與已裝備摘要。</p>
+          <p class="hero-domain-note" data-i18n="hero.character.body">角色本體、成長進度與目前配置集中於此；大型物品清單分由裝備、外觀、棋靈與榮譽管理。</p>
+          <div class="hero-overview-grid" id="hero-overview-grid">
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.identity">玩家</div><div class="hero-overview-value" id="hero-overview-name">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.rank">等級／段位</div><div class="hero-overview-value" id="hero-overview-rank">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.archetype">角色原型</div><div class="hero-overview-value" id="hero-overview-archetype">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.premium">Premium 狀態</div><div class="hero-overview-value" id="hero-overview-premium">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.title">目前稱號</div><div class="hero-overview-value" id="hero-overview-title">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.spirit">目前棋靈</div><div class="hero-overview-value" id="hero-overview-spirit">—</div></div>
+            <div class="hero-overview-card wide"><div class="hero-overview-label" data-i18n="hero.character.equipment">裝備摘要</div><div class="hero-overview-value" id="hero-overview-equipment">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.xp">經驗進度</div><div class="hero-overview-value" id="hero-overview-xp">—</div></div>
+            <div class="hero-overview-card"><div class="hero-overview-label" data-i18n="hero.character.bonus">目前加成</div><div class="hero-overview-value" id="hero-overview-bonus">—</div></div>
+          </div>
+          <nav class="hero-quick-links" aria-label="角色管理捷徑" data-i18n-aria-label="hero.character.quickLinks">
+            <button type="button" class="hero-quick-link" data-hero-target-tab="equipment" data-i18n="hero.quick.equipment">管理裝備</button>
+            <button type="button" class="hero-quick-link" data-hero-target-tab="appearance" data-i18n="hero.quick.appearance">更換外觀</button>
+            <button type="button" class="hero-quick-link" data-hero-target-tab="pet" data-i18n="hero.quick.spirit">管理棋靈</button>
+            <button type="button" class="hero-quick-link" data-hero-target-tab="honors" data-i18n="hero.quick.honors">查看榮譽</button>
+            <a class="hero-quick-link" href="/inventory" data-i18n="hero.quick.backpack">開啟背包</a>
+          </nav>
+        </div>
+
+        <div class="inv-section" style="margin-top:16px;">
+          <div class="section-header">
+            <div class="section-icon teal">⚡</div>
+            <span class="section-title" data-i18n="hero.sec.attr">戰魂四象</span>
+            <div class="section-header-line"></div>
+          </div>
+          <p class="hero-domain-note" data-i18n-html="hero.sec.attrDesc">8 大核心能力交叉組合為四大戰力維度，數值反映各學科累積答對題數。<br>題數越多，維度積分越高，大腦棋力模型越完整。</p>
+          <div id="attr-rows-wrap"></div>
+        </div>
+        <div class="inv-section" style="margin-top:16px;">
+          <div class="section-header">
+            <div class="section-icon teal">🌳</div>
+            <span class="section-title" data-i18n="hero.sec.skill">修煉之路</span>
+            <div class="section-header-line"></div>
+          </div>
+          <p class="hero-domain-note" data-i18n-html="hero.sec.skillDesc">8 大學科各有 5 個節點，依答對題數自動解鎖。<br>解鎖節點可獲得永久加成，同時提升對應象限屬性。</p>
+          <div class="skilltree-grid" id="skilltree-grid"></div>
         </div>
       </div>
 
       <!-- ══ PET TAB ══ -->
-      <div id="tab-pet" style="display:none;">
+      <div id="tab-pet" role="tabpanel" aria-labelledby="hero-tab-pet" hidden data-hero-domain="spirit">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon purple">🐾</div>
@@ -1848,43 +1938,30 @@ header:not(.cg-nav) {
             <div class="pet-empty" data-i18n="hero.pet.loading">載入寵物資料中…</div>
           </div>
         </div>
-      </div>
-
-      <!-- ══ 屬性概覽 TAB ══ -->
-      <div id="tab-class" style="display:none;">
-        <div class="inv-section">
-          <div class="section-header">
-            <div class="section-icon teal">⚡</div>
-            <span class="section-title" data-i18n="hero.sec.attr">戰魂四象</span>
-            <div class="section-header-line"></div>
-          </div>
-          <p style="font-size:11px;color:var(--ink3);margin-bottom:16px;line-height:1.6;" data-i18n-html="hero.sec.attrDesc">
-            8 大核心能力交叉組合為四大戰力維度，數值反映各學科累積答對題數。<br>
-            題數越多，維度積分越高，大腦棋力模型越完整。
-          </p>
-          <div id="attr-rows-wrap">
-            <!-- JS render -->
-          </div>
-        </div>
-        <!-- 技能樹（合併在屬性 tab 下方） -->
         <div class="inv-section" style="margin-top:16px;">
           <div class="section-header">
-            <div class="section-icon teal">🌳</div>
-            <span class="section-title" data-i18n="hero.sec.skill">修煉之路</span>
+            <div class="section-icon purple">🎨</div>
+            <span class="section-title" data-i18n="hero.spirit.appearance">棋靈外觀</span>
             <div class="section-header-line"></div>
           </div>
-          <p style="font-size:11px;color:var(--ink3);margin-bottom:16px;line-height:1.6;" data-i18n-html="hero.sec.skillDesc">
-            8 大學科各有 5 個節點，依答對題數自動解鎖。<br>
-            解鎖節點可獲得永久加成，同時提升對應象限屬性。
-          </p>
-          <div class="skilltree-grid" id="skilltree-grid">
-            <!-- JS render -->
+          <p class="hero-domain-note" data-i18n="hero.spirit.appearanceBody">棋靈本體、目前同行狀態與夥伴外觀共用同一個管理領域。</p>
+          <div class="wardrobe-slot-block">
+            <div class="wardrobe-slot-head">
+              <span data-i18n="hero.sub.appearancePet">夥伴外觀</span>
+              <span class="section-count" id="cnt-pet">0</span>
+            </div>
+            <div class="filter-tabs" data-slot="pet">
+              <button class="filter-tab active" data-filter="all" data-i18n="hero.f.all">全部</button>
+              <button class="filter-tab" data-filter="owned" data-i18n="hero.f.owned">已擁有</button>
+              <button class="filter-tab" data-filter="locked" data-i18n="hero.f.locked">未解鎖</button>
+            </div>
+            <div class="slot-grid" id="slot-pet"></div>
           </div>
         </div>
-      </div><!-- /tab-class -->
+      </div>
 
-      <!-- ══ BADGES TAB ══ -->
-      <div id="tab-badges" style="display:none;">
+      <!-- ══ HONORS TAB ══ -->
+      <div id="tab-honors" role="tabpanel" aria-labelledby="hero-tab-honors" hidden data-hero-domain="honors">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon amber">🏅</div>
@@ -1901,20 +1978,32 @@ header:not(.cg-nav) {
             <div style="color:var(--ink4);font-size:13px;padding:24px 0;" data-i18n="hero.loading">載入中…</div>
           </div>
         </div>
+        <div class="inv-section" style="margin-top:16px;">
+          <div class="section-header">
+            <div class="section-icon purple">📜</div>
+            <span class="section-title" data-i18n="hero.sec.title">稱號</span>
+            <div class="section-header-line"></div>
+            <span class="section-count" id="cnt-title">0</span>
+          </div>
+          <div class="combat-subtitle" data-i18n="hero.sub.titleDesc">選一個當角色面板的副標題（主標題是依屬性的自動稱號）・再點一次可取消</div>
+          <div class="filter-tabs" data-slot="title">
+            <button class="filter-tab active" data-filter="all" data-i18n="hero.f.all">全部</button>
+            <button class="filter-tab" data-filter="owned" data-i18n="hero.f.owned">已擁有</button>
+            <button class="filter-tab" data-filter="locked" data-i18n="hero.f.locked">未解鎖</button>
+          </div>
+          <div id="slot-title" style="display:flex;flex-direction:column;gap:7px;"></div>
+        </div>
       </div>
 
-      <!-- ══ GEAR TAB ══ -->
-      <div id="tab-gear">
-
-        <!-- 角色造型 -->
+      <!-- ══ EQUIPMENT TAB ══ -->
+      <div id="tab-equipment" role="tabpanel" aria-labelledby="hero-tab-equipment" hidden data-hero-domain="equipment">
         <div class="inv-section">
           <div class="section-header">
             <div class="section-icon teal">⚔️</div>
-            <span class="section-title" data-i18n="hero.sec.character">角色造型</span>
+            <span class="section-title" data-i18n="hero.equipment.title">戰鬥裝備</span>
             <div class="section-header-line"></div>
           </div>
-          <div class="combat-subtitle" data-i18n="hero.sub.character">角色</div>
-          <div class="combat-grid" id="combat-character-grid"></div>
+          <p class="hero-domain-note" data-i18n="hero.equipment.body">只顯示具有裝備槽、數值效果或已裝備摘要意義的物品。</p>
           <div class="combat-subtitle" data-i18n="hero.sub.armor">防具套裝</div>
           <div class="combat-grid" id="combat-armor-grid"></div>
           <div class="combat-subtitle" data-i18n="hero.sub.cape">斗篷</div>
@@ -1923,6 +2012,43 @@ header:not(.cg-nav) {
           <div class="combat-grid" id="combat-weapon-grid"></div>
           <div class="combat-subtitle" data-i18n="hero.sub.offhand">副手</div>
           <div class="combat-grid" id="combat-offhand-grid"></div>
+        </div>
+
+        <div class="inv-section">
+          <div class="section-header">
+            <div class="section-icon amber">✨</div>
+            <span class="section-title" data-i18n="hero.equipment.accessories">裝備配件</span>
+            <div class="section-header-line"></div>
+          </div>
+          <div class="combat-subtitle" data-i18n="hero.sub.hatEquipment">頭部裝備</div>
+          <div class="combat-grid" id="combat-hat-grid"></div>
+          <div class="combat-subtitle" data-i18n="hero.sub.auraEquipment">光環裝備</div>
+          <div class="combat-grid" id="combat-aura-grid"></div>
+          <div class="combat-subtitle" data-i18n="hero.sub.acc">配飾（純數值加成）</div>
+          <div class="combat-grid" id="combat-acc-grid"></div>
+        </div>
+
+        <div class="inv-section">
+          <div class="section-header">
+            <div class="section-icon teal">📿</div>
+            <span class="section-title" data-i18n="hero.equipment.wardrobeEffects">衣櫃效果裝備</span>
+            <div class="section-header-line"></div>
+          </div>
+          <p class="hero-domain-note" data-i18n="hero.equipment.wardrobeEffectsDesc">衣櫃中帶有實際數值效果的物品只在裝備領域呈現；外觀頁不建立重複 ownership。</p>
+          <div class="slot-grid" id="wardrobe-effect-equipment-grid" data-wardrobe-equipment-projections></div>
+        </div>
+      </div><!-- /tab-equipment -->
+
+      <!-- ══ APPEARANCE TAB ══ -->
+      <div id="tab-appearance" role="tabpanel" aria-labelledby="hero-tab-appearance" hidden data-hero-domain="appearance">
+        <div class="inv-section">
+          <div class="section-header">
+            <div class="section-icon purple">🧙</div>
+            <span class="section-title" data-i18n="hero.appearance.character">角色造型</span>
+            <div class="section-header-line"></div>
+          </div>
+          <p class="hero-domain-note" data-i18n="hero.appearance.body">純視覺替換集中於此，不顯示裝備數值或建立第二份 ownership。</p>
+          <div class="combat-grid" id="combat-character-grid"></div>
         </div>
 
         <!-- 棋子皮膚 -->
@@ -1945,21 +2071,6 @@ header:not(.cg-nav) {
           </div>
           <div class="combat-subtitle" data-i18n="hero.sub.boardDesc">對弈時的棋盤外觀（套用到所有棋盤）</div>
           <div class="board-skin-grid" id="board-skin-grid"></div>
-        </div>
-
-        <!-- 裝飾配件（頭飾・光環穿身上；配飾純數值） -->
-        <div class="inv-section">
-          <div class="section-header">
-            <div class="section-icon amber">✨</div>
-            <span class="section-title" data-i18n="hero.sec.acc">裝飾配件</span>
-            <div class="section-header-line"></div>
-          </div>
-          <div class="combat-subtitle" data-i18n="hero.sub.hat">頭飾</div>
-          <div class="combat-grid" id="combat-hat-grid"></div>
-          <div class="combat-subtitle" data-i18n="hero.sub.aura">光環</div>
-          <div class="combat-grid" id="combat-aura-grid"></div>
-          <div class="combat-subtitle" data-i18n="hero.sub.acc">配飾（純數值加成）</div>
-          <div class="combat-grid" id="combat-acc-grid"></div>
         </div>
 
         <!-- 外觀衣櫃 -->
@@ -2025,19 +2136,6 @@ header:not(.cg-nav) {
 
           <div class="wardrobe-slot-block">
             <div class="wardrobe-slot-head">
-              <span data-i18n="hero.sub.appearancePet">夥伴外觀</span>
-              <span class="section-count" id="cnt-pet">0</span>
-            </div>
-            <div class="filter-tabs" data-slot="pet">
-              <button class="filter-tab active" data-filter="all" data-i18n="hero.f.all">全部</button>
-              <button class="filter-tab" data-filter="owned" data-i18n="hero.f.owned">已擁有</button>
-              <button class="filter-tab" data-filter="locked" data-i18n="hero.f.locked">未解鎖</button>
-            </div>
-            <div class="slot-grid" id="slot-pet"></div>
-          </div>
-
-          <div class="wardrobe-slot-block">
-            <div class="wardrobe-slot-head">
               <span data-i18n="hero.sub.appearanceAura">光環外觀</span>
               <span class="section-count" id="cnt-aura">0</span>
             </div>
@@ -2050,24 +2148,7 @@ header:not(.cg-nav) {
           </div>
         </div>
 
-        <!-- 稱號 -->
-        <div class="inv-section">
-          <div class="section-header">
-            <div class="section-icon purple">📜</div>
-            <span class="section-title" data-i18n="hero.sec.title">稱號</span>
-            <div class="section-header-line"></div>
-            <span class="section-count" id="cnt-title">0</span>
-          </div>
-          <div class="combat-subtitle" data-i18n="hero.sub.titleDesc">選一個當角色面板的副標題（主標題是依屬性的自動稱號）・再點一次可取消</div>
-          <div class="filter-tabs" data-slot="title">
-            <button class="filter-tab active" data-filter="all" data-i18n="hero.f.all">全部</button>
-            <button class="filter-tab" data-filter="owned" data-i18n="hero.f.owned">已擁有</button>
-            <button class="filter-tab" data-filter="locked" data-i18n="hero.f.locked">未解鎖</button>
-          </div>
-          <div id="slot-title" style="display:flex;flex-direction:column;gap:7px;"></div>
-        </div>
-
-      </div><!-- /tab-gear -->
+      </div><!-- /tab-appearance -->
 
     </div><!-- /right-panel -->
     </div><!-- /center-col -->
@@ -2614,6 +2695,7 @@ async function loadPetStatus() {
   try {
     _petState = await fetch('/api/pet/status', { credentials:'include' }).then(r => r.json());
     renderPetCompanion();
+    renderHeroOverview();
   } catch (e) {
     root.innerHTML = `<div class="pet-empty">${isEn() ? 'Failed to load companion data.' : '寵物資料載入失敗。'}</div>`;
   }
@@ -3221,29 +3303,53 @@ async function renamePet() {
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
-const ALL_TABS = ['hero','equipment','gear','pet','class','badges'];
+const ALL_TABS = ['hero','equipment','appearance','pet','honors'];
+const LEGACY_TAB_ALIASES = { gear:'equipment', class:'hero', badges:'honors' };
 let _badgesLoaded = false;
 let _petLoaded = false;
 function selectHeroTab(tab, push) {
-  const canonical = tab === 'equipment' ? 'gear' : tab;
-  if (!ALL_TABS.includes(tab) || !document.querySelector(`.main-tab[data-tab="${tab}"]`)) return;
-  document.querySelectorAll('.main-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  const canonical = LEGACY_TAB_ALIASES[tab] || tab;
+  if (!ALL_TABS.includes(canonical) || !document.querySelector(`.main-tab[data-tab="${canonical}"]`)) return;
+  document.querySelectorAll('.main-tab').forEach(b => {
+    const active = b.dataset.tab === canonical;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
+    b.tabIndex = active ? 0 : -1;
+  });
   ALL_TABS.forEach(t => {
     const el = document.getElementById('tab-' + t);
-    if (el) el.style.display = (t === canonical) ? '' : 'none';
+    if (el) el.hidden = t !== canonical;
   });
+  document.body.dataset.heroTab = canonical;
   if (canonical !== 'pet') { stopPetFrameAnimation(); stopPetCooldownTicker(); stopPetTypewriter(); }
-  if (canonical === 'gear') renderCombatGearControls();
+  if (canonical === 'equipment' || canonical === 'appearance') renderCombatGearControls();
   if (canonical === 'pet' && !_petLoaded) { _petLoaded = true; loadPetStatus(); }
   else if (canonical === 'pet' && _petState?.pet) renderPetCompanion();
-  if (canonical === 'badges' && !_badgesLoaded) loadBadgesTab();
-  if (push) history.pushState({ heroTab: tab }, '', `/hero?tab=${encodeURIComponent(tab)}`);
+  if (canonical === 'honors' && !_badgesLoaded) loadBadgesTab();
+  if (push) history.pushState({ heroTab: canonical }, '', `/hero?tab=${encodeURIComponent(canonical)}`);
 }
 
 document.querySelectorAll('.main-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     selectHeroTab(btn.dataset.tab, true);
   });
+});
+document.querySelector('.main-tabs')?.addEventListener('keydown', event => {
+  if (!['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(event.key)) return;
+  const tabs = [...document.querySelectorAll('.main-tab')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  let next = current;
+  if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = tabs.length - 1;
+  else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % tabs.length;
+  else next = (current - 1 + tabs.length) % tabs.length;
+  selectHeroTab(tabs[next].dataset.tab, true);
+  tabs[next].focus();
+});
+document.querySelectorAll('[data-hero-target-tab]').forEach(control => {
+  control.addEventListener('click', () => selectHeroTab(control.dataset.heroTargetTab, true));
 });
 
 // ── Badges Tab ────────────────────────────────────────────────────────────────
@@ -3662,8 +3768,15 @@ function combatGearButtonHTML(slot, item) {
   // 鎖定時整顆按鈕都帶 hover 提示；點擊交給 selectCombatGear 彈 toast（手機無 hover）
   const titleAttr = locked ? ` title="🔒 ${lockHint}"` : '';
   const onclick = ` onclick="selectCombatGear('${slot}','${item.key}')"`;
-  return `<button type="button" class="combat-item ${slot} ${active ? 'active' : ''} ${locked ? 'locked' : ''}"${onclick}${titleAttr} data-sfx="equip">
-    ${art}${lockBadge}<span>${dispName(item)}</span>
+  const projection = slot === 'character' ? 'appearance' : 'equipment';
+  const effectLabel = Object.entries(item.effects || {}).map(([key, value]) => {
+    const label = key === 'xp_bonus' ? 'XP' : key === 'drop_bonus' ? (isEn() ? 'Drop' : '掉落') : key;
+    return `${label} +${Math.round(Number(value || 0) * 100)}%`;
+  }).join(' · ');
+  return `<button type="button" class="combat-item ${slot} ${active ? 'active' : ''} ${locked ? 'locked' : ''}"${onclick}${titleAttr}${locked ? ' disabled aria-disabled="true"' : ''}
+    data-sfx="equip" data-source-item-id="combat:${slot}:${item.key}" data-item-domain="${projection}"
+    data-item-projection="${projection}_projection" data-equip-action="${active && projection === 'equipment' ? 'unequip' : 'equip'}" aria-pressed="${active}">
+    ${art}${lockBadge}<span>${dispName(item)}</span>${effectLabel ? `<small class="combat-item-effect">${effectLabel}</small>` : ''}
   </button>`;
 }
 
@@ -3759,22 +3872,30 @@ function selectBoardSkin(key) {
 }
 
 function selectCombatGear(slot, key) {
-  const it = COMBAT_GEAR[slot]?.find(i => i.key === key);
+  const isEquipment = slot !== 'character';
+  const nextKey = isEquipment && _combatGear[slot] === key && key !== COMBAT_GEAR[slot][0].key
+    ? COMBAT_GEAR[slot][0].key
+    : key;
+  const it = COMBAT_GEAR[slot]?.find(i => i.key === nextKey);
   if (!it) return;
   if (slot === 'character') {
-    const u = cosmeticUnlocked('character', key);
+    const u = cosmeticUnlocked('character', nextKey);
     if (!u.unlocked) { showToast('🔒 ' + (u.label || I18n.t('hero.toast.notUnlocked'))); return; }
   } else {
     const g = gearUnlockState(it);
     if (g.locked) { showToast('🔒 ' + g.hint); return; }
   }
-  _combatGear[slot] = key;
+  _combatGear[slot] = nextKey;
   localStorage.setItem(COMBAT_STORAGE_KEY, JSON.stringify(_combatGear));
   applyCombatGearVisuals();
   renderCombatGearControls();
-  const picked = COMBAT_GEAR[slot].find(i => i.key === key);
-  showToast(I18n.t('hero.toast.equipped') + ' ' + (dispName(picked) || I18n.t('hero.toast.gear')));
+  const picked = COMBAT_GEAR[slot].find(i => i.key === nextKey);
+  const actionLabel = isEquipment && nextKey !== key
+    ? (isEn() ? 'Unequipped' : '已卸下')
+    : I18n.t('hero.toast.equipped');
+  showToast(actionLabel + ' ' + (dispName(picked) || I18n.t('hero.toast.gear')));
   saveLoadoutToServer();
+  renderHeroOverview();
 }
 
 // 換任何一件都把整套 loadout 存後端（角色給排行榜用；四件裝備給效果引擎用）
@@ -3800,6 +3921,27 @@ function saveLoadoutToServer() {
 
 let _wardrobeItems = [];
 const WARDROBE_SLOT_TYPES = ['outfit', 'hat', 'back', 'accessory', 'pet', 'aura', 'title'];
+
+function wardrobeSourceItemId(item) {
+  return String(item?.source_item_id || `wardrobe:${item?.id || 'unknown'}`);
+}
+
+function wardrobeHasGameplayEffect(item) {
+  if (!item || item.type === 'pet' || item.type === 'title') return false;
+  return Object.entries(item.effects || {}).some(([key, value]) => {
+    if (key === 'label') return false;
+    if (typeof value === 'boolean') return value;
+    return Number.isFinite(Number(value)) && Number(value) !== 0;
+  });
+}
+
+function wardrobeEffectLabel(item) {
+  const effects = item?.effects || {};
+  if (effects.label) return effects.label;
+  return Object.entries(effects).filter(([key, value]) => key !== 'label' && Number(value) !== 0)
+    .map(([key, value]) => `${key.replaceAll('_', ' ')} ${Number(value) > 0 ? '+' : ''}${Math.abs(Number(value)) < 1 ? Math.round(Number(value) * 100) + '%' : Number(value)}`)
+    .join(' · ');
+}
 
 // ── 裝備視覺 & 加成效果 ─────────────────────────────────────────────────────────
 function applyEquippedVisuals(wardrobeItems) {
@@ -3918,10 +4060,13 @@ function _slotItemHTML(item, clickFn) {
   const rar = item.rarity || 'common';
   const locked = !item.owned;
   const tipTitle = locked && item.hint ? dispHint(item) : '';
-  const fx = item.effects || {};
-  const fxLabel = fx.label ? `<span class="slot-fx">${fx.label}</span>` : '';
+  const fxLabel = item.type === 'pet' && item.effects?.label ? `<span class="slot-fx">${item.effects.label}</span>` : '';
+  const domain = item.type === 'pet' ? 'spirit' : 'appearance';
+  const projection = item.type === 'pet' ? 'spirit_appearance_projection' : 'appearance_projection';
+  const sourceItemId = escapeHTML(wardrobeSourceItemId(item));
   return `<div class="slot-item ${item.equipped?'equipped':''} ${locked?'locked':''}"
-       data-rarity="${rar}" ${tipTitle?`title="${tipTitle}"`:''}
+       data-rarity="${rar}" data-source-item-id="${sourceItemId}" data-item-domain="${domain}"
+       data-item-projection="${projection}" ${tipTitle?`title="${tipTitle}"`:''}
        onclick="${clickFn}" data-sfx="equip">
     <div class="rarity-dot ${rar}"></div>
     ${item.equipped ? '<div class="slot-equipped-dot"></div>' : ''}
@@ -3933,7 +4078,9 @@ function _slotItemHTML(item, clickFn) {
 
 function _titleItemHTML(item, clickFn) {
   const locked = !item.owned;
+  const sourceItemId = escapeHTML(wardrobeSourceItemId(item));
   return `<div class="title-item ${item.equipped?'equipped':''} ${locked?'locked':''}"
+       data-source-item-id="${sourceItemId}" data-item-domain="honors" data-item-projection="honor_projection"
        onclick="${clickFn}" data-sfx="equip">
     <span class="title-item-icon art">${heroItemArtHTML(item)}</span>
     <div class="title-item-body">
@@ -3944,13 +4091,42 @@ function _titleItemHTML(item, clickFn) {
   </div>`;
 }
 
+function _wardrobeEquipmentItemHTML(item) {
+  const locked = !item.owned;
+  const sourceItemId = escapeHTML(wardrobeSourceItemId(item));
+  const effectLabel = escapeHTML(wardrobeEffectLabel(item));
+  const action = item.equipped ? 'unequip' : 'equip';
+  const hint = locked && item.hint ? ` title="${escapeHTML(dispHint(item))}"` : '';
+  return `<button type="button" class="slot-item ${item.equipped?'equipped':''} ${locked?'locked':''}"
+       data-rarity="${item.rarity || 'common'}" data-source-item-id="${sourceItemId}"
+       data-item-domain="equipment" data-item-projection="equipment_projection"
+       data-equip-action="${action}" aria-pressed="${item.equipped ? 'true' : 'false'}"
+       onclick="handleInvClick('${item.type}','${item.id}')"${hint}${locked?' disabled aria-disabled="true"':''}>
+    <div class="rarity-dot ${item.rarity || 'common'}"></div>
+    ${item.equipped ? '<div class="slot-equipped-dot"></div>' : ''}
+    ${heroItemArtHTML(item)}
+    <span class="slot-label">${dispName(item)}</span>
+    ${effectLabel ? `<span class="slot-fx">${effectLabel}</span>` : ''}
+  </button>`;
+}
+
+function renderWardrobeEquipmentProjections() {
+  const grid = document.getElementById('wardrobe-effect-equipment-grid');
+  if (!grid) return;
+  const items = _wardrobeItems.filter(wardrobeHasGameplayEffect);
+  grid.innerHTML = items.length
+    ? items.map(_wardrobeEquipmentItemHTML).join('')
+    : `<div class="inv-empty"><span class="inv-empty-icon">🛡️</span>${isEn() ? 'No effect-bearing wardrobe equipment.' : '目前沒有帶數值效果的衣櫃裝備。'}</div>`;
+}
+
 function renderInvSlot(slotType, filter) {
   filter = filter || 'all';
   const isTitle = slotType === 'title';
   const gridEl = document.getElementById(`slot-${slotType}`);
   if (!gridEl) return;
-  let items = _wardrobeItems.filter(i => i.type === slotType);
-  if (!items.length) items = PLACEHOLDERS[slotType] || [];
+  const sourceItems = _wardrobeItems.filter(i => i.type === slotType);
+  let items = sourceItems.filter(i => slotType === 'pet' || slotType === 'title' || !wardrobeHasGameplayEffect(i));
+  if (!sourceItems.length) items = PLACEHOLDERS[slotType] || [];
   const filtered = items.filter(i => filter === 'all' ? true : filter === 'owned' ? i.owned : !i.owned);
 
   // update count badge
@@ -3979,6 +4155,7 @@ function renderWardrobeSlots(defaultFilter = 'all') {
     const active = document.querySelector(`.filter-tabs[data-slot="${slotType}"] .filter-tab.active`);
     renderInvSlot(slotType, active?.dataset.filter || defaultFilter);
   });
+  renderWardrobeEquipmentProjections();
 }
 
 function handleInvClick(slotType, itemId) {
@@ -3988,6 +4165,7 @@ function handleInvClick(slotType, itemId) {
   const _renderSlot = () => {
     const at = document.querySelector(`.filter-tabs[data-slot="${slotType}"] .filter-tab.active`);
     renderInvSlot(slotType, at?.dataset.filter ?? 'all');
+    renderWardrobeEquipmentProjections();
   };
   const _subEl = document.getElementById('char-sub-title');
   // 稱號：再點一次已裝備的 = 取消副稱號
@@ -3999,6 +4177,19 @@ function handleInvClick(slotType, itemId) {
     if (_subEl) _subEl.textContent = '';
     showToast(I18n.t('hero.toast.subtitleCleared'));
     fetch('/api/player/appearance/unequip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slot:'title'}) }).catch(() => {});
+    renderHeroOverview();
+    return;
+  }
+  if (wardrobeHasGameplayEffect(item) && item.equipped) {
+    item.equipped = false;
+    _renderSlot();
+    applyEquippedVisuals(_wardrobeItems);
+    renderEquippedChipsFromWardrobe(_wardrobeItems);
+    fetch('/api/player/appearance/unequip', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slot:slotType})
+    }).catch(() => {});
+    showToast((isEn() ? 'Unequipped ' : '已卸下 ') + dispName(item));
+    renderHeroOverview();
     return;
   }
   _wardrobeItems.forEach(i => { if (i.type === slotType) i.equipped = false; });
@@ -4009,6 +4200,7 @@ function handleInvClick(slotType, itemId) {
   showToast(t('sk_toast_equipped') + ' ' + dispName(item));
   if (slotType === 'title' && _subEl) _subEl.textContent = '「' + dispName(item) + '」';
   fetch('/api/skills/equip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:itemId}) }).catch(() => {});
+  renderHeroOverview();
 }
 
 // filter tab wiring
@@ -4194,6 +4386,45 @@ function renderSkillTree(treeData, discCounts) {
 
 // ── Profile init ──────────────────────────────────────────────────────────────
 let _profileData = null;
+function renderHeroOverview() {
+  const res = _profileData || {};
+  const set = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value || '—';
+  };
+  const character = COMBAT_GEAR.character.find(item => item.key === _combatGear.character);
+  const equipmentSlots = ['armor','cape','weapon','offhand','hat','aura','acc'];
+  const equippedCombat = equipmentSlots.map(slot => {
+    const item = COMBAT_GEAR[slot]?.find(candidate => candidate.key === _combatGear[slot]);
+    return item && item.key !== COMBAT_GEAR[slot][0].key ? { slot, item } : null;
+  }).filter(Boolean);
+  const wardrobeEquipped = (_wardrobeItems || []).filter(item => item.equipped && item.type !== 'title');
+  const equipmentNames = equippedCombat.map(({ item }) => dispName(item));
+  const bonusTotals = { xp_bonus: 0, drop_bonus: 0 };
+  equippedCombat.map(({ item }) => item).concat(wardrobeEquipped).forEach(item => {
+    Object.entries(item.effects || {}).forEach(([key, value]) => {
+      bonusTotals[key] = Number(bonusTotals[key] || 0) + Number(value || 0);
+    });
+  });
+  const bonusLabels = [];
+  if (bonusTotals.xp_bonus) bonusLabels.push(`XP +${Math.round(bonusTotals.xp_bonus * 100)}%`);
+  if (bonusTotals.drop_bonus) bonusLabels.push(`${isEn() ? 'Drop' : '掉落'} +${Math.round(bonusTotals.drop_bonus * 100)}%`);
+  const petBonus = Number(_petState?.bonus?.current_pct || 0);
+  if (petBonus) bonusLabels.push(`${isEn() ? 'Spirit' : '棋靈'} +${petBonus}%`);
+  const title = isEn()
+    ? (res.equipped_title_en || res.equipped_title || res.auto_title_en || res.auto_title)
+    : (res.equipped_title || res.auto_title);
+  const pet = _petState?.pet;
+  set('hero-overview-name', res.display_name || res.username);
+  set('hero-overview-rank', `${res.rank_level || res.rank || '—'} · ${res.go_rank || '—'}`);
+  set('hero-overview-archetype', dispName(character));
+  set('hero-overview-premium', res.is_premium ? (isEn() ? 'Active' : '啟用') : (isEn() ? 'Standard' : '一般'));
+  set('hero-overview-title', title);
+  set('hero-overview-spirit', pet ? (pet.nickname || petLocal(pet, 'name', 'name_en')) : (isEn() ? 'Not selected' : '尚未選擇'));
+  set('hero-overview-equipment', equipmentNames.length ? equipmentNames.join(' · ') : (isEn() ? 'No stat equipment equipped' : '尚未裝備數值裝備'));
+  set('hero-overview-xp', `${Number(res.xp ?? res.lv_xp ?? 0).toLocaleString()} / ${Number(res.xp_next ?? res.lv_xp_next ?? 0).toLocaleString()} XP`);
+  set('hero-overview-bonus', bonusLabels.length ? bonusLabels.join(' · ') : (isEn() ? 'No active bonus' : '目前沒有加成'));
+}
 async function initPage() {
   try {
     const res = await fetch('/api/skills/profile').then(r => r.json());
@@ -4289,11 +4520,13 @@ async function initPage() {
     }
     initInvFilterTabs();
     renderWardrobeSlots('all');
+    renderHeroOverview();
 
     if (res.new_unlock) showToast(t('sk_toast_unlocked'));
 
     // 職業/技能樹資料
     loadClassProfile();
+    if (!_petLoaded) { _petLoaded = true; loadPetStatus(); }
     // Premium visual enhancements
     if (res.is_premium) {
       document.querySelector('.char-panel')?.classList.add('premium-glow');
@@ -4418,7 +4651,7 @@ window.onLangChange = () => {
   if (typeof I18n !== 'undefined') I18n.apply();
   // 重繪 JS 動態內容（裝備/皮膚名稱、里程碑提示、稱號、徽章、屬性等隨語言切換）
   [renderCombatGearControls, () => renderWardrobeSlots('all'),
-   () => { const r = _profileData; if (r) { /* 重套面板上由 JS 設定的文字 */ } },
+   () => renderHeroOverview(),
    () => loadClassProfile(), () => { if (_petState) renderPetCompanion(); }, () => loadBadgesTab && loadBadgesTab()]
     .forEach(fn => { try { fn(); } catch (e) {} });
   // 角色面板的副稱號等由 initPage 設定，重新套用
@@ -4453,11 +4686,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadNavAvatar();
   renderCombatGearControls();
 
-  const tabParam = new URLSearchParams(location.search).get('tab') || 'hero';
-  selectHeroTab(ALL_TABS.includes(tabParam) ? tabParam : 'hero', false);
+  const tabParam = new URLSearchParams(location.search).get('tab')
+    || (location.hash === '#appearance' ? 'appearance' : 'hero');
+  selectHeroTab(LEGACY_TAB_ALIASES[tabParam] || (ALL_TABS.includes(tabParam) ? tabParam : 'hero'), false);
   window.addEventListener('popstate', () => {
     const tab = new URLSearchParams(location.search).get('tab') || 'hero';
-    selectHeroTab(ALL_TABS.includes(tab) ? tab : 'hero', false);
+    selectHeroTab(LEGACY_TAB_ALIASES[tab] || (ALL_TABS.includes(tab) ? tab : 'hero'), false);
   });
 });
 

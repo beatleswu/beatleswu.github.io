@@ -48,6 +48,8 @@
   var lifecycleGeneration = 0;
   var lifecycleActive = false;
   var lifecycleCleanups = [];
+  var adventureEntryTargetZoneKey = null;
+  var adventureEntryPhase = null;
 
   function beginLifecycle() {
     lifecycleGeneration += 1;
@@ -93,6 +95,8 @@
     });
     mountStarted = false;
     activeShellState = null;
+    adventureEntryTargetZoneKey = null;
+    adventureEntryPhase = null;
   }
 
   function destroyShell() {
@@ -308,14 +312,49 @@
     });
   }
 
+  function enterAdventureQuestion(zoneKey) {
+    if (typeof global.enterAdventureZoneInPage !== 'function') {
+      console.error('[E9] Adventure question entry is unavailable for zone:', zoneKey);
+      adventureEntryTargetZoneKey = null;
+      adventureEntryPhase = null;
+      return false;
+    }
+    var started = global.enterAdventureZoneInPage({ key: zoneKey }) === true;
+    if (!started) {
+      adventureEntryTargetZoneKey = null;
+      adventureEntryPhase = null;
+      return false;
+    }
+    adventureEntryTargetZoneKey = zoneKey;
+    adventureEntryPhase = 'started';
+    document.dispatchEvent(new CustomEvent('e9:adventure-command', {
+      detail: { zoneKey: zoneKey, action: 'start-zone-challenge' }
+    }));
+    return true;
+  }
+
   function startAdventureFromE9(zoneKey) {
-    if (typeof zoneKey !== 'string' || !zoneKey) return;
-    // E9's World Stage owns a separately fetched, canonical bootstrap view.
-    // The legacy in-page entry requires its private _adventureProgress cache,
-    // which is intentionally not populated by the E9 adapter. Hand off via
-    // the existing Adventure route so the normal encounter bootstrap remains
-    // the sole gameplay entry and server-side gates remain authoritative.
-    global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';
+    if (typeof zoneKey !== 'string' || !zoneKey) return false;
+    // The authenticated page owns questions and SRS state. A CTA can become
+    // interactive before those requests finish, so accept one target and run
+    // it exactly once when the canonical question runtime announces ready.
+    var welcome = document.querySelector('#welcome-state');
+    var questionActive = !!(welcome && welcome.classList && welcome.classList.contains('hidden'));
+    if (adventureEntryPhase === 'queued' || (adventureEntryPhase === 'started' && questionActive)) return false;
+    if (!questionActive) {
+      adventureEntryTargetZoneKey = null;
+      adventureEntryPhase = null;
+    }
+    if (global.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === false) {
+      adventureEntryTargetZoneKey = zoneKey;
+      adventureEntryPhase = 'queued';
+      document.addEventListener('adventure:question-runtime-ready', function onAdventureQuestionRuntimeReady() {
+        if (adventureEntryPhase !== 'queued' || adventureEntryTargetZoneKey !== zoneKey || activeShellState !== 'e9') return;
+        enterAdventureQuestion(zoneKey);
+      }, { once: true });
+      return true;
+    }
+    return enterAdventureQuestion(zoneKey);
   }
 
   function runAdventureCommand() {

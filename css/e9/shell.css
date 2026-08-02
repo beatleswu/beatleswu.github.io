@@ -92,6 +92,13 @@ body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state {
   grid-template-areas: none !important;
 }
 
+/* The authenticated Adventure question transition hides #welcome-state.
+   Preserve that canonical practice-state signal even while E9 owns the map
+   shell; otherwise the fixed World Stage remains above the loaded question. */
+body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state.hidden {
+  display: none !important;
+}
+
 body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .guild-hall-hero,
 body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .guild-entry-grid,
 body[data-adventure-shell-active="e9"] #main-row #main-left #welcome-state > .home-left-col,

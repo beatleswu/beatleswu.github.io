@@ -71,6 +71,10 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
     place-items: center;
   }
 
+  body[data-e10-visual-skin="immersive-rpg"][data-adventure-shell-active="e9"] #main-row #main-left #welcome-state.hidden {
+    display: none !important;
+  }
+
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
     position: fixed;
     top: 50%;
@@ -836,6 +840,10 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
 
 @media (max-width: 1279px) and (orientation: portrait), (max-width: 767px) {
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
     width: 100vw;
     height: auto;
     min-height: 100dvh;
@@ -843,8 +851,6 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
     overflow: visible;
     border-width: 0;
     border-radius: 0;
-    left: 50%;
-    transform: translateX(-50%);
   }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::before,
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell::after { display: none; }
@@ -860,7 +866,7 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-map-stage__pl
   body[data-e10-visual-skin="immersive-rpg"] #e9-map-stage .e9-map-stage__base { position: absolute; inset: 0; }
   body[data-e10-visual-skin="immersive-rpg"] .e10-adventure-progress { display: none; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e10-map-primary-cta { display: none; }
-  body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details { display: block; position: relative; margin: 10px; }
+  body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details:not([hidden]) { display: block; position: relative; margin: 10px; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-left-nav-slot { position: fixed; z-index: 60; top: auto; right: 8px; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); left: 8px; width: auto; height: auto; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav { padding: 5px; border: 2px solid var(--e10-ref-gold); border-radius: 8px; background: #4b2813; }
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-nav__list { grid-template-columns: repeat(6,minmax(0,1fr)); grid-template-rows: 1fr; gap: 3px; }

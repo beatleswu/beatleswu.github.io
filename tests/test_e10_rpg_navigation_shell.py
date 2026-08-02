@@ -23,6 +23,7 @@ def test_registry_is_the_single_route_source_and_has_required_targets():
     expected = {
         "hero": "/hero?tab=hero",
         "equipment": "/hero?tab=equipment",
+        "backpack": "/inventory",
         "go_spirit": "/hero?tab=pet",
         "shop": "/shop",
         "soul_records": "/mistakes",
@@ -39,9 +40,8 @@ def test_registry_is_the_single_route_source_and_has_required_targets():
     }
     for key, target in expected.items():
         assert re.search(rf"key: '{key}'.*?target: '{re.escape(target)}'", REGISTRY)
-    assert re.search(r"key: 'backpack'.*?target: null.*?disabled: true", REGISTRY)
     assert "/daily_challenge" not in REGISTRY
-    assert "/inventory" not in REGISTRY
+    assert not re.search(r"key: 'backpack'.*?disabled: true", REGISTRY)
     assert "desktop-primary" in REGISTRY and "mobile-primary" in REGISTRY
     assert "registry.itemsFor" in NAV_JS
 

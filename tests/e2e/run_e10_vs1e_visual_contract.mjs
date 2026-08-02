@@ -220,7 +220,7 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     || snapshot.nav32Count !== 0
     || snapshot.oversizedBlackSvgCount !== 0
   ) failures.push(`${contractCase}: VS1F SVG/mask/landmark DOM leaked into fallback`);
-  if (snapshot.legacyNavCount !== 9) failures.push(`${contractCase}: Legacy header navigation was not preserved`);
+  if (snapshot.legacyNavCount !== 10) failures.push(`${contractCase}: Legacy header navigation was not preserved`);
   if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${contractCase}: session controls are incomplete`);
   if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
   return { contractCase, screenshot, snapshot, browserErrors, failures };
@@ -257,6 +257,8 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
   }
   if (pathname === '/api/daily-challenge/today') return { submitted: false };
   if (pathname === '/api/srs/due') return { count: 17, due: [] };
+  if (pathname === '/api/srs/all') return [];
+  if (pathname === '/api/badges/definitions' || pathname === '/api/badges/earned') return [];
   if (pathname === '/api/mistakes/stats') return { total: 28, corrected: 9, worst5: [] };
   if (pathname === '/api/questions') return [];
   if (pathname === '/api/subscription/status') return { daily_limit: 20, remaining: 10 };
@@ -274,7 +276,10 @@ async function installApiFixture(
   page.on('console', (message) => {
     if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
   });
-  page.on('pageerror', (error) => browserErrors.push({ kind: 'pageerror', text: String(error) }));
+  page.on('pageerror', (error) => browserErrors.push({
+    kind: 'pageerror',
+    text: error && error.stack ? error.stack : String(error),
+  }));
   page.on('requestfailed', (request) => {
     browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
   });
@@ -730,6 +735,8 @@ async function runtimeSnapshot(page) {
       drawerCloseVisible: isVisible(document.querySelector('#e10-right-drawer-close')),
       backpack: {
         disabled: document.querySelector('[data-e10-nav-key="backpack"]')?.disabled,
+        ariaDisabled: document.querySelector('[data-e10-nav-key="backpack"]')?.getAttribute('aria-disabled'),
+        href: document.querySelector('[data-e10-nav-key="backpack"]')?.getAttribute('href'),
         label: document.querySelector('[data-e10-nav-key="backpack"] > span:not(.e10-nav-status-lock)')?.textContent.trim(),
         lockVisible: isVisible(document.querySelector('[data-e10-nav-key="backpack"] .e10-nav-status-lock')),
       },
@@ -1009,7 +1016,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
     pressed: '[data-e10-nav-key="shop"]',
     active: '[data-e10-nav-key="hero"]',
     disabled: '[data-e10-nav-key="backpack"]',
-  });
+  }, true);
   const dockInteractionGeometry = await captureStates('bottom-dock', '#bottom-dock', {
     default: '[data-e10-nav-key="battle_log"]',
     hover: '[data-e10-nav-key="tavern"]',
@@ -1120,7 +1127,10 @@ function assertCase(result) {
   if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
   if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
   if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
-  if (!snapshot.backpack.disabled || !snapshot.backpack.lockVisible) failures.push(`${specName}: Backpack disabled lock state is incomplete`);
+  if (snapshot.backpack.disabled || snapshot.backpack.ariaDisabled === 'true'
+    || snapshot.backpack.lockVisible || snapshot.backpack.href !== '/inventory') {
+    failures.push(`${specName}: Backpack independent destination is not enabled ${JSON.stringify(snapshot.backpack)}`);
+  }
   if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
   if (snapshot.horizontalOverflow !== 0) failures.push(`${specName}: horizontal overflow ${snapshot.horizontalOverflow}`);
   if (snapshot.minimumTarget < 44) failures.push(`${specName}: interactive target below 44px (${snapshot.minimumTarget})`);
@@ -1421,6 +1431,463 @@ async function runLifecycleCase(browser, origin) {
   return { beforeGeneration, afterGeneration, destroyed, remounted, browserErrors, failures };
 }
 
+async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) {
+  const page = await browser.newPage({ viewport: spec.viewport });
+  const browserErrors = [];
+  await installApiFixture(page, browserErrors, 'mage', spec.fixtureMode || 'default',
+    spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
+  const actionTrace = [];
+  page.on('request', (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.includes('adventure') || pathname.includes('question')) {
+      actionTrace.push({ method: request.method(), pathname, resourceType: request.resourceType() });
+    }
+  });
+  await page.goto(`${origin}/index.html?lang=${spec.lang}&${shellFlags}`, { waitUntil: 'domcontentloaded' });
+  await waitForShell(page);
+
+  const target = page.locator(`[data-zone="${spec.zone}"]`);
+  if (await target.count() !== 1) throw new Error(`${spec.name}: target zone is not unique`);
+  const nodePointer = await target.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const candidates = [
+      [0.5, 0.25], [0.25, 0.25], [0.75, 0.25],
+      [0.5, 0.5], [0.25, 0.5], [0.75, 0.5],
+    ];
+    const candidateHits = [];
+    for (const [xRatio, yRatio] of candidates) {
+      const clientX = box.left + box.width * xRatio;
+      const clientY = box.top + box.height * yRatio;
+      const hit = document.elementFromPoint(clientX, clientY);
+      candidateHits.push({
+        clientX,
+        clientY,
+        hit: hit ? (hit.id || hit.className || hit.tagName) : null,
+        withinTarget: !!(hit && (hit === element || element.contains(hit))),
+      });
+      if (hit && (hit === element || element.contains(hit))) {
+        return {
+          hit: hit.id || hit.className || hit.tagName,
+          withinTarget: true,
+          localX: box.width * xRatio,
+          localY: box.height * yRatio,
+          clientX,
+          clientY,
+          targetRect: box.toJSON(),
+          candidateHits,
+        };
+      }
+    }
+    const center = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return {
+      hit: center ? (center.id || center.className || center.tagName) : null,
+      withinTarget: false,
+      localX: box.width / 2,
+      localY: box.height / 2,
+      clientX: box.left + box.width / 2,
+      clientY: box.top + box.height / 2,
+      targetRect: box.toJSON(),
+      candidateHits,
+    };
+  });
+  if (!nodePointer.withinTarget) {
+    await fs.writeFile(
+      path.join(outputDir, `${spec.name}-node-pointer-failure.json`),
+      JSON.stringify(nodePointer, null, 2)
+    );
+    await page.screenshot({ path: path.join(outputDir, `${spec.name}-node-pointer-failure.png`), fullPage: false });
+    throw new Error(`${spec.name}: no real pointer hit point exists for target zone`);
+  }
+  await target.click({ position: { x: nodePointer.localX, y: nodePointer.localY } });
+
+  const selected = await page.evaluate(() => {
+    const state = document.querySelector('#e9-world-stage-slot').__e9WorldStageState;
+    const detail = document.querySelector('#e9-world-stage-details');
+    const cta = document.querySelector('#e9-world-stage-details-cta');
+    const player = document.querySelector('#e9-world-stage-player');
+    const inlineCta = document.querySelector('.e9-zone__inline-cta');
+    const navSlot = document.querySelector('#e9-left-nav-slot');
+    const nav = document.querySelector('#left-nav');
+    const shell = document.querySelector('#e9-adventure-shell');
+    const practice = document.querySelector('main .practice');
+    const box = cta.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    const rect = (element) => {
+      if (!element) return null;
+      const value = element.getBoundingClientRect();
+      return {
+        left: value.left, top: value.top, right: value.right, bottom: value.bottom,
+        width: value.width, height: value.height,
+      };
+    };
+    const inlineBox = inlineCta ? inlineCta.getBoundingClientRect() : null;
+    const inlineHit = inlineBox
+      ? document.elementFromPoint(inlineBox.left + inlineBox.width / 2, inlineBox.top + inlineBox.height / 2)
+      : null;
+    return {
+      currentZoneKey: state.currentPlayerZoneKey,
+      selectedZoneKey: state.selectedZoneKey,
+      challengeTargetZoneKey: state.challengeTargetZoneKey,
+      detailTargetZoneKey: cta.getAttribute('data-challenge-target-zone'),
+      detailLabel: document.querySelector('#e9-world-stage-details-label').textContent,
+      detailStatus: document.querySelector('#e9-world-stage-details-state').textContent,
+      detailProgress: document.querySelector('#e9-world-stage-details-progress').textContent,
+      detailRegionProgress: document.querySelector('#e9-world-stage-details-region-progress').textContent,
+      detailZoneNumber: document.querySelector('#e9-world-stage-details-number').textContent,
+      detailStars: document.querySelector('#e9-world-stage-details-stars').textContent,
+      detailSummary: document.querySelector('#e9-world-stage-details-summary').textContent,
+      detailHidden: detail.hidden,
+      ctaText: cta.textContent,
+      ctaDisabled: cta.disabled,
+      ctaVisible: !cta.hidden && getComputedStyle(cta).display !== 'none' && box.width > 0 && box.height > 0,
+      ctaHit: hit ? (hit.id || hit.className || hit.tagName) : null,
+      currentTileOwnsPlayer: !!document.querySelector(`[data-zone="${state.currentPlayerZoneKey}"][data-player-location="true"]`),
+      selectedTileOwnsPlayer: !!document.querySelector(`[data-zone="${state.selectedZoneKey}"][data-player-location="true"]`),
+      selectedCount: document.querySelectorAll('[data-zone].is-selected').length,
+      playerCount: document.querySelectorAll('[data-player-location="true"]').length,
+      inlineTargetZoneKey: document.querySelector('.e9-zone__inline-cta')?.getAttribute('data-challenge-target-zone') || null,
+      interactionGeometry: {
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        inlineCta: rect(inlineCta),
+        inlineCtaHit: inlineHit ? (inlineHit.id || inlineHit.className || inlineHit.tagName) : null,
+        navSlot: rect(navSlot),
+        nav: rect(nav),
+        shell: rect(shell),
+        shellPosition: shell ? getComputedStyle(shell).position : null,
+        shellTransform: shell ? getComputedStyle(shell).transform : null,
+        practiceScrollTop: practice ? practice.scrollTop : null,
+        practiceScrollHeight: practice ? practice.scrollHeight : null,
+        practiceClientHeight: practice ? practice.clientHeight : null,
+      },
+      inertCount: document.querySelectorAll('[inert]').length,
+      latestSelection: window.E9.latestZoneSelection,
+      drawerToggleVisible: document.querySelector('#e9-right-drawer-toggle').checkVisibility
+        ? document.querySelector('#e9-right-drawer-toggle').checkVisibility()
+        : getComputedStyle(document.querySelector('#e9-right-drawer-toggle')).display !== 'none',
+      drawerSlotHidden: document.querySelector('#e9-right-cards-slot').hidden,
+      drawerSlotInert: document.querySelector('#e9-right-cards-slot').inert,
+      drawerSlotAriaHidden: document.querySelector('#e9-right-cards-slot').getAttribute('aria-hidden'),
+      drawerDetailOwner: document.querySelector('#e9-right-cards-slot').getAttribute('data-e10-detail-owner'),
+      drawerToggleTabIndex: document.querySelector('#e9-right-drawer-toggle').tabIndex,
+    };
+  });
+  const selectedScreenshot = path.join(outputDir, `${spec.name}-selected-detail.png`);
+  await page.screenshot({ path: selectedScreenshot, fullPage: false });
+  await fs.writeFile(
+    path.join(outputDir, `${spec.name}-interaction-diagnostics.json`),
+    JSON.stringify({ nodePointer, selected }, null, 2)
+  );
+
+  const panelCycles = [];
+  let panelCtaClicks = [];
+  if (spec.drawerLifecycle) {
+    const toggle = page.locator('#e9-right-drawer-toggle');
+    const close = page.locator('#e10-right-drawer-close');
+    await page.evaluate(() => {
+      window.__e10PanelCtaCalls = [];
+      window.__e10PanelCtaOriginal = window.E9.startAdventureFromE9;
+      window.E9.startAdventureFromE9 = function (zoneKey) {
+        window.__e10PanelCtaCalls.push(zoneKey);
+        return true;
+      };
+    });
+    for (let cycle = 1; cycle <= 3; cycle += 1) {
+      await toggle.click();
+      await page.locator('#e9-right-drawer-panel').waitFor({ state: 'visible' });
+      const opened = await page.evaluate(() => {
+        const cta = document.querySelector('[data-e10-zone-cta]');
+        const backdrop = document.querySelector('.e10-drawer-backdrop');
+        const box = cta.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+        return {
+          ctaDisabled: cta.disabled,
+          ctaHit: hit ? (hit.getAttribute('data-e10-zone-cta') !== null ? 'panel-cta' : hit.className || hit.id || hit.tagName) : null,
+          backdrop: {
+            hidden: backdrop.hidden,
+            display: getComputedStyle(backdrop).display,
+            pointerEvents: getComputedStyle(backdrop).pointerEvents,
+            zIndex: getComputedStyle(backdrop).zIndex,
+          },
+          slotZIndex: getComputedStyle(document.querySelector('#e9-right-cards-slot')).zIndex,
+          inertCount: document.querySelectorAll('[inert]').length,
+          bodyClass: document.body.className,
+          shellClass: document.querySelector('.e9-body').className,
+        };
+      });
+      if (cycle === 1) {
+        await page.screenshot({ path: path.join(outputDir, `${spec.name}-panel-open.png`), fullPage: false });
+      }
+      if (spec.playable) await page.locator('[data-e10-zone-cta]').click();
+      panelCtaClicks = await page.evaluate(() => window.__e10PanelCtaCalls.slice());
+      await close.click();
+      await page.locator('#e9-right-drawer-panel').waitFor({ state: 'hidden' });
+      const closed = await page.evaluate(() => {
+        const backdrop = document.querySelector('.e10-drawer-backdrop');
+        return {
+          backdropHidden: backdrop.hidden,
+          backdropDisplay: getComputedStyle(backdrop).display,
+          drawerOpen: document.querySelector('#e9-right-drawer-toggle').getAttribute('aria-expanded'),
+          shellDrawerClass: document.querySelector('.e9-body').classList.contains('is-right-drawer-open'),
+          inertCount: document.querySelectorAll('[inert]').length,
+          activeElement: document.activeElement && document.activeElement.id,
+        };
+      });
+      panelCycles.push({ cycle, opened, closed });
+    }
+    await page.evaluate(() => {
+      window.E9.startAdventureFromE9 = window.__e10PanelCtaOriginal;
+      delete window.__e10PanelCtaOriginal;
+    });
+  }
+
+  let questionEntry = null;
+  if (spec.journey) {
+    await page.evaluate((zoneKey) => {
+      const canonical = ADVENTURE_ZONES.find((zone) => zone.key === zoneKey);
+      const topic = canonical && canonical.books && canonical.books[0];
+      allQuestions = [{
+        id: 910001, topic, source: 'e10-ipad-interaction-fixture',
+        rank: '20k', difficulty: '20k', locked: false,
+      }];
+      window.__e10QuestionStarts = [];
+      window.__e10AdventureCommands = [];
+      document.addEventListener('e9:adventure-command', (event) => {
+        if (event.detail && event.detail.action === 'start-zone-challenge') {
+          window.__e10AdventureCommands.push(event.detail);
+        }
+      }, { once: true });
+      window.loadQuestion = function (question) {
+        window.__e10QuestionStarts.push({ id: question.id, zoneKey });
+        const board = document.querySelector('#board-canvas-wrap');
+        board.innerHTML = '<section data-e10-question-state><h2>Adventure Question</h2><p>'
+          + zoneKey + '</p></section>';
+        return Promise.resolve();
+      };
+    }, spec.zone);
+    const ctaSelector = spec.journeySurface === 'inline'
+      ? '.e9-zone__inline-cta'
+      : (spec.portrait ? '#e9-world-stage-details-cta' : '#e9-world-stage-primary-cta');
+    const cta = page.locator(ctaSelector);
+    const actionTraceStart = actionTrace.length;
+    let startsBeforeReady = null;
+    if (spec.deferRuntimeReady) await page.evaluate(() => { window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false; });
+    else await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true);
+    await cta.click();
+    if (spec.deferRuntimeReady) {
+      startsBeforeReady = await page.evaluate(() => window.__e10QuestionStarts.length);
+      await page.evaluate(() => {
+        window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = true;
+        document.dispatchEvent(new CustomEvent('adventure:question-runtime-ready'));
+      });
+    }
+    await page.locator('[data-e10-question-state]').waitFor({ state: 'visible' });
+    questionEntry = await page.evaluate(() => ({
+      starts: window.__e10QuestionStarts,
+      commands: window.__e10AdventureCommands,
+      url: location.href,
+      activeShell: window.__GO_E9_ACTIVE_SHELL__,
+      bodyShell: document.body.getAttribute('data-adventure-shell-active'),
+      welcomeHidden: document.querySelector('#welcome-state').classList.contains('hidden'),
+      welcomeDisplay: getComputedStyle(document.querySelector('#welcome-state')).display,
+      e9ShellDisplay: getComputedStyle(document.querySelector('#e9-adventure-shell')).display,
+      boardHidden: document.querySelector('#board-canvas-wrap').classList.contains('hidden'),
+      legacyMapVisible: (() => {
+        const legacy = document.querySelector('#adventure-map-shell');
+        if (!legacy) return false;
+        if (typeof legacy.checkVisibility === 'function') return legacy.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+        const style = getComputedStyle(legacy);
+        const box = legacy.getBoundingClientRect();
+        return !legacy.hidden && style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+      })(),
+      questionVisible: !!document.querySelector('[data-e10-question-state]'),
+    }));
+    questionEntry.startsBeforeReady = startsBeforeReady;
+    questionEntry.actionTrace = actionTrace.slice(actionTraceStart);
+    await page.screenshot({ path: path.join(outputDir, `${spec.name}-question-state.png`), fullPage: false });
+  }
+
+  const failures = [];
+  if (selected.selectedZoneKey !== spec.zone
+    || (spec.playable ? selected.challengeTargetZoneKey !== spec.zone : selected.challengeTargetZoneKey !== null)) {
+    failures.push(`${spec.name}: selected/challenge target did not converge on ${spec.zone}`);
+  }
+  if (selected.selectedCount !== 1
+    || (spec.portrait && (selected.detailTargetZoneKey !== (spec.playable ? spec.zone : '') || selected.detailHidden))
+    || (spec.viewport.width < 768 && selected.inlineTargetZoneKey !== spec.zone)) {
+    failures.push(`${spec.name}: responsive selected detail did not synchronise uniquely`);
+  }
+  const canonicalDetail = selected.latestSelection;
+  if (spec.portrait && (!canonicalDetail
+    || selected.detailLabel !== canonicalDetail.name
+    || selected.detailStatus !== canonicalDetail.statusText
+    || selected.detailProgress !== `${canonicalDetail.seen} / ${canonicalDetail.total}`
+    || selected.detailRegionProgress !== `${canonicalDetail.zoneNumber} / 10`
+    || selected.detailZoneNumber !== `Zone ${canonicalDetail.zoneNumber}`
+    || selected.detailStars !== `★ ${canonicalDetail.stars}`
+    || selected.detailTargetZoneKey !== (canonicalDetail.challengeTargetZoneKey || '')
+    || !selected.detailSummary)) {
+    failures.push(`${spec.name}: portrait detail does not exactly match canonical selected-zone information`);
+  }
+  if (spec.expectDrawerHidden && (selected.drawerToggleVisible || !selected.drawerSlotHidden
+    || !selected.drawerSlotInert || selected.drawerSlotAriaHidden !== 'true'
+    || selected.drawerDetailOwner !== 'lower-card' || selected.drawerToggleTabIndex !== -1)) {
+    failures.push(`${spec.name}: stacked detail surface retained an interactive drawer control`);
+  }
+  if (spec.drawerLifecycle && (!selected.drawerToggleVisible || selected.drawerSlotHidden
+    || selected.drawerSlotInert || selected.drawerDetailOwner !== 'side-panel')) {
+    failures.push(`${spec.name}: landscape/desktop side-panel handle was not preserved`);
+  }
+  if (!selected.currentTileOwnsPlayer || selected.playerCount !== 1
+    || (selected.selectedZoneKey !== selected.currentZoneKey && selected.selectedTileOwnsPlayer)) {
+    failures.push(`${spec.name}: selection moved or duplicated the authoritative player marker`);
+  }
+  if (spec.portrait && spec.playable && (!selected.ctaVisible || selected.ctaDisabled || selected.ctaHit !== 'e9-world-stage-details-cta')) {
+    failures.push(`${spec.name}: portrait detail CTA is not directly hit-testable`);
+  }
+  for (const cycle of panelCycles) {
+    if (cycle.opened.ctaHit !== 'panel-cta') failures.push(`${spec.name}: panel CTA missed hit test on cycle ${cycle.cycle}`);
+    if (cycle.opened.slotZIndex === 'auto' || Number(cycle.opened.slotZIndex) <= Number(cycle.opened.backdrop.zIndex)) {
+      failures.push(`${spec.name}: panel stack is not above backdrop on cycle ${cycle.cycle}`);
+    }
+    if (!cycle.closed.backdropHidden || cycle.closed.backdropDisplay !== 'none' || cycle.closed.drawerOpen !== 'false'
+      || cycle.closed.shellDrawerClass || cycle.closed.activeElement !== 'e9-right-drawer-toggle'
+      || cycle.closed.inertCount !== selected.inertCount) {
+      failures.push(`${spec.name}: drawer lifecycle residue on cycle ${cycle.cycle}`);
+    }
+  }
+  const expectedPanelClicks = spec.drawerLifecycle && spec.playable ? 3 : 0;
+  if (spec.drawerLifecycle && (panelCtaClicks.length !== expectedPanelClicks
+    || panelCtaClicks.some((zoneKey) => zoneKey !== spec.zone))) {
+    failures.push(`${spec.name}: panel CTA was not directly clickable exactly once per lifecycle cycle`);
+  }
+  if (spec.journey && (!questionEntry || questionEntry.starts.length !== 1
+    || questionEntry.starts[0].zoneKey !== spec.zone || !questionEntry.questionVisible
+    || questionEntry.commands.length !== 1 || questionEntry.commands[0].zoneKey !== spec.zone
+    || (spec.deferRuntimeReady && questionEntry.startsBeforeReady !== 0)
+    || questionEntry.actionTrace.some((entry) => entry.resourceType === 'document')
+    || !questionEntry.welcomeHidden || questionEntry.welcomeDisplay !== 'none' || questionEntry.boardHidden
+    || questionEntry.activeShell !== 'e9' || questionEntry.bodyShell !== 'e9'
+    || questionEntry.legacyMapVisible)) {
+    failures.push(`${spec.name}: CTA did not enter the expected in-page question state exactly once`);
+  }
+  if (!spec.playable && !selected.ctaDisabled) failures.push(`${spec.name}: locked CTA is not disabled`);
+  if (browserErrors.length) failures.push(`${spec.name}: browser errors ${JSON.stringify(browserErrors)}`);
+  await page.close();
+  return { ...spec, nodePointer, selected, panelCycles, panelCtaClicks, questionEntry, actionTrace, browserErrors, failures };
+}
+
+async function runStackedDetailOwnershipTransition(browser, origin, outputDir) {
+  const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+  const browserErrors = [];
+  await installApiFixture(page, browserErrors);
+  await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'domcontentloaded' });
+  await waitForShell(page);
+  const toggle = page.locator('#e9-right-drawer-toggle');
+  await toggle.click();
+  await page.locator('#e9-right-drawer-panel').waitFor({ state: 'visible' });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.waitForFunction(() => document.querySelector('#e9-right-cards-slot')?.dataset.e10DetailOwner === 'lower-card');
+  const portrait = await page.evaluate(() => {
+    const slot = document.querySelector('#e9-right-cards-slot');
+    const panel = document.querySelector('#e9-right-drawer-panel');
+    const toggleElement = document.querySelector('#e9-right-drawer-toggle');
+    const backdrop = document.querySelector('.e10-drawer-backdrop');
+    const details = document.querySelector('#e9-world-stage-details');
+    const cta = document.querySelector('#e9-world-stage-details-cta');
+    const map = document.querySelector('#e9-map-stage');
+    const detailsRect = details?.getBoundingClientRect();
+    const ctaRect = cta?.getBoundingClientRect();
+    const ctaHit = ctaRect && document.elementFromPoint(ctaRect.left + ctaRect.width / 2, ctaRect.top + ctaRect.height / 2);
+    return {
+      slotHidden: slot.hidden,
+      slotInert: slot.inert,
+      slotAriaHidden: slot.getAttribute('aria-hidden'),
+      detailOwner: slot.dataset.e10DetailOwner,
+      panelHidden: panel.hidden,
+      toggleTabIndex: toggleElement.tabIndex,
+      toggleVisible: toggleElement.checkVisibility ? toggleElement.checkVisibility() : getComputedStyle(toggleElement).display !== 'none',
+      backdropHidden: !backdrop || backdrop.hidden,
+      shellDrawerOpen: document.querySelector('.e9-body').classList.contains('is-right-drawer-open'),
+      lowerCardHidden: details?.hidden,
+      lowerCardPosition: details ? getComputedStyle(details).position : null,
+      lowerCardTop: detailsRect?.top ?? null,
+      mapBottom: map?.getBoundingClientRect().bottom ?? null,
+      ctaVisible: !!(ctaRect && ctaRect.width > 0 && ctaRect.height > 0),
+      ctaHit: ctaHit ? (ctaHit.id || ctaHit.className || ctaHit.tagName) : null,
+    };
+  });
+  await page.screenshot({ path: path.join(outputDir, 'ipad-orientation-switch-portrait-lower-card-owner.png'), fullPage: false });
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.waitForFunction(() => document.querySelector('#e9-right-cards-slot')?.dataset.e10DetailOwner === 'side-panel');
+  const landscape = await page.evaluate(() => {
+    const slot = document.querySelector('#e9-right-cards-slot');
+    const panel = document.querySelector('#e9-right-drawer-panel');
+    const toggleElement = document.querySelector('#e9-right-drawer-toggle');
+    const backdrop = document.querySelector('.e10-drawer-backdrop');
+    const details = document.querySelector('#e9-world-stage-details');
+    return {
+      slotHidden: slot.hidden,
+      slotInert: slot.inert,
+      slotAriaHidden: slot.getAttribute('aria-hidden'),
+      detailOwner: slot.dataset.e10DetailOwner,
+      panelHidden: panel.hidden,
+      toggleTabIndex: toggleElement.tabIndex,
+      toggleVisible: toggleElement.checkVisibility ? toggleElement.checkVisibility() : getComputedStyle(toggleElement).display !== 'none',
+      backdropHidden: !backdrop || backdrop.hidden,
+      shellDrawerOpen: document.querySelector('.e9-body').classList.contains('is-right-drawer-open'),
+      lowerCardHidden: details?.hidden,
+      lowerCardDisplay: details ? getComputedStyle(details).display : null,
+    };
+  });
+  const failures = [];
+  if (!portrait.slotHidden || !portrait.slotInert || portrait.slotAriaHidden !== 'true'
+    || portrait.detailOwner !== 'lower-card' || !portrait.panelHidden || portrait.toggleTabIndex !== -1
+    || portrait.toggleVisible || !portrait.backdropHidden || portrait.shellDrawerOpen
+    || portrait.lowerCardHidden || portrait.lowerCardPosition !== 'static'
+    || portrait.lowerCardTop < portrait.mapBottom || !portrait.ctaVisible
+    || portrait.ctaHit !== 'e9-world-stage-details-cta') {
+    failures.push('orientation-transition: portrait retained stale side-panel interaction state');
+  }
+  if (landscape.slotHidden || landscape.slotInert || landscape.slotAriaHidden !== 'false'
+    || landscape.detailOwner !== 'side-panel' || !landscape.panelHidden || !landscape.toggleVisible
+    || !landscape.backdropHidden || landscape.shellDrawerOpen
+    || !landscape.lowerCardHidden || landscape.lowerCardDisplay !== 'none') {
+    failures.push('orientation-transition: landscape side-panel did not restore closed and usable');
+  }
+  if (browserErrors.length) failures.push(`orientation-transition: browser errors ${JSON.stringify(browserErrors)}`);
+  await page.close();
+  return { portrait, landscape, browserErrors, failures };
+}
+
+async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir) {
+  const specs = [
+    { name: 'ipad-768x1024-selected', viewport: { width: 768, height: 1024 }, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true },
+    { name: 'ipad-820x1180-selected', viewport: { width: 820, height: 1180 }, lang: 'en', zone: 'k16_20', portrait: true, expectDrawerHidden: true, playable: true, journey: true },
+    { name: 'ipad-768x1024-locked', viewport: { width: 768, height: 1024 }, lang: 'en', zone: 'd1_2', portrait: true, expectDrawerHidden: true, playable: false },
+    { name: 'ipad-834x1194-selected', viewport: { width: 834, height: 1194 }, lang: 'zh', zone: 'k16_20', portrait: true, expectDrawerHidden: true, playable: true },
+    { name: 'ipad-1024x1366-current', viewport: { width: 1024, height: 1366 }, lang: 'en', zone: 'k21_25', portrait: true, expectDrawerHidden: true, playable: true },
+    { name: 'ipad-1024x768-current', viewport: { width: 1024, height: 768 }, lang: 'zh', zone: 'k21_25', portrait: false, drawerLifecycle: true, playable: true, journey: true },
+    { name: 'ipad-1180x820-selected', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
+    { name: 'ipad-1366x1024-completed', viewport: { width: 1366, height: 1024 }, lang: 'en', zone: 'k26_30', portrait: false, playable: true, journey: true },
+    { name: 'mobile-430x932-parity', viewport: { width: 430, height: 932 }, lang: 'zh', zone: 'k16_20', portrait: false, drawerLifecycle: false, expectDrawerHidden: true, playable: true, journey: true, journeySurface: 'inline' },
+  ];
+  const results = [];
+  for (const spec of specs) {
+    process.stdout.write(`capture ${spec.name}\n`);
+    results.push(await runIpadInteractionRecoveryCase(browser, origin, outputDir, spec));
+  }
+  const orientationTransition = await runStackedDetailOwnershipTransition(browser, origin, outputDir);
+  const report = {
+    contract: 'e10-ipad-adventure-interaction-recovery-v1',
+    ok: results.every((result) => result.failures.length === 0) && orientationTransition.failures.length === 0,
+    results,
+    orientationTransition,
+    failures: results.flatMap((result) => result.failures).concat(orientationTransition.failures),
+  };
+  await fs.writeFile(path.join(outputDir, 'e10-ipad-adventure-interaction-contract.json'), JSON.stringify(report, null, 2));
+  return report;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const outputIndex = args.indexOf('--out');
@@ -1433,6 +1900,22 @@ async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
   const compatibilityServers = [];
   try {
+    if (args.includes('--ipad-interaction-only')) {
+      const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
+      await fs.writeFile(
+        path.join(outputDir, 'e10-vs1f-visual-contract.json'),
+        JSON.stringify({
+          ok: ipadInteractionRecovery.ok,
+          source_root: repoRoot,
+          runtime_origin: origin,
+          ipadInteractionRecovery,
+          failures: ipadInteractionRecovery.failures,
+        }, null, 2)
+      );
+      if (!ipadInteractionRecovery.ok) throw new Error(ipadInteractionRecovery.failures.join('\n'));
+      process.stdout.write(JSON.stringify({ ok: true, output_dir: outputDir, cases: ipadInteractionRecovery.results.length }, null, 2));
+      return;
+    }
     const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-closed-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-closed-en.png', layout: 'rail' },
@@ -1457,7 +1940,7 @@ async function main() {
       { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-820-portrait-settings', viewport: { width: 820, height: 1180 }, lang: 'zh', filename: 'tablet-820x1180-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
-      { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-lower-card-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock' },
       { specName: 'mobile-430-closed', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-closed-en.png', layout: 'bottom-dock' },
       { specName: 'mobile-430-more', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'mobile-430-settings', viewport: { width: 430, height: 932 }, lang: 'zh', filename: 'mobile-430x932-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
@@ -1470,6 +1953,7 @@ async function main() {
       results.push(await runCase(browser, origin, outputDir, spec));
     }
     const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
+    const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
     const legacy = await runLegacyCase(browser, origin, outputDir);
     const lifecycle = await runLifecycleCase(browser, origin);
     const compatibilityBridge = [];
@@ -1537,6 +2021,7 @@ async function main() {
       dockGeometryFailures,
       legacy.failures,
       lifecycle.failures,
+      ipadInteractionRecovery.failures,
       compatibilityBridge.flatMap((result) => result.failures),
     );
     const report = {
@@ -1547,6 +2032,7 @@ async function main() {
       polishStateEvidence,
       legacy,
       lifecycle,
+      ipadInteractionRecovery,
       compatibilityBridge,
       failures,
     };
@@ -1555,7 +2041,8 @@ async function main() {
     process.stdout.write(JSON.stringify({
       ok: true,
       output_dir: outputDir,
-      screenshots: results.length + 1 + polishStateEvidence.captures.length,
+      screenshots: results.length + 1 + polishStateEvidence.captures.length
+        + ipadInteractionRecovery.results.reduce((count, result) => count + 1 + (result.journey ? 1 : 0) + (result.portrait ? 1 : 0), 0),
     }, null, 2));
   } finally {
     await browser.close();

@@ -2199,22 +2199,102 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details:not([hidden]) {
     position: static;
     display: grid;
+    grid-template-columns: minmax(132px, 176px) minmax(0, 1fr);
+    grid-template-areas:
+      "rule rule"
+      "kicker kicker"
+      "landmark identity"
+      "landmark label"
+      "landmark state"
+      "landmark summary"
+      "landmark progress"
+      "landmark cta";
+    align-items: start;
+    column-gap: 18px;
+    row-gap: 6px;
     width: 100%;
     max-height: none;
-    min-height: 180px;
-    margin-top: 14px;
+    min-height: 0;
+    margin: 14px 0 calc(96px + env(safe-area-inset-bottom, 0px));
     padding: 18px 22px;
     overflow: visible;
     border-width: 3px;
     border-radius: 10px 18px 18px 10px;
   }
 
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details::before {
+    grid-area: rule;
+    width: 100%;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__kicker {
+    grid-area: kicker;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__landmark {
+    grid-area: landmark;
+    width: min(100%, 176px);
+    max-height: 176px;
+    margin: 0 auto;
+  }
+
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__label {
+    grid-area: label;
+    margin: 0;
     font-size: 22px;
   }
 
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__identity {
+    grid-area: identity;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: #7a4d22;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__state {
+    grid-area: state;
+    margin-bottom: 0;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__summary {
+    grid-area: summary;
+    margin: 0;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__progress {
+    grid-area: progress;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__progress p {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 7px 9px;
+    border: 1px solid rgba(140, 100, 45, .44);
+    border-radius: 8px;
+    background: rgba(255, 249, 222, .58);
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__progress span {
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__progress strong {
+    color: var(--e10-ink);
+    font-size: 13px;
+  }
+
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__cta {
-    display: none;
+    grid-area: cta;
+    display: inline-flex;
+    justify-self: stretch;
   }
 
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot.is-drawer-open {
@@ -3002,6 +3082,11 @@ body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-backdrop {
   display: none;
 }
 
+body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot[hidden][data-e10-detail-owner="lower-card"] {
+  display: none !important;
+  pointer-events: none;
+}
+
 @media (min-width: 1280px) {
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body {
     grid-template-columns: minmax(108px, 9vw) minmax(0, 1fr);
@@ -3079,8 +3164,8 @@ body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-backdrop {
     display: block;
     position: fixed;
     z-index: 70;
-    inset: 0;
-    width: 100%;
+    inset: 0 calc(min(360px, calc(100vw - 32px)) + max(12px, env(safe-area-inset-right, 0px))) 0 0;
+    width: auto;
     height: 100%;
     border: 0;
     background: rgba(15, 22, 24, .48);

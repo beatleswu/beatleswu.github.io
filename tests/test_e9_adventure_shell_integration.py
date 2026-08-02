@@ -118,10 +118,9 @@ def test_critical_failure_recovers_to_legacy():
 
 def test_e9_cta_uses_existing_adventure_start_action():
     shell_js = _read(JS_DIR / "shell.js")
-    assert "global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';" in shell_js, (
-        "the E9 CTA adapter must use the existing canonical Adventure encounter route, "
-        "not duplicate legacy in-page state"
-    )
+    assert "global.enterAdventureZoneInPage({ key: zoneKey })" in shell_js
+    assert "global.location.href = '/?zone='" not in shell_js
+    assert "action: 'start-zone-challenge'" in shell_js
     world_stage_js = _read(JS_DIR / "world_stage.js")
     assert "window.E9.startAdventureFromE9(zone.key)" in world_stage_js
 
@@ -361,7 +360,7 @@ def test_reuses_existing_window_onlangchange_mechanism_not_a_new_one():
 def test_sw_version_bumped():
     sw_js = _read(SW_JS)
     assert OLD_SW_VERSION not in sw_js, "sw.js VERSION must be bumped, not left at the pre-E9.1A2 value"
-    assert "v224-e10-bottom-dock-alignment" in sw_js
+    assert "v226-e10-adventure-hero-shop-backpack-information-architecture" in sw_js
 
 
 def test_sw_cache_strategy_functions_unchanged():

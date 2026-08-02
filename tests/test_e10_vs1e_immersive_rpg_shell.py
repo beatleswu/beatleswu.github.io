@@ -69,9 +69,10 @@ def test_navigation_keeps_vs1d_markup_base_safe_and_builds_vs1f_icons_after_mark
     assert 'class="e9-nav__icon"' not in NAV_HTML
     assert "registry.exactContract()" in nav_js
     assert "data-e10-vs1f-icon" in registry
-    for route in ('/hero?tab=hero', '/hero?tab=equipment', '/hero?tab=pet', '/shop', '/daily-challenge'):
+    for route in ('/hero?tab=hero', '/hero?tab=equipment', '/hero?tab=pet', '/inventory', '/shop', '/daily-challenge'):
         assert route in registry
-    assert "target: null" in registry
+    assert re.search(r"key:\s*'backpack',\s*target:\s*'/inventory'", registry)
+    assert not re.search(r"key:\s*'backpack'.*disabled:\s*true", registry)
     assert not re.search(r"[\U0001F300-\U0001FAFF]", NAV_HTML)
 
 
@@ -106,7 +107,7 @@ def test_i18n_and_cache_versions_are_coupled():
     ):
         assert f"'{key}'" in I18N
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v224-e10-bottom-dock-alignment'" in SW
+    assert "const VERSION     = 'v226-e10-adventure-hero-shop-backpack-information-architecture'" in SW
     assert "/i18n.js?v=20260801e10art1" in INDEX
     assert "/css/e9/immersive_rpg.css?v=20260801e10art1" in INDEX
     assert "/js/e9/feature_flags.js?v=20260801e10art1" in INDEX
