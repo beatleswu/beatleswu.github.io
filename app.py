@@ -44,13 +44,24 @@ from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skil
 from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
 from map_battle_runtime import (
-    FEATURE_DISABLED_HTTP_STATUS,
+    FeatureDisabled,
+    ModeNotEligible,
     OLD_CLIENT_ERROR,
     OLD_CLIENT_HTTP_STATUS,
     MapBattleRuntimeError,
+    RUNTIME_SERVICE_ID,
+    RequestRejected,
     ensure_submission_lifecycle_schema,
+    issue_attempt_with_submission_nonce,
     issue_submission_nonce_for_attempt,
+    mode_eligible,
+    question_revision_for,
     settle_answer,
+)
+from map_battle_persistence import (
+    create_map_battle,
+    get_map_battle_v1_mode,
+    load_authoritative_battle_state,
 )
 
 _startup_diagnostics.mark('application_creation', 'start')
@@ -9868,6 +9879,244 @@ def _map_battle_question_by_id(question_id):
                  if isinstance(question, dict) and question.get('id') == question_id), None)
 
 
+_MAP_BATTLE_TRANSFORM_VERSION = 'map-battle-v1'
+_MAP_BATTLE_TRANSFORM_ID = 'identity'
+
+
+def _map_battle_require_enabled(user_id):
+    """Fail closed before any Legacy battle or attempt mutation."""
+    mode = get_map_battle_v1_mode(os.environ)
+    if mode in ('off', 'dark'):
+        raise FeatureDisabled()
+    if not mode_eligible(mode, int(user_id)):
+        raise ModeNotEligible()
+
+
+def _map_battle_int(value, fallback, *, minimum=0):
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        value = fallback
+    return max(minimum, value)
+
+
+def _map_battle_question_context(question):
+    """Derive attempt metadata from server-owned question content."""
+    content = question.get('content')
+    if not isinstance(content, str) or not content.strip():
+        raise RequestRejected('authoritative question content is unavailable', status=503)
+    size_match = re.search(r'SZ\[(\d+)\]', content, re.IGNORECASE)
+    color_match = re.search(r'PL\[([BW])\]', content, re.IGNORECASE)
+    board_size = _map_battle_int(size_match.group(1) if size_match else 19, 19, minimum=2)
+    board_size = min(board_size, 25)
+    player_color = (color_match.group(1).upper() if color_match else 'B')
+    return {
+        'question_revision': question_revision_for(question),
+        'initial_position_identity': hashlib.sha256(content.encode('utf-8')).hexdigest(),
+        'board_size': board_size,
+        'player_color': player_color,
+        'transform_version': _MAP_BATTLE_TRANSFORM_VERSION,
+        'transform_id': _MAP_BATTLE_TRANSFORM_ID,
+    }
+
+
+def _map_battle_player_hp(conn, user_id):
+    """Read the existing player HP as the starting value, without SRS side effects."""
+    try:
+        row = conn.execute(
+            'SELECT player_hp, player_max_hp FROM user_stats WHERE user_id=?',
+            (user_id,),
+        ).fetchone()
+    except Exception:
+        row = None
+    if not row:
+        return 100, 100
+    values = dict(row)
+    maximum = _map_battle_int(values.get('player_max_hp'), 100, minimum=1)
+    current = min(maximum, _map_battle_int(values.get('player_hp'), maximum))
+    return current, maximum
+
+
+def _map_battle_monster_hp(question):
+    maximum = _map_battle_int(
+        question.get('monster_hp_max', question.get('monster_hp', 100)),
+        100,
+        minimum=1,
+    )
+    current = min(maximum, _map_battle_int(question.get('monster_hp'), maximum))
+    return current, maximum
+
+
+def _map_battle_open_for_zone(conn, user_id, zone_key):
+    row = conn.execute(
+        """SELECT * FROM map_battles
+           WHERE user_id=? AND zone_key=? AND state='OPEN'
+           ORDER BY updated_at DESC
+           LIMIT 1""",
+        (user_id, zone_key),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def _map_battle_public_state(battle):
+    if not battle:
+        return None
+    return {
+        'battle_id': str(battle['id']),
+        'zone_key': battle['zone_key'],
+        'state': battle['state'],
+        'player_hp': int(battle['player_hp']),
+        'player_hp_max': int(battle['player_hp_max']),
+        'monster_hp': int(battle['monster_hp']),
+        'monster_hp_max': int(battle['monster_hp_max']),
+        'battle_revision': int(battle['battle_revision']),
+        'runtime_service': RUNTIME_SERVICE_ID,
+    }
+
+
+def _map_battle_public_attempt(attempt):
+    return {
+        'attempt_id': str(attempt['id']),
+        'battle_id': str(attempt['battle_id']),
+        'question_id': int(attempt['question_id']),
+        'question_revision': attempt['question_revision'],
+        'initial_position_identity': attempt['initial_position_identity'],
+        'board_size': int(attempt['board_size']),
+        'player_color': attempt['player_color'],
+        'transform_version': attempt['transform_version'],
+        'transform_id': attempt['transform_id'],
+        'issued_at': attempt['issued_at'],
+        'expires_at': attempt['expires_at'],
+        'battle_revision_at_issue': int(attempt['battle_revision_at_issue']),
+        'state': attempt['state'],
+    }
+
+
+def _map_battle_error_response(error):
+    body = {
+        'error': error.code,
+        'code': error.code,
+        'message': str(error),
+        'retryable': bool(error.retryable),
+    }
+    if error.code == 'map_battle_v1_disabled':
+        body['message'] = 'Map Battle v1 暫未開放'
+    return jsonify(body), error.status
+
+
+@app.route('/api/adventure/map-battles/v1/attempts', methods=['POST'])
+@login_required
+def map_battle_v1_prepare_attempt():
+    """Create/resume the Legacy battle and issue one attempt nonce."""
+    protocol = (request.headers.get('X-Map-Battle-Client-Protocol') or '').strip().lower()
+    if protocol != 'v1':
+        return jsonify({
+            'error': OLD_CLIENT_ERROR,
+            'code': OLD_CLIENT_ERROR,
+            'message': '遊戲已更新，請重新整理後繼續',
+        }), OLD_CLIENT_HTTP_STATUS
+    payload = request.get_json(silent=True)
+    try:
+        if not isinstance(payload, dict):
+            raise RequestRejected('request JSON must be an object')
+        question = _map_battle_question_by_id(payload.get('question_id'))
+        if question is None:
+            raise RequestRejected('question does not exist', status=404)
+        zone_key = payload.get('zone_key')
+        if not isinstance(zone_key, str) or not zone_key.strip() or len(zone_key.strip()) > 255:
+            raise RequestRejected('zone_key is required')
+        zone_key = zone_key.strip()
+        metadata = _map_battle_question_context(question)
+        user_id = int(session['user_id'])
+        with get_db() as conn:
+            _map_battle_require_enabled(user_id)
+            battle = _map_battle_open_for_zone(conn, user_id, zone_key)
+            if battle is None:
+                player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
+                monster_hp, monster_hp_max = _map_battle_monster_hp(question)
+                battle_id = create_map_battle(
+                    conn,
+                    user_id=user_id,
+                    zone_key=zone_key,
+                    player_hp=player_hp,
+                    player_hp_max=player_hp_max,
+                    monster_hp=monster_hp,
+                    monster_hp_max=monster_hp_max,
+                    migration_source='legacy-adventure-map',
+                    migration_version='map-battle-v1',
+                )
+            else:
+                battle_id = str(battle['id'])
+            issued = issue_attempt_with_submission_nonce(
+                conn,
+                user_id=user_id,
+                battle_id=battle_id,
+                question=question,
+                initial_position_identity=metadata['initial_position_identity'],
+                board_size=metadata['board_size'],
+                player_color=metadata['player_color'],
+                transform_version=metadata['transform_version'],
+                transform_id=metadata['transform_id'],
+                mode_environ=os.environ,
+            )
+            attempt = dict(conn.execute(
+                'SELECT * FROM map_battle_attempts WHERE id=? AND user_id=?',
+                (issued['attempt_id'], user_id),
+            ).fetchone())
+            battle = load_authoritative_battle_state(
+                conn, user_id=user_id, battle_id=issued['battle_id']
+            )
+            if battle is None:
+                raise RequestRejected('battle does not exist for owner', status=404)
+        return jsonify({
+            'ok': True,
+            'battle': _map_battle_public_state(battle),
+            'attempt': _map_battle_public_attempt(attempt),
+            'attempt_id': issued['attempt_id'],
+            'battle_id': issued['battle_id'],
+            'question_id': int(attempt['question_id']),
+            'question_revision': attempt['question_revision'],
+            'initial_position_identity': attempt['initial_position_identity'],
+            'board_size': int(attempt['board_size']),
+            'player_color': attempt['player_color'],
+            'transform_version': attempt['transform_version'],
+            'transform_id': attempt['transform_id'],
+            'issued_at': issued['issued_at'],
+            'expires_at': issued['expires_at'],
+            'submission_nonce': issued['submission_nonce'],
+            'runtime_service': RUNTIME_SERVICE_ID,
+        })
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+
+
+@app.route('/api/adventure/map-battles/v1/battles/<battle_id>', methods=['GET'])
+@login_required
+def map_battle_v1_battle_state(battle_id):
+    """Return only the owner-scoped authoritative state for stale reloads."""
+    protocol = (request.headers.get('X-Map-Battle-Client-Protocol') or '').strip().lower()
+    if protocol != 'v1':
+        return jsonify({
+            'error': OLD_CLIENT_ERROR,
+            'code': OLD_CLIENT_ERROR,
+            'message': '遊戲已更新，請重新整理後繼續',
+        }), OLD_CLIENT_HTTP_STATUS
+    try:
+        with get_db() as conn:
+            battle = load_authoritative_battle_state(
+                conn, user_id=int(session['user_id']), battle_id=battle_id
+            )
+        if battle is None:
+            raise RequestRejected('battle does not exist for owner', status=404)
+        return jsonify({
+            'ok': True,
+            'battle': _map_battle_public_state(battle),
+            'runtime_service': RUNTIME_SERVICE_ID,
+        })
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+
+
 @app.route('/api/adventure/map-battles/v1/attempts/<attempt_id>/submission-nonce', methods=['POST'])
 @login_required
 def map_battle_v1_submission_nonce(attempt_id):
@@ -18343,6 +18592,12 @@ def serve_icons(filename): return _serve_live_static_or_baked_subpath(filename, 
 # _resolve_live_static_path). Extension is explicitly allowlisted here since no
 # existing helper restricts by extension -- these three routes must only ever
 # serve .js / .css / .html respectively, never arbitrary repo files.
+@app.route('/js/map_battle_v1_adapter.js')
+def serve_map_battle_v1_adapter():
+    return _serve_live_static_or_baked_subpath(
+        'map_battle_v1_adapter.js', 'js', 'js'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):
