@@ -371,6 +371,9 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   border: 0;
   border-radius: 0;
   background: var(--e10-art-cta-frame) center / 100% 100% no-repeat;
+  /* Keep the art frame while retaining a non-transparent semantic CTA
+     surface for the canonical E9 layout contract and high-contrast modes. */
+  background-color: #087f78;
   clip-path: none;
   box-shadow: none;
   transition: filter 140ms ease, transform 140ms ease;
@@ -801,6 +804,31 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
     display: none;
   }
 
+  /* The stacked stage owns the available shell width.  Removing the art
+     shell's inset padding/border here prevents an 8px content squeeze and
+     avoids clipping the lower card at narrow mobile widths. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-body,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-world-stage-slot,
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #adventure-stage {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
     right: 8px;
     left: 8px;
@@ -939,6 +967,14 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   }
 }
 
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  /* Keep the canonical E9 map action measurable at tablet portrait widths;
+     the lower detail CTA remains the VS1E journey entry surface. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-map-primary-cta {
+    display: inline-flex !important;
+  }
+}
+
 @media (min-width: 1280px) and (max-width: 1599px) {
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-hud__player {
     grid-template-columns: 70px minmax(0, 1fr) 26px;
@@ -969,6 +1005,24 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
     font-size: 13px;
     line-height: 1.1;
   }
+}
+
+@media (min-width: 1280px) {
+  /* Keep the desktop rail within the canonical shell range even when the
+     art-directed nav item frame uses a narrower visual width. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-left-nav-slot {
+    box-sizing: border-box;
+    left: 0;
+    width: var(--e9-shell-nav-width);
+  }
+}
+
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-map-primary-cta:focus {
+  /* Programmatic focus is part of the keyboard contract, not only
+     :focus-visible heuristics used by pointer-driven browsers. */
+  outline: 3px solid var(--e10-art-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px #165f5a, 0 0 12px rgba(255, 234, 132, .62);
 }
 
 @media (max-width: 600px) {

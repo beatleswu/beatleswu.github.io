@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v226-e10-adventure-hero-shop-backpack-information-architecture';
+const VERSION     = 'v227-e10-canonical-layout-contract-recovery';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

@@ -76,7 +76,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v226-e10-adventure-hero-shop-backpack-information-architecture" in SW
+    assert "v227-e10-canonical-layout-contract-recovery" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 

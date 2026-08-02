@@ -64,7 +64,7 @@ def test_adventure_i18n_key_and_sw_version():
     assert "index.battle.adventure_encounter" in I18N
     assert "Adventure Encounter" in I18N
     assert "冒險遭遇" in I18N
-    assert re.search(r"const VERSION\s*=\s*'v226-e10-adventure-hero-shop-backpack-information-architecture'", SW)
+    assert re.search(r"const VERSION\s*=\s*'v227-e10-canonical-layout-contract-recovery'", SW)
 
 
 def test_ten_zone_keys_are_defined():

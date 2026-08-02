@@ -33,7 +33,7 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v226-e10-adventure-hero-shop-backpack-information-architecture"
+NEW_SW_VERSION = "v227-e10-canonical-layout-contract-recovery"
 PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 
