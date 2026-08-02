@@ -78,6 +78,10 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
      community_reward_rules.js pwa.js ./
+# Legacy Map Battle V1 is an explicitly routed subpath asset. Keep the
+# repository-relative path so /js/map_battle_v1_adapter.js resolves in the
+# built image exactly as it does from the source tree.
+COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
