@@ -36,7 +36,11 @@
 
   function ownsE10Navigation() {
     const marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
-    return marker?.getAttribute('content') === E10_VS1F_STATIC_CONTRACT;
+    const hasStaticContract = marker?.getAttribute('content') === E10_VS1F_STATIC_CONTRACT;
+    if (!hasStaticContract) return false;
+    const activeShell = window.__GO_E9_ACTIVE_SHELL__
+      || document.body?.getAttribute('data-adventure-shell-active');
+    return activeShell === 'e9';
   }
 
   function normalize(path) {
