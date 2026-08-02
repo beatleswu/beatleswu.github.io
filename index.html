@@ -24,6 +24,7 @@
     <script src="/community_reward_notifications.js?v=20260706b" defer></script>
     <link rel="stylesheet" href="/wgo/wgo.player.css">
     <script src="/srs.js?v=20260622i18n1"></script>
+    <script src="/js/map_battle_v1_adapter.js?v=20260802e10s2"></script>
     <script src="/monster_trash.js?v=20260622i18n1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -7583,7 +7584,43 @@ function bindXpHelp() {
 
 // ─── 全域狀態 ──────────────────────────────────────────────────
 let board=null,currentProblem=null,currentNode=null,currentQ=null;
+let _mapBattleMoves=[];
+let _mapBattleState=null;
 let _questionStartedAt=0;
+
+function _mapBattleV1StateForQuestion(q) {
+    const state = q && q.map_battle_v1;
+    return state && state.active === true ? state : null;
+}
+
+function _setMapBattleV1QuestionState(q) {
+    _mapBattleState = _mapBattleV1StateForQuestion(q);
+    _mapBattleMoves = [];
+}
+
+function _mapBattleV1IsActive() {
+    return !!(_mapBattleState && _mapBattleState.active === true);
+}
+
+async function _submitMapBattleV1IfActive(moves) {
+    if (!_mapBattleV1IsActive()) return null;
+    const adapter = window.MapBattleV1;
+    if (!adapter || typeof adapter.submit !== 'function' || typeof adapter.applyAuthoritativeState !== 'function') {
+        setMsg('Map Battle v1 runtime unavailable', 'err');
+        return { ok: false, error: 'runtime_unavailable' };
+    }
+    try {
+        const response = await adapter.submit(_mapBattleState, moves);
+        adapter.applyAuthoritativeState(_mapBattleState, response);
+        return response;
+    } catch (error) {
+        const message = error && error.code === 'upgrade_required'
+            ? adapter.upgradeMessage
+            : (error && error.message) || 'Map Battle v1 answer was not saved';
+        setMsg(message, 'err');
+        return { ok: false, error: error && error.code || 'map_battle_submit_failed' };
+    }
+}
 
 function _currentReviewMetadata(){
     const params=new URLSearchParams(location.search);
@@ -7672,6 +7709,11 @@ function currentUnitName(){if(!currentQ)return null;const t=currentQ.topic&&curr
 // ─── SRS ───────────────────────────────────────────────────────
 async function submitSRS(grade){
     if(!currentQ)return;
+    const mapBattleResponse = await _submitMapBattleV1IfActive(_mapBattleMoves);
+    if (mapBattleResponse !== null) {
+        if (mapBattleResponse.ok !== false) SRS.markSeen(currentQ.id);
+        return;
+    }
     if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
     const unit=currentUnitName();let unitDone=false;
     if(grade>=3&&unit){
@@ -9022,6 +9064,7 @@ async function loadQuestion(q){
     if(mb) mb.classList.remove('hidden');
 
     currentQ=q;
+    _setMapBattleV1QuestionState(q);
     _questionStartedAt=performance.now();
     const idx=allQuestions.findIndex(x=>x.id===q.id);if(idx!==-1)currentIndex=idx;
     document.querySelectorAll('.q-item').forEach(el=>el.classList.remove('active'));
@@ -9068,6 +9111,7 @@ async function loadQuestion(q){
         return;
     }
     if(!q.content || q.accepted_moves === undefined){try{const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});const _d=await _r.json();Object.assign(q,_d||{});}catch(e){}}
+    _setMapBattleV1QuestionState(q);
     currentProblem=parseSGF((q.content||'').trim());
     if(!currentProblem){setMsg(I18n.t('index.parse_err'),'warn');return;}
     const _setup=()=>{
@@ -9152,8 +9196,14 @@ function onBoardClick(bx,by){
     const matched=currentNode.children.find(c=>c.move&&c.move.x===x&&c.move.y===y);
     if(!matched){
         playWrong();const opp=playerColor==='B'?'W':'B';playStone(x,y,playerColor);
+        _mapBattleMoves.push({ action: 'play', x, y });
         setMsg(I18n.t('index.wrong'),'err');
         if(_bossMode){
+            showExplanation({x, y});
+            submitSRS(0);
+            return;
+        }
+        if (_mapBattleV1IsActive()) {
             showExplanation({x, y});
             submitSRS(0);
             return;
@@ -9174,7 +9224,9 @@ function onBoardClick(bx,by){
         showBeginnerVillageEncounterContinuation();
         return;
     }
-    playStone(x,y,playerColor);currentNode=matched;
+    playStone(x,y,playerColor);
+    _mapBattleMoves.push({ action: 'play', x, y });
+    currentNode=matched;
     if(currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
     answering=true;
     setTimeout(()=>{
@@ -9190,6 +9242,7 @@ function onBoardClick(bx,by){
 // ─── 重試 / 答案 / 上下題 ─────────────────────────────────────
 function resetProblem(){
     if(!currentProblem)return;_exploringAfterWrong=false;_cancelAutoSolution();solved=false;answering=false;
+    _mapBattleMoves = [];
     _altAnswerReportMode = false;
     board.removeAllObjects();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
