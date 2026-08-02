@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
+      "source_commit": "c27f65b78a43d925d402906e2674e2b205604401",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "94db79ee3e2589d6132417172f4e3398a17613482b41e6f274f258c0ba386b5c",
+      "source_commit_subject": "Merge pull request #248 from beatleswu/codex/e10-map-battle-v1-sprint2b-legacy-adapter",
+      "source_date": "2026-08-03",
+      "content_sha256": "e63323738d22a819df54784408ee80b9b52d514a5eb938a078beca6e0b4e9875",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge c27f65b78a43d925d402906e2674e2b205604401; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -579,14 +579,14 @@
     },
     {
       "path": "site-nav.js",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
+      "source_commit": "c27f65b78a43d925d402906e2674e2b205604401",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "2ddb40598d57a51241461c50f2ab93b6e92bf74a3a6cc5a7728bacfe8acc9de8",
+      "source_commit_subject": "Merge pull request #248 from beatleswu/codex/e10-map-battle-v1-sprint2b-legacy-adapter",
+      "source_date": "2026-08-03",
+      "content_sha256": "759282aac60dd3ed61a43988f238fdbdff22d25c44ee94a8bc35df1cbd3b47db",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge c27f65b78a43d925d402906e2674e2b205604401; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
