@@ -24,6 +24,7 @@
     <script src="/community_reward_notifications.js?v=20260706b" defer></script>
     <link rel="stylesheet" href="/wgo/wgo.player.css">
     <script src="/srs.js?v=20260622i18n1"></script>
+    <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
     <script src="/monster_trash.js?v=20260622i18n1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -7599,6 +7600,11 @@ let playerColor='B',solved=false,answering=false,currentIndex=-1;
 let allQuestions=[],logicBoard=[],boardSize=19;
 window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false;
 let _adventureActiveQuestions = null;
+let _mapBattleV1State = null;
+let _mapBattleV1Mode = 'disabled';
+let _mapBattleV1Moves = [];
+let _mapBattleV1Context = null;
+let _mapBattleV1PrepareSerial = 0;
 let _guildQuestMode = null;
 let _lastRenderedQuestDone = -1;
 let _cropInfo={startX:0,startY:0,displayLines:19}; // 目前棋盤的裁切資訊
@@ -7673,6 +7679,14 @@ function currentUnitName(){if(!currentQ)return null;const t=currentQ.topic&&curr
 async function submitSRS(grade){
     if(!currentQ)return;
     if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
+    if (_mapBattleV1Mode === 'active' && _mapBattleV1State) {
+        await _submitMapBattleV1IfActive(_mapBattleV1Moves);
+        return;
+    }
+    if (_mapBattleV1Mode === 'blocked') {
+        setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
+        return;
+    }
     const unit=currentUnitName();let unitDone=false;
     if(grade>=3&&unit){
         try{const prog=await SRS.reportUnitProgress(currentQ.id,unit);unitDone=prog.unit_complete;}
@@ -8238,6 +8252,125 @@ function _isAdventureZonePractice() {
     return Array.isArray(_adventureActiveQuestions) && _adventureActiveQuestions.length > 0;
 }
 
+function _mapBattleV1IsActive() {
+    return _isAdventureZonePractice()
+        && _mapBattleV1Mode === 'active'
+        && !!_mapBattleV1State
+        && _mapBattleV1State.active === true;
+}
+
+function _mapBattleV1QuestionContext(q) {
+    const params = new URLSearchParams(location.search);
+    return {
+        zoneKey: params.get('zone') || 'legacy-map',
+        questionId: Number(q && q.id)
+    };
+}
+
+function _mapBattleV1RenderAuthoritative(q, response) {
+    const state = _mapBattleV1State;
+    if (!state || !q) return;
+    const damageToMonster = response && Number.isFinite(Number(response.damage_to_monster))
+        ? Number(response.damage_to_monster) : 0;
+    const damageToPlayer = response && Number.isFinite(Number(response.damage_to_player))
+        ? Number(response.damage_to_player) : 0;
+    updateMonsterUI({
+        type: q.monster_type || 'goblin',
+        name: q.monster_name,
+        name_en: q.monster_name_en,
+        avatar: q.monster_avatar,
+        hp: Number(state.monsterHp),
+        max_hp: Number(state.monsterHpMax || state.monsterHp || 100),
+        dmg: damageToMonster,
+        defeated: state.monsterDefeated === true
+    });
+    updatePlayerHPUI({
+        hp: Number(state.playerHp),
+        max_hp: Number(state.playerHpMax || 100),
+        hp_change: -damageToPlayer,
+        ko: state.playerDefeated === true
+    });
+}
+
+async function _prepareMapBattleV1ForQuestion(q) {
+    _mapBattleV1PrepareSerial += 1;
+    const serial = _mapBattleV1PrepareSerial;
+    _mapBattleV1State = null;
+    _mapBattleV1Moves = [];
+    _mapBattleV1Context = null;
+    if (!_isAdventureZonePractice()) {
+        _mapBattleV1Mode = 'disabled';
+        return null;
+    }
+    const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
+    if (!adapter || typeof adapter.prepare !== 'function') {
+        _mapBattleV1Mode = 'disabled';
+        return null;
+    }
+    const context = _mapBattleV1QuestionContext(q);
+    try {
+        const state = await adapter.prepare(context);
+        if (serial !== _mapBattleV1PrepareSerial) return null;
+        _mapBattleV1State = state;
+        _mapBattleV1Context = context;
+        _mapBattleV1Mode = 'active';
+        return state;
+    } catch (error) {
+        if (serial !== _mapBattleV1PrepareSerial) return null;
+        const code = error && error.code;
+        if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
+            _mapBattleV1Mode = 'disabled';
+        } else {
+            _mapBattleV1Mode = 'blocked';
+            setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
+        }
+        return null;
+    }
+}
+
+function _mapBattleV1IsStaleError(error) {
+    return !!error && error.code === 'invalid_map_battle_request'
+        && /stale|revision/i.test(String(error.message || ''));
+}
+
+async function _submitMapBattleV1IfActive(moves) {
+    if (!_mapBattleV1IsActive()) return null;
+    const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
+    if (!adapter || typeof adapter.submit !== 'function') return null;
+    try {
+        const response = await adapter.submit(_mapBattleV1State, moves);
+        _mapBattleV1RenderAuthoritative(currentQ, response);
+        if (response && (response.accepted === true || response.duplicate === true)) {
+            SRS.markSeen(currentQ.id);
+        }
+        return response;
+    } catch (error) {
+        if (error && error.code === 'map_battle_attempt_expired') {
+            await _prepareMapBattleV1ForQuestion(currentQ);
+            setMsg('Map Battle attempt expired; a fresh attempt is ready. Please answer again.', 'warn');
+            return null;
+        }
+        if (_mapBattleV1IsStaleError(error)) {
+            try {
+                await adapter.refreshBattle(_mapBattleV1State);
+                _mapBattleV1RenderAuthoritative(currentQ, null);
+                await _prepareMapBattleV1ForQuestion(currentQ);
+                setMsg('Battle state was refreshed. Please answer again.', 'warn');
+                return null;
+            } catch (refreshError) {
+                _mapBattleV1Mode = 'blocked';
+                setMsg('Map Battle state could not be refreshed; no fallback was used.', 'err');
+                return null;
+            }
+        }
+        if (error && (error.code === 'upgrade_required' || error.code === 'client_authority_field_forbidden')) {
+            _mapBattleV1Mode = 'blocked';
+        }
+        setMsg('Map Battle submission failed; retry the same answer without SRS fallback.', 'err');
+        return null;
+    }
+}
+
 function isBeginnerVillageAdventureResult() {
     if (!_isAdventureZonePractice()) return false;
     const zoneKey = new URLSearchParams(location.search).get('zone') || '';
@@ -8281,14 +8414,24 @@ function renderAdventureZoneMonster(q) {
             objective.classList.toggle('hidden', !isNewbieVillage);
         }
     }
+    const state = _mapBattleV1State;
     updateMonsterUI({
         type: q.monster_type || 'goblin',
         name: q.monster_name,
         name_en: q.monster_name_en,
         avatar: q.monster_avatar,
-        hp: q.monster_hp || 100,
-        max_hp: q.monster_hp || 100,
+        hp: state ? Number(state.monsterHp) : (q.monster_hp || 100),
+        max_hp: state ? Number(state.monsterHpMax || state.monsterHp || 100) : (q.monster_hp || 100),
+        defeated: state ? state.monsterDefeated === true : false,
     });
+    if (state) {
+        updatePlayerHPUI({
+            hp: Number(state.playerHp),
+            max_hp: Number(state.playerHpMax || 100),
+            hp_change: 0,
+            ko: state.playerDefeated === true,
+        });
+    }
 }
 
 function initMonsterForQuestion(q) {
@@ -8385,8 +8528,8 @@ function spawnDmgFloat(text, color, big) {
 // ── 玩家 HP UI ────────────────────────────────────────────────
 function updatePlayerHPUI(player) {
     if (!player) return;
-    _playerHp    = player.hp    || _playerHp;
-    _playerMaxHp = player.max_hp || _playerMaxHp;
+    if (player.hp !== undefined && player.hp !== null) _playerHp = Number(player.hp);
+    if (player.max_hp !== undefined && player.max_hp !== null) _playerMaxHp = Number(player.max_hp);
     const pct = Math.max(0, Math.round(_playerHp / _playerMaxHp * 100));
     const bar = document.getElementById('ba-player-hp-bar');
     const txt = document.getElementById('ba-player-hp-text');
@@ -9022,6 +9165,10 @@ async function loadQuestion(q){
     if(mb) mb.classList.remove('hidden');
 
     currentQ=q;
+    _mapBattleV1State = null;
+    _mapBattleV1Moves = [];
+    _mapBattleV1Context = null;
+    _mapBattleV1Mode = _isAdventureZonePractice() ? 'pending' : 'disabled';
     _questionStartedAt=performance.now();
     const idx=allQuestions.findIndex(x=>x.id===q.id);if(idx!==-1)currentIndex=idx;
     document.querySelectorAll('.q-item').forEach(el=>el.classList.remove('active'));
@@ -9070,6 +9217,7 @@ async function loadQuestion(q){
     if(!q.content || q.accepted_moves === undefined){try{const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});const _d=await _r.json();Object.assign(q,_d||{});}catch(e){}}
     currentProblem=parseSGF((q.content||'').trim());
     if(!currentProblem){setMsg(I18n.t('index.parse_err'),'warn');return;}
+    await _prepareMapBattleV1ForQuestion(q);
     const _setup=()=>{
         const _ci=calcCropSection(currentProblem);
         initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
@@ -9153,6 +9301,16 @@ function onBoardClick(bx,by){
     if(!matched){
         playWrong();const opp=playerColor==='B'?'W':'B';playStone(x,y,playerColor);
         setMsg(I18n.t('index.wrong'),'err');
+        if (_mapBattleV1IsActive()) {
+            _mapBattleV1Moves.push({x, y});
+            showExplanation({x, y});
+            submitSRS(0);
+            return;
+        }
+        if (_mapBattleV1Mode === 'blocked') {
+            setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
+            return;
+        }
         if(_bossMode){
             showExplanation({x, y});
             submitSRS(0);
@@ -9174,6 +9332,7 @@ function onBoardClick(bx,by){
         showBeginnerVillageEncounterContinuation();
         return;
     }
+    if (_mapBattleV1IsActive()) _mapBattleV1Moves.push({x, y});
     playStone(x,y,playerColor);currentNode=matched;
     if(currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
     answering=true;
@@ -9191,11 +9350,13 @@ function onBoardClick(bx,by){
 function resetProblem(){
     if(!currentProblem)return;_exploringAfterWrong=false;_cancelAutoSolution();solved=false;answering=false;
     _altAnswerReportMode = false;
+    _mapBattleV1Moves = [];
     board.removeAllObjects();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
     currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
     currentNode=makeAnswerRoot(currentProblem.tree);
     setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
+    if (_mapBattleV1Mode === 'active' && currentQ) _prepareMapBattleV1ForQuestion(currentQ);
 }
 function showAnswer(){
     if(!currentProblem||!currentProblem.tree)return;answering=true;solved=true;
