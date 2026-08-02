@@ -178,7 +178,7 @@ def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
 
 
 def test_final_cache_identity_and_stylesheet_order_are_single_bump():
-    assert "const VERSION     = 'v224-e10-bottom-dock-alignment'" in SW
+    assert "const VERSION     = 'v225-e10-ipad-adventure-interaction-recovery'" in SW
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
     assert INDEX.count("20260801e10art1") >= 9
     assert "/css/e9/art_directed_runtime.css?v=20260801e10art1" in INDEX

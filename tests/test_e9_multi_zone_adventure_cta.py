@@ -33,7 +33,7 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v224-e10-bottom-dock-alignment"
+NEW_SW_VERSION = "v225-e10-ipad-adventure-interaction-recovery"
 PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 
@@ -491,13 +491,13 @@ def test_no_new_i18n_key_introduced_for_this_fix():
 
 
 # ---------------------------------------------------------------------
-# 10. Legacy URL handoff format must be byte-identical to before --
-# this fix only adds CALLERS of startAdventureFromE9(), it must not
-# change what that function itself does.
+# 10. E9 uses the canonical in-page question entry. The Legacy URL builder
+# remains owned by index.html for Legacy/resume flows only.
 # ---------------------------------------------------------------------
 
-def test_start_adventure_from_e9_url_format_unchanged():
-    assert "global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';" in SHELL_JS
+def test_start_adventure_from_e9_does_not_reload_into_legacy_shell():
+    assert "global.enterAdventureZoneInPage({ key: zoneKey })" in SHELL_JS
+    assert "global.location.href = '/?zone='" not in SHELL_JS
 
 
 def test_legacy_own_href_builder_uses_the_same_format():

@@ -7597,6 +7597,7 @@ function _currentReviewMetadata(){
 }
 let playerColor='B',solved=false,answering=false,currentIndex=-1;
 let allQuestions=[],logicBoard=[],boardSize=19;
+window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false;
 let _adventureActiveQuestions = null;
 let _guildQuestMode = null;
 let _lastRenderedQuestDone = -1;
@@ -10270,6 +10271,11 @@ function firstQuestionHref(zone) {
 function enterAdventureZoneInPage(zone) {
     if (!zone || !Array.isArray(allQuestions) || !allQuestions.length) return false;
     try {
+        const _zone = ADVENTURE_ZONES.find(z => z.key === zone.key) || zone;
+        const _books = new Set(_zone && _zone.books ? _zone.books : []);
+        const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
+        const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
+        if (!unitQs.length) return false;
         const overlay = document.getElementById('boss-cinematic');
         if (overlay) { overlay.classList.remove('show'); overlay.setAttribute('aria-hidden', 'true'); }
         const _ws = document.getElementById('welcome-state');
@@ -10278,11 +10284,6 @@ function enterAdventureZoneInPage(zone) {
         if (_ws) _ws.classList.add('hidden');
         if (_bw) _bw.classList.remove('hidden');
         if (_mb) _mb.classList.remove('hidden');
-        const _zone = ADVENTURE_ZONES.find(z => z.key === zone.key) || zone;
-        const _books = new Set(_zone && _zone.books ? _zone.books : []);
-        const zoneQs = _books.size ? allQuestions.filter(q => _books.has(q.topic)) : allQuestions;
-        const unitQs = zoneQs.some(q => !q.locked) ? zoneQs.filter(q => !q.locked) : zoneQs;
-        if (!unitQs.length) return false;
         _adventureActiveQuestions = unitQs;
         renderList(unitQs);
         const isSeenQuestion = (qid) => !!SRS.isSeen(qid);
@@ -14576,8 +14577,9 @@ initNewbieQuest(me);
     catch(err){if(statusEl)statusEl.textContent='ERROR';if(listDiv)listDiv.innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:13px;">${I18n.t('index.load_err')}<br><small style="color:var(--ink3)">${_esc(err.message)}</small></div>`;console.error('[INIT] fetch error:', err);return;}
     let initData={dueData:{due:[],count:0}};
     let mistakeStats={total:0};
-    if (needsImmediatePracticeState) {
-        try{initData=await SRS.init(onNewBadge);}catch(e){}
+    let adventureQuestionSrsReady = !e9ShellRequested;
+    if (needsImmediatePracticeState || e9ShellRequested) {
+        try{initData=await SRS.init(onNewBadge);adventureQuestionSrsReady=true;}catch(e){console.error('[INIT] Adventure question SRS readiness failed:',e);}
         try{mistakeStats=await fetch('/api/mistakes/stats').then(r=>r.json());}catch(e){}
     } else if (legacyWelcomeShellActive) {
         ensureLegacyHomeAmbientState();
@@ -14597,9 +14599,13 @@ initNewbieQuest(me);
     document.querySelector('main')?.scrollTo(0, 0);
     document.querySelector('.practice')?.scrollTo(0, 0);
     allQuestions=questions;srsDueTotal=initData.dueData?.count??0;if(statusEl)statusEl.textContent=I18n.t('index.sidebar_count').replace('{n}',allQuestions.length);
+    if (!e9ShellRequested || adventureQuestionSrsReady) {
+        window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = true;
+        document.dispatchEvent(new CustomEvent('adventure:question-runtime-ready'));
+    }
     if (legacyWelcomeShellActive) renderAdventureMap();
     const sbCount=document.getElementById('sidebar-q-count');if(sbCount)sbCount.textContent=I18n.t('index.sidebar_count').replace('{n}',allQuestions.length);
-    if(mistakeStats.total>0){const b=document.getElementById('mistake-badge');b.textContent=mistakeStats.total>99?'99+':mistakeStats.total;b.style.display='inline-block';}
+    if(mistakeStats.total>0){const b=document.getElementById('mistake-badge');if(b){b.textContent=mistakeStats.total>99?'99+':mistakeStats.total;b.style.display='inline-block';}}
     updateSRSProgress();
     if (!useScopedQuestions && !grimoireParam) renderList(allQuestions);
     // ── 從路線圖跳來時，自動定位題目 ──────────────────────────

@@ -36,10 +36,17 @@
   <section class="e9-zone-details" id="e9-world-stage-details" tabindex="-1" aria-live="polite" hidden>
     <p class="e9-zone-details__kicker" data-i18n="e10.world_stage.selected_quest">Selected quest</p>
     <img class="e9-zone-details__landmark" id="e9-world-stage-details-landmark" alt="" width="320" height="320" aria-hidden="true" hidden>
+    <div class="e9-zone-details__identity">
+      <span id="e9-world-stage-details-number"></span>
+      <span id="e9-world-stage-details-stars"></span>
+    </div>
     <p class="e9-zone-details__label" id="e9-world-stage-details-label"></p>
     <p class="e9-zone-details__state" id="e9-world-stage-details-state"></p>
     <p class="e9-zone-details__summary" id="e9-world-stage-details-summary"></p>
-    <p class="e9-zone-details__progress" id="e9-world-stage-details-progress"></p>
+    <div class="e9-zone-details__progress">
+      <p><span data-i18n="e10.world_stage.task_progress">Task progress</span><strong id="e9-world-stage-details-progress"></strong></p>
+      <p><span data-i18n="e10.world_stage.region_progress">Region progress</span><strong id="e9-world-stage-details-region-progress"></strong></p>
+    </div>
     <button class="e9-zone-details__cta e9-adventure-cta" id="e9-world-stage-details-cta" type="button" hidden></button>
   </section>
   <section class="e9-newbie-mainline" id="e9-newbie-mainline" tabindex="-1" aria-live="polite" hidden>

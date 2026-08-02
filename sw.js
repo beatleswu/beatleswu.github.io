@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v224-e10-bottom-dock-alignment';
+const VERSION     = 'v225-e10-ipad-adventure-interaction-recovery';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

@@ -19,7 +19,8 @@ def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract(
     assert "cta.addEventListener('click', cta.__e9AdventureHandler)" in WORLD
     assert "cta.removeEventListener('click', cta.__e9AdventureHandler)" in WORLD
     assert "focusTarget.focus({ preventScroll: true })" in WORLD
-    assert "scrollIntoView({ behavior: 'smooth'" in WORLD
+    assert "behavior: isMobile || reduced ? 'auto' : 'smooth'" in WORLD
+    assert "block: isMobile ? 'center' : 'start'" in WORLD
     assert 'id="e9-world-stage-details"' in MARKUP
     assert 'id="e9-newbie-mainline-cta"' in MARKUP
     assert "onclick=" not in MARKUP
@@ -62,4 +63,5 @@ def test_c3_does_not_introduce_daily_or_second_adventure_state():
 
 def test_canonical_adventure_entry_is_exposed_to_the_e9_adapter():
     assert "window.startAdventureStage = startAdventureStage;" in INDEX
-    assert "global.location.href = '/?zone=' + encodeURIComponent(zoneKey) + '&adventure=1&resume=1';" in SHELL
+    assert "global.enterAdventureZoneInPage({ key: zoneKey })" in SHELL
+    assert "global.location.href = '/?zone='" not in SHELL
