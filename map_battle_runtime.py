@@ -12,8 +12,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
+import hmac
 import json
 import re
+import secrets
 from typing import Any, Callable, Mapping
 
 from map_battle_persistence import (
@@ -21,6 +23,7 @@ from map_battle_persistence import (
     SubmissionConflict,
     StaleBattleRevision,
     get_map_battle_v1_mode,
+    hash_submission_nonce,
     issue_map_battle_attempt,
     load_authoritative_battle_state,
     lookup_attempt_for_owner,
@@ -46,6 +49,13 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "judge_result",
     "reward",
     "zone_clear",
+    "submission_id",
+    "submission_nonce_hash",
+    "issued_at",
+    "received_at",
+    "settled_at",
+    "settlement_state",
+    "state",
 })
 _REQUIRED_REQUEST_FIELDS = (
     "battle_id",
@@ -102,6 +112,82 @@ class JudgeUnavailable(MapBattleRuntimeError):
 class AttemptExpired(RequestRejected):
     code = "map_battle_attempt_expired"
     status = 409
+
+
+class SubmissionNonceNotIssued(RequestRejected):
+    code = "submission_nonce_not_issued"
+    status = 409
+
+
+class SubmissionNonceAlreadyIssued(RequestRejected):
+    code = "submission_nonce_already_issued"
+    status = 409
+
+
+class SubmissionNonceInvalid(RequestRejected):
+    code = "invalid_submission_nonce"
+    status = 409
+
+
+class SubmissionRequestHashMismatch(RequestRejected):
+    code = "submission_request_hash_mismatch"
+    status = 409
+
+
+def _is_sqlite_connection(conn: Any) -> bool:
+    raw = getattr(conn, "_conn", conn)
+    return raw.__class__.__module__.startswith("sqlite3")
+
+
+def _row_to_dict(row: Any) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    keys = getattr(row, "keys", None)
+    if callable(keys):
+        return {key: row[key] for key in row.keys()}
+    return dict(row)
+
+
+def _column_names(conn: Any, table: str) -> set[str]:
+    cursor = conn.execute(f"SELECT * FROM {table} LIMIT 0")
+    return {description[0] for description in (cursor.description or ())}
+
+
+def ensure_submission_lifecycle_schema(conn: Any) -> None:
+    """Add only the columns needed for server-issued submission lifecycle.
+
+    Sprint 1 owns the battle/attempt/submission tables.  This additive gate is
+    deliberately separate so no existing battle column, state, or constraint is
+    rewritten.  Existing rows remain readable; newly issued attempts must carry
+    a nonce hash before settlement.
+    """
+
+    if not _is_sqlite_connection(conn):
+        conn.execute("SELECT pg_advisory_xact_lock(778899789)")
+    attempt_columns = _column_names(conn, "map_battle_attempts")
+    if "submission_nonce_hash" not in attempt_columns:
+        conn.execute(
+            "ALTER TABLE map_battle_attempts ADD COLUMN submission_nonce_hash TEXT"
+        )
+    submission_columns = _column_names(conn, "map_battle_submissions")
+    if "issued_at" not in submission_columns:
+        conn.execute(
+            "ALTER TABLE map_battle_submissions ADD COLUMN issued_at TEXT"
+        )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_map_battle_attempts_submission_nonce "
+        "ON map_battle_attempts(user_id, battle_id, submission_nonce_hash)"
+    )
+
+
+def _timestamp_text(value: Any = None) -> str:
+    if value is None:
+        return datetime.now(timezone.utc).isoformat()
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat()
+    return str(value)
 
 
 @dataclass(frozen=True)
@@ -501,13 +587,26 @@ def _attempt_expired(attempt: Mapping[str, Any], now: Any = None) -> bool:
     return current >= expires_at
 
 
-def _response_from_settlement(result: Mapping[str, Any], *, duplicate: bool, outcome: JudgeOutcome | None = None) -> dict[str, Any]:
+def _response_from_settlement(
+    result: Mapping[str, Any],
+    *,
+    duplicate: bool,
+    outcome: JudgeOutcome | None = None,
+    attempt: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     submission = dict(result.get("submission") or {})
     battle = dict(result.get("battle") or {})
     result_name = submission.get("judge_result") or (outcome.result if outcome else "INVALID")
+    issued_at = submission.get("issued_at") or (attempt or {}).get("issued_at")
     return {
         "accepted": result_name in ("CORRECT", "INCORRECT"),
         "duplicate": bool(duplicate),
+        "submission_id": submission.get("id"),
+        "submission_state": submission.get("settlement_state"),
+        "submission_issued_at": issued_at,
+        "submission_received_at": submission.get("received_at"),
+        "submission_settled_at": submission.get("settled_at"),
+        "request_hash": submission.get("request_hash"),
         "result": result_name,
         "authoritative_grade": submission.get("authoritative_grade"),
         "damage_to_monster": int(submission.get("damage_to_monster") or 0),
@@ -570,6 +669,146 @@ def issue_attempt_for_context(
     )
 
 
+def _load_attempt_for_update(conn: Any, *, user_id: int, attempt_id: str) -> dict[str, Any] | None:
+    statement = "SELECT * FROM map_battle_attempts WHERE id=? AND user_id=?"
+    if not _is_sqlite_connection(conn):
+        statement += " FOR UPDATE"
+    return _row_to_dict(conn.execute(statement, (attempt_id, user_id)).fetchone())
+
+
+def issue_submission_nonce_for_attempt(
+    conn: Any,
+    *,
+    user_id: int,
+    attempt_id: str,
+    now: Any = None,
+    mode_environ: Mapping[str, Any] | None = None,
+    eligibility: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Issue one server nonce and return its raw value exactly once.
+
+    The raw nonce never enters a SQL statement, response replay, log, or
+    evidence path.  Only its SHA-256 hash is stored on the owner-scoped attempt.
+    The attempt's issued/expiry timestamps bind the nonce lifetime.
+    """
+
+    user_id = int(user_id)
+    mode = get_map_battle_v1_mode(mode_environ)
+    if mode == "off" or mode == "dark":
+        raise FeatureDisabled()
+    if not mode_eligible(mode, user_id, eligibility):
+        raise ModeNotEligible()
+    attempt_id = _require_text(attempt_id, "attempt_id")
+    attempt = _load_attempt_for_update(conn, user_id=user_id, attempt_id=attempt_id)
+    if attempt is None:
+        raise RequestRejected("attempt does not exist for owner", status=404)
+    battle = load_authoritative_battle_state(
+        conn, user_id=user_id, battle_id=str(attempt["battle_id"])
+    )
+    if battle is None:
+        raise RequestRejected("battle does not exist for owner", status=404)
+    if attempt.get("submission_nonce_hash"):
+        raise SubmissionNonceAlreadyIssued("submission nonce was already issued")
+    if str(attempt.get("state") or "") != "ISSUED":
+        raise RequestRejected("attempt is not issuable", status=409)
+    if _attempt_expired(attempt, now):
+        raise AttemptExpired("map battle attempt has expired")
+
+    raw_nonce = secrets.token_urlsafe(32)
+    nonce_hash = hash_submission_nonce(raw_nonce)
+    timestamp = _timestamp_text(now)
+    cursor = conn.execute(
+        """UPDATE map_battle_attempts
+           SET submission_nonce_hash=?, updated_at=?
+         WHERE id=? AND user_id=? AND battle_id=? AND state='ISSUED'
+           AND submission_nonce_hash IS NULL""",
+        (nonce_hash, timestamp, attempt_id, user_id, str(attempt["battle_id"])),
+    )
+    if cursor.rowcount != 1:
+        raise SubmissionNonceAlreadyIssued("submission nonce was already issued")
+    return {
+        "attempt_id": attempt_id,
+        "battle_id": str(attempt["battle_id"]),
+        "issued_at": attempt["issued_at"],
+        "expires_at": attempt["expires_at"],
+        "submission_nonce": raw_nonce,
+        "runtime_service": RUNTIME_SERVICE_ID,
+    }
+
+
+def issue_attempt_with_submission_nonce(
+    conn: Any,
+    *,
+    user_id: int,
+    battle_id: str,
+    question: Mapping[str, Any],
+    initial_position_identity: str,
+    board_size: int,
+    player_color: str,
+    transform_version: str,
+    transform_id: str,
+    attempt_id: str | None = None,
+    issued_at: Any = None,
+    expires_at: Any = None,
+    now: Any = None,
+    mode_environ: Mapping[str, Any] | None = None,
+    eligibility: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Create an attempt and issue its one-time submission nonce atomically."""
+
+    mode = get_map_battle_v1_mode(mode_environ)
+    if mode == "off" or mode == "dark":
+        raise FeatureDisabled()
+    if not mode_eligible(mode, int(user_id), eligibility):
+        raise ModeNotEligible()
+    created_attempt_id = issue_attempt_for_context(
+        conn,
+        user_id=user_id,
+        battle_id=battle_id,
+        question=question,
+        initial_position_identity=initial_position_identity,
+        board_size=board_size,
+        player_color=player_color,
+        transform_version=transform_version,
+        transform_id=transform_id,
+        attempt_id=attempt_id,
+        issued_at=issued_at,
+        expires_at=expires_at,
+    )
+    return issue_submission_nonce_for_attempt(
+        conn,
+        user_id=user_id,
+        attempt_id=created_attempt_id,
+        now=now or issued_at,
+        mode_environ=mode_environ,
+        eligibility=eligibility,
+    )
+
+
+def _validate_submission_nonce(payload: Mapping[str, Any], attempt: Mapping[str, Any]) -> None:
+    expected_hash = str(attempt.get("submission_nonce_hash") or "")
+    if not expected_hash:
+        raise SubmissionNonceNotIssued("attempt has no server-issued submission nonce")
+    raw_nonce = payload.get("submission_nonce")
+    if not isinstance(raw_nonce, str) or not raw_nonce.strip():
+        raise SubmissionNonceInvalid("submission nonce is required")
+    actual_hash = hash_submission_nonce(raw_nonce)
+    if not hmac.compare_digest(actual_hash, expected_hash):
+        raise SubmissionNonceInvalid("submission nonce is invalid")
+
+
+def _validated_request_hash(payload: Mapping[str, Any], canonical: CanonicalAnswer) -> str:
+    expected_hash = request_hash_for(canonical)
+    claimed_hash = payload.get("request_hash")
+    if claimed_hash is None:
+        return expected_hash
+    if not isinstance(claimed_hash, str) or not claimed_hash.strip():
+        raise SubmissionRequestHashMismatch("request hash is invalid")
+    if not hmac.compare_digest(claimed_hash.strip(), expected_hash):
+        raise SubmissionRequestHashMismatch("request hash does not match canonical answer")
+    return expected_hash
+
+
 def settle_answer(
     conn,
     *,
@@ -609,7 +848,7 @@ def settle_answer(
     if _attempt_expired(attempt, now):
         raise AttemptExpired("map battle attempt has expired")
     canonical = canonicalize_answer(payload, attempt)
-    _require_text(payload["submission_nonce"], "submission_nonce", 512)
+    _validate_submission_nonce(payload, attempt)
     try:
         _metadata_matches(payload, attempt)
     except StaleBattleRevision as error:
@@ -620,7 +859,7 @@ def settle_answer(
     expected_revision = question_revision_for(question)
     if expected_revision != str(attempt["question_revision"]):
         raise RequestRejected("question revision is stale", status=409)
-    request_hash = request_hash_for(canonical)
+    request_hash = _validated_request_hash(payload, canonical)
     try:
         reservation = reserve_submission_nonce(
             conn,
@@ -634,6 +873,18 @@ def settle_answer(
         )
     except SubmissionConflict as error:
         raise RequestRejected(str(error), status=409) from error
+    if reservation.get("created"):
+        conn.execute(
+            """UPDATE map_battle_submissions SET issued_at=?
+               WHERE id=? AND user_id=? AND battle_id=? AND attempt_id=?""",
+            (
+                attempt["issued_at"],
+                reservation["submission_id"],
+                user_id,
+                str(attempt["battle_id"]),
+                str(attempt["id"]),
+            ),
+        )
     if reservation.get("duplicate") and reservation.get("record"):
         existing = reservation["record"]
         if existing.get("settlement_state") in ("SETTLED", "REJECTED"):
@@ -643,7 +894,7 @@ def settle_answer(
                     conn, user_id=user_id, battle_id=str(attempt["battle_id"])
                 ),
             }
-            return _response_from_settlement(replay, duplicate=True)
+            return _response_from_settlement(replay, duplicate=True, attempt=attempt)
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")
@@ -669,7 +920,12 @@ def settle_answer(
         )
     except (StaleBattleRevision, SubmissionConflict) as error:
         raise RequestRejected(str(error), status=409) from error
-    return _response_from_settlement(settled, duplicate=bool(settled.get("duplicate")), outcome=outcome)
+    return _response_from_settlement(
+        settled,
+        duplicate=bool(settled.get("duplicate")),
+        outcome=outcome,
+        attempt=attempt,
+    )
 
 
 __all__ = [
@@ -685,9 +941,16 @@ __all__ = [
     "OLD_CLIENT_HTTP_STATUS",
     "RUNTIME_SERVICE_ID",
     "RequestRejected",
+    "SubmissionNonceAlreadyIssued",
+    "SubmissionNonceInvalid",
+    "SubmissionNonceNotIssued",
+    "SubmissionRequestHashMismatch",
     "canonicalize_answer",
     "calculate_damage",
+    "ensure_submission_lifecycle_schema",
     "issue_attempt_for_context",
+    "issue_attempt_with_submission_nonce",
+    "issue_submission_nonce_for_attempt",
     "judge_map_battle_answer_v1",
     "mode_eligible",
     "question_revision_for",

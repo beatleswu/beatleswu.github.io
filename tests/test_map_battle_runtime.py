@@ -4,6 +4,7 @@ import ast
 import hashlib
 import json
 import sqlite3
+import threading
 from pathlib import Path
 
 import pytest
@@ -15,10 +16,17 @@ from map_battle_runtime import (
     ForbiddenClientAuthority,
     JudgeOutcome,
     RequestRejected,
+    SubmissionNonceAlreadyIssued,
+    SubmissionNonceInvalid,
+    SubmissionNonceNotIssued,
+    SubmissionRequestHashMismatch,
     canonicalize_answer,
     calculate_damage,
+    ensure_submission_lifecycle_schema,
+    issue_submission_nonce_for_attempt,
     issue_attempt_for_context,
     judge_map_battle_answer_v1,
+    request_hash_for,
     settle_answer,
 )
 from map_battle_persistence import create_map_battle
@@ -31,6 +39,7 @@ QUESTION = {
     "monster_atk": 6,
 }
 QUESTION_REVISION = hashlib.sha256(QUESTION["content"].encode("utf-8")).hexdigest()
+_ISSUED_NONCES = {}
 
 
 @pytest.fixture()
@@ -41,6 +50,7 @@ def battle_db():
     conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")
     conn.executemany("INSERT INTO users(id) VALUES (?)", [(101,), (202,)])
     ensure_map_battle_tables(conn)
+    ensure_submission_lifecycle_schema(conn)
     create_map_battle(
         conn,
         battle_id="battle-s2",
@@ -66,17 +76,28 @@ def battle_db():
         issued_at="2026-08-02T00:00:00+00:00",
         expires_at="2026-08-03T00:00:00+00:00",
     )
+    issued = issue_submission_nonce_for_attempt(
+        conn,
+        user_id=101,
+        attempt_id="attempt-s2",
+        now="2026-08-02T00:00:00+00:00",
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+    )
+    _ISSUED_NONCES[id(conn)] = issued["submission_nonce"]
     conn.commit()
     try:
         yield conn
     finally:
+        _ISSUED_NONCES.pop(id(conn), None)
         conn.close()
 
 
-def _payload(conn, *, moves, nonce="nonce-s2", battle_revision=0):
+def _payload(conn, *, moves, nonce=None, battle_revision=0, attempt_id="attempt-s2"):
     attempt = conn.execute(
-        "SELECT * FROM map_battle_attempts WHERE id=?", ("attempt-s2",)
+        "SELECT * FROM map_battle_attempts WHERE id=?", (attempt_id,)
     ).fetchone()
+    if nonce is None:
+        nonce = _ISSUED_NONCES[id(conn)]
     return {
         "battle_id": attempt["battle_id"],
         "attempt_id": attempt["id"],
@@ -110,6 +131,90 @@ def test_canonicalization_is_deterministic_and_excludes_authority_fields(battle_
     assert first.payload["moves"] == [{"action": "play", "color": "B", "x": 3, "y": 3}]
     with pytest.raises(ForbiddenClientAuthority):
         canonicalize_answer({**payload, "grade": 5}, attempt)
+
+
+def test_submission_nonce_is_server_issued_hashed_and_returned_once(battle_db):
+    attempt = battle_db.execute(
+        "SELECT * FROM map_battle_attempts WHERE id='attempt-s2'"
+    ).fetchone()
+    raw_nonce = _ISSUED_NONCES[id(battle_db)]
+    assert attempt["submission_nonce_hash"]
+    assert raw_nonce not in str(dict(attempt))
+    assert len(raw_nonce) >= 32
+    with pytest.raises(SubmissionNonceAlreadyIssued):
+        issue_submission_nonce_for_attempt(
+            battle_db,
+            user_id=101,
+            attempt_id="attempt-s2",
+            now="2026-08-02T00:00:00+00:00",
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        )
+
+
+def test_feature_off_or_dark_does_not_issue_submission_nonce(battle_db):
+    attempt = battle_db.execute(
+        "SELECT submission_nonce_hash FROM map_battle_attempts WHERE id='attempt-s2'"
+    ).fetchone()
+    assert attempt["submission_nonce_hash"]
+    with pytest.raises(Exception) as error:
+        issue_submission_nonce_for_attempt(
+            battle_db,
+            user_id=101,
+            attempt_id="attempt-s2",
+            now="2026-08-02T00:00:00+00:00",
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "off"},
+        )
+    assert error.value.code == "map_battle_v1_disabled"
+
+
+def test_attempt_without_server_nonce_cannot_enter_submission_lifecycle(battle_db):
+    issue_attempt_for_context(
+        battle_db,
+        user_id=101,
+        battle_id="battle-s2",
+        question=QUESTION,
+        initial_position_identity="position-without-nonce",
+        board_size=19,
+        player_color="B",
+        transform_version="transform-v1",
+        transform_id="identity",
+        attempt_id="attempt-no-nonce",
+        issued_at="2026-08-02T00:00:00+00:00",
+        expires_at="2026-08-03T00:00:00+00:00",
+    )
+    with pytest.raises(SubmissionNonceNotIssued):
+        _settle(
+            battle_db,
+            _payload(
+                battle_db,
+                attempt_id="attempt-no-nonce",
+                nonce="client-supplied-only",
+                moves=[{"x": 3, "y": 3}],
+            ),
+        )
+    assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
+
+
+def test_submission_aggregate_contains_lifecycle_identity_and_hashes(battle_db):
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
+    attempt = dict(
+        battle_db.execute("SELECT * FROM map_battle_attempts WHERE id='attempt-s2'").fetchone()
+    )
+    payload["request_hash"] = request_hash_for(canonicalize_answer(payload, attempt))
+    response = _settle(battle_db, payload)
+    battle_db.commit()
+    row = battle_db.execute(
+        "SELECT * FROM map_battle_submissions WHERE id=?", (response["submission_id"],)
+    ).fetchone()
+    assert row["battle_id"] == "battle-s2"
+    assert row["attempt_id"] == "attempt-s2"
+    assert row["user_id"] == 101
+    assert row["submission_nonce_hash"]
+    assert row["request_hash"] == response["request_hash"]
+    assert row["issued_at"] == "2026-08-02T00:00:00+00:00"
+    assert row["received_at"] == "2026-08-02T00:01:00+00:00"
+    assert row["settled_at"] == "2026-08-02T00:01:00+00:00"
+    assert row["settlement_state"] == "SETTLED"
 
 
 @pytest.mark.parametrize(
@@ -183,6 +288,19 @@ def test_forged_fields_cross_account_and_revision_mismatch_are_rejected(battle_d
     assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
 
 
+def test_forged_nonce_request_hash_battle_and_attempt_are_rejected_before_reservation(battle_db):
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
+    with pytest.raises(SubmissionNonceInvalid):
+        _settle(battle_db, {**payload, "submission_nonce": "forged-client-nonce"})
+    with pytest.raises(SubmissionRequestHashMismatch):
+        _settle(battle_db, {**payload, "request_hash": "f" * 64})
+    with pytest.raises(RequestRejected):
+        _settle(battle_db, {**payload, "battle_id": "forged-battle"})
+    with pytest.raises(RequestRejected):
+        _settle(battle_db, {**payload, "attempt_id": "forged-attempt"})
+    assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
+
+
 def test_judge_never_uses_client_grade_and_unavailable_judge_is_retryable(battle_db):
     attempt = dict(battle_db.execute("SELECT * FROM map_battle_attempts WHERE id='attempt-s2'").fetchone())
     canonical = canonicalize_answer(_payload(battle_db, moves=[{"x": 3, "y": 3}]), attempt)
@@ -224,6 +342,238 @@ def test_expired_attempt_is_rejected_before_reservation(battle_db):
             now="2026-08-02T00:02:00+00:00",
         )
     assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
+
+
+def test_rollback_does_not_consume_nonce_and_retry_can_settle(battle_db):
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
+
+    def failing_judge(*_args):
+        raise RuntimeError("synthetic judge interruption")
+
+    with pytest.raises(RuntimeError):
+        settle_answer(
+            battle_db,
+            user_id=101,
+            payload=payload,
+            question_loader=lambda _: QUESTION,
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-02T00:01:00+00:00",
+            judge=failing_judge,
+        )
+    battle_db.rollback()
+    assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
+    retry = _settle(battle_db, payload)
+    battle_db.commit()
+    assert retry["duplicate"] is False
+    assert retry["result"] == "CORRECT"
+
+
+def test_submission_lifecycle_postgres_validation_rollback_retry_and_nonce_race():
+    import importlib.util
+
+    helper_path = Path(__file__).with_name("test_map_battle_persistence.py")
+    spec = importlib.util.spec_from_file_location("map_battle_pg_helpers", helper_path)
+    helpers = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helpers)
+
+    with helpers._postgres_container() as database_url:
+        import psycopg2
+
+        seed = psycopg2.connect(database_url)
+        seed.autocommit = True
+        seed_cursor = seed.cursor()
+        seed_cursor.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")
+        seed_cursor.execute("INSERT INTO users(id) VALUES (101), (202)")
+        seed_cursor.close()
+        seed.close()
+
+        schema = helpers._postgres_wrapper(database_url)
+        ensure_map_battle_tables(schema)
+        ensure_submission_lifecycle_schema(schema)
+        schema.commit()
+        schema.close()
+
+        def make_attempt(battle_id, attempt_id, expires_at="2026-08-03T00:00:00+00:00"):
+            conn = helpers._postgres_wrapper(database_url)
+            create_map_battle(
+                conn,
+                battle_id=battle_id,
+                user_id=101,
+                zone_key="pg::submission-lifecycle",
+                player_hp=20,
+                player_hp_max=20,
+                monster_hp=20,
+                monster_hp_max=20,
+                now="2026-08-02T00:00:00+00:00",
+            )
+            issue_attempt_for_context(
+                conn,
+                user_id=101,
+                battle_id=battle_id,
+                question=QUESTION,
+                initial_position_identity=attempt_id + "-position",
+                board_size=19,
+                player_color="B",
+                transform_version="transform-v1",
+                transform_id="identity",
+                attempt_id=attempt_id,
+                issued_at="2026-08-02T00:00:00+00:00",
+                expires_at=expires_at,
+            )
+            issued = issue_submission_nonce_for_attempt(
+                conn,
+                user_id=101,
+                attempt_id=attempt_id,
+                now="2026-08-02T00:00:00+00:00",
+                mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            )
+            attempt = conn.execute(
+                "SELECT * FROM map_battle_attempts WHERE id=?", (attempt_id,)
+            ).fetchone()
+            payload = {
+                "battle_id": attempt["battle_id"],
+                "attempt_id": attempt["id"],
+                "submission_nonce": issued["submission_nonce"],
+                "battle_revision": attempt["battle_revision_at_issue"],
+                "question_revision": attempt["question_revision"],
+                "player_color": "black",
+                "transform_id": attempt["transform_id"],
+                "transform_version": attempt["transform_version"],
+                "moves": [{"x": 3, "y": 3}],
+            }
+            conn.commit()
+            conn.close()
+            return payload
+
+        forged_payload = make_attempt("pg-forged", "pg-attempt-forged")
+        conn = helpers._postgres_wrapper(database_url)
+        with pytest.raises(SubmissionNonceInvalid):
+            settle_answer(
+                conn,
+                user_id=101,
+                payload={**forged_payload, "submission_nonce": "forged"},
+                question_loader=lambda _: QUESTION,
+                mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+                now="2026-08-02T00:01:00+00:00",
+            )
+        conn.rollback()
+        assert conn.execute("SELECT COUNT(*) AS n FROM map_battle_submissions").fetchone()["n"] == 0
+        conn.close()
+
+        expired_payload = make_attempt("pg-expired", "pg-attempt-expired")
+        conn = helpers._postgres_wrapper(database_url)
+        conn.execute(
+            "UPDATE map_battle_attempts SET expires_at=? WHERE id=?",
+            ("2026-08-02T00:01:00+00:00", "pg-attempt-expired"),
+        )
+        conn.commit()
+        with pytest.raises(AttemptExpired):
+            settle_answer(
+                conn,
+                user_id=101,
+                payload=expired_payload,
+                question_loader=lambda _: QUESTION,
+                mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+                now="2026-08-02T00:01:00+00:00",
+            )
+        conn.rollback()
+        assert conn.execute("SELECT COUNT(*) AS n FROM map_battle_submissions").fetchone()["n"] == 0
+        conn.close()
+
+        stale_payload = make_attempt("pg-stale", "pg-attempt-stale")
+        conn = helpers._postgres_wrapper(database_url)
+        with pytest.raises(RequestRejected):
+            settle_answer(
+                conn,
+                user_id=101,
+                payload={**stale_payload, "battle_revision": 1},
+                question_loader=lambda _: QUESTION,
+                mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+                now="2026-08-02T00:01:00+00:00",
+            )
+        conn.rollback()
+        assert conn.execute("SELECT COUNT(*) AS n FROM map_battle_submissions").fetchone()["n"] == 0
+        conn.close()
+
+        rollback_payload = make_attempt("pg-rollback", "pg-attempt-rollback")
+        conn = helpers._postgres_wrapper(database_url)
+
+        def failing_judge(*_args):
+            raise RuntimeError("postgres rollback interruption")
+
+        with pytest.raises(RuntimeError):
+            settle_answer(
+                conn,
+                user_id=101,
+                payload=rollback_payload,
+                question_loader=lambda _: QUESTION,
+                mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+                now="2026-08-02T00:01:00+00:00",
+                judge=failing_judge,
+            )
+        conn.rollback()
+        assert conn.execute(
+            "SELECT COUNT(*) AS n FROM map_battle_submissions WHERE attempt_id=?",
+            ("pg-attempt-rollback",),
+        ).fetchone()["n"] == 0
+        conn.close()
+
+        retry_conn = helpers._postgres_wrapper(database_url)
+        retry = settle_answer(
+            retry_conn,
+            user_id=101,
+            payload=rollback_payload,
+            question_loader=lambda _: QUESTION,
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-02T00:01:00+00:00",
+        )
+        retry_conn.commit()
+        assert retry["duplicate"] is False
+        retry_conn.close()
+
+        race_payload = make_attempt("pg-race", "pg-attempt-race")
+        barrier = threading.Barrier(2)
+        results = []
+
+        def race_worker():
+            conn = helpers._postgres_wrapper(database_url)
+            try:
+                barrier.wait(timeout=15)
+                result = settle_answer(
+                    conn,
+                    user_id=101,
+                    payload=race_payload,
+                    question_loader=lambda _: QUESTION,
+                    mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+                    now="2026-08-02T00:01:00+00:00",
+                )
+                conn.commit()
+                results.append(result)
+            except Exception as error:  # pragma: no cover - assertion reports it
+                conn.rollback()
+                results.append(error)
+            finally:
+                conn.close()
+
+        threads = [threading.Thread(target=race_worker) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+            assert not thread.is_alive()
+        assert not any(isinstance(result, Exception) for result in results)
+        assert sorted(result["duplicate"] for result in results) == [False, True]
+        assert len({result["submission_id"] for result in results}) == 1
+
+        final = helpers._postgres_wrapper(database_url)
+        assert final.execute(
+            "SELECT COUNT(*) AS n FROM map_battle_submissions WHERE attempt_id=?",
+            ("pg-attempt-race",),
+        ).fetchone()["n"] == 1
+        assert final.execute(
+            "SELECT battle_revision FROM map_battles WHERE id=?", ("pg-race",)
+        ).fetchone()["battle_revision"] == 1
+        final.close()
 
 
 def test_runtime_module_has_no_application_frontend_or_feature_domain_imports():

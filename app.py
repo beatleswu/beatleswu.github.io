@@ -48,6 +48,8 @@ from map_battle_runtime import (
     OLD_CLIENT_ERROR,
     OLD_CLIENT_HTTP_STATUS,
     MapBattleRuntimeError,
+    ensure_submission_lifecycle_schema,
+    issue_submission_nonce_for_attempt,
     settle_answer,
 )
 
@@ -3869,6 +3871,7 @@ def init_db():
     from map_battle_persistence import ensure_map_battle_tables
     with get_db() as conn:
         ensure_map_battle_tables(conn)
+        ensure_submission_lifecycle_schema(conn)
 
 # ── 認證裝飾器 ─────────────────────────────────────────────────
 def login_required(f):
@@ -9863,6 +9866,35 @@ def _map_battle_question_by_id(question_id):
         return None
     return next((question for question in _load_questions()
                  if isinstance(question, dict) and question.get('id') == question_id), None)
+
+
+@app.route('/api/adventure/map-battles/v1/attempts/<attempt_id>/submission-nonce', methods=['POST'])
+@login_required
+def map_battle_v1_submission_nonce(attempt_id):
+    """Issue one server-owned submission nonce for an issued attempt."""
+    protocol = (request.headers.get('X-Map-Battle-Client-Protocol') or '').strip().lower()
+    if protocol != 'v1':
+        return jsonify({
+            'error': OLD_CLIENT_ERROR,
+            'code': OLD_CLIENT_ERROR,
+            'message': '遊戲已更新，請重新整理後繼續',
+        }), OLD_CLIENT_HTTP_STATUS
+    try:
+        with get_db() as conn:
+            result = issue_submission_nonce_for_attempt(
+                conn,
+                user_id=session['user_id'],
+                attempt_id=attempt_id,
+                mode_environ=os.environ,
+            )
+    except MapBattleRuntimeError as error:
+        return jsonify({
+            'error': error.code,
+            'code': error.code,
+            'message': str(error),
+            'retryable': bool(error.retryable),
+        }), error.status
+    return jsonify(result)
 
 
 @app.route('/api/adventure/map-battles/v1/answers', methods=['POST'])
