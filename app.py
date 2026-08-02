@@ -43,6 +43,13 @@ from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i1
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
+from map_battle_runtime import (
+    FEATURE_DISABLED_HTTP_STATUS,
+    OLD_CLIENT_ERROR,
+    OLD_CLIENT_HTTP_STATUS,
+    MapBattleRuntimeError,
+    settle_answer,
+)
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
@@ -9847,6 +9854,55 @@ def srs_card(qid):
     if row: return jsonify(dict(row))
     return jsonify({'user_id':uid,'question_id':qid,'ease_factor':2.5,'interval':0,
                     'repetitions':0,'due_date':datetime.date.today().isoformat(),'last_grade':None})
+
+def _map_battle_question_by_id(question_id):
+    """Resolve question content from the server-owned question dataset only."""
+    try:
+        question_id = int(question_id)
+    except (TypeError, ValueError):
+        return None
+    return next((question for question in _load_questions()
+                 if isinstance(question, dict) and question.get('id') == question_id), None)
+
+
+@app.route('/api/adventure/map-battles/v1/answers', methods=['POST'])
+@login_required
+def map_battle_v1_answers():
+    """Shared API-only Battle Runtime answer contract.
+
+    The endpoint never accepts client grade/correctness/damage/HP.  The feature
+    mode remains server controlled and defaults to off; no fallback to
+    ``/api/srs/review`` is performed here.
+    """
+    protocol = (request.headers.get('X-Map-Battle-Client-Protocol') or '').strip().lower()
+    if protocol != 'v1':
+        return jsonify({
+            'error': OLD_CLIENT_ERROR,
+            'code': OLD_CLIENT_ERROR,
+            'message': '遊戲已更新，請重新整理後繼續',
+        }), OLD_CLIENT_HTTP_STATUS
+    payload = request.get_json(silent=True)
+    try:
+        with get_db() as conn:
+            result = settle_answer(
+                conn,
+                user_id=session['user_id'],
+                payload=payload,
+                question_loader=_map_battle_question_by_id,
+                mode_environ=os.environ,
+            )
+    except MapBattleRuntimeError as error:
+        body = {
+            'error': error.code,
+            'code': error.code,
+            'message': str(error),
+            'retryable': bool(error.retryable),
+        }
+        if error.code == 'map_battle_v1_disabled':
+            body['message'] = 'Map Battle v1 暫未開放'
+        return jsonify(body), error.status
+    return jsonify(result)
+
 
 @app.route('/api/srs/review', methods=['POST'])
 @login_required
