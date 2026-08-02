@@ -696,7 +696,11 @@
           ? (root.querySelector('[data-zone="' + zone.key + '"] .e9-zone__inline-cta') || root.querySelector('[data-zone="' + zone.key + '"]'))
           : (root.querySelector('#e9-map-stage') || focusTarget);
         var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        mobileFocus.scrollIntoView({ behavior: isMobile || reduced ? 'auto' : 'smooth', block: isMobile ? 'center' : 'start' });
+        if (isMobile || reduced) {
+          mobileFocus.scrollIntoView({ behavior: 'auto', block: isMobile ? 'center' : 'start' });
+        } else {
+          mobileFocus.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }
     }
   }

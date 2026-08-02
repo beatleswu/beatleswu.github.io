@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v225-e10-ipad-adventure-interaction-recovery';
+const VERSION     = 'v226-e10-adventure-hero-shop-backpack-information-architecture';
 const SHELL_CACHE = `cg-shell-${VERSION}`;
 const IMG_CACHE   = `cg-img-${VERSION}`;
 

@@ -291,6 +291,31 @@
         root.__e9DrawerTrigger.focus();
       }
     };
+    var stackedDetailSurface = window.matchMedia && window.matchMedia(
+      '(max-width: 1279px) and (orientation: portrait), (max-width: 767px)'
+    );
+    var portraitLowerCardSurface = window.matchMedia && window.matchMedia(
+      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
+    );
+    var syncDetailSurfaceOwnership = function () {
+      var lowerCardOwnsDetails = !!(stackedDetailSurface && stackedDetailSurface.matches);
+      var adventureShell = document.querySelector('#e9-adventure-shell');
+      var immersiveShell = !!(adventureShell && adventureShell.getAttribute('data-e10-visual-skin') === 'immersive-rpg');
+      var lowerCard = adventureShell && adventureShell.querySelector('#e9-world-stage-details');
+      if (lowerCardOwnsDetails) setOpen(false, false);
+      root.hidden = lowerCardOwnsDetails;
+      root.inert = lowerCardOwnsDetails;
+      root.setAttribute('aria-hidden', lowerCardOwnsDetails ? 'true' : 'false');
+      root.setAttribute('data-e10-detail-owner', lowerCardOwnsDetails ? 'lower-card' : 'side-panel');
+      if (toggle) {
+        if (lowerCardOwnsDetails) toggle.tabIndex = -1;
+        else toggle.removeAttribute('tabindex');
+      }
+      if (backdrop && lowerCardOwnsDetails) backdrop.hidden = true;
+      if (immersiveShell && lowerCard) {
+        lowerCard.hidden = !(portraitLowerCardSurface && portraitLowerCardSurface.matches);
+      }
+    };
     if (toggle && panel) {
       var onToggle = function () {
         root.__e9DrawerTrigger = toggle;
@@ -310,6 +335,7 @@
         }
       };
       setOpen(false, false);
+      syncDetailSurfaceOwnership();
       if (window.E9 && window.E9.latestZoneSelection) {
         updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
       }
@@ -321,6 +347,8 @@
         window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
         window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
         window.E9.on(document, 'e9:adventure-command', onAdventure, null, generation);
+        if (stackedDetailSurface) window.E9.on(stackedDetailSurface, 'change', syncDetailSurfaceOwnership, null, generation);
+        if (portraitLowerCardSurface) window.E9.on(portraitLowerCardSurface, 'change', syncDetailSurfaceOwnership, null, generation);
       } else {
         toggle.addEventListener('click', onToggle);
         if (closeButton) closeButton.addEventListener('click', function () { setOpen(false, true); });
@@ -329,6 +357,12 @@
         document.addEventListener('e9:zone-selected', onZoneSelected);
         document.addEventListener('e9:adventure-command', onAdventure);
         document.addEventListener('e9:i18n-changed', onI18nChanged);
+        if (stackedDetailSurface && stackedDetailSurface.addEventListener) {
+          stackedDetailSurface.addEventListener('change', syncDetailSurfaceOwnership);
+        }
+        if (portraitLowerCardSurface && portraitLowerCardSurface.addEventListener) {
+          portraitLowerCardSurface.addEventListener('change', syncDetailSurfaceOwnership);
+        }
       }
     }
 
@@ -341,6 +375,11 @@
         delete root.__e10ChallengeTargetEnabled;
         if (backdrop) backdrop.remove();
         if (slot) slot.classList.remove('is-drawer-open');
+        root.hidden = false;
+        root.inert = false;
+        root.removeAttribute('aria-hidden');
+        root.removeAttribute('data-e10-detail-owner');
+        if (toggle) toggle.removeAttribute('tabindex');
         if (shell) shell.classList.remove('is-right-drawer-open');
       }, generation);
     }

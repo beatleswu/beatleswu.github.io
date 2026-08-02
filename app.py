@@ -15800,7 +15800,7 @@ def badges_page(): return redirect('/hero?tab=badges')
 
 @app.route('/inventory')
 @login_required
-def inventory_page(): return redirect('/hero?tab=class')
+def inventory_page(): return _serve_live_static_or_baked('inventory.html')
 
 # ══════════════════════════════════════════════════════════════
 # 商城系統（金幣經濟：賺取上限 / 道具 / 每日輪換 / 扭蛋）

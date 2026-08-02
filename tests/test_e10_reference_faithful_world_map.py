@@ -176,7 +176,7 @@ def test_accessibility_and_reduced_motion_contracts_remain_present():
 def test_service_worker_and_query_cache_identity_are_current():
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
     flags = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
-    assert "v225-e10-ipad-adventure-interaction-recovery" in sw
+    assert "v226-e10-adventure-hero-shop-backpack-information-architecture" in sw
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in flags
     assert INDEX.count("20260801e10art1") >= 6
 

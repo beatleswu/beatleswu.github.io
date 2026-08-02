@@ -55,6 +55,17 @@ def test_stacked_shell_does_not_capture_fixed_bottom_navigation():
     assert "transform: none" in shell_rule
 
 
+def test_stacked_layout_assigns_zone_detail_to_lower_card_only():
+    assert "(max-width: 1279px) and (orientation: portrait), (max-width: 767px)" in RIGHT
+    assert "if (lowerCardOwnsDetails) setOpen(false, false)" in RIGHT
+    assert "root.hidden = lowerCardOwnsDetails" in RIGHT
+    assert "root.inert = lowerCardOwnsDetails" in RIGHT
+    assert "lowerCardOwnsDetails ? 'lower-card' : 'side-panel'" in RIGHT
+    assert "toggle.tabIndex = -1" in RIGHT
+    assert "window.E9.on(stackedDetailSurface, 'change', syncDetailSurfaceOwnership" in RIGHT
+    assert '#e9-right-cards-slot[hidden][data-e10-detail-owner="lower-card"]' in CSS
+
+
 def test_portrait_detail_exposes_complete_selected_zone_identity():
     detail = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
     for identity in (

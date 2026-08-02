@@ -7,7 +7,7 @@
     { key: 'adventure', command: 'adventure', labelKey: 'e9.left_nav.adventure', icon: 'compass', category: 'primary', placement: ['mobile-primary'], order: { 'mobile-primary': 1 } },
     { key: 'hero', target: '/hero?tab=hero', labelKey: 'e9.left_nav.hero', icon: 'hero', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 1, 'mobile-primary': 2 } },
     { key: 'equipment', target: '/hero?tab=equipment', labelKey: 'e9.left_nav.equipment', icon: 'equipment', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 2, 'mobile-primary': 3 } },
-    { key: 'backpack', target: null, labelKey: 'e9.left_nav.backpack', icon: 'backpack', category: 'primary-disabled', placement: ['desktop-primary', 'mobile-primary'], disabled: true, order: { 'desktop-primary': 3, 'mobile-primary': 5 } },
+    { key: 'backpack', target: '/inventory', labelKey: 'e9.left_nav.backpack', icon: 'backpack', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 3, 'mobile-primary': 5 } },
     { key: 'go_spirit', target: '/hero?tab=pet', labelKey: 'e10.nav.go_spirit', icon: 'spirit', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 4, 'mobile-primary': 4 } },
     { key: 'shop', target: '/shop', labelKey: 'nav.rpg.shop', icon: 'shop', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 5, 'mobile-primary': 6 } },
     { key: 'soul_records', target: '/mistakes', labelKey: 'nav.rpg.mistakes', icon: 'records', category: 'legacy', placement: ['desktop-legacy', 'more'] },

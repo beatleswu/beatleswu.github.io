@@ -33,7 +33,7 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v225-e10-ipad-adventure-interaction-recovery"
+NEW_SW_VERSION = "v226-e10-adventure-hero-shop-backpack-information-architecture"
 PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
 
 

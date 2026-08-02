@@ -220,7 +220,7 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     || snapshot.nav32Count !== 0
     || snapshot.oversizedBlackSvgCount !== 0
   ) failures.push(`${contractCase}: VS1F SVG/mask/landmark DOM leaked into fallback`);
-  if (snapshot.legacyNavCount !== 9) failures.push(`${contractCase}: Legacy header navigation was not preserved`);
+  if (snapshot.legacyNavCount !== 10) failures.push(`${contractCase}: Legacy header navigation was not preserved`);
   if (!Object.values(snapshot.sessionControls).every(Boolean)) failures.push(`${contractCase}: session controls are incomplete`);
   if (browserErrors.length) failures.push(`${contractCase}: browser errors ${JSON.stringify(browserErrors)}`);
   return { contractCase, screenshot, snapshot, browserErrors, failures };
@@ -735,6 +735,8 @@ async function runtimeSnapshot(page) {
       drawerCloseVisible: isVisible(document.querySelector('#e10-right-drawer-close')),
       backpack: {
         disabled: document.querySelector('[data-e10-nav-key="backpack"]')?.disabled,
+        ariaDisabled: document.querySelector('[data-e10-nav-key="backpack"]')?.getAttribute('aria-disabled'),
+        href: document.querySelector('[data-e10-nav-key="backpack"]')?.getAttribute('href'),
         label: document.querySelector('[data-e10-nav-key="backpack"] > span:not(.e10-nav-status-lock)')?.textContent.trim(),
         lockVisible: isVisible(document.querySelector('[data-e10-nav-key="backpack"] .e10-nav-status-lock')),
       },
@@ -1014,7 +1016,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
     pressed: '[data-e10-nav-key="shop"]',
     active: '[data-e10-nav-key="hero"]',
     disabled: '[data-e10-nav-key="backpack"]',
-  });
+  }, true);
   const dockInteractionGeometry = await captureStates('bottom-dock', '#bottom-dock', {
     default: '[data-e10-nav-key="battle_log"]',
     hover: '[data-e10-nav-key="tavern"]',
@@ -1125,7 +1127,10 @@ function assertCase(result) {
   if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
   if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
   if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
-  if (!snapshot.backpack.disabled || !snapshot.backpack.lockVisible) failures.push(`${specName}: Backpack disabled lock state is incomplete`);
+  if (snapshot.backpack.disabled || snapshot.backpack.ariaDisabled === 'true'
+    || snapshot.backpack.lockVisible || snapshot.backpack.href !== '/inventory') {
+    failures.push(`${specName}: Backpack independent destination is not enabled ${JSON.stringify(snapshot.backpack)}`);
+  }
   if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
   if (snapshot.horizontalOverflow !== 0) failures.push(`${specName}: horizontal overflow ${snapshot.horizontalOverflow}`);
   if (snapshot.minimumTarget < 44) failures.push(`${specName}: interactive target below 44px (${snapshot.minimumTarget})`);
@@ -1449,10 +1454,17 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       [0.5, 0.25], [0.25, 0.25], [0.75, 0.25],
       [0.5, 0.5], [0.25, 0.5], [0.75, 0.5],
     ];
+    const candidateHits = [];
     for (const [xRatio, yRatio] of candidates) {
       const clientX = box.left + box.width * xRatio;
       const clientY = box.top + box.height * yRatio;
       const hit = document.elementFromPoint(clientX, clientY);
+      candidateHits.push({
+        clientX,
+        clientY,
+        hit: hit ? (hit.id || hit.className || hit.tagName) : null,
+        withinTarget: !!(hit && (hit === element || element.contains(hit))),
+      });
       if (hit && (hit === element || element.contains(hit))) {
         return {
           hit: hit.id || hit.className || hit.tagName,
@@ -1461,6 +1473,8 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
           localY: box.height * yRatio,
           clientX,
           clientY,
+          targetRect: box.toJSON(),
+          candidateHits,
         };
       }
     }
@@ -1472,9 +1486,18 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       localY: box.height / 2,
       clientX: box.left + box.width / 2,
       clientY: box.top + box.height / 2,
+      targetRect: box.toJSON(),
+      candidateHits,
     };
   });
-  if (!nodePointer.withinTarget) throw new Error(`${spec.name}: no real pointer hit point exists for target zone`);
+  if (!nodePointer.withinTarget) {
+    await fs.writeFile(
+      path.join(outputDir, `${spec.name}-node-pointer-failure.json`),
+      JSON.stringify(nodePointer, null, 2)
+    );
+    await page.screenshot({ path: path.join(outputDir, `${spec.name}-node-pointer-failure.png`), fullPage: false });
+    throw new Error(`${spec.name}: no real pointer hit point exists for target zone`);
+  }
   await target.click({ position: { x: nodePointer.localX, y: nodePointer.localY } });
 
   const selected = await page.evaluate(() => {
@@ -1541,6 +1564,11 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       drawerToggleVisible: document.querySelector('#e9-right-drawer-toggle').checkVisibility
         ? document.querySelector('#e9-right-drawer-toggle').checkVisibility()
         : getComputedStyle(document.querySelector('#e9-right-drawer-toggle')).display !== 'none',
+      drawerSlotHidden: document.querySelector('#e9-right-cards-slot').hidden,
+      drawerSlotInert: document.querySelector('#e9-right-cards-slot').inert,
+      drawerSlotAriaHidden: document.querySelector('#e9-right-cards-slot').getAttribute('aria-hidden'),
+      drawerDetailOwner: document.querySelector('#e9-right-cards-slot').getAttribute('data-e10-detail-owner'),
+      drawerToggleTabIndex: document.querySelector('#e9-right-drawer-toggle').tabIndex,
     };
   });
   const selectedScreenshot = path.join(outputDir, `${spec.name}-selected-detail.png`);
@@ -1643,6 +1671,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     const actionTraceStart = actionTrace.length;
     let startsBeforeReady = null;
     if (spec.deferRuntimeReady) await page.evaluate(() => { window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false; });
+    else await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true);
     await cta.click();
     if (spec.deferRuntimeReady) {
       startsBeforeReady = await page.evaluate(() => window.__e10QuestionStarts.length);
@@ -1699,7 +1728,15 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     || !selected.detailSummary)) {
     failures.push(`${spec.name}: portrait detail does not exactly match canonical selected-zone information`);
   }
-  if (spec.expectDrawerHidden && selected.drawerToggleVisible) failures.push(`${spec.name}: hidden mobile drawer toggle remained interactive`);
+  if (spec.expectDrawerHidden && (selected.drawerToggleVisible || !selected.drawerSlotHidden
+    || !selected.drawerSlotInert || selected.drawerSlotAriaHidden !== 'true'
+    || selected.drawerDetailOwner !== 'lower-card' || selected.drawerToggleTabIndex !== -1)) {
+    failures.push(`${spec.name}: stacked detail surface retained an interactive drawer control`);
+  }
+  if (spec.drawerLifecycle && (!selected.drawerToggleVisible || selected.drawerSlotHidden
+    || selected.drawerSlotInert || selected.drawerDetailOwner !== 'side-panel')) {
+    failures.push(`${spec.name}: landscape/desktop side-panel handle was not preserved`);
+  }
   if (!selected.currentTileOwnsPlayer || selected.playerCount !== 1
     || (selected.selectedZoneKey !== selected.currentZoneKey && selected.selectedTileOwnsPlayer)) {
     failures.push(`${spec.name}: selection moved or duplicated the authoritative player marker`);
@@ -1739,12 +1776,97 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   return { ...spec, nodePointer, selected, panelCycles, panelCtaClicks, questionEntry, actionTrace, browserErrors, failures };
 }
 
+async function runStackedDetailOwnershipTransition(browser, origin, outputDir) {
+  const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
+  const browserErrors = [];
+  await installApiFixture(page, browserErrors);
+  await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'domcontentloaded' });
+  await waitForShell(page);
+  const toggle = page.locator('#e9-right-drawer-toggle');
+  await toggle.click();
+  await page.locator('#e9-right-drawer-panel').waitFor({ state: 'visible' });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.waitForFunction(() => document.querySelector('#e9-right-cards-slot')?.dataset.e10DetailOwner === 'lower-card');
+  const portrait = await page.evaluate(() => {
+    const slot = document.querySelector('#e9-right-cards-slot');
+    const panel = document.querySelector('#e9-right-drawer-panel');
+    const toggleElement = document.querySelector('#e9-right-drawer-toggle');
+    const backdrop = document.querySelector('.e10-drawer-backdrop');
+    const details = document.querySelector('#e9-world-stage-details');
+    const cta = document.querySelector('#e9-world-stage-details-cta');
+    const map = document.querySelector('#e9-map-stage');
+    const detailsRect = details?.getBoundingClientRect();
+    const ctaRect = cta?.getBoundingClientRect();
+    const ctaHit = ctaRect && document.elementFromPoint(ctaRect.left + ctaRect.width / 2, ctaRect.top + ctaRect.height / 2);
+    return {
+      slotHidden: slot.hidden,
+      slotInert: slot.inert,
+      slotAriaHidden: slot.getAttribute('aria-hidden'),
+      detailOwner: slot.dataset.e10DetailOwner,
+      panelHidden: panel.hidden,
+      toggleTabIndex: toggleElement.tabIndex,
+      toggleVisible: toggleElement.checkVisibility ? toggleElement.checkVisibility() : getComputedStyle(toggleElement).display !== 'none',
+      backdropHidden: !backdrop || backdrop.hidden,
+      shellDrawerOpen: document.querySelector('.e9-body').classList.contains('is-right-drawer-open'),
+      lowerCardHidden: details?.hidden,
+      lowerCardPosition: details ? getComputedStyle(details).position : null,
+      lowerCardTop: detailsRect?.top ?? null,
+      mapBottom: map?.getBoundingClientRect().bottom ?? null,
+      ctaVisible: !!(ctaRect && ctaRect.width > 0 && ctaRect.height > 0),
+      ctaHit: ctaHit ? (ctaHit.id || ctaHit.className || ctaHit.tagName) : null,
+    };
+  });
+  await page.screenshot({ path: path.join(outputDir, 'ipad-orientation-switch-portrait-lower-card-owner.png'), fullPage: false });
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.waitForFunction(() => document.querySelector('#e9-right-cards-slot')?.dataset.e10DetailOwner === 'side-panel');
+  const landscape = await page.evaluate(() => {
+    const slot = document.querySelector('#e9-right-cards-slot');
+    const panel = document.querySelector('#e9-right-drawer-panel');
+    const toggleElement = document.querySelector('#e9-right-drawer-toggle');
+    const backdrop = document.querySelector('.e10-drawer-backdrop');
+    const details = document.querySelector('#e9-world-stage-details');
+    return {
+      slotHidden: slot.hidden,
+      slotInert: slot.inert,
+      slotAriaHidden: slot.getAttribute('aria-hidden'),
+      detailOwner: slot.dataset.e10DetailOwner,
+      panelHidden: panel.hidden,
+      toggleTabIndex: toggleElement.tabIndex,
+      toggleVisible: toggleElement.checkVisibility ? toggleElement.checkVisibility() : getComputedStyle(toggleElement).display !== 'none',
+      backdropHidden: !backdrop || backdrop.hidden,
+      shellDrawerOpen: document.querySelector('.e9-body').classList.contains('is-right-drawer-open'),
+      lowerCardHidden: details?.hidden,
+      lowerCardDisplay: details ? getComputedStyle(details).display : null,
+    };
+  });
+  const failures = [];
+  if (!portrait.slotHidden || !portrait.slotInert || portrait.slotAriaHidden !== 'true'
+    || portrait.detailOwner !== 'lower-card' || !portrait.panelHidden || portrait.toggleTabIndex !== -1
+    || portrait.toggleVisible || !portrait.backdropHidden || portrait.shellDrawerOpen
+    || portrait.lowerCardHidden || portrait.lowerCardPosition !== 'static'
+    || portrait.lowerCardTop < portrait.mapBottom || !portrait.ctaVisible
+    || portrait.ctaHit !== 'e9-world-stage-details-cta') {
+    failures.push('orientation-transition: portrait retained stale side-panel interaction state');
+  }
+  if (landscape.slotHidden || landscape.slotInert || landscape.slotAriaHidden !== 'false'
+    || landscape.detailOwner !== 'side-panel' || !landscape.panelHidden || !landscape.toggleVisible
+    || !landscape.backdropHidden || landscape.shellDrawerOpen
+    || !landscape.lowerCardHidden || landscape.lowerCardDisplay !== 'none') {
+    failures.push('orientation-transition: landscape side-panel did not restore closed and usable');
+  }
+  if (browserErrors.length) failures.push(`orientation-transition: browser errors ${JSON.stringify(browserErrors)}`);
+  await page.close();
+  return { portrait, landscape, browserErrors, failures };
+}
+
 async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir) {
   const specs = [
-    { name: 'ipad-768x1024-selected', viewport: { width: 768, height: 1024 }, lang: 'zh', zone: 'k1_5', portrait: true, drawerLifecycle: true, playable: true, journey: true, deferRuntimeReady: true },
-    { name: 'ipad-820x1180-selected', viewport: { width: 820, height: 1180 }, lang: 'en', zone: 'k16_20', portrait: true, drawerLifecycle: true, playable: true, journey: true },
-    { name: 'ipad-768x1024-locked', viewport: { width: 768, height: 1024 }, lang: 'en', zone: 'd1_2', portrait: true, drawerLifecycle: true, playable: false },
-    { name: 'ipad-1024x768-current', viewport: { width: 1024, height: 768 }, lang: 'zh', zone: 'k21_25', portrait: false, playable: true, journey: true },
+    { name: 'ipad-768x1024-selected', viewport: { width: 768, height: 1024 }, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true },
+    { name: 'ipad-820x1180-selected', viewport: { width: 820, height: 1180 }, lang: 'en', zone: 'k16_20', portrait: true, expectDrawerHidden: true, playable: true, journey: true },
+    { name: 'ipad-768x1024-locked', viewport: { width: 768, height: 1024 }, lang: 'en', zone: 'd1_2', portrait: true, expectDrawerHidden: true, playable: false },
+    { name: 'ipad-834x1194-selected', viewport: { width: 834, height: 1194 }, lang: 'zh', zone: 'k16_20', portrait: true, expectDrawerHidden: true, playable: true },
+    { name: 'ipad-1024x1366-current', viewport: { width: 1024, height: 1366 }, lang: 'en', zone: 'k21_25', portrait: true, expectDrawerHidden: true, playable: true },
+    { name: 'ipad-1024x768-current', viewport: { width: 1024, height: 768 }, lang: 'zh', zone: 'k21_25', portrait: false, drawerLifecycle: true, playable: true, journey: true },
     { name: 'ipad-1180x820-selected', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
     { name: 'ipad-1366x1024-completed', viewport: { width: 1366, height: 1024 }, lang: 'en', zone: 'k26_30', portrait: false, playable: true, journey: true },
     { name: 'mobile-430x932-parity', viewport: { width: 430, height: 932 }, lang: 'zh', zone: 'k16_20', portrait: false, drawerLifecycle: false, expectDrawerHidden: true, playable: true, journey: true, journeySurface: 'inline' },
@@ -1754,11 +1876,13 @@ async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir
     process.stdout.write(`capture ${spec.name}\n`);
     results.push(await runIpadInteractionRecoveryCase(browser, origin, outputDir, spec));
   }
+  const orientationTransition = await runStackedDetailOwnershipTransition(browser, origin, outputDir);
   const report = {
     contract: 'e10-ipad-adventure-interaction-recovery-v1',
-    ok: results.every((result) => result.failures.length === 0),
+    ok: results.every((result) => result.failures.length === 0) && orientationTransition.failures.length === 0,
     results,
-    failures: results.flatMap((result) => result.failures),
+    orientationTransition,
+    failures: results.flatMap((result) => result.failures).concat(orientationTransition.failures),
   };
   await fs.writeFile(path.join(outputDir, 'e10-ipad-adventure-interaction-contract.json'), JSON.stringify(report, null, 2));
   return report;
@@ -1816,7 +1940,7 @@ async function main() {
       { specName: 'tablet-1024-landscape-details', viewport: { width: 1024, height: 768 }, lang: 'zh', filename: 'tablet-1024x768-drawer-open-zh.png', zone: 'k1_5', layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
       { specName: 'tablet-820-portrait-more', viewport: { width: 820, height: 1180 }, lang: 'en', filename: 'tablet-820x1180-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'tablet-820-portrait-settings', viewport: { width: 820, height: 1180 }, lang: 'zh', filename: 'tablet-820x1180-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },
-      { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-drawer-open-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock', progressDrawerCheck: true, escapeCheck: true },
+      { specName: 'tablet-768-portrait-details', viewport: { width: 768, height: 1024 }, lang: 'zh', filename: 'tablet-768x1024-portrait-lower-card-zh.png', zone: 'k1_5', portraitContext: true, layout: 'bottom-dock' },
       { specName: 'mobile-430-closed', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-closed-en.png', layout: 'bottom-dock' },
       { specName: 'mobile-430-more', viewport: { width: 430, height: 932 }, lang: 'en', filename: 'mobile-430x932-all-features-en.png', layout: 'bottom-dock', openMore: true },
       { specName: 'mobile-430-settings', viewport: { width: 430, height: 932 }, lang: 'zh', filename: 'mobile-430x932-settings-zh.png', layout: 'bottom-dock', openMore: true, openSettings: true },

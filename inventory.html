@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-i18n="inv.title">物品欄 — 弈境奇兵 (Go Odyssey)</title>
+<title data-i18n="inv.title">背包 — 弈境奇兵 (Go Odyssey)</title>
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
 <script src="/community_reward_notifications.js?v=20260706b" defer></script>
@@ -301,6 +301,38 @@ main {
         #xp-hud { font-size: 10px !important; gap: 4px !important; padding: 2px 6px !important; flex-shrink: 0; }
         #xp-bar-wrap { width: 50px !important; }
     }
+
+.backpack-shell { padding-bottom: 24px; }
+.backpack-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px; }
+.backpack-heading h1 { font:700 clamp(28px,4vw,42px)/1.1 'Cormorant Garamond',serif; color:var(--ink); }
+.backpack-heading p { margin-top:6px; max-width:680px; color:var(--ink3); line-height:1.6; }
+.backpack-kicker { margin:0 0 4px !important; color:var(--amber) !important; font:700 10px/1.2 var(--mono); letter-spacing:.16em; }
+.backpack-shop-link { flex:0 0 auto; min-height:44px; display:inline-flex; align-items:center; padding:0 16px; border-radius:10px; border:1px solid var(--teal); background:var(--teal-bg); color:var(--teal); font-weight:700; text-decoration:none; }
+.backpack-status { border:1px solid var(--border); border-radius:12px; padding:14px; color:var(--ink3); background:var(--surface2); }
+.backpack-status[data-state="ready"] { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); padding:0; border:0; }
+.backpack-status[data-state="error"] { color:var(--red); background:var(--red-bg); }
+.backpack-filters { display:flex; gap:8px; overflow-x:auto; padding:16px 0 12px; scrollbar-width:thin; }
+.backpack-filter { flex:0 0 auto; min-height:40px; padding:0 14px; border:1px solid var(--border); border-radius:999px; background:#fff; color:var(--ink3); font-weight:700; cursor:pointer; }
+.backpack-filter[aria-selected="true"] { border-color:var(--teal); background:var(--teal-bg); color:var(--teal); }
+.backpack-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; min-height:120px; }
+.backpack-card { display:flex; flex-direction:column; gap:10px; min-width:0; border:1px solid var(--border); border-radius:14px; background:#fff; padding:15px; box-shadow:var(--shadow); }
+.backpack-card-head { display:flex; align-items:center; gap:10px; }
+.backpack-card-icon { width:48px; height:48px; display:grid; place-items:center; flex:0 0 auto; border-radius:12px; background:var(--cream2); font-size:28px; }
+.backpack-card-name { color:var(--ink); font-size:15px; font-weight:800; overflow-wrap:anywhere; }
+.backpack-card-meta { margin-top:3px; color:var(--ink3); font:500 10px/1.35 var(--mono); }
+.backpack-card-desc { flex:1; color:var(--ink3); font-size:12px; line-height:1.6; }
+.backpack-card-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.backpack-action-state { color:var(--teal); font-size:11px; font-weight:700; }
+.backpack-use { min-height:40px; padding:0 14px; border:0; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; cursor:pointer; }
+.backpack-use:disabled { opacity:.55; cursor:wait; }
+.backpack-empty { grid-column:1/-1; padding:36px 18px; border:1px dashed var(--border2); border-radius:14px; text-align:center; color:var(--ink3); background:var(--surface2); }
+.backpack-toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); z-index:1000; transform:translate(-50%,16px); opacity:0; pointer-events:none; transition:.18s; border-radius:10px; background:var(--ink); color:#fff; padding:10px 14px; }
+.backpack-toast.show { opacity:1; transform:translate(-50%,0); }
+@media (max-width:700px) {
+  .backpack-heading { flex-direction:column; }
+  .backpack-shop-link { width:100%; justify-content:center; }
+  .backpack-grid { grid-template-columns:1fr; padding-bottom:calc(78px + env(safe-area-inset-bottom)); }
+}
 </style>
 </head>
 <body>
@@ -315,147 +347,39 @@ main {
     <a href="/community"    class="nav-link" data-i18n="nav.community">&#128101; 社群</a>
     <a href="/badges"       class="nav-link" data-i18n="nav.badges">&#127941; 獎章</a>
     <a href="/stats"        class="nav-link" data-i18n="nav.stats">&#128202; 儀表板</a>
-    <a href="/inventory"    class="nav-link active" data-i18n="inv.nav.inventory">&#127890; 物品欄</a>
+    <a href="/inventory"    class="nav-link active" aria-current="page" data-i18n="inv.nav.inventory">🎒 背包</a>
     <div class="nav-sep"></div>
     <span id="username-display" style="font-size:11px;color:var(--ink3);font-family:var(--mono);padding:4px 8px;"></span>
     <button class="btn-logout" onclick="doLogout()" data-i18n="nav.logout">登出</button>
   </div>
 </header>
 
-<!-- Stats strip -->
-<div class="stats-strip">
-  <div class="strip-stat">
-    <div class="s-val amber" id="strip-coins">—</div>
-    <div class="s-lbl" data-i18n="inv.coins">&#127890; 金幣</div>
-  </div>
-  <div class="strip-stat">
-    <div class="s-val teal"  id="strip-wins">—</div>
-    <div class="s-lbl" data-i18n="inv.wins">&#9876;&#65039; 挑戰勝場</div>
-  </div>
-  <div class="strip-stat">
-    <div class="s-val gold"  id="strip-streak">—</div>
-    <div class="s-lbl" data-i18n="inv.streak">&#128293; 目前連勝</div>
-  </div>
-  <div class="strip-stat">
-    <div class="s-val teal"  id="strip-maxstreak">—</div>
-    <div class="s-lbl" data-i18n="inv.maxStreak">&#127942; 最高連勝</div>
-  </div>
+<div class="stats-strip" aria-label="背包摘要" data-i18n-aria-label="backpack.summary">
+  <div class="strip-stat"><div class="s-val amber" id="backpack-total-qty">—</div><div class="s-lbl" data-i18n="backpack.totalQty">持有總數</div></div>
+  <div class="strip-stat"><div class="s-val teal" id="backpack-item-kinds">—</div><div class="s-lbl" data-i18n="backpack.itemKinds">物品種類</div></div>
+  <div class="strip-stat"><div class="s-val gold" id="backpack-manual-count">—</div><div class="s-lbl" data-i18n="backpack.manualKinds">可手動使用</div></div>
+  <div class="strip-stat"><div class="s-val teal" id="backpack-auto-count">—</div><div class="s-lbl" data-i18n="backpack.autoKinds">自動／條件使用</div></div>
 </div>
 
 <main>
 
-  <!-- ── 金幣 ── -->
-  <div class="section-wrap">
-    <div class="section-label" data-i18n="inv.myCoins">&#127890; 我的金幣</div>
-    <div class="coin-card">
-      <div class="coin-icon-big">&#127890;</div>
-      <div class="coin-info">
-        <div class="coin-label" data-i18n="inv.balance">金幣餘額</div>
-        <div class="coin-amount" id="coin-main">—</div>
-        <div class="coin-sub" data-i18n="inv.coinSub">可用於未來商城兌換道具、頭像、特效</div>
+  <section class="section-wrap backpack-shell" data-backpack-destination aria-labelledby="backpack-title">
+    <div class="backpack-heading">
+      <div>
+        <p class="backpack-kicker">BACKPACK</p>
+        <h1 id="backpack-title" data-i18n="backpack.title">我的背包</h1>
+        <p data-i18n="backpack.subtitle">查看真實持有量、分類與可用狀態；商品價格與購買行為只在商店顯示。</p>
       </div>
+      <a class="backpack-shop-link" href="/shop" data-i18n="backpack.goShop">前往商店</a>
     </div>
-  </div>
-
-  <!-- ── 如何獲得 ── -->
-  <div class="section-wrap">
-    <div class="section-label" data-i18n="inv.howTo">&#128281; 如何獲得金幣</div>
-    <div class="earn-grid">
-      <div class="earn-card">
-        <div class="ec-icon">&#9876;&#65039;</div>
-        <div>
-          <div class="ec-title" data-i18n="inv.earn1.t">好友挑戰</div>
-          <div class="ec-desc" data-i18n="inv.earn1.d">完成好友挑戰後有機率隨機掉落寶物</div>
-          <span class="ec-rate" data-i18n="inv.earn1.r">最高 +100 金幣 / 場</span>
-        </div>
-      </div>
-      <div class="earn-card" style="opacity:.55;">
-        <div class="ec-icon">&#128197;</div>
-        <div>
-          <div class="ec-title" data-i18n="inv.earn2.t">每日懸賞令</div>
-          <div class="ec-desc" data-i18n="inv.earn2.d">完成每日懸賞令即可獲得獎勵。</div>
-          <span class="ec-rate" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;" data-i18n="inv.comingSoon">即將推出</span>
-        </div>
-      </div>
-      <div class="earn-card" style="opacity:.55;">
-        <div class="ec-icon">&#127942;</div>
-        <div>
-          <div class="ec-title" data-i18n="inv.earn3.t">段位進階</div>
-          <div class="ec-desc" data-i18n="inv.earn3.d">達到新段位里程碑獲得慶賀金幣</div>
-          <span class="ec-rate" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;" data-i18n="inv.comingSoon">即將推出</span>
-        </div>
-      </div>
-      <div class="earn-card" style="opacity:.55;">
-        <div class="ec-icon">&#128293;</div>
-        <div>
-          <div class="ec-title" data-i18n="inv.earn4.t">連勝獎勵</div>
-          <div class="ec-desc" data-i18n="inv.earn4.d">累積答題連勝達到里程碑</div>
-          <span class="ec-rate" style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;" data-i18n="inv.comingSoon">即將推出</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 挑戰戰績 ── -->
-  <div class="section-wrap">
-    <div class="section-label" data-i18n="inv.challengeStats">&#9876;&#65039; 好友挑戰戰績</div>
-    <div class="challenge-stats-grid">
-      <div class="cstat-card">
-        <div class="cstat-val teal" id="cs-wins">—</div>
-        <div class="cstat-lbl" data-i18n="inv.totalWins">累計勝場</div>
-      </div>
-      <div class="cstat-card">
-        <div class="cstat-val amber" id="cs-streak">—</div>
-        <div class="cstat-lbl" data-i18n="inv.curStreak">目前連勝</div>
-      </div>
-      <div class="cstat-card">
-        <div class="cstat-val gold" id="cs-maxstreak">—</div>
-        <div class="cstat-lbl" data-i18n="inv.maxStreakHist">歷史最高連勝</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 商城道具預告 ── -->
-  <div class="section-wrap">
-    <div class="section-label" data-i18n="inv.shopPreview">&#127873; 未來商城道具預覽</div>
-    <div class="coming-soon-grid">
-      <div class="cs-card">
-        <div class="cs-icon">&#128081;</div>
-        <div class="cs-name" data-i18n="inv.item.hat">特殊帽子</div>
-        <span class="cs-tag">COMING SOON</span>
-      </div>
-      <div class="cs-card">
-        <div class="cs-icon">&#127775;</div>
-        <div class="cs-name" data-i18n="inv.item.boardFx">棋盤特效</div>
-        <span class="cs-tag">COMING SOON</span>
-      </div>
-      <div class="cs-card">
-        <div class="cs-icon">&#128167;</div>
-        <div class="cs-name" data-i18n="inv.item.sound">落子音效</div>
-        <span class="cs-tag">COMING SOON</span>
-      </div>
-      <div class="cs-card">
-        <div class="cs-icon">&#128444;&#65039;</div>
-        <div class="cs-name" data-i18n="inv.item.frame">頭像框</div>
-        <span class="cs-tag">COMING SOON</span>
-      </div>
-      <div class="cs-card">
-        <div class="cs-icon">&#9881;&#65039;</div>
-        <div class="cs-name" data-i18n="inv.item.theme">主題皮膚</div>
-        <span class="cs-tag">COMING SOON</span>
-      </div>
-      <div class="cs-card">
-        <div class="cs-icon">&#128247;</div>
-        <div class="cs-name" data-i18n="inv.item.title">稱號</div>
-        <span class="cs-tag">COMING SOON</span>
-      </div>
-    </div>
-    <p style="font-size:12px;color:var(--ink3);margin-top:14px;text-align:center;font-family:var(--mono);">
-      <span data-i18n="inv.shopDev">商城功能正在開發中，敬請期待 ✨</span>
-    </p>
-  </div>
+    <div id="backpack-status" class="backpack-status" role="status" aria-live="polite" data-state="loading" data-i18n="backpack.loading">正在載入背包…</div>
+    <div class="backpack-filters" id="backpack-filters" role="tablist" aria-label="背包分類" data-i18n-aria-label="backpack.categories"></div>
+    <div class="backpack-grid" id="backpack-grid" data-authoritative-backpack-grid aria-live="polite"></div>
+  </section>
 
 </main>
+
+<div class="backpack-toast" id="backpack-toast" role="status" aria-live="polite"></div>
 
 <script>
 async function doLogout() {
@@ -463,42 +387,184 @@ async function doLogout() {
   window.location.href = '/login';
 }
 
-async function loadData() {
-  try {
-    // 金幣 & 挑戰資料
-    const res = await fetch('/api/user/coins', { credentials: 'include' });
-    const d   = await res.json();
+const BACKPACK_CATEGORIES = [
+  { key:'all', label:{ zh:'全部', en:'All' }, match:() => true },
+  { key:'consumable', label:{ zh:'消耗品', en:'Consumables' }, match:item => !!item.usable },
+  { key:'training', label:{ zh:'修行補給', en:'Training' }, match:item => item.category === 'training' },
+  { key:'growth', label:{ zh:'成長藥劑', en:'Growth' }, match:item => item.category === 'growth' },
+  { key:'guard', label:{ zh:'守護道具', en:'Protection' }, match:item => item.category === 'guard' },
+  { key:'collection', label:{ zh:'收藏品', en:'Collection' }, match:item => item.category === 'collection' },
+  { key:'quest', label:{ zh:'任務道具', en:'Quest' }, match:item => item.category === 'quest' },
+  { key:'material', label:{ zh:'素材', en:'Materials' }, match:item => item.category === 'pet' || item.category === 'material' },
+  { key:'chest', label:{ zh:'寶箱', en:'Chests' }, match:item => item.category === 'chest' || /chest/i.test(item.key || '') },
+  { key:'exchange', label:{ zh:'兌換物', en:'Exchange' }, match:item => item.category === 'exchange' },
+  { key:'other', label:{ zh:'其他', en:'Other' }, match:item => !['training','growth','guard','collection','quest','pet','material','chest','exchange'].includes(item.category) },
+];
+let backpackItems = [];
+let activeBackpackCategory = 'all';
+let backpackToastTimer = null;
 
-    const coins     = d.coins ?? 0;
-    const wins      = d.challenge_wins ?? 0;
-    const streak    = d.challenge_win_streak ?? 0;
-    const maxStreak = d.max_challenge_win_streak ?? 0;
-
-    document.getElementById('strip-coins').textContent     = coins.toLocaleString();
-    document.getElementById('strip-wins').textContent      = wins;
-    document.getElementById('strip-streak').textContent    = streak;
-    document.getElementById('strip-maxstreak').textContent = maxStreak;
-
-    document.getElementById('coin-main').textContent  = coins.toLocaleString();
-    document.getElementById('cs-wins').textContent    = wins;
-    document.getElementById('cs-streak').textContent  = streak;
-    document.getElementById('cs-maxstreak').textContent = maxStreak;
-  } catch(e) {
-    console.warn('load coins error', e);
-  }
-
-  // 使用者名稱
-  try {
-    const r2 = await fetch('/api/auth/me', { credentials: 'include' });
-    const u  = await r2.json();
-    if (u.username) {
-      const el = document.getElementById('username-display');
-      if (el) el.textContent = u.display_name || u.nickname || u.username || 'Player';
-    }
-  } catch(_) {}
+function backpackIsEn() { return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en'; }
+function backpackText(zh, en) { return backpackIsEn() ? en : zh; }
+function backpackName(item) { return backpackIsEn() ? (item.name_en || item.name || item.key) : (item.name || item.name_en || item.key); }
+function backpackDescription(item) { return backpackIsEn() ? (item.desc_en || item.desc || '') : (item.desc || item.desc_en || ''); }
+function backpackCategory(item) {
+  return BACKPACK_CATEGORIES.find(category => category.key !== 'all' && category.key !== 'consumable' && category.key !== 'other' && category.match(item))
+    || BACKPACK_CATEGORIES.find(category => category.key === 'other');
 }
-
-loadData();
+function backpackCapability(item) {
+  if (item.capability === 'spirit_managed') return { kind:'managed', label:backpackText('在棋靈頁合法使用','Use from the Spirit domain') };
+  if (item.usable === 'activate') return { kind:'manual', label:backpackText('可手動使用','Manual use') };
+  if (item.usable === 'auto') return { kind:'automatic', label:backpackText('符合條件時自動消耗','Used automatically when eligible') };
+  if (item.usable === 'in_question') return { kind:'automatic', label:backpackText('答題時條件使用','Conditionally used while solving') };
+  if (item.usable === 'instant') return { kind:'automatic', label:backpackText('取得時自動生效','Applied automatically when acquired') };
+  return { kind:'readonly', label:backpackText('被動生效／唯讀','Passive / read-only') };
+}
+function showBackpackToast(message) {
+  const toast = document.getElementById('backpack-toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(backpackToastTimer);
+  backpackToastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+function setBackpackStatus(state, message) {
+  const status = document.getElementById('backpack-status');
+  status.dataset.state = state;
+  status.textContent = message;
+}
+function renderBackpackFilters() {
+  const root = document.getElementById('backpack-filters');
+  root.innerHTML = '';
+  BACKPACK_CATEGORIES.forEach(category => {
+    const count = backpackItems.filter(category.match).length;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'backpack-filter';
+    button.role = 'tab';
+    button.dataset.category = category.key;
+    button.setAttribute('aria-selected', String(activeBackpackCategory === category.key));
+    button.textContent = `${backpackIsEn() ? category.label.en : category.label.zh} ${count}`;
+    button.addEventListener('click', () => {
+      activeBackpackCategory = category.key;
+      const url = new URL(location.href);
+      if (category.key === 'all') url.searchParams.delete('category');
+      else url.searchParams.set('category', category.key);
+      history.pushState({ backpackCategory:category.key }, '', url);
+      renderBackpackFilters();
+      renderBackpackGrid();
+    });
+    root.appendChild(button);
+  });
+}
+function renderBackpackGrid() {
+  const grid = document.getElementById('backpack-grid');
+  const category = BACKPACK_CATEGORIES.find(item => item.key === activeBackpackCategory) || BACKPACK_CATEGORIES[0];
+  const visible = backpackItems.filter(category.match);
+  grid.innerHTML = '';
+  if (!visible.length) {
+    grid.innerHTML = `<div class="backpack-empty">${backpackText('此分類目前沒有持有物品。','No owned items in this category.')}</div>`;
+    return;
+  }
+  visible.forEach(item => {
+    const capability = backpackCapability(item);
+    const card = document.createElement('article');
+    card.className = 'backpack-card';
+    card.dataset.sourceItemId = item.key;
+    card.dataset.itemCapability = capability.kind;
+    card.dataset.itemCategory = backpackCategory(item).key;
+    card.dataset.inventorySource = item.inventory_source || 'shop_inventory';
+    card.innerHTML = `
+      <div class="backpack-card-head">
+        <div class="backpack-card-icon" aria-hidden="true">${item.icon || '🎒'}</div>
+        <div><div class="backpack-card-name">${backpackName(item)}</div>
+        <div class="backpack-card-meta">${backpackText('持有','Owned')}: ${item.quantity} · ${backpackIsEn() ? backpackCategory(item).label.en : backpackCategory(item).label.zh}</div></div>
+      </div>
+      <p class="backpack-card-desc">${backpackDescription(item)}</p>
+      <div class="backpack-card-foot"><span class="backpack-action-state">${capability.label}</span>
+      ${capability.kind === 'manual' ? `<button type="button" class="backpack-use" data-use-item="${item.key}">${backpackText('使用','Use')}</button>` : ''}</div>`;
+    const useButton = card.querySelector('[data-use-item]');
+    if (useButton) useButton.addEventListener('click', () => useBackpackItem(item.key, useButton));
+    grid.appendChild(card);
+  });
+  const focusKey = new URLSearchParams(location.search).get('focus');
+  if (focusKey) {
+    const focused = [...grid.querySelectorAll('.backpack-card')].find(card => card.dataset.sourceItemId === focusKey);
+    if (focused) { focused.style.outline = '3px solid var(--amber)'; focused.scrollIntoView({ block:'nearest' }); }
+  }
+}
+async function useBackpackItem(itemKey, button) {
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/shop/use', {
+      method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ item_key:itemKey })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.error) throw new Error(result.message || result.error || `HTTP ${response.status}`);
+    showBackpackToast(backpackText('物品已合法使用。','Item used successfully.'));
+    await loadBackpack();
+  } catch (error) {
+    button.disabled = false;
+    showBackpackToast(error.message || backpackText('使用失敗。','Use failed.'));
+  }
+}
+async function loadBackpack() {
+  setBackpackStatus('loading', backpackText('正在載入背包…','Loading Backpack…'));
+  try {
+    const [catalogResponse, meResponse, petResponse] = await Promise.all([
+      fetch('/api/shop/catalog', { credentials:'include', cache:'no-store' }),
+      fetch('/api/auth/me', { credentials:'include', cache:'no-store' }),
+      fetch('/api/pet/status', { credentials:'include', cache:'no-store' }),
+    ]);
+    if (!catalogResponse.ok) throw new Error(`HTTP ${catalogResponse.status}`);
+    if (!petResponse.ok) throw new Error(`Pet inventory HTTP ${petResponse.status}`);
+    const catalog = await catalogResponse.json();
+    const me = meResponse.ok ? await meResponse.json() : {};
+    const petStatus = await petResponse.json();
+    const definitions = new Map((catalog.items || []).map(item => [item.key, item]));
+    backpackItems = Object.entries(catalog.inventory || {}).filter(([, quantity]) => Number(quantity) > 0).map(([key, quantity]) => ({
+      ...(definitions.get(key) || { key, name:key, name_en:key, category:'other', usable:null, icon:'🎒', desc:'', desc_en:'' }),
+      key,
+      quantity:Number(quantity),
+      inventory_source:'shop_inventory',
+    }));
+    const petInventory = (petStatus.inventory || []).filter(item => Number(item.qty) > 0).map(item => ({
+      ...item,
+      key:item.key,
+      quantity:Number(item.qty),
+      category:'material',
+      capability:'spirit_managed',
+      inventory_source:'pet_inventory',
+      icon:item.icon || '🍬',
+      desc:item.desc || '棋靈補給；請在棋靈頁依既有餵食契約使用。',
+      desc_en:item.desc_en || 'Spirit supply; use it through the existing Spirit feeding contract.',
+    }));
+    backpackItems.push(...petInventory.filter(item => !backpackItems.some(existing => existing.key === item.key)));
+    const requested = new URLSearchParams(location.search).get('category') || 'all';
+    activeBackpackCategory = BACKPACK_CATEGORIES.some(category => category.key === requested) ? requested : 'all';
+    document.getElementById('username-display').textContent = me.display_name || me.nickname || me.username || 'Player';
+    document.getElementById('backpack-total-qty').textContent = backpackItems.reduce((total, item) => total + item.quantity, 0).toLocaleString();
+    document.getElementById('backpack-item-kinds').textContent = backpackItems.length.toLocaleString();
+    document.getElementById('backpack-manual-count').textContent = backpackItems.filter(item => backpackCapability(item).kind === 'manual').length.toLocaleString();
+    document.getElementById('backpack-auto-count').textContent = backpackItems.filter(item => backpackCapability(item).kind === 'automatic').length.toLocaleString();
+    setBackpackStatus('ready', backpackText('背包已載入。','Backpack loaded.'));
+    renderBackpackFilters();
+    renderBackpackGrid();
+  } catch (error) {
+    backpackItems = [];
+    setBackpackStatus('error', `${backpackText('背包載入失敗：','Backpack failed to load: ')}${error.message}`);
+    renderBackpackFilters();
+    renderBackpackGrid();
+  }
+}
+window.addEventListener('popstate', () => {
+  const requested = new URLSearchParams(location.search).get('category') || 'all';
+  activeBackpackCategory = BACKPACK_CATEGORIES.some(category => category.key === requested) ? requested : 'all';
+  renderBackpackFilters();
+  renderBackpackGrid();
+});
+window.onLangChange = () => { if (typeof I18n !== 'undefined') I18n.apply(); renderBackpackFilters(); renderBackpackGrid(); };
+if (typeof I18n !== 'undefined') I18n.apply();
+loadBackpack();
 </script>
 <script src="/mobile-nav.js?v=20260603mn"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>

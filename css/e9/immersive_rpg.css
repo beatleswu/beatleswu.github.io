@@ -3082,6 +3082,11 @@ body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-backdrop {
   display: none;
 }
 
+body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot[hidden][data-e10-detail-owner="lower-card"] {
+  display: none !important;
+  pointer-events: none;
+}
+
 @media (min-width: 1280px) {
   body[data-e10-visual-skin="immersive-rpg"] #e9-adventure-shell .e9-body {
     grid-template-columns: minmax(108px, 9vw) minmax(0, 1fr);
