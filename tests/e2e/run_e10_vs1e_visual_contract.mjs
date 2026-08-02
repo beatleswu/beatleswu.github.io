@@ -808,9 +808,11 @@ async function runCase(browser, origin, outputDir, spec) {
     const zone = page.locator(`[data-zone="${spec.zone}"]`);
     if (await zone.count() !== 1) throw new Error(`missing unique zone ${spec.zone}`);
     await zone.scrollIntoViewIfNeeded();
-    if (await zone.isEnabled()) {
+    if (await zone.isEnabled() || !spec.playable) {
       // Dispatch the real DOM activation without Playwright waiting for the
-      // content-driven inline expansion to become geometrically stable.
+      // content-driven inline expansion to become geometrically stable. A
+      // locked tile is aria-disabled for actionability, but remains a valid
+      // read-only inspection surface for this contract.
       await zone.evaluate((element) => element.click());
     }
     detailMapAfterSelection = await runtimeSnapshot(page);
@@ -1498,7 +1500,17 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     await page.screenshot({ path: path.join(outputDir, `${spec.name}-node-pointer-failure.png`), fullPage: false });
     throw new Error(`${spec.name}: no real pointer hit point exists for target zone`);
   }
-  await target.click({ position: { x: nodePointer.localX, y: nodePointer.localY } });
+  // Locked zones are intentionally aria-disabled: they remain inspectable
+  // through the real pointer surface, but Playwright's locator.click()
+  // refuses an aria-disabled control before dispatching that pointer event.
+  // Use the measured hit point for the read-only inspection case so the
+  // contract still exercises the browser event path without treating the
+  // locked tile as an actionable challenge target.
+  if (spec.playable) {
+    await target.click({ position: { x: nodePointer.localX, y: nodePointer.localY } });
+  } else {
+    await page.mouse.click(nodePointer.clientX, nodePointer.clientY);
+  }
 
   const selected = await page.evaluate(() => {
     const state = document.querySelector('#e9-world-stage-slot').__e9WorldStageState;

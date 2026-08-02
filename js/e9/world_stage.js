@@ -463,10 +463,10 @@
       .replace('{total}', String(zone.total || 0));
   }
 
-  function setSelectedTileState(root, zoneKey) {
+  function setSelectedTileState(root, zoneKey, preservePressedState) {
     root.querySelectorAll('[data-zone]').forEach(function (tile) {
       var selected = tile.getAttribute('data-zone') === zoneKey;
-      if (tile.getAttribute('aria-disabled') !== 'true') {
+      if (!preservePressedState && tile.getAttribute('aria-disabled') !== 'true') {
         tile.setAttribute('aria-pressed', selected ? 'true' : 'false');
       }
       tile.classList.toggle('is-selected', selected);
@@ -624,7 +624,11 @@
 
     state.selectedZoneKey = zone.key;
     state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(zone);
-    setSelectedTileState(root, zone.key);
+    // Keep the prior aria-pressed target while a locked zone is inspected;
+    // the locked tile receives the visual/state selection class and its
+    // details, but it must not become an actionable selection in the
+    // canonical keyboard/assistive-technology contract.
+    setSelectedTileState(root, zone.key, !!zone.locked);
     if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
     var isPortraitTablet = window.matchMedia && window.matchMedia(
@@ -638,7 +642,7 @@
     configurePrimaryCta(root, zone, state);
 
     if (cta) {
-      if (!VS1E_STATIC_CONTRACT_ACTIVE && zone.key === 'k26_30') {
+      if (zone.key === 'k26_30') {
         // Beginner Village owns its own tutorial CTA below
         // (renderBeginnerVillageMainline's #e9-newbie-mainline-cta) --
         // never show a second, duplicate "start" button for it here.
@@ -696,8 +700,15 @@
           ? (root.querySelector('[data-zone="' + zone.key + '"] .e9-zone__inline-cta') || root.querySelector('[data-zone="' + zone.key + '"]'))
           : (root.querySelector('#e9-map-stage') || focusTarget);
         var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Mobile stacked details are intentionally user-scrollable. Calling
+        // scrollIntoView on a nested tile can scroll the outer document and
+        // clip the shell above the viewport; focus remains on the selected
+        // card without forcing that page-level jump.
+        if (isMobile) return;
         var scrollOptions = {
           behavior: isMobile || reduced ? 'auto' : 'smooth',
+          // Preserve the established centered focus contract for tablet and
+          // desktop detail surfaces; mobile exits above before this scroll.
           block: isMobile ? 'center' : 'start'
         };
         if (scrollOptions.behavior === 'smooth') {
@@ -793,6 +804,11 @@
       tile.setAttribute('aria-pressed', 'false');
       if (zone.locked) {
         tile.setAttribute('data-zone-locked', 'true');
+        // Locked zones remain inspectable so their details explain the
+        // progression boundary, but they are never an actionable challenge
+        // target.  aria-disabled also keeps the selected/pressed contract
+        // from advertising a locked tile as the active target.
+        tile.setAttribute('aria-disabled', 'true');
         tile.title = t('index.adv.zone_locked', 'This area is still sealed by mist.');
       }
 
@@ -852,6 +868,7 @@
       var keyActivate = function (evt) {
           if (evt.key === 'Enter' || evt.key === ' ') {
             evt.preventDefault();
+            if (zone.locked) return;
             activate();
           }
       };
