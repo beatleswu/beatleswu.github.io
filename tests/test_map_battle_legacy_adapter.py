@@ -99,7 +99,9 @@ def api_env(app_module, monkeypatch):
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")
+    conn.execute(
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, is_admin INTEGER NOT NULL DEFAULT 0)"
+    )
     conn.executemany("INSERT INTO users(id) VALUES (?)", [(101,), (202,)])
     conn.execute(
         """CREATE TABLE user_stats (
@@ -149,6 +151,14 @@ def _answer_payload(state, moves):
 
 def _battle(conn, battle_id):
     return dict(conn.execute("SELECT * FROM map_battles WHERE id=?", (battle_id,)).fetchone())
+
+
+def _set_authoritative_admin(conn, user_id, enabled):
+    conn.execute(
+        "UPDATE users SET is_admin=? WHERE id=?",
+        (1 if enabled else 0, user_id),
+    )
+    conn.commit()
 
 
 def test_pre_fix_legacy_regression_is_reproduced_from_exact_base():
@@ -336,6 +346,104 @@ def test_legacy_feature_off_and_old_client_fail_closed(api_env, monkeypatch):
     assert disabled.status_code == 503
     assert disabled.get_json()["code"] == "map_battle_v1_disabled"
     assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == 0
+
+
+def test_admin_mode_uses_authoritative_db_status_for_attempt_and_answer(api_env, monkeypatch):
+    client, conn = api_env
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "admin")
+    _set_authoritative_admin(conn, 101, True)
+    with client.session_transaction() as session:
+        session["is_admin"] = False
+        session["plan"] = "free"
+
+    state = _prepare(client, "legacy::admin")
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 200, response.get_json()
+    result = response.get_json()
+    assert result["result"] == "CORRECT"
+    assert result["monster_hp_after"] < result["monster_hp_before"]
+
+
+@pytest.mark.parametrize(
+    ("user_id", "db_admin", "session_admin", "plan"),
+    [
+        (101, False, False, "free"),
+        (101, False, True, "free"),
+        (101, False, False, "premium"),
+        (999, False, True, "premium"),
+    ],
+    ids=["non-admin", "forged-session-admin", "pro-non-admin", "missing-user"],
+)
+def test_admin_mode_rejects_non_admin_and_missing_users(
+    api_env, monkeypatch, user_id, db_admin, session_admin, plan
+):
+    client, conn = api_env
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "admin")
+    if user_id in (101, 202):
+        _set_authoritative_admin(conn, user_id, db_admin)
+    with client.session_transaction() as session:
+        session["user_id"] = user_id
+        session["is_admin"] = session_admin
+        session["plan"] = plan
+
+    response = client.post(
+        ATTEMPT_ENDPOINT,
+        json={"zone_key": "legacy::admin-denied", "question_id": QUESTION["id"]},
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 403
+    assert response.get_json()["code"] == "map_battle_mode_not_eligible"
+    assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == 0
+
+
+def test_admin_mode_answers_recheck_server_admin_status(api_env, monkeypatch):
+    client, conn = api_env
+    state = _prepare(client, "legacy::answer-admin-denied")
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "admin")
+    with client.session_transaction() as session:
+        session["is_admin"] = True
+        session["plan"] = "premium"
+    _set_authoritative_admin(conn, 101, False)
+
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 403
+    assert response.get_json()["code"] == "map_battle_mode_not_eligible"
+    battle = _battle(conn, state["battle_id"])
+    assert (battle["monster_hp"], battle["player_hp"], battle["battle_revision"]) == (40, 30, 0)
+
+
+@pytest.mark.parametrize("mode", ["off", "invalid"])
+def test_admin_wiring_preserves_fail_closed_modes(api_env, monkeypatch, mode):
+    client, conn = api_env
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", mode)
+    response = client.post(
+        ATTEMPT_ENDPOINT,
+        json={"zone_key": "legacy::admin-fail-closed", "question_id": QUESTION["id"]},
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 503
+    assert response.get_json()["code"] == "map_battle_v1_disabled"
+    assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == 0
+
+
+def test_global_mode_remains_available_without_admin_status(api_env, monkeypatch):
+    client, _ = api_env
+    monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "global")
+    state = _prepare(client, "legacy::global-unchanged")
+    assert state["battle_id"]
+    assert state["attempt_id"]
 
 
 def test_legacy_cross_account_battle_state_is_not_visible(api_env):
