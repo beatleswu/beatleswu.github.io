@@ -7605,6 +7605,7 @@ let _mapBattleV1Mode = 'disabled';
 let _mapBattleV1Moves = [];
 let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
+let _mapBattleV1TransitionPending = false;
 let _guildQuestMode = null;
 let _lastRenderedQuestDone = -1;
 let _cropInfo={startX:0,startY:0,displayLines:19}; // 目前棋盤的裁切資訊
@@ -8019,6 +8020,24 @@ async function loadQuizPet() {
     } catch(e) {}
 }
 
+let _e10BattlePresentationPromise = null;
+
+function _isE10BattleShell() {
+    return window.__GO_E9_ACTIVE_SHELL__ === 'e9'
+        || document.body?.dataset.adventureShellActive === 'e9';
+}
+
+async function _hydrateE10BattlePresentation() {
+    if (!_isAdventureZonePractice() || !_isE10BattleShell()) return;
+    if (!_e10BattlePresentationPromise) {
+        _e10BattlePresentationPromise = Promise.all([
+            loadPlayerAvatar(),
+            loadQuizPet(),
+        ]).catch(() => null);
+    }
+    await _e10BattlePresentationPromise;
+}
+
 function updateQuizPetStatusBadge(petPayload) {
     const badge = document.getElementById('quiz-pet-status');
     if (!badge) return;
@@ -8217,7 +8236,7 @@ function setMonsterAvatar(el, monster, defeated=false) {
     el.replaceChildren(img);
 }
 
-function updateMonsterUI(monster) {
+function updateMonsterUI(monster, { onAnimationComplete = null } = {}) {
     if (!monster) return;
     const avatarEl = document.getElementById('monster-avatar');
     const nameEl   = document.getElementById('monster-name');
@@ -8244,7 +8263,11 @@ function updateMonsterUI(monster) {
         spawnDmgFloat(`⚔️ -${monster.dmg}`, '#dc2626');
     }
     if (monster.defeated) {
-        showKillAnimation(monster);
+        showKillAnimation(monster, onAnimationComplete);
+    } else if (typeof onAnimationComplete === 'function') {
+        // Keep the existing correct-answer feedback visible while the
+        // authoritative damage float/animation completes before advancing.
+        setTimeout(onAnimationComplete, 700);
     }
 }
 
@@ -8267,7 +8290,7 @@ function _mapBattleV1QuestionContext(q) {
     };
 }
 
-function _mapBattleV1RenderAuthoritative(q, response) {
+function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = null } = {}) {
     const state = _mapBattleV1State;
     if (!state || !q) return;
     const damageToMonster = response && Number.isFinite(Number(response.damage_to_monster))
@@ -8283,7 +8306,7 @@ function _mapBattleV1RenderAuthoritative(q, response) {
         max_hp: Number(state.monsterHpMax || state.monsterHp || 100),
         dmg: damageToMonster,
         defeated: state.monsterDefeated === true
-    });
+    }, { onAnimationComplete });
     updatePlayerHPUI({
         hp: Number(state.playerHp),
         max_hp: Number(state.playerHpMax || 100),
@@ -8339,12 +8362,38 @@ async function _submitMapBattleV1IfActive(moves) {
     if (!adapter || typeof adapter.submit !== 'function') return null;
     try {
         const response = await adapter.submit(_mapBattleV1State, moves);
-        _mapBattleV1RenderAuthoritative(currentQ, response);
+        const freshCorrect = response && response.duplicate !== true
+            && response.result === 'CORRECT'
+            && (response.next_action === 'continue' || response.next_action === 'monster_defeated');
+        _mapBattleV1TransitionPending = !!freshCorrect;
+        const onAnimationComplete = freshCorrect
+            ? () => {
+                if (!_mapBattleV1TransitionPending) return;
+                _mapBattleV1TransitionPending = false;
+                if (response.next_action === 'monster_defeated') {
+                    if (!showBeginnerVillageEncounterContinuation()) returnToAdventureMapAfterEncounter();
+                    return;
+                }
+                srsDoneCount++;
+                updateSRSProgress();
+                nextQuestion();
+            }
+            : null;
+        _mapBattleV1RenderAuthoritative(currentQ, response, { onAnimationComplete });
         if (response && (response.accepted === true || response.duplicate === true)) {
             SRS.markSeen(currentQ.id);
         }
+        if (response && response.duplicate !== true && response.result === 'CORRECT') {
+            if (_quizPet) {
+                if (response.next_action === 'monster_defeated') setTimeout(() => petReact('victory'), 650);
+                else petReact('correct');
+            }
+        } else if (response && response.duplicate !== true && response.result === 'INCORRECT' && _quizPet) {
+            petReact('wrong');
+        }
         return response;
     } catch (error) {
+        _mapBattleV1TransitionPending = false;
         if (error && error.code === 'map_battle_attempt_expired') {
             await _prepareMapBattleV1ForQuestion(currentQ);
             setMsg('Map Battle attempt expired; a fresh attempt is ready. Please answer again.', 'warn');
@@ -8733,7 +8782,7 @@ function playSoundBadgeUnlock() {
 }
 
 // ── 擊殺動畫序列 ──────────────────────────────────────────────
-function showKillAnimation(monster) {
+function showKillAnimation(monster, onComplete = null) {
     const nextMonster  = monster.next_monster || null;
     const playerFig    = document.getElementById('player-avatar-figure');
     const weaponEl     = document.getElementById('player-weapon');
@@ -8788,7 +8837,10 @@ function showKillAnimation(monster) {
 
     // 6. 新怪物登場 (2400ms，等擊倒動畫 200ms+2000ms 結束)
     setTimeout(() => {
-        if (!monsterEl) return;
+        if (!monsterEl) {
+            if (typeof onComplete === 'function') onComplete();
+            return;
+        }
         monsterEl.classList.remove('monster-knocked-down');
         if (nextMonster) {
             const nameEl = document.getElementById('monster-name');
@@ -8810,6 +8862,7 @@ function showKillAnimation(monster) {
         // 恢復狀態文字
         const statusEl = document.getElementById('battle-status');
         if (statusEl) setTimeout(() => { statusEl.textContent = I18n.t('index.battle.fighting'); statusEl.style.color = ''; }, 800);
+        if (typeof onComplete === 'function') onComplete();
     }, 2400);
 }
 
@@ -9154,6 +9207,7 @@ function _revealExplanationPanel(panel) {
 }
 
 async function loadQuestion(q){
+    await _hydrateE10BattlePresentation();
     _setBeginnerVillagePostAnswerControls(false);
     _hideRecommend();   // 切題時清掉推薦
     // Hide welcome screen, show practice elements
@@ -9168,6 +9222,7 @@ async function loadQuestion(q){
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
+    _mapBattleV1TransitionPending = false;
     _mapBattleV1Mode = _isAdventureZonePractice() ? 'pending' : 'disabled';
     _questionStartedAt=performance.now();
     const idx=allQuestions.findIndex(x=>x.id===q.id);if(idx!==-1)currentIndex=idx;
