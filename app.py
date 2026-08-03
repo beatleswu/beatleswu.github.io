@@ -3964,7 +3964,13 @@ def should_grant_review_progress(existing_srs_row, grade):
     updates on every review regardless of this check."""
     if grade < 3:
         return False
-    return not bool(existing_srs_row and existing_srs_row.get('progress_credited'))
+    if not existing_srs_row:
+        return True
+    try:
+        credited = existing_srs_row['progress_credited']
+    except (KeyError, IndexError, TypeError):
+        credited = existing_srs_row.get('progress_credited')
+    return not bool(credited)
 
 def _apply_credited_review_counters(total, streak, mx, combo_streak, max_combo, should_grant_progress):
     """Phase 4E anti-farming: total_correct/current_streak/max_streak/
@@ -10200,14 +10206,82 @@ def map_battle_v1_answers():
         if error.code == 'map_battle_v1_disabled':
             body['message'] = 'Map Battle v1 暫未開放'
         return jsonify(body), error.status
+    try:
+        progression, progression_status = _run_map_battle_progression(
+            session['user_id'], result
+        )
+    except Exception:
+        app.logger.exception(
+            'Adventure/SRS progression failed after settled map battle submission %s',
+            result.get('submission_id'),
+        )
+        progression = {
+            'status': 'pending',
+            'error': 'adventure_progression_failed',
+            'retryable': True,
+        }
+        progression_status = 503
+    result['progression'] = progression
+    if progression_status != 200:
+        result.update({
+            'error': 'adventure_progression_pending',
+            'code': 'adventure_progression_pending',
+            'message': 'Battle settlement committed; Adventure progression retry required',
+            'retryable': True,
+        })
+        return jsonify(result), progression_status
     return jsonify(result)
+
+
+_MAP_BATTLE_PROGRESS_MARKER_PREFIX = 'mbv1:'
+
+
+def _map_battle_progression_submission(conn, user_id, submission_id):
+    """Lock and load one settled Battle submission for SRS progression."""
+
+    raw_conn = getattr(conn, '_conn', conn)
+    statement = '''
+        SELECT s.*, a.question_id AS attempt_question_id
+          FROM map_battle_submissions s
+          JOIN map_battle_attempts a
+            ON a.id=s.attempt_id AND a.battle_id=s.battle_id AND a.user_id=s.user_id
+         WHERE s.id=? AND s.user_id=?
+           AND s.settlement_state='SETTLED' AND s.settled_at IS NOT NULL
+    '''
+    if not raw_conn.__class__.__module__.startswith('sqlite3'):
+        statement += ' FOR UPDATE'
+    return conn.execute(statement, (str(submission_id), int(user_id))).fetchone()
+
+
+def _map_battle_progression_already_applied(conn, user_id, marker):
+    return conn.execute(
+        'SELECT id FROM review_log WHERE user_id=? AND source_context=? LIMIT 1',
+        (int(user_id), marker),
+    ).fetchone() is not None
 
 
 @app.route('/api/srs/review', methods=['POST'])
 @login_required
 def srs_review():
-    uid       = session['user_id']
-    data      = request.get_json()
+    return _srs_review_operation(
+        session['user_id'],
+        request.get_json(silent=True) or {},
+        internal=False,
+        submission_id=None,
+    )
+
+
+def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
+    """Apply the canonical Adventure/SRS progression operation.
+
+    The public route and post-settlement Battle Runtime orchestration share
+    this operation.  Battle settlement remains in its own transaction; an
+    internal call supplies only the durable settled submission identity and
+    derives the question and authoritative grade from that row below.
+    """
+
+    uid = int(uid)
+    data = dict(data or {})
     qid       = data.get('question_id')
     grade     = data.get('grade')
     unit      = data.get('unit_name')
@@ -10217,18 +10291,26 @@ def srs_review():
             if data.get('response_ms') is not None else None
     except (TypeError, ValueError):
         response_ms = None
-    source_context = str(data.get('source_context') or 'practice')[:40]
+    if internal:
+        submission_id = str(submission_id or '').strip()
+        if not submission_id:
+            return jsonify({'error': 'invalid_submission_identity'}), 500
+        source_context = f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}{submission_id}'
+    else:
+        source_context = str(data.get('source_context') or 'practice')[:40]
+        if source_context.startswith(_MAP_BATTLE_PROGRESS_MARKER_PREFIX):
+            return jsonify({'error': 'reserved_source_context'}), 400
     training_set_id = data.get('training_set_id')
     try:
         training_set_id = int(training_set_id) if training_set_id is not None else None
     except (TypeError, ValueError):
         training_set_id = None
 
-    if qid is None or grade not in (0,3,5):
+    if not internal and (qid is None or grade not in (0,3,5)):
         return jsonify({'error':'參數錯誤'}), 400
 
     # ── 訂閱牆：免費用戶檢查 ────────────────────────────────
-    if not is_premium():
+    if not internal and not is_premium():
         qs_map_check = {q['id']: q for q in _load_questions()}
         q_check = qs_map_check.get(qid, {})
 
@@ -10265,6 +10347,40 @@ def srs_review():
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
 
     with get_db() as conn:
+        if internal:
+            submission = _map_battle_progression_submission(
+                conn, uid, submission_id
+            )
+            if not submission:
+                return jsonify({
+                    'error': 'settled_submission_not_found',
+                    'code': 'settled_submission_not_found',
+                }), 409
+            authoritative_qid = int(submission['attempt_question_id'])
+            authoritative_grade = submission['authoritative_grade']
+            if (
+                (qid is not None and int(qid) != authoritative_qid)
+                or authoritative_grade not in (0, 3, 5)
+                or submission['judge_result'] not in ('CORRECT', 'INCORRECT')
+            ):
+                return jsonify({
+                    'error': 'invalid_settled_submission',
+                    'code': 'invalid_settled_submission',
+                }), 409
+            qid = authoritative_qid
+            grade = int(authoritative_grade)
+            q_info = qs_map.get(qid, {})
+            question_rating_snapshot = rank_to_rating(
+                q_info.get('rank') or q_info.get('difficulty')
+            )
+            if _map_battle_progression_already_applied(conn, uid, source_context):
+                return jsonify({
+                    'ok': True,
+                    'progression_applied': False,
+                    'progression_duplicate': True,
+                    'question_id': qid,
+                })
+
         player_row = conn.execute(
             'SELECT elo_rating FROM users WHERE id=?', (uid,)
         ).fetchone()
@@ -10290,7 +10406,12 @@ def srs_review():
         # this submission. Once true for a (user, question) pair, stays
         # true forever via progress_credited (see should_grant_review_progress).
         should_grant_progress = should_grant_review_progress(row, grade)
-        progress_credited_flag = 1 if (should_grant_progress or (row and row.get('progress_credited'))) else 0
+        existing_progress_credited = (
+            row['progress_credited'] if row else 0
+        )
+        progress_credited_flag = 1 if (
+            should_grant_progress or existing_progress_credited
+        ) else 0
         conn.execute('''INSERT INTO srs_cards(user_id,question_id,ease_factor,interval,repetitions,due_date,last_grade,updated_at,progress_credited)
             VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,question_id) DO UPDATE SET
             ease_factor=excluded.ease_factor, interval=excluded.interval,
@@ -10569,6 +10690,55 @@ def srs_review():
         'new_appearance_items': [_APPEAR_MAP[i] for i in new_appearance_items if i in _APPEAR_MAP],
         **monster_data,
     })
+
+
+def _run_map_battle_progression(user_id, settlement):
+    """Run canonical Adventure/SRS progression after a committed settlement."""
+
+    result_name = settlement.get('result')
+    if result_name not in ('CORRECT', 'INCORRECT'):
+        return {
+            'status': 'not_applicable',
+            'reason': 'settlement_not_progressable',
+        }, 200
+
+    submission_id = settlement.get('submission_id')
+    if not submission_id:
+        return {
+            'status': 'pending',
+            'error': 'settled_submission_identity_missing',
+        }, 503
+
+    response = _srs_review_operation(
+        user_id,
+        {
+            'question_id': settlement.get('question_id'),
+            'grade': settlement.get('authoritative_grade'),
+        },
+        internal=True,
+        submission_id=submission_id,
+    )
+    if isinstance(response, tuple):
+        body, status = response[0], int(response[1])
+    else:
+        body, status = response, 200
+    payload = body.get_json(silent=True) if hasattr(body, 'get_json') else None
+    payload = payload if isinstance(payload, dict) else {
+        'error': 'adventure_progression_invalid_response',
+    }
+    if status != 200:
+        payload = {
+            'status': 'pending',
+            'error': payload.get('code') or payload.get('error') or 'adventure_progression_failed',
+            'retryable': True,
+        }
+    else:
+        payload = {
+            'status': 'duplicate' if payload.get('progression_duplicate') else 'applied',
+            **payload,
+        }
+    return payload, status
+
 
 @app.route('/api/xp/status')
 @login_required

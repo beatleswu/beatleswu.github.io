@@ -1,17 +1,28 @@
 """Sprint 2B executable Legacy Map Battle bridge and lifecycle coverage."""
 
+import ast
 import json
 import os
 import subprocess
 import sqlite3
 import sys
+import threading
 import types
 from pathlib import Path
 
 import pytest
 
-from map_battle_persistence import ensure_map_battle_tables, hash_submission_nonce
-from map_battle_runtime import ensure_submission_lifecycle_schema
+from map_battle_persistence import (
+    create_map_battle,
+    ensure_map_battle_tables,
+    hash_submission_nonce,
+)
+from map_battle_runtime import (
+    ensure_submission_lifecycle_schema,
+    issue_attempt_for_context,
+    issue_submission_nonce_for_attempt,
+    settle_answer,
+)
 
 
 # The app import below is deliberately process-scoped to a synthetic key.  It
@@ -98,23 +109,107 @@ class _DbContext:
 def api_env(app_module, monkeypatch):
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    conn.create_function("GREATEST", 2, max)
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute(
-        "CREATE TABLE users (id INTEGER PRIMARY KEY, is_admin INTEGER NOT NULL DEFAULT 0)"
+        """CREATE TABLE users (
+             id INTEGER PRIMARY KEY,
+             is_admin INTEGER NOT NULL DEFAULT 0,
+             elo_rating REAL NOT NULL DEFAULT 1400
+        )"""
     )
     conn.executemany("INSERT INTO users(id) VALUES (?)", [(101,), (202,)])
     conn.execute(
         """CREATE TABLE user_stats (
              user_id INTEGER PRIMARY KEY,
+             total_correct INTEGER NOT NULL DEFAULT 0,
+             current_streak INTEGER NOT NULL DEFAULT 0,
+             max_streak INTEGER NOT NULL DEFAULT 0,
+             mistake_corrected INTEGER NOT NULL DEFAULT 0,
+             updated_at TEXT,
+             xp INTEGER NOT NULL DEFAULT 0,
+             combo_streak INTEGER NOT NULL DEFAULT 0,
+             max_combo INTEGER NOT NULL DEFAULT 0,
+             rank_level TEXT NOT NULL DEFAULT 'LV1',
+             rank_xp INTEGER NOT NULL DEFAULT 0,
+             elo_rating REAL NOT NULL DEFAULT 1400,
              player_hp INTEGER NOT NULL DEFAULT 30,
              player_max_hp INTEGER NOT NULL DEFAULT 30
         )"""
     )
     conn.execute("INSERT INTO user_stats(user_id, player_hp, player_max_hp) VALUES (101, 30, 30)")
+    conn.execute(
+        """CREATE TABLE srs_cards (
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             ease_factor REAL NOT NULL DEFAULT 2.5,
+             interval INTEGER NOT NULL DEFAULT 0,
+             repetitions INTEGER NOT NULL DEFAULT 0,
+             due_date TEXT,
+             last_grade INTEGER,
+             updated_at TEXT,
+             progress_credited INTEGER NOT NULL DEFAULT 0,
+             PRIMARY KEY (user_id, question_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE review_log (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             grade INTEGER NOT NULL,
+             topic TEXT,
+             level TEXT,
+             difficulty TEXT,
+             reviewed_at TEXT NOT NULL,
+             source TEXT,
+             response_ms INTEGER,
+             discipline TEXT,
+             player_rating_snapshot REAL,
+             question_rating_snapshot REAL,
+             item_rating_version TEXT,
+             question_version TEXT,
+             source_context TEXT,
+             is_scaffolding INTEGER NOT NULL DEFAULT 0,
+             training_set_id INTEGER
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE mistake_log (
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             wrong_count INTEGER NOT NULL DEFAULT 1,
+             correct_after INTEGER NOT NULL DEFAULT 0,
+             first_wrong_at TEXT NOT NULL,
+             last_wrong_at TEXT NOT NULL,
+             last_correct_at TEXT,
+             PRIMARY KEY (user_id, question_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE user_pets (
+             user_id INTEGER PRIMARY KEY,
+             pet_key TEXT NOT NULL,
+             nickname TEXT,
+             level INTEGER NOT NULL DEFAULT 1,
+             xp INTEGER NOT NULL DEFAULT 0,
+             fullness INTEGER NOT NULL DEFAULT 60,
+             affection INTEGER NOT NULL DEFAULT 10,
+             selected_at TEXT NOT NULL,
+             last_fed_at TEXT,
+             last_interacted_at TEXT,
+             updated_at TEXT
+        )"""
+    )
     ensure_map_battle_tables(conn)
     ensure_submission_lifecycle_schema(conn)
     monkeypatch.setattr(app_module, "get_db", lambda: _DbContext(conn))
     monkeypatch.setattr(app_module, "_load_questions", lambda: [dict(QUESTION)])
+    monkeypatch.setattr(app_module, "check_and_award", lambda *args, **kwargs: [])
+    monkeypatch.setattr(app_module, "_get_appearance_effects", lambda *args, **kwargs: {})
+    monkeypatch.setattr(app_module, "_pet_player_xp_bonus", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(app_module, "_effect_get", lambda *args, **kwargs: None)
+    monkeypatch.setattr(app_module, "_update_monster_and_quests", lambda *args, **kwargs: {})
     monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "global")
     client = app_module.app.test_client()
     with client.session_transaction() as session:
@@ -226,9 +321,26 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert result["monster_hp_after"] < result["monster_hp_before"]
     assert result["player_hp_after"] == result["player_hp_before"] == 30
     assert result["battle_revision"] == 1
+    assert result["progression"]["status"] == "applied"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT source_context FROM review_log WHERE user_id=101"
+    ).fetchone()[0].startswith("mbv1:")
+    card = conn.execute(
+        "SELECT progress_credited,last_grade FROM srs_cards WHERE user_id=101 AND question_id=?",
+        (QUESTION["id"],),
+    ).fetchone()
+    assert (card["progress_credited"], card["last_grade"]) == (1, 5)
+    stats = conn.execute(
+        "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=101"
+    ).fetchone()
+    assert stats["total_correct"] == stats["current_streak"] == 1
+    assert stats["xp"] > 0
 
     duplicate_payload = _answer_payload(correct, [{"x": 3, "y": 3}])
-    duplicate_payload["battle_revision"] = result["battle_revision"]
+    duplicate_payload["battle_revision"] = 0
     duplicate_response = client.post(
         ANSWER_ENDPOINT,
         json=duplicate_payload,
@@ -239,6 +351,13 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert duplicate["duplicate"] is True
     assert duplicate["monster_hp_after"] == result["monster_hp_after"]
     assert duplicate["battle_revision"] == result["battle_revision"]
+    assert duplicate["progression"]["status"] == "duplicate"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=101"
+    ).fetchone() == stats
 
     incorrect = _prepare(client, "legacy::incorrect")
     incorrect_response = client.post(
@@ -264,12 +383,16 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert invalid_result["result"] == "INVALID"
     assert invalid_result["damage_to_monster"] == invalid_result["damage_to_player"] == 0
     assert invalid_result["battle_revision"] == 0
+    assert invalid_result["progression"]["status"] == "not_applicable"
     invalid_battle = _battle(conn, invalid["battle_id"])
     assert (invalid_battle["monster_hp"], invalid_battle["player_hp"], invalid_battle["battle_revision"]) == (40, 30, 0)
     assert conn.execute(
         "SELECT settlement_state FROM map_battle_submissions WHERE id=?",
         (invalid_result["submission_id"],),
     ).fetchone()[0] == "REJECTED"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 2
 
 
 def test_legacy_forged_fields_expiry_and_stale_revision_do_not_mutate(api_env):
@@ -446,6 +569,413 @@ def test_global_mode_remains_available_without_admin_status(api_env, monkeypatch
     assert state["attempt_id"]
 
 
+def test_map_battle_progression_reuses_canonical_antifarming_for_new_attempts(api_env):
+    client, conn = api_env
+
+    first = _prepare(client, "legacy::progress-first")
+    first_result = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(first, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert first_result["progression"]["status"] == "applied"
+
+    second = _prepare(client, "legacy::progress-second")
+    second_result = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(second, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert second_result["progression"]["status"] == "applied"
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 2
+    stats = conn.execute(
+        "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=101"
+    ).fetchone()
+    assert (stats["total_correct"], stats["current_streak"]) == (1, 1)
+    assert stats["xp"] > 0
+    card = conn.execute(
+        "SELECT progress_credited,last_grade FROM srs_cards WHERE user_id=101 AND question_id=?",
+        (QUESTION["id"],),
+    ).fetchone()
+    assert (card["progress_credited"], card["last_grade"]) == (1, 5)
+
+
+def test_normal_srs_review_stays_on_canonical_route_and_reserved_marker_is_server_only(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(app_module, "is_premium", lambda *args, **kwargs: True)
+
+    normal = client.post(
+        "/api/srs/review",
+        json={"question_id": QUESTION["id"], "grade": 5},
+    )
+    assert normal.status_code == 200, normal.get_json()
+    assert normal.get_json()["ok"] is True
+    assert conn.execute(
+        "SELECT source_context FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == "practice"
+
+    forged_marker = client.post(
+        "/api/srs/review",
+        json={
+            "question_id": QUESTION["id"],
+            "grade": 5,
+            "source_context": "mbv1:forged-submission",
+        },
+    )
+    assert forged_marker.status_code == 400
+    assert forged_marker.get_json()["error"] == "reserved_source_context"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE source_context LIKE 'mbv1:%'"
+    ).fetchone()[0] == 0
+
+
+def test_progression_failure_does_not_rollback_authoritative_battle_settlement(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    state = _prepare(client, "legacy::progress-failure")
+    real_operation = app_module._srs_review_operation
+
+    def fail_progression(*args, **kwargs):
+        raise RuntimeError("synthetic_failure")
+
+    monkeypatch.setattr(app_module, "_srs_review_operation", fail_progression)
+
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert response.status_code == 503
+    assert response.get_json()["code"] == "adventure_progression_pending"
+    battle = _battle(conn, state["battle_id"])
+    assert battle["monster_hp"] < battle["monster_hp_max"]
+    assert battle["battle_revision"] == 1
+    assert conn.execute(
+        "SELECT settlement_state FROM map_battle_submissions"
+    ).fetchone()[0] == "SETTLED"
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 0
+
+    monkeypatch.setattr(app_module, "_srs_review_operation", real_operation)
+    retry = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert retry.status_code == 200, retry.get_json()
+    assert retry.get_json()["duplicate"] is True
+    assert retry.get_json()["progression"]["status"] == "applied"
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 1
+
+
+def test_postgres_concurrent_map_battle_progression_is_exactly_once(
+    app_module, monkeypatch
+):
+    """Two PostgreSQL sessions must credit one settled submission once.
+
+    The second session is deliberately entered while the first session holds
+    the settled-submission FOR UPDATE lock.  This is not a sequential retry
+    approximation and does not use SQLite as a concurrency substitute.
+    """
+
+    import importlib.util
+
+    helper_path = Path(__file__).with_name("test_map_battle_persistence.py")
+    spec = importlib.util.spec_from_file_location(
+        "map_battle_progression_pg_helpers", helper_path
+    )
+    helpers = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helpers)
+
+    with helpers._postgres_container() as database_url:
+        seed = helpers._postgres_wrapper(database_url)
+        seed.execute(
+            """CREATE TABLE users (
+                 id INTEGER PRIMARY KEY,
+                 elo_rating DOUBLE PRECISION NOT NULL DEFAULT 1400
+            )"""
+        )
+        seed.execute("INSERT INTO users(id) VALUES (?)", (101,))
+        seed.execute(
+            """CREATE TABLE user_stats (
+                 user_id INTEGER PRIMARY KEY,
+                 total_correct INTEGER NOT NULL DEFAULT 0,
+                 current_streak INTEGER NOT NULL DEFAULT 0,
+                 max_streak INTEGER NOT NULL DEFAULT 0,
+                 mistake_corrected INTEGER NOT NULL DEFAULT 0,
+                 updated_at TEXT,
+                 xp INTEGER NOT NULL DEFAULT 0,
+                 combo_streak INTEGER NOT NULL DEFAULT 0,
+                 max_combo INTEGER NOT NULL DEFAULT 0,
+                 rank_level TEXT NOT NULL DEFAULT 'LV1',
+                 rank_xp INTEGER NOT NULL DEFAULT 0,
+                 elo_rating DOUBLE PRECISION NOT NULL DEFAULT 1400,
+                 player_hp INTEGER NOT NULL DEFAULT 30,
+                 player_max_hp INTEGER NOT NULL DEFAULT 30
+            )"""
+        )
+        seed.execute("INSERT INTO user_stats(user_id) VALUES (?)", (101,))
+        seed.execute(
+            """CREATE TABLE srs_cards (
+                 user_id INTEGER NOT NULL,
+                 question_id INTEGER NOT NULL,
+                 ease_factor DOUBLE PRECISION NOT NULL DEFAULT 2.5,
+                 interval INTEGER NOT NULL DEFAULT 0,
+                 repetitions INTEGER NOT NULL DEFAULT 0,
+                 due_date TEXT,
+                 last_grade INTEGER,
+                 updated_at TEXT,
+                 progress_credited INTEGER NOT NULL DEFAULT 0,
+                 PRIMARY KEY (user_id, question_id)
+            )"""
+        )
+        seed.execute(
+            """CREATE TABLE review_log (
+                 id SERIAL PRIMARY KEY,
+                 user_id INTEGER NOT NULL,
+                 question_id INTEGER NOT NULL,
+                 grade INTEGER NOT NULL,
+                 topic TEXT,
+                 level TEXT,
+                 difficulty TEXT,
+                 reviewed_at TEXT NOT NULL,
+                 source TEXT,
+                 response_ms INTEGER,
+                 discipline TEXT,
+                 player_rating_snapshot DOUBLE PRECISION,
+                 question_rating_snapshot DOUBLE PRECISION,
+                 item_rating_version TEXT,
+                 question_version TEXT,
+                 source_context TEXT,
+                 is_scaffolding INTEGER NOT NULL DEFAULT 0,
+                 training_set_id INTEGER
+            )"""
+        )
+        seed.execute(
+            """CREATE TABLE mistake_log (
+                 user_id INTEGER NOT NULL,
+                 question_id INTEGER NOT NULL,
+                 wrong_count INTEGER NOT NULL DEFAULT 1,
+                 correct_after INTEGER NOT NULL DEFAULT 0,
+                 first_wrong_at TEXT NOT NULL,
+                 last_wrong_at TEXT NOT NULL,
+                 last_correct_at TEXT,
+                 PRIMARY KEY (user_id, question_id)
+            )"""
+        )
+        seed.execute("CREATE TABLE user_pets (user_id INTEGER PRIMARY KEY)")
+        ensure_map_battle_tables(seed)
+        ensure_submission_lifecycle_schema(seed)
+        create_map_battle(
+            seed,
+            battle_id="battle-progress-concurrent",
+            user_id=101,
+            zone_key="legacy::progress-concurrent",
+            player_hp=30,
+            player_hp_max=30,
+            monster_hp=40,
+            monster_hp_max=40,
+            now="2026-08-03T00:00:00+00:00",
+        )
+        issue_attempt_for_context(
+            seed,
+            user_id=101,
+            battle_id="battle-progress-concurrent",
+            question=QUESTION,
+            initial_position_identity="progress-concurrent-position",
+            board_size=19,
+            player_color="B",
+            transform_version="transform-v1",
+            transform_id="identity",
+            attempt_id="attempt-progress-concurrent",
+            issued_at="2026-08-03T00:00:00+00:00",
+            expires_at="2026-08-04T00:00:00+00:00",
+        )
+        issued = issue_submission_nonce_for_attempt(
+            seed,
+            user_id=101,
+            attempt_id="attempt-progress-concurrent",
+            now="2026-08-03T00:00:00+00:00",
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        )
+        attempt = seed.execute(
+            "SELECT * FROM map_battle_attempts WHERE id=?",
+            ("attempt-progress-concurrent",),
+        ).fetchone()
+        answer_payload = {
+            "battle_id": attempt["battle_id"],
+            "attempt_id": attempt["id"],
+            "submission_nonce": issued["submission_nonce"],
+            "battle_revision": 0,
+            "question_revision": attempt["question_revision"],
+            "player_color": "black",
+            "transform_id": attempt["transform_id"],
+            "transform_version": attempt["transform_version"],
+            "moves": [{"x": 3, "y": 3}],
+        }
+        settlement = settle_answer(
+            seed,
+            user_id=101,
+            payload=answer_payload,
+            question_loader=lambda question_id: (
+                QUESTION if question_id == QUESTION["id"] else None
+            ),
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-03T00:01:00+00:00",
+        )
+        seed.commit()
+        battle_before = seed.execute(
+            "SELECT player_hp, monster_hp, battle_revision FROM map_battles WHERE id=?",
+            ("battle-progress-concurrent",),
+        ).fetchone()
+        seed.close()
+
+        calls = {"badges": 0, "xp": 0, "streak": 0}
+        calls_lock = threading.Lock()
+
+        def count_badges(*_args, **_kwargs):
+            with calls_lock:
+                calls["badges"] += 1
+            return []
+
+        def fixed_xp(*_args, **_kwargs):
+            with calls_lock:
+                calls["xp"] += 1
+            return 10, 1.0
+
+        real_counter_update = app_module._apply_credited_review_counters
+
+        def count_streak_mutation(*args, **kwargs):
+            with calls_lock:
+                calls["streak"] += 1
+            return real_counter_update(*args, **kwargs)
+
+        monkeypatch.setattr(app_module, "_load_questions", lambda: [dict(QUESTION)])
+        monkeypatch.setattr(app_module, "check_and_award", count_badges)
+        monkeypatch.setattr(app_module, "calc_xp_gain", fixed_xp)
+        monkeypatch.setattr(
+            app_module,
+            "_apply_credited_review_counters",
+            count_streak_mutation,
+        )
+        monkeypatch.setattr(app_module, "_get_appearance_effects", lambda *a, **k: {})
+        monkeypatch.setattr(app_module, "_pet_player_xp_bonus", lambda *a, **k: 0)
+        monkeypatch.setattr(app_module, "_effect_get", lambda *a, **k: None)
+        monkeypatch.setattr(app_module, "_update_monster_and_quests", lambda *a, **k: {})
+
+        thread_state = threading.local()
+
+        def thread_db():
+            return _DbContext(thread_state.connection)
+
+        monkeypatch.setattr(app_module, "get_db", thread_db)
+
+        real_submission_loader = app_module._map_battle_progression_submission
+        entry_lock = threading.Lock()
+        second_entered = threading.Event()
+        loader_entries = 0
+
+        def locked_submission_loader(conn, user_id, submission_id):
+            nonlocal loader_entries
+            with entry_lock:
+                loader_entries += 1
+                ordinal = loader_entries
+            if ordinal == 1:
+                row = real_submission_loader(conn, user_id, submission_id)
+                assert second_entered.wait(timeout=15)
+                return row
+            second_entered.set()
+            return real_submission_loader(conn, user_id, submission_id)
+
+        monkeypatch.setattr(
+            app_module,
+            "_map_battle_progression_submission",
+            locked_submission_loader,
+        )
+
+        start = threading.Barrier(2)
+        outcomes = []
+        errors = []
+        result_lock = threading.Lock()
+
+        def run_progression():
+            connection = helpers._postgres_wrapper(database_url)
+            thread_state.connection = connection
+            try:
+                with app_module.app.app_context():
+                    start.wait(timeout=15)
+                    outcome, status = app_module._run_map_battle_progression(
+                        101, settlement
+                    )
+                with result_lock:
+                    outcomes.append((outcome, status))
+            except BaseException as error:  # pragma: no cover - assertion below
+                with result_lock:
+                    errors.append(error)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=run_progression) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+            assert not thread.is_alive()
+        assert errors == []
+        assert len(outcomes) == 2
+        assert sorted(
+            (status, outcome["status"]) for outcome, status in outcomes
+        ) == [(200, "applied"), (200, "duplicate")]
+
+        retry_connection = helpers._postgres_wrapper(database_url)
+        thread_state.connection = retry_connection
+        with app_module.app.app_context():
+            retry_outcome, retry_status = app_module._run_map_battle_progression(
+                101, settlement
+            )
+        retry_connection.close()
+        assert retry_status == 200
+        assert retry_outcome["status"] == "duplicate"
+
+        verify = helpers._postgres_wrapper(database_url)
+        review_count = verify.execute(
+            "SELECT COUNT(*) AS n FROM review_log WHERE user_id=? AND source_context LIKE ?",
+            (101, "mbv1:%"),
+        ).fetchone()["n"]
+        assert review_count == 1
+        stats = verify.execute(
+            "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=?",
+            (101,),
+        ).fetchone()
+        assert (stats["total_correct"], stats["current_streak"], stats["xp"]) == (
+            1,
+            1,
+            10,
+        )
+        card = verify.execute(
+            "SELECT progress_credited,last_grade,repetitions FROM srs_cards "
+            "WHERE user_id=? AND question_id=?",
+            (101, QUESTION["id"]),
+        ).fetchone()
+        assert (
+            card["progress_credited"],
+            card["last_grade"],
+            card["repetitions"],
+        ) == (1, 5, 1)
+        battle_after = verify.execute(
+            "SELECT player_hp, monster_hp, battle_revision FROM map_battles WHERE id=?",
+            ("battle-progress-concurrent",),
+        ).fetchone()
+        assert tuple(battle_after) == tuple(battle_before)
+        assert calls == {"badges": 1, "xp": 1, "streak": 1}
+        verify.close()
+
+
 def test_legacy_cross_account_battle_state_is_not_visible(api_env):
     client, conn = api_env
     state = _prepare(client, "legacy::ownership")
@@ -536,6 +1066,20 @@ vm.runInContext(source, vm.createContext({ window, console, Number, String, Arra
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_battle_runtime_import_boundary_has_no_progression_dependencies():
+    runtime = ast.parse(
+        (ROOT / "map_battle_runtime.py").read_text(encoding="utf-8")
+    )
+    forbidden = {"adventure", "guild", "srs", "frontend", "js"}
+    imports = []
+    for node in ast.walk(runtime):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.append(node.module.split(".")[0])
+    assert not (set(imports) & forbidden)
 
 
 def test_normal_srs_route_remains_present_and_service_worker_identity_is_unchanged():
