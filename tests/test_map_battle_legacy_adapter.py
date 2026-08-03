@@ -217,9 +217,11 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert result["player_hp_after"] == result["player_hp_before"] == 30
     assert result["battle_revision"] == 1
 
+    duplicate_payload = _answer_payload(correct, [{"x": 3, "y": 3}])
+    duplicate_payload["battle_revision"] = result["battle_revision"]
     duplicate_response = client.post(
         ANSWER_ENDPOINT,
-        json=_answer_payload(correct, [{"x": 3, "y": 3}]),
+        json=duplicate_payload,
         headers=PROTOCOL,
     )
     duplicate = duplicate_response.get_json()

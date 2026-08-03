@@ -390,7 +390,13 @@ def canonicalize_answer(payload: Mapping[str, Any], attempt: Mapping[str, Any]) 
 
 
 def request_hash_for(canonical: CanonicalAnswer) -> str:
-    serialized = json.dumps(canonical.payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    # The battle revision is optimistic-concurrency metadata, not answer
+    # identity.  A transport retry may carry the authoritative revision that
+    # was returned by the prior response; that must still identify the same
+    # submission and replay its settled result.
+    request_payload = dict(canonical.payload)
+    request_payload.pop("battle_revision", None)
+    serialized = json.dumps(request_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
@@ -548,7 +554,12 @@ def mode_eligible(mode: str, user_id: int, eligibility: Mapping[str, Any] | None
     return False
 
 
-def _metadata_matches(payload: Mapping[str, Any], attempt: Mapping[str, Any]) -> None:
+def _metadata_matches(
+    payload: Mapping[str, Any],
+    attempt: Mapping[str, Any],
+    *,
+    check_battle_revision: bool = True,
+) -> None:
     if str(payload["battle_id"]) != str(attempt.get("battle_id")):
         raise RequestRejected("battle_id does not match the issued attempt")
     if str(payload["attempt_id"]) != str(attempt.get("id")):
@@ -559,10 +570,11 @@ def _metadata_matches(payload: Mapping[str, Any], attempt: Mapping[str, Any]) ->
         raise RequestRejected("transform_id does not match the issued attempt")
     if str(payload["transform_version"]) != str(attempt.get("transform_version")):
         raise RequestRejected("transform_version does not match the issued attempt")
-    if _nonnegative_int(payload["battle_revision"], "battle_revision") != int(attempt.get("battle_revision_at_issue", 0)):
+    if check_battle_revision and _nonnegative_int(payload["battle_revision"], "battle_revision") != int(attempt.get("battle_revision_at_issue", 0)):
         # The authoritative current revision is checked again by the settlement
-        # primitive under a row lock.  This early check rejects stale issued
-        # metadata without creating a submission reservation.
+        # primitive under a row lock.  New submissions reject stale issued
+        # metadata before reservation; an existing settled submission is
+        # replayed before this check.
         raise StaleBattleRevision("battle revision is stale for this attempt")
     if str(attempt.get("judge_version")) != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("attempt judge version is unsupported")
@@ -809,6 +821,30 @@ def _validated_request_hash(payload: Mapping[str, Any], canonical: CanonicalAnsw
     return expected_hash
 
 
+def _existing_submission_for_nonce(
+    conn: Any,
+    *,
+    user_id: int,
+    battle_id: str,
+    attempt_id: str,
+    submission_nonce: str,
+) -> dict[str, Any] | None:
+    """Read an owner-scoped submission before applying optimistic CAS."""
+
+    row = conn.execute(
+        """SELECT * FROM map_battle_submissions
+           WHERE user_id=? AND battle_id=? AND attempt_id=?
+             AND submission_nonce_hash=?""",
+        (
+            user_id,
+            battle_id,
+            attempt_id,
+            hash_submission_nonce(submission_nonce),
+        ),
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
 def settle_answer(
     conn,
     *,
@@ -849,17 +885,36 @@ def settle_answer(
         raise AttemptExpired("map battle attempt has expired")
     canonical = canonicalize_answer(payload, attempt)
     _validate_submission_nonce(payload, attempt)
-    try:
-        _metadata_matches(payload, attempt)
-    except StaleBattleRevision as error:
-        raise RequestRejected(str(error), status=409) from error
-    question = question_loader(int(attempt["question_id"]))
-    if not isinstance(question, Mapping):
-        raise JudgeUnavailable("authoritative question is unavailable")
-    expected_revision = question_revision_for(question)
-    if expected_revision != str(attempt["question_revision"]):
-        raise RequestRejected("question revision is stale", status=409)
+    # Validate owner/battle/attempt identity and the issued attempt metadata
+    # before looking up a submission, but defer the optimistic-concurrency
+    # check until an existing settled submission has had a chance to replay.
+    _metadata_matches(payload, attempt, check_battle_revision=False)
     request_hash = _validated_request_hash(payload, canonical)
+    existing = _existing_submission_for_nonce(
+        conn,
+        user_id=user_id,
+        battle_id=str(attempt["battle_id"]),
+        attempt_id=str(attempt["id"]),
+        submission_nonce=payload["submission_nonce"],
+    )
+    if existing is not None and existing.get("request_hash") != request_hash:
+        raise RequestRejected(
+            "same submission nonce was reused for a different request",
+            status=409,
+        )
+    if existing is not None and existing.get("settlement_state") in ("SETTLED", "REJECTED"):
+        replay = {
+            "submission": existing,
+            "battle": load_authoritative_battle_state(
+                conn, user_id=user_id, battle_id=str(attempt["battle_id"])
+            ),
+        }
+        return _response_from_settlement(replay, duplicate=True, attempt=attempt)
+    if existing is None:
+        try:
+            _metadata_matches(payload, attempt)
+        except StaleBattleRevision as error:
+            raise RequestRejected(str(error), status=409) from error
     try:
         reservation = reserve_submission_nonce(
             conn,
@@ -895,6 +950,16 @@ def settle_answer(
                 ),
             }
             return _response_from_settlement(replay, duplicate=True, attempt=attempt)
+    try:
+        _metadata_matches(payload, attempt)
+    except StaleBattleRevision as error:
+        raise RequestRejected(str(error), status=409) from error
+    question = question_loader(int(attempt["question_id"]))
+    if not isinstance(question, Mapping):
+        raise JudgeUnavailable("authoritative question is unavailable")
+    expected_revision = question_revision_for(question)
+    if expected_revision != str(attempt["question_revision"]):
+        raise RequestRejected("question revision is stale", status=409)
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")

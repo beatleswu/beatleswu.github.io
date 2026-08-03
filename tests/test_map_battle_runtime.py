@@ -271,6 +271,113 @@ def test_duplicate_same_request_is_exactly_once_and_conflict_is_rejected(battle_
     assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 1
 
 
+def test_settled_duplicate_with_stale_client_revision_replays_without_mutation_or_judge(battle_db):
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}], battle_revision=0)
+    judge_calls = []
+
+    def counting_judge(*args):
+        judge_calls.append(args)
+        return judge_map_battle_answer_v1(*args)
+
+    first = settle_answer(
+        battle_db,
+        user_id=101,
+        payload=payload,
+        question_loader=lambda question_id: QUESTION,
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        now="2026-08-02T00:01:00+00:00",
+        judge=counting_judge,
+    )
+    battle_db.commit()
+    before_retry = tuple(
+        battle_db.execute(
+            "SELECT monster_hp, player_hp, battle_revision FROM map_battles WHERE id=?",
+            (payload["battle_id"],),
+        ).fetchone()
+    )
+
+    def judge_must_not_run(*_args):
+        raise AssertionError("settled duplicate must not rerun the judge")
+
+    retry_payload = {**payload, "battle_revision": first["battle_revision"]}
+    assert request_hash_for(canonicalize_answer(payload, dict(battle_db.execute(
+        "SELECT * FROM map_battle_attempts WHERE id=?", (payload["attempt_id"],)
+    ).fetchone()))) == request_hash_for(canonicalize_answer(
+        retry_payload, dict(battle_db.execute(
+            "SELECT * FROM map_battle_attempts WHERE id=?", (payload["attempt_id"],)
+        ).fetchone())
+    ))
+    duplicate = settle_answer(
+        battle_db,
+        user_id=101,
+        payload=retry_payload,
+        question_loader=lambda question_id: QUESTION,
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        now="2026-08-02T00:02:00+00:00",
+        judge=judge_must_not_run,
+    )
+    after_retry = tuple(
+        battle_db.execute(
+            "SELECT monster_hp, player_hp, battle_revision FROM map_battles WHERE id=?",
+            (payload["battle_id"],),
+        ).fetchone()
+    )
+
+    assert duplicate["duplicate"] is True
+    assert duplicate["submission_id"] == first["submission_id"]
+    assert duplicate["monster_hp_after"] == first["monster_hp_after"]
+    assert duplicate["player_hp_after"] == first["player_hp_after"]
+    assert after_retry == before_retry == (15, 20, 1)
+    assert len(judge_calls) == 1
+
+
+def test_new_submission_with_stale_revision_still_rejects_without_persisting(battle_db):
+    first = _settle(battle_db, _payload(battle_db, moves=[{"x": 3, "y": 3}]))
+    battle_db.commit()
+    issue_attempt_for_context(
+        battle_db,
+        user_id=101,
+        battle_id="battle-s2",
+        question=QUESTION,
+        initial_position_identity="position-new-stale",
+        board_size=19,
+        player_color="B",
+        transform_version="transform-v1",
+        transform_id="identity",
+        attempt_id="attempt-new-stale",
+        issued_at="2026-08-02T00:02:00+00:00",
+        expires_at="2026-08-03T00:00:00+00:00",
+    )
+    issued = issue_submission_nonce_for_attempt(
+        battle_db,
+        user_id=101,
+        attempt_id="attempt-new-stale",
+        now="2026-08-02T00:02:00+00:00",
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+    )
+    attempt = dict(battle_db.execute(
+        "SELECT * FROM map_battle_attempts WHERE id=?", ("attempt-new-stale",)
+    ).fetchone())
+    stale_payload = {
+        "battle_id": attempt["battle_id"],
+        "attempt_id": attempt["id"],
+        "submission_nonce": issued["submission_nonce"],
+        "battle_revision": first["battle_revision"] - 1,
+        "question_revision": attempt["question_revision"],
+        "player_color": "black",
+        "transform_id": attempt["transform_id"],
+        "transform_version": attempt["transform_version"],
+        "moves": [{"x": 3, "y": 3}],
+    }
+    with pytest.raises(RequestRejected, match="stale"):
+        _settle(battle_db, stale_payload)
+    battle_db.rollback()
+    assert battle_db.execute(
+        "SELECT COUNT(*) FROM map_battle_submissions WHERE attempt_id=?",
+        ("attempt-new-stale",),
+    ).fetchone()[0] == 0
+
+
 def test_forged_fields_cross_account_and_revision_mismatch_are_rejected(battle_db):
     payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
     with pytest.raises(ForbiddenClientAuthority):
@@ -574,6 +681,76 @@ def test_submission_lifecycle_postgres_validation_rollback_retry_and_nonce_race(
             "SELECT battle_revision FROM map_battles WHERE id=?", ("pg-race",)
         ).fetchone()["battle_revision"] == 1
         final.close()
+
+        settled_retry_payload = make_attempt(
+            "pg-duplicate-retry", "pg-attempt-duplicate-retry"
+        )
+        first_retry_conn = helpers._postgres_wrapper(database_url)
+        first_retry = settle_answer(
+            first_retry_conn,
+            user_id=101,
+            payload=settled_retry_payload,
+            question_loader=lambda _: QUESTION,
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-02T00:01:00+00:00",
+        )
+        first_retry_conn.commit()
+        first_retry_conn.close()
+        stale_retry_payload = {
+            **settled_retry_payload,
+            "battle_revision": first_retry["battle_revision"],
+        }
+        retry_barrier = threading.Barrier(2)
+        retry_results = []
+
+        def retry_worker():
+            conn = helpers._postgres_wrapper(database_url)
+            try:
+                retry_barrier.wait(timeout=15)
+                result = settle_answer(
+                    conn,
+                    user_id=101,
+                    payload=stale_retry_payload,
+                    question_loader=lambda _: QUESTION,
+                    mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+                    now="2026-08-02T00:02:00+00:00",
+                    judge=lambda *_args: (_ for _ in ()).throw(
+                        AssertionError("settled duplicate retry must not rerun judge")
+                    ),
+                )
+                conn.commit()
+                retry_results.append(result)
+            except Exception as error:  # pragma: no cover - assertion reports it
+                conn.rollback()
+                retry_results.append(error)
+            finally:
+                conn.close()
+
+        retry_threads = [threading.Thread(target=retry_worker) for _ in range(2)]
+        for thread in retry_threads:
+            thread.start()
+        for thread in retry_threads:
+            thread.join(timeout=30)
+            assert not thread.is_alive()
+        assert not any(isinstance(result, Exception) for result in retry_results)
+        assert [result["duplicate"] for result in retry_results] == [True, True]
+        assert len({result["submission_id"] for result in retry_results}) == 1
+
+        retry_final = helpers._postgres_wrapper(database_url)
+        retry_state = retry_final.execute(
+            "SELECT monster_hp, player_hp, battle_revision FROM map_battles WHERE id=?",
+            ("pg-duplicate-retry",),
+        ).fetchone()
+        assert tuple(retry_state) == (
+            first_retry["monster_hp_after"],
+            first_retry["player_hp_after"],
+            first_retry["battle_revision"],
+        )
+        assert retry_final.execute(
+            "SELECT COUNT(*) AS n FROM map_battle_submissions WHERE attempt_id=?",
+            ("pg-attempt-duplicate-retry",),
+        ).fetchone()["n"] == 1
+        retry_final.close()
 
 
 def test_runtime_module_has_no_application_frontend_or_feature_domain_imports():
