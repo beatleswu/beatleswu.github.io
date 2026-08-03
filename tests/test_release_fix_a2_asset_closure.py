@@ -145,6 +145,18 @@ def _run_pwsh(script):
     return result
 
 
+def _copy_required_flat_generation_sources(source):
+    """Build the smallest source fixture accepted by the live inventory."""
+    for filename in ("index.html", "i18n.js", "sw.js", "site-nav.js"):
+        shutil.copy(REPO_ROOT / filename, source / filename)
+    adapter_target = source / "js"
+    adapter_target.mkdir(parents=True, exist_ok=True)
+    shutil.copy(
+        REPO_ROOT / "js" / "map_battle_v1_adapter.js",
+        adapter_target / "map_battle_v1_adapter.js",
+    )
+
+
 def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     # Staging is driven by whatever manifest live-static-asset-inventory.json's
     # required_subtrees entry currently points at -- RELEASE-FIX-A3 switched
@@ -156,9 +168,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
-        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
-        shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
-        shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
+        _copy_required_flat_generation_sources(source)
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
 
         script = f"""
@@ -175,7 +185,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         governed_paths = (
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
-            | {"i18n.js", "sw.js", "index.html"}
+            | {"i18n.js", "sw.js", "index.html", "site-nav.js", "js/map_battle_v1_adapter.js"}
         )
         assert set(staged_by_path.keys()) == governed_paths, (
             "staged file set must be exactly the governed closure -- no more, no less "
@@ -193,9 +203,7 @@ def test_partial_generation_fails_closed_missing_file():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
-        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
-        shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
-        shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
+        _copy_required_flat_generation_sources(source)
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
         # remove one governed file to simulate a partial/corrupt generation
         (source / "assets" / "shop" / "shop_bg.webp").unlink()
@@ -223,9 +231,7 @@ def test_partial_generation_fails_closed_corrupted_hash():
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
         source.mkdir()
-        shutil.copy(REPO_ROOT / "index.html", source / "index.html")
-        shutil.copy(REPO_ROOT / "i18n.js", source / "i18n.js")
-        shutil.copy(REPO_ROOT / "sw.js", source / "sw.js")
+        _copy_required_flat_generation_sources(source)
         shutil.copytree(REPO_ROOT / "assets", source / "assets")
         # corrupt one governed file's bytes, preserving its exact size so
         # this exercises the SHA-256 check specifically (not the size check).
