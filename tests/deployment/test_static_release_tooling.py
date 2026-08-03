@@ -185,6 +185,13 @@ def test_dockerfile_legacy_asset_sources_exist_and_are_narrow():
     assert (REPO_ROOT / "js" / "map_battle_v1_adapter.js").is_file()
 
 
+def test_dockerfile_copies_shared_map_battle_runtime_modules():
+    dockerfile = _read(DOCKERFILE)
+    for module in ("map_battle_runtime.py", "map_battle_persistence.py"):
+        assert re.search(rf"COPY\s+{re.escape(module)}\s+\./", dockerfile)
+        assert (REPO_ROOT / module).is_file()
+
+
 # ---------------------------------------------------------------------------
 # PowerShell syntax (all new/changed release scripts)
 # ---------------------------------------------------------------------------
