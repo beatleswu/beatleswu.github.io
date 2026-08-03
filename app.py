@@ -9883,13 +9883,26 @@ _MAP_BATTLE_TRANSFORM_VERSION = 'map-battle-v1'
 _MAP_BATTLE_TRANSFORM_ID = 'identity'
 
 
-def _map_battle_require_enabled(user_id):
+def _map_battle_eligibility(conn, user_id):
+    """Build server-owned eligibility without trusting session claims."""
+    mode = get_map_battle_v1_mode(os.environ)
+    if mode != 'admin':
+        return {}
+    row = conn.execute(
+        'SELECT is_admin FROM users WHERE id=?', (int(user_id),)
+    ).fetchone()
+    return {'admin': bool(row and row['is_admin'])}
+
+
+def _map_battle_require_enabled(user_id, conn):
     """Fail closed before any Legacy battle or attempt mutation."""
     mode = get_map_battle_v1_mode(os.environ)
     if mode in ('off', 'dark'):
         raise FeatureDisabled()
-    if not mode_eligible(mode, int(user_id)):
+    eligibility = _map_battle_eligibility(conn, user_id)
+    if not mode_eligible(mode, int(user_id), eligibility):
         raise ModeNotEligible()
+    return eligibility
 
 
 def _map_battle_int(value, fallback, *, minimum=0):
@@ -10029,7 +10042,7 @@ def map_battle_v1_prepare_attempt():
         metadata = _map_battle_question_context(question)
         user_id = int(session['user_id'])
         with get_db() as conn:
-            _map_battle_require_enabled(user_id)
+            eligibility = _map_battle_require_enabled(user_id, conn)
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if battle is None:
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
@@ -10058,6 +10071,7 @@ def map_battle_v1_prepare_attempt():
                 transform_version=metadata['transform_version'],
                 transform_id=metadata['transform_id'],
                 mode_environ=os.environ,
+                eligibility=eligibility,
             )
             attempt = dict(conn.execute(
                 'SELECT * FROM map_battle_attempts WHERE id=? AND user_id=?',
@@ -10130,11 +10144,13 @@ def map_battle_v1_submission_nonce(attempt_id):
         }), OLD_CLIENT_HTTP_STATUS
     try:
         with get_db() as conn:
+            eligibility = _map_battle_eligibility(conn, session['user_id'])
             result = issue_submission_nonce_for_attempt(
                 conn,
                 user_id=session['user_id'],
                 attempt_id=attempt_id,
                 mode_environ=os.environ,
+                eligibility=eligibility,
             )
     except MapBattleRuntimeError as error:
         return jsonify({
@@ -10165,12 +10181,14 @@ def map_battle_v1_answers():
     payload = request.get_json(silent=True)
     try:
         with get_db() as conn:
+            eligibility = _map_battle_eligibility(conn, session['user_id'])
             result = settle_answer(
                 conn,
                 user_id=session['user_id'],
                 payload=payload,
                 question_loader=_map_battle_question_by_id,
                 mode_environ=os.environ,
+                eligibility=eligibility,
             )
     except MapBattleRuntimeError as error:
         body = {
