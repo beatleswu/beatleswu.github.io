@@ -84,8 +84,14 @@ function createHarness(opts) {
     readyState: 'complete',
     activeElement: null,
     listeners: {},
+    events: [],
     addEventListener(name, fn) {
-      this.listeners[name] = fn;
+      (this.listeners[name] || (this.listeners[name] = [])).push(fn);
+    },
+    dispatchEvent(event) {
+      this.events.push(event);
+      (this.listeners[event.type] || []).slice().forEach((fn) => fn(event));
+      return true;
     },
   };
   doc.body = new FakeNode('body', doc);
@@ -256,6 +262,9 @@ test('switching back to legacy restores tab order and focus', async () => {
   assert.strictEqual(h.doc.activeElement, h.legacyButton);
   assert.strictEqual(h.legacyButton.tabIndex, 0);
   assert.strictEqual(h.e9Button.tabIndex, -1);
+  const event = h.doc.events[h.doc.events.length - 1];
+  assert.strictEqual(event.type, 'e9:shell-state-changed');
+  assert.strictEqual(event.detail.activeShell, 'legacy');
 });
 
 test('initShell is idempotent for fragment mounts', async () => {
@@ -295,6 +304,8 @@ test('auth handoff can reacquire E9 ownership after initial legacy init', async 
   await h.flush();
 
   assert.strictEqual(h.win.E9.getActiveShell(), 'e9');
+  assert.strictEqual(h.doc.body.getAttribute('data-adventure-shell-active'), 'e9');
+  assert.strictEqual(h.doc.events[h.doc.events.length - 1].detail.activeShell, 'e9');
   assert.strictEqual(h.e9Root.hidden, false);
   assert.strictEqual(h.legacyRoots[0].hidden, true);
 });

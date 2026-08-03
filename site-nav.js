@@ -119,6 +119,19 @@
     buildVerifyBanner(header);
   }
 
+  function reconcileNavigation() {
+    const header = document.querySelector('header.cg-nav');
+    if (!header) return;
+    if (ownsE10Navigation()) {
+      header.dataset.e10SessionStrip = '1';
+      header.querySelector('.cg-nav-links')?.remove();
+      return;
+    }
+    if (header.dataset.e10SessionStrip === '1' && !header.querySelector('.cg-nav-links')) {
+      buildNav();
+    }
+  }
+
   // ── Email 未驗證提示橫幅 ─────────────────────────────────────
   const VERIFY_DISMISS_KEY = 'cg_verify_banner_dismissed';
 
@@ -509,6 +522,7 @@
 
   function init() {
     injectStyles();
+    document.addEventListener('e9:shell-state-changed', reconcileNavigation);
     buildNav();
     const startPresence = () => initPresence();
     if ('requestIdleCallback' in window) {
