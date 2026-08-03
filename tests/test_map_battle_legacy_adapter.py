@@ -1,5 +1,6 @@
 """Sprint 2B executable Legacy Map Battle bridge and lifecycle coverage."""
 
+import ast
 import json
 import os
 import subprocess
@@ -98,23 +99,107 @@ class _DbContext:
 def api_env(app_module, monkeypatch):
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    conn.create_function("GREATEST", 2, max)
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute(
-        "CREATE TABLE users (id INTEGER PRIMARY KEY, is_admin INTEGER NOT NULL DEFAULT 0)"
+        """CREATE TABLE users (
+             id INTEGER PRIMARY KEY,
+             is_admin INTEGER NOT NULL DEFAULT 0,
+             elo_rating REAL NOT NULL DEFAULT 1400
+        )"""
     )
     conn.executemany("INSERT INTO users(id) VALUES (?)", [(101,), (202,)])
     conn.execute(
         """CREATE TABLE user_stats (
              user_id INTEGER PRIMARY KEY,
+             total_correct INTEGER NOT NULL DEFAULT 0,
+             current_streak INTEGER NOT NULL DEFAULT 0,
+             max_streak INTEGER NOT NULL DEFAULT 0,
+             mistake_corrected INTEGER NOT NULL DEFAULT 0,
+             updated_at TEXT,
+             xp INTEGER NOT NULL DEFAULT 0,
+             combo_streak INTEGER NOT NULL DEFAULT 0,
+             max_combo INTEGER NOT NULL DEFAULT 0,
+             rank_level TEXT NOT NULL DEFAULT 'LV1',
+             rank_xp INTEGER NOT NULL DEFAULT 0,
+             elo_rating REAL NOT NULL DEFAULT 1400,
              player_hp INTEGER NOT NULL DEFAULT 30,
              player_max_hp INTEGER NOT NULL DEFAULT 30
         )"""
     )
     conn.execute("INSERT INTO user_stats(user_id, player_hp, player_max_hp) VALUES (101, 30, 30)")
+    conn.execute(
+        """CREATE TABLE srs_cards (
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             ease_factor REAL NOT NULL DEFAULT 2.5,
+             interval INTEGER NOT NULL DEFAULT 0,
+             repetitions INTEGER NOT NULL DEFAULT 0,
+             due_date TEXT,
+             last_grade INTEGER,
+             updated_at TEXT,
+             progress_credited INTEGER NOT NULL DEFAULT 0,
+             PRIMARY KEY (user_id, question_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE review_log (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             grade INTEGER NOT NULL,
+             topic TEXT,
+             level TEXT,
+             difficulty TEXT,
+             reviewed_at TEXT NOT NULL,
+             source TEXT,
+             response_ms INTEGER,
+             discipline TEXT,
+             player_rating_snapshot REAL,
+             question_rating_snapshot REAL,
+             item_rating_version TEXT,
+             question_version TEXT,
+             source_context TEXT,
+             is_scaffolding INTEGER NOT NULL DEFAULT 0,
+             training_set_id INTEGER
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE mistake_log (
+             user_id INTEGER NOT NULL,
+             question_id INTEGER NOT NULL,
+             wrong_count INTEGER NOT NULL DEFAULT 1,
+             correct_after INTEGER NOT NULL DEFAULT 0,
+             first_wrong_at TEXT NOT NULL,
+             last_wrong_at TEXT NOT NULL,
+             last_correct_at TEXT,
+             PRIMARY KEY (user_id, question_id)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE user_pets (
+             user_id INTEGER PRIMARY KEY,
+             pet_key TEXT NOT NULL,
+             nickname TEXT,
+             level INTEGER NOT NULL DEFAULT 1,
+             xp INTEGER NOT NULL DEFAULT 0,
+             fullness INTEGER NOT NULL DEFAULT 60,
+             affection INTEGER NOT NULL DEFAULT 10,
+             selected_at TEXT NOT NULL,
+             last_fed_at TEXT,
+             last_interacted_at TEXT,
+             updated_at TEXT
+        )"""
+    )
     ensure_map_battle_tables(conn)
     ensure_submission_lifecycle_schema(conn)
     monkeypatch.setattr(app_module, "get_db", lambda: _DbContext(conn))
     monkeypatch.setattr(app_module, "_load_questions", lambda: [dict(QUESTION)])
+    monkeypatch.setattr(app_module, "check_and_award", lambda *args, **kwargs: [])
+    monkeypatch.setattr(app_module, "_get_appearance_effects", lambda *args, **kwargs: {})
+    monkeypatch.setattr(app_module, "_pet_player_xp_bonus", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(app_module, "_effect_get", lambda *args, **kwargs: None)
+    monkeypatch.setattr(app_module, "_update_monster_and_quests", lambda *args, **kwargs: {})
     monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "global")
     client = app_module.app.test_client()
     with client.session_transaction() as session:
@@ -226,9 +311,26 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert result["monster_hp_after"] < result["monster_hp_before"]
     assert result["player_hp_after"] == result["player_hp_before"] == 30
     assert result["battle_revision"] == 1
+    assert result["progression"]["status"] == "applied"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT source_context FROM review_log WHERE user_id=101"
+    ).fetchone()[0].startswith("mbv1:")
+    card = conn.execute(
+        "SELECT progress_credited,last_grade FROM srs_cards WHERE user_id=101 AND question_id=?",
+        (QUESTION["id"],),
+    ).fetchone()
+    assert (card["progress_credited"], card["last_grade"]) == (1, 5)
+    stats = conn.execute(
+        "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=101"
+    ).fetchone()
+    assert stats["total_correct"] == stats["current_streak"] == 1
+    assert stats["xp"] > 0
 
     duplicate_payload = _answer_payload(correct, [{"x": 3, "y": 3}])
-    duplicate_payload["battle_revision"] = result["battle_revision"]
+    duplicate_payload["battle_revision"] = 0
     duplicate_response = client.post(
         ANSWER_ENDPOINT,
         json=duplicate_payload,
@@ -239,6 +341,13 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert duplicate["duplicate"] is True
     assert duplicate["monster_hp_after"] == result["monster_hp_after"]
     assert duplicate["battle_revision"] == result["battle_revision"]
+    assert duplicate["progression"]["status"] == "duplicate"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=101"
+    ).fetchone() == stats
 
     incorrect = _prepare(client, "legacy::incorrect")
     incorrect_response = client.post(
@@ -264,12 +373,16 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert invalid_result["result"] == "INVALID"
     assert invalid_result["damage_to_monster"] == invalid_result["damage_to_player"] == 0
     assert invalid_result["battle_revision"] == 0
+    assert invalid_result["progression"]["status"] == "not_applicable"
     invalid_battle = _battle(conn, invalid["battle_id"])
     assert (invalid_battle["monster_hp"], invalid_battle["player_hp"], invalid_battle["battle_revision"]) == (40, 30, 0)
     assert conn.execute(
         "SELECT settlement_state FROM map_battle_submissions WHERE id=?",
         (invalid_result["submission_id"],),
     ).fetchone()[0] == "REJECTED"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 2
 
 
 def test_legacy_forged_fields_expiry_and_stale_revision_do_not_mutate(api_env):
@@ -446,6 +559,110 @@ def test_global_mode_remains_available_without_admin_status(api_env, monkeypatch
     assert state["attempt_id"]
 
 
+def test_map_battle_progression_reuses_canonical_antifarming_for_new_attempts(api_env):
+    client, conn = api_env
+
+    first = _prepare(client, "legacy::progress-first")
+    first_result = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(first, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert first_result["progression"]["status"] == "applied"
+
+    second = _prepare(client, "legacy::progress-second")
+    second_result = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(second, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert second_result["progression"]["status"] == "applied"
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 2
+    stats = conn.execute(
+        "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=101"
+    ).fetchone()
+    assert (stats["total_correct"], stats["current_streak"]) == (1, 1)
+    assert stats["xp"] > 0
+    card = conn.execute(
+        "SELECT progress_credited,last_grade FROM srs_cards WHERE user_id=101 AND question_id=?",
+        (QUESTION["id"],),
+    ).fetchone()
+    assert (card["progress_credited"], card["last_grade"]) == (1, 5)
+
+
+def test_normal_srs_review_stays_on_canonical_route_and_reserved_marker_is_server_only(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(app_module, "is_premium", lambda *args, **kwargs: True)
+
+    normal = client.post(
+        "/api/srs/review",
+        json={"question_id": QUESTION["id"], "grade": 5},
+    )
+    assert normal.status_code == 200, normal.get_json()
+    assert normal.get_json()["ok"] is True
+    assert conn.execute(
+        "SELECT source_context FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == "practice"
+
+    forged_marker = client.post(
+        "/api/srs/review",
+        json={
+            "question_id": QUESTION["id"],
+            "grade": 5,
+            "source_context": "mbv1:forged-submission",
+        },
+    )
+    assert forged_marker.status_code == 400
+    assert forged_marker.get_json()["error"] == "reserved_source_context"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE source_context LIKE 'mbv1:%'"
+    ).fetchone()[0] == 0
+
+
+def test_progression_failure_does_not_rollback_authoritative_battle_settlement(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    state = _prepare(client, "legacy::progress-failure")
+    real_operation = app_module._srs_review_operation
+
+    def fail_progression(*args, **kwargs):
+        raise RuntimeError("synthetic_failure")
+
+    monkeypatch.setattr(app_module, "_srs_review_operation", fail_progression)
+
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert response.status_code == 503
+    assert response.get_json()["code"] == "adventure_progression_pending"
+    battle = _battle(conn, state["battle_id"])
+    assert battle["monster_hp"] < battle["monster_hp_max"]
+    assert battle["battle_revision"] == 1
+    assert conn.execute(
+        "SELECT settlement_state FROM map_battle_submissions"
+    ).fetchone()[0] == "SETTLED"
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 0
+
+    monkeypatch.setattr(app_module, "_srs_review_operation", real_operation)
+    retry = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert retry.status_code == 200, retry.get_json()
+    assert retry.get_json()["duplicate"] is True
+    assert retry.get_json()["progression"]["status"] == "applied"
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 1
+
+
 def test_legacy_cross_account_battle_state_is_not_visible(api_env):
     client, conn = api_env
     state = _prepare(client, "legacy::ownership")
@@ -536,6 +753,20 @@ vm.runInContext(source, vm.createContext({ window, console, Number, String, Arra
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_battle_runtime_import_boundary_has_no_progression_dependencies():
+    runtime = ast.parse(
+        (ROOT / "map_battle_runtime.py").read_text(encoding="utf-8")
+    )
+    forbidden = {"adventure", "guild", "srs", "frontend", "js"}
+    imports = []
+    for node in ast.walk(runtime):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.append(node.module.split(".")[0])
+    assert not (set(imports) & forbidden)
 
 
 def test_normal_srs_route_remains_present_and_service_worker_identity_is_unchanged():
