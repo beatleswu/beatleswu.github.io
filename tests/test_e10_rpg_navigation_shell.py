@@ -165,7 +165,10 @@ process.stdout.write(JSON.stringify({ before, after, result, challengeCalls, eve
     contract = json.loads(result.stdout)
     assert contract["before"] == contract["after"]
     assert contract["challengeCalls"] == 0
-    assert contract["events"] == ["e9:adventure-command", "e9:adventure-command"]
+    assert [event for event in contract["events"] if event == "e9:adventure-command"] == [
+        "e9:adventure-command",
+        "e9:adventure-command",
+    ]
     assert contract["scrollCalls"] == [
         {"behavior": "smooth", "block": "start"},
         {"behavior": "auto", "block": "start"},

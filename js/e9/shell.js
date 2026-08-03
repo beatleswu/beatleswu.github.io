@@ -199,8 +199,14 @@
     legacyRoots.forEach(function (root) { setRootState(root, mode === 'legacy'); });
     setRootState(e9Root, mode === 'e9');
 
+    global.__GO_E9_ACTIVE_SHELL__ = mode;
     document.body.setAttribute('data-adventure-shell-active', mode);
     activeShellState = mode;
+    if (typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      document.dispatchEvent(new CustomEvent('e9:shell-state-changed', {
+        detail: { activeShell: mode }
+      }));
+    }
 
     if (focusNeedsMove) {
       var activeRoots = mode === 'e9' ? (e9Root ? [e9Root] : []) : legacyRoots;

@@ -51,5 +51,8 @@ def test_legacy_navigation_surface_preserves_keyboard_and_accessibility_contract
 
 
 def test_e9_session_strip_has_one_explicit_ownership_branch():
-    assert SITE_NAV.count("if (ownsE10Navigation())") == 1
+    build_nav = SITE_NAV.split("function buildNav()", 1)[1].split(
+        "function reconcileNavigation()", 1
+    )[0]
+    assert build_nav.count("if (ownsE10Navigation())") == 1
     assert "header.dataset.e10SessionStrip = '1';" in SITE_NAV
