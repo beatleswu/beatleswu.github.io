@@ -45,6 +45,11 @@ COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./
 COPY backend_i18n.py ./
 COPY community_leaderboard_rewards.py ./
+# Map Battle V1 is application runtime, not external static content. Keep the
+# shared runtime modules explicit so app.py can import the authoritative
+# settlement service from the built image.
+COPY map_battle_runtime.py ./
+COPY map_battle_persistence.py ./
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
 # absent from this explicit COPY list despite app.py already depending on
