@@ -6,13 +6,23 @@ import os
 import subprocess
 import sqlite3
 import sys
+import threading
 import types
 from pathlib import Path
 
 import pytest
 
-from map_battle_persistence import ensure_map_battle_tables, hash_submission_nonce
-from map_battle_runtime import ensure_submission_lifecycle_schema
+from map_battle_persistence import (
+    create_map_battle,
+    ensure_map_battle_tables,
+    hash_submission_nonce,
+)
+from map_battle_runtime import (
+    ensure_submission_lifecycle_schema,
+    issue_attempt_for_context,
+    issue_submission_nonce_for_attempt,
+    settle_answer,
+)
 
 
 # The app import below is deliberately process-scoped to a synthetic key.  It
@@ -661,6 +671,309 @@ def test_progression_failure_does_not_rollback_authoritative_battle_settlement(
     assert retry.get_json()["duplicate"] is True
     assert retry.get_json()["progression"]["status"] == "applied"
     assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == 1
+
+
+def test_postgres_concurrent_map_battle_progression_is_exactly_once(
+    app_module, monkeypatch
+):
+    """Two PostgreSQL sessions must credit one settled submission once.
+
+    The second session is deliberately entered while the first session holds
+    the settled-submission FOR UPDATE lock.  This is not a sequential retry
+    approximation and does not use SQLite as a concurrency substitute.
+    """
+
+    import importlib.util
+
+    helper_path = Path(__file__).with_name("test_map_battle_persistence.py")
+    spec = importlib.util.spec_from_file_location(
+        "map_battle_progression_pg_helpers", helper_path
+    )
+    helpers = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helpers)
+
+    with helpers._postgres_container() as database_url:
+        seed = helpers._postgres_wrapper(database_url)
+        seed.execute(
+            """CREATE TABLE users (
+                 id INTEGER PRIMARY KEY,
+                 elo_rating DOUBLE PRECISION NOT NULL DEFAULT 1400
+            )"""
+        )
+        seed.execute("INSERT INTO users(id) VALUES (?)", (101,))
+        seed.execute(
+            """CREATE TABLE user_stats (
+                 user_id INTEGER PRIMARY KEY,
+                 total_correct INTEGER NOT NULL DEFAULT 0,
+                 current_streak INTEGER NOT NULL DEFAULT 0,
+                 max_streak INTEGER NOT NULL DEFAULT 0,
+                 mistake_corrected INTEGER NOT NULL DEFAULT 0,
+                 updated_at TEXT,
+                 xp INTEGER NOT NULL DEFAULT 0,
+                 combo_streak INTEGER NOT NULL DEFAULT 0,
+                 max_combo INTEGER NOT NULL DEFAULT 0,
+                 rank_level TEXT NOT NULL DEFAULT 'LV1',
+                 rank_xp INTEGER NOT NULL DEFAULT 0,
+                 elo_rating DOUBLE PRECISION NOT NULL DEFAULT 1400,
+                 player_hp INTEGER NOT NULL DEFAULT 30,
+                 player_max_hp INTEGER NOT NULL DEFAULT 30
+            )"""
+        )
+        seed.execute("INSERT INTO user_stats(user_id) VALUES (?)", (101,))
+        seed.execute(
+            """CREATE TABLE srs_cards (
+                 user_id INTEGER NOT NULL,
+                 question_id INTEGER NOT NULL,
+                 ease_factor DOUBLE PRECISION NOT NULL DEFAULT 2.5,
+                 interval INTEGER NOT NULL DEFAULT 0,
+                 repetitions INTEGER NOT NULL DEFAULT 0,
+                 due_date TEXT,
+                 last_grade INTEGER,
+                 updated_at TEXT,
+                 progress_credited INTEGER NOT NULL DEFAULT 0,
+                 PRIMARY KEY (user_id, question_id)
+            )"""
+        )
+        seed.execute(
+            """CREATE TABLE review_log (
+                 id SERIAL PRIMARY KEY,
+                 user_id INTEGER NOT NULL,
+                 question_id INTEGER NOT NULL,
+                 grade INTEGER NOT NULL,
+                 topic TEXT,
+                 level TEXT,
+                 difficulty TEXT,
+                 reviewed_at TEXT NOT NULL,
+                 source TEXT,
+                 response_ms INTEGER,
+                 discipline TEXT,
+                 player_rating_snapshot DOUBLE PRECISION,
+                 question_rating_snapshot DOUBLE PRECISION,
+                 item_rating_version TEXT,
+                 question_version TEXT,
+                 source_context TEXT,
+                 is_scaffolding INTEGER NOT NULL DEFAULT 0,
+                 training_set_id INTEGER
+            )"""
+        )
+        seed.execute(
+            """CREATE TABLE mistake_log (
+                 user_id INTEGER NOT NULL,
+                 question_id INTEGER NOT NULL,
+                 wrong_count INTEGER NOT NULL DEFAULT 1,
+                 correct_after INTEGER NOT NULL DEFAULT 0,
+                 first_wrong_at TEXT NOT NULL,
+                 last_wrong_at TEXT NOT NULL,
+                 last_correct_at TEXT,
+                 PRIMARY KEY (user_id, question_id)
+            )"""
+        )
+        seed.execute("CREATE TABLE user_pets (user_id INTEGER PRIMARY KEY)")
+        ensure_map_battle_tables(seed)
+        ensure_submission_lifecycle_schema(seed)
+        create_map_battle(
+            seed,
+            battle_id="battle-progress-concurrent",
+            user_id=101,
+            zone_key="legacy::progress-concurrent",
+            player_hp=30,
+            player_hp_max=30,
+            monster_hp=40,
+            monster_hp_max=40,
+            now="2026-08-03T00:00:00+00:00",
+        )
+        issue_attempt_for_context(
+            seed,
+            user_id=101,
+            battle_id="battle-progress-concurrent",
+            question=QUESTION,
+            initial_position_identity="progress-concurrent-position",
+            board_size=19,
+            player_color="B",
+            transform_version="transform-v1",
+            transform_id="identity",
+            attempt_id="attempt-progress-concurrent",
+            issued_at="2026-08-03T00:00:00+00:00",
+            expires_at="2026-08-04T00:00:00+00:00",
+        )
+        issued = issue_submission_nonce_for_attempt(
+            seed,
+            user_id=101,
+            attempt_id="attempt-progress-concurrent",
+            now="2026-08-03T00:00:00+00:00",
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        )
+        attempt = seed.execute(
+            "SELECT * FROM map_battle_attempts WHERE id=?",
+            ("attempt-progress-concurrent",),
+        ).fetchone()
+        answer_payload = {
+            "battle_id": attempt["battle_id"],
+            "attempt_id": attempt["id"],
+            "submission_nonce": issued["submission_nonce"],
+            "battle_revision": 0,
+            "question_revision": attempt["question_revision"],
+            "player_color": "black",
+            "transform_id": attempt["transform_id"],
+            "transform_version": attempt["transform_version"],
+            "moves": [{"x": 3, "y": 3}],
+        }
+        settlement = settle_answer(
+            seed,
+            user_id=101,
+            payload=answer_payload,
+            question_loader=lambda question_id: (
+                QUESTION if question_id == QUESTION["id"] else None
+            ),
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-03T00:01:00+00:00",
+        )
+        seed.commit()
+        battle_before = seed.execute(
+            "SELECT player_hp, monster_hp, battle_revision FROM map_battles WHERE id=?",
+            ("battle-progress-concurrent",),
+        ).fetchone()
+        seed.close()
+
+        calls = {"badges": 0, "xp": 0, "streak": 0}
+        calls_lock = threading.Lock()
+
+        def count_badges(*_args, **_kwargs):
+            with calls_lock:
+                calls["badges"] += 1
+            return []
+
+        def fixed_xp(*_args, **_kwargs):
+            with calls_lock:
+                calls["xp"] += 1
+            return 10, 1.0
+
+        real_counter_update = app_module._apply_credited_review_counters
+
+        def count_streak_mutation(*args, **kwargs):
+            with calls_lock:
+                calls["streak"] += 1
+            return real_counter_update(*args, **kwargs)
+
+        monkeypatch.setattr(app_module, "_load_questions", lambda: [dict(QUESTION)])
+        monkeypatch.setattr(app_module, "check_and_award", count_badges)
+        monkeypatch.setattr(app_module, "calc_xp_gain", fixed_xp)
+        monkeypatch.setattr(
+            app_module,
+            "_apply_credited_review_counters",
+            count_streak_mutation,
+        )
+        monkeypatch.setattr(app_module, "_get_appearance_effects", lambda *a, **k: {})
+        monkeypatch.setattr(app_module, "_pet_player_xp_bonus", lambda *a, **k: 0)
+        monkeypatch.setattr(app_module, "_effect_get", lambda *a, **k: None)
+        monkeypatch.setattr(app_module, "_update_monster_and_quests", lambda *a, **k: {})
+
+        thread_state = threading.local()
+
+        def thread_db():
+            return _DbContext(thread_state.connection)
+
+        monkeypatch.setattr(app_module, "get_db", thread_db)
+
+        real_submission_loader = app_module._map_battle_progression_submission
+        entry_lock = threading.Lock()
+        second_entered = threading.Event()
+        loader_entries = 0
+
+        def locked_submission_loader(conn, user_id, submission_id):
+            nonlocal loader_entries
+            with entry_lock:
+                loader_entries += 1
+                ordinal = loader_entries
+            if ordinal == 1:
+                row = real_submission_loader(conn, user_id, submission_id)
+                assert second_entered.wait(timeout=15)
+                return row
+            second_entered.set()
+            return real_submission_loader(conn, user_id, submission_id)
+
+        monkeypatch.setattr(
+            app_module,
+            "_map_battle_progression_submission",
+            locked_submission_loader,
+        )
+
+        start = threading.Barrier(2)
+        outcomes = []
+        errors = []
+        result_lock = threading.Lock()
+
+        def run_progression():
+            connection = helpers._postgres_wrapper(database_url)
+            thread_state.connection = connection
+            try:
+                with app_module.app.app_context():
+                    start.wait(timeout=15)
+                    outcome, status = app_module._run_map_battle_progression(
+                        101, settlement
+                    )
+                with result_lock:
+                    outcomes.append((outcome, status))
+            except BaseException as error:  # pragma: no cover - assertion below
+                with result_lock:
+                    errors.append(error)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=run_progression) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+            assert not thread.is_alive()
+        assert errors == []
+        assert len(outcomes) == 2
+        assert sorted(
+            (status, outcome["status"]) for outcome, status in outcomes
+        ) == [(200, "applied"), (200, "duplicate")]
+
+        retry_connection = helpers._postgres_wrapper(database_url)
+        thread_state.connection = retry_connection
+        with app_module.app.app_context():
+            retry_outcome, retry_status = app_module._run_map_battle_progression(
+                101, settlement
+            )
+        retry_connection.close()
+        assert retry_status == 200
+        assert retry_outcome["status"] == "duplicate"
+
+        verify = helpers._postgres_wrapper(database_url)
+        review_count = verify.execute(
+            "SELECT COUNT(*) AS n FROM review_log WHERE user_id=? AND source_context LIKE ?",
+            (101, "mbv1:%"),
+        ).fetchone()["n"]
+        assert review_count == 1
+        stats = verify.execute(
+            "SELECT total_correct,current_streak,xp FROM user_stats WHERE user_id=?",
+            (101,),
+        ).fetchone()
+        assert (stats["total_correct"], stats["current_streak"], stats["xp"]) == (
+            1,
+            1,
+            10,
+        )
+        card = verify.execute(
+            "SELECT progress_credited,last_grade,repetitions FROM srs_cards "
+            "WHERE user_id=? AND question_id=?",
+            (101, QUESTION["id"]),
+        ).fetchone()
+        assert (
+            card["progress_credited"],
+            card["last_grade"],
+            card["repetitions"],
+        ) == (1, 5, 1)
+        battle_after = verify.execute(
+            "SELECT player_hp, monster_hp, battle_revision FROM map_battles WHERE id=?",
+            ("battle-progress-concurrent",),
+        ).fetchone()
+        assert tuple(battle_after) == tuple(battle_before)
+        assert calls == {"badges": 1, "xp": 1, "streak": 1}
+        verify.close()
 
 
 def test_legacy_cross_account_battle_state_is_not_visible(api_env):
