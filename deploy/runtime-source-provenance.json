@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "5621f0af821cb9854ae9fb437cc2de77ca681bd2",
+      "source_commit": "b316804b7d5a62182149ecb72410b417d3292db7",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #259 from beatleswu/codex/e10-battle-scene-presentation-auto-next-recovery-impl-20260803",
+      "source_commit_subject": "Merge pull request #261 from beatleswu/codex/e10-global-navi-cache-identity-fix-impl",
       "source_date": "2026-08-04",
-      "content_sha256": "dda87c314734684d33d9dc7b9c7079d13b70e73ffa743d164bdb3e52e2cf383b",
+      "content_sha256": "e138398b873e7e90e1e1dd7bdafe63c0b46f1abd81b8d7daeec8d68d5890532d",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 5621f0af821cb9854ae9fb437cc2de77ca681bd2; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge b316804b7d5a62182149ecb72410b417d3292db7; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -519,14 +519,14 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "7cd2169b3c9dbc54c2316baa1dc9132dd258313b",
+      "source_commit": "b316804b7d5a62182149ecb72410b417d3292db7",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: restore canonical E9 responsive layout contracts",
-      "source_date": "2026-08-02",
-      "content_sha256": "488b6fa9d5ea266e0969a2c0d83f1d8c052f442719991ce476b4ede257f7fe23",
+      "source_commit_subject": "Merge pull request #261 from beatleswu/codex/e10-global-navi-cache-identity-fix-impl",
+      "source_date": "2026-08-04",
+      "content_sha256": "a15fcea76c1bf58730fc5bb024daa8a0bb75c5ffbf6667780c69a17998cb9b87",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "merged to origin/master at merge 4163d9bda88db489358355c17f11de7f5dc664cd; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge b316804b7d5a62182149ecb72410b417d3292db7; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
