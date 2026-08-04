@@ -82,8 +82,186 @@ function contentTypeFor(filePath) {
 
 const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">';
 
+const runnerInstrumentation = {
+  nextPageId: 1,
+  pages: [],
+  servers: [],
+};
+
+function observedAt() {
+  return new Date().toISOString();
+}
+
+function safeFrameUrl(value) {
+  try {
+    const frame = typeof value.frame === 'function' ? value.frame() : null;
+    return frame ? frame.url() : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeFromServiceWorker(response) {
+  try {
+    return typeof response.fromServiceWorker === 'function'
+      ? response.fromServiceWorker()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function recordEvent(collection, kind, payload = {}) {
+  collection.push({ kind, timestamp: observedAt(), ...payload });
+}
+
+function labelPageDiagnostics(page, label) {
+  if (page.__e10RunnerDiagnostics) page.__e10RunnerDiagnostics.label = label;
+}
+
+async function installPageDiagnostics(page, browserErrors) {
+  const diagnostics = {
+    page_id: `page-${runnerInstrumentation.nextPageId}`,
+    label: null,
+    created_at: observedAt(),
+    initial_url: page.url(),
+    events: [],
+    cdp_events: [],
+    browser_events: [],
+    instrumentation_errors: [],
+  };
+  runnerInstrumentation.nextPageId += 1;
+  runnerInstrumentation.pages.push(diagnostics);
+  page.__e10RunnerDiagnostics = diagnostics;
+
+  page.on('request', (request) => recordEvent(diagnostics.events, 'request', {
+    url: request.url(),
+    method: request.method(),
+    resource_type: request.resourceType(),
+    frame: safeFrameUrl(request),
+  }));
+  page.on('response', (response) => recordEvent(diagnostics.events, 'response', {
+    url: response.url(),
+    method: response.request().method(),
+    resource_type: response.request().resourceType(),
+    status: response.status(),
+    status_text: response.statusText(),
+    frame: safeFrameUrl(response),
+    from_service_worker: safeFromServiceWorker(response),
+  }));
+  page.on('requestfinished', (request) => recordEvent(diagnostics.events, 'requestfinished', {
+    url: request.url(),
+    method: request.method(),
+    resource_type: request.resourceType(),
+    frame: safeFrameUrl(request),
+  }));
+  page.on('requestfailed', (request) => {
+    const failure = request.failure();
+    recordEvent(diagnostics.events, 'requestfailed', {
+      url: request.url(),
+      method: request.method(),
+      resource_type: request.resourceType(),
+      failure_text: failure?.errorText || null,
+      frame: safeFrameUrl(request),
+    });
+    browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
+  });
+  page.on('console', (message) => {
+    const location = typeof message.location === 'function' ? message.location() : null;
+    recordEvent(diagnostics.browser_events, 'console', {
+      type: message.type(),
+      text: message.text(),
+      location,
+    });
+    if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
+  });
+  page.on('pageerror', (error) => {
+    const text = error && error.stack ? error.stack : String(error);
+    recordEvent(diagnostics.browser_events, 'pageerror', { text });
+    browserErrors.push({ kind: 'pageerror', text });
+  });
+  page.on('crash', () => recordEvent(diagnostics.browser_events, 'crash'));
+  page.on('close', () => recordEvent(diagnostics.browser_events, 'close', { url: page.url() }));
+
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Network.enable');
+    diagnostics.cdp_network_enabled = true;
+    cdp.on('Network.requestWillBeSent', (event) => recordEvent(diagnostics.cdp_events, 'Network.requestWillBeSent', {
+      request_id: event.requestId,
+      url: event.request?.url,
+      method: event.request?.method,
+      type: event.type,
+      cdp_timestamp: event.timestamp,
+    }));
+    cdp.on('Network.responseReceived', (event) => recordEvent(diagnostics.cdp_events, 'Network.responseReceived', {
+      request_id: event.requestId,
+      url: event.response?.url,
+      status: event.response?.status,
+      mime_type: event.response?.mimeType,
+      from_service_worker: event.response?.fromServiceWorker,
+      type: event.type,
+      cdp_timestamp: event.timestamp,
+    }));
+    cdp.on('Network.loadingFinished', (event) => recordEvent(diagnostics.cdp_events, 'Network.loadingFinished', {
+      request_id: event.requestId,
+      encoded_data_length: event.encodedDataLength,
+      cdp_timestamp: event.timestamp,
+    }));
+    cdp.on('Network.loadingFailed', (event) => recordEvent(diagnostics.cdp_events, 'Network.loadingFailed', {
+      request_id: event.requestId,
+      error_text: event.errorText,
+      blocked_reason: event.blockedReason || null,
+      canceled: Boolean(event.canceled),
+      type: event.type,
+      cdp_timestamp: event.timestamp,
+    }));
+  } catch (error) {
+    diagnostics.instrumentation_errors.push({
+      kind: 'cdp_setup',
+      timestamp: observedAt(),
+      text: error.stack || String(error),
+    });
+  }
+
+  return diagnostics;
+}
+
 async function startStaticServer({ contractCase = 'target' } = {}) {
+  const serverDiagnostics = {
+    server_id: `server-${runnerInstrumentation.servers.length + 1}`,
+    contract_case: contractCase,
+    created_at: observedAt(),
+    events: [],
+  };
+  runnerInstrumentation.servers.push(serverDiagnostics);
   const server = http.createServer(async (request, response) => {
+    const requestId = `${serverDiagnostics.server_id}-request-${serverDiagnostics.events.filter((event) => event.kind === 'request').length + 1}`;
+    recordEvent(serverDiagnostics.events, 'request', {
+      request_id: requestId,
+      method: request.method,
+      url: request.url,
+    });
+    response.on('finish', () => recordEvent(serverDiagnostics.events, 'response_finished', {
+      request_id: requestId,
+      status: response.statusCode,
+    }));
+    response.on('close', () => recordEvent(serverDiagnostics.events, 'response_closed', {
+      request_id: requestId,
+      status: response.statusCode,
+    }));
+    response.on('error', (error) => recordEvent(serverDiagnostics.events, 'response_error', {
+      request_id: requestId,
+      text: error.stack || String(error),
+    }));
+    const recordResponseCreated = (status, headers = {}, relativePath = null) => {
+      recordEvent(serverDiagnostics.events, 'response_created', {
+        request_id: requestId,
+        status,
+        relative_path: relativePath,
+        content_type: headers['Content-Type'] || headers['content-type'] || null,
+      });
+    };
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
       const relative = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
@@ -92,6 +270,7 @@ async function startStaticServer({ contractCase = 'target' } = {}) {
       const stat = await fs.stat(absolute).catch(() => null);
       if (!stat?.isFile()) {
         response.writeHead(404);
+        recordResponseCreated(404, {}, relative);
         response.end('not found');
         return;
       }
@@ -112,25 +291,33 @@ async function startStaticServer({ contractCase = 'target' } = {}) {
         } else {
           throw new Error(`unknown contract case: ${contractCase}`);
         }
-        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        const headers = { 'Content-Type': 'text/html; charset=utf-8' };
+        response.writeHead(200, headers);
+        recordResponseCreated(200, headers, relative);
         response.end(html);
         return;
       }
-      response.writeHead(200, { 'Content-Type': contentTypeFor(absolute) });
+      const headers = { 'Content-Type': contentTypeFor(absolute) };
+      response.writeHead(200, headers);
+      recordResponseCreated(200, headers, relative);
       fssync.createReadStream(absolute).pipe(response);
     } catch (error) {
       response.writeHead(500);
+      recordResponseCreated(500, {}, null);
       response.end(String(error));
     }
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  return { server, origin: `http://127.0.0.1:${server.address().port}` };
+  serverDiagnostics.listening_at = observedAt();
+  serverDiagnostics.origin = `http://127.0.0.1:${server.address().port}`;
+  return { server, origin: serverDiagnostics.origin };
 }
 
 async function runCompatibilityFallbackCase(browser, origin, contractCase, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, `compatibility-${contractCase}`);
   await page.addInitScript((contract) => {
     localStorage.setItem('go-odyssey-static-contract', contract);
     localStorage.setItem('e10-vs1e', 'immersive-rpg');
@@ -273,16 +460,7 @@ async function installApiFixture(
   fixtureMode = 'default',
   playerName = '晨星騎士'
 ) {
-  page.on('console', (message) => {
-    if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
-  });
-  page.on('pageerror', (error) => browserErrors.push({
-    kind: 'pageerror',
-    text: error && error.stack ? error.stack : String(error),
-  }));
-  page.on('requestfailed', (request) => {
-    browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
-  });
+  await installPageDiagnostics(page, browserErrors);
   page.on('response', (response) => {
     if (response.status() >= 500) {
       browserErrors.push({ kind: 'http5xx', text: `${response.status()} ${response.url()}` });
@@ -774,6 +952,7 @@ async function runCase(browser, origin, outputDir, spec) {
     spec.fixtureMode || 'default',
     playerName
   );
+  labelPageDiagnostics(page, spec.specName);
   const url = `${origin}/index.html?lang=${spec.lang}&${shellFlags}`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await waitForShell(page);
@@ -921,6 +1100,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors, 'mage');
+  labelPageDiagnostics(page, 'polish-state-evidence');
   await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'networkidle' });
   await waitForShell(page);
 
@@ -1360,6 +1540,7 @@ async function runLegacyCase(browser, origin, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, 'legacy-nonallowlisted');
   await page.goto(
     `${origin}/index.html?lang=zh&e9Shell=1&e9WorldStage=1&host=godokoro.com`,
     { waitUntil: 'networkidle' }
@@ -1388,6 +1569,7 @@ async function runLifecycleCase(browser, origin) {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, 'lifecycle');
   await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'networkidle' });
   await waitForShell(page);
   const beforeGeneration = await page.evaluate(() => window.E9.getLifecycleGeneration());
@@ -1438,6 +1620,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   const browserErrors = [];
   await installApiFixture(page, browserErrors, 'mage', spec.fixtureMode || 'default',
     spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
+  labelPageDiagnostics(page, spec.name);
   const actionTrace = [];
   page.on('request', (request) => {
     const pathname = new URL(request.url()).pathname;
@@ -1792,6 +1975,7 @@ async function runStackedDetailOwnershipTransition(browser, origin, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, 'orientation-transition');
   await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'domcontentloaded' });
   await waitForShell(page);
   const toggle = page.locator('#e9-right-drawer-toggle');
@@ -1898,6 +2082,18 @@ async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir
   };
   await fs.writeFile(path.join(outputDir, 'e10-ipad-adventure-interaction-contract.json'), JSON.stringify(report, null, 2));
   return report;
+}
+
+async function writeRunnerInstrumentation(outputDir, origin) {
+  await fs.writeFile(
+    path.join(outputDir, 'formal-runner-requestfailed-instrumentation.json'),
+    JSON.stringify({
+      source_root: repoRoot,
+      runtime_origin: origin,
+      captured_at: observedAt(),
+      ...runnerInstrumentation,
+    }, null, 2)
+  );
 }
 
 async function main() {
@@ -2049,6 +2245,7 @@ async function main() {
       failures,
     };
     await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
+    await writeRunnerInstrumentation(outputDir, origin);
     if (failures.length) throw new Error(failures.join('\n'));
     process.stdout.write(JSON.stringify({
       ok: true,
@@ -2062,6 +2259,7 @@ async function main() {
     for (const compatibilityServer of compatibilityServers) {
       await new Promise((resolve) => compatibilityServer.close(resolve));
     }
+    await writeRunnerInstrumentation(outputDir, origin);
   }
 }
 
