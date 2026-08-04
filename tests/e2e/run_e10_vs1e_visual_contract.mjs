@@ -10,6 +10,8 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 const shellFlags = 'E9_DEBUG=1&e9Shell=1&e9TopHud=1&e9LeftNav=1&e9RightCards=1&e9BottomDock=1&e9WorldStage=1';
 
 export const CLASSIFIER_SCHEMA_VERSION = 1;
+export const GOVERNED_PAGE_SCOPE = 'ALL_RUNNER_INSTRUMENTATION_PAGES';
+export const GOVERNED_PAGE_ALLOWLIST = Object.freeze([]);
 export const BROWSER_ORIGINATED_PREDICATE_SOURCE = [
   'CDP initiator.type',
   'CDP resource_type',
@@ -291,6 +293,7 @@ async function installPageDiagnostics(page, browserErrors) {
     events: [],
     cdp_events: [],
     cdp_request_map: {},
+    cdp_network_enabled: false,
     playwright_requestfailed: [],
     browser_events: [],
     instrumentation_errors: [],
@@ -441,6 +444,8 @@ async function installPageDiagnostics(page, browserErrors) {
     diagnostics.instrumentation_errors.push({
       kind: 'cdp_setup',
       timestamp: observedAt(),
+      page_id: diagnostics.page_id,
+      label: diagnostics.label,
       text: error.stack || String(error),
     });
   }
@@ -2325,6 +2330,26 @@ export function pathnameFromRawRequestTarget(value, baseOrigin = 'http://127.0.0
   }
 }
 
+function normalizeFailureReference(failure = {}) {
+  let url = failure.url || null;
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      parsed.hash = '';
+      url = parsed.href;
+    } catch {
+      // Preserve non-URL evidence verbatim; the page identity still makes it
+      // attributable without inventing a normalization rule.
+    }
+  }
+  return {
+    url,
+    page_id: failure.page_id || null,
+    label: failure.scenario || failure.label || null,
+    failure_text: failure.failure_text || failure.error_text || null,
+  };
+}
+
 export function evaluateBrowserOriginatedPredicate(request = {}) {
   const initiator = request.initiator && typeof request.initiator === 'object'
     ? request.initiator
@@ -2803,10 +2828,29 @@ export function buildCanonicalNetworkFailureSet({
   }
 
   const cdpCount = canonicalFailures.length;
-  // CDP is authoritative. Playwright is retained as a cross-check only; a
-  // mismatch is recorded and never becomes an independent contract gate.
+  const governedPageScope = pages.length > 0;
+  const cdpNetworkEnabled = governedPageScope
+    && pages.every((page) => page.cdp_network_enabled === true);
+  const cdpDisabledGovernedPages = pages
+    .filter((page) => page.cdp_network_enabled !== true)
+    .map((page) => ({
+      page_id: page.page_id || null,
+      label: page.label || null,
+      instrumentation_errors: (page.instrumentation_errors || []).filter((error) => error.kind === 'cdp_setup'),
+    }));
+  const cdpSetupErrors = pages.flatMap((page) => (page.instrumentation_errors || [])
+    .filter((error) => error.kind === 'cdp_setup')
+    .map((error) => ({
+      ...error,
+      page_id: error.page_id || page.page_id || null,
+      label: error.label || page.label || null,
+    })));
+  // CDP is authoritative. Playwright remains a cross-check, but a Playwright
+  // failure without a corresponding CDP event is an authoritative capture
+  // coverage failure and must fail closed.
   const playwrightCdpMismatchCount = unmatchedPlaywright.length + unmatchedCdp.length;
   const correlationValid = cdpCorrelationMisses === 0;
+  const crossValidationValid = correlationValid && unmatchedPlaywright.length === 0;
   const serverError = hasServerError(servers);
   const classA = [];
   const classB = [];
@@ -2868,6 +2912,16 @@ export function buildCanonicalNetworkFailureSet({
     + classificationTotals.UNEXPECTED
   ) === cdpCount;
   const crossValidationFailures = [];
+  if (!cdpNetworkEnabled) {
+    crossValidationFailures.push(
+      `CDP_NETWORK_INSTRUMENTATION_DISABLED: ${JSON.stringify(cdpDisabledGovernedPages)}`
+    );
+  }
+  if (unmatchedPlaywright.length) {
+    crossValidationFailures.push(
+      `CDP_CAPTURE_GAP: ${JSON.stringify(unmatchedPlaywright.map(normalizeFailureReference))}`
+    );
+  }
   if (!correlationValid) crossValidationFailures.push(
     `CDP_CORRELATION_MISS: ${cdpCorrelationMisses} Network.loadingFailed event(s) lacked requestId mapping`
   );
@@ -2895,6 +2949,17 @@ export function buildCanonicalNetworkFailureSet({
     PLAYWRIGHT_CDP_MISMATCHES: playwrightCdpMismatchCount,
     PLAYWRIGHT_CDP_MISMATCH_RECORDED: playwrightCdpMismatchCount > 0,
     PLAYWRIGHT_CDP_MISMATCH_GATE: false,
+    PLAYWRIGHT_CDP_MISMATCH_SCOPE: 'DIAGNOSTIC_CROSS_CHECK_ONLY',
+    GOVERNED_PAGE_SCOPE: GOVERNED_PAGE_SCOPE,
+    GOVERNED_PAGE_ALLOWLIST: GOVERNED_PAGE_ALLOWLIST,
+    GOVERNED_PAGE_COUNT: pages.length,
+    CDP_NETWORK_ENABLED: cdpNetworkEnabled,
+    CDP_DISABLED_GOVERNED_PAGES: cdpDisabledGovernedPages,
+    CDP_SETUP_ERRORS: cdpSetupErrors,
+    CDP_CAPTURE_GAP_THIS_RUN: unmatchedPlaywright.length
+      ? unmatchedPlaywright.map(normalizeFailureReference)
+      : 'NONE_OBSERVED_THIS_RUN',
+    UNMATCHED_CDP_ROLE: 'DIAGNOSTIC_EVIDENCE_ONLY',
     HARNESS_PRE_REQUEST_ABORTS: classA.length,
     RUNNER_TRANSITION_ABORTS: classB.length,
     UNEXPECTED_REQUEST_FAILURES: unexpected.length,
@@ -2911,7 +2976,7 @@ export function buildCanonicalNetworkFailureSet({
     classification_totals_reconciled: classificationTotalsReconciled,
     failures,
     correlation_valid: correlationValid,
-    cross_validation_valid: correlationValid,
+    cross_validation_valid: crossValidationValid,
     page_crash: pageCrash,
     server_error: serverError,
     classifier_schema_version: CLASSIFIER_SCHEMA_VERSION,
@@ -2930,8 +2995,8 @@ export function buildCanonicalNetworkFailureSet({
     harness_classifier_real_event_coverage: classA.length > 0 ? 'ESTABLISHED' : 'NOT_ESTABLISHED',
     transition_real_event_observed: classB.length > 0,
     transition_classifier_real_event_coverage: classB.length > 0 ? 'ESTABLISHED' : 'NOT_ESTABLISHED',
-    other_url_blind_spot_this_run: unmatchedCdp.length
-      ? unmatchedCdp.map((failure) => ({ url: failure.url || null, page_id: failure.page_id || null }))
+    other_url_blind_spot_this_run: unexpected.length
+      ? unexpected.map(normalizeFailureReference)
       : 'NONE_OBSERVED_THIS_RUN',
     known_real_asset_precedent: 'ZONE06',
   };
@@ -2966,6 +3031,14 @@ export function buildDiagnosticsHealthSummary(instrumentation = runnerInstrument
     PLAYWRIGHT_CDP_MISMATCH_RECORDED: network.PLAYWRIGHT_CDP_MISMATCH_RECORDED ?? false,
     PLAYWRIGHT_CDP_MISMATCHES: network.PLAYWRIGHT_CDP_MISMATCHES ?? 0,
     PLAYWRIGHT_CDP_MISMATCH_GATE: false,
+    PLAYWRIGHT_CDP_MISMATCH_SCOPE: network.PLAYWRIGHT_CDP_MISMATCH_SCOPE || 'DIAGNOSTIC_CROSS_CHECK_ONLY',
+    GOVERNED_PAGE_SCOPE: network.GOVERNED_PAGE_SCOPE || GOVERNED_PAGE_SCOPE,
+    GOVERNED_PAGE_ALLOWLIST: network.GOVERNED_PAGE_ALLOWLIST || GOVERNED_PAGE_ALLOWLIST,
+    GOVERNED_PAGE_COUNT: network.GOVERNED_PAGE_COUNT ?? pages.length,
+    CDP_DISABLED_GOVERNED_PAGES: network.CDP_DISABLED_GOVERNED_PAGES || [],
+    CDP_SETUP_ERRORS: network.CDP_SETUP_ERRORS || [],
+    CDP_CAPTURE_GAP_THIS_RUN: network.CDP_CAPTURE_GAP_THIS_RUN || 'NONE_OBSERVED_THIS_RUN',
+    UNMATCHED_CDP_ROLE: network.UNMATCHED_CDP_ROLE || 'DIAGNOSTIC_EVIDENCE_ONLY',
     HARNESS_PRE_REQUEST_ABORTS: network.HARNESS_PRE_REQUEST_ABORTS ?? 0,
     RUNNER_TRANSITION_ABORTS: network.RUNNER_TRANSITION_ABORTS ?? 0,
     UNEXPECTED_REQUEST_FAILURES: network.UNEXPECTED_REQUEST_FAILURES ?? 0,
@@ -2980,7 +3053,11 @@ export function buildDiagnosticsHealthSummary(instrumentation = runnerInstrument
     PLAYWRIGHT_CDP_MATCH: network.network_summary_present !== true
       ? 'NOT_RUN'
       : (network.PLAYWRIGHT_CDP_MISMATCH_RECORDED ? 'MISMATCH_RECORDED' : 'PASS'),
-    CDP_AUTHORITY: network.network_summary_present !== true ? 'NOT_RUN' : 'PASS',
+    CDP_AUTHORITY: network.network_summary_present !== true
+      ? 'NOT_RUN'
+      : (network.CDP_NETWORK_ENABLED === true && network.CDP_CORRELATION_MISSES === 0 && !(network.unmatched_playwright || []).length
+        ? 'PASS'
+        : 'FAIL'),
     POST_PASS_CLASSIFIER: network.network_summary_present !== true ? 'NOT_RUN' : 'PASS',
     BROWSER_ORIGINATED_PREDICATE_SOURCE: network.browser_originated_predicate_source
       || BROWSER_ORIGINATED_PREDICATE_SOURCE,
@@ -3202,6 +3279,12 @@ export function formatRunnerFailureSummary(error) {
     CLASSIFIER_SCHEMA_VERSION: outcome.diagnostics_health?.CLASSIFIER_SCHEMA_VERSION ?? null,
     PLAYWRIGHT_CDP_MISMATCHES: outcome.diagnostics_health?.PLAYWRIGHT_CDP_MISMATCHES ?? null,
     PLAYWRIGHT_CDP_MISMATCH_GATE: outcome.diagnostics_health?.PLAYWRIGHT_CDP_MISMATCH_GATE ?? null,
+    GOVERNED_PAGE_SCOPE: outcome.diagnostics_health?.GOVERNED_PAGE_SCOPE ?? null,
+    GOVERNED_PAGE_COUNT: outcome.diagnostics_health?.GOVERNED_PAGE_COUNT ?? null,
+    GOVERNED_PAGE_ALLOWLIST: outcome.diagnostics_health?.GOVERNED_PAGE_ALLOWLIST ?? null,
+    CDP_DISABLED_GOVERNED_PAGES: outcome.diagnostics_health?.CDP_DISABLED_GOVERNED_PAGES ?? null,
+    CDP_CAPTURE_GAP_THIS_RUN: outcome.diagnostics_health?.CDP_CAPTURE_GAP_THIS_RUN ?? null,
+    UNMATCHED_CDP_ROLE: outcome.diagnostics_health?.UNMATCHED_CDP_ROLE ?? null,
     CDP_AUTHORITY: outcome.diagnostics_health?.CDP_AUTHORITY ?? null,
     POST_PASS_CLASSIFIER: outcome.diagnostics_health?.POST_PASS_CLASSIFIER ?? null,
     PRIMARY_ERROR_KIND: outcome.primary_error_kind,

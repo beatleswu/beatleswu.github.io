@@ -36,6 +36,8 @@ function networkPageFixture({
   includeRequestWillBeSent = true,
   browserOriginated = false,
   playwrightUrl = null,
+  cdpNetworkEnabled = true,
+  instrumentationErrors = [],
   finalUiPass = true,
   serverRequestTarget = null,
   serverError = false,
@@ -74,6 +76,8 @@ function networkPageFixture({
     initial_url: pageUrl,
     viewport: { width: 1920, height: 1080 },
     final_ui_pass: finalUiPass,
+    cdp_network_enabled: cdpNetworkEnabled,
+    instrumentation_errors: instrumentationErrors,
     cdp_request_map: cdpMapping ? { [request.request_id]: request } : {},
     playwright_requestfailed: [{
       page_id: 'page-1',
@@ -354,6 +358,8 @@ async function testRequestfailedSerialization() {
     const event = payload.pages[0].events[0];
     assert.equal(payload.diagnostic_health.diagnostic_persistence_status, 'PASS');
     assert.equal(payload.diagnostic_health.cdp_network_enabled, true);
+    assert.ok(Object.prototype.hasOwnProperty.call(payload.diagnostic_health, 'OTHER_URL_BLIND_SPOT_THIS_RUN'));
+    assert.ok(Object.prototype.hasOwnProperty.call(payload.diagnostic_health, 'CDP_CAPTURE_GAP_THIS_RUN'));
     assert.equal(event.kind, 'requestfailed');
     assert.equal(event.failure_text, 'net::ERR_FAILED');
     assert.equal(event.page_url, 'http://127.0.0.1:12345/index.html');
@@ -641,12 +647,98 @@ function testCdpCorrelationMissFails() {
 }
 
 function testPlaywrightCdpMismatchRecordedNotGated() {
-  const result = classifyFixture({ playwrightUrl: 'http://127.0.0.1:12345/assets/other.webp' });
-  assert.equal(result.PLAYWRIGHT_CDP_MISMATCHES, 2);
+  const fixture = networkPageFixture();
+  fixture.page.playwright_requestfailed = [];
+  const result = buildCanonicalNetworkFailureSet({ pages: [fixture.page], servers: [fixture.server] });
+  assert.equal(result.PLAYWRIGHT_CDP_MISMATCHES, 1);
   assert.equal(result.PLAYWRIGHT_CDP_MISMATCH_RECORDED, true);
   assert.equal(result.PLAYWRIGHT_CDP_MISMATCH_GATE, false);
   assert.equal(result.cross_validation_valid, true);
   assert.deepEqual(result.failures, []);
+  assert.equal(result.CDP_CAPTURE_GAP_THIS_RUN, 'NONE_OBSERVED_THIS_RUN');
+}
+
+function testCdpSetupFailureFailsClosed() {
+  const fixture = networkPageFixture({
+    cdpNetworkEnabled: false,
+    instrumentationErrors: [{ kind: 'cdp_setup', text: 'Network.enable failed' }],
+  });
+  fixture.page.cdp_events = [];
+  fixture.page.cdp_request_map = {};
+  fixture.page.playwright_requestfailed = [];
+  const result = buildCanonicalNetworkFailureSet({ pages: [fixture.page], servers: [fixture.server] });
+  assert.equal(result.CDP_NETWORK_ENABLED, false);
+  assert.equal(result.CDP_DISABLED_GOVERNED_PAGES[0].page_id, 'page-1');
+  assert.equal(result.CDP_DISABLED_GOVERNED_PAGES[0].label, 'desktop-1920-details');
+  assert.equal(result.CDP_SETUP_ERRORS[0].page_id, 'page-1');
+  assert.equal(result.CDP_SETUP_ERRORS[0].label, 'desktop-1920-details');
+  assert.equal(result.PRIMARY_ERROR_KIND, 'CONTRACT');
+  assert.equal(result.class_a.length, 0);
+  assert.equal(result.class_b.length, 0);
+  assert.ok(result.failures.some((failure) => failure.startsWith('CDP_NETWORK_INSTRUMENTATION_DISABLED')));
+  const health = buildDiagnosticsHealthSummary({ pages: [fixture.page], servers: [], network_summary: result });
+  assert.equal(health.cdp_network_enabled, false);
+  assert.deepEqual(health.CDP_DISABLED_GOVERNED_PAGES[0], result.CDP_DISABLED_GOVERNED_PAGES[0]);
+  assert.deepEqual(health.GOVERNED_PAGE_ALLOWLIST, []);
+}
+
+function testUnmatchedPlaywrightGateInIsolation() {
+  const result = classifyFixture({ playwrightUrl: 'http://127.0.0.1:12345/assets/unmatched.webp' });
+  assert.equal(result.CDP_NETWORK_ENABLED, true);
+  assert.equal(result.CDP_CORRELATION_MISSES, 0);
+  assert.equal(result.unmatched_playwright.length, 1);
+  assert.equal(result.CDP_CAPTURE_GAP_THIS_RUN[0].url, 'http://127.0.0.1:12345/assets/unmatched.webp');
+  assert.equal(result.CDP_CAPTURE_GAP_THIS_RUN[0].page_id, 'page-1');
+  assert.equal(result.PRIMARY_ERROR_KIND, 'CONTRACT');
+  assert.ok(result.failures.some((failure) => failure.startsWith('CDP_CAPTURE_GAP')));
+}
+
+function testCombinedFailClosedCoverageGates() {
+  const fixture = networkPageFixture({ cdpNetworkEnabled: false });
+  fixture.page.cdp_events = [];
+  fixture.page.cdp_request_map = {};
+  const result = buildCanonicalNetworkFailureSet({ pages: [fixture.page], servers: [fixture.server] });
+  assert.equal(result.CDP_NETWORK_ENABLED, false);
+  assert.equal(result.unmatched_playwright.length, 1);
+  assert.equal(result.PRIMARY_ERROR_KIND, 'CONTRACT');
+  assert.ok(result.failures.some((failure) => failure.startsWith('CDP_NETWORK_INSTRUMENTATION_DISABLED')));
+  assert.ok(result.failures.some((failure) => failure.startsWith('CDP_CAPTURE_GAP')));
+}
+
+function testHealthyRunHasNoCaptureGap() {
+  const fixture = networkPageFixture();
+  fixture.page.cdp_events = [];
+  fixture.page.cdp_request_map = {};
+  fixture.page.playwright_requestfailed = [];
+  const result = buildCanonicalNetworkFailureSet({ pages: [fixture.page], servers: [fixture.server] });
+  assert.equal(result.CDP_NETWORK_ENABLED, true);
+  assert.equal(result.CDP_CAPTURE_GAP_THIS_RUN, 'NONE_OBSERVED_THIS_RUN');
+  assert.deepEqual(result.failures, []);
+}
+
+function testCdpOnlyFaviconEventsRemainDiagnosticOnly() {
+  const fixture = networkPageFixture({
+    assetUrl: 'http://127.0.0.1:12345/favicon.ico',
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  });
+  fixture.page.playwright_requestfailed = [];
+  const result = buildCanonicalNetworkFailureSet({ pages: [fixture.page], servers: [fixture.server] });
+  assert.equal(result.unmatched_cdp.length, 1);
+  assert.equal(result.CDP_CAPTURE_GAP_THIS_RUN, 'NONE_OBSERVED_THIS_RUN');
+  assert.equal(result.other_url_blind_spot_this_run, 'NONE_OBSERVED_THIS_RUN');
+  assert.equal(result.HARNESS_PRE_REQUEST_ABORTS, 1);
+  assert.deepEqual(result.failures, []);
+}
+
+function testOtherUrlBlindSpotDerivesFromUnexpected() {
+  const result = classifyFixture({ transition: false });
+  assert.equal(result.unmatched_cdp.length, 0);
+  assert.equal(result.other_url_blind_spot_this_run[0].url, TRANSITION_ASSET_URL);
+  assert.equal(result.other_url_blind_spot_this_run[0].page_id, 'page-1');
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
 }
 
 function testExpectedAbortNotInFailureCount() {
@@ -885,6 +977,12 @@ const tests = [
   ['CDP_REQUESTID_JOIN', testCdpRequestIdJoin],
   ['CDP_CORRELATION_MISS_FAILS', testCdpCorrelationMissFails],
   ['PLAYWRIGHT_CDP_MISMATCH_RECORDED_NOT_GATED', testPlaywrightCdpMismatchRecordedNotGated],
+  ['CDP_SETUP_FAILURE_FAILS_CLOSED', testCdpSetupFailureFailsClosed],
+  ['UNMATCHED_PLAYWRIGHT_GATE_IN_ISOLATION', testUnmatchedPlaywrightGateInIsolation],
+  ['COMBINED_FAIL_CLOSED_COVERAGE_GATES', testCombinedFailClosedCoverageGates],
+  ['HEALTHY_RUN_HAS_NO_CAPTURE_GAP', testHealthyRunHasNoCaptureGap],
+  ['CDP_ONLY_FAVICON_EVENTS_REMAIN_DIAGNOSTIC_ONLY', testCdpOnlyFaviconEventsRemainDiagnosticOnly],
+  ['OTHER_URL_BLIND_SPOT_DERIVES_FROM_UNEXPECTED', testOtherUrlBlindSpotDerivesFromUnexpected],
   ['EXPECTED_ABORT_NOT_IN_FAILURE_COUNT', testExpectedAbortNotInFailureCount],
   ['EXPECTED_HARNESS_ABORT_NOT_IN_FAILURE_COUNT', testHarnessAbortNotInFailureCount],
   ['UNEXPECTED_ABORT_IN_FAILURE_COUNT', testUnexpectedAbortInFailureCount],
