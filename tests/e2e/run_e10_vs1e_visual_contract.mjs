@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import fssync from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -82,8 +82,199 @@ function contentTypeFor(filePath) {
 
 const staticContractMarker = '<meta name="go-odyssey-static-contract" content="e10-vs1f-integrated-world-map">';
 
+const runnerInstrumentation = {
+  nextPageId: 1,
+  pages: [],
+  servers: [],
+};
+
+function observedAt() {
+  return new Date().toISOString();
+}
+
+function safeFrameUrl(value) {
+  try {
+    const frame = typeof value.frame === 'function' ? value.frame() : null;
+    return frame ? frame.url() : null;
+  } catch {
+    return null;
+  }
+}
+
+function safePageUrl(page) {
+  try {
+    return page.url();
+  } catch {
+    return null;
+  }
+}
+
+function safeFromServiceWorker(response) {
+  try {
+    return typeof response.fromServiceWorker === 'function'
+      ? response.fromServiceWorker()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function recordEvent(collection, kind, payload = {}) {
+  collection.push({ kind, timestamp: observedAt(), ...payload });
+}
+
+function labelPageDiagnostics(page, label) {
+  if (page.__e10RunnerDiagnostics) page.__e10RunnerDiagnostics.label = label;
+}
+
+async function installPageDiagnostics(page, browserErrors) {
+  const diagnostics = {
+    page_id: `page-${runnerInstrumentation.nextPageId}`,
+    label: null,
+    created_at: observedAt(),
+    initial_url: page.url(),
+    viewport: typeof page.viewportSize === 'function' ? page.viewportSize() : null,
+    events: [],
+    cdp_events: [],
+    browser_events: [],
+    instrumentation_errors: [],
+  };
+  runnerInstrumentation.nextPageId += 1;
+  runnerInstrumentation.pages.push(diagnostics);
+  page.__e10RunnerDiagnostics = diagnostics;
+
+  page.on('request', (request) => recordEvent(diagnostics.events, 'request', {
+    url: request.url(),
+    method: request.method(),
+    resource_type: request.resourceType(),
+    frame: safeFrameUrl(request),
+  }));
+  page.on('response', (response) => recordEvent(diagnostics.events, 'response', {
+    url: response.url(),
+    method: response.request().method(),
+    resource_type: response.request().resourceType(),
+    status: response.status(),
+    status_text: response.statusText(),
+    frame: safeFrameUrl(response),
+    from_service_worker: safeFromServiceWorker(response),
+  }));
+  page.on('requestfinished', (request) => recordEvent(diagnostics.events, 'requestfinished', {
+    url: request.url(),
+    method: request.method(),
+    resource_type: request.resourceType(),
+    frame: safeFrameUrl(request),
+  }));
+  page.on('requestfailed', (request) => {
+    const failure = request.failure();
+    recordEvent(diagnostics.events, 'requestfailed', {
+      url: request.url(),
+      method: request.method(),
+      resource_type: request.resourceType(),
+      failure_text: failure?.errorText || null,
+      frame: safeFrameUrl(request),
+      page_url: safePageUrl(page),
+      viewport: diagnostics.viewport,
+    });
+    browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
+  });
+  page.on('console', (message) => {
+    const location = typeof message.location === 'function' ? message.location() : null;
+    recordEvent(diagnostics.browser_events, 'console', {
+      type: message.type(),
+      text: message.text(),
+      location,
+    });
+    if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
+  });
+  page.on('pageerror', (error) => {
+    const text = error && error.stack ? error.stack : String(error);
+    recordEvent(diagnostics.browser_events, 'pageerror', { text });
+    browserErrors.push({ kind: 'pageerror', text });
+  });
+  page.on('crash', () => recordEvent(diagnostics.browser_events, 'crash'));
+  page.on('close', () => recordEvent(diagnostics.browser_events, 'close', { url: page.url() }));
+
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Network.enable');
+    diagnostics.cdp_network_enabled = true;
+    cdp.on('Network.requestWillBeSent', (event) => recordEvent(diagnostics.cdp_events, 'Network.requestWillBeSent', {
+      request_id: event.requestId,
+      url: event.request?.url,
+      method: event.request?.method,
+      type: event.type,
+      cdp_timestamp: event.timestamp,
+    }));
+    cdp.on('Network.responseReceived', (event) => recordEvent(diagnostics.cdp_events, 'Network.responseReceived', {
+      request_id: event.requestId,
+      url: event.response?.url,
+      status: event.response?.status,
+      mime_type: event.response?.mimeType,
+      from_service_worker: event.response?.fromServiceWorker,
+      type: event.type,
+      cdp_timestamp: event.timestamp,
+    }));
+    cdp.on('Network.loadingFinished', (event) => recordEvent(diagnostics.cdp_events, 'Network.loadingFinished', {
+      request_id: event.requestId,
+      encoded_data_length: event.encodedDataLength,
+      cdp_timestamp: event.timestamp,
+    }));
+    cdp.on('Network.loadingFailed', (event) => recordEvent(diagnostics.cdp_events, 'Network.loadingFailed', {
+      request_id: event.requestId,
+      error_text: event.errorText,
+      blocked_reason: event.blockedReason || null,
+      canceled: Boolean(event.canceled),
+      type: event.type,
+      cdp_timestamp: event.timestamp,
+      page_url: safePageUrl(page),
+      viewport: diagnostics.viewport,
+    }));
+  } catch (error) {
+    diagnostics.instrumentation_errors.push({
+      kind: 'cdp_setup',
+      timestamp: observedAt(),
+      text: error.stack || String(error),
+    });
+  }
+
+  return diagnostics;
+}
+
 async function startStaticServer({ contractCase = 'target' } = {}) {
+  const serverDiagnostics = {
+    server_id: `server-${runnerInstrumentation.servers.length + 1}`,
+    contract_case: contractCase,
+    created_at: observedAt(),
+    events: [],
+  };
+  runnerInstrumentation.servers.push(serverDiagnostics);
   const server = http.createServer(async (request, response) => {
+    const requestId = `${serverDiagnostics.server_id}-request-${serverDiagnostics.events.filter((event) => event.kind === 'request').length + 1}`;
+    recordEvent(serverDiagnostics.events, 'request', {
+      request_id: requestId,
+      method: request.method,
+      url: request.url,
+    });
+    response.on('finish', () => recordEvent(serverDiagnostics.events, 'response_finished', {
+      request_id: requestId,
+      status: response.statusCode,
+    }));
+    response.on('close', () => recordEvent(serverDiagnostics.events, 'response_closed', {
+      request_id: requestId,
+      status: response.statusCode,
+    }));
+    response.on('error', (error) => recordEvent(serverDiagnostics.events, 'response_error', {
+      request_id: requestId,
+      text: error.stack || String(error),
+    }));
+    const recordResponseCreated = (status, headers = {}, relativePath = null) => {
+      recordEvent(serverDiagnostics.events, 'response_created', {
+        request_id: requestId,
+        status,
+        relative_path: relativePath,
+        content_type: headers['Content-Type'] || headers['content-type'] || null,
+      });
+    };
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
       const relative = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
@@ -92,6 +283,7 @@ async function startStaticServer({ contractCase = 'target' } = {}) {
       const stat = await fs.stat(absolute).catch(() => null);
       if (!stat?.isFile()) {
         response.writeHead(404);
+        recordResponseCreated(404, {}, relative);
         response.end('not found');
         return;
       }
@@ -112,25 +304,33 @@ async function startStaticServer({ contractCase = 'target' } = {}) {
         } else {
           throw new Error(`unknown contract case: ${contractCase}`);
         }
-        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        const headers = { 'Content-Type': 'text/html; charset=utf-8' };
+        response.writeHead(200, headers);
+        recordResponseCreated(200, headers, relative);
         response.end(html);
         return;
       }
-      response.writeHead(200, { 'Content-Type': contentTypeFor(absolute) });
+      const headers = { 'Content-Type': contentTypeFor(absolute) };
+      response.writeHead(200, headers);
+      recordResponseCreated(200, headers, relative);
       fssync.createReadStream(absolute).pipe(response);
     } catch (error) {
       response.writeHead(500);
+      recordResponseCreated(500, {}, null);
       response.end(String(error));
     }
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  return { server, origin: `http://127.0.0.1:${server.address().port}` };
+  serverDiagnostics.listening_at = observedAt();
+  serverDiagnostics.origin = `http://127.0.0.1:${server.address().port}`;
+  return { server, origin: serverDiagnostics.origin };
 }
 
 async function runCompatibilityFallbackCase(browser, origin, contractCase, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, `compatibility-${contractCase}`);
   await page.addInitScript((contract) => {
     localStorage.setItem('go-odyssey-static-contract', contract);
     localStorage.setItem('e10-vs1e', 'immersive-rpg');
@@ -273,16 +473,7 @@ async function installApiFixture(
   fixtureMode = 'default',
   playerName = '晨星騎士'
 ) {
-  page.on('console', (message) => {
-    if (message.type() === 'error') browserErrors.push({ kind: 'console', text: message.text() });
-  });
-  page.on('pageerror', (error) => browserErrors.push({
-    kind: 'pageerror',
-    text: error && error.stack ? error.stack : String(error),
-  }));
-  page.on('requestfailed', (request) => {
-    browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
-  });
+  await installPageDiagnostics(page, browserErrors);
   page.on('response', (response) => {
     if (response.status() >= 500) {
       browserErrors.push({ kind: 'http5xx', text: `${response.status()} ${response.url()}` });
@@ -774,6 +965,7 @@ async function runCase(browser, origin, outputDir, spec) {
     spec.fixtureMode || 'default',
     playerName
   );
+  labelPageDiagnostics(page, spec.specName);
   const url = `${origin}/index.html?lang=${spec.lang}&${shellFlags}`;
   await page.goto(url, { waitUntil: 'networkidle' });
   await waitForShell(page);
@@ -921,6 +1113,7 @@ async function capturePolishStateEvidence(browser, origin, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors, 'mage');
+  labelPageDiagnostics(page, 'polish-state-evidence');
   await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'networkidle' });
   await waitForShell(page);
 
@@ -1360,6 +1553,7 @@ async function runLegacyCase(browser, origin, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, 'legacy-nonallowlisted');
   await page.goto(
     `${origin}/index.html?lang=zh&e9Shell=1&e9WorldStage=1&host=godokoro.com`,
     { waitUntil: 'networkidle' }
@@ -1388,6 +1582,7 @@ async function runLifecycleCase(browser, origin) {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, 'lifecycle');
   await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'networkidle' });
   await waitForShell(page);
   const beforeGeneration = await page.evaluate(() => window.E9.getLifecycleGeneration());
@@ -1438,6 +1633,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   const browserErrors = [];
   await installApiFixture(page, browserErrors, 'mage', spec.fixtureMode || 'default',
     spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
+  labelPageDiagnostics(page, spec.name);
   const actionTrace = [];
   page.on('request', (request) => {
     const pathname = new URL(request.url()).pathname;
@@ -1792,6 +1988,7 @@ async function runStackedDetailOwnershipTransition(browser, origin, outputDir) {
   const page = await browser.newPage({ viewport: { width: 1024, height: 768 } });
   const browserErrors = [];
   await installApiFixture(page, browserErrors);
+  labelPageDiagnostics(page, 'orientation-transition');
   await page.goto(`${origin}/index.html?lang=en&${shellFlags}`, { waitUntil: 'domcontentloaded' });
   await waitForShell(page);
   const toggle = page.locator('#e9-right-drawer-toggle');
@@ -1900,7 +2097,247 @@ async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir
   return report;
 }
 
-async function main() {
+function serializeRunnerError(error) {
+  if (!error) return null;
+  return {
+    name: error.name || 'Error',
+    message: error.message || String(error),
+    stack: error.stack || null,
+  };
+}
+
+export function buildDiagnosticsHealthSummary(instrumentation = runnerInstrumentation) {
+  const pages = Array.isArray(instrumentation.pages) ? instrumentation.pages : [];
+  const servers = Array.isArray(instrumentation.servers) ? instrumentation.servers : [];
+  const instrumentationErrors = pages.flatMap((page) => page.instrumentation_errors || []);
+  return {
+    cdp_network_enabled: pages.length > 0 && pages.every((page) => page.cdp_network_enabled === true),
+    instrumentation_errors: instrumentationErrors.length,
+    instrumentation_error_details: instrumentationErrors.slice(0, 20),
+    pages: pages.length,
+    servers: servers.length,
+  };
+}
+
+export async function persistRunnerDiagnostics(outputDir, origin, instrumentation = runnerInstrumentation) {
+  const health = buildDiagnosticsHealthSummary(instrumentation);
+  const target = path.join(outputDir, 'formal-runner-requestfailed-instrumentation.json');
+  try {
+    await fs.writeFile(
+      target,
+      JSON.stringify({
+        source_root: repoRoot,
+        runtime_origin: origin,
+        captured_at: observedAt(),
+        diagnostic_health: {
+          ...health,
+          diagnostic_persistence_status: 'PASS',
+        },
+        ...instrumentation,
+      }, null, 2)
+    );
+  } catch (error) {
+    error.diagnosticsHealth = {
+      ...health,
+      diagnostic_persistence_status: 'FAIL',
+      instrumentation_error_details: [
+        ...health.instrumentation_error_details,
+        { kind: 'diagnostic_persistence', text: error.stack || String(error) },
+      ].slice(0, 20),
+    };
+    throw error;
+  }
+  return {
+    path: target,
+    summary: {
+      ...health,
+      diagnostic_persistence_status: 'PASS',
+    },
+  };
+}
+
+export function closeServerSafely(server) {
+  return new Promise((resolve, reject) => {
+    if (!server || typeof server.close !== 'function') {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = (error = null) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve();
+    };
+    try {
+      server.close(finish);
+    } catch (error) {
+      finish(error);
+    }
+  });
+}
+
+async function attemptLifecycleStep(kind, operation) {
+  try {
+    await operation();
+    return { kind, error: null };
+  } catch (error) {
+    return { kind, error };
+  }
+}
+
+export function composeRunnerErrors({
+  contractError = null,
+  diagnosticsError = null,
+  diagnosticsSummary = null,
+  cleanupErrors = [],
+  cleanupSummary = null,
+} = {}) {
+  const normalizedCleanupErrors = cleanupErrors
+    .filter((entry) => entry && entry.error)
+    .map((entry) => ({ kind: entry.kind, error: entry.error }));
+  const primaryError = contractError || diagnosticsError || normalizedCleanupErrors[0]?.error || null;
+  const primaryErrorKind = contractError
+    ? 'CONTRACT'
+    : (diagnosticsError ? 'DIAGNOSTICS' : (normalizedCleanupErrors.length ? 'CLEANUP' : 'NONE'));
+  const secondaryErrors = [];
+  if (contractError && diagnosticsError) secondaryErrors.push({ kind: 'DIAGNOSTICS', error: diagnosticsError });
+  if (contractError || diagnosticsError) {
+    secondaryErrors.push(...normalizedCleanupErrors.map((entry) => ({ kind: 'CLEANUP', error: entry.error })));
+  }
+  const serializedSecondaryErrors = secondaryErrors.map((entry) => ({
+    kind: entry.kind,
+    error: serializeRunnerError(entry.error),
+  }));
+  const serializedCleanupErrors = normalizedCleanupErrors.map((entry) => ({
+    kind: entry.kind,
+    error: serializeRunnerError(entry.error),
+  }));
+  const outcome = {
+    run_result: primaryError ? 'FAIL' : 'PASS',
+    contract_status: contractError ? 'FAIL' : 'PASS',
+    contract_failure_count: contractError ? 1 : 0,
+    primary_error_kind: primaryErrorKind,
+    primary_error: serializeRunnerError(primaryError),
+    secondary_errors: serializedSecondaryErrors,
+    secondary_error_count: serializedSecondaryErrors.length,
+    secondary_error_kinds: serializedSecondaryErrors.map((entry) => entry.kind),
+    cleanup_errors: serializedCleanupErrors,
+    diagnostic_persistence_status: diagnosticsError ? 'FAIL' : (diagnosticsSummary ? 'PASS' : 'NOT_RUN'),
+    diagnostics_health: diagnosticsSummary,
+    cleanup_status: cleanupSummary?.cleanup_status || (normalizedCleanupErrors.length ? 'FAIL' : 'NOT_RUN'),
+    browser_close_status: cleanupSummary?.browser_close_status || 'NOT_RUN',
+    server_close_status: cleanupSummary?.server_close_status || 'NOT_RUN',
+  };
+  if (!primaryError) return { error: null, outcome };
+  primaryError.runnerOutcome = outcome;
+  if (diagnosticsError) primaryError.diagnosticPersistenceError = diagnosticsError;
+  if (normalizedCleanupErrors.length) primaryError.cleanupErrors = normalizedCleanupErrors.map((entry) => entry.error);
+  return { error: primaryError, outcome };
+}
+
+export async function finalizeRunnerLifecycle({
+  contractError = null,
+  successPayload = null,
+  browser,
+  server,
+  compatibilityServers = [],
+  outputDir,
+  origin,
+  persistDiagnostics = persistRunnerDiagnostics,
+} = {}) {
+  const cleanupResults = [];
+  cleanupResults.push(await attemptLifecycleStep('BROWSER_CLOSE', () => browser.close()));
+  cleanupResults.push(await attemptLifecycleStep('SERVER_CLOSE', () => closeServerSafely(server)));
+  for (const compatibilityServer of compatibilityServers) {
+    cleanupResults.push(await attemptLifecycleStep('COMPATIBILITY_SERVER_CLOSE', () => closeServerSafely(compatibilityServer)));
+  }
+
+  let diagnosticsResult = null;
+  let diagnosticsError = null;
+  try {
+    diagnosticsResult = await persistDiagnostics(outputDir, origin);
+  } catch (error) {
+    diagnosticsError = error;
+  }
+
+  const browserCloseFailed = cleanupResults.some((entry) => entry.kind === 'BROWSER_CLOSE' && entry.error);
+  const serverCloseFailed = cleanupResults.some((entry) => (
+    (entry.kind === 'SERVER_CLOSE' || entry.kind === 'COMPATIBILITY_SERVER_CLOSE') && entry.error
+  ));
+  const cleanupErrors = cleanupResults.filter((entry) => entry.error);
+  const cleanupSummary = {
+    cleanup_status: cleanupErrors.length ? 'FAIL' : 'PASS',
+    browser_close_status: browserCloseFailed ? 'FAIL' : 'PASS',
+    server_close_status: serverCloseFailed ? 'FAIL' : 'PASS',
+    browser_close_attempted: true,
+    server_close_attempted: true,
+  };
+  const composed = composeRunnerErrors({
+    contractError,
+    diagnosticsError,
+    diagnosticsSummary: diagnosticsResult?.summary || diagnosticsError?.diagnosticsHealth || null,
+    cleanupErrors,
+    cleanupSummary,
+  });
+  return {
+    successPayload,
+    diagnosticsResult,
+    diagnosticsError,
+    cleanupResults,
+    outcome: composed.outcome,
+    error: composed.error,
+  };
+}
+
+export function formatRunnerFailureSummary(error) {
+  const outcome = error?.runnerOutcome || {
+    run_result: 'FAIL',
+    contract_status: 'FAIL',
+    primary_error_kind: 'UNKNOWN',
+    primary_error: serializeRunnerError(error),
+    secondary_errors: [],
+    secondary_error_count: 0,
+    secondary_error_kinds: [],
+    cleanup_errors: [],
+    diagnostic_persistence_status: 'NOT_RUN',
+    diagnostics_health: null,
+    cleanup_status: 'NOT_RUN',
+    browser_close_status: 'NOT_RUN',
+    server_close_status: 'NOT_RUN',
+  };
+  return JSON.stringify({
+    RUN_RESULT: outcome.run_result,
+    CONTRACT_STATUS: outcome.contract_status,
+    CONTRACT_FAILURE_COUNT: outcome.contract_failure_count,
+    CDP_NETWORK_ENABLED: outcome.diagnostics_health?.cdp_network_enabled ? 'YES' : 'NO',
+    INSTRUMENTATION_ERRORS: outcome.diagnostics_health?.instrumentation_errors ?? null,
+    PRIMARY_ERROR_KIND: outcome.primary_error_kind,
+    PRIMARY_CONTRACT_FAILURE: outcome.primary_error_kind === 'CONTRACT' ? outcome.primary_error : null,
+    PRIMARY_ERROR: outcome.primary_error,
+    DIAGNOSTIC_PERSISTENCE_FAILURE: outcome.primary_error_kind === 'DIAGNOSTICS'
+      ? outcome.primary_error
+      : outcome.secondary_errors?.find((entry) => entry.kind === 'DIAGNOSTICS')?.error || null,
+    CLEANUP_FAILURES: outcome.cleanup_errors,
+    SECONDARY_ERROR_COUNT: outcome.secondary_error_count,
+    SECONDARY_ERROR_KINDS: outcome.secondary_error_kinds,
+    DIAGNOSTIC_PERSISTENCE_STATUS: outcome.diagnostic_persistence_status,
+    DIAGNOSTIC_HEALTH: outcome.diagnostics_health,
+    CLEANUP_STATUS: outcome.cleanup_status,
+    BROWSER_CLOSE_STATUS: outcome.browser_close_status,
+    SERVER_CLOSE_STATUS: outcome.server_close_status,
+  }, null, 2);
+}
+
+async function launchDefaultBrowser() {
+  return chromium.launch({ headless: true, executablePath: findChrome() });
+}
+
+async function main({
+  createServer = startStaticServer,
+  launchBrowser = launchDefaultBrowser,
+  persistDiagnostics = persistRunnerDiagnostics,
+} = {}) {
   const args = process.argv.slice(2);
   const outputIndex = args.indexOf('--out');
   if (outputIndex < 0 || !args[outputIndex + 1]) throw new Error('--out <unique-directory> is required');
@@ -1908,9 +2345,14 @@ async function main() {
   if (fssync.existsSync(outputDir)) throw new Error(`output directory already exists: ${outputDir}`);
   await fs.mkdir(outputDir, { recursive: true });
 
-  const { server, origin } = await startStaticServer();
-  const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
+  const { server, origin } = await createServer();
+  const browser = await launchBrowser();
   const compatibilityServers = [];
+  let contractError = null;
+  let diagnosticsResult = null;
+  let diagnosticsError = null;
+  let lifecycleOutcome = null;
+  let successPayload = null;
   try {
     if (args.includes('--ipad-interaction-only')) {
       const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
@@ -1925,10 +2367,9 @@ async function main() {
         }, null, 2)
       );
       if (!ipadInteractionRecovery.ok) throw new Error(ipadInteractionRecovery.failures.join('\n'));
-      process.stdout.write(JSON.stringify({ ok: true, output_dir: outputDir, cases: ipadInteractionRecovery.results.length }, null, 2));
-      return;
-    }
-    const specs = [
+      successPayload = { ok: true, output_dir: outputDir, cases: ipadInteractionRecovery.results.length };
+    } else {
+      const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-closed-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-closed-en.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true, challengeActionCheck: true },
@@ -1959,26 +2400,26 @@ async function main() {
       { specName: 'mobile-390-long-label', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-en.png', zone: 'k1_5', longLabelStress: true, adventureCommandCheck: true, layout: 'bottom-dock' },
       { specName: 'mobile-360-safe-area', viewport: { width: 360, height: 800 }, lang: 'zh', filename: 'mobile-360x800-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
     ];
-    const results = [];
-    for (const spec of specs) {
-      process.stdout.write(`capture ${spec.specName}\n`);
-      results.push(await runCase(browser, origin, outputDir, spec));
-    }
-    const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
-    const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
-    const legacy = await runLegacyCase(browser, origin, outputDir);
-    const lifecycle = await runLifecycleCase(browser, origin);
-    const compatibilityBridge = [];
-    for (const contractCase of ['missing', 'wrong', 'current-v209']) {
-      const fixture = await startStaticServer({ contractCase });
-      compatibilityServers.push(fixture.server);
-      const fallbackOrigin = contractCase === 'wrong'
-        ? fixture.origin.replace('127.0.0.1', 'localhost')
-        : fixture.origin;
-      compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
-      );
-    }
+      const results = [];
+      for (const spec of specs) {
+        process.stdout.write(`capture ${spec.specName}\n`);
+        results.push(await runCase(browser, origin, outputDir, spec));
+      }
+      const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
+      const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
+      const legacy = await runLegacyCase(browser, origin, outputDir);
+      const lifecycle = await runLifecycleCase(browser, origin);
+      const compatibilityBridge = [];
+      for (const contractCase of ['missing', 'wrong', 'current-v209']) {
+        const fixture = await startStaticServer({ contractCase });
+        compatibilityServers.push(fixture.server);
+        const fallbackOrigin = contractCase === 'wrong'
+          ? fixture.origin.replace('127.0.0.1', 'localhost')
+          : fixture.origin;
+        compatibilityBridge.push(
+          await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
+        );
+      }
     const dockGeometryViewports = results
       .filter((result) => result.viewport.width >= 768 && result.viewport.width > result.viewport.height)
       .map((result) => ({
@@ -2048,24 +2489,43 @@ async function main() {
       compatibilityBridge,
       failures,
     };
-    await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
-    if (failures.length) throw new Error(failures.join('\n'));
-    process.stdout.write(JSON.stringify({
-      ok: true,
-      output_dir: outputDir,
-      screenshots: results.length + 1 + polishStateEvidence.captures.length
-        + ipadInteractionRecovery.results.reduce((count, result) => count + 1 + (result.journey ? 1 : 0) + (result.portrait ? 1 : 0), 0),
-    }, null, 2));
-  } finally {
-    await browser.close();
-    await new Promise((resolve) => server.close(resolve));
-    for (const compatibilityServer of compatibilityServers) {
-      await new Promise((resolve) => compatibilityServer.close(resolve));
+      await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
+      if (failures.length) throw new Error(failures.join('\n'));
+      successPayload = {
+        ok: true,
+        output_dir: outputDir,
+        screenshots: results.length + 1 + polishStateEvidence.captures.length
+          + ipadInteractionRecovery.results.reduce((count, result) => count + 1 + (result.journey ? 1 : 0) + (result.portrait ? 1 : 0), 0),
+      };
     }
+  } catch (error) {
+    contractError = error;
+  } finally {
+    const lifecycleResult = await finalizeRunnerLifecycle({
+      contractError,
+      successPayload,
+      browser,
+      server,
+      compatibilityServers,
+      outputDir,
+      origin,
+      persistDiagnostics,
+    });
+    diagnosticsResult = lifecycleResult.diagnosticsResult;
+    diagnosticsError = lifecycleResult.diagnosticsError;
+    lifecycleOutcome = lifecycleResult.outcome;
+    if (lifecycleResult.error) throw lifecycleResult.error;
   }
+  process.stdout.write(JSON.stringify({
+    ...successPayload,
+    ...lifecycleOutcome,
+    diagnostics_health: diagnosticsResult.summary,
+  }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error.stack || String(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(formatRunnerFailureSummary(error));
+    process.exitCode = 1;
+  });
+}
