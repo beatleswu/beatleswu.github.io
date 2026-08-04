@@ -2156,49 +2156,188 @@ export async function persistRunnerDiagnostics(outputDir, origin, instrumentatio
   };
 }
 
+export function closeServerSafely(server) {
+  return new Promise((resolve, reject) => {
+    if (!server || typeof server.close !== 'function') {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const finish = (error = null) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve();
+    };
+    try {
+      server.close(finish);
+    } catch (error) {
+      finish(error);
+    }
+  });
+}
+
+async function attemptLifecycleStep(kind, operation) {
+  try {
+    await operation();
+    return { kind, error: null };
+  } catch (error) {
+    return { kind, error };
+  }
+}
+
 export function composeRunnerErrors({
   contractError = null,
   diagnosticsError = null,
   diagnosticsSummary = null,
+  cleanupErrors = [],
+  cleanupSummary = null,
 } = {}) {
-  const primaryError = contractError || diagnosticsError || null;
-  const secondaryError = contractError ? diagnosticsError : null;
+  const normalizedCleanupErrors = cleanupErrors
+    .filter((entry) => entry && entry.error)
+    .map((entry) => ({ kind: entry.kind, error: entry.error }));
+  const primaryError = contractError || diagnosticsError || normalizedCleanupErrors[0]?.error || null;
+  const primaryErrorKind = contractError
+    ? 'CONTRACT'
+    : (diagnosticsError ? 'DIAGNOSTICS' : (normalizedCleanupErrors.length ? 'CLEANUP' : 'NONE'));
+  const secondaryErrors = [];
+  if (contractError && diagnosticsError) secondaryErrors.push({ kind: 'DIAGNOSTICS', error: diagnosticsError });
+  if (contractError || diagnosticsError) {
+    secondaryErrors.push(...normalizedCleanupErrors.map((entry) => ({ kind: 'CLEANUP', error: entry.error })));
+  }
+  const serializedSecondaryErrors = secondaryErrors.map((entry) => ({
+    kind: entry.kind,
+    error: serializeRunnerError(entry.error),
+  }));
+  const serializedCleanupErrors = normalizedCleanupErrors.map((entry) => ({
+    kind: entry.kind,
+    error: serializeRunnerError(entry.error),
+  }));
   const outcome = {
     run_result: primaryError ? 'FAIL' : 'PASS',
-    primary_error_kind: contractError ? 'CONTRACT' : (diagnosticsError ? 'DIAGNOSTIC_PERSISTENCE' : null),
+    contract_status: contractError ? 'FAIL' : 'PASS',
+    contract_failure_count: contractError ? 1 : 0,
+    primary_error_kind: primaryErrorKind,
     primary_error: serializeRunnerError(primaryError),
-    secondary_error: serializeRunnerError(secondaryError),
+    secondary_errors: serializedSecondaryErrors,
+    secondary_error_count: serializedSecondaryErrors.length,
+    secondary_error_kinds: serializedSecondaryErrors.map((entry) => entry.kind),
+    cleanup_errors: serializedCleanupErrors,
     diagnostic_persistence_status: diagnosticsError ? 'FAIL' : (diagnosticsSummary ? 'PASS' : 'NOT_RUN'),
     diagnostics_health: diagnosticsSummary,
+    cleanup_status: cleanupSummary?.cleanup_status || (normalizedCleanupErrors.length ? 'FAIL' : 'NOT_RUN'),
+    browser_close_status: cleanupSummary?.browser_close_status || 'NOT_RUN',
+    server_close_status: cleanupSummary?.server_close_status || 'NOT_RUN',
   };
   if (!primaryError) return { error: null, outcome };
   primaryError.runnerOutcome = outcome;
-  if (secondaryError) primaryError.diagnosticPersistenceError = secondaryError;
+  if (diagnosticsError) primaryError.diagnosticPersistenceError = diagnosticsError;
+  if (normalizedCleanupErrors.length) primaryError.cleanupErrors = normalizedCleanupErrors.map((entry) => entry.error);
   return { error: primaryError, outcome };
+}
+
+export async function finalizeRunnerLifecycle({
+  contractError = null,
+  successPayload = null,
+  browser,
+  server,
+  compatibilityServers = [],
+  outputDir,
+  origin,
+  persistDiagnostics = persistRunnerDiagnostics,
+} = {}) {
+  const cleanupResults = [];
+  cleanupResults.push(await attemptLifecycleStep('BROWSER_CLOSE', () => browser.close()));
+  cleanupResults.push(await attemptLifecycleStep('SERVER_CLOSE', () => closeServerSafely(server)));
+  for (const compatibilityServer of compatibilityServers) {
+    cleanupResults.push(await attemptLifecycleStep('COMPATIBILITY_SERVER_CLOSE', () => closeServerSafely(compatibilityServer)));
+  }
+
+  let diagnosticsResult = null;
+  let diagnosticsError = null;
+  try {
+    diagnosticsResult = await persistDiagnostics(outputDir, origin);
+  } catch (error) {
+    diagnosticsError = error;
+  }
+
+  const browserCloseFailed = cleanupResults.some((entry) => entry.kind === 'BROWSER_CLOSE' && entry.error);
+  const serverCloseFailed = cleanupResults.some((entry) => (
+    (entry.kind === 'SERVER_CLOSE' || entry.kind === 'COMPATIBILITY_SERVER_CLOSE') && entry.error
+  ));
+  const cleanupErrors = cleanupResults.filter((entry) => entry.error);
+  const cleanupSummary = {
+    cleanup_status: cleanupErrors.length ? 'FAIL' : 'PASS',
+    browser_close_status: browserCloseFailed ? 'FAIL' : 'PASS',
+    server_close_status: serverCloseFailed ? 'FAIL' : 'PASS',
+    browser_close_attempted: true,
+    server_close_attempted: true,
+  };
+  const composed = composeRunnerErrors({
+    contractError,
+    diagnosticsError,
+    diagnosticsSummary: diagnosticsResult?.summary || diagnosticsError?.diagnosticsHealth || null,
+    cleanupErrors,
+    cleanupSummary,
+  });
+  return {
+    successPayload,
+    diagnosticsResult,
+    diagnosticsError,
+    cleanupResults,
+    outcome: composed.outcome,
+    error: composed.error,
+  };
 }
 
 export function formatRunnerFailureSummary(error) {
   const outcome = error?.runnerOutcome || {
     run_result: 'FAIL',
+    contract_status: 'FAIL',
     primary_error_kind: 'UNKNOWN',
     primary_error: serializeRunnerError(error),
-    secondary_error: null,
+    secondary_errors: [],
+    secondary_error_count: 0,
+    secondary_error_kinds: [],
+    cleanup_errors: [],
     diagnostic_persistence_status: 'NOT_RUN',
     diagnostics_health: null,
+    cleanup_status: 'NOT_RUN',
+    browser_close_status: 'NOT_RUN',
+    server_close_status: 'NOT_RUN',
   };
   return JSON.stringify({
     RUN_RESULT: outcome.run_result,
+    CONTRACT_STATUS: outcome.contract_status,
+    CONTRACT_FAILURE_COUNT: outcome.contract_failure_count,
+    CDP_NETWORK_ENABLED: outcome.diagnostics_health?.cdp_network_enabled ? 'YES' : 'NO',
+    INSTRUMENTATION_ERRORS: outcome.diagnostics_health?.instrumentation_errors ?? null,
     PRIMARY_ERROR_KIND: outcome.primary_error_kind,
     PRIMARY_CONTRACT_FAILURE: outcome.primary_error_kind === 'CONTRACT' ? outcome.primary_error : null,
     PRIMARY_ERROR: outcome.primary_error,
-    DIAGNOSTIC_PERSISTENCE_FAILURE: outcome.secondary_error
-      || (outcome.primary_error_kind === 'DIAGNOSTIC_PERSISTENCE' ? outcome.primary_error : null),
+    DIAGNOSTIC_PERSISTENCE_FAILURE: outcome.primary_error_kind === 'DIAGNOSTICS'
+      ? outcome.primary_error
+      : outcome.secondary_errors?.find((entry) => entry.kind === 'DIAGNOSTICS')?.error || null,
+    CLEANUP_FAILURES: outcome.cleanup_errors,
+    SECONDARY_ERROR_COUNT: outcome.secondary_error_count,
+    SECONDARY_ERROR_KINDS: outcome.secondary_error_kinds,
     DIAGNOSTIC_PERSISTENCE_STATUS: outcome.diagnostic_persistence_status,
     DIAGNOSTIC_HEALTH: outcome.diagnostics_health,
+    CLEANUP_STATUS: outcome.cleanup_status,
+    BROWSER_CLOSE_STATUS: outcome.browser_close_status,
+    SERVER_CLOSE_STATUS: outcome.server_close_status,
   }, null, 2);
 }
 
-async function main() {
+async function launchDefaultBrowser() {
+  return chromium.launch({ headless: true, executablePath: findChrome() });
+}
+
+async function main({
+  createServer = startStaticServer,
+  launchBrowser = launchDefaultBrowser,
+  persistDiagnostics = persistRunnerDiagnostics,
+} = {}) {
   const args = process.argv.slice(2);
   const outputIndex = args.indexOf('--out');
   if (outputIndex < 0 || !args[outputIndex + 1]) throw new Error('--out <unique-directory> is required');
@@ -2206,12 +2345,13 @@ async function main() {
   if (fssync.existsSync(outputDir)) throw new Error(`output directory already exists: ${outputDir}`);
   await fs.mkdir(outputDir, { recursive: true });
 
-  const { server, origin } = await startStaticServer();
-  const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
+  const { server, origin } = await createServer();
+  const browser = await launchBrowser();
   const compatibilityServers = [];
   let contractError = null;
   let diagnosticsResult = null;
   let diagnosticsError = null;
+  let lifecycleOutcome = null;
   let successPayload = null;
   try {
     if (args.includes('--ipad-interaction-only')) {
@@ -2361,25 +2501,24 @@ async function main() {
   } catch (error) {
     contractError = error;
   } finally {
-    await browser.close();
-    await new Promise((resolve) => server.close(resolve));
-    for (const compatibilityServer of compatibilityServers) {
-      await new Promise((resolve) => compatibilityServer.close(resolve));
-    }
-    try {
-      diagnosticsResult = await persistRunnerDiagnostics(outputDir, origin);
-    } catch (error) {
-      diagnosticsError = error;
-    }
-    const composed = composeRunnerErrors({
+    const lifecycleResult = await finalizeRunnerLifecycle({
       contractError,
-      diagnosticsError,
-      diagnosticsSummary: diagnosticsResult?.summary || diagnosticsError?.diagnosticsHealth || null,
+      successPayload,
+      browser,
+      server,
+      compatibilityServers,
+      outputDir,
+      origin,
+      persistDiagnostics,
     });
-    if (composed.error) throw composed.error;
+    diagnosticsResult = lifecycleResult.diagnosticsResult;
+    diagnosticsError = lifecycleResult.diagnosticsError;
+    lifecycleOutcome = lifecycleResult.outcome;
+    if (lifecycleResult.error) throw lifecycleResult.error;
   }
   process.stdout.write(JSON.stringify({
     ...successPayload,
+    ...lifecycleOutcome,
     diagnostics_health: diagnosticsResult.summary,
   }, null, 2));
 }
