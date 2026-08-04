@@ -7,12 +7,180 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
+  arbitrateClassification,
+  buildPhase0BrowserOriginObservation,
+  buildCanonicalNetworkFailureSet,
   buildDiagnosticsHealthSummary,
+  buildServerPathSummary,
   composeRunnerErrors,
+  evaluateAbortPredicates,
+  evaluateBrowserOriginatedPredicate,
   finalizeRunnerLifecycle,
   formatRunnerFailureSummary,
+  pathnameFromRawRequestTarget,
   persistRunnerDiagnostics,
+  CLASSIFIER_SCHEMA_VERSION,
 } from './run_e10_vs1e_visual_contract.mjs';
+
+const TRANSITION_ASSET_URL = 'http://127.0.0.1:12345/assets/maps/fixture-transition.webp';
+
+function networkPageFixture({
+  errorText = 'net::ERR_ABORTED',
+  assetUrl = TRANSITION_ASSET_URL,
+  transition = true,
+  successfulResponse = true,
+  serverReceived = transition,
+  responseCreated = serverReceived && successfulResponse,
+  crash = false,
+  cdpMapping = true,
+  includeRequestWillBeSent = true,
+  browserOriginated = false,
+  playwrightUrl = null,
+  finalUiPass = true,
+  serverRequestTarget = null,
+  serverError = false,
+} = {}) {
+  const pageUrl = 'http://127.0.0.1:12345/index.html';
+  const request = {
+    request_id: 'req-transition-1',
+    url: assetUrl,
+    method: 'GET',
+    resource_type: browserOriginated ? 'Other' : 'Image',
+    type: browserOriginated ? 'Other' : 'Image',
+    frame: pageUrl,
+    loader_id: 'loader-1',
+    initiator: browserOriginated ? { type: 'other' } : { type: 'parser' },
+    timestamp: '2026-08-04T00:00:01.000Z',
+    cdp_timestamp: 1,
+    request_will_be_sent: includeRequestWillBeSent,
+  };
+  const cdpEvents = [];
+  if (includeRequestWillBeSent) {
+    cdpEvents.push({ kind: 'Network.requestWillBeSent', ...request });
+  }
+  cdpEvents.push({
+    kind: 'Network.loadingFailed',
+    request_id: request.request_id,
+    error_text: errorText,
+    blocked_reason: null,
+    canceled: errorText === 'net::ERR_ABORTED',
+    type: request.type,
+    timestamp: '2026-08-04T00:00:01.020Z',
+    cdp_timestamp: 1.02,
+  });
+  const page = {
+    page_id: 'page-1',
+    label: 'desktop-1920-details',
+    initial_url: pageUrl,
+    viewport: { width: 1920, height: 1080 },
+    final_ui_pass: finalUiPass,
+    cdp_request_map: cdpMapping ? { [request.request_id]: request } : {},
+    playwright_requestfailed: [{
+      page_id: 'page-1',
+      scenario: 'desktop-1920-details',
+      url: playwrightUrl || assetUrl,
+      method: 'GET',
+      resource_type: request.resource_type,
+      failure_text: errorText,
+      timestamp: '2026-08-04T00:00:01.020Z',
+      page_url: pageUrl,
+    }],
+    events: successfulResponse ? [{
+      kind: 'response',
+      url: assetUrl,
+      status: 200,
+      timestamp: '2026-08-04T00:00:01.030Z',
+    }] : [],
+    cdp_events: cdpEvents,
+    browser_events: crash ? [{ kind: 'crash' }] : [],
+  };
+  if (transition) {
+    page.transition_markers = [{
+      kind: 'drawer_close',
+      transition_type: 'drawer_close',
+      trigger: 'Escape',
+      scenario: page.label,
+      page_id: page.page_id,
+      timestamp: '2026-08-04T00:00:01.005Z',
+      page_url: pageUrl,
+      dom_transition_evidence_captured_at: '2026-08-04T00:00:01.004Z',
+      dom_transition_evidence: [{
+        tag: 'IMG',
+        id: 'fixture-image',
+        before_src: assetUrl,
+      }],
+      dom_transition_evidence_status: 'PASS',
+    }];
+    page.transition_lifecycle = [{
+      kind: 'src_lifecycle',
+      action: 'src_removed',
+      scenario: page.label,
+      page_id: page.page_id,
+      timestamp: '2026-08-04T00:00:01.010Z',
+      old_src: assetUrl,
+      new_src: null,
+    }];
+  } else {
+    page.transition_markers = [];
+    page.transition_lifecycle = [];
+  }
+  const serverEvents = [];
+  if (serverReceived) {
+    const requestId = 'server-request-1';
+    serverEvents.push({
+      kind: 'request',
+      request_id: requestId,
+      method: 'GET',
+      url: serverRequestTarget || new URL(assetUrl).pathname,
+      timestamp: '2026-08-04T00:00:01.006Z',
+    });
+    if (responseCreated) {
+      serverEvents.push({
+        kind: 'response_created',
+        request_id: requestId,
+        status: serverError ? 500 : 200,
+        timestamp: '2026-08-04T00:00:01.007Z',
+      });
+      serverEvents.push({
+        kind: 'response_finished',
+        request_id: requestId,
+        status: serverError ? 500 : 200,
+        timestamp: '2026-08-04T00:00:01.008Z',
+      });
+      serverEvents.push({
+        kind: 'response_closed',
+        request_id: requestId,
+        status: serverError ? 500 : 200,
+        timestamp: '2026-08-04T00:00:01.009Z',
+      });
+    }
+    if (serverError) {
+      serverEvents.push({
+        kind: 'response_error',
+        request_id: requestId,
+        text: 'fixture server error',
+        timestamp: '2026-08-04T00:00:01.009Z',
+      });
+    }
+  }
+  return {
+    page,
+    server: {
+      server_id: 'server-1',
+      origin: 'http://127.0.0.1:12345',
+      events: serverEvents,
+    },
+  };
+}
+
+function classifyFixture(options = {}, caseFailures = { 'desktop-1920-details': [] }) {
+  const fixture = networkPageFixture(options);
+  return buildCanonicalNetworkFailureSet({
+    pages: [fixture.page],
+    servers: [fixture.server],
+    caseFailures,
+  });
+}
 
 function fixtureError(message) {
   return new Error(message);
@@ -87,7 +255,7 @@ function diagnosticFixture() {
       events: [{
         kind: 'requestfailed',
         timestamp: '2026-08-04T00:00:01.000Z',
-        url: 'http://127.0.0.1:12345/assets/maps/zone-06-royal-castle.webp',
+        url: TRANSITION_ASSET_URL,
         method: 'GET',
         resource_type: 'image',
         failure_text: 'net::ERR_FAILED',
@@ -366,6 +534,328 @@ async function testProcessTerminatesWithNonzeroExit() {
   assert.equal(summary.CLEANUP_STATUS, 'FAIL');
 }
 
+function testHarnessPreRequestAbortClassified() {
+  const result = classifyFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  });
+  assert.equal(result.HARNESS_PRE_REQUEST_ABORTS, 1);
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 0);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.class_a[0].predicate_chain.classification, 'CLASS_A');
+  assert.equal(result.class_a[0].predicate_chain.first_failed_condition, 'B1_server_received_request');
+}
+
+function testDrawerCloseErrAbortedClassifiedExpected() {
+  const result = classifyFixture();
+  assert.equal(result.HARNESS_PRE_REQUEST_ABORTS, 0);
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 1);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 0);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.class_b[0].predicate_chain.classification, 'CLASS_B');
+}
+
+function testClassABMutuallyExclusive() {
+  const harness = classifyFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  });
+  const transition = classifyFixture();
+  assert.equal(harness.class_a.length, 1);
+  assert.equal(harness.class_b.length, 0);
+  assert.equal(transition.class_a.length, 0);
+  assert.equal(transition.class_b.length, 1);
+}
+
+function testActiveRenderErrAbortedRemainsFailure() {
+  const result = classifyFixture({ transition: false });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+  assert.equal(result.PRIMARY_ERROR_KIND, 'CONTRACT');
+}
+
+function testPageOriginatedPreRequestAbortRemainsFailure() {
+  const result = classifyFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: false,
+  });
+  assert.equal(result.HARNESS_PRE_REQUEST_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+  assert.equal(result.class_a[0], undefined);
+  assert.equal(result.class_b[0], undefined);
+  assert.equal(result.classification_totals_reconciled, true);
+}
+
+function testErrAbortedWithoutTransition() {
+  const result = classifyFixture({ transition: false, successfulResponse: true });
+  assert.match(result.failures[0], /UNEXPECTED_REQUEST_FAILURE/);
+}
+
+function testErrAbortedWithoutSuccessfulResponse() {
+  const result = classifyFixture({ transition: true, successfulResponse: false });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+}
+
+function testErrAbortedWithPageCrash() {
+  const result = classifyFixture({ transition: true, crash: true });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+}
+
+function testErrFailedRemainsFailure() {
+  const result = classifyFixture({ errorText: 'net::ERR_FAILED', transition: true });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+}
+
+function testTransitionAbortWithMismatchedSrcRemainsFailure() {
+  const fixture = networkPageFixture({ transition: true });
+  fixture.page.transition_markers[0].dom_transition_evidence[0].before_src = `${TRANSITION_ASSET_URL}?different=1`;
+  const mismatched = buildCanonicalNetworkFailureSet({ pages: [fixture.page], servers: [fixture.server] });
+  assert.equal(mismatched.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(mismatched.UNEXPECTED_REQUEST_FAILURES, 1);
+}
+
+function testCdpRequestIdJoin() {
+  const result = classifyFixture();
+  assert.equal(result.CDP_CORRELATION_MISSES, 0);
+  assert.equal(result.JOINED_FAILURES, 1);
+  assert.equal(result.canonical_failures[0].url, TRANSITION_ASSET_URL);
+  assert.equal(result.canonical_failures[0].loader_id, 'loader-1');
+  assert.deepEqual(result.canonical_failures[0].initiator, { type: 'parser' });
+}
+
+function testCdpCorrelationMissFails() {
+  const result = classifyFixture({ cdpMapping: false, includeRequestWillBeSent: false });
+  assert.equal(result.CDP_CORRELATION_MISSES, 1);
+  assert.equal(result.cross_validation_valid, false);
+  assert.ok(result.failures.some((failure) => failure.startsWith('CDP_CORRELATION_MISS')));
+}
+
+function testPlaywrightCdpMismatchRecordedNotGated() {
+  const result = classifyFixture({ playwrightUrl: 'http://127.0.0.1:12345/assets/other.webp' });
+  assert.equal(result.PLAYWRIGHT_CDP_MISMATCHES, 2);
+  assert.equal(result.PLAYWRIGHT_CDP_MISMATCH_RECORDED, true);
+  assert.equal(result.PLAYWRIGHT_CDP_MISMATCH_GATE, false);
+  assert.equal(result.cross_validation_valid, true);
+  assert.deepEqual(result.failures, []);
+}
+
+function testExpectedAbortNotInFailureCount() {
+  const result = classifyFixture();
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 1);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 0);
+  assert.equal(result.failures.length, 0);
+}
+
+function testHarnessAbortNotInFailureCount() {
+  const result = classifyFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  });
+  assert.equal(result.HARNESS_PRE_REQUEST_ABORTS, 1);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 0);
+  assert.equal(result.failures.length, 0);
+}
+
+function testUnexpectedAbortInFailureCount() {
+  const result = classifyFixture({ transition: false });
+  assert.equal(result.HARNESS_PRE_REQUEST_ABORTS, 0);
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+  assert.equal(result.failures.length, 1);
+}
+
+function testBrowserOriginatedDetection() {
+  const browser = evaluateBrowserOriginatedPredicate({
+    resource_type: 'Other',
+    type: 'Other',
+    initiator: { type: 'other' },
+  });
+  const page = evaluateBrowserOriginatedPredicate({
+    resource_type: 'Image',
+    type: 'Image',
+    initiator: { type: 'parser' },
+  });
+  assert.equal(browser.matches, true);
+  assert.equal(page.matches, false);
+  assert.match(browser.source, /CDP initiator\.type/);
+}
+
+function testPhase0Observation() {
+  const observation = buildPhase0BrowserOriginObservation([
+    { request_id: 'favicon', url: '/favicon.ico', resource_type: 'Other', type: 'Other', initiator: { type: 'other' } },
+    { request_id: 'image', url: '/hero.webp', resource_type: 'Image', type: 'Image', initiator: { type: 'parser' } },
+  ]);
+  assert.equal(observation.status, 'COMPLETED_BEFORE_PREDICATE');
+  assert.equal(observation.observed_request_count, 2);
+  assert.equal(observation.browser_originated_candidate_count, 1);
+  assert.equal(observation.page_originated_or_other_candidate_count, 1);
+}
+
+function testPathnameComparisonUsesRawServerRequestTarget() {
+  const rawTarget = '/assets/maps/a%20b.webp?cache=1';
+  const pathname = pathnameFromRawRequestTarget(rawTarget);
+  assert.equal(pathname, '/assets/maps/a%20b.webp');
+  const summary = buildServerPathSummary([{
+    origin: 'http://127.0.0.1:12345',
+    events: [
+      { kind: 'request', request_id: 'r1', url: rawTarget },
+      { kind: 'response_created', request_id: 'r1', status: 200, relative_path: '/repo/assets/maps/a b.webp' },
+    ],
+  }]);
+  assert.equal(summary.get('/assets/maps/a%20b.webp').server_request_count, 1);
+  assert.equal(summary.get('/assets/maps/a b.webp'), undefined);
+}
+
+function testRealAssetWithoutHttp200RemainsFailure() {
+  const result = classifyFixture({ transition: true, successfulResponse: false });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+  assert.equal(result.class_b[0], undefined);
+}
+
+function testRequestReachesServerWithoutTransitionRemainsFailure() {
+  const result = classifyFixture({
+    transition: false,
+    serverReceived: true,
+    responseCreated: true,
+    successfulResponse: true,
+  });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+  assert.equal(result.class_b[0], undefined);
+}
+
+function testProvenanceChainEmittedForExpectedAndUnexpected() {
+  const expectedA = classifyFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  });
+  const expectedB = classifyFixture();
+  const unexpected = classifyFixture({ transition: false });
+  for (const [result, classification] of [[expectedA, 'CLASS_A'], [expectedB, 'CLASS_B'], [unexpected, 'UNEXPECTED']]) {
+    const event = result.class_a[0] || result.class_b[0] || result.unexpected_request_failures[0];
+    assert.equal(event.classification, classification);
+    assert.equal(event.predicate_chain.classification, classification);
+    assert.equal(event.predicate_chain.classifier_schema_version, CLASSIFIER_SCHEMA_VERSION);
+    assert.ok(event.predicate_chain.first_failed_condition === null || typeof event.predicate_chain.first_failed_condition === 'string');
+  }
+}
+
+function testNearMissSamplesClassifiedUnexpected() {
+  const a6 = classifyFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: false,
+  });
+  assert.equal(a6.unexpected_request_failures[0].predicate_chain.class_a.first_failed_condition, 'A6_browser_originated');
+  const b5Fixture = networkPageFixture({ transition: true });
+  b5Fixture.page.transition_markers[0].dom_transition_evidence[0].before_src = `${TRANSITION_ASSET_URL}?mismatch=1`;
+  const b5 = buildCanonicalNetworkFailureSet({ pages: [b5Fixture.page], servers: [b5Fixture.server] });
+  assert.equal(b5.unexpected_request_failures[0].predicate_chain.class_b.first_failed_condition, 'B5_pre_transition_src_exact_match');
+  assert.equal(b5.UNEXPECTED_REQUEST_FAILURES, 1);
+}
+
+function testExactlyOneClassificationPerEvent() {
+  for (const result of [
+    classifyFixture({ transition: false, successfulResponse: false, serverReceived: false, browserOriginated: true }),
+    classifyFixture(),
+    classifyFixture({ transition: false }),
+  ]) {
+    const classified = result.class_a.length + result.class_b.length + result.unexpected_request_failures.length;
+    assert.equal(result.CDP_LOADINGFAILED, 1);
+    assert.equal(classified, 1);
+    assert.equal(result.classification_totals_reconciled, true);
+  }
+}
+
+function testMultipleClassificationsRemainsFailure() {
+  const arbitration = arbitrateClassification({ classA: true, classB: true });
+  assert.equal(arbitration.status, 'FAIL');
+  assert.equal(arbitration.classification, null);
+  assert.equal(arbitration.reason, 'MULTIPLE_CLASSIFICATIONS');
+}
+
+function renameFixture(fixture, pageId, label) {
+  fixture.page.page_id = pageId;
+  fixture.page.label = label;
+  for (const marker of fixture.page.transition_markers || []) {
+    marker.page_id = pageId;
+    marker.scenario = label;
+  }
+  for (const lifecycle of fixture.page.transition_lifecycle || []) {
+    lifecycle.page_id = pageId;
+    lifecycle.scenario = label;
+  }
+  for (const event of fixture.page.playwright_requestfailed || []) {
+    event.page_id = pageId;
+    event.scenario = label;
+  }
+  fixture.server.server_id = `server-${pageId}`;
+  return fixture;
+}
+
+function testClassificationTotalsReconcileWithCdpTotal() {
+  const a = renameFixture(networkPageFixture({
+    assetUrl: 'http://127.0.0.1:12345/assets/a.webp',
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  }), 'page-a', 'a');
+  const b = renameFixture(networkPageFixture({
+    assetUrl: 'http://127.0.0.1:12345/assets/b.webp',
+  }), 'page-b', 'b');
+  const u = renameFixture(networkPageFixture({
+    assetUrl: 'http://127.0.0.1:12345/assets/u.webp',
+    transition: false,
+  }), 'page-u', 'u');
+  const result = buildCanonicalNetworkFailureSet({
+    pages: [a.page, b.page, u.page],
+    servers: [a.server, b.server, u.server],
+  });
+  assert.deepEqual(result.classification_totals, { CLASS_A: 1, CLASS_B: 1, UNEXPECTED: 1 });
+  assert.equal(result.CDP_LOADINGFAILED, 3);
+  assert.equal(result.classification_totals_reconciled, true);
+}
+
+function testClassifierOutputByteIdenticalOnRepeatRun() {
+  const fixture = networkPageFixture({
+    transition: false,
+    successfulResponse: false,
+    serverReceived: false,
+    browserOriginated: true,
+  });
+  const input = { pages: [fixture.page], servers: [fixture.server] };
+  const first = buildCanonicalNetworkFailureSet(input);
+  const second = buildCanonicalNetworkFailureSet(input);
+  assert.equal(
+    JSON.stringify({ totals: first.classification_totals, failures: first.canonical_failures }),
+    JSON.stringify({ totals: second.classification_totals, failures: second.canonical_failures }),
+  );
+}
+
+function testPostPassClassifier() {
+  const result = classifyFixture({ transition: true }, { 'desktop-1920-details': ['final assertion failed'] });
+  assert.equal(result.RUNNER_TRANSITION_ABORTS, 0);
+  assert.equal(result.UNEXPECTED_REQUEST_FAILURES, 1);
+  assert.match(result.failures[0], /UNEXPECTED_REQUEST_FAILURE/);
+}
+
 const tests = [
   ['contract error preserved on diagnostic write success', testOriginalContractErrorPreservedOnDiagnosticWriteSuccess],
   ['contract and diagnostics double failure', testContractAndDiagnosticsDoubleFailure],
@@ -382,6 +872,34 @@ const tests = [
   ['green contract cleanup failure', testGreenContractCleanupFailureLifecycle],
   ['server shutdown after browser close failure', testServerShutdownAfterBrowserCloseFailure],
   ['process terminates with nonzero exit', testProcessTerminatesWithNonzeroExit],
+  ['HARNESS_PRE_REQUEST_ABORT_CLASSIFIED', testHarnessPreRequestAbortClassified],
+  ['DRAWER_CLOSE_ERR_ABORTED_CLASSIFIED_EXPECTED', testDrawerCloseErrAbortedClassifiedExpected],
+  ['CLASS_A_AND_B_MUTUALLY_EXCLUSIVE', testClassABMutuallyExclusive],
+  ['ACTIVE_RENDER_ERR_ABORTED_REMAINS_FAILURE', testActiveRenderErrAbortedRemainsFailure],
+  ['PAGE_ORIGINATED_PRE_REQUEST_ABORT_REMAINS_FAILURE', testPageOriginatedPreRequestAbortRemainsFailure],
+  ['ERR_ABORTED_WITHOUT_TRANSITION', testErrAbortedWithoutTransition],
+  ['ERR_ABORTED_WITHOUT_SUCCESSFUL_RESPONSE', testErrAbortedWithoutSuccessfulResponse],
+  ['ERR_ABORTED_WITH_PAGE_CRASH', testErrAbortedWithPageCrash],
+  ['ERR_FAILED_REMAINS_FAILURE', testErrFailedRemainsFailure],
+  ['TRANSITION_ABORT_WITH_MISMATCHED_SRC_REMAINS_FAILURE', testTransitionAbortWithMismatchedSrcRemainsFailure],
+  ['CDP_REQUESTID_JOIN', testCdpRequestIdJoin],
+  ['CDP_CORRELATION_MISS_FAILS', testCdpCorrelationMissFails],
+  ['PLAYWRIGHT_CDP_MISMATCH_RECORDED_NOT_GATED', testPlaywrightCdpMismatchRecordedNotGated],
+  ['EXPECTED_ABORT_NOT_IN_FAILURE_COUNT', testExpectedAbortNotInFailureCount],
+  ['EXPECTED_HARNESS_ABORT_NOT_IN_FAILURE_COUNT', testHarnessAbortNotInFailureCount],
+  ['UNEXPECTED_ABORT_IN_FAILURE_COUNT', testUnexpectedAbortInFailureCount],
+  ['BROWSER_ORIGINATED_DETECTION', testBrowserOriginatedDetection],
+  ['PHASE_0_OBSERVATION', testPhase0Observation],
+  ['PATHNAME_COMPARISON_USES_RAW_SERVER_REQUEST_TARGET', testPathnameComparisonUsesRawServerRequestTarget],
+  ['REAL_ASSET_WITHOUT_HTTP200_REMAINS_FAILURE', testRealAssetWithoutHttp200RemainsFailure],
+  ['REQUEST_REACHES_SERVER_WITHOUT_TRANSITION_REMAINS_FAILURE', testRequestReachesServerWithoutTransitionRemainsFailure],
+  ['PROVENANCE_CHAIN_EMITTED_FOR_CLASSIFICATIONS', testProvenanceChainEmittedForExpectedAndUnexpected],
+  ['NEAR_MISS_SAMPLES_CLASSIFIED_UNEXPECTED', testNearMissSamplesClassifiedUnexpected],
+  ['EXACTLY_ONE_CLASSIFICATION_PER_EVENT', testExactlyOneClassificationPerEvent],
+  ['MULTIPLE_CLASSIFICATIONS_REMAINS_FAILURE', testMultipleClassificationsRemainsFailure],
+  ['CLASSIFICATION_TOTALS_RECONCILE_WITH_CDP_TOTAL', testClassificationTotalsReconcileWithCdpTotal],
+  ['CLASSIFIER_OUTPUT_BYTE_IDENTICAL_ON_REPEAT_RUN', testClassifierOutputByteIdenticalOnRepeatRun],
+  ['POST_PASS_CLASSIFIER', testPostPassClassifier],
 ];
 
 for (const [name, test] of tests) {
