@@ -5,6 +5,7 @@
   "scripts": {
     "e9:layout": "node run_e9_layout_contract.mjs",
     "e10:vs1e:visual": "node run_e10_vs1e_visual_contract.mjs",
+    "e10:vs1e:unit": "node run_e10_vs1e_visual_contract_unit_tests.mjs",
     "e9:fetch": "node run_e9_fetch_contract.mjs",
     "e9:acceptance": "node run_e9_acceptance_journey.mjs",
     "e9:acceptance:unit": "node run_e9_acceptance_helpers_unit_tests.mjs",

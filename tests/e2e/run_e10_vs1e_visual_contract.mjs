@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import fssync from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,6 +101,14 @@ function safeFrameUrl(value) {
   }
 }
 
+function safePageUrl(page) {
+  try {
+    return page.url();
+  } catch {
+    return null;
+  }
+}
+
 function safeFromServiceWorker(response) {
   try {
     return typeof response.fromServiceWorker === 'function'
@@ -125,6 +133,7 @@ async function installPageDiagnostics(page, browserErrors) {
     label: null,
     created_at: observedAt(),
     initial_url: page.url(),
+    viewport: typeof page.viewportSize === 'function' ? page.viewportSize() : null,
     events: [],
     cdp_events: [],
     browser_events: [],
@@ -163,6 +172,8 @@ async function installPageDiagnostics(page, browserErrors) {
       resource_type: request.resourceType(),
       failure_text: failure?.errorText || null,
       frame: safeFrameUrl(request),
+      page_url: safePageUrl(page),
+      viewport: diagnostics.viewport,
     });
     browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
   });
@@ -215,6 +226,8 @@ async function installPageDiagnostics(page, browserErrors) {
       canceled: Boolean(event.canceled),
       type: event.type,
       cdp_timestamp: event.timestamp,
+      page_url: safePageUrl(page),
+      viewport: diagnostics.viewport,
     }));
   } catch (error) {
     diagnostics.instrumentation_errors.push({
@@ -2084,16 +2097,105 @@ async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir
   return report;
 }
 
-async function writeRunnerInstrumentation(outputDir, origin) {
-  await fs.writeFile(
-    path.join(outputDir, 'formal-runner-requestfailed-instrumentation.json'),
-    JSON.stringify({
-      source_root: repoRoot,
-      runtime_origin: origin,
-      captured_at: observedAt(),
-      ...runnerInstrumentation,
-    }, null, 2)
-  );
+function serializeRunnerError(error) {
+  if (!error) return null;
+  return {
+    name: error.name || 'Error',
+    message: error.message || String(error),
+    stack: error.stack || null,
+  };
+}
+
+export function buildDiagnosticsHealthSummary(instrumentation = runnerInstrumentation) {
+  const pages = Array.isArray(instrumentation.pages) ? instrumentation.pages : [];
+  const servers = Array.isArray(instrumentation.servers) ? instrumentation.servers : [];
+  const instrumentationErrors = pages.flatMap((page) => page.instrumentation_errors || []);
+  return {
+    cdp_network_enabled: pages.length > 0 && pages.every((page) => page.cdp_network_enabled === true),
+    instrumentation_errors: instrumentationErrors.length,
+    instrumentation_error_details: instrumentationErrors.slice(0, 20),
+    pages: pages.length,
+    servers: servers.length,
+  };
+}
+
+export async function persistRunnerDiagnostics(outputDir, origin, instrumentation = runnerInstrumentation) {
+  const health = buildDiagnosticsHealthSummary(instrumentation);
+  const target = path.join(outputDir, 'formal-runner-requestfailed-instrumentation.json');
+  try {
+    await fs.writeFile(
+      target,
+      JSON.stringify({
+        source_root: repoRoot,
+        runtime_origin: origin,
+        captured_at: observedAt(),
+        diagnostic_health: {
+          ...health,
+          diagnostic_persistence_status: 'PASS',
+        },
+        ...instrumentation,
+      }, null, 2)
+    );
+  } catch (error) {
+    error.diagnosticsHealth = {
+      ...health,
+      diagnostic_persistence_status: 'FAIL',
+      instrumentation_error_details: [
+        ...health.instrumentation_error_details,
+        { kind: 'diagnostic_persistence', text: error.stack || String(error) },
+      ].slice(0, 20),
+    };
+    throw error;
+  }
+  return {
+    path: target,
+    summary: {
+      ...health,
+      diagnostic_persistence_status: 'PASS',
+    },
+  };
+}
+
+export function composeRunnerErrors({
+  contractError = null,
+  diagnosticsError = null,
+  diagnosticsSummary = null,
+} = {}) {
+  const primaryError = contractError || diagnosticsError || null;
+  const secondaryError = contractError ? diagnosticsError : null;
+  const outcome = {
+    run_result: primaryError ? 'FAIL' : 'PASS',
+    primary_error_kind: contractError ? 'CONTRACT' : (diagnosticsError ? 'DIAGNOSTIC_PERSISTENCE' : null),
+    primary_error: serializeRunnerError(primaryError),
+    secondary_error: serializeRunnerError(secondaryError),
+    diagnostic_persistence_status: diagnosticsError ? 'FAIL' : (diagnosticsSummary ? 'PASS' : 'NOT_RUN'),
+    diagnostics_health: diagnosticsSummary,
+  };
+  if (!primaryError) return { error: null, outcome };
+  primaryError.runnerOutcome = outcome;
+  if (secondaryError) primaryError.diagnosticPersistenceError = secondaryError;
+  return { error: primaryError, outcome };
+}
+
+export function formatRunnerFailureSummary(error) {
+  const outcome = error?.runnerOutcome || {
+    run_result: 'FAIL',
+    primary_error_kind: 'UNKNOWN',
+    primary_error: serializeRunnerError(error),
+    secondary_error: null,
+    diagnostic_persistence_status: 'NOT_RUN',
+    diagnostics_health: null,
+  };
+  return JSON.stringify({
+    RUN_RESULT: outcome.run_result,
+    PRIMARY_ERROR_KIND: outcome.primary_error_kind,
+    PRIMARY_CONTRACT_FAILURE: outcome.primary_error_kind === 'CONTRACT' ? outcome.primary_error : null,
+    PRIMARY_ERROR: outcome.primary_error,
+    DIAGNOSTIC_PERSISTENCE_FAILURE: outcome.secondary_error
+      || (outcome.primary_error_kind === 'DIAGNOSTIC_PERSISTENCE' ? outcome.primary_error : null),
+    DIAGNOSTIC_PERSISTENCE_STATUS: outcome.diagnostic_persistence_status,
+    DIAGNOSTIC_HEALTH: outcome.diagnostics_health,
+  }, null, 2);
 }
 
 async function main() {
@@ -2107,6 +2209,10 @@ async function main() {
   const { server, origin } = await startStaticServer();
   const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
   const compatibilityServers = [];
+  let contractError = null;
+  let diagnosticsResult = null;
+  let diagnosticsError = null;
+  let successPayload = null;
   try {
     if (args.includes('--ipad-interaction-only')) {
       const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
@@ -2121,10 +2227,9 @@ async function main() {
         }, null, 2)
       );
       if (!ipadInteractionRecovery.ok) throw new Error(ipadInteractionRecovery.failures.join('\n'));
-      process.stdout.write(JSON.stringify({ ok: true, output_dir: outputDir, cases: ipadInteractionRecovery.results.length }, null, 2));
-      return;
-    }
-    const specs = [
+      successPayload = { ok: true, output_dir: outputDir, cases: ipadInteractionRecovery.results.length };
+    } else {
+      const specs = [
       { specName: 'desktop-1920-closed', viewport: { width: 1920, height: 1080 }, lang: 'zh', filename: 'desktop-1920x1080-closed-zh.png', layout: 'rail' },
       { specName: 'desktop-1920-closed-en', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-closed-en.png', layout: 'rail' },
       { specName: 'desktop-1920-details', viewport: { width: 1920, height: 1080 }, lang: 'en', filename: 'desktop-1920x1080-drawer-open-en.png', zone: 'k1_5', layout: 'rail', progressDrawerCheck: true, escapeCheck: true, challengeActionCheck: true },
@@ -2155,26 +2260,26 @@ async function main() {
       { specName: 'mobile-390-long-label', viewport: { width: 390, height: 844 }, lang: 'en', filename: 'mobile-390x844-long-label-en.png', zone: 'k1_5', longLabelStress: true, adventureCommandCheck: true, layout: 'bottom-dock' },
       { specName: 'mobile-360-safe-area', viewport: { width: 360, height: 800 }, lang: 'zh', filename: 'mobile-360x800-safe-area-zh.png', safeAreaBottom: 24, layout: 'bottom-dock' },
     ];
-    const results = [];
-    for (const spec of specs) {
-      process.stdout.write(`capture ${spec.specName}\n`);
-      results.push(await runCase(browser, origin, outputDir, spec));
-    }
-    const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
-    const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
-    const legacy = await runLegacyCase(browser, origin, outputDir);
-    const lifecycle = await runLifecycleCase(browser, origin);
-    const compatibilityBridge = [];
-    for (const contractCase of ['missing', 'wrong', 'current-v209']) {
-      const fixture = await startStaticServer({ contractCase });
-      compatibilityServers.push(fixture.server);
-      const fallbackOrigin = contractCase === 'wrong'
-        ? fixture.origin.replace('127.0.0.1', 'localhost')
-        : fixture.origin;
-      compatibilityBridge.push(
-        await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
-      );
-    }
+      const results = [];
+      for (const spec of specs) {
+        process.stdout.write(`capture ${spec.specName}\n`);
+        results.push(await runCase(browser, origin, outputDir, spec));
+      }
+      const polishStateEvidence = await capturePolishStateEvidence(browser, origin, outputDir);
+      const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
+      const legacy = await runLegacyCase(browser, origin, outputDir);
+      const lifecycle = await runLifecycleCase(browser, origin);
+      const compatibilityBridge = [];
+      for (const contractCase of ['missing', 'wrong', 'current-v209']) {
+        const fixture = await startStaticServer({ contractCase });
+        compatibilityServers.push(fixture.server);
+        const fallbackOrigin = contractCase === 'wrong'
+          ? fixture.origin.replace('127.0.0.1', 'localhost')
+          : fixture.origin;
+        compatibilityBridge.push(
+          await runCompatibilityFallbackCase(browser, fallbackOrigin, contractCase, outputDir)
+        );
+      }
     const dockGeometryViewports = results
       .filter((result) => result.viewport.width >= 768 && result.viewport.width > result.viewport.height)
       .map((result) => ({
@@ -2244,26 +2349,44 @@ async function main() {
       compatibilityBridge,
       failures,
     };
-    await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
-    await writeRunnerInstrumentation(outputDir, origin);
-    if (failures.length) throw new Error(failures.join('\n'));
-    process.stdout.write(JSON.stringify({
-      ok: true,
-      output_dir: outputDir,
-      screenshots: results.length + 1 + polishStateEvidence.captures.length
-        + ipadInteractionRecovery.results.reduce((count, result) => count + 1 + (result.journey ? 1 : 0) + (result.portrait ? 1 : 0), 0),
-    }, null, 2));
+      await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
+      if (failures.length) throw new Error(failures.join('\n'));
+      successPayload = {
+        ok: true,
+        output_dir: outputDir,
+        screenshots: results.length + 1 + polishStateEvidence.captures.length
+          + ipadInteractionRecovery.results.reduce((count, result) => count + 1 + (result.journey ? 1 : 0) + (result.portrait ? 1 : 0), 0),
+      };
+    }
+  } catch (error) {
+    contractError = error;
   } finally {
     await browser.close();
     await new Promise((resolve) => server.close(resolve));
     for (const compatibilityServer of compatibilityServers) {
       await new Promise((resolve) => compatibilityServer.close(resolve));
     }
-    await writeRunnerInstrumentation(outputDir, origin);
+    try {
+      diagnosticsResult = await persistRunnerDiagnostics(outputDir, origin);
+    } catch (error) {
+      diagnosticsError = error;
+    }
+    const composed = composeRunnerErrors({
+      contractError,
+      diagnosticsError,
+      diagnosticsSummary: diagnosticsResult?.summary || diagnosticsError?.diagnosticsHealth || null,
+    });
+    if (composed.error) throw composed.error;
   }
+  process.stdout.write(JSON.stringify({
+    ...successPayload,
+    diagnostics_health: diagnosticsResult.summary,
+  }, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error.stack || String(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(formatRunnerFailureSummary(error));
+    process.exitCode = 1;
+  });
+}
