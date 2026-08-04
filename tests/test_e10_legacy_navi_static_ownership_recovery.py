@@ -35,7 +35,7 @@ def test_marker_only_ownership_is_explicitly_rejected():
 def test_runtime_shell_ownership_is_initialized_before_shared_nav_runs():
     index = (ROOT / "index.html").read_text(encoding="utf-8")
     assert index.index("window.__GO_E9_ACTIVE_SHELL__") < index.index(
-        '<script src="/site-nav.js?v=20260625presence1"></script>'
+        '<script src="/site-nav.js?v=20260804e10navcache1"></script>'
     )
     assert "window.__GO_E9_OWNERSHIP_INITIALIZED__ = true;" in index
 

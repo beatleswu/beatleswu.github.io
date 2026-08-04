@@ -7,8 +7,12 @@
  */
 
 const VERSION     = 'v227-e10-canonical-layout-contract-recovery';
-const SHELL_CACHE = `cg-shell-${VERSION}`;
-const IMG_CACHE   = `cg-img-${VERSION}`;
+// Shared with the E10 site-nav.js and js/e9/shell.js cache-busting URLs in
+// index.html. Change this identity whenever their static-generation contract
+// changes so an older shell can never remain in the active SW cache.
+const ASSET_IDENTITY = '20260804e10navcache1';
+const SHELL_CACHE = `cg-shell-${VERSION}-${ASSET_IDENTITY}`;
+const IMG_CACHE   = `cg-img-${VERSION}-${ASSET_IDENTITY}`;
 
 // 只預快取公開、不需登入的靜態資源
 // 登入後頁面（/hero、/curriculum 等）不預快取——安裝時 fetch 會跟 redirect 到 /login 快取到錯誤內容
