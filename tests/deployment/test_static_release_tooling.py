@@ -103,10 +103,11 @@ def test_inventory_eligible_files_matches_app_py_allowlist_exactly():
 def test_inventory_explicit_subpath_asset_has_a_live_static_route():
     inventory = _load_inventory()
     app_content = _read(APP_PY)
-    adapter_path = "js/map_battle_v1_adapter.js"
-    assert adapter_path in inventory["eligible_files"]["entries"]
-    assert adapter_path in inventory["required_in_generation"]["entries"]
+    for asset_path in ("js/map_battle_v1_adapter.js", "js/e9/shell.js"):
+        assert asset_path in inventory["eligible_files"]["entries"]
+        assert asset_path in inventory["required_in_generation"]["entries"]
     assert "@app.route('/js/map_battle_v1_adapter.js')" in app_content
+    assert "@app.route('/js/e9/<path:subpath>')" in app_content
 
 
 def test_inventory_required_in_generation_is_subset_of_eligible():
@@ -122,7 +123,8 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     # exact image's application shell wiring.
     inventory = _load_inventory()
     assert set(inventory["required_in_generation"]["entries"]) == {
-        "i18n.js", "sw.js", "index.html", "site-nav.js", "js/map_battle_v1_adapter.js",
+        "i18n.js", "sw.js", "index.html", "site-nav.js",
+        "js/e9/shell.js", "js/map_battle_v1_adapter.js",
     }
 
 
@@ -170,11 +172,12 @@ def test_html_required_legacy_assets_have_image_and_static_contract_entries():
     required = set(inventory["required_in_generation"]["entries"])
 
     assert "/js/map_battle_v1_adapter.js" in html
+    assert "/js/e9/shell.js" in html
     assert "/site-nav.js" in html
     assert "COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js" in dockerfile
     assert "site-nav.js" in dockerfile
-    assert {"site-nav.js", "js/map_battle_v1_adapter.js"} <= eligible
-    assert {"site-nav.js", "js/map_battle_v1_adapter.js"} <= required
+    assert {"site-nav.js", "js/e9/shell.js", "js/map_battle_v1_adapter.js"} <= eligible
+    assert {"site-nav.js", "js/e9/shell.js", "js/map_battle_v1_adapter.js"} <= required
 
 
 def test_dockerfile_legacy_asset_sources_exist_and_are_narrow():
