@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "b316804b7d5a62182149ecb72410b417d3292db7",
+      "source_commit": "8dbaa0b751a41abaa7922365e7b8edcd66885d28",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #261 from beatleswu/codex/e10-global-navi-cache-identity-fix-impl",
-      "source_date": "2026-08-04",
-      "content_sha256": "e138398b873e7e90e1e1dd7bdafe63c0b46f1abd81b8d7daeec8d68d5890532d",
+      "source_commit_subject": "Merge pull request #265 from beatleswu/codex/e10-battle-lifecycle-resume-recovery-20260805-01",
+      "source_date": "2026-08-05",
+      "content_sha256": "cb51645efdae195008acd57b782046124ad8dea5262fd6e44cae2dfe763a684f",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge b316804b7d5a62182149ecb72410b417d3292db7; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 8dbaa0b751a41abaa7922365e7b8edcd66885d28; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
