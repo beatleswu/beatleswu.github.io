@@ -6481,6 +6481,7 @@
                 </div>
                 <div class="btn-row">
                     <button class="btn-nav" id="btn-adventure-return" onclick="returnToAdventureMapAfterEncounter()" style="display:none;"></button>
+                    <button class="btn-nav teal-btn" id="btn-e10-battle-explain" type="button" onclick="showE10BattleExplanation()" aria-controls="explanation-panel" style="display:none;">看解答</button>
                     <button class="btn-nav" onclick="prevQuestion()" data-i18n="index.btn.prev">◀ 上一題</button>
                     <button class="btn-nav" id="btn-hint" onclick="useHintTicket()" style="display:none;"><span data-i18n="index.btn.hint">💡 提示</span> <span id="hint-count"></span></button>
                     <button class="btn-nav teal-btn" id="btn-show-solution" onclick="showSolutionNow()" data-sfx="none" style="display:none;" data-i18n="index.btn.solution">▶ 看正解</button>
@@ -8598,7 +8599,50 @@ function showBeginnerVillageEncounterContinuation() {
     return true;
 }
 
+function _isE10BattleActionState() {
+    return _isAdventureZonePractice()
+        && _isE10BattleShell()
+        && _mapBattleV1Mode === 'active'
+        && !!currentQ;
+}
+
+function _syncE10BattleActions(active) {
+    const visible = active === true && _isE10BattleActionState();
+    const explain = document.getElementById('btn-e10-battle-explain');
+    const back = document.getElementById('btn-adventure-return');
+    if (explain) {
+        explain.style.display = visible ? 'inline-flex' : 'none';
+        explain.disabled = !visible;
+        explain.setAttribute('aria-disabled', visible ? 'false' : 'true');
+    }
+    if (back && visible) {
+        back.textContent = '返回 E10 地圖';
+        back.style.display = 'inline-flex';
+    } else if (back && !isBeginnerVillageAdventureResult()) {
+        back.style.display = 'none';
+    }
+}
+
+function showE10BattleExplanation() {
+    if (!_isE10BattleActionState()) return;
+    showExplanation(_lastWrongMove || null);
+    const panel = document.getElementById('explanation-panel');
+    if (panel && typeof panel.scrollIntoView === 'function') {
+        panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
+
 function returnToAdventureMapAfterEncounter() {
+    // Returning is presentation/navigation only. Preserve the server-issued
+    // active attempt in sessionStorage so re-entry can resume it; invalidate
+    // every callback that belongs to the Battle page before navigating away.
+    _mapBattleV1LifecycleGeneration += 1;
+    _mapBattleV1PrepareSerial += 1;
+    _clearMapBattleV1Transition();
+    _mapBattleV1Mode = 'disabled';
+    _syncE10BattleActions(false);
+    _publishMapBattleV1Lifecycle();
+    invalidateE9AdventureStateCache();
     window.location.href = '/?adventure=1';
 }
 
@@ -9406,6 +9450,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
     _restorePracticeScroll();
     document.getElementById('btn-reset').style.display='inline-block';
     document.getElementById('btn-show-solution').style.display='none';
+    _syncE10BattleActions(false);
     _ensureShopStatus();   // 商城道具：提示券數量 / 護盾 / 藥水狀態（快取，換題不重打 API）
     document.getElementById('q-difficulty').innerHTML=SRS.diffBadge(q.rank||q.difficulty||'');
     const card=SRS.getCard(q.id);
@@ -9429,6 +9474,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
         solved=true; // 鎖定棋盤，防止落子
         document.getElementById('btn-reset').style.display='none';
         document.getElementById('btn-show-solution').style.display='none';
+        _syncE10BattleActions(false);
         setMsg(I18n.t('index.premium_req'),'err');
         _publishMapBattleV1Lifecycle();
         return true;
@@ -9439,6 +9485,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
     if(!currentProblem){setMsg(I18n.t('index.parse_err'),'warn');return;}
     await _prepareMapBattleV1ForQuestion(q, { generation, resumeState });
     if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return false;
+    _syncE10BattleActions(true);
     const _setup=()=>{
         if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return;
         const _ci=calcCropSection(currentProblem);
