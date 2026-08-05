@@ -7606,8 +7606,92 @@ let _mapBattleV1Moves = [];
 let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
 let _mapBattleV1TransitionPending = false;
+let _mapBattleV1LifecycleGeneration = 0;
+let _mapBattleV1Transition = null;
+let _mapBattleV1TransitionTimer = null;
+let _mapBattleV1CompletionCallbackCount = 0;
+let _mapBattleV1TransitionCount = 0;
+let _mapBattleV1NextQuestionCount = 0;
+let _mapBattleV1ServerProgress = new Map();
+const _MAP_BATTLE_V1_RESUME_STORAGE_KEY = 'go:e10:map-battle:v1:resume';
 let _guildQuestMode = null;
 let _lastRenderedQuestDone = -1;
+
+function _publishMapBattleV1Lifecycle() {
+    const state = _mapBattleV1State;
+    window.__GO_E10_BATTLE_LIFECYCLE__ = {
+        generation: _mapBattleV1LifecycleGeneration,
+        questionId: currentQ ? Number(currentQ.id) : null,
+        questionType: currentQ?.interaction_type || currentQ?.question_type || null,
+        battleId: state?.battleId || null,
+        attemptId: state?.attemptId || null,
+        hasNonce: !!state?.submissionNonce,
+        mode: _mapBattleV1Mode,
+        transitionPending: !!_mapBattleV1Transition,
+        completionCallbackCount: _mapBattleV1CompletionCallbackCount,
+        transitionCount: _mapBattleV1TransitionCount,
+        nextQuestionCount: _mapBattleV1NextQuestionCount,
+    };
+}
+
+function _clearMapBattleV1Transition() {
+    if (_mapBattleV1TransitionTimer !== null) {
+        clearTimeout(_mapBattleV1TransitionTimer);
+        _mapBattleV1TransitionTimer = null;
+    }
+    _mapBattleV1Transition = null;
+    _mapBattleV1TransitionPending = false;
+    _publishMapBattleV1Lifecycle();
+}
+
+function _clearMapBattleV1Resume() {
+    try { sessionStorage.removeItem(_MAP_BATTLE_V1_RESUME_STORAGE_KEY); } catch (e) {}
+}
+
+function _persistMapBattleV1Resume(q, state) {
+    if (!q || !state || !state.active || !state.attemptId || !state.submissionNonce) return;
+    try {
+        sessionStorage.setItem(_MAP_BATTLE_V1_RESUME_STORAGE_KEY, JSON.stringify({
+            zoneKey: state.zoneKey,
+            questionId: Number(q.id),
+            battleId: state.battleId,
+            attemptId: state.attemptId,
+            submissionNonce: state.submissionNonce,
+            questionRevision: state.questionRevision,
+            battleRevision: state.battleRevision,
+            playerColor: state.playerColor,
+            transformId: state.transformId,
+            transformVersion: state.transformVersion,
+            issuedAt: state.issuedAt,
+            expiresAt: state.expiresAt,
+            savedAt: Date.now(),
+        }));
+    } catch (e) {}
+}
+
+function _readMapBattleV1Resume() {
+    try {
+        const raw = sessionStorage.getItem(_MAP_BATTLE_V1_RESUME_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function _refreshMapBattleV1ServerProgress() {
+    try {
+        const response = await fetch('/api/srs/all', { credentials: 'include', cache: 'no-store' });
+        if (!response.ok) return false;
+        const cards = await response.json();
+        if (!Array.isArray(cards)) return false;
+        _mapBattleV1ServerProgress = new Map(
+            cards.map(card => [String(card.question_id), card]),
+        );
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
 let _cropInfo={startX:0,startY:0,displayLines:19}; // 目前棋盤的裁切資訊
 let srsDueTotal=0,srsDoneCount=0;
 let _zoneWrongStreak = 0;
@@ -8315,14 +8399,16 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
     });
 }
 
-async function _prepareMapBattleV1ForQuestion(q) {
+async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1LifecycleGeneration, resumeState = null } = {}) {
     _mapBattleV1PrepareSerial += 1;
     const serial = _mapBattleV1PrepareSerial;
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
+    _publishMapBattleV1Lifecycle();
     if (!_isAdventureZonePractice()) {
         _mapBattleV1Mode = 'disabled';
+        _publishMapBattleV1Lifecycle();
         return null;
     }
     const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
@@ -8332,14 +8418,30 @@ async function _prepareMapBattleV1ForQuestion(q) {
     }
     const context = _mapBattleV1QuestionContext(q);
     try {
-        const state = await adapter.prepare(context);
-        if (serial !== _mapBattleV1PrepareSerial) return null;
+        let state = null;
+        if (resumeState && Number(resumeState.questionId) === Number(q.id)) {
+            state = { ...resumeState, active: true, questionId: Number(q.id), moves: [] };
+            try {
+                await adapter.refreshBattle(state);
+            } catch (resumeError) {
+                // A session record can outlive logout, account switching, or
+                // an expired battle. Only the server can validate it; if that
+                // validation fails, discard it and issue one fresh attempt.
+                _clearMapBattleV1Resume();
+                state = await adapter.prepare(context);
+            }
+        } else {
+            state = await adapter.prepare(context);
+        }
+        if (generation !== _mapBattleV1LifecycleGeneration || serial !== _mapBattleV1PrepareSerial) return null;
         _mapBattleV1State = state;
         _mapBattleV1Context = context;
         _mapBattleV1Mode = 'active';
+        _persistMapBattleV1Resume(q, state);
+        _publishMapBattleV1Lifecycle();
         return state;
     } catch (error) {
-        if (serial !== _mapBattleV1PrepareSerial) return null;
+        if (generation !== _mapBattleV1LifecycleGeneration || serial !== _mapBattleV1PrepareSerial) return null;
         const code = error && error.code;
         if (code === 'map_battle_v1_disabled' || code === 'map_battle_mode_not_eligible') {
             _mapBattleV1Mode = 'disabled';
@@ -8347,6 +8449,7 @@ async function _prepareMapBattleV1ForQuestion(q) {
             _mapBattleV1Mode = 'blocked';
             setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
         }
+        _publishMapBattleV1Lifecycle();
         return null;
     }
 }
@@ -8360,29 +8463,73 @@ async function _submitMapBattleV1IfActive(moves) {
     if (!_mapBattleV1IsActive()) return null;
     const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
     if (!adapter || typeof adapter.submit !== 'function') return null;
+    const submissionGeneration = _mapBattleV1LifecycleGeneration;
+    const submittedQuestionId = Number(currentQ?.id);
+    const submittedState = _mapBattleV1State;
+    const submittedAttemptId = submittedState?.attemptId;
     try {
-        const response = await adapter.submit(_mapBattleV1State, moves);
+        const response = await adapter.submit(submittedState, moves);
+        if (submissionGeneration !== _mapBattleV1LifecycleGeneration
+            || Number(currentQ?.id) !== submittedQuestionId
+            || _mapBattleV1State !== submittedState
+            || _mapBattleV1State?.attemptId !== submittedAttemptId) {
+            return null;
+        }
         const freshCorrect = response && response.duplicate !== true
             && response.result === 'CORRECT'
             && (response.next_action === 'continue' || response.next_action === 'monster_defeated');
-        _mapBattleV1TransitionPending = !!freshCorrect;
+        _clearMapBattleV1Transition();
         const onAnimationComplete = freshCorrect
             ? () => {
-                if (!_mapBattleV1TransitionPending) return;
+                const transition = _mapBattleV1Transition;
+                if (!transition || transition.generation !== _mapBattleV1LifecycleGeneration
+                    || transition.questionId !== Number(currentQ?.id)
+                    || transition.attemptId !== _mapBattleV1State?.attemptId) return;
+                _mapBattleV1CompletionCallbackCount += 1;
+                _mapBattleV1Transition = null;
                 _mapBattleV1TransitionPending = false;
+                if (_mapBattleV1TransitionTimer !== null) {
+                    clearTimeout(_mapBattleV1TransitionTimer);
+                    _mapBattleV1TransitionTimer = null;
+                }
+                _mapBattleV1TransitionCount += 1;
+                _publishMapBattleV1Lifecycle();
                 if (response.next_action === 'monster_defeated') {
                     if (!showBeginnerVillageEncounterContinuation()) returnToAdventureMapAfterEncounter();
                     return;
                 }
                 srsDoneCount++;
                 updateSRSProgress();
-                nextQuestion();
+                nextQuestion({ mapBattleV1Transition: true });
             }
             : null;
+        if (freshCorrect) {
+            _mapBattleV1Transition = {
+                generation: submissionGeneration,
+                questionId: submittedQuestionId,
+                attemptId: submittedAttemptId,
+            };
+            _mapBattleV1TransitionPending = true;
+            const fallbackMs = response.next_action === 'monster_defeated' ? 2800 : 800;
+            _mapBattleV1TransitionTimer = setTimeout(onAnimationComplete, fallbackMs);
+            _clearMapBattleV1Resume();
+        }
         _mapBattleV1RenderAuthoritative(currentQ, response, { onAnimationComplete });
         if (response && (response.accepted === true || response.duplicate === true)) {
             SRS.markSeen(currentQ.id);
         }
+        if (response && response.accepted === true
+            && (response.result === 'CORRECT' || response.duplicate === true)) {
+            await _refreshMapBattleV1ServerProgress();
+        }
+        if (submissionGeneration !== _mapBattleV1LifecycleGeneration
+            || Number(currentQ?.id) !== submittedQuestionId
+            || _mapBattleV1State !== submittedState
+            || _mapBattleV1State?.attemptId !== submittedAttemptId) {
+            return null;
+        }
+        if (!freshCorrect) _persistMapBattleV1Resume(currentQ, submittedState);
+        _publishMapBattleV1Lifecycle();
         if (response && response.duplicate !== true && response.result === 'CORRECT') {
             if (_quizPet) {
                 if (response.next_action === 'monster_defeated') setTimeout(() => petReact('victory'), 650);
@@ -8393,9 +8540,15 @@ async function _submitMapBattleV1IfActive(moves) {
         }
         return response;
     } catch (error) {
-        _mapBattleV1TransitionPending = false;
+        if (submissionGeneration !== _mapBattleV1LifecycleGeneration
+            || Number(currentQ?.id) !== submittedQuestionId
+            || _mapBattleV1State !== submittedState
+            || _mapBattleV1State?.attemptId !== submittedAttemptId) {
+            return null;
+        }
+        _clearMapBattleV1Transition();
         if (error && error.code === 'map_battle_attempt_expired') {
-            await _prepareMapBattleV1ForQuestion(currentQ);
+            await _prepareMapBattleV1ForQuestion(currentQ, { generation: submissionGeneration });
             setMsg('Map Battle attempt expired; a fresh attempt is ready. Please answer again.', 'warn');
             return null;
         }
@@ -8403,7 +8556,7 @@ async function _submitMapBattleV1IfActive(moves) {
             try {
                 await adapter.refreshBattle(_mapBattleV1State);
                 _mapBattleV1RenderAuthoritative(currentQ, null);
-                await _prepareMapBattleV1ForQuestion(currentQ);
+                await _prepareMapBattleV1ForQuestion(currentQ, { generation: submissionGeneration });
                 setMsg('Battle state was refreshed. Please answer again.', 'warn');
                 return null;
             } catch (refreshError) {
@@ -8416,6 +8569,7 @@ async function _submitMapBattleV1IfActive(moves) {
             _mapBattleV1Mode = 'blocked';
         }
         setMsg('Map Battle submission failed; retry the same answer without SRS fallback.', 'err');
+        _publishMapBattleV1Lifecycle();
         return null;
     }
 }
@@ -9206,8 +9360,17 @@ function _revealExplanationPanel(panel) {
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-async function loadQuestion(q){
+async function loadQuestion(q, { resumeState = null } = {}){
+    const generation = ++_mapBattleV1LifecycleGeneration;
+    _clearMapBattleV1Transition();
+    _clearMapBattleV1Resume();
+    _mapBattleV1State = null;
+    _mapBattleV1Moves = [];
+    _mapBattleV1Context = null;
+    _mapBattleV1Mode = _isAdventureZonePractice() ? 'pending' : 'disabled';
+    _publishMapBattleV1Lifecycle();
     await _hydrateE10BattlePresentation();
+    if (generation !== _mapBattleV1LifecycleGeneration) return false;
     _setBeginnerVillagePostAnswerControls(false);
     _hideRecommend();   // 切題時清掉推薦
     // Hide welcome screen, show practice elements
@@ -9222,7 +9385,6 @@ async function loadQuestion(q){
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
-    _mapBattleV1TransitionPending = false;
     _mapBattleV1Mode = _isAdventureZonePractice() ? 'pending' : 'disabled';
     _questionStartedAt=performance.now();
     const idx=allQuestions.findIndex(x=>x.id===q.id);if(idx!==-1)currentIndex=idx;
@@ -9255,6 +9417,7 @@ async function loadQuestion(q){
         currentProblem=parseSGF((q.content||'').trim());
         if(currentProblem){
             const _setup=()=>{
+                if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return;
                 const _ci=calcCropSection(currentProblem);
                 initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
                 currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
@@ -9267,13 +9430,17 @@ async function loadQuestion(q){
         document.getElementById('btn-reset').style.display='none';
         document.getElementById('btn-show-solution').style.display='none';
         setMsg(I18n.t('index.premium_req'),'err');
-        return;
+        _publishMapBattleV1Lifecycle();
+        return true;
     }
     if(!q.content || q.accepted_moves === undefined){try{const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});const _d=await _r.json();Object.assign(q,_d||{});}catch(e){}}
+    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return false;
     currentProblem=parseSGF((q.content||'').trim());
     if(!currentProblem){setMsg(I18n.t('index.parse_err'),'warn');return;}
-    await _prepareMapBattleV1ForQuestion(q);
+    await _prepareMapBattleV1ForQuestion(q, { generation, resumeState });
+    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return false;
     const _setup=()=>{
+        if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return;
         const _ci=calcCropSection(currentProblem);
         initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
@@ -9295,6 +9462,8 @@ async function loadQuestion(q){
     };
     const wrap=document.getElementById('board-canvas-wrap');
     if(wrap.clientWidth>0){_setup();}else{requestAnimationFrame(()=>requestAnimationFrame(_setup));}
+    _publishMapBattleV1Lifecycle();
+    return true;
 }
 
 // ─── 點棋盤 ────────────────────────────────────────────────────
@@ -9483,7 +9652,11 @@ async function useHintTicket(){
     }catch(e){ console.warn('[shop] hint error', e); }
 }
 
-function nextQuestion(){
+function nextQuestion({ mapBattleV1Transition = false } = {}){
+    if (mapBattleV1Transition) {
+        _mapBattleV1NextQuestionCount += 1;
+        _publishMapBattleV1Lifecycle();
+    }
     if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }
     if (window.SFX) SFX.play('next');
     if (_guildQuestMode?.completed) {
@@ -9507,6 +9680,19 @@ function nextQuestion(){
         return;
     }
     if(_adventureActiveQuestions && _adventureActiveQuestions.length){
+        if (mapBattleV1Transition && _mapBattleV1IsActive()) {
+            const nextAdventureQuestion = _pickNextAdventureTarget(
+                _adventureActiveQuestions,
+                currentQ?.id,
+            );
+            if (nextAdventureQuestion) {
+                loadQuestion(nextAdventureQuestion);
+            } else {
+                _clearMapBattleV1Resume();
+                setMsg('本區可用題目已完成。', 'ok');
+            }
+            return;
+        }
         const idx = _adventureActiveQuestions.findIndex(x => x.id === currentQ?.id);
         if (idx !== -1) {
             loadQuestion(_adventureActiveQuestions[(idx + 1) % _adventureActiveQuestions.length]);
@@ -10482,6 +10668,80 @@ function firstQuestionHref(zone) {
     return `/?zone=${encodeURIComponent(zone.key)}&adventure=1&resume=1`;
 }
 
+function _adventureQuestionDefeated(qid) {
+    const card = _mapBattleV1ServerProgress.get(String(qid)) || SRS.getCard(qid);
+    return !!(card && (card.last_grade || 0) >= 3);
+}
+
+function _adventureQuestionSeen(qid) {
+    return _mapBattleV1ServerProgress.has(String(qid))
+        || !!SRS.getCard(qid)
+        || !!SRS.isSeen(qid);
+}
+
+function _pickAdventureTarget(qs) {
+    const list = Array.isArray(qs) ? qs : [];
+    return list.find(q => !_adventureQuestionSeen(q.id))
+        || list.find(q => _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
+        || null;
+}
+
+function _pickNextAdventureTarget(qs, currentId) {
+    const list = Array.isArray(qs) ? qs : [];
+    if (!list.length) return null;
+    const start = Math.max(0, list.findIndex(q => Number(q.id) === Number(currentId)));
+    const ordered = list.slice(start + 1).concat(list.slice(0, start + 1));
+    return ordered.find(q => Number(q.id) !== Number(currentId) && !_adventureQuestionSeen(q.id))
+        || ordered.find(q => Number(q.id) !== Number(currentId)
+            && _adventureQuestionSeen(q.id) && !_adventureQuestionDefeated(q.id))
+        || null;
+}
+
+async function _resolveMapBattleV1Resume(zoneKey, qs) {
+    let progress = null;
+    let srsProgress = null;
+    try {
+        const [bootstrapResponse, srsResponse] = await Promise.all([
+            fetch(
+            `/api/adventure/bootstrap?selected_stage_key=${encodeURIComponent(zoneKey)}`,
+            { credentials: 'include', cache: 'no-store' },
+            ),
+            fetch('/api/srs/all', { credentials: 'include', cache: 'no-store' }),
+        ]);
+        if (!bootstrapResponse.ok) throw new Error(`adventure bootstrap ${bootstrapResponse.status}`);
+        if (!srsResponse.ok) throw new Error(`srs progress ${srsResponse.status}`);
+        progress = await bootstrapResponse.json();
+        srsProgress = await srsResponse.json();
+        if (!progress || !Array.isArray(progress.zones)) throw new Error('adventure progress unavailable');
+        if (!Array.isArray(srsProgress)) throw new Error('srs progress unavailable');
+        _mapBattleV1ServerProgress = new Map(
+            srsProgress.map(card => [String(card.question_id), card]),
+        );
+    } catch (error) {
+        // Existing map entry can still select a normal eligible question when
+        // the progress hydrate is temporarily unavailable; never resume a
+        // client-only battle identity without the server bootstrap.
+        _mapBattleV1ServerProgress = new Map();
+        return null;
+    }
+    const candidate = _readMapBattleV1Resume();
+    if (!candidate || String(candidate.zoneKey || '') !== String(zoneKey || '')) return null;
+    const target = (qs || []).find(q => Number(q.id) === Number(candidate.questionId));
+    if (!target || !candidate.battleId || !candidate.attemptId || !candidate.submissionNonce) {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    if (_adventureQuestionSeen(target.id) && _adventureQuestionDefeated(target.id)) {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    if (!progress.zones.some(zone => String(zone.key || '') === String(zoneKey || ''))) {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    return { target, resumeState: candidate };
+}
+
 // 頁內直接進入冒險關卡：地圖頁的 allQuestions/SRS 已在記憶體，免整頁 reload（省 3-4 秒）。
 // 失敗（題庫未載入等）回傳 false，呼叫端 fallback 回 location.href 整頁導航。
 function enterAdventureZoneInPage(zone) {
@@ -10502,14 +10762,7 @@ function enterAdventureZoneInPage(zone) {
         if (_mb) _mb.classList.remove('hidden');
         _adventureActiveQuestions = unitQs;
         renderList(unitQs);
-        const isSeenQuestion = (qid) => !!SRS.isSeen(qid);
-        const isDefeated = (qid) => { const c = SRS.getCard(qid); return c && (c.last_grade || 0) >= 3; };
-        const pickAdventureTarget = (qs) => (
-            qs.find(q => !isSeenQuestion(q.id)) ||
-            qs.find(q => isSeenQuestion(q.id) && !isDefeated(q.id)) ||
-            qs[0]
-        );
-        const target = pickAdventureTarget(unitQs);
+        const target = _pickAdventureTarget(unitQs);
         // 更新網址，F5 重整仍回到該關（走 adventureResume reload 路徑）
         try { history.replaceState(null, '', firstQuestionHref(zone)); } catch (e) {}
         document.querySelector('main')?.scrollTo(0, 0);
@@ -14908,18 +15161,16 @@ initNewbieQuest(me);
         _adventureActiveQuestions = unitQs;
         if (unitQs.length) {
             renderList(unitQs);
-            const isSeenQuestion = (qid) => !!SRS.isSeen(qid);
-            const isDefeated = (qid) => {
-                const card = SRS.getCard(qid);
-                return card && (card.last_grade || 0) >= 3;
-            };
-            const pickAdventureTarget = (qs) => (
-                qs.find(q => !isSeenQuestion(q.id)) ||
-                qs.find(q => isSeenQuestion(q.id) && !isDefeated(q.id)) ||
-                qs[0]
-            );
-            const target = pickAdventureTarget(unitQs);
-            try { if (target) await loadQuestion(target); } catch(e) { console.warn('[adventure]', e); }
+            try {
+                const resume = await _resolveMapBattleV1Resume(zoneParam, unitQs);
+                const target = resume?.target || _pickAdventureTarget(unitQs);
+                if (target) {
+                    await loadQuestion(target, { resumeState: resume?.resumeState || null });
+                } else {
+                    _clearMapBattleV1Resume();
+                    setMsg('本區可用題目已完成。', 'ok');
+                }
+            } catch(e) { console.warn('[adventure]', e); }
         }
         return;
     }
