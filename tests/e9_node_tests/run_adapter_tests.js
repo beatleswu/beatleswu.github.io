@@ -143,6 +143,23 @@ test('normalizeZones: preserves canonical placement and frontier metadata', () =
   assert.strictEqual(normalized.recommended.zone_key, 'k1_5');
   assert.strictEqual(normalized.selected.zone_key, 'k1_5');
 });
+test('normalizeZones: current_zone_key is independent from selected/recommended display state', () => {
+  const normalized = AdventureState.normalizeZones({
+    current_zone_key: 'k1_5',
+    recommended: { zone_key: 'k21_25' },
+    selected: { zone_key: 'k21_25' },
+    zones: [
+      { key: 'k1_5', name: 'Dragon Valley', status: 'unlocked', can_enter: true },
+      { key: 'k21_25', name: 'Slime Plains', status: 'unlocked', can_enter: true },
+    ],
+  });
+  assert.strictEqual(normalized.currentZoneKey, 'k1_5');
+  const invalid = AdventureState.normalizeZones({
+    current_zone_key: 'not-a-zone',
+    zones: [{ key: 'k1_5', name: 'Dragon Valley', status: 'unlocked', can_enter: true }],
+  });
+  assert.strictEqual(invalid.currentZoneKey, null);
+});
 test('normalizeZone: stars clamped above range', () => {
   const z = AdventureState.normalizeZone({ key: 'k1', name: 'Z', status: 'unlocked', stars: 99 });
   assert.strictEqual(z.stars, 3);
@@ -350,6 +367,31 @@ async function run() {
     AdventureState.invalidateAdventureState();
     await AdventureState.fetchAdventureState(fetchImpl);
     assert.strictEqual(calls, 2);
+  });
+  await testAsync('refreshAdventureState: invalidates cache and requests no-store bootstrap', async () => {
+    AdventureState.invalidateAdventureState();
+    let calls = 0;
+    let requestInit = null;
+    const fetchImpl = function (url, init) {
+      calls += 1;
+      requestInit = init;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: function () {
+          return Promise.resolve({
+            current_zone_key: 'k1_5',
+            zones: [{ key: 'k1_5', name: 'Dragon Valley', status: 'unlocked', can_enter: true }],
+          });
+        },
+      });
+    };
+    await AdventureState.fetchAdventureState(fetchImpl);
+    const refreshed = await AdventureState.refreshAdventureState(fetchImpl);
+    assert.strictEqual(refreshed.ok, true);
+    assert.strictEqual(refreshed.data.currentZoneKey, 'k1_5');
+    assert.strictEqual(calls, 2);
+    assert.strictEqual(requestInit.cache, 'no-store');
   });
   await testAsync('fetchAdventureState: failed request is evicted and can retry', async () => {
     AdventureState.invalidateAdventureState();

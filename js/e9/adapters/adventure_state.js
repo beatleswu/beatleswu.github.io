@@ -59,6 +59,9 @@
       bossAvailable: bossAvailable,
       seen: seen,
       total: total,
+      // Boss availability is copied only from the authoritative nested
+      // payload; displayed seen/total values never promote a boss to ready.
+      bossKey: (raw.boss && typeof raw.boss.key === 'string') ? raw.boss.key : null,
     };
   }
 
@@ -76,11 +79,37 @@
       var z = normalizeZone(raw.zones[i]);
       if (z) zones.push(z);
     }
+    var currentZoneKey = null;
+    if (typeof raw.current_zone_key === 'string' && raw.current_zone_key) {
+      for (var j = 0; j < zones.length; j++) {
+        if (zones[j].key === raw.current_zone_key && !zones[j].locked && zones[j].canEnter === true) {
+          currentZoneKey = raw.current_zone_key;
+          break;
+        }
+      }
+    }
+    var primaryAction = null;
+    var rawAction = raw.primary_action;
+    var validActionKinds = ['challenge_lord', 'normal_progression', 'replenish_stars', 'replay_completed'];
+    if (rawAction && typeof rawAction.kind === 'string' && validActionKinds.indexOf(rawAction.kind) !== -1) {
+      for (var k = 0; k < zones.length; k++) {
+        if (zones[k].key === rawAction.zone_key && !zones[k].locked && zones[k].canEnter === true) {
+          primaryAction = {
+            kind: rawAction.kind,
+            zoneKey: rawAction.zone_key,
+            bossKey: typeof rawAction.boss_key === 'string' ? rawAction.boss_key : null,
+          };
+          break;
+        }
+      }
+    }
     return {
       zones: zones,
       placement: raw.placement || null,
       recommended: raw.recommended || null,
       selected: raw.selected || null,
+      currentZoneKey: currentZoneKey,
+      primaryAction: primaryAction,
     };
   }
 
@@ -102,7 +131,9 @@
     if (cachedSuccess) return Promise.resolve(cachedSuccess);
     if (inFlight) return inFlight;
 
-    inFlight = doFetch('/api/adventure/bootstrap', { credentials: 'same-origin' }).then(function (res) {
+    var requestInit = { credentials: 'same-origin' };
+    if (opts.forceRefresh) requestInit.cache = 'no-store';
+    inFlight = doFetch('/api/adventure/bootstrap', requestInit).then(function (res) {
       if (!res.ok) return { ok: false, kind: classifyHttpError(res.status), status: res.status };
       return res.json().then(function (body) {
         var normalized = { ok: true, data: normalizeZones(body), rawData: body };
@@ -120,11 +151,16 @@
     return inFlight;
   }
 
+  function refreshAdventureState(fetchImpl) {
+    return fetchAdventureState(fetchImpl, { forceRefresh: true });
+  }
+
   var api = {
     normalizeZone: normalizeZone,
     normalizeZones: normalizeZones,
     invalidateAdventureState: invalidateAdventureState,
     fetchAdventureState: fetchAdventureState,
+    refreshAdventureState: refreshAdventureState,
   };
 
   global.E9 = global.E9 || {};

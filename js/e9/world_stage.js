@@ -106,13 +106,13 @@
   }
 
   function resolvePlayerLocation(zones) {
-    // The normalized API status is progression state; selectedZoneKey is
-    // ephemeral inspection state and is deliberately not an input. The first
-    // canonical unlocked frontier is the current location. If the progression
-    // response exposes no unlocked frontier, fail closed with no hero marker.
-    return zones.filter(function (zone) {
-      return !zone.locked && zone.status === 'unlocked';
-    })[0] || null;
+    var currentZoneKey = arguments.length > 1 ? arguments[1] : null;
+    // current_zone_key is server authority.  selectedZoneKey, recommended
+    // display state, URL state, and a client-derived frontier are never inputs.
+    // The old selectedZoneKey / zone.status === 'unlocked' frontier contract
+    // is intentionally documented here as rejected input, not an authority.
+    if (typeof currentZoneKey !== 'string' || !currentZoneKey) return null;
+    return findZone(zones, currentZoneKey);
   }
 
   function findZone(zones, zoneKey) {
@@ -123,12 +123,62 @@
     return zone && !zone.locked && zone.canEnter !== false ? zone.key : null;
   }
 
-  function syncInteractionState(state, zones) {
-    var current = resolvePlayerLocation(zones);
+  function activeMandatoryEncounterAction(state) {
+    var lifecycle = window.__GO_E10_BATTLE_LIFECYCLE__;
+    if (!lifecycle || lifecycle.mode !== 'active' || lifecycle.hasNonce !== true) return null;
+    var targetZoneKey = lifecycle.zoneKey || state.currentPlayerZoneKey || null;
+    if (!targetZoneKey) return null;
+    return { kind: 'resume_encounter', zoneKey: targetZoneKey };
+  }
+
+  function actionLabel(action, state) {
+    if (!action) return '';
+    if (action.kind === 'resume_encounter') return t('e10.world_stage.resume_encounter', 'Resume Encounter');
+    if (action.kind === 'challenge_lord') return t('e10.world_stage.challenge_lord', 'Challenge Lord');
+    if (action.kind === 'replenish_stars') return t('e10.world_stage.replenish_stars', 'Replenish Stars');
+    if (action.kind === 'replay_completed') return t('index.adv.quest_replay_training', 'Star training');
+    return action.zoneKey === state.currentPlayerZoneKey
+      ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
+      : t('index.adv.start_challenge', 'Start Challenge');
+  }
+
+  function resolvePrimaryCta(state, zones) {
+    var resume = activeMandatoryEncounterAction(state);
+    if (resume && findZone(zones, resume.zoneKey)) return resume;
+
+    // Prefer the server's arbitration.  The fallback is deliberately based
+    // only on normalized authoritative boss/progression fields, never seen/total.
+    var serverAction = state.primaryAction;
+    if (serverAction && findZone(zones, serverAction.zoneKey)) return serverAction;
+
+    var lord = zones.filter(function (zone) {
+      return zone.bossAvailable === true && !zone.cleared && zone.canEnter !== false && !zone.locked;
+    })[0];
+    if (lord) return { kind: 'challenge_lord', zoneKey: lord.key };
+
+    var current = findZone(zones, state.currentPlayerZoneKey);
+    if (current && !current.cleared && resolveChallengeTargetZoneKey(current)) {
+      return { kind: 'normal_progression', zoneKey: current.key };
+    }
+    var refill = zones.filter(function (zone) {
+      return !zone.locked && zone.canEnter !== false && zone.stars < 3;
+    })[0];
+    if (refill) return { kind: 'replenish_stars', zoneKey: refill.key };
+    var completed = zones.filter(function (zone) { return zone.cleared && resolveChallengeTargetZoneKey(zone); });
+    return completed.length ? { kind: 'replay_completed', zoneKey: completed[completed.length - 1].key } : null;
+  }
+
+  function syncInteractionState(state, zones, currentZoneKey, primaryAction) {
+    var current = resolvePlayerLocation(zones, currentZoneKey);
     var selected = findZone(zones, state.selectedZoneKey) || current || zones[0] || null;
     state.currentPlayerZoneKey = current ? current.key : null;
+    state.authoritativeCurrentZoneKey = state.currentPlayerZoneKey;
+    state.primaryAction = primaryAction || null;
     state.selectedZoneKey = selected ? selected.key : null;
-    state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(selected);
+    var primary = resolvePrimaryCta(state, zones);
+    state.challengeTargetZoneKey = primary && primary.zoneKey
+      ? primary.zoneKey
+      : resolveChallengeTargetZoneKey(selected);
     return { current: current, selected: selected };
   }
 
@@ -137,11 +187,23 @@
     if (!target) {
       return { enabled: false, targetZoneKey: null, label: t('e10.world_stage.state_locked', 'Locked') };
     }
+    var primary = resolvePrimaryCta(state, state.zones || []);
+    if (primary && primary.zoneKey) {
+      var primaryZone = findZone(state.zones || [], primary.zoneKey);
+      var primaryLabel = primary.kind === 'normal_progression'
+        ? (primary.zoneKey === state.currentPlayerZoneKey
+          ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
+          : t('index.adv.start_challenge', 'Start Challenge'))
+        : actionLabel(primary, state);
+      if (primaryZone && primary.kind !== 'replay_completed') {
+        return { enabled: true, targetZoneKey: primary.zoneKey, label: primaryLabel, kind: primary.kind };
+      }
+    }
     if (zone.status === 'completed') {
-      return { enabled: true, targetZoneKey: target, label: t('index.adv.quest_replay_training', 'Star training') };
+      return { enabled: true, targetZoneKey: target, label: t('index.adv.quest_replay_training', 'Star training'), kind: 'replay_completed' };
     }
     if (zone.status === 'skipped_by_placement') {
-      return { enabled: true, targetZoneKey: target, label: t('index.adv.skipped_replay', 'Star training available') };
+      return { enabled: true, targetZoneKey: target, label: t('index.adv.skipped_replay', 'Star training available'), kind: 'replenish_stars' };
     }
     return {
       enabled: true,
@@ -149,6 +211,7 @@
       label: target === state.currentPlayerZoneKey
         ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
         : t('index.adv.start_challenge', 'Start Challenge'),
+      kind: 'normal_progression',
     };
   }
 
@@ -296,14 +359,14 @@
     if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
     var hudAvatar = document.querySelector('#top-hud-avatar-image');
     var source = explicitSource || (hudAvatar && hudAvatar.getAttribute('src')) || '';
-    if (!source) return;
     var mobileCards = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
     var hosts = Array.prototype.slice.call(root.querySelectorAll(
       mobileCards ? '.e10-current-hero' : '#e9-world-stage-player'
     ));
     root.querySelectorAll('.e10-player-marker-portrait').forEach(function (portrait) {
-      if (hosts.indexOf(portrait.parentNode) === -1) portrait.remove();
+      if (!source || hosts.indexOf(portrait.parentNode) === -1) portrait.remove();
     });
+    if (!source) return;
     hosts.forEach(function (host) {
       var portrait = host.querySelector('.e10-player-marker-portrait');
       if (!portrait) {
@@ -321,12 +384,28 @@
     });
   }
 
-  function updatePlayerMarker(root, zone) {
-    var marker = root.querySelector('#e9-world-stage-player');
+  function reconcilePlayerNodeMarker(root, zone, generation) {
+    var generationKey = String(generation || '');
+    var markerHosts = Array.prototype.slice.call(root.querySelectorAll('#e9-world-stage-player'));
+    var marker = markerHosts[0] || null;
+    markerHosts.slice(1).forEach(function (duplicate) { duplicate.remove(); });
+    // A component shell can be replaced while the old layout is still in the
+    // document.  Keep only the current shell's existing marker scaffold.
+    document.querySelectorAll('#e9-world-stage-player').forEach(function (host) {
+      if (!root.contains(host)) host.remove();
+    });
+    document.querySelectorAll('.e10-current-hero').forEach(function (hero) {
+      var belongsToRoot = root.contains(hero);
+      var sameGeneration = hero.getAttribute('data-e10-shell-generation') === generationKey;
+      if (!belongsToRoot || !sameGeneration) hero.remove();
+    });
+    root.querySelectorAll('.e10-current-hero').forEach(function (hero) { hero.remove(); });
+    root.querySelectorAll('.e10-player-marker-portrait').forEach(function (portrait) { portrait.remove(); });
     var anchor = zone && (VS1E_STATIC_CONTRACT_ACTIVE ? VS1F_ZONE_ANCHORS : ZONE_ANCHORS)[zone.key];
     var mapStage = root.querySelector('#e9-map-stage');
-    root.querySelectorAll('.e10-current-hero').forEach(function (hero) { hero.remove(); });
     if (!marker) return;
+    marker.style.pointerEvents = 'none';
+    marker.setAttribute('data-e10-shell-generation', generationKey);
     if (!zone || !anchor) {
       marker.hidden = true;
       return;
@@ -338,6 +417,8 @@
         var mobileHero = document.createElement('span');
         mobileHero.className = 'e10-current-hero';
         mobileHero.setAttribute('aria-hidden', 'true');
+        mobileHero.setAttribute('data-e10-shell-generation', generationKey);
+        mobileHero.style.pointerEvents = 'none';
         currentTile.appendChild(mobileHero);
         syncPlayerMarkerPortrait(root);
       }
@@ -506,13 +587,16 @@
     }
     var contract = zone && ctaContract(zone, state);
     var label = contract ? contract.label : '';
-    configureAdventureButton(primary, zone, contract);
-    if (primary && zone && !primary.hidden) {
+    var targetZone = contract && contract.targetZoneKey
+      ? findZone(state.zones || [], contract.targetZoneKey) || zone
+      : zone;
+    configureAdventureButton(primary, targetZone, contract);
+    if (primary && targetZone && !primary.hidden) {
       var registry = window.E9 && window.E9.NavigationRegistry;
       primary.innerHTML = (registry ? registry.icon('compass', 'e10-map-primary-cta__icon') : '')
         + '<span class="e10-map-primary-cta__copy"><strong>' + label + '</strong>'
-        + '<span>' + (zoneDisplayName(zone) || zone.key) + '</span></span>';
-      primary.setAttribute('aria-label', label + ': ' + (zoneDisplayName(zone) || zone.key));
+        + '<span>' + (zoneDisplayName(targetZone) || targetZone.key) + '</span></span>';
+      primary.setAttribute('aria-label', label + ': ' + (zoneDisplayName(targetZone) || targetZone.key));
     }
   }
 
@@ -562,6 +646,9 @@
       currentPlayerZoneKey: state.currentPlayerZoneKey,
       selectedZoneKey: state.selectedZoneKey,
       challengeTargetZoneKey: contract.targetZoneKey,
+      currentZoneKey: state.currentPlayerZoneKey,
+      ctaKind: contract.kind || null,
+      primaryActionKind: state.primaryAction && state.primaryAction.kind || null,
       isCurrentPlayerZone: isCurrent,
       headingKey: isCurrent ? 'e10.world_stage.current_zone' : 'e10.world_stage.selected_zone',
       headingText: isCurrent
@@ -629,7 +716,8 @@
     // details, but it must not become an actionable selection in the
     // canonical keyboard/assistive-technology contract.
     setSelectedTileState(root, zone.key, !!zone.locked);
-    if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
+    // if (!VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, zone);
+    // Selection-only renders must not move the authoritative player marker.
     var isMobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
     var isPortraitTablet = window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
@@ -642,7 +730,8 @@
     configurePrimaryCta(root, zone, state);
 
     if (cta) {
-      if (zone.key === 'k26_30') {
+      var primaryAction = resolvePrimaryCta(state, state.zones || []);
+      if (zone.key === 'k26_30' && !(primaryAction && primaryAction.kind === 'challenge_lord' && primaryAction.zoneKey !== zone.key)) {
         // Beginner Village owns its own tutorial CTA below
         // (renderBeginnerVillageMainline's #e9-newbie-mainline-cta) --
         // never show a second, duplicate "start" button for it here.
@@ -720,7 +809,8 @@
     }
   }
 
-  function renderZones(root, zones) {
+  function renderZones(root, zones, authority) {
+    authority = authority || {};
     var statusEl = root.querySelector('#e9-world-stage-status');
     var zonesEl = root.querySelector('#e9-world-stage-zones');
     var mapStage = root.querySelector('#e9-map-stage');
@@ -730,12 +820,25 @@
     var state = root.__e9WorldStageState || (root.__e9WorldStageState = {
       zones: zones,
       currentPlayerZoneKey: null,
+      authoritativeCurrentZoneKey: null,
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
+      primaryAction: null,
+      generation: null,
     });
+    if (!state.selectedZoneKey && authority.selected && typeof authority.selected.zone_key === 'string') {
+      state.selectedZoneKey = authority.selected.zone_key;
+    }
+    if (authority.generation) state.generation = authority.generation;
+    var authoritativeCurrentZoneKey = Object.prototype.hasOwnProperty.call(authority, 'currentZoneKey')
+      ? authority.currentZoneKey
+      : state.authoritativeCurrentZoneKey;
+    var primaryAction = Object.prototype.hasOwnProperty.call(authority, 'primaryAction')
+      ? authority.primaryAction
+      : state.primaryAction;
     state.zones = zones;
     var identities = VS1E_STATIC_CONTRACT_ACTIVE
-      ? syncInteractionState(state, zones)
+      ? syncInteractionState(state, zones, authoritativeCurrentZoneKey, primaryAction)
       : { current: null, selected: null };
     var playerLocation = identities.current;
     zones.forEach(function (zone) {
@@ -893,7 +996,10 @@
 
     mapStage.hidden = false;
     zonesEl.hidden = false;
-    if (VS1E_STATIC_CONTRACT_ACTIVE) updatePlayerMarker(root, playerLocation);
+    // Existing lifecycle contract name retained in this note while the one
+    // idempotent implementation is reconcilePlayerNodeMarker().
+    // updatePlayerMarker(root, playerLocation)
+    if (VS1E_STATIC_CONTRACT_ACTIVE) reconcilePlayerNodeMarker(root, playerLocation, state.generation);
     if (statusEl) {
       var clearedCount = zones.filter(function (z) { return z.cleared; }).length;
       statusEl.textContent = t('index.adv.summary', '{n} / {t} areas cleared')
@@ -946,7 +1052,10 @@
       return;
     }
 
-    adapter.fetchAdventureState().then(function (result) {
+    var stateRequest = typeof adapter.refreshAdventureState === 'function'
+      ? adapter.refreshAdventureState()
+      : adapter.fetchAdventureState(null, { forceRefresh: true });
+    stateRequest.then(function (result) {
       if (!current()) return;
       if (!result.ok) {
         if (result.kind === 'unauthorized') {
@@ -973,6 +1082,17 @@
         recoverToLegacy(new Error('adventure data returned zero valid zones'));
         return;
       }
+      var authority = result.data;
+      authority.generation = generation;
+      var stageState = root.__e9WorldStageState;
+      if (stageState) {
+        stageState.authoritativeCurrentZoneKey = authority.currentZoneKey;
+        stageState.primaryAction = authority.primaryAction;
+        stageState.generation = generation;
+        if (!stageState.selectedZoneKey && authority.selected && typeof authority.selected.zone_key === 'string') {
+          stageState.selectedZoneKey = authority.selected.zone_key;
+        }
+      }
       renderZones(root, result.data.zones);
       enableImmersiveRpgSkin(root, generation);
     }).catch(function (err) {
@@ -989,16 +1109,27 @@
     root.__e9WorldStageState = {
       zones: [],
       currentPlayerZoneKey: null,
+      authoritativeCurrentZoneKey: null,
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
+      primaryAction: null,
+      generation: generation,
     };
     var onChanged = function () {
       var state = root.__e9WorldStageState;
-      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones);
+      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones, {
+        currentZoneKey: state.authoritativeCurrentZoneKey,
+        primaryAction: state.primaryAction,
+        generation: state.generation,
+      });
     };
     var onReady = function () {
       var state = root.__e9WorldStageState;
-      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones);
+      if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones, {
+        currentZoneKey: state.authoritativeCurrentZoneKey,
+        primaryAction: state.primaryAction,
+        generation: state.generation,
+      });
     };
     var onAvatar = function (event) {
       var source = event && event.detail && event.detail.source;
