@@ -14887,6 +14887,22 @@ function isE9InlineDebugEnvironment() {
     const host = window.location && window.location.hostname ? window.location.hostname : '';
     return E9_INLINE_DEBUG_HOSTNAMES.test(host);
 }
+const E10_BATTLE_SHELL_OWNER = 'e10-battle';
+function publishAdventureShellOwner(owner) {
+    const nextOwner = owner === E10_BATTLE_SHELL_OWNER ? E10_BATTLE_SHELL_OWNER : null;
+    const previousOwner = window.__GO_ADVENTURE_SHELL_OWNER__
+        || document.body?.getAttribute('data-adventure-shell-owner')
+        || null;
+    window.__GO_ADVENTURE_SHELL_OWNER__ = nextOwner;
+    if (document.body) {
+        if (nextOwner) document.body.setAttribute('data-adventure-shell-owner', nextOwner);
+        else document.body.removeAttribute('data-adventure-shell-owner');
+    }
+    if (previousOwner === nextOwner) return;
+    document.dispatchEvent(new CustomEvent('e10:adventure-shell-owner-changed', {
+        detail: { owner: nextOwner },
+    }));
+}
 function resolveInitialE9Flags() {
     if (window.__GO_E9_SERVER_FLAGS__ && typeof window.__GO_E9_SERVER_FLAGS__ === 'object') {
         return Object.assign({
@@ -14932,6 +14948,11 @@ function primeInitialE9ShellOwnership() {
     const challengeId = params.get('challenge');
     const needsImmediatePracticeState = !!(premiumSetParam || challengeId || grimoireParam || adventureResume || useScopedQuestions);
     const legacyWelcomeShellActive = !e9ShellRequested || needsImmediatePracticeState;
+    // E10 Battle intentionally uses the Legacy question renderer, so the
+    // active renderer shell remains Legacy. Keep global Navi ownership
+    // authoritative through the rollout flag plus the Battle resume path.
+    const e10BattleShellOwner = e9ShellRequested && adventureResume;
+    publishAdventureShellOwner(e10BattleShellOwner ? E10_BATTLE_SHELL_OWNER : null);
     window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
     window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
     window.__GO_E9_OWNERSHIP_INITIALIZED__ = true;

@@ -33,11 +33,15 @@
   };
 
   const E10_VS1F_STATIC_CONTRACT = 'e10-vs1f-integrated-world-map';
+  const E10_BATTLE_SHELL_OWNER = 'e10-battle';
 
   function ownsE10Navigation() {
     const marker = document.querySelector('meta[name="go-odyssey-static-contract"]');
     const hasStaticContract = marker?.getAttribute('content') === E10_VS1F_STATIC_CONTRACT;
     if (!hasStaticContract) return false;
+    const adventureShellOwner = window.__GO_ADVENTURE_SHELL_OWNER__
+      || document.body?.getAttribute('data-adventure-shell-owner');
+    if (adventureShellOwner === E10_BATTLE_SHELL_OWNER) return true;
     const activeShell = window.__GO_E9_ACTIVE_SHELL__
       || document.body?.getAttribute('data-adventure-shell-active');
     return activeShell === 'e9';
@@ -523,6 +527,7 @@
   function init() {
     injectStyles();
     document.addEventListener('e9:shell-state-changed', reconcileNavigation);
+    document.addEventListener('e10:adventure-shell-owner-changed', reconcileNavigation);
     buildNav();
     const startPresence = () => initPresence();
     if ('requestIdleCallback' in window) {

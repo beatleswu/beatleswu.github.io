@@ -29,6 +29,10 @@ class FakeElement {
     return Object.prototype.hasOwnProperty.call(this.attrs, name) ? this.attrs[name] : null;
   }
 
+  removeAttribute(name) {
+    delete this.attrs[name];
+  }
+
   appendChild(child) {
     this.children.push(child);
     return child;
@@ -63,13 +67,13 @@ class FakeElement {
   }
 }
 
-function createHarness() {
+function createHarness({ staticContract = 'e10-vs1f-integrated-world-map' } = {}) {
   const doc = {
     readyState: 'complete',
     listeners: {},
     body: null,
     head: { appendChild: () => {} },
-    meta: { getAttribute: (name) => name === 'content' ? 'e10-vs1f-integrated-world-map' : null },
+    meta: { getAttribute: (name) => name === 'content' ? staticContract : null },
     header: null,
     addEventListener(name, handler) {
       (this.listeners[name] || (this.listeners[name] = [])).push(handler);
@@ -105,6 +109,7 @@ function createHarness() {
     document: doc,
     location: { pathname: '/', origin: 'https://example.test' },
     __GO_E9_ACTIVE_SHELL__: undefined,
+    __GO_ADVENTURE_SHELL_OWNER__: undefined,
     localStorage: { getItem: () => null },
     setTimeout: () => 0,
     clearTimeout: () => {},
@@ -144,11 +149,22 @@ function setShell(harness, mode) {
   }));
 }
 
+function setE10BattleOwner(harness, active, { bodyOnly = false } = {}) {
+  const owner = active ? 'e10-battle' : null;
+  harness.win.__GO_ADVENTURE_SHELL_OWNER__ = bodyOnly ? undefined : owner;
+  if (owner) harness.doc.body.setAttribute('data-adventure-shell-owner', owner);
+  else harness.doc.body.removeAttribute('data-adventure-shell-owner');
+  harness.doc.dispatchEvent(new harness.win.CustomEvent('e10:adventure-shell-owner-changed', {
+    detail: { owner },
+  }));
+}
+
 async function main() {
   const h = createHarness();
   assert.strictEqual(h.doc.querySelectorAll('header.cg-nav').length, 1);
   assert.strictEqual(h.doc.header.hasLinks, true, 'initial unresolved shell keeps the shared nav');
   assert.strictEqual(h.doc.listeners['e9:shell-state-changed'].length, 1);
+  assert.strictEqual(h.doc.listeners['e10:adventure-shell-owner-changed'].length, 1);
 
   setShell(h, 'e9');
   assert.strictEqual(h.doc.querySelectorAll('header.cg-nav').length, 1);
@@ -160,12 +176,28 @@ async function main() {
   assert.strictEqual(h.doc.header.hasLinks, true, 'Legacy shell restores global links');
   assert.strictEqual(h.doc.header.dataset.e10SessionStrip, undefined);
 
+  setE10BattleOwner(h, true);
+  assert.strictEqual(h.doc.header.hasLinks, false, 'authoritative E10 Battle owner strips links even with Legacy renderer');
+
+  setE10BattleOwner(h, false);
+  assert.strictEqual(h.doc.header.hasLinks, true, 'clearing E10 Battle ownership restores Legacy links');
+
+  setE10BattleOwner(h, true, { bodyOnly: true });
+  assert.strictEqual(h.doc.header.hasLinks, false, 'body owner marker also covers delayed bootstrap reconciliation');
+
+  setE10BattleOwner(h, false);
+  assert.strictEqual(h.doc.header.hasLinks, true, 'cleared body owner marker restores Legacy links');
+
+  const generic = createHarness({ staticContract: 'generic-page' });
+  setE10BattleOwner(generic, true);
+  assert.strictEqual(generic.doc.header.hasLinks, true, 'generic pages ignore the E10 Battle marker');
+
   setShell(h, 'e9');
   assert.strictEqual(h.doc.querySelectorAll('header.cg-nav').length, 1);
   assert.strictEqual(h.doc.header.hasLinks, false, 'Legacy to E10 transition strips links again');
 
   await Promise.resolve();
-  console.log('site-nav reconciliation tests passed (4 assertions)');
+  console.log('site-nav reconciliation tests passed (10 assertions)');
 }
 
 main().catch((error) => {
