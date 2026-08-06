@@ -23,11 +23,13 @@ def test_navigation_contract_has_one_accessible_legacy_surface_and_e9_strip():
     assert 'data-nav-key' in SITE_NAV
 
 
-def test_marker_only_ownership_is_explicitly_rejected():
+def test_explicit_e10_battle_owner_marker_is_gated_by_static_contract():
     guard = SITE_NAV.split("function ownsE10Navigation()", 1)[1].split(
         "function normalize", 1
     )[0]
     assert "if (!hasStaticContract) return false;" in guard
+    assert "const adventureShellOwner = window.__GO_ADVENTURE_SHELL_OWNER__" in guard
+    assert "if (adventureShellOwner === E10_BATTLE_SHELL_OWNER) return true;" in guard
     assert "const activeShell = window.__GO_E9_ACTIVE_SHELL__" in guard
     assert "return activeShell === 'e9';" in guard
 
