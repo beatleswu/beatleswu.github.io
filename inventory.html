@@ -3,6 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(() => {
+  const e10BackpackMode = new URLSearchParams(location.search).get('e10') === '1';
+  window.__GO_E10_BACKPACK_MODE__ = e10BackpackMode;
+  if (!e10BackpackMode) return;
+  const root = document.documentElement;
+  root.dataset.e10BackpackShell = 'true';
+  root.dataset.e10VisualSkin = 'immersive-rpg';
+  root.dataset.e10ArtKit = 'runtime-v1';
+  const marker = document.createElement('meta');
+  marker.name = 'go-odyssey-static-contract';
+  marker.content = 'e10-vs1f-integrated-world-map';
+  document.head.appendChild(marker);
+})();
+</script>
 <title data-i18n="inv.title">背包 — 弈境奇兵 (Go Odyssey)</title>
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
@@ -334,15 +349,16 @@ main {
   .backpack-grid { grid-template-columns:1fr; padding-bottom:calc(78px + env(safe-area-inset-bottom)); }
 }
 </style>
+<link rel="stylesheet" href="/css/e10/backpack.css?v=20260806e10backpack1">
 </head>
 <body>
 
-<header>
-  <a href="/" class="logo">
+<header id="inventory-page-header">
+  <a href="/" class="logo" data-legacy-backpack-header>
     <div class="logo-mark" style="background:transparent;border-radius:0;width:28px;height:28px;padding:0;color:transparent;font-size:0"><svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="4" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg></div>
     弈境奇兵 (Go Odyssey)
   </a>
-  <div class="header-nav">
+  <div class="header-nav" data-legacy-backpack-header>
     <a href="/"             class="nav-link" data-i18n="nav.practice">&#128214; 練習</a>
     <a href="/community"    class="nav-link" data-i18n="nav.community">&#128101; 社群</a>
     <a href="/badges"       class="nav-link" data-i18n="nav.badges">&#127941; 獎章</a>
@@ -351,6 +367,16 @@ main {
     <div class="nav-sep"></div>
     <span id="username-display" style="font-size:11px;color:var(--ink3);font-family:var(--mono);padding:4px 8px;"></span>
     <button class="btn-logout" onclick="doLogout()" data-i18n="nav.logout">登出</button>
+  </div>
+  <div class="e10-backpack-header" data-e10-backpack-only hidden>
+    <a class="e10-backpack-header-brand" href="/" data-e10-return-map data-e10-lifecycle-return="world-map" aria-label="返回 E10 世界地圖">
+      <span class="e10-backpack-header-icon" aria-hidden="true"><img src="/assets/e10/ui/icons/backpack.webp" alt="" width="256" height="256" decoding="async" draggable="false"></span>
+      <span class="e10-backpack-header-copy"><span class="e10-backpack-header-kicker">ADVENTURE INVENTORY</span><strong data-i18n="backpack.title">我的背包</strong></span>
+    </a>
+    <div class="e10-backpack-header-actions">
+      <span data-e10-backpack-user aria-live="polite"></span>
+      <a class="e10-backpack-return" href="/" data-e10-return-map data-e10-lifecycle-return="world-map">返回地圖</a>
+    </div>
   </div>
 </header>
 
@@ -381,6 +407,31 @@ main {
 
 <div class="backpack-toast" id="backpack-toast" role="status" aria-live="polite"></div>
 
+<div class="e10-backpack-dialog" id="e10-backpack-dialog" role="dialog" aria-modal="true" aria-labelledby="e10-backpack-dialog-title" aria-describedby="e10-backpack-dialog-description" aria-hidden="true" hidden>
+  <div class="e10-backpack-dialog-backdrop" data-e10-dialog-dismiss></div>
+  <section class="e10-backpack-dialog-panel" tabindex="-1">
+    <header class="e10-backpack-dialog-header">
+      <div>
+        <p class="backpack-kicker" data-e10-dialog-kicker>ITEM DETAIL</p>
+        <h2 class="e10-backpack-dialog-title" id="e10-backpack-dialog-title"></h2>
+      </div>
+      <button class="e10-backpack-dialog-close" type="button" data-e10-dialog-close aria-label="關閉物品詳情">
+        <img src="/assets/e10/ui/icons/close.webp" alt="" width="256" height="256" decoding="async" draggable="false">
+      </button>
+    </header>
+    <div class="e10-backpack-dialog-identity">
+      <div class="e10-backpack-dialog-icon" id="e10-backpack-dialog-icon" aria-hidden="true"></div>
+      <div>
+        <span class="e10-backpack-dialog-rarity" id="e10-backpack-dialog-rarity"></span>
+        <p class="backpack-card-meta" id="e10-backpack-dialog-meta"></p>
+      </div>
+    </div>
+    <p class="e10-backpack-dialog-copy" id="e10-backpack-dialog-description"></p>
+    <div class="e10-backpack-dialog-status" id="e10-backpack-dialog-status"></div>
+    <button class="backpack-use e10-backpack-dialog-use" id="e10-backpack-dialog-use" type="button" hidden></button>
+  </section>
+</div>
+
 <script>
 async function doLogout() {
   await fetch('/api/auth/logout', { method:'POST', credentials:'include' });
@@ -403,6 +454,9 @@ const BACKPACK_CATEGORIES = [
 let backpackItems = [];
 let activeBackpackCategory = 'all';
 let backpackToastTimer = null;
+let e10BackpackDialogTrigger = null;
+
+const E10_BACKPACK_MODE = window.__GO_E10_BACKPACK_MODE__ === true;
 
 function backpackIsEn() { return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en'; }
 function backpackText(zh, en) { return backpackIsEn() ? en : zh; }
@@ -419,6 +473,100 @@ function backpackCapability(item) {
   if (item.usable === 'in_question') return { kind:'automatic', label:backpackText('答題時條件使用','Conditionally used while solving') };
   if (item.usable === 'instant') return { kind:'automatic', label:backpackText('取得時自動生效','Applied automatically when acquired') };
   return { kind:'readonly', label:backpackText('被動生效／唯讀','Passive / read-only') };
+}
+function backpackRarity(item) {
+  const raw = String(item.rarity || item.rarity_tier || item.quality || 'common').toLowerCase();
+  const key = ['common','uncommon','rare','epic','legendary'].includes(raw) ? raw : 'common';
+  const labels = {
+    common: { zh:'普通', en:'Common' },
+    uncommon: { zh:'非凡', en:'Uncommon' },
+    rare: { zh:'稀有', en:'Rare' },
+    epic: { zh:'史詩', en:'Epic' },
+    legendary: { zh:'傳說', en:'Legendary' },
+  };
+  return { key, label:backpackIsEn() ? labels[key].en : labels[key].zh };
+}
+function initE10BackpackShell() {
+  if (!E10_BACKPACK_MODE) return;
+  document.body.dataset.e10BackpackShell = 'true';
+  document.body.dataset.e10VisualSkin = 'immersive-rpg';
+  document.body.dataset.e10ArtKit = 'runtime-v1';
+  document.querySelectorAll('[data-legacy-backpack-header]').forEach((node) => { node.hidden = true; });
+  document.querySelectorAll('[data-e10-backpack-only]').forEach((node) => { node.hidden = false; });
+  const close = document.querySelector('[data-e10-dialog-close]');
+  const dismiss = document.querySelector('[data-e10-dialog-dismiss]');
+  if (close) close.addEventListener('click', () => closeBackpackDetails());
+  if (dismiss) dismiss.addEventListener('click', () => closeBackpackDetails());
+  document.addEventListener('keydown', (event) => {
+    const dialog = document.getElementById('e10-backpack-dialog');
+    if (!dialog || dialog.hidden) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeBackpackDetails();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusables = [...dialog.querySelectorAll('button:not([disabled]):not([hidden]), [href]:not([hidden])')];
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+}
+function openBackpackDetails(item, trigger) {
+  if (!E10_BACKPACK_MODE) return;
+  const dialog = document.getElementById('e10-backpack-dialog');
+  if (!dialog) return;
+  const capability = backpackCapability(item);
+  const rarity = backpackRarity(item);
+  e10BackpackDialogTrigger = trigger || null;
+  document.getElementById('e10-backpack-dialog-title').textContent = backpackName(item);
+  document.getElementById('e10-backpack-dialog-icon').textContent = item.icon || '🎒';
+  document.getElementById('e10-backpack-dialog-rarity').textContent = rarity.label;
+  document.getElementById('e10-backpack-dialog-meta').textContent = `${backpackText('持有','Owned')}: ${item.quantity} · ${backpackIsEn() ? backpackCategory(item).label.en : backpackCategory(item).label.zh}`;
+  document.getElementById('e10-backpack-dialog-description').textContent = backpackDescription(item);
+  document.getElementById('e10-backpack-dialog-status').textContent = capability.label;
+  const useButton = document.getElementById('e10-backpack-dialog-use');
+  useButton.hidden = capability.kind !== 'manual';
+  useButton.textContent = backpackText('使用物品','Use item');
+  useButton.onclick = () => {
+    const card = [...document.querySelectorAll('[data-source-item-id]')].find((node) => node.dataset.sourceItemId === item.key);
+    const cardButton = card && card.querySelector('[data-use-item]');
+    closeBackpackDetails(false);
+    if (cardButton) useBackpackItem(item.key, cardButton);
+  };
+  dialog.hidden = false;
+  dialog.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('e10-backpack-dialog-open');
+  document.querySelector('.e10-backpack-dialog-panel')?.focus();
+}
+function closeBackpackDetails(restoreFocus = true) {
+  const dialog = document.getElementById('e10-backpack-dialog');
+  if (!dialog || dialog.hidden) return;
+  dialog.hidden = true;
+  dialog.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('e10-backpack-dialog-open');
+  const trigger = e10BackpackDialogTrigger;
+  e10BackpackDialogTrigger = null;
+  if (restoreFocus && trigger && document.contains(trigger)) trigger.focus();
+}
+function focusE10BackpackCategory(index) {
+  const categories = BACKPACK_CATEGORIES;
+  const next = (index + categories.length) % categories.length;
+  activeBackpackCategory = categories[next].key;
+  const url = new URL(location.href);
+  if (activeBackpackCategory === 'all') url.searchParams.delete('category');
+  else url.searchParams.set('category', activeBackpackCategory);
+  history.pushState({ backpackCategory:activeBackpackCategory }, '', url);
+  renderBackpackFilters();
+  renderBackpackGrid();
+  document.querySelector(`[data-category="${activeBackpackCategory}"]`)?.focus();
 }
 function showBackpackToast(message) {
   const toast = document.getElementById('backpack-toast');
@@ -443,6 +591,10 @@ function renderBackpackFilters() {
     button.role = 'tab';
     button.dataset.category = category.key;
     button.setAttribute('aria-selected', String(activeBackpackCategory === category.key));
+    if (E10_BACKPACK_MODE) {
+      button.setAttribute('aria-controls', 'backpack-grid');
+      button.tabIndex = activeBackpackCategory === category.key ? 0 : -1;
+    }
     button.textContent = `${backpackIsEn() ? category.label.en : category.label.zh} ${count}`;
     button.addEventListener('click', () => {
       activeBackpackCategory = category.key;
@@ -452,6 +604,22 @@ function renderBackpackFilters() {
       history.pushState({ backpackCategory:category.key }, '', url);
       renderBackpackFilters();
       renderBackpackGrid();
+    });
+    if (E10_BACKPACK_MODE) button.addEventListener('keydown', (event) => {
+      const current = BACKPACK_CATEGORIES.findIndex((entry) => entry.key === category.key);
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        focusE10BackpackCategory(current + 1);
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        focusE10BackpackCategory(current - 1);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        focusE10BackpackCategory(0);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        focusE10BackpackCategory(BACKPACK_CATEGORIES.length - 1);
+      }
     });
     root.appendChild(button);
   });
@@ -467,23 +635,29 @@ function renderBackpackGrid() {
   }
   visible.forEach(item => {
     const capability = backpackCapability(item);
+    const rarity = backpackRarity(item);
     const card = document.createElement('article');
-    card.className = 'backpack-card';
+    card.className = `backpack-card${E10_BACKPACK_MODE ? ' e10-backpack-card' : ''}`;
     card.dataset.sourceItemId = item.key;
     card.dataset.itemCapability = capability.kind;
     card.dataset.itemCategory = backpackCategory(item).key;
     card.dataset.inventorySource = item.inventory_source || 'shop_inventory';
+    if (E10_BACKPACK_MODE) card.dataset.itemRarity = rarity.key;
     card.innerHTML = `
       <div class="backpack-card-head">
         <div class="backpack-card-icon" aria-hidden="true">${item.icon || '🎒'}</div>
+        ${E10_BACKPACK_MODE ? `<span class="e10-backpack-rarity">${rarity.label}</span>` : ''}
         <div><div class="backpack-card-name">${backpackName(item)}</div>
         <div class="backpack-card-meta">${backpackText('持有','Owned')}: ${item.quantity} · ${backpackIsEn() ? backpackCategory(item).label.en : backpackCategory(item).label.zh}</div></div>
       </div>
       <p class="backpack-card-desc">${backpackDescription(item)}</p>
-      <div class="backpack-card-foot"><span class="backpack-action-state">${capability.label}</span>
+      <div class="backpack-card-foot"><span class="backpack-action-state"${E10_BACKPACK_MODE ? ` data-e10-backpack-status="${capability.kind}"` : ''}>${capability.label}</span>
+      ${E10_BACKPACK_MODE ? `<button type="button" class="e10-backpack-details" data-item-details="${item.key}">${backpackText('查看詳情','Details')}</button>` : ''}
       ${capability.kind === 'manual' ? `<button type="button" class="backpack-use" data-use-item="${item.key}">${backpackText('使用','Use')}</button>` : ''}</div>`;
     const useButton = card.querySelector('[data-use-item]');
     if (useButton) useButton.addEventListener('click', () => useBackpackItem(item.key, useButton));
+    const detailsButton = card.querySelector('[data-item-details]');
+    if (detailsButton) detailsButton.addEventListener('click', () => openBackpackDetails(item, detailsButton));
     grid.appendChild(card);
   });
   const focusKey = new URLSearchParams(location.search).get('focus');
@@ -542,6 +716,8 @@ async function loadBackpack() {
     const requested = new URLSearchParams(location.search).get('category') || 'all';
     activeBackpackCategory = BACKPACK_CATEGORIES.some(category => category.key === requested) ? requested : 'all';
     document.getElementById('username-display').textContent = me.display_name || me.nickname || me.username || 'Player';
+    const e10User = document.querySelector('[data-e10-backpack-user]');
+    if (e10User) e10User.textContent = me.display_name || me.nickname || me.username || 'Player';
     document.getElementById('backpack-total-qty').textContent = backpackItems.reduce((total, item) => total + item.quantity, 0).toLocaleString();
     document.getElementById('backpack-item-kinds').textContent = backpackItems.length.toLocaleString();
     document.getElementById('backpack-manual-count').textContent = backpackItems.filter(item => backpackCapability(item).kind === 'manual').length.toLocaleString();
@@ -563,11 +739,20 @@ window.addEventListener('popstate', () => {
   renderBackpackGrid();
 });
 window.onLangChange = () => { if (typeof I18n !== 'undefined') I18n.apply(); renderBackpackFilters(); renderBackpackGrid(); };
+initE10BackpackShell();
 if (typeof I18n !== 'undefined') I18n.apply();
 loadBackpack();
 </script>
-<script src="/mobile-nav.js?v=20260603mn"></script>
-<script src="/site-nav.js?v=20260625presence1"></script>
+<script>
+if (!window.__GO_E10_BACKPACK_MODE__) {
+  ['/mobile-nav.js?v=20260603mn', '/site-nav.js?v=20260625presence1'].forEach((src) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    document.body.appendChild(script);
+  });
+}
+</script>
 <script src="/sound.js?v=2"></script>
 </body>
 </html>
