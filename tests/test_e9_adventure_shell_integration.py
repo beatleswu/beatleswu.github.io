@@ -374,15 +374,18 @@ def test_sw_cache_strategy_functions_unchanged():
     assert "function networkFirst" in sw_js
 
 
-def test_sw_diff_is_version_line_only():
-    # Regression guard: this sprint must not refactor sw.js beyond the
-    # VERSION bump. If this ever fails, someone touched more than the
-    # version line and it needs explicit review.
+def test_sw_cache_identity_upgrade_contract_is_explicit():
+    # The static-coherence repair intentionally changes cache identity and
+    # activation semantics so a new worker can retire stale E10 bundles.
     sw_js = _read(SW_JS)
     assert sw_js.count("const VERSION") == 1
     assert "self.addEventListener('fetch'" in sw_js
     assert "self.addEventListener('install'" in sw_js
     assert "self.addEventListener('activate'" in sw_js
+    assert "const APP_CACHE_PREFIXES" in sw_js
+    assert "caches.delete(k)" in sw_js
+    assert "const cache = await caches.open(cacheName)" in sw_js
+    assert "caches.match(request)" not in sw_js
 
 
 # ---------------------------------------------------------------------------

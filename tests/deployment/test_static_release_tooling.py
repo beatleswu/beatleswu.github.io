@@ -132,6 +132,24 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     }
 
 
+def test_inventory_declares_complete_e10_runtime_dependency_boundary():
+    inventory = _load_inventory()
+    closure = inventory["runtime_dependency_closure"]
+    assert closure["entrypoints"] == ["index.html"]
+    assert {item["prefix"] for item in closure["subtrees"]} == {
+        "js/e9/", "css/e9/", "components/adventure/"
+    }
+    eligible = set(inventory["eligible_files"]["entries"])
+    for required_path in (
+        "js/e9/world_stage.js",
+        "js/e9/adapters/adventure_state.js",
+        "css/e9/world_stage.css",
+        "components/adventure/world_stage.html",
+    ):
+        assert required_path in eligible
+        assert (REPO_ROOT / required_path).is_file()
+
+
 def test_inventory_excludes_icons_prefix():
     # assets/ moved to required_subtrees under RELEASE-FIX-A2 -- see
     # docs/incidents/2026-07-12-full-site-asset-outage.md. icons/ remains
@@ -439,10 +457,20 @@ def test_new_static_release_functions_exported():
     content = _read(PSM1)
     for fn in [
         "Get-StaticAssetInventory", "Get-SwVersionFromText",
+        "Get-SwAssetIdentityFromText", "Get-StaticReleaseAssetIdentity",
+        "Set-StaticReleaseServiceWorkerIdentity", "Get-StaticRuntimeDependencyClosure",
         "Assert-SafeStaticRelativePath", "Get-StaticReleaseGenerationName",
         "New-StaticReleaseBundle", "New-StaticReleaseManifestObject",
     ]:
         assert f"'{fn}'" in content, f"{fn} must be exported from ReleaseTooling.psm1"
+
+
+def test_package_script_binds_worker_identity_to_exact_source_sha():
+    content = _read(PACKAGE_SCRIPT)
+    assert "Get-StaticReleaseAssetIdentity -GitSha $ExpectedGitSha" in content
+    assert "-ServiceWorkerAssetIdentity $serviceWorkerAssetIdentity" in content
+    assert "Get-SwAssetIdentityFromText" in content
+    assert "service_worker_asset_identity" in content
 
 
 def test_static_release_bundle_rejects_empty_files():
@@ -454,6 +482,131 @@ def test_static_release_generation_name_matches_existing_host_convention():
     # Confirmed via direct host inspection: releases/<YYYYMMDD-HHMMSS>-<short-sha>-<label>/
     content = _read(PSM1)
     assert "yyyyMMdd-HHmmss" in content
+
+
+def _runtime_closure_fixture_inventory():
+    return """
+$inventory = [pscustomobject]@{
+    required_in_generation = [pscustomobject]@{ entries = @('index.html') }
+    eligible_files = [pscustomobject]@{ entries = @(
+        'index.html', 'js/e9/world_stage.js', 'js/e9/adapters/adventure_state.js',
+        'components/adventure/world_stage.html', 'css/e9/world_stage.css'
+    ) }
+    runtime_dependency_closure = [pscustomobject]@{
+        entrypoints = @('index.html')
+        subtrees = @(
+            [pscustomobject]@{ prefix = 'js/e9/'; extensions = @('.js') },
+            [pscustomobject]@{ prefix = 'css/e9/'; extensions = @('.css') },
+            [pscustomobject]@{ prefix = 'components/adventure/'; extensions = @('.html') }
+        )
+    }
+    forbidden_patterns = [pscustomobject]@{ path_patterns = @() }
+    required_subtrees = [pscustomobject]@{ entries = @() }
+}
+"""
+
+
+def test_runtime_dependency_closure_stages_transitive_files_and_manifest_hashes(tmp_path):
+    source = tmp_path / "source"
+    stage = tmp_path / "stage"
+    (source / "js" / "e9" / "adapters").mkdir(parents=True)
+    (source / "css" / "e9").mkdir(parents=True)
+    (source / "components" / "adventure").mkdir(parents=True)
+    (source / "index.html").write_text(
+        '<script src="/js/e9/world_stage.js?v=release"></script>'
+        '<link rel="stylesheet" href="/css/e9/world_stage.css">',
+        encoding="utf-8",
+    )
+    (source / "js" / "e9" / "world_stage.js").write_text(
+        "var state = '/js/e9/adapters/adventure_state.js';\n"
+        "var view = '/components/adventure/world_stage.html';\n",
+        encoding="utf-8",
+    )
+    (source / "js" / "e9" / "adapters" / "adventure_state.js").write_text(
+        "window.AdventureState = {};\n", encoding="utf-8"
+    )
+    (source / "components" / "adventure" / "world_stage.html").write_text(
+        "<div class='world-stage'></div>\n", encoding="utf-8"
+    )
+    (source / "css" / "e9" / "world_stage.css").write_text(
+        ".world-stage { display: block; }\n", encoding="utf-8"
+    )
+
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+{_runtime_closure_fixture_inventory()}
+$files = @(New-StaticReleaseBundle -SourceRoot {_ps_quote(source)} -StagePath {_ps_quote(stage)} -Inventory $inventory)
+$manifest = New-StaticReleaseManifestObject -GitSha ('a' * 40) -GenerationId 'test-generation' -SwVersion 'test-sw' -Files $files -CreatedAtUtc '2026-08-07T00:00:00Z'
+[ordered]@{{ files = $files; manifest_files = $manifest.files }} | ConvertTo-Json -Depth 8
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"runtime closure staging failed:\n{result.stdout}\n{result.stderr}"
+    payload = json.loads(result.stdout)
+    expected = {
+        "index.html",
+        "js/e9/world_stage.js",
+        "js/e9/adapters/adventure_state.js",
+        "components/adventure/world_stage.html",
+        "css/e9/world_stage.css",
+    }
+    assert {entry["path"] for entry in payload["files"]} == expected
+    assert {entry["path"] for entry in payload["manifest_files"]} == expected
+    for entry in payload["manifest_files"]:
+        actual = __import__("hashlib").sha256(
+            (stage / entry["path"]).read_bytes()
+        ).hexdigest()
+        assert actual == entry["sha256"]
+        assert (stage / entry["path"]).stat().st_size == entry["size"]
+
+
+def test_runtime_dependency_closure_fails_closed_for_missing_transitive_file(tmp_path):
+    source = tmp_path / "source"
+    stage = tmp_path / "stage"
+    source.mkdir()
+    (source / "index.html").write_text(
+        '<script src="/js/e9/world_stage.js"></script>', encoding="utf-8"
+    )
+    (source / "js").mkdir()
+    (source / "js" / "e9").mkdir()
+    (source / "js" / "e9" / "world_stage.js").write_text(
+        "var missing = '/js/e9/adapters/adventure_state.js';\n", encoding="utf-8"
+    )
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+{_runtime_closure_fixture_inventory()}
+try {{
+    New-StaticReleaseBundle -SourceRoot {_ps_quote(source)} -StagePath {_ps_quote(stage)} -Inventory $inventory | Out-Null
+    Write-Output 'UNEXPECTED_SUCCESS'
+    exit 1
+}} catch {{
+    Write-Output $_.Exception.Message
+    exit 0
+}}
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"missing dependency test failed:\n{result.stdout}\n{result.stderr}"
+    assert "UNEXPECTED_SUCCESS" not in result.stdout
+    assert "missing from source checkout" in result.stdout
+
+
+def test_release_service_worker_identity_is_deterministic_and_manifested(tmp_path):
+    worker = tmp_path / "sw.js"
+    worker.write_text("const ASSET_IDENTITY = 'source-test';\n", encoding="utf-8")
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+$one = Get-StaticReleaseAssetIdentity -GitSha ('a' * 40)
+$same = Get-StaticReleaseAssetIdentity -GitSha ('a' * 40)
+$other = Get-StaticReleaseAssetIdentity -GitSha ('b' * 40)
+Set-StaticReleaseServiceWorkerIdentity -Path {_ps_quote(worker)} -AssetIdentity $one | Out-Null
+$parsed = Get-SwAssetIdentityFromText -SwText (Get-Content -Raw -Encoding UTF8 {_ps_quote(worker)})
+[ordered]@{{ one = $one; same = $same; other = $other; parsed = $parsed }} | ConvertTo-Json -Compress
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"identity test failed:\n{result.stdout}\n{result.stderr}"
+    payload = json.loads(result.stdout)
+    assert payload["one"] == payload["same"] == payload["parsed"]
+    assert payload["one"] != payload["other"]
+    assert payload["one"].startswith("release-")
 
 
 def test_nested_and_root_flat_files_copy_into_manifest_and_archive(tmp_path):

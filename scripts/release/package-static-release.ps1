@@ -43,6 +43,7 @@ $repoRoot = Get-RepoRoot
 $ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $repoRoot).Trim()
 $inventory = Get-StaticAssetInventory
 $baseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
+$serviceWorkerAssetIdentity = Get-StaticReleaseAssetIdentity -GitSha $ExpectedGitSha
 
 if (-not $ManifestPath) {
     Ensure-Directory -Path (Join-Path $repoRoot 'release-artifacts')
@@ -60,7 +61,11 @@ $worktree = $null
 try {
     $worktree = New-DetachedWorktree -GitSha $ExpectedGitSha -Prefix 'go-odyssey-static-release'
 
-    $files = New-StaticReleaseBundle -SourceRoot $worktree -StagePath $BundlePath -Inventory $inventory
+    $files = New-StaticReleaseBundle `
+        -SourceRoot $worktree `
+        -StagePath $BundlePath `
+        -Inventory $inventory `
+        -ServiceWorkerAssetIdentity $serviceWorkerAssetIdentity
 
     $swFile = $files | Where-Object { $_.path -eq 'sw.js' }
     if (-not $swFile) {
@@ -68,6 +73,10 @@ try {
     }
     $swText = Get-Content -Raw -Encoding UTF8 (Join-Path $BundlePath 'sw.js')
     $swVersion = Get-SwVersionFromText -SwText $swText -SourceLabel 'staged sw.js'
+    $stagedAssetIdentity = Get-SwAssetIdentityFromText -SwText $swText -SourceLabel 'staged sw.js'
+    if ($stagedAssetIdentity -ne $serviceWorkerAssetIdentity) {
+        throw "Staged Service Worker asset identity does not match the exact release source SHA."
+    }
 
     $generationId = Get-StaticReleaseGenerationName -GitSha $ExpectedGitSha -SwVersion $swVersion -TimestampUtc ([DateTime]::UtcNow)
 
@@ -174,7 +183,8 @@ try {
         -ArchiveSize $archiveSize `
         -ArchiveEntryCount $archiveEntryCount `
         -GnuTarExecutablePath $gnuTar.path `
-        -GnuTarVersion $gnuTar.version_output
+        -GnuTarVersion $gnuTar.version_output `
+        -AssetIdentity $stagedAssetIdentity
 
     Write-JsonFile -InputObject $manifest -Path $ManifestPath
 
@@ -182,6 +192,7 @@ try {
         static_generation_id = $generationId
         release_git_sha = $ExpectedGitSha
         service_worker_version = $swVersion
+        service_worker_asset_identity = $stagedAssetIdentity
         bundle_path = $BundlePath
         manifest_path = $ManifestPath
         archive_path = $ArchivePath

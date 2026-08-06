@@ -155,9 +155,12 @@ def _copy_required_flat_generation_sources(source):
         REPO_ROOT / "js" / "map_battle_v1_adapter.js",
         adapter_target / "map_battle_v1_adapter.js",
     )
-    shell_target = source / "js" / "e9"
-    shell_target.mkdir(parents=True, exist_ok=True)
-    shutil.copy(REPO_ROOT / "js" / "e9" / "shell.js", shell_target / "shell.js")
+    # The E10 static-coherence contract derives the live runtime closure from
+    # index.html and shell component references, so the fixture must carry
+    # the same routed JS/CSS/component subtrees as a real release checkout.
+    shutil.copytree(REPO_ROOT / "js" / "e9", source / "js" / "e9")
+    shutil.copytree(REPO_ROOT / "css" / "e9", source / "css" / "e9")
+    shutil.copytree(REPO_ROOT / "components" / "adventure", source / "components" / "adventure")
 
 
 def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
@@ -185,6 +188,10 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         staged = json.loads(result.stdout)
         staged_by_path = {f["path"].replace("\\", "/"): f for f in staged}
 
+        closure_paths = {
+            path for path in _load_inventory()["eligible_files"]["entries"]
+            if path.startswith(("js/e9/", "css/e9/", "components/adventure/"))
+        }
         governed_paths = (
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
@@ -192,6 +199,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
                 "i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html",
                 "js/e9/shell.js", "js/map_battle_v1_adapter.js",
             }
+            | closure_paths
         )
         assert set(staged_by_path.keys()) == governed_paths, (
             "staged file set must be exactly the governed closure -- no more, no less "
