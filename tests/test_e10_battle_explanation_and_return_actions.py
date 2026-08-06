@@ -1,0 +1,51 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
+
+
+def _function_block(name: str, end_name: str) -> str:
+    start = INDEX.index(f"function {name}")
+    end = INDEX.index(f"function {end_name}", start)
+    return INDEX[start:end]
+
+
+def test_e10_battle_exposes_explicit_explanation_and_map_actions():
+    assert 'id="btn-e10-battle-explain"' in INDEX
+    assert 'onclick="showE10BattleExplanation()"' in INDEX
+    assert 'id="btn-adventure-return"' in INDEX
+    assert 'onclick="returnToAdventureMapAfterEncounter()"' in INDEX
+    actions = _function_block("_syncE10BattleActions", "showE10BattleExplanation")
+    action_state = _function_block("_isE10BattleActionState", "_syncE10BattleActions")
+    assert "_isAdventureZonePractice()" in action_state
+    assert "_isE10BattleShell()" in action_state
+    assert "_mapBattleV1Mode === 'active'" in action_state
+    assert "_mapBattleV1Mode === 'active'" not in actions
+    assert "display = visible ? 'inline-flex' : 'none'" in actions
+
+
+def test_explanation_action_reuses_canonical_explanation_path_without_settlement():
+    action = _function_block("showE10BattleExplanation", "returnToAdventureMapAfterEncounter")
+    assert "showExplanation(_lastWrongMove || null)" in action
+    assert "submitSRS" not in action
+    assert "/api/srs/review" not in action
+    assert "adapter.submit" not in action
+
+
+def test_return_invalidates_battle_page_callbacks_and_refreshes_map_without_abandoning_attempt():
+    action = _function_block("returnToAdventureMapAfterEncounter", "renderAdventureZoneMonster")
+    assert "_mapBattleV1LifecycleGeneration += 1" in action
+    assert "_mapBattleV1PrepareSerial += 1" in action
+    assert "_clearMapBattleV1Transition()" in action
+    assert "invalidateE9AdventureStateCache()" in action
+    assert "window.location.href = '/?adventure=1'" in action
+    assert "_clearMapBattleV1Resume()" not in action
+
+
+def test_active_attempt_resume_storage_remains_authoritative_for_return_flow():
+    resume = _function_block("_persistMapBattleV1Resume", "_readMapBattleV1Resume")
+    prepare = _function_block("_prepareMapBattleV1ForQuestion", "_mapBattleV1IsStaleError")
+    assert "sessionStorage.setItem(_MAP_BATTLE_V1_RESUME_STORAGE_KEY" in resume
+    assert "adapter.refreshBattle(state)" in prepare
+    assert "_clearMapBattleV1Resume();" in prepare
