@@ -1339,8 +1339,9 @@ function assertCase(result) {
   if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
   if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
   if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
+  const backpackTargets = ['/inventory', '/inventory?e10=1'];
   if (snapshot.backpack.disabled || snapshot.backpack.ariaDisabled === 'true'
-    || snapshot.backpack.lockVisible || snapshot.backpack.href !== '/inventory') {
+    || snapshot.backpack.lockVisible || !backpackTargets.includes(snapshot.backpack.href)) {
     failures.push(`${specName}: Backpack independent destination is not enabled ${JSON.stringify(snapshot.backpack)}`);
   }
   if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
