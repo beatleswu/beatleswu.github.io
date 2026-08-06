@@ -120,10 +120,14 @@ def test_inventory_required_in_generation_is_subset_of_eligible():
 def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     # i18n.js and sw.js were the original stale live-static files. index.html
     # is also governed because an older live-static entrypoint can mask the
-    # exact image's application shell wiring.
+    # exact image's application shell wiring. inventory.html is governed so
+    # the E10 Backpack shell cannot fall back to the pre-hotfix image.
     inventory = _load_inventory()
-    assert set(inventory["required_in_generation"]["entries"]) == {
+    entries = inventory["required_in_generation"]["entries"]
+    assert entries.count("inventory.html") == 1
+    assert set(entries) == {
         "i18n.js", "sw.js", "index.html", "site-nav.js",
+        "inventory.html",
         "js/e9/shell.js", "js/map_battle_v1_adapter.js",
     }
 

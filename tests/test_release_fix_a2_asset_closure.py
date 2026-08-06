@@ -147,7 +147,7 @@ def _run_pwsh(script):
 
 def _copy_required_flat_generation_sources(source):
     """Build the smallest source fixture accepted by the live inventory."""
-    for filename in ("index.html", "i18n.js", "sw.js", "site-nav.js"):
+    for filename in ("index.html", "inventory.html", "i18n.js", "sw.js", "site-nav.js"):
         shutil.copy(REPO_ROOT / filename, source / filename)
     adapter_target = source / "js"
     adapter_target.mkdir(parents=True, exist_ok=True)
@@ -189,7 +189,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
             | {
-                "i18n.js", "sw.js", "index.html", "site-nav.js",
+                "i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html",
                 "js/e9/shell.js", "js/map_battle_v1_adapter.js",
             }
         )
