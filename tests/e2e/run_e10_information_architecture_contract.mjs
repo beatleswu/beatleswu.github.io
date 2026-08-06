@@ -444,6 +444,53 @@ async function runBackpackContract(browser, origin, outputDir) {
   return { initial, growth, restored, useActions, diagnostics, screenshots, failures };
 }
 
+async function runE10BackpackOwnershipContract(browser, origin, outputDir) {
+  const { page, diagnostics } = await openPage(browser, origin, '/inventory?e10=1', { width:820, height:1180 });
+  await page.waitForFunction(() => document.querySelector('#backpack-status')?.dataset.state === 'ready');
+  const initial = await page.evaluate(() => ({
+    ownerBody:document.body.getAttribute('data-adventure-shell-owner'),
+    ownerDocument:document.documentElement.getAttribute('data-adventure-shell-owner'),
+    e10Frame:document.documentElement.getAttribute('data-e10-backpack-shell'),
+    e10HeaderVisible:document.querySelectorAll('[data-e10-backpack-only]:not([hidden])').length,
+    legacyHeaderVisible:document.querySelectorAll('[data-legacy-backpack-header]:not([hidden])').length,
+    globalNav:document.querySelectorAll('.cg-nav-links').length,
+    shellCount:document.querySelectorAll('#inventory-page-header').length,
+  }));
+  await page.reload({ waitUntil:'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('#backpack-status')?.dataset.state === 'ready');
+  const reloaded = await page.evaluate(() => ({
+    ownerBody:document.body.getAttribute('data-adventure-shell-owner'),
+    ownerDocument:document.documentElement.getAttribute('data-adventure-shell-owner'),
+    e10Frame:document.documentElement.getAttribute('data-e10-backpack-shell'),
+    e10HeaderVisible:document.querySelectorAll('[data-e10-backpack-only]:not([hidden])').length,
+    legacyHeaderVisible:document.querySelectorAll('[data-legacy-backpack-header]:not([hidden])').length,
+    globalNav:document.querySelectorAll('.cg-nav-links').length,
+    shellCount:document.querySelectorAll('#inventory-page-header').length,
+  }));
+  await page.goto(`${origin}/inventory`, { waitUntil:'domcontentloaded' });
+  await page.waitForFunction(() => document.querySelector('#backpack-status')?.dataset.state === 'ready');
+  const generic = await page.evaluate(() => ({
+    ownerBody:document.body.getAttribute('data-adventure-shell-owner'),
+    ownerDocument:document.documentElement.getAttribute('data-adventure-shell-owner'),
+    e10Frame:document.documentElement.getAttribute('data-e10-backpack-shell'),
+    e10HeaderVisible:document.querySelectorAll('[data-e10-backpack-only]:not([hidden])').length,
+    globalNav:document.querySelectorAll('.cg-nav-links').length,
+  }));
+  const failures = [];
+  for (const [label, state] of [['initial', initial], ['reloaded', reloaded]]) {
+    if (state.ownerBody !== 'e10-backpack' || state.ownerDocument !== 'e10-backpack') failures.push(`${label}: E10 Backpack owner was not restored`);
+    if (state.e10Frame !== 'true' || state.e10HeaderVisible !== 1 || state.legacyHeaderVisible !== 0) failures.push(`${label}: E10 Backpack presentation boundary failed`);
+    if (state.globalNav !== 0 || state.shellCount !== 1) failures.push(`${label}: E10 Backpack shell/nav exclusivity failed`);
+  }
+  if (generic.ownerBody || generic.ownerDocument || generic.e10Frame || generic.e10HeaderVisible !== 0 || generic.globalNav !== 1) {
+    failures.push(`generic: E10 Backpack ownership leaked into generic inventory ${JSON.stringify(generic)}`);
+  }
+  const screenshots = [await screenshot(page, outputDir, 'backpack-generic-after-e10-context.png')];
+  if (diagnostics.console.length || diagnostics.network.length) failures.push('E10 Backpack ownership console/network errors detected');
+  await page.close();
+  return { initial, reloaded, generic, diagnostics, screenshots, failures };
+}
+
 async function runBackpackStateCase(browser, origin, outputDir, mode) {
   const { page, diagnostics } = await openPage(browser, origin, '/inventory', { width:430, height:932 }, mode);
   let snapshot;
@@ -652,6 +699,7 @@ async function main() {
   try {
     const hero = await runHeroContract(browser, origin, outputDir);
     const backpack = await runBackpackContract(browser, origin, outputDir);
+    const e10BackpackOwnership = await runE10BackpackOwnershipContract(browser, origin, outputDir);
     const backpackStates = [];
     for (const mode of ['loading','empty','error']) backpackStates.push(await runBackpackStateCase(browser, origin, outputDir, mode));
     const shop = await runShopSeparationContract(browser, origin, outputDir);
@@ -660,6 +708,7 @@ async function main() {
     const failures = [
       ...hero.failures,
       ...backpack.failures,
+      ...e10BackpackOwnership.failures,
       ...backpackStates.flatMap((entry) => entry.failures),
       ...shop.failures,
       ...responsive.flatMap((entry) => entry.failures.map((failure) => `${entry.name}: ${failure}`)),
@@ -672,6 +721,7 @@ async function main() {
       ok:failures.length === 0,
       hero,
       backpack,
+      e10BackpackOwnership,
       backpackStates,
       shop,
       responsive,
@@ -679,7 +729,7 @@ async function main() {
       failures,
     };
     await fs.writeFile(path.join(outputDir, 'information-architecture-contract.json'), JSON.stringify(report, null, 2));
-    process.stdout.write(JSON.stringify({ ok:report.ok, outputDir, screenshots:[...hero.screenshots, ...backpack.screenshots, ...backpackStates.map((entry) => entry.screenshot), ...shop.screenshots, ...responsive.map((entry) => entry.screenshot), ...englishRepresentatives.map((entry) => entry.screenshot)].length, failures }, null, 2));
+    process.stdout.write(JSON.stringify({ ok:report.ok, outputDir, screenshots:[...hero.screenshots, ...backpack.screenshots, ...e10BackpackOwnership.screenshots, ...backpackStates.map((entry) => entry.screenshot), ...shop.screenshots, ...responsive.map((entry) => entry.screenshot), ...englishRepresentatives.map((entry) => entry.screenshot)].length, failures }, null, 2));
     if (failures.length) process.exitCode = 1;
   } finally {
     await browser.close();

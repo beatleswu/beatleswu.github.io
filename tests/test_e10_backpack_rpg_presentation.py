@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 INVENTORY = (ROOT / "inventory.html").read_text(encoding="utf-8")
 REGISTRY = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8")
 CSS = (ROOT / "css/e10/backpack.css").read_text(encoding="utf-8")
@@ -23,6 +24,17 @@ def test_e10_route_marker_is_narrow_and_owned_by_the_existing_shell_contract():
     assert "marker.name = 'go-odyssey-static-contract';" in INVENTORY
     assert "marker.content = 'e10-vs1f-integrated-world-map';" in INVENTORY
     assert "key: 'backpack', target: '/inventory' + '?e10=1'" in REGISTRY
+
+
+def test_e10_backpack_context_survives_full_navigation_and_reload_without_global_conversion():
+    assert "const E10_BACKPACK_SHELL_OWNER = 'e10-backpack';" in INVENTORY
+    assert "window.__GO_ADVENTURE_SHELL_OWNER__ = e10BackpackMode ? E10_BACKPACK_SHELL_OWNER : null;" in INVENTORY
+    assert "root.dataset.adventureShellOwner = E10_BACKPACK_SHELL_OWNER;" in INVENTORY
+    assert "document.body.setAttribute('data-adventure-shell-owner', owner);" in INVENTORY
+    assert "document.documentElement.setAttribute('data-adventure-shell-owner', owner);" in INVENTORY
+    assert 'data-e10-backpack-entry' in INDEX
+    assert 'navigateToE10BackpackFromContext(event)' in INDEX
+    assert "target.searchParams.set('e10', '1');" in INDEX
 
 
 def test_inventory_data_categories_counts_and_api_authority_are_unchanged():
