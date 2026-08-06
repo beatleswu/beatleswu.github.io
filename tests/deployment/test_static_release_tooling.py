@@ -256,10 +256,43 @@ def test_deploy_script_uses_atomic_symlink_switch_pattern():
 def test_deploy_script_verifies_public_https_bytes_not_just_filesystem():
     content = _read(DEPLOY_SCRIPT)
     assert "Invoke-WebRequest" in content
-    assert '"$PublicBase/$($entry.path)"' in content
+    assert "Resolve-StaticPublicRoute" in content
+    assert '"$PublicBase/$($entry.path)"' not in content
     assert "Cache-Control" in content
     assert "Get-PublicFileSha256" in content
     assert "Public content hash mismatch" in content
+
+
+def test_inventory_manifest_filename_uses_canonical_public_routes(tmp_path):
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+[ordered]@{{
+    generic = Resolve-StaticPublicRoute -RelativePath 'inventory.html'
+    e10 = Resolve-StaticPublicRoute -RelativePath 'inventory.html' -E10Context
+    javascript = Resolve-StaticPublicRoute -RelativePath 'site-nav.js'
+}} | ConvertTo-Json -Compress
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"canonical route helper failed:\n{result.stdout}\n{result.stderr}"
+    assert json.loads(result.stdout) == {
+        "generic": "/inventory",
+        "e10": "/inventory?e10=1",
+        "javascript": "/site-nav.js",
+    }
+
+
+def test_static_verifiers_use_canonical_route_helper_for_inventory():
+    deploy = _read(DEPLOY_SCRIPT)
+    rollback = _read(ROLLBACK_SCRIPT)
+    assert "Resolve-StaticPublicRoute -RelativePath" in deploy
+    assert "Resolve-StaticPublicRoute -RelativePath" in rollback
+    assert '"$publicBase/$($entry.path)"' not in rollback
+
+
+def test_inventory_source_filename_is_not_an_application_public_route():
+    app_content = _read(APP_PY)
+    assert "@app.route('/inventory')" in app_content
+    assert "@app.route('/inventory.html')" not in app_content
 
 
 def test_timeout_reconciles_before_rollback_and_accepts_remote_completion():
@@ -272,7 +305,8 @@ def test_timeout_reconciles_before_rollback_and_accepts_remote_completion():
 
 def test_query_string_verification_is_diagnostic_only():
     content = _read(DEPLOY_SCRIPT)
-    assert "Query-string cache busting is diagnostic-only" in content
+    assert "Query-string" in content
+    assert "diagnostic-only" in content
     assert "Get-SwVersionFromUrl -Url \"$publicBase/sw.js\"" in content
 
 

@@ -39,8 +39,19 @@ def test_return_invalidates_battle_page_callbacks_and_refreshes_map_without_aban
     assert "_mapBattleV1PrepareSerial += 1" in action
     assert "_clearMapBattleV1Transition()" in action
     assert "invalidateE9AdventureStateCache()" in action
+    assert "publishAdventureShellOwner(E10_MAP_SHELL_OWNER)" in action
     assert "window.location.href = '/?adventure=1'" in action
     assert "_clearMapBattleV1Resume()" not in action
+
+
+def test_in_page_map_to_battle_publishes_owner_before_action_reconciliation():
+    entry = _function_block("enterAdventureZoneInPage", "adventureActiveZone")
+    owner_position = entry.index("publishAdventureShellOwner(E10_BATTLE_SHELL_OWNER)")
+    load_position = entry.index("loadQuestion(target)")
+    assert owner_position < load_position
+    assert "data-adventure-shell-owner" not in entry
+    assert "publishAdventureShellOwner(E10_MAP_SHELL_OWNER)" in entry
+    assert "entryGeneration" in entry
 
 
 def test_active_attempt_resume_storage_remains_authoritative_for_return_flow():

@@ -144,7 +144,9 @@ foreach ($entry in $targetManifest.files) {
     if ($entry.path -eq 'index.html') { continue }
     # Canonical URL verification is mandatory.  Query-string variants are
     # diagnostic only and are not part of the rollback acceptance contract.
-    $url = "$publicBase/$($entry.path)"
+    # Manifest filenames are not necessarily public route paths.
+    $route = Resolve-StaticPublicRoute -RelativePath ([string]$entry.path)
+    $url = "$publicBase$route"
     $observedHash = Get-PublicFileSha256 -Url $url
     if ($observedHash -ne $entry.sha256) {
         throw "Public content hash mismatch after rollback for '$($entry.path)'. Expected '$($entry.sha256)', observed '$observedHash'."
