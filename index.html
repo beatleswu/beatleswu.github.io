@@ -8646,6 +8646,10 @@ function returnToAdventureMapAfterEncounter() {
     _mapBattleV1Mode = 'disabled';
     _syncE10BattleActions(false);
     _publishMapBattleV1Lifecycle();
+    if (typeof publishAdventureShellOwner === 'function'
+        && window.__GO_ADVENTURE_SHELL_OWNER__ === E10_BATTLE_SHELL_OWNER) {
+        publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
+    }
     invalidateE9AdventureStateCache();
     window.location.href = '/?adventure=1';
 }
@@ -10814,11 +10818,34 @@ function enterAdventureZoneInPage(zone) {
         _adventureActiveQuestions = unitQs;
         renderList(unitQs);
         const target = _pickAdventureTarget(unitQs);
+        if (!target || typeof publishAdventureShellOwner !== 'function') return false;
+        // The in-page path has no document bootstrap to republish ownership.
+        // Publish the authoritative Battle owner before loadQuestion() can
+        // reconcile the E10 action toolbar.
+        publishAdventureShellOwner(E10_BATTLE_SHELL_OWNER);
         // 更新網址，F5 重整仍回到該關（走 adventureResume reload 路徑）
         try { history.replaceState(null, '', firstQuestionHref(zone)); } catch (e) {}
         document.querySelector('main')?.scrollTo(0, 0);
         document.querySelector('.practice')?.scrollTo(0, 0);
-        if (target) loadQuestion(target);
+        const entryGeneration = _mapBattleV1LifecycleGeneration + 1;
+        try {
+            const loadResult = loadQuestion(target);
+            Promise.resolve(loadResult).then((started) => {
+                if (started === false
+                    && _mapBattleV1LifecycleGeneration === entryGeneration
+                    && window.__GO_ADVENTURE_SHELL_OWNER__ === E10_BATTLE_SHELL_OWNER) {
+                    publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
+                }
+            }, () => {
+                if (_mapBattleV1LifecycleGeneration === entryGeneration
+                    && window.__GO_ADVENTURE_SHELL_OWNER__ === E10_BATTLE_SHELL_OWNER) {
+                    publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
+                }
+            });
+        } catch (e) {
+            publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
+            throw e;
+        }
         return true;
     } catch (e) {
         console.warn('[adventure inpage] fallback to reload:', e);

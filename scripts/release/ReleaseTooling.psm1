@@ -1824,6 +1824,26 @@ function Get-StaticAssetInventory {
     return Read-JsonFile -Path $Path
 }
 
+function Resolve-StaticPublicRoute {
+    <#
+    Resolve a governed static manifest filename to its canonical public URL
+    path.  `inventory.html` is the source/package filename; Flask serves it
+    through `/inventory` (or `/inventory?e10=1` when the E10 ownership
+    contract is being exercised), so the filename must never be used as the
+    public verification route.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [switch]$E10Context
+    )
+    $normalized = $RelativePath.Replace('\', '/').TrimStart('/')
+    if ($normalized -eq 'inventory.html') {
+        if ($E10Context) { return '/inventory?e10=1' }
+        return '/inventory'
+    }
+    return "/$normalized"
+}
+
 function Get-SwVersionFromText {
     <#
     .SYNOPSIS
@@ -2308,6 +2328,7 @@ Export-ModuleMember -Function @(
     'Test-TrackedTreeClean',
     'Write-JsonFile',
     'Get-StaticAssetInventory',
+    'Resolve-StaticPublicRoute',
     'Get-SwVersionFromText',
     'Assert-SafeStaticRelativePath',
     'Assert-SafeStaticSubtreeRelativePath',

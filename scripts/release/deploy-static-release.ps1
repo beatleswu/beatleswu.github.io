@@ -266,10 +266,12 @@ function Invoke-BoundedPublicVerification {
         $jobEntries = @{}
         try {
             foreach ($entry in $Entries[$offset..$last]) {
-                # Canonical URLs are the acceptance contract. Query-string cache busting is diagnostic-only
-                # because Flask routes and
-                # proxies are not required to preserve arbitrary queries.
-                $url = "$PublicBase/$($entry.path)"
+                # Canonical URLs are the acceptance contract. Query-string
+                # cache busting is diagnostic-only. Manifest filenames are
+                # not necessarily public route paths (inventory.html is
+                # served by Flask at /inventory).
+                $route = Resolve-StaticPublicRoute -RelativePath ([string]$entry.path)
+                $url = "$PublicBase$route"
                 $job = Start-Job -ScriptBlock $worker -ArgumentList $url, $entry.sha256, $entry.path, $RequestTimeoutSeconds
                 $jobs += $job
                 $jobEntries[$job.Id] = $entry
@@ -652,7 +654,10 @@ try {
     # endpoint; all other governed files retain canonical body-hash checks.
     $publicEntries = @($manifest.files | Where-Object { $_.path -ne 'index.html' })
     $publicResults = Invoke-BoundedPublicVerification -Entries $publicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts
-    $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object { [ordered]@{ path = $_.path; url = "$publicBase/$($_.path)"; sha256_match = $true } })
+    $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object {
+        $route = Resolve-StaticPublicRoute -RelativePath ([string]$_.path)
+        [ordered]@{ path = $_.path; url = "$publicBase$route"; sha256_match = $true }
+    })
     $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
     if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $publicEntries.Count) {
         $failureSummary = [ordered]@{

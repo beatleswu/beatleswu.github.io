@@ -87,9 +87,13 @@ async function startServer() {
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
+      if (url.pathname === '/inventory.html') {
+        response.writeHead(404);
+        response.end('noncanonical inventory source filename');
+        return;
+      }
       const routeFiles = new Map([
         ['/inventory', 'inventory.html'],
-        ['/inventory.html', 'inventory.html'],
         ['/index.html', 'index.html'],
         ['/', 'index.html'],
       ]);
@@ -120,6 +124,100 @@ async function startServer() {
 const isE10BattleShell = extractFunction('_isE10BattleShell', '_hydrateE10BattlePresentation');
 const actionState = extractFunction('_isE10BattleActionState', '_syncE10BattleActions');
 const syncActions = extractFunction('_syncE10BattleActions', 'showE10BattleExplanation');
+const publishShellOwner = extractFunction('publishAdventureShellOwner', 'isE10AdventureShellOwner');
+const enterAdventure = extractFunction('enterAdventureZoneInPage', 'adventureActiveZone');
+
+async function runBattleEntryOwnershipContract(browser) {
+  const page = await browser.newPage();
+  await page.setContent(`<!doctype html><html><body>
+    <button id="btn-e10-battle-explain" style="display:none"></button>
+    <button id="btn-adventure-return" style="display:none"></button>
+  </body></html>`);
+  await page.addScriptTag({ content: `
+    const E10_MAP_SHELL_OWNER = 'e10-map';
+    const E10_BATTLE_SHELL_OWNER = 'e10-battle';
+    let _mapBattleV1LifecycleGeneration = 0;
+    let _mapBattleV1Mode = 'pending';
+    let currentQ = null;
+    let allQuestions = [{ id: 7, topic: 'zone-book', locked: false }];
+    let _adventureActiveQuestions = [];
+    let loadBehavior = 'success';
+    let loadCalls = 0;
+    const ADVENTURE_ZONES = [{ key: 'zone-1', books: [] }];
+    function _pickAdventureTarget(questions) { return questions[0] || null; }
+    function renderList() {}
+    function firstQuestionHref() { return '/?adventure=1&zone=zone-1'; }
+    function _isAdventureZonePractice() { return true; }
+    function isBeginnerVillageAdventureResult() { return false; }
+    ${publishShellOwner}
+    ${isE10BattleShell}
+    ${actionState}
+    ${syncActions}
+    function loadQuestion(question) {
+      loadCalls += 1;
+      _mapBattleV1LifecycleGeneration += 1;
+      currentQ = question;
+      _mapBattleV1Mode = 'active';
+      _syncE10BattleActions(true);
+      return Promise.resolve(loadBehavior === 'success');
+    }
+    ${enterAdventure}
+    window.__runBattleEntryOwnershipContract = async function () {
+      publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
+      const started = enterAdventureZoneInPage(ADVENTURE_ZONES[0]);
+      const immediate = {
+        started,
+        owner: window.__GO_ADVENTURE_SHELL_OWNER__,
+        bodyOwner: document.body.getAttribute('data-adventure-shell-owner'),
+        explanation: document.getElementById('btn-e10-battle-explain').style.display,
+        returnToMap: document.getElementById('btn-adventure-return').style.display,
+      };
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const settled = {
+        owner: window.__GO_ADVENTURE_SHELL_OWNER__,
+        bodyOwner: document.body.getAttribute('data-adventure-shell-owner'),
+      };
+      loadBehavior = 'fail';
+      publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
+      const failedStarted = enterAdventureZoneInPage(ADVENTURE_ZONES[0]);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const failed = {
+        started: failedStarted,
+        owner: window.__GO_ADVENTURE_SHELL_OWNER__,
+        bodyOwner: document.body.getAttribute('data-adventure-shell-owner'),
+      };
+      return { immediate, settled, failed, loadCalls };
+    };
+  ` });
+  const result = await page.evaluate(() => window.__runBattleEntryOwnershipContract());
+  await page.close();
+  assert.equal(result.immediate.started, true);
+  assert.equal(result.immediate.owner, 'e10-battle');
+  assert.equal(result.immediate.bodyOwner, 'e10-battle');
+  assert.equal(result.immediate.explanation, 'inline-flex');
+  assert.equal(result.immediate.returnToMap, 'inline-flex');
+  assert.deepEqual(result.settled, { owner: 'e10-battle', bodyOwner: 'e10-battle' });
+  assert.deepEqual(result.failed, { started: true, owner: 'e10-map', bodyOwner: 'e10-map' });
+  assert.equal(result.loadCalls, 2);
+  return result;
+}
+
+async function runCanonicalInventoryRouteContract(origin) {
+  const canonical = await fetch(`${origin}/inventory`);
+  const canonicalBytes = Buffer.from(await canonical.arrayBuffer());
+  const sourceBytes = await fs.readFile(path.join(ROOT, 'inventory.html'));
+  assert.equal(canonical.status, 200);
+  assert.ok(canonicalBytes.equals(sourceBytes), 'canonical /inventory body must match inventory.html bytes');
+  const sourceFilename = await fetch(`${origin}/inventory.html`);
+  assert.equal(sourceFilename.status, 404, 'inventory.html is a package filename, not a public route');
+  return {
+    canonicalRoute: '/inventory',
+    canonicalStatus: canonical.status,
+    canonicalBodyMatchesSource: canonicalBytes.equals(sourceBytes),
+    noncanonicalRoute: '/inventory.html',
+    noncanonicalStatus: sourceFilename.status,
+  };
+}
 
 async function runBattleReloadContract(browser) {
   const page = await browser.newPage();
@@ -244,11 +342,15 @@ async function runBackpackReloadContract(browser, origin) {
 const { server, origin } = await startServer();
 const browser = await chromium.launch({ headless: true, executablePath: findChrome() });
 try {
+  const battleEntry = await runBattleEntryOwnershipContract(browser);
+  const inventoryRoute = await runCanonicalInventoryRouteContract(origin);
   const battle = await runBattleReloadContract(browser);
   const backpack = await runBackpackReloadContract(browser, origin);
   process.stdout.write(JSON.stringify({
     contract: 'e10-production-shell-context-recovery-v1',
     ok: true,
+    battleEntry,
+    inventoryRoute,
     battle,
     backpack,
   }, null, 2));

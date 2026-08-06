@@ -41,13 +41,17 @@ async function startServer() {
     ['/hero', 'hero.html'],
     ['/hero.html', 'hero.html'],
     ['/inventory', 'inventory.html'],
-    ['/inventory.html', 'inventory.html'],
     ['/shop', 'shop.html'],
     ['/shop.html', 'shop.html'],
   ]);
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
+      if (url.pathname === '/inventory.html') {
+        response.writeHead(404);
+        response.end('noncanonical inventory source filename');
+        return;
+      }
       if (url.pathname === '/socket.io/socket.io.js') {
         response.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
         response.end('window.io=function(){return {on:function(){},emit:function(){},disconnect:function(){}}};');
