@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "8dbaa0b751a41abaa7922365e7b8edcd66885d28",
+      "source_commit": "4a5a0484a447fda3a14e648300551bee6dc465e0",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #265 from beatleswu/codex/e10-battle-lifecycle-resume-recovery-20260805-01",
-      "source_date": "2026-08-05",
-      "content_sha256": "cb51645efdae195008acd57b782046124ad8dea5262fd6e44cae2dfe763a684f",
+      "source_commit_subject": "Merge pull request #268 from beatleswu/codex/e10-completion-b-explanation-return-20260806-01",
+      "source_date": "2026-08-06",
+      "content_sha256": "d1632f400ece575466667819f636dbdda110a99425100cfd3248128c8c7d6cb0",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 8dbaa0b751a41abaa7922365e7b8edcd66885d28; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -423,14 +423,14 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
+      "source_commit": "9247f2d4a873a106b086bf9c0423915184236ad3",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "1d259046d5f78e2aeab0a048746d7bc2eb9dd473313bd1eff12130eedc59ad82",
+      "source_commit_subject": "feat: add E10 backpack RPG presentation",
+      "source_date": "2026-08-06",
+      "content_sha256": "d12b35fdf18c59b42263a248e81af62d9a1ea0a3667c8e93555dc8dc30827aad",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -507,14 +507,14 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "7cd2169b3c9dbc54c2316baa1dc9132dd258313b",
+      "source_commit": "5abdd85ad4493952618a2f68c048508d7e4d3bfd",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: restore canonical E9 responsive layout contracts",
-      "source_date": "2026-08-02",
-      "content_sha256": "56f5c8486af50deb1b438126198e16ec1a6b6370289e10657588246f98f2b530",
+      "source_commit_subject": "test(e10): accept owned backpack route marker",
+      "source_date": "2026-08-06",
+      "content_sha256": "55a196c9a83f8ddbb145274cea98f8153fb40548fc10715cf071cbca471a8a2e",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge 4163d9bda88db489358355c17f11de7f5dc664cd; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -579,14 +579,14 @@
     },
     {
       "path": "site-nav.js",
-      "source_commit": "7e1504d60fd1698de92c499e6a6a6de3b6ac5849",
+      "source_commit": "5c0bed508aeab0ade44ad79e06674ffa28ef7f7c",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #258 from beatleswu/codex/e10-global-navi-post-shell-reconciliation-impl-20260803",
-      "source_date": "2026-08-04",
-      "content_sha256": "39c0e691f551b9d87e749cc7566fab576ae4d1ee627b08cb890664028c32c1cf",
+      "source_commit_subject": "fix(e10): preserve Battle shell ownership on reload",
+      "source_date": "2026-08-05",
+      "content_sha256": "71fbf400066f8f16a41e1525a8462c6e8231691f2c25bdb5ca67771904daa569",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 7e1504d60fd1698de92c499e6a6a6de3b6ac5849; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
