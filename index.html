@@ -14966,13 +14966,21 @@ function isE10AdventureShellOwner() {
 }
 function syncE10BackpackEntryLinks() {
     const e10Context = isE10AdventureShellOwner();
-    document.querySelectorAll('[data-e10-backpack-entry]').forEach((link) => {
+    document.querySelectorAll('[data-e10-backpack-entry], [data-e10-nav-key="backpack"]').forEach((link) => {
         const target = new URL(link.getAttribute('href') || '/inventory', location.origin);
         if (e10Context) target.searchParams.set('e10', '1');
         else target.searchParams.delete('e10');
         link.setAttribute('href', `${target.pathname}${target.search}${target.hash}`);
     });
 }
+// E10 navigation components render their controls after the shell mounts.
+// Reconcile the existing handoff helper at that lifecycle boundary so every
+// responsive Backpack producer gets the same explicit route contract.
+document.addEventListener('e9:component-loaded', (event) => {
+    const component = event.detail?.component;
+    if (component !== 'left_nav' && component !== 'top_hud' && component !== 'bottom_dock') return;
+    Promise.resolve().then(() => syncE10BackpackEntryLinks());
+});
 function navigateToE10BackpackFromContext(event) {
     if (!isE10AdventureShellOwner()) return true;
     const link = event?.currentTarget;
