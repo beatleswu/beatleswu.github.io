@@ -5,10 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
 (() => {
+  const E10_BACKPACK_SHELL_OWNER = 'e10-backpack';
   const e10BackpackMode = new URLSearchParams(location.search).get('e10') === '1';
   window.__GO_E10_BACKPACK_MODE__ = e10BackpackMode;
-  if (!e10BackpackMode) return;
+  window.__GO_ADVENTURE_SHELL_OWNER__ = e10BackpackMode ? E10_BACKPACK_SHELL_OWNER : null;
   const root = document.documentElement;
+  if (!e10BackpackMode) {
+    root.removeAttribute('data-adventure-shell-owner');
+    return;
+  }
+  root.dataset.adventureShellOwner = E10_BACKPACK_SHELL_OWNER;
   root.dataset.e10BackpackShell = 'true';
   root.dataset.e10VisualSkin = 'immersive-rpg';
   root.dataset.e10ArtKit = 'runtime-v1';
@@ -488,9 +494,22 @@ function backpackRarity(item) {
 }
 function initE10BackpackShell() {
   if (!E10_BACKPACK_MODE) return;
+  const owner = 'e10-backpack';
+  const previousOwner = window.__GO_ADVENTURE_SHELL_OWNER__
+    || document.body.getAttribute('data-adventure-shell-owner')
+    || document.documentElement.getAttribute('data-adventure-shell-owner')
+    || null;
+  window.__GO_ADVENTURE_SHELL_OWNER__ = owner;
+  document.body.setAttribute('data-adventure-shell-owner', owner);
+  document.documentElement.setAttribute('data-adventure-shell-owner', owner);
   document.body.dataset.e10BackpackShell = 'true';
   document.body.dataset.e10VisualSkin = 'immersive-rpg';
   document.body.dataset.e10ArtKit = 'runtime-v1';
+  if (previousOwner !== owner) {
+    document.dispatchEvent(new CustomEvent('e10:adventure-shell-owner-changed', {
+      detail: { owner },
+    }));
+  }
   document.querySelectorAll('[data-legacy-backpack-header]').forEach((node) => { node.hidden = true; });
   document.querySelectorAll('[data-e10-backpack-only]').forEach((node) => { node.hidden = false; });
   const close = document.querySelector('[data-e10-dialog-close]');

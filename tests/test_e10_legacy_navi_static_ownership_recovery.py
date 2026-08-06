@@ -29,7 +29,10 @@ def test_explicit_e10_battle_owner_marker_is_gated_by_static_contract():
     )[0]
     assert "if (!hasStaticContract) return false;" in guard
     assert "const adventureShellOwner = window.__GO_ADVENTURE_SHELL_OWNER__" in guard
-    assert "if (adventureShellOwner === E10_BATTLE_SHELL_OWNER) return true;" in guard
+    assert ".includes(adventureShellOwner)" in guard
+    assert "document.documentElement?.getAttribute('data-adventure-shell-owner')" in guard
+    assert "const E10_MAP_SHELL_OWNER = 'e10-map';" in SITE_NAV
+    assert "const E10_BACKPACK_SHELL_OWNER = 'e10-backpack';" in SITE_NAV
     assert "const activeShell = window.__GO_E9_ACTIVE_SHELL__" in guard
     assert "return activeShell === 'e9';" in guard
 

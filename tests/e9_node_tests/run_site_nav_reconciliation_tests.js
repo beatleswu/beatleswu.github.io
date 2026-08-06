@@ -72,6 +72,7 @@ function createHarness({ staticContract = 'e10-vs1f-integrated-world-map' } = {}
     readyState: 'complete',
     listeners: {},
     body: null,
+    documentElement: null,
     head: { appendChild: () => {} },
     meta: { getAttribute: (name) => name === 'content' ? staticContract : null },
     header: null,
@@ -102,6 +103,7 @@ function createHarness({ staticContract = 'e10-vs1f-integrated-world-map' } = {}
     getElementById: () => null,
   };
   doc.body = new FakeElement('body', doc);
+  doc.documentElement = new FakeElement('html', doc);
   doc.header = new FakeElement('header', doc);
   doc.header.className = 'placeholder';
 
@@ -159,6 +161,17 @@ function setE10BattleOwner(harness, active, { bodyOnly = false } = {}) {
   }));
 }
 
+function setE10Owner(harness, owner, { htmlOnly = false } = {}) {
+  harness.win.__GO_ADVENTURE_SHELL_OWNER__ = htmlOnly ? undefined : owner;
+  if (htmlOnly) harness.doc.documentElement.setAttribute('data-adventure-shell-owner', owner);
+  else harness.doc.documentElement.removeAttribute('data-adventure-shell-owner');
+  if (owner) harness.doc.body.setAttribute('data-adventure-shell-owner', owner);
+  else harness.doc.body.removeAttribute('data-adventure-shell-owner');
+  harness.doc.dispatchEvent(new harness.win.CustomEvent('e10:adventure-shell-owner-changed', {
+    detail: { owner },
+  }));
+}
+
 async function main() {
   const h = createHarness();
   assert.strictEqual(h.doc.querySelectorAll('header.cg-nav').length, 1);
@@ -187,6 +200,18 @@ async function main() {
 
   setE10BattleOwner(h, false);
   assert.strictEqual(h.doc.header.hasLinks, true, 'cleared body owner marker restores Legacy links');
+
+  setE10Owner(h, 'e10-map');
+  assert.strictEqual(h.doc.header.hasLinks, false, 'authoritative E10 Map owner strips links');
+
+  setE10Owner(h, 'e10-backpack');
+  assert.strictEqual(h.doc.header.hasLinks, false, 'authoritative E10 Backpack owner strips links');
+
+  setE10Owner(h, 'e10-backpack', { htmlOnly: true });
+  assert.strictEqual(h.doc.header.hasLinks, false, 'document-level Backpack owner survives head bootstrap');
+
+  setE10Owner(h, null);
+  assert.strictEqual(h.doc.header.hasLinks, true, 'cleared Backpack owner restores Legacy links');
 
   const generic = createHarness({ staticContract: 'generic-page' });
   setE10BattleOwner(generic, true);

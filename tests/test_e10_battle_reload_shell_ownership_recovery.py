@@ -9,15 +9,18 @@ NODE_TEST = ROOT / "tests" / "e9_node_tests" / "run_site_nav_reconciliation_test
 
 
 def test_e10_battle_owner_is_separate_from_legacy_renderer_shell():
+    assert "const E10_MAP_SHELL_OWNER = 'e10-map';" in INDEX
     assert "const E10_BATTLE_SHELL_OWNER = 'e10-battle';" in INDEX
-    assert "const e10BattleShellOwner = e9ShellRequested && adventureResume;" in INDEX
-    assert "publishAdventureShellOwner(e10BattleShellOwner ? E10_BATTLE_SHELL_OWNER : null);" in INDEX
+    assert "const e10ShellOwner = e9ShellRequested" in INDEX
+    assert "? E10_BATTLE_SHELL_OWNER" in INDEX
+    assert "publishAdventureShellOwner(e10ShellOwner);" in INDEX
     assert "window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';" in INDEX
 
 
 def test_owner_marker_reconciles_after_delayed_authentication_and_bootstrap():
     assert "window.__GO_ADVENTURE_SHELL_OWNER__ = nextOwner;" in INDEX
     assert "data-adventure-shell-owner" in INDEX
+    assert "if (owner) return owner === 'e10-battle';" in INDEX
     assert "new CustomEvent('e10:adventure-shell-owner-changed'" in INDEX
     assert "document.addEventListener('e10:adventure-shell-owner-changed', reconcileNavigation);" in SITE_NAV
     assert INDEX.index("publishAdventureShellOwner") < INDEX.index(

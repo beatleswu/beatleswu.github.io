@@ -6162,7 +6162,8 @@
         <a href="/community" class="nav-link" data-icon="👥" title="社群" data-i18n="nav.community">👥 社群</a>
         <a href="/hero"     class="nav-link" data-icon="🧙" title="英雄" data-i18n="nav.skills">🧙 英雄</a>
         <a href="/play"       class="nav-link"><svg class="goban-icon" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="3" fill="#e8d4a8" stroke="#b9985a" stroke-width="1.5"/><g stroke="#3a2e1d" stroke-width="1" fill="none"><line x1="6" y1="6" x2="34" y2="6"/><line x1="6" y1="13" x2="34" y2="13"/><line x1="6" y1="20" x2="34" y2="20"/><line x1="6" y1="27" x2="34" y2="27"/><line x1="6" y1="34" x2="34" y2="34"/><line x1="6" y1="6" x2="6" y2="34"/><line x1="13" y1="6" x2="13" y2="34"/><line x1="20" y1="6" x2="20" y2="34"/><line x1="27" y1="6" x2="27" y2="34"/><line x1="34" y1="6" x2="34" y2="34"/></g><circle cx="13" cy="27" r="4.2" fill="#0d0d0d"/><circle cx="27" cy="13" r="4.2" fill="#fefcf6" stroke="#1a1a1a" stroke-width="0.9"/></svg> 對弈</a>
-        <a href="/inventory"  class="nav-link" data-icon="🪙" id="coins-nav-btn" title="物品欄"
+        <a href="/inventory"  class="nav-link" data-icon="🪙" id="coins-nav-btn" data-e10-backpack-entry
+           onclick="return navigateToE10BackpackFromContext(event)" title="物品欄"
            style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--amber);">
            🪙 <span id="coins-nav-count">…</span>
         </a>
@@ -8108,6 +8109,9 @@ async function loadQuizPet() {
 let _e10BattlePresentationPromise = null;
 
 function _isE10BattleShell() {
+    const owner = window.__GO_ADVENTURE_SHELL_OWNER__
+        || document.body?.getAttribute('data-adventure-shell-owner');
+    if (owner) return owner === 'e10-battle';
     return window.__GO_E9_ACTIVE_SHELL__ === 'e9'
         || document.body?.dataset.adventureShellActive === 'e9';
 }
@@ -14934,9 +14938,12 @@ function isE9InlineDebugEnvironment() {
     const host = window.location && window.location.hostname ? window.location.hostname : '';
     return E9_INLINE_DEBUG_HOSTNAMES.test(host);
 }
+const E10_MAP_SHELL_OWNER = 'e10-map';
 const E10_BATTLE_SHELL_OWNER = 'e10-battle';
 function publishAdventureShellOwner(owner) {
-    const nextOwner = owner === E10_BATTLE_SHELL_OWNER ? E10_BATTLE_SHELL_OWNER : null;
+    const nextOwner = owner === E10_MAP_SHELL_OWNER || owner === E10_BATTLE_SHELL_OWNER
+        ? owner
+        : null;
     const previousOwner = window.__GO_ADVENTURE_SHELL_OWNER__
         || document.body?.getAttribute('data-adventure-shell-owner')
         || null;
@@ -14949,6 +14956,31 @@ function publishAdventureShellOwner(owner) {
     document.dispatchEvent(new CustomEvent('e10:adventure-shell-owner-changed', {
         detail: { owner: nextOwner },
     }));
+}
+function isE10AdventureShellOwner() {
+    const owner = window.__GO_ADVENTURE_SHELL_OWNER__
+        || document.body?.getAttribute('data-adventure-shell-owner');
+    if (owner) return owner === E10_MAP_SHELL_OWNER || owner === E10_BATTLE_SHELL_OWNER;
+    return window.__GO_E9_ACTIVE_SHELL__ === 'e9'
+        || document.body?.dataset.adventureShellActive === 'e9';
+}
+function syncE10BackpackEntryLinks() {
+    const e10Context = isE10AdventureShellOwner();
+    document.querySelectorAll('[data-e10-backpack-entry]').forEach((link) => {
+        const target = new URL(link.getAttribute('href') || '/inventory', location.origin);
+        if (e10Context) target.searchParams.set('e10', '1');
+        else target.searchParams.delete('e10');
+        link.setAttribute('href', `${target.pathname}${target.search}${target.hash}`);
+    });
+}
+function navigateToE10BackpackFromContext(event) {
+    if (!isE10AdventureShellOwner()) return true;
+    const link = event?.currentTarget;
+    const target = new URL(link?.getAttribute('href') || '/inventory', location.origin);
+    target.searchParams.set('e10', '1');
+    event?.preventDefault();
+    window.location.href = `${target.pathname}${target.search}${target.hash}`;
+    return false;
 }
 function resolveInitialE9Flags() {
     if (window.__GO_E9_SERVER_FLAGS__ && typeof window.__GO_E9_SERVER_FLAGS__ === 'object') {
@@ -14996,12 +15028,18 @@ function primeInitialE9ShellOwnership() {
     const needsImmediatePracticeState = !!(premiumSetParam || challengeId || grimoireParam || adventureResume || useScopedQuestions);
     const legacyWelcomeShellActive = !e9ShellRequested || needsImmediatePracticeState;
     // E10 Battle intentionally uses the Legacy question renderer, so the
-    // active renderer shell remains Legacy. Keep global Navi ownership
-    // authoritative through the rollout flag plus the Battle resume path.
-    const e10BattleShellOwner = e9ShellRequested && adventureResume;
-    publishAdventureShellOwner(e10BattleShellOwner ? E10_BATTLE_SHELL_OWNER : null);
+    // active renderer shell remains Legacy. Keep page ownership authoritative
+    // through the rollout flag plus the Battle resume path; the map gets its
+    // own durable owner so contextual full-document links can preserve E10.
+    const e10ShellOwner = e9ShellRequested
+        ? (adventureResume
+            ? E10_BATTLE_SHELL_OWNER
+            : (needsImmediatePracticeState ? null : E10_MAP_SHELL_OWNER))
+        : null;
+    publishAdventureShellOwner(e10ShellOwner);
     window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
     window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
+    syncE10BackpackEntryLinks();
     window.__GO_E9_OWNERSHIP_INITIALIZED__ = true;
 }
 // Server-side targeting must be resolved before ownership is initialized.
