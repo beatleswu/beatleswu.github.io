@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "4a5a0484a447fda3a14e648300551bee6dc465e0",
+      "source_commit": "9923358124feff8edff73d2702b54988e334ab7a",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #268 from beatleswu/codex/e10-completion-b-explanation-return-20260806-01",
+      "source_commit_subject": "fix(e10): restore shell context across reload and navigation",
       "source_date": "2026-08-06",
-      "content_sha256": "d1632f400ece575466667819f636dbdda110a99425100cfd3248128c8c7d6cb0",
+      "content_sha256": "ce1c46a5f08d753cafd8d614d484c85709a9116e7c57f20787f4871db1df0bb9",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 5d79c272e2797db5d3f6c00838c4422b161c1580; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -423,14 +423,14 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "9247f2d4a873a106b086bf9c0423915184236ad3",
+      "source_commit": "9923358124feff8edff73d2702b54988e334ab7a",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat: add E10 backpack RPG presentation",
+      "source_commit_subject": "fix(e10): restore shell context across reload and navigation",
       "source_date": "2026-08-06",
-      "content_sha256": "d12b35fdf18c59b42263a248e81af62d9a1ea0a3667c8e93555dc8dc30827aad",
+      "content_sha256": "bcb2e9381dfac234fd8aeea757d23313afac046ca01f3e8ef6ea020db26ca860",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 5d79c272e2797db5d3f6c00838c4422b161c1580; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -579,14 +579,14 @@
     },
     {
       "path": "site-nav.js",
-      "source_commit": "5c0bed508aeab0ade44ad79e06674ffa28ef7f7c",
+      "source_commit": "9923358124feff8edff73d2702b54988e334ab7a",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): preserve Battle shell ownership on reload",
-      "source_date": "2026-08-05",
-      "content_sha256": "71fbf400066f8f16a41e1525a8462c6e8231691f2c25bdb5ca67771904daa569",
+      "source_commit_subject": "fix(e10): restore shell context across reload and navigation",
+      "source_date": "2026-08-06",
+      "content_sha256": "2fe7bb3271a15ec7bc3528af3b6cd8c2a34aea1342c5fdbb19728341749d14bd",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 5d79c272e2797db5d3f6c00838c4422b161c1580; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
