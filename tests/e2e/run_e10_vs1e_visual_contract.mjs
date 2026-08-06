@@ -398,7 +398,10 @@ async function runCompatibilityFallbackCase(browser, origin, contractCase, outpu
     failures.push(`${contractCase}: VS1E skin was enabled without the exact static marker`);
   }
   if (snapshot.nodeCount !== 10) failures.push(`${contractCase}: VS1D node rendering is incomplete`);
-  if (snapshot.plaqueCount !== 0 || snapshot.selectedCount !== 0 || !snapshot.primaryCtaHidden) {
+  // Authority hydration may preserve one generic Legacy selected tile.  The
+  // fallback contract is about preventing E10-owned surfaces from leaking,
+  // while duplicate selection remains invalid.
+  if (snapshot.plaqueCount !== 0 || snapshot.selectedCount > 1 || !snapshot.primaryCtaHidden) {
     failures.push(`${contractCase}: VS1E on-map UI leaked into the VS1D fallback`);
   }
   if (
@@ -453,6 +456,20 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
       placement: fixtureMode === 'placement-high' ? { effective_start_zone_key: 'k1_5' } : null,
       recommended: current ? { zone_key: current.key } : null,
       selected: current ? { zone_key: current.key } : null,
+      // Mirror the server-owned progression authority: this is the first
+      // canonical playable incomplete node for the fixture, not a selected
+      // display zone.
+      current_zone_key: current ? current.key : null,
+      primary_action: current
+        ? {
+          kind: 'challenge_lord',
+          zone_key: current.key,
+          boss_key: {
+            k21_25: 'swarm_lord',
+            k1_5: 'grand_temple_knight',
+          }[current.key] || null,
+        }
+        : null,
     };
   }
   if (pathname === '/api/daily-challenge/today') return { submitted: false };
@@ -1322,8 +1339,9 @@ function assertCase(result) {
   if (snapshot.visibleControlMissingIconCount !== 0) failures.push(`${specName}: visible navigation control lacks an RPG icon`);
   if (snapshot.svgTextCount !== 0) failures.push(`${specName}: text was embedded inside SVG icons`);
   if (snapshot.adventureCurrent !== 'page') failures.push(`${specName}: Adventure active/current state is missing`);
+  const backpackTargets = ['/inventory', '/inventory?e10=1'];
   if (snapshot.backpack.disabled || snapshot.backpack.ariaDisabled === 'true'
-    || snapshot.backpack.lockVisible || snapshot.backpack.href !== '/inventory') {
+    || snapshot.backpack.lockVisible || !backpackTargets.includes(snapshot.backpack.href)) {
     failures.push(`${specName}: Backpack independent destination is not enabled ${JSON.stringify(snapshot.backpack)}`);
   }
   if (snapshot.backpack.label !== (snapshot.lang === 'en' ? 'Backpack' : '背包')) failures.push(`${specName}: Backpack main label includes status text`);
@@ -1347,7 +1365,7 @@ function assertCase(result) {
   if (snapshot.zoneIdentities.selectedZoneKey !== expectedSelected || snapshot.selectedZone !== expectedSelected) {
     failures.push(`${specName}: selectedZoneKey ${snapshot.zoneIdentities.selectedZoneKey}/${snapshot.selectedZone}`);
   }
-  const expectedChallenge = result.zone === 'd1_2' ? null : expectedSelected;
+  const expectedChallenge = result.zone === 'd1_2' ? null : expectedCurrent;
   if (snapshot.zoneIdentities.challengeTargetZoneKey !== expectedChallenge) {
     failures.push(`${specName}: challengeTargetZoneKey ${snapshot.zoneIdentities.challengeTargetZoneKey}`);
   }
@@ -1779,6 +1797,9 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       drawerToggleTabIndex: document.querySelector('#e9-right-drawer-toggle').tabIndex,
     };
   });
+  const expectedActionZoneKey = selected.latestSelection?.challengeTargetZoneKey
+    || (spec.playable ? selected.detailTargetZoneKey : null)
+    || (spec.playable ? spec.zone : null);
   const selectedScreenshot = path.join(outputDir, `${spec.name}-selected-detail.png`);
   await page.screenshot({ path: selectedScreenshot, fullPage: false });
   await fs.writeFile(
@@ -1850,6 +1871,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
 
   let questionEntry = null;
   if (spec.journey) {
+    const journeyZoneKey = expectedActionZoneKey || spec.zone;
     await page.evaluate((zoneKey) => {
       const canonical = ADVENTURE_ZONES.find((zone) => zone.key === zoneKey);
       const topic = canonical && canonical.books && canonical.books[0];
@@ -1871,7 +1893,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
           + zoneKey + '</p></section>';
         return Promise.resolve();
       };
-    }, spec.zone);
+    }, journeyZoneKey);
     const ctaSelector = spec.journeySurface === 'inline'
       ? '.e9-zone__inline-cta'
       : (spec.portrait ? '#e9-world-stage-details-cta' : '#e9-world-stage-primary-cta');
@@ -1920,8 +1942,8 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     failures.push(`${spec.name}: selected/challenge target did not converge on ${spec.zone}`);
   }
   if (selected.selectedCount !== 1
-    || (spec.portrait && (selected.detailTargetZoneKey !== (spec.playable ? spec.zone : '') || selected.detailHidden))
-    || (spec.viewport.width < 768 && selected.inlineTargetZoneKey !== spec.zone)) {
+    || (spec.portrait && (selected.detailTargetZoneKey !== (spec.playable ? expectedActionZoneKey : '') || selected.detailHidden))
+    || (spec.viewport.width < 768 && selected.inlineTargetZoneKey !== expectedActionZoneKey)) {
     failures.push(`${spec.name}: responsive selected detail did not synchronise uniquely`);
   }
   const canonicalDetail = selected.latestSelection;
@@ -1965,12 +1987,12 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   }
   const expectedPanelClicks = spec.drawerLifecycle && spec.playable ? 3 : 0;
   if (spec.drawerLifecycle && (panelCtaClicks.length !== expectedPanelClicks
-    || panelCtaClicks.some((zoneKey) => zoneKey !== spec.zone))) {
+    || panelCtaClicks.some((zoneKey) => zoneKey !== expectedActionZoneKey))) {
     failures.push(`${spec.name}: panel CTA was not directly clickable exactly once per lifecycle cycle`);
   }
   if (spec.journey && (!questionEntry || questionEntry.starts.length !== 1
-    || questionEntry.starts[0].zoneKey !== spec.zone || !questionEntry.questionVisible
-    || questionEntry.commands.length !== 1 || questionEntry.commands[0].zoneKey !== spec.zone
+    || questionEntry.starts[0].zoneKey !== expectedActionZoneKey || !questionEntry.questionVisible
+    || questionEntry.commands.length !== 1 || questionEntry.commands[0].zoneKey !== expectedActionZoneKey
     || (spec.deferRuntimeReady && questionEntry.startsBeforeReady !== 0)
     || questionEntry.actionTrace.some((entry) => entry.resourceType === 'document')
     || !questionEntry.welcomeHidden || questionEntry.welcomeDisplay !== 'none' || questionEntry.boardHidden

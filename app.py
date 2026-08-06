@@ -8617,6 +8617,107 @@ def _adventure_zone_has_playable_target(zone):
     return total > 0 or bool(zone.get('boss_ready')) or bool(zone.get('cleared'))
 
 
+def _adventure_zone_is_authoritative_playable(zone):
+    """Return whether a zone can be an authoritative map location/action target."""
+    return bool(
+        zone
+        and zone.get('unlocked')
+        and _adventure_zone_has_playable_target(zone)
+        and _zone_by_key(zone.get('key'))
+    )
+
+
+def _adventure_zone_has_recorded_progress(zone):
+    """Detect progression without treating display/recommendation fields as state."""
+    if not zone:
+        return False
+    if zone.get('cleared') or zone.get('last_attempt_at') or zone.get('cleared_at'):
+        return True
+    for field in ('seen', 'defeated', 'stars', 'attempts', 'best_score'):
+        try:
+            if int(zone.get(field) or 0) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
+def _adventure_current_zone_key(zones):
+    """Resolve the server-owned player node; never use selected/recommended state."""
+    zones = [z for z in (zones or []) if _zone_by_key(z.get('key'))]
+    if not zones:
+        return None
+    by_key = {z.get('key'): z for z in zones}
+    effective_start_zone_key = _adventure_effective_start_zone_key(zones)
+    effective_start_zone = by_key.get(effective_start_zone_key)
+    has_progress = any(_adventure_zone_has_recorded_progress(z) for z in zones)
+
+    # A genuinely new player starts at the server-computed placement/effective
+    # start node.  If that authority is absent or unavailable, fail closed.
+    if not has_progress:
+        return (
+            effective_start_zone_key
+            if effective_start_zone_key and _adventure_zone_is_authoritative_playable(effective_start_zone)
+            else None
+        )
+
+    start_idx = _adventure_zone_index(effective_start_zone_key) if effective_start_zone_key else 0
+    ordered = sorted(zones, key=lambda z: _adventure_zone_index(z.get('key')))
+    incomplete = [
+        z for z in ordered
+        if _adventure_zone_index(z.get('key')) >= start_idx
+        and _adventure_zone_is_authoritative_playable(z)
+        and not z.get('cleared')
+    ]
+    if incomplete:
+        return incomplete[0]['key']
+
+    # When no incomplete playable node remains, stay on the last completed
+    # playable node.  This also handles a fully cleared progression path.
+    completed = [z for z in ordered if _adventure_zone_is_authoritative_playable(z) and z.get('cleared')]
+    return completed[-1]['key'] if completed else None
+
+
+def _adventure_primary_action_payload(zones, current_zone_key):
+    """Return deterministic server-backed CTA arbitration for the map surface."""
+    ordered = sorted(
+        [z for z in (zones or []) if _adventure_zone_is_authoritative_playable(z)],
+        key=lambda z: _adventure_zone_index(z.get('key')),
+    )
+
+    # Boss eligibility comes only from the authoritative boss state.  The
+    # displayed seen/total count is intentionally not used as a proxy.
+    lord = next(
+        (z for z in ordered if z.get('boss_ready') and not z.get('cleared')),
+        None,
+    )
+    if lord:
+        return {
+            'kind': 'challenge_lord',
+            'zone_key': lord['key'],
+            'boss_key': ADVENTURE_BOSS_META.get(lord['key'], {}).get('key'),
+        }
+
+    current = next((z for z in ordered if z.get('key') == current_zone_key), None)
+    if current and not current.get('cleared'):
+        return {'kind': 'normal_progression', 'zone_key': current['key']}
+
+    def _stars(zone):
+        try:
+            return int(zone.get('stars') or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    refill = next((z for z in ordered if _stars(z) < 3), None)
+    if refill:
+        return {'kind': 'replenish_stars', 'zone_key': refill['key']}
+
+    completed = [z for z in ordered if z.get('cleared')]
+    if completed:
+        return {'kind': 'replay_completed', 'zone_key': completed[-1]['key']}
+    return None
+
+
 def _adventure_map_state_from_zones(zones, selected_stage_key=None):
     placement_marker = next((z for z in zones if z.get('placement_start_zone')), None)
     placement_start_zone = placement_marker.get('placement_start_zone') if placement_marker else None
@@ -8633,6 +8734,7 @@ def _adventure_map_state_from_zones(zones, selected_stage_key=None):
         )
     }
     selected_zone_key = selected_stage_key if selected_stage_key in valid_zone_keys else recommended_zone_key
+    current_zone_key = _adventure_current_zone_key(zones)
 
     recommended_payload = None
     selected_payload = None
@@ -8715,6 +8817,8 @@ def _adventure_map_state_from_zones(zones, selected_stage_key=None):
         'placement': placement_payload,
         'recommended': recommended_payload,
         'selected': selected_payload,
+        'current_zone_key': current_zone_key,
+        'primary_action': _adventure_primary_action_payload(zones, current_zone_key),
         'active_zone_key': selected_payload.get('zone_key') if selected_payload else None,
         'zones': zone_payloads,
     }
