@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "9923358124feff8edff73d2702b54988e334ab7a",
+      "source_commit": "1ba6f0f7810f7e3673b28f944b9646d939fa107b",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): restore shell context across reload and navigation",
+      "source_commit_subject": "fix(e10): close backpack context handoff links",
       "source_date": "2026-08-06",
-      "content_sha256": "ce1c46a5f08d753cafd8d614d484c85709a9116e7c57f20787f4871db1df0bb9",
+      "content_sha256": "4174a480f593d2e1b158cbe7452b09a130833687539f698efae2330ae93eda78",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 5d79c272e2797db5d3f6c00838c4422b161c1580; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 78c62539ac21ea6635d995a29b08aac0bbbd174e; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
