@@ -22,11 +22,16 @@ def test_e10_battle_exposes_explicit_explanation_and_map_actions():
     assert "_isE10BattleShell()" in action_state
     assert "_mapBattleV1Mode === 'active'" in action_state
     assert "_mapBattleV1Mode === 'active'" not in actions
-    assert "display = visible ? 'inline-flex' : 'none'" in actions
+    assert "const battleVisible = active === true && _isE10BattleActionState();" in actions
+    assert "const revealVisible = battleVisible && _isE10BattleRevealAvailable();" in actions
+    assert "display = revealVisible ? 'inline-flex' : 'none'" in actions
+    assert "explain.hidden = !revealVisible" in actions
+    assert "explain.tabIndex = revealVisible ? 0 : -1" in actions
 
 
 def test_explanation_action_reuses_canonical_explanation_path_without_settlement():
     action = _function_block("showE10BattleExplanation", "returnToAdventureMapAfterEncounter")
+    assert "_isE10BattleRevealAvailable()" in action
     assert "showExplanation(_lastWrongMove || null)" in action
     assert "submitSRS" not in action
     assert "/api/srs/review" not in action

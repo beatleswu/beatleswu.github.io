@@ -8382,6 +8382,9 @@ function _mapBattleV1QuestionContext(q) {
 function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = null } = {}) {
     const state = _mapBattleV1State;
     if (!state || !q) return;
+    if (response && typeof response === 'object') {
+        _recordE10BattleAnswerResult(response);
+    }
     const damageToMonster = response && Number.isFinite(Number(response.damage_to_monster))
         ? Number(response.damage_to_monster) : 0;
     const damageToPlayer = response && Number.isFinite(Number(response.damage_to_player))
@@ -8402,11 +8405,13 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
         hp_change: -damageToPlayer,
         ko: state.playerDefeated === true
     });
+    if (response && typeof response === 'object') _syncE10BattleActions(true);
 }
 
 async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1LifecycleGeneration, resumeState = null } = {}) {
     _mapBattleV1PrepareSerial += 1;
     const serial = _mapBattleV1PrepareSerial;
+    _resetE10BattleRevealState();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
@@ -8472,6 +8477,10 @@ async function _submitMapBattleV1IfActive(moves) {
     const submittedQuestionId = Number(currentQ?.id);
     const submittedState = _mapBattleV1State;
     const submittedAttemptId = submittedState?.attemptId;
+    // A new authoritative submission invalidates any prior reveal state for
+    // this presentation until its result returns.
+    _resetE10BattleRevealState();
+    _syncE10BattleActions(true);
     try {
         const response = await adapter.submit(submittedState, moves);
         if (submissionGeneration !== _mapBattleV1LifecycleGeneration
@@ -8610,16 +8619,49 @@ function _isE10BattleActionState() {
         && !!currentQ;
 }
 
+function _resetE10BattleRevealState() {
+    _e10BattleRevealState = null;
+}
+
+function _recordE10BattleAnswerResult(response) {
+    const result = response && response.result;
+    const questionId = Number(currentQ?.id);
+    const attemptId = _mapBattleV1State?.attemptId;
+    if ((result !== 'INCORRECT' && result !== 'CORRECT')
+        || !Number.isFinite(questionId)
+        || attemptId === null || attemptId === undefined || String(attemptId) === '') {
+        _resetE10BattleRevealState();
+        return;
+    }
+    _e10BattleRevealState = {
+        questionId,
+        attemptId: String(attemptId),
+        result,
+    };
+}
+
+function _isE10BattleRevealAvailable() {
+    const state = _e10BattleRevealState;
+    return _isE10BattleActionState()
+        && !!state
+        && state.result === 'INCORRECT'
+        && Number(state.questionId) === Number(currentQ?.id)
+        && String(state.attemptId) === String(_mapBattleV1State?.attemptId || '');
+}
+
 function _syncE10BattleActions(active) {
-    const visible = active === true && _isE10BattleActionState();
+    const battleVisible = active === true && _isE10BattleActionState();
+    const revealVisible = battleVisible && _isE10BattleRevealAvailable();
     const explain = document.getElementById('btn-e10-battle-explain');
     const back = document.getElementById('btn-adventure-return');
     if (explain) {
-        explain.style.display = visible ? 'inline-flex' : 'none';
-        explain.disabled = !visible;
-        explain.setAttribute('aria-disabled', visible ? 'false' : 'true');
+        explain.hidden = !revealVisible;
+        explain.style.display = revealVisible ? 'inline-flex' : 'none';
+        explain.disabled = !revealVisible;
+        explain.tabIndex = revealVisible ? 0 : -1;
+        explain.setAttribute('aria-disabled', revealVisible ? 'false' : 'true');
     }
-    if (back && visible) {
+    if (back && battleVisible) {
         back.textContent = '返回 E10 地圖';
         back.style.display = 'inline-flex';
     } else if (back && !isBeginnerVillageAdventureResult()) {
@@ -8628,7 +8670,7 @@ function _syncE10BattleActions(active) {
 }
 
 function showE10BattleExplanation() {
-    if (!_isE10BattleActionState()) return;
+    if (!_isE10BattleRevealAvailable()) return;
     showExplanation(_lastWrongMove || null);
     const panel = document.getElementById('explanation-panel');
     if (panel && typeof panel.scrollIntoView === 'function') {
@@ -8643,6 +8685,7 @@ function returnToAdventureMapAfterEncounter() {
     _mapBattleV1LifecycleGeneration += 1;
     _mapBattleV1PrepareSerial += 1;
     _clearMapBattleV1Transition();
+    _resetE10BattleRevealState();
     _mapBattleV1Mode = 'disabled';
     _syncE10BattleActions(false);
     _publishMapBattleV1Lifecycle();
@@ -9414,6 +9457,7 @@ function _revealExplanationPanel(panel) {
 
 async function loadQuestion(q, { resumeState = null } = {}){
     const generation = ++_mapBattleV1LifecycleGeneration;
+    _resetE10BattleRevealState();
     _clearMapBattleV1Transition();
     _clearMapBattleV1Resume();
     _mapBattleV1State = null;
@@ -9896,6 +9940,7 @@ function _jumpToQ(qid){
 // 狀態：快取當前題目的解說資料與最後一次的錯誤落子資訊
 let _currentExplanation = null;   // { qid, text, truncated, hasFull, source }
 let _lastWrongMove      = null;   // {x, y} — 供 AI 解說使用
+let _e10BattleRevealState = null; // { questionId, attemptId, result } — authoritative wrong-result gate
 let _isPremiumUser      = false;  // 在 init() 時從 /api/auth/me 取得
 // 共用 /api/auth/me：單次頁面載入內使用者資訊不變，多處共用同一 promise，避免重複請求
 let _mePromise = null;
@@ -10134,6 +10179,7 @@ function hideExplanation() {
     _setAlternativeAnswerReportVisible(false, '');
     _currentExplanation = null;
     _lastWrongMove      = null;
+    _resetE10BattleRevealState();
     // 重置解說收合狀態
     _explanationOpen = true;
     const eb = document.getElementById('explanation-body');
