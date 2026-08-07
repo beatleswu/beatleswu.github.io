@@ -86,6 +86,7 @@
     root.__e10SelectedZoneKey = detail.zoneKey || '';
     root.__e10ChallengeTargetZoneKey = detail.challengeTargetZoneKey || '';
     root.__e10ChallengeTargetEnabled = detail.ctaEnabled === true;
+    root.__e10ChallengeTargetKind = detail.ctaKind || null;
     syncDrawerLandmark(root);
     if (kicker) {
       kicker.textContent = detail.headingText || t(detail.headingKey, 'Selected Zone');
@@ -256,9 +257,16 @@
         var zoneCta = presentation.querySelector('[data-e10-zone-cta]');
         if (zoneCta) {
           window.E9.on(zoneCta, 'click', function () {
-            if (root.__e10ChallengeTargetEnabled && root.__e10ChallengeTargetZoneKey
-              && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-              window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey);
+            // Route through the same shared dispatcher world_stage.js's own
+            // CTAs use -- a 'challenge_lord' target must enter the existing
+            // canonical Lord flow, never the ordinary startAdventureFromE9()
+            // handoff this panel used to call unconditionally.
+            if (window.E9 && typeof window.E9.dispatchAdventureAction === 'function') {
+              window.E9.dispatchAdventureAction({
+                enabled: root.__e10ChallengeTargetEnabled,
+                targetZoneKey: root.__e10ChallengeTargetZoneKey,
+                kind: root.__e10ChallengeTargetKind,
+              });
             }
           }, null, generation);
         }

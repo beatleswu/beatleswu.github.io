@@ -125,8 +125,9 @@ def test_desktop_stage_has_balanced_dark_letterbox_environment():
 
 def test_dynamic_primary_and_panel_ctas_share_runtime_adapter():
     assert "root.__e10ChallengeTargetZoneKey" in RIGHT
-    assert "window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey)" in RIGHT
-    assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in WORLD
+    assert "window.E9.dispatchAdventureAction(" in RIGHT
+    assert "targetZoneKey: root.__e10ChallengeTargetZoneKey" in RIGHT
+    assert "dispatchAdventureAction(contract);" in WORLD
     assert "e10-map-primary-cta__copy" in WORLD
 
 
@@ -176,7 +177,7 @@ def test_accessibility_and_reduced_motion_contracts_remain_present():
 def test_service_worker_and_query_cache_identity_are_current():
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
     flags = (ROOT / "js/e9/feature_flags.js").read_text(encoding="utf-8")
-    assert "v227-e10-canonical-layout-contract-recovery" in sw
+    assert "v228-e10-lord-challenge-cta-scope-and-routing" in sw
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in flags
     assert INDEX.count("20260801e10art1") >= 6
 

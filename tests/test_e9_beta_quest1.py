@@ -55,4 +55,4 @@ def test_static_manifest_contains_quest_assets_and_i18n_keys():
 
 def test_asset_version_is_coupled_to_current_static_runtime():
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in read("js/e9/feature_flags.js")
-    assert "v227-e10-canonical-layout-contract-recovery" in read("sw.js")
+    assert "v228-e10-lord-challenge-cta-scope-and-routing" in read("sw.js")
