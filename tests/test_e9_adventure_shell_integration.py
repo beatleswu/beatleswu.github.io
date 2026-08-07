@@ -122,7 +122,9 @@ def test_e9_cta_uses_existing_adventure_start_action():
     assert "global.location.href = '/?zone='" not in shell_js
     assert "action: 'start-zone-challenge'" in shell_js
     world_stage_js = _read(JS_DIR / "world_stage.js")
-    assert "window.E9.startAdventureFromE9(zone.key)" in world_stage_js
+    # All CTA surfaces (including the tutorial CTA) route ordinary progression
+    # through the shared dispatcher, which itself uses this existing action.
+    assert "window.E9.startAdventureFromE9(contract.targetZoneKey);" in world_stage_js
 
 
 def test_no_duplicate_init_or_double_binding_guard_present():

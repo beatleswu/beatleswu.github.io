@@ -457,7 +457,7 @@
     return t(ctaKey, 'Begin the Beginner Village Adventure');
   }
 
-  function renderBeginnerVillageMainline(root, zone) {
+  function renderBeginnerVillageMainline(root, zone, state) {
     var panel = root.querySelector('#e9-newbie-mainline');
     if (!panel || !zone || zone.key !== 'k26_30') return;
 
@@ -491,14 +491,20 @@
 
     var cta = panel.querySelector('#e9-newbie-mainline-cta');
     if (cta) {
+      // Label stays tutorial-flavored (newbieCtaText) -- only the routing
+      // decision comes from the same authoritative ctaContract()/
+      // dispatchAdventureAction() every other CTA surface uses. This CTA
+      // must never re-derive challenge_lord readiness itself (e.g. from
+      // zone.bossAvailable directly): a fourth, independent routing branch
+      // is exactly the defect class already fixed for the other three
+      // surfaces.
       cta.textContent = newbieCtaText(zone);
       if (cta.__e9AdventureHandler) {
         cta.removeEventListener('click', cta.__e9AdventureHandler);
       }
+      var contract = ctaContract(zone, state);
       cta.__e9AdventureHandler = function () {
-        if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-          window.E9.startAdventureFromE9(zone.key);
-        }
+        dispatchAdventureAction(contract);
       };
       if (window.E9 && typeof window.E9.on === 'function') {
         window.E9.on(cta, 'click', cta.__e9AdventureHandler);
@@ -823,7 +829,7 @@
       }
     }
 
-    renderBeginnerVillageMainline(root, zone);
+    renderBeginnerVillageMainline(root, zone, state);
     if (newbie && (
       (VS1E_STATIC_CONTRACT_ACTIVE && (isMobile || zone.key !== 'k26_30'))
       || (!VS1E_STATIC_CONTRACT_ACTIVE && zone.key !== 'k26_30')

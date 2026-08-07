@@ -37,6 +37,21 @@ second copy of this logic went unnoticed here), world_stage.js now exports
 `window.E9.dispatchAdventureAction` and right_cards.js calls that shared
 function instead of re-implementing the routing decision.
 
+A FOURTH instance (E10_PR283_TUTORIAL_LORD_ROUTING_AMENDMENT) was found
+during the PR #283 owner merge precheck: `renderBeginnerVillageMainline`'s
+own tutorial CTA (`#e9-newbie-mainline-cta`, the Beginner Village/k26_30
+onboarding panel) also called `startAdventureFromE9(zone.key)`
+unconditionally. Confirmed production-reachable (shown on desktop/tablet
+whenever k26_30 is selected under the live `e10-vs1f-integrated-world-map`
+static contract, unconditional on progress state -- not one-time onboarding,
+not dead code, so deletion was out of scope). Its label
+(`newbieCtaText(zone)`) already reflected boss-ready state via
+`zone.bossAvailable`; only the click handler had never been wired to the
+routing decision. Fixed the same way as the third instance: the function now
+receives `state` and calls the existing `ctaContract(zone, state)` /
+`dispatchAdventureAction(contract)` pair -- the tutorial CTA's own label
+wording is unchanged, only its routing now matches the other three surfaces.
+
 world_stage.js has no browser/DOM test harness in this repo (see the
 existing convention in test_e9_multi_zone_adventure_cta.py) -- most of this
 file's coverage is precise source-level structural assertion on the real
@@ -100,9 +115,85 @@ def test_mobile_inline_cta_delegates_to_same_shared_dispatcher_not_a_second_copy
     assert "window.E9.startAdventureFromE9(inlineContract.targetZoneKey);" not in body
 
 
-def test_only_one_dispatch_function_exists_for_both_ctas():
+def test_tutorial_cta_delegates_to_same_shared_dispatcher_not_a_fourth_copy():
+    # E10_PR283_TUTORIAL_LORD_ROUTING_AMENDMENT: the fourth production-
+    # reachable surface (Beginner Village/k26_30's own tutorial panel).
+    start = WORLD_STAGE.index("function renderBeginnerVillageMainline(root, zone, state)")
+    end = WORLD_STAGE.index("\n  // Progression summaries reuse existing", start)
+    body = WORLD_STAGE[start:end]
+    assert "var contract = ctaContract(zone, state);" in body
+    assert "dispatchAdventureAction(contract);" in body
+    # The old, unconditional call this amendment fixes must not reappear.
+    assert "window.E9.startAdventureFromE9(zone.key);" not in body
+    # The label stays tutorial-flavored -- this amendment only fixes routing.
+    assert "cta.textContent = newbieCtaText(zone);" in body
+
+
+def test_all_four_production_lord_capable_cta_entries_converge_on_one_dispatcher():
+    # Desktop details, mobile inline, and tutorial CTAs all live in
+    # world_stage.js; the right-drawer CTA lives in right_cards.js and calls
+    # the same function via its window.E9 export. Four distinct call sites,
+    # one routing decision.
+    assert WORLD_STAGE.count("dispatchAdventureAction(contract);") == 2  # desktop + tutorial
+    assert WORLD_STAGE.count("dispatchAdventureAction(inlineContract);") == 1  # mobile
+    assert "window.E9.dispatchAdventureAction(" in RIGHT_CARDS  # right drawer
     assert WORLD_STAGE.count("function dispatchAdventureAction(") == 1
-    assert WORLD_STAGE.count("dispatchAdventureAction(") == 3  # def + 2 call sites
+
+
+def _real_code_matches(source, pattern):
+    # Filters out matches that are prose inside comments (top-of-file
+    # /* ... */ doc headers, // line comments, and ' * ' block-comment
+    # continuation lines) -- both this file's and right_cards.js's headers,
+    # and several routing-fix explanatory comments, mention function names
+    # like startAdventureFromE9 in prose, not as real calls.
+    header_end = source.index("*/") + 2 if "/*" in source[:200] else 0
+    matches = []
+    for match in re.finditer(pattern, source):
+        if match.start() < header_end:
+            continue
+        line_start = source.rfind("\n", 0, match.start()) + 1
+        line_prefix = source[line_start:match.start()]
+        if "//" in line_prefix or line_prefix.lstrip().startswith("*"):
+            continue
+        matches.append(match)
+    return matches
+
+
+def test_repository_search_finds_no_remaining_direct_lord_capable_cta_routing():
+    # Repo-wide proof for the amendment's own explicit ask: every real (non-
+    # comment) startAdventureFromE9(...) call site in world_stage.js must
+    # fall INSIDE dispatchAdventureAction()'s own body (its one ordinary-path
+    # branch) -- never in a CTA click handler that re-derives the routing
+    # decision independently. right_cards.js must have no real call at all
+    # (it only ever calls the shared dispatcher).
+    dispatch_start = WORLD_STAGE.index("function dispatchAdventureAction(contract) {")
+    dispatch_end = WORLD_STAGE.index("\n  function configureAdventureButton(", dispatch_start)
+
+    world_matches = _real_code_matches(WORLD_STAGE, r"startAdventureFromE9\(")
+    assert world_matches, "expected at least one startAdventureFromE9 call (the ordinary-path branch itself)"
+    for match in world_matches:
+        assert dispatch_start <= match.start() < dispatch_end, (
+            f"world_stage.js: startAdventureFromE9( call at offset {match.start()} falls outside "
+            f"dispatchAdventureAction()'s body -- context: {WORLD_STAGE[max(0, match.start()-80):match.start()+40]!r}"
+        )
+
+    right_cards_matches = _real_code_matches(RIGHT_CARDS, r"startAdventureFromE9\(")
+    assert not right_cards_matches, (
+        f"right_cards.js: found a real startAdventureFromE9 call outside the shared dispatcher -- "
+        f"{[RIGHT_CARDS[max(0,m.start()-60):m.start()+40] for m in right_cards_matches]}"
+    )
+
+
+def test_only_one_dispatch_function_exists_for_all_world_stage_ctas():
+    assert WORLD_STAGE.count("function dispatchAdventureAction(") == 1
+    # Desktop details CTA + tutorial (Newbie Village) CTA both use a local
+    # variable named `contract`; the mobile inline CTA uses `inlineContract`.
+    # Three independent call sites inside world_stage.js, all delegating to
+    # the one shared dispatcher (right_cards.js's drawer CTA is the fourth
+    # production-reachable surface, calling this same function via its
+    # window.E9 export -- covered by test_right_cards_* below).
+    assert WORLD_STAGE.count("dispatchAdventureAction(contract);") == 2
+    assert WORLD_STAGE.count("dispatchAdventureAction(inlineContract);") == 1
 
 
 def test_primary_cta_targets_the_arbitrated_zone_not_merely_the_selected_zone():
@@ -260,6 +351,43 @@ async function main() {
     const before = JSON.stringify(calls);
     sandbox.dispatchAdventureAction({ enabled: false, targetZoneKey: 'k11_15', kind: 'challenge_lord' });
     assert.strictEqual(JSON.stringify(calls), before);
+  });
+
+  // -- Case 4 (E10_PR283_TUTORIAL_LORD_ROUTING_AMENDMENT): the tutorial
+  // (Newbie Village, k26_30) CTA calls this exact same ctaContract()/
+  // dispatchAdventureAction() pair -- proved here using k26_30 by key,
+  // not merely "any zone", since it's the fourth production-reachable
+  // surface this amendment closes.
+  const tutorialReadyZone = makeZone({ key: 'k26_30', bossAvailable: true, cleared: false });
+  const tutorialNotReadyZone = makeZone({ key: 'k26_30', bossAvailable: false, cleared: false, stars: 0 });
+  const tutorialReadyState = { zones: [tutorialReadyZone], currentPlayerZoneKey: 'k26_30', primaryAction: null };
+  const tutorialNotReadyState = { zones: [tutorialNotReadyZone], currentPlayerZoneKey: 'k26_30', primaryAction: null };
+
+  check('tutorial zone (k26_30) lord-ready resolves challenge_lord', () => {
+    const contract = sandbox.ctaContract(tutorialReadyZone, tutorialReadyState);
+    assert.strictEqual(contract.kind, 'challenge_lord');
+    assert.strictEqual(contract.targetZoneKey, 'k26_30');
+  });
+  check('tutorial zone (k26_30) not lord-ready resolves ordinary progression', () => {
+    const contract = sandbox.ctaContract(tutorialNotReadyZone, tutorialNotReadyState);
+    assert.notStrictEqual(contract.kind, 'challenge_lord');
+    assert.strictEqual(contract.targetZoneKey, 'k26_30');
+  });
+
+  const tutorialReadyContract = sandbox.ctaContract(tutorialReadyZone, tutorialReadyState);
+  sandbox.dispatchAdventureAction(tutorialReadyContract);
+  await new Promise((resolve) => setImmediate(resolve));
+  check('tutorial zone lord-ready click enters the canonical Lord flow', () => {
+    assert.ok(calls.boss.includes('k26_30'));
+  });
+
+  const tutorialNotReadyContract = sandbox.ctaContract(tutorialNotReadyZone, tutorialNotReadyState);
+  const ordinaryBefore = calls.ordinary.length;
+  sandbox.dispatchAdventureAction(tutorialNotReadyContract);
+  await new Promise((resolve) => setImmediate(resolve));
+  check('tutorial zone not-ready click uses the ordinary entry, not the Lord flow', () => {
+    assert.strictEqual(calls.ordinary.length, ordinaryBefore + 1);
+    assert.strictEqual(calls.ordinary[calls.ordinary.length - 1], 'k26_30');
   });
 
   if (failures.length) {

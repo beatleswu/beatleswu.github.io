@@ -15,7 +15,11 @@ NAV_REGISTRY = (ROOT / "js/e9/navigation_registry.js").read_text(encoding="utf-8
 def test_zone_card_selects_before_adventure_entry_and_has_detail_focus_contract():
     assert "e9:zone-selected" in WORLD
     assert "renderSelectedZone(root, zones, zone.key, true)" in WORLD
-    assert "startAdventureFromE9(zone.key)" in WORLD  # CTA only; card activation must not call it
+    # CTA-only, via the shared dispatcher; card activation must not call it.
+    assert "dispatchAdventureAction(contract);" in WORLD
+    activate_body = WORLD[WORLD.index("var activate = function ()"):WORLD.index("var keyActivate")]
+    assert "startAdventureFromE9" not in activate_body
+    assert "dispatchAdventureAction" not in activate_body
     assert "cta.addEventListener('click', cta.__e9AdventureHandler)" in WORLD
     assert "cta.removeEventListener('click', cta.__e9AdventureHandler)" in WORLD
     assert "focusTarget.focus({ preventScroll: true })" in WORLD
