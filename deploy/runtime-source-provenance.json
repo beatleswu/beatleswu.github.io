@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "a5dad08e9f579e7104c04dc64679f1a003b076f2",
+      "source_commit": "9e0a1d5f6ea0402ef16c58f0b4985b60b1110a80",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): complete map authority and reveal gating",
+      "source_commit_subject": "fix(e10): close Lord Challenge CTA scope and routing across three surfaces",
       "source_date": "2026-08-07",
-      "content_sha256": "629dcfb51d5fcd042ab067fcae2492ed03fb36c20d939262e4475ea1a63add71",
+      "content_sha256": "f23bef64b01ebe8c77b6652bfd2b7c9855f874be1d6b963bcdd2800d43af37f1",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 2fa8f6abb72924f60141537e8062c515ca837eb3; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 2eb4e18549ce25283aa715e4d47f8b87a4ba4e31; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -507,26 +507,26 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "a5dad08e9f579e7104c04dc64679f1a003b076f2",
+      "source_commit": "9d171f9a9dc95ab3bd3bfe223ae59e81030908b1",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): complete map authority and reveal gating",
+      "source_commit_subject": "fix(e10): route the Newbie Village tutorial CTA through the shared Lord dispatcher",
       "source_date": "2026-08-07",
-      "content_sha256": "0b08cf78347a6aed337b08aeed912cec2e4bdb3cfd854a7dd5fd0cb38c18d8ef",
+      "content_sha256": "d0faf237c52bdd2d4ecf4428ed6bf0829a2376393229c4242b8ea9ab60ad901e",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge 2fa8f6abb72924f60141537e8062c515ca837eb3; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 2eb4e18549ce25283aa715e4d47f8b87a4ba4e31; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "sw.js",
-      "source_commit": "3457b74944790ee5d89a0e87db894cd3258c3a1e",
+      "source_commit": "9e0a1d5f6ea0402ef16c58f0b4985b60b1110a80",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Fix E10 static asset coherence",
+      "source_commit_subject": "fix(e10): close Lord Challenge CTA scope and routing across three surfaces",
       "source_date": "2026-08-07",
-      "content_sha256": "04002356a2affb346399fe305c199e5d74ae4e3245894ccccf4112848a943c7d",
+      "content_sha256": "1fbe383bc26ad56fc6a3352320f7d5dab5671cb16cfa79433eda90b12f376820",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "merged to origin/master at merge 43af63a11ffaf51b98c58ab36b06feab159f1620; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 2eb4e18549ce25283aa715e4d47f8b87a4ba4e31; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
