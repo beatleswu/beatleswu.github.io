@@ -519,14 +519,14 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "b316804b7d5a62182149ecb72410b417d3292db7",
+      "source_commit": "3457b74944790ee5d89a0e87db894cd3258c3a1e",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #261 from beatleswu/codex/e10-global-navi-cache-identity-fix-impl",
-      "source_date": "2026-08-04",
-      "content_sha256": "a15fcea76c1bf58730fc5bb024daa8a0bb75c5ffbf6667780c69a17998cb9b87",
+      "source_commit_subject": "Fix E10 static asset coherence",
+      "source_date": "2026-08-07",
+      "content_sha256": "04002356a2affb346399fe305c199e5d74ae4e3245894ccccf4112848a943c7d",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "merged to origin/master at merge b316804b7d5a62182149ecb72410b417d3292db7; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 43af63a11ffaf51b98c58ab36b06feab159f1620; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
