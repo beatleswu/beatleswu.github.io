@@ -95,7 +95,15 @@ def test_v1_resume_is_one_server_validated_session_record_and_excludes_completed
     assert "_MAP_BATTLE_V1_RESUME_STORAGE_KEY" in INDEX
     assert "/api/adventure/bootstrap?selected_stage_key=" in resume
     assert "adapter.refreshBattle" in _function_block("_prepareMapBattleV1ForQuestion", "_mapBattleV1IsStaleError")
-    assert "_adventureQuestionDefeated(target.id)" in resume
+    # E10_MAP_BATTLE_V1_RESUME_MASTERY_GUARD_CORRECTION: historical SRS mastery
+    # (_adventureQuestionSeen/_adventureQuestionDefeated) is a NEW-target
+    # selection preference, not an active-attempt validity gate -- an
+    # otherwise-valid, still-ISSUED, unsettled attempt must resume even when
+    # its question was mastered long ago (confirmed live in production; see
+    # tests/test_e10_map_battle_v1_resume_mastery_guard_correction.py for the
+    # full contract). The predicate is intentionally no longer present here;
+    # it remains in _pickAdventureTarget/_pickNextAdventureTarget below.
+    assert "_adventureQuestionDefeated(target.id)" not in resume
     assert "|| null;" in _function_block("_pickAdventureTarget", "_pickNextAdventureTarget")
     assert "qs[0]" not in _function_block("_pickAdventureTarget", "_resolveMapBattleV1Resume")
 
