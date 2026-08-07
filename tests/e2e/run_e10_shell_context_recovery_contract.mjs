@@ -13,6 +13,11 @@ const INDEX = await fs.readFile(path.join(ROOT, 'index.html'), 'utf8');
 function extractFunction(name, endName) {
   let start = INDEX.indexOf(`function ${name}`);
   assert.notEqual(start, -1, `missing ${name}`);
+  // Include a leading `async ` keyword in the extraction if present --
+  // otherwise an async function's body (e.g. enterAdventureZoneInPage,
+  // which awaits _resolveMapBattleV1Resume()) gets pasted into the test
+  // harness script as a non-async declaration, a syntax error at parse time.
+  if (INDEX.slice(Math.max(0, start - 6), start) === 'async ') start -= 6;
   const end = endName ? INDEX.indexOf(`function ${endName}`, start) : INDEX.length;
   assert.notEqual(end, -1, `missing ${endName}`);
   let open = -1;
@@ -145,6 +150,10 @@ async function runBattleEntryOwnershipContract(browser) {
     let loadCalls = 0;
     const ADVENTURE_ZONES = [{ key: 'zone-1', books: [] }];
     function _pickAdventureTarget(questions) { return questions[0] || null; }
+    // No stored resume in this synthetic harness -- exercises the same
+    // "fall through to the deterministic selector" path a genuinely fresh
+    // zone entry takes in production.
+    async function _resolveMapBattleV1Resume() { return null; }
     function renderList() {}
     function firstQuestionHref() { return '/?adventure=1&zone=zone-1'; }
     function _isAdventureZonePractice() { return true; }
@@ -164,7 +173,7 @@ async function runBattleEntryOwnershipContract(browser) {
     ${enterAdventure}
     window.__runBattleEntryOwnershipContract = async function () {
       publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
-      const started = enterAdventureZoneInPage(ADVENTURE_ZONES[0]);
+      const started = await enterAdventureZoneInPage(ADVENTURE_ZONES[0]);
       const immediate = {
         started,
         owner: window.__GO_ADVENTURE_SHELL_OWNER__,
@@ -179,7 +188,7 @@ async function runBattleEntryOwnershipContract(browser) {
       };
       loadBehavior = 'fail';
       publishAdventureShellOwner(E10_MAP_SHELL_OWNER);
-      const failedStarted = enterAdventureZoneInPage(ADVENTURE_ZONES[0]);
+      const failedStarted = await enterAdventureZoneInPage(ADVENTURE_ZONES[0]);
       await new Promise((resolve) => setTimeout(resolve, 0));
       const failed = {
         started: failedStarted,

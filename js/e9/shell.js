@@ -318,14 +318,14 @@
     });
   }
 
-  function enterAdventureQuestion(zoneKey) {
+  async function enterAdventureQuestion(zoneKey) {
     if (typeof global.enterAdventureZoneInPage !== 'function') {
       console.error('[E9] Adventure question entry is unavailable for zone:', zoneKey);
       adventureEntryTargetZoneKey = null;
       adventureEntryPhase = null;
       return false;
     }
-    var started = global.enterAdventureZoneInPage({ key: zoneKey }) === true;
+    var started = (await global.enterAdventureZoneInPage({ key: zoneKey })) === true;
     if (!started) {
       adventureEntryTargetZoneKey = null;
       adventureEntryPhase = null;

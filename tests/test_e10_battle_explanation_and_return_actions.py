@@ -52,11 +52,17 @@ def test_return_invalidates_battle_page_callbacks_and_refreshes_map_without_aban
 def test_in_page_map_to_battle_publishes_owner_before_action_reconciliation():
     entry = _function_block("enterAdventureZoneInPage", "adventureActiveZone")
     owner_position = entry.index("publishAdventureShellOwner(E10_BATTLE_SHELL_OWNER)")
-    load_position = entry.index("loadQuestion(target)")
+    load_position = entry.index("loadQuestion(target, { resumeState:")
     assert owner_position < load_position
     assert "data-adventure-shell-owner" not in entry
     assert "publishAdventureShellOwner(E10_MAP_SHELL_OWNER)" in entry
     assert "entryGeneration" in entry
+    # Same-page re-entry must consult the same server-issued resume the
+    # reload path already uses -- otherwise it silently re-picks the first
+    # eligible question instead of resuming wherever "下一題" already
+    # advanced to (E10_BATTLE_REENTRY_I18N_IPAD_PORTRAIT_CLOSURE FIX A).
+    assert "await _resolveMapBattleV1Resume(zone.key, unitQs)" in entry
+    assert "resume?.target || _pickAdventureTarget(unitQs)" in entry
 
 
 def test_active_attempt_resume_storage_remains_authoritative_for_return_flow():

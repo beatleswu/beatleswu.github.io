@@ -29,7 +29,7 @@ def test_e9_question_runtime_waits_for_questions_and_srs_readiness():
 
 
 def test_failed_in_page_filter_does_not_hide_map_before_question_exists():
-    function = INDEX.split("function enterAdventureZoneInPage(zone) {", 1)[1].split("\n}\n", 1)[0]
+    function = INDEX.split("async function enterAdventureZoneInPage(zone) {", 1)[1].split("\n}\n", 1)[0]
     assert function.index("if (!unitQs.length) return false;") < function.index("_ws.classList.add('hidden')")
 
 
@@ -141,27 +141,39 @@ const window = {
   }
 };
 vm.runInNewContext(source, { window, document, CustomEvent, console });
-const first = window.E9.startAdventureFromE9('k16_20');
-const duplicate = window.E9.startAdventureFromE9('k16_20');
-questionActive = false;
-const locked = window.E9.startAdventureFromE9('d1_2');
-const invalid = window.E9.startAdventureFromE9('');
-const immediateEntries = entries.slice();
-const immediateEvents = events.slice();
-entries.length = 0;
-events.length = 0;
-window.E9.applyShellState('e9');
-window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false;
-const queued = window.E9.startAdventureFromE9('k16_20');
-const duplicateQueued = window.E9.startAdventureFromE9('k16_20');
-const beforeReadyEntries = entries.slice();
-window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = true;
-document.dispatchEvent(new CustomEvent('adventure:question-runtime-ready'));
-process.stdout.write(JSON.stringify({
-  first, duplicate, locked, invalid, immediateEntries, immediateEvents,
-  queued, duplicateQueued, beforeReadyEntries, queuedEntries: entries, queuedEvents: events,
-  href: window.location.href
-}));
+(async () => {
+  // enterAdventureQuestion()/startAdventureFromE9() now await the resume-
+  // aware enterAdventureZoneInPage() (async since it also awaits
+  // _resolveMapBattleV1Resume()) -- every call must be awaited in the same
+  // sequence the old synchronous calls implied, or state set inside the
+  // resolved chain (adventureEntryPhase, entries, dispatched events) would
+  // not yet be visible to the next assertion.
+  const first = await window.E9.startAdventureFromE9('k16_20');
+  const duplicate = await window.E9.startAdventureFromE9('k16_20');
+  questionActive = false;
+  const locked = await window.E9.startAdventureFromE9('d1_2');
+  const invalid = await window.E9.startAdventureFromE9('');
+  const immediateEntries = entries.slice();
+  const immediateEvents = events.slice();
+  entries.length = 0;
+  events.length = 0;
+  window.E9.applyShellState('e9');
+  window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = false;
+  const queued = await window.E9.startAdventureFromE9('k16_20');
+  const duplicateQueued = await window.E9.startAdventureFromE9('k16_20');
+  const beforeReadyEntries = entries.slice();
+  window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ = true;
+  document.dispatchEvent(new CustomEvent('adventure:question-runtime-ready'));
+  // The queued listener itself calls the now-async enterAdventureQuestion()
+  // synchronously-fired-but-asynchronously-resolving -- flush the microtask
+  // queue before reading the state it sets.
+  await new Promise((resolve) => setImmediate(resolve));
+  process.stdout.write(JSON.stringify({
+    first, duplicate, locked, invalid, immediateEntries, immediateEvents,
+    queued, duplicateQueued, beforeReadyEntries, queuedEntries: entries, queuedEvents: events,
+    href: window.location.href
+  }));
+})();
 """,
         encoding="utf-8",
     )

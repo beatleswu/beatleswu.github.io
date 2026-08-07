@@ -969,9 +969,39 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
   /* Keep the canonical E9 map action measurable at tablet portrait widths;
-     the lower detail CTA remains the VS1E journey entry surface. */
+     the lower detail CTA remains the VS1E journey entry surface.
+     The map stage keeps a fixed 1672:941 aspect ratio, so portrait's much
+     narrower rendered width also yields a much SHORTER rendered height than
+     landscape at the same viewport class. reference_world_map.css's base
+     `height: 15%` (of that shorter map) no longer has room for the
+     desktop-sized 72px icon/29px label this skin uses everywhere else, so
+     the label visibly overflows the decorative frame background (which is
+     stretched to the box's own -- too short -- height). Let the box grow
+     to fit its content instead of clipping it, and scale the icon/label
+     down to match so both "挑戰領主" and "繼續冒險" sit fully inside the
+     frame without shrinking the tappable button area (min-height only
+     raises the floor; it never shrinks the existing hit target). */
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-map-primary-cta {
     display: inline-flex !important;
+    height: auto;
+    min-height: 64px;
+    gap: 6px;
+    padding: 8px 14px 8px 34px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e10-map-primary-cta__icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-map-primary-cta__copy strong {
+    font-size: 21px;
+    line-height: 1.04;
+  }
+
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-map-primary-cta__copy span {
+    font-size: 11px;
+    line-height: 1.1;
   }
 }
 

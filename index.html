@@ -10846,7 +10846,7 @@ async function _resolveMapBattleV1Resume(zoneKey, qs) {
 
 // 頁內直接進入冒險關卡：地圖頁的 allQuestions/SRS 已在記憶體，免整頁 reload（省 3-4 秒）。
 // 失敗（題庫未載入等）回傳 false，呼叫端 fallback 回 location.href 整頁導航。
-function enterAdventureZoneInPage(zone) {
+async function enterAdventureZoneInPage(zone) {
     if (!zone || !Array.isArray(allQuestions) || !allQuestions.length) return false;
     try {
         const _zone = ADVENTURE_ZONES.find(z => z.key === zone.key) || zone;
@@ -10864,7 +10864,13 @@ function enterAdventureZoneInPage(zone) {
         if (_mb) _mb.classList.remove('hidden');
         _adventureActiveQuestions = unitQs;
         renderList(unitQs);
-        const target = _pickAdventureTarget(unitQs);
+        // Same-page re-entry must not ignore an existing server-issued V1
+        // attempt (see adventureResume's own reload-path use of this exact
+        // resume/target pair) -- otherwise leaving and re-entering a zone
+        // in-page silently re-selects the first eligible question instead
+        // of resuming whatever "下一題" already advanced to.
+        const resume = await _resolveMapBattleV1Resume(zone.key, unitQs);
+        const target = resume?.target || _pickAdventureTarget(unitQs);
         if (!target || typeof publishAdventureShellOwner !== 'function') return false;
         // The in-page path has no document bootstrap to republish ownership.
         // Publish the authoritative Battle owner before loadQuestion() can
@@ -10876,7 +10882,7 @@ function enterAdventureZoneInPage(zone) {
         document.querySelector('.practice')?.scrollTo(0, 0);
         const entryGeneration = _mapBattleV1LifecycleGeneration + 1;
         try {
-            const loadResult = loadQuestion(target);
+            const loadResult = loadQuestion(target, { resumeState: resume?.resumeState || null });
             Promise.resolve(loadResult).then((started) => {
                 if (started === false
                     && _mapBattleV1LifecycleGeneration === entryGeneration
@@ -12219,9 +12225,9 @@ async function showStageIntroCinematic(zone) {
     const shouldShowFinalOnly = hasIntroFilm && adventureIntroSeen(zone);
     btn.disabled = hasIntroFilm && !shouldShowFinalOnly;
     btn.textContent = I18n.t('index.boss.start_training');
-    btn.onclick = () => {
+    btn.onclick = async () => {
         playBossSfx('start');
-        if (!enterAdventureZoneInPage(zone)) window.location.href = firstQuestionHref(zone);
+        if (!(await enterAdventureZoneInPage(zone))) window.location.href = firstQuestionHref(zone);
     };
     if (hasIntroFilm) {
         overlay.dataset.zoneKey = zone.key || '';
