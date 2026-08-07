@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "801efdd8be1e19c5f286b8d12687718a0020d321",
+      "source_commit": "a5dad08e9f579e7104c04dc64679f1a003b076f2",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): close final shell and inventory verification gaps",
-      "source_date": "2026-08-06",
-      "content_sha256": "c57ecf4fdacfd8adb68db27088027fae61d711e30afd82b8a38368642fc9ee6a",
+      "source_commit_subject": "fix(e10): complete map authority and reveal gating",
+      "source_date": "2026-08-07",
+      "content_sha256": "629dcfb51d5fcd042ab067fcae2492ed03fb36c20d939262e4475ea1a63add71",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 801e6fdac63f48b9661fd29e7a7b077a61d1eb1f; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 2fa8f6abb72924f60141537e8062c515ca837eb3; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -507,14 +507,14 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "5abdd85ad4493952618a2f68c048508d7e4d3bfd",
+      "source_commit": "a5dad08e9f579e7104c04dc64679f1a003b076f2",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "test(e10): accept owned backpack route marker",
-      "source_date": "2026-08-06",
-      "content_sha256": "55a196c9a83f8ddbb145274cea98f8153fb40548fc10715cf071cbca471a8a2e",
+      "source_commit_subject": "fix(e10): complete map authority and reveal gating",
+      "source_date": "2026-08-07",
+      "content_sha256": "0b08cf78347a6aed337b08aeed912cec2e4bdb3cfd854a7dd5fd0cb38c18d8ef",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge ee01478f97795266a2814148bc00aa95f09d563f; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 2fa8f6abb72924f60141537e8062c515ca837eb3; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
