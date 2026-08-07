@@ -1093,7 +1093,10 @@
           stageState.selectedZoneKey = authority.selected.zone_key;
         }
       }
-      renderZones(root, result.data.zones);
+      // Pass the complete fresh authority snapshot into the render boundary.
+      // Keeping current_zone_key and primary_action explicit here prevents a
+      // re-entry render from relying on the previous in-memory stage state.
+      renderZones(root, result.data.zones, authority);
       enableImmersiveRpgSkin(root, generation);
     }).catch(function (err) {
       if (!current()) return;

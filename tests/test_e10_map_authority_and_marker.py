@@ -147,11 +147,37 @@ def test_marker_reconciliation_is_single_authoritative_pipeline():
     assert "reconcilePlayerNodeMarker(root, playerLocation, state.generation);" in WORLD_STAGE
 
 
+def test_current_zone_null_fails_closed_and_reconciliation_removes_stale_markers():
+    marker_start = WORLD_STAGE.index("function reconcilePlayerNodeMarker(")
+    marker_end = WORLD_STAGE.index("\n  function newbieCtaText(", marker_start)
+    marker = WORLD_STAGE[marker_start:marker_end]
+    assert "if (!zone || !anchor)" in marker
+    assert "marker.hidden = true;" in marker
+    assert "markerHosts.slice(1).forEach(function (duplicate) { duplicate.remove(); });" in marker
+    assert "document.querySelectorAll('.e10-current-hero').forEach(function (hero)" in marker
+
+
 def test_battle_return_path_force_refreshes_shared_adventure_bootstrap():
     assert "function refreshAdventureState(fetchImpl)" in ADVENTURE_ADAPTER
     assert "requestInit.cache = 'no-store'" in ADVENTURE_ADAPTER
     assert "adapter.refreshAdventureState()" in WORLD_STAGE
     assert "adapter.fetchAdventureState(null, { forceRefresh: true })" in WORLD_STAGE
+
+
+def test_fresh_bootstrap_authority_is_passed_to_the_map_render_boundary():
+    assert "authority = result.data;" in WORLD_STAGE
+    assert "authority.generation = generation;" in WORLD_STAGE
+    assert "renderZones(root, result.data.zones, authority);" in WORLD_STAGE
+    assert "renderZones(root, result.data.zones);" not in WORLD_STAGE
+
+
+def test_authoritative_primary_action_precedes_legacy_skipped_presentation():
+    cta_start = WORLD_STAGE.index("function ctaContract(zone, state)")
+    cta_end = WORLD_STAGE.index("\n  function usesLandmarkCards(", cta_start)
+    cta = WORLD_STAGE[cta_start:cta_end]
+    assert cta.index("var primary = resolvePrimaryCta") < cta.index("zone.status === 'skipped_by_placement'")
+    assert "primary.kind !== 'replay_completed'" in cta
+    assert "kind: 'replenish_stars'" in cta
 
 
 def test_marker_hosts_remain_non_clickable_and_current_key_is_not_selection_derived():
