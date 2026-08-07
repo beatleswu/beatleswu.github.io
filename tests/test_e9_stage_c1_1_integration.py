@@ -35,7 +35,7 @@ def _load_rollout_module():
 
 def test_newbie_panel_is_owned_by_world_stage_and_uses_canonical_identity():
     assert 'id="e9-newbie-mainline"' in WORLD_MARKUP
-    assert "function renderBeginnerVillageMainline(root, zone)" in WORLD_STAGE
+    assert "function renderBeginnerVillageMainline(root, zone, state)" in WORLD_STAGE
     assert "zone.key !== 'k26_30'" in WORLD_STAGE
     assert "renderSelectedZone(root, zones, zone.key, true)" in WORLD_STAGE
     assert 'id="e9-world-stage-details"' in WORLD_MARKUP
@@ -60,7 +60,12 @@ def test_newbie_panel_reuses_batch_a_copy_and_has_no_second_adventure_schema():
         assert re.search(re.escape("'" + key + "'") + r"\s*:\s*\{\s*en:", I18N)
     render_body = WORLD_STAGE.split("function renderBeginnerVillageMainline", 1)[1].split("function renderZones", 1)[0]
     assert "/api/adventure/bootstrap" not in render_body
-    assert "startAdventureFromE9(zone.key)" in WORLD_STAGE
+    # The tutorial CTA delegates to the same shared dispatcher every other
+    # CTA surface uses, rather than calling startAdventureFromE9 directly --
+    # see test_e9_lord_challenge_cta_scope_and_routing.py for the routing
+    # regression this guards against.
+    assert "dispatchAdventureAction(contract);" in render_body
+    assert "startAdventureFromE9(zone.key)" not in render_body
     assert "Daily" not in WORLD_STAGE
 
 
@@ -76,7 +81,7 @@ def test_newbie_cta_maps_existing_state_without_recomputing_progress():
 
 
 def test_sw_active_version_is_bumped_for_this_runtime_change():
-    assert "v227-e10-canonical-layout-contract-recovery" in SW
+    assert "v228-e10-lord-challenge-cta-scope-and-routing" in SW
     assert "v190-newbie-village-mainline-clarity" not in SW
 
 

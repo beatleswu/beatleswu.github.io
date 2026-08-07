@@ -84,9 +84,17 @@ def test_portrait_detail_exposes_complete_selected_zone_identity():
 
 
 def test_all_responsive_ctas_share_one_selected_target_action():
-    assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in WORLD
-    assert "window.E9.startAdventureFromE9(inlineContract.targetZoneKey)" in WORLD
-    assert "window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey)" in RIGHT
+    # All three responsive CTA surfaces (desktop/details, mobile inline, and
+    # the right-drawer zone panel) delegate to the SAME shared dispatcher --
+    # world_stage.js's own routing decision (challenge_lord vs ordinary) is
+    # never re-derived independently a third time.
+    assert "function dispatchAdventureAction(contract)" in WORLD
+    assert "window.E9.dispatchAdventureAction = dispatchAdventureAction;" in WORLD
+    assert "dispatchAdventureAction(contract);" in WORLD
+    assert "dispatchAdventureAction(inlineContract);" in WORLD
+    assert "window.E9.dispatchAdventureAction(" in RIGHT
+    assert "targetZoneKey: root.__e10ChallengeTargetZoneKey" in RIGHT
+    assert "kind: root.__e10ChallengeTargetKind" in RIGHT
     assert "state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(zone)" in WORLD
 
 

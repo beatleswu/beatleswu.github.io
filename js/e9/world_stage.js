@@ -187,17 +187,32 @@
     if (!target) {
       return { enabled: false, targetZoneKey: null, label: t('e10.world_stage.state_locked', 'Locked') };
     }
+    // The root-level arbitration (state.primaryAction / the client-computed
+    // fallback in resolvePrimaryCta) names exactly ONE zone. A per-zone card
+    // may only inherit that decision when it IS the named zone -- otherwise
+    // this card must fall through to ITS OWN authoritative fields below.
+    // This is the fix for CTA_SCOPE_DEFECT: previously any unlocked zone's
+    // card unconditionally inherited the single global pick.
     var primary = resolvePrimaryCta(state, state.zones || []);
-    if (primary && primary.zoneKey) {
-      var primaryZone = findZone(state.zones || [], primary.zoneKey);
+    if (primary && primary.zoneKey === zone.key && primary.kind !== 'replay_completed') {
       var primaryLabel = primary.kind === 'normal_progression'
         ? (primary.zoneKey === state.currentPlayerZoneKey
           ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
           : t('index.adv.start_challenge', 'Start Challenge'))
         : actionLabel(primary, state);
-      if (primaryZone && primary.kind !== 'replay_completed') {
-        return { enabled: true, targetZoneKey: primary.zoneKey, label: primaryLabel, kind: primary.kind };
-      }
+      return { enabled: true, targetZoneKey: primary.zoneKey, label: primaryLabel, kind: primary.kind };
+    }
+    // Backstop: even when this zone isn't the single globally-arbitrated
+    // pick, its OWN authoritative boss.available must still win over
+    // completed/skipped/normal -- never inferred from seen/total, only the
+    // server-provided bossAvailable flag already normalized onto the zone.
+    if (zone.bossAvailable === true && !zone.cleared) {
+      return {
+        enabled: true,
+        targetZoneKey: target,
+        label: actionLabel({ kind: 'challenge_lord', zoneKey: zone.key }, state),
+        kind: 'challenge_lord',
+      };
     }
     if (zone.status === 'completed') {
       return { enabled: true, targetZoneKey: target, label: t('index.adv.quest_replay_training', 'Star training'), kind: 'replay_completed' };
@@ -442,7 +457,7 @@
     return t(ctaKey, 'Begin the Beginner Village Adventure');
   }
 
-  function renderBeginnerVillageMainline(root, zone) {
+  function renderBeginnerVillageMainline(root, zone, state) {
     var panel = root.querySelector('#e9-newbie-mainline');
     if (!panel || !zone || zone.key !== 'k26_30') return;
 
@@ -476,14 +491,20 @@
 
     var cta = panel.querySelector('#e9-newbie-mainline-cta');
     if (cta) {
+      // Label stays tutorial-flavored (newbieCtaText) -- only the routing
+      // decision comes from the same authoritative ctaContract()/
+      // dispatchAdventureAction() every other CTA surface uses. This CTA
+      // must never re-derive challenge_lord readiness itself (e.g. from
+      // zone.bossAvailable directly): a fourth, independent routing branch
+      // is exactly the defect class already fixed for the other three
+      // surfaces.
       cta.textContent = newbieCtaText(zone);
       if (cta.__e9AdventureHandler) {
         cta.removeEventListener('click', cta.__e9AdventureHandler);
       }
+      var contract = ctaContract(zone, state);
       cta.__e9AdventureHandler = function () {
-        if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-          window.E9.startAdventureFromE9(zone.key);
-        }
+        dispatchAdventureAction(contract);
       };
       if (window.E9 && typeof window.E9.on === 'function') {
         window.E9.on(cta, 'click', cta.__e9AdventureHandler);
@@ -554,6 +575,40 @@
     });
   }
 
+  // CTA_ACTION_ROUTING_DEFECT fix: a 'challenge_lord' contract must invoke
+  // the existing, canonical Lord entry point (openAdventureBossFromQuestCard
+  // -> showBossCinematic -> confirmBossBattle -> the existing boss-challenge
+  // finish contract, index.html-owned), never the generic
+  // startAdventureFromE9() ordinary-question handoff. E9's own JS never
+  // calls the boss challenge API routes directly -- it always defers to
+  // this one shared, legacy-owned entry point.
+  // openAdventureBossFromQuestCard() reads the legacy _adventureProgress
+  // cache for live boss/cleared state; that cache is never populated while
+  // the E9 shell owns the page (ensureLegacyAdventureMapReady() is skipped
+  // at page init whenever the E9 shell is active). Reuse the E9 adapter's
+  // already-fetched bootstrap data (no duplicate network call) to populate
+  // it before handing off -- this is the existing, reviewed shell-to-legacy
+  // bridge (window.ensureLegacyAdventureMapReady), not a new one.
+  function dispatchAdventureAction(contract) {
+    if (!contract || !contract.enabled || !contract.targetZoneKey) return;
+    if (contract.kind === 'challenge_lord') {
+      var enter = function () {
+        if (typeof window.openAdventureBossFromQuestCard === 'function') {
+          window.openAdventureBossFromQuestCard(contract.targetZoneKey);
+        }
+      };
+      if (typeof window.ensureLegacyAdventureMapReady === 'function') {
+        window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true }).then(enter, enter);
+      } else {
+        enter();
+      }
+      return;
+    }
+    if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+      window.E9.startAdventureFromE9(contract.targetZoneKey);
+    }
+  }
+
   function configureAdventureButton(button, zone, contract) {
     if (!button || !zone || !contract) {
       if (button) button.hidden = true;
@@ -568,9 +623,7 @@
       button.removeEventListener('click', button.__e9AdventureHandler);
     }
     button.__e9AdventureHandler = function () {
-      if (contract.enabled && contract.targetZoneKey && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-        window.E9.startAdventureFromE9(contract.targetZoneKey);
-      }
+      dispatchAdventureAction(contract);
     };
     if (window.E9 && typeof window.E9.on === 'function') {
       window.E9.on(button, 'click', button.__e9AdventureHandler);
@@ -585,11 +638,17 @@
       if (primary) primary.hidden = true;
       return;
     }
-    var contract = zone && ctaContract(zone, state);
-    var label = contract ? contract.label : '';
-    var targetZone = contract && contract.targetZoneKey
-      ? findZone(state.zones || [], contract.targetZoneKey) || zone
+    // The primary CTA is a single "most important thing to do right now"
+    // control, independent of which zone card the player merely has
+    // selected for viewing -- it must always target the root-level
+    // arbitration's own zone (falling back to the selected zone only when
+    // no arbitration exists), never the selected zone's unrelated state.
+    var primaryAction = resolvePrimaryCta(state, state.zones || []);
+    var targetZone = primaryAction && primaryAction.zoneKey
+      ? findZone(state.zones || [], primaryAction.zoneKey) || zone
       : zone;
+    var contract = targetZone && ctaContract(targetZone, state);
+    var label = contract ? contract.label : '';
     configureAdventureButton(primary, targetZone, contract);
     if (primary && targetZone && !primary.hidden) {
       var registry = window.E9 && window.E9.NavigationRegistry;
@@ -762,9 +821,7 @@
           inlineCta.setAttribute('data-challenge-target-zone', inlineContract.targetZoneKey || '');
           inlineCta.addEventListener('click', function (evt) {
             evt.stopPropagation();
-            if (inlineContract.enabled && inlineContract.targetZoneKey && window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-              window.E9.startAdventureFromE9(inlineContract.targetZoneKey);
-            }
+            dispatchAdventureAction(inlineContract);
           });
           inline.appendChild(inlineCta);
         }
@@ -772,7 +829,7 @@
       }
     }
 
-    renderBeginnerVillageMainline(root, zone);
+    renderBeginnerVillageMainline(root, zone, state);
     if (newbie && (
       (VS1E_STATIC_CONTRACT_ACTIVE && (isMobile || zone.key !== 'k26_30'))
       || (!VS1E_STATIC_CONTRACT_ACTIVE && zone.key !== 'k26_30')
@@ -1155,4 +1212,12 @@
       init(e.detail.root, e.detail.generation);
     }
   });
+
+  // Shared with other E9 components (right_cards.js's own zone-detail CTA)
+  // that dispatch the same {enabled, targetZoneKey, kind} contract this
+  // module already produces via ctaContract()/zoneSelectionDetail() -- a
+  // second, independent copy of this routing decision is exactly how the
+  // CTA_ACTION_ROUTING_DEFECT regression reached a third surface unnoticed.
+  window.E9 = window.E9 || {};
+  window.E9.dispatchAdventureAction = dispatchAdventureAction;
 })(document);

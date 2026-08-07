@@ -171,14 +171,15 @@ def test_bottom_dock_badge_slot_alignment_uses_one_shared_five_column_contract()
 
 def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
     assert "registry.icon('compass', 'e10-map-primary-cta__icon')" in WORLD
-    assert "window.E9.startAdventureFromE9(contract.targetZoneKey)" in WORLD
-    assert "window.E9.startAdventureFromE9(root.__e10ChallengeTargetZoneKey)" in RIGHT
+    assert "dispatchAdventureAction(contract);" in WORLD
+    assert "window.E9.dispatchAdventureAction(" in RIGHT
+    assert "targetZoneKey: root.__e10ChallengeTargetZoneKey" in RIGHT
     for identity in ("currentPlayerZoneKey", "selectedZoneKey", "challengeTargetZoneKey"):
         assert identity in WORLD
 
 
 def test_final_cache_identity_and_stylesheet_order_are_single_bump():
-    assert "const VERSION     = 'v227-e10-canonical-layout-contract-recovery'" in SW
+    assert "const VERSION     = 'v228-e10-lord-challenge-cta-scope-and-routing'" in SW
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
     assert INDEX.count("20260801e10art1") >= 9
     assert "/css/e9/art_directed_runtime.css?v=20260801e10art1" in INDEX

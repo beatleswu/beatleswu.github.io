@@ -33,8 +33,8 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v227-e10-canonical-layout-contract-recovery"
-PREVIOUS_SW_VERSION = "v208-e10-world-stage-v1d1"
+NEW_SW_VERSION = "v228-e10-lord-challenge-cta-scope-and-routing"
+PREVIOUS_SW_VERSION = "v227-e10-canonical-layout-contract-recovery"
 
 
 def _render_selected_zone_body():
@@ -68,7 +68,7 @@ def test_adapter_declares_seen_and_total_on_normalized_zone():
 def test_generic_cta_shown_and_wired_for_any_non_newbie_unlocked_zone():
     body = _render_selected_zone_body()
     cta_block_start = body.index("if (cta) {")
-    cta_block_end = body.index("renderBeginnerVillageMainline(root, zone);", cta_block_start)
+    cta_block_end = body.index("renderBeginnerVillageMainline(root, zone, state);", cta_block_start)
     cta_block = body[cta_block_start:cta_block_end]
     # Exactly one zone-key special case in the whole CTA-visibility block:
     # k26_30 (Beginner Village). No per-zone branching exists for any
@@ -366,7 +366,12 @@ def test_i18n_boss_ready_retains_seen_and_total_placeholders():
 # ---------------------------------------------------------------------
 
 def test_newbie_mainline_cta_untouched_and_generic_cta_hidden_for_it():
-    assert "function renderBeginnerVillageMainline(root, zone)" in WORLD_STAGE
+    # "Untouched" here means presentation/exclusivity, not routing: the
+    # E10_PR283_TUTORIAL_LORD_ROUTING_AMENDMENT gave this function a `state`
+    # parameter so its CTA can share ctaContract()/dispatchAdventureAction()
+    # with the other three CTA surfaces -- see
+    # test_e9_lord_challenge_cta_scope_and_routing.py for that routing fix.
+    assert "function renderBeginnerVillageMainline(root, zone, state)" in WORLD_STAGE
     assert "if (!panel || !zone || zone.key !== 'k26_30') return;" in WORLD_STAGE
     assert "#e9-newbie-mainline-cta" in WORLD_STAGE
 

@@ -1094,18 +1094,37 @@ async function runCase(browser, origin, outputDir, spec) {
     const before = await runtimeSnapshot(page);
     await page.evaluate(() => {
       window.__e10ChallengeTargets = [];
+      window.__e10ChallengeKinds = [];
       window.__e10OriginalStart = window.E9.startAdventureFromE9;
-      window.E9.startAdventureFromE9 = function (zoneKey) { window.__e10ChallengeTargets.push(zoneKey); };
+      window.__e10OriginalBoss = window.openAdventureBossFromQuestCard;
+      window.E9.startAdventureFromE9 = function (zoneKey) {
+        window.__e10ChallengeTargets.push(zoneKey);
+        window.__e10ChallengeKinds.push('ordinary');
+      };
+      // A 'challenge_lord' contract routes through the canonical Lord entry
+      // (bridged via the real ensureLegacyAdventureMapReady()), not
+      // startAdventureFromE9 -- stub only the final boss-entry function so
+      // the real E9-to-legacy bridge call still runs for real.
+      window.openAdventureBossFromQuestCard = function (zoneKey) {
+        window.__e10ChallengeTargets.push(zoneKey);
+        window.__e10ChallengeKinds.push('lord');
+      };
     });
     await page.locator('#e9-world-stage-primary-cta').evaluate((element) => element.click());
+    await page.waitForFunction(
+      () => window.__e10ChallengeTargets.length > 0,
+      { timeout: 2000 },
+    ).catch(() => {}); // lockedChallengeCheck expects zero dispatches -- timing out here is correct, not a failure
     const after = await runtimeSnapshot(page);
-    const targets = await page.evaluate(() => {
-      const values = window.__e10ChallengeTargets.slice();
+    const { targets, kinds } = await page.evaluate(() => {
+      const values = { targets: window.__e10ChallengeTargets.slice(), kinds: window.__e10ChallengeKinds.slice() };
       window.E9.startAdventureFromE9 = window.__e10OriginalStart;
+      window.openAdventureBossFromQuestCard = window.__e10OriginalBoss;
       delete window.__e10OriginalStart;
+      delete window.__e10OriginalBoss;
       return values;
     });
-    challengeAction = { before, after, targets };
+    challengeAction = { before, after, targets, kinds };
   }
 
   const snapshot = await runtimeSnapshot(page);
@@ -1541,6 +1560,15 @@ function assertCase(result) {
     const action = result.challengeAction;
     const expectedTargets = result.lockedChallengeCheck ? [] : [snapshot.zoneIdentities.challengeTargetZoneKey];
     if (action.targets.join(',') !== expectedTargets.join(',')) failures.push(`${specName}: challenge targets ${action.targets.join(',')}`);
+    // Fixture apiResponse() always arbitrates primary_action.kind as
+    // 'challenge_lord' for whichever zone is `current` -- the primary CTA
+    // must therefore route through the canonical Lord entry
+    // (openAdventureBossFromQuestCard), never the ordinary
+    // startAdventureFromE9 handoff (CTA_ACTION_ROUTING_DEFECT regression guard).
+    const expectedKinds = result.lockedChallengeCheck ? [] : ['lord'];
+    if (action.kinds.join(',') !== expectedKinds.join(',')) {
+      failures.push(`${specName}: challenge routing kind ${action.kinds.join(',')} expected ${expectedKinds.join(',')}`);
+    }
     if (action.before.playerLocationZone !== action.after.playerLocationZone) failures.push(`${specName}: starting challenge immediately moved player`);
     if (action.before.zoneIdentities.currentPlayerZoneKey !== action.after.zoneIdentities.currentPlayerZoneKey) {
       failures.push(`${specName}: starting challenge changed authoritative frontier`);
