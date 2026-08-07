@@ -1865,6 +1865,173 @@ function Get-SwVersionFromText {
     return $match.Groups[1].Value
 }
 
+function Get-SwAssetIdentityFromText {
+    param(
+        [Parameter(Mandatory = $true)][string]$SwText,
+        [string]$SourceLabel = 'sw.js'
+    )
+    $match = [regex]::Match($SwText, "const ASSET_IDENTITY\s*=\s*'([^']+)'")
+    if (-not $match.Success) {
+        throw "Could not find sw.js ASSET_IDENTITY in $SourceLabel."
+    }
+    return $match.Groups[1].Value
+}
+
+function Get-StaticReleaseAssetIdentity {
+    <#
+    Build the deterministic cache namespace used by the generated Service
+    Worker. The full source SHA is deliberate: two different release trees
+    cannot share a cache name, while rerunning the same source is stable.
+    #>
+    param([Parameter(Mandatory = $true)][string]$GitSha)
+    $normalized = $GitSha.Trim().ToLowerInvariant()
+    if ($normalized -notmatch '^[0-9a-f]{40}$') {
+        throw "Static release cache identity requires a full lowercase Git SHA."
+    }
+    return "release-$normalized"
+}
+
+function Set-StaticReleaseServiceWorkerIdentity {
+    <#
+    Replace the checked-in Service Worker's executable source fallback only in
+    the isolated static staging directory. The source checkout is never
+    rewritten; the generated worker records the exact release SHA it caches.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$AssetIdentity
+    )
+    if ($AssetIdentity -notmatch '^[A-Za-z0-9._-]+$') {
+        throw "Service Worker asset identity contains unsupported characters."
+    }
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $text = [System.IO.File]::ReadAllText($Path, $encoding)
+    $pattern = "(?m)^const ASSET_IDENTITY\s*=\s*'[^']*';\s*$"
+    $matches = [regex]::Matches($text, $pattern)
+    if ($matches.Count -ne 1) {
+        throw "Expected exactly one executable ASSET_IDENTITY declaration in staged sw.js."
+    }
+    $replacement = "const ASSET_IDENTITY = '$AssetIdentity';"
+    $updated = [regex]::Replace($text, $pattern, $replacement, 1)
+    [System.IO.File]::WriteAllText($Path, $updated, $encoding)
+    return $updated
+}
+
+function Get-StaticLocalReferencePaths {
+    param([Parameter(Mandatory = $true)][string]$Text)
+    $patterns = @(
+        '(?i)(?:src|href)\s*=\s*["'']([^"'']+)["'']',
+        '(?i)\burl\(\s*["'']?([^)"''\s]+)["'']?\s*\)',
+        '["''](/(?:js/e9|css/e9|components/adventure)/[^"''?#\s)]+)'
+    )
+    $paths = New-Object 'System.Collections.Generic.HashSet[string]' -ArgumentList ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($pattern in $patterns) {
+        foreach ($match in [regex]::Matches($Text, $pattern)) {
+            $reference = $match.Groups[1].Value.Trim()
+            if ([string]::IsNullOrWhiteSpace($reference) -or
+                $reference.StartsWith('#') -or
+                $reference -match '^(?i)(?:[a-z][a-z0-9+.-]*:|//)') {
+                continue
+            }
+            $pathOnly = ($reference -split '[?#]')[0]
+            if (-not $pathOnly.StartsWith('/')) {
+                continue
+            }
+            $normalized = $pathOnly.TrimStart('/').Replace('\', '/')
+            if (-not [string]::IsNullOrWhiteSpace($normalized)) {
+                $paths.Add($normalized) | Out-Null
+            }
+        }
+    }
+    return @($paths | Sort-Object)
+}
+
+function Get-StaticRuntimeDependencyClosure {
+    <#
+    Resolve the E10 entrypoint's local JS/CSS/component graph. The inventory's
+    declared subtrees are the public live-static boundary; a referenced file
+    in that boundary must exist in the exact source checkout or packaging
+    fails closed. Required_subtrees (assets/audio) remain governed by their
+    separate exact closure manifests.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceRoot,
+        [Parameter(Mandatory = $true)]$Inventory
+    )
+    $property = $Inventory.PSObject.Properties['runtime_dependency_closure']
+    if ($null -eq $property -or $null -eq $property.Value) {
+        return @()
+    }
+    $configuration = $property.Value
+    $subtrees = @($configuration.subtrees)
+    if ($subtrees.Count -eq 0) {
+        throw "runtime_dependency_closure must declare at least one subtree."
+    }
+
+    $subtreeDefinitions = @()
+    foreach ($subtree in $subtrees) {
+        $prefix = ([string]$subtree.prefix).Replace('\', '/')
+        if ([string]::IsNullOrWhiteSpace($prefix) -or
+            $prefix.StartsWith('/') -or $prefix.Contains('..') -or
+            -not $prefix.EndsWith('/')) {
+            throw "Invalid runtime dependency subtree prefix: $prefix"
+        }
+        $subtreeDefinitions += [pscustomobject]@{
+            prefix = $prefix
+            extensions = @($subtree.extensions | ForEach-Object { ([string]$_).ToLowerInvariant() })
+        }
+    }
+
+    $queue = New-Object 'System.Collections.Generic.Queue[string]'
+    foreach ($entrypoint in @($configuration.entrypoints)) {
+        $entry = ([string]$entrypoint).Replace('\', '/').TrimStart('/')
+        if ([string]::IsNullOrWhiteSpace($entry) -or $entry.Contains('..')) {
+            throw "Invalid runtime dependency entrypoint: $entrypoint"
+        }
+        $entrySource = Join-Path $SourceRoot $entry
+        if (-not (Test-Path -LiteralPath $entrySource -PathType Leaf)) {
+            throw "Runtime dependency entrypoint is missing from source checkout: $entry"
+        }
+        $queue.Enqueue($entry)
+    }
+
+    $visited = New-Object 'System.Collections.Generic.HashSet[string]' -ArgumentList ([System.StringComparer]::OrdinalIgnoreCase)
+    $closure = New-Object 'System.Collections.Generic.HashSet[string]' -ArgumentList ([System.StringComparer]::OrdinalIgnoreCase)
+    while ($queue.Count -gt 0) {
+        $relativePath = $queue.Dequeue().Replace('\', '/')
+        if (-not $visited.Add($relativePath)) {
+            continue
+        }
+        $sourceFile = Join-Path $SourceRoot $relativePath
+        if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+            throw "Runtime dependency is missing from source checkout (fail closed): $relativePath"
+        }
+        $text = Get-Content -Raw -Encoding UTF8 -LiteralPath $sourceFile
+        foreach ($reference in Get-StaticLocalReferencePaths -Text $text) {
+            $definition = $subtreeDefinitions | Where-Object {
+                $reference.StartsWith($_.prefix, [System.StringComparison]::OrdinalIgnoreCase)
+            } | Select-Object -First 1
+            if ($null -eq $definition) {
+                continue
+            }
+            $extension = [System.IO.Path]::GetExtension($reference).ToLowerInvariant()
+            if (@($definition.extensions) -notcontains $extension) {
+                throw "Runtime dependency has an unsupported extension under '$($definition.prefix)': $reference"
+            }
+            if (-not $closure.Add($reference)) {
+                continue
+            }
+            $referencedSource = Join-Path $SourceRoot $reference
+            if (-not (Test-Path -LiteralPath $referencedSource -PathType Leaf)) {
+                throw "Runtime dependency is missing from source checkout (fail closed): $reference"
+            }
+            $queue.Enqueue($reference)
+        }
+    }
+
+    return @($closure | Sort-Object)
+}
+
 function Assert-SafeStaticRelativePath {
     <#
     .SYNOPSIS
@@ -2017,7 +2184,8 @@ function New-StaticReleaseBundle {
     param(
         [Parameter(Mandatory = $true)][string]$SourceRoot,
         [Parameter(Mandatory = $true)][string]$StagePath,
-        [Parameter(Mandatory = $true)]$Inventory
+        [Parameter(Mandatory = $true)]$Inventory,
+        [string]$ServiceWorkerAssetIdentity
     )
     if (Test-Path -LiteralPath $StagePath) {
         Remove-Item -LiteralPath $StagePath -Recurse -Force
@@ -2046,10 +2214,51 @@ function New-StaticReleaseBundle {
             throw "Static release staging path is a directory, expected a file: $relativePath"
         }
         Copy-Item -LiteralPath $sourceFile -Destination $targetFile -Force
+        if ($relativePath -eq 'sw.js' -and -not [string]::IsNullOrWhiteSpace($ServiceWorkerAssetIdentity)) {
+            Set-StaticReleaseServiceWorkerIdentity -Path $targetFile -AssetIdentity $ServiceWorkerAssetIdentity | Out-Null
+        }
         $hash = (Get-FileHash -LiteralPath $targetFile -Algorithm SHA256).Hash.ToLowerInvariant()
         $size = (Get-Item -LiteralPath $targetFile).Length
         if ($size -le 0) {
             throw "Staged static release file is empty: $relativePath"
+        }
+        $files += [ordered]@{
+            path = $relativePath
+            sha256 = $hash
+            size = $size
+        }
+    }
+
+    # The flat allowlist above owns the release entrypoint and legacy shared
+    # files. This graph-derived boundary owns the complete E10 JS/CSS/HTML
+    # runtime closure, including files under explicitly routed subpaths.
+    foreach ($relativePath in @(Get-StaticRuntimeDependencyClosure -SourceRoot $SourceRoot -Inventory $Inventory)) {
+        $relativePath = ([string]$relativePath).Replace('\', '/')
+        Assert-SafeStaticRelativePath -RelativePath $relativePath -Inventory $Inventory
+        if ($seenPaths.Contains($relativePath)) {
+            continue
+        }
+        $relativePath = Add-StaticReleasePathToSet -SeenPaths $seenPaths -RelativePath $relativePath
+        $sourceFile = Join-Path $SourceRoot $relativePath
+        if (Test-Path -LiteralPath $sourceFile -PathType Container) {
+            throw "Static runtime dependency source path is a directory, expected a file: $relativePath"
+        }
+        if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+            throw "Static runtime dependency source file missing (fail closed): $sourceFile"
+        }
+        $targetFile = Get-StaticReleaseStageTargetPath -StagePath $StagePath -RelativePath $relativePath
+        $targetParent = Split-Path -Parent $targetFile
+        if (-not (Test-Path -LiteralPath $targetParent -PathType Container)) {
+            New-Item -ItemType Directory -Path $targetParent -Force | Out-Null
+        }
+        if (Test-Path -LiteralPath $targetFile -PathType Container) {
+            throw "Static runtime dependency staging path is a directory, expected a file: $relativePath"
+        }
+        Copy-Item -LiteralPath $sourceFile -Destination $targetFile -Force
+        $hash = (Get-FileHash -LiteralPath $targetFile -Algorithm SHA256).Hash.ToLowerInvariant()
+        $size = (Get-Item -LiteralPath $targetFile).Length
+        if ($size -le 0) {
+            throw "Staged static runtime dependency is empty: $relativePath"
         }
         $files += [ordered]@{
             path = $relativePath
@@ -2118,13 +2327,15 @@ function New-StaticReleaseManifestObject {
         [long]$ArchiveSize,
         [int]$ArchiveEntryCount,
         [string]$GnuTarExecutablePath,
-        [string]$GnuTarVersion
+        [string]$GnuTarVersion,
+        [string]$AssetIdentity
     )
     return [ordered]@{
         release_git_sha = $GitSha
         static_generation_id = $GenerationId
         static_root = '/opt/go-odyssey-static'
         service_worker_version = $SwVersion
+        service_worker_asset_identity = $AssetIdentity
         asset_count = @($Files).Count
         # $Files entries may be ordered hashtables (from New-StaticReleaseBundle,
         # in-memory) or PSCustomObjects (after a JSON round-trip) -- extract
@@ -2330,6 +2541,11 @@ Export-ModuleMember -Function @(
     'Get-StaticAssetInventory',
     'Resolve-StaticPublicRoute',
     'Get-SwVersionFromText',
+    'Get-SwAssetIdentityFromText',
+    'Get-StaticReleaseAssetIdentity',
+    'Set-StaticReleaseServiceWorkerIdentity',
+    'Get-StaticLocalReferencePaths',
+    'Get-StaticRuntimeDependencyClosure',
     'Assert-SafeStaticRelativePath',
     'Assert-SafeStaticSubtreeRelativePath',
     'Get-CanonicalAssetClosureManifest',

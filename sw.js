@@ -7,12 +7,14 @@
  */
 
 const VERSION     = 'v227-e10-canonical-layout-contract-recovery';
-// Shared with the E10 site-nav.js and js/e9/shell.js cache-busting URLs in
-// index.html. Change this identity whenever their static-generation contract
-// changes so an older shell can never remain in the active SW cache.
-const ASSET_IDENTITY = '20260804e10navcache1';
+// The static release packager replaces this deterministic source fallback with
+// a release-<full-git-sha> identity in the staged worker. Keeping a valid
+// source fallback makes the checked-in worker executable while ensuring that
+// every generated release gets a distinct cache namespace automatically.
+const ASSET_IDENTITY = 'source-v227-e10-canonical-layout-contract-recovery';
 const SHELL_CACHE = `cg-shell-${VERSION}-${ASSET_IDENTITY}`;
 const IMG_CACHE   = `cg-img-${VERSION}-${ASSET_IDENTITY}`;
+const APP_CACHE_PREFIXES = ['cg-shell-', 'cg-img-'];
 
 // 只預快取公開、不需登入的靜態資源
 // 登入後頁面（/hero、/curriculum 等）不預快取——安裝時 fetch 會跟 redirect 到 /login 快取到錯誤內容
@@ -41,6 +43,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys =>
       Promise.all(
         keys
+          .filter(k => APP_CACHE_PREFIXES.some(prefix => k.startsWith(prefix)))
           .filter(k => k !== SHELL_CACHE && k !== IMG_CACHE)
           .map(k => caches.delete(k))
       )
@@ -89,12 +92,12 @@ self.addEventListener('fetch', event => {
 // ── 策略函數 ──────────────────────────────────────────────────
 
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request);
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
   if (cached) return cached;
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
     return response;
@@ -104,19 +107,19 @@ async function cacheFirst(request, cacheName) {
 }
 
 async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
     return response;
   } catch {
-    const cached = await caches.match(request);
+    const cached = await cache.match(request);
     if (cached) return cached;
     // HTML 頁面離線時回傳主頁快取
     if (request.destination === 'document') {
-      const root = await caches.match('/');
+      const root = await cache.match('/');
       return root || new Response('離線中', { status: 503 });
     }
     return new Response(JSON.stringify({ error: '離線中', offline: true }),
