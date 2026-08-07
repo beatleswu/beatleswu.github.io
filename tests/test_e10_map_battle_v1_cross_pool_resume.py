@@ -198,7 +198,13 @@ def test_case7_wrong_zone_does_not_consume_resume():
     assert out["hydrationFetched"] is False, "a zone mismatch must short-circuit before any hydration attempt"
 
 
-def test_case8_settled_question_falls_back_even_when_hydrated():
+def test_case8_historical_mastery_does_not_block_cross_pool_resume():
+    # Superseded by E10_MAP_BATTLE_V1_RESUME_MASTERY_GUARD_CORRECTION: historical
+    # SRS mastery (seen+defeated) is a NEW-target *selection* preference, not an
+    # active-attempt validity gate -- see
+    # test_e10_map_battle_v1_resume_mastery_guard_correction.py for the full
+    # contract this case now documents. A hydrated, still-active attempt must
+    # resume even when its question was mastered long ago.
     [out] = _run_harness([{
         "zoneKey": "d3_4",
         "qs": [QUESTION_A],
@@ -208,7 +214,8 @@ def test_case8_settled_question_falls_back_even_when_hydrated():
         "seenIds": [50376],
         "defeatedIds": [50376],
     }])
-    assert out["result"] is None, "seen+defeated must still fall back, whether the target came from qs or hydration"
+    assert out["result"] is not None
+    assert out["result"]["target"]["id"] == 50376
 
 
 def test_bootstrap_failure_still_fails_closed():

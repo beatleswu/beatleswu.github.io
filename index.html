@@ -10861,10 +10861,22 @@ async function _resolveMapBattleV1Resume(zoneKey, qs) {
         _clearMapBattleV1Resume();
         return null;
     }
-    if (_adventureQuestionSeen(target.id) && _adventureQuestionDefeated(target.id)) {
-        _clearMapBattleV1Resume();
-        return null;
-    }
+    // The historical-mastery seen/defeated predicate encodes a NEW-target
+    // SELECTION preference (prefer unseen, then seen-but-unmastered, over
+    // already-mastered content when picking what to offer next -- see
+    // _pickAdventureTarget / _pickNextAdventureTarget, where this predicate
+    // correctly still applies). It is not, and was never meant to be, a
+    // validity gate on an attempt the server has already issued: manual 下一題
+    // (nextQuestion() with no args) selects via a plain index/length wrap with
+    // no mastery filtering at all, and replenish_stars zones exist precisely
+    // to let players revisit already-mastered questions -- both routinely
+    // create legitimate active V1 attempts for questions with a historical
+    // last_grade >= 3. Rejecting resume here on that same historical grade,
+    // for an attempt that is otherwise still server-authoritative/ISSUED/
+    // unsettled/same-zone, silently discarded exactly that attempt and
+    // reverted the player to an earlier question (confirmed live in
+    // production). Historical mastery must stay out of this check; an
+    // attempt's own lifecycle state is the only thing that can invalidate it.
     if (!progress.zones.some(zone => String(zone.key || '') === String(zoneKey || ''))) {
         _clearMapBattleV1Resume();
         return null;
