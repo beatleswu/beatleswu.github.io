@@ -10828,8 +10828,36 @@ async function _resolveMapBattleV1Resume(zoneKey, qs) {
     }
     const candidate = _readMapBattleV1Resume();
     if (!candidate || String(candidate.zoneKey || '') !== String(zoneKey || '')) return null;
-    const target = (qs || []).find(q => Number(q.id) === Number(candidate.questionId));
-    if (!target || !candidate.battleId || !candidate.attemptId || !candidate.submissionNonce) {
+    if (!candidate.battleId || !candidate.attemptId || !candidate.submissionNonce) {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    // The authoritative V1 attempt already names its question_id server-side
+    // (see map_battle_v1_prepare_attempt) -- unitQs/qs is only this zone's
+    // book-filtered SELECTION pool for picking a *new* target, not the
+    // existence check for an attempt that already exists. "下一題" can hand
+    // out a question that a later, freshly-refetched unitQs no longer
+    // contains (server-side practice-queue rotation), which must not by
+    // itself invalidate an otherwise-valid resume -- hydrate it through the
+    // same canonical /api/question/:id path _loadBossQuestion() already uses
+    // for an identical local-miss case, rather than falling back to
+    // _pickAdventureTarget() and silently reverting progress.
+    let target = (qs || []).find(q => Number(q.id) === Number(candidate.questionId));
+    if (!target) {
+        try {
+            const hydrateResponse = await fetch(
+                `/api/question/${encodeURIComponent(candidate.questionId)}`,
+                { credentials: 'include', cache: 'no-store' },
+            );
+            if (hydrateResponse.ok) {
+                const hydrated = await hydrateResponse.json();
+                if (hydrated && Number(hydrated.id) === Number(candidate.questionId)) target = hydrated;
+            }
+        } catch (error) {
+            target = null;
+        }
+    }
+    if (!target) {
         _clearMapBattleV1Resume();
         return null;
     }
