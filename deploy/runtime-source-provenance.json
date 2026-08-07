@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "9e0a1d5f6ea0402ef16c58f0b4985b60b1110a80",
+      "source_commit": "38518f2f61bacfe1dcc0bd855584e2c629ddde74",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): close Lord Challenge CTA scope and routing across three surfaces",
+      "source_commit_subject": "fix(e10): battle re-entry resume reuse, world-stage CTA i18n, iPad portrait CTA overflow",
       "source_date": "2026-08-07",
-      "content_sha256": "f23bef64b01ebe8c77b6652bfd2b7c9855f874be1d6b963bcdd2800d43af37f1",
+      "content_sha256": "2eb8d92eaeb21b9610e6c168a6c7b9f3deeea30790b575304f17fb183f9f1e1d",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 2eb4e18549ce25283aa715e4d47f8b87a4ba4e31; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 28a3f7690f16a4588d3e13655bd4a4ebd533c4ed; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -459,14 +459,14 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
+      "source_commit": "38518f2f61bacfe1dcc0bd855584e2c629ddde74",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "e8f58b03d4d113f52a6a6fb911c528b964710650de5684723f3c39ea9c1ea857",
+      "source_commit_subject": "fix(e10): battle re-entry resume reuse, world-stage CTA i18n, iPad portrait CTA overflow",
+      "source_date": "2026-08-07",
+      "content_sha256": "cab133fef16071512dcf6022d09c18eb371a38a805679c6b16259bc766a411b7",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 28a3f7690f16a4588d3e13655bd4a4ebd533c4ed; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
