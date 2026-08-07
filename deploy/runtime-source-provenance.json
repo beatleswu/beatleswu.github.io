@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "43a5e92f13d9f58f272da5a396171875c21c95e3",
+      "source_commit": "e0ba71890cee70950db1663b40beb401932b2985",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): resolve Map Battle V1 resume via authoritative attempt identity, not local qs membership",
+      "source_commit_subject": "fix(e10): stop rejecting active Map Battle V1 resume on historical SRS mastery",
       "source_date": "2026-08-07",
-      "content_sha256": "273f72ca6a80e8d9a66a92d4667a0070f585643fbaeb33bd402ba4f8c0c180c3",
+      "content_sha256": "4976e10a67b9761c6d6ca704c3f6dc4ebb4b7741e1540535d32f012b94c65c15",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 0345780c364920cdeb90d66b8380b7578a8b062e; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 0b6503d5a9419b71bd679e38f27ebb926472a066; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
