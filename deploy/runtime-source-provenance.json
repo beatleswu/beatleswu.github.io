@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "38518f2f61bacfe1dcc0bd855584e2c629ddde74",
+      "source_commit": "43a5e92f13d9f58f272da5a396171875c21c95e3",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): battle re-entry resume reuse, world-stage CTA i18n, iPad portrait CTA overflow",
+      "source_commit_subject": "fix(e10): resolve Map Battle V1 resume via authoritative attempt identity, not local qs membership",
       "source_date": "2026-08-07",
-      "content_sha256": "2eb8d92eaeb21b9610e6c168a6c7b9f3deeea30790b575304f17fb183f9f1e1d",
+      "content_sha256": "273f72ca6a80e8d9a66a92d4667a0070f585643fbaeb33bd402ba4f8c0c180c3",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 28a3f7690f16a4588d3e13655bd4a4ebd533c4ed; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 0345780c364920cdeb90d66b8380b7578a8b062e; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
