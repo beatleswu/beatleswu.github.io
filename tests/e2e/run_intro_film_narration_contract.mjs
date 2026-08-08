@@ -172,6 +172,12 @@ async function withFreshPage(browser, origin, fn) {
     // sanity: the function under test must exist before proceeding
     const hasFn = await page.evaluate(() => typeof playNewbieVillageIntroFilm === 'function');
     if (!hasFn) throw new Error('playNewbieVillageIntroFilm not defined on page');
+    // Set deterministically rather than relying on window.onload's async
+    // getMe() to have resolved by 'domcontentloaded' (a real race -- account-
+    // scoped storage, e.g. adventurePostClearSeen/Pending, reads this).
+    // Matches the mocked /api/auth/me response above, so this doesn't fight
+    // the real bootstrap even if it completes later.
+    await page.evaluate(() => { _currentUserId = 1; });
     return await fn(page);
   } finally {
     await page.close();
@@ -556,7 +562,10 @@ async function main() {
           const raw = localStorage.getItem('adventure_postclear_seen_v1');
           return raw ? JSON.parse(raw) : {};
         });
-        if (!seen.k26_30) throw new Error(`expected adventure_postclear_seen_v1.k26_30 to be set after completion, got ${JSON.stringify(seen)}`);
+        // Account-scoped storage: adventure_postclear_seen_v1 is now nested
+        // {[userId]: {[zoneKey]: timestamp}} -- withFreshPage's default
+        // mocked /api/auth/me resolves _currentUserId to 1.
+        if (!seen['1']?.k26_30) throw new Error(`expected adventure_postclear_seen_v1['1'].k26_30 to be set after completion, got ${JSON.stringify(seen)}`);
         const overlayHidden = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
         if (overlayHidden !== 'true') throw new Error(`expected the overlay to close (aria-hidden=true) after POST_CLEAR completes, got ${overlayHidden}`);
       });
@@ -585,7 +594,7 @@ async function main() {
         if (!/intro-film/.test(firstRun)) throw new Error(`expected first trigger to open the POST_CLEAR film, overlay class was ${JSON.stringify(firstRun)}`);
         await page.evaluate(() => window.__flushFakeTimers());
         const seenAfterFirst = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
-        if (!seenAfterFirst.k26_30) throw new Error('expected postClearSeen to be set after the first trigger completes');
+        if (!seenAfterFirst['1']?.k26_30) throw new Error('expected postClearSeen to be set (account-scoped under user "1") after the first trigger completes');
         const secondRunClass = await page.evaluate(() => {
           const before = document.getElementById('boss-cinematic').className;
           _maybeTriggerZone1PostClearFilm();
@@ -676,20 +685,29 @@ async function main() {
       await page1.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
       await page1.evaluate(() => {
         window.__audioMode = 'success';
+        // Set deterministically rather than relying on window.onload's
+        // async getMe() to have resolved by the time this runs (a real
+        // race against 'domcontentloaded' -- see gotoAsUser's identical
+        // reasoning below). The value matches the mocked /api/auth/me
+        // response above, so this doesn't fight the real bootstrap even if
+        // it does complete later.
+        _currentUserId = 1;
         _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
         _maybeTriggerZone1PostClearFilm();
       });
       for (let i = 0; i < drainsBeforeReload; i++) await drainOneFakeTimer(page1);
       const pendingBeforeReload = await page1.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_pending_v1') || '{}'));
       const seenBeforeReload = await page1.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
-      if (!pendingBeforeReload.k26_30) throw new Error('test setup invalid: expected pending to be set before reload');
-      if (seenBeforeReload.k26_30) throw new Error('test setup invalid: expected NOT seen before reload (reload happened too late)');
+      // Account-scoped storage: nested {[userId]: {[zoneKey]: timestamp}} --
+      // this helper's mocked /api/auth/me resolves _currentUserId to 1.
+      if (!pendingBeforeReload['1']?.k26_30) throw new Error('test setup invalid: expected pending to be set before reload');
+      if (seenBeforeReload['1']?.k26_30) throw new Error('test setup invalid: expected NOT seen before reload (reload happened too late)');
       // A real reload: re-navigate the same page/context. FAKE_INIT_SCRIPT
       // re-applies via addInitScript on every navigation, so fakes are back
       // in place, but all in-memory JS state (_introFilmActiveOpts, the
       // overlay's DOM, etc.) is genuinely gone -- only localStorage survives.
       await page1.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
-      await page1.evaluate(() => { window.__audioMode = 'success'; });
+      await page1.evaluate(() => { window.__audioMode = 'success'; _currentUserId = 1; });
       return page1;
     }
 
@@ -708,9 +726,9 @@ async function main() {
         if (activeShotAfterResume !== 8) throw new Error(`expected resume to restart at Shot 9 (index 8), got ${activeShotAfterResume}`);
         await drainAllFakeTimers(page);
         const seenAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
-        if (!seenAfter.k26_30) throw new Error('expected seen to be set after the resumed playback completes');
+        if (!seenAfter['1']?.k26_30) throw new Error('expected seen to be set after the resumed playback completes');
         const pendingAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_pending_v1') || '{}'));
-        if (pendingAfter.k26_30) throw new Error('expected pending to be cleared after completion');
+        if (pendingAfter['1']?.k26_30) throw new Error('expected pending to be cleared after completion');
       } finally {
         await page.close();
       }
@@ -730,7 +748,7 @@ async function main() {
         if (activeShotAfterResume !== 8) throw new Error(`expected resume to restart at Shot 9 (index 8) even when the reload interrupted Shot 10, got ${activeShotAfterResume}`);
         await drainAllFakeTimers(page);
         const seenAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
-        if (!seenAfter.k26_30) throw new Error('expected seen to be set after the resumed playback completes');
+        if (!seenAfter['1']?.k26_30) throw new Error('expected seen to be set after the resumed playback completes');
       } finally {
         await page.close();
       }
@@ -761,6 +779,115 @@ async function main() {
         const otherZoneCaptionVisible = await page.evaluate(() => document.getElementById('intro-film-caption').style.display !== 'none');
         if (!otherZoneCaptionVisible) throw new Error('expected a non-Zone-1 zone to keep its caption badge visible (no regression)');
       });
+    }, results);
+
+    // --- V-Y. Account-scoped POST_CLEAR state (Owner final review) ---
+    // adventure_postclear_seen_v1/pending_v1 are now nested by the
+    // authenticated user's id (_currentUserId, same convention as the
+    // pre-existing _dailyLimitStorageKey() elsewhere in index.html), not
+    // just by zone.key -- otherwise a shared browser lets one account's
+    // POST_CLEAR state leak into another's. gotoAsUser() mocks
+    // /api/auth/me to return a given user_id AND directly sets
+    // _currentUserId to the same value immediately after navigation, so
+    // these tests don't depend on timing between that assignment and
+    // window.onload's async getMe() completing.
+    async function gotoAsUser(page, userId) {
+      await page.unroute('**/api/auth/me').catch(() => {});
+      await page.route('**/api/auth/me', (route) => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ logged_in: true, user_id: userId, username: `user_${userId}`, display_name: `User ${userId}`, is_admin: false, is_premium: false, needs_onboarding_choice: false, tour_done: true, elo_rating: 1200 })
+      }));
+      await page.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
+      await page.evaluate((uid) => {
+        window.__audioMode = 'success';
+        _currentUserId = uid;
+      }, userId);
+    }
+    async function newSharedBrowserPage() {
+      const page = await browser.newPage();
+      await page.addInitScript(FAKE_INIT_SCRIPT);
+      await page.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+      return page;
+    }
+    async function triggerGenuineClearForCurrentUser(page) {
+      await page.evaluate(() => {
+        _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
+        _maybeTriggerZone1PostClearFilm();
+      });
+    }
+
+    await test('V: USER_A_CLEAR -> RELOAD_MID_S9 = User A resumes their own POST_CLEAR', async () => {
+      const page = await newSharedBrowserPage();
+      try {
+        await gotoAsUser(page, 'userA');
+        await triggerGenuineClearForCurrentUser(page);
+        await drainOneFakeTimer(page); // mid-S9
+        await gotoAsUser(page, 'userA'); // reload as the SAME user
+        await page.evaluate(() => { updateMapProgress({ zones: [] }); });
+        const resumedPhase = await page.evaluate(() => _introFilmActiveOpts.phase);
+        if (resumedPhase !== 'post_clear') throw new Error(`expected User A's reload to resume their own POST_CLEAR, got ${JSON.stringify(resumedPhase)}`);
+      } finally {
+        await page.close();
+      }
+    }, results);
+
+    await test('W: USER_A_PENDING -> SWITCH_TO_USER_B = User B does not inherit User A\'s pending POST_CLEAR', async () => {
+      const page = await newSharedBrowserPage();
+      try {
+        await gotoAsUser(page, 'userA');
+        await triggerGenuineClearForCurrentUser(page);
+        await drainOneFakeTimer(page); // User A mid-S9, pending[userA] = true
+        await gotoAsUser(page, 'userB'); // same browser/context, different account
+        await page.evaluate(() => { updateMapProgress({ zones: [] }); });
+        const phaseAfterSwitch = await page.evaluate(() => _introFilmActiveOpts.phase);
+        if (phaseAfterSwitch === 'post_clear') throw new Error("User B must not inherit/resume User A's pending POST_CLEAR");
+        const seenAfterSwitch = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+        if (seenAfterSwitch.userB?.k26_30) throw new Error("User B's seen flag must not be set just from User A's pending state existing");
+      } finally {
+        await page.close();
+      }
+    }, results);
+
+    await test('X: USER_A_SEEN -> USER_B_GENUINE_CLEAR = User B still receives their own S9-S10', async () => {
+      const page = await newSharedBrowserPage();
+      try {
+        await gotoAsUser(page, 'userA');
+        await triggerGenuineClearForCurrentUser(page);
+        await drainAllFakeTimers(page); // User A completes: seen[userA] = true
+        const seenA = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+        if (!seenA.userA?.k26_30) throw new Error('test setup invalid: expected User A to be seen before User B logs in');
+        await gotoAsUser(page, 'userB');
+        const triggeredForB = await page.evaluate(() => {
+          _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
+          _maybeTriggerZone1PostClearFilm();
+          return _introFilmActiveOpts.phase;
+        });
+        if (triggeredForB !== 'post_clear') throw new Error(`expected User B's own genuine clear to trigger POST_CLEAR despite User A already seen theirs, got ${JSON.stringify(triggeredForB)}`);
+      } finally {
+        await page.close();
+      }
+    }, results);
+
+    await test('Y: switching back to User A restores their own pending state correctly', async () => {
+      const page = await newSharedBrowserPage();
+      try {
+        await gotoAsUser(page, 'userA');
+        await triggerGenuineClearForCurrentUser(page);
+        await drainOneFakeTimer(page); // User A mid-S9, pending[userA] = true
+        await gotoAsUser(page, 'userB'); // User B logs in, does nothing Zone-1-related
+        await gotoAsUser(page, 'userA'); // back to User A
+        await page.evaluate(() => { updateMapProgress({ zones: [] }); });
+        const resumedPhase = await page.evaluate(() => _introFilmActiveOpts.phase);
+        if (resumedPhase !== 'post_clear') throw new Error(`expected User A to recover their own pending POST_CLEAR after switching back, got ${JSON.stringify(resumedPhase)}`);
+        await drainAllFakeTimers(page);
+        const seenAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+        if (!seenAfter.userA?.k26_30) throw new Error('expected User A seen to be set after their resumed playback completes');
+        const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
+        const speakCalls = await page.evaluate(() => window.__speakCalls);
+        if (audioCreated || speakCalls !== 0) throw new Error(`expected zero reward/settlement-adjacent audio/TTS calls across the whole account-switch/resume path, got audioCreated=${audioCreated} speakCalls=${speakCalls}`);
+      } finally {
+        await page.close();
+      }
     }, results);
 
     const failed = results.filter((r) => !r.ok);

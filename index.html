@@ -12259,29 +12259,57 @@ function markAdventureIntroSeen(zone) {
     } catch {}
 }
 
+// Account scope for Zone 1's POST_CLEAR state (Owner review follow-up,
+// E10-Z1-PROD-INTEGRATION-001): reuses the exact identity resolution already
+// established by _dailyLimitStorageKey() elsewhere in this file --
+// _currentUserId (set from the authenticated /api/auth/me response) with a
+// same-browser fallback to the existing 'last_session_uid_v1' key (already
+// written on every login, see the account-switch handler in window.onload).
+// A shared browser must never let one account's POST_CLEAR pending/seen
+// state leak into another's: without this, User A's mid-playback pending
+// flag could resume as User B's story, and User A's seen flag could
+// wrongly suppress User B's own first-time clear. No uid resolvable ->
+// fail closed (return false / no-op write) rather than fall back to a
+// browser-wide flag.
+function _postClearAccountId() {
+    try {
+        if (_currentUserId != null) return String(_currentUserId);
+        return localStorage.getItem('last_session_uid_v1') || null;
+    } catch {
+        return null;
+    }
+}
+
 // A separate, distinct storage key from ADVENTURE_INTRO_STORAGE_KEY --
 // "seen the PRE_PLAY intro" and "seen the POST_CLEAR follow-up story" are
 // different facts that must never collapse into one flag (E10-Z1-PROD-
 // INTEGRATION-001 Owner review, Fix 1). Currently only Zone 1 (k26_30)
 // defines a postClearTimeline; other zones simply never read/write this.
+// Deliberately NOT extending this account-scoping to the pre-existing
+// ADVENTURE_INTRO_STORAGE_KEY -- that flag's historical browser-wide
+// behavior is out of scope for this Sprint (Owner review: fix only the new
+// Zone 1 POST_CLEAR lifecycle introduced by this PR).
 const ADVENTURE_POSTCLEAR_STORAGE_KEY = 'adventure_postclear_seen_v1';
 
 function adventurePostClearSeen(zone) {
-    if (!zone?.key) return false;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return false;
     try {
-        const seen = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
-        return !!seen[zone.key];
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
+        return !!byUser[uid]?.[zone.key];
     } catch {
         return false;
     }
 }
 
 function markAdventurePostClearSeen(zone) {
-    if (!zone?.key) return;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
     try {
-        const seen = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
-        seen[zone.key] = Date.now();
-        localStorage.setItem(ADVENTURE_POSTCLEAR_STORAGE_KEY, JSON.stringify(seen));
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
+        byUser[uid] = byUser[uid] || {};
+        byUser[uid][zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_POSTCLEAR_STORAGE_KEY, JSON.stringify(byUser));
     } catch {}
 }
 
@@ -12298,34 +12326,39 @@ function markAdventurePostClearSeen(zone) {
 // call it). _resumeZone1PostClearIfPending() checks pending-but-not-seen on
 // every fresh adventure-progress load and safely replays Shots 9-10 from
 // the top. Purely a client-side presentation flag: no reward, no
-// settlement, no DB/schema change.
+// settlement, no DB/schema change. Account-scoped via the same
+// _postClearAccountId() as the seen flag above -- same rationale.
 const ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY = 'adventure_postclear_pending_v1';
 
 function adventurePostClearPending(zone) {
-    if (!zone?.key) return false;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return false;
     try {
-        const pending = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
-        return !!pending[zone.key];
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        return !!byUser[uid]?.[zone.key];
     } catch {
         return false;
     }
 }
 
 function markAdventurePostClearPending(zone) {
-    if (!zone?.key) return;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
     try {
-        const pending = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
-        pending[zone.key] = Date.now();
-        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(pending));
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        byUser[uid] = byUser[uid] || {};
+        byUser[uid][zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(byUser));
     } catch {}
 }
 
 function clearAdventurePostClearPending(zone) {
-    if (!zone?.key) return;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
     try {
-        const pending = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
-        delete pending[zone.key];
-        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(pending));
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        if (byUser[uid]) delete byUser[uid][zone.key];
+        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(byUser));
     } catch {}
 }
 
