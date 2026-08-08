@@ -614,7 +614,7 @@ async function main() {
         }
         return source.slice(start, i - 1);
       }
-      const cinematicFns = ['playZone1PostClearFilm', 'finishPostClearFilm', '_maybeTriggerZone1PostClearFilm', 'replayIntroFilm', 'skipIntroFilm'];
+      const cinematicFns = ['playZone1PostClearFilm', 'finishPostClearFilm', '_maybeTriggerZone1PostClearFilm', '_resumeZone1PostClearIfPending', 'replayIntroFilm', 'skipIntroFilm'];
       const violations = [];
       for (const fn of cinematicFns) {
         const body = extractFunctionBody(fn);
@@ -641,6 +641,126 @@ async function main() {
       if (showStageBody.includes('postClearTimeline')) {
         throw new Error('showStageIntroCinematic must never reference postClearTimeline -- S9/S10 must be structurally unreachable before a genuine clear');
       }
+    }, results);
+
+    // --- S & T. Reload/close resilience: a genuine clear left pending mid-S9/S10 must recover ---
+    // The real trigger (_maybeTriggerZone1PostClearFilm) marks pending BEFORE
+    // playback starts and only clears it in finishPostClearFilm (normal
+    // completion/skip). Simulate "reload" with a REAL page.goto() re-
+    // navigation on the SAME page/context, so localStorage genuinely
+    // persists across it exactly as a browser reload would -- this is not
+    // simulated via a fresh isolated context (withFreshPage's newPage()
+    // would NOT share localStorage).
+    async function drainOneFakeTimer(page) {
+      await page.evaluate(() => {
+        window.__fakeTimers.sort((a, b) => a.delay - b.delay);
+        const t = window.__fakeTimers.shift();
+        if (t) t.fn();
+      });
+    }
+    async function drainAllFakeTimers(page) {
+      let iterations = 0;
+      while (await page.evaluate(() => window.__fakeTimers.length) && iterations < 500) {
+        iterations++;
+        await drainOneFakeTimer(page);
+      }
+    }
+    async function triggerGenuineClearAndReloadMidPlayback(drainsBeforeReload) {
+      const page1 = await browser.newPage();
+      await page1.addInitScript(FAKE_INIT_SCRIPT);
+      await page1.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+      await page1.route('**/api/auth/me', (route) => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ logged_in: true, user_id: 1, username: 'reload_tester', display_name: 'Reload Tester', is_admin: false, is_premium: false, needs_onboarding_choice: false, tour_done: true, elo_rating: 1200 })
+      }));
+      await page1.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
+      await page1.evaluate(() => {
+        window.__audioMode = 'success';
+        _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
+        _maybeTriggerZone1PostClearFilm();
+      });
+      for (let i = 0; i < drainsBeforeReload; i++) await drainOneFakeTimer(page1);
+      const pendingBeforeReload = await page1.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_pending_v1') || '{}'));
+      const seenBeforeReload = await page1.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+      if (!pendingBeforeReload.k26_30) throw new Error('test setup invalid: expected pending to be set before reload');
+      if (seenBeforeReload.k26_30) throw new Error('test setup invalid: expected NOT seen before reload (reload happened too late)');
+      // A real reload: re-navigate the same page/context. FAKE_INIT_SCRIPT
+      // re-applies via addInitScript on every navigation, so fakes are back
+      // in place, but all in-memory JS state (_introFilmActiveOpts, the
+      // overlay's DOM, etc.) is genuinely gone -- only localStorage survives.
+      await page1.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
+      await page1.evaluate(() => { window.__audioMode = 'success'; });
+      return page1;
+    }
+
+    await test('S: RELOAD_DURING_S9 = POST_CLEAR_RECOVERABLE', async () => {
+      const page = await triggerGenuineClearAndReloadMidPlayback(1);
+      try {
+        // The real production hook: updateMapProgress() runs whenever fresh
+        // adventure progress loads (e.g. on the map after a reload).
+        await page.evaluate(() => { updateMapProgress({ zones: [] }); });
+        const resumedPhase = await page.evaluate(() => _introFilmActiveOpts.phase);
+        if (resumedPhase !== 'post_clear') throw new Error(`expected reload to resume POST_CLEAR, phase was ${JSON.stringify(resumedPhase)}`);
+        const activeShotAfterResume = await page.evaluate(() => {
+          const shots = Array.from(document.querySelectorAll('#intro-film-stage .film-shot'));
+          return shots.findIndex((el) => el.classList.contains('active'));
+        });
+        if (activeShotAfterResume !== 8) throw new Error(`expected resume to restart at Shot 9 (index 8), got ${activeShotAfterResume}`);
+        await drainAllFakeTimers(page);
+        const seenAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+        if (!seenAfter.k26_30) throw new Error('expected seen to be set after the resumed playback completes');
+        const pendingAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_pending_v1') || '{}'));
+        if (pendingAfter.k26_30) throw new Error('expected pending to be cleared after completion');
+      } finally {
+        await page.close();
+      }
+    }, results);
+
+    await test('T: RELOAD_DURING_S10 = POST_CLEAR_RECOVERABLE', async () => {
+      // Drain enough timers to get past Shot 9's silent hold and into Shot
+      // 10's beats before reloading -- proves recovery works regardless of
+      // which of the two POST_CLEAR shots the reload interrupts.
+      const page = await triggerGenuineClearAndReloadMidPlayback(3);
+      try {
+        await page.evaluate(() => { updateMapProgress({ zones: [] }); });
+        const activeShotAfterResume = await page.evaluate(() => {
+          const shots = Array.from(document.querySelectorAll('#intro-film-stage .film-shot'));
+          return shots.findIndex((el) => el.classList.contains('active'));
+        });
+        if (activeShotAfterResume !== 8) throw new Error(`expected resume to restart at Shot 9 (index 8) even when the reload interrupted Shot 10, got ${activeShotAfterResume}`);
+        await drainAllFakeTimers(page);
+        const seenAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+        if (!seenAfter.k26_30) throw new Error('expected seen to be set after the resumed playback completes');
+      } finally {
+        await page.close();
+      }
+    }, results);
+
+    // --- U. Zone 1's scene-caption badge is hidden (Owner review follow-up, Fix B) ---
+    await test('U: Zone 1 hides the film-caption badge in both phases; other zones keep it', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
+        const preplayCaptionHidden = await page.evaluate(() => document.getElementById('intro-film-caption').style.display === 'none');
+        if (!preplayCaptionHidden) throw new Error('expected Zone 1 PRE_PLAY to hide the caption badge');
+      });
+      await withFreshPage(browser, origin, async (page) => {
+        // Check mid-playback, not after full completion: finishPostClearFilm
+        // closes the whole overlay via hideBossCinematic() -> _stopIntroFilm(),
+        // which resets the badge's display style for the NEXT run (harmless,
+        // since the overlay itself is hidden by then) -- checking after that
+        // point would test the wrong thing. activateShot(0) runs
+        // synchronously as part of playZone1PostClearFilm(), so the state is
+        // already correct immediately after triggering, before any timers drain.
+        await page.evaluate(() => { window.__audioMode = 'success'; });
+        await runPostClearFilm(page, 'k26_30');
+        const postClearCaptionHidden = await page.evaluate(() => document.getElementById('intro-film-caption').style.display === 'none');
+        if (!postClearCaptionHidden) throw new Error('expected Zone 1 POST_CLEAR to hide the caption badge');
+      });
+      await withFreshPage(browser, origin, async (page) => {
+        await recordFilmRun(page, (p) => runFilm(p, 'k21_25'));
+        const otherZoneCaptionVisible = await page.evaluate(() => document.getElementById('intro-film-caption').style.display !== 'none');
+        if (!otherZoneCaptionVisible) throw new Error('expected a non-Zone-1 zone to keep its caption badge visible (no regression)');
+      });
     }, results);
 
     const failed = results.filter((r) => !r.ok);

@@ -12189,6 +12189,11 @@ function updateMapProgress(data) {
     try {
         const zones = Array.isArray(data.zones) ? data.zones : [];
         _adventureProgress = zones;
+        // Reload/close recovery for Zone 1's POST_CLEAR follow-up (Owner
+        // review follow-up, E10-Z1-PROD-INTEGRATION-001): runs on every
+        // fresh adventure-progress load, a no-op unless a genuine clear left
+        // Shots 9-10 pending but unseen (see _resumeZone1PostClearIfPending).
+        _resumeZone1PostClearIfPending();
         if (!zones.length) {
             _activeBossZone = null;
             _setAdventureStoredSelectedStageKey('');
@@ -12277,6 +12282,50 @@ function markAdventurePostClearSeen(zone) {
         const seen = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
         seen[zone.key] = Date.now();
         localStorage.setItem(ADVENTURE_POSTCLEAR_STORAGE_KEY, JSON.stringify(seen));
+    } catch {}
+}
+
+// Reload-resilience for POST_CLEAR (Owner review follow-up,
+// E10-Z1-PROD-INTEGRATION-001): a genuine 'monster_defeated' win is
+// server-confirmed the instant it happens, but "seen" is only written after
+// Shot 10 actually finishes playing (or is explicitly skipped). Without a
+// third state, a reload/close mid-S9/S10 would permanently lose the
+// follow-up story -- the win already happened server-side and never repeats
+// as a fresh 'monster_defeated' event, and "seen" was never set, so nothing
+// would ever re-trigger it. "Pending" bridges that gap: it is written the
+// moment playback starts (see _maybeTriggerZone1PostClearFilm) and cleared
+// only by finishPostClearFilm (normal completion or explicit skip -- both
+// call it). _resumeZone1PostClearIfPending() checks pending-but-not-seen on
+// every fresh adventure-progress load and safely replays Shots 9-10 from
+// the top. Purely a client-side presentation flag: no reward, no
+// settlement, no DB/schema change.
+const ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY = 'adventure_postclear_pending_v1';
+
+function adventurePostClearPending(zone) {
+    if (!zone?.key) return false;
+    try {
+        const pending = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        return !!pending[zone.key];
+    } catch {
+        return false;
+    }
+}
+
+function markAdventurePostClearPending(zone) {
+    if (!zone?.key) return;
+    try {
+        const pending = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        pending[zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(pending));
+    } catch {}
+}
+
+function clearAdventurePostClearPending(zone) {
+    if (!zone?.key) return;
+    try {
+        const pending = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        delete pending[zone.key];
+        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(pending));
     } catch {}
 }
 
@@ -12400,7 +12449,12 @@ function _stopIntroFilm() {
     if (overlay) overlay.classList.remove('ready');
     if (stage) stage.querySelectorAll('.film-shot').forEach(el => el.classList.remove('active'));
     if (stage) stage.classList.remove('show-title-card');
-    if (caption) caption.textContent = I18n.t('index.film.caption');
+    if (caption) {
+        // Reset visibility so a subsequent non-Zone-1 run isn't left with
+        // Zone 1's hidden badge state (see activateShot's display toggle).
+        caption.style.display = '';
+        caption.textContent = I18n.t('index.film.caption');
+    }
 }
 
 function getCinematicNarratorVoices(preferredLang = 'zh-TW') {
@@ -13735,6 +13789,11 @@ function finishIntroFilm(zone) {
     // review, E10-Z1-PROD-INTEGRATION-001 Fix 2). Every other zone keeps its
     // existing final title-card + thesis-line behavior unchanged below.
     if (zone?.key === 'k26_30') {
+        // Covers the "already seen, jump straight here" shortcut path
+        // (showStageIntroCinematic's shouldShowFinalOnly), which never runs
+        // activateShot -- hide the badge here too, not just there (Owner
+        // review follow-up, Fix B).
+        if (caption) caption.style.display = 'none';
         if (overlay) overlay.classList.add('ready');
         if (btn) btn.disabled = false;
         return;
@@ -13949,7 +14008,16 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // shot (set once here); the dialogue subtitle line is set per-beat
         // below, not here -- a shot's caption and its spoken content are
         // independent (see activateBeat).
-        if (caption) caption.textContent = item.caption || '';
+        // Zone 1's caption text (e.g. "Shot 9: Echo of the Trial") is an
+        // implementation-authored label, not part of any Owner-locked
+        // vocabulary -- hide the badge entirely for k26_30 rather than
+        // invent a third naming scheme (Owner review follow-up). The
+        // underlying item.caption values are left in the data as internal/
+        // dev-facing labels; they simply never render for this zone.
+        if (caption) {
+            caption.style.display = zone?.key === 'k26_30' ? 'none' : '';
+            caption.textContent = item.caption || '';
+        }
         if (item.sfx) playBossSfx(item.sfx);
         if (item.shot === 0) {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
@@ -14011,6 +14079,26 @@ function _maybeTriggerZone1PostClearFilm() {
     const zone = (_adventureProgress || []).find(z => z.key === 'k26_30')
         || ADVENTURE_ZONES.find(z => z.key === 'k26_30');
     if (!zone || adventurePostClearSeen(zone)) return;
+    // Mark pending BEFORE starting playback, not after: if the page reloads
+    // or closes anywhere during Shots 9-10, pending survives (this genuine
+    // win event itself never repeats) and _resumeZone1PostClearIfPending()
+    // recovers it on the next adventure-progress load.
+    markAdventurePostClearPending(zone);
+    playZone1PostClearFilm(zone);
+}
+
+// Reload/close recovery: called whenever fresh adventure progress loads
+// (see updateMapProgress). If a genuine clear left POST_CLEAR pending but
+// never reached normal completion/skip, safely replay Shots 9-10 from the
+// top. No-op once seen, no-op if nothing is pending, and no-op if a
+// POST_CLEAR run is already actively playing (avoids restarting a resume
+// that's already in progress if this is called again mid-playback).
+function _resumeZone1PostClearIfPending() {
+    const zone = (_adventureProgress || []).find(z => z.key === 'k26_30')
+        || ADVENTURE_ZONES.find(z => z.key === 'k26_30');
+    if (!zone || adventurePostClearSeen(zone)) return;
+    if (!adventurePostClearPending(zone)) return;
+    if (_introFilmActiveOpts.phase === 'post_clear') return;
     playZone1PostClearFilm(zone);
 }
 
@@ -14018,9 +14106,10 @@ function _maybeTriggerZone1PostClearFilm() {
 // #boss-cinematic overlay. Purely visual: no fetch/POST of any kind, no
 // reward or settlement authority here or in finishPostClearFilm -- the
 // server already settled the battle before this function is ever reached.
-// Safe to call directly for a manual replay (see replayIntroFilm) as well as
-// from the automatic first-clear trigger above; the "have we shown this
-// already" decision lives only in _maybeTriggerZone1PostClearFilm.
+// Safe to call directly for a manual replay (see replayIntroFilm), a reload
+// recovery (see _resumeZone1PostClearIfPending), or the automatic
+// first-clear trigger above; the "have we shown this already" decision
+// lives only in _maybeTriggerZone1PostClearFilm/_resumeZone1PostClearIfPending.
 function playZone1PostClearFilm(zone) {
     const overlay = document.getElementById('boss-cinematic');
     if (!overlay || !zone) return;
@@ -14045,9 +14134,14 @@ function playZone1PostClearFilm(zone) {
 
 // Ends POST_CLEAR exactly on Shot 10's own dialogue -- no Hero response, no
 // legacy title-card thesis, no additional line (Owner review, Fix 2). The
-// overlay simply closes once Shot 10's last beat finishes holding.
+// overlay simply closes once Shot 10's last beat finishes holding. This is
+// the ONLY place "done" is recorded (normal completion AND explicit skip
+// both funnel through here -- see skipIntroFilm's post_clear branch), so
+// seen/pending are always updated together, atomically from the caller's
+// point of view.
 function finishPostClearFilm(zone) {
     markAdventurePostClearSeen(zone);
+    clearAdventurePostClearPending(zone);
     hideBossCinematic();
 }
 
