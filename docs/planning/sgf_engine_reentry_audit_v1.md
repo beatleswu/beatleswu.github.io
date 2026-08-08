@@ -1,4 +1,4 @@
-SGF_ENGINE_REENTRY_AUDIT_001: READY_FOR_OWNER_FINAL_REVIEW
+SGF_ENGINE_REENTRY_AUDIT_001: READY_FOR_OWNER_MERGE
 
 # SGF Engine Re-entry Audit v1
 
@@ -659,7 +659,7 @@ WORKTREE = D:\go-website-sgf-engine-reentry-audit-001
 AUDIT_HEAD_AT_START = ca916729f8fcdfc648ede777187b9d8650e3d9c9
 AUDIT_CONTENT_COMMIT = df7cfacdad40a5311b93e2a4e9c8a73eb01519ed
 OWNER_REVIEW_REVISION_BASE_HEAD = ee0a9e968b5380bc7892d07871409da655ccd069
-COMMIT = Owner Review revision commit will be recorded in final handoff
+COMMIT = 49c09e968c751c8a9ce0ade1d2babef0c2219de8 (Owner-accepted content revision)
 DRAFT_PR = https://github.com/beatleswu/beatleswu.github.io/pull/295 (Draft)
 EXACT_DIFF = docs/planning/sgf_engine_reentry_audit_v1.md (new file only)
 ```
