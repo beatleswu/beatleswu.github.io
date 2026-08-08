@@ -20,15 +20,15 @@ behavior rules that govern how the two locales are consumed at runtime.
 
 | Shot | zh-TW | English (en) |
 |---|---|---|
-| S1 Anna | 清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。 | The morning bells haven't rung yet, but the village wind already carries a hint of… something unusual. |
+| S1 Anna | 清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。 | The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual. |
 | S2 Elder | 孩子，天亮了。 | Morning, child. |
 | S2 Hero | 早啊，小水。 | Morning, Shui. |
 | S3 | SILENCE | SILENCE |
 | S4 Elder | 你看，那片雲。 | Look at that cloud. |
 | S4 Elder | 它已經停在那裡三天了。 | It's been sitting there for three days. |
-| S4 Elder | 而且……每天都更近一點。 | And… every day, it gets a little closer. |
+| S4 Elder | 而且……每天都更近一點。 | And... every day, it gets a little closer. |
 | S5 | SILENCE | SILENCE |
-| S6 Hero | 我不知道自己行不行…… | I don't know if I can do this… |
+| S6 Hero | 我不知道自己行不行…… | I don't know if I can do this... |
 | S6 Hero | 但我想去看看。 | But I want to go see for myself. |
 | S7 | SILENCE | SILENCE |
 | S8 Elder | 想出村，就先陪我下一局。 | If you want to leave the village, play one game with me first. |
@@ -36,7 +36,7 @@ behavior rules that govern how the two locales are consumed at runtime.
 | S8 Elder | 看清楚，再落子。 | Look carefully. Then make your move. |
 | S9 | SILENCE | SILENCE |
 | S10 Runner | 村長！ | Elder! |
-| S10 Runner | 史萊姆平原的商隊…… | The caravan from the Slime Plains… |
+| S10 Runner | 史萊姆平原的商隊…… | The caravan from the Slime Plains... |
 | S10 Runner | 三天了，還沒回來！ | It's been three days, and they still haven't come back! |
 
 `ZONE1_SHOTS = 10/10`. All shot text above is an exact match to `e10_final_screenplay_v1.md`
@@ -44,7 +44,7 @@ Zone 1 (Shots 1–10); no new dialogue was introduced by this Sprint.
 
 ### DL-01 — Protected Dialogue
 
-The Zone 1 boss-identity thesis line (DL-01, Shot 8) remains protected in its Chinese form per the
+The protected Elder instruction line (DL-01, Shot 8) remains protected in its Chinese form per the
 integration contract:
 
 ```
