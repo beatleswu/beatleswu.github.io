@@ -360,22 +360,35 @@ async function main() {
     // starts, then flush once and inspect the recorded sequence.
     async function runZone1AndRecordShots(page) {
       await page.evaluate(() => { window.__audioMode = 'success'; });
-      await page.evaluate(() => {
-        window.__z1ShotLog = [];
+      await runFilm(page, 'k26_30');
+      // Zone 1 has no audioSrc anywhere, so every shot's playAssetVoice call
+      // resolves via the synchronous missing-audioSrc branch and immediately
+      // schedules its silent-hold fake timer -- there is no real Audio
+      // object / onended-onerror microtask boundary to let a bulk
+      // __flushFakeTimers() (or a MutationObserver, whose callback also only
+      // runs once per microtask tick) observe intermediate shots. Drain the
+      // fake timer queue one entry at a time instead, recording state after
+      // each individual callback so every shot transition is captured.
+      return page.evaluate(() => {
         const stage = document.getElementById('intro-film-stage');
         const line = document.getElementById('boss-cinematic-line');
         const record = () => {
           const shots = Array.from(stage.querySelectorAll('.film-shot'));
           const activeIdx = shots.findIndex((el) => el.classList.contains('active'));
-          window.__z1ShotLog.push({ activeIdx, lineText: line ? line.textContent : '' });
+          log.push({ activeIdx, lineText: line ? line.textContent : '' });
         };
-        window.__z1Observer = new MutationObserver(record);
-        window.__z1Observer.observe(stage, { attributes: true, attributeFilter: ['class'], subtree: true });
-        if (line) window.__z1Observer.observe(line, { childList: true, characterData: true, subtree: true });
+        const log = [];
+        record();
+        let iterations = 0;
+        while (window.__fakeTimers.length && iterations < 500) {
+          iterations++;
+          window.__fakeTimers.sort((a, b) => a.delay - b.delay);
+          const t = window.__fakeTimers.shift();
+          t.fn();
+          record();
+        }
+        return log;
       });
-      await runFilm(page, 'k26_30');
-      await page.evaluate(() => window.__flushFakeTimers());
-      return page.evaluate(() => window.__z1ShotLog);
     }
 
     await test('J: Zone 1 (k26_30) plays all 10 shots with zero audio/TTS calls', async () => {
