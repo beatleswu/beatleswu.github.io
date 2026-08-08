@@ -1,0 +1,179 @@
+{
+  "contract": "e10-z1-cinematic-runtime-assets-v1",
+  "generated_for_task": "E10-Z1-PROD-INTEGRATION-001",
+  "source_note": "Runtime-served WEBP derivatives of the locked Zone 1 cinematic master PNGs (docs/planning/e10_zone1_art_master/, E10-Z1-ART-CANON-001). Each entry's master_source_sha256 ties it back to the canonical master it was re-encoded from -- provenance is preserved even though the runtime file itself has a different hash (WEBP re-encode, not byte-identical).",
+  "total_assets": 10,
+  "total_bytes": 1824824,
+  "assets": [
+    {
+      "path": "assets/storyboards/e10_z1_shot01.webp",
+      "shot_id": "Z1S1",
+      "shot_label": "Morning Opening",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 123988,
+      "sha256": "798f221b068576be005e78ac74daff6d37e43dedc6bc10ae3ff71cbaf3395dc0",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot01_master.png",
+      "master_source_sha256": "ff5f92cfff6322c17a77dc0f73fdf1fe33c7fe1b5547ec3a662226febe940dac",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot02.webp",
+      "shot_id": "Z1S2",
+      "shot_label": "Wake Up — Hero + 小水",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 112388,
+      "sha256": "2929c7af8394580173fd986b70656d9111e01572f018b86303c629bbd2230bfc",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot02_master.png",
+      "master_source_sha256": "ec523069139d76f1b797dbbe268a6d7ab6d0fa2a956f51054bfe5e65fdb5296e",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot03.webp",
+      "shot_id": "Z1S3",
+      "shot_label": "Village Overlook",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 191162,
+      "sha256": "6b29ea5a56a19cd03c86db9a90899b899040c5d58bb7fe56ae2b518683357e66",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot03_master.png",
+      "master_source_sha256": "638929fbe5215ded65e586ab53b76c36eb1084430abe2717b238c3e5a0651e3a",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot04.webp",
+      "shot_id": "Z1S4",
+      "shot_label": "The Cloud",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 160096,
+      "sha256": "e16edbb1839e1aac8d2516b400c4611ad0deb4f6389383efaa17333a58b72efb",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot04_master.png",
+      "master_source_sha256": "046645d360ad680ebfcb26a1eb6b02cd46b085d3e1afd72f38e0a516a87fb75c",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot05.webp",
+      "shot_id": "Z1S5",
+      "shot_label": "Wooden Sword",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 123778,
+      "sha256": "efe64025fd36a181942f344ef2f438f0a7ad46b870477f89b96477a47b804853",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot05_master.png",
+      "master_source_sha256": "3773e8ad908589e18afa9dfd7138b5126ddf4a2be050511dee496e2758da7269",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot06.webp",
+      "shot_id": "Z1S6",
+      "shot_label": "Hero Chooses to Go",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 248210,
+      "sha256": "730bd0cfb8e49b378a1a8f7aa4b81b48c5a961a5b32f998e1bdddb7b07460c4d",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot06_master.png",
+      "master_source_sha256": "c57deba8af41f1f18202c46665d3c381711c3cea2581e1f92cf5352b2ff08732",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot07.webp",
+      "shot_id": "Z1S7",
+      "shot_label": "Ritual Board",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 239360,
+      "sha256": "1ab541317d9e9e316e197ca0539f58422d57ca4fe996c4a94669e63bda4321a0",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot07_master.png",
+      "master_source_sha256": "07b8da829455f0d3ab2c69ae910ec44d33371cc054801d9c031762b678c53043",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot08.webp",
+      "shot_id": "Z1S8",
+      "shot_label": "Elder's Trial",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 183186,
+      "sha256": "efd406ec8437eccb1cbd37ae5a60328552b43533f2c5a46cf01be0d4dc4ba8e7",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot08_master.png",
+      "master_source_sha256": "ceae2623e57000e1df22cedeadf41bfc0f22054ca496b7f1437ccc7362fe1133",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot09.webp",
+      "shot_id": "Z1S9",
+      "shot_label": "Elder Acknowledges Clear",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 214028,
+      "sha256": "d992430bdc56b9cdfa7ce5e296c73cbb6cad60075e71fe183be72e4cdca935a2",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot09_master.png",
+      "master_source_sha256": "753acd1824a366e8c253628483a3782da5a0c2c6003a6a664862e9a5f3742c58",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot10.webp",
+      "shot_id": "Z1S10",
+      "shot_label": "Missing Caravan",
+      "purpose": "E10 Zone 1 bilingual intro-film cinematic shot (runtime webp derivative)",
+      "format": "WEBP",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "bytes": 228628,
+      "sha256": "05d24386105a0e8f61a7389732a130947c36820a5f59efa5378221da17a4b5e7",
+      "runtime_component": "index.html intro-film-stage (k26_30 getIntroFilmLocaleConfig timeline)",
+      "master_source_path": "docs/planning/e10_zone1_art_master/e10_z1_shot10_master.png",
+      "master_source_sha256": "24374d6c693b357b6c1db8028aaa994a35918d8a3761e00316d28c1af6a5a5ac",
+      "generation": "PIL WEBP re-encode (quality=82, method=6) of the locked Owner master PNG, no crop/recompose"
+    }
+  ]
+}

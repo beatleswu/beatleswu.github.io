@@ -273,12 +273,13 @@ def test_partial_generation_fails_closed_corrupted_hash():
 
 def test_no_unreferenced_historical_files_in_closure_manifest():
     # The manifest must be exactly the 192 previously referenced files plus
-    # the 41 Owner-authorized E10 runtime UI assets, not
-    # the full 757MB historical tree this incident's audit found on the
+    # the 41 Owner-authorized E10 runtime UI assets, plus the 10 Owner-approved
+    # E10 Zone 1 cinematic runtime derivatives (E10-Z1-PROD-INTEGRATION-001),
+    # not the full 757MB historical tree this incident's audit found on the
     # production host (1,391 files) -- no blind wholesale import.
     manifest = _load_closure_manifest()
-    assert manifest["total_files"] == 233
-    assert len(manifest["files"]) == 233
+    assert manifest["total_files"] == 243
+    assert len(manifest["files"]) == 243
     referenced = scan_runtime_image_references()
     # The E10 icon registry composes its local root and file names at runtime,
     # so those URLs are intentionally not discoverable as full literals by the
@@ -349,6 +350,10 @@ def test_manifest_provenance_classes_are_honest():
     }
     ui_inventory = json.loads(_read(REPO_ROOT / "assets" / "e10" / "ui" / "e10-ui-assets.json"))
     expected_owner_created.update(asset["path"] for asset in ui_inventory["assets"])
+    zone1_cinematic_inventory = json.loads(
+        _read(REPO_ROOT / "assets" / "e10" / "cinematic" / "zone1-cinematic-assets.json")
+    )
+    expected_owner_created.update(asset["path"] for asset in zone1_cinematic_inventory["assets"])
     assert by_class.get("owner-approved-project-created") == sorted(expected_owner_created)
     assert set(by_class["production-host-recovered"]) == {
         "assets/go_rpg_assets/claire_avatar.webp",

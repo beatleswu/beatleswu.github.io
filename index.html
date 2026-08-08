@@ -2833,6 +2833,11 @@
     .film-shot.active img {
         animation: storyboardDrift 14s ease-out both;
     }
+    @media (prefers-reduced-motion: reduce) {
+        .film-shot.active img {
+            animation: none;
+        }
+    }
     .film-shot-1.active img {
         transform-origin: 34% 50%;
     }
@@ -2852,6 +2857,15 @@
         transform-origin: 52% 48%;
     }
     .film-shot-7.active img {
+        transform-origin: 50% 50%;
+    }
+    .film-shot-8.active img {
+        transform-origin: 50% 50%;
+    }
+    .film-shot-9.active img {
+        transform-origin: 50% 50%;
+    }
+    .film-shot-10.active img {
         transform-origin: 50% 50%;
     }
     .intro-film-controls {
@@ -6688,6 +6702,15 @@
             </div>
             <div class="film-shot film-shot-7" data-shot="6">
                 <img id="intro-film-shot-7" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
+            <div class="film-shot film-shot-8" data-shot="7">
+                <img id="intro-film-shot-8" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
+            <div class="film-shot film-shot-9" data-shot="8">
+                <img id="intro-film-shot-9" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
+            <div class="film-shot film-shot-10" data-shot="9">
+                <img id="intro-film-shot-10" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
             </div>
             <div class="film-title-card" data-i18n="index.film.title_card">圍棋新手村：木劍的試煉</div>
         </div>
@@ -13258,6 +13281,183 @@ function getIntroFilmLocaleConfig(zone) {
             ],
         };
     }
+    // E10-Z1-PROD-INTEGRATION-001: canonical Zone 1 bilingual cinematic.
+    // Source of truth: docs/planning/e10_final_screenplay_v1.md (Zone 1,
+    // Shots 1-10) and docs/planning/e10_zone1_bilingual_script_v1.md
+    // (zh-TW/en localization + silence-shot + audio-fallback contract).
+    // Shots 3/5/7/9 are SILENCE_BY_DESIGN: caption/text are intentionally
+    // omitted (not empty strings) so activate()'s `|| ''` guard renders no
+    // subtitle at all, in both locales. No audioSrc is set on ANY shot here
+    // -- no Zone 1 narration MP3 exists in the repo yet (verified during
+    // E10-Z1-PROD-INTEGRATION-001 preflight); playVoice() now holds shots
+    // silently rather than falling back to browser TTS or the other
+    // locale's voice (see the "no TTS" contract note on playVoice above).
+    if (zone?.key === 'k26_30') {
+        if (isEnglish) {
+            return {
+                uiLang: 'en',
+                preferredLang: 'en-GB',
+                filmTitle: zone?.filmTitle || ADVENTURE_STORY_EN?.[zone?.key]?.filmTitle || 'Go Starter Village: The Wooden Sword Trial',
+                finalCaption: 'Final beat: The Trial Begins',
+                finalLine: ADVENTURE_STORY_EN?.[zone?.key]?.intro || 'Take up the wooden sword, young traveller -- the Elder is waiting.',
+                timeline: [
+                    {
+                        shot: 0,
+                        caption: 'Shot 1: Awakening',
+                        text: "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual.",
+                        imageSrc: '/assets/storyboards/e10_z1_shot01.webp',
+                        imageAlt: 'Morning light settles over the sleeping village',
+                        sfx: 'morning',
+                    },
+                    {
+                        shot: 1,
+                        caption: 'Shot 2: A Companion Wakes',
+                        text: 'Elder: "Morning, child." Hero: "Morning, Shui."',
+                        imageSrc: '/assets/storyboards/e10_z1_shot02.webp',
+                        imageAlt: 'Hero wakes beside Shui',
+                        sfx: 'appear',
+                    },
+                    {
+                        shot: 2,
+                        caption: 'Shot 3: Village Overlook',
+                        imageSrc: '/assets/storyboards/e10_z1_shot03.webp',
+                        imageAlt: 'Elder and Hero look out over the village and a distant storm cloud',
+                    },
+                    {
+                        shot: 3,
+                        caption: 'Shot 4: The Cloud',
+                        text: "Look at that cloud. It's been sitting there for three days. And... every day, it gets a little closer.",
+                        imageSrc: '/assets/storyboards/e10_z1_shot04.webp',
+                        imageAlt: 'The Elder points at a cloud that has not moved in three days',
+                        sfx: 'pulse',
+                    },
+                    {
+                        shot: 4,
+                        caption: 'Shot 5: The Wooden Sword',
+                        imageSrc: '/assets/storyboards/e10_z1_shot05.webp',
+                        imageAlt: 'Hero grips a wooden sword',
+                    },
+                    {
+                        shot: 5,
+                        caption: 'Shot 6: The Choice to Go',
+                        text: "I don't know if I can do this... But I want to go see for myself.",
+                        imageSrc: '/assets/storyboards/e10_z1_shot06.webp',
+                        imageAlt: 'Hero, Shui, and the wooden sword in the farmyard',
+                        sfx: 'journey',
+                    },
+                    {
+                        shot: 6,
+                        caption: 'Shot 7: The Ritual Board',
+                        imageSrc: '/assets/storyboards/e10_z1_shot07.webp',
+                        imageAlt: 'A 19x19 stone board as the Elder gestures',
+                    },
+                    {
+                        shot: 7,
+                        caption: "Shot 8: The Elder's Trial",
+                        text: "If you want to leave the village, play one game with me first. Don't rush. Look carefully. Then make your move.",
+                        imageSrc: '/assets/storyboards/e10_z1_shot08.webp',
+                        imageAlt: 'The board covered in scattered stones',
+                        sfx: 'start',
+                    },
+                    {
+                        shot: 8,
+                        caption: 'Shot 9: Echo of the Trial',
+                        imageSrc: '/assets/storyboards/e10_z1_shot09.webp',
+                        imageAlt: 'The board after the trial, silence intentional',
+                    },
+                    {
+                        shot: 9,
+                        caption: 'Shot 10: The Missing Caravan',
+                        text: "Elder! The caravan from the Slime Plains... It's been three days, and they still haven't come back!",
+                        imageSrc: '/assets/storyboards/e10_z1_shot10.webp',
+                        imageAlt: 'A village runner arrives with urgent news',
+                        sfx: 'pulse',
+                    },
+                ],
+            };
+        }
+        return {
+            uiLang: 'zh',
+            preferredLang: 'zh-TW',
+            filmTitle: zone?.filmTitle || ADVENTURE_STORY[zone?.key]?.filmTitle || '圍棋新手村：木劍的試煉',
+            finalCaption: '終幕：考驗即將開始',
+            finalLine: ADVENTURE_STORY[zone?.key]?.intro || '拿起木劍吧，年輕的旅人——村長正在等你。',
+            timeline: [
+                {
+                    shot: 0,
+                    caption: '第一幕：覺醒',
+                    text: '清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。',
+                    imageSrc: '/assets/storyboards/e10_z1_shot01.webp',
+                    imageAlt: '晨光落在沉睡的村莊上',
+                    sfx: 'morning',
+                },
+                {
+                    shot: 1,
+                    caption: '第二幕：甦醒的夥伴',
+                    text: '村長「孩子，天亮了。」　主角「早啊，小水。」',
+                    imageSrc: '/assets/storyboards/e10_z1_shot02.webp',
+                    imageAlt: '主角在小水身邊醒來',
+                    sfx: 'appear',
+                },
+                {
+                    shot: 2,
+                    caption: '第三幕：村莊俯瞰',
+                    imageSrc: '/assets/storyboards/e10_z1_shot03.webp',
+                    imageAlt: '村長與主角眺望村莊與遠方的風暴雲',
+                },
+                {
+                    shot: 3,
+                    caption: '第四幕：那片雲',
+                    text: '你看，那片雲。它已經停在那裡三天了。而且……每天都更近一點。',
+                    imageSrc: '/assets/storyboards/e10_z1_shot04.webp',
+                    imageAlt: '村長指向三天未曾移動的雲',
+                    sfx: 'pulse',
+                },
+                {
+                    shot: 4,
+                    caption: '第五幕：木劍',
+                    imageSrc: '/assets/storyboards/e10_z1_shot05.webp',
+                    imageAlt: '主角握緊木劍',
+                },
+                {
+                    shot: 5,
+                    caption: '第六幕：啟程的決心',
+                    text: '我不知道自己行不行……但我想去看看。',
+                    imageSrc: '/assets/storyboards/e10_z1_shot06.webp',
+                    imageAlt: '主角、小水與木劍在農舍前',
+                    sfx: 'journey',
+                },
+                {
+                    shot: 6,
+                    caption: '第七幕：儀式棋盤',
+                    imageSrc: '/assets/storyboards/e10_z1_shot07.webp',
+                    imageAlt: '十九路棋盤與村長的手勢',
+                },
+                {
+                    shot: 7,
+                    caption: '第八幕：村長的考驗',
+                    text: '想出村，就先陪我下一局。別急。看清楚，再落子。',
+                    imageSrc: '/assets/storyboards/e10_z1_shot08.webp',
+                    imageAlt: '棋盤上散落的棋子',
+                    sfx: 'start',
+                },
+                {
+                    shot: 8,
+                    caption: '第九幕：考驗的迴響',
+                    imageSrc: '/assets/storyboards/e10_z1_shot09.webp',
+                    imageAlt: '考驗過後的棋盤，刻意的沉默',
+                },
+                {
+                    shot: 9,
+                    caption: '第十幕：商隊未歸',
+                    text: '村長！史萊姆平原的商隊……三天了，還沒回來！',
+                    imageSrc: '/assets/storyboards/e10_z1_shot10.webp',
+                    imageAlt: '村莊信使帶著急訊趕來',
+                    sfx: 'pulse',
+                },
+            ],
+        };
+    }
     if (isEnglish) {
         return {
             uiLang: 'en',
@@ -13470,9 +13670,10 @@ async function playNewbieVillageIntroFilm(zone) {
     // by the silent visual-hold path when recorded narration is missing or
     // fails -- see playAssetVoice's onerror/rejection handling).
     function computeShotHoldMs(item) {
+        const text = item.text || '';
         return locale.uiLang === 'en'
-            ? Math.max(5400, item.text.split(/\s+/).length * 420)
-            : Math.max(4200, item.text.length * 210);
+            ? Math.max(5400, text.split(/\s+/).filter(Boolean).length * 420)
+            : Math.max(4200, text.length * 210);
     }
     function playAssetVoice(item, onDone) {
         const finishSilently = (audio = null) => {
@@ -13558,7 +13759,17 @@ async function playNewbieVillageIntroFilm(zone) {
         _introSpeechTimers.push(guardId);
     }
     function playVoice(item, onDone) {
-        if (item.audioSrc) {
+        // A missing item.audioSrc means "no recorded narration for this
+        // shot/locale yet" (owner-audio-pending) or "silent by design" -- in
+        // both cases the contract is: correct-language subtitle stays on
+        // screen, held for computeShotHoldMs, then advance. Never synthesize
+        // speech to fill the gap (no temporary TTS, and never speak the
+        // other locale's narration instead of this one's).
+        // item.allowTtsFallback === true is an explicit, opt-in escape hatch
+        // for content that has never used it (see playBrowserVoice) -- no
+        // shipped zone timeline currently sets it, so this is a no-op change
+        // for existing zones and closes the silent gap for new ones.
+        if (item.audioSrc || !item.allowTtsFallback) {
             playAssetVoice(item, onDone);
             return;
         }
@@ -13573,10 +13784,14 @@ async function playNewbieVillageIntroFilm(zone) {
             return;
         }
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
-        if (caption) caption.textContent = item.caption;
+        // item.caption/item.text are intentionally omitted (not just empty)
+        // for SILENCE_BY_DESIGN shots (no subtitle at all, per the Zone 1
+        // bilingual script contract) -- guard against assigning the literal
+        // string "undefined" to textContent.
+        if (caption) caption.textContent = item.caption || '';
         const line = document.getElementById('boss-cinematic-line');
-        if (line) line.textContent = item.text;
-        playBossSfx(item.sfx);
+        if (line) line.textContent = item.text || '';
+        if (item.sfx) playBossSfx(item.sfx);
         if (item.shot === 0) {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
         }
