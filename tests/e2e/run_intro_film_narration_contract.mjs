@@ -336,10 +336,13 @@ async function main() {
     // --- I. Missing recorded asset: intro must remain silent and paced ---
     await test('I: missing audioSrc uses silent pacing without TTS', async () => {
       const source = await fs.readFile(path.join(repoRoot, 'index.html'), 'utf8');
-      if (!/if \(!item\.audioSrc\)\s*\{\s*finishSilently\(\);\s*return;\s*\}/.test(source)) {
+      // playAssetVoice now operates on a per-beat object (renamed item ->
+      // beat when Fix 3's beats[] model replaced one-flattened-string-per-
+      // shot -- see E10-Z1-PROD-INTEGRATION-001 Owner review).
+      if (!/if \(!beat\.audioSrc\)\s*\{\s*finishSilently\(\);\s*return;\s*\}/.test(source)) {
         throw new Error('missing audioSrc is not wired to finishSilently');
       }
-      if (/if \(!item\.audioSrc\)\s*\{[^}]*playBrowserVoice/s.test(source)) {
+      if (/if \(!beat\.audioSrc\)\s*\{[^}]*playBrowserVoice/s.test(source)) {
         throw new Error('missing audioSrc still reaches playBrowserVoice');
       }
       // The browser cases above exercise the same silent hold for load/error/
@@ -347,28 +350,23 @@ async function main() {
       // cannot reach the browser-TTS function.
     }, results);
 
-    // --- J & K. Zone 1 (k26_30) bilingual cinematic contract ---
-    // Zone 1 has zero audioSrc on every shot (no recorded narration exists
-    // yet), so playAssetVoice's missing-audioSrc branch fires synchronously
-    // and schedules its silent-hold timer immediately -- unlike the
-    // MP3-backed zones above, there is no real Audio object / onended-onerror
-    // microtask boundary to single-step through. With fake timers, one
-    // __flushFakeTimers() call therefore cascades through the ENTIRE
-    // timeline in one synchronous burst. So instead of stepping shot-by-shot
-    // between flushes (as tests A/D do), record every shot-activation +
-    // subtitle-text change via a MutationObserver installed before the film
-    // starts, then flush once and inspect the recorded sequence.
-    async function runZone1AndRecordShots(page) {
+    // --- J-R. Zone 1 (k26_30) lifecycle + beats contract ---
+    // E10-Z1-PROD-INTEGRATION-001 Owner review (Changes Required): the
+    // PRE_PLAY cinematic is Shots 1-8 ONLY (timeline, DOM shot indices 0-7);
+    // Shots 9-10 (postClearTimeline, DOM shot indices 8-9) only ever play via
+    // playZone1PostClearFilm(), itself only reachable from a genuine, fresh,
+    // server-authoritative Map Battle v1 'monster_defeated' response for
+    // k26_30 (see _submitMapBattleV1IfActive). Zone 1 has zero audioSrc on
+    // every beat (no recorded narration exists yet), so playAssetVoice's
+    // missing-audioSrc branch fires synchronously and schedules its
+    // silent-hold timer immediately -- unlike the MP3-backed zones above,
+    // there is no real Audio object / onended-onerror microtask boundary to
+    // single-step through. Drain the fake timer queue one entry at a time,
+    // recording state after each individual callback, so every shot/beat
+    // transition is captured.
+    async function recordFilmRun(page, kickoff) {
       await page.evaluate(() => { window.__audioMode = 'success'; });
-      await runFilm(page, 'k26_30');
-      // Zone 1 has no audioSrc anywhere, so every shot's playAssetVoice call
-      // resolves via the synchronous missing-audioSrc branch and immediately
-      // schedules its silent-hold fake timer -- there is no real Audio
-      // object / onended-onerror microtask boundary to let a bulk
-      // __flushFakeTimers() (or a MutationObserver, whose callback also only
-      // runs once per microtask tick) observe intermediate shots. Drain the
-      // fake timer queue one entry at a time instead, recording state after
-      // each individual callback so every shot transition is captured.
+      await kickoff(page);
       return page.evaluate(() => {
         const stage = document.getElementById('intro-film-stage');
         const line = document.getElementById('boss-cinematic-line');
@@ -391,34 +389,258 @@ async function main() {
       });
     }
 
-    await test('J: Zone 1 (k26_30) plays all 10 shots with zero audio/TTS calls', async () => {
+    async function runPostClearFilm(page, zoneKey) {
+      await page.evaluate((key) => {
+        const overlay = document.getElementById('boss-cinematic');
+        if (overlay) overlay.dataset.zoneKey = key;
+        playZone1PostClearFilm({ key });
+      }, zoneKey);
+    }
+
+    // Distinct beat texts per shot, in order, deduped against consecutive
+    // repeats (the fake-timer drain can record the same DOM state more than
+    // once per beat, e.g. once for the class toggle and once for the text
+    // change -- consecutive-dedup collapses that without merging two
+    // genuinely different beats that happen to repeat the same shot index).
+    function beatsForShot(log, shotIdx) {
+      const texts = log.filter((e) => e.activeIdx === shotIdx).map((e) => e.lineText);
+      const deduped = [];
+      for (const t of texts) {
+        if (deduped.length === 0 || deduped[deduped.length - 1] !== t) deduped.push(t);
+      }
+      return deduped;
+    }
+
+    // --- J. UNCLEARED_ENTRY = S1..S8 ONLY / S9_BEFORE_CLEAR & S10_BEFORE_CLEAR = IMPOSSIBLE ---
+    await test('J: Zone 1 PRE_PLAY plays exactly Shots 1-8, never 9/10, zero audio/TTS calls', async () => {
       await withFreshPage(browser, origin, async (page) => {
-        const log = await runZone1AndRecordShots(page);
+        const log = await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
         const seenShots = new Set(log.map((entry) => entry.activeIdx).filter((idx) => idx >= 0));
-        if (seenShots.size !== 10) throw new Error(`expected all 10 Zone 1 shots to play, got distinct indices ${JSON.stringify([...seenShots])} from log ${JSON.stringify(log)}`);
+        if (seenShots.size !== 8) throw new Error(`expected exactly Shots 1-8 (8 distinct indices) to play, got ${JSON.stringify([...seenShots].sort((a, b) => a - b))} from log ${JSON.stringify(log)}`);
+        if (seenShots.has(8) || seenShots.has(9)) throw new Error(`PRE_PLAY must never activate Shot 9/10 (indices 8/9), saw ${JSON.stringify([...seenShots])}`);
         const overlayReady = await page.evaluate(() => document.getElementById('boss-cinematic').classList.contains('ready'));
-        if (!overlayReady) throw new Error('expected Zone 1 cinematic to reach ready state after 10 shots');
+        if (!overlayReady) throw new Error('expected Zone 1 PRE_PLAY to reach ready state after Shot 8');
+        const showsTitleCard = await page.evaluate(() => document.getElementById('intro-film-stage').classList.contains('show-title-card'));
+        if (showsTitleCard) throw new Error('Zone 1 PRE_PLAY hand-off must not show the legacy title card (Fix 2)');
         const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
         if (audioCreated) throw new Error('Zone 1 has no recorded narration yet -- no window.Audio should ever be constructed');
         const speakCalls = await page.evaluate(() => window.__speakCalls);
-        if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across Zone 1's 10 shots (pending owner audio, not TTS), got ${speakCalls}`);
+        if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across Zone 1 PRE_PLAY, got ${speakCalls}`);
       });
     }, results);
 
-    // --- K. Zone 1 silence shots (S3/S5/S7/S9, timeline indices 2/4/6/8) render no subtitle ---
-    await test('K: Zone 1 silence shots show no subtitle text', async () => {
+    // --- K. S3/S5/S7_SILENCE (PRE_PLAY silence shots show no subtitle) ---
+    await test('K: Zone 1 PRE_PLAY silence shots (S3/S5/S7) show no subtitle text', async () => {
       await withFreshPage(browser, origin, async (page) => {
-        const log = await runZone1AndRecordShots(page);
-        const silentIndices = [2, 4, 6, 8];
+        const log = await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
+        const silentIndices = [2, 4, 6]; // S3, S5, S7
         const bad = [];
         for (const idx of silentIndices) {
-          const entriesForShot = log.filter((entry) => entry.activeIdx === idx);
-          for (const entry of entriesForShot) {
+          for (const entry of log.filter((e) => e.activeIdx === idx)) {
             if ((entry.lineText || '').trim() !== '') bad.push({ idx, lineText: entry.lineText });
           }
         }
         if (bad.length) throw new Error(`expected empty subtitle at Zone 1 silence shots, found: ${JSON.stringify(bad)}`);
       });
+    }, results);
+
+    // --- L. S2/S4/S6/S8 multi-beat order is exact canonical text, not a flattened/prefixed string ---
+    await test('L: Zone 1 PRE_PLAY multi-beat shots (S2/S4/S6/S8) play beats in exact canonical order', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const log = await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
+        const expected = {
+          1: ['Morning, child.', 'Morning, Shui.'], // S2
+          3: ["Look at that cloud.", "It's been sitting there for three days.", 'And... every day, it gets a little closer.'], // S4
+          5: ["I don't know if I can do this...", 'But I want to go see for myself.'], // S6
+          7: ['If you want to leave the village, play one game with me first.', "Don't rush.", 'Look carefully. Then make your move.'], // S8 (DL-01)
+        };
+        const mismatches = [];
+        for (const [shotIdx, expectedBeats] of Object.entries(expected)) {
+          const actual = beatsForShot(log, Number(shotIdx));
+          if (JSON.stringify(actual) !== JSON.stringify(expectedBeats)) {
+            mismatches.push({ shot: shotIdx, expected: expectedBeats, actual });
+          }
+          // Non-canonical speaker-label injection guard (no "Elder:"/"Hero:"
+          // prefixes -- speaker is metadata only, never in the subtitle text).
+          for (const beat of actual) {
+            if (/^(Elder|Hero|Anna|Runner|村長|主角|Narrator)[:：]/.test(beat)) {
+              mismatches.push({ shot: shotIdx, error: `non-canonical speaker label injected into subtitle: ${JSON.stringify(beat)}` });
+            }
+          }
+        }
+        if (mismatches.length) throw new Error(`beat order/text mismatch: ${JSON.stringify(mismatches)}`);
+      });
+    }, results);
+
+    // --- M. Structural proof: getIntroFilmLocaleConfig itself separates PRE_PLAY from POST_CLEAR ---
+    await test('M: Zone 1 config has exactly 8 PRE_PLAY shots (0-7) and 2 POST_CLEAR shots (8-9), both locales', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const result = await page.evaluate(() => {
+          const zh = getIntroFilmLocaleConfig({ key: 'k26_30' });
+          if (window.I18n && window.I18n.setLang) window.I18n.setLang('en');
+          const en = getIntroFilmLocaleConfig({ key: 'k26_30' });
+          const shotList = (tl) => (tl || []).map((s) => s.shot);
+          const beatCounts = (tl) => (tl || []).map((s) => (s.beats || []).length);
+          return {
+            zhTimelineShots: shotList(zh.timeline), zhPostClearShots: shotList(zh.postClearTimeline),
+            enTimelineShots: shotList(en.timeline), enPostClearShots: shotList(en.postClearTimeline),
+            zhBeatCounts: beatCounts(zh.timeline).concat(beatCounts(zh.postClearTimeline)),
+            enBeatCounts: beatCounts(en.timeline).concat(beatCounts(en.postClearTimeline)),
+            zhHasFinalCaption: 'finalCaption' in zh, zhHasFinalLine: 'finalLine' in zh,
+            enHasFinalCaption: 'finalCaption' in en, enHasFinalLine: 'finalLine' in en,
+          };
+        });
+        const expectedTimeline = [0, 1, 2, 3, 4, 5, 6, 7];
+        const expectedPostClear = [8, 9];
+        const expectedBeatCounts = [1, 2, 0, 3, 0, 2, 0, 3, 0, 3]; // S1..S10
+        for (const [label, actual, expected] of [
+          ['zh timeline', result.zhTimelineShots, expectedTimeline],
+          ['zh postClear', result.zhPostClearShots, expectedPostClear],
+          ['en timeline', result.enTimelineShots, expectedTimeline],
+          ['en postClear', result.enPostClearShots, expectedPostClear],
+          ['zh beat counts', result.zhBeatCounts, expectedBeatCounts],
+          ['en beat counts', result.enBeatCounts, expectedBeatCounts],
+        ]) {
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+            throw new Error(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+          }
+        }
+        // Fix 2: no legacy finalCaption/finalLine exposition anywhere in Zone 1's config.
+        if (result.zhHasFinalCaption || result.zhHasFinalLine || result.enHasFinalCaption || result.enHasFinalLine) {
+          throw new Error(`Zone 1 config must not define finalCaption/finalLine: ${JSON.stringify(result)}`);
+        }
+      });
+    }, results);
+
+    // --- N & O. GENUINE_CLEAR = S9 THEN S10 / S10 multi-beat order exact / zero audio/TTS ---
+    await test('N: Zone 1 POST_CLEAR plays exactly Shot 9 then Shot 10, zero audio/TTS calls', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const log = await recordFilmRun(page, (p) => runPostClearFilm(p, 'k26_30'));
+        const order = [];
+        for (const entry of log) {
+          if (entry.activeIdx >= 0 && order[order.length - 1] !== entry.activeIdx) order.push(entry.activeIdx);
+        }
+        if (JSON.stringify(order) !== JSON.stringify([8, 9])) {
+          throw new Error(`expected POST_CLEAR shot order [8,9] (Shot 9 then Shot 10), got ${JSON.stringify(order)} from log ${JSON.stringify(log)}`);
+        }
+        const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
+        if (audioCreated) throw new Error('Zone 1 POST_CLEAR has no recorded narration yet -- no window.Audio should ever be constructed');
+        const speakCalls = await page.evaluate(() => window.__speakCalls);
+        if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across Zone 1 POST_CLEAR, got ${speakCalls}`);
+      });
+    }, results);
+
+    await test('O: Zone 1 POST_CLEAR Shot 9 is silent, Shot 10 plays exact canonical 3-beat order, no extra line after', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const log = await recordFilmRun(page, (p) => runPostClearFilm(p, 'k26_30'));
+        const shot9Beats = beatsForShot(log, 8).filter((t) => t !== '');
+        if (shot9Beats.length) throw new Error(`expected Shot 9 (S9) to be silent, saw subtitle text: ${JSON.stringify(shot9Beats)}`);
+        const shot10Beats = beatsForShot(log, 9);
+        const expected = ['Elder!', 'The caravan from the Slime Plains...', "It's been three days, and they still haven't come back!"];
+        if (JSON.stringify(shot10Beats) !== JSON.stringify(expected)) {
+          throw new Error(`Shot 10 beat mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(shot10Beats)}`);
+        }
+        // Fix 2: nothing (no Hero response, no thesis line) may play after Shot 10's last beat.
+        const finalLineAfterComplete = await page.evaluate(() => document.getElementById('boss-cinematic-line')?.textContent || '');
+        if (finalLineAfterComplete !== expected[expected.length - 1]) {
+          throw new Error(`expected the subtitle to still read Shot 10's own last line after completion, got ${JSON.stringify(finalLineAfterComplete)}`);
+        }
+      });
+    }, results);
+
+    // --- P. finishPostClearFilm marks seen and closes the overlay (no reward/settlement call, visual-only) ---
+    await test('P: Zone 1 POST_CLEAR completion marks postClearSeen and closes the overlay', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        await recordFilmRun(page, (p) => runPostClearFilm(p, 'k26_30'));
+        const seen = await page.evaluate(() => {
+          const raw = localStorage.getItem('adventure_postclear_seen_v1');
+          return raw ? JSON.parse(raw) : {};
+        });
+        if (!seen.k26_30) throw new Error(`expected adventure_postclear_seen_v1.k26_30 to be set after completion, got ${JSON.stringify(seen)}`);
+        const overlayHidden = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        if (overlayHidden !== 'true') throw new Error(`expected the overlay to close (aria-hidden=true) after POST_CLEAR completes, got ${overlayHidden}`);
+      });
+    }, results);
+
+    // --- Q. _maybeTriggerZone1PostClearFilm fires once, is a no-op once already seen ---
+    await test('Q: _maybeTriggerZone1PostClearFilm is idempotent (fires once per zone)', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const firstRun = await page.evaluate(() => {
+          // isBeginnerVillageAdventureResult() requires _isAdventureZonePractice()
+          // (a non-empty _adventureActiveQuestions) AND either a ?zone=k26_30 URL
+          // param or a question topic matching /新手村|Beginner Village/ -- fake
+          // the latter so this test doesn't need a second page navigation.
+          // `let _adventureActiveQuestions` at index.html's top level is a
+          // global LEXICAL binding, not a window property -- window.foo=
+          // would silently create an unrelated property that
+          // isBeginnerVillageAdventureResult() never reads. A bare
+          // assignment mutates the same binding the page's own script uses.
+          _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
+          // _adventureProgress already defaults to [] (index.html top
+          // level); _maybeTriggerZone1PostClearFilm() falls back to
+          // ADVENTURE_ZONES.find(...) when it's empty, so no override needed.
+          _maybeTriggerZone1PostClearFilm();
+          return document.getElementById('boss-cinematic').className;
+        });
+        if (!/intro-film/.test(firstRun)) throw new Error(`expected first trigger to open the POST_CLEAR film, overlay class was ${JSON.stringify(firstRun)}`);
+        await page.evaluate(() => window.__flushFakeTimers());
+        const seenAfterFirst = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
+        if (!seenAfterFirst.k26_30) throw new Error('expected postClearSeen to be set after the first trigger completes');
+        const secondRunClass = await page.evaluate(() => {
+          const before = document.getElementById('boss-cinematic').className;
+          _maybeTriggerZone1PostClearFilm();
+          const after = document.getElementById('boss-cinematic').className;
+          return { before, after };
+        });
+        if (secondRunClass.before !== secondRunClass.after) {
+          throw new Error(`expected a second trigger (already seen) to be a no-op, overlay class changed from ${JSON.stringify(secondRunClass.before)} to ${JSON.stringify(secondRunClass.after)}`);
+        }
+      });
+    }, results);
+
+    // --- R. Source-level: no reward/settlement authority in cinematic code; trigger is win-only-scoped ---
+    await test('R: Zone 1 lifecycle functions contain no reward/settlement calls; trigger fires only on monster_defeated', async () => {
+      const source = await fs.readFile(path.join(repoRoot, 'index.html'), 'utf8');
+      function extractFunctionBody(name) {
+        const m = source.match(new RegExp(`function ${name}\\([^)]*\\)\\s*\\{`));
+        if (!m) throw new Error(`function ${name} not found in index.html`);
+        let i = m.index + m[0].length;
+        let depth = 1;
+        const start = i;
+        while (depth > 0 && i < source.length) {
+          if (source[i] === '{') depth++;
+          else if (source[i] === '}') depth--;
+          i++;
+        }
+        return source.slice(start, i - 1);
+      }
+      const cinematicFns = ['playZone1PostClearFilm', 'finishPostClearFilm', '_maybeTriggerZone1PostClearFilm', 'replayIntroFilm', 'skipIntroFilm'];
+      const violations = [];
+      for (const fn of cinematicFns) {
+        const body = extractFunctionBody(fn);
+        if (/fetch\s*\(|credentials\s*:|\.submit\s*\(|\/api\//.test(body)) {
+          violations.push(`${fn} appears to contain a network/reward/settlement call`);
+        }
+      }
+      if (violations.length) throw new Error(violations.join('; '));
+      // The only call site of _maybeTriggerZone1PostClearFilm() must be inside
+      // the next_action === 'monster_defeated' branch of
+      // _submitMapBattleV1IfActive -- never inside a 'player_defeated' or
+      // generic 'continue' path (FAILED_OR_ABORTED_GAMEPLAY_POST_CLEAR=NONE).
+      const monsterDefeatedBranch = source.match(/if \(response\.next_action === 'monster_defeated'\) \{[\s\S]*?\n\s{16}\}/);
+      if (!monsterDefeatedBranch || !monsterDefeatedBranch[0].includes('_maybeTriggerZone1PostClearFilm()')) {
+        throw new Error("_maybeTriggerZone1PostClearFilm() call site not found scoped inside the monster_defeated branch");
+      }
+      const callOnly = source.match(/(?<!function )_maybeTriggerZone1PostClearFilm\(\);/g) || [];
+      if (callOnly.length !== 1) {
+        throw new Error(`expected exactly 1 call site of _maybeTriggerZone1PostClearFilm(), found ${callOnly.length}`);
+      }
+      // Structural proof postClearTimeline is never reachable from the
+      // PRE_PLAY entry path (showStageIntroCinematic never references it).
+      const showStageBody = extractFunctionBody('showStageIntroCinematic');
+      if (showStageBody.includes('postClearTimeline')) {
+        throw new Error('showStageIntroCinematic must never reference postClearTimeline -- S9/S10 must be structurally unreachable before a genuine clear');
+      }
     }, results);
 
     const failed = results.filter((r) => !r.ok);

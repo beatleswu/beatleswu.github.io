@@ -46,7 +46,7 @@ def test_exact_v218_static_runtime_version_coupling():
     assert f'content="{CONTRACT}"' in INDEX
     assert f"VS1E_STATIC_CONTRACT = '{CONTRACT}'" in WORLD_JS
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v228-e10-lord-challenge-cta-scope-and-routing'" in SW
+    assert "const VERSION     = 'v229-e10-z1-prod-integration'" in SW
     assert INDEX.count("20260801e10art1") >= 8
 
 

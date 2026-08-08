@@ -179,7 +179,7 @@ def test_dynamic_cta_and_zone_identity_contracts_are_unchanged():
 
 
 def test_final_cache_identity_and_stylesheet_order_are_single_bump():
-    assert "const VERSION     = 'v228-e10-lord-challenge-cta-scope-and-routing'" in SW
+    assert "const VERSION     = 'v229-e10-z1-prod-integration'" in SW
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
     assert INDEX.count("20260801e10art1") >= 9
     assert "/css/e9/art_directed_runtime.css?v=20260801e10art1" in INDEX

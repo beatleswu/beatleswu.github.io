@@ -121,5 +121,5 @@ def test_reduced_motion_and_cache_coupling_are_current():
     assert "transition-duration: .001ms" in CSS
     assert "animation: none" in CSS
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v228-e10-lord-challenge-cta-scope-and-routing'" in SW
+    assert "const VERSION     = 'v229-e10-z1-prod-integration'" in SW
     assert INDEX.count("20260801e10art1") >= 8

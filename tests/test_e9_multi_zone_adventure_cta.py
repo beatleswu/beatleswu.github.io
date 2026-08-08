@@ -33,8 +33,8 @@ ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="ut
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
 SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 
-NEW_SW_VERSION = "v228-e10-lord-challenge-cta-scope-and-routing"
-PREVIOUS_SW_VERSION = "v227-e10-canonical-layout-contract-recovery"
+NEW_SW_VERSION = "v229-e10-z1-prod-integration"
+PREVIOUS_SW_VERSION = "v228-e10-lord-challenge-cta-scope-and-routing"
 
 
 def _render_selected_zone_body():
