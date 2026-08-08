@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1352,
-  "total_bytes": 759875016,
+  "total_files": 1362,
+  "total_bytes": 761699840,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 54
+    "owner-approved-project-created": 64
   },
   "files": [
     {
@@ -12671,6 +12671,106 @@
       "height": 256,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot01.webp",
+      "size": 123988,
+      "sha256": "798f221b068576be005e78ac74daff6d37e43dedc6bc10ae3ff71cbaf3395dc0",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot01_master.png (sha256=ff5f92cfff6322c17a77dc0f73fdf1fe33c7fe1b5547ec3a662226febe940dac), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot02.webp",
+      "size": 112388,
+      "sha256": "2929c7af8394580173fd986b70656d9111e01572f018b86303c629bbd2230bfc",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot02_master.png (sha256=ec523069139d76f1b797dbbe268a6d7ab6d0fa2a956f51054bfe5e65fdb5296e), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot03.webp",
+      "size": 191162,
+      "sha256": "6b29ea5a56a19cd03c86db9a90899b899040c5d58bb7fe56ae2b518683357e66",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot03_master.png (sha256=638929fbe5215ded65e586ab53b76c36eb1084430abe2717b238c3e5a0651e3a), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot04.webp",
+      "size": 160096,
+      "sha256": "e16edbb1839e1aac8d2516b400c4611ad0deb4f6389383efaa17333a58b72efb",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot04_master.png (sha256=046645d360ad680ebfcb26a1eb6b02cd46b085d3e1afd72f38e0a516a87fb75c), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot05.webp",
+      "size": 123778,
+      "sha256": "efe64025fd36a181942f344ef2f438f0a7ad46b870477f89b96477a47b804853",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot05_master.png (sha256=3773e8ad908589e18afa9dfd7138b5126ddf4a2be050511dee496e2758da7269), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot06.webp",
+      "size": 248210,
+      "sha256": "730bd0cfb8e49b378a1a8f7aa4b81b48c5a961a5b32f998e1bdddb7b07460c4d",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot06_master.png (sha256=c57deba8af41f1f18202c46665d3c381711c3cea2581e1f92cf5352b2ff08732), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot07.webp",
+      "size": 239360,
+      "sha256": "1ab541317d9e9e316e197ca0539f58422d57ca4fe996c4a94669e63bda4321a0",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot07_master.png (sha256=07b8da829455f0d3ab2c69ae910ec44d33371cc054801d9c031762b678c53043), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot08.webp",
+      "size": 183186,
+      "sha256": "efd406ec8437eccb1cbd37ae5a60328552b43533f2c5a46cf01be0d4dc4ba8e7",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot08_master.png (sha256=ceae2623e57000e1df22cedeadf41bfc0f22054ca496b7f1437ccc7362fe1133), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot09.webp",
+      "size": 214028,
+      "sha256": "d992430bdc56b9cdfa7ce5e296c73cbb6cad60075e71fe183be72e4cdca935a2",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot09_master.png (sha256=753acd1824a366e8c253628483a3782da5a0c2c6003a6a664862e9a5f3742c58), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
+    },
+    {
+      "path": "assets/storyboards/e10_z1_shot10.webp",
+      "size": 228628,
+      "sha256": "05d24386105a0e8f61a7389732a130947c36820a5f59efa5378221da17a4b5e7",
+      "mime": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "WEBP re-encode of Owner-locked Zone 1 cinematic master docs/planning/e10_zone1_art_master/e10_z1_shot10_master.png (sha256=24374d6c693b357b6c1db8028aaa994a35918d8a3761e00316d28c1af6a5a5ac), produced under E10-Z1-PROD-INTEGRATION-001; see assets/e10/cinematic/zone1-cinematic-assets.json for full provenance."
     },
     {
       "path": "assets/storyboards/go_ancient_temple_scene_01.webp",

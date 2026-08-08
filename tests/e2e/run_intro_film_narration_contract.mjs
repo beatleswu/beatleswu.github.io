@@ -9,6 +9,17 @@
  * speechSynthesis replaced by deterministic fakes -- no real waiting, no
  * real audio files, no network dependency on a live backend.
  *
+ * Zone fixture note (E10-Z1-PROD-INTEGRATION-001): tests A-F/H exercise the
+ * SHARED engine's generic success/failure/replay pacing behavior and were
+ * originally written against zone k26_30 back when it was a placeholder
+ * 4-shot timeline with audioSrc on every shot. k26_30 is now the canonical
+ * Zone 1 bilingual cinematic (10 shots, intentionally zero audioSrc until
+ * real narration is recorded -- see getIntroFilmLocaleConfig in index.html),
+ * so these generic-engine tests were retargeted to k21_25 (unchanged, still
+ * a 4-shot/all-audioSrc zone) to keep testing the same engine mechanics
+ * without coupling them to Zone 1's content shape. Test J below covers Zone
+ * 1's own contract (10 shots, silence shots, zero TTS/audio calls) directly.
+ *
  * Exits non-zero with a printed failure list on any assertion failure.
  */
 'use strict';
@@ -170,6 +181,12 @@ async function withFreshPage(browser, origin, fn) {
 async function runFilm(page, zoneKey) {
   await page.evaluate((key) => {
     window.__filmDone = false;
+    // Mirror what showStageIntroCinematic does in production: stamp the
+    // active zone onto the overlay so getCurrentIntroZone() (used by
+    // replayIntroFilm/skipIntroFilm) resolves back to the SAME zone under
+    // test, instead of silently falling back to ADVENTURE_ZONES[0].
+    const overlay = document.getElementById('boss-cinematic');
+    if (overlay) overlay.dataset.zoneKey = key;
     playNewbieVillageIntroFilm({ key }).then(() => { window.__filmDone = true; });
   }, zoneKey);
 }
@@ -183,7 +200,7 @@ async function main() {
     await test('A: successful MP3 narration advances shots without TTS', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'success'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         // drive all 4 shots to completion via onended
         for (let i = 0; i < 4; i++) {
           const advanced = await page.evaluate(() => window.__finishNextSuccessAudio());
@@ -201,7 +218,7 @@ async function main() {
     await test('B: audio.onerror holds the shot silently instead of finish(0)', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         // let the microtask-queued onerror fire
         await page.waitForTimeout(20);
         const delaysAfterError = await page.evaluate(() => window.__pendingTimerDelays());
@@ -226,7 +243,7 @@ async function main() {
         const pageErrors = [];
         page.on('pageerror', (e) => pageErrors.push(String(e)));
         await page.evaluate(() => { window.__audioMode = 'reject'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         await page.waitForTimeout(20);
         const delays = await page.evaluate(() => window.__pendingTimerDelays());
         if (!delays.some((d) => d >= 4000)) throw new Error(`expected silent-hold timer after play() rejection, got ${JSON.stringify(delays)}`);
@@ -238,7 +255,7 @@ async function main() {
     await test('D: four consecutive failures still show all shots with holds, complete once', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         const seenShots = [];
         for (let i = 0; i < 4; i++) {
           await page.waitForTimeout(5); // let onerror microtask fire
@@ -264,7 +281,7 @@ async function main() {
     await test('E: onended firing after onerror does not double-advance', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         await page.waitForTimeout(20);
         // simulate a stale onended firing on the same (already-failed) audio instance
         await page.evaluate(() => {
@@ -289,7 +306,7 @@ async function main() {
     await test('F: replay cancels pending silent-hold timer from previous run', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         await page.waitForTimeout(20);
         const delaysBeforeReplay = await page.evaluate(() => window.__pendingTimerDelays());
         if (!delaysBeforeReplay.some((d) => d >= 4000)) throw new Error(`expected a pending >=4000ms silent-hold timer before replay, got ${JSON.stringify(delaysBeforeReplay)}`);
@@ -306,7 +323,7 @@ async function main() {
     await test('H: narration failure path never calls playBrowserVoice/speechSynthesis', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k26_30');
+        await runFilm(page, 'k21_25');
         for (let i = 0; i < 4; i++) {
           await page.waitForTimeout(5);
           await page.evaluate(() => window.__flushFakeTimers());
@@ -328,6 +345,67 @@ async function main() {
       // The browser cases above exercise the same silent hold for load/error/
       // play rejection; this source-level guard proves the missing-asset branch
       // cannot reach the browser-TTS function.
+    }, results);
+
+    // --- J & K. Zone 1 (k26_30) bilingual cinematic contract ---
+    // Zone 1 has zero audioSrc on every shot (no recorded narration exists
+    // yet), so playAssetVoice's missing-audioSrc branch fires synchronously
+    // and schedules its silent-hold timer immediately -- unlike the
+    // MP3-backed zones above, there is no real Audio object / onended-onerror
+    // microtask boundary to single-step through. With fake timers, one
+    // __flushFakeTimers() call therefore cascades through the ENTIRE
+    // timeline in one synchronous burst. So instead of stepping shot-by-shot
+    // between flushes (as tests A/D do), record every shot-activation +
+    // subtitle-text change via a MutationObserver installed before the film
+    // starts, then flush once and inspect the recorded sequence.
+    async function runZone1AndRecordShots(page) {
+      await page.evaluate(() => { window.__audioMode = 'success'; });
+      await page.evaluate(() => {
+        window.__z1ShotLog = [];
+        const stage = document.getElementById('intro-film-stage');
+        const line = document.getElementById('boss-cinematic-line');
+        const record = () => {
+          const shots = Array.from(stage.querySelectorAll('.film-shot'));
+          const activeIdx = shots.findIndex((el) => el.classList.contains('active'));
+          window.__z1ShotLog.push({ activeIdx, lineText: line ? line.textContent : '' });
+        };
+        window.__z1Observer = new MutationObserver(record);
+        window.__z1Observer.observe(stage, { attributes: true, attributeFilter: ['class'], subtree: true });
+        if (line) window.__z1Observer.observe(line, { childList: true, characterData: true, subtree: true });
+      });
+      await runFilm(page, 'k26_30');
+      await page.evaluate(() => window.__flushFakeTimers());
+      return page.evaluate(() => window.__z1ShotLog);
+    }
+
+    await test('J: Zone 1 (k26_30) plays all 10 shots with zero audio/TTS calls', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const log = await runZone1AndRecordShots(page);
+        const seenShots = new Set(log.map((entry) => entry.activeIdx).filter((idx) => idx >= 0));
+        if (seenShots.size !== 10) throw new Error(`expected all 10 Zone 1 shots to play, got distinct indices ${JSON.stringify([...seenShots])} from log ${JSON.stringify(log)}`);
+        const overlayReady = await page.evaluate(() => document.getElementById('boss-cinematic').classList.contains('ready'));
+        if (!overlayReady) throw new Error('expected Zone 1 cinematic to reach ready state after 10 shots');
+        const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
+        if (audioCreated) throw new Error('Zone 1 has no recorded narration yet -- no window.Audio should ever be constructed');
+        const speakCalls = await page.evaluate(() => window.__speakCalls);
+        if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across Zone 1's 10 shots (pending owner audio, not TTS), got ${speakCalls}`);
+      });
+    }, results);
+
+    // --- K. Zone 1 silence shots (S3/S5/S7/S9, timeline indices 2/4/6/8) render no subtitle ---
+    await test('K: Zone 1 silence shots show no subtitle text', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const log = await runZone1AndRecordShots(page);
+        const silentIndices = [2, 4, 6, 8];
+        const bad = [];
+        for (const idx of silentIndices) {
+          const entriesForShot = log.filter((entry) => entry.activeIdx === idx);
+          for (const entry of entriesForShot) {
+            if ((entry.lineText || '').trim() !== '') bad.push({ idx, lineText: entry.lineText });
+          }
+        }
+        if (bad.length) throw new Error(`expected empty subtitle at Zone 1 silence shots, found: ${JSON.stringify(bad)}`);
+      });
     }, results);
 
     const failed = results.filter((r) => !r.ok);
