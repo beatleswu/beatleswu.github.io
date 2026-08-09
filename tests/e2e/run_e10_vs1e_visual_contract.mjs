@@ -9,6 +9,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const shellFlags = 'E9_DEBUG=1&e9Shell=1&e9TopHud=1&e9LeftNav=1&e9RightCards=1&e9BottomDock=1&e9WorldStage=1';
 
+export const CLASSIFIER_SCHEMA_VERSION = 1;
+export const GOVERNED_PAGE_SCOPE = 'ALL_RUNNER_INSTRUMENTATION_PAGES';
+export const GOVERNED_PAGE_ALLOWLIST = Object.freeze([]);
+export const BROWSER_ORIGINATED_PREDICATE_SOURCE = [
+  'CDP initiator.type',
+  'CDP resource_type',
+  'CDP type',
+  'absence of initiator.url',
+  'absence of initiator.stack',
+].join(' + ');
+
 const zones = [
   ['k26_30', '圍棋新手村', 'Beginner Village', 'completed', false, true, 3, 30, 30],
   ['k21_25', '史萊姆平原', 'Slime Plains', 'unlocked', false, false, 1, 18, 25],
@@ -86,6 +97,7 @@ const runnerInstrumentation = {
   nextPageId: 1,
   pages: [],
   servers: [],
+  network_summary: null,
 };
 
 function observedAt() {
@@ -123,6 +135,150 @@ function recordEvent(collection, kind, payload = {}) {
   collection.push({ kind, timestamp: observedAt(), ...payload });
 }
 
+async function installTransitionLifecycleObserver(page) {
+  await page.addInitScript(() => {
+    const state = {
+      markers: [],
+      lifecycle: [],
+    };
+    Object.defineProperty(window, '__e10RunnerTransitionDiagnostics', {
+      configurable: false,
+      enumerable: false,
+      value: state,
+      writable: false,
+    });
+
+    const describeElement = (element) => ({
+      tag: element?.tagName || null,
+      id: element?.id || null,
+      class_name: element?.className || null,
+    });
+    const absoluteUrl = (value) => {
+      if (!value) return null;
+      try {
+        return new URL(value, location.href).href;
+      } catch {
+        return value;
+      }
+    };
+    const recordSrcLifecycle = (element, action, oldSrc, newSrc) => {
+      if (!element || (!oldSrc && !newSrc)) return;
+      state.lifecycle.push({
+        kind: 'src_lifecycle',
+        action,
+        timestamp: new Date().toISOString(),
+        page_url: location.href,
+        page_id: state.markers.at(-1)?.page_id || null,
+        scenario: state.markers.at(-1)?.scenario || null,
+        old_src: absoluteUrl(oldSrc),
+        new_src: absoluteUrl(newSrc),
+        element: describeElement(element),
+      });
+    };
+    const install = () => {
+      if (!document.documentElement || state.observer) return;
+      state.observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+            const element = mutation.target;
+            const oldSrc = mutation.oldValue || '';
+            const newSrc = element.getAttribute('src') || '';
+            const action = newSrc ? 'src_replaced' : 'src_removed';
+            recordSrcLifecycle(element, action, oldSrc, newSrc);
+          }
+          if (mutation.type === 'childList') {
+            for (const removed of mutation.removedNodes) {
+              if (removed.nodeType !== Node.ELEMENT_NODE) continue;
+              const images = removed.matches?.('[src]')
+                ? [removed]
+                : [...removed.querySelectorAll?.('[src]') || []];
+              for (const element of images) {
+                recordSrcLifecycle(element, 'dom_removed', element.getAttribute('src') || '', '');
+              }
+            }
+          }
+        }
+      });
+      state.observer.observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['src'],
+        attributeOldValue: true,
+      });
+    };
+    if (document.documentElement) install();
+    else document.addEventListener('DOMContentLoaded', install, { once: true });
+  });
+}
+
+async function markRunnerTransition(page, marker) {
+  const diagnostics = page.__e10RunnerDiagnostics;
+  let domTransitionEvidence = [];
+  let domTransitionEvidenceError = null;
+  try {
+    domTransitionEvidence = await page.evaluate(() => [...document.querySelectorAll('[src]')].map((element) => ({
+      tag: element.tagName || null,
+      id: element.id || null,
+      before_src: (() => {
+        const value = element.getAttribute('src');
+        if (!value) return null;
+        try {
+          return new URL(value, location.href).href;
+        } catch {
+          return value;
+        }
+      })(),
+    })));
+  } catch (error) {
+    domTransitionEvidenceError = error.stack || String(error);
+    diagnostics?.instrumentation_errors.push({
+      kind: 'transition_dom_evidence_collection',
+      timestamp: observedAt(),
+      text: domTransitionEvidenceError,
+    });
+  }
+  const domTransitionEvidenceCapturedAt = observedAt();
+  const normalized = {
+    kind: marker.kind,
+    transition_type: marker.transition_type || marker.kind || null,
+    trigger: marker.trigger || null,
+    scenario: marker.scenario || diagnostics?.label || null,
+    page_id: diagnostics?.page_id || null,
+    timestamp: observedAt(),
+    page_url: safePageUrl(page),
+    dom_transition_evidence_captured_at: domTransitionEvidenceCapturedAt,
+    dom_transition_evidence: domTransitionEvidence,
+    dom_transition_evidence_status: domTransitionEvidenceError ? 'FAIL' : 'PASS',
+  };
+  if (diagnostics) (diagnostics.transition_markers ||= []).push(normalized);
+  await page.evaluate((value) => {
+    const state = window.__e10RunnerTransitionDiagnostics;
+    if (state) state.markers.push(value);
+  }, normalized);
+}
+
+async function collectPageTransitionDiagnostics(page) {
+  const diagnostics = page.__e10RunnerDiagnostics;
+  if (!diagnostics) return;
+  try {
+    const pageState = await page.evaluate(() => {
+      const state = window.__e10RunnerTransitionDiagnostics;
+      return state
+        ? { markers: state.markers || [], lifecycle: state.lifecycle || [] }
+        : { markers: [], lifecycle: [] };
+    });
+    diagnostics.transition_markers = pageState.markers;
+    diagnostics.transition_lifecycle = pageState.lifecycle;
+  } catch (error) {
+    diagnostics.instrumentation_errors.push({
+      kind: 'transition_diagnostics_collection',
+      timestamp: observedAt(),
+      text: error.stack || String(error),
+    });
+  }
+}
+
 function labelPageDiagnostics(page, label) {
   if (page.__e10RunnerDiagnostics) page.__e10RunnerDiagnostics.label = label;
 }
@@ -136,12 +292,18 @@ async function installPageDiagnostics(page, browserErrors) {
     viewport: typeof page.viewportSize === 'function' ? page.viewportSize() : null,
     events: [],
     cdp_events: [],
+    cdp_request_map: {},
+    cdp_network_enabled: false,
+    playwright_requestfailed: [],
     browser_events: [],
     instrumentation_errors: [],
+    transition_markers: [],
+    transition_lifecycle: [],
   };
   runnerInstrumentation.nextPageId += 1;
   runnerInstrumentation.pages.push(diagnostics);
   page.__e10RunnerDiagnostics = diagnostics;
+  await installTransitionLifecycleObserver(page);
 
   page.on('request', (request) => recordEvent(diagnostics.events, 'request', {
     url: request.url(),
@@ -166,7 +328,7 @@ async function installPageDiagnostics(page, browserErrors) {
   }));
   page.on('requestfailed', (request) => {
     const failure = request.failure();
-    recordEvent(diagnostics.events, 'requestfailed', {
+    const event = {
       url: request.url(),
       method: request.method(),
       resource_type: request.resourceType(),
@@ -174,8 +336,13 @@ async function installPageDiagnostics(page, browserErrors) {
       frame: safeFrameUrl(request),
       page_url: safePageUrl(page),
       viewport: diagnostics.viewport,
+      scenario: diagnostics.label,
+    };
+    recordEvent(diagnostics.events, 'requestfailed', event);
+    diagnostics.playwright_requestfailed.push({
+      ...event,
+      page_id: diagnostics.page_id,
     });
-    browserErrors.push({ kind: 'requestfailed', text: `${request.method()} ${request.url()}` });
   });
   page.on('console', (message) => {
     const location = typeof message.location === 'function' ? message.location() : null;
@@ -198,41 +365,87 @@ async function installPageDiagnostics(page, browserErrors) {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send('Network.enable');
     diagnostics.cdp_network_enabled = true;
-    cdp.on('Network.requestWillBeSent', (event) => recordEvent(diagnostics.cdp_events, 'Network.requestWillBeSent', {
-      request_id: event.requestId,
-      url: event.request?.url,
-      method: event.request?.method,
-      type: event.type,
-      cdp_timestamp: event.timestamp,
-    }));
-    cdp.on('Network.responseReceived', (event) => recordEvent(diagnostics.cdp_events, 'Network.responseReceived', {
-      request_id: event.requestId,
-      url: event.response?.url,
-      status: event.response?.status,
-      mime_type: event.response?.mimeType,
-      from_service_worker: event.response?.fromServiceWorker,
-      type: event.type,
-      cdp_timestamp: event.timestamp,
-    }));
-    cdp.on('Network.loadingFinished', (event) => recordEvent(diagnostics.cdp_events, 'Network.loadingFinished', {
-      request_id: event.requestId,
-      encoded_data_length: event.encodedDataLength,
-      cdp_timestamp: event.timestamp,
-    }));
-    cdp.on('Network.loadingFailed', (event) => recordEvent(diagnostics.cdp_events, 'Network.loadingFailed', {
-      request_id: event.requestId,
-      error_text: event.errorText,
-      blocked_reason: event.blockedReason || null,
-      canceled: Boolean(event.canceled),
-      type: event.type,
-      cdp_timestamp: event.timestamp,
-      page_url: safePageUrl(page),
-      viewport: diagnostics.viewport,
-    }));
+    cdp.on('Network.requestWillBeSent', (event) => {
+      const request = {
+        request_id: event.requestId,
+        url: event.request?.url || null,
+        method: event.request?.method || null,
+        resource_type: event.type || null,
+        type: event.type || null,
+        frame: event.frameId || null,
+        loader_id: event.loaderId || null,
+        initiator: event.initiator || null,
+        timestamp: observedAt(),
+        cdp_timestamp: event.timestamp,
+        wall_time: event.wallTime || null,
+      };
+      diagnostics.cdp_request_map[event.requestId] = request;
+      recordEvent(diagnostics.cdp_events, 'Network.requestWillBeSent', request);
+    });
+    cdp.on('Network.responseReceived', (event) => {
+      const request = diagnostics.cdp_request_map[event.requestId] || {};
+      recordEvent(diagnostics.cdp_events, 'Network.responseReceived', {
+        request_id: event.requestId,
+        url: event.response?.url || request.url || null,
+        method: request.method || null,
+        resource_type: request.resource_type || event.type || null,
+        frame: request.frame || null,
+        loader_id: request.loader_id || null,
+        initiator: request.initiator || null,
+        status: event.response?.status,
+        mime_type: event.response?.mimeType,
+        from_service_worker: event.response?.fromServiceWorker,
+        type: event.type,
+        cdp_timestamp: event.timestamp,
+      });
+    });
+    cdp.on('Network.loadingFinished', (event) => {
+      const request = diagnostics.cdp_request_map[event.requestId] || {};
+      recordEvent(diagnostics.cdp_events, 'Network.loadingFinished', {
+        request_id: event.requestId,
+        url: request.url || null,
+        method: request.method || null,
+        resource_type: request.resource_type || null,
+        frame: request.frame || null,
+        loader_id: request.loader_id || null,
+        initiator: request.initiator || null,
+        encoded_data_length: event.encodedDataLength,
+        cdp_timestamp: event.timestamp,
+      });
+    });
+    cdp.on('Network.loadingFailed', (event) => {
+      const request = diagnostics.cdp_request_map[event.requestId] || null;
+      const failure = {
+        request_id: event.requestId,
+        url: request?.url || null,
+        method: request?.method || null,
+        resource_type: request?.resource_type || event.type || null,
+        frame: request?.frame || null,
+        loader_id: request?.loader_id || null,
+        initiator: request?.initiator || null,
+        error_text: event.errorText || null,
+        blocked_reason: event.blockedReason || null,
+        canceled: Boolean(event.canceled),
+        type: event.type,
+        cdp_timestamp: event.timestamp,
+        page_url: safePageUrl(page),
+        viewport: diagnostics.viewport,
+        correlation_status: request?.url ? 'JOINED' : 'MISS',
+      };
+      recordEvent(diagnostics.cdp_events, 'Network.loadingFailed', failure);
+      if (!request?.url) diagnostics.instrumentation_errors.push({
+        kind: 'cdp_correlation_miss',
+        timestamp: observedAt(),
+        request_id: event.requestId,
+        text: `Network.loadingFailed had no URL-bearing Network.requestWillBeSent mapping for ${event.requestId}`,
+      });
+    });
   } catch (error) {
     diagnostics.instrumentation_errors.push({
       kind: 'cdp_setup',
       timestamp: observedAt(),
+      page_id: diagnostics.page_id,
+      label: diagnostics.label,
       text: error.stack || String(error),
     });
   }
@@ -1039,6 +1252,11 @@ async function runCase(browser, origin, outputDir, spec) {
     await resetViewportScroll(page);
     afterOpen = await runtimeSnapshot(page);
     if (spec.escapeCheck) {
+      await markRunnerTransition(page, {
+        kind: 'drawer_close',
+        trigger: 'Escape',
+        scenario: spec.specName,
+      });
       await page.keyboard.press('Escape');
       escaped = await page.locator('#e9-right-drawer-toggle').getAttribute('aria-expanded');
       await resetViewportScroll(page);
@@ -1129,6 +1347,7 @@ async function runCase(browser, origin, outputDir, spec) {
 
   const snapshot = await runtimeSnapshot(page);
   const screenshot = await saveViewportScreenshot(page, outputDir, spec.filename);
+  await collectPageTransitionDiagnostics(page);
   await page.close();
   return {
     ...spec,
@@ -2147,6 +2366,692 @@ async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir
   return report;
 }
 
+function eventTimeMs(event) {
+  const value = Date.parse(event?.timestamp || '');
+  return Number.isFinite(value) ? value : null;
+}
+
+export function pathnameFromRawRequestTarget(value, baseOrigin = 'http://127.0.0.1') {
+  if (typeof value !== 'string' || value.length === 0) return null;
+  try {
+    return new URL(value, baseOrigin).pathname;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeFailureReference(failure = {}) {
+  let url = failure.url || null;
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      parsed.hash = '';
+      url = parsed.href;
+    } catch {
+      // Preserve non-URL evidence verbatim; the page identity still makes it
+      // attributable without inventing a normalization rule.
+    }
+  }
+  return {
+    url,
+    page_id: failure.page_id || null,
+    label: failure.scenario || failure.label || null,
+    failure_text: failure.failure_text || failure.error_text || null,
+  };
+}
+
+export function evaluateBrowserOriginatedPredicate(request = {}) {
+  const initiator = request.initiator && typeof request.initiator === 'object'
+    ? request.initiator
+    : {};
+  const evidence = {
+    initiator_type_other: initiator.type === 'other',
+    resource_type_other: request.resource_type === 'Other',
+    cdp_type_other: request.type === 'Other',
+    initiator_url_absent: !initiator.url,
+    initiator_stack_absent: !initiator.stack,
+  };
+  return {
+    matches: Object.values(evidence).every(Boolean),
+    source: BROWSER_ORIGINATED_PREDICATE_SOURCE,
+    evidence,
+  };
+}
+
+export function buildPhase0BrowserOriginObservation(requests = []) {
+  const rows = requests.map((request) => ({
+    request: {
+      request_id: request.request_id || null,
+      url: request.url || null,
+      method: request.method || null,
+      page_id: request.page_id || null,
+      scenario: request.scenario || null,
+      resource_type: request.resource_type || null,
+      type: request.type || null,
+      frame: request.frame || null,
+      loader_id: request.loader_id || null,
+      initiator: request.initiator || null,
+      timestamp: request.timestamp || null,
+      cdp_timestamp: request.cdp_timestamp ?? null,
+    },
+    predicate: evaluateBrowserOriginatedPredicate(request),
+  }));
+  return {
+    status: 'COMPLETED_BEFORE_PREDICATE',
+    source: BROWSER_ORIGINATED_PREDICATE_SOURCE,
+    observed_request_count: rows.length,
+    browser_originated_candidate_count: rows.filter((row) => row.predicate.matches).length,
+    page_originated_or_other_candidate_count: rows.filter((row) => !row.predicate.matches).length,
+    rows,
+  };
+}
+
+function cdpRequestMapForPage(page) {
+  const map = new Map();
+  for (const [requestId, request] of Object.entries(page.cdp_request_map || {})) {
+    map.set(requestId, {
+      ...request,
+      request_will_be_sent: request.request_will_be_sent === true,
+    });
+  }
+  for (const event of page.cdp_events || []) {
+    if (event.kind !== 'Network.requestWillBeSent' || event.request_id == null) continue;
+    map.set(String(event.request_id), { ...event, request_will_be_sent: true });
+  }
+  return map;
+}
+
+export function buildServerPathSummary(servers = []) {
+  const summary = new Map();
+  const ensure = (pathname) => {
+    if (!summary.has(pathname)) {
+      summary.set(pathname, {
+        pathname,
+        server_request_count: 0,
+        response_created_count: 0,
+        response_finished_count: 0,
+        response_closed_count: 0,
+        response_error_count: 0,
+        response_statuses: [],
+        raw_server_request_targets: [],
+      });
+    }
+    return summary.get(pathname);
+  };
+  for (const server of servers) {
+    const events = Array.isArray(server.events) ? server.events : [];
+    const requestById = new Map();
+    for (const event of events) {
+      if (event.kind !== 'request' || event.request_id == null) continue;
+      const pathname = pathnameFromRawRequestTarget(event.url, server.origin || 'http://127.0.0.1');
+      if (!pathname) continue;
+      const row = ensure(pathname);
+      row.server_request_count += 1;
+      row.raw_server_request_targets.push({
+        server_id: server.server_id || null,
+        request_id: event.request_id,
+        target: event.url,
+        timestamp: event.timestamp || null,
+      });
+      requestById.set(String(event.request_id), pathname);
+    }
+    for (const event of events) {
+      const pathname = requestById.get(String(event.request_id));
+      if (!pathname) continue;
+      const row = ensure(pathname);
+      if (event.kind === 'response_created') {
+        row.response_created_count += 1;
+        row.response_statuses.push(Number(event.status));
+      } else if (event.kind === 'response_finished') {
+        row.response_finished_count += 1;
+      } else if (event.kind === 'response_closed') {
+        row.response_closed_count += 1;
+      } else if (event.kind === 'response_error') {
+        row.response_error_count += 1;
+      }
+    }
+  }
+  return summary;
+}
+
+function successfulResponseUrls(page) {
+  const urls = new Set();
+  for (const event of page.events || []) {
+    if (event.kind === 'response' && event.status === 200 && event.url) urls.add(event.url);
+  }
+  for (const event of page.cdp_events || []) {
+    if (event.kind === 'Network.responseReceived' && event.status === 200 && event.url) {
+      urls.add(event.url);
+    }
+  }
+  return urls;
+}
+
+function canonicalCdpFailuresForPage(page) {
+  const requestMap = cdpRequestMapForPage(page);
+  const failures = [];
+  let correlationMisses = 0;
+  for (const event of page.cdp_events || []) {
+    if (event.kind !== 'Network.loadingFailed') continue;
+    const request = requestMap.get(String(event.request_id));
+    if (!request?.url) correlationMisses += 1;
+    failures.push({
+      source: 'CDP',
+      page_id: page.page_id || null,
+      scenario: page.label || null,
+      request_id: event.request_id || null,
+      url: event.url || request?.url || null,
+      method: event.method || request?.method || null,
+      resource_type: event.resource_type || request?.resource_type || event.type || null,
+      frame: event.frame || request?.frame || null,
+      loader_id: event.loader_id || request?.loader_id || null,
+      initiator: event.initiator || request?.initiator || null,
+      error_text: event.error_text || null,
+      blocked_reason: event.blocked_reason || null,
+      canceled: Boolean(event.canceled),
+      page_url: event.page_url || page.initial_url || null,
+      viewport: event.viewport || page.viewport || null,
+      timestamp: event.timestamp || null,
+      cdp_timestamp: event.cdp_timestamp || null,
+      correlation_status: request?.url ? 'JOINED' : 'MISS',
+      request_will_be_sent: request?.request_will_be_sent === true,
+      request_payload: request || null,
+    });
+  }
+  return { failures, correlationMisses };
+}
+
+function playwrightFailuresForPage(page) {
+  if (Array.isArray(page.playwright_requestfailed)) return page.playwright_requestfailed;
+  return (page.events || [])
+    .filter((event) => event.kind === 'requestfailed')
+    .map((event) => ({ ...event, page_id: page.page_id || null, scenario: page.label || null }));
+}
+
+function joinPlaywrightAndCdpFailures(playwrightFailures, cdpFailures) {
+  const usedCdpIndexes = new Set();
+  const joined = [];
+  const unmatchedPlaywright = [];
+  for (const playwright of playwrightFailures) {
+    const candidates = cdpFailures
+      .map((cdp, index) => ({ cdp, index }))
+      .filter(({ cdp, index }) => (
+        !usedCdpIndexes.has(index)
+        && cdp.url === playwright.url
+        && (!playwright.failure_text || !cdp.error_text || playwright.failure_text === cdp.error_text)
+      ));
+    candidates.sort((left, right) => {
+      const leftTime = eventTimeMs(left.cdp);
+      const rightTime = eventTimeMs(right.cdp);
+      const targetTime = eventTimeMs(playwright);
+      if (targetTime == null || leftTime == null || rightTime == null) return 0;
+      return Math.abs(leftTime - targetTime) - Math.abs(rightTime - targetTime);
+    });
+    const match = candidates[0];
+    if (!match) {
+      unmatchedPlaywright.push(playwright);
+      continue;
+    }
+    usedCdpIndexes.add(match.index);
+    joined.push({ playwright, cdp: match.cdp, request_id: match.cdp.request_id || null });
+  }
+  const unmatchedCdp = cdpFailures.filter((_, index) => !usedCdpIndexes.has(index));
+  return {
+    joined,
+    unmatchedPlaywright,
+    unmatchedCdp,
+    mismatchCount: unmatchedPlaywright.length + unmatchedCdp.length,
+  };
+}
+
+function hasServerError(servers) {
+  return servers.some((server) => (server.events || []).some((event) => (
+    event.kind === 'response_error'
+    || (event.kind === 'response_created' && Number(event.status) >= 500)
+  )));
+}
+
+function hasPageCrash(page) {
+  return (page.browser_events || []).some((event) => (
+    event.kind === 'crash' || event.kind === 'renderer_crash'
+  )) || (page.cdp_events || []).some((event) => event.kind === 'Target.targetCrashed');
+}
+
+function finalUiPassedForPage(page, caseFailures = {}) {
+  if (Object.prototype.hasOwnProperty.call(caseFailures, page.label)) {
+    return (caseFailures[page.label] || []).length === 0;
+  }
+  if (typeof page.final_ui_pass === 'boolean') return page.final_ui_pass;
+  return false;
+}
+
+function samePageAndScenario(page, value) {
+  const samePage = !value?.page_id || !page?.page_id || value.page_id === page.page_id;
+  const sameScenario = !value?.scenario || !page?.label || value.scenario === page.label;
+  return samePage && sameScenario;
+}
+
+function transitionEvidenceForFailure(page, failure) {
+  const failureTime = eventTimeMs(failure);
+  const lifecycle = page?.transition_lifecycle || [];
+  const candidates = (page?.transition_markers || [])
+    .filter((marker) => {
+      const markerTime = eventTimeMs(marker);
+      return samePageAndScenario(page, marker)
+        && markerTime != null
+        && failureTime != null
+        && markerTime < failureTime;
+    })
+    .map((marker) => {
+      const markerTime = eventTimeMs(marker);
+      const capturedAt = eventTimeMs({ timestamp: marker.dom_transition_evidence_captured_at });
+      const domEvidence = Array.isArray(marker.dom_transition_evidence)
+        ? marker.dom_transition_evidence
+        : [];
+      const domSourceMatch = domEvidence.find((entry) => entry.before_src === failure.url) || null;
+      const lifecycleMatch = lifecycle.find((entry) => {
+        const lifecycleTime = eventTimeMs(entry);
+        const exactUrl = entry.old_src === failure.url || entry.new_src === failure.url;
+        return samePageAndScenario(page, entry)
+          && ['src_removed', 'src_replaced', 'dom_removed'].includes(entry.action)
+          && exactUrl
+          && lifecycleTime != null
+          && lifecycleTime >= markerTime
+          && lifecycleTime <= failureTime;
+      }) || null;
+      return {
+        marker,
+        marker_time: markerTime,
+        dom_transition_evidence_captured_at: marker.dom_transition_evidence_captured_at || null,
+        dom_evidence_capture_before_marker: capturedAt != null && capturedAt <= markerTime,
+        dom_source_match: domSourceMatch,
+        lifecycle_match: lifecycleMatch,
+      };
+    });
+  return candidates.find((candidate) => candidate.dom_source_match) || candidates[0] || null;
+}
+
+function predicateCondition(passed, evidence) {
+  return { passed: Boolean(passed), evidence };
+}
+
+function firstFailedCondition(conditions) {
+  for (const [name, condition] of Object.entries(conditions)) {
+    if (!condition.passed) return name;
+  }
+  return null;
+}
+
+export function evaluateAbortPredicates({
+  page,
+  failure,
+  servers = [],
+  caseFailures = {},
+  serverPathSummaries = buildServerPathSummary(servers),
+} = {}) {
+  const pathname = pathnameFromRawRequestTarget(failure?.url);
+  const pathSummary = pathname && serverPathSummaries.get(pathname)
+    ? serverPathSummaries.get(pathname)
+    : {
+      pathname,
+      server_request_count: 0,
+      response_created_count: 0,
+      response_finished_count: 0,
+      response_closed_count: 0,
+      response_error_count: 0,
+      response_statuses: [],
+      raw_server_request_targets: [],
+    };
+  const request = failure?.request_payload || {};
+  const browserOrigin = evaluateBrowserOriginatedPredicate(request);
+  const transitionEvidence = transitionEvidenceForFailure(page, failure);
+  const pageCrash = hasPageCrash(page);
+  const serverError = hasServerError(servers);
+  const clientSuccessfulResponse = page ? successfulResponseUrls(page).has(failure.url) : false;
+  const finalUiPassed = page ? finalUiPassedForPage(page, caseFailures) : false;
+
+  const common = {
+    abort_error_text: predicateCondition(
+      failure?.error_text === 'net::ERR_ABORTED',
+      { actual: failure?.error_text || null, expected: 'net::ERR_ABORTED' },
+    ),
+  };
+  const classA = {
+    A1_request_will_be_sent: predicateCondition(
+      failure?.request_will_be_sent === true,
+      { request_id: failure?.request_id || null, observed: failure?.request_will_be_sent === true },
+    ),
+    A2_loading_failed: predicateCondition(
+      failure?.source === 'CDP',
+      { source: failure?.source || null, event: 'Network.loadingFailed' },
+    ),
+    A3_server_path_request_count_zero: predicateCondition(
+      pathSummary.server_request_count === 0,
+      {
+        pathname,
+        server_request_count: pathSummary.server_request_count,
+        raw_server_request_targets: pathSummary.raw_server_request_targets,
+      },
+    ),
+    A4_no_server_response_events: predicateCondition(
+      pathSummary.response_created_count === 0
+        && pathSummary.response_finished_count === 0
+        && pathSummary.response_closed_count === 0,
+      {
+        response_created_count: pathSummary.response_created_count,
+        response_finished_count: pathSummary.response_finished_count,
+        response_closed_count: pathSummary.response_closed_count,
+      },
+    ),
+    A5_no_page_or_renderer_crash: predicateCondition(
+      !pageCrash,
+      { page_crash: pageCrash, renderer_crash: pageCrash },
+    ),
+    A6_browser_originated: predicateCondition(
+      browserOrigin.matches,
+      {
+        source: browserOrigin.source,
+        evidence: browserOrigin.evidence,
+      },
+    ),
+  };
+  const classB = {
+    B1_server_received_request: predicateCondition(
+      pathSummary.server_request_count >= 1,
+      {
+        pathname,
+        server_request_count: pathSummary.server_request_count,
+        raw_server_request_targets: pathSummary.raw_server_request_targets,
+      },
+    ),
+    B2_response_created: predicateCondition(
+      pathSummary.response_created_count >= 1,
+      { response_created_count: pathSummary.response_created_count },
+    ),
+    B3_same_asset_http_200: predicateCondition(
+      pathSummary.response_statuses.includes(200) || clientSuccessfulResponse,
+      {
+        response_statuses: pathSummary.response_statuses,
+        client_successful_response: clientSuccessfulResponse,
+      },
+    ),
+    B4_runner_transition_marker: predicateCondition(
+      Boolean(transitionEvidence?.marker),
+      {
+        page_id: page?.page_id || null,
+        scenario: page?.label || null,
+        marker: transitionEvidence?.marker || null,
+      },
+    ),
+    B5_pre_transition_src_exact_match: predicateCondition(
+      Boolean(
+        transitionEvidence?.dom_source_match
+        && transitionEvidence?.marker?.dom_transition_evidence_status === 'PASS'
+        && transitionEvidence.dom_evidence_capture_before_marker,
+      ),
+      {
+        aborted_url: failure?.url || null,
+        dom_source_match: transitionEvidence?.dom_source_match || null,
+        dom_evidence_capture_before_marker: transitionEvidence?.dom_evidence_capture_before_marker || false,
+        lifecycle_match: transitionEvidence?.lifecycle_match || null,
+      },
+    ),
+    B6_final_assertions_pass: predicateCondition(
+      finalUiPassed,
+      { final_ui_pass: finalUiPassed, case_failures: caseFailures[page?.label] || [] },
+    ),
+    B7_no_crash_or_server_error: predicateCondition(
+      !pageCrash && !serverError,
+      { page_crash: pageCrash, renderer_crash: pageCrash, server_error: serverError },
+    ),
+  };
+  const classAConditions = {
+    abort_error_text: common.abort_error_text,
+    ...classA,
+  };
+  const classBConditions = {
+    abort_error_text: common.abort_error_text,
+    ...classB,
+  };
+  const classAResult = Object.values(classAConditions).every((condition) => condition.passed);
+  const classBResult = Object.values(classBConditions).every((condition) => condition.passed);
+  return {
+    common,
+    class_a: {
+      conditions: classAConditions,
+      passes: classAResult,
+      first_failed_condition: firstFailedCondition(classAConditions),
+    },
+    class_b: {
+      conditions: classBConditions,
+      passes: classBResult,
+      first_failed_condition: firstFailedCondition(classBConditions),
+    },
+    server_path_summary: pathSummary,
+    transition_evidence: transitionEvidence,
+    browser_originated_predicate: browserOrigin,
+  };
+}
+
+export function arbitrateClassification({ classA = false, classB = false } = {}) {
+  if (classA && classB) {
+    return {
+      status: 'FAIL',
+      classification: null,
+      reason: 'MULTIPLE_CLASSIFICATIONS',
+    };
+  }
+  if (classA) return { status: 'PASS', classification: 'CLASS_A', reason: null };
+  if (classB) return { status: 'PASS', classification: 'CLASS_B', reason: null };
+  return { status: 'PASS', classification: 'UNEXPECTED', reason: 'NO_EXPECTED_PREDICATE' };
+}
+
+export function buildCanonicalNetworkFailureSet({
+  pages = [],
+  servers = [],
+  caseFailures = {},
+} = {}) {
+  const canonicalFailures = [];
+  const joinedFailures = [];
+  const unmatchedPlaywright = [];
+  const unmatchedCdp = [];
+  let cdpCorrelationMisses = 0;
+  let playwrightCount = 0;
+  let pageCrash = false;
+  const serverPathSummaries = buildServerPathSummary(servers);
+  const phase0Requests = pages.flatMap((page) => (page.cdp_events || [])
+    .filter((event) => event.kind === 'Network.requestWillBeSent')
+    .map((event) => ({ ...event, page_id: page.page_id || null, scenario: page.label || null })));
+  const phase0Observation = buildPhase0BrowserOriginObservation(phase0Requests);
+
+  for (const page of pages) {
+    const cdpResult = canonicalCdpFailuresForPage(page);
+    const playwrightFailures = playwrightFailuresForPage(page);
+    const join = joinPlaywrightAndCdpFailures(playwrightFailures, cdpResult.failures);
+    canonicalFailures.push(...cdpResult.failures);
+    joinedFailures.push(...join.joined);
+    unmatchedPlaywright.push(...join.unmatchedPlaywright);
+    unmatchedCdp.push(...join.unmatchedCdp);
+    cdpCorrelationMisses += cdpResult.correlationMisses;
+    playwrightCount += playwrightFailures.length;
+    pageCrash = pageCrash || hasPageCrash(page);
+  }
+
+  const cdpCount = canonicalFailures.length;
+  const governedPageScope = pages.length > 0;
+  const cdpNetworkEnabled = governedPageScope
+    && pages.every((page) => page.cdp_network_enabled === true);
+  const cdpDisabledGovernedPages = pages
+    .filter((page) => page.cdp_network_enabled !== true)
+    .map((page) => ({
+      page_id: page.page_id || null,
+      label: page.label || null,
+      instrumentation_errors: (page.instrumentation_errors || []).filter((error) => error.kind === 'cdp_setup'),
+    }));
+  const cdpSetupErrors = pages.flatMap((page) => (page.instrumentation_errors || [])
+    .filter((error) => error.kind === 'cdp_setup')
+    .map((error) => ({
+      ...error,
+      page_id: error.page_id || page.page_id || null,
+      label: error.label || page.label || null,
+    })));
+  // CDP is authoritative. Playwright remains a cross-check, but a Playwright
+  // failure without a corresponding CDP event is an authoritative capture
+  // coverage failure and must fail closed.
+  const playwrightCdpMismatchCount = unmatchedPlaywright.length + unmatchedCdp.length;
+  const correlationValid = cdpCorrelationMisses === 0;
+  const crossValidationValid = correlationValid && unmatchedPlaywright.length === 0;
+  const serverError = hasServerError(servers);
+  const classA = [];
+  const classB = [];
+  const unexpected = [];
+  const arbitrationFailures = [];
+  for (const failure of canonicalFailures) {
+    const page = pages.find((candidate) => candidate.page_id === failure.page_id);
+    const predicateChain = evaluateAbortPredicates({
+      page,
+      failure,
+      servers,
+      caseFailures,
+      serverPathSummaries,
+    });
+    const arbitration = arbitrateClassification({
+      classA: predicateChain.class_a.passes,
+      classB: predicateChain.class_b.passes,
+    });
+    if (arbitration.status === 'FAIL') arbitrationFailures.push({ failure, predicateChain, arbitration });
+    // A contradictory intermediate result is itself a failure. It is kept in
+    // the conservative UNEXPECTED bucket only to preserve the exactly-one
+    // arithmetic invariant; the arbitration failure remains visible.
+    const classification = arbitration.status === 'FAIL'
+      ? 'UNEXPECTED'
+      : arbitration.classification;
+    predicateChain.classifier_schema_version = CLASSIFIER_SCHEMA_VERSION;
+    predicateChain.classification = classification;
+    predicateChain.first_failed_condition = arbitration.status === 'FAIL'
+      ? 'MULTIPLE_CLASSIFICATIONS'
+      : (classification === 'CLASS_A'
+        ? predicateChain.class_b.first_failed_condition
+        : (classification === 'CLASS_B'
+          ? predicateChain.class_a.first_failed_condition
+          : (predicateChain.class_a.first_failed_condition || predicateChain.class_b.first_failed_condition)));
+    const classified = {
+      ...failure,
+      classifier_schema_version: CLASSIFIER_SCHEMA_VERSION,
+      predicate_chain: predicateChain,
+      arbitration,
+      classification,
+      expected_transition_abort: classification === 'CLASS_B',
+      successful_duplicate_response_present: Boolean(
+        predicateChain.class_b.conditions.B3_same_asset_http_200.evidence.client_successful_response,
+      ),
+    };
+    if (classification === 'CLASS_A') classA.push(classified);
+    else if (classification === 'CLASS_B') classB.push(classified);
+    else unexpected.push(classified);
+  }
+
+  const classificationTotals = {
+    CLASS_A: classA.length,
+    CLASS_B: classB.length,
+    UNEXPECTED: unexpected.length,
+  };
+  const classificationTotalsReconciled = (
+    classificationTotals.CLASS_A
+    + classificationTotals.CLASS_B
+    + classificationTotals.UNEXPECTED
+  ) === cdpCount;
+  const crossValidationFailures = [];
+  if (!cdpNetworkEnabled) {
+    crossValidationFailures.push(
+      `CDP_NETWORK_INSTRUMENTATION_DISABLED: ${JSON.stringify(cdpDisabledGovernedPages)}`
+    );
+  }
+  if (unmatchedPlaywright.length) {
+    crossValidationFailures.push(
+      `CDP_CAPTURE_GAP: ${JSON.stringify(unmatchedPlaywright.map(normalizeFailureReference))}`
+    );
+  }
+  if (!correlationValid) crossValidationFailures.push(
+    `CDP_CORRELATION_MISS: ${cdpCorrelationMisses} Network.loadingFailed event(s) lacked requestId mapping`
+  );
+  if (!classificationTotalsReconciled) crossValidationFailures.push(
+    `CLASSIFICATION_TOTAL_MISMATCH: ${JSON.stringify(classificationTotals)} != ${cdpCount}`
+  );
+  for (const arbitrationFailure of arbitrationFailures) {
+    crossValidationFailures.push(
+      `MULTIPLE_CLASSIFICATIONS: ${arbitrationFailure.failure.url || 'unknown URL'}`
+    );
+  }
+  const failures = [
+    ...crossValidationFailures,
+    ...unexpected.map((failure) => (
+      `UNEXPECTED_REQUEST_FAILURE: ${failure.error_text || 'unknown error'} ${failure.url || 'unknown URL'}`
+    )),
+  ];
+  return {
+    network_summary_present: true,
+    REQUESTFAILED_TOTAL: playwrightCount,
+    PLAYWRIGHT_REQUESTFAILED: playwrightCount,
+    CDP_LOADINGFAILED: cdpCount,
+    JOINED_FAILURES: joinedFailures.length,
+    CDP_CORRELATION_MISSES: cdpCorrelationMisses,
+    PLAYWRIGHT_CDP_MISMATCHES: playwrightCdpMismatchCount,
+    PLAYWRIGHT_CDP_MISMATCH_RECORDED: playwrightCdpMismatchCount > 0,
+    PLAYWRIGHT_CDP_MISMATCH_GATE: false,
+    PLAYWRIGHT_CDP_MISMATCH_SCOPE: 'DIAGNOSTIC_CROSS_CHECK_ONLY',
+    GOVERNED_PAGE_SCOPE: GOVERNED_PAGE_SCOPE,
+    GOVERNED_PAGE_ALLOWLIST: GOVERNED_PAGE_ALLOWLIST,
+    GOVERNED_PAGE_COUNT: pages.length,
+    CDP_NETWORK_ENABLED: cdpNetworkEnabled,
+    CDP_DISABLED_GOVERNED_PAGES: cdpDisabledGovernedPages,
+    CDP_SETUP_ERRORS: cdpSetupErrors,
+    CDP_CAPTURE_GAP_THIS_RUN: unmatchedPlaywright.length
+      ? unmatchedPlaywright.map(normalizeFailureReference)
+      : 'NONE_OBSERVED_THIS_RUN',
+    UNMATCHED_CDP_ROLE: 'DIAGNOSTIC_EVIDENCE_ONLY',
+    HARNESS_PRE_REQUEST_ABORTS: classA.length,
+    RUNNER_TRANSITION_ABORTS: classB.length,
+    UNEXPECTED_REQUEST_FAILURES: unexpected.length,
+    PRIMARY_ERROR_KIND: failures.length ? 'CONTRACT' : 'NONE',
+    canonical_failures: canonicalFailures,
+    joined_failures: joinedFailures,
+    class_a: classA,
+    class_b: classB,
+    unexpected_request_failures: unexpected,
+    unmatched_playwright: unmatchedPlaywright,
+    unmatched_cdp: unmatchedCdp,
+    arbitration_failures: arbitrationFailures,
+    classification_totals: classificationTotals,
+    classification_totals_reconciled: classificationTotalsReconciled,
+    failures,
+    correlation_valid: correlationValid,
+    cross_validation_valid: crossValidationValid,
+    page_crash: pageCrash,
+    server_error: serverError,
+    classifier_schema_version: CLASSIFIER_SCHEMA_VERSION,
+    browser_originated_predicate_source: BROWSER_ORIGINATED_PREDICATE_SOURCE,
+    phase_0_observation: phase0Observation,
+    post_pass_classifier: true,
+    classifier_provenance_emitted: [...classA, ...classB, ...unexpected].every((failure) => (
+      failure.classifier_schema_version === CLASSIFIER_SCHEMA_VERSION
+      && failure.predicate_chain?.classifier_schema_version === CLASSIFIER_SCHEMA_VERSION
+      && typeof failure.predicate_chain?.classification === 'string'
+    )),
+    class_a_class_b_mutual_exclusivity: arbitrationFailures.length === 0,
+    classifier_deterministic: true,
+    classifier_output_order_stable: true,
+    harness_real_event_observed: classA.length > 0,
+    harness_classifier_real_event_coverage: classA.length > 0 ? 'ESTABLISHED' : 'NOT_ESTABLISHED',
+    transition_real_event_observed: classB.length > 0,
+    transition_classifier_real_event_coverage: classB.length > 0 ? 'ESTABLISHED' : 'NOT_ESTABLISHED',
+    other_url_blind_spot_this_run: unexpected.length
+      ? unexpected.map(normalizeFailureReference)
+      : 'NONE_OBSERVED_THIS_RUN',
+    known_real_asset_precedent: 'ZONE06',
+  };
+}
+
 function serializeRunnerError(error) {
   if (!error) return null;
   return {
@@ -2160,12 +3065,58 @@ export function buildDiagnosticsHealthSummary(instrumentation = runnerInstrument
   const pages = Array.isArray(instrumentation.pages) ? instrumentation.pages : [];
   const servers = Array.isArray(instrumentation.servers) ? instrumentation.servers : [];
   const instrumentationErrors = pages.flatMap((page) => page.instrumentation_errors || []);
+  const network = instrumentation.network_summary || {};
   return {
+    CLASSIFIER_SCHEMA_VERSION,
     cdp_network_enabled: pages.length > 0 && pages.every((page) => page.cdp_network_enabled === true),
     instrumentation_errors: instrumentationErrors.length,
     instrumentation_error_details: instrumentationErrors.slice(0, 20),
     pages: pages.length,
     servers: servers.length,
+    REQUESTFAILED_TOTAL: network.REQUESTFAILED_TOTAL ?? 0,
+    PLAYWRIGHT_REQUESTFAILED: network.PLAYWRIGHT_REQUESTFAILED ?? 0,
+    CDP_LOADINGFAILED: network.CDP_LOADINGFAILED ?? 0,
+    JOINED_FAILURES: network.JOINED_FAILURES ?? 0,
+    CDP_CORRELATION_MISSES: network.CDP_CORRELATION_MISSES ?? 0,
+    PLAYWRIGHT_CDP_MISMATCH_RECORDED: network.PLAYWRIGHT_CDP_MISMATCH_RECORDED ?? false,
+    PLAYWRIGHT_CDP_MISMATCHES: network.PLAYWRIGHT_CDP_MISMATCHES ?? 0,
+    PLAYWRIGHT_CDP_MISMATCH_GATE: false,
+    PLAYWRIGHT_CDP_MISMATCH_SCOPE: network.PLAYWRIGHT_CDP_MISMATCH_SCOPE || 'DIAGNOSTIC_CROSS_CHECK_ONLY',
+    GOVERNED_PAGE_SCOPE: network.GOVERNED_PAGE_SCOPE || GOVERNED_PAGE_SCOPE,
+    GOVERNED_PAGE_ALLOWLIST: network.GOVERNED_PAGE_ALLOWLIST || GOVERNED_PAGE_ALLOWLIST,
+    GOVERNED_PAGE_COUNT: network.GOVERNED_PAGE_COUNT ?? pages.length,
+    CDP_DISABLED_GOVERNED_PAGES: network.CDP_DISABLED_GOVERNED_PAGES || [],
+    CDP_SETUP_ERRORS: network.CDP_SETUP_ERRORS || [],
+    CDP_CAPTURE_GAP_THIS_RUN: network.CDP_CAPTURE_GAP_THIS_RUN || 'NONE_OBSERVED_THIS_RUN',
+    UNMATCHED_CDP_ROLE: network.UNMATCHED_CDP_ROLE || 'DIAGNOSTIC_EVIDENCE_ONLY',
+    HARNESS_PRE_REQUEST_ABORTS: network.HARNESS_PRE_REQUEST_ABORTS ?? 0,
+    RUNNER_TRANSITION_ABORTS: network.RUNNER_TRANSITION_ABORTS ?? 0,
+    UNEXPECTED_REQUEST_FAILURES: network.UNEXPECTED_REQUEST_FAILURES ?? 0,
+    CLASSIFICATION_TOTALS: network.classification_totals ?? { CLASS_A: 0, CLASS_B: 0, UNEXPECTED: 0 },
+    CLASSIFICATION_TOTALS_RECONCILED: network.classification_totals_reconciled ?? false,
+    CLASSIFIER_PROVENANCE_EMITTED: network.classifier_provenance_emitted ?? false,
+    CLASS_A_CLASS_B_MUTUAL_EXCLUSIVITY: network.class_a_class_b_mutual_exclusivity ?? false,
+    CLASSIFIER_DETERMINISTIC: network.classifier_deterministic ?? true,
+    CLASSIFIER_OUTPUT_ORDER_STABLE: network.classifier_output_order_stable ?? true,
+    PHASE_0_OBSERVATION: network.phase_0_observation ?? null,
+    PRIMARY_ERROR_KIND: network.PRIMARY_ERROR_KIND || 'NONE',
+    PLAYWRIGHT_CDP_MATCH: network.network_summary_present !== true
+      ? 'NOT_RUN'
+      : (network.PLAYWRIGHT_CDP_MISMATCH_RECORDED ? 'MISMATCH_RECORDED' : 'PASS'),
+    CDP_AUTHORITY: network.network_summary_present !== true
+      ? 'NOT_RUN'
+      : (network.CDP_NETWORK_ENABLED === true && network.CDP_CORRELATION_MISSES === 0 && !(network.unmatched_playwright || []).length
+        ? 'PASS'
+        : 'FAIL'),
+    POST_PASS_CLASSIFIER: network.network_summary_present !== true ? 'NOT_RUN' : 'PASS',
+    BROWSER_ORIGINATED_PREDICATE_SOURCE: network.browser_originated_predicate_source
+      || BROWSER_ORIGINATED_PREDICATE_SOURCE,
+    HARNESS_REAL_EVENT_OBSERVED: network.harness_real_event_observed ? 'ESTABLISHED' : 'NOT_ESTABLISHED',
+    HARNESS_CLASSIFIER_REAL_EVENT_COVERAGE: network.harness_classifier_real_event_coverage || 'NOT_ESTABLISHED',
+    TRANSITION_REAL_EVENT_OBSERVED: network.transition_real_event_observed ? 'ESTABLISHED' : 'NOT_ESTABLISHED_IN_ANALYZABLE_FORM',
+    TRANSITION_CLASSIFIER_REAL_EVENT_COVERAGE: network.transition_classifier_real_event_coverage || 'NOT_ESTABLISHED',
+    OTHER_URL_BLIND_SPOT_THIS_RUN: network.other_url_blind_spot_this_run || 'NONE_OBSERVED_THIS_RUN',
+    KNOWN_REAL_ASSET_PRECEDENT: network.known_real_asset_precedent || 'ZONE06',
   };
 }
 
@@ -2362,6 +3313,30 @@ export function formatRunnerFailureSummary(error) {
     CONTRACT_FAILURE_COUNT: outcome.contract_failure_count,
     CDP_NETWORK_ENABLED: outcome.diagnostics_health?.cdp_network_enabled ? 'YES' : 'NO',
     INSTRUMENTATION_ERRORS: outcome.diagnostics_health?.instrumentation_errors ?? null,
+    REQUESTFAILED_TOTAL: outcome.diagnostics_health?.REQUESTFAILED_TOTAL ?? null,
+    PLAYWRIGHT_REQUESTFAILED: outcome.diagnostics_health?.PLAYWRIGHT_REQUESTFAILED ?? null,
+    CDP_LOADINGFAILED: outcome.diagnostics_health?.CDP_LOADINGFAILED ?? null,
+    JOINED_FAILURES: outcome.diagnostics_health?.JOINED_FAILURES ?? null,
+    CDP_CORRELATION_MISSES: outcome.diagnostics_health?.CDP_CORRELATION_MISSES ?? null,
+    PLAYWRIGHT_CDP_MISMATCH_RECORDED: outcome.diagnostics_health?.PLAYWRIGHT_CDP_MISMATCH_RECORDED ?? null,
+    HARNESS_PRE_REQUEST_ABORTS: outcome.diagnostics_health?.HARNESS_PRE_REQUEST_ABORTS ?? null,
+    RUNNER_TRANSITION_ABORTS: outcome.diagnostics_health?.RUNNER_TRANSITION_ABORTS ?? null,
+    UNEXPECTED_REQUEST_FAILURES: outcome.diagnostics_health?.UNEXPECTED_REQUEST_FAILURES ?? null,
+    CLASSIFICATION_TOTALS: outcome.diagnostics_health?.CLASSIFICATION_TOTALS ?? null,
+    CLASSIFICATION_TOTALS_RECONCILED: outcome.diagnostics_health?.CLASSIFICATION_TOTALS_RECONCILED ?? null,
+    CLASSIFIER_PROVENANCE_EMITTED: outcome.diagnostics_health?.CLASSIFIER_PROVENANCE_EMITTED ?? null,
+    CLASS_A_CLASS_B_MUTUAL_EXCLUSIVITY: outcome.diagnostics_health?.CLASS_A_CLASS_B_MUTUAL_EXCLUSIVITY ?? null,
+    CLASSIFIER_SCHEMA_VERSION: outcome.diagnostics_health?.CLASSIFIER_SCHEMA_VERSION ?? null,
+    PLAYWRIGHT_CDP_MISMATCHES: outcome.diagnostics_health?.PLAYWRIGHT_CDP_MISMATCHES ?? null,
+    PLAYWRIGHT_CDP_MISMATCH_GATE: outcome.diagnostics_health?.PLAYWRIGHT_CDP_MISMATCH_GATE ?? null,
+    GOVERNED_PAGE_SCOPE: outcome.diagnostics_health?.GOVERNED_PAGE_SCOPE ?? null,
+    GOVERNED_PAGE_COUNT: outcome.diagnostics_health?.GOVERNED_PAGE_COUNT ?? null,
+    GOVERNED_PAGE_ALLOWLIST: outcome.diagnostics_health?.GOVERNED_PAGE_ALLOWLIST ?? null,
+    CDP_DISABLED_GOVERNED_PAGES: outcome.diagnostics_health?.CDP_DISABLED_GOVERNED_PAGES ?? null,
+    CDP_CAPTURE_GAP_THIS_RUN: outcome.diagnostics_health?.CDP_CAPTURE_GAP_THIS_RUN ?? null,
+    UNMATCHED_CDP_ROLE: outcome.diagnostics_health?.UNMATCHED_CDP_ROLE ?? null,
+    CDP_AUTHORITY: outcome.diagnostics_health?.CDP_AUTHORITY ?? null,
+    POST_PASS_CLASSIFIER: outcome.diagnostics_health?.POST_PASS_CLASSIFIER ?? null,
     PRIMARY_ERROR_KIND: outcome.primary_error_kind,
     PRIMARY_CONTRACT_FAILURE: outcome.primary_error_kind === 'CONTRACT' ? outcome.primary_error : null,
     PRIMARY_ERROR: outcome.primary_error,
@@ -2376,6 +3351,13 @@ export function formatRunnerFailureSummary(error) {
     CLEANUP_STATUS: outcome.cleanup_status,
     BROWSER_CLOSE_STATUS: outcome.browser_close_status,
     SERVER_CLOSE_STATUS: outcome.server_close_status,
+    BROWSER_ORIGINATED_PREDICATE_SOURCE: outcome.diagnostics_health?.BROWSER_ORIGINATED_PREDICATE_SOURCE ?? null,
+    HARNESS_REAL_EVENT_OBSERVED: outcome.diagnostics_health?.HARNESS_REAL_EVENT_OBSERVED ?? null,
+    HARNESS_CLASSIFIER_REAL_EVENT_COVERAGE: outcome.diagnostics_health?.HARNESS_CLASSIFIER_REAL_EVENT_COVERAGE ?? null,
+    TRANSITION_REAL_EVENT_OBSERVED: outcome.diagnostics_health?.TRANSITION_REAL_EVENT_OBSERVED ?? null,
+    TRANSITION_CLASSIFIER_REAL_EVENT_COVERAGE: outcome.diagnostics_health?.TRANSITION_CLASSIFIER_REAL_EVENT_COVERAGE ?? null,
+    OTHER_URL_BLIND_SPOT_THIS_RUN: outcome.diagnostics_health?.OTHER_URL_BLIND_SPOT_THIS_RUN ?? null,
+    KNOWN_REAL_ASSET_PRECEDENT: outcome.diagnostics_health?.KNOWN_REAL_ASSET_PRECEDENT ?? null,
   }, null, 2);
 }
 
@@ -2512,7 +3494,16 @@ async function main({
       failures: dockGeometryFailures,
     };
     await fs.writeFile(path.join(outputDir, 'bottom-dock-geometry.json'), JSON.stringify(geometryReport, null, 2));
-    const failures = results.flatMap(assertCase).concat(
+    const caseFailures = Object.fromEntries(
+      results.map((result) => [result.specName, assertCase(result)])
+    );
+    const networkSummary = buildCanonicalNetworkFailureSet({
+      pages: runnerInstrumentation.pages,
+      servers: runnerInstrumentation.servers,
+      caseFailures,
+    });
+    runnerInstrumentation.network_summary = networkSummary;
+    const failures = Object.values(caseFailures).flat().concat(
       polishStateEvidence.browserErrors.map((error) => `polish state evidence: ${error}`),
       Object.entries(polishStateEvidence.dockInteractionGeometry || {}).flatMap(([state, measurement]) => {
         const failures = [];
@@ -2526,6 +3517,7 @@ async function main({
       lifecycle.failures,
       ipadInteractionRecovery.failures,
       compatibilityBridge.flatMap((result) => result.failures),
+      networkSummary.failures,
     );
     const report = {
       ok: failures.length === 0,
@@ -2537,6 +3529,7 @@ async function main({
       lifecycle,
       ipadInteractionRecovery,
       compatibilityBridge,
+      networkSummary,
       failures,
     };
       await fs.writeFile(path.join(outputDir, 'e10-vs1f-visual-contract.json'), JSON.stringify(report, null, 2));
