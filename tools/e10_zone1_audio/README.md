@@ -101,6 +101,26 @@ This writes `tools\e10_zone1_audio\_local_review\voices.json` (git-ignored).
 `--list-voices` never writes to `casting_candidates.json` — casting choices
 are still made by hand in step 5.
 
+### One-command voice discovery
+
+If `ELEVENLABS_API_KEY` is already set in your current PowerShell session
+(step 1), this single line pulls the latest tool from this PR's branch and
+writes the voice-discovery artifact, printing nothing but its path (no
+table, no counts, no key):
+
+```powershell
+git fetch origin claude/e10-z1-audio-production-001; git checkout claude/e10-z1-audio-production-001; git pull origin claude/e10-z1-audio-production-001; python tools\e10_zone1_audio\generate_zone1_audio.py --list-voices --json --quiet
+```
+
+The only output is the absolute path to `voices.json`, e.g.:
+
+```
+C:\path\to\repo\tools\e10_zone1_audio\_local_review\voices.json
+```
+
+Send that file back for casting analysis — you do not need to open or edit
+it yourself.
+
 **5. Fill in casting.** Edit `tools\e10_zone1_audio\casting_candidates.json`
 and set a `voice_id` for each of the 4 roles (Narrator/`anna`,
 Elder/`elder`, Hero/`hero`, Messenger/`runner`) in both `en` and `zh-TW`

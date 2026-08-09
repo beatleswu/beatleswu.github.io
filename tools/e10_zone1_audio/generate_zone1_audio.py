@@ -21,9 +21,11 @@ Modes:
   --list-voices Read-only: GET /v1/voices and print a compact table of
                 name/voice_id/category/language/accent/gender/age/
                 description for casting reference. Add --json to also write
-                a local review artifact (_local_review/voices.json). No
-                audio is generated and casting_candidates.json is not
-                touched by this mode.
+                a local review artifact (_local_review/voices.json). Add
+                --quiet (requires --json) to suppress the table/counts and
+                print only the resulting artifact path — for a minimal
+                one-command Owner workflow. No audio is generated and
+                casting_candidates.json is not touched by this mode.
   --audition    Generate the 8-line casting sample (4 roles x 2 locales)
                 from casting_candidates.json into _local_review/audition/,
                 using the configured model_id. Reports the selected model
@@ -140,7 +142,7 @@ def _extract_voice_summary(voice: dict) -> dict:
     }
 
 
-def cmd_list_voices(as_json: bool) -> None:
+def cmd_list_voices(as_json: bool, quiet: bool = False) -> None:
     api_key = get_api_key()
 
     voices_status, voices_body = _api_get("/v1/voices", api_key)
@@ -152,30 +154,34 @@ def cmd_list_voices(as_json: bool) -> None:
     raw_voices = voices_body.get("voices", [])
     summaries = [_extract_voice_summary(voice) for voice in raw_voices if isinstance(voice, dict)]
 
-    print("VOICE_API_ACCESS=YES")
-    print(f"AVAILABLE_VOICE_COUNT={len(summaries)}")
-    print()
+    if not quiet:
+        print("VOICE_API_ACCESS=YES")
+        print(f"AVAILABLE_VOICE_COUNT={len(summaries)}")
+        print()
 
-    columns = ("name", "voice_id", "category", "language_accent", "gender", "age", "description")
-    headers = ("NAME", "VOICE_ID", "CATEGORY", "LANGUAGE/ACCENT", "GENDER", "AGE", "DESCRIPTION")
-    widths = [len(header) for header in headers]
-    for summary in summaries:
-        for index, column in enumerate(columns):
-            widths[index] = max(widths[index], len(str(summary[column])[:40]))
+        columns = ("name", "voice_id", "category", "language_accent", "gender", "age", "description")
+        headers = ("NAME", "VOICE_ID", "CATEGORY", "LANGUAGE/ACCENT", "GENDER", "AGE", "DESCRIPTION")
+        widths = [len(header) for header in headers]
+        for summary in summaries:
+            for index, column in enumerate(columns):
+                widths[index] = max(widths[index], len(str(summary[column])[:40]))
 
-    def format_row(values: tuple[str, ...]) -> str:
-        return "  ".join(str(value)[:40].ljust(widths[index]) for index, value in enumerate(values))
+        def format_row(values: tuple[str, ...]) -> str:
+            return "  ".join(str(value)[:40].ljust(widths[index]) for index, value in enumerate(values))
 
-    print(format_row(headers))
-    print(format_row(tuple("-" * width for width in widths)))
-    for summary in summaries:
-        print(format_row(tuple(summary[column] for column in columns)))
+        print(format_row(headers))
+        print(format_row(tuple("-" * width for width in widths)))
+        for summary in summaries:
+            print(format_row(tuple(summary[column] for column in columns)))
 
     if as_json:
         REVIEW_DIR.mkdir(parents=True, exist_ok=True)
         VOICES_JSON_PATH.write_text(json.dumps(summaries, ensure_ascii=False, indent=2), encoding="utf-8")
-        print()
-        print(f"VOICES_JSON_WRITTEN={VOICES_JSON_PATH.relative_to(REPO_ROOT)}")
+        if quiet:
+            print(str(VOICES_JSON_PATH.resolve()))
+        else:
+            print()
+            print(f"VOICES_JSON_WRITTEN={VOICES_JSON_PATH.relative_to(REPO_ROOT)}")
 
 
 def _text_to_speech(api_key: str, voice_id: str, text: str, model_id: str, output_path: Path) -> bool:
@@ -253,15 +259,22 @@ def main() -> None:
     group.add_argument("--generate-sfx", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-music", action="store_true", help="Reserved; not yet enabled.")
     parser.add_argument("--json", action="store_true", help="With --list-voices, also write _local_review/voices.json.")
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="With --list-voices --json, suppress the table/counts and print only the resulting artifact path.",
+    )
     args = parser.parse_args()
 
     if args.json and not args.list_voices:
         parser.error("--json is only valid together with --list-voices")
+    if args.quiet and not (args.list_voices and args.json):
+        parser.error("--quiet is only valid together with --list-voices --json")
 
     if args.check:
         cmd_check()
     elif args.list_voices:
-        cmd_list_voices(as_json=args.json)
+        cmd_list_voices(as_json=args.json, quiet=args.quiet)
     elif args.audition:
         cmd_audition()
     elif args.generate_tts:
