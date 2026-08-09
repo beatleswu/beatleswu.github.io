@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "e0ba71890cee70950db1663b40beb401932b2985",
+      "source_commit": "9e1ab3ca7ca049b1f1b989b56a34d2e6a4e64b3c",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): stop rejecting active Map Battle V1 resume on historical SRS mastery",
-      "source_date": "2026-08-07",
-      "content_sha256": "4976e10a67b9761c6d6ca704c3f6dc4ebb4b7741e1540535d32f012b94c65c15",
+      "source_commit_subject": "fix(e10): account-scope Zone 1 POST_CLEAR seen/pending storage",
+      "source_date": "2026-08-08",
+      "content_sha256": "9e1c36a20de59a54090bf13f884c4fabc88aa4a51d179b189b5edc6a56ff379f",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 0b6503d5a9419b71bd679e38f27ebb926472a066; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 532ee47ae987e7e7f1b2c2ffe6c06385634402ab; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -519,14 +519,14 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "9e0a1d5f6ea0402ef16c58f0b4985b60b1110a80",
+      "source_commit": "b62b21d01d384ec2fd7a729d922d844ebaf178e3",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): close Lord Challenge CTA scope and routing across three surfaces",
-      "source_date": "2026-08-07",
-      "content_sha256": "1fbe383bc26ad56fc6a3352320f7d5dab5671cb16cfa79433eda90b12f376820",
+      "source_commit_subject": "fix(e10): Owner review corrections for Zone 1 lifecycle, exposition, beats, sw version",
+      "source_date": "2026-08-08",
+      "content_sha256": "9f35bfee2c9a83dc8d7be339a798bfb29365de10cd490ff0d33df4282b7684d6",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "merged to origin/master at merge 2eb4e18549ce25283aa715e4d47f8b87a4ba4e31; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 532ee47ae987e7e7f1b2c2ffe6c06385634402ab; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
