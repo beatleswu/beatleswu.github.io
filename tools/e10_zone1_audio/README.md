@@ -256,9 +256,20 @@ mode also writes discovered candidates into each pending slot's
 `recast_candidates` in `casting_candidates.json` (never `voice_id`, never a
 locked slot). Since it depends on a live Voice Library search this sandbox
 cannot test, a failed search or add-to-library call prints a clear
-`VOICE_LIBRARY_SEARCH_FAILED` / `ADD_TO_LIBRARY_FAILED` diagnostic with the
-HTTP status instead of failing silently -- if you see one, share the exact
-console output.
+`VOICE_LIBRARY_SEARCH_FAILED` / `ADD_TO_LIBRARY_FAILED` diagnostic instead of
+failing silently -- if you see one, share the exact console output. As of
+this fix, that diagnostic includes more than just the HTTP status:
+
+```
+ADD_TO_LIBRARY_FAILED name='Some Voice' http_status=401 classification=AUTHENTICATION_ERROR elevenlabs_error_type='invalid_api_key' elevenlabs_error_message='...' request_id='req_...'
+```
+
+`classification` is one of `AUTHENTICATION_ERROR` (the key itself is
+invalid/missing), `AUTHORIZATION_ERROR` (the key is valid but lacks
+permission for this action -- check the key's permissions in the
+ElevenLabs dashboard include voice-library write access, not just
+read/TTS), `VOICE_SLOT_LIMIT`, `PLAN_RESTRICTION`, or `OTHER`. This never
+prints the key itself -- only what ElevenLabs' own error response said.
 
 **7. Once you've picked final voices**, update `casting_candidates.json`
 accordingly (if different from the current top picks) and generate the

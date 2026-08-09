@@ -71,11 +71,18 @@ Modes:
                 exits non-zero with AUDITION_SET_B_VERIFICATION=FAIL and
                 AUDITION_SET_B_MISSING_ROLES naming exactly which role(s) --
                 a nonzero total across other roles never masks one role's
-                failure. Untested against the live Voice Library API from
-                this sandbox (which cannot reach it) -- if a search or
-                add-to-library call fails, prints a clear per-role
-                diagnostic (HTTP status, endpoint) instead of failing
-                silently.
+                failure. Every ElevenLabs call this mode makes (voices,
+                models, shared-voices search, add-shared-voice, TTS) goes
+                through the single _api_request helper, so auth headers
+                cannot diverge between endpoints. A failed search or
+                add-to-library call prints a safe, classified diagnostic
+                (_describe_elevenlabs_error: HTTP status, ElevenLabs error
+                type/message, request_id, and a bucket -- AUTHENTICATION_
+                ERROR / AUTHORIZATION_ERROR / VOICE_SLOT_LIMIT / PLAN_
+                RESTRICTION / OTHER) instead of a bare status code, and
+                never includes the credential. Untested against the live
+                Voice Library API from this sandbox (which cannot reach
+                it).
   --generate-tts / --generate-sfx / --generate-music
                 Reserved for full Zone 1 production once the Owner approves
                 casting and BGM direction. Currently print a not-yet-enabled
@@ -128,20 +135,108 @@ def get_model_id() -> str:
     return casting.get("audio_config", {}).get("model_id") or DEFAULT_MODEL_ID
 
 
-def _api_get(path: str, api_key: str) -> tuple[int, object]:
-    request = urllib.request.Request(
-        f"{API_BASE}{path}",
-        headers={"xi-api-key": api_key, "Accept": "application/json"},
-        method="GET",
-    )
+def _try_json(raw: bytes) -> object:
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return response.status, json.loads(response.read().decode("utf-8"))
+        return json.loads(raw.decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _api_request(
+    method: str,
+    path: str,
+    api_key: str,
+    json_body: dict | None = None,
+    accept: str = "application/json",
+    timeout: int = 30,
+) -> tuple[int, object]:
+    """The single authenticated request path for every ElevenLabs call this
+    tool makes: /v1/voices, /v1/models, /v1/shared-voices (search),
+    /v1/voices/add/... (add a shared voice), /v1/text-to-speech/... . Every
+    call goes through this one function so the auth header is provably
+    always present and always constructed identically -- there is no
+    separate or divergent code path for any endpoint, including the
+    "add shared voice" one.
+
+    Returns (http_status, body) where body is parsed JSON when
+    accept == "application/json" (or None if parsing failed / on network
+    error), or raw bytes for any other accept value (e.g. audio/mpeg).
+    Never logs the key, the Authorization/xi-api-key header value, or any
+    other request header.
+    """
+    if not api_key:
+        raise ValueError("_api_request called with an empty/None api_key")
+
+    headers = {"xi-api-key": api_key, "Accept": accept}
+    data = None
+    if json_body is not None:
+        data = json.dumps(json_body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    request = urllib.request.Request(f"{API_BASE}{path}", data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            status = response.status
+            raw = response.read()
     except urllib.error.HTTPError as exc:
-        return exc.code, None
+        status = exc.code
+        raw = exc.read()
     except urllib.error.URLError as exc:
-        print(f"NETWORK_ERROR reaching {API_BASE}{path}: {exc.reason}", file=sys.stderr)
+        print(f"NETWORK_ERROR {method} {path}: {exc.reason}", file=sys.stderr)
         return 0, None
+
+    if accept == "application/json":
+        return status, _try_json(raw)
+    return status, raw
+
+
+def _api_get(path: str, api_key: str) -> tuple[int, object]:
+    return _api_request("GET", path, api_key)
+
+
+def _classify_elevenlabs_error(status: int, body: object) -> str:
+    """Classify a failed ElevenLabs response into a small set of actionable
+    buckets, without ever needing to print the credential to tell them apart.
+    Content-based classification (voice-slot-limit, plan) takes priority
+    over the blunt HTTP status code, since a 403 that explicitly says
+    "upgrade your plan" is more useful classified as PLAN_RESTRICTION than
+    as a generic AUTHORIZATION_ERROR.
+    """
+    detail = body.get("detail") if isinstance(body, dict) else None
+    detail_status = detail.get("status") if isinstance(detail, dict) else (detail if isinstance(detail, str) else None)
+    detail_message = detail.get("message") if isinstance(detail, dict) else None
+    text_blob = " ".join(str(part) for part in (detail_status, detail_message) if part).lower()
+
+    if any(keyword in text_blob for keyword in ("voice_limit", "max_voice", "voice_slot", "voice_add_limit")):
+        return "VOICE_SLOT_LIMIT"
+    if any(keyword in text_blob for keyword in ("plan", "subscription", "upgrade", "tier")):
+        return "PLAN_RESTRICTION"
+    if status == 401:
+        if any(keyword in text_blob for keyword in ("permission", "scope", "not_allowed", "unauthorized_missing")):
+            return "AUTHORIZATION_ERROR"
+        return "AUTHENTICATION_ERROR"
+    if status == 403:
+        return "AUTHORIZATION_ERROR"
+    return "OTHER"
+
+
+def _describe_elevenlabs_error(status: int, body: object) -> str:
+    """Build a safe, printable one-line diagnostic for a failed ElevenLabs
+    call: HTTP status, ElevenLabs error type/message, request_id if present,
+    and a classification bucket. Never includes the API key or any header.
+    """
+    detail = body.get("detail") if isinstance(body, dict) else None
+    error_type = detail.get("status") if isinstance(detail, dict) else (detail if isinstance(detail, str) else None)
+    error_message = detail.get("message") if isinstance(detail, dict) else None
+    request_id = None
+    if isinstance(body, dict):
+        request_id = body.get("request_id") or body.get("requestId")
+    classification = _classify_elevenlabs_error(status, body)
+    return (
+        f"http_status={status} classification={classification} "
+        f"elevenlabs_error_type={error_type!r} elevenlabs_error_message={error_message!r} "
+        f"request_id={request_id!r}"
+    )
 
 
 def cmd_check() -> None:
@@ -241,30 +336,24 @@ def cmd_list_voices(as_json: bool, quiet: bool = False) -> None:
 
 
 def _text_to_speech(api_key: str, voice_id: str, text: str, model_id: str, output_path: Path) -> bool:
-    payload = json.dumps({
-        "text": text,
-        "model_id": model_id,
-    }).encode("utf-8")
-    request = urllib.request.Request(
-        f"{API_BASE}/v1/text-to-speech/{voice_id}",
-        data=payload,
-        headers={
-            "xi-api-key": api_key,
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-        },
-        method="POST",
+    status, body = _api_request(
+        "POST",
+        f"/v1/text-to-speech/{voice_id}",
+        api_key,
+        json_body={"text": text, "model_id": model_id},
+        accept="audio/mpeg",
+        timeout=60,
     )
-    try:
-        with urllib.request.urlopen(request, timeout=60) as response:
-            output_path.write_bytes(response.read())
+    if status == 200 and isinstance(body, (bytes, bytearray)):
+        output_path.write_bytes(body)
         return True
-    except urllib.error.HTTPError as exc:
-        print(f"  FAILED ({exc.code}): {output_path.name}", file=sys.stderr)
-        return False
-    except urllib.error.URLError as exc:
-        print(f"  NETWORK_ERROR: {output_path.name}: {exc.reason}", file=sys.stderr)
-        return False
+    if status == 0:
+        return False  # network error already logged by _api_request
+    # On failure the server sends a JSON error body even though we asked for
+    # audio/mpeg; try to decode it for a useful diagnostic.
+    error_body = _try_json(body) if isinstance(body, (bytes, bytearray)) else body
+    print(f"  FAILED {output_path.name}: {_describe_elevenlabs_error(status, error_body)}", file=sys.stderr)
+    return False
 
 
 def cmd_audition() -> None:
@@ -362,29 +451,12 @@ def _search_voice_library(api_key: str, params: dict) -> tuple[int, object]:
 
 
 def _add_shared_voice(api_key: str, public_owner_id: str, voice_id: str, new_name: str) -> tuple[int, object]:
-    payload = json.dumps({"new_name": new_name[:100]}).encode("utf-8")
-    request = urllib.request.Request(
-        f"{API_BASE}/v1/voices/add/{public_owner_id}/{voice_id}",
-        data=payload,
-        headers={
-            "xi-api-key": api_key,
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        },
-        method="POST",
+    return _api_request(
+        "POST",
+        f"/v1/voices/add/{public_owner_id}/{voice_id}",
+        api_key,
+        json_body={"new_name": new_name[:100]},
     )
-    try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return response.status, json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        try:
-            body = json.loads(exc.read().decode("utf-8"))
-        except Exception:
-            body = None
-        return exc.code, body
-    except urllib.error.URLError as exc:
-        print(f"NETWORK_ERROR adding shared voice {voice_id}: {exc.reason}", file=sys.stderr)
-        return 0, None
 
 
 def _pick_library_candidates(api_key: str, role_key: str, brief: dict, exclude_ids: set, count: int) -> list:
@@ -468,12 +540,18 @@ def cmd_audition_set_b() -> None:
             slug = _slugify(name)
             output_filename = f"{brief['output_prefix']}_{slug}.mp3"
 
+            if not public_owner_id or not shared_voice_id:
+                print(f"    SKIP_CANDIDATE name={name!r}: Voice Library search result is missing "
+                      f"public_owner_id or voice_id (public_owner_id={public_owner_id!r}) -- "
+                      "cannot construct an add-to-library request for it")
+                continue
+
             print(f"  Adding to library: {name} ({shared_voice_id}) for {role_key} ...")
             add_status, add_body = _add_shared_voice(
                 api_key, public_owner_id, shared_voice_id, f"E10Z1_{role_key}_{slug}"
             )
             if add_status not in (200, 201) or not isinstance(add_body, dict) or not add_body.get("voice_id"):
-                print(f"    ADD_TO_LIBRARY_FAILED name={name!r} http_status={add_status}")
+                print(f"    ADD_TO_LIBRARY_FAILED name={name!r} {_describe_elevenlabs_error(add_status, add_body)}")
                 continue
             local_voice_id = add_body["voice_id"]
 
