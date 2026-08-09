@@ -22,9 +22,13 @@ this tool must never be run there.
   Do not hand-edit dialogue text here — the source of truth is `index.html`
   (`getIntroFilmLocaleConfig` → `k26_30`); if the script ever changes,
   re-extract instead of editing this file directly.
-- `casting_candidates.json` — Owner-editable casting sheet. Fill in a
-  `voice_id` per role x locale to enable that line in `--audition`. Leave
-  `voice_id: null` to skip it.
+- `casting_candidates.json` — Owner-editable casting sheet. Pre-filled with
+  a Claude-proposed shortlist (top-pick `voice_id` plus ranked
+  `candidates[]` with reasoning) per role x locale for `--audition`. Leave
+  `voice_id: null` to skip a slot.
+- `audition_set_a.json` — fixed 16-line A/B comparison list (2 candidates
+  per role x locale) used only by `--audition-set-a`. Comparison aid only;
+  does not affect `casting_candidates.json`.
 - `generate_zone1_audio.py` — the CLI (stdlib-only, no extra pip installs).
 - `_local_review/` — generated audio and voice-discovery output land here
   (git-ignored). Never auto-promoted to a canonical asset path.
@@ -121,14 +125,46 @@ C:\path\to\repo\tools\e10_zone1_audio\_local_review\voices.json
 Send that file back for casting analysis — you do not need to open or edit
 it yourself.
 
-**5. Fill in casting.** Edit `tools\e10_zone1_audio\casting_candidates.json`
-and set a `voice_id` for each of the 4 roles (Narrator/`anna`,
-Elder/`elder`, Hero/`hero`, Messenger/`runner`) in both `en` and `zh-TW`
-(or just the ones you want to audition first) — use the `voice_id` values
-from step 4.
+**5. Casting shortlist.** `tools\e10_zone1_audio\casting_candidates.json` is
+already pre-filled with a Claude-proposed shortlist (`casting_status:
+"SHORTLIST_PROPOSED_AWAITING_OWNER_APPROVAL"`) — one top-pick `voice_id` per
+role x locale, with 2-3 ranked `candidates[]` and reasoning per slot. Nothing
+is locked; to change a pick, edit that slot's `voice_id` to a different
+`candidates[].voice_id`. Step 6 below lets you compare candidates by ear
+before deciding.
 
-**6. Generate the casting audition sample** (only the 8 minimal lines, not
-full Zone 1):
+**6. Generate AUDITION SET A** (a fixed 16-line A/B comparison: 2 candidate
+voices per role x locale, each reading the same canonical sample line — not
+the full 28-beat Zone 1 dialogue, and no BGM/SFX):
+
+```powershell
+python tools\e10_zone1_audio\generate_zone1_audio.py --audition-set-a
+```
+
+Output goes to `tools\e10_zone1_audio\_local_review\audition_set_a\`, one
+MP3 per candidate with a comparison-friendly filename (e.g.
+`zh_narrator_anna_su.mp3` vs `zh_narrator_ling.mp3`). The exact 16-item list
+and reasoning live in `audition_set_a.json`. These are local review-only
+files — they don't touch `casting_candidates.json` or any canonical asset.
+
+### One-command AUDITION SET A
+
+If `ELEVENLABS_API_KEY` is already set in your session (step 1), this single
+line pulls the latest tool from this PR's branch and generates the full
+comparison set:
+
+```powershell
+git fetch origin claude/e10-z1-audio-production-001; git checkout claude/e10-z1-audio-production-001; git pull origin claude/e10-z1-audio-production-001; python tools\e10_zone1_audio\generate_zone1_audio.py --audition-set-a
+```
+
+When it finishes, open the folder it printed
+(`tools\e10_zone1_audio\_local_review\audition_set_a\`) — all 16 comparison
+MP3s are there together.
+
+**7. Once you've picked final voices**, update `casting_candidates.json`
+accordingly (if different from the current top picks) and generate the
+single per-role-locale casting sample (8 lines, not the full 28-beat Zone 1
+dialogue):
 
 ```powershell
 python tools\e10_zone1_audio\generate_zone1_audio.py --audition
@@ -139,7 +175,7 @@ The configured model is printed before generation starts
 `tools\e10_zone1_audio\_local_review\audition\`. Review it there — nothing
 is copied into `assets/` or any canonical manifest by this tool.
 
-**7. When you're done for the session, remove the key from the process:**
+**8. When you're done for the session, remove the key from the process:**
 
 ```powershell
 Remove-Item Env:\ELEVENLABS_API_KEY

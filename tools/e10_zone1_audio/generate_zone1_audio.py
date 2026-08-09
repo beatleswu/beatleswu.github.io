@@ -31,6 +31,14 @@ Modes:
                 using the configured model_id. Reports the selected model
                 before generating. Skips any role/locale left with
                 voice_id = null.
+  --audition-set-a
+                Generate AUDITION SET A: a fixed 16-line A/B comparison set
+                (2 candidate voices x 8 role/locale slots, defined in
+                audition_set_a.json) into _local_review/audition_set_a/,
+                using the configured model_id. Each pair reads the SAME
+                canonical sample line from casting_candidates.json so the
+                two candidates can be compared directly. Does not touch or
+                lock casting_candidates.json's voice_id for any slot.
   --generate-tts / --generate-sfx / --generate-music
                 Reserved for full Zone 1 production once the Owner approves
                 casting and BGM direction. Currently print a not-yet-enabled
@@ -50,8 +58,10 @@ TOOL_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOL_DIR.parent.parent
 MANIFEST_PATH = TOOL_DIR / "zone1_beat_manifest.json"
 CASTING_PATH = TOOL_DIR / "casting_candidates.json"
+AUDITION_SET_A_PATH = TOOL_DIR / "audition_set_a.json"
 REVIEW_DIR = TOOL_DIR / "_local_review"
 AUDITION_DIR = REVIEW_DIR / "audition"
+AUDITION_SET_A_DIR = REVIEW_DIR / "audition_set_a"
 VOICES_JSON_PATH = REVIEW_DIR / "voices.json"
 
 API_BASE = "https://api.elevenlabs.io"
@@ -245,6 +255,42 @@ def cmd_audition() -> None:
           "until the Owner explicitly approves casting.")
 
 
+def cmd_audition_set_a() -> None:
+    api_key = get_api_key()
+    casting = json.loads(CASTING_PATH.read_text(encoding="utf-8"))
+    sample_lines = casting["audition_sample_lines"]
+    model_id = get_model_id()
+    audition_set = json.loads(AUDITION_SET_A_PATH.read_text(encoding="utf-8"))
+    items = audition_set["items"]
+
+    print(f"SELECTED_MODEL_ID={model_id}")
+    print(f"AUDITION_SET_A_ITEMS={len(items)}")
+    print("Run --check first to confirm this model is available and supports text-to-speech.")
+
+    AUDITION_SET_A_DIR.mkdir(parents=True, exist_ok=True)
+
+    generated = 0
+    skipped = 0
+    for item in items:
+        role_key = item["role"]
+        locale = item["locale"]
+        text = sample_lines.get(role_key, {}).get(locale)
+        if not text:
+            print(f"SKIP {item['output_filename']}: no canonical sample line for {role_key}/{locale}")
+            skipped += 1
+            continue
+        output_path = AUDITION_SET_A_DIR / item["output_filename"]
+        print(f"Generating {output_path.name} ({item['candidate_name']}) ...")
+        if _text_to_speech(api_key, item["voice_id"], text, model_id, output_path):
+            generated += 1
+
+    print(f"AUDITION_SET_A_GENERATED={generated}")
+    print(f"AUDITION_SET_A_SKIPPED={skipped}")
+    print(f"AUDITION_SET_A_OUTPUT_DIR={AUDITION_SET_A_DIR.resolve()}")
+    print("These are local review-only comparison samples. They do not lock casting_candidates.json "
+          "and are not canonical production assets until the Owner explicitly approves casting.")
+
+
 def cmd_not_yet_enabled(flag: str) -> None:
     print(f"{flag}: NOT_YET_ENABLED — awaiting Owner casting/BGM approval. No request was sent.")
 
@@ -255,6 +301,7 @@ def main() -> None:
     group.add_argument("--check", action="store_true", help="Read-only connectivity/voice/model check.")
     group.add_argument("--list-voices", action="store_true", help="Read-only voice discovery list/table.")
     group.add_argument("--audition", action="store_true", help="Generate the minimal casting sample only.")
+    group.add_argument("--audition-set-a", action="store_true", help="Generate the fixed 16-line A/B casting comparison set.")
     group.add_argument("--generate-tts", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-sfx", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-music", action="store_true", help="Reserved; not yet enabled.")
@@ -277,6 +324,8 @@ def main() -> None:
         cmd_list_voices(as_json=args.json, quiet=args.quiet)
     elif args.audition:
         cmd_audition()
+    elif args.audition_set_a:
+        cmd_audition_set_a()
     elif args.generate_tts:
         cmd_not_yet_enabled("--generate-tts")
     elif args.generate_sfx:
