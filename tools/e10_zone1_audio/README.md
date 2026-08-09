@@ -63,30 +63,44 @@ python tools\e10_zone1_audio\generate_zone1_audio.py --check
 Expected output is structured text only:
 
 ```
+SELECTED_MODEL_ID=eleven_v3
 ELEVENLABS_API_REACHABLE=YES
 VOICE_API_ACCESS=YES
 MODEL_API_ACCESS=YES
 AVAILABLE_VOICE_COUNT=<n>
 AVAILABLE_MODEL_COUNT=<n>
+SELECTED_MODEL_PRESENT=YES
+SELECTED_MODEL_SUPPORTS_TTS=YES
 ```
 
-**3. Fill in casting.** Edit `tools\e10_zone1_audio\casting_candidates.json`
+If `SELECTED_MODEL_PRESENT` or `SELECTED_MODEL_SUPPORTS_TTS` comes back `NO`,
+do not run `--audition` yet — either the configured model isn't available on
+this account or it doesn't support text-to-speech.
+
+**3. Model selection.** The audition (and future full-generation) model is
+governed by `audio_config.model_id` in `casting_candidates.json`, not
+hard-coded in the script. It defaults to `eleven_v3`. Change it there if the
+Owner wants a different model, then re-run `--check` to confirm it's valid
+before auditioning.
+
+**4. Fill in casting.** Edit `tools\e10_zone1_audio\casting_candidates.json`
 and set a `voice_id` for each of the 4 roles (Narrator/`anna`,
 Elder/`elder`, Hero/`hero`, Messenger/`runner`) in both `en` and `zh-TW`
 (or just the ones you want to audition first).
 
-**4. Generate the casting audition sample** (only the 8 minimal lines, not
+**5. Generate the casting audition sample** (only the 8 minimal lines, not
 full Zone 1):
 
 ```powershell
 python tools\e10_zone1_audio\generate_zone1_audio.py --audition
 ```
 
-Output goes to `tools\e10_zone1_audio\_local_review\audition\`. Review it
-there — nothing is copied into `assets/` or any canonical manifest by this
-tool.
+The configured model is printed before generation starts
+(`SELECTED_MODEL_ID=...`). Output goes to
+`tools\e10_zone1_audio\_local_review\audition\`. Review it there — nothing
+is copied into `assets/` or any canonical manifest by this tool.
 
-**5. When you're done for the session, remove the key from the process:**
+**6. When you're done for the session, remove the key from the process:**
 
 ```powershell
 Remove-Item Env:\ELEVENLABS_API_KEY

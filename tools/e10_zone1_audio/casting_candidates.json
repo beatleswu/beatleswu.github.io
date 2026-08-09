@@ -1,5 +1,9 @@
 {
   "_comment": "Owner-editable casting sheet for Zone 1 (k26_30). Fill in voice_id per speaker x locale before running --audition. Leave a voice_id blank/null to skip that line in the audition sample. Values here are never generated automatically and never overwrite canonical dialogue.",
+  "audio_config": {
+    "_comment": "Governs which ElevenLabs model --audition (and future --generate-* modes) use. --check verifies this model_id exists and supports text-to-speech before any generation is attempted.",
+    "model_id": "eleven_v3"
+  },
   "roles": {
     "anna": {
       "display_name": "Narrator",

@@ -14,10 +14,15 @@ Credential handling contract (do not weaken this):
     file — the environment variable is the only accepted source.
 
 Modes:
-  --check       Read-only: GET /v1/voices and /v1/models. No paid usage.
+  --check       Read-only: GET /v1/voices and /v1/models, and verifies the
+                configured model (casting_candidates.json audio_config.
+                model_id, default "eleven_v3") is present and supports
+                text-to-speech. No paid usage.
   --audition    Generate the 8-line casting sample (4 roles x 2 locales)
-                from casting_candidates.json into _local_review/audition/.
-                Skips any role/locale left with voice_id = null.
+                from casting_candidates.json into _local_review/audition/,
+                using the configured model_id. Reports the selected model
+                before generating. Skips any role/locale left with
+                voice_id = null.
   --generate-tts / --generate-sfx / --generate-music
                 Reserved for full Zone 1 production once the Owner approves
                 casting and BGM direction. Currently print a not-yet-enabled
@@ -42,6 +47,7 @@ AUDITION_DIR = REVIEW_DIR / "audition"
 
 API_BASE = "https://api.elevenlabs.io"
 ENV_VAR = "ELEVENLABS_API_KEY"
+DEFAULT_MODEL_ID = "eleven_v3"
 
 
 def get_api_key() -> str:
@@ -54,6 +60,11 @@ def get_api_key() -> str:
         )
         raise SystemExit(2)
     return key
+
+
+def get_model_id() -> str:
+    casting = json.loads(CASTING_PATH.read_text(encoding="utf-8"))
+    return casting.get("audio_config", {}).get("model_id") or DEFAULT_MODEL_ID
 
 
 def _api_get(path: str, api_key: str) -> tuple[int, object]:
@@ -74,6 +85,7 @@ def _api_get(path: str, api_key: str) -> tuple[int, object]:
 
 def cmd_check() -> None:
     api_key = get_api_key()
+    selected_model_id = get_model_id()
 
     voices_status, voices_body = _api_get("/v1/voices", api_key)
     voice_access = voices_status == 200
@@ -83,23 +95,35 @@ def cmd_check() -> None:
     model_access = models_status == 200
     model_count = len(models_body) if model_access and isinstance(models_body, list) else 0
 
+    selected_model = None
+    if model_access and isinstance(models_body, list):
+        for model in models_body:
+            if isinstance(model, dict) and model.get("model_id") == selected_model_id:
+                selected_model = model
+                break
+    model_present = selected_model is not None
+    model_supports_tts = bool(selected_model and selected_model.get("can_do_text_to_speech"))
+
     reachable = voices_status != 0 or models_status != 0
 
+    print(f"SELECTED_MODEL_ID={selected_model_id}")
     print(f"ELEVENLABS_API_REACHABLE={'YES' if reachable else 'NO'}")
     print(f"VOICE_API_ACCESS={'YES' if voice_access else 'NO'}")
     print(f"MODEL_API_ACCESS={'YES' if model_access else 'NO'}")
     print(f"AVAILABLE_VOICE_COUNT={voice_count}")
     print(f"AVAILABLE_MODEL_COUNT={model_count}")
+    print(f"SELECTED_MODEL_PRESENT={'YES' if model_present else 'NO'}")
+    print(f"SELECTED_MODEL_SUPPORTS_TTS={'YES' if model_supports_tts else 'NO'}")
     if not voice_access:
         print(f"VOICE_API_HTTP_STATUS={voices_status}")
     if not model_access:
         print(f"MODEL_API_HTTP_STATUS={models_status}")
 
 
-def _text_to_speech(api_key: str, voice_id: str, text: str, output_path: Path) -> bool:
+def _text_to_speech(api_key: str, voice_id: str, text: str, model_id: str, output_path: Path) -> bool:
     payload = json.dumps({
         "text": text,
-        "model_id": "eleven_multilingual_v2",
+        "model_id": model_id,
     }).encode("utf-8")
     request = urllib.request.Request(
         f"{API_BASE}/v1/text-to-speech/{voice_id}",
@@ -128,6 +152,10 @@ def cmd_audition() -> None:
     casting = json.loads(CASTING_PATH.read_text(encoding="utf-8"))
     roles = casting["roles"]
     sample_lines = casting["audition_sample_lines"]
+    model_id = get_model_id()
+
+    print(f"SELECTED_MODEL_ID={model_id}")
+    print("Run --check first to confirm this model is available and supports text-to-speech.")
 
     AUDITION_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -142,8 +170,8 @@ def cmd_audition() -> None:
                 skipped += 1
                 continue
             output_path = AUDITION_DIR / f"audition_{role_key}_{locale}.mp3"
-            print(f"Generating {output_path.name} ...")
-            if _text_to_speech(api_key, voice_id, text, output_path):
+            print(f"Generating {output_path.name} (model={model_id}) ...")
+            if _text_to_speech(api_key, voice_id, text, model_id, output_path):
                 generated += 1
 
     print(f"AUDITION_GENERATED={generated}")
