@@ -63,6 +63,7 @@ from map_battle_persistence import (
     get_map_battle_v1_mode,
     load_authoritative_battle_state,
 )
+from sgf_answer_review_queue import ensure_review_queue_tables
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
@@ -3884,6 +3885,12 @@ def init_db():
         ensure_map_battle_tables(conn)
         ensure_submission_lifecycle_schema(conn)
 
+    # SGF Owner Review Queue: review/proposal staging only.
+    # These additive tables never update questions.json, SGF bytes, accepted
+    # moves, historical KataGo data, or player verdicts.
+    with get_db() as conn:
+        ensure_review_queue_tables(conn)
+
 # ── 認證裝飾器 ─────────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
@@ -3908,6 +3915,13 @@ def admin_required(f):
             return redirect('/')
         return f(*args, **kwargs)
     return decorated
+
+from sgf_answer_review_routes import create_sgf_answer_review_blueprint
+
+app.register_blueprint(create_sgf_answer_review_blueprint(
+    admin_required=admin_required,
+    get_db_provider=lambda: get_db(),
+))
 
 # ── SM-2 ───────────────────────────────────────────────────────
 
