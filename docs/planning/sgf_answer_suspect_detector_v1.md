@@ -47,7 +47,7 @@ Reproduction command:
 ```powershell
 python tools/sgf_answer_suspect_detector.py `
   --questions "D:\go-website\questions.json" `
-  --output-dir "D:\go-website-sgf-answer-suspect-detector-001-artifacts\release-a" `
+  --output-dir "D:\go-website-sgf-answer-suspect-detector-001-artifacts\owner-review-ux-a" `
   --top-limit 500
 ```
 
@@ -239,39 +239,88 @@ Validation set distribution:
 | P3 | 25 |
 | **Total** | **500** |
 
-The static HTML viewer shows the initial board position, native root answer markers, stored precomputed marker, priority, reason codes, locator, concise spatial/player evidence, and collapsible detail metrics. It has filtering/search but no form, Save, Replace, Add Equivalent, DB, SGF, or verdict action.
+The static HTML viewer shows the initial board position, native root answer markers, stored precomputed marker, priority, reason codes, locator, concise spatial/player evidence, and collapsible detail metrics.
 
-Browser QA results:
+Every record now carries and visibly renders SGF-derived side-to-move evidence:
+
+1. root `PL[B/W]` is authoritative when present;
+2. without `PL`, a uniform first-solution-branch color is used; and
+3. parse failure, no first move, or mixed first-move colors produces `side_to_move = null` plus `SIDE_TO_MOVE_UNKNOWN`.
+
+Board appearance is never used to infer the side to move.
+
+| Scope | Black | White | Unknown |
+|---|---:|---:|---:|
+| Full corpus | 39,575 | 3,017 | 212 |
+| 500-record validation set | 37 | 251 | 212 |
+
+The same viewer now provides non-authoritative Owner validation controls only. Each card has exactly four primary statuses: `NO_ISSUE`, `CONFIRMED_ISSUE`, `POSSIBLE_MULTIPLE_SOLUTION`, and `UNCERTAIN`. `CONFIRMED_ISSUE` remains incomplete until one required issue reason is selected. Only `OTHER` exposes an optional note. Previous/Next, progress counts, review-status filtering, optional safe auto-advance, and keyboard shortcuts are included.
+
+Browser decisions are stored under a key scoped to both the exact questions snapshot SHA-256 and exact validation pack ID:
+
+```text
+VALIDATION_PACK_ID = c140359df32b700b0cdd074f14e9894c47de3fc366c5a3a1402e346ea2ae7b27
+ANNOTATION_AUTHORITY = OWNER_VALIDATION_ANNOTATION
+ANNOTATION_CANONICALITY = NON_AUTHORITATIVE
+```
+
+JSON export includes only the audit locator, legacy ID, side to move, priority, detector reason codes, review status, issue reason, optional `OTHER` note, reviewed timestamp, and aggregate totals. It contains no SGF bytes or private player data. The matching static annotation template uses the same statuses/reasons and exact validation pack ID.
+
+Final clean-tab browser QA:
 
 ```text
 CARDS = 500
 BOARD_CANVASES = 500
-P2_FILTER_RESULT = 75
-HIGH_CONFIDENCE_TENUKI_FILTER_RESULT = 178
-FILTER_RESET_RESULT = 500
-CONSOLE_ERRORS = 0
-BUTTONS = 0
+SIDE_TO_MOVE_BADGES = 500
+BLACK_TO_PLAY = 37
+WHITE_TO_PLAY = 251
+SIDE_TO_MOVE_UNKNOWN = 212
+PRIMARY_STATUS_BUTTONS = 2000
+EVERY_CARD_HAS_EXACTLY_FOUR_PRIMARY_STATUSES = YES
+ALL_FOUR_PRIMARY_STATUSES_BEHAVIOR_QA = PASS
+CONFIRMED_ISSUE_REQUIRES_REASON = PASS
+OTHER_OPTIONAL_NOTE = PASS
+PERSISTENCE_AFTER_RELOAD_AND_REOPEN = PASS
+STATUS_AND_REASON_CHANGE = PASS
+REVIEW_FILTER_COUNTS = PASS
+PROGRESS_COUNTS = PASS
+AUTO_ADVANCE_WAITS_FOR_COMPLETE_REVIEW = PASS
+KEYBOARD_INPUT_GUARD = PASS
+PREVIOUS_NEXT_NAVIGATION = PASS
+EXPORT_REQUIRED_FIELDS = PASS
+EXPORT_FULL_SGF_PRESENT = NO
+EXPORT_PRIVATE_PLAYER_DATA_PRESENT = NO
+CLEAN_TAB_CONSOLE_ERRORS = 0
+QA_LOCAL_STORAGE_SAMPLE_CLEARED = YES
 FORMS = 0
 ```
 
-The annotation template is explicitly `NON_AUTHORITATIVE_OWNER_VALIDATION` and permits only: `confirmed_issue`, `valid_answer`, `possible_equivalent`, or `unclear`. Editing a copy never changes canonical data.
+This is validation UX, not repair UI. It cannot replace answers, mutate SGF/questions, activate accepted moves or overrides, change verdicts, write a DB, or contact Production.
 
 ## 11. Determinism and Artifact Evidence
 
-Two independent full runs (`release-a` and `release-b`) produced identical SHA-256 for every file:
+Two independent final full runs (`owner-review-ux-a` and `owner-review-ux-b`) produced identical SHA-256 for every file:
 
 | Artifact | Bytes | SHA-256 |
 |---|---:|---|
-| `corpus_summary.json` | 6,125 | `d4b12ed39e5ea24703c195313655a760c81e0eb0f5965f1e062a80f7c020cbab` |
-| `top_suspects.json` | 2,389,783 | `33c300a1e732740aebcce6cd7c2f60ce2c97fac5f5409ebd69f68c9c4a9540dc` |
-| `owner_validation_pack.html` | 1,522,080 | `ed3308adb3450d8f5e9d50d64ce02588d5078adde9060dbb13a1f1f268fc1a0a` |
-| `owner_review_annotations.template.json` | 195,656 | `aafeb1a9017cdf4ac9c62eb334ed7cc28e0a4cabe7a8c2292f333e823c517bd2` |
-| `artifact_manifest.json` | 763 | `fe153be4caf6b8c7258c24f4c1b06e3d6c367345174ce8294552b7f8b0e74b74` |
+| `corpus_summary.json` | 6,349 | `bd507eab52675d808f471f36ddbd3237e272858fdee77581ed99729648da18be` |
+| `top_suspects.json` | 2,485,150 | `ea0980a4f7d28b7b18d8596f4c607935ae63f62e00a42ce4e765fc483741a320` |
+| `owner_validation_pack.html` | 1,617,011 | `8e02172623503bee9cfb5a033f2021c63f782a036b347f96da41e837aa248b04` |
+| `owner_review_annotations.template.json` | 377,180 | `187dc0bc06f81c43526f566c61f9706afd245de85bb88c81c581ad58cbaff356` |
+| `artifact_manifest.json` | 763 | `3198fff03d17bbb82f449e23262568539daf49a264e31fff45df08534d87af9b` |
+
+The complete pre-fix and post-fix ranking signatures are identical:
+
+```text
+FULL_13085_RANKING_SIGNATURE_SHA256 = e0177ab32c7c2888b51c4d0c54c7e3e58e9bd46ade1baf8504f6a3a1174eb501
+TOP_500_SELECTION_ORDER_SIGNATURE_SHA256 = ecd03c63d230749192fe36fb5b4aba7670d3eb07d82992428bf5aaa792aa11ed
+DETECTOR_RANKING_CHANGED = NO
+```
 
 Primary local evidence path:
 
 ```text
-D:\go-website-sgf-answer-suspect-detector-001-artifacts\release-a
+D:\go-website-sgf-answer-suspect-detector-001-artifacts\owner-review-ux-a
 ```
 
 Generated evidence remains outside Git to avoid adding 4+ MiB of reproducible output to the Sprint PR. The PR carries the generator, tests, and this exact evidence ledger.
@@ -294,13 +343,22 @@ Focused tests cover:
 12. byte-identical repeated generation and unchanged source bytes;
 13. snapshot-bound `AUDIT_LOCATOR_ONLY` identity; and
 14. rejection of PII-shaped unsupported player-evidence fields; and
-15. successful exact-locator linkage for safe aggregate player evidence.
+15. successful exact-locator linkage for safe aggregate player evidence;
+16. black/white/unknown side-to-move derivation and visible labels;
+17. side-to-move metadata independence from ranking;
+18. all four Owner review statuses;
+19. required `CONFIRMED_ISSUE` reason and `OTHER`-only note;
+20. snapshot-and-pack-scoped persistence contract;
+21. status/reason changes, review filters, and progress contract;
+22. required export identity/status/reason fields;
+23. safe auto-advance and keyboard input guard; and
+24. exact-pack non-authoritative annotation template schema.
 
 Validation command and result:
 
 ```text
 python -m pytest -q tests/test_sgf_answer_suspect_detector.py
-16 passed
+26 passed
 ```
 
 ## 13. Existing Admin Reuse Boundary
@@ -334,6 +392,7 @@ GF003_OVERRIDE_ENABLED = NO
 RANK_CALIBRATION_FIX = DEFERRED
 REPAIR_UI_IMPLEMENTED = NO
 E10_CINEMATIC_TOUCHED = NO
+DETECTOR_RANKING_CHANGED = NO
 MERGE = NOT_AUTHORIZED
 DEPLOY = NOT_AUTHORIZED
 ```

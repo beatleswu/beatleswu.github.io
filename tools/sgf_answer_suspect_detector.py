@@ -33,6 +33,12 @@ OUTPUT_CLASSIFICATION = "OWNER_REVIEW_RECOMMENDED"
 IDENTITY_TYPE = "AUDIT_LOCATOR_ONLY"
 PLAYER_SIGNAL_UNAVAILABLE = "UNAVAILABLE_LOCAL"
 PLAYER_SIGNAL_AVAILABLE = "AVAILABLE_AGGREGATE_INPUT"
+SIDE_TO_MOVE_UNKNOWN_REASON = "SIDE_TO_MOVE_UNKNOWN"
+SIDE_TO_MOVE_LABELS = {
+    "B": "黑先 / Black to play",
+    "W": "白先 / White to play",
+    None: "先手不明 / Side to move unknown",
+}
 
 PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 CONFIDENCE_BY_TIER = {"P0": "HIGH", "P1": "HIGH", "P2": "MEDIUM", "P3": "LOW"}
@@ -141,6 +147,38 @@ def _safe_short_text(value: Any, *, limit: int = 80) -> str | None:
     if not text:
         return None
     return text[:limit]
+
+
+def _side_to_move_evidence(root: Any, first_move_colors: set[str]) -> dict[str, Any]:
+    """Return SGF-derived side-to-move evidence without board-shape inference.
+
+    An explicit root PL property is authoritative. Without PL, a uniform color
+    across the first solution branches is safe SGF evidence. Anything else is
+    kept unknown rather than guessed.
+    """
+
+    explicit = root.metadata.get("player_to_move") if root is not None else None
+    if explicit in {"B", "W"}:
+        return {
+            "side_to_move": explicit,
+            "side_to_move_source": "SGF_ROOT_PL",
+            "side_to_move_display": SIDE_TO_MOVE_LABELS[explicit],
+            "side_to_move_reason_codes": [],
+        }
+    if len(first_move_colors) == 1:
+        side = next(iter(first_move_colors))
+        return {
+            "side_to_move": side,
+            "side_to_move_source": "SGF_FIRST_SOLUTION_COLOR",
+            "side_to_move_display": SIDE_TO_MOVE_LABELS[side],
+            "side_to_move_reason_codes": [],
+        }
+    return {
+        "side_to_move": None,
+        "side_to_move_source": None,
+        "side_to_move_display": SIDE_TO_MOVE_LABELS[None],
+        "side_to_move_reason_codes": [SIDE_TO_MOVE_UNKNOWN_REASON],
+    }
 
 
 def _read_questions_snapshot(path: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -743,6 +781,7 @@ def analyze_record(
     native_packets: list[dict[str, Any]] = []
     native_nodes: list[Any] = []
     root = None
+    side_to_move_evidence = _side_to_move_evidence(None, set())
     try:
         root = parse_sgf(content, strict=True)
         structural_metrics["parse_status"] = "success"
@@ -764,11 +803,13 @@ def analyze_record(
         structural_metrics["root_child_count"] = len(root.children)
         seen_coords: set[tuple[int, int]] = set()
         root_colors: set[str] = set()
+        first_move_colors: set[str] = set()
         for child in root.children:
             move = child.move
             if move is None:
                 structural_metrics["non_move_root_child_count"] += 1
                 continue
+            first_move_colors.add(move.color)
             if move.is_pass or not move.coord:
                 structural_metrics["root_pass_count"] += 1
                 continue
@@ -794,6 +835,7 @@ def analyze_record(
             ]
             if len(opponent_children) > 1:
                 structural_metrics["ambiguous_opponent_reply_count"] += 1
+        side_to_move_evidence = _side_to_move_evidence(root, first_move_colors)
         structural_metrics["native_root_solution_count"] = len(native_packets)
         if not root.children:
             reasons.update(("EMPTY_SOLUTION_TREE", "NO_VALID_ROOT_ANSWER", "STRUCTURAL_SGF_ISSUE"))
@@ -907,6 +949,7 @@ def analyze_record(
         "legacy_question_id": legacy_id_value,
         "source_family_if_known": source_family,
         "board_size": board_size,
+        **side_to_move_evidence,
         "classification": OUTPUT_CLASSIFICATION if reasons else "NO_OBVIOUS_ISSUE",
         "priority_tier": priority_tier,
         "confidence": CONFIDENCE_BY_TIER.get(priority_tier),
@@ -1013,6 +1056,12 @@ def build_summary(
         for record in analyzed
     )
     accepted_present = sum(bool(record["accepted_move_metadata"]) for record in analyzed)
+    side_to_move_counts = collections.Counter(
+        record["side_to_move"] or "UNKNOWN" for record in analyzed
+    )
+    side_to_move_source_counts = collections.Counter(
+        record["side_to_move_source"] or "UNKNOWN" for record in analyzed
+    )
     return {
         "detector_version": DETECTOR_VERSION,
         "classification_boundary": "SUSPECT_NOT_WRONG",
@@ -1029,6 +1078,10 @@ def build_summary(
             "stored_katago_move_record_count": katago_move_present,
             "valid_stored_katago_move_record_count": katago_valid,
             "structural_metric_record_counts": dict(sorted(structural_metric_counts.items())),
+            "side_to_move_counts": {
+                side: side_to_move_counts.get(side, 0) for side in ("B", "W", "UNKNOWN")
+            },
+            "side_to_move_source_counts": dict(sorted(side_to_move_source_counts.items())),
         },
         "suspects": {
             "total": len(suspects),
@@ -1131,21 +1184,60 @@ def select_validation_set(
     return selected
 
 
-def _annotation_template(top_records: Sequence[Mapping[str, Any]], snapshot: Mapping[str, Any]) -> dict[str, Any]:
+def _annotation_template(
+    top_records: Sequence[Mapping[str, Any]],
+    snapshot: Mapping[str, Any],
+    validation_pack_id: str,
+) -> dict[str, Any]:
     return {
-        "authority": "NON_AUTHORITATIVE_OWNER_VALIDATION",
+        "schema_version": "1.0",
+        "authority": "OWNER_VALIDATION_ANNOTATION",
+        "canonicality": "NON_AUTHORITATIVE",
         "snapshot_sha256": snapshot["sha256"],
-        "allowed_labels": ["confirmed_issue", "valid_answer", "possible_equivalent", "unclear"],
+        "validation_pack_id": validation_pack_id,
+        "allowed_review_statuses": [
+            "NO_ISSUE",
+            "CONFIRMED_ISSUE",
+            "POSSIBLE_MULTIPLE_SOLUTION",
+            "UNCERTAIN",
+        ],
+        "confirmed_issue_reason_codes": [
+            "GLOBAL_TENUKI",
+            "WRONG_PRIMARY_ANSWER",
+            "WRONG_CONTINUATION",
+            "MISSING_EQUIVALENT_SOLUTION",
+            "SIDE_TO_MOVE_OR_METADATA_ERROR",
+            "SGF_OR_BOARD_STRUCTURE_ERROR",
+            "OTHER",
+        ],
         "instructions": "Edit a copy only. This file never changes canonical answers or verdicts.",
         "records": [
             {
                 "audit_locator": record["audit_locator"],
-                "owner_label": None,
+                "legacy_question_id": record["legacy_question_id"],
+                "side_to_move": record["side_to_move"],
+                "priority_tier": record["priority_tier"],
+                "detector_reason_codes": record["reason_codes"],
+                "review_status": None,
+                "issue_reason": None,
                 "owner_note": "",
+                "reviewed_at": None,
             }
             for record in top_records
         ],
     }
+
+
+def _validation_pack_id(top_records: Sequence[Mapping[str, Any]]) -> str:
+    identity = [
+        {
+            "deterministic_rank": record["deterministic_rank"],
+            "record_index": record["audit_locator"]["record_index"],
+            "content_sha256": record["audit_locator"]["content_sha256"],
+        }
+        for record in top_records
+    ]
+    return _sha256_bytes(_json_bytes(identity))
 
 
 def _render_html(top_manifest: Mapping[str, Any]) -> bytes:
@@ -1163,35 +1255,138 @@ body {{ margin:0; }} header {{ position:sticky; top:0; z-index:2; background:#15
 h1 {{ margin:0 0 6px; font-size:20px; }} .sub {{ color:#9fb0c5; font-size:13px; }}
 .controls {{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }} input,select {{ background:#0b1017; color:#e8edf5; border:1px solid #3b485a; border-radius:7px; padding:7px 9px; }}
 main {{ padding:18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(390px,1fr)); gap:14px; }}
-.card {{ background:#171e29; border:1px solid #334155; border-radius:12px; padding:13px; }} .card h2 {{ margin:0 0 8px; font-size:16px; }}
-.meta {{ font-size:12px; color:#aebbd0; line-height:1.5; overflow-wrap:anywhere; }} .reasons {{ display:flex; flex-wrap:wrap; gap:5px; margin:8px 0; }}
+.card {{ background:#171e29; border:1px solid #334155; border-radius:12px; padding:13px; scroll-margin-top:210px; }} .card h2 {{ margin:0 0 8px; font-size:16px; }}
+ .meta {{ font-size:12px; color:#aebbd0; line-height:1.5; overflow-wrap:anywhere; }} .side-to-move {{ display:inline-block; margin-top:8px; border:1px solid #64748b; border-radius:999px; padding:5px 9px; font-size:12px; font-weight:800; letter-spacing:.01em; }} .side-B {{ background:#050505; color:#fff; }} .side-W {{ background:#f8fafc; color:#0f172a; }} .side-UNKNOWN {{ background:#513b12; color:#fde68a; border-color:#a16207; }} .reasons {{ display:flex; flex-wrap:wrap; gap:5px; margin:8px 0; }}
 .reason {{ font:11px ui-monospace,monospace; background:#253248; border-radius:999px; padding:3px 7px; }} .P0 {{ border-left:5px solid #ef4444; }} .P1 {{ border-left:5px solid #f97316; }} .P2 {{ border-left:5px solid #eab308; }} .P3 {{ border-left:5px solid #38bdf8; }}
 .board-row {{ display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }} canvas {{ width:270px; height:270px; background:#d6a95f; border-radius:5px; }}
 pre {{ margin:7px 0 0; white-space:pre-wrap; font:11px ui-monospace,monospace; color:#cbd5e1; max-width:330px; }}
 .evidence {{ min-width:220px; max-width:330px; font-size:12px; line-height:1.55; color:#cbd5e1; }} .evidence b {{ color:#f8fafc; }} details {{ margin-top:9px; }} summary {{ cursor:pointer; color:#93c5fd; }}
 .warning {{ color:#f8c879; }} .empty {{ padding:30px; color:#94a3b8; }}
+.review-toolbar {{ position:sticky; top:108px; z-index:2; display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:10px 18px; background:#111827f2; border-bottom:1px solid #334155; }}
+button {{ border:1px solid #475569; border-radius:8px; background:#1e293b; color:#f8fafc; padding:8px 11px; cursor:pointer; font-weight:700; }} button:hover {{ border-color:#93c5fd; }} button:focus-visible {{ outline:3px solid #38bdf8; outline-offset:2px; }}
+.progress-count {{ font-weight:800; }} .review-toolbar .spacer {{ flex:1; }} .review-toolbar label {{ display:flex; gap:6px; align-items:center; font-size:13px; color:#cbd5e1; }}
+.card.active-card {{ outline:3px solid #38bdf8; outline-offset:2px; }} .review-panel {{ margin-top:12px; padding-top:12px; border-top:1px solid #334155; }}
+.review-statuses {{ display:grid; grid-template-columns:repeat(2,minmax(150px,1fr)); gap:8px; }} .review-status {{ min-height:54px; font-size:13px; line-height:1.25; }} .review-status.selected {{ background:#075985; border-color:#7dd3fc; box-shadow:0 0 0 2px #38bdf855 inset; }}
+.issue-panel {{ margin-top:10px; padding:10px; border:1px solid #92400e; border-radius:9px; background:#2b1b0d; }} .issue-heading {{ margin-bottom:8px; color:#fed7aa; font-weight:800; }}
+.issue-reasons {{ display:grid; grid-template-columns:repeat(2,minmax(160px,1fr)); gap:7px; }} .issue-reason {{ min-height:46px; font-size:12px; }} .issue-reason.selected {{ background:#9a3412; border-color:#fdba74; }}
+.other-note {{ display:block; width:100%; box-sizing:border-box; min-height:62px; margin-top:9px; resize:vertical; background:#0b1017; color:#e8edf5; border:1px solid #64748b; border-radius:7px; padding:8px; }} .review-state {{ margin-top:8px; min-height:18px; font-size:12px; color:#93c5fd; }}
+@media (max-width:620px) {{ .review-statuses,.issue-reasons {{ grid-template-columns:1fr; }} .review-toolbar {{ top:135px; }} }}
 </style>
 </head>
 <body>
 <header><h1>{html.escape(title)}</h1><div class="sub" id="summary"></div>
 <div class="controls"><select id="tier"><option value="">All tiers</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
-<input id="search" size="38" placeholder="reason, legacy ID, record index"><span class="sub warning">Suspect only — never proof of a wrong answer. Viewer has no write actions.</span></div></header>
+<input id="search" size="38" placeholder="reason, legacy ID, record index"><span class="sub warning">Suspect only — never proof of a wrong answer. Canonical data remains read-only.</span></div></header>
+<section class="review-toolbar" aria-label="Owner review navigation">
+<button type="button" id="previous-record">← 上一題 / Previous</button><button type="button" id="next-record">下一題 / Next →</button>
+<span class="progress-count" id="reviewed-count">Reviewed 0</span><span class="progress-count" id="unreviewed-count">Unreviewed 0</span>
+<select id="review-filter" aria-label="Filter by review status"><option value="ALL">All review states</option><option value="UNREVIEWED">Unreviewed</option><option value="NO_ISSUE">NO_ISSUE</option><option value="CONFIRMED_ISSUE">CONFIRMED_ISSUE</option><option value="POSSIBLE_MULTIPLE_SOLUTION">POSSIBLE_MULTIPLE_SOLUTION</option><option value="UNCERTAIN">UNCERTAIN</option></select>
+<label><input type="checkbox" id="auto-advance"> 完成後自動下一題 / Auto-advance</label><span class="spacer"></span>
+<span class="sub">OWNER_VALIDATION_ANNOTATION · NON_AUTHORITATIVE · browser-local only</span><button type="button" id="export-reviews">匯出審查結果 / Export Review Results</button><span class="sub" id="export-status" aria-live="polite"></span>
+</section>
 <main id="cards"></main>
 <script id="pack-data" type="application/json">{payload}</script>
 <script>
 const pack=JSON.parse(document.getElementById('pack-data').textContent), cards=document.getElementById('cards');
 const tier=document.getElementById('tier'), search=document.getElementById('search');
+const reviewFilter=document.getElementById('review-filter'),reviewedCount=document.getElementById('reviewed-count'),unreviewedCount=document.getElementById('unreviewed-count'),autoAdvance=document.getElementById('auto-advance');
+const REVIEW_STATUS_DEFS=[
+  {{code:'NO_ISSUE',label:'沒有問題 / No issue'}},
+  {{code:'CONFIRMED_ISSUE',label:'確認有問題 / Confirmed issue'}},
+  {{code:'POSSIBLE_MULTIPLE_SOLUTION',label:'可能有多個有效解 / Possible multiple solution'}},
+  {{code:'UNCERTAIN',label:'不確定 / Uncertain'}}
+];
+const ISSUE_REASON_DEFS=[
+  {{code:'GLOBAL_TENUKI',label:'全局脫先 / Global tenuki'}},
+  {{code:'WRONG_PRIMARY_ANSWER',label:'主要答案錯誤 / Wrong primary answer'}},
+  {{code:'WRONG_CONTINUATION',label:'後續變化錯誤 / Wrong continuation'}},
+  {{code:'MISSING_EQUIVALENT_SOLUTION',label:'缺少等價解 / Missing equivalent solution'}},
+  {{code:'SIDE_TO_MOVE_OR_METADATA_ERROR',label:'先手或 metadata 錯誤 / Side-to-move or metadata error'}},
+  {{code:'SGF_OR_BOARD_STRUCTURE_ERROR',label:'SGF 或棋盤結構錯誤 / SGF or board structure error'}},
+  {{code:'OTHER',label:'其他 / Other'}}
+];
+const storageKey=`sgf-answer-suspect-detector:owner-validation:${{pack.source_snapshot.sha256}}:${{pack.validation_pack_id}}`;
+let reviewState=loadReviewState(),visibleRecords=[],activeRecordKey=null;
+function recordKey(rec){{return `${{rec.audit_locator.record_index}}:${{rec.audit_locator.content_sha256}}`;}}
+function freshReviewState(){{return {{schema_version:'1.0',authority:'OWNER_VALIDATION_ANNOTATION',canonicality:'NON_AUTHORITATIVE',snapshot_sha256:pack.source_snapshot.sha256,validation_pack_id:pack.validation_pack_id,records:{{}}}};}}
+function loadReviewState(){{
+  try{{
+    const value=JSON.parse(localStorage.getItem(storageKey)||'null');
+    if(value&&value.authority==='OWNER_VALIDATION_ANNOTATION'&&value.canonicality==='NON_AUTHORITATIVE'&&value.snapshot_sha256===pack.source_snapshot.sha256&&value.validation_pack_id===pack.validation_pack_id&&value.records&&typeof value.records==='object')return value;
+  }}catch{{}}
+  return freshReviewState();
+}}
+function saveReviewState(){{reviewState.updated_at=new Date().toISOString();localStorage.setItem(storageKey,JSON.stringify(reviewState));}}
+function reviewComplete(entry){{return Boolean(entry&&entry.review_status&&(entry.review_status!=='CONFIRMED_ISSUE'||ISSUE_REASON_DEFS.some(def=>def.code===entry.issue_reason)));}}
+function progressSnapshot(){{
+  const complete=pack.records.map(rec=>reviewState.records[recordKey(rec)]).filter(reviewComplete);
+  return {{reviewed:complete.length,unreviewed:pack.records.length-complete.length}};
+}}
+function updateProgress(){{const progress=progressSnapshot();reviewedCount.textContent=`Reviewed ${{progress.reviewed}}`;unreviewedCount.textContent=`Unreviewed ${{progress.unreviewed}}`;}}
+function syncActiveCard(scroll=false){{
+  for(const card of cards.querySelectorAll('.card'))card.classList.toggle('active-card',card.dataset.recordKey===activeRecordKey);
+  const active=cards.querySelector(`.card[data-record-key="${{CSS.escape(activeRecordKey||'')}}"]`);if(scroll&&active)active.scrollIntoView({{behavior:'smooth',block:'start'}});
+}}
+function navigateRelative(delta){{
+  if(!visibleRecords.length)return;
+  let index=visibleRecords.findIndex(rec=>recordKey(rec)===activeRecordKey);if(index<0)index=0;
+  index=Math.max(0,Math.min(visibleRecords.length-1,index+delta));activeRecordKey=recordKey(visibleRecords[index]);syncActiveCard(true);
+}}
+function finishAndMaybeAdvance(key){{
+  render();
+  const stillVisible=visibleRecords.some(rec=>recordKey(rec)===key);
+  if(autoAdvance.checked&&stillVisible)navigateRelative(1);
+}}
+function setReviewStatus(rec,status){{
+  if(!REVIEW_STATUS_DEFS.some(def=>def.code===status))return;
+  const key=recordKey(rec),previous=reviewState.records[key]||{{}},same=previous.review_status===status;
+  const entry={{review_status:status,issue_reason:null,owner_note:'',reviewed_at:null}};
+  if(status==='CONFIRMED_ISSUE'&&same){{entry.issue_reason=previous.issue_reason||null;entry.owner_note=entry.issue_reason==='OTHER'?(previous.owner_note||''):'';}}
+  if(status!=='CONFIRMED_ISSUE'||entry.issue_reason)entry.reviewed_at=new Date().toISOString();
+  reviewState.records[key]=entry;activeRecordKey=key;saveReviewState();
+  if(reviewComplete(entry))finishAndMaybeAdvance(key);else render();
+}}
+function setIssueReason(rec,reason){{
+  if(!ISSUE_REASON_DEFS.some(def=>def.code===reason))return;
+  const key=recordKey(rec),entry=reviewState.records[key];if(!entry||entry.review_status!=='CONFIRMED_ISSUE')return;
+  entry.issue_reason=reason;entry.owner_note=reason==='OTHER'?(entry.owner_note||''):'';entry.reviewed_at=new Date().toISOString();activeRecordKey=key;saveReviewState();finishAndMaybeAdvance(key);
+}}
+function setOwnerNote(rec,note){{
+  const entry=reviewState.records[recordKey(rec)];if(!entry||entry.review_status!=='CONFIRMED_ISSUE'||entry.issue_reason!=='OTHER')return;
+  entry.owner_note=String(note).slice(0,500);entry.reviewed_at=new Date().toISOString();saveReviewState();updateProgress();
+}}
+function buildExportPayload(){{
+  const reviewed=[];for(const rec of pack.records){{const entry=reviewState.records[recordKey(rec)];if(!reviewComplete(entry))continue;reviewed.push({{audit_locator:rec.audit_locator,legacy_question_id:rec.legacy_question_id,side_to_move:rec.side_to_move,priority_tier:rec.priority_tier,detector_reason_codes:rec.reason_codes,review_status:entry.review_status,issue_reason:entry.review_status==='CONFIRMED_ISSUE'?entry.issue_reason:null,owner_note:entry.issue_reason==='OTHER'?(entry.owner_note||''):'',reviewed_at:entry.reviewed_at}});}}
+  const issueReasonCounts={{}};for(const row of reviewed)if(row.issue_reason)issueReasonCounts[row.issue_reason]=(issueReasonCounts[row.issue_reason]||0)+1;
+  const count=status=>reviewed.filter(row=>row.review_status===status).length;
+  return {{schema_version:'1.0',authority:'OWNER_VALIDATION_ANNOTATION',canonicality:'NON_AUTHORITATIVE',snapshot_sha256:pack.source_snapshot.sha256,validation_pack_id:pack.validation_pack_id,exported_at:new Date().toISOString(),summary:{{reviewed_total:reviewed.length,no_issue:count('NO_ISSUE'),confirmed_issue:count('CONFIRMED_ISSUE'),possible_multiple_solution:count('POSSIBLE_MULTIPLE_SOLUTION'),uncertain:count('UNCERTAIN'),issue_reason_counts:issueReasonCounts}},records:reviewed}};
+}}
+function downloadExport(){{const payload=buildExportPayload(),raw=JSON.stringify(payload,null,2)+'\\n',status=document.getElementById('export-status'),blob=new Blob([raw],{{type:'application/json'}}),url=URL.createObjectURL(blob),link=document.createElement('a');status.textContent=`Exported ${{payload.summary.reviewed_total}} reviewed record(s) as JSON`;status.dataset.lastExportSummary=JSON.stringify(payload.summary);status.dataset.lastExportFirstRecord=JSON.stringify(payload.records[0]||null);link.href=url;link.download=`sgf-owner-validation-${{pack.source_snapshot.sha256.slice(0,12)}}-${{pack.validation_pack_id.slice(0,12)}}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),0);}}
 document.getElementById('summary').textContent=`snapshot ${{pack.source_snapshot.sha256}} · ${{pack.records.length}} ranked suspects · detector ${{pack.detector_version}}`;
 function el(tag,cls,text){{const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}}
 function draw(canvas,rec){{const n=rec.board_size||19,ctx=canvas.getContext('2d'),s=540,p=26,step=(s-2*p)/(n-1);canvas.width=s;canvas.height=s;ctx.fillStyle='#d6a95f';ctx.fillRect(0,0,s,s);ctx.strokeStyle='#352915';ctx.lineWidth=1.3;for(let i=0;i<n;i++){{const q=p+i*step;ctx.beginPath();ctx.moveTo(p,q);ctx.lineTo(s-p,q);ctx.stroke();ctx.beginPath();ctx.moveTo(q,p);ctx.lineTo(q,s-p);ctx.stroke();}}for(const st of rec.board_preview.initial_stones||[]){{const x=p+st.x*step,y=p+st.y*step;ctx.beginPath();ctx.arc(x,y,step*.43,0,Math.PI*2);ctx.fillStyle=st.color==='B'?'#101010':'#f5f5f2';ctx.fill();ctx.strokeStyle='#111';ctx.stroke();}}(rec.current_first_solution_moves||[]).forEach((mv,i)=>{{const x=p+mv.x*step,y=p+mv.y*step;ctx.beginPath();ctx.arc(x,y,step*.28,0,Math.PI*2);ctx.strokeStyle='#16a34a';ctx.lineWidth=5;ctx.stroke();ctx.fillStyle='#052e16';ctx.font='bold 22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String.fromCharCode(65+i),x,y);}});const k=rec.stored_precomputed_move_if_any;if(k&&Number.isInteger(k.x)){{const x=p+k.x*step,y=p+k.y*step;ctx.strokeStyle='#f97316';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x-9,y-9);ctx.lineTo(x+9,y+9);ctx.moveTo(x+9,y-9);ctx.lineTo(x-9,y+9);ctx.stroke();}}}}
+function makeReviewPanel(rec,entry){{
+  const panel=el('div','review-panel'),heading=el('div','issue-heading','Owner validation · choose exactly one status');panel.append(heading);
+  const statuses=el('div','review-statuses');for(const def of REVIEW_STATUS_DEFS){{const button=el('button','review-status'+(entry?.review_status===def.code?' selected':''),`${{def.label}}\n${{def.code}}`);button.type='button';button.dataset.reviewStatus=def.code;button.setAttribute('aria-pressed',String(entry?.review_status===def.code));button.addEventListener('click',event=>{{event.stopPropagation();setReviewStatus(rec,def.code);}});statuses.append(button);}}panel.append(statuses);
+  if(entry?.review_status==='CONFIRMED_ISSUE'){{
+    const issue=el('div','issue-panel'),issueHeading=el('div','issue-heading','確認問題原因 / Select one required issue reason');issue.append(issueHeading);
+    const reasons=el('div','issue-reasons');for(const def of ISSUE_REASON_DEFS){{const button=el('button','issue-reason'+(entry.issue_reason===def.code?' selected':''),`${{def.label}}\n${{def.code}}`);button.type='button';button.dataset.issueReason=def.code;button.setAttribute('aria-pressed',String(entry.issue_reason===def.code));button.addEventListener('click',event=>{{event.stopPropagation();setIssueReason(rec,def.code);}});reasons.append(button);}}issue.append(reasons);
+    if(entry.issue_reason==='OTHER'){{const note=document.createElement('textarea');note.className='other-note';note.placeholder='Optional note for OTHER only';note.value=entry.owner_note||'';note.maxLength=500;note.addEventListener('click',event=>event.stopPropagation());note.addEventListener('input',event=>setOwnerNote(rec,event.target.value));issue.append(note);}}
+    panel.append(issue);
+  }}
+  const state=el('div','review-state');state.textContent=reviewComplete(entry)?`Complete · ${{entry.review_status}}${{entry.issue_reason?' · '+entry.issue_reason:''}}`:(entry?.review_status==='CONFIRMED_ISSUE'?'Reason required before this review is complete.':'Unreviewed');panel.append(state);return panel;
+}}
 function render(){{
-  const needle=search.value.trim().toLowerCase(),wanted=tier.value;cards.replaceChildren();let shown=0;
+  const needle=search.value.trim().toLowerCase(),wanted=tier.value,reviewWanted=reviewFilter.value;cards.replaceChildren();visibleRecords=[];let shown=0;
   for(const rec of pack.records){{
     const hay=(JSON.stringify(rec.reason_codes)+' '+rec.legacy_question_id+' '+rec.audit_locator.record_index).toLowerCase();
-    if(wanted&&rec.priority_tier!==wanted)continue;if(needle&&!hay.includes(needle))continue;shown++;
+    const entry=reviewState.records[recordKey(rec)],complete=reviewComplete(entry);
+    if(wanted&&rec.priority_tier!==wanted)continue;if(needle&&!hay.includes(needle))continue;if(reviewWanted==='UNREVIEWED'&&complete)continue;if(REVIEW_STATUS_DEFS.some(def=>def.code===reviewWanted)&&entry?.review_status!==reviewWanted)continue;shown++;visibleRecords.push(rec);
     const card=el('section','card '+rec.priority_tier),head=el('h2','',`#${{rec.deterministic_rank}} · ${{rec.priority_tier}} · legacy ${{rec.legacy_question_id??'null'}}`);card.append(head);
+    card.dataset.recordKey=recordKey(rec);card.tabIndex=0;card.setAttribute('aria-label',`Suspect rank ${{rec.deterministic_rank}} review card`);card.addEventListener('click',()=>{{activeRecordKey=recordKey(rec);card.focus({{preventScroll:true}});syncActiveCard(false);}});
     card.append(el('div','meta',`record_index=${{rec.audit_locator.record_index}} · confidence=${{rec.confidence}} · roots=${{rec.native_root_solution_count}} · board=${{rec.board_size}}`));
-    const reasons=el('div','reasons');for(const r of rec.reason_codes)reasons.append(el('span','reason',r));card.append(reasons);
+     const sideState=rec.side_to_move||'UNKNOWN',sideText=rec.side_to_move_display||'先手不明 / Side to move unknown',side=el('div','side-to-move side-'+sideState,sideText);side.dataset.sideToMove=sideState;side.dataset.reasonCodes=(rec.side_to_move_reason_codes||[]).join(',');card.append(side);
+     const reasons=el('div','reasons');for(const r of rec.reason_codes)reasons.append(el('span','reason',r));card.append(reasons);
     const row=el('div','board-row'),canvas=el('canvas');canvas.setAttribute('aria-label','Read-only Go board preview');row.append(canvas);
     const evidence=el('div','evidence'),answerLabels=(rec.current_first_solution_moves||[]).map(m=>m.gtp||`${{m.x}},${{m.y}}`).join(', ')||'none';
     const fallback=rec.stored_precomputed_move_if_any,spatial=rec.spatial_metrics||{{}},native=spatial.native_first_solution||{{}},stored=spatial.stored_precomputed_move||{{}};
@@ -1201,11 +1396,21 @@ function render(){{
     evidence.append(el('div','',`Player evidence: ${{rec.player_report_metrics_if_available.status}}`));
     const disclosure=document.createElement('details'),label=document.createElement('summary');label.textContent='Evidence metrics';disclosure.append(label);
     disclosure.append(el('pre','',JSON.stringify({{structural:rec.structural_metrics,spatial:rec.spatial_metrics,historical:rec.historical_katago_metadata,player:rec.player_report_metrics_if_available}},null,2)));evidence.append(disclosure);
-    row.append(evidence);card.append(row);cards.append(card);draw(canvas,rec);
+    row.append(evidence);card.append(row);card.append(makeReviewPanel(rec,entry));cards.append(card);draw(canvas,rec);
   }}
   if(!shown)cards.append(el('div','empty','No suspects match this filter.'));
+  if(!visibleRecords.some(rec=>recordKey(rec)===activeRecordKey))activeRecordKey=visibleRecords.length?recordKey(visibleRecords[0]):null;syncActiveCard(false);updateProgress();
 }}
-tier.addEventListener('change',render);search.addEventListener('input',render);render();
+function applyFilters(){{activeRecordKey=null;render();syncActiveCard(true);}}
+tier.addEventListener('change',applyFilters);search.addEventListener('input',applyFilters);reviewFilter.addEventListener('change',applyFilters);
+document.getElementById('previous-record').addEventListener('click',()=>navigateRelative(-1));document.getElementById('next-record').addEventListener('click',()=>navigateRelative(1));document.getElementById('export-reviews').addEventListener('click',downloadExport);
+document.addEventListener('keydown',event=>{{
+  if(['INPUT','TEXTAREA','SELECT','BUTTON'].includes(event.target.tagName)||event.target.isContentEditable)return;
+  if(event.key==='ArrowLeft'){{event.preventDefault();navigateRelative(-1);return;}}if(event.key==='ArrowRight'){{event.preventDefault();navigateRelative(1);return;}}
+  const status=REVIEW_STATUS_DEFS[Number(event.key)-1]?.code,rec=visibleRecords.find(item=>recordKey(item)===activeRecordKey);if(status&&rec){{event.preventDefault();setReviewStatus(rec,status);}}
+}});
+window.ownerReviewApi={{storageKey,getState:()=>JSON.parse(JSON.stringify(reviewState)),progress:progressSnapshot,exportPayload:buildExportPayload,getActiveKey:()=>activeRecordKey,getVisibleKeys:()=>visibleRecords.map(recordKey),setStatus:(key,status)=>{{const rec=pack.records.find(item=>recordKey(item)===key);if(rec)setReviewStatus(rec,status);}},setIssueReason:(key,reason)=>{{const rec=pack.records.find(item=>recordKey(item)===key);if(rec)setIssueReason(rec,reason);}}}};
+render();
 </script>
 </body></html>"""
     return document.encode("utf-8")
@@ -1251,8 +1456,10 @@ def generate_outputs(
         top_limit=top_limit,
         selected_records=top,
     )
+    validation_pack_id = _validation_pack_id(top)
     top_manifest = {
         "detector_version": DETECTOR_VERSION,
+        "validation_pack_id": validation_pack_id,
         "classification_boundary": "SUSPECT_NOT_WRONG",
         "output_classification": OUTPUT_CLASSIFICATION,
         "identity_boundary": IDENTITY_TYPE,
@@ -1262,7 +1469,7 @@ def generate_outputs(
         "validation_selection_policy": summary["suspects"]["validation_selection_policy"],
         "records": top,
     }
-    annotations = _annotation_template(top, snapshot)
+    annotations = _annotation_template(top, snapshot, validation_pack_id)
     payloads = {
         output_files["summary"]: _json_bytes(summary),
         output_files["manifest"]: _json_bytes(top_manifest),

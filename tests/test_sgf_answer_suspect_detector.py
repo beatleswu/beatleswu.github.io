@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import json
 
@@ -7,6 +8,7 @@ from tools.sgf_answer_suspect_detector import (
     IDENTITY_TYPE,
     PLAYER_SIGNAL_AVAILABLE,
     PLAYER_SIGNAL_UNAVAILABLE,
+    _render_html,
     analyze_record,
     generate_outputs,
     rank_suspects,
@@ -49,6 +51,160 @@ def _analyze(record, *, index=0, player_metrics=None):
         snapshot_sha256="a" * 64,
         player_metrics=player_metrics,
     )
+
+
+def _render_one(record):
+    rendered = dict(record)
+    rendered["deterministic_rank"] = 1
+    return _render_html(
+        {
+            "detector_version": "test",
+            "validation_pack_id": "b" * 64,
+            "source_snapshot": {"sha256": "a" * 64},
+            "records": [rendered],
+        }
+    ).decode("utf-8")
+
+
+def test_black_to_play_is_sgf_derived_and_rendered_in_card_header():
+    result = _analyze(_record(LOCAL_INSIDE.replace("PL[B]", "")))
+
+    assert result["side_to_move"] == "B"
+    assert result["side_to_move_source"] == "SGF_FIRST_SOLUTION_COLOR"
+    assert result["side_to_move_display"] == "黑先 / Black to play"
+    assert result["side_to_move_reason_codes"] == []
+    assert "黑先 / Black to play" in _render_one(result)
+
+
+def test_white_to_play_is_sgf_derived_and_rendered_in_card_header():
+    white = LOCAL_INSIDE.replace("PL[B]", "PL[W]").replace(";B[cd]", ";W[cd]")
+    result = _analyze(_record(white))
+
+    assert result["side_to_move"] == "W"
+    assert result["side_to_move_source"] == "SGF_ROOT_PL"
+    assert result["side_to_move_display"] == "白先 / White to play"
+    assert result["side_to_move_reason_codes"] == []
+    assert "白先 / White to play" in _render_one(result)
+
+
+def test_unknown_side_to_move_is_explicit_and_machine_readable():
+    result = _analyze(_record("(;GM[1]FF[4]SZ[19]AB[aa][ab]AW[ba])"))
+
+    assert result["side_to_move"] is None
+    assert result["side_to_move_source"] is None
+    assert result["side_to_move_display"] == "先手不明 / Side to move unknown"
+    assert result["side_to_move_reason_codes"] == ["SIDE_TO_MOVE_UNKNOWN"]
+    assert "先手不明 / Side to move unknown" in _render_one(result)
+
+
+def test_side_to_move_metadata_does_not_change_suspect_ranking_order():
+    records = [
+        _analyze(_record(LOCAL_INSIDE, id=7101, katago_best_move="T1"), index=1),
+        _analyze(_record(LOCAL_OPPOSITE, id=7102, katago_best_move="T1"), index=2),
+        _analyze(_record("(;GM[1]FF[4]SZ[19]AB[aa])", id=7103), index=3),
+    ]
+    changed_display_only = copy.deepcopy(records)
+    for record, side in zip(changed_display_only, ("W", None, "B"), strict=True):
+        record["side_to_move"] = side
+        record["side_to_move_display"] = "display-only mutation"
+        record["side_to_move_source"] = "TEST_ONLY"
+        record["side_to_move_reason_codes"] = [] if side else ["SIDE_TO_MOVE_UNKNOWN"]
+
+    before = rank_suspects(records)
+    after = rank_suspects(changed_display_only)
+
+    assert [row["audit_locator"] for row in before] == [row["audit_locator"] for row in after]
+    assert [row["deterministic_rank"] for row in before] == [
+        row["deterministic_rank"] for row in after
+    ]
+
+
+def test_owner_review_html_offers_exactly_four_primary_statuses():
+    html = _render_one(_analyze(_record(LOCAL_INSIDE, katago_best_move="T1")))
+
+    for status in (
+        "NO_ISSUE",
+        "CONFIRMED_ISSUE",
+        "POSSIBLE_MULTIPLE_SOLUTION",
+        "UNCERTAIN",
+    ):
+        assert status in html
+    assert "review-status" in html
+    assert "aria-pressed" in html
+
+
+def test_confirmed_issue_requires_one_reason_and_other_note_is_optional_only():
+    html = _render_one(_analyze(_record(LOCAL_INSIDE, katago_best_move="T1")))
+
+    for reason in (
+        "GLOBAL_TENUKI",
+        "WRONG_PRIMARY_ANSWER",
+        "WRONG_CONTINUATION",
+        "MISSING_EQUIVALENT_SOLUTION",
+        "SIDE_TO_MOVE_OR_METADATA_ERROR",
+        "SGF_OR_BOARD_STRUCTURE_ERROR",
+        "OTHER",
+    ):
+        assert reason in html
+    assert "Reason required before this review is complete." in html
+    assert "entry.issue_reason==='OTHER'" in html
+    assert "Optional note for OTHER only" in html
+
+
+def test_owner_review_persistence_is_scoped_to_snapshot_and_exact_pack():
+    html = _render_one(_analyze(_record(LOCAL_INSIDE, katago_best_move="T1")))
+
+    assert "pack.source_snapshot.sha256" in html
+    assert "pack.validation_pack_id" in html
+    assert "localStorage.getItem(storageKey)" in html
+    assert "localStorage.setItem(storageKey" in html
+    assert "OWNER_VALIDATION_ANNOTATION" in html
+    assert "NON_AUTHORITATIVE" in html
+
+
+def test_owner_review_supports_status_changes_filters_and_progress_counts():
+    html = _render_one(_analyze(_record(LOCAL_INSIDE, katago_best_move="T1")))
+
+    assert "setReviewStatus(rec,status)" in html
+    assert "setIssueReason(rec,reason)" in html
+    assert 'id="review-filter"' in html
+    assert 'value="UNREVIEWED"' in html
+    assert 'id="reviewed-count"' in html
+    assert 'id="unreviewed-count"' in html
+    assert "progressSnapshot" in html
+
+
+def test_owner_review_export_contains_required_identity_status_and_reason_fields():
+    html = _render_one(_analyze(_record(LOCAL_INSIDE, katago_best_move="T1")))
+
+    for field in (
+        "audit_locator",
+        "legacy_question_id",
+        "side_to_move",
+        "priority_tier",
+        "detector_reason_codes",
+        "review_status",
+        "issue_reason",
+        "owner_note",
+        "reviewed_at",
+        "reviewed_total",
+        "issue_reason_counts",
+    ):
+        assert field in html
+    assert "stored_precomputed_move_if_any" not in html.split("function buildExportPayload", 1)[1].split("function downloadExport", 1)[0]
+    assert "lastExportSummary" in html
+    assert "lastExportFirstRecord" in html
+
+
+def test_auto_advance_waits_for_complete_review_and_shortcuts_ignore_inputs():
+    html = _render_one(_analyze(_record(LOCAL_INSIDE, katago_best_move="T1")))
+
+    assert "if(reviewComplete(entry))finishAndMaybeAdvance(key);else render();" in html
+    assert "if(autoAdvance.checked&&stillVisible)navigateRelative(1);" in html
+    assert "['INPUT','TEXTAREA','SELECT','BUTTON'].includes(event.target.tagName)" in html
+    assert "event.key==='ArrowLeft'" in html
+    assert "event.key==='ArrowRight'" in html
+    assert "card.tabIndex=0" in html
 
 
 def test_local_problem_with_answer_inside_region_has_no_tenuki_flag():
@@ -251,6 +407,18 @@ def test_repeated_generation_is_byte_identical_and_source_is_unchanged(tmp_path)
         assert (first_dir / name).read_bytes() == (second_dir / name).read_bytes()
     manifest = json.loads((first_dir / "top_suspects.json").read_text(encoding="utf-8"))
     assert all("content" not in record and "sgf" not in record for record in manifest["records"])
+    annotations = json.loads(
+        (first_dir / "owner_review_annotations.template.json").read_text(encoding="utf-8")
+    )
+    assert annotations["authority"] == "OWNER_VALIDATION_ANNOTATION"
+    assert annotations["canonicality"] == "NON_AUTHORITATIVE"
+    assert annotations["validation_pack_id"] == manifest["validation_pack_id"]
+    assert annotations["allowed_review_statuses"] == [
+        "NO_ISSUE",
+        "CONFIRMED_ISSUE",
+        "POSSIBLE_MULTIPLE_SOLUTION",
+        "UNCERTAIN",
+    ]
 
 
 def test_audit_locator_is_snapshot_bound_and_not_canonical_identity():
