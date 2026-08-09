@@ -1,0 +1,295 @@
+{
+  "zone_key": "k26_30",
+  "zone_label": "Zone 1 / Newbie Village",
+  "source": "index.html getIntroFilmLocaleConfig(k26_30) — merged master (post PR #294)",
+  "generated_note": "This manifest is a mechanical extraction of the canonical shipped dialogue. Do not edit text here; edit index.html and re-extract.",
+  "speaker_roles": {
+    "anna": "Narrator",
+    "elder": "Elder",
+    "hero": "Hero",
+    "runner": "Messenger"
+  },
+  "total_spoken_beats_per_locale": 14,
+  "entries": [
+    {
+      "shot": 1,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "anna",
+      "locale": "en",
+      "text": "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot01_beat01_en.mp3"
+    },
+    {
+      "shot": 1,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "anna",
+      "locale": "zh-TW",
+      "text": "清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot01_beat01_zh-TW.mp3"
+    },
+    {
+      "shot": 2,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "Morning, child.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot02_beat01_en.mp3"
+    },
+    {
+      "shot": 2,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "孩子，天亮了。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot02_beat01_zh-TW.mp3"
+    },
+    {
+      "shot": 2,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "en",
+      "text": "Morning, Shui.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot02_beat02_en.mp3"
+    },
+    {
+      "shot": 2,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "zh-TW",
+      "text": "早啊，小水。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot02_beat02_zh-TW.mp3"
+    },
+    {
+      "shot": 4,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "Look at that cloud.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot04_beat01_en.mp3"
+    },
+    {
+      "shot": 4,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "你看，那片雲。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot04_beat01_zh-TW.mp3"
+    },
+    {
+      "shot": 4,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "It's been sitting there for three days.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot04_beat02_en.mp3"
+    },
+    {
+      "shot": 4,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "它已經停在那裡三天了。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot04_beat02_zh-TW.mp3"
+    },
+    {
+      "shot": 4,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "And... every day, it gets a little closer.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot04_beat03_en.mp3"
+    },
+    {
+      "shot": 4,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "而且……每天都更近一點。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot04_beat03_zh-TW.mp3"
+    },
+    {
+      "shot": 6,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "en",
+      "text": "I don't know if I can do this...",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot06_beat01_en.mp3"
+    },
+    {
+      "shot": 6,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "zh-TW",
+      "text": "我不知道自己行不行……",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot06_beat01_zh-TW.mp3"
+    },
+    {
+      "shot": 6,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "en",
+      "text": "But I want to go see for myself.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot06_beat02_en.mp3"
+    },
+    {
+      "shot": 6,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "zh-TW",
+      "text": "但我想去看看。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot06_beat02_zh-TW.mp3"
+    },
+    {
+      "shot": 8,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "If you want to leave the village, play one game with me first.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot08_beat01_en.mp3"
+    },
+    {
+      "shot": 8,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "想出村，就先陪我下一局。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot08_beat01_zh-TW.mp3"
+    },
+    {
+      "shot": 8,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "Don't rush.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot08_beat02_en.mp3"
+    },
+    {
+      "shot": 8,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "別急。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot08_beat02_zh-TW.mp3"
+    },
+    {
+      "shot": 8,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "text": "Look carefully. Then make your move.",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot08_beat03_en.mp3"
+    },
+    {
+      "shot": 8,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "text": "看清楚，再落子。",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot08_beat03_zh-TW.mp3"
+    },
+    {
+      "shot": 10,
+      "beat": 1,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "en",
+      "text": "Elder!",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot10_beat01_en.mp3"
+    },
+    {
+      "shot": 10,
+      "beat": 1,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "zh-TW",
+      "text": "村長！",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot10_beat01_zh-TW.mp3"
+    },
+    {
+      "shot": 10,
+      "beat": 2,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "en",
+      "text": "The caravan from the Slime Plains...",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot10_beat02_en.mp3"
+    },
+    {
+      "shot": 10,
+      "beat": 2,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "zh-TW",
+      "text": "史萊姆平原的商隊……",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot10_beat02_zh-TW.mp3"
+    },
+    {
+      "shot": 10,
+      "beat": 3,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "en",
+      "text": "It's been three days, and they still haven't come back!",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot10_beat03_en.mp3"
+    },
+    {
+      "shot": 10,
+      "beat": 3,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "zh-TW",
+      "text": "三天了，還沒回來！",
+      "voice_id": null,
+      "output_filename": "e10_z1_shot10_beat03_zh-TW.mp3"
+    }
+  ]
+}

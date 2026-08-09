@@ -4,3 +4,4 @@ __pycache__/
 release-artifacts/
 docs/testing/
 tests/e2e/node_modules/
+tools/e10_zone1_audio/_local_review/

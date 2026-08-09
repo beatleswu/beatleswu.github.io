@@ -1,0 +1,52 @@
+{
+  "_comment": "Owner-editable casting sheet for Zone 1 (k26_30). Fill in voice_id per speaker x locale before running --audition. Leave a voice_id blank/null to skip that line in the audition sample. Values here are never generated automatically and never overwrite canonical dialogue.",
+  "roles": {
+    "anna": {
+      "display_name": "Narrator",
+      "voices": {
+        "en": { "voice_id": null, "notes": "" },
+        "zh-TW": { "voice_id": null, "notes": "" }
+      }
+    },
+    "elder": {
+      "display_name": "Elder",
+      "voices": {
+        "en": { "voice_id": null, "notes": "" },
+        "zh-TW": { "voice_id": null, "notes": "" }
+      }
+    },
+    "hero": {
+      "display_name": "Hero",
+      "voices": {
+        "en": { "voice_id": null, "notes": "" },
+        "zh-TW": { "voice_id": null, "notes": "" }
+      }
+    },
+    "runner": {
+      "display_name": "Messenger",
+      "voices": {
+        "en": { "voice_id": null, "notes": "" },
+        "zh-TW": { "voice_id": null, "notes": "" }
+      }
+    }
+  },
+  "audition_sample_lines": {
+    "_comment": "One representative canonical line per role x locale, pulled verbatim from zone1_beat_manifest.json. Used only by --audition. Do not edit text here independently of the manifest.",
+    "anna": {
+      "en": "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual.",
+      "zh-TW": "清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。"
+    },
+    "elder": {
+      "en": "If you want to leave the village, play one game with me first.",
+      "zh-TW": "想出村，就先陪我下一局。"
+    },
+    "hero": {
+      "en": "I don't know if I can do this...",
+      "zh-TW": "我不知道自己行不行……"
+    },
+    "runner": {
+      "en": "The caravan from the Slime Plains...",
+      "zh-TW": "史萊姆平原的商隊……"
+    }
+  }
+}
