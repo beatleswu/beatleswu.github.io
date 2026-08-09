@@ -120,11 +120,18 @@ def test_exclude_list_covers_every_locked_and_rejected_voice_id():
 
 
 def test_recast_briefs_declare_male_gender_filter_for_hero_roles():
-    # Canon: the Hero is male. Both hero recast briefs must filter for it so
-    # the Voice Library search can't resurface female candidates again.
+    # Canon: the Hero is male. Any active hero recast brief must filter for
+    # it so the Voice Library search can't resurface female candidates
+    # again. Set B is currently COMPLETE (all 3 original targets locked,
+    # "roles" is intentionally empty) -- this only exercises entries that
+    # actually exist, so it stays meaningful if a hero role is ever
+    # unlocked and a fresh recast brief added later.
     briefs = _load_briefs()
-    for key in ("zh_hero", "en_hero"):
-        brief = briefs["roles"][key]
+    hero_briefs = {
+        key: brief for key, brief in briefs["roles"].items()
+        if brief.get("role_config_key") == "hero"
+    }
+    for key, brief in hero_briefs.items():
         assert brief["search"].get("gender") == "male", f"{key} search filter must require gender=male"
         assert brief.get("fallback_search", {}).get("gender") == "male", (
             f"{key} fallback_search filter must also require gender=male"

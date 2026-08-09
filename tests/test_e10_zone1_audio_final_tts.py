@@ -49,22 +49,31 @@ def _lock_all_roles_with_fake_ids():
     return casting
 
 
-def test_current_repo_state_is_5_of_8_locked_and_blocks_generation(monkeypatch, casting_backup, capsys):
-    # Documents/locks in the real current state of casting_candidates.json
-    # at the time of writing: 5 locked, 3 pending real voice_id handoff.
-    # If this ever flips to 8/8, this test should be updated/removed rather
-    # than silently left failing.
+def test_current_repo_state_is_8_of_8_locked_and_generation_succeeds(monkeypatch, casting_backup, capsys):
+    # Regression test against the REAL committed casting_candidates.json
+    # (not a synthetic fixture): confirms all 8 role x locale slots are
+    # locked with a real voice_id and that a full run succeeds end-to-end.
+    # If this ever regresses to fewer than 8/8, this test will fail loudly
+    # rather than silently -- update it deliberately if a role is ever
+    # unlocked for a future recast.
     monkeypatch.setattr(mod, "get_api_key", lambda: DUMMY_KEY)
+    calls = []
 
-    with pytest.raises(SystemExit) as exc_info:
-        mod.cmd_generate_tts()
+    def fake_tts(api_key, voice_id, text, model_id, output_path):
+        calls.append(voice_id)
+        output_path.write_bytes(b"FAKE_MP3")
+        return True
+
+    monkeypatch.setattr(mod, "_text_to_speech", fake_tts)
+
+    mod.cmd_generate_tts()
 
     out = capsys.readouterr().out
-    assert exc_info.value.code == 1
-    assert "CAST_LOCKED=5/8" in out
-    assert "GENERATE_TTS_VERIFICATION=FAIL" in out
-    assert "GENERATE_TTS_BLOCKED_UNRESOLVED_ROLES=elder/zh-TW,hero/en,hero/zh-TW" in out
-    assert not mod.ZONE1_FINAL_DIR.exists() or not any(mod.ZONE1_FINAL_DIR.iterdir())
+    assert DUMMY_KEY not in out
+    assert "CAST_LOCKED=8/8" in out
+    assert "GENERATE_TTS_VERIFICATION=PASS" in out
+    manifest = json.loads(mod.MANIFEST_PATH.read_text(encoding="utf-8"))
+    assert len(calls) == len(manifest["entries"])
 
 
 def test_fails_closed_and_generates_nothing_when_any_role_unresolved(monkeypatch, casting_backup, capsys):

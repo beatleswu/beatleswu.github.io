@@ -81,6 +81,48 @@ def casting_backup():
             shutil.rmtree(mod.AUDITION_SET_B_DIR)
 
 
+@pytest.fixture
+def synthetic_pending_roles(monkeypatch, casting_backup, tmp_path):
+    """All 8 role x locale slots are locked in the real, committed
+    casting_candidates.json (AUDITION SET B is complete), so
+    audition_set_b_recast_briefs.json now has an empty "roles" -- there is
+    nothing left for --audition-set-b to actually do against the real repo
+    state. These auth/pipeline-mechanism tests need something to process,
+    so this fixture temporarily unlocks 3 roles (mirroring the shape Set B
+    originally targeted: zh-TW Elder, zh-TW Hero, English Hero) and points
+    RECAST_BRIEFS_PATH at a synthetic 3-role brief file for the duration of
+    the test. casting_backup restores the real casting_candidates.json
+    afterward; monkeypatch restores RECAST_BRIEFS_PATH automatically.
+    """
+    casting = json.loads(mod.CASTING_PATH.read_text(encoding="utf-8"))
+    for role_key, locale in (("elder", "zh-TW"), ("hero", "zh-TW"), ("hero", "en")):
+        slot = casting["roles"][role_key]["voices"][locale]
+        slot["locked"] = False
+        slot["voice_id"] = None
+    mod.CASTING_PATH.write_text(json.dumps(casting, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    briefs = {
+        "exclude_voice_ids": [],
+        "roles": {
+            "zh_elder": {
+                "role_config_key": "elder", "locale": "zh-TW", "output_prefix": "zh_elder",
+                "candidate_count": 1, "search": {"language": "zh", "gender": "male", "age": "old"},
+            },
+            "zh_hero": {
+                "role_config_key": "hero", "locale": "zh-TW", "output_prefix": "zh_hero",
+                "candidate_count": 1, "search": {"language": "zh", "gender": "male", "age": "young"},
+            },
+            "en_hero": {
+                "role_config_key": "hero", "locale": "en", "output_prefix": "en_hero",
+                "candidate_count": 1, "search": {"language": "en", "gender": "male", "age": "young"},
+            },
+        },
+    }
+    briefs_path = tmp_path / "audition_set_b_recast_briefs.json"
+    briefs_path.write_text(json.dumps(briefs), encoding="utf-8")
+    monkeypatch.setattr(mod, "RECAST_BRIEFS_PATH", briefs_path)
+
+
 # --- header/auth-path construction -----------------------------------------
 
 def test_add_shared_voice_sends_xi_api_key_header(monkeypatch):
@@ -215,7 +257,7 @@ def _router(add_response, shared_voice_id="shared_v1", owner_id="owner_x"):
     return fake_urlopen
 
 
-def test_successful_add_proceeds_to_tts_and_passes_per_role_gate(monkeypatch, casting_backup, capsys):
+def test_successful_add_proceeds_to_tts_and_passes_per_role_gate(monkeypatch, synthetic_pending_roles, capsys):
     monkeypatch.setattr(mod, "get_api_key", lambda: DUMMY_KEY)
     monkeypatch.setattr(mod.urllib.request, "urlopen", _router(add_response=(200, {"voice_id": "local_added_1"})))
 
@@ -233,7 +275,7 @@ def test_successful_add_proceeds_to_tts_and_passes_per_role_gate(monkeypatch, ca
         assert output_path.is_file() and output_path.stat().st_size > 0
 
 
-def test_failed_add_401_never_generates_misleading_success(monkeypatch, casting_backup, capsys):
+def test_failed_add_401_never_generates_misleading_success(monkeypatch, synthetic_pending_roles, capsys):
     monkeypatch.setattr(mod, "get_api_key", lambda: DUMMY_KEY)
     monkeypatch.setattr(
         mod.urllib.request,
@@ -258,7 +300,7 @@ def test_failed_add_401_never_generates_misleading_success(monkeypatch, casting_
     assert not mod.AUDITION_SET_B_DIR.exists() or not any(mod.AUDITION_SET_B_DIR.iterdir())
 
 
-def test_one_role_failing_still_fails_the_whole_gate_even_if_others_succeed(monkeypatch, casting_backup, capsys):
+def test_one_role_failing_still_fails_the_whole_gate_even_if_others_succeed(monkeypatch, synthetic_pending_roles, capsys):
     # zh_elder search returns a normal candidate that adds successfully;
     # zh_hero and en_hero both get a 401 on add. Confirms the per-role gate
     # (added in the previous hardening round) still works after this
@@ -305,7 +347,7 @@ def test_one_role_failing_still_fails_the_whole_gate_even_if_others_succeed(monk
     assert "zh_elder" not in out.split("AUDITION_SET_B_MISSING_ROLES=")[1].split("\n")[0]
 
 
-def test_missing_public_owner_id_is_skipped_not_sent_as_malformed_request(monkeypatch, casting_backup, capsys):
+def test_missing_public_owner_id_is_skipped_not_sent_as_malformed_request(monkeypatch, synthetic_pending_roles, capsys):
     # Defensive guard: if a Voice Library result is missing public_owner_id
     # (e.g. a future API field-name change), the tool must not construct a
     # request with a literal "None" in the URL -- it must skip that
