@@ -55,6 +55,8 @@
 
   const runtime = {
     owner: null,
+    csrfHeader: null,
+    csrfToken: null,
     queueSource: null,
     groups: [],
     states: {},
@@ -262,9 +264,16 @@
   async function transmit(operation) {
     let response;
     try {
+      if (!runtime.csrfHeader || !runtime.csrfToken) {
+        const error = new Error("Review security token is unavailable; reload required");
+        error.retryable = true;
+        throw error;
+      }
+      const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+      headers[runtime.csrfHeader] = runtime.csrfToken;
       response = await root.fetch(operation.url, {
         method: operation.method || "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        headers,
         credentials: "same-origin",
         body: JSON.stringify(operation.body),
       });
@@ -918,6 +927,11 @@
     const response = await root.fetch(`${API_ROOT}/bootstrap`, { headers: { "Accept": "application/json" }, credentials: "same-origin", cache: "no-store" });
     const payload = await response.json().catch(function () { return {}; });
     if (!response.ok || !payload.ok) throw new Error(payload.detail || payload.error || "無法載入審題資料");
+    if (!payload.security || !payload.security.csrf_header || !payload.security.csrf_token) {
+      throw new Error("Review security token is unavailable");
+    }
+    runtime.csrfHeader = payload.security.csrf_header;
+    runtime.csrfToken = payload.security.csrf_token;
     runtime.owner = payload.owner;
     runtime.queueSource = payload.queue_source;
     runtime.groups = payload.groups;

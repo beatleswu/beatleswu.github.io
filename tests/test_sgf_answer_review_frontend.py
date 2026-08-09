@@ -140,3 +140,12 @@ def test_local_storage_is_scoped_to_retry_queue_not_review_truth():
     assert "runtime.states = payload.states" in script
     assert "server-side staging" in script
     assert "localStorage.setItem('review" not in script
+
+
+def test_remote_writes_send_session_bound_review_csrf_header():
+    script = SCRIPT.read_text(encoding="utf-8")
+
+    assert "payload.security.csrf_header" in script
+    assert "payload.security.csrf_token" in script
+    assert "headers[runtime.csrfHeader] = runtime.csrfToken" in script
+    assert 'credentials: "same-origin"' in script

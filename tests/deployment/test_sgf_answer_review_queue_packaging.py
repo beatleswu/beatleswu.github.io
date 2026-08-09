@@ -34,6 +34,15 @@ def test_dockerfile_explicitly_packages_review_queue_without_canonical_questions
     assert "COPY questions.json" not in dockerfile
 
 
+def test_local_qa_bootstrap_harness_is_not_packaged_in_runtime_image():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    manifest = json.loads((ROOT / "deploy" / "build-manifest.json").read_text(encoding="utf-8"))
+    serialized_manifest = json.dumps(manifest, sort_keys=True)
+
+    assert "run_sgf_answer_review_queue_qa.py" not in dockerfile
+    assert "run_sgf_answer_review_queue_qa.py" not in serialized_manifest
+
+
 def test_bundled_review_source_has_reviewed_detector_hash():
     source = ROOT / "review_data" / "sgf_answer_review_queue_v1.json"
     assert hashlib.sha256(source.read_bytes()).hexdigest() == (
