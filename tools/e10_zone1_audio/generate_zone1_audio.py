@@ -5,6 +5,10 @@ egress proxy blocks api.elevenlabs.io by policy. It is meant to be run from
 the Owner's local Windows machine, in the canonical repo/worktree, with
 ELEVENLABS_API_KEY set only in the current process environment.
 
+For normal Owner use, see Run_Audition_Set_A.cmd / Run_Audition_Set_A.ps1
+(double-click launcher covering --check + --audition-set-a). This module is
+also usable directly for --list-voices and the single-set --audition mode.
+
 Credential handling contract (do not weaken this):
   - The API key is read once via os.environ.get("ELEVENLABS_API_KEY").
   - The key is never printed, logged, written to disk, or included in any
@@ -17,7 +21,9 @@ Modes:
   --check       Read-only: GET /v1/voices and /v1/models, and verifies the
                 configured model (casting_candidates.json audio_config.
                 model_id, default "eleven_v3") is present and supports
-                text-to-speech. No paid usage.
+                text-to-speech. No paid usage. Exits non-zero if reachability,
+                voice access, model access, or model/TTS support fails, so
+                callers (e.g. Run_Audition_Set_A.ps1) can gate on it.
   --list-voices Read-only: GET /v1/voices and print a compact table of
                 name/voice_id/category/language/accent/gender/age/
                 description for casting reference. Add --json to also write
@@ -38,7 +44,11 @@ Modes:
                 using the configured model_id. Each pair reads the SAME
                 canonical sample line from casting_candidates.json so the
                 two candidates can be compared directly. Does not touch or
-                lock casting_candidates.json's voice_id for any slot.
+                lock casting_candidates.json's voice_id for any slot. Safe to
+                re-run: any previous audition_set_a/ output is cleared first,
+                so old and new comparison takes never mix. Verifies all 16
+                files exist and are non-empty afterward; exits non-zero with
+                AUDITION_SET_A_VERIFICATION=FAIL if any are missing/empty.
   --generate-tts / --generate-sfx / --generate-music
                 Reserved for full Zone 1 production once the Owner approves
                 casting and BGM direction. Currently print a not-yet-enabled
@@ -49,6 +59,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 import urllib.error
 import urllib.request
@@ -137,6 +148,10 @@ def cmd_check() -> None:
         print(f"VOICE_API_HTTP_STATUS={voices_status}")
     if not model_access:
         print(f"MODEL_API_HTTP_STATUS={models_status}")
+
+    ok = reachable and voice_access and model_access and model_present and model_supports_tts
+    if not ok:
+        raise SystemExit(1)
 
 
 def _extract_voice_summary(voice: dict) -> dict:
@@ -267,6 +282,8 @@ def cmd_audition_set_a() -> None:
     print(f"AUDITION_SET_A_ITEMS={len(items)}")
     print("Run --check first to confirm this model is available and supports text-to-speech.")
 
+    if AUDITION_SET_A_DIR.exists():
+        shutil.rmtree(AUDITION_SET_A_DIR)
     AUDITION_SET_A_DIR.mkdir(parents=True, exist_ok=True)
 
     generated = 0
@@ -287,6 +304,18 @@ def cmd_audition_set_a() -> None:
     print(f"AUDITION_SET_A_GENERATED={generated}")
     print(f"AUDITION_SET_A_SKIPPED={skipped}")
     print(f"AUDITION_SET_A_OUTPUT_DIR={AUDITION_SET_A_DIR.resolve()}")
+
+    missing_or_empty = [
+        item["output_filename"] for item in items
+        if not (AUDITION_SET_A_DIR / item["output_filename"]).is_file()
+        or (AUDITION_SET_A_DIR / item["output_filename"]).stat().st_size == 0
+    ]
+    if missing_or_empty:
+        print("AUDITION_SET_A_VERIFICATION=FAIL")
+        print(f"AUDITION_SET_A_MISSING_OR_EMPTY={','.join(missing_or_empty)}")
+        raise SystemExit(1)
+    print("AUDITION_SET_A_VERIFICATION=PASS")
+
     print("These are local review-only comparison samples. They do not lock casting_candidates.json "
           "and are not canonical production assets until the Owner explicitly approves casting.")
 

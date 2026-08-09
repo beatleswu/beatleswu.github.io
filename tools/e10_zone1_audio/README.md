@@ -6,6 +6,39 @@ local Windows machine, in the canonical repo/worktree** — the remote Claude
 Web sandbox cannot reach `api.elevenlabs.io` (egress policy blocks it), and
 this tool must never be run there.
 
+## Owner one-click audition (recommended)
+
+雙擊 `Run_Audition_Set_A.cmd` → 輸入 API Key → 等待資料夾自動開啟 → 試聽
+
+No Git, PowerShell commands, JSON editing, or voice IDs required for normal
+use. One one-time step is needed to get the launcher onto your machine the
+first time (or after a PR update); after that, every audition run is
+double-click only.
+
+**One-time setup** (only needed once, or again after this PR updates):
+
+```powershell
+git pull origin claude/e10-z1-audio-production-001
+```
+
+**Every time after that:**
+
+1. Double-click `tools\e10_zone1_audio\Run_Audition_Set_A.cmd`.
+2. Paste/type your ElevenLabs API key when prompted (input is masked — it
+   is never displayed, logged, or written to disk; it only lives in that
+   one PowerShell window and is cleared when the window finishes).
+3. Wait — it runs a read-only connectivity/model check, then generates
+   AUDITION SET A (16 comparison MP3s, `eleven_v3`, no full Zone 1
+   dialogue, no BGM/SFX).
+4. The `audition_set_a` folder opens automatically in Explorer.
+5. Listen and pick.
+
+Safe to re-run any time — each run clears out the previous
+`audition_set_a` folder first and regenerates all 16 files fresh, so old
+and new comparison takes never mix. See `Run_Audition_Set_A.ps1` for what
+it does step by step; error messages are in Chinese with an English detail
+line underneath.
+
 ## Scope
 
 - Sprint: `E10-Z1-AUDIO-PRODUCTION-001`.
@@ -15,6 +48,11 @@ this tool must never be run there.
   anything as a production asset automatically.
 
 ## Files
+
+- `Run_Audition_Set_A.cmd` / `Run_Audition_Set_A.ps1` — the one-click
+  Owner launcher (see above). The `.cmd` is a thin double-click wrapper;
+  `Run_Audition_Set_A.ps1` does the real work (masked key prompt, `--check`,
+  `--audition-set-a`, opens the output folder).
 
 - `zone1_beat_manifest.json` — mechanical extraction of every spoken beat
   in the shipped Zone 1 cinematic (shot, beat, phase, speaker, locale,
@@ -42,8 +80,11 @@ this tool must never be run there.
 - Do not paste the key into chat, into this repo, or into any commit.
 - Unset the variable when you're done for the session (command below).
 
-## Windows PowerShell usage
+## Advanced / manual usage (for reference)
 
+The one-click launcher above covers normal Owner use. The steps below are
+what it runs under the hood, kept here for debugging or for running the
+tool's other modes (`--list-voices`, the single-set `--audition`) by hand.
 Run these from a PowerShell prompt in the canonical repo/worktree root.
 
 **1. Set the key for the current process only** (not saved to your profile,
