@@ -29,7 +29,12 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from map_battle_runtime import CanonicalAnswer, judge_map_battle_answer_v1
+from map_battle_runtime import (
+    CanonicalAnswer,
+    _find_child,
+    _question_answer_tree,
+    judge_map_battle_answer_v1,
+)
 from sgf_engine.core.coord_utils import xy_to_sgf
 from sgf_engine.core.matcher import BRANCH, match_move
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -59,6 +64,21 @@ FALLBACK_BATCH_FILE_SHA256 = (
 )
 SAFE_NATIVE_IDS = frozenset({7998, 8057, 8092, 8100})
 KNOWN_FALLBACK_CONFLICT_IDS = frozenset({15436, 15388, 65095})
+MAP_BATTLE_TRAVERSAL_BLOCKER_IDS = frozenset(
+    {
+        37624,
+        64952,
+        65063,
+        65106,
+        72868,
+        73069,
+        73096,
+        73121,
+        73212,
+        73581,
+        73632,
+    }
+)
 MAX_CORPUS_BYTES = 128 * 1024 * 1024
 
 
@@ -97,6 +117,12 @@ def _sha256_file(path: Path) -> str:
 def _json_bytes(value: Any) -> bytes:
     return (
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
 
 
@@ -187,6 +213,205 @@ def _flatten_records(batch: Mapping[str, Any]) -> list[dict[str, Any]]:
                 raise ContentReleaseError("locked batch record is malformed")
             result.append(record)
     return result
+
+
+def _release_group(
+    group: Mapping[str, Any],
+    *,
+    lane: str,
+    excluded_ids: frozenset[int] = frozenset(),
+) -> dict[str, Any] | None:
+    records = [
+        copy.deepcopy(record)
+        for record in (group.get("records") or [])
+        if int(record["legacy_question_id"]) not in excluded_ids
+    ]
+    if not records:
+        return None
+    records.sort(
+        key=lambda record: (
+            int(record["current_record_index"]),
+            int(record["legacy_question_id"]),
+        )
+    )
+    legacy_ids = sorted(int(record["legacy_question_id"]) for record in records)
+    return {
+        "lane": lane,
+        "review_group_key": str(group["review_group_key"]),
+        "group_size": len(records),
+        "legacy_question_ids": legacy_ids,
+        "same_content_duplicate_group": len(records) > 1,
+        "records": records,
+    }
+
+
+def relock_safe_release_batch(
+    *,
+    native_batch_path: Path,
+    fallback_batch_path: Path,
+    output_path: Path,
+    excluded_ids: frozenset[int] = MAP_BATTLE_TRAVERSAL_BLOCKER_IDS,
+) -> dict[str, Any]:
+    native_batch = _load_locked_batch(
+        native_batch_path,
+        expected_file_sha256=SAFE_NATIVE_BATCH_FILE_SHA256,
+        expected_batch_sha256=SAFE_NATIVE_BATCH_SHA256,
+    )
+    fallback_batch = _load_locked_batch(
+        fallback_batch_path,
+        expected_file_sha256=FALLBACK_BATCH_FILE_SHA256,
+        expected_batch_sha256=FALLBACK_BATCH_SHA256,
+    )
+    original_native = _flatten_records(native_batch)
+    original_fallback = _flatten_records(fallback_batch)
+    original_fallback_ids = {
+        int(record["legacy_question_id"]) for record in original_fallback
+    }
+    if len(original_native) != 4 or len(original_fallback) != 61:
+        raise ContentReleaseError("source repair lanes have unexpected membership")
+    if not excluded_ids or not excluded_ids <= original_fallback_ids:
+        raise ContentReleaseError("release exclusions are not an exact fallback subset")
+    if excluded_ids & {
+        int(record["legacy_question_id"]) for record in original_native
+    }:
+        raise ContentReleaseError("release exclusions entered the native lane")
+
+    groups: list[dict[str, Any]] = []
+    for group in native_batch["groups"]:
+        release_group = _release_group(group, lane="NATIVE_SGF_REPAIR")
+        if release_group is not None:
+            groups.append(release_group)
+    for group in fallback_batch["groups"]:
+        release_group = _release_group(
+            group,
+            lane="FALLBACK_CLEAR",
+            excluded_ids=excluded_ids,
+        )
+        if release_group is not None:
+            groups.append(release_group)
+    groups.sort(key=lambda group: (group["lane"], group["review_group_key"]))
+    native_records = sum(
+        len(group["records"])
+        for group in groups
+        if group["lane"] == "NATIVE_SGF_REPAIR"
+    )
+    fallback_records = sum(
+        len(group["records"])
+        for group in groups
+        if group["lane"] == "FALLBACK_CLEAR"
+    )
+    summary = {
+        "groups": len(groups),
+        "records": native_records + fallback_records,
+        "native_rewrite_records": native_records,
+        "fallback_clear_records": fallback_records,
+        "excluded_map_battle_records": len(excluded_ids),
+    }
+    if summary["records"] != 54 or native_records != 4 or fallback_records != 50:
+        raise ContentReleaseError("relocked release population is not 4 + 50 = 54")
+    included_ids = {
+        int(record["legacy_question_id"])
+        for group in groups
+        for record in group["records"]
+    }
+    if included_ids & excluded_ids or len(included_ids) != 54:
+        raise ContentReleaseError("relocked release membership overlaps exclusions")
+
+    batch_core = {
+        "invariant": (
+            "OWNER_DESIRED_VERDICT == FINAL_EFFECTIVE_PLAYER_VERDICT "
+            "ACROSS_ALL_VALIDATED_PLAYER_SURFACES"
+        ),
+        "source_batch_locks": {
+            "safe_native_sgf_batch_sha256": SAFE_NATIVE_BATCH_SHA256,
+            "safe_native_sgf_batch_file_sha256": SAFE_NATIVE_BATCH_FILE_SHA256,
+            "fallback_candidate_batch_sha256": FALLBACK_BATCH_SHA256,
+            "fallback_candidate_batch_file_sha256": FALLBACK_BATCH_FILE_SHA256,
+        },
+        "allowed_mutation_types": [
+            "REWRITE_NATIVE_ROOT_ANSWER_SET",
+            "CLEAR_PRECOMPUTED_KATAGO_FALLBACK",
+        ],
+        "excluded_map_battle_records": [
+            {
+                "legacy_question_id": question_id,
+                "disposition": "MAP_BATTLE_TRAVERSAL_REVIEW_REQUIRED",
+            }
+            for question_id in sorted(excluded_ids)
+        ],
+        "groups": groups,
+        "summary": summary,
+    }
+    batch_sha256 = _sha256_bytes(_canonical_json_bytes(batch_core))
+    result = {
+        "schema_version": SCHEMA_VERSION,
+        "authority": "SGF_ANSWER_REPAIR_BATCH_001_PHASE_2F_RELOCKED_SAFE_RELEASE",
+        "batch_sha256": batch_sha256,
+        "batch": batch_core,
+        "production_publish_authorized": False,
+        "mutation_performed": False,
+    }
+    raw = _json_bytes(result)
+    _write_or_verify(output_path, raw)
+    return {
+        "path": str(output_path),
+        "batch_sha256": batch_sha256,
+        "batch_file_sha256": _sha256_bytes(raw),
+        **summary,
+    }
+
+
+def _load_relocked_release_batch(
+    path: Path,
+    *,
+    expected_file_sha256: str,
+    expected_batch_sha256: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    if _sha256_file(path) != expected_file_sha256:
+        raise ContentReleaseError("FAIL_CLOSED: safe release batch file hash mismatch")
+    value = _load_json(path, maximum_bytes=16 * 1024 * 1024)
+    if not isinstance(value, dict) or not isinstance(value.get("batch"), dict):
+        raise ContentReleaseError("safe release batch is malformed")
+    batch = value["batch"]
+    calculated = _sha256_bytes(_canonical_json_bytes(batch))
+    if value.get("batch_sha256") != expected_batch_sha256 or calculated != expected_batch_sha256:
+        raise ContentReleaseError("FAIL_CLOSED: safe release batch hash mismatch")
+    locks = batch.get("source_batch_locks") or {}
+    expected_locks = {
+        "safe_native_sgf_batch_sha256": SAFE_NATIVE_BATCH_SHA256,
+        "safe_native_sgf_batch_file_sha256": SAFE_NATIVE_BATCH_FILE_SHA256,
+        "fallback_candidate_batch_sha256": FALLBACK_BATCH_SHA256,
+        "fallback_candidate_batch_file_sha256": FALLBACK_BATCH_FILE_SHA256,
+    }
+    if locks != expected_locks:
+        raise ContentReleaseError("safe release source batch locks drifted")
+    groups = batch.get("groups")
+    if not isinstance(groups, list):
+        raise ContentReleaseError("safe release groups are malformed")
+    native_records: list[dict[str, Any]] = []
+    fallback_records: list[dict[str, Any]] = []
+    for group in groups:
+        lane = group.get("lane")
+        records = group.get("records")
+        if lane not in {"NATIVE_SGF_REPAIR", "FALLBACK_CLEAR"} or not isinstance(records, list):
+            raise ContentReleaseError("safe release group lane is invalid")
+        target = native_records if lane == "NATIVE_SGF_REPAIR" else fallback_records
+        target.extend(copy.deepcopy(record) for record in records)
+    summary = batch.get("summary") or {}
+    if (
+        len(groups) != summary.get("groups")
+        or len(native_records) != 4
+        or len(fallback_records) != 50
+        or summary.get("records") != 54
+    ):
+        raise ContentReleaseError("safe release summary or membership drifted")
+    excluded = {
+        int(record["legacy_question_id"])
+        for record in (batch.get("excluded_map_battle_records") or [])
+    }
+    if excluded != set(MAP_BATTLE_TRAVERSAL_BLOCKER_IDS):
+        raise ContentReleaseError("safe release Map Battle exclusions drifted")
+    return value, native_records, fallback_records
 
 
 def _record_indexes(
@@ -511,6 +736,184 @@ def _rating_witness(
     raise ContentReleaseError("Rating Test witness exceeds bounded depth")
 
 
+def _authored_opponent_reply_count_at_first_map_block(
+    content: str,
+    *,
+    player_color: str,
+    witness: Sequence[Mapping[str, int]],
+) -> int:
+    current = _question_answer_tree(content)
+    opponent = "W" if player_color == "B" else "B"
+    for move in witness:
+        child = _find_child(
+            current,
+            player_color,
+            xy_to_sgf(int(move["x"]), int(move["y"])),
+        )
+        if child is None:
+            return 0
+        current = child
+        children = list(getattr(current, "children", ()) or ())
+        if not children:
+            return 0
+        opponent_replies = [
+            reply
+            for reply in children
+            if getattr(getattr(reply, "move", None), "color", None) == opponent
+        ]
+        if len(children) != 1:
+            return len(opponent_replies)
+        only = children[0]
+        if getattr(getattr(only, "move", None), "color", None) != opponent:
+            continue
+        current = only
+        if not getattr(current, "children", None):
+            return 0
+    return 0
+
+
+def build_map_battle_traversal_planning_artifact(
+    *,
+    baseline_path: Path,
+    fallback_batch_path: Path,
+    output_path: Path,
+) -> dict[str, Any]:
+    _, baseline_records, baseline_identity = verify_baseline(baseline_path)
+    fallback_batch = _load_locked_batch(
+        fallback_batch_path,
+        expected_file_sha256=FALLBACK_BATCH_FILE_SHA256,
+        expected_batch_sha256=FALLBACK_BATCH_SHA256,
+    )
+    fallback_records = {
+        int(record["legacy_question_id"]): record
+        for record in _flatten_records(fallback_batch)
+    }
+    if not MAP_BATTLE_TRAVERSAL_BLOCKER_IDS <= set(fallback_records):
+        raise ContentReleaseError("Map Battle blocker missing from fallback batch")
+    indexes = _record_indexes(baseline_records)
+    os.environ.setdefault("SECRET_KEY", "synthetic-phase2f-local-validation-only")
+    os.environ.setdefault("SITE_URL", "http://localhost")
+    import app as app_module
+
+    result_records: list[dict[str, Any]] = []
+    for question_id in sorted(MAP_BATTLE_TRAVERSAL_BLOCKER_IDS):
+        occurrences = indexes.get(question_id) or []
+        if len(occurrences) != 1:
+            raise ContentReleaseError(
+                f"Map Battle blocker {question_id} is not uniquely locatable"
+            )
+        record = baseline_records[occurrences[0]]
+        content = record.get("content")
+        if not isinstance(content, str):
+            raise ContentReleaseError(f"question {question_id} has no SGF content")
+        locked = fallback_records[question_id]
+        if _sha256_bytes(content.encode("utf-8")) != locked.get(
+            "source_content_sha256_before"
+        ):
+            raise ContentReleaseError(f"question {question_id} content drift")
+        size = _board_size(content)
+        structure = repair._answer_structure(content)
+        side = structure["side_to_move"]
+        if side not in ("B", "W"):
+            raise ContentReleaseError(f"question {question_id} side to move unknown")
+        desired_labels = sorted(set(locked["owner_desired_verdict"]))
+        desired_points = [repair._gtp_to_xy(label, size) for label in desired_labels]
+        if any(point is None for point in desired_points):
+            raise ContentReleaseError(f"question {question_id} desired move invalid")
+        legacy_tree = app_module._rt_parse_answer_tree(content)
+        if legacy_tree is None:
+            raise ContentReleaseError(f"question {question_id} Rating Test parser failed")
+        sid = _identity_sid(app_module, question_id)
+        player_evidence: list[dict[str, Any]] = []
+        question_has_mismatch = False
+        candidate_record = dict(record)
+        candidate_record["katago_best_move"] = ""
+        for label, point in zip(desired_labels, desired_points):
+            witness = _rating_witness(legacy_tree, point)
+            rating_result = app_module._rt_server_verify(
+                candidate_record, sid, witness
+            )
+            canonical = CanonicalAnswer(
+                {
+                    "moves": [
+                        {"action": "play", "x": move["x"], "y": move["y"]}
+                        for move in witness
+                    ],
+                    "player_color": side,
+                }
+            )
+            map_result = judge_map_battle_answer_v1(
+                candidate_record,
+                {"board_size": size, "transform_id": "identity"},
+                canonical,
+            )
+            reply_count = _authored_opponent_reply_count_at_first_map_block(
+                content,
+                player_color=side,
+                witness=witness,
+            )
+            if rating_result is not True:
+                raise ContentReleaseError(
+                    f"question {question_id} traversal blocker evidence drifted"
+                )
+            mismatch = map_result.result != "CORRECT"
+            if mismatch and reply_count < 2:
+                raise ContentReleaseError(
+                    f"question {question_id} mismatch lacks multi-reply evidence"
+                )
+            question_has_mismatch = question_has_mismatch or mismatch
+            player_evidence.append(
+                {
+                    "PLAYER_MOVE": label,
+                    "AUTHORED_OPPONENT_REPLY_COUNT": reply_count,
+                    "RATING_TEST_TRAVERSAL_BEHAVIOR": (
+                        "FOLLOWS_FIRST_AUTHORED_OPPONENT_REPLY_AND_ACCEPTS_COMPLETE_WITNESS"
+                    ),
+                    "MAP_BATTLE_TRAVERSAL_BEHAVIOR": (
+                        "DOES_NOT_AUTO_ADVANCE_WHEN_OPPONENT_REPLY_COUNT_IS_NOT_ONE"
+                        if mismatch
+                        else "ACCEPTS_COMPLETE_AUTHORED_VARIATION"
+                    ),
+                    "RESULTING_MISMATCH": (
+                        map_result.reason_code.upper() if mismatch else "NONE"
+                    ),
+                    "RATING_TEST_WITNESS_PLAYER_MOVE_COUNT": len(witness),
+                }
+            )
+        if not question_has_mismatch:
+            raise ContentReleaseError(
+                f"question {question_id} no longer has a Map Battle mismatch"
+            )
+        result_records.append(
+            {
+                "QUESTION_ID": question_id,
+                "DISPOSITION": "MAP_BATTLE_TRAVERSAL_REVIEW_REQUIRED",
+                "CONTENT_SHA256": _sha256_bytes(content.encode("utf-8")),
+                "PLAYER_MOVES": player_evidence,
+            }
+        )
+    artifact = {
+        "schema_version": SCHEMA_VERSION,
+        "authority": "MAP_BATTLE_MULTI_REPLY_TRAVERSAL_SPRINT_PLANNING_ONLY",
+        "source_baseline_sha256": baseline_identity.sha256,
+        "policy_decision": "DEFERRED_TO_SEPARATE_OWNER_SPRINT",
+        "first_authored_reply_policy_selected": False,
+        "records": result_records,
+        "summary": {
+            "records": len(result_records),
+            "disposition": "MAP_BATTLE_TRAVERSAL_REVIEW_REQUIRED",
+            "runtime_fix_implemented": False,
+        },
+    }
+    raw = _json_bytes(artifact)
+    _write_or_verify(output_path, raw)
+    return {
+        "path": str(output_path),
+        "records": len(result_records),
+        "file_sha256": _sha256_bytes(raw),
+    }
+
+
 def validate_player_verdicts(
     candidate_records: Sequence[Mapping[str, Any]],
     expected_by_id: Mapping[int, Sequence[str]],
@@ -822,10 +1225,13 @@ def _copy_exact(source: Path, destination: Path) -> None:
 def build_release_package(
     *,
     baseline_path: Path,
-    native_batch_path: Path,
-    fallback_batch_path: Path,
     output_dir: Path,
     created_at: str,
+    native_batch_path: Path | None = None,
+    fallback_batch_path: Path | None = None,
+    release_batch_path: Path | None = None,
+    expected_release_batch_sha256: str | None = None,
+    expected_release_batch_file_sha256: str | None = None,
     expected_baseline_sha256: str = BASELINE_SHA256,
     expected_baseline_size: int = BASELINE_SIZE_BYTES,
     expected_baseline_records: int = BASELINE_RECORDS,
@@ -847,24 +1253,53 @@ def build_release_package(
         expected_size_bytes=expected_baseline_size,
         expected_records=expected_baseline_records,
     )
-    native_batch = _load_locked_batch(
-        native_batch_path,
-        expected_file_sha256=expected_native_batch_file_sha256,
-        expected_batch_sha256=expected_native_batch_sha256,
-    )
-    fallback_batch = _load_locked_batch(
-        fallback_batch_path,
-        expected_file_sha256=expected_fallback_batch_file_sha256,
-        expected_batch_sha256=expected_fallback_batch_sha256,
-    )
-    native_records = _flatten_records(native_batch)
-    fallback_records = _flatten_records(fallback_batch)
+    release_batch_lock: dict[str, str] | None = None
+    map_battle_excluded_ids: set[int] = set()
+    if release_batch_path is not None:
+        if not expected_release_batch_sha256 or not expected_release_batch_file_sha256:
+            raise ContentReleaseError("safe release batch requires both expected hashes")
+        release_batch, native_records, fallback_records = _load_relocked_release_batch(
+            release_batch_path,
+            expected_file_sha256=expected_release_batch_file_sha256,
+            expected_batch_sha256=expected_release_batch_sha256,
+        )
+        release_batch_lock = {
+            "safe_release_batch_sha256": expected_release_batch_sha256,
+            "safe_release_batch_file_sha256": expected_release_batch_file_sha256,
+        }
+        map_battle_excluded_ids = {
+            int(record["legacy_question_id"])
+            for record in release_batch["batch"]["excluded_map_battle_records"]
+        }
+        expected_fallback_records = 50
+        expected_fallback_groups = sum(
+            1
+            for group in release_batch["batch"]["groups"]
+            if group["lane"] == "FALLBACK_CLEAR"
+        )
+        actual_fallback_groups = expected_fallback_groups
+    else:
+        if native_batch_path is None or fallback_batch_path is None:
+            raise ContentReleaseError("native and fallback batch paths are required")
+        native_batch = _load_locked_batch(
+            native_batch_path,
+            expected_file_sha256=expected_native_batch_file_sha256,
+            expected_batch_sha256=expected_native_batch_sha256,
+        )
+        fallback_batch = _load_locked_batch(
+            fallback_batch_path,
+            expected_file_sha256=expected_fallback_batch_file_sha256,
+            expected_batch_sha256=expected_fallback_batch_sha256,
+        )
+        native_records = _flatten_records(native_batch)
+        fallback_records = _flatten_records(fallback_batch)
+        actual_fallback_groups = len(fallback_batch.get("groups") or [])
     native_ids = {int(row["legacy_question_id"]) for row in native_records}
     fallback_ids = {int(row["legacy_question_id"]) for row in fallback_records}
     if native_ids != set(expected_native_ids) or len(native_records) != len(expected_native_ids):
         raise ContentReleaseError("FAIL_CLOSED: native batch membership drift")
     if (
-        len(fallback_batch.get("groups") or []) != expected_fallback_groups
+        actual_fallback_groups != expected_fallback_groups
         or len(fallback_records) != expected_fallback_records
         or len(fallback_ids) != expected_fallback_records
     ):
@@ -894,9 +1329,8 @@ def build_release_package(
 
     baseline_indexes = _record_indexes(baseline_records)
     candidate_indexes = _record_indexes(candidate_records)
-    missing_exclusions = sorted(
-        expected_excluded_ids - set(baseline_indexes)
-    )
+    all_excluded_ids = set(expected_excluded_ids) | map_battle_excluded_ids
+    missing_exclusions = sorted(all_excluded_ids - set(baseline_indexes))
     if missing_exclusions:
         raise ContentReleaseError(
             f"known fallback conflicts missing from baseline: {missing_exclusions}"
@@ -908,7 +1342,7 @@ def build_release_package(
             and baseline_records[baseline_indexes[question_id][0]]
             == candidate_records[candidate_indexes[question_id][0]]
         )
-        for question_id in sorted(expected_excluded_ids)
+        for question_id in sorted(all_excluded_ids)
     }
     if not all(excluded.values()):
         raise ContentReleaseError("known fallback conflict changed")
@@ -965,6 +1399,7 @@ def build_release_package(
             "safe_native_sgf_batch_file_sha256": expected_native_batch_file_sha256,
             "fallback_candidate_batch_sha256": expected_fallback_batch_sha256,
             "fallback_candidate_batch_file_sha256": expected_fallback_batch_file_sha256,
+            **(release_batch_lock or {}),
         },
         "pre_mutation_artifact": baseline_artifact.as_dict(),
         "repaired_candidate_artifact": candidate_artifact.as_dict(),
@@ -972,6 +1407,10 @@ def build_release_package(
         "repair_records": mutation_records,
         "verdict_validation": verdict,
         "excluded_questions_unchanged": excluded,
+        "excluded_map_battle_questions_unchanged": {
+            str(question_id): excluded[question_id]
+            for question_id in sorted(map_battle_excluded_ids)
+        },
         "excluded_populations": {
             "stale_groups": "UNCHANGED_BY_NON_TARGET_SEMANTIC_IDENTITY",
             "manual_reconstruction": "UNCHANGED_BY_NON_TARGET_SEMANTIC_IDENTITY",
@@ -1040,7 +1479,7 @@ def build_release_package(
         "non_target_records_changed": diff["non_target_records_changed"],
         "fallback_fields_cleared": diff["fallback_fields_cleared"],
         "native_repair_records": diff["native_repair_records"],
-        "all_65_final_effective_match": verdict["all_final_effective_match"],
+        "all_release_records_final_effective_match": verdict["all_final_effective_match"],
         "publisher_precondition_hash_lock": expected_baseline_sha256,
     }
 
@@ -1208,9 +1647,28 @@ def _build_command(args: argparse.Namespace) -> dict[str, Any]:
         baseline_path=args.baseline,
         native_batch_path=args.native_batch,
         fallback_batch_path=args.fallback_batch,
+        release_batch_path=args.release_batch,
+        expected_release_batch_sha256=args.release_batch_sha256,
+        expected_release_batch_file_sha256=args.release_batch_file_sha256,
         output_dir=args.output_dir,
         created_at=args.created_at,
         validate_runtime=not args.skip_runtime_validation,
+    )
+
+
+def _relock_command(args: argparse.Namespace) -> dict[str, Any]:
+    return relock_safe_release_batch(
+        native_batch_path=args.native_batch,
+        fallback_batch_path=args.fallback_batch,
+        output_path=args.output,
+    )
+
+
+def _traversal_plan_command(args: argparse.Namespace) -> dict[str, Any]:
+    return build_map_battle_traversal_planning_artifact(
+        baseline_path=args.baseline,
+        fallback_batch_path=args.fallback_batch,
+        output_path=args.output,
     )
 
 
@@ -1242,10 +1700,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    relock = subparsers.add_parser("relock")
+    relock.add_argument("--native-batch", required=True, type=Path)
+    relock.add_argument("--fallback-batch", required=True, type=Path)
+    relock.add_argument("--output", required=True, type=Path)
+
+    traversal = subparsers.add_parser("traversal-plan")
+    traversal.add_argument("--baseline", required=True, type=Path)
+    traversal.add_argument("--fallback-batch", required=True, type=Path)
+    traversal.add_argument("--output", required=True, type=Path)
+
     build = subparsers.add_parser("build")
     build.add_argument("--baseline", required=True, type=Path)
-    build.add_argument("--native-batch", required=True, type=Path)
-    build.add_argument("--fallback-batch", required=True, type=Path)
+    build.add_argument("--native-batch", type=Path)
+    build.add_argument("--fallback-batch", type=Path)
+    build.add_argument("--release-batch", type=Path)
+    build.add_argument("--release-batch-sha256")
+    build.add_argument("--release-batch-file-sha256")
     build.add_argument("--output-dir", required=True, type=Path)
     build.add_argument("--created-at", required=True)
     build.add_argument("--skip-runtime-validation", action="store_true")
@@ -1271,7 +1742,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     try:
-        if args.command == "build":
+        if args.command == "relock":
+            result = _relock_command(args)
+        elif args.command == "traversal-plan":
+            result = _traversal_plan_command(args)
+        elif args.command == "build":
             result = _build_command(args)
         elif args.command == "simulate":
             result = _simulate_command(args)
