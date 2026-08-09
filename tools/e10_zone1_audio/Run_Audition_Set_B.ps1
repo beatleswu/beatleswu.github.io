@@ -92,7 +92,7 @@ try {
     Write-Host "（此步驟需要即時查詢 ElevenLabs Voice Library，可能需要一點時間，請耐心等候。）"
     & $PythonExe $PythonScript --audition-set-b
     if ($LASTEXITCODE -ne 0) {
-        Fail "補選試聽檔案產生或驗證失敗，請往上捲動查看詳細錯誤訊息（例如 Voice Library 搜尋失敗、加入聲音失敗，或檔案數量不足）。若持續失敗，請把完整錯誤訊息回報給 Claude。" `
+        Fail "補選試聽檔案產生或驗證失敗，請往上捲動查看詳細錯誤訊息（例如 Voice Library 搜尋失敗、加入聲音失敗，或某個角色完全沒有產生出可用的候選聲音）。若持續失敗，請把完整錯誤訊息回報給 Claude。" `
              "'--audition-set-b' exited with code $LASTEXITCODE."
     }
     $ExitedCleanly = $true

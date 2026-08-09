@@ -64,10 +64,18 @@ Modes:
                 (never touching voice_id). Refuses to touch any role x locale
                 slot marked "locked": true in casting_candidates.json. Safe
                 to re-run: any previous audition_set_b/ output is cleared
-                first. Untested against the live Voice Library API from this
-                sandbox (which cannot reach it) -- if a search or add-to-
-                library call fails, prints a clear per-role diagnostic
-                (HTTP status, endpoint) instead of failing silently.
+                first. Verifies PER-ROLE, not just overall: prints
+                <ROLE>_GENERATED=<n> for every attempted role and
+                AUDITION_SET_B_GENERATED_TOTAL=<n>; if ANY attempted role
+                ends up with zero usable (real, non-empty file) candidates,
+                exits non-zero with AUDITION_SET_B_VERIFICATION=FAIL and
+                AUDITION_SET_B_MISSING_ROLES naming exactly which role(s) --
+                a nonzero total across other roles never masks one role's
+                failure. Untested against the live Voice Library API from
+                this sandbox (which cannot reach it) -- if a search or
+                add-to-library call fails, prints a clear per-role
+                diagnostic (HTTP status, endpoint) instead of failing
+                silently.
   --generate-tts / --generate-sfx / --generate-music
                 Reserved for full Zone 1 production once the Owner approves
                 casting and BGM direction. Currently print a not-yet-enabled
@@ -428,7 +436,6 @@ def cmd_audition_set_b() -> None:
         shutil.rmtree(AUDITION_SET_B_DIR)
     AUDITION_SET_B_DIR.mkdir(parents=True, exist_ok=True)
 
-    generated = 0
     expected_total = 0
     results_by_role: dict[str, list] = {}
 
@@ -473,8 +480,6 @@ def cmd_audition_set_b() -> None:
             output_path = AUDITION_SET_B_DIR / output_filename
             print(f"  Generating {output_path.name} ({name}) ...")
             ok = _text_to_speech(api_key, local_voice_id, text, model_id, output_path)
-            if ok:
-                generated += 1
 
             results_by_role[role_key].append({
                 "name": name,
@@ -500,25 +505,56 @@ def cmd_audition_set_b() -> None:
     print(f"CASTING_CANDIDATES_UPDATED={CASTING_PATH.relative_to(REPO_ROOT)} (recast_candidates only; "
           "no voice_id or locked slot was touched)")
 
-    print(f"AUDITION_SET_B_GENERATED={generated}")
     print(f"AUDITION_SET_B_EXPECTED={expected_total}")
     print(f"AUDITION_SET_B_OUTPUT_DIR={AUDITION_SET_B_DIR.resolve()}")
 
-    all_files = [
-        entry["output_filename"]
-        for role_results in results_by_role.values()
-        for entry in role_results
-        if entry["generated"]
-    ]
-    missing_or_empty = [
-        filename for filename in all_files
-        if not (AUDITION_SET_B_DIR / filename).is_file()
-        or (AUDITION_SET_B_DIR / filename).stat().st_size == 0
-    ]
-    if missing_or_empty or generated == 0:
+    # Per-role verification: a role counts as usable only if at least one of
+    # its candidates actually produced a real, non-empty file on disk. A
+    # role-level total of >=1 "usable" candidates across all roles is not
+    # sufficient -- each role that was attempted (i.e. not locked/skipped)
+    # must individually clear the >=1 bar, or the run is not complete.
+    per_role_generated: dict[str, int] = {}
+    per_role_requested: dict[str, int] = {}
+    missing_or_empty_files: list[str] = []
+    failed_roles: list[str] = []
+
+    for role_key, brief in briefs.items():
+        if role_key not in results_by_role:
+            continue  # locked or missing sample line: not attempted, not gated
+        entries = results_by_role[role_key]
+        per_role_requested[role_key] = brief.get("candidate_count", 3)
+        usable = 0
+        for entry in entries:
+            output_path = AUDITION_SET_B_DIR / entry["output_filename"]
+            is_usable = entry["generated"] and output_path.is_file() and output_path.stat().st_size > 0
+            if entry["generated"] and not is_usable:
+                missing_or_empty_files.append(entry["output_filename"])
+            if is_usable:
+                usable += 1
+        per_role_generated[role_key] = usable
+        if usable == 0:
+            failed_roles.append(role_key)
+
+    for role_key in briefs:
+        if role_key in per_role_generated:
+            print(f"{role_key.upper()}_GENERATED={per_role_generated[role_key]}")
+    print(f"AUDITION_SET_B_GENERATED_TOTAL={sum(per_role_generated.values())}")
+
+    for role_key, requested in per_role_requested.items():
+        found = per_role_generated[role_key]
+        if 0 < found < requested:
+            print(f"SHORTAGE role={role_key}: found {found} usable candidate(s), requested {requested} "
+                  "-- acceptable since at least 1 exists, but the Owner has fewer options to compare")
+
+    if missing_or_empty_files:
+        print(f"AUDITION_SET_B_MISSING_OR_EMPTY={','.join(missing_or_empty_files)}")
+
+    if failed_roles:
         print("AUDITION_SET_B_VERIFICATION=FAIL")
-        if missing_or_empty:
-            print(f"AUDITION_SET_B_MISSING_OR_EMPTY={','.join(missing_or_empty)}")
+        print(f"AUDITION_SET_B_MISSING_ROLES={','.join(failed_roles)}")
+        for role_key in failed_roles:
+            print(f"  MISSING: {role_key} has zero usable candidates -- this run is NOT complete, "
+                  "do not present it to the Owner as finished")
         raise SystemExit(1)
     print("AUDITION_SET_B_VERIFICATION=PASS")
 
