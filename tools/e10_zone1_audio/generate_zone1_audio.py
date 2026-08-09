@@ -18,6 +18,12 @@ Modes:
                 configured model (casting_candidates.json audio_config.
                 model_id, default "eleven_v3") is present and supports
                 text-to-speech. No paid usage.
+  --list-voices Read-only: GET /v1/voices and print a compact table of
+                name/voice_id/category/language/accent/gender/age/
+                description for casting reference. Add --json to also write
+                a local review artifact (_local_review/voices.json). No
+                audio is generated and casting_candidates.json is not
+                touched by this mode.
   --audition    Generate the 8-line casting sample (4 roles x 2 locales)
                 from casting_candidates.json into _local_review/audition/,
                 using the configured model_id. Reports the selected model
@@ -44,6 +50,7 @@ MANIFEST_PATH = TOOL_DIR / "zone1_beat_manifest.json"
 CASTING_PATH = TOOL_DIR / "casting_candidates.json"
 REVIEW_DIR = TOOL_DIR / "_local_review"
 AUDITION_DIR = REVIEW_DIR / "audition"
+VOICES_JSON_PATH = REVIEW_DIR / "voices.json"
 
 API_BASE = "https://api.elevenlabs.io"
 ENV_VAR = "ELEVENLABS_API_KEY"
@@ -120,6 +127,57 @@ def cmd_check() -> None:
         print(f"MODEL_API_HTTP_STATUS={models_status}")
 
 
+def _extract_voice_summary(voice: dict) -> dict:
+    labels = voice.get("labels") or {}
+    return {
+        "name": voice.get("name") or "",
+        "voice_id": voice.get("voice_id") or "",
+        "category": voice.get("category") or "",
+        "language_accent": labels.get("language") or labels.get("accent") or "",
+        "gender": labels.get("gender") or "",
+        "age": labels.get("age") or "",
+        "description": labels.get("description") or labels.get("use_case") or "",
+    }
+
+
+def cmd_list_voices(as_json: bool) -> None:
+    api_key = get_api_key()
+
+    voices_status, voices_body = _api_get("/v1/voices", api_key)
+    if voices_status != 200 or not isinstance(voices_body, dict):
+        print("VOICE_API_ACCESS=NO")
+        print(f"VOICE_API_HTTP_STATUS={voices_status}")
+        raise SystemExit(1)
+
+    raw_voices = voices_body.get("voices", [])
+    summaries = [_extract_voice_summary(voice) for voice in raw_voices if isinstance(voice, dict)]
+
+    print("VOICE_API_ACCESS=YES")
+    print(f"AVAILABLE_VOICE_COUNT={len(summaries)}")
+    print()
+
+    columns = ("name", "voice_id", "category", "language_accent", "gender", "age", "description")
+    headers = ("NAME", "VOICE_ID", "CATEGORY", "LANGUAGE/ACCENT", "GENDER", "AGE", "DESCRIPTION")
+    widths = [len(header) for header in headers]
+    for summary in summaries:
+        for index, column in enumerate(columns):
+            widths[index] = max(widths[index], len(str(summary[column])[:40]))
+
+    def format_row(values: tuple[str, ...]) -> str:
+        return "  ".join(str(value)[:40].ljust(widths[index]) for index, value in enumerate(values))
+
+    print(format_row(headers))
+    print(format_row(tuple("-" * width for width in widths)))
+    for summary in summaries:
+        print(format_row(tuple(summary[column] for column in columns)))
+
+    if as_json:
+        REVIEW_DIR.mkdir(parents=True, exist_ok=True)
+        VOICES_JSON_PATH.write_text(json.dumps(summaries, ensure_ascii=False, indent=2), encoding="utf-8")
+        print()
+        print(f"VOICES_JSON_WRITTEN={VOICES_JSON_PATH.relative_to(REPO_ROOT)}")
+
+
 def _text_to_speech(api_key: str, voice_id: str, text: str, model_id: str, output_path: Path) -> bool:
     payload = json.dumps({
         "text": text,
@@ -189,14 +247,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="E10 Zone 1 local ElevenLabs audio tooling (Owner machine only).")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--check", action="store_true", help="Read-only connectivity/voice/model check.")
+    group.add_argument("--list-voices", action="store_true", help="Read-only voice discovery list/table.")
     group.add_argument("--audition", action="store_true", help="Generate the minimal casting sample only.")
     group.add_argument("--generate-tts", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-sfx", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-music", action="store_true", help="Reserved; not yet enabled.")
+    parser.add_argument("--json", action="store_true", help="With --list-voices, also write _local_review/voices.json.")
     args = parser.parse_args()
+
+    if args.json and not args.list_voices:
+        parser.error("--json is only valid together with --list-voices")
 
     if args.check:
         cmd_check()
+    elif args.list_voices:
+        cmd_list_voices(as_json=args.json)
     elif args.audition:
         cmd_audition()
     elif args.generate_tts:
