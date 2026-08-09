@@ -277,6 +277,53 @@ def test_actual_runtime_validation_fails_closed_on_map_battle_branching_gap():
     assert diagnostic["map_battle_mismatch_ids"] == [4]
 
 
+def test_phase2f_relock_excludes_exact_map_battle_blockers(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    result = release.relock_safe_release_batch(
+        native_batch_path=(
+            root
+            / "docs/planning/sgf_answer_repair_batch_001_safe_native_sgf_batch_001.json"
+        ),
+        fallback_batch_path=(
+            root
+            / "docs/planning/sgf_answer_repair_batch_001_fallback_remediation_candidate_batch_001.json"
+        ),
+        output_path=tmp_path / "safe-release.json",
+    )
+    value, native, fallback = release._load_relocked_release_batch(
+        tmp_path / "safe-release.json",
+        expected_file_sha256=result["batch_file_sha256"],
+        expected_batch_sha256=result["batch_sha256"],
+    )
+
+    included = {
+        record["legacy_question_id"]
+        for group in value["batch"]["groups"]
+        for record in group["records"]
+    }
+    assert result["records"] == 54
+    assert result["native_rewrite_records"] == len(native) == 4
+    assert result["fallback_clear_records"] == len(fallback) == 50
+    assert included.isdisjoint(release.MAP_BATTLE_TRAVERSAL_BLOCKER_IDS)
+    assert {
+        row["legacy_question_id"]
+        for row in value["batch"]["excluded_map_battle_records"]
+    } == release.MAP_BATTLE_TRAVERSAL_BLOCKER_IDS
+
+
+def test_map_battle_planning_counts_authored_opponent_replies():
+    import app as app_module
+
+    tree = app_module._rt_parse_answer_tree(BRANCHED_REPLY)
+    witness = release._rating_witness(tree, (0, 17))
+
+    assert release._authored_opponent_reply_count_at_first_map_block(
+        BRANCHED_REPLY,
+        player_color="W",
+        witness=witness,
+    ) == 2
+
+
 def test_build_package_is_deterministic_and_validates_actual_player_surfaces(tmp_path):
     baseline, raw = _baseline(tmp_path)
     batches = _locked_batches(tmp_path)
@@ -308,7 +355,7 @@ def test_build_package_is_deterministic_and_validates_actual_player_surfaces(tmp
     assert first["non_target_records_changed"] == 0
     assert first["fallback_fields_cleared"] == 1
     assert first["native_repair_records"] == 1
-    assert first["all_65_final_effective_match"] is True
+    assert first["all_release_records_final_effective_match"] is True
     for filename in (
         first["candidate_artifact"]["filename"],
         first["release_manifest"],
