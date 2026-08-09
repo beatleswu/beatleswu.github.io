@@ -50,6 +50,10 @@ COPY community_leaderboard_rewards.py ./
 # settlement service from the built image.
 COPY map_battle_runtime.py ./
 COPY map_battle_persistence.py ./
+# SGF Owner Review Queue is authenticated, server-persisted repair staging.
+# Its detector-derived source is read-only evidence, never canonical content.
+COPY sgf_answer_review_queue.py ./
+COPY sgf_answer_review_routes.py ./
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
 # absent from this explicit COPY list despite app.py already depending on
@@ -74,7 +78,7 @@ COPY sgf_engine ./sgf_engine
 # Deliberately excludes debug pages, repair reports, backups, and other
 # root-level residue never referenced by app.py's routes.
 COPY login.html landing.html index.html terms.html manage.html admin.html \
-     shadow_dashboard.html \
+     shadow_dashboard.html sgf_answer_review.html \
      bot.html daily_challenge.html community.html messages.html \
      share_view.html mistakes.html curriculum.html hero.html \
      rating_test.html shop.html profile.html premium_weekly.html \
@@ -82,7 +86,9 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      games.html ./
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
-     community_reward_rules.js pwa.js ./
+     community_reward_rules.js pwa.js sgf_answer_review.js ./
+COPY review_data/sgf_answer_review_queue_v1.json \
+     ./review_data/sgf_answer_review_queue_v1.json
 # Legacy Map Battle V1 is an explicitly routed subpath asset. Keep the
 # repository-relative path so /js/map_battle_v1_adapter.js resolves in the
 # built image exactly as it does from the source tree.
