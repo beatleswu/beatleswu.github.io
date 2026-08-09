@@ -202,7 +202,7 @@ def _build(case):
 def test_subset_replacement_preserves_surviving_branch_and_removes_a2(tmp_path):
     plan = _classify(_case(), simulation_dir=tmp_path)
 
-    assert plan["classification"] == repair.CLASS_AUTO
+    assert plan["classification"] == repair.CLASS_FULLY
     assert plan["current_answer_set"] == ["A2", "B1"]
     assert plan["desired_answer_set"] == ["B1"]
     record = plan["records"][0]
@@ -222,7 +222,7 @@ def test_completely_new_replacement_accepts_b2_and_removes_both_old_moves(tmp_pa
         _case(proposed_moves=((1, 17),)), simulation_dir=tmp_path
     )
 
-    assert plan["classification"] == repair.CLASS_AUTO
+    assert plan["classification"] == repair.CLASS_FULLY
     assert plan["desired_answer_set"] == ["B2"]
     repaired = (tmp_path / plan["records"][0]["simulation_artifact"]).read_text(
         encoding="utf-8"
@@ -248,7 +248,7 @@ def test_add_equivalent_preserves_all_existing_duplicate_first_move_variations(t
         simulation_dir=tmp_path,
     )
 
-    assert plan["classification"] == repair.CLASS_AUTO
+    assert plan["classification"] == repair.CLASS_FULLY
     assert plan["current_answer_set"] == ["A2"]
     assert plan["desired_answer_set"] == ["A2", "B1"]
     record = plan["records"][0]
@@ -276,7 +276,7 @@ def test_exact_reviewed_precomputed_fallback_can_be_cleared_without_sgf_change(t
     )
     plan = _classify(case, simulation_dir=tmp_path)
 
-    assert plan["classification"] == repair.CLASS_AUTO
+    assert plan["classification"] == repair.CLASS_FULLY
     record = plan["records"][0]
     assert record["current_katago_best_move"] == "Q4"
     assert record["desired_katago_best_move"] == ""
@@ -292,10 +292,10 @@ def test_exact_reviewed_precomputed_fallback_can_be_cleared_without_sgf_change(t
     ]
 
 
-def test_replacement_fails_closed_when_unrejected_fallback_stays_outside_set():
+def test_replacement_is_fallback_conflict_when_unrejected_fallback_stays_outside_set():
     plan = _classify(_case(fallbacks=("Q4",)))
 
-    assert plan["classification"] == repair.CLASS_STALE
+    assert plan["classification"] == repair.CLASS_FALLBACK_CONFLICT
     assert "UNREJECTED_PRECOMPUTED_FALLBACK_OUTSIDE_REPLACEMENT_SET" in plan[
         "reason_codes"
     ]
@@ -374,7 +374,7 @@ def test_duplicate_group_fans_out_only_when_every_member_matches(tmp_path):
         _case(legacy_ids=(101, 102)), simulation_dir=tmp_path
     )
 
-    assert plan["classification"] == repair.CLASS_AUTO
+    assert plan["classification"] == repair.CLASS_FULLY
     assert len(plan["records"]) == 2
     assert {record["legacy_question_id"] for record in plan["records"]} == {
         101,
@@ -439,7 +439,7 @@ def test_repair_plan_hash_and_order_are_deterministic():
 
     assert first == second
     assert first["repair_plan_sha256"] == second["repair_plan_sha256"]
-    assert first["summary"]["auto_applyable"] == 1
+    assert first["summary"]["fully_applyable_end_to_end"] == 1
 
 
 def test_plan_hash_is_bound_to_current_target_snapshot_hash():
@@ -528,8 +528,194 @@ def test_committed_manifest_records_question_15436_intent_and_fail_closed_guard(
     assert question["plan"][0]["removed"] == ["A2"]
     assert question["plan"][0]["added"] == []
     assert question["current_precomputed_fallbacks"] == ["Q4"]
-    assert question["classification"] == repair.CLASS_STALE
+    assert question["classification"] == repair.CLASS_FALLBACK_CONFLICT
     assert (
         "UNREJECTED_PRECOMPUTED_FALLBACK_OUTSIDE_REPLACEMENT_SET"
         in question["reason_codes"]
     )
+
+
+def test_question_15436_final_effective_verdict_keeps_q4_until_owner_rejects(
+    monkeypatch,
+):
+    os.environ.setdefault(
+        "SECRET_KEY", "synthetic-sgf-answer-repair-batch-test-secret"
+    )
+    os.environ.setdefault("SITE_URL", "http://localhost")
+    import app as app_module
+
+    repaired, _ = repair._rewrite_answer_set(TWO_ANSWER_SGF, [(1, 18)])
+    monkeypatch.setattr(app_module, "_rt_transform_idx", lambda *_: 0)
+    pool_q = {"id": 15436, "content": repaired, "katago_best_move": "Q4"}
+
+    assert app_module._rt_server_verify(
+        pool_q, "phase1b", [{"x": 1, "y": 18}]
+    ) is True
+    assert app_module._rt_server_verify(
+        pool_q, "phase1b", [{"x": 0, "y": 17}]
+    ) is False
+    assert app_module._rt_server_verify(
+        pool_q, "phase1b", [{"x": 15, "y": 15}]
+    ) is True
+
+
+@pytest.mark.parametrize(
+    ("question_id", "content", "desired", "removed", "fallback"),
+    (
+        (
+            15388,
+            "(;GM[1]FF[4]SZ[19]PL[W](;W[dr];B[dq])(;W[br];B[bq]))",
+            (1, 17),
+            (3, 17),
+            (15, 15),
+        ),
+        (
+            65095,
+            "(;GM[1]FF[4]SZ[19]PL[W](;W[qb];B[qc])(;W[rb];B[rc])(;W[pa];B[pb]))",
+            (16, 1),
+            (17, 1),
+            (3, 2),
+        ),
+    ),
+)
+def test_actual_rating_test_adapter_exposes_each_fallback_conflict(
+    monkeypatch, question_id, content, desired, removed, fallback
+):
+    os.environ.setdefault(
+        "SECRET_KEY", "synthetic-sgf-answer-repair-batch-test-secret"
+    )
+    os.environ.setdefault("SITE_URL", "http://localhost")
+    import app as app_module
+
+    repaired, _ = repair._rewrite_answer_set(content, [desired])
+    monkeypatch.setattr(app_module, "_rt_transform_idx", lambda *_: 0)
+    pool_q = {
+        "id": question_id,
+        "content": repaired,
+        "katago_best_move": repair._point_label(fallback, 19),
+    }
+    assert app_module._rt_server_verify(
+        pool_q, "phase1b", [{"x": desired[0], "y": desired[1]}]
+    ) is True
+    assert app_module._rt_server_verify(
+        pool_q, "phase1b", [{"x": removed[0], "y": removed[1]}]
+    ) is False
+    assert app_module._rt_server_verify(
+        pool_q, "phase1b", [{"x": fallback[0], "y": fallback[1]}]
+    ) is True
+
+
+def test_rating_test_pool_currently_omits_accepted_moves_projection():
+    os.environ.setdefault(
+        "SECRET_KEY", "synthetic-sgf-answer-repair-batch-test-secret"
+    )
+    os.environ.setdefault("SITE_URL", "http://localhost")
+    import app as app_module
+    import inspect
+
+    source = inspect.getsource(app_module._build_rt_pool)
+    append_block = source.split("pool.append({", 1)[1].split("})", 1)[0]
+    assert "accepted_moves" not in append_block
+    assert "katago_best_move" in append_block
+
+    root = Path(__file__).resolve().parents[1]
+    assert not (root / "rating_verified_questions.json").exists()
+    assert "rating_verified_questions.json" not in (
+        root / "Dockerfile"
+    ).read_text(encoding="utf-8")
+
+
+def test_safe_first_batch_contains_only_end_to_end_matches():
+    manifest = _build(_case(content=ONE_ANSWER_SGF, proposed_moves=((1, 17),)))
+    safe = manifest["safe_batch"]
+
+    assert safe["summary"]["safe_batch_groups"] == 1
+    assert safe["summary"]["safe_batch_records"] == 1
+    assert safe["groups"][0]["classification"] == repair.CLASS_FULLY
+    record = safe["groups"][0]["records"][0]
+    assert record["match"] == "YES"
+    assert record["owner_desired_verdict"] == ["B2"]
+    assert record["simulated_final_verdict"][
+        "final_effective_player_verdict"
+    ] == ["B2"]
+
+
+def test_fallback_conflict_is_excluded_from_safe_first_batch():
+    manifest = _build(_case(fallbacks=("Q4",)))
+
+    assert manifest["summary"][
+        "native_repair_valid_but_fallback_conflict"
+    ] == 1
+    assert manifest["safe_batch"]["summary"]["safe_batch_groups"] == 0
+    assert manifest["question_15436"]["mandatory_proof"] == {
+        "B1": "ACCEPT",
+        "A2": "REJECT",
+        "Q4": "ACCEPT",
+        "final_effective_verdict_safe": False,
+    }
+
+
+def test_missing_current_source_gets_machine_readable_reason_and_disposition():
+    manifest = _build(
+        _case(
+            resolution_statuses=("MISSING_CURRENT_SOURCE",),
+            current_contents=(TWO_ANSWER_SGF,),
+        )
+    )
+
+    assert manifest["unresolved_reason_breakdown"] == {
+        "QUESTION_ID_NOT_IN_CURRENT_CORPUS": 1,
+        "REVIEW_SNAPSHOT_FROM_OLDER_CORPUS": 1,
+    }
+    assert manifest["unresolved_disposition_breakdown"] == {
+        "RE_REVIEW_REQUIRED": 1
+    }
+    assert manifest["unresolved_groups"][0]["primary_reason"] == (
+        "QUESTION_ID_NOT_IN_CURRENT_CORPUS"
+    )
+
+
+def test_safe_batch_hash_is_deterministic_and_bound_to_target_snapshot():
+    case = _case(content=ONE_ANSWER_SGF, proposed_moves=((1, 17),))
+    first = _build(case)
+    second = _build(case)
+    assert first["safe_batch"] == second["safe_batch"]
+
+    proposal_snapshot, reviewed, current_targets = _manifest_inputs(case)
+    changed = repair.build_repair_plan(
+        proposal_snapshot,
+        reviewed,
+        current_targets,
+        proposal_snapshot_sha256=PROPOSAL_SHA,
+        reviewed_questions_sha256=QUESTIONS_SHA,
+        current_targets_sha256="9" * 64,
+    )
+    assert first["safe_batch"]["safe_batch_sha256"] != changed[
+        "safe_batch"
+    ]["safe_batch_sha256"]
+
+
+def test_committed_safe_batch_matches_owner_on_every_player_surface():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "docs"
+        / "planning"
+        / "sgf_answer_repair_batch_001_safe_batch.json"
+    )
+    if not path.exists():
+        pytest.skip("generated Phase 1B safe batch has not been created yet")
+    import json
+
+    safe = json.loads(path.read_text(encoding="utf-8"))
+    assert safe["classification_filter"] == [repair.CLASS_FULLY]
+    assert safe["summary"]["safe_batch_groups"] == 54
+    assert safe["summary"]["safe_batch_records"] == 65
+    for group in safe["groups"]:
+        assert group["classification"] == repair.CLASS_FULLY
+        for record in group["records"]:
+            assert record["match"] == "YES"
+            owner = sorted(record["owner_desired_verdict"])
+            for accepted in record["simulated_final_verdict"][
+                "accepted_first_moves_by_surface"
+            ].values():
+                assert sorted(accepted) == owner

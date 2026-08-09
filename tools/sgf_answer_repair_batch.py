@@ -27,7 +27,7 @@ from sgf_engine.core.matcher import BRANCH, OFF_TREE, match_move
 from sgf_engine.parser.sgf_parser import parse_sgf
 
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 AUTHORITY = "SGF_ANSWER_REPAIR_BATCH_001_DRY_RUN"
 OUTPUT_CLASSIFICATION = "OWNER_REPAIR_PLAN_DRY_RUN_ONLY"
 
@@ -57,10 +57,11 @@ REPAIR_CLASS_BY_PROPOSAL_TYPE = {
     ),
 }
 
-CLASS_AUTO = "AUTO_APPLYABLE"
+CLASS_FULLY = "FULLY_APPLYABLE_END_TO_END"
+CLASS_FALLBACK_CONFLICT = "NATIVE_REPAIR_VALID_BUT_FALLBACK_CONFLICT"
 CLASS_MANUAL = "MANUAL_RECONSTRUCTION_REQUIRED"
 CLASS_STALE = "STALE_OR_CONFLICTED"
-CLASS_UNRESOLVED = "UNRESOLVED"
+CLASS_UNRESOLVED = "UNRESOLVED_SOURCE"
 CLASS_NO_OP = "NO_OP"
 
 _MAX_PROPOSAL_BYTES = 8 * 1024 * 1024
@@ -142,6 +143,58 @@ def _gtp_to_xy(value: Any, board_size: int) -> tuple[int, int] | None:
     if not (1 <= row <= board_size):
         return None
     return _GTP_COLUMNS.index(text[0]), board_size - row
+
+
+def _sorted_points(points: Iterable[tuple[int, int]]) -> list[tuple[int, int]]:
+    return sorted(set(points), key=lambda point: (point[0], point[1]))
+
+
+def _point_labels(
+    points: Iterable[tuple[int, int]], board_size: int
+) -> list[str]:
+    return [_point_label(point, board_size) for point in _sorted_points(points)]
+
+
+def _effective_verdict_layers(
+    *,
+    native_points: Iterable[tuple[int, int]],
+    accepted_points: Iterable[tuple[int, int]],
+    fallback_point: tuple[int, int] | None,
+    board_size: int,
+) -> dict[str, Any]:
+    """Model the current first-move verdict surfaces without changing them.
+
+    Rating Test calls ``_rt_server_verify``. Although that verifier contains
+    an accepted-moves check, ``_build_rt_pool`` currently does not project
+    accepted moves into its pool records, so its effective V1 inputs are the
+    legacy SGF replay tree plus the stored precomputed fallback. Main practice
+    and Map Battle use accepted moves plus the native tree. Daily Challenge is
+    native-tree-only; Friend Challenge records the main client's verdict.
+    """
+
+    native = set(native_points)
+    accepted = set(accepted_points)
+    fallback = {fallback_point} if fallback_point is not None else set()
+    layers = {
+        "main_practice_client": native | accepted,
+        "daily_challenge_client": native,
+        "friend_challenge_client_then_server_trust": native | accepted,
+        "map_battle_server": native | accepted,
+        "rating_test_server": native | fallback,
+    }
+    return {
+        "accepted_first_moves_by_surface": {
+            name: _point_labels(points, board_size)
+            for name, points in layers.items()
+        },
+        "final_effective_player_verdict": _point_labels(
+            set().union(*layers.values()), board_size
+        ),
+        "rating_test_accepted_moves_projection": "OMITTED_BY_CURRENT_POOL_BUILD",
+        "stored_precomputed_fallback_used_by": ["rating_test_server"]
+        if fallback
+        else [],
+    }
 
 
 @dataclass(frozen=True)
@@ -529,6 +582,165 @@ def _reviewed_historical_points(group: Mapping[str, Any]) -> set[tuple[int, int]
     return points
 
 
+def _unresolved_diagnostic(resolution_errors: Sequence[str]) -> dict[str, Any]:
+    errors = set(resolution_errors)
+    if "MISSING_CURRENT_SOURCE" in errors:
+        return {
+            "primary_reason": "QUESTION_ID_NOT_IN_CURRENT_CORPUS",
+            "evidence_reasons": ["REVIEW_SNAPSHOT_FROM_OLDER_CORPUS"],
+            "disposition": "RE_REVIEW_REQUIRED",
+        }
+    if "CURRENT_TARGET_EVIDENCE_MISSING" in errors:
+        return {
+            "primary_reason": "PROVENANCE_MISSING",
+            "evidence_reasons": [],
+            "disposition": "SOURCE_RECOVERY_REQUIRED",
+        }
+    if "CURRENT_CONTENT_MISSING" in errors:
+        return {
+            "primary_reason": "SGF_SOURCE_MISSING",
+            "evidence_reasons": [],
+            "disposition": "SOURCE_RECOVERY_REQUIRED",
+        }
+    if "CURRENT_TARGET_HASH_INVALID" in errors:
+        return {
+            "primary_reason": "SOURCE_HASH_MISMATCH",
+            "evidence_reasons": ["PROVENANCE_STALE"],
+            "disposition": "RE_REVIEW_REQUIRED",
+        }
+    return {
+        "primary_reason": "OTHER",
+        "evidence_reasons": sorted(errors),
+        "disposition": "OTHER",
+    }
+
+
+def _manual_reconstruction_preview(
+    group: Mapping[str, Any],
+    proposals: Sequence[Mapping[str, Any]],
+    resolved: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    target = _require_mapping(resolved[0].get("target"), "manual target")
+    content = str(target.get("current_content") or "")
+    try:
+        root = parse_sgf(content, strict=True)
+        signature = _initial_position_signature(root)
+        structure = _answer_structure(content)
+        board_size = int((signature.get("SZ") or [19])[0])
+        side_to_move = structure.get("side_to_move")
+        native = _point_labels(structure.get("ordered_points") or [], board_size)
+        setup = {
+            "black": len(signature.get("AB") or []),
+            "white": len(signature.get("AW") or []),
+            "empty": len(signature.get("AE") or []),
+        }
+        parse_status = "PASS"
+    except (ValueError, TypeError, IndexError):
+        board_size = int(group.get("board_size") or 19)
+        side_to_move = group.get("side_to_move")
+        native = []
+        setup = None
+        parse_status = "FAIL"
+    proposed_points = []
+    for proposal in proposals:
+        move = proposal.get("proposed_move")
+        if isinstance(move, Mapping):
+            proposed_points.append(_move_key(move))
+    intended = (
+        _point_labels(proposed_points, board_size)
+        if proposed_points
+        else ["NOT_SPECIFIED_RECONSTRUCTION_REQUIRED"]
+    )
+    return {
+        "legacy_question_id": target.get("legacy_question_id"),
+        "source_path": target.get("current_source_path"),
+        "content_sha256": target.get("current_content_sha256"),
+        "sgf_parse": parse_status,
+        "board_size": board_size,
+        "setup_stone_counts": setup,
+        "side_to_move": side_to_move or "UNKNOWN",
+        "current_native_answers": native,
+        "historical_precomputed_fallback": str(
+            target.get("current_katago_best_move") or ""
+        ),
+        "owner_reviewed_intended_answer": intended,
+        "automatic_reconstruction_unsafe_because": [
+            "OWNER_FLAGGED_SOURCE_POSITION_INCLUDES_ANSWER",
+            "NO_OWNER_APPROVED_CORRECTED_INITIAL_POSITION",
+            "NO_OWNER_APPROVED_NATIVE_ANSWER_SEQUENCE",
+        ],
+        "likely_reconstruction_options": [
+            "REMOVE_THE_ALREADY_PLAYED_ANSWER_FROM_SETUP_AND_AUTHOR_A_NATIVE_TREE",
+            "CORRECT_SIDE_TO_MOVE_AND_AUTHOR_A_NATIVE_TREE",
+            "RECOVER_THE_PRE_CONVERSION_SOURCE_POSITION",
+        ],
+        "exact_owner_decision_required": (
+            "Approve the corrected initial stones, side to move, and complete "
+            "native answer variation; the D16 fallback is evidence only."
+        ),
+    }
+
+
+def _review_state_evidence(
+    group: Mapping[str, Any],
+    proposals: Sequence[Mapping[str, Any]],
+    resolved: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    board_size = int(group.get("board_size") or 19)
+    reviewed_points = _ordered_unique_points(
+        group.get("current_first_solution_moves") or []
+    )
+    replace = _proposal_points(proposals, "REPLACE_PRIMARY_ANSWER")
+    additions = _proposal_points(proposals, "ADD_EQUIVALENT_SOLUTION")
+    desired = list(replace if replace else reviewed_points)
+    for point in additions:
+        if point not in desired:
+            desired.append(point)
+    if set(str(p.get("type") or "") for p in proposals) & MANUAL_TYPES:
+        desired_state: Any = "MANUAL_RECONSTRUCTION_OWNER_DECISION_REQUIRED"
+    else:
+        desired_state = _point_labels(desired, board_size)
+    current_records = []
+    for item in resolved:
+        target = item.get("target")
+        if not isinstance(target, Mapping):
+            continue
+        content = target.get("current_content")
+        current_native: Any = "UNAVAILABLE"
+        current_side: Any = "UNKNOWN"
+        if isinstance(content, str):
+            try:
+                structure = _answer_structure(content)
+                current_native = _point_labels(
+                    structure["ordered_points"], board_size
+                )
+                current_side = structure["side_to_move"] or "UNKNOWN"
+            except (ValueError, TypeError):
+                current_native = "PARSE_FAILURE"
+        current_records.append(
+            {
+                "legacy_question_id": target.get("legacy_question_id"),
+                "source_path": target.get("current_source_path"),
+                "content_sha256": target.get("current_content_sha256"),
+                "side_to_move": current_side,
+                "native_answers": current_native,
+                "accepted_moves": target.get("current_accepted_moves") or [],
+                "stored_precomputed_fallback": str(
+                    target.get("current_katago_best_move") or ""
+                ),
+            }
+        )
+    return {
+        "owner_reviewed_current_state": {
+            "side_to_move": group.get("side_to_move") or "UNKNOWN",
+            "native_answers": _point_labels(reviewed_points, board_size),
+            "reviewed_content_sha256": group.get("review_group_key"),
+        },
+        "current_canonical_state": current_records,
+        "owner_desired_state": desired_state,
+    }
+
+
 def _simulate_record(
     resolved: Mapping[str, Any],
     *,
@@ -590,6 +802,8 @@ def _simulate_record(
     fallback_point = (
         _gtp_to_xy(fallback_before, board_size) if fallback_before else None
     )
+    if fallback_before and fallback_point is None:
+        raise ValueError("HISTORICAL_FALLBACK_COORDINATE_INVALID")
     fallback_match = (
         fallback_point in reviewed_historical_points
         if fallback_point is not None
@@ -602,10 +816,6 @@ def _simulate_record(
         and fallback_point not in set(desired_points)
         and not reject_fallback
     )
-    if fallback_replacement_conflict:
-        raise ValueError(
-            "UNREJECTED_PRECOMPUTED_FALLBACK_OUTSIDE_REPLACEMENT_SET"
-        )
     if reject_fallback:
         if not fallback_before:
             raise ValueError("historical fallback is already empty")
@@ -618,6 +828,48 @@ def _simulate_record(
                 "rejected fallback remains accepted by another answer layer"
             )
         fallback_after = ""
+
+    current_effective = set(current_points) | accepted_moves
+    if fallback_point is not None:
+        current_effective.add(fallback_point)
+    if replace_answer_set:
+        owner_desired_effective = set(desired_points)
+    else:
+        owner_desired_effective = current_effective | set(desired_points)
+    if reject_fallback and fallback_point is not None:
+        owner_desired_effective.discard(fallback_point)
+
+    fallback_after_point = (
+        _gtp_to_xy(fallback_after, board_size) if fallback_after else None
+    )
+    current_layers = _effective_verdict_layers(
+        native_points=current_points,
+        accepted_points=accepted_moves,
+        fallback_point=fallback_point,
+        board_size=board_size,
+    )
+    simulated_layers = _effective_verdict_layers(
+        native_points=actual_after_points,
+        accepted_points=accepted_moves,
+        fallback_point=fallback_after_point,
+        board_size=board_size,
+    )
+    simulated_effective = set(actual_after_points) | accepted_moves
+    if fallback_after_point is not None:
+        simulated_effective.add(fallback_after_point)
+    simulated_surface_sets = [
+        set(actual_after_points) | accepted_moves,
+        set(actual_after_points),
+        set(actual_after_points)
+        | ({fallback_after_point} if fallback_after_point is not None else set()),
+    ]
+    effective_match = (
+        simulated_effective == owner_desired_effective
+        and all(
+            surface == owner_desired_effective
+            for surface in simulated_surface_sets
+        )
+    )
 
     judging = _native_judging_validation(
         content_after, desired=desired_points, removed=removed_points
@@ -646,8 +898,12 @@ def _simulate_record(
         "historical_fallback_cleared": (
             not reject_fallback or fallback_after == ""
         ),
+        "fallback_replacement_conflict": fallback_replacement_conflict,
+        "owner_desired_verdict_equals_simulated_final_effective_player_verdict": (
+            effective_match
+        ),
     }
-    validation["passed"] = bool(
+    validation["native_repair_passed"] = bool(
         validation["initial_position_preserved"]
         and validation["root_metadata_raw_preserved"]
         and validation["surviving_variations_preserved"]
@@ -658,6 +914,9 @@ def _simulate_record(
         and judging["desired_all_native_branches"]
         and judging["removed_all_off_tree"]
         and validation["historical_fallback_cleared"]
+    )
+    validation["passed"] = bool(
+        validation["native_repair_passed"] and effective_match
     )
 
     current_index = int(target["current_record_index"])
@@ -718,6 +977,12 @@ def _simulate_record(
         ),
         "current_katago_best_move": fallback_before,
         "desired_katago_best_move": fallback_after,
+        "current_effective_verdict": current_layers,
+        "owner_desired_verdict": _point_labels(
+            owner_desired_effective, board_size
+        ),
+        "simulated_final_verdict": simulated_layers,
+        "match": effective_match,
         "planned_operations": operations,
         "existing_tree": {
             "native_root_solution_count": len(current_points),
@@ -778,6 +1043,7 @@ def _classify_group(
         "reason_codes": [],
         "records": [],
     }
+    result.update(_review_state_evidence(group, proposals, resolved))
 
     available_count = sum(
         1
@@ -795,6 +1061,9 @@ def _classify_group(
             for code in resolution_errors
         ):
             result["classification"] = CLASS_UNRESOLVED
+            result["unresolved"] = _unresolved_diagnostic(
+                resolution_errors
+            )
         else:
             result["classification"] = CLASS_STALE
         result["reason_codes"] = resolution_errors
@@ -805,6 +1074,21 @@ def _classify_group(
                     "legacy_question_id"
                 ),
                 "source_path": item["reviewed"].get("source_path"),
+                "current_source_path": (
+                    (item.get("target") or {}).get("current_source_path")
+                    if item.get("target")
+                    else None
+                ),
+                "reviewed_content_sha256": item["reviewed"].get(
+                    "content_sha256"
+                ),
+                "current_content_sha256": (
+                    (item.get("target") or {}).get(
+                        "current_content_sha256"
+                    )
+                    if item.get("target")
+                    else None
+                ),
                 "current_resolution": (
                     (item.get("target") or {}).get("resolution_status")
                     if item.get("target")
@@ -853,6 +1137,9 @@ def _classify_group(
             }
             for item in resolved
         ]
+        result["manual_reconstruction_preview"] = (
+            _manual_reconstruction_preview(group, proposals, resolved)
+        )
         return result
 
     first_target = _require_mapping(
@@ -997,8 +1284,6 @@ def _classify_group(
                 reject_fallback=reject_fallback,
                 reviewed_historical_points=historical_points,
             )
-            if not record_plan["validation"]["passed"]:
-                raise ValueError("isolated repair validation failed")
             simulated.append(record_plan)
             simulated_contents.append(simulated_content)
     except (ValueError, TypeError) as error:
@@ -1007,6 +1292,25 @@ def _classify_group(
             "SIMULATION_VALIDATION_FAILED",
             str(error),
         ]
+        return result
+
+    native_repair_passed = all(
+        record["validation"]["native_repair_passed"]
+        for record in simulated
+    )
+    end_to_end_match = all(record["match"] for record in simulated)
+    fallback_conflict = any(
+        record["validation"]["fallback_replacement_conflict"]
+        for record in simulated
+    )
+    if not native_repair_passed:
+        result.update(
+            {
+                "classification": CLASS_STALE,
+                "reason_codes": ["SIMULATION_VALIDATION_FAILED"],
+                "records": simulated,
+            }
+        )
         return result
 
     if simulation_dir is not None:
@@ -1027,10 +1331,26 @@ def _classify_group(
                 )
     result.update(
         {
-            "classification": CLASS_AUTO,
-            "reason_codes": [
-                "ISOLATED_REPAIR_VALIDATION_PASSED"
-            ],
+            "classification": (
+                CLASS_FULLY
+                if end_to_end_match
+                else (
+                    CLASS_FALLBACK_CONFLICT
+                    if fallback_conflict
+                    else CLASS_STALE
+                )
+            ),
+            "reason_codes": (
+                ["END_TO_END_EFFECTIVE_VERDICT_MATCH"]
+                if end_to_end_match
+                else (
+                    [
+                        "UNREJECTED_PRECOMPUTED_FALLBACK_OUTSIDE_REPLACEMENT_SET"
+                    ]
+                    if fallback_conflict
+                    else ["FINAL_EFFECTIVE_VERDICT_MISMATCH"]
+                )
+            ),
             "records": simulated,
         }
     )
@@ -1107,7 +1427,8 @@ def build_repair_plan(
     counts = {
         classification: 0
         for classification in (
-            CLASS_AUTO,
+            CLASS_FULLY,
+            CLASS_FALLBACK_CONFLICT,
             CLASS_MANUAL,
             CLASS_STALE,
             CLASS_UNRESOLVED,
@@ -1122,10 +1443,10 @@ def build_repair_plan(
         for group in groups
         if int(group.get("group_size") or 0) > 1
     ]
-    auto_duplicate_groups = [
+    safe_duplicate_groups = [
         plan
         for plan in plans
-        if plan["classification"] == CLASS_AUTO
+        if plan["classification"] == CLASS_FULLY
         and int(plan.get("group_size") or 0) > 1
     ]
     duplicate_conflicts = [
@@ -1137,7 +1458,7 @@ def build_repair_plan(
     planned_records = [
         record
         for plan in plans
-        if plan["classification"] == CLASS_AUTO
+        if plan["classification"] == CLASS_FULLY
         for record in plan.get("records") or []
     ]
     planned_sources = sorted(
@@ -1175,6 +1496,21 @@ def build_repair_plan(
                     "desired_precomputed_fallbacks"
                 ),
                 "reason_codes": plan.get("reason_codes"),
+                "current_effective_verdict": (
+                    (plan.get("records") or [{}])[0].get(
+                        "current_effective_verdict"
+                    )
+                ),
+                "owner_desired_verdict": (
+                    (plan.get("records") or [{}])[0].get(
+                        "owner_desired_verdict"
+                    )
+                ),
+                "simulated_final_verdict": (
+                    (plan.get("records") or [{}])[0].get(
+                        "simulated_final_verdict"
+                    )
+                ),
                 "plan": ([
                     operation
                     for record in plan.get("records") or []
@@ -1183,6 +1519,18 @@ def build_repair_plan(
                     )
                     or []
                 ] or list(plan.get("intended_operations") or [])),
+            }
+            final_labels = set(
+                (
+                    question_15436.get("simulated_final_verdict") or {}
+                ).get("final_effective_player_verdict")
+                or []
+            )
+            question_15436["mandatory_proof"] = {
+                "B1": "ACCEPT" if "B1" in final_labels else "REJECT",
+                "A2": "ACCEPT" if "A2" in final_labels else "REJECT",
+                "Q4": "ACCEPT" if "Q4" in final_labels else "REJECT",
+                "final_effective_verdict_safe": final_labels == {"B1"},
             }
             break
     if question_15436 is None:
@@ -1206,16 +1554,19 @@ def build_repair_plan(
             )
             or 0
         ),
-        "auto_applyable": counts[CLASS_AUTO],
+        "fully_applyable_end_to_end": counts[CLASS_FULLY],
+        "native_repair_valid_but_fallback_conflict": counts[
+            CLASS_FALLBACK_CONFLICT
+        ],
         "manual_reconstruction_required": counts[CLASS_MANUAL],
         "stale_or_conflicted": counts[CLASS_STALE],
         "unresolved": counts[CLASS_UNRESOLVED],
         "no_op": counts[CLASS_NO_OP],
         "duplicate_groups": len(active_duplicate_groups),
-        "multi_record_repair_groups": len(auto_duplicate_groups),
+        "multi_record_repair_groups": len(safe_duplicate_groups),
         "duplicate_fanout_records": sum(
             int(plan["group_size"]) - 1
-            for plan in auto_duplicate_groups
+            for plan in safe_duplicate_groups
         ),
         "duplicate_group_conflicts": len(duplicate_conflicts),
         "planned_canonical_files_changed": len(planned_sources),
@@ -1283,7 +1634,187 @@ def build_repair_plan(
             ]
             for record in multi_answer_records
         ),
+        "final_effective_judging_simulation": all(
+            record.get("match") is True for record in planned_records
+        ),
     }
+
+    unresolved_groups = [
+        {
+            "review_group_key": plan.get("review_group_key"),
+            "legacy_question_ids": plan.get("legacy_question_ids") or [],
+            "primary_reason": plan["unresolved"]["primary_reason"],
+            "evidence_reasons": plan["unresolved"]["evidence_reasons"],
+            "disposition": plan["unresolved"]["disposition"],
+        }
+        for plan in plans
+        if plan["classification"] == CLASS_UNRESOLVED
+    ]
+    unresolved_reason_breakdown: dict[str, int] = {}
+    unresolved_disposition_breakdown: dict[str, int] = {}
+    for item in unresolved_groups:
+        for reason in [item["primary_reason"], *item["evidence_reasons"]]:
+            unresolved_reason_breakdown[reason] = (
+                unresolved_reason_breakdown.get(reason, 0) + 1
+            )
+        disposition = item["disposition"]
+        unresolved_disposition_breakdown[disposition] = (
+            unresolved_disposition_breakdown.get(disposition, 0) + 1
+        )
+
+    conflict_review_groups = [
+        {
+            "question_id_or_review_group": (
+                plan.get("legacy_question_ids") or [plan["review_group_key"]]
+            ),
+            "review_group_key": plan.get("review_group_key"),
+            "owner_reviewed_current_state": plan.get(
+                "owner_reviewed_current_state"
+            ),
+            "current_canonical_state": plan.get("current_canonical_state"),
+            "owner_desired_state": plan.get("owner_desired_state"),
+            "conflict_reason": plan.get("reason_codes") or [],
+            "recommended_disposition": (
+                "OWNER_FALLBACK_DECISION_REQUIRED_THEN_RE_REVIEW"
+                if plan["classification"] == CLASS_FALLBACK_CONFLICT
+                else "RE_REVIEW_REQUIRED"
+            ),
+        }
+        for plan in plans
+        if plan["classification"] in {
+            CLASS_FALLBACK_CONFLICT,
+            CLASS_STALE,
+        }
+    ]
+
+    safe_groups = []
+    for plan in plans:
+        if plan["classification"] != CLASS_FULLY:
+            continue
+        safe_groups.append(
+            {
+                "review_group_key": plan["review_group_key"],
+                "legacy_question_ids": plan["legacy_question_ids"],
+                "group_size": plan["group_size"],
+                "classification": plan["classification"],
+                "records": [
+                    {
+                        "audit_locator": record["audit_locator"],
+                        "legacy_question_id": record["legacy_question_id"],
+                        "current_record_index": record["current_record_index"],
+                        "source_path": record["source_path"],
+                        "source_content_sha256_before": record[
+                            "source_content_sha256_before"
+                        ],
+                        "source_content_sha256_after": record[
+                            "source_content_sha256_after"
+                        ],
+                        "planned_operations": record["planned_operations"],
+                        "current_effective_verdict": record[
+                            "current_effective_verdict"
+                        ],
+                        "owner_desired_verdict": record[
+                            "owner_desired_verdict"
+                        ],
+                        "simulated_final_verdict": record[
+                            "simulated_final_verdict"
+                        ],
+                        "match": "YES" if record["match"] else "NO",
+                    }
+                    for record in plan.get("records") or []
+                ],
+            }
+        )
+    safe_files = sorted(
+        {
+            record["source_path"]
+            for group in safe_groups
+            for record in group["records"]
+        }
+    )
+    safe_batch_core = {
+        "proposal_snapshot_sha256": proposal_snapshot_sha256,
+        "reviewed_questions_sha256": reviewed_questions_sha256,
+        "current_targets_sha256": current_targets_sha256,
+        "repair_plan_sha256": repair_plan_sha256,
+        "invariant": (
+            "OWNER_DESIRED_VERDICT == "
+            "SIMULATED_FINAL_EFFECTIVE_PLAYER_VERDICT"
+        ),
+        "groups": safe_groups,
+        "files": safe_files,
+    }
+    safe_batch_sha256 = _sha256(_canonical_json_bytes(safe_batch_core))
+    safe_batch = {
+        "schema_version": "1.0",
+        "authority": "SGF_ANSWER_REPAIR_BATCH_001_SAFE_FIRST_BATCH_DRY_RUN_ONLY",
+        "classification_filter": [CLASS_FULLY],
+        "excluded_classifications": [
+            CLASS_FALLBACK_CONFLICT,
+            CLASS_MANUAL,
+            CLASS_STALE,
+            CLASS_UNRESOLVED,
+            CLASS_NO_OP,
+        ],
+        **safe_batch_core,
+        "summary": {
+            "safe_batch_groups": len(safe_groups),
+            "safe_batch_records": sum(
+                len(group["records"]) for group in safe_groups
+            ),
+            "safe_batch_files": len(safe_files),
+            "safe_batch_sha256": safe_batch_sha256,
+        },
+        "safe_batch_sha256": safe_batch_sha256,
+        "apply_authorized": False,
+    }
+
+    question_verdict_traces = {}
+    for question_id in (15436, 15388, 65095):
+        plan = next(
+            (
+                candidate
+                for candidate in plans
+                if question_id in candidate.get("legacy_question_ids", [])
+            ),
+            None,
+        )
+        if plan is None:
+            continue
+        record = (plan.get("records") or [None])[0]
+        question_verdict_traces[str(question_id)] = {
+            "fallback_source_field": "katago_best_move",
+            "fallback_storage_location": (
+                "per-question /app/data/questions.json katago_best_move field; "
+                "copied into the in-memory Rating Test pool. The optional "
+                "rating_verified_questions.json override file is absent from "
+                "the canonical tree and is not copied by the Dockerfile"
+            ),
+            "verified_override_evidence": (
+                "CANONICAL_FILE_ABSENT_AND_NOT_PACKAGED"
+            ),
+            "fallback_provenance": (
+                "historical Owner-side offline KataGo preprocessing before upload; "
+                "no Production KataGo execution is involved"
+            ),
+            "fallback_acceptance_condition": (
+                "Rating Test only: exactly one submitted move equals the session-"
+                "transformed stored fallback after accepted/native legacy replay "
+                "has not returned true"
+            ),
+            "final_verdict_path": [
+                "main practice: accepted_moves injected into native SGF client tree",
+                "daily challenge: native SGF client tree; server trusts client correct",
+                "friend challenge: main client verdict; server trusts client correct",
+                "Map Battle V1: server accepted_moves then native SGF tree",
+                "Rating Test: pool accepted_moves check (currently empty because pool projection omits it), native legacy SGF replay, stored katago_best_move fallback",
+            ],
+            "classification": plan["classification"],
+            "current_native_answers": plan.get("current_answer_set") or [],
+            "owner_desired_answers": plan.get("desired_answer_set") or [],
+            "stored_fallbacks": plan.get("current_precomputed_fallbacks") or [],
+            "end_to_end_record": record,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "authority": AUTHORITY,
@@ -1311,6 +1842,39 @@ def build_repair_plan(
         "reason_code_counts": reason_code_counts,
         "validation": validation,
         "question_15436": question_15436,
+        "question_verdict_traces": question_verdict_traces,
+        "unresolved_reason_breakdown": dict(
+            sorted(unresolved_reason_breakdown.items())
+        ),
+        "unresolved_disposition_breakdown": dict(
+            sorted(unresolved_disposition_breakdown.items())
+        ),
+        "unresolved_groups": unresolved_groups,
+        "conflict_review_groups": conflict_review_groups,
+        "manual_reconstruction_previews": [
+            plan["manual_reconstruction_preview"]
+            for plan in plans
+            if plan.get("manual_reconstruction_preview")
+        ],
+        "fallback_remediation_boundary": {
+            "recommended": (
+                "A_PER_RECORD_FALLBACK_REMOVAL_ONLY_AFTER_EXPLICIT_OWNER_DECISION"
+            ),
+            "option_a": (
+                "NARROWEST; existing planner can clear the exact per-record field "
+                "only when a reviewed REJECT_HISTORICAL_PRECOMPUTED_FALLBACK "
+                "proposal matches current evidence"
+            ),
+            "option_b": (
+                "NOT_IMPLEMENTED; would require governed per-record metadata and "
+                "precedence semantics"
+            ),
+            "option_c": "NOT_AUTHORIZED_AND_NOT_PROPOSED",
+            "global_fallback_impact_audit": (
+                "NOT_RUN_BECAUSE_NO_GLOBAL_PRECEDENCE_CHANGE_IS_PROPOSED"
+            ),
+        },
+        "safe_batch": safe_batch,
         "groups": plans,
         "repair_plan_sha256": repair_plan_sha256,
         "safety": {
@@ -1360,7 +1924,7 @@ def _fallback_summary(plan: Mapping[str, Any]) -> str:
     return f"{current_text} → {desired_text}"
 
 
-def render_report(manifest: Mapping[str, Any]) -> str:
+def _render_phase1_report(manifest: Mapping[str, Any]) -> str:
     summary = manifest["summary"]
     q15436 = manifest["question_15436"]
     lines = [
@@ -1672,12 +2236,249 @@ def render_report(manifest: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_report(manifest: Mapping[str, Any]) -> str:
+    summary = manifest["summary"]
+    safe = manifest["safe_batch"]
+    question = manifest["question_15436"]
+    proof = question.get("mandatory_proof") or {}
+    validation = manifest["validation"]
+    lines = [
+        "# SGF-ANSWER-REPAIR-BATCH-001 — Phase 1B End-to-End Verdict Safety",
+        "",
+        "Status: READY_FOR_OWNER_SAFE_BATCH_REVIEW",
+        "",
+        (
+            "The native-only dry run was accepted as PASS_WITH_BLOCKER. This "
+            "continuation checks the final effective first-move verdict across "
+            "current player-facing paths. It is read-only and is not GO_APPLY."
+        ),
+        "",
+        "## Snapshot identity",
+        "",
+        f"- Proposal snapshot timestamp: {manifest['inputs']['proposal_snapshot_timestamp']}",
+        f"- Proposal snapshot SHA-256: `{manifest['inputs']['proposal_snapshot_sha256']}`",
+        f"- Reviewed questions SHA-256: `{manifest['inputs']['reviewed_questions_sha256']}`",
+        f"- Current target evidence SHA-256: `{manifest['inputs']['current_targets_sha256']}`",
+        f"- Current Production questions SHA-256: `{manifest['inputs']['current_production_questions']['content_sha256']}`",
+        f"- Current Production question count: {manifest['inputs']['current_production_questions']['record_count']}",
+        f"- Repair plan SHA-256: `{manifest['repair_plan_sha256']}`",
+        f"- Safe first batch SHA-256: `{safe['safe_batch_sha256']}`",
+        "",
+        "## End-to-end classification",
+        "",
+        "| Classification | Groups |",
+        "| --- | ---: |",
+        f"| `{CLASS_FULLY}` | {summary['fully_applyable_end_to_end']} |",
+        f"| `{CLASS_FALLBACK_CONFLICT}` | {summary['native_repair_valid_but_fallback_conflict']} |",
+        f"| `{CLASS_MANUAL}` | {summary['manual_reconstruction_required']} |",
+        f"| `{CLASS_STALE}` | {summary['stale_or_conflicted']} |",
+        f"| `{CLASS_UNRESOLVED}` | {summary['unresolved']} |",
+        f"| `{CLASS_NO_OP}` | {summary['no_op']} |",
+        "",
+        (
+            "Required invariant: `OWNER_DESIRED_VERDICT == "
+            "SIMULATED_FINAL_EFFECTIVE_PLAYER_VERDICT`. Native SGF success "
+            "alone no longer qualifies a group for the safe batch."
+        ),
+        "",
+        "### Duplicate safety",
+        "",
+        f"- `DUPLICATE_GROUPS={summary['duplicate_groups']}`",
+        f"- `MULTI_RECORD_REPAIR_GROUPS={summary['multi_record_repair_groups']}`",
+        f"- `DUPLICATE_FANOUT_RECORDS={summary['duplicate_fanout_records']}`",
+        f"- `DUPLICATE_GROUP_CONFLICTS={summary['duplicate_group_conflicts']}`",
+        "",
+        "## Validation",
+        "",
+        "| Check | Result |",
+        "| --- | --- |",
+        f"| SGF parse before/after | {'PASS' if validation['sgf_parse_validation'] else 'FAIL'} |",
+        f"| Native judging | {'PASS' if validation['native_judging_validation'] else 'FAIL'} |",
+        f"| Position/root/surviving variations | {'PASS' if validation['position_and_variation_preservation'] else 'FAIL'} |",
+        f"| Multi-answer validation | {'PASS' if validation['multi_answer_validation'] else 'FAIL'} |",
+        f"| Final effective judging simulation | {'PASS' if validation['final_effective_judging_simulation'] else 'FAIL'} |",
+        "",
+        "## Actual current verdict architecture",
+        "",
+        "- Main practice injects `accepted_moves` into the native SGF client tree. `/api/srs/review` records the resulting grade; it does not re-judge the move.",
+        "- Daily Challenge judges in the client against the native SGF tree; the submit route trusts client `correct`.",
+        "- Friend Challenge uses the main client verdict; the answer route trusts client `correct`.",
+        "- Map Battle V1 checks server-side `accepted_moves`, then the native SGF tree; it does not use `katago_best_move`.",
+        "- Rating Test uses `_rt_server_verify`: accepted moves, native legacy replay, then stored `katago_best_move`. Current `_build_rt_pool` omits accepted moves from pool records, so the effective current pool path is native legacy replay then stored fallback.",
+        "- Shadow/candidate judging is observational and does not alter final verdicts.",
+        "",
+        "### Historical fallback traces",
+        "",
+    ]
+    for question_id, trace in manifest["question_verdict_traces"].items():
+        record = trace.get("end_to_end_record") or {}
+        simulated = (record.get("simulated_final_verdict") or {}).get(
+            "final_effective_player_verdict"
+        ) or []
+        lines.extend(
+            [
+                f"#### Question {question_id}",
+                "",
+                f"- `FALLBACK_SOURCE_FIELD={trace['fallback_source_field']}`",
+                f"- `FALLBACK_STORAGE_LOCATION={trace['fallback_storage_location']}`",
+                f"- `VERIFIED_OVERRIDE_EVIDENCE={trace['verified_override_evidence']}`",
+                f"- `FALLBACK_PROVENANCE={trace['fallback_provenance']}`",
+                f"- `FALLBACK_ACCEPTANCE_CONDITION={trace['fallback_acceptance_condition']}`",
+                "- `FINAL_VERDICT_PATH=` " + " → ".join(trace["final_verdict_path"]),
+                f"- Current native: {', '.join(trace['current_native_answers']) or '—'}",
+                f"- Owner desired: {', '.join(trace['owner_desired_answers']) or '—'}",
+                f"- Stored fallback: {', '.join(trace['stored_fallbacks']) or '—'}",
+                f"- Simulated final effective verdict: {', '.join(simulated) or '—'}",
+                f"- Classification: `{trace['classification']}`",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Question 15436 mandatory proof",
+            "",
+            f"- Current native: {', '.join(question.get('current') or [])}",
+            f"- Owner desired: {', '.join(question.get('desired') or [])}",
+            f"- Stored fallback: {', '.join(question.get('current_precomputed_fallbacks') or [])}",
+            f"- `B1={proof.get('B1')}`",
+            f"- `A2={proof.get('A2')}`",
+            f"- `Q4={proof.get('Q4')}`",
+            "- `QUESTION_15436_FINAL_EFFECTIVE_VERDICT_SAFE="
+            + ("YES" if proof.get("final_effective_verdict_safe") else "NO")
+            + "`",
+            f"- Classification: `{question.get('classification')}`",
+            "",
+            (
+                "The native rewrite removes A2 and preserves B1, but Q4 remains "
+                "accepted by Rating Test fallback. Question 15436 is excluded "
+                "from the safe first batch."
+            ),
+            "",
+            "## Safe first batch",
+            "",
+            f"- `SAFE_BATCH_GROUPS={safe['summary']['safe_batch_groups']}`",
+            f"- `SAFE_BATCH_RECORDS={safe['summary']['safe_batch_records']}`",
+            f"- `SAFE_BATCH_FILES={safe['summary']['safe_batch_files']}`",
+            f"- `SAFE_BATCH_SHA256={safe['safe_batch_sha256']}`",
+            "- Filter: `FULLY_APPLYABLE_END_TO_END` only.",
+            "- Every safe record contains current effective, Owner desired, and simulated final verdict evidence with `MATCH=YES`.",
+            "",
+            "## Unresolved source breakdown",
+            "",
+            "### Reasons",
+            "",
+            "| Reason | Groups |",
+            "| --- | ---: |",
+        ]
+    )
+    for reason, count in manifest["unresolved_reason_breakdown"].items():
+        lines.append(f"| `{reason}` | {count} |")
+    lines.extend(
+        [
+            "",
+            "### Dispositions",
+            "",
+            "| Disposition | Groups |",
+            "| --- | ---: |",
+        ]
+    )
+    for disposition, count in manifest[
+        "unresolved_disposition_breakdown"
+    ].items():
+        lines.append(f"| `{disposition}` | {count} |")
+    lines.extend(
+        [
+            "",
+            "The manifest contains a machine-readable mapping for every unresolved group. All 47 reviewed IDs are absent from the exact current-corpus target inventory; the older review snapshot is retained as evidence and no mapping is guessed.",
+            "",
+            "## Five stale/conflict groups",
+            "",
+        ]
+    )
+    for conflict in manifest["conflict_review_groups"]:
+        ids = ", ".join(
+            str(value) for value in conflict["question_id_or_review_group"]
+        )
+        lines.extend(
+            [
+                f"### Question / review group {ids}",
+                "",
+                "- `OWNER_REVIEWED_CURRENT_STATE=` "
+                + json.dumps(conflict["owner_reviewed_current_state"], ensure_ascii=False, sort_keys=True),
+                "- `CURRENT_CANONICAL_STATE=` "
+                + json.dumps(conflict["current_canonical_state"], ensure_ascii=False, sort_keys=True),
+                "- `OWNER_DESIRED_STATE=` "
+                + json.dumps(conflict["owner_desired_state"], ensure_ascii=False, sort_keys=True),
+                "- `CONFLICT_REASON=` " + ", ".join(conflict["conflict_reason"]),
+                "- `RECOMMENDED_DISPOSITION="
+                + conflict["recommended_disposition"]
+                + "`",
+                "",
+            ]
+        )
+    lines.extend(["## Manual reconstruction preview", ""])
+    for preview in manifest["manual_reconstruction_previews"]:
+        lines.extend(
+            [
+                f"### Question {preview['legacy_question_id']}",
+                "",
+                f"- Current source: `{preview['source_path']}`",
+                f"- Current content SHA-256: `{preview['content_sha256']}`",
+                f"- Board/setup: {preview['board_size']}x{preview['board_size']}; {preview['setup_stone_counts']}",
+                f"- Side to move: `{preview['side_to_move']}`",
+                f"- Current native answer(s): {', '.join(preview['current_native_answers']) or 'none'}",
+                f"- Historical fallback evidence: `{preview['historical_precomputed_fallback'] or 'none'}`",
+                "- Owner-reviewed intended answer: " + ", ".join(preview["owner_reviewed_intended_answer"]),
+                "- Automatic reconstruction unsafe: " + ", ".join(preview["automatic_reconstruction_unsafe_because"]),
+                "- Likely options: " + ", ".join(preview["likely_reconstruction_options"]),
+                "- Exact Owner decision required: " + preview["exact_owner_decision_required"],
+                "",
+            ]
+        )
+    boundary = manifest["fallback_remediation_boundary"]
+    lines.extend(
+        [
+            "## Fallback remediation boundary",
+            "",
+            f"- Recommended: `{boundary['recommended']}`",
+            f"- Option A: {boundary['option_a']}",
+            f"- Option B: {boundary['option_b']}",
+            f"- Option C: `{boundary['option_c']}`",
+            f"- Global impact audit: `{boundary['global_fallback_impact_audit']}`. No global precedence change is proposed, so corpus-wide changed-verdict counts were not inferred from the bounded 71-record target snapshot.",
+            "",
+            "## Reproduction",
+            "",
+            "```powershell",
+            "python tools\\sgf_answer_repair_batch.py --proposal-snapshot docs\\planning\\sgf_answer_repair_batch_001_proposal_snapshot.json --reviewed-questions D:\\go-website\\questions.json --current-targets D:\\go-website-sgf-answer-repair-batch-001-artifacts\\current_canonical_targets.json --manifest docs\\planning\\sgf_answer_repair_batch_001_manifest.json --safe-batch docs\\planning\\sgf_answer_repair_batch_001_safe_batch.json --report docs\\planning\\sgf_answer_repair_batch_001_dry_run.md --simulation-dir D:\\go-website-sgf-answer-repair-batch-001-artifacts\\isolated-repairs-phase1b",
+            "```",
+            "",
+            "Run the command twice against the same immutable inputs and require byte-identical manifests, reports, safe-batch artifacts, ordering, and hashes.",
+            "",
+            "## Safety assertions",
+            "",
+            "    GLOBAL_JUDGING_CHANGE_IMPLEMENTED=NO",
+            "    CANONICAL_SGF_MUTATED=NO",
+            "    QUESTIONS_JSON_MUTATED=NO",
+            "    ACCEPTED_MOVES_MUTATED=NO",
+            "    PRODUCTION_DB_MUTATED=NO",
+            "    PLAYER_VERDICT_MUTATED=NO",
+            "    KATAGO_RUN=NONE",
+            "    IDENTITY_IMPLEMENTED=NO",
+            "    MERGE=NO",
+            "    DEPLOY=NO",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def run(
     *,
     proposal_snapshot_path: Path,
     reviewed_questions_path: Path,
     current_targets_path: Path,
     manifest_path: Path,
+    safe_batch_path: Path | None = None,
     report_path: Path,
     simulation_dir: Path | None,
 ) -> dict[str, Any]:
@@ -1695,7 +2496,10 @@ def run(
         reviewed_questions_path.resolve(),
         current_targets_path.resolve(),
     }
-    for output in (manifest_path.resolve(), report_path.resolve()):
+    output_paths = [manifest_path.resolve(), report_path.resolve()]
+    if safe_batch_path is not None:
+        output_paths.append(safe_batch_path.resolve())
+    for output in output_paths:
         if output in inputs:
             raise ValueError(
                 "output path must not overwrite an input snapshot"
@@ -1725,13 +2529,18 @@ def run(
         simulation_dir=simulation_dir,
     )
     manifest_bytes = _json_bytes(manifest)
+    safe_batch_bytes = _json_bytes(manifest["safe_batch"])
     report_text = render_report(manifest)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.parent.mkdir(parents=True, exist_ok=True)
+    if safe_batch_path is not None:
+        safe_batch_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(manifest_bytes)
     report_path.write_text(
         report_text, encoding="utf-8", newline="\n"
     )
+    if safe_batch_path is not None:
+        safe_batch_path.write_bytes(safe_batch_bytes)
     if proposal_snapshot_path.read_bytes() != proposal_raw:
         raise RuntimeError(
             "proposal snapshot changed during dry run"
@@ -1757,6 +2566,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--current-targets", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
+    parser.add_argument("--safe-batch", required=True, type=Path)
     parser.add_argument("--report", required=True, type=Path)
     parser.add_argument("--simulation-dir", type=Path)
     args = parser.parse_args(argv)
@@ -1765,17 +2575,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         reviewed_questions_path=args.reviewed_questions,
         current_targets_path=args.current_targets,
         manifest_path=args.manifest,
+        safe_batch_path=args.safe_batch,
         report_path=args.report,
         simulation_dir=args.simulation_dir,
     )
     print(
         json.dumps(
             {
-                "status": "READY_FOR_OWNER_DRY_RUN_REVIEW",
+                "status": "READY_FOR_OWNER_SAFE_BATCH_REVIEW",
                 "repair_plan_sha256": manifest[
                     "repair_plan_sha256"
                 ],
                 "summary": manifest["summary"],
+                "safe_batch": manifest["safe_batch"]["summary"],
             },
             ensure_ascii=False,
             sort_keys=True,
