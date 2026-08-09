@@ -6,12 +6,12 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v228-e10-lord-challenge-cta-scope-and-routing';
+const VERSION     = 'v229-e10-z1-prod-integration';
 // The static release packager replaces this deterministic source fallback with
 // a release-<full-git-sha> identity in the staged worker. Keeping a valid
 // source fallback makes the checked-in worker executable while ensuring that
 // every generated release gets a distinct cache namespace automatically.
-const ASSET_IDENTITY = 'source-v228-e10-lord-challenge-cta-scope-and-routing';
+const ASSET_IDENTITY = 'source-v229-e10-z1-prod-integration';
 const SHELL_CACHE = `cg-shell-${VERSION}-${ASSET_IDENTITY}`;
 const IMG_CACHE   = `cg-img-${VERSION}-${ASSET_IDENTITY}`;
 const APP_CACHE_PREFIXES = ['cg-shell-', 'cg-img-'];

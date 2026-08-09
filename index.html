@@ -2833,6 +2833,11 @@
     .film-shot.active img {
         animation: storyboardDrift 14s ease-out both;
     }
+    @media (prefers-reduced-motion: reduce) {
+        .film-shot.active img {
+            animation: none;
+        }
+    }
     .film-shot-1.active img {
         transform-origin: 34% 50%;
     }
@@ -2852,6 +2857,15 @@
         transform-origin: 52% 48%;
     }
     .film-shot-7.active img {
+        transform-origin: 50% 50%;
+    }
+    .film-shot-8.active img {
+        transform-origin: 50% 50%;
+    }
+    .film-shot-9.active img {
+        transform-origin: 50% 50%;
+    }
+    .film-shot-10.active img {
         transform-origin: 50% 50%;
     }
     .intro-film-controls {
@@ -6689,6 +6703,15 @@
             <div class="film-shot film-shot-7" data-shot="6">
                 <img id="intro-film-shot-7" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
             </div>
+            <div class="film-shot film-shot-8" data-shot="7">
+                <img id="intro-film-shot-8" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
+            <div class="film-shot film-shot-9" data-shot="8">
+                <img id="intro-film-shot-9" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
+            <div class="film-shot film-shot-10" data-shot="9">
+                <img id="intro-film-shot-10" src="/assets/storyboards/go_starter_village_scene_04.webp" alt="村長的考驗" data-i18n-alt="index.film.alt4" loading="lazy" decoding="async">
+            </div>
             <div class="film-title-card" data-i18n="index.film.title_card">圍棋新手村：木劍的試煉</div>
         </div>
         <div class="boss-cinematic-content" id="boss-cinematic-content">
@@ -8510,6 +8533,13 @@ async function _submitMapBattleV1IfActive(moves) {
                 _publishMapBattleV1Lifecycle();
                 if (response.next_action === 'monster_defeated') {
                     if (!showBeginnerVillageEncounterContinuation()) returnToAdventureMapAfterEncounter();
+                    // Genuine, server-authoritative Zone 1 clear (never fired
+                    // on 'player_defeated'/loss -- see next_action's mutually
+                    // exclusive branches in map_battle_runtime.py). Self-
+                    // guards on isBeginnerVillageAdventureResult() and
+                    // "already seen"; a no-op for every other zone and for
+                    // Zone 1's second-and-later clears.
+                    _maybeTriggerZone1PostClearFilm();
                     return;
                 }
                 srsDoneCount++;
@@ -10526,6 +10556,14 @@ let _introNarration = null;
 let _introSpeechTimers = [];
 let _introAudio = null;
 let _introFilmRunId = 0;
+// Tracks what the CURRENTLY-SHOWING (or most-recently-shown) intro-film
+// overlay run actually is, so skipIntroFilm()/replayIntroFilm() -- both
+// zone-key-driven, not caller-driven -- can resume/finish the SAME phase
+// instead of always falling back to the PRE_PLAY timeline. 'pre_play' is
+// every existing zone's only phase; 'post_clear' is Zone 1-only (see
+// playZone1PostClearFilm). Set at the top of every playNewbieVillageIntroFilm
+// call and read back verbatim by skip/replay -- never guessed independently.
+let _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play' };
 let _introVoiceOptions = [];
 let _introVoiceIndex = 0;
 let _introZhPresetIndex = 0;
@@ -12151,6 +12189,11 @@ function updateMapProgress(data) {
     try {
         const zones = Array.isArray(data.zones) ? data.zones : [];
         _adventureProgress = zones;
+        // Reload/close recovery for Zone 1's POST_CLEAR follow-up (Owner
+        // review follow-up, E10-Z1-PROD-INTEGRATION-001): runs on every
+        // fresh adventure-progress load, a no-op unless a genuine clear left
+        // Shots 9-10 pending but unseen (see _resumeZone1PostClearIfPending).
+        _resumeZone1PostClearIfPending();
         if (!zones.length) {
             _activeBossZone = null;
             _setAdventureStoredSelectedStageKey('');
@@ -12216,12 +12259,124 @@ function markAdventureIntroSeen(zone) {
     } catch {}
 }
 
+// Account scope for Zone 1's POST_CLEAR state (Owner review follow-up,
+// E10-Z1-PROD-INTEGRATION-001): reuses the exact identity resolution already
+// established by _dailyLimitStorageKey() elsewhere in this file --
+// _currentUserId (set from the authenticated /api/auth/me response) with a
+// same-browser fallback to the existing 'last_session_uid_v1' key (already
+// written on every login, see the account-switch handler in window.onload).
+// A shared browser must never let one account's POST_CLEAR pending/seen
+// state leak into another's: without this, User A's mid-playback pending
+// flag could resume as User B's story, and User A's seen flag could
+// wrongly suppress User B's own first-time clear. No uid resolvable ->
+// fail closed (return false / no-op write) rather than fall back to a
+// browser-wide flag.
+function _postClearAccountId() {
+    try {
+        if (_currentUserId != null) return String(_currentUserId);
+        return localStorage.getItem('last_session_uid_v1') || null;
+    } catch {
+        return null;
+    }
+}
+
+// A separate, distinct storage key from ADVENTURE_INTRO_STORAGE_KEY --
+// "seen the PRE_PLAY intro" and "seen the POST_CLEAR follow-up story" are
+// different facts that must never collapse into one flag (E10-Z1-PROD-
+// INTEGRATION-001 Owner review, Fix 1). Currently only Zone 1 (k26_30)
+// defines a postClearTimeline; other zones simply never read/write this.
+// Deliberately NOT extending this account-scoping to the pre-existing
+// ADVENTURE_INTRO_STORAGE_KEY -- that flag's historical browser-wide
+// behavior is out of scope for this Sprint (Owner review: fix only the new
+// Zone 1 POST_CLEAR lifecycle introduced by this PR).
+const ADVENTURE_POSTCLEAR_STORAGE_KEY = 'adventure_postclear_seen_v1';
+
+function adventurePostClearSeen(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return false;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
+        return !!byUser[uid]?.[zone.key];
+    } catch {
+        return false;
+    }
+}
+
+function markAdventurePostClearSeen(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_STORAGE_KEY) || '{}');
+        byUser[uid] = byUser[uid] || {};
+        byUser[uid][zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_POSTCLEAR_STORAGE_KEY, JSON.stringify(byUser));
+    } catch {}
+}
+
+// Reload-resilience for POST_CLEAR (Owner review follow-up,
+// E10-Z1-PROD-INTEGRATION-001): a genuine 'monster_defeated' win is
+// server-confirmed the instant it happens, but "seen" is only written after
+// Shot 10 actually finishes playing (or is explicitly skipped). Without a
+// third state, a reload/close mid-S9/S10 would permanently lose the
+// follow-up story -- the win already happened server-side and never repeats
+// as a fresh 'monster_defeated' event, and "seen" was never set, so nothing
+// would ever re-trigger it. "Pending" bridges that gap: it is written the
+// moment playback starts (see _maybeTriggerZone1PostClearFilm) and cleared
+// only by finishPostClearFilm (normal completion or explicit skip -- both
+// call it). _resumeZone1PostClearIfPending() checks pending-but-not-seen on
+// every fresh adventure-progress load and safely replays Shots 9-10 from
+// the top. Purely a client-side presentation flag: no reward, no
+// settlement, no DB/schema change. Account-scoped via the same
+// _postClearAccountId() as the seen flag above -- same rationale.
+const ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY = 'adventure_postclear_pending_v1';
+
+function adventurePostClearPending(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return false;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        return !!byUser[uid]?.[zone.key];
+    } catch {
+        return false;
+    }
+}
+
+function markAdventurePostClearPending(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        byUser[uid] = byUser[uid] || {};
+        byUser[uid][zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(byUser));
+    } catch {}
+}
+
+function clearAdventurePostClearPending(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY) || '{}');
+        if (byUser[uid]) delete byUser[uid][zone.key];
+        localStorage.setItem(ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY, JSON.stringify(byUser));
+    } catch {}
+}
+
 function applyIntroFilmShotAssets(timeline = []) {
     const stage = document.getElementById('intro-film-stage');
     const shots = stage ? Array.from(stage.querySelectorAll('.film-shot')) : [];
+    // Match by item.shot (the DOM slot index each item declares), not by
+    // array position: a sub-timeline like Zone 1's postClearTimeline only
+    // contains shots 8-9 at array positions 0-1, and must still land on DOM
+    // slots 8-9, not slots 0-1. For every other zone's timeline, item.shot
+    // already equals its array position, so this is a no-op behavior change.
+    const byShotIndex = new Map();
+    timeline.forEach((item) => {
+        if (item && typeof item.shot === 'number') byShotIndex.set(item.shot, item);
+    });
     shots.forEach((shotEl, index) => {
         const img = shotEl.querySelector('img');
-        const item = timeline[index];
+        const item = byShotIndex.get(index);
         shotEl.style.display = item ? '' : 'none';
         if (!img || !item?.imageSrc) return;
         img.src = item.imageSrc;
@@ -12272,6 +12427,12 @@ async function showStageIntroCinematic(zone) {
     if (hasIntroFilm) {
         overlay.dataset.zoneKey = zone.key || '';
         if (shouldShowFinalOnly) {
+            // Reset to a clean PRE_PLAY descriptor: finishIntroFilm() is
+            // called directly here (bypassing playNewbieVillageIntroFilm),
+            // so without this a stale 'post_clear' _introFilmActiveOpts left
+            // over from earlier this session could make a later manual
+            // replay play Shots 9-10 instead of the PRE_PLAY intro.
+            _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play' };
             finishIntroFilm(zone);
             return;
         }
@@ -12321,7 +12482,12 @@ function _stopIntroFilm() {
     if (overlay) overlay.classList.remove('ready');
     if (stage) stage.querySelectorAll('.film-shot').forEach(el => el.classList.remove('active'));
     if (stage) stage.classList.remove('show-title-card');
-    if (caption) caption.textContent = I18n.t('index.film.caption');
+    if (caption) {
+        // Reset visibility so a subsequent non-Zone-1 run isn't left with
+        // Zone 1's hidden badge state (see activateShot's display toggle).
+        caption.style.display = '';
+        caption.textContent = I18n.t('index.film.caption');
+    }
 }
 
 function getCinematicNarratorVoices(preferredLang = 'zh-TW') {
@@ -13258,6 +13424,251 @@ function getIntroFilmLocaleConfig(zone) {
             ],
         };
     }
+    // E10-Z1-PROD-INTEGRATION-001: canonical Zone 1 bilingual cinematic.
+    // Source of truth: docs/planning/e10_final_screenplay_v1.md (Zone 1,
+    // Shots 1-10) and docs/planning/e10_zone1_bilingual_script_v1.md
+    // (zh-TW/en localization + silence-shot + audio-fallback contract).
+    //
+    // LIFECYCLE (Owner review fix, E10-Z1-PROD-INTEGRATION-001 Fix 1):
+    // `timeline` below is PRE_PLAY only (Shots 1-8, DOM shot indices 0-7) --
+    // this is what showStageIntroCinematic()/playNewbieVillageIntroFilm()
+    // play before gameplay. `postClearTimeline` (Shots 9-10, DOM shot
+    // indices 8-9) is a SEPARATE array only ever passed to
+    // playNewbieVillageIntroFilm() via playZone1PostClearFilm(), which is
+    // only invoked after a genuine server-authoritative Map Battle v1
+    // 'monster_defeated' response for k26_30 (see _submitMapBattleV1IfActive
+    // below) -- never at zone-entry time, never on a loss/abandon. There is
+    // deliberately no finalCaption/finalLine here: PRE_PLAY hands off to
+    // gameplay right after Shot 8's own dialogue (see finishIntroFilm's
+    // k26_30 branch) and POST_CLEAR ends right after Shot 10's own dialogue
+    // (see finishPostClearFilm) -- no legacy title-card exposition either
+    // end (Fix 2).
+    //
+    // BEATS (Owner review fix, Fix 3): each shot's dialogue is `beats: []`,
+    // one entry per canonical spoken line (speaker + text + a locale-
+    // specific, independent audioSrc slot for later Owner audio), not one
+    // flattened string. `speaker` is UI/casting metadata only -- it is never
+    // prefixed onto the displayed subtitle text, which stays exactly the
+    // canonical line. Shots 3/5/7/9 are SILENCE_BY_DESIGN: `beats: []`
+    // (zero spoken beats), so no subtitle renders in either locale. No
+    // audioSrc is set on any beat -- no Zone 1 narration MP3 exists in the
+    // repo yet (verified during preflight); playVoice() holds each beat
+    // silently rather than falling back to browser TTS or the other
+    // locale's voice (see the "no TTS" contract note on playVoice above).
+    if (zone?.key === 'k26_30') {
+        if (isEnglish) {
+            return {
+                uiLang: 'en',
+                preferredLang: 'en-GB',
+                filmTitle: zone?.filmTitle || ADVENTURE_STORY_EN?.[zone?.key]?.filmTitle || 'Go Starter Village: The Wooden Sword Trial',
+                timeline: [
+                    {
+                        shot: 0,
+                        caption: 'Shot 1: Awakening',
+                        imageSrc: '/assets/storyboards/e10_z1_shot01.webp',
+                        imageAlt: 'Morning light settles over the sleeping village',
+                        sfx: 'morning',
+                        beats: [
+                            { speaker: 'anna', text: "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual." },
+                        ],
+                    },
+                    {
+                        shot: 1,
+                        caption: 'Shot 2: A Companion Wakes',
+                        imageSrc: '/assets/storyboards/e10_z1_shot02.webp',
+                        imageAlt: 'Hero wakes beside Shui',
+                        sfx: 'appear',
+                        beats: [
+                            { speaker: 'elder', text: 'Morning, child.' },
+                            { speaker: 'hero', text: 'Morning, Shui.' },
+                        ],
+                    },
+                    {
+                        shot: 2,
+                        caption: 'Shot 3: Village Overlook',
+                        imageSrc: '/assets/storyboards/e10_z1_shot03.webp',
+                        imageAlt: 'Elder and Hero look out over the village and a distant storm cloud',
+                        beats: [],
+                    },
+                    {
+                        shot: 3,
+                        caption: 'Shot 4: The Cloud',
+                        imageSrc: '/assets/storyboards/e10_z1_shot04.webp',
+                        imageAlt: 'The Elder points at a cloud that has not moved in three days',
+                        sfx: 'pulse',
+                        beats: [
+                            { speaker: 'elder', text: 'Look at that cloud.' },
+                            { speaker: 'elder', text: "It's been sitting there for three days." },
+                            { speaker: 'elder', text: 'And... every day, it gets a little closer.' },
+                        ],
+                    },
+                    {
+                        shot: 4,
+                        caption: 'Shot 5: The Wooden Sword',
+                        imageSrc: '/assets/storyboards/e10_z1_shot05.webp',
+                        imageAlt: 'Hero grips a wooden sword',
+                        beats: [],
+                    },
+                    {
+                        shot: 5,
+                        caption: 'Shot 6: The Choice to Go',
+                        imageSrc: '/assets/storyboards/e10_z1_shot06.webp',
+                        imageAlt: 'Hero, Shui, and the wooden sword in the farmyard',
+                        sfx: 'journey',
+                        beats: [
+                            { speaker: 'hero', text: "I don't know if I can do this..." },
+                            { speaker: 'hero', text: 'But I want to go see for myself.' },
+                        ],
+                    },
+                    {
+                        shot: 6,
+                        caption: 'Shot 7: The Ritual Board',
+                        imageSrc: '/assets/storyboards/e10_z1_shot07.webp',
+                        imageAlt: 'A 19x19 stone board as the Elder gestures',
+                        beats: [],
+                    },
+                    {
+                        shot: 7,
+                        caption: "Shot 8: The Elder's Trial",
+                        imageSrc: '/assets/storyboards/e10_z1_shot08.webp',
+                        imageAlt: 'The board covered in scattered stones',
+                        sfx: 'start',
+                        beats: [
+                            { speaker: 'elder', text: 'If you want to leave the village, play one game with me first.' },
+                            { speaker: 'elder', text: "Don't rush." },
+                            { speaker: 'elder', text: 'Look carefully. Then make your move.' },
+                        ],
+                    },
+                ],
+                postClearTimeline: [
+                    {
+                        shot: 8,
+                        caption: 'Shot 9: Echo of the Trial',
+                        imageSrc: '/assets/storyboards/e10_z1_shot09.webp',
+                        imageAlt: 'The board after the trial, silence intentional',
+                        beats: [],
+                    },
+                    {
+                        shot: 9,
+                        caption: 'Shot 10: The Missing Caravan',
+                        imageSrc: '/assets/storyboards/e10_z1_shot10.webp',
+                        imageAlt: 'A village runner arrives with urgent news',
+                        sfx: 'pulse',
+                        beats: [
+                            { speaker: 'runner', text: 'Elder!' },
+                            { speaker: 'runner', text: 'The caravan from the Slime Plains...' },
+                            { speaker: 'runner', text: "It's been three days, and they still haven't come back!" },
+                        ],
+                    },
+                ],
+            };
+        }
+        return {
+            uiLang: 'zh',
+            preferredLang: 'zh-TW',
+            filmTitle: zone?.filmTitle || ADVENTURE_STORY[zone?.key]?.filmTitle || '圍棋新手村：木劍的試煉',
+            timeline: [
+                {
+                    shot: 0,
+                    caption: '第一幕：覺醒',
+                    imageSrc: '/assets/storyboards/e10_z1_shot01.webp',
+                    imageAlt: '晨光落在沉睡的村莊上',
+                    sfx: 'morning',
+                    beats: [
+                        { speaker: 'anna', text: '清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。' },
+                    ],
+                },
+                {
+                    shot: 1,
+                    caption: '第二幕：甦醒的夥伴',
+                    imageSrc: '/assets/storyboards/e10_z1_shot02.webp',
+                    imageAlt: '主角在小水身邊醒來',
+                    sfx: 'appear',
+                    beats: [
+                        { speaker: 'elder', text: '孩子，天亮了。' },
+                        { speaker: 'hero', text: '早啊，小水。' },
+                    ],
+                },
+                {
+                    shot: 2,
+                    caption: '第三幕：村莊俯瞰',
+                    imageSrc: '/assets/storyboards/e10_z1_shot03.webp',
+                    imageAlt: '村長與主角眺望村莊與遠方的風暴雲',
+                    beats: [],
+                },
+                {
+                    shot: 3,
+                    caption: '第四幕：那片雲',
+                    imageSrc: '/assets/storyboards/e10_z1_shot04.webp',
+                    imageAlt: '村長指向三天未曾移動的雲',
+                    sfx: 'pulse',
+                    beats: [
+                        { speaker: 'elder', text: '你看，那片雲。' },
+                        { speaker: 'elder', text: '它已經停在那裡三天了。' },
+                        { speaker: 'elder', text: '而且……每天都更近一點。' },
+                    ],
+                },
+                {
+                    shot: 4,
+                    caption: '第五幕：木劍',
+                    imageSrc: '/assets/storyboards/e10_z1_shot05.webp',
+                    imageAlt: '主角握緊木劍',
+                    beats: [],
+                },
+                {
+                    shot: 5,
+                    caption: '第六幕：啟程的決心',
+                    imageSrc: '/assets/storyboards/e10_z1_shot06.webp',
+                    imageAlt: '主角、小水與木劍在農舍前',
+                    sfx: 'journey',
+                    beats: [
+                        { speaker: 'hero', text: '我不知道自己行不行……' },
+                        { speaker: 'hero', text: '但我想去看看。' },
+                    ],
+                },
+                {
+                    shot: 6,
+                    caption: '第七幕：儀式棋盤',
+                    imageSrc: '/assets/storyboards/e10_z1_shot07.webp',
+                    imageAlt: '十九路棋盤與村長的手勢',
+                    beats: [],
+                },
+                {
+                    shot: 7,
+                    caption: '第八幕：村長的考驗',
+                    imageSrc: '/assets/storyboards/e10_z1_shot08.webp',
+                    imageAlt: '棋盤上散落的棋子',
+                    sfx: 'start',
+                    beats: [
+                        { speaker: 'elder', text: '想出村，就先陪我下一局。' },
+                        { speaker: 'elder', text: '別急。' },
+                        { speaker: 'elder', text: '看清楚，再落子。' },
+                    ],
+                },
+            ],
+            postClearTimeline: [
+                {
+                    shot: 8,
+                    caption: '第九幕：考驗的迴響',
+                    imageSrc: '/assets/storyboards/e10_z1_shot09.webp',
+                    imageAlt: '考驗過後的棋盤，刻意的沉默',
+                    beats: [],
+                },
+                {
+                    shot: 9,
+                    caption: '第十幕：商隊未歸',
+                    imageSrc: '/assets/storyboards/e10_z1_shot10.webp',
+                    imageAlt: '村莊信使帶著急訊趕來',
+                    sfx: 'pulse',
+                    beats: [
+                        { speaker: 'runner', text: '村長！' },
+                        { speaker: 'runner', text: '史萊姆平原的商隊……' },
+                        { speaker: 'runner', text: '三天了，還沒回來！' },
+                    ],
+                },
+            ],
+        };
+    }
     if (isEnglish) {
         return {
             uiLang: 'en',
@@ -13404,10 +13815,24 @@ function finishIntroFilm(zone) {
     const titleCard = stage?.querySelector('.film-title-card');
     const shots = Array.from(document.querySelectorAll('#intro-film-stage .film-shot'));
     applyIntroFilmShotAssets(locale.timeline || []);
-    if (titleCard) titleCard.textContent = locale.filmTitle;
-    if (stage) stage.classList.add('show-title-card');
     const lastShot = Math.max(0, (locale.timeline || []).length - 1);
     shots.forEach((el, idx) => el.classList.toggle('active', idx === lastShot));
+    // Zone 1's PRE_PLAY hand-off ends exactly on Shot 8's own dialogue --
+    // no legacy title-card/thesis exposition is layered on top of it (Owner
+    // review, E10-Z1-PROD-INTEGRATION-001 Fix 2). Every other zone keeps its
+    // existing final title-card + thesis-line behavior unchanged below.
+    if (zone?.key === 'k26_30') {
+        // Covers the "already seen, jump straight here" shortcut path
+        // (showStageIntroCinematic's shouldShowFinalOnly), which never runs
+        // activateShot -- hide the badge here too, not just there (Owner
+        // review follow-up, Fix B).
+        if (caption) caption.style.display = 'none';
+        if (overlay) overlay.classList.add('ready');
+        if (btn) btn.disabled = false;
+        return;
+    }
+    if (titleCard) titleCard.textContent = locale.filmTitle;
+    if (stage) stage.classList.add('show-title-card');
     if (caption) caption.textContent = locale.finalCaption;
     if (line) line.textContent = locale.finalLine;
     if (overlay) overlay.classList.add('ready');
@@ -13417,7 +13842,6 @@ function finishIntroFilm(zone) {
 function skipIntroFilm() {
     _introFilmRunId++;
     const zone = getCurrentIntroZone();
-    markAdventureIntroSeen(zone);
     _introFilmTimers.forEach(id => clearTimeout(id));
     _introFilmTimers = [];
     _introSpeechTimers.forEach(id => clearTimeout(id));
@@ -13434,6 +13858,14 @@ function skipIntroFilm() {
     try {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } catch (e) {}
+    // Skipping the POST_CLEAR follow-up (Zone 1 Shots 9-10) must finish that
+    // phase, not silently reset back to the PRE_PLAY intro -- see
+    // _introFilmActiveOpts.
+    if (_introFilmActiveOpts.phase === 'post_clear') {
+        finishPostClearFilm(zone);
+        return;
+    }
+    markAdventureIntroSeen(zone);
     finishIntroFilm(zone);
     playBossSfx('start');
 }
@@ -13448,10 +13880,23 @@ function replayIntroFilm() {
         overlay.setAttribute('aria-hidden', 'false');
         overlay.dataset.zoneKey = zone.key || '';
     }
+    // Replaying while the POST_CLEAR follow-up is showing must replay THAT
+    // phase (visual-only, no reward/settlement call of any kind), not reset
+    // to the PRE_PLAY intro -- see _introFilmActiveOpts.
+    if (_introFilmActiveOpts.phase === 'post_clear') {
+        playZone1PostClearFilm(zone);
+        return;
+    }
     playNewbieVillageIntroFilm(zone);
 }
 
-async function playNewbieVillageIntroFilm(zone) {
+// opts.timeline / opts.onComplete / opts.phase let this same sequencer drive
+// either a zone's PRE_PLAY intro (default: locale.timeline, phase 'pre_play',
+// completing into finishIntroFilm) or Zone 1's POST_CLEAR follow-up (explicit
+// override: locale.postClearTimeline, phase 'post_clear', completing into
+// finishPostClearFilm -- see playZone1PostClearFilm). No other zone currently
+// passes opts, so this is a no-op signature change for them.
+async function playNewbieVillageIntroFilm(zone, opts = {}) {
     const overlay = document.getElementById('boss-cinematic');
     const stage = document.getElementById('intro-film-stage');
     const caption = document.getElementById('intro-film-caption');
@@ -13459,37 +13904,42 @@ async function playNewbieVillageIntroFilm(zone) {
     const btn = document.getElementById('boss-cinematic-btn');
     if (!overlay || !stage) return;
     const locale = getIntroFilmLocaleConfig(zone);
+    const phase = opts.phase || 'pre_play';
+    const timeline = opts.timeline || locale.timeline;
+    _introFilmActiveOpts = { timeline: opts.timeline || null, onComplete: opts.onComplete || null, phase };
     if (titleCard) titleCard.textContent = locale.filmTitle;
     stage.classList.remove('show-title-card');
     const shots = Array.from(stage.querySelectorAll('.film-shot'));
     const runId = _introFilmRunId;
-    const timeline = locale.timeline;
     applyIntroFilmShotAssets(timeline);
-    // Shared pacing formula for how long a shot should visually hold when no
+    // Shared pacing formula for how long a BEAT should visually hold when no
     // narration audio plays for it (used both by the TTS fallback below and
     // by the silent visual-hold path when recorded narration is missing or
-    // fails -- see playAssetVoice's onerror/rejection handling).
-    function computeShotHoldMs(item) {
+    // fails -- see playAssetVoice's onerror/rejection handling). A shot with
+    // zero beats (SILENCE_BY_DESIGN) is paced as one beat with empty text,
+    // i.e. the same minimum hold as a very short line.
+    function computeBeatHoldMs(text) {
+        const t = text || '';
         return locale.uiLang === 'en'
-            ? Math.max(5400, item.text.split(/\s+/).length * 420)
-            : Math.max(4200, item.text.length * 210);
+            ? Math.max(5400, t.split(/\s+/).filter(Boolean).length * 420)
+            : Math.max(4200, t.length * 210);
     }
-    function playAssetVoice(item, onDone) {
+    function playAssetVoice(beat, onDone) {
         const finishSilently = (audio = null) => {
             if (audio && audio._introNarrationFinished) return;
             if (audio) audio._introNarrationFinished = true;
-            const holdMs = computeShotHoldMs(item);
+            const holdMs = computeBeatHoldMs(beat.text);
             const id = setTimeout(() => {
                 if (runId !== _introFilmRunId) return;
                 onDone();
             }, holdMs);
             _introFilmTimers.push(id);
         };
-        if (!item.audioSrc) {
+        if (!beat.audioSrc) {
             finishSilently();
             return;
         }
-        const audio = new Audio(item.audioSrc);
+        const audio = new Audio(beat.audioSrc);
         _introAudio = audio;
         let finished = false;
         const finishSuccess = (delay = 520) => {
@@ -13507,7 +13957,7 @@ async function playNewbieVillageIntroFilm(zone) {
         // browser TTS and do NOT advance immediately: that previously
         // collapsed the whole shot sequence into milliseconds when the
         // narration assets were unavailable (see 2026-07-14 incident).
-        // Keep the shot's current visual composition and caption on screen
+        // Keep the beat's current visual composition and subtitle on screen
         // for its computed hold duration, then advance exactly once.
         const finishAudioSilently = () => {
             if (finished || runId !== _introFilmRunId) return;
@@ -13522,8 +13972,8 @@ async function playNewbieVillageIntroFilm(zone) {
         audio.onerror = finishAudioSilently;
         audio.play().catch(finishAudioSilently);
     }
-    function playBrowserVoice(item, onDone) {
-        const fallbackMs = computeShotHoldMs(item);
+    function playBrowserVoice(beat, onDone) {
+        const fallbackMs = computeBeatHoldMs(beat.text);
         if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
             const id = setTimeout(() => {
                 if (runId !== _introFilmRunId) return;
@@ -13544,7 +13994,7 @@ async function playNewbieVillageIntroFilm(zone) {
             const id = setTimeout(onDone, delay);
             _introFilmTimers.push(id);
         };
-        const utterance = new SpeechSynthesisUtterance(item.text);
+        const utterance = new SpeechSynthesisUtterance(beat.text);
         if (voice) utterance.voice = voice;
         utterance.lang = voice?.lang || locale.preferredLang;
         utterance.rate = locale.uiLang === 'en' ? .84 : (zhPreset?.rate ?? .92);
@@ -13557,41 +14007,175 @@ async function playNewbieVillageIntroFilm(zone) {
         const guardId = setTimeout(() => finish(0), fallbackMs);
         _introSpeechTimers.push(guardId);
     }
-    function playVoice(item, onDone) {
-        if (item.audioSrc) {
-            playAssetVoice(item, onDone);
+    function playVoice(beat, onDone) {
+        // A missing beat.audioSrc means "no recorded narration for this
+        // beat/locale yet" (owner-audio-pending) -- the contract is:
+        // correct-language subtitle stays on screen, held for
+        // computeBeatHoldMs, then advance. Never synthesize speech to fill
+        // the gap (no temporary TTS, and never speak the other locale's
+        // narration instead of this one's).
+        // beat.allowTtsFallback === true is an explicit, opt-in escape hatch
+        // for content that has never used it (see playBrowserVoice) -- no
+        // shipped zone timeline currently sets it, so this is a no-op change
+        // for existing zones and closes the silent gap for new ones.
+        if (beat.audioSrc || !beat.allowTtsFallback) {
+            playAssetVoice(beat, onDone);
             return;
         }
-        playBrowserVoice(item, onDone);
+        playBrowserVoice(beat, onDone);
     }
-    function activate(index) {
+    function activateShot(shotIndex) {
         if (runId !== _introFilmRunId) return;
-        const item = timeline[index];
+        const item = timeline[shotIndex];
         if (!item) {
+            if (opts.onComplete) {
+                opts.onComplete();
+                return;
+            }
             finishIntroFilm(zone);
             playBossSfx('start');
             return;
         }
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
-        if (caption) caption.textContent = item.caption;
-        const line = document.getElementById('boss-cinematic-line');
-        if (line) line.textContent = item.text;
-        playBossSfx(item.sfx);
+        // item.caption is the persistent scene-label badge for the whole
+        // shot (set once here); the dialogue subtitle line is set per-beat
+        // below, not here -- a shot's caption and its spoken content are
+        // independent (see activateBeat).
+        // Zone 1's caption text (e.g. "Shot 9: Echo of the Trial") is an
+        // implementation-authored label, not part of any Owner-locked
+        // vocabulary -- hide the badge entirely for k26_30 rather than
+        // invent a third naming scheme (Owner review follow-up). The
+        // underlying item.caption values are left in the data as internal/
+        // dev-facing labels; they simply never render for this zone.
+        if (caption) {
+            caption.style.display = zone?.key === 'k26_30' ? 'none' : '';
+            caption.textContent = item.caption || '';
+        }
+        if (item.sfx) playBossSfx(item.sfx);
         if (item.shot === 0) {
             _introFilmTimers.push(setTimeout(() => playBossSfx('grub'), 620));
         }
-        // Single completion gate: onended/onerror/play()-rejection/the
-        // silent-hold timer can each independently attempt to finish this
-        // shot -- only the first one may advance it.
-        let advanced = false;
-        const advanceOnce = () => {
-            if (advanced || runId !== _introFilmRunId) return;
-            advanced = true;
-            activate(index + 1);
-        };
-        playVoice(item, advanceOnce);
+        // Old-shape items (every existing non-Zone-1 zone) carry a flat
+        // text/audioSrc pair directly on the shot -- normalize that into a
+        // single synthesized beat so this sequencer only ever deals with
+        // beats[]. New-shape items (Zone 1) declare beats[] explicitly,
+        // including beats: [] for SILENCE_BY_DESIGN shots (zero spoken
+        // beats, distinct from "one beat with no text").
+        const beats = item.beats !== undefined
+            ? item.beats
+            : [{ text: item.text, audioSrc: item.audioSrc, allowTtsFallback: item.allowTtsFallback }];
+        const line = document.getElementById('boss-cinematic-line');
+        function activateBeat(beatIndex) {
+            if (runId !== _introFilmRunId) return;
+            if (beatIndex >= beats.length) {
+                activateShot(shotIndex + 1);
+                return;
+            }
+            const beat = beats[beatIndex] || {};
+            // Guard against literal "undefined" text (e.g. a zero-beat
+            // silence shot's single synthesized silent hold below).
+            if (line) line.textContent = beat.text || '';
+            let advanced = false;
+            const advanceOnce = () => {
+                if (advanced || runId !== _introFilmRunId) return;
+                advanced = true;
+                activateBeat(beatIndex + 1);
+            };
+            playVoice(beat, advanceOnce);
+        }
+        if (!beats.length) {
+            // Zero spoken beats: a single silent visual hold at this shot,
+            // no subtitle, no audio, no TTS.
+            if (line) line.textContent = '';
+            const holdMs = computeBeatHoldMs('');
+            const id = setTimeout(() => {
+                if (runId !== _introFilmRunId) return;
+                activateShot(shotIndex + 1);
+            }, holdMs);
+            _introFilmTimers.push(id);
+            return;
+        }
+        activateBeat(0);
     }
-    activate(0);
+    activateShot(0);
+}
+
+// Triggered from a genuine, fresh, server-authoritative Map Battle v1
+// 'monster_defeated' response for Zone 1 (k26_30) -- see the next_action
+// branch in _submitMapBattleV1IfActive. Never called at zone-entry time,
+// never on 'player_defeated'/loss, never on an abandoned attempt: this is
+// exactly what makes it safe to gate Shots 9-10 on. Fires at most once per
+// zone (ADVENTURE_POSTCLEAR_STORAGE_KEY), though the underlying server event
+// itself can repeat for later battles in the same zone.
+function _maybeTriggerZone1PostClearFilm() {
+    if (!isBeginnerVillageAdventureResult()) return;
+    const zone = (_adventureProgress || []).find(z => z.key === 'k26_30')
+        || ADVENTURE_ZONES.find(z => z.key === 'k26_30');
+    if (!zone || adventurePostClearSeen(zone)) return;
+    // Mark pending BEFORE starting playback, not after: if the page reloads
+    // or closes anywhere during Shots 9-10, pending survives (this genuine
+    // win event itself never repeats) and _resumeZone1PostClearIfPending()
+    // recovers it on the next adventure-progress load.
+    markAdventurePostClearPending(zone);
+    playZone1PostClearFilm(zone);
+}
+
+// Reload/close recovery: called whenever fresh adventure progress loads
+// (see updateMapProgress). If a genuine clear left POST_CLEAR pending but
+// never reached normal completion/skip, safely replay Shots 9-10 from the
+// top. No-op once seen, no-op if nothing is pending, and no-op if a
+// POST_CLEAR run is already actively playing (avoids restarting a resume
+// that's already in progress if this is called again mid-playback).
+function _resumeZone1PostClearIfPending() {
+    const zone = (_adventureProgress || []).find(z => z.key === 'k26_30')
+        || ADVENTURE_ZONES.find(z => z.key === 'k26_30');
+    if (!zone || adventurePostClearSeen(zone)) return;
+    if (!adventurePostClearPending(zone)) return;
+    if (_introFilmActiveOpts.phase === 'post_clear') return;
+    playZone1PostClearFilm(zone);
+}
+
+// Plays Zone 1's POST_CLEAR follow-up (Shots 9-10) in the existing
+// #boss-cinematic overlay. Purely visual: no fetch/POST of any kind, no
+// reward or settlement authority here or in finishPostClearFilm -- the
+// server already settled the battle before this function is ever reached.
+// Safe to call directly for a manual replay (see replayIntroFilm), a reload
+// recovery (see _resumeZone1PostClearIfPending), or the automatic
+// first-clear trigger above; the "have we shown this already" decision
+// lives only in _maybeTriggerZone1PostClearFilm/_resumeZone1PostClearIfPending.
+function playZone1PostClearFilm(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!overlay || !zone) return;
+    const locale = getIntroFilmLocaleConfig(zone);
+    const postClearTimeline = locale.postClearTimeline || [];
+    if (!postClearTimeline.length) return;
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show intro-film';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    const stage = document.getElementById('intro-film-stage');
+    if (stage) stage.classList.remove('show-title-card');
+    // No "start training" CTA applies here -- gameplay already happened.
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (btn) btn.disabled = true;
+    playNewbieVillageIntroFilm(zone, {
+        timeline: postClearTimeline,
+        phase: 'post_clear',
+        onComplete: () => finishPostClearFilm(zone),
+    });
+}
+
+// Ends POST_CLEAR exactly on Shot 10's own dialogue -- no Hero response, no
+// legacy title-card thesis, no additional line (Owner review, Fix 2). The
+// overlay simply closes once Shot 10's last beat finishes holding. This is
+// the ONLY place "done" is recorded (normal completion AND explicit skip
+// both funnel through here -- see skipIntroFilm's post_clear branch), so
+// seen/pending are always updated together, atomically from the caller's
+// point of view.
+function finishPostClearFilm(zone) {
+    markAdventurePostClearSeen(zone);
+    clearAdventurePostClearPending(zone);
+    hideBossCinematic();
 }
 
 async function startBossBattle(zoneKey) {

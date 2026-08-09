@@ -71,7 +71,7 @@ def test_vs1d_render_path_is_preserved_without_the_contract():
 
 def test_bridge_versions_are_exactly_coupled():
     assert "ASSET_VERSION = 'e10-art-directed-runtime-ui'" in FLAGS
-    assert "const VERSION     = 'v228-e10-lord-challenge-cta-scope-and-routing'" in SW
+    assert "const VERSION     = 'v229-e10-z1-prod-integration'" in SW
     assert "e10-vs1e-review-closure" not in FLAGS
     assert "v213-e10-vs1e-review-closure" not in SW
     queries = re.findall(
