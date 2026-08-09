@@ -24,7 +24,7 @@ BRANCH = codex/sgf-answer-suspect-detector-001
 WORKTREE = D:\go-website-sgf-answer-suspect-detector-001
 REGISTERED_WORKTREES_AT_START = 351
 NEW_WORKTREE_STATUS_AT_START = CLEAN
-IMPLEMENTATION_COMMIT = recorded after the implementation content commit
+IMPLEMENTATION_COMMIT = a383dd63476759215e6a9278be1b206b827e0056
 ```
 
 The clean Git base does not contain `questions.json`. The detector was given the explicit user-owned local snapshot previously identified by the re-entry audit:
