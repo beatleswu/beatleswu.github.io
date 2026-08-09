@@ -601,14 +601,18 @@
       return;
     }
     runtime.candidateMove = Object.assign({}, point, group.side_to_move ? { color: group.side_to_move } : {}, { gtp: gtpCoordinate(point.x, point.y, group.board_size) });
-    element("repair-point").textContent = `建議新答案：${runtime.candidateMove.gtp}`;
+    const answerLabel = runtime.editMode === "REPLACE_PRIMARY_ANSWER" ? "修正後答案：" : "建議新增答案：";
+    element("repair-point").textContent = `${answerLabel}${runtime.candidateMove.gtp}`;
     element("repair-confirm").hidden = false;
     drawBoard();
   }
 
   function upsertProposal(proposals, raw) {
     const result = (proposals || []).filter(function (proposal) {
-      if (raw.type === "REPLACE_PRIMARY_ANSWER" || raw.type === "ADD_EQUIVALENT_SOLUTION") {
+      if (raw.type === "REPLACE_PRIMARY_ANSWER") {
+        return proposal.type !== raw.type;
+      }
+      if (raw.type === "ADD_EQUIVALENT_SOLUTION") {
         return !(proposal.type === raw.type && proposal.proposed_move && raw.proposed_move && proposal.proposed_move.x === raw.proposed_move.x && proposal.proposed_move.y === raw.proposed_move.y);
       }
       return proposal.type !== raw.type;
@@ -1056,5 +1060,6 @@
     indexAfterSave,
     groupMatchesFilters,
     computeSummary,
+    upsertProposal,
   };
 });
