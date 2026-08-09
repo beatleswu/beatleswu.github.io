@@ -1,4 +1,4 @@
-SGF_ANSWER_SUSPECT_DETECTOR_001: READY_FOR_OWNER_VALIDATION
+SGF_ANSWER_SUSPECT_DETECTOR_001: READY_FOR_OWNER_FINAL_REVIEW
 
 # SGF Answer Suspect Detector v1
 
@@ -13,7 +13,7 @@ CANONICAL_IDENTITY = DEFERRED
 AUDIT_IDENTITY = AUDIT_LOCATOR_ONLY
 ```
 
-The full local corpus snapshot was analyzed twice. Both runs produced byte-identical evidence artifacts and identical ordering. A practical 500-record validation pack is ready for Owner precision review before any repair or repair UI is considered.
+The full local corpus snapshot was analyzed twice. Both runs produced byte-identical evidence artifacts and identical ordering. The Owner has now reviewed a 76-record subset of the practical 500-record validation pack; the results and their strict sample boundary are recorded below before any repair or repair UI is considered.
 
 ## 2. Git and Snapshot Boundary
 
@@ -365,18 +365,84 @@ python -m pytest -q tests/test_sgf_answer_suspect_detector.py
 
 The existing SGF board preview, alternative-report review surface, general problem-report queue, and Admin corpus Review Queue could support a later board-first workflow. This Sprint does not connect the detector to those mutation paths and does not implement repair UI.
 
-## 14. Known Limitations and Recommendation
+## 14. Owner Validation Closeout
 
-- Detector precision is unknown until the Owner labels the validation sample.
+The supplied Owner export passed identity and schema validation against the exact detector evidence:
+
+```text
+EXPORT_SCHEMA_VERSION = 1.0
+EXPORT_AUTHORITY = OWNER_VALIDATION_ANNOTATION
+EXPORT_CANONICALITY = NON_AUTHORITATIVE
+EXPORT_SNAPSHOT_SHA256 = 88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff
+EXPORT_VALIDATION_PACK_ID = c140359df32b700b0cdd074f14e9894c47de3fc366c5a3a1402e346ea2ae7b27
+EXPORT_SHA256 = 741ecbf06c05dabad6840319adcc8a9215f5e9aedb640c67a04e0ccaab36976a
+EXPORT_BYTES = 67026
+EXPORTED_AT = 2026-08-09T01:31:34.010Z
+```
+
+The raw export remains a user-local, non-authoritative annotation artifact and is not committed to Git. Only its hash, identity, aggregates, duplicate groups, and review classes are recorded here.
+
+Exact Owner results:
+
+| Owner label / reason | Reviewed records |
+|---|---:|
+| Reviewed total | 76 |
+| Confirmed issue | 74 |
+| Possible multiple solution | 2 |
+| No issue | 0 |
+| Uncertain | 0 |
+| Confirmed reason: global tenuki | 72 |
+| Confirmed reason: other | 2 |
+
+These results describe only the 76 reviewed records selected from the high-priority/high-confidence validation pack. They must not be extrapolated to the full 13,085-suspect set or the 42,804-record corpus. In particular, neither `74 / 76` nor `72 / 76` is a corpus-wide precision or defect rate. Within the reviewed sample boundary, however, the very strong Owner-confirmed signal supports proceeding toward a governed repair/review workflow.
+
+The two `OTHER` records establish a newly observed review class:
+
+```text
+SOURCE_CONVERSION_OR_SIDE_TO_MOVE_ERROR
+```
+
+| Record index | Legacy question ID | Content SHA-256 | Exported side to move | Owner finding |
+|---:|---:|---|---|---|
+| 35,578 | 65,170 | `ca4995fb8504bde2aca3b121d28261a4d55ecd74b248c60e63fdc0da4441de96` | W | Original should be Black to play and White dies, but the answer appears to have been inserted into the initial position, leaving White to move in an already-dead position with no valid answer. |
+| 11,551 | 35,389 | `c7ca364f97095c29d2d1cb9a90a898e2b20cc5cb51cb90fc13d3797f2ff1d0c0` | Unknown | Same Owner finding: original should be Black to play and White dies, but the answer appears to have been inserted into the initial position, leaving White with no valid answer in an already-dead position. |
+
+This class is an Owner-review classification for future workflow design; it does not mutate detector scoring or automatically prove the repair to apply.
+
+The two `POSSIBLE_MULTIPLE_SOLUTION` records are separate evidence that detector output must remain `SUSPECT`, not `WRONG`, and that a governed equivalent-solution proposal path is required:
+
+| Record index | Legacy question ID | Content SHA-256 | Side to move | Priority |
+|---:|---:|---|---|---|
+| 15,813 | 39,728 | `f81f4e6f09419fd31333a42b4434c5b8ad84c3a409b0efb15b9a87637e749ca2` | B | P1 |
+| 15,812 | 39,714 | `98f5b256bf05f45a4cce3d02192c8359b83cab2aab756f9482740fab88aa4a27` | B | P1 |
+
+Content-fingerprint analysis found 73 distinct `content_sha256` values among the 76 reviewed records. All duplicate-content groups are listed below; there are 2 groups containing 5 records, or 3 records beyond one representative per group. Each group had a consistent Owner status and issue reason in this export.
+
+| Content SHA-256 | Linked records (`record_index` / legacy ID) | Owner result |
+|---|---|---|
+| `a25ae0fae2d455096081e8e3379dd5613abbe5bb418a95206fd2e65e6324f564` | `17368 / 8188`; `17560 / 41959` | Both `CONFIRMED_ISSUE` / `GLOBAL_TENUKI` |
+| `8ffa35807b44b1b40595418eac4b95631d8a54e384a49b4c439824f82c5c5fe8` | `17369 / 8189`; `17463 / 41862`; `17561 / 41960` | All `CONFIRMED_ISSUE` / `GLOBAL_TENUKI` |
+
+The future queue must therefore group records by a stable content fingerprint for one board review, show every linked legacy ID, capture one Owner decision for the group, preserve per-record provenance, and include every linked record in the governed repair batch. Grouping must not silently merge identities: canonical identity remains deferred, and the snapshot-bound `AUDIT_LOCATOR_ONLY` remains non-canonical.
+
+## 15. Known Limitations and Recommendation
+
+- Owner validation currently covers 76 selected high-priority/high-confidence records, not the full 500-record pack, 13,085 suspects, or corpus.
 - Player-report, rejected-move, attempt-rate, and Shadow counts are unavailable without prohibited Production access; optional aggregate ingestion is implemented but unpopulated.
 - Geometry cannot prove or disprove ko, ladder, outside support/liberties, sente, or whole-board dependencies.
 - Historical KataGo metadata is evidence with incomplete lineage, not current solver output.
 - Duplicate legacy IDs remain possible; `AUDIT_LOCATOR_ONLY` is snapshot-bound and not durable identity.
 - Rank Calibration remains deferred; calibration-dependent evidence is non-primary.
 
-Do not automatically recommend repair yet. First ask the Owner to review the 500-record pack and measure detector precision by category. If the high-priority sample is useful, a separately authorized Sprint may design a board-first Review Queue. If not, refine detector thresholds and ranking before any repair UI investment.
+The reviewed sample supplies sufficiently strong Owner-confirmed evidence to close detector validation and recommend exactly one separately authorized next Sprint:
 
-## 15. Required Assertions
+```text
+NEXT_SPRINT = SGF-ANSWER-REVIEW-QUEUE-001
+```
+
+That Sprint should design a board-first queue with duplicate-content grouping, native SGF answer display, historical/precomputed answer display, Owner classification, direct board-point correction proposals, equivalent-solution proposals, `SOURCE_CONVERSION_OR_SIDE_TO_MOVE_ERROR`, and governed batch output. It must preserve all linked record provenance and remain subject to the later identity and mutation gates. This Sprint does not implement that queue or any repair.
+
+## 16. Required Assertions
 
 ```text
 QUESTIONS_MUTATED = 0
