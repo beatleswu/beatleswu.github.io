@@ -418,6 +418,15 @@ def _authorize(client, user_id=1, *, admin=True):
         session["is_admin"] = admin
 
 
+def _review_csrf_headers(client):
+    response = client.get("/api/admin/sgf-answer-review/bootstrap")
+    assert response.status_code == 200
+    security = response.get_json()["security"]
+    assert security["same_session_required"] is True
+    assert security["same_origin_required"] is True
+    return {security["csrf_header"]: security["csrf_token"]}
+
+
 def test_real_admin_auth_protects_page_script_and_api(api_environment):
     flask_app, _connection_value, _source = api_environment
     anonymous = flask_app.test_client()
@@ -435,7 +444,66 @@ def test_real_admin_auth_protects_page_script_and_api(api_environment):
     assert admin.get("/admin/sgf-answer-review.js").status_code == 200
     bootstrap = admin.get("/api/admin/sgf-answer-review/bootstrap")
     assert bootstrap.status_code == 200
-    assert bootstrap.get_json()["owner"]["account_scoped"] is True
+    bootstrap_payload = bootstrap.get_json()
+    assert bootstrap_payload["owner"]["account_scoped"] is True
+    assert bootstrap_payload["security"]["csrf_header"] == "X-SGF-Answer-Review-CSRF"
+    assert len(bootstrap_payload["security"]["csrf_token"]) >= 32
+
+
+def test_review_writes_require_same_session_csrf_after_admin_auth(api_environment):
+    flask_app, _connection_value, source = api_environment
+    admin = flask_app.test_client()
+    other_admin = flask_app.test_client()
+    ordinary = flask_app.test_client()
+    _authorize(admin)
+    _authorize(other_admin, 2)
+    _authorize(ordinary, 3, admin=False)
+    group = source["groups"][0]
+    url = f"/api/admin/sgf-answer-review/groups/{group['review_group_key']}"
+    payload = _save_payload(mutation="csrf-save-0001")
+
+    assert flask_app.test_client().post(url, json=payload).status_code == 401
+    assert ordinary.post(url, json=payload).status_code == 403
+    missing = admin.post(url, json=payload)
+    assert missing.status_code == 403
+    assert missing.get_json()["error"] == "review_csrf_failed"
+
+    other_headers = _review_csrf_headers(other_admin)
+    wrong_session = admin.post(url, json=payload, headers=other_headers)
+    assert wrong_session.status_code == 403
+    assert wrong_session.get_json()["error"] == "review_csrf_failed"
+
+    valid = admin.post(url, json=payload, headers=_review_csrf_headers(admin))
+    assert valid.status_code == 200
+
+
+def test_review_api_does_not_expose_bootstrap_or_writes_cross_origin(api_environment):
+    flask_app, _connection_value, source = api_environment
+    admin = flask_app.test_client()
+    _authorize(admin)
+
+    denied_bootstrap = admin.get(
+        "/api/admin/sgf-answer-review/bootstrap",
+        headers={"Origin": "https://untrusted.example"},
+    )
+    assert denied_bootstrap.status_code == 403
+    assert denied_bootstrap.get_json()["error"] == "review_origin_denied"
+
+    headers = _review_csrf_headers(admin)
+    headers["Origin"] = "https://untrusted.example"
+    group = source["groups"][0]
+    denied_write = admin.post(
+        f"/api/admin/sgf-answer-review/groups/{group['review_group_key']}",
+        json=_save_payload(mutation="cross-origin-save-0001"),
+        headers=headers,
+    )
+    assert denied_write.status_code == 403
+    assert denied_write.get_json()["error"] == "review_origin_denied"
+
+
+def test_local_qa_bootstrap_is_absent_from_normal_application(api_environment):
+    flask_app, _connection_value, _source = api_environment
+    assert flask_app.test_client().get("/__local_qa__/owner-login").status_code == 404
 
 
 def test_two_devices_share_server_state_but_different_owner_does_not(api_environment):
@@ -451,6 +519,7 @@ def test_two_devices_share_server_state_but_different_owner_does_not(api_environ
     response = device_a.post(
         f"/api/admin/sgf-answer-review/groups/{group['review_group_key']}",
         json=_save_payload(mutation="cross-device-save-0001", resume=source["groups"][1]["review_group_key"]),
+        headers=_review_csrf_headers(device_a),
     )
     assert response.status_code == 200
 
@@ -468,10 +537,11 @@ def test_api_replay_and_stale_retry_are_deterministic(api_environment):
     group = source["groups"][0]
     payload = _save_payload(mutation="api-retry-save-0001")
     url = f"/api/admin/sgf-answer-review/groups/{group['review_group_key']}"
+    headers = _review_csrf_headers(client)
 
-    first = client.post(url, json=payload)
-    replay = client.post(url, json=payload)
-    stale = client.post(url, json=_save_payload(mutation="api-stale-save-0001", revision=0, review_status="UNCERTAIN", current_sgf_answer_preserved=False))
+    first = client.post(url, json=payload, headers=headers)
+    replay = client.post(url, json=payload, headers=headers)
+    stale = client.post(url, json=_save_payload(mutation="api-stale-save-0001", revision=0, review_status="UNCERTAIN", current_sgf_answer_preserved=False), headers=headers)
 
     assert first.status_code == 200
     assert replay.status_code == 200

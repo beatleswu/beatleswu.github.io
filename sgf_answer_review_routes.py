@@ -5,7 +5,9 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request, send_from_directory, session
 import os
 from pathlib import Path
+import secrets
 import threading
+from urllib.parse import urlsplit
 
 from sgf_answer_review_queue import (
     ReviewQueueError,
@@ -21,6 +23,8 @@ from sgf_answer_review_queue import (
 
 _SOURCE_CACHE = {}
 _SOURCE_CACHE_LOCK = threading.Lock()
+_REVIEW_CSRF_SESSION_KEY = "sgf_answer_review_csrf"
+_REVIEW_CSRF_HEADER = "X-SGF-Answer-Review-CSRF"
 
 
 def reset_review_source_cache():
@@ -63,6 +67,65 @@ def _error_response(error):
     raise error
 
 
+def _review_csrf_token():
+    token = session.get(_REVIEW_CSRF_SESSION_KEY)
+    if not isinstance(token, str) or len(token) < 32:
+        token = secrets.token_urlsafe(32)
+        session[_REVIEW_CSRF_SESSION_KEY] = token
+    return token
+
+
+def _normalized_origin(value):
+    try:
+        parsed = urlsplit(value or "")
+    except ValueError:
+        return None
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        return None
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def _review_origin_failure():
+    supplied = request.headers.get("Origin")
+    if not supplied:
+        return None
+    allowed = {_normalized_origin(request.host_url)}
+    configured = _normalized_origin(os.environ.get("SITE_URL"))
+    if configured:
+        allowed.add(configured)
+    if _normalized_origin(supplied) not in allowed:
+        return _json_no_store(
+            {
+                "ok": False,
+                "error": "review_origin_denied",
+                "detail": "same-origin review request required",
+            },
+            403,
+        )
+    return None
+
+
+def _review_csrf_failure():
+    expected = session.get(_REVIEW_CSRF_SESSION_KEY)
+    supplied = request.headers.get(_REVIEW_CSRF_HEADER, "")
+    if (
+        not isinstance(expected, str)
+        or not isinstance(supplied, str)
+        or not expected
+        or not supplied
+        or not secrets.compare_digest(expected, supplied)
+    ):
+        return _json_no_store(
+            {
+                "ok": False,
+                "error": "review_csrf_failed",
+                "detail": "same-session review CSRF token required",
+            },
+            403,
+        )
+    return None
+
+
 def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     blueprint = Blueprint("sgf_answer_review_queue", __name__)
     root = Path(__file__).resolve().parent
@@ -84,6 +147,9 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     @blueprint.route("/api/admin/sgf-answer-review/bootstrap")
     @admin_required
     def review_bootstrap():
+        origin_failure = _review_origin_failure()
+        if origin_failure is not None:
+            return origin_failure
         try:
             source, evidence = _load_source_cached()
             owner_user_id = int(session["user_id"])
@@ -119,6 +185,12 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
                     "states": states,
                     "progress": progress,
                     "summary": owner_review_summary(source, states),
+                    "security": {
+                        "csrf_header": _REVIEW_CSRF_HEADER,
+                        "csrf_token": _review_csrf_token(),
+                        "same_session_required": True,
+                        "same_origin_required": True,
+                    },
                     "safety": {
                         "canonical_sgf_mutated": False,
                         "questions_json_mutated": False,
@@ -134,6 +206,12 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     @blueprint.route("/api/admin/sgf-answer-review/groups/<group_key>", methods=["POST"])
     @admin_required
     def review_save(group_key):
+        origin_failure = _review_origin_failure()
+        if origin_failure is not None:
+            return origin_failure
+        csrf_failure = _review_csrf_failure()
+        if csrf_failure is not None:
+            return csrf_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         try:
@@ -156,6 +234,12 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     )
     @admin_required
     def review_undo(group_key):
+        origin_failure = _review_origin_failure()
+        if origin_failure is not None:
+            return origin_failure
+        csrf_failure = _review_csrf_failure()
+        if csrf_failure is not None:
+            return csrf_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         try:
@@ -176,6 +260,12 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     @blueprint.route("/api/admin/sgf-answer-review/progress", methods=["POST"])
     @admin_required
     def review_progress():
+        origin_failure = _review_origin_failure()
+        if origin_failure is not None:
+            return origin_failure
+        csrf_failure = _review_csrf_failure()
+        if csrf_failure is not None:
+            return csrf_failure
         if not request.is_json:
             return _json_no_store({"ok": False, "error": "json_required"}, 415)
         try:
