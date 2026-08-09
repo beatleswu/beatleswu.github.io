@@ -63,6 +63,26 @@ console.log('retry-contract-ok');
     assert "retry-contract-ok" in _run_node_assertions(harness)
 
 
+def test_replace_sets_one_answer_while_add_equivalent_semantics_stay_additive():
+    harness = f"""
+const assert = require('assert');
+const queue = require({json.dumps(str(SCRIPT))});
+const existing = [
+  {{type:'REPLACE_PRIMARY_ANSWER', proposed_move:{{x:0,y:17}}}},
+  {{type:'ADD_EQUIVALENT_SOLUTION', proposed_move:{{x:3,y:3}}}},
+];
+const replaced = queue.upsertProposal(existing, {{type:'REPLACE_PRIMARY_ANSWER', proposed_move:{{x:1,y:18}}}});
+assert.deepStrictEqual(replaced, [
+  {{type:'ADD_EQUIVALENT_SOLUTION', proposed_move:{{x:3,y:3}}}},
+  {{type:'REPLACE_PRIMARY_ANSWER', proposed_move:{{x:1,y:18}}}},
+]);
+const added = queue.upsertProposal(replaced, {{type:'ADD_EQUIVALENT_SOLUTION', proposed_move:{{x:4,y:4}}}});
+assert.deepStrictEqual(added.filter(p => p.type === 'ADD_EQUIVALENT_SOLUTION').map(p => p.proposed_move), [{{x:3,y:3}}, {{x:4,y:4}}]);
+console.log('repair-upsert-contract-ok');
+"""
+    assert "repair-upsert-contract-ok" in _run_node_assertions(harness)
+
+
 def test_group_filters_preserve_input_order_and_summary_counts_groups_once():
     harness = f"""
 const assert = require('assert');
@@ -130,6 +150,8 @@ def test_board_first_actions_require_no_coordinate_or_sgf_text_entry():
     assert "accepted_moves" not in script
     assert "OWNER_APPROVED_REPAIR_PROPOSAL" in script
     assert "STAGED_NOT_APPLIED" in script
+    assert "修正後答案：" in script
+    assert "建議新增答案：" in script
 
 
 def test_local_storage_is_scoped_to_retry_queue_not_review_truth():

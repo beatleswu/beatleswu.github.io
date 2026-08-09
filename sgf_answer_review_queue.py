@@ -758,6 +758,7 @@ def _normalize_proposals(source, group, proposals, *, owner_user_id, now):
     normalized = OrderedDict()
     board_size = group["board_size"]
     current_points = {(move["x"], move["y"]) for move in group["current_first_solution_moves"]}
+    replacement_points = set()
     provenance = _proposal_provenance(source, group)
     for raw in proposals:
         if not isinstance(raw, Mapping):
@@ -784,8 +785,8 @@ def _normalize_proposals(source, group, proposals, *, owner_user_id, now):
                 raise InvalidReviewRequest(str(error)) from error
             if _point_occupied(group, point):
                 raise InvalidReviewRequest("proposed move is occupied in the initial position")
-            if proposal_type == "REPLACE_PRIMARY_ANSWER" and (point["x"], point["y"]) in current_points:
-                raise InvalidReviewRequest("replacement matches a current native answer")
+            if proposal_type == "REPLACE_PRIMARY_ANSWER":
+                replacement_points.add((point["x"], point["y"]))
             if proposal_type == "ADD_EQUIVALENT_SOLUTION" and (point["x"], point["y"]) in current_points:
                 raise InvalidReviewRequest("equivalent proposal already exists in native answers")
             proposal["proposed_move"] = point
@@ -820,6 +821,8 @@ def _normalize_proposals(source, group, proposals, *, owner_user_id, now):
         if semantic_key in normalized:
             raise InvalidReviewRequest("duplicate proposal semantics")
         normalized[semantic_key] = proposal
+    if replacement_points and replacement_points == current_points:
+        raise InvalidReviewRequest("replacement answer set matches current native answers")
     return list(normalized.values())
 
 

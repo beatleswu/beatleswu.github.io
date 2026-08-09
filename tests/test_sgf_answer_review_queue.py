@@ -159,6 +159,15 @@ def _save_payload(*, mutation="save-review-0001", revision=0, resume=None, **ext
     return payload
 
 
+def _source_with_native_answers(source, *moves):
+    updated = copy.deepcopy(source)
+    group = updated["groups"][0]
+    group["current_first_solution_moves"] = [
+        {"x": x, "y": y, "color": "B"} for x, y in moves
+    ]
+    return updated, group
+
+
 class _ConnectionContext:
     def __init__(self, connection):
         self.connection = connection
@@ -299,6 +308,181 @@ def test_replace_add_side_source_and_reconstruction_proposals_are_structured(sou
     assert all(proposal["canonicality"] == "STAGED_NOT_APPLIED" for proposal in proposals)
     assert all(proposal["owner_user_id"] == 1 for proposal in proposals)
     assert all(proposal["affected_review_group"]["identity_boundary"] == "AUDIT_LOCATOR_ONLY" for proposal in proposals)
+
+
+@pytest.mark.parametrize(
+    ("replacement", "mutation"),
+    [
+        ((1, 18), "subset-keep-b1-0001"),
+        ((0, 17), "subset-keep-a2-0001"),
+    ],
+)
+def test_replace_answer_set_accepts_a_single_surviving_native_answer(
+    source, connection, replacement, mutation
+):
+    updated, group = _source_with_native_answers(source, (0, 17), (1, 18))
+    response = save_group_review(
+        connection,
+        updated,
+        owner_user_id=1,
+        group_key=group["review_group_key"],
+        payload=_save_payload(
+            mutation=mutation,
+            review_status="CONFIRMED_ISSUE",
+            issue_reason="WRONG_PRIMARY_ANSWER",
+            current_sgf_answer_preserved=False,
+            proposals=[
+                {
+                    "type": "REPLACE_PRIMARY_ANSWER",
+                    "proposed_move": {"x": replacement[0], "y": replacement[1]},
+                }
+            ],
+        ),
+    )
+
+    assert response["state"]["proposals"][0]["proposed_move"] == {
+        "x": replacement[0],
+        "y": replacement[1],
+    }
+
+
+def test_replace_answer_set_accepts_a_new_move(source, connection):
+    updated, group = _source_with_native_answers(source, (0, 17), (1, 18))
+    response = save_group_review(
+        connection,
+        updated,
+        owner_user_id=1,
+        group_key=group["review_group_key"],
+        payload=_save_payload(
+            mutation="replacement-new-b2-0001",
+            review_status="CONFIRMED_ISSUE",
+            issue_reason="WRONG_PRIMARY_ANSWER",
+            current_sgf_answer_preserved=False,
+            proposals=[
+                {
+                    "type": "REPLACE_PRIMARY_ANSWER",
+                    "proposed_move": {"x": 1, "y": 17},
+                }
+            ],
+        ),
+    )
+
+    assert response["state"]["proposals"][0]["proposed_move"] == {"x": 1, "y": 17}
+
+
+def test_replace_answer_set_rejects_only_an_exact_native_set_no_op(source, connection):
+    updated, group = _source_with_native_answers(source, (0, 17), (1, 18))
+    with pytest.raises(InvalidReviewRequest, match="answer set matches current native answers"):
+        save_group_review(
+            connection,
+            updated,
+            owner_user_id=1,
+            group_key=group["review_group_key"],
+            payload=_save_payload(
+                mutation="replacement-exact-noop-0001",
+                review_status="CONFIRMED_ISSUE",
+                issue_reason="WRONG_PRIMARY_ANSWER",
+                current_sgf_answer_preserved=False,
+                proposals=[
+                    {"type": "REPLACE_PRIMARY_ANSWER", "proposed_move": {"x": 0, "y": 17}},
+                    {"type": "REPLACE_PRIMARY_ANSWER", "proposed_move": {"x": 1, "y": 18}},
+                ],
+            ),
+        )
+
+
+def test_add_equivalent_solution_semantics_are_unchanged(source, connection):
+    updated, group = _source_with_native_answers(source, (0, 17), (1, 18))
+    accepted = save_group_review(
+        connection,
+        updated,
+        owner_user_id=1,
+        group_key=group["review_group_key"],
+        payload=_save_payload(
+            mutation="add-equivalent-b2-0001",
+            review_status="POSSIBLE_MULTIPLE_SOLUTION",
+            proposals=[
+                {
+                    "type": "ADD_EQUIVALENT_SOLUTION",
+                    "proposed_move": {"x": 1, "y": 17},
+                }
+            ],
+        ),
+    )
+    assert accepted["state"]["proposals"][0]["proposed_move"] == {"x": 1, "y": 17}
+
+    with pytest.raises(InvalidReviewRequest, match="already exists in native answers"):
+        save_group_review(
+            connection,
+            updated,
+            owner_user_id=2,
+            group_key=group["review_group_key"],
+            payload=_save_payload(
+                mutation="add-equivalent-b1-0001",
+                review_status="POSSIBLE_MULTIPLE_SOLUTION",
+                proposals=[
+                    {
+                        "type": "ADD_EQUIVALENT_SOLUTION",
+                        "proposed_move": {"x": 1, "y": 18},
+                    }
+                ],
+            ),
+        )
+
+
+def test_question_15436_can_stage_b1_only_then_reload_and_undo(connection):
+    review_source = json.loads(
+        (Path(__file__).resolve().parents[1] / "review_data" / "sgf_answer_review_queue_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    group = next(
+        group
+        for group in review_source["groups"]
+        if any(record["legacy_question_id"] == 15436 for record in group["linked_records"])
+    )
+    assert [move["gtp"] for move in group["current_first_solution_moves"]] == ["A2", "B1"]
+
+    saved = save_group_review(
+        connection,
+        review_source,
+        owner_user_id=1,
+        group_key=group["review_group_key"],
+        payload=_save_payload(
+            mutation="question-15436-b1-only-0001",
+            review_status="CONFIRMED_ISSUE",
+            issue_reason="WRONG_PRIMARY_ANSWER",
+            current_sgf_answer_preserved=False,
+            proposals=[
+                {
+                    "type": "REPLACE_PRIMARY_ANSWER",
+                    "proposed_move": {"x": 1, "y": 18, "color": "W"},
+                }
+            ],
+            resume=group["review_group_key"],
+        ),
+    )
+    reloaded = list_owner_review_states(connection, 1, review_source["source_snapshot"]["sha256"])
+    assert saved["state"]["proposals"][0]["proposed_move"] == {
+        "x": 1,
+        "y": 18,
+        "color": "W",
+    }
+    assert reloaded[group["review_group_key"]]["proposals"] == saved["state"]["proposals"]
+
+    undone = undo_group_review(
+        connection,
+        review_source,
+        owner_user_id=1,
+        group_key=group["review_group_key"],
+        payload={
+            "mutation_id": "question-15436-undo-0001",
+            "expected_revision": saved["state"]["revision"],
+            "resume_group_key": group["review_group_key"],
+        },
+    )
+    assert undone["state"]["review_status"] is None
+    assert undone["state"]["proposals"] == []
 
 
 
