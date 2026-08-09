@@ -49,6 +49,25 @@ Modes:
                 so old and new comparison takes never mix. Verifies all 16
                 files exist and are non-empty afterward; exits non-zero with
                 AUDITION_SET_A_VERIFICATION=FAIL if any are missing/empty.
+  --audition-set-b
+                Recast pipeline for roles the Owner rejected in Set A
+                (audition_set_b_recast_briefs.json), for the account's
+                personal voice pool is exhausted for those roles. For each
+                pending role: searches the ElevenLabs Voice Library
+                (GET /v1/shared-voices) with that role's character-brief
+                filters, adds up to candidate_count matches to the account's
+                personal voices (POST /v1/voices/add/...), generates one
+                sample per candidate into _local_review/audition_set_b/ using
+                the SAME canonical sample line as the role's --audition-set-a
+                take, and writes the discovered candidates back into
+                casting_candidates.json's recast_candidates for that slot
+                (never touching voice_id). Refuses to touch any role x locale
+                slot marked "locked": true in casting_candidates.json. Safe
+                to re-run: any previous audition_set_b/ output is cleared
+                first. Untested against the live Voice Library API from this
+                sandbox (which cannot reach it) -- if a search or add-to-
+                library call fails, prints a clear per-role diagnostic
+                (HTTP status, endpoint) instead of failing silently.
   --generate-tts / --generate-sfx / --generate-music
                 Reserved for full Zone 1 production once the Owner approves
                 casting and BGM direction. Currently print a not-yet-enabled
@@ -59,9 +78,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -70,9 +91,11 @@ REPO_ROOT = TOOL_DIR.parent.parent
 MANIFEST_PATH = TOOL_DIR / "zone1_beat_manifest.json"
 CASTING_PATH = TOOL_DIR / "casting_candidates.json"
 AUDITION_SET_A_PATH = TOOL_DIR / "audition_set_a.json"
+RECAST_BRIEFS_PATH = TOOL_DIR / "audition_set_b_recast_briefs.json"
 REVIEW_DIR = TOOL_DIR / "_local_review"
 AUDITION_DIR = REVIEW_DIR / "audition"
 AUDITION_SET_A_DIR = REVIEW_DIR / "audition_set_a"
+AUDITION_SET_B_DIR = REVIEW_DIR / "audition_set_b"
 VOICES_JSON_PATH = REVIEW_DIR / "voices.json"
 
 API_BASE = "https://api.elevenlabs.io"
@@ -320,6 +343,189 @@ def cmd_audition_set_a() -> None:
           "and are not canonical production assets until the Owner explicitly approves casting.")
 
 
+def _slugify(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    return slug or "voice"
+
+
+def _search_voice_library(api_key: str, params: dict) -> tuple[int, object]:
+    query = urllib.parse.urlencode(params, doseq=True)
+    return _api_get(f"/v1/shared-voices?{query}", api_key)
+
+
+def _add_shared_voice(api_key: str, public_owner_id: str, voice_id: str, new_name: str) -> tuple[int, object]:
+    payload = json.dumps({"new_name": new_name[:100]}).encode("utf-8")
+    request = urllib.request.Request(
+        f"{API_BASE}/v1/voices/add/{public_owner_id}/{voice_id}",
+        data=payload,
+        headers={
+            "xi-api-key": api_key,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status, json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        try:
+            body = json.loads(exc.read().decode("utf-8"))
+        except Exception:
+            body = None
+        return exc.code, body
+    except urllib.error.URLError as exc:
+        print(f"NETWORK_ERROR adding shared voice {voice_id}: {exc.reason}", file=sys.stderr)
+        return 0, None
+
+
+def _pick_library_candidates(api_key: str, role_key: str, brief: dict, exclude_ids: set, count: int) -> list:
+    search_params = dict(brief["search"])
+    search_params.setdefault("page_size", 30)
+    print(f"  Searching Voice Library for {role_key}: {search_params}")
+    status, body = _search_voice_library(api_key, search_params)
+    voices = body.get("voices", []) if status == 200 and isinstance(body, dict) else []
+
+    if not voices and "fallback_search" in brief:
+        fallback_params = dict(brief["fallback_search"])
+        fallback_params.setdefault("page_size", 30)
+        print(f"  No results, retrying with fallback filters: {fallback_params}")
+        status, body = _search_voice_library(api_key, fallback_params)
+        voices = body.get("voices", []) if status == 200 and isinstance(body, dict) else []
+
+    if status != 200:
+        print(f"  VOICE_LIBRARY_SEARCH_FAILED role={role_key} http_status={status}")
+        return []
+
+    candidates = []
+    seen = set(exclude_ids)
+    for voice in voices:
+        if not isinstance(voice, dict):
+            continue
+        voice_id = voice.get("voice_id")
+        if not voice_id or voice_id in seen:
+            continue
+        candidates.append(voice)
+        seen.add(voice_id)
+        if len(candidates) >= count:
+            break
+    return candidates
+
+
+def cmd_audition_set_b() -> None:
+    api_key = get_api_key()
+    casting = json.loads(CASTING_PATH.read_text(encoding="utf-8"))
+    sample_lines = casting["audition_sample_lines"]
+    model_id = get_model_id()
+    briefs_doc = json.loads(RECAST_BRIEFS_PATH.read_text(encoding="utf-8"))
+    exclude_ids = set(briefs_doc.get("exclude_voice_ids", []))
+    briefs = briefs_doc["roles"]
+
+    print(f"SELECTED_MODEL_ID={model_id}")
+    print("Run --check first to confirm this model is available and supports text-to-speech.")
+
+    if AUDITION_SET_B_DIR.exists():
+        shutil.rmtree(AUDITION_SET_B_DIR)
+    AUDITION_SET_B_DIR.mkdir(parents=True, exist_ok=True)
+
+    generated = 0
+    expected_total = 0
+    results_by_role: dict[str, list] = {}
+
+    for role_key, brief in briefs.items():
+        role_config_key = brief["role_config_key"]
+        locale = brief["locale"]
+        role_config = casting["roles"][role_config_key]["voices"][locale]
+
+        if role_config.get("locked"):
+            print(f"SKIP role={role_key}: {role_config_key}/{locale} is locked in casting_candidates.json "
+                  "(Owner-approved voices are never overwritten by --audition-set-b)")
+            continue
+
+        text = sample_lines.get(role_config_key, {}).get(locale)
+        if not text:
+            print(f"SKIP role={role_key}: no canonical sample line for {role_config_key}/{locale}")
+            continue
+
+        count = brief.get("candidate_count", 3)
+        expected_total += count
+        candidates = _pick_library_candidates(api_key, role_key, brief, exclude_ids, count)
+        if not candidates:
+            print(f"  NO_CANDIDATES_FOUND role={role_key}")
+        results_by_role[role_key] = []
+
+        for voice in candidates:
+            public_owner_id = voice.get("public_owner_id")
+            shared_voice_id = voice.get("voice_id")
+            name = voice.get("name") or shared_voice_id
+            slug = _slugify(name)
+            output_filename = f"{brief['output_prefix']}_{slug}.mp3"
+
+            print(f"  Adding to library: {name} ({shared_voice_id}) for {role_key} ...")
+            add_status, add_body = _add_shared_voice(
+                api_key, public_owner_id, shared_voice_id, f"E10Z1_{role_key}_{slug}"
+            )
+            if add_status not in (200, 201) or not isinstance(add_body, dict) or not add_body.get("voice_id"):
+                print(f"    ADD_TO_LIBRARY_FAILED name={name!r} http_status={add_status}")
+                continue
+            local_voice_id = add_body["voice_id"]
+
+            output_path = AUDITION_SET_B_DIR / output_filename
+            print(f"  Generating {output_path.name} ({name}) ...")
+            ok = _text_to_speech(api_key, local_voice_id, text, model_id, output_path)
+            if ok:
+                generated += 1
+
+            results_by_role[role_key].append({
+                "name": name,
+                "shared_voice_id": shared_voice_id,
+                "local_voice_id": local_voice_id,
+                "output_filename": output_filename,
+                "gender": voice.get("gender"),
+                "age": voice.get("age"),
+                "accent": voice.get("accent"),
+                "language": voice.get("language"),
+                "description": voice.get("description") or voice.get("descriptive"),
+                "generated": ok,
+            })
+
+    for role_key, brief in briefs.items():
+        role_config_key = brief["role_config_key"]
+        locale = brief["locale"]
+        role_config = casting["roles"][role_config_key]["voices"][locale]
+        if role_config.get("locked"):
+            continue
+        role_config["recast_candidates"] = results_by_role.get(role_key, [])
+    CASTING_PATH.write_text(json.dumps(casting, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"CASTING_CANDIDATES_UPDATED={CASTING_PATH.relative_to(REPO_ROOT)} (recast_candidates only; "
+          "no voice_id or locked slot was touched)")
+
+    print(f"AUDITION_SET_B_GENERATED={generated}")
+    print(f"AUDITION_SET_B_EXPECTED={expected_total}")
+    print(f"AUDITION_SET_B_OUTPUT_DIR={AUDITION_SET_B_DIR.resolve()}")
+
+    all_files = [
+        entry["output_filename"]
+        for role_results in results_by_role.values()
+        for entry in role_results
+        if entry["generated"]
+    ]
+    missing_or_empty = [
+        filename for filename in all_files
+        if not (AUDITION_SET_B_DIR / filename).is_file()
+        or (AUDITION_SET_B_DIR / filename).stat().st_size == 0
+    ]
+    if missing_or_empty or generated == 0:
+        print("AUDITION_SET_B_VERIFICATION=FAIL")
+        if missing_or_empty:
+            print(f"AUDITION_SET_B_MISSING_OR_EMPTY={','.join(missing_or_empty)}")
+        raise SystemExit(1)
+    print("AUDITION_SET_B_VERIFICATION=PASS")
+
+    print("These are local review-only recast comparison samples. They do not lock casting_candidates.json "
+          "and are not canonical production assets until the Owner explicitly approves casting.")
+
+
 def cmd_not_yet_enabled(flag: str) -> None:
     print(f"{flag}: NOT_YET_ENABLED — awaiting Owner casting/BGM approval. No request was sent.")
 
@@ -331,6 +537,7 @@ def main() -> None:
     group.add_argument("--list-voices", action="store_true", help="Read-only voice discovery list/table.")
     group.add_argument("--audition", action="store_true", help="Generate the minimal casting sample only.")
     group.add_argument("--audition-set-a", action="store_true", help="Generate the fixed 16-line A/B casting comparison set.")
+    group.add_argument("--audition-set-b", action="store_true", help="Recast pending roles via a live Voice Library search.")
     group.add_argument("--generate-tts", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-sfx", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-music", action="store_true", help="Reserved; not yet enabled.")
@@ -355,6 +562,8 @@ def main() -> None:
         cmd_audition()
     elif args.audition_set_a:
         cmd_audition_set_a()
+    elif args.audition_set_b:
+        cmd_audition_set_b()
     elif args.generate_tts:
         cmd_not_yet_enabled("--generate-tts")
     elif args.generate_sfx:

@@ -1,9 +1,22 @@
 {
   "_comment": "Owner-editable casting sheet for Zone 1 (k26_30). voice_id per speaker x locale is used by --audition; leave it null to skip that line. Values here are never generated automatically and never overwrite canonical dialogue.",
-  "casting_status": "SHORTLIST_PROPOSED_AWAITING_OWNER_APPROVAL",
-  "casting_shortlist_source": "Claude-analyzed from Owner-provided tools/e10_zone1_audio/_local_review/voices.json (27 ElevenLabs voices: 23 en, 4 zh). voice_id is pre-filled with Claude's top pick per role so no manual copying is required; see each role's candidates[] for the full 2-3 option shortlist and reasoning. No --audition has been run — that step waits for explicit Owner approval of this shortlist.",
+  "casting_status": "PARTIAL_LOCK_5_OF_8_APPROVED_3_PENDING_RECAST",
+  "locking_policy": "Once a role x locale slot has \"locked\": true, no automated tool in this directory (including --audition-set-b) may overwrite its voice_id or candidates without the Owner explicitly unlocking it first. This is enforced in code by cmd_audition_set_b(), not just by convention.",
+  "locked_roles": [
+    { "role": "anna", "display_name": "Narrator", "locale": "zh-TW", "approved_name": "Anna Su" },
+    { "role": "runner", "display_name": "Messenger", "locale": "zh-TW", "approved_name": "Yui" },
+    { "role": "anna", "display_name": "Narrator", "locale": "en", "approved_name": "Amelia" },
+    { "role": "elder", "display_name": "Elder", "locale": "en", "approved_name": "Daniel" },
+    { "role": "runner", "display_name": "Messenger", "locale": "en", "approved_name": "Liam" }
+  ],
+  "pending_roles": [
+    { "role": "elder", "display_name": "Elder", "locale": "zh-TW", "reason": "AUDITION SET A candidates (Kevin Tu, Ling) both rejected by Owner. Awaiting AUDITION SET B recast." },
+    { "role": "hero", "display_name": "Hero", "locale": "zh-TW", "reason": "AUDITION SET A candidates (Yui, Anna Su) both rejected -- canon requires the Hero to be MALE, both were female. Awaiting AUDITION SET B recast." },
+    { "role": "hero", "display_name": "Hero", "locale": "en", "reason": "AUDITION SET A candidates (Will, Charlie) both rejected as sounding too old. Awaiting AUDITION SET B recast with younger candidates." }
+  ],
+  "casting_shortlist_source": "Claude-analyzed from Owner-provided tools/e10_zone1_audio/_local_review/voices.json (27 ElevenLabs voices: 23 en, 4 zh) for AUDITION SET A. AUDITION SET B recast candidates for the 3 pending roles come from a live ElevenLabs Voice Library search performed by --audition-set-b on the Owner's machine (this account's personal 27-voice pool is exhausted for zh, and for a genuinely younger en Hero voice) -- see audition_set_b_recast_briefs.json.",
   "audio_config": {
-    "_comment": "Governs which ElevenLabs model --audition (and future --generate-* modes) use. --check verifies this model_id exists and supports text-to-speech before any generation is attempted.",
+    "_comment": "Governs which ElevenLabs model --audition/--audition-set-a/--audition-set-b use. --check verifies this model_id exists and supports text-to-speech before any generation is attempted.",
     "model_id": "eleven_v3"
   },
   "roles": {
@@ -11,50 +24,58 @@
       "display_name": "Narrator",
       "voices": {
         "en": {
-          "voice_id": "JBFqnCBsd6RMkjVDRZzb",
-          "notes": "Top pick: George. Change voice_id to another candidate's id below to override.",
+          "voice_id": "ZF6FPAbjXT4488VcRRnw",
+          "locked": true,
+          "notes": "LOCKED by Owner after AUDITION SET A (George vs Amelia). Approved: Amelia - Enthusiastic and Expressive.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "JBFqnCBsd6RMkjVDRZzb",
               "name": "George - Warm, Captivating Storyteller",
-              "reason": "Labeled narrative_story with the descriptor 'Warm, Captivating Storyteller' — the most literal match for an opening scene-setting narrator line ('the village wind already carries a hint of... something unusual')."
+              "reason": "Labeled narrative_story with the descriptor 'Warm, Captivating Storyteller' — the most literal match for an opening scene-setting narrator line ('the village wind already carries a hint of... something unusual').",
+              "outcome": "not chosen"
             },
             {
               "rank": 2,
               "voice_id": "ZF6FPAbjXT4488VcRRnw",
               "name": "Amelia - Enthusiastic and Expressive",
-              "reason": "Also narrative_story category (professional tier); a brighter, more expressive alternative if the Owner wants a female narrator voice."
+              "reason": "Also narrative_story category (professional tier); a brighter, more expressive alternative if the Owner wants a female narrator voice.",
+              "outcome": "APPROVED"
             },
             {
               "rank": 3,
               "voice_id": "EXAVITQu4vr4xnSDxMaL",
               "name": "Sarah - Mature, Reassuring, Confident",
-              "reason": "Mature/reassuring tone works for a narrator establishing mood before gameplay; entertainment_tv category suggests polished delivery."
+              "reason": "Mature/reassuring tone works for a narrator establishing mood before gameplay; entertainment_tv category suggests polished delivery.",
+              "outcome": "not auditioned"
             }
           ]
         },
         "zh-TW": {
-          "voice_id": "Z8Aisvg1z70p27kGvkZZ",
-          "notes": "Top pick: Ling. Only 4 zh voices exist on this account, so the zh-TW shortlists across all 4 roles necessarily overlap — see casting_status.",
+          "voice_id": "9lHjugDhwqoxA5MhX0az",
+          "locked": true,
+          "notes": "LOCKED by Owner after AUDITION SET A (Anna Su vs Ling), per explicit narrator-direction continuity. Approved: Anna Su - Casual, Friendly and Bright.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "Z8Aisvg1z70p27kGvkZZ",
               "name": "Ling - Steady, Calm and Grounded",
-              "reason": "informative_educational + steady/calm/grounded reads as measured narration, closest zh match to the English top pick's tone."
+              "reason": "informative_educational + steady/calm/grounded reads as measured narration, closest zh match to the English top pick's tone.",
+              "outcome": "not chosen"
             },
             {
               "rank": 2,
               "voice_id": "kGjJqO6wdwRN9iJsoeIC",
               "name": "Yui - Delicate, Graceful and Soothing",
-              "reason": "Soothing, conversational delivery suits the quiet, atmospheric opening line before the cloud/threat is introduced."
+              "reason": "Soothing, conversational delivery suits the quiet, atmospheric opening line before the cloud/threat is introduced.",
+              "outcome": "not auditioned for this role"
             },
             {
               "rank": 3,
               "voice_id": "9lHjugDhwqoxA5MhX0az",
               "name": "Anna Su - Casual, Friendly and Bright",
-              "reason": "Name literally matches the 'anna' speaker key; brighter/more casual tone if the Owner prefers a lighter narrator voice over a grave one."
+              "reason": "Name literally matches the 'anna' speaker key; brighter/more casual tone if the Owner prefers a lighter narrator voice over a grave one.",
+              "outcome": "APPROVED"
             }
           ]
         }
@@ -64,46 +85,54 @@
       "display_name": "Elder",
       "voices": {
         "en": {
-          "voice_id": "pqHfZKP75CvOlQylNhV4",
-          "notes": "Top pick: Bill. Change voice_id to another candidate's id below to override.",
+          "voice_id": "onwK4e9ZLuTAKqWW03F9",
+          "locked": true,
+          "notes": "LOCKED by Owner after AUDITION SET A (Bill vs Daniel). Approved: Daniel - Steady Broadcaster.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "pqHfZKP75CvOlQylNhV4",
               "name": "Bill - Wise, Mature, Balanced",
-              "reason": "Labeled 'Wise' with age=old — the most literal match for a village elder instructing the Hero to slow down and play carefully."
+              "reason": "Labeled 'Wise' with age=old — the most literal match for a village elder instructing the Hero to slow down and play carefully.",
+              "outcome": "not chosen"
             },
             {
               "rank": 2,
               "voice_id": "onwK4e9ZLuTAKqWW03F9",
               "name": "Daniel - Steady Broadcaster",
-              "reason": "informative_educational, steady/authoritative delivery fits the Elder's instructional trial lines ('Don't rush. Look carefully.')."
+              "reason": "informative_educational, steady/authoritative delivery fits the Elder's instructional trial lines ('Don't rush. Look carefully.').",
+              "outcome": "APPROVED"
             },
             {
               "rank": 3,
               "voice_id": "XrExE9yKIg1WjnnlVkGX",
               "name": "Matilda - Knowledgable, Professional",
-              "reason": "Female alternate if the Owner casts the Elder as a woman; informative_educational tone matches the mentoring role."
+              "reason": "Female alternate if the Owner casts the Elder as a woman; informative_educational tone matches the mentoring role.",
+              "outcome": "not auditioned"
             }
           ]
         },
         "zh-TW": {
-          "voice_id": "BrbEfHMQu0fyclQR7lfh",
-          "notes": "Top pick: Kevin Tu. Only 4 zh voices exist on this account, so the zh-TW shortlists across all 4 roles necessarily overlap — see casting_status.",
+          "voice_id": null,
+          "locked": false,
+          "notes": "PENDING RECAST (AUDITION SET B). Both AUDITION SET A candidates (Kevin Tu, Ling) rejected by Owner -- this account's zh voice pool (only 4 personal voices, all already used elsewhere) is exhausted. New candidates come from a live ElevenLabs Voice Library search; see audition_set_b_recast_briefs.json for the character brief and recast_candidates below once --audition-set-b has run.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "BrbEfHMQu0fyclQR7lfh",
               "name": "Kevin Tu - Natural, Steady and Calm",
-              "reason": "narrative_story, middle_aged male, steady/calm — closest zh voice to a composed mentor figure giving the village trial."
+              "reason": "narrative_story, middle_aged male, steady/calm — closest zh voice to a composed mentor figure giving the village trial.",
+              "outcome": "REJECTED"
             },
             {
               "rank": 2,
               "voice_id": "Z8Aisvg1z70p27kGvkZZ",
               "name": "Ling - Steady, Calm and Grounded",
-              "reason": "Female alternate with the same steady/calm/grounded quality, if the Owner casts the Elder as a woman."
+              "reason": "Female alternate with the same steady/calm/grounded quality, if the Owner casts the Elder as a woman.",
+              "outcome": "REJECTED"
             }
-          ]
+          ],
+          "recast_candidates": []
         }
       }
     },
@@ -111,46 +140,55 @@
       "display_name": "Hero",
       "voices": {
         "en": {
-          "voice_id": "bIHbv24MWmeRgasZH58o",
-          "notes": "Top pick: Will. Change voice_id to another candidate's id below to override.",
+          "voice_id": null,
+          "locked": false,
+          "notes": "PENDING RECAST (AUDITION SET B). Both AUDITION SET A candidates (Will, Charlie) rejected by Owner as sounding too old. New candidates must be clearly younger (late-teen/young-adult) -- see audition_set_b_recast_briefs.json.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "bIHbv24MWmeRgasZH58o",
               "name": "Will - Relaxed Optimist",
-              "reason": "'Optimist' tracks the Hero's emotional arc in this shot: self-doubt ('I don't know if I can do this...') resolving into hope ('But I want to go see for myself.')."
+              "reason": "'Optimist' tracks the Hero's emotional arc in this shot: self-doubt ('I don't know if I can do this...') resolving into hope ('But I want to go see for myself.').",
+              "outcome": "REJECTED (sounds too old)"
             },
             {
               "rank": 2,
               "voice_id": "IKne3meq5aSn9XLyUdCD",
               "name": "Charlie - Deep, Confident, Energetic",
-              "reason": "young male, conversational — a more energetic alternative if the Owner wants the Hero to read as more determined than hesitant."
+              "reason": "young male, conversational — a more energetic alternative if the Owner wants the Hero to read as more determined than hesitant.",
+              "outcome": "REJECTED (sounds too old)"
             },
             {
               "rank": 3,
               "voice_id": "cgSgspJ2msm6clMCkdW9",
               "name": "Jessica - Playful, Bright, Warm",
-              "reason": "Female alternate; young/conversational/warm suits a youthful protagonist voice if the Hero is cast female."
+              "reason": "Female alternate; young/conversational/warm suits a youthful protagonist voice if the Hero is cast female.",
+              "outcome": "not auditioned -- canon requires the Hero to be male"
             }
-          ]
+          ],
+          "recast_candidates": []
         },
         "zh-TW": {
-          "voice_id": "kGjJqO6wdwRN9iJsoeIC",
-          "notes": "Top pick: Yui. Only 4 zh voices exist on this account, so the zh-TW shortlists across all 4 roles necessarily overlap — see casting_status.",
+          "voice_id": null,
+          "locked": false,
+          "notes": "PENDING RECAST (AUDITION SET B). Both AUDITION SET A candidates (Yui, Anna Su) rejected by Owner -- CRITICAL CANON: the Hero is a MALE character; both Set A candidates were female. New candidates must be male; this account's zh voice pool has no remaining male options, so recast candidates come from a live Voice Library search -- see audition_set_b_recast_briefs.json.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "kGjJqO6wdwRN9iJsoeIC",
               "name": "Yui - Delicate, Graceful and Soothing",
-              "reason": "Youngest zh voice available, conversational register — best fit for a youthful protagonist's hesitant-then-hopeful lines."
+              "reason": "Youngest zh voice available, conversational register — best fit for a youthful protagonist's hesitant-then-hopeful lines.",
+              "outcome": "REJECTED (Hero is canonically male)"
             },
             {
               "rank": 2,
               "voice_id": "9lHjugDhwqoxA5MhX0az",
               "name": "Anna Su - Casual, Friendly and Bright",
-              "reason": "Also young and casual; brighter energy if the Owner wants the Hero to sound more determined than delicate."
+              "reason": "Also young and casual; brighter energy if the Owner wants the Hero to sound more determined than delicate.",
+              "outcome": "REJECTED (Hero is canonically male)"
             }
-          ]
+          ],
+          "recast_candidates": []
         }
       }
     },
@@ -159,43 +197,50 @@
       "voices": {
         "en": {
           "voice_id": "TX3LPaxmHKxFdv7VOQHJ",
-          "notes": "Top pick: Liam. Change voice_id to another candidate's id below to override.",
+          "locked": true,
+          "notes": "LOCKED by Owner after AUDITION SET A (Liam vs Laura). Approved: Liam - Energetic, Social Media Creator.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "TX3LPaxmHKxFdv7VOQHJ",
               "name": "Liam - Energetic, Social Media Creator",
-              "reason": "young male, high energy — fits the breathless urgency of 'Elder! ...It's been three days, and they still haven't come back!'"
+              "reason": "young male, high energy — fits the breathless urgency of 'Elder! ...It's been three days, and they still haven't come back!'",
+              "outcome": "APPROVED"
             },
             {
               "rank": 2,
               "voice_id": "FGY2WhTYpPnrIDTdsKH5",
               "name": "Laura - Enthusiast, Quirky Attitude",
-              "reason": "Female alternate with comparable high-energy delivery, if the Messenger is cast as a woman."
+              "reason": "Female alternate with comparable high-energy delivery, if the Messenger is cast as a woman.",
+              "outcome": "not chosen"
             },
             {
               "rank": 3,
               "voice_id": "SOYHLrjzK2X1ezoPC6cr",
               "name": "Harry - Fierce Warrior",
-              "reason": "characters_animation, young male — a more intense alternative if the Owner wants the Messenger's alarm to read as urgent distress rather than youthful energy."
+              "reason": "characters_animation, young male — a more intense alternative if the Owner wants the Messenger's alarm to read as urgent distress rather than youthful energy.",
+              "outcome": "not auditioned"
             }
           ]
         },
         "zh-TW": {
-          "voice_id": "9lHjugDhwqoxA5MhX0az",
-          "notes": "Top pick: Anna Su. Only 4 zh voices exist on this account, so the zh-TW shortlists across all 4 roles necessarily overlap — see casting_status.",
+          "voice_id": "kGjJqO6wdwRN9iJsoeIC",
+          "locked": true,
+          "notes": "LOCKED by Owner after AUDITION SET A (Anna Su vs Yui). Approved: Yui - Delicate, Graceful and Soothing.",
           "candidates": [
             {
               "rank": 1,
               "voice_id": "9lHjugDhwqoxA5MhX0az",
               "name": "Anna Su - Casual, Friendly and Bright",
-              "reason": "social_media category, young/bright energy — best fit for the Messenger's urgent, breathless delivery among the 4 available zh voices."
+              "reason": "social_media category, young/bright energy — best fit for the Messenger's urgent, breathless delivery among the 4 available zh voices.",
+              "outcome": "not chosen"
             },
             {
               "rank": 2,
               "voice_id": "kGjJqO6wdwRN9iJsoeIC",
               "name": "Yui - Delicate, Graceful and Soothing",
-              "reason": "Only other young zh voice available; a softer alternate if the Owner wants less urgency in the delivery."
+              "reason": "Only other young zh voice available; a softer alternate if the Owner wants less urgency in the delivery.",
+              "outcome": "APPROVED"
             }
           ]
         }
@@ -203,7 +248,7 @@
     }
   },
   "audition_sample_lines": {
-    "_comment": "One representative canonical line per role x locale, pulled verbatim from zone1_beat_manifest.json. Used only by --audition. Do not edit text here independently of the manifest.",
+    "_comment": "One representative canonical line per role x locale, pulled verbatim from zone1_beat_manifest.json. Used only by --audition/--audition-set-a/--audition-set-b. Do not edit text here independently of the manifest.",
     "anna": {
       "en": "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual.",
       "zh-TW": "清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。"

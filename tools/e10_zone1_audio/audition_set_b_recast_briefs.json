@@ -1,0 +1,44 @@
+{
+  "_comment": "AUDITION SET B recast briefs. Only the 3 roles Owner rejected in Set A are recast here; the 5 approved roles in casting_candidates.json are locked and must never be touched by --audition-set-b. Candidates are discovered live from the ElevenLabs Voice Library (GET /v1/shared-voices) on the Owner's machine -- this account's personal 27-voice pool (from Set A) is fully exhausted for these 3 roles, so no voice_id is hardcoded here. Each matched Voice Library voice is added to the account (POST /v1/voices/add/{public_owner_id}/{voice_id}) to get a usable local voice_id, then used for TTS with the same canonical sample line as its role/locale in casting_candidates.json audition_sample_lines.",
+  "exclude_voice_ids_comment": "Every voice_id already surfaced in AUDITION SET A (locked approvals + explicitly rejected candidates), so Set B never re-offers or double-casts an already-decided voice.",
+  "exclude_voice_ids": [
+    "9lHjugDhwqoxA5MhX0az",
+    "kGjJqO6wdwRN9iJsoeIC",
+    "ZF6FPAbjXT4488VcRRnw",
+    "onwK4e9ZLuTAKqWW03F9",
+    "TX3LPaxmHKxFdv7VOQHJ",
+    "BrbEfHMQu0fyclQR7lfh",
+    "Z8Aisvg1z70p27kGvkZZ",
+    "bIHbv24MWmeRgasZH58o",
+    "IKne3meq5aSn9XLyUdCD"
+  ],
+  "roles": {
+    "zh_elder": {
+      "role_config_key": "elder",
+      "locale": "zh-TW",
+      "output_prefix": "zh_elder",
+      "candidate_count": 3,
+      "character_brief": "Male preferred; older adult / elder; calm; wise; warm; natural; grounded; believable village elder. Not commercial-announcer-like. Not exaggerated fantasy wizard. Taiwan Mandarin preferred where available.",
+      "search": { "language": "zh", "gender": "male", "age": "old" },
+      "fallback_search": { "language": "zh", "gender": "male", "age": "middle_aged" }
+    },
+    "zh_hero": {
+      "role_config_key": "hero",
+      "locale": "zh-TW",
+      "output_prefix": "zh_hero",
+      "candidate_count": 3,
+      "character_brief": "CRITICAL CANON: the Hero is a MALE character (young male protagonist). Young, approximately late-teen/young-adult; natural; sincere; gentle but adventurous. Not childish. Not deep middle-aged male. Not broadcaster. Not overly heroic/anime exaggerated. Taiwan Mandarin strongly preferred.",
+      "search": { "language": "zh", "gender": "male", "age": "young" },
+      "fallback_search": { "language": "zh", "gender": "male" }
+    },
+    "en_hero": {
+      "role_config_key": "hero",
+      "locale": "en",
+      "output_prefix": "en_hero",
+      "candidate_count": 3,
+      "character_brief": "Male; clearly younger than the rejected Will/Charlie; late-teen/young-adult impression; natural; approachable; sincere; slightly adventurous; capable of vulnerability. Not a deep/mature narrator voice. Not a booming hero voice. Not a commercial announcer.",
+      "search": { "language": "en", "gender": "male", "age": "young" },
+      "fallback_search": { "language": "en", "gender": "male" }
+    }
+  }
+}

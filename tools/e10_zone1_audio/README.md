@@ -8,10 +8,10 @@ this tool must never be run there.
 
 ## Owner one-click audition (recommended)
 
-雙擊 `Run_Audition_Set_A.cmd` → 輸入 API Key → 等待資料夾自動開啟 → 試聽
+雙擊 `Run_Audition_Set_A.cmd`（或補選用 `Run_Audition_Set_B.cmd`）→ 輸入 API Key → 等待資料夾自動開啟 → 試聽
 
 No Git, PowerShell commands, JSON editing, or voice IDs required for normal
-use. One one-time step is needed to get the launcher onto your machine the
+use. One one-time step is needed to get the launchers onto your machine the
 first time (or after a PR update); after that, every audition run is
 double-click only.
 
@@ -21,7 +21,7 @@ double-click only.
 git pull origin claude/e10-z1-audio-production-001
 ```
 
-**Every time after that:**
+**AUDITION SET A** — full 8-role x 2-locale casting comparison (16 files):
 
 1. Double-click `tools\e10_zone1_audio\Run_Audition_Set_A.cmd`.
 2. Paste/type your ElevenLabs API key when prompted (input is masked — it
@@ -33,11 +33,44 @@ git pull origin claude/e10-z1-audio-production-001
 4. The `audition_set_a` folder opens automatically in Explorer.
 5. Listen and pick.
 
-Safe to re-run any time — each run clears out the previous
-`audition_set_a` folder first and regenerates all 16 files fresh, so old
-and new comparison takes never mix. See `Run_Audition_Set_A.ps1` for what
-it does step by step; error messages are in Chinese with an English detail
-line underneath.
+**AUDITION SET B** — recast only the roles you rejected from Set A (currently
+zh-TW Elder, zh-TW Hero, English Hero; up to ~9 files):
+
+1. Double-click `tools\e10_zone1_audio\Run_Audition_Set_B.cmd`.
+2. Same masked API key prompt as above.
+3. Wait — it runs the same connectivity check, then searches the ElevenLabs
+   Voice Library live for new candidates matching each pending role's
+   character brief (this account's original voice pool is exhausted for
+   these roles), adds up to 3 matches per role to the account, and
+   generates one sample per candidate. This step needs a live search, so it
+   can take longer than Set A.
+4. The `audition_set_b` folder opens automatically in Explorer.
+5. Listen and pick.
+
+Set B never regenerates Set A and never touches a role already locked in
+`casting_candidates.json` — see "Casting lock state" below.
+
+Both are safe to re-run any time — each run clears out its own previous
+output folder first and regenerates fresh, so old and new comparison takes
+never mix. See the matching `.ps1` file for what each does step by step;
+error messages are in Chinese with an English detail line underneath.
+
+## Casting lock state
+
+`casting_candidates.json` tracks two states per role x locale slot:
+
+- **Locked** (`"locked": true`, real `voice_id`) — Owner-approved. No tool
+  in this directory will ever overwrite a locked slot's `voice_id` or
+  candidates; `--audition-set-b` explicitly skips any locked slot it
+  encounters. Currently locked: zh-TW Narrator (Anna Su), zh-TW Messenger
+  (Yui), English Narrator (Amelia), English Elder (Daniel), English
+  Messenger (Liam).
+- **Pending** (`"locked": false`, `voice_id: null`) — awaiting a decision.
+  Currently pending: zh-TW Elder, zh-TW Hero (canon: must be male), English
+  Hero (canon: must sound clearly younger than the rejected Will/Charlie).
+  `--audition-set-b` writes its live search results into that slot's
+  `recast_candidates` array (not `voice_id`) so nothing is silently decided
+  — the Owner still has to choose after listening.
 
 ## Scope
 
@@ -50,9 +83,16 @@ line underneath.
 ## Files
 
 - `Run_Audition_Set_A.cmd` / `Run_Audition_Set_A.ps1` — the one-click
-  Owner launcher (see above). The `.cmd` is a thin double-click wrapper;
-  `Run_Audition_Set_A.ps1` does the real work (masked key prompt, `--check`,
+  Owner launcher for Set A (see above). The `.cmd` is a thin double-click
+  wrapper; the `.ps1` does the real work (masked key prompt, `--check`,
   `--audition-set-a`, opens the output folder).
+- `Run_Audition_Set_B.cmd` / `Run_Audition_Set_B.ps1` — the matching
+  one-click launcher for Set B (recast pending roles via a live Voice
+  Library search, `--audition-set-b`). Both `.cmd` files are ASCII-only
+  with CRLF line endings and both `.ps1` files have a UTF-8 BOM — required
+  for Windows `cmd.exe`/PowerShell 5.1 compatibility, enforced by
+  `.gitattributes` and `tests/test_e10_zone1_audio_launcher_windows_compat.py`
+  (see git history for the Windows live-test failure this fixed).
 
 - `zone1_beat_manifest.json` — mechanical extraction of every spoken beat
   in the shipped Zone 1 cinematic (shot, beat, phase, speaker, locale,
@@ -60,13 +100,16 @@ line underneath.
   Do not hand-edit dialogue text here — the source of truth is `index.html`
   (`getIntroFilmLocaleConfig` → `k26_30`); if the script ever changes,
   re-extract instead of editing this file directly.
-- `casting_candidates.json` — Owner-editable casting sheet. Pre-filled with
-  a Claude-proposed shortlist (top-pick `voice_id` plus ranked
-  `candidates[]` with reasoning) per role x locale for `--audition`. Leave
-  `voice_id: null` to skip a slot.
+- `casting_candidates.json` — the casting sheet, with an explicit lock
+  state per role x locale slot (see "Casting lock state" above). Used by
+  `--audition`, `--audition-set-a`, and `--audition-set-b`.
 - `audition_set_a.json` — fixed 16-line A/B comparison list (2 candidates
   per role x locale) used only by `--audition-set-a`. Comparison aid only;
   does not affect `casting_candidates.json`.
+- `audition_set_b_recast_briefs.json` — per-pending-role Voice Library
+  search filters (language/gender/age), a character brief, and the
+  exclude-list of every voice_id already locked or rejected in Set A, used
+  only by `--audition-set-b`.
 - `generate_zone1_audio.py` — the CLI (stdlib-only, no extra pip installs).
 - `_local_review/` — generated audio and voice-discovery output land here
   (git-ignored). Never auto-promoted to a canonical asset path.
@@ -166,13 +209,12 @@ C:\path\to\repo\tools\e10_zone1_audio\_local_review\voices.json
 Send that file back for casting analysis — you do not need to open or edit
 it yourself.
 
-**5. Casting shortlist.** `tools\e10_zone1_audio\casting_candidates.json` is
-already pre-filled with a Claude-proposed shortlist (`casting_status:
-"SHORTLIST_PROPOSED_AWAITING_OWNER_APPROVAL"`) — one top-pick `voice_id` per
-role x locale, with 2-3 ranked `candidates[]` and reasoning per slot. Nothing
-is locked; to change a pick, edit that slot's `voice_id` to a different
-`candidates[].voice_id`. Step 6 below lets you compare candidates by ear
-before deciding.
+**5. Casting state.** `tools\e10_zone1_audio\casting_candidates.json` tracks
+5 locked (Owner-approved) and 3 pending role x locale slots — see "Casting
+lock state" above. To manually change a locked slot's voice (overriding a
+previous approval), you must explicitly set `"locked": false` first, then
+edit `voice_id`; no automated mode will ever do this for you. Step 6/6b below
+let you compare candidates by ear before deciding on a pending slot.
 
 **6. Generate AUDITION SET A** (a fixed 16-line A/B comparison: 2 candidate
 voices per role x locale, each reading the same canonical sample line — not
@@ -201,6 +243,22 @@ git fetch origin claude/e10-z1-audio-production-001; git checkout claude/e10-z1-
 When it finishes, open the folder it printed
 (`tools\e10_zone1_audio\_local_review\audition_set_a\`) — all 16 comparison
 MP3s are there together.
+
+**6b. Generate AUDITION SET B** (recast only the pending roles, via a live
+Voice Library search -- see `audition_set_b_recast_briefs.json`):
+
+```powershell
+python tools\e10_zone1_audio\generate_zone1_audio.py --audition-set-b
+```
+
+Output goes to `tools\e10_zone1_audio\_local_review\audition_set_b\`. This
+mode also writes discovered candidates into each pending slot's
+`recast_candidates` in `casting_candidates.json` (never `voice_id`, never a
+locked slot). Since it depends on a live Voice Library search this sandbox
+cannot test, a failed search or add-to-library call prints a clear
+`VOICE_LIBRARY_SEARCH_FAILED` / `ADD_TO_LIBRARY_FAILED` diagnostic with the
+HTTP status instead of failing silently -- if you see one, share the exact
+console output.
 
 **7. Once you've picked final voices**, update `casting_candidates.json`
 accordingly (if different from the current top picks) and generate the
