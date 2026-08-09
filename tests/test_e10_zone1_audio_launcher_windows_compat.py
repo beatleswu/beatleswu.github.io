@@ -35,6 +35,7 @@ LAUNCHERS = [
             "ps1_name": "Run_Audition_Set_A.ps1",
             "mode": "--audition-set-a",
             "output_dir_name": "audition_set_a",
+            "tripwire_word": "AUDITION",
         },
         id="set_a",
     ),
@@ -45,10 +46,24 @@ LAUNCHERS = [
             "ps1_name": "Run_Audition_Set_B.ps1",
             "mode": "--audition-set-b",
             "output_dir_name": "audition_set_b",
+            "tripwire_word": "AUDITION",
         },
         id="set_b",
     ),
+    pytest.param(
+        {
+            "cmd": TOOL_DIR / "Run_Zone1_Final_Voices.cmd",
+            "ps1": TOOL_DIR / "Run_Zone1_Final_Voices.ps1",
+            "ps1_name": "Run_Zone1_Final_Voices.ps1",
+            "mode": "--generate-tts",
+            "output_dir_name": "zone1_final_voices",
+            "tripwire_word": "VOICES",
+        },
+        id="final_voices",
+    ),
 ]
+
+ALL_MODES = {"--audition-set-a", "--audition-set-b", "--generate-tts"}
 
 
 @pytest.mark.parametrize("launcher", LAUNCHERS)
@@ -82,17 +97,16 @@ def test_cmd_launcher_is_ascii_only(launcher):
 
 @pytest.mark.parametrize("launcher", LAUNCHERS)
 def test_cmd_launcher_has_no_split_keywords(launcher):
-    # A regression-specific tripwire: the failure symptom was words like
-    # "AUDITION" splitting across a corrupted line boundary into a bogus
-    # command token ("DITION"). Assert the whole word survives intact and
-    # is not reachable by naively splitting on raw '\n'.
+    # A regression-specific tripwire: the failure symptom was a distinctive
+    # word like "AUDITION" splitting across a corrupted line boundary into
+    # a bogus command token ("DITION"). Reading the raw file as one string
+    # and asserting the whole word appears as a contiguous substring is
+    # sufficient and precise: a stray line break inserted mid-word would
+    # place a '\n' between its halves, so the intact word could never be
+    # found via plain substring search if that corruption were present.
+    word = launcher["tripwire_word"]
     text = launcher["cmd"].read_text(encoding="ascii")
-    assert "AUDITION" in text
-    for line in text.splitlines():
-        assert not line.strip().startswith("DITION"), (
-            "found a bare 'DITION' line fragment -- indicates a corrupted "
-            "line break inside the word 'AUDITION'"
-        )
+    assert word in text, f"expected {word!r} to appear intact in {launcher['cmd'].name}"
 
 
 @pytest.mark.parametrize("launcher", LAUNCHERS)
@@ -172,8 +186,8 @@ def test_ps1_launcher_runs_check_then_its_own_mode_only(launcher):
     text = launcher["ps1"].read_text(encoding="utf-8-sig")
     assert "--check" in text
     assert launcher["mode"] in text
-    other_modes = {"--audition-set-a", "--audition-set-b"} - {launcher["mode"]}
-    forbidden = other_modes | {"--generate-tts", "--generate-sfx", "--generate-music", "--audition "}
+    other_modes = ALL_MODES - {launcher["mode"]}
+    forbidden = other_modes | {"--generate-sfx", "--generate-music", "--audition "}
     for flag in forbidden:
         assert flag not in text, f"{launcher['ps1'].name} must not invoke {flag!r}"
 
@@ -187,12 +201,27 @@ def test_ps1_launcher_opens_its_own_output_folder(launcher):
 
 def test_gitattributes_forces_crlf_for_every_launcher():
     gitattributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
-    assert re.search(r"tools/e10_zone1_audio/Run_Audition_Set_\*\.cmd\s+text\s+eol=crlf", gitattributes), (
-        ".gitattributes must force eol=crlf for tools/e10_zone1_audio/Run_Audition_Set_*.cmd, "
+    assert re.search(r"tools/e10_zone1_audio/Run_\*\.cmd\s+text\s+eol=crlf", gitattributes), (
+        ".gitattributes must force eol=crlf for tools/e10_zone1_audio/Run_*.cmd, "
         "or a future launcher will silently inherit LF from the repo-wide eol=lf policy and "
         "reproduce this exact bug on Windows"
     )
-    assert re.search(r"tools/e10_zone1_audio/Run_Audition_Set_\*\.ps1\s+text\s+eol=crlf", gitattributes)
+    assert re.search(r"tools/e10_zone1_audio/Run_\*\.ps1\s+text\s+eol=crlf", gitattributes)
+
+
+@pytest.mark.parametrize("launcher", LAUNCHERS)
+def test_gitattributes_glob_matches_this_launcher_pair(launcher):
+    import fnmatch
+
+    gitattributes = (REPO_ROOT / ".gitattributes").read_text(encoding="utf-8")
+    globs = [
+        line.split()[0] for line in gitattributes.splitlines()
+        if line.strip() and not line.strip().startswith("#") and "eol=crlf" in line
+    ]
+    cmd_rel = str(launcher["cmd"].relative_to(REPO_ROOT))
+    ps1_rel = str(launcher["ps1"].relative_to(REPO_ROOT))
+    assert any(fnmatch.fnmatch(cmd_rel, g) for g in globs), f"{cmd_rel} not matched by any eol=crlf glob: {globs}"
+    assert any(fnmatch.fnmatch(ps1_rel, g) for g in globs), f"{ps1_rel} not matched by any eol=crlf glob: {globs}"
 
 
 def test_set_b_launcher_does_not_regenerate_set_a():

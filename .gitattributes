@@ -31,10 +31,11 @@ sgf_engine/VENDORED_FROM.txt text eol=lf
 # what line endings were written at commit time) corrupts line/token
 # parsing -- see E10-Z1-AUDIO-PRODUCTION-001 and
 # tests/test_e10_zone1_audio_launcher_windows_compat.py. Every Owner
-# launcher under tools/e10_zone1_audio/ (Set A, Set B, and any future
-# set) must always check out with CRLF, on every platform, or the
-# launcher breaks again. Glob covers current and future Run_Audition_*
-# launchers so this exception doesn't need a new line added by hand
-# each time a new set is created.
-tools/e10_zone1_audio/Run_Audition_Set_*.cmd text eol=crlf
-tools/e10_zone1_audio/Run_Audition_Set_*.ps1 text eol=crlf
+# launcher under tools/e10_zone1_audio/ (audition sets, the final-voices
+# generator, and any future one-click launcher) must always check out
+# with CRLF, on every platform, or the launcher breaks again. Glob
+# covers every current and future Run_*.{cmd,ps1} launcher in this
+# directory so this exception doesn't need a new line added by hand
+# each time a new launcher is created.
+tools/e10_zone1_audio/Run_*.cmd text eol=crlf
+tools/e10_zone1_audio/Run_*.ps1 text eol=crlf

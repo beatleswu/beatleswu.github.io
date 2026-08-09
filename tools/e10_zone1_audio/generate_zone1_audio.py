@@ -83,10 +83,26 @@ Modes:
                 never includes the credential. Untested against the live
                 Voice Library API from this sandbox (which cannot reach
                 it).
-  --generate-tts / --generate-sfx / --generate-music
-                Reserved for full Zone 1 production once the Owner approves
-                casting and BGM direction. Currently print a not-yet-enabled
-                notice and take no action (no request is sent).
+  --generate-tts
+                Generate the COMPLETE approved Zone 1 spoken dialogue: every
+                entry in zone1_beat_manifest.json (all shots/beats, both
+                locales, canonical text verbatim -- never rewritten), using
+                each speaker's LOCKED voice_id from casting_candidates.json,
+                into _local_review/zone1_final_voices/. FAILS CLOSED: if any
+                role x locale slot the manifest needs is not
+                "locked": true with a real voice_id, nothing is generated --
+                prints GENERATE_TTS_BLOCKED_UNRESOLVED_ROLES naming exactly
+                which slot(s) are missing. Safe to re-run: previous output
+                is cleared first. Verifies every expected file exists,
+                is non-empty, and has a unique filename encoding shot/beat/
+                locale/speaker; exits non-zero with
+                GENERATE_TTS_VERIFICATION=FAIL otherwise. These are local
+                review-only assets, never auto-promoted to canonical/
+                production/deploy paths.
+  --generate-sfx / --generate-music
+                Reserved for BGM/SFX production once the Owner approves that
+                direction. Currently print a not-yet-enabled notice and take
+                no action (no request is sent).
 """
 from __future__ import annotations
 
@@ -111,6 +127,7 @@ REVIEW_DIR = TOOL_DIR / "_local_review"
 AUDITION_DIR = REVIEW_DIR / "audition"
 AUDITION_SET_A_DIR = REVIEW_DIR / "audition_set_a"
 AUDITION_SET_B_DIR = REVIEW_DIR / "audition_set_b"
+ZONE1_FINAL_DIR = REVIEW_DIR / "zone1_final_voices"
 VOICES_JSON_PATH = REVIEW_DIR / "voices.json"
 
 API_BASE = "https://api.elevenlabs.io"
@@ -640,6 +657,103 @@ def cmd_audition_set_b() -> None:
           "and are not canonical production assets until the Owner explicitly approves casting.")
 
 
+def _locale_slug(locale: str) -> str:
+    return "zh" if locale == "zh-TW" else locale
+
+
+def cmd_generate_tts() -> None:
+    """Generate the complete approved Zone 1 spoken dialogue (all canonical
+    beats, both locales) using the FINAL LOCKED cast in casting_candidates.
+    json. Fails closed: if any of the 8 role x locale slots this manifest
+    needs is not locked with a real voice_id, NOTHING is generated -- the
+    Owner never gets a partial/mixed-cast set without a clear reason why.
+    """
+    api_key = get_api_key()
+    casting = json.loads(CASTING_PATH.read_text(encoding="utf-8"))
+    model_id = get_model_id()
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    entries = manifest["entries"]
+
+    print(f"SELECTED_MODEL_ID={model_id}")
+    print(f"ZONE1_FINAL_TTS_EXPECTED={len(entries)}")
+    print("Run --check first to confirm this model is available and supports text-to-speech.")
+
+    # Fail-closed gate: every role x locale slot must be locked with a real
+    # voice_id before ANY generation happens -- no partial runs.
+    voice_id_by_role_locale: dict[tuple[str, str], str] = {}
+    unresolved: list[str] = []
+    for role_key, role in casting["roles"].items():
+        for locale, slot in role["voices"].items():
+            if slot.get("locked") and slot.get("voice_id"):
+                voice_id_by_role_locale[(role_key, locale)] = slot["voice_id"]
+            else:
+                unresolved.append(f"{role_key}/{locale}")
+
+    if unresolved:
+        print(f"CAST_LOCKED={len(voice_id_by_role_locale)}/{len(voice_id_by_role_locale) + len(unresolved)}")
+        print("GENERATE_TTS_VERIFICATION=FAIL")
+        print(f"GENERATE_TTS_BLOCKED_UNRESOLVED_ROLES={','.join(sorted(unresolved))}")
+        print("Every role x locale slot must be locked with an approved voice_id in "
+              "casting_candidates.json before the full Zone 1 spoken set can be generated. "
+              "No audio was generated (fail closed).")
+        raise SystemExit(1)
+    print(f"CAST_LOCKED={len(voice_id_by_role_locale)}/{len(voice_id_by_role_locale)}")
+
+    if ZONE1_FINAL_DIR.exists():
+        shutil.rmtree(ZONE1_FINAL_DIR)
+    ZONE1_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+
+    seen_filenames: set[str] = set()
+    results = []
+    for entry in entries:
+        role_key = entry["speaker"]
+        locale = entry["locale"]
+        voice_id = voice_id_by_role_locale.get((role_key, locale))
+        if not voice_id:
+            # Should be unreachable given the gate above, unless the
+            # manifest references a speaker/locale combination that does
+            # not exist in casting_candidates.json's roles at all.
+            print("GENERATE_TTS_VERIFICATION=FAIL")
+            print(f"UNKNOWN_SPEAKER_OR_LOCALE speaker={role_key!r} locale={locale!r} "
+                  f"shot={entry['shot']} beat={entry['beat']}")
+            raise SystemExit(1)
+
+        output_filename = (
+            f"zone1_final_shot{entry['shot']:02d}_beat{entry['beat']:02d}_"
+            f"{_locale_slug(locale)}_{role_key}.mp3"
+        )
+        if output_filename in seen_filenames:
+            print("GENERATE_TTS_VERIFICATION=FAIL")
+            print(f"DUPLICATE_OUTPUT_FILENAME={output_filename}")
+            raise SystemExit(1)
+        seen_filenames.add(output_filename)
+
+        output_path = ZONE1_FINAL_DIR / output_filename
+        print(f"Generating {output_filename} (shot {entry['shot']} beat {entry['beat']} "
+              f"{locale} {role_key}) ...")
+        ok = _text_to_speech(api_key, voice_id, entry["text"], model_id, output_path)
+        results.append({"output_filename": output_filename, "generated": ok})
+
+    generated = sum(1 for r in results if r["generated"])
+    expected = len(entries)
+    print(f"ZONE1_FINAL_TTS_GENERATED={generated}")
+    print(f"ZONE1_FINAL_TTS_OUTPUT_DIR={ZONE1_FINAL_DIR.resolve()}")
+
+    missing_or_empty = [
+        r["output_filename"] for r in results
+        if not (ZONE1_FINAL_DIR / r["output_filename"]).is_file()
+        or (ZONE1_FINAL_DIR / r["output_filename"]).stat().st_size == 0
+    ]
+    if missing_or_empty or generated != expected:
+        print("GENERATE_TTS_VERIFICATION=FAIL")
+        if missing_or_empty:
+            print(f"GENERATE_TTS_MISSING_OR_EMPTY={','.join(missing_or_empty)}")
+        raise SystemExit(1)
+    print("GENERATE_TTS_VERIFICATION=PASS")
+    print("These are local review-only final voice assets. They are NOT canonical production "
+          "assets until the Owner performs final listening approval.")
+
+
 def cmd_not_yet_enabled(flag: str) -> None:
     print(f"{flag}: NOT_YET_ENABLED — awaiting Owner casting/BGM approval. No request was sent.")
 
@@ -652,7 +766,7 @@ def main() -> None:
     group.add_argument("--audition", action="store_true", help="Generate the minimal casting sample only.")
     group.add_argument("--audition-set-a", action="store_true", help="Generate the fixed 16-line A/B casting comparison set.")
     group.add_argument("--audition-set-b", action="store_true", help="Recast pending roles via a live Voice Library search.")
-    group.add_argument("--generate-tts", action="store_true", help="Reserved; not yet enabled.")
+    group.add_argument("--generate-tts", action="store_true", help="Generate the full approved Zone 1 spoken dialogue.")
     group.add_argument("--generate-sfx", action="store_true", help="Reserved; not yet enabled.")
     group.add_argument("--generate-music", action="store_true", help="Reserved; not yet enabled.")
     parser.add_argument("--json", action="store_true", help="With --list-voices, also write _local_review/voices.json.")
@@ -679,7 +793,7 @@ def main() -> None:
     elif args.audition_set_b:
         cmd_audition_set_b()
     elif args.generate_tts:
-        cmd_not_yet_enabled("--generate-tts")
+        cmd_generate_tts()
     elif args.generate_sfx:
         cmd_not_yet_enabled("--generate-sfx")
     elif args.generate_music:

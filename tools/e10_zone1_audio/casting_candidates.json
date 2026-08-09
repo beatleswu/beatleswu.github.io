@@ -1,6 +1,7 @@
 {
   "_comment": "Owner-editable casting sheet for Zone 1 (k26_30). voice_id per speaker x locale is used by --audition; leave it null to skip that line. Values here are never generated automatically and never overwrite canonical dialogue.",
-  "casting_status": "PARTIAL_LOCK_5_OF_8_APPROVED_3_PENDING_RECAST",
+  "casting_status": "AWAITING_VOICE_ID_HANDOFF_FOR_3_ROLES",
+  "casting_status_note": "Owner named final choices for all 8 role x locale slots after AUDITION SET B (zh-TW Elder: Christopher, zh-TW Hero: Roy - Taiwanese Youth, en Hero: Anvay - Calm & Reassuring). The 5 slots already resolved to a real voice_id in this repo are LOCKED. The 3 new picks were discovered live by --audition-set-b running on the Owner's local machine and recorded only in the Owner's local casting_candidates.json (never pushed back here) -- this repo copy does not have their real voice_id values yet, so those 3 slots stay locked:false/voice_id:null until the Owner sends them (upload the local casting_candidates.json, or the 3 voice_id strings). --generate-tts fails closed and refuses to run until all 8 are locked.",
   "locking_policy": "Once a role x locale slot has \"locked\": true, no automated tool in this directory (including --audition-set-b) may overwrite its voice_id or candidates without the Owner explicitly unlocking it first. This is enforced in code by cmd_audition_set_b(), not just by convention.",
   "locked_roles": [
     { "role": "anna", "display_name": "Narrator", "locale": "zh-TW", "approved_name": "Anna Su" },
@@ -10,9 +11,9 @@
     { "role": "runner", "display_name": "Messenger", "locale": "en", "approved_name": "Liam" }
   ],
   "pending_roles": [
-    { "role": "elder", "display_name": "Elder", "locale": "zh-TW", "reason": "AUDITION SET A candidates (Kevin Tu, Ling) both rejected by Owner. Awaiting AUDITION SET B recast." },
-    { "role": "hero", "display_name": "Hero", "locale": "zh-TW", "reason": "AUDITION SET A candidates (Yui, Anna Su) both rejected -- canon requires the Hero to be MALE, both were female. Awaiting AUDITION SET B recast." },
-    { "role": "hero", "display_name": "Hero", "locale": "en", "reason": "AUDITION SET A candidates (Will, Charlie) both rejected as sounding too old. Awaiting AUDITION SET B recast with younger candidates." }
+    { "role": "elder", "display_name": "Elder", "locale": "zh-TW", "owner_final_choice_name": "Christopher", "reason": "Owner approved Christopher (AUDITION SET B, Voice Library) as final zh-TW Elder, but this repo does not yet have the real voice_id -- awaiting handoff." },
+    { "role": "hero", "display_name": "Hero", "locale": "zh-TW", "owner_final_choice_name": "Roy - Taiwanese Youth", "reason": "Owner approved Roy - Taiwanese Youth (AUDITION SET B, Voice Library) as final zh-TW Hero -- young male, consistent with canon and the Hero's visual. Real voice_id not yet handed off to this repo." },
+    { "role": "hero", "display_name": "Hero", "locale": "en", "owner_final_choice_name": "Anvay - Calm & Reassuring", "reason": "Owner approved Anvay - Calm & Reassuring (AUDITION SET B, Voice Library) as final English Hero. Real voice_id not yet handed off to this repo." }
   ],
   "casting_shortlist_source": "Claude-analyzed from Owner-provided tools/e10_zone1_audio/_local_review/voices.json (27 ElevenLabs voices: 23 en, 4 zh) for AUDITION SET A. AUDITION SET B recast candidates for the 3 pending roles come from a live ElevenLabs Voice Library search performed by --audition-set-b on the Owner's machine (this account's personal 27-voice pool is exhausted for zh, and for a genuinely younger en Hero voice) -- see audition_set_b_recast_briefs.json.",
   "audio_config": {
@@ -115,7 +116,8 @@
         "zh-TW": {
           "voice_id": null,
           "locked": false,
-          "notes": "PENDING RECAST (AUDITION SET B). Both AUDITION SET A candidates (Kevin Tu, Ling) rejected by Owner -- this account's zh voice pool (only 4 personal voices, all already used elsewhere) is exhausted. New candidates come from a live ElevenLabs Voice Library search; see audition_set_b_recast_briefs.json for the character brief and recast_candidates below once --audition-set-b has run.",
+          "notes": "OWNER APPROVED Christopher (AUDITION SET B, Voice Library) as the final zh-TW Elder. NOT YET LOCKED: this repo does not have the real voice_id -- --audition-set-b ran on the Owner's local machine and wrote recast_candidates into their local casting_candidates.json only, which was never sent back here. Awaiting the Owner to hand off that file (or the voice_id string) before this slot can be set locked:true with a real voice_id.",
+          "owner_final_choice_name": "Christopher",
           "candidates": [
             {
               "rank": 1,
@@ -142,7 +144,8 @@
         "en": {
           "voice_id": null,
           "locked": false,
-          "notes": "PENDING RECAST (AUDITION SET B). Both AUDITION SET A candidates (Will, Charlie) rejected by Owner as sounding too old. New candidates must be clearly younger (late-teen/young-adult) -- see audition_set_b_recast_briefs.json.",
+          "notes": "OWNER APPROVED Anvay - Calm & Reassuring (AUDITION SET B, Voice Library) as the final English Hero. NOT YET LOCKED: this repo does not have the real voice_id -- --audition-set-b ran on the Owner's local machine and wrote recast_candidates into their local casting_candidates.json only, which was never sent back here. Awaiting the Owner to hand off that file (or the voice_id string) before this slot can be set locked:true with a real voice_id.",
+          "owner_final_choice_name": "Anvay - Calm & Reassuring",
           "candidates": [
             {
               "rank": 1,
@@ -171,7 +174,8 @@
         "zh-TW": {
           "voice_id": null,
           "locked": false,
-          "notes": "PENDING RECAST (AUDITION SET B). Both AUDITION SET A candidates (Yui, Anna Su) rejected by Owner -- CRITICAL CANON: the Hero is a MALE character; both Set A candidates were female. New candidates must be male; this account's zh voice pool has no remaining male options, so recast candidates come from a live Voice Library search -- see audition_set_b_recast_briefs.json.",
+          "notes": "OWNER APPROVED Roy - Taiwanese Youth (AUDITION SET B, Voice Library) as the final zh-TW Hero -- young male, consistent with canon and the Hero's visual. NOT YET LOCKED: this repo does not have the real voice_id -- --audition-set-b ran on the Owner's local machine and wrote recast_candidates into their local casting_candidates.json only, which was never sent back here. Awaiting the Owner to hand off that file (or the voice_id string) before this slot can be set locked:true with a real voice_id.",
+          "owner_final_choice_name": "Roy - Taiwanese Youth",
           "candidates": [
             {
               "rank": 1,

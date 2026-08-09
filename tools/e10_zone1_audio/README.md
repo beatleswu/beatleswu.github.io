@@ -55,6 +55,24 @@ output folder first and regenerates fresh, so old and new comparison takes
 never mix. See the matching `.ps1` file for what each does step by step;
 error messages are in Chinese with an English detail line underneath.
 
+**FINAL LOCKED VOICES** — once all 8 role x locale slots are locked, generate
+the complete approved Zone 1 spoken dialogue (both locales, every canonical
+beat) for a final listen before it's treated as production-ready:
+
+1. Double-click `tools\e10_zone1_audio\Run_Zone1_Final_Voices.cmd`.
+2. Same masked API key prompt as above.
+3. Wait — it runs the same connectivity check, then generates one MP3 per
+   canonical spoken beat in `zone1_beat_manifest.json` (28 beats today; both
+   locales) using each role's LOCKED voice from `casting_candidates.json`.
+4. The `zone1_final_voices` folder opens automatically in Explorer.
+5. Listen and give final approval (or flag lines to redo).
+
+**This mode fails closed**: if even one of the 8 role x locale slots is not
+`"locked": true` with a real `voice_id`, it generates nothing at all and
+tells you exactly which slot(s) are unresolved
+(`GENERATE_TTS_BLOCKED_UNRESOLVED_ROLES=...`) — never a partial or
+mixed-cast set.
+
 ## Casting lock state
 
 `casting_candidates.json` tracks two states per role x locale slot:
@@ -62,15 +80,19 @@ error messages are in Chinese with an English detail line underneath.
 - **Locked** (`"locked": true`, real `voice_id`) — Owner-approved. No tool
   in this directory will ever overwrite a locked slot's `voice_id` or
   candidates; `--audition-set-b` explicitly skips any locked slot it
-  encounters. Currently locked: zh-TW Narrator (Anna Su), zh-TW Messenger
-  (Yui), English Narrator (Amelia), English Elder (Daniel), English
-  Messenger (Liam).
-- **Pending** (`"locked": false`, `voice_id: null`) — awaiting a decision.
-  Currently pending: zh-TW Elder, zh-TW Hero (canon: must be male), English
-  Hero (canon: must sound clearly younger than the rejected Will/Charlie).
-  `--audition-set-b` writes its live search results into that slot's
-  `recast_candidates` array (not `voice_id`) so nothing is silently decided
-  — the Owner still has to choose after listening.
+  encounters, and `--generate-tts` refuses to run at all unless every slot
+  it needs is locked. Currently locked (5/8): zh-TW Narrator (Anna Su),
+  zh-TW Messenger (Yui), English Narrator (Amelia), English Elder (Daniel),
+  English Messenger (Liam).
+- **Pending** (`"locked": false`, `voice_id: null`) — Owner has named a
+  final choice after AUDITION SET B, but this repo does not yet have the
+  real `voice_id` (that search ran on the Owner's local machine and was
+  never sent back here) — see `owner_final_choice_name` on each slot.
+  Currently pending real-voice_id handoff (3/8): zh-TW Elder (Christopher),
+  zh-TW Hero (Roy - Taiwanese Youth), English Hero (Anvay - Calm &
+  Reassuring). Send the Owner's local `casting_candidates.json` (or just the
+  3 `voice_id` strings) to complete the lock — `--generate-tts` will refuse
+  to run until then.
 
 ## Scope
 
@@ -88,21 +110,27 @@ error messages are in Chinese with an English detail line underneath.
   `--audition-set-a`, opens the output folder).
 - `Run_Audition_Set_B.cmd` / `Run_Audition_Set_B.ps1` — the matching
   one-click launcher for Set B (recast pending roles via a live Voice
-  Library search, `--audition-set-b`). Both `.cmd` files are ASCII-only
-  with CRLF line endings and both `.ps1` files have a UTF-8 BOM — required
-  for Windows `cmd.exe`/PowerShell 5.1 compatibility, enforced by
-  `.gitattributes` and `tests/test_e10_zone1_audio_launcher_windows_compat.py`
-  (see git history for the Windows live-test failure this fixed).
+  Library search, `--audition-set-b`).
+- `Run_Zone1_Final_Voices.cmd` / `Run_Zone1_Final_Voices.ps1` — the
+  one-click launcher for the complete approved spoken dialogue
+  (`--generate-tts`, see "FINAL LOCKED VOICES" above).
+
+  Every `.cmd` file above is ASCII-only with CRLF line endings and every
+  `.ps1` file has a UTF-8 BOM — required for Windows `cmd.exe`/PowerShell
+  5.1 compatibility, enforced by `.gitattributes` (`Run_*.{cmd,ps1}` glob)
+  and `tests/test_e10_zone1_audio_launcher_windows_compat.py` (see git
+  history for the Windows live-test failure this fixed).
 
 - `zone1_beat_manifest.json` — mechanical extraction of every spoken beat
   in the shipped Zone 1 cinematic (shot, beat, phase, speaker, locale,
   exact canonical text, `voice_id` placeholder, proposed output filename).
   Do not hand-edit dialogue text here — the source of truth is `index.html`
   (`getIntroFilmLocaleConfig` → `k26_30`); if the script ever changes,
-  re-extract instead of editing this file directly.
+  re-extract instead of editing this file directly. This is also the source
+  of truth `--generate-tts` reads from for the full spoken set.
 - `casting_candidates.json` — the casting sheet, with an explicit lock
   state per role x locale slot (see "Casting lock state" above). Used by
-  `--audition`, `--audition-set-a`, and `--audition-set-b`.
+  `--audition`, `--audition-set-a`, `--audition-set-b`, and `--generate-tts`.
 - `audition_set_a.json` — fixed 16-line A/B comparison list (2 candidates
   per role x locale) used only by `--audition-set-a`. Comparison aid only;
   does not affect `casting_candidates.json`.
@@ -285,6 +313,21 @@ The configured model is printed before generation starts
 `tools\e10_zone1_audio\_local_review\audition\`. Review it there — nothing
 is copied into `assets/` or any canonical manifest by this tool.
 
+**7b. Once all 8 role x locale slots are locked**, generate the complete
+approved Zone 1 spoken dialogue (every canonical beat, both locales -- not
+just a sample):
+
+```powershell
+python tools\e10_zone1_audio\generate_zone1_audio.py --generate-tts
+```
+
+Fails closed with `GENERATE_TTS_BLOCKED_UNRESOLVED_ROLES=...` and generates
+nothing if any slot isn't locked yet. On success, output goes to
+`tools\e10_zone1_audio\_local_review\zone1_final_voices\` with deterministic
+filenames (`zone1_final_shot{NN}_beat{MM}_{locale}_{speaker}.mp3`). Still
+local-review-only -- not copied into `assets/`, `deploy/*`, or any canonical
+manifest.
+
 **8. When you're done for the session, remove the key from the process:**
 
 ```powershell
@@ -293,7 +336,7 @@ Remove-Item Env:\ELEVENLABS_API_KEY
 
 ## Not yet enabled
 
-`--generate-tts`, `--generate-sfx`, and `--generate-music` are present as
+`--generate-sfx` and `--generate-music` are present as
 reserved flags but currently print a `NOT_YET_ENABLED` notice and send no
 request. Full-line TTS generation, sound effects, and music are gated on
 Owner approval of the casting/BGM direction from the audition step above.
