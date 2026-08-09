@@ -23,3 +23,15 @@
 *.svg binary
 
 sgf_engine/VENDORED_FROM.txt text eol=lf
+
+# Windows-native launcher exception to the repo-wide eol=lf policy above.
+# cmd.exe's batch parser is byte-oriented and codepage-dependent; a
+# real Owner test on Windows 10 confirmed that LF-only .cmd content
+# (silently produced by the blanket eol=lf rule above, regardless of
+# what line endings were written at commit time) corrupts line/token
+# parsing -- see E10-Z1-AUDIO-PRODUCTION-001 and
+# tests/test_e10_zone1_audio_launcher_windows_compat.py. These two
+# files must always check out with CRLF, on every platform, or the
+# launcher breaks again.
+tools/e10_zone1_audio/Run_Audition_Set_A.cmd text eol=crlf
+tools/e10_zone1_audio/Run_Audition_Set_A.ps1 text eol=crlf

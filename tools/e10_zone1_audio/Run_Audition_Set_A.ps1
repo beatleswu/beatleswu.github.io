@@ -1,4 +1,4 @@
-# E10 Zone 1 - AUDITION SET A one-click launcher (Owner machine only).
+﻿# E10 Zone 1 - AUDITION SET A one-click launcher (Owner machine only).
 #
 # Do not run this from the remote Claude Web sandbox -- it cannot reach
 # api.elevenlabs.io. This script is meant to be launched by
