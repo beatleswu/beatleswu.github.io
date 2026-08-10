@@ -63,6 +63,11 @@
         "prefix": "assets/storyboards/",
         "manifest": "deploy/canonical-audio-pack-manifest.json",
         "staging_rule": "Stage exactly the files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage a file under assets/storyboards/ that is not in this manifest, even if present on disk -- a partial or over-broad generation must fail closed (see package-static-release.ps1 and its tests). Deliberately disjoint from the image manifest above (zero *.mp3 entries there, zero non-audio entries here) -- no path is staged twice."
+      },
+      {
+        "prefix": "assets/e10/audio/zone1/",
+        "manifest": "deploy/canonical-e10-zone1-audio-pack-manifest.json",
+        "staging_rule": "Stage exactly the files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 1 audio file that is not in this manifest, even if present on disk -- a partial or over-broad generation must fail closed. This namespace is disjoint from the storyboard audio pack and the image pack."
       }
     ]
   },

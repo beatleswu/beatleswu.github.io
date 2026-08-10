@@ -1,0 +1,356 @@
+{
+  "$schema_note": "Canonical governed E10 Zone 1 audio closure. This namespace is intentionally separate from canonical-audio-pack-manifest.json, which owns the 90-file assets/storyboards narration pack. The manifest is the single source of truth for the 43 committed Zone 1 MP3 runtime assets and is wired through live-static-asset-inventory.json.",
+  "manifest_version": "1.0.0",
+  "generated_for": "E10 Zone 1 deployment asset closure recovery",
+  "total_files": 43,
+  "total_bytes": 2275155,
+  "provenance_summary": {
+    "owner-approved-project-created": 43
+  },
+  "files": [
+    {
+      "path": "assets/e10/audio/zone1/ambience/zone1_ambience_village_dawn.mp3",
+      "size": 193141,
+      "sha256": "7a6704e95fac0c3a5eaca3f61815e7a3b56a33127a887c4c6d726de3af694cf8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/bgm/zone1_bgm_main_theme.mp3",
+      "size": 480698,
+      "sha256": "fea1be605ac393f932a044d66f3097c466890abdd57f375f9892717490f59c28",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/bgm/zone1_bgm_post_clear_urgency.mp3",
+      "size": 193142,
+      "sha256": "012905733c694930ef2307b8a1f00be2196b7fca5a07e0d34c078394bffa67f9",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot01_beat01_en_anna.mp3",
+      "size": 111221,
+      "sha256": "01a9b17989e2563bd14a8f0a13eb4260e91f5a8b31bba1a978f0d1eb3ed4deac",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot01_beat01_zh_anna.mp3",
+      "size": 111221,
+      "sha256": "c13ad50dd9b78e3470ffec3d0bcfaedeec6a1b0f4bcba47d70e0ffe5f76f7231",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat01_en_elder.mp3",
+      "size": 26793,
+      "sha256": "799db9b517e016ae792df01cd759278468bfae8f77287e3708165100ad8d87dd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat01_zh_elder.mp3",
+      "size": 26793,
+      "sha256": "3894cdacdc2bfe9ab40bdd40d62b8188bc0966e68486f74ce7e7881f54964617",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat02_en_hero.mp3",
+      "size": 12582,
+      "sha256": "f0d4d5566cc479c1b1b64420786759e8c108d1ff51370bfa4339aed199440ee8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat02_zh_hero.mp3",
+      "size": 11328,
+      "sha256": "3e5d88a6c945fc3f88ac747e31f7ab454132424753004c75644243061a71a306",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat01_en_elder.mp3",
+      "size": 25539,
+      "sha256": "609521d75c429c55b310f6a4708bb6b2c5686f433114b832bd6f0d8a7eb67c78",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat01_zh_elder.mp3",
+      "size": 28047,
+      "sha256": "a3f96f99b6198285da348c5bc6f5e83dfe57291765d0b5e6febd1fa1c5d738f3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat02_en_elder.mp3",
+      "size": 38078,
+      "sha256": "8864bea7690260d3a57845ba390d6263869f4a781780f767e5496381d059efcf",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat02_zh_elder.mp3",
+      "size": 39332,
+      "sha256": "6f0ad0c19602a26208a820e054ba4c51f17877f50c32fc68452998b2543503c6",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat03_en_elder.mp3",
+      "size": 65245,
+      "sha256": "60baee0e96aefc686ea862ea536e2c6121d3c13b78ac32ea8346919b263772a4",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat03_zh_elder.mp3",
+      "size": 48527,
+      "sha256": "6efa8648a84cc1fe4e99b1df68ee793cb244f5255da4c92e51377898c9a9a187",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat01_en_hero.mp3",
+      "size": 23031,
+      "sha256": "c3483e0d04b1b47e9a78981e7d437b0e9e8387f5d4f6654d5cef638adc7dd6d6",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat01_zh_hero.mp3",
+      "size": 26793,
+      "sha256": "4109475596835e45db146d4569d1e9be1d8dec5266a2c232b00813277d5c5a0e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat02_en_hero.mp3",
+      "size": 28047,
+      "sha256": "9db2530a1a9185ee15f9c7f7f633564c1d7c19eb760f4c99d0521ccaa915b146",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat02_zh_hero.mp3",
+      "size": 18852,
+      "sha256": "c0ffd4de714bd530735fd66c44ed6f16bc8d7400e4a6fe5be3d4cf7052a0464a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat01_en_elder.mp3",
+      "size": 52288,
+      "sha256": "a7d5cc758543328ad63d99fe62ba30e460d35a32bb6bada29019004cacb9d5cb",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat01_zh_elder.mp3",
+      "size": 44765,
+      "sha256": "2f51cfdd0479bd18ed5cb8e96e73fcba8ce6efc44d0e3295c52dd05882d8bfd1",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat02_en_elder.mp3",
+      "size": 16344,
+      "sha256": "af367123c78b949c880bb1ea5de3ffa73d0b711f141d696eb1cfee20d9310b40",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat02_zh_elder.mp3",
+      "size": 16344,
+      "sha256": "6c0a527ef3e54f8a18f94378919e74b316772e382ff8652255c312a1ff033464",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat03_en_elder.mp3",
+      "size": 44765,
+      "sha256": "6dfb854194d16c1a30a2cdf36dbf56d56b623456ae3f22b742d6b5a08dfa35c2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat03_zh_elder.mp3",
+      "size": 33062,
+      "sha256": "f6f96dea558ed62e62e308ac2dfb4d61eaf4a9c9067aa456e36bfd9345bc0abd",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat01_en_runner.mp3",
+      "size": 17598,
+      "sha256": "ad68713f1079b008e9679ef6db49ca7524427e3175a468f086b2299bf485d7a8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat01_zh_runner.mp3",
+      "size": 17598,
+      "sha256": "e38712c4ad337700abbaab1f31c7d692420b1be2c9b2fa7a8b8098d7af68173e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat02_en_runner.mp3",
+      "size": 40586,
+      "sha256": "80b1dd39f9f2c3bf77c03f215ff3d7a8f8278ccf7e5171abcf179f061d7a6d7a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat02_zh_runner.mp3",
+      "size": 24285,
+      "sha256": "003a89aa0e4e7e0069c3bb01d458952ddfed4dbdcc733f2824e1a4c0e2729013",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat03_en_runner.mp3",
+      "size": 43511,
+      "sha256": "deb44f6f41f8639029b696c4b1e0d3dfe947b6d674a88818766c44b34c139f78",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat03_zh_runner.mp3",
+      "size": 28047,
+      "sha256": "2dce67519e9a33841c3d05e71790ea896f75748e33ad2019e218a1e4c4da1b37",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_go_stone_impact.mp3",
+      "size": 17180,
+      "sha256": "4658bb233d9de9d6454b01b7b2cca561b4e3a87cb40ec0e80c979bb4cfe7f8cb",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_card_reveal.mp3",
+      "size": 20106,
+      "sha256": "ade6e1bb55c5077918e62acc5c4a68ee40ede1d00da5ab3f894755d3ad3d7af7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_challenge_confirm.mp3",
+      "size": 13836,
+      "sha256": "2e8936b3831403716a55eca51adc1d23e8ca1431ede41b046eab37092b8b07d3",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_ritual_energy.mp3",
+      "size": 65245,
+      "sha256": "3c924269798f2fcd29b07ba61a1f1ec5ab319c0b13939d430316dd20e6c013ba",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_trial_failure.mp3",
+      "size": 24703,
+      "sha256": "6241db56ba795791cbf503d9556a62b4ada6af7996b31dafd8ae0917ceafe788",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_trial_success.mp3",
+      "size": 33062,
+      "sha256": "137d09c7b2338ba6026634fe00bbc0a583890bd391d2d087b1b697e7ccfb9600",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_zone_route_energy.mp3",
+      "size": 40586,
+      "sha256": "218e11b6abb154cc1ba8a864eadb46d36b7a81c0effcb6e13f87e56313b89f61",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_zone_unlock_chime.mp3",
+      "size": 24703,
+      "sha256": "ffd58a776b1670bba36e1194437bbdb8284637109bf5775eea968e55d2cdafe9",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved Lord Trial SFX; byte identity is governed by tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json and its canonical package manifest."
+    },
+    {
+      "path": "assets/e10/audio/zone1/sfx/zone1_sfx_shot05_wooden_sword_grip.mp3",
+      "size": 33062,
+      "sha256": "cc1f3913d9064a83eab853d10d67b9e4fb3623bd67c2e5d4f32f3efe5093428c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3",
+      "size": 33062,
+      "sha256": "9d935a0f73711acc050f664a626355091f194cb7d29af043ed7a1b2e97e2f7b7",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/sfx/zone1_sfx_shot09_seal_unlock_pulse.mp3",
+      "size": 48945,
+      "sha256": "29a949b3a31c492e5c8dbd11d1a989fb5722099a156fc9511ff95a111f57e412",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    },
+    {
+      "path": "assets/e10/audio/zone1/sfx/zone1_sfx_shot10_hard_cut_sting.mp3",
+      "size": 33062,
+      "sha256": "202226708edcc04384b26c375717c73223c27a5b6b652326ba2af71a5c548eaf",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Committed Zone 1 audio package and lock records under assets/e10/audio/zone1/ and tools/e10_zone1_audio/."
+    }
+  ]
+}
