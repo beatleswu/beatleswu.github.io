@@ -1,0 +1,23 @@
+{
+  "_comment": "Governance lock for E10 Zone 1 non-dialogue sound design (BGM/ambience/SFX). Mirrors zone1_final_tts_lock.json's contract for dialogue: once status is OWNER_APPROVED, no automated tool may regenerate the approved BGM/ambience/SFX set without an explicit override -- see generate_zone1_audio.py's lock-file guard on cmd_generate_music()/cmd_generate_sfx().",
+  "status": "OWNER_APPROVED",
+  "approved_date": "2026-08-09",
+  "approved_bgm": [
+    "zone1_bgm_main_theme.mp3",
+    "zone1_bgm_post_clear_urgency.mp3"
+  ],
+  "approved_ambience": [
+    "zone1_ambience_village_dawn.mp3"
+  ],
+  "approved_sfx": [
+    "zone1_sfx_shot05_wooden_sword_grip.mp3",
+    "zone1_sfx_shot07_stone_placement.mp3",
+    "zone1_sfx_shot09_seal_unlock_pulse.mp3",
+    "zone1_sfx_shot10_hard_cut_sting.mp3"
+  ],
+  "rejected_bgm_audition_files": [
+    "02_BGM_main_theme_B_strings_led.mp3",
+    "03_BGM_post_clear_urgency_A_tremolo_pulse.mp3"
+  ],
+  "canonical_package_manifest": "assets/e10/audio/zone1/zone1-audio-package.json"
+}

@@ -129,6 +129,12 @@ AUDITION_SET_A_DIR = REVIEW_DIR / "audition_set_a"
 AUDITION_SET_B_DIR = REVIEW_DIR / "audition_set_b"
 ZONE1_FINAL_DIR = REVIEW_DIR / "zone1_final_voices"
 VOICES_JSON_PATH = REVIEW_DIR / "voices.json"
+FINAL_TTS_LOCK_PATH = TOOL_DIR / "zone1_final_tts_lock.json"
+SOUND_BRIEF_PATH = TOOL_DIR / "zone1_sound_design_brief.json"
+SOUND_DESIGN_DIR = REVIEW_DIR / "sound_design"
+SOUND_DESIGN_LOCK_PATH = TOOL_DIR / "zone1_sound_design_lock.json"
+LORD_TRIAL_SFX_BRIEF_PATH = TOOL_DIR / "zone1_lord_trial_sfx_brief.json"
+LORD_TRIAL_SFX_DIR = REVIEW_DIR / "lord_trial_sfx"
 
 API_BASE = "https://api.elevenlabs.io"
 ENV_VAR = "ELEVENLABS_API_KEY"
@@ -538,7 +544,11 @@ def cmd_audition_set_b() -> None:
                   "(Owner-approved voices are never overwritten by --audition-set-b)")
             continue
 
-        text = sample_lines.get(role_config_key, {}).get(locale)
+        # A brief may supply its own audition "text" (e.g. combining more
+        # than one canonical beat into a single longer audition read)
+        # instead of the single-beat default from audition_sample_lines.
+        # This never edits audition_sample_lines itself.
+        text = brief.get("text") or sample_lines.get(role_config_key, {}).get(locale)
         if not text:
             print(f"SKIP role={role_key}: no canonical sample line for {role_config_key}/{locale}")
             continue
@@ -661,13 +671,46 @@ def _locale_slug(locale: str) -> str:
     return "zh" if locale == "zh-TW" else locale
 
 
-def cmd_generate_tts() -> None:
+def cmd_generate_tts(only: set[str] | None = None, force_full_regen: bool = False) -> None:
     """Generate the complete approved Zone 1 spoken dialogue (all canonical
     beats, both locales) using the FINAL LOCKED cast in casting_candidates.
     json. Fails closed: if any of the 8 role x locale slots this manifest
     needs is not locked with a real voice_id, NOTHING is generated -- the
     Owner never gets a partial/mixed-cast set without a clear reason why.
+
+    If `only` is given (a set of exact output filenames), this is a
+    targeted regen: the existing _local_review/zone1_final_voices directory
+    is NOT wiped, and only the matching entries are (re)generated -- every
+    other already-approved file is left untouched on disk. Every requested
+    filename must match exactly one manifest entry, or nothing is generated
+    (fail closed) so a typo can't silently skip a file the Owner is
+    expecting. The fail-closed lock gate is also scoped to `only`: it
+    requires only the role x locale slots the requested files actually
+    need to be locked, not all 8 -- an unrelated in-progress recast of one
+    role (e.g. a messenger role mid-audition) must not block a targeted
+    single-file fix for a different, already-locked role. A full run
+    (only=None) still requires all 8/8, unchanged.
+
+    Owner-approval lock: once zone1_final_tts_lock.json exists with a
+    status starting "OWNER_APPROVED", a full unscoped run (only=None) is
+    refused unless force_full_regen=True -- the Owner has already done a
+    full listening pass on all 28 files and no automated tool may
+    regenerate that whole set again by accident. Targeted --only runs are
+    unaffected: those are always an explicit per-file Owner request.
     """
+    if only is None and not force_full_regen and FINAL_TTS_LOCK_PATH.exists():
+        lock = json.loads(FINAL_TTS_LOCK_PATH.read_text(encoding="utf-8"))
+        if str(lock.get("status", "")).startswith("OWNER_APPROVED"):
+            print(f"FINAL_TTS_LOCK_STATUS={lock.get('status')}")
+            print("GENERATE_TTS_VERIFICATION=FAIL")
+            print("GENERATE_TTS_BLOCKED_BY_OWNER_APPROVAL_LOCK=YES")
+            print(f"A full unscoped --generate-tts run was blocked: {FINAL_TTS_LOCK_PATH} "
+                  "records that the Owner already approved all 28 Final TTS files. Use --generate-tts --only "
+                  "<filenames> for an explicit per-file Owner-requested fix, or pass "
+                  "--i-confirm-full-regen-of-owner-approved-audio if a full regeneration of the whole "
+                  "approved set is genuinely intended. No audio was generated (fail closed).")
+            raise SystemExit(1)
+
     api_key = get_api_key()
     casting = json.loads(CASTING_PATH.read_text(encoding="utf-8"))
     model_id = get_model_id()
@@ -678,46 +721,57 @@ def cmd_generate_tts() -> None:
     print(f"ZONE1_FINAL_TTS_EXPECTED={len(entries)}")
     print("Run --check first to confirm this model is available and supports text-to-speech.")
 
-    # Fail-closed gate: every role x locale slot must be locked with a real
-    # voice_id before ANY generation happens -- no partial runs.
+    needed_role_locales = None
+    if only is not None:
+        needed_role_locales = set()
+        for entry in entries:
+            output_filename = (
+                f"zone1_final_shot{entry['shot']:02d}_beat{entry['beat']:02d}_"
+                f"{_locale_slug(entry['locale'])}_{entry['speaker']}.mp3"
+            )
+            if output_filename in only:
+                needed_role_locales.add((entry["speaker"], entry["locale"]))
+
+    # Fail-closed gate: every role x locale slot this run actually needs
+    # must be locked with a real voice_id before ANY generation happens --
+    # no partial runs. For a full run that's all 8; for --only it's just
+    # the slots the requested filenames resolve to.
     voice_id_by_role_locale: dict[tuple[str, str], str] = {}
     unresolved: list[str] = []
+    total_slots = 0
+    total_locked = 0
     for role_key, role in casting["roles"].items():
         for locale, slot in role["voices"].items():
+            total_slots += 1
             if slot.get("locked") and slot.get("voice_id"):
+                total_locked += 1
                 voice_id_by_role_locale[(role_key, locale)] = slot["voice_id"]
-            else:
+            elif needed_role_locales is None or (role_key, locale) in needed_role_locales:
                 unresolved.append(f"{role_key}/{locale}")
 
     if unresolved:
-        print(f"CAST_LOCKED={len(voice_id_by_role_locale)}/{len(voice_id_by_role_locale) + len(unresolved)}")
+        print(f"CAST_LOCKED={total_locked}/{total_slots}")
         print("GENERATE_TTS_VERIFICATION=FAIL")
         print(f"GENERATE_TTS_BLOCKED_UNRESOLVED_ROLES={','.join(sorted(unresolved))}")
-        print("Every role x locale slot must be locked with an approved voice_id in "
-              "casting_candidates.json before the full Zone 1 spoken set can be generated. "
-              "No audio was generated (fail closed).")
+        print("Every role x locale slot this run needs must be locked with an approved "
+              "voice_id in casting_candidates.json. No audio was generated (fail closed).")
         raise SystemExit(1)
-    print(f"CAST_LOCKED={len(voice_id_by_role_locale)}/{len(voice_id_by_role_locale)}")
+    print(f"CAST_LOCKED={total_locked}/{total_slots}")
 
-    if ZONE1_FINAL_DIR.exists():
-        shutil.rmtree(ZONE1_FINAL_DIR)
-    ZONE1_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+    if only:
+        print(f"TARGETED_REGEN_ONLY={','.join(sorted(only))}")
+        ZONE1_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+    else:
+        if ZONE1_FINAL_DIR.exists():
+            shutil.rmtree(ZONE1_FINAL_DIR)
+        ZONE1_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 
     seen_filenames: set[str] = set()
+    matched_only: set[str] = set()
     results = []
     for entry in entries:
         role_key = entry["speaker"]
         locale = entry["locale"]
-        voice_id = voice_id_by_role_locale.get((role_key, locale))
-        if not voice_id:
-            # Should be unreachable given the gate above, unless the
-            # manifest references a speaker/locale combination that does
-            # not exist in casting_candidates.json's roles at all.
-            print("GENERATE_TTS_VERIFICATION=FAIL")
-            print(f"UNKNOWN_SPEAKER_OR_LOCALE speaker={role_key!r} locale={locale!r} "
-                  f"shot={entry['shot']} beat={entry['beat']}")
-            raise SystemExit(1)
-
         output_filename = (
             f"zone1_final_shot{entry['shot']:02d}_beat{entry['beat']:02d}_"
             f"{_locale_slug(locale)}_{role_key}.mp3"
@@ -728,14 +782,44 @@ def cmd_generate_tts() -> None:
             raise SystemExit(1)
         seen_filenames.add(output_filename)
 
+        if only is not None and output_filename not in only:
+            # Not requested by this targeted run -- skip before resolving
+            # its voice_id, since an --only run only needs the roles its
+            # requested files actually use to be locked (see the scoped
+            # gate above). An entry for an unrelated still-unresolved role
+            # must be silently skipped here, not treated as an error.
+            continue
+        if only is not None:
+            matched_only.add(output_filename)
+
+        voice_id = voice_id_by_role_locale.get((role_key, locale))
+        if not voice_id:
+            # Unreachable for a requested entry given the scoped gate
+            # above guarantees every role x locale this run needs is
+            # resolved -- unless the manifest references a speaker/locale
+            # combination that does not exist in casting_candidates.json's
+            # roles at all.
+            print("GENERATE_TTS_VERIFICATION=FAIL")
+            print(f"UNKNOWN_SPEAKER_OR_LOCALE speaker={role_key!r} locale={locale!r} "
+                  f"shot={entry['shot']} beat={entry['beat']}")
+            raise SystemExit(1)
+
         output_path = ZONE1_FINAL_DIR / output_filename
+        tts_text = entry.get("tts_text", entry["text"])
         print(f"Generating {output_filename} (shot {entry['shot']} beat {entry['beat']} "
               f"{locale} {role_key}) ...")
-        ok = _text_to_speech(api_key, voice_id, entry["text"], model_id, output_path)
+        ok = _text_to_speech(api_key, voice_id, tts_text, model_id, output_path)
         results.append({"output_filename": output_filename, "generated": ok})
 
+    if only is not None:
+        missing_requested = only - matched_only
+        if missing_requested:
+            print("GENERATE_TTS_VERIFICATION=FAIL")
+            print(f"ONLY_FILENAMES_NOT_IN_MANIFEST={','.join(sorted(missing_requested))}")
+            raise SystemExit(1)
+
     generated = sum(1 for r in results if r["generated"])
-    expected = len(entries)
+    expected = len(only) if only is not None else len(entries)
     print(f"ZONE1_FINAL_TTS_GENERATED={generated}")
     print(f"ZONE1_FINAL_TTS_OUTPUT_DIR={ZONE1_FINAL_DIR.resolve()}")
 
@@ -754,8 +838,192 @@ def cmd_generate_tts() -> None:
           "assets until the Owner performs final listening approval.")
 
 
-def cmd_not_yet_enabled(flag: str) -> None:
-    print(f"{flag}: NOT_YET_ENABLED — awaiting Owner casting/BGM approval. No request was sent.")
+def _sound_effect(api_key: str, text: str, duration_seconds: float, output_path: Path) -> bool:
+    status, body = _api_request(
+        "POST", "/v1/sound-generation", api_key,
+        json_body={"text": text, "duration_seconds": duration_seconds},
+        accept="audio/mpeg", timeout=60,
+    )
+    if status == 200 and isinstance(body, (bytes, bytearray)):
+        output_path.write_bytes(body)
+        return True
+    if status == 0:
+        return False
+    error_body = _try_json(body) if isinstance(body, (bytes, bytearray)) else body
+    print(f"  FAILED {output_path.name}: {_describe_elevenlabs_error(status, error_body)}", file=sys.stderr)
+    return False
+
+
+def _music(api_key: str, prompt: str, length_ms: int, output_path: Path) -> bool:
+    status, body = _api_request(
+        "POST", "/v1/music", api_key,
+        json_body={"prompt": prompt, "music_length_ms": length_ms},
+        accept="audio/mpeg", timeout=120,
+    )
+    if status == 200 and isinstance(body, (bytes, bytearray)):
+        output_path.write_bytes(body)
+        return True
+    if status == 0:
+        return False
+    error_body = _try_json(body) if isinstance(body, (bytes, bytearray)) else body
+    print(f"  FAILED {output_path.name}: {_describe_elevenlabs_error(status, error_body)}", file=sys.stderr)
+    return False
+
+
+def _check_sound_design_lock(command_name: str) -> None:
+    """Owner-approval lock for BGM/ambience/SFX, mirroring the Final TTS lock.
+    Once zone1_sound_design_lock.json records OWNER_APPROVED, neither
+    cmd_generate_music() nor cmd_generate_sfx() may run at all -- there is
+    no --only-style override here (there's nothing to scope to, both
+    commands always regenerate their whole brief). If an approved asset
+    is ever found to be technically unusable, the fix is to stop and
+    report to the Owner, not to silently regenerate.
+    """
+    if not SOUND_DESIGN_LOCK_PATH.exists():
+        return
+    lock = json.loads(SOUND_DESIGN_LOCK_PATH.read_text(encoding="utf-8"))
+    if str(lock.get("status", "")).startswith("OWNER_APPROVED"):
+        print(f"SOUND_DESIGN_LOCK_STATUS={lock.get('status')}")
+        print(f"{command_name.upper()}_VERIFICATION=FAIL")
+        print("GENERATE_BLOCKED_BY_OWNER_APPROVAL_LOCK=YES")
+        print(f"{command_name} was blocked: {SOUND_DESIGN_LOCK_PATH} records that the Owner already "
+              "approved the BGM/ambience/SFX selection. No automated regeneration is permitted -- if an "
+              "approved asset is technically unusable, stop and report to the Owner instead.")
+        raise SystemExit(1)
+
+
+def cmd_generate_music() -> None:
+    """Generate the BGM audition candidates listed in zone1_sound_design_brief.json's
+    bgm_cues -- approximately 2 candidates per cue, per the Owner's audition-first
+    direction. Local review only; nothing is wired into runtime and nothing is
+    deployed. Numbered filenames give the Owner a simple listening order.
+    """
+    _check_sound_design_lock("cmd_generate_music")
+    api_key = get_api_key()
+    brief = json.loads(SOUND_BRIEF_PATH.read_text(encoding="utf-8"))
+    bgm_dir = SOUND_DESIGN_DIR / "bgm"
+    bgm_dir.mkdir(parents=True, exist_ok=True)
+
+    results = []
+    counter = 1
+    for cue in brief["bgm_cues"]:
+        for candidate in cue["candidates"]:
+            filename = f"{counter:02d}_BGM_{cue['cue_key']}_{candidate['variant']}.mp3"
+            output_path = bgm_dir / filename
+            print(f"Generating {filename} ({cue['label']} -- {candidate['label']}) ...")
+            ok = _music(api_key, candidate["prompt"], cue["length_ms"], output_path)
+            results.append({"filename": filename, "generated": ok})
+            counter += 1
+
+    generated = sum(1 for r in results if r["generated"])
+    print(f"BGM_EXPECTED={len(results)}")
+    print(f"BGM_GENERATED={generated}")
+    missing = [r["filename"] for r in results if not r["generated"]]
+    if missing:
+        print(f"BGM_MISSING={','.join(missing)}")
+        print("MUSIC_VERIFICATION=FAIL")
+        raise SystemExit(1)
+    print("MUSIC_VERIFICATION=PASS")
+    print(f"BGM_OUTPUT_DIR={bgm_dir.resolve()}")
+    print("These are local review-only audition candidates. Nothing is wired into runtime "
+          "or deployed until the Owner picks a direction.")
+
+
+def cmd_generate_sfx() -> None:
+    """Generate the ambience bed and the cinematically-important SFX listed in
+    zone1_sound_design_brief.json (ambience + sfx) -- one candidate each, per
+    the Owner's 'Claude may select technically appropriate candidates' note
+    for routine/non-controversial sound. Local review only.
+    """
+    _check_sound_design_lock("cmd_generate_sfx")
+    api_key = get_api_key()
+    brief = json.loads(SOUND_BRIEF_PATH.read_text(encoding="utf-8"))
+    ambience_dir = SOUND_DESIGN_DIR / "ambience"
+    sfx_dir = SOUND_DESIGN_DIR / "sfx"
+    ambience_dir.mkdir(parents=True, exist_ok=True)
+    sfx_dir.mkdir(parents=True, exist_ok=True)
+
+    results = []
+    counter = 1
+    for amb in brief["ambience"]:
+        filename = f"{counter:02d}_AMBIENCE_{amb['key']}.mp3"
+        output_path = ambience_dir / filename
+        print(f"Generating {filename} ({amb['label']}) ...")
+        ok = _sound_effect(api_key, amb["prompt"], amb["duration_seconds"], output_path)
+        results.append({"filename": filename, "generated": ok, "kind": "ambience"})
+        counter += 1
+
+    for sfx in brief["sfx"]:
+        tag = "SFX-HIGHLIGHT" if sfx.get("highlight") else "SFX"
+        filename = f"{counter:02d}_{tag}_{sfx['key']}.mp3"
+        output_path = sfx_dir / filename
+        print(f"Generating {filename} ({sfx['label']}) ...")
+        ok = _sound_effect(api_key, sfx["prompt"], sfx["duration_seconds"], output_path)
+        results.append({"filename": filename, "generated": ok, "kind": "sfx", "highlight": sfx.get("highlight", False)})
+        counter += 1
+
+    generated = sum(1 for r in results if r["generated"])
+    print(f"SFX_AMBIENCE_EXPECTED={len(results)}")
+    print(f"SFX_AMBIENCE_GENERATED={generated}")
+    missing = [r["filename"] for r in results if not r["generated"]]
+    if missing:
+        print(f"SFX_AMBIENCE_MISSING={','.join(missing)}")
+        print("SFX_VERIFICATION=FAIL")
+        raise SystemExit(1)
+    print("SFX_VERIFICATION=PASS")
+    print(f"AMBIENCE_OUTPUT_DIR={ambience_dir.resolve()}")
+    print(f"SFX_OUTPUT_DIR={sfx_dir.resolve()}")
+    highlights = [r["filename"] for r in results if r.get("highlight")]
+    print(f"HIGHLIGHT_FOR_OWNER_LISTEN={','.join(highlights)}")
+    print("These are local review-only audition candidates. Nothing is wired into runtime "
+          "or deployed until the Owner approves.")
+
+
+def cmd_generate_lord_trial_sfx() -> None:
+    """Generate the 8 new Lord Trial SFX audition candidates listed in
+    zone1_lord_trial_sfx_brief.json (E10 Zone 1 Beginner Village Complete
+    RPG Journey, sections 32-34, 2026-08-09) -- a NEW, separate local
+    audition pack. Deliberately does not touch, and is not gated by, the
+    LOCKED 35-asset zone1_sound_design_lock.json / zone1_final_tts_lock.json
+    (this is a genuinely new, unapproved category, not a regeneration of
+    anything already locked). Nothing here may be promoted to canonical
+    runtime until the Owner explicitly approves specific candidates
+    (Gate A) -- see zone1_lord_trial_sfx_lock.json once that happens.
+    """
+    api_key = get_api_key()
+    brief = json.loads(LORD_TRIAL_SFX_BRIEF_PATH.read_text(encoding="utf-8"))
+    LORD_TRIAL_SFX_DIR.mkdir(parents=True, exist_ok=True)
+
+    results = []
+    counter = 1
+    for sfx in brief["sfx"]:
+        tag = "SFX-HIGHLIGHT" if sfx.get("highlight") else "SFX"
+        filename = f"{counter:02d}_{tag}_{sfx['key']}.mp3"
+        output_path = LORD_TRIAL_SFX_DIR / filename
+        print(f"Generating {filename} ({sfx['label']} -- trigger: {sfx['intended_trigger']}) ...")
+        ok = _sound_effect(api_key, sfx["prompt"], sfx["duration_seconds"], output_path)
+        results.append({
+            "filename": filename, "generated": ok, "key": sfx["key"], "label": sfx["label"],
+            "intended_trigger": sfx["intended_trigger"], "duration_seconds": sfx["duration_seconds"],
+            "highlight": sfx.get("highlight", False),
+        })
+        counter += 1
+
+    generated = sum(1 for r in results if r["generated"])
+    print(f"LORD_TRIAL_SFX_EXPECTED={len(results)}")
+    print(f"LORD_TRIAL_SFX_GENERATED={generated}")
+    missing = [r["filename"] for r in results if not r["generated"]]
+    if missing:
+        print(f"LORD_TRIAL_SFX_MISSING={','.join(missing)}")
+        print("LORD_TRIAL_SFX_VERIFICATION=FAIL")
+        raise SystemExit(1)
+    print("LORD_TRIAL_SFX_VERIFICATION=PASS")
+    print(f"LORD_TRIAL_SFX_OUTPUT_DIR={LORD_TRIAL_SFX_DIR.resolve()}")
+    for r in results:
+        print(f"CANDIDATE filename={r['filename']} trigger={r['intended_trigger']} "
+              f"duration={r['duration_seconds']}s source=ElevenLabs sound-generation (eleven text-to-sfx)")
+    print("These are NEW local review-only audition candidates, separate from the locked 35-asset "
+          "package. Nothing is wired into runtime or deployed until the Owner approves specific files.")
 
 
 def main() -> None:
@@ -767,13 +1035,36 @@ def main() -> None:
     group.add_argument("--audition-set-a", action="store_true", help="Generate the fixed 16-line A/B casting comparison set.")
     group.add_argument("--audition-set-b", action="store_true", help="Recast pending roles via a live Voice Library search.")
     group.add_argument("--generate-tts", action="store_true", help="Generate the full approved Zone 1 spoken dialogue.")
-    group.add_argument("--generate-sfx", action="store_true", help="Reserved; not yet enabled.")
-    group.add_argument("--generate-music", action="store_true", help="Reserved; not yet enabled.")
+    group.add_argument("--generate-sfx", action="store_true",
+                        help="Generate the ambience + highlighted SFX audition candidates from "
+                             "zone1_sound_design_brief.json. Local review only.")
+    group.add_argument("--generate-music", action="store_true",
+                        help="Generate the BGM audition candidates from zone1_sound_design_brief.json "
+                             "(~2 per cue). Local review only.")
+    group.add_argument("--generate-lord-trial-sfx", action="store_true",
+                        help="Generate the 8 new Lord Trial SFX audition candidates from "
+                             "zone1_lord_trial_sfx_brief.json. Separate from the locked 35-asset "
+                             "package. Local review only.")
     parser.add_argument("--json", action="store_true", help="With --list-voices, also write _local_review/voices.json.")
     parser.add_argument(
         "--quiet",
         action="store_true",
         help="With --list-voices --json, suppress the table/counts and print only the resulting artifact path.",
+    )
+    parser.add_argument(
+        "--only",
+        default=None,
+        help="With --generate-tts, a comma-separated list of exact output filenames to "
+             "regenerate in place. The zone1_final_voices directory is NOT wiped and every "
+             "other existing file is left untouched. Every name must match a manifest entry "
+             "or nothing is generated (fail closed).",
+    )
+    parser.add_argument(
+        "--i-confirm-full-regen-of-owner-approved-audio",
+        action="store_true",
+        help="With --generate-tts and no --only: required to proceed once zone1_final_tts_lock.json "
+             "records Owner approval of all 28 files. Without this flag, a full unscoped run is "
+             "refused (fail closed) so the whole approved set can never be silently regenerated.",
     )
     args = parser.parse_args()
 
@@ -781,6 +1072,13 @@ def main() -> None:
         parser.error("--json is only valid together with --list-voices")
     if args.quiet and not (args.list_voices and args.json):
         parser.error("--quiet is only valid together with --list-voices --json")
+    if args.only and not args.generate_tts:
+        parser.error("--only is only valid together with --generate-tts")
+    if args.i_confirm_full_regen_of_owner_approved_audio and not args.generate_tts:
+        parser.error("--i-confirm-full-regen-of-owner-approved-audio is only valid together with --generate-tts")
+    if args.i_confirm_full_regen_of_owner_approved_audio and args.only:
+        parser.error("--i-confirm-full-regen-of-owner-approved-audio is only valid without --only "
+                      "(a targeted --only run is already an explicit per-file Owner request)")
 
     if args.check:
         cmd_check()
@@ -793,11 +1091,14 @@ def main() -> None:
     elif args.audition_set_b:
         cmd_audition_set_b()
     elif args.generate_tts:
-        cmd_generate_tts()
+        only = set(f.strip() for f in args.only.split(",") if f.strip()) if args.only else None
+        cmd_generate_tts(only=only, force_full_regen=args.i_confirm_full_regen_of_owner_approved_audio)
     elif args.generate_sfx:
-        cmd_not_yet_enabled("--generate-sfx")
+        cmd_generate_sfx()
     elif args.generate_music:
-        cmd_not_yet_enabled("--generate-music")
+        cmd_generate_music()
+    elif args.generate_lord_trial_sfx:
+        cmd_generate_lord_trial_sfx()
 
 
 if __name__ == "__main__":

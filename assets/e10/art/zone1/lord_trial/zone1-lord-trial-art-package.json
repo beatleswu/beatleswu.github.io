@@ -1,0 +1,129 @@
+{
+  "contract": "e10-zone1-lord-trial-art-package-v1",
+  "_comment": "Zone 1 Lord Trial production art (2026-08-10 Owner replacement of the CSS/emoji engineering prototype). Source of truth: D:\\go-website-e10-art\\zone1-lord-trial-v1 (Owner-authored, not committed to this repo). Canonical PNG copies here are byte-identical to source (see source_sha256/canonical_png.sha256 match); *.webp derivatives are the actual runtime-delivered assets (re-encoded for page weight, same visual content).",
+  "status": "OWNER_PROVIDED_PRODUCTION_ART",
+  "integrated_date": "2026-08-10",
+  "source_folder": "D:\\go-website-e10-art\\zone1-lord-trial-v1",
+  "assets": [
+    {
+      "key": "LORD_CHALLENGE_BACKPLATE",
+      "source_filename": "01_lord_challenge_card_backplate.png.png",
+      "source_sha256": "066658d21638cbbc8486e0feabbd147423a9cf336984b8167f30fbdebe38dfef",
+      "source_size_bytes": 2686772,
+      "canonical_png": {
+        "filename": "zone1_lord_challenge_backplate.png",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_lord_challenge_backplate.png",
+        "sha256": "066658d21638cbbc8486e0feabbd147423a9cf336984b8167f30fbdebe38dfef",
+        "size_bytes": 2686772
+      },
+      "runtime_webp": {
+        "filename": "zone1_lord_challenge_backplate.webp",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_lord_challenge_backplate.webp",
+        "sha256": "b5c759f0d002e647fc154e36bf5145a8591dd4791dde6ba1a82d5004e8811f7e",
+        "size_bytes": 290906
+      },
+      "dimensions": "1448x1086",
+      "mode": "RGB"
+    },
+    {
+      "key": "FIRST_STAR_SUCCESS_BACKPLATE",
+      "source_filename": "02_first_star_success_backplate.png.png",
+      "source_sha256": "83ebedf98d2b2d5215716ed8003c52dc187d290372f37561dd39258ae42f061a",
+      "source_size_bytes": 2877820,
+      "canonical_png": {
+        "filename": "zone1_first_star_success_backplate.png",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_first_star_success_backplate.png",
+        "sha256": "83ebedf98d2b2d5215716ed8003c52dc187d290372f37561dd39258ae42f061a",
+        "size_bytes": 2877820
+      },
+      "runtime_webp": {
+        "filename": "zone1_first_star_success_backplate.webp",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_first_star_success_backplate.webp",
+        "sha256": "602956ffd2052073c4e859e06460469c81b3e57f564745d678885baf3fe6b947",
+        "size_bytes": 348648
+      },
+      "dimensions": "1448x1086",
+      "mode": "RGB"
+    },
+    {
+      "key": "FIRST_STAR_ICON",
+      "source_filename": "03_first_star_icon.png.png",
+      "source_sha256": "552277342592b81298a9dce0130dddc940c898105a4877f9512e183cfa8cbfd4",
+      "source_size_bytes": 2243566,
+      "canonical_png": {
+        "filename": "zone1_first_star.png",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_first_star.png",
+        "sha256": "552277342592b81298a9dce0130dddc940c898105a4877f9512e183cfa8cbfd4",
+        "size_bytes": 2243566
+      },
+      "runtime_webp": {
+        "filename": "zone1_first_star.webp",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_first_star.webp",
+        "sha256": "459a2954b5977ae3f09035f916c2238031b597ec0ae4fdbeff19455ae7293c3f",
+        "size_bytes": 311320
+      },
+      "dimensions": "1536x1024",
+      "mode": "RGBA"
+    },
+    {
+      "key": "LORD_RITUAL_KEY_ART",
+      "source_filename": "04_lord_ritual_key_art.png.png",
+      "source_sha256": "533b154e275e58ca4a061633a86bb6f1f4a19b8a014e9d4a6b0f94ab11b0e9bd",
+      "source_size_bytes": 2892810,
+      "canonical_png": {
+        "filename": "zone1_lord_ritual_key_art.png",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_lord_ritual_key_art.png",
+        "sha256": "533b154e275e58ca4a061633a86bb6f1f4a19b8a014e9d4a6b0f94ab11b0e9bd",
+        "size_bytes": 2892810
+      },
+      "runtime_webp": {
+        "filename": "zone1_lord_ritual_key_art.webp",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_lord_ritual_key_art.webp",
+        "sha256": "0965538c111273d3f2c1945c256193c3c6a233a81e0ef11a6c3da96741b7790e",
+        "size_bytes": 353556
+      },
+      "dimensions": "1448x1086",
+      "mode": "RGB"
+    },
+    {
+      "key": "LORD_FAILURE_BACKPLATE",
+      "source_filename": "05_lord_failure_backplate.png.png",
+      "source_sha256": "b9b380ca788627a04f61de96b1f9c2b67445a48680a5050e13cb09e3cc84e2b8",
+      "source_size_bytes": 2812801,
+      "canonical_png": {
+        "filename": "zone1_lord_failure_backplate.png",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_lord_failure_backplate.png",
+        "sha256": "b9b380ca788627a04f61de96b1f9c2b67445a48680a5050e13cb09e3cc84e2b8",
+        "size_bytes": 2812801
+      },
+      "runtime_webp": {
+        "filename": "zone1_lord_failure_backplate.webp",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_lord_failure_backplate.webp",
+        "sha256": "07393ac09515dd3f0425fa5961272c5537e0a6af0ceb7037d4d583043e704295",
+        "size_bytes": 305690
+      },
+      "dimensions": "1122x1402",
+      "mode": "RGB"
+    },
+    {
+      "key": "VILLAGE_ELDER_REFERENCE",
+      "source_filename": "06_village_elder_hero_art.png.png",
+      "source_sha256": "a63193ca7c772c7b41fa671757f1d163c9183b3c7bc8db5ceb3eac216ba0edbb",
+      "source_size_bytes": 2398894,
+      "canonical_png": {
+        "filename": "zone1_village_elder_reference.png",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_village_elder_reference.png",
+        "sha256": "a63193ca7c772c7b41fa671757f1d163c9183b3c7bc8db5ceb3eac216ba0edbb",
+        "size_bytes": 2398894
+      },
+      "runtime_webp": {
+        "filename": "zone1_village_elder_reference.webp",
+        "path": "assets/e10/art/zone1/lord_trial/zone1_village_elder_reference.webp",
+        "sha256": "7af79921511484d1d133f68286e895e0b5f1bc87addf40891da46bb87eb9b767",
+        "size_bytes": 167282
+      },
+      "dimensions": "1086x1448",
+      "mode": "RGB"
+    }
+  ]
+}

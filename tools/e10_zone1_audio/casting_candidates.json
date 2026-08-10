@@ -1,7 +1,7 @@
 {
   "_comment": "Owner-editable casting sheet for Zone 1 (k26_30). voice_id per speaker x locale is used by --audition; leave it null to skip that line. Values here are never generated automatically and never overwrite canonical dialogue.",
   "casting_status": "FULL_LOCK_8_OF_8_APPROVED",
-  "casting_status_note": "Owner approved final casting for all 8 role x locale slots. The 5 slots resolved after AUDITION SET A stayed locked unchanged. The 3 recast slots (zh-TW Elder: Christopher, zh-TW Hero: Roy - Taiwanese Youth, en Hero: Anvay - Calm & Reassuring) were resolved after the Owner uploaded their local casting_candidates.json (produced by --audition-set-b) containing the real voice_id values. --generate-tts is unblocked.",
+  "casting_status_note": "2026-08-09: zh-TW Messenger recast complete. Owner rejected the original locked casting (Yui, a female voice for a male visual character; never actually male-vs-female auditioned in AUDITION SET A). --audition-set-b produced 3 male candidates (Jun, Zack, Xiaobao); Owner approved Jun - Bright and energetic (5s3UifUu3OJ90z17rRMA). All 8 role x locale slots are locked again. --generate-tts is unblocked.",
   "locking_policy": "Once a role x locale slot has \"locked\": true, no automated tool in this directory (including --audition-set-b) may overwrite its voice_id or candidates without the Owner explicitly unlocking it first. This is enforced in code by cmd_audition_set_b(), not just by convention.",
   "locked_roles": [
     {
@@ -9,12 +9,6 @@
       "display_name": "Narrator",
       "locale": "zh-TW",
       "approved_name": "Anna Su"
-    },
-    {
-      "role": "runner",
-      "display_name": "Messenger",
-      "locale": "zh-TW",
-      "approved_name": "Yui"
     },
     {
       "role": "anna",
@@ -33,6 +27,12 @@
       "display_name": "Messenger",
       "locale": "en",
       "approved_name": "Liam"
+    },
+    {
+      "role": "runner",
+      "display_name": "Messenger",
+      "locale": "zh-TW",
+      "approved_name": "Jun - Bright and energetic"
     },
     {
       "role": "elder",
@@ -384,9 +384,10 @@
           ]
         },
         "zh-TW": {
-          "voice_id": "kGjJqO6wdwRN9iJsoeIC",
+          "voice_id": "5s3UifUu3OJ90z17rRMA",
           "locked": true,
-          "notes": "LOCKED by Owner after AUDITION SET A (Anna Su vs Yui). Approved: Yui - Delicate, Graceful and Soothing.",
+          "notes": "LOCKED 2026-08-09 by Owner after the male recast (--audition-set-b, role zh_messenger): Jun, Zack, Xiaobao auditioned, Owner approved Jun - Bright and energetic. Supersedes the original AUDITION SET A lock (Yui), rejected same day for being a female voice cast to a male visual character. Previously locked value was kGjJqO6wdwRN9iJsoeIC (Yui - Delicate, Graceful and Soothing), preserved below for history.",
+          "previously_locked_voice_id": "kGjJqO6wdwRN9iJsoeIC",
           "candidates": [
             {
               "rank": 1,
@@ -400,7 +401,48 @@
               "voice_id": "kGjJqO6wdwRN9iJsoeIC",
               "name": "Yui - Delicate, Graceful and Soothing",
               "reason": "Only other young zh voice available; a softer alternate if the Owner wants less urgency in the delivery.",
+              "outcome": "REJECTED 2026-08-09: female voice for a male visual character; never actually male-vs-female auditioned"
+            }
+          ],
+          "recast_candidates": [
+            {
+              "name": "Jun - Bright and energetic",
+              "shared_voice_id": "5s3UifUu3OJ90z17rRMA",
+              "local_voice_id": "5s3UifUu3OJ90z17rRMA",
+              "output_filename": "zh_messenger_jun_bright_and_energetic.mp3",
+              "gender": "male",
+              "age": "young",
+              "accent": "beijing mandarin",
+              "language": "zh",
+              "description": "A fresh, vibrant voice of a younger Chinese male with a clear, enthusiastic tone.",
+              "generated": true,
               "outcome": "APPROVED"
+            },
+            {
+              "name": "Zack - Soft & Friendy",
+              "shared_voice_id": "DSyEP4HEaCKur8rFFOri",
+              "local_voice_id": "DSyEP4HEaCKur8rFFOri",
+              "output_filename": "zh_messenger_zack_soft_friendy.mp3",
+              "gender": "male",
+              "age": "young",
+              "accent": "taiwan mandarin",
+              "language": "zh",
+              "description": "A great voice for podcasts & video.",
+              "generated": true,
+              "outcome": "not chosen"
+            },
+            {
+              "name": "Xiaobao",
+              "shared_voice_id": "H5cwfyNzXJCflQ525hPa",
+              "local_voice_id": "H5cwfyNzXJCflQ525hPa",
+              "output_filename": "zh_messenger_xiaobao.mp3",
+              "gender": "male",
+              "age": "young",
+              "accent": "taiwan mandarin",
+              "language": "zh",
+              "description": "Xiaobao possesses a youthful, vibrant male voice—clear, clean, and energetic—conveying a sincerity and approachability reminiscent of a student. His delivery is natural and fluid; while his pace is brisk, it never feels rushed. His tone is bright and spirited, radiating sunshine, enthusiasm, and positive energy. Skilled at interacting in a relaxed and friendly manner, he is engaging and full of curiosity, coming across like a reliable, lively younger peer or friend. His voice is clean and magnetic—neither forcedly deep nor overly juvenile—reflecting the confidence and authenticity of the younger generation while making the listener feel at ease, relaxed, and hopeful.",
+              "generated": true,
+              "outcome": "not chosen"
             }
           ]
         }

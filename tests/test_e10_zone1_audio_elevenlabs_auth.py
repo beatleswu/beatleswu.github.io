@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import io
 import json
-import shutil
 import sys
 import urllib.error
 import urllib.request
@@ -48,6 +47,7 @@ sys.path.insert(0, str(TOOL_DIR))
 import generate_zone1_audio as mod  # noqa: E402
 
 DUMMY_KEY = "dummy_test_value_not_real"
+REAL_AUDITION_SET_B_DIR = TOOL_DIR / "_local_review" / "audition_set_b"
 
 
 class _FakeHTTPResponse:
@@ -71,14 +71,76 @@ def _http_error(url: str, status: int, payload: dict) -> urllib.error.HTTPError:
 
 
 @pytest.fixture
-def casting_backup():
+def casting_backup(monkeypatch, tmp_path):
     original = mod.CASTING_PATH.read_bytes()
+    # Redirect cmd_audition_set_b() output to an isolated per-test tmp
+    # directory -- see test_e10_zone1_audio_final_tts.py's identical fix
+    # (2026-08-09 incident) for why a real repo path must never be the
+    # target of a test's shutil.rmtree, whether that rmtree lives in the
+    # tool code itself or in fixture cleanup.
+    monkeypatch.setattr(mod, "AUDITION_SET_B_DIR", tmp_path / "audition_set_b_test_output")
     try:
         yield
     finally:
         mod.CASTING_PATH.write_bytes(original)
-        if mod.AUDITION_SET_B_DIR.exists():
-            shutil.rmtree(mod.AUDITION_SET_B_DIR)
+
+
+def test_audition_set_b_never_touches_the_real_production_output_dir(monkeypatch, casting_backup, capsys, tmp_path):
+    """Regression guard mirroring
+    test_generation_never_touches_the_real_production_output_dir in
+    test_e10_zone1_audio_final_tts.py, for the AUDITION_SET_B_DIR wipe in
+    cmd_audition_set_b().
+    """
+    pre_existing = REAL_AUDITION_SET_B_DIR.exists()
+    REAL_AUDITION_SET_B_DIR.mkdir(parents=True, exist_ok=True)
+    canary = REAL_AUDITION_SET_B_DIR / "DO_NOT_DELETE_test_isolation_canary.txt"
+    canary.write_text("canary", encoding="utf-8")
+
+    try:
+        assert mod.AUDITION_SET_B_DIR != REAL_AUDITION_SET_B_DIR, (
+            "mod.AUDITION_SET_B_DIR is not isolated from the real audition "
+            "output directory in this test run -- do not proceed until the "
+            "casting_backup fixture's monkeypatch is fixed."
+        )
+
+        casting = json.loads(mod.CASTING_PATH.read_text(encoding="utf-8"))
+        for role_key, locale in (("elder", "zh-TW"),):
+            slot = casting["roles"][role_key]["voices"][locale]
+            slot["locked"] = False
+            slot["voice_id"] = None
+        mod.CASTING_PATH.write_text(json.dumps(casting, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        briefs = {
+            "exclude_voice_ids": [],
+            "roles": {
+                "zh_elder": {
+                    "role_config_key": "elder", "locale": "zh-TW", "output_prefix": "zh_elder",
+                    "candidate_count": 1, "search": {"language": "zh", "gender": "male", "age": "old"},
+                },
+            },
+        }
+        briefs_path = tmp_path / "audition_set_b_isolation_test_briefs.json"
+        briefs_path.write_text(json.dumps(briefs), encoding="utf-8")
+        monkeypatch.setattr(mod, "RECAST_BRIEFS_PATH", briefs_path)
+
+        monkeypatch.setattr(mod, "get_api_key", lambda: DUMMY_KEY)
+        monkeypatch.setattr(mod.urllib.request, "urlopen", _router(add_response=(200, {"voice_id": "local_added_1"})))
+
+        try:
+            mod.cmd_audition_set_b()
+        finally:
+            briefs_path.unlink(missing_ok=True)
+
+        assert "AUDITION_SET_B_VERIFICATION=PASS" in capsys.readouterr().out
+        assert canary.exists(), "canary file in the REAL audition output dir was deleted by a test run"
+        assert canary.read_text(encoding="utf-8") == "canary"
+    finally:
+        canary.unlink(missing_ok=True)
+        if not pre_existing:
+            try:
+                REAL_AUDITION_SET_B_DIR.rmdir()
+            except OSError:
+                pass
 
 
 @pytest.fixture
@@ -146,7 +208,7 @@ def test_add_shared_voice_sends_xi_api_key_header(monkeypatch):
     assert captured["data"] == {"new_name": "TestName"}
 
 
-def test_all_elevenlabs_calls_share_one_request_function(monkeypatch):
+def test_all_elevenlabs_calls_share_one_request_function(monkeypatch, tmp_path):
     # _api_get (voices/models/shared-voices search), _add_shared_voice, and
     # _text_to_speech must all route through the same _api_request -- prove
     # it by monkeypatching _api_request itself and confirming every public
@@ -170,13 +232,8 @@ def test_all_elevenlabs_calls_share_one_request_function(monkeypatch):
     mod._api_get("/v1/voices", DUMMY_KEY)
     mod._search_voice_library(DUMMY_KEY, {"language": "en"})
     mod._add_shared_voice(DUMMY_KEY, "owner1", "voice1", "name")
-    tmp_path = TOOL_DIR / "_local_review" / "_auth_test_tts.mp3"
-    tmp_path.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        mod._text_to_speech(DUMMY_KEY, "voice1", "hello", "eleven_v3", tmp_path)
-    finally:
-        if tmp_path.exists():
-            tmp_path.unlink()
+    tts_output_path = tmp_path / "_auth_test_tts.mp3"
+    mod._text_to_speech(DUMMY_KEY, "voice1", "hello", "eleven_v3", tts_output_path)
 
     assert len(calls) == 4
     assert {c[0] for c in calls} == {"GET", "POST"}

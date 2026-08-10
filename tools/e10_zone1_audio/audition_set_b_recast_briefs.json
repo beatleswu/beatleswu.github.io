@@ -1,8 +1,8 @@
 {
-  "_comment": "AUDITION SET B recast briefs. Originally targeted the 3 roles Owner rejected in Set A (zh-TW Elder, zh-TW Hero, English Hero) -- kept here as the historical record of the search filters/character briefs that produced the Owner's final casting. All 3 are now LOCKED in casting_candidates.json (status: COMPLETE), so \"roles\" below is empty: cmd_audition_set_b() refuses to touch any locked slot, so with nothing left pending there is nothing left for --audition-set-b to do. If the Owner ever wants to recast an already-locked role later, that role must first be explicitly unlocked in casting_candidates.json, and a new targeted entry added here.",
+  "_comment": "AUDITION SET B recast briefs. Originally targeted the 3 roles Owner rejected in Set A (zh-TW Elder, zh-TW Hero, English Hero); those are LOCKED and kept here as historical record. 2026-08-09: zh-TW Messenger was also recast (Owner rejected Yui -- visual character is male) via a zh_messenger entry, now resolved and removed from \"roles\" below (Owner approved Jun - Bright and energetic). cmd_audition_set_b() refuses to touch any locked slot, so \"roles\" is empty again with nothing left pending.",
   "status": "COMPLETE",
-  "status_note": "Owner approved zh-TW Elder=Christopher, zh-TW Hero=Roy - Taiwanese Youth, English Hero=Anvay - Calm & Reassuring after listening to AUDITION SET B. All 8 role x locale slots are now locked in casting_candidates.json.",
-  "exclude_voice_ids_comment": "Every voice_id ever surfaced across AUDITION SET A and SET B (locked approvals + explicitly rejected candidates), kept for historical reference and in case any role is unlocked and recast in the future.",
+  "status_note": "zh-TW Elder=Christopher, zh-TW Hero=Roy - Taiwanese Youth, English Hero=Anvay - Calm & Reassuring from the original AUDITION SET B remain locked (unchanged). 2026-08-09: zh-TW Messenger (previously Yui, rejected as a female voice for a male visual character) recast via a male-only search; Owner approved Jun - Bright and energetic (5s3UifUu3OJ90z17rRMA) over Zack and Xiaobao. All 8 role x locale slots are locked again in casting_candidates.json.",
+  "exclude_voice_ids_comment": "Every voice_id ever surfaced across AUDITION SET A and SET B (locked approvals + explicitly rejected candidates), kept for historical reference and so a recast never re-offers or double-casts an already-decided voice.",
   "exclude_voice_ids": [
     "9lHjugDhwqoxA5MhX0az",
     "kGjJqO6wdwRN9iJsoeIC",
@@ -15,7 +15,10 @@
     "IKne3meq5aSn9XLyUdCD",
     "NdEhweaiOdufFIiyNPdk",
     "XXxvxx0YUt8icTEFE3c6",
-    "6aOpkucJD6a4vTXyUKon"
+    "6aOpkucJD6a4vTXyUKon",
+    "5s3UifUu3OJ90z17rRMA",
+    "DSyEP4HEaCKur8rFFOri",
+    "H5cwfyNzXJCflQ525hPa"
   ],
   "roles": {}
 }

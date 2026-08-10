@@ -370,6 +370,15 @@ async function main() {
     // single-step through. Drain the fake timer queue one entry at a time,
     // recording state after each individual callback, so every shot/beat
     // transition is captured.
+    // 2026-08-09 update (E10-Z1-AUDIO-PRODUCTION-001): Zone 1 now has real
+    // audioSrc on every non-silent beat (the "zero audioSrc" assumption
+    // these tests were originally written under, see the file header, no
+    // longer holds). A beat with audioSrc waits on Audio.onended -- i.e. on
+    // window.__pendingSuccessAudio, drained via __finishNextSuccessAudio()
+    // -- not on a fake timer; a beats:[] silence shot (S3/S5/S7/S9) still
+    // waits on a pure fake timer, unchanged. Drain whichever is ready,
+    // audio first (matches production: the audio object already exists by
+    // the time its "slot" is checked), recording state after every step.
     async function recordFilmRun(page, kickoff) {
       await page.evaluate(() => { window.__audioMode = 'success'; });
       await kickoff(page);
@@ -384,12 +393,21 @@ async function main() {
         const log = [];
         record();
         let iterations = 0;
-        while (window.__fakeTimers.length && iterations < 500) {
+        while (iterations < 1000) {
           iterations++;
-          window.__fakeTimers.sort((a, b) => a.delay - b.delay);
-          const t = window.__fakeTimers.shift();
-          t.fn();
-          record();
+          if (window.__pendingSuccessAudio.length) {
+            window.__finishNextSuccessAudio();
+            record();
+            continue;
+          }
+          if (window.__fakeTimers.length) {
+            window.__fakeTimers.sort((a, b) => a.delay - b.delay);
+            const t = window.__fakeTimers.shift();
+            t.fn();
+            record();
+            continue;
+          }
+          break;
         }
         return log;
       });
@@ -400,6 +418,20 @@ async function main() {
         const overlay = document.getElementById('boss-cinematic');
         if (overlay) overlay.dataset.zoneKey = key;
         playZone1PostClearFilm({ key });
+      }, zoneKey);
+    }
+
+    // Drives BOSS_READY (Shots 7-8) directly, bypassing the
+    // _adventureBossReady()-gated trigger -- for testing the cinematic
+    // PLAYBACK mechanics in isolation. The gating itself (autoplay-once,
+    // authoritative-condition-only, no-force-battle) has its own dedicated
+    // tests further below, driven through updateMapProgress() with
+    // synthetic zone data instead.
+    async function runBossReadyFilm(page, zoneKey) {
+      await page.evaluate((key) => {
+        const overlay = document.getElementById('boss-cinematic');
+        if (overlay) overlay.dataset.zoneKey = key;
+        playZone1BossReadyFilm({ key });
       }, zoneKey);
     }
 
@@ -418,18 +450,27 @@ async function main() {
     }
 
     // --- J. UNCLEARED_ENTRY = S1..S8 ONLY / S9_BEFORE_CLEAR & S10_BEFORE_CLEAR = IMPOSSIBLE ---
-    await test('J: Zone 1 PRE_PLAY plays exactly Shots 1-8, never 9/10, zero audio/TTS calls', async () => {
+    // 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): ZONE_ENTRY is now
+    // Shots 1-6 only (Shots 7-8 moved to the separate BOSS_READY
+    // announcement, see the "BR:" tests below) -- title/shot-count updated
+    // to match; the never-9/10 and audio/TTS assertions are unchanged.
+    await test('J: Zone 1 ZONE_ENTRY plays exactly Shots 1-6, never 7/8/9/10, real narration audio, zero TTS calls', async () => {
       await withFreshPage(browser, origin, async (page) => {
         const log = await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
         const seenShots = new Set(log.map((entry) => entry.activeIdx).filter((idx) => idx >= 0));
-        if (seenShots.size !== 8) throw new Error(`expected exactly Shots 1-8 (8 distinct indices) to play, got ${JSON.stringify([...seenShots].sort((a, b) => a - b))} from log ${JSON.stringify(log)}`);
-        if (seenShots.has(8) || seenShots.has(9)) throw new Error(`PRE_PLAY must never activate Shot 9/10 (indices 8/9), saw ${JSON.stringify([...seenShots])}`);
+        if (seenShots.size !== 6) throw new Error(`expected exactly Shots 1-6 (6 distinct indices) to play, got ${JSON.stringify([...seenShots].sort((a, b) => a - b))} from log ${JSON.stringify(log)}`);
+        if (seenShots.has(6) || seenShots.has(7) || seenShots.has(8) || seenShots.has(9)) throw new Error(`ZONE_ENTRY must never activate Shot 7/8/9/10 (indices 6-9), saw ${JSON.stringify([...seenShots])}`);
         const overlayReady = await page.evaluate(() => document.getElementById('boss-cinematic').classList.contains('ready'));
-        if (!overlayReady) throw new Error('expected Zone 1 PRE_PLAY to reach ready state after Shot 8');
+        if (!overlayReady) throw new Error('expected Zone 1 ZONE_ENTRY to reach ready state after Shot 6');
         const showsTitleCard = await page.evaluate(() => document.getElementById('intro-film-stage').classList.contains('show-title-card'));
         if (showsTitleCard) throw new Error('Zone 1 PRE_PLAY hand-off must not show the legacy title card (Fix 2)');
+        // 2026-08-09: Zone 1 now has real recorded narration (audioSrc) on
+        // every non-silent beat -- window.Audio construction is now
+        // EXPECTED (dialogue narration + the main-theme BGM/ambience beds),
+        // unlike the old "no recorded narration yet" assumption. TTS must
+        // still never be used now that real recordings exist.
         const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
-        if (audioCreated) throw new Error('Zone 1 has no recorded narration yet -- no window.Audio should ever be constructed');
+        if (!audioCreated) throw new Error('expected window.Audio to be constructed for Zone 1 PRE_PLAY narration/BGM now that real assets exist');
         const speakCalls = await page.evaluate(() => window.__speakCalls);
         if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across Zone 1 PRE_PLAY, got ${speakCalls}`);
       });
@@ -450,36 +491,98 @@ async function main() {
       });
     }, results);
 
-    // --- L. S2/S4/S6/S8 multi-beat order is exact canonical text, not a flattened/prefixed string ---
-    await test('L: Zone 1 PRE_PLAY multi-beat shots (S2/S4/S6/S8) play beats in exact canonical order', async () => {
-      await withFreshPage(browser, origin, async (page) => {
-        const log = await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
-        const expected = {
-          1: ['Morning, child.', 'Morning, Shui.'], // S2
-          3: ["Look at that cloud.", "It's been sitting there for three days.", 'And... every day, it gets a little closer.'], // S4
-          5: ["I don't know if I can do this...", 'But I want to go see for myself.'], // S6
-          7: ['If you want to leave the village, play one game with me first.', "Don't rush.", 'Look carefully. Then make your move.'], // S8 (DL-01)
-        };
-        const mismatches = [];
-        for (const [shotIdx, expectedBeats] of Object.entries(expected)) {
-          const actual = beatsForShot(log, Number(shotIdx));
-          if (JSON.stringify(actual) !== JSON.stringify(expectedBeats)) {
-            mismatches.push({ shot: shotIdx, expected: expectedBeats, actual });
+    // --- L. S2/S4/S6 multi-beat order is exact canonical text, not a flattened/prefixed string ---
+    // 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): S8 moved out of
+    // ZONE_ENTRY into the separate BOSS_READY announcement -- see the "BR:"
+    // tests below for S7/S8 coverage. Exercises BOTH locales explicitly
+    // (zh-TW is the page's ambient default; en is set via I18n.setLang
+    // before kickoff) -- the whole point of this Zone 1 work is a correct
+    // bilingual contract, so this must not silently only ever check
+    // whichever locale happens to be ambient.
+    const L_EXPECTED_BY_LOCALE = {
+      zh: {
+        1: ['孩子，天亮了。', '早啊，小水。'], // S2
+        3: ['你看，那片雲。', '它已經停在那裡三天了。', '而且……每天都更近一點。'], // S4
+        5: ['我不知道自己行不行……', '但我想去看看。'], // S6
+      },
+      en: {
+        1: ['Morning, child.', 'Morning, Shui.'], // S2
+        3: ["Look at that cloud.", "It's been sitting there for three days.", 'And... every day, it gets a little closer.'], // S4
+        5: ["I don't know if I can do this...", 'But I want to go see for myself.'], // S6
+      },
+    };
+    for (const [localeLabel, expected] of Object.entries(L_EXPECTED_BY_LOCALE)) {
+      await test(`L (${localeLabel}): Zone 1 ZONE_ENTRY multi-beat shots (S2/S4/S6) play beats in exact canonical order`, async () => {
+        await withFreshPage(browser, origin, async (page) => {
+          if (localeLabel === 'en') {
+            await page.evaluate(() => { if (window.I18n && window.I18n.setLang) window.I18n.setLang('en'); });
           }
-          // Non-canonical speaker-label injection guard (no "Elder:"/"Hero:"
-          // prefixes -- speaker is metadata only, never in the subtitle text).
-          for (const beat of actual) {
-            if (/^(Elder|Hero|Anna|Runner|村長|主角|Narrator)[:：]/.test(beat)) {
-              mismatches.push({ shot: shotIdx, error: `non-canonical speaker label injected into subtitle: ${JSON.stringify(beat)}` });
+          const log = await recordFilmRun(page, (p) => runFilm(p, 'k26_30'));
+          const mismatches = [];
+          for (const [shotIdx, expectedBeats] of Object.entries(expected)) {
+            const actualFull = beatsForShot(log, Number(shotIdx));
+            // 2026-08-09: for the LAST ZONE_ENTRY shot (S6, index 5), natural
+            // completion synchronously updates #boss-cinematic-line to the
+            // new post-training "ready state" copy (section 8) as part of
+            // the same recordFilmRun step that reaches it -- a real,
+            // intentional UI update, not a spoken beat. Compare only the
+            // canonical spoken-beat prefix; anything appended after that
+            // is post-completion chrome, not part of this shot's dialogue.
+            const actual = actualFull.slice(0, expectedBeats.length);
+            if (JSON.stringify(actual) !== JSON.stringify(expectedBeats)) {
+              mismatches.push({ shot: shotIdx, expected: expectedBeats, actual: actualFull });
+            }
+            // Non-canonical speaker-label injection guard (no "Elder:"/"Hero:"
+            // prefixes -- speaker is metadata only, never in the subtitle text).
+            for (const beat of actual) {
+              if (/^(Elder|Hero|Anna|Runner|村長|主角|Narrator)[:：]/.test(beat)) {
+                mismatches.push({ shot: shotIdx, error: `non-canonical speaker label injected into subtitle: ${JSON.stringify(beat)}` });
+              }
             }
           }
+          if (mismatches.length) throw new Error(`beat order/text mismatch: ${JSON.stringify(mismatches)}`);
+        });
+      }, results);
+    }
+
+    // --- BR. BOSS_READY (Shots 7-8) playback mechanics: silent S7 then canonical S8 dialogue ---
+    await test('BR: BOSS_READY plays exactly Shot 7 (silent) then Shot 8 (canonical DL-01 dialogue), never other shots', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const log = await recordFilmRun(page, (p) => runBossReadyFilm(p, 'k26_30'));
+        const order = [];
+        for (const entry of log) {
+          if (entry.activeIdx >= 0 && order[order.length - 1] !== entry.activeIdx) order.push(entry.activeIdx);
         }
-        if (mismatches.length) throw new Error(`beat order/text mismatch: ${JSON.stringify(mismatches)}`);
+        if (JSON.stringify(order) !== JSON.stringify([6, 7])) {
+          throw new Error(`expected BOSS_READY shot order [6,7] (Shot 7 then Shot 8), got ${JSON.stringify(order)}`);
+        }
+        const shot7Beats = beatsForShot(log, 6).filter((t) => t !== '');
+        if (shot7Beats.length) throw new Error(`expected Shot 7 (S7) to be silent, saw subtitle text: ${JSON.stringify(shot7Beats)}`);
+        const shot8Beats = beatsForShot(log, 7);
+        const expected = ['想出村，就先陪我下一局。', '別急。', '看清楚，再落子。'];
+        if (JSON.stringify(shot8Beats) !== JSON.stringify(expected)) {
+          throw new Error(`Shot 8 (DL-01) beat mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(shot8Beats)}`);
+        }
+      });
+    }, results);
+
+    await test('BR: BOSS_READY does not force battle entry -- completion just closes the overlay', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        await recordFilmRun(page, (p) => runBossReadyFilm(p, 'k26_30'));
+        const overlayHidden = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        if (overlayHidden !== 'true') throw new Error(`expected BOSS_READY completion to close the overlay (aria-hidden=true), got ${overlayHidden}`);
+        // No boss-battle-only DOM signal (phase-seal class, etc.) may be present.
+        const overlayClass = await page.evaluate(() => document.getElementById('boss-cinematic').className);
+        if (/phase-seal/.test(overlayClass)) throw new Error(`expected no battle-entry class after BOSS_READY completion, got ${overlayClass}`);
       });
     }, results);
 
     // --- M. Structural proof: getIntroFilmLocaleConfig itself separates PRE_PLAY from POST_CLEAR ---
-    await test('M: Zone 1 config has exactly 8 PRE_PLAY shots (0-7) and 2 POST_CLEAR shots (8-9), both locales', async () => {
+    // 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): the three-array
+    // structure now matches the three-act model exactly: `timeline`
+    // (ZONE_ENTRY, Shots 1-6) / `bossReadyTimeline` (BOSS_READY, Shots 7-8)
+    // / `postClearTimeline` (POST_CLEAR, Shots 9-10).
+    await test('M: Zone 1 config has exactly 6 ZONE_ENTRY (0-5), 2 BOSS_READY (6-7), 2 POST_CLEAR (8-9) shots, both locales', async () => {
       await withFreshPage(browser, origin, async (page) => {
         const result = await page.evaluate(() => {
           const zh = getIntroFilmLocaleConfig({ key: 'k26_30' });
@@ -488,21 +591,27 @@ async function main() {
           const shotList = (tl) => (tl || []).map((s) => s.shot);
           const beatCounts = (tl) => (tl || []).map((s) => (s.beats || []).length);
           return {
-            zhTimelineShots: shotList(zh.timeline), zhPostClearShots: shotList(zh.postClearTimeline),
-            enTimelineShots: shotList(en.timeline), enPostClearShots: shotList(en.postClearTimeline),
-            zhBeatCounts: beatCounts(zh.timeline).concat(beatCounts(zh.postClearTimeline)),
-            enBeatCounts: beatCounts(en.timeline).concat(beatCounts(en.postClearTimeline)),
+            zhTimelineShots: shotList(zh.timeline), zhBossReadyShots: shotList(zh.bossReadyTimeline), zhPostClearShots: shotList(zh.postClearTimeline),
+            enTimelineShots: shotList(en.timeline), enBossReadyShots: shotList(en.bossReadyTimeline), enPostClearShots: shotList(en.postClearTimeline),
+            zhBeatCounts: beatCounts(zh.timeline).concat(beatCounts(zh.bossReadyTimeline)).concat(beatCounts(zh.postClearTimeline)),
+            enBeatCounts: beatCounts(en.timeline).concat(beatCounts(en.bossReadyTimeline)).concat(beatCounts(en.postClearTimeline)),
             zhHasFinalCaption: 'finalCaption' in zh, zhHasFinalLine: 'finalLine' in zh,
             enHasFinalCaption: 'finalCaption' in en, enHasFinalLine: 'finalLine' in en,
+            zhHasBgmMainTheme: typeof zh.bgmMainTheme === 'string' && zh.bgmMainTheme.length > 0,
+            zhHasBgmPostClear: typeof zh.bgmPostClearUrgency === 'string' && zh.bgmPostClearUrgency.length > 0,
+            zhHasAmbience: typeof zh.ambienceVillageDawn === 'string' && zh.ambienceVillageDawn.length > 0,
           };
         });
-        const expectedTimeline = [0, 1, 2, 3, 4, 5, 6, 7];
+        const expectedTimeline = [0, 1, 2, 3, 4, 5];
+        const expectedBossReady = [6, 7];
         const expectedPostClear = [8, 9];
-        const expectedBeatCounts = [1, 2, 0, 3, 0, 2, 0, 3, 0, 3]; // S1..S10
+        const expectedBeatCounts = [1, 2, 0, 3, 0, 2, 0, 3, 0, 3]; // S1..S10, unchanged overall
         for (const [label, actual, expected] of [
           ['zh timeline', result.zhTimelineShots, expectedTimeline],
+          ['zh bossReady', result.zhBossReadyShots, expectedBossReady],
           ['zh postClear', result.zhPostClearShots, expectedPostClear],
           ['en timeline', result.enTimelineShots, expectedTimeline],
+          ['en bossReady', result.enBossReadyShots, expectedBossReady],
           ['en postClear', result.enPostClearShots, expectedPostClear],
           ['zh beat counts', result.zhBeatCounts, expectedBeatCounts],
           ['en beat counts', result.enBeatCounts, expectedBeatCounts],
@@ -511,6 +620,9 @@ async function main() {
             throw new Error(`${label}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
           }
         }
+        if (!result.zhHasBgmMainTheme || !result.zhHasBgmPostClear || !result.zhHasAmbience) {
+          throw new Error(`expected bgmMainTheme/bgmPostClearUrgency/ambienceVillageDawn to remain defined: ${JSON.stringify(result)}`);
+        }
         // Fix 2: no legacy finalCaption/finalLine exposition anywhere in Zone 1's config.
         if (result.zhHasFinalCaption || result.zhHasFinalLine || result.enHasFinalCaption || result.enHasFinalLine) {
           throw new Error(`Zone 1 config must not define finalCaption/finalLine: ${JSON.stringify(result)}`);
@@ -518,8 +630,91 @@ async function main() {
       });
     }, results);
 
+    // --- BG. BOSS_READY gating: reuses the authoritative _adventureBossReady() predicate, autoplay-once ---
+    function notReadyZone() {
+      return { key: 'k26_30', cleared: false, boss: { available: false, remaining_to_challenge: 5 } };
+    }
+    function readyZone() {
+      return { key: 'k26_30', cleared: false, boss: { available: true, remaining_to_challenge: 0 } };
+    }
+
+    await test('BG: BOSS_READY never triggers while _adventureBossReady(zone) is false', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, notReadyZone());
+        const phase = await page.evaluate(() => _introFilmActiveOpts.phase);
+        const overlayHidden = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        if (phase === 'boss_ready') throw new Error('BOSS_READY must not trigger while boss is not ready');
+        if (overlayHidden === 'false') throw new Error('cinematic overlay must not open while boss is not ready');
+      });
+    }, results);
+
+    await test('BG: BOSS_READY triggers exactly once on the authoritative ready state, not again on repeat renders', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        // Not ready yet -- no-op.
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, notReadyZone());
+        // Now ready -- must trigger BOSS_READY (Shots 7-8) automatically.
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, readyZone());
+        const phaseAfterFirstReady = await page.evaluate(() => _introFilmActiveOpts.phase);
+        if (phaseAfterFirstReady !== 'boss_ready') throw new Error(`expected the first ready transition to trigger BOSS_READY, phase was ${JSON.stringify(phaseAfterFirstReady)}`);
+        await drainAllFakeTimers(page);
+        const overlayHiddenAfterComplete = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        if (overlayHiddenAfterComplete !== 'true') throw new Error('expected BOSS_READY to close the overlay after completion');
+        const audioCountAfterFirst = await page.evaluate(() => window.__audioLog.filter((e) => e.event === 'created').length);
+        // Re-render with the SAME ready state again (e.g. a second progress
+        // poll) -- must be a no-op: no re-trigger, no new audio.
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, readyZone());
+        const overlayHiddenAfterRepeat = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        const audioCountAfterRepeat = await page.evaluate(() => window.__audioLog.filter((e) => e.event === 'created').length);
+        if (overlayHiddenAfterRepeat !== 'true') throw new Error('expected a repeat ready render NOT to reopen the cinematic overlay');
+        if (audioCountAfterRepeat !== audioCountAfterFirst) throw new Error(`expected no new audio on a repeat ready render, had ${audioCountAfterFirst} then ${audioCountAfterRepeat}`);
+      });
+    }, results);
+
+    await test('BG: BOSS_READY does not fire again after the boss is later defeated (zone.cleared)', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, readyZone());
+        await drainAllFakeTimers(page);
+        const clearedZone = { key: 'k26_30', cleared: true, boss: { available: true, remaining_to_challenge: 0 } };
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, clearedZone);
+        const overlayHidden = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        if (overlayHidden !== 'true') throw new Error('expected no BOSS_READY re-trigger once the zone is cleared');
+      });
+    }, results);
+
+    await test('BG: RELOAD_AFTER_BOSS_READY_SEEN -- a real page reload does not replay the announcement again', async () => {
+      // Unlike POST_CLEAR, BOSS_READY has no "pending" flag to recover --
+      // it's a stable re-derivable state, so "seen" alone (persisted in
+      // localStorage, which genuinely survives a real reload) is enough to
+      // prove reload-safety end to end.
+      const page = await browser.newPage();
+      await page.addInitScript(FAKE_INIT_SCRIPT);
+      await page.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+      await page.route('**/api/auth/me', (route) => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ logged_in: true, user_id: 1, username: 'bossready_reload_tester', display_name: 'Boss Ready Reload Tester', is_admin: false, is_premium: false, needs_onboarding_choice: false, tour_done: true, elo_rating: 1200 })
+      }));
+      try {
+        await page.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
+        await page.evaluate(() => { window.__audioMode = 'success'; _currentUserId = 1; });
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, readyZone());
+        await drainAllFakeTimers(page);
+        const seenBeforeReload = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_bossready_seen_v1') || '{}'));
+        if (!seenBeforeReload['1']?.k26_30) throw new Error('test setup invalid: expected boss-ready seen to be set before reload');
+        // A real reload: in-memory JS state is genuinely gone, only localStorage survives.
+        await page.goto(origin + '/index.html', { waitUntil: 'domcontentloaded' });
+        await page.evaluate(() => { window.__audioMode = 'success'; _currentUserId = 1; });
+        await page.evaluate((zone) => { updateMapProgress({ zones: [zone] }); }, readyZone());
+        const phaseAfterReload = await page.evaluate(() => _introFilmActiveOpts.phase);
+        const overlayHiddenAfterReload = await page.evaluate(() => document.getElementById('boss-cinematic').getAttribute('aria-hidden'));
+        if (phaseAfterReload === 'boss_ready') throw new Error('expected reload NOT to replay BOSS_READY once already seen');
+        if (overlayHiddenAfterReload === 'false') throw new Error('expected the cinematic overlay to stay closed after reload once BOSS_READY was already seen');
+      } finally {
+        await page.close();
+      }
+    }, results);
+
     // --- N & O. GENUINE_CLEAR = S9 THEN S10 / S10 multi-beat order exact / zero audio/TTS ---
-    await test('N: Zone 1 POST_CLEAR plays exactly Shot 9 then Shot 10, zero audio/TTS calls', async () => {
+    await test('N: Zone 1 POST_CLEAR plays exactly Shot 9 then Shot 10, real narration audio, zero TTS calls', async () => {
       await withFreshPage(browser, origin, async (page) => {
         const log = await recordFilmRun(page, (p) => runPostClearFilm(p, 'k26_30'));
         const order = [];
@@ -529,30 +724,48 @@ async function main() {
         if (JSON.stringify(order) !== JSON.stringify([8, 9])) {
           throw new Error(`expected POST_CLEAR shot order [8,9] (Shot 9 then Shot 10), got ${JSON.stringify(order)} from log ${JSON.stringify(log)}`);
         }
+        // 2026-08-09: Shot 10 now has real recorded narration + a BGM/SFX
+        // cue; Shot 9 stays silent by design (no beats, no BGM). Audio
+        // construction is expected overall; TTS must still never fire.
         const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
-        if (audioCreated) throw new Error('Zone 1 POST_CLEAR has no recorded narration yet -- no window.Audio should ever be constructed');
+        if (!audioCreated) throw new Error('expected window.Audio to be constructed for Shot 10 narration/BGM/SFX now that real assets exist');
         const speakCalls = await page.evaluate(() => window.__speakCalls);
         if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across Zone 1 POST_CLEAR, got ${speakCalls}`);
       });
     }, results);
 
-    await test('O: Zone 1 POST_CLEAR Shot 9 is silent, Shot 10 plays exact canonical 3-beat order, no extra line after', async () => {
-      await withFreshPage(browser, origin, async (page) => {
-        const log = await recordFilmRun(page, (p) => runPostClearFilm(p, 'k26_30'));
-        const shot9Beats = beatsForShot(log, 8).filter((t) => t !== '');
-        if (shot9Beats.length) throw new Error(`expected Shot 9 (S9) to be silent, saw subtitle text: ${JSON.stringify(shot9Beats)}`);
-        const shot10Beats = beatsForShot(log, 9);
-        const expected = ['Elder!', 'The caravan from the Slime Plains...', "It's been three days, and they still haven't come back!"];
-        if (JSON.stringify(shot10Beats) !== JSON.stringify(expected)) {
-          throw new Error(`Shot 10 beat mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(shot10Beats)}`);
-        }
-        // Fix 2: nothing (no Hero response, no thesis line) may play after Shot 10's last beat.
-        const finalLineAfterComplete = await page.evaluate(() => document.getElementById('boss-cinematic-line')?.textContent || '');
-        if (finalLineAfterComplete !== expected[expected.length - 1]) {
-          throw new Error(`expected the subtitle to still read Shot 10's own last line after completion, got ${JSON.stringify(finalLineAfterComplete)}`);
-        }
-      });
-    }, results);
+    const O_EXPECTED_SHOT10_BY_LOCALE = {
+      zh: ['村長！', '史萊姆平原的商隊……', '三天了，還沒回來！'],
+      en: ['Elder!', 'The caravan from the Slime Plains...', "It's been three days, and they still haven't come back!"],
+    };
+    for (const [localeLabel, expected] of Object.entries(O_EXPECTED_SHOT10_BY_LOCALE)) {
+      await test(`O (${localeLabel}): Zone 1 POST_CLEAR Shot 9 is silent, Shot 10 plays exact canonical 3-beat order, no extra line after`, async () => {
+        await withFreshPage(browser, origin, async (page) => {
+          if (localeLabel === 'en') {
+            await page.evaluate(() => { if (window.I18n && window.I18n.setLang) window.I18n.setLang('en'); });
+          }
+          const log = await recordFilmRun(page, (p) => runPostClearFilm(p, 'k26_30'));
+          const shot9Beats = beatsForShot(log, 8).filter((t) => t !== '');
+          if (shot9Beats.length) throw new Error(`expected Shot 9 (S9) to be silent, saw subtitle text: ${JSON.stringify(shot9Beats)}`);
+          const shot10Beats = beatsForShot(log, 9);
+          if (JSON.stringify(shot10Beats) !== JSON.stringify(expected)) {
+            throw new Error(`Shot 10 beat mismatch: expected ${JSON.stringify(expected)}, got ${JSON.stringify(shot10Beats)}`);
+          }
+          // Fix 2: nothing (no Hero response, no thesis line) may play after
+          // Shot 10's last beat. Read this off the drain loop's own last
+          // recorded entry rather than a separate page.evaluate() round-trip
+          // -- with Shot 10 now driven by real audio-completion steps (not
+          // just fake timers), a later separate evaluate() introduces an
+          // async gap where the harness's own microtask/IPC timing can be
+          // observed mid-flight; the log's last entry is captured at the
+          // same synchronous point production code settles on.
+          const finalLineAfterComplete = log[log.length - 1]?.lineText || '';
+          if (finalLineAfterComplete !== expected[expected.length - 1]) {
+            throw new Error(`expected the subtitle to still read Shot 10's own last line after completion, got ${JSON.stringify(finalLineAfterComplete)}`);
+          }
+        });
+      }, results);
+    }
 
     // --- P. finishPostClearFilm marks seen and closes the overlay (no reward/settlement call, visual-only) ---
     await test('P: Zone 1 POST_CLEAR completion marks postClearSeen and closes the overlay', async () => {
@@ -592,7 +805,10 @@ async function main() {
           return document.getElementById('boss-cinematic').className;
         });
         if (!/intro-film/.test(firstRun)) throw new Error(`expected first trigger to open the POST_CLEAR film, overlay class was ${JSON.stringify(firstRun)}`);
-        await page.evaluate(() => window.__flushFakeTimers());
+        // window.__flushFakeTimers() only drains fake timers -- Shot 10 now
+        // also needs pending audio completions drained (real narration/BGM/
+        // SFX). drainAllFakeTimers (defined below, hoisted) does both.
+        await drainAllFakeTimers(page);
         const seenAfterFirst = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
         if (!seenAfterFirst['1']?.k26_30) throw new Error('expected postClearSeen to be set (account-scoped under user "1") after the first trigger completes');
         const secondRunClass = await page.evaluate(() => {
@@ -660,8 +876,17 @@ async function main() {
     // persists across it exactly as a browser reload would -- this is not
     // simulated via a fresh isolated context (withFreshPage's newPage()
     // would NOT share localStorage).
+    // 2026-08-09: one "step" now means either finishing one pending audio
+    // (audio-backed beats, e.g. Zone 1's Shot 10 dialogue) or firing one
+    // fake timer (silence shots / post-audio hold delays) -- audio first,
+    // matching recordFilmRun's same priority. See that function's comment
+    // for why Zone 1 no longer drives purely off fake timers.
     async function drainOneFakeTimer(page) {
       await page.evaluate(() => {
+        if (window.__pendingSuccessAudio.length) {
+          window.__finishNextSuccessAudio();
+          return;
+        }
         window.__fakeTimers.sort((a, b) => a.delay - b.delay);
         const t = window.__fakeTimers.shift();
         if (t) t.fn();
@@ -669,7 +894,10 @@ async function main() {
     }
     async function drainAllFakeTimers(page) {
       let iterations = 0;
-      while (await page.evaluate(() => window.__fakeTimers.length) && iterations < 500) {
+      while (
+        (await page.evaluate(() => window.__fakeTimers.length || window.__pendingSuccessAudio.length))
+        && iterations < 500
+      ) {
         iterations++;
         await drainOneFakeTimer(page);
       }
@@ -882,9 +1110,14 @@ async function main() {
         await drainAllFakeTimers(page);
         const seenAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_seen_v1') || '{}'));
         if (!seenAfter.userA?.k26_30) throw new Error('expected User A seen to be set after their resumed playback completes');
+        // 2026-08-09: real narration/BGM/SFX audio is now expected across a
+        // full POST_CLEAR resume (audioCreated=true is correct, not a
+        // reward/settlement leak) -- the invariant that actually matters is
+        // TTS never firing, which remains true regardless of real audio.
         const audioCreated = await page.evaluate(() => window.__audioLog.some((e) => e.event === 'created'));
         const speakCalls = await page.evaluate(() => window.__speakCalls);
-        if (audioCreated || speakCalls !== 0) throw new Error(`expected zero reward/settlement-adjacent audio/TTS calls across the whole account-switch/resume path, got audioCreated=${audioCreated} speakCalls=${speakCalls}`);
+        if (!audioCreated) throw new Error('expected window.Audio to be constructed for User A\'s resumed POST_CLEAR playback');
+        if (speakCalls !== 0) throw new Error(`expected 0 TTS calls across the whole account-switch/resume path, got speakCalls=${speakCalls}`);
       } finally {
         await page.close();
       }

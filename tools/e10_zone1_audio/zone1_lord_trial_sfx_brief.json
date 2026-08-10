@@ -1,0 +1,71 @@
+{
+  "_comment": "E10 Zone 1 Lord Trial SFX audition brief (2026-08-09, GO ODYSSEY E10 ZONE 1 BEGINNER VILLAGE COMPLETE RPG JOURNEY, sections 32-34). Completely separate from the LOCKED 35-asset dialogue/BGM/ambience/SFX package (zone1_sound_design_lock.json) -- these 8 candidates must never be promoted to canonical runtime until the Owner explicitly approves them (Gate A). One considered candidate per category for this first pass (avoids dozens of near-duplicate files); more variants available on request for any specific one.",
+  "status": "AUDITION_PACK_V1_UNAPPROVED",
+  "direction_note": "Real/convincing Go-stone qualities, wood/stone board, restrained bell/gong, air movement, magical resonance, elegant energy movement, warm gold/teal fantasy tone. Explicitly avoid: swords, explosions, gunfire, monster growls, horror drones, heavy combat drums, generic casino sounds, generic mobile-game victory jingles.",
+  "sfx": [
+    {
+      "key": "lord_card_reveal",
+      "label": "LORD_CARD_REVEAL",
+      "intended_trigger": "Lord Challenge Card appears (showZone1LordChallengeCard)",
+      "prompt": "A soft low magical whoosh as an ornate card reveals itself, followed by a single restrained warm bell chime, elegant and refined, no percussion, no drums, very short",
+      "duration_seconds": 1.2,
+      "highlight": true
+    },
+    {
+      "key": "lord_challenge_confirm",
+      "label": "LORD_CHALLENGE_CONFIRM",
+      "intended_trigger": "Player presses Start Challenge (startZone1LordRitual)",
+      "prompt": "A short low wooden confirmation impact, like a firm hand press on a resonant wooden table, with a subtle warm resonance tail, no music, no percussion kit, very short",
+      "duration_seconds": 0.8,
+      "highlight": true
+    },
+    {
+      "key": "lord_ritual_energy",
+      "label": "LORD_RITUAL_ENERGY",
+      "intended_trigger": "Underscore for the 3-5s Lord Entrance Ritual",
+      "prompt": "Elegant magical energy flowing and gently building, warm golden shimmer with a low teal undertone, restrained ambient texture, no percussion, gentle crescendo, Go-themed not battle-themed",
+      "duration_seconds": 4,
+      "highlight": true
+    },
+    {
+      "key": "go_stone_impact",
+      "label": "GO_STONE_IMPACT",
+      "intended_trigger": "The decisive stone lands at the end of the ritual -- the signature Lord Trial sound",
+      "prompt": "A single Go stone placed decisively onto a resonant wooden board, clean sharp click with a warm wooden resonance tail, no music, no reverb wash, natural and convincing",
+      "duration_seconds": 1,
+      "highlight": true
+    },
+    {
+      "key": "lord_trial_success",
+      "label": "LORD_TRIAL_SUCCESS",
+      "intended_trigger": "Lord Trial passed (showZone1LordResultCard, passed branch)",
+      "prompt": "A short elegant magical success chime, warm bell and light stone resonance layered together, uplifting but restrained and premium, not a generic mobile game victory jingle, no percussion",
+      "duration_seconds": 2,
+      "highlight": true
+    },
+    {
+      "key": "lord_trial_failure",
+      "label": "LORD_TRIAL_FAILURE",
+      "intended_trigger": "Lord Trial failed (showZone1LordResultCard, failed branch)",
+      "prompt": "A muted settling wood-and-stone resonance with a gently descending tone, restrained and contemplative rather than sad or punishing, no percussion, no horror drone, brief",
+      "duration_seconds": 1.5,
+      "highlight": true
+    },
+    {
+      "key": "zone_unlock_chime",
+      "label": "ZONE_UNLOCK_CHIME",
+      "intended_trigger": "Zone 2 awakens at the end of the Zone Unlock Reveal route animation",
+      "prompt": "A clean bright magical chime marking a new area unlocking, warm gold tone resolving into teal, short natural decay, elegant and premium, not a generic mobile achievement jingle",
+      "duration_seconds": 1.5,
+      "highlight": true
+    },
+    {
+      "key": "zone_route_energy",
+      "label": "ZONE_ROUTE_ENERGY",
+      "intended_trigger": "Underneath the route-illumination travel animation, before the unlock chime lands",
+      "prompt": "Quiet flowing magical energy traveling steadily along a path, soft shimmering texture with gentle forward motion, ambient and restrained, no percussion, resolves naturally into a bright chime",
+      "duration_seconds": 2.5,
+      "highlight": false
+    }
+  ]
+}
