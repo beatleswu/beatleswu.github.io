@@ -87,16 +87,30 @@ const FAKE_INIT_SCRIPT = `
 (function () {
   window.__audioLog = [];
   window.__audioMode = 'success'; // 'success' | 'error' | 'reject'
+  window.__audioPolicy = 'unrestricted';
+  window.__dialogueAudioElementCount = 0;
   window.__pendingSuccessAudio = [];
   class FakeAudio {
     constructor(src) {
-      this.src = src;
+      this.src = src || '';
       this.onended = null;
       this.onerror = null;
-      window.__audioLog.push({ event: 'created', src });
+      this._dialogueElementNumber = 0;
+      window.__audioLog.push({ event: 'created', src: this.src });
     }
     play() {
       const mode = window.__audioMode;
+      if (this.src.includes('/dialogue/') && !this._dialogueElementNumber) {
+        this._dialogueElementNumber = ++window.__dialogueAudioElementCount;
+      }
+      const blockedByMediaPolicy = window.__audioPolicy === 'ipad-single-narration-element'
+        && this.src.includes('/dialogue/')
+        && this._dialogueElementNumber > 3;
+      if (blockedByMediaPolicy) {
+        window.__audioLog.push({ event: 'play-rejected-policy', src: this.src, dialogueElementNumber: this._dialogueElementNumber });
+        if (this.onerror) this.onerror(new Event('error'));
+        return Promise.resolve();
+      }
       window.__audioLog.push({ event: 'play', src: this.src, mode });
       if (mode === 'reject') return Promise.reject(new Error('NotAllowedError'));
       if (mode === 'error') {
@@ -107,6 +121,7 @@ const FAKE_INIT_SCRIPT = `
       return Promise.resolve();
     }
     pause() { window.__audioLog.push({ event: 'pause', src: this.src }); }
+    load() {}
   }
   window.Audio = FakeAudio;
   window.__finishNextSuccessAudio = function () {
@@ -184,8 +199,8 @@ async function withFreshPage(browser, origin, fn) {
   }
 }
 
-async function runFilm(page, zoneKey) {
-  await page.evaluate((key) => {
+async function runFilm(page, zoneKey, mode = null) {
+  await page.evaluate(({ key, playMode }) => {
     window.__filmDone = false;
     // Mirror what showStageIntroCinematic does in production: stamp the
     // active zone onto the overlay so getCurrentIntroZone() (used by
@@ -193,8 +208,9 @@ async function runFilm(page, zoneKey) {
     // test, instead of silently falling back to ADVENTURE_ZONES[0].
     const overlay = document.getElementById('boss-cinematic');
     if (overlay) overlay.dataset.zoneKey = key;
-    playNewbieVillageIntroFilm({ key }).then(() => { window.__filmDone = true; });
-  }, zoneKey);
+    const opts = playMode ? { mode: playMode } : undefined;
+    playNewbieVillageIntroFilm({ key }, opts).then(() => { window.__filmDone = true; });
+  }, { key: zoneKey, playMode: mode });
 }
 
 async function main() {
@@ -544,6 +560,73 @@ async function main() {
         });
       }, results);
     }
+
+    // --- IPAD. iPad/Safari-like narration media-session boundary ---
+    // A real iPad acceptance run kept subtitles/BGM/timeline alive but lost
+    // voice beginning at S4-B1 ("你看，那片雲"). The production assets are
+    // present; the platform-sensitive boundary is the fourth fresh dialogue
+    // Audio element. This policy fake models that failure while requiring the
+    // production fix to reuse one narration element across every beat. BGM,
+    // ambience, and SFX remain separate beds and are not covered by this
+    // policy.
+    const IPAD_EXPECTED_ZH_DIALOGUE = [
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot01_beat01_zh_anna.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat01_zh_elder.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat02_zh_hero.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat01_zh_elder.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat02_zh_elder.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat03_zh_elder.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat01_zh_hero.mp3',
+      '/assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat02_zh_hero.mp3',
+    ];
+    async function dialoguePlaySources(page) {
+      return page.evaluate(() => window.__audioLog
+        .filter((entry) => entry.event === 'play' && entry.src.includes('/dialogue/'))
+        .map((entry) => entry.src));
+    }
+    async function policyRejections(page) {
+      return page.evaluate(() => window.__audioLog
+        .filter((entry) => entry.event === 'play-rejected-policy')
+        .map((entry) => entry.src));
+    }
+    await test('IPAD: iPad-like media policy preserves S4-B1 and all later Zone 1 narration in first-entry and replay', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        await page.evaluate(() => {
+          window.__audioPolicy = 'ipad-single-narration-element';
+          window.__dialogueAudioElementCount = 0;
+        });
+        await recordFilmRun(page, (p) => runFilm(p, 'k26_30', 'first_entry'));
+        const firstEntrySources = await dialoguePlaySources(page);
+        const firstEntryRejected = await policyRejections(page);
+        if (JSON.stringify(firstEntrySources) !== JSON.stringify(IPAD_EXPECTED_ZH_DIALOGUE)) {
+          throw new Error(`first-entry narration cue sequence mismatch: ${JSON.stringify(firstEntrySources)}`);
+        }
+        if (firstEntryRejected.length) {
+          throw new Error(`first-entry narration hit the iPad-like fresh-element policy: ${JSON.stringify(firstEntryRejected)}`);
+        }
+        const firstEntryBgmCount = await page.evaluate(() => window.__audioLog
+          .filter((entry) => entry.event === 'play' && entry.src.includes('/zone1/bgm/zone1_bgm_main_theme.mp3')).length);
+        if (firstEntryBgmCount !== 1) throw new Error(`expected one continuous main BGM start for first-entry, got ${firstEntryBgmCount}`);
+
+        const replaySources = await recordFilmRun(page, (p) => p.evaluate(() => {
+          window.__audioPolicy = 'ipad-single-narration-element';
+          window.__dialogueAudioElementCount = 0;
+          window.__audioLog = [];
+          replayIntroFilm();
+        }));
+        const replayDialogueSources = await dialoguePlaySources(page);
+        const replayRejected = await policyRejections(page);
+        if (JSON.stringify(replayDialogueSources) !== JSON.stringify(IPAD_EXPECTED_ZH_DIALOGUE)) {
+          throw new Error(`replay narration cue sequence mismatch: ${JSON.stringify(replayDialogueSources)}`);
+        }
+        if (replayRejected.length) {
+          throw new Error(`replay narration hit the iPad-like fresh-element policy: ${JSON.stringify(replayRejected)}`);
+        }
+        if (!replaySources.some((entry) => entry.activeIdx === 5 && entry.lineText === '但我想去看看。')) {
+          throw new Error('replay did not reach the final Zone 1 spoken cue');
+        }
+      });
+    }, results);
 
     // --- BR. BOSS_READY (Shots 7-8) playback mechanics: silent S7 then canonical S8 dialogue ---
     await test('BR: BOSS_READY plays exactly Shot 7 (silent) then Shot 8 (canonical DL-01 dialogue), never other shots', async () => {
