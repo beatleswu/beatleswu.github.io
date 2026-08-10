@@ -23,6 +23,23 @@ def run_powershell(script, timeout=30):
     )
 
 
+def run_powershell_error_record(script, timeout=30):
+    wrapped = f"""
+$ErrorActionPreference = 'Stop'
+try {{
+    {script}
+}} catch {{
+    [ordered]@{{
+        ExceptionType = $_.Exception.GetType().FullName
+        Category = $_.CategoryInfo.Category.ToString()
+        FullyQualifiedErrorId = $_.FullyQualifiedErrorId
+    }} | ConvertTo-Json -Compress
+    exit 1
+}}
+"""
+    return run_powershell(wrapped, timeout=timeout)
+
+
 def state_machine_harness(*, initial_enabled=True, fail_stage=None, disable_shape="nested"):
     module = str(MODULE).replace("'", "''")
     initial = "$true" if initial_enabled else "$false"
@@ -119,12 +136,24 @@ def test_drill_public_gate_is_exact_and_go_deploy_is_rejected():
         "ARBITRARY",
         "''",
     ):
-        wrong_gate = run_powershell(f"& '{drill}' -Execute -OwnerGate {gate}")
-        assert wrong_gate.returncode != 0
-        output = wrong_gate.stdout + wrong_gate.stderr
         if gate == "''":
-            assert "EmptyStringNotAllowed" in output
+            wrong_gate = run_powershell_error_record(
+                f"& '{drill}' -Execute -OwnerGate {gate}"
+            )
         else:
+            wrong_gate = run_powershell(f"& '{drill}' -Execute -OwnerGate {gate}")
+        assert wrong_gate.returncode != 0
+        if gate == "''":
+            assert json.loads(wrong_gate.stdout.strip()) == {
+                "ExceptionType": "System.Management.Automation.ParameterBindingValidationException",
+                "Category": "InvalidData",
+                "FullyQualifiedErrorId": (
+                    "ParameterArgumentValidationErrorEmptyStringNotAllowed,"
+                    "run-shadow-kill-switch-drill.ps1"
+                ),
+            }
+        else:
+            output = wrong_gate.stdout + wrong_gate.stderr
             assert "Expected -OwnerGate GO_KILL_SWITCH_DRILL" in output
 
 
