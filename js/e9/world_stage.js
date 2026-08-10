@@ -603,6 +603,14 @@
       .replace('{total}', String(zone.total || 0));
   }
 
+  function zoneBossProgressText(zone) {
+    if (zone.bossAvailable) return bossReadyText(zone);
+    if (zone.cleared) return clearedText(zone);
+    return t('index.adv.boss_intro_progress', 'Progress: {completed} / {total}')
+      .replace('{completed}', String(zone.seen || 0))
+      .replace('{total}', String(zone.total || 0));
+  }
+
   function setSelectedTileState(root, zoneKey, preservePressedState) {
     root.querySelectorAll('[data-zone]').forEach(function (tile) {
       var selected = tile.getAttribute('data-zone') === zoneKey;
@@ -834,6 +842,7 @@
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var progress = root.querySelector('#e9-world-stage-details-progress');
     var regionProgress = root.querySelector('#e9-world-stage-details-region-progress');
+    var bossProgress = root.querySelector('#e9-world-stage-details-boss-progress');
     if (number) number.textContent = 'Zone ' + (zone.__e10Index || 0);
     if (stars) stars.textContent = '\u2605 ' + String(zone.stars || 0);
     if (label) label.textContent = zoneDisplayName(zone) || zone.key;
@@ -847,6 +856,7 @@
       if (VS1E_STATIC_CONTRACT_ACTIVE) progress.textContent = (zone.seen || 0) + ' / ' + (zone.total || 0);
     }
     if (regionProgress) regionProgress.textContent = (zone.__e10Index || 0) + ' / 10';
+    if (bossProgress) bossProgress.textContent = zoneBossProgressText(zone);
     var portraitSurface = window.matchMedia && window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
     ).matches;

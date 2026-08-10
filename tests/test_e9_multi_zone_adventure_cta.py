@@ -493,6 +493,7 @@ def test_no_new_i18n_key_introduced_for_this_fix():
         'index.adv.summary', 'index.adv.zone_locked', 'index.adv.start_challenge',
         'index.adv.status_skipped_by_placement', 'index.adv.quest_replay_training',
         'index.adv.skipped_replay', 'index.adv.skipped_help', 'index.adv.stars_label',
+        'index.adv.boss_intro_progress',
     }
     assert referenced == expected, f"unexpected index.adv.* keys: {referenced - expected}"
     for key in referenced:

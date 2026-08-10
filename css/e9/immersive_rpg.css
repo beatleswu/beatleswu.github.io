@@ -2112,6 +2112,7 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
 
 #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary {
   position: relative;
+  clear: both;
   margin-bottom: 14px;
   padding: 14px;
   border: 2px solid var(--e10-parchment-edge);
@@ -2223,7 +2224,7 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
   }
 
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details:not([hidden]) {
-    position: static;
+    position: relative;
     display: grid;
     grid-template-columns: minmax(132px, 176px) minmax(0, 1fr);
     grid-template-areas:
