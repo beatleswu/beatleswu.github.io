@@ -9,18 +9,20 @@
  * presentation labels use the shared i18n.js registry. No component-local
  * translation dictionary or progression mapping is created.
  * If the data fetch fails (or the session is unauthorized), this is
- * treated as a CRITICAL failure (a World Stage that can't show real
- * state is non-functional) and triggers full shell recovery to the
- * legacy Adventure Map via window.E9.recoverToLegacy(), NOT just a local
- * error message. A single retry is offered first for a recoverable
- * (non-auth) error, dispatching "e9:refresh-requested" before falling
- * back to recovery if the retry also fails.
+ * treated as a CRITICAL failure unless it is the recoverable cinematic
+ * state read-error boundary. A single retry is offered first for a
+ * recoverable (non-auth) error, dispatching "e9:refresh-requested".
+ * After that retry, a cinematic-state read error stays inside E10 and
+ * uses a conservative Zone 1 first-entry fallback; unrelated critical
+ * failures still recover the full shell to the legacy Adventure Map via
+ * window.E9.recoverToLegacy().
  * Adventure Start uses the thin adapter window.E9.startAdventureFromE9()
  * (defined in shell.js), which calls the existing canonical in-page
  * question entry -- no gameplay logic is duplicated here.
  * Zone selection dispatches "e9:zone-selected" (bubbles) and updates the
- * ephemeral detail selection. Only the detail CTA invokes the adapter, so
- * selecting a card never starts an encounter or changes progression state.
+ * ephemeral detail selection. Zone 1's node selection additionally invokes
+ * the canonical first-entry cinematic when the server says it is unseen;
+ * every Zone Card CTA remains an ordinary training handoff.
  */
 (function (document) {
   'use strict';
@@ -118,6 +120,42 @@
   function findZone(zones, zoneKey) {
     return zones.filter(function (zone) { return zone.key === zoneKey; })[0] || null;
   }
+
+  // A cinematic-state read failure must not hand the player to the Legacy
+  // shell, but the E10 World Stage still needs an actionable Zone 1 node if
+  // the initial bootstrap failed before any authoritative zones were drawn.
+  // Use previously rendered authoritative zones when available. On a cold
+  // failure, use only static zone identity/coordinates already declared by
+  // the page and conservatively enable Zone 1; no progression values are
+  // inferred or persisted by this fallback, and Zones 2-10 stay disabled.
+  function readErrorFallbackZones(root) {
+    var previous = root && root.__e9WorldStageState && root.__e9WorldStageState.zones;
+    if (Array.isArray(previous) && previous.length) return previous;
+    if (typeof ADVENTURE_ZONES === 'undefined' || !Array.isArray(ADVENTURE_ZONES)) return [];
+    return ADVENTURE_ZONES.map(function (source, index) {
+      var zone1 = index === 0;
+      return {
+        key: source.key,
+        name: source.name,
+        nameEn: source.nameEn || null,
+        status: zone1 ? 'unlocked' : 'locked',
+        locked: !zone1,
+        canEnter: zone1,
+        cleared: false,
+        skippedByPlacement: false,
+        recommended: zone1,
+        selected: zone1,
+        stars: 0,
+        bossAvailable: false,
+        bossKey: null,
+        seen: 0,
+        total: 0,
+      };
+    });
+  }
+
+  var ACTIVE_INTRO_ZONE_KEY = 'k26_30';
+  var ACTIVE_INTRO_CINEMATIC_KEY = 'e10_zone1_intro_v1';
 
   function resolveChallengeTargetZoneKey(zone) {
     return zone && !zone.locked && zone.canEnter !== false ? zone.key : null;
@@ -604,8 +642,136 @@
       }
       return;
     }
+    // normal_progression is the Zone Card's main training CTA, including
+    // Zone 1. First-entry cinematic routing is intentionally handled by the
+    // map-node selection path below so the cinematic can end at the card.
     if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
       window.E9.startAdventureFromE9(contract.targetZoneKey);
+    }
+  }
+
+  function cinematicSeen(state, cinematicKey) {
+    if (state && state.cinematicReadError && cinematicKey === ACTIVE_INTRO_CINEMATIC_KEY) {
+      // Read-error degraded mode is a per-invocation UI decision only. It is
+      // deliberately not a persisted unseen record or a browser cache.
+      return false;
+    }
+    var entry = state && state.cinematics && state.cinematics[cinematicKey];
+    return !!(entry && entry.seen === true);
+  }
+
+  function withLegacyAdventureReady(callback) {
+    if (typeof window.ensureLegacyAdventureMapReady !== 'function') {
+      callback();
+      return;
+    }
+    try {
+      window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true }).then(callback, callback);
+    } catch (error) {
+      callback();
+    }
+  }
+
+  function withCinematicHost(callback, state) {
+    if (state && state.cinematicReadError) {
+      // The E10 shell already owns the cinematic host. Do not restore the
+      // Legacy Adventure Map merely because account cinematic state failed
+      // to load.
+      callback();
+      return;
+    }
+    withLegacyAdventureReady(callback);
+  }
+
+  function worldStageRoot() {
+    // component_loader mounts world_stage on the slot; #adventure-stage is
+    // the injected child markup, not the state-owning root.
+    return document.querySelector('#e9-world-stage-slot')
+      || document.querySelector('#adventure-stage');
+  }
+
+  function dispatchZone1Entry(root, zone, state) {
+    if (!zone || zone.key !== ACTIVE_INTRO_ZONE_KEY || zone.locked) return;
+    // The bootstrap snapshot is server-authoritative. Missing state means
+    // unseen, so a fresh account cannot be silently promoted by browser data.
+    if (cinematicSeen(state, ACTIVE_INTRO_CINEMATIC_KEY)) return;
+    if (state.zone1EntryInFlight) return;
+    state.zone1EntryInFlight = true;
+    var start = function () {
+      if (typeof window.startAdventureStage !== 'function') {
+        state.zone1EntryInFlight = false;
+        console.error('[E10] Zone 1 cinematic host is unavailable');
+        return;
+      }
+      try {
+        var options = { mode: 'first_entry' };
+        if (state.cinematicReadError) options.readErrorDegraded = true;
+        window.startAdventureStage(zone.key, options);
+      } catch (error) {
+        state.zone1EntryInFlight = false;
+        console.error('[E10] Zone 1 first-entry cinematic failed to start:', error);
+      }
+    };
+    withCinematicHost(start, state);
+  }
+
+  function replayAdventureIntro(zoneKey) {
+    if (zoneKey !== ACTIVE_INTRO_ZONE_KEY) return false;
+    var root = worldStageRoot();
+    var state = root && root.__e9WorldStageState;
+    withCinematicHost(function () {
+      if (typeof window.startAdventureStage === 'function') {
+        var options = { mode: 'manual_replay' };
+        if (state && state.cinematicReadError) options.readErrorDegraded = true;
+        window.startAdventureStage(zoneKey, options);
+      }
+    }, state);
+    return true;
+  }
+
+  function updateAdventureCinematicState(cinematics) {
+    var root = worldStageRoot();
+    var state = root && root.__e9WorldStageState;
+    if (!state || !cinematics || typeof cinematics !== 'object') return;
+    state.cinematics = cinematics;
+    state.cinematicReadError = false;
+  }
+
+  function showAdventureZoneCard(zoneKey) {
+    var root = worldStageRoot();
+    var state = root && root.__e9WorldStageState;
+    var zone = state && findZone(state.zones || [], zoneKey);
+    if (!root || !state || !zone) return false;
+    state.zone1EntryInFlight = false;
+    renderSelectedZone(root, state.zones, zone.key, false);
+    dispatchZoneSelection(root, zone, state);
+    document.dispatchEvent(new CustomEvent('e9:zone-card-requested', {
+      bubbles: true,
+      detail: { zoneKey: zone.key },
+    }));
+    return true;
+  }
+
+  function configureStoryReplayButton(button, zone) {
+    if (!button || !zone) return;
+    var enabled = zone.key === ACTIVE_INTRO_ZONE_KEY;
+    button.hidden = !enabled;
+    button.disabled = !enabled;
+    button.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+    if (!enabled) return;
+    button.textContent = t('e10.world_stage.replay_story', 'Replay Story');
+    button.removeAttribute('data-i18n');
+    if (button.__e9StoryReplayHandler) {
+      button.removeEventListener('click', button.__e9StoryReplayHandler);
+    }
+    button.__e9StoryReplayHandler = function (event) {
+      if (event) event.stopPropagation();
+      replayAdventureIntro(zone.key);
+    };
+    if (window.E9 && typeof window.E9.on === 'function') {
+      window.E9.on(button, 'click', button.__e9StoryReplayHandler);
+    } else {
+      button.addEventListener('click', button.__e9StoryReplayHandler);
     }
   }
 
@@ -762,6 +928,7 @@
     var details = root.querySelector('#e9-world-stage-details');
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var cta = root.querySelector('#e9-world-stage-details-cta');
+    var replay = root.querySelector('#e9-world-stage-details-replay');
     var newbie = root.querySelector('#e9-newbie-mainline');
     if (!zone) {
       if (cta) cta.hidden = true;
@@ -783,6 +950,7 @@
     ).matches;
     if (details) details.hidden = VS1E_STATIC_CONTRACT_ACTIVE ? !isPortraitTablet : isMobile;
     updateSelectedZoneCopy(root, zone);
+    configureStoryReplayButton(replay, zone);
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
       : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
@@ -881,6 +1049,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      cinematics: {},
       generation: null,
     });
     if (!state.selectedZoneKey && authority.selected && typeof authority.selected.zone_key === 'string') {
@@ -894,6 +1063,12 @@
       ? authority.primaryAction
       : state.primaryAction;
     state.zones = zones;
+    if (Object.prototype.hasOwnProperty.call(authority, 'cinematics')) {
+      state.cinematics = authority.cinematics || {};
+    }
+    if (Object.prototype.hasOwnProperty.call(authority, 'cinematicReadError')) {
+      state.cinematicReadError = authority.cinematicReadError === true;
+    }
     var identities = VS1E_STATIC_CONTRACT_ACTIVE
       ? syncInteractionState(state, zones, authoritativeCurrentZoneKey, primaryAction)
       : { current: null, selected: null };
@@ -1024,6 +1199,7 @@
             bubbles: true,
             detail: selectionDetail,
           }));
+          dispatchZone1Entry(root, zone, state);
       };
       var keyActivate = function (evt) {
           if (evt.key === 'Enter' || evt.key === ' ') {
@@ -1097,6 +1273,27 @@
     }
   }
 
+  function renderReadErrorDegradedState(root, generation, reason) {
+    var zones = readErrorFallbackZones(root);
+    if (!zones.length) {
+      console.error('[E10] cinematic-state read error has no E10 zone fallback:', reason);
+      return false;
+    }
+    var stageState = root.__e9WorldStageState || (root.__e9WorldStageState = {});
+    stageState.cinematicReadError = true;
+    stageState.cinematics = {};
+    renderZones(root, zones, {
+      generation: generation,
+      currentZoneKey: null,
+      primaryAction: null,
+      cinematics: {},
+      cinematicReadError: true,
+    });
+    enableImmersiveRpgSkin(root, generation);
+    console.warn('[E10] cinematic-state read unavailable; keeping E10 shell with conservative Zone 1 entry:', reason);
+    return true;
+  }
+
   function load(root, isRetry, generation) {
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' ||
@@ -1129,7 +1326,11 @@
           load(root, true, generation);
           return;
         }
-        recoverToLegacy(new Error('adventure data fetch failed: ' + result.kind + ' (status ' + result.status + ')'));
+        renderReadErrorDegradedState(
+          root,
+          generation,
+          new Error('adventure data fetch failed: ' + result.kind + ' (status ' + result.status + ')')
+        );
         return;
       }
       if (!result.data.zones.length) {
@@ -1173,6 +1374,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      cinematics: {},
       generation: generation,
     };
     var onChanged = function () {
@@ -1220,4 +1422,7 @@
   // CTA_ACTION_ROUTING_DEFECT regression reached a third surface unnoticed.
   window.E9 = window.E9 || {};
   window.E9.dispatchAdventureAction = dispatchAdventureAction;
+  window.E9.replayAdventureIntro = replayAdventureIntro;
+  window.E9.showAdventureZoneCard = showAdventureZoneCard;
+  window.E9.updateAdventureCinematicState = updateAdventureCinematicState;
 })(document);

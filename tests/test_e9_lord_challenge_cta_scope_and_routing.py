@@ -258,14 +258,15 @@ function makeZone(overrides) {
 }
 
 async function main() {
-  const calls = { boss: [], ordinary: [], ensure: [] };
+  const calls = { boss: [], ordinary: [], cinematic: [], ensure: [], events: [] };
   const sandbox = {
     console,
     t: function (key, fallback) { return fallback; },
     window: {
       __GO_E10_BATTLE_LIFECYCLE__: undefined,
-      openAdventureBossFromQuestCard: function (zoneKey) { calls.boss.push(zoneKey); },
-      ensureLegacyAdventureMapReady: function (opts) { calls.ensure.push(opts); return Promise.resolve(); },
+      openAdventureBossFromQuestCard: function (zoneKey) { calls.boss.push(zoneKey); calls.events.push('boss:' + zoneKey); },
+      startAdventureStage: function (zoneKey) { calls.cinematic.push(zoneKey); calls.events.push('cinematic:' + zoneKey); },
+      ensureLegacyAdventureMapReady: function (opts) { calls.ensure.push(opts); calls.events.push('ensure'); return Promise.resolve(); },
       E9: { startAdventureFromE9: function (zoneKey) { calls.ordinary.push(zoneKey); } },
     },
   };
@@ -382,12 +383,35 @@ async function main() {
   });
 
   const tutorialNotReadyContract = sandbox.ctaContract(tutorialNotReadyZone, tutorialNotReadyState);
+  const tutorialOrdinaryBefore = calls.ordinary.length;
+  const cinematicBefore = calls.cinematic.length;
   const ordinaryBefore = calls.ordinary.length;
   sandbox.dispatchAdventureAction(tutorialNotReadyContract);
   await new Promise((resolve) => setImmediate(resolve));
-  check('tutorial zone not-ready click uses the ordinary entry, not the Lord flow', () => {
-    assert.strictEqual(calls.ordinary.length, ordinaryBefore + 1);
+  check('tutorial zone not-ready click remains the Zone Card training handoff', () => {
+    assert.strictEqual(calls.ordinary.length, tutorialOrdinaryBefore + 1);
     assert.strictEqual(calls.ordinary[calls.ordinary.length - 1], 'k26_30');
+    assert.strictEqual(calls.cinematic.length, cinematicBefore);
+  });
+
+  // -- Case 5: a completed/advanced Zone 1 remains replay training, not the
+  // first-entry cinematic path introduced for normal_progression.
+  const advancedZone = makeZone({ key: 'k26_30', status: 'completed', cleared: true, stars: 1 });
+  const advancedState = {
+    zones: [advancedZone], currentPlayerZoneKey: 'k26_30',
+    primaryAction: { kind: 'replay_completed', zoneKey: 'k26_30' },
+  };
+  const advancedContract = sandbox.ctaContract(advancedZone, advancedState);
+  check('completed Zone 1 keeps replay_completed contract', () => {
+    assert.strictEqual(advancedContract.kind, 'replay_completed');
+  });
+  const advancedOrdinaryBefore = calls.ordinary.length;
+  const advancedCinematicBefore = calls.cinematic.length;
+  sandbox.dispatchAdventureAction(advancedContract);
+  await new Promise((resolve) => setImmediate(resolve));
+  check('completed Zone 1 does not enter the first-entry cinematic host', () => {
+    assert.strictEqual(calls.ordinary.length, advancedOrdinaryBefore + 1);
+    assert.strictEqual(calls.cinematic.length, advancedCinematicBefore);
   });
 
   if (failures.length) {

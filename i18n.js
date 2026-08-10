@@ -3049,6 +3049,7 @@ const I18n = (() => {
         'e10.world_stage.state_current':        { en: 'Current location', zh: '目前位置' },
         'e10.world_stage.state_available':      { en: 'Available', zh: '可挑戰' },
         'e10.world_stage.continue_adventure':   { en: 'Continue Adventure', zh: '繼續冒險' },
+        'e10.world_stage.replay_story':         { en: 'Replay Story', zh: '重溫故事' },
         'e10.world_stage.challenge_lord':       { en: 'Challenge Lord', zh: '挑戰領主' },
         'e10.world_stage.resume_encounter':     { en: 'Resume Encounter', zh: '繼續挑戰' },
         'e10.world_stage.replenish_stars':      { en: 'Replenish Stars', zh: '補星修行' },

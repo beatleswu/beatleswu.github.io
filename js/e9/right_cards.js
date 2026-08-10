@@ -82,6 +82,7 @@
     var regionValue = root.querySelector('[data-e10-zone-region-value]');
     var regionBar = root.querySelector('[data-e10-zone-region-bar]');
     var cta = root.querySelector('[data-e10-zone-cta]');
+    var replay = root.querySelector('[data-e10-zone-replay]');
     root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
     root.__e10SelectedZoneKey = detail.zoneKey || '';
     root.__e10ChallengeTargetZoneKey = detail.challengeTargetZoneKey || '';
@@ -123,6 +124,16 @@
       cta.setAttribute('data-challenge-target-zone', detail.challengeTargetZoneKey || '');
       cta.textContent = detail.ctaLabel || t('e10.world_stage.state_locked', 'Locked');
       cta.removeAttribute('data-i18n');
+    }
+    if (replay) {
+      var replayEnabled = detail.zoneKey === 'k26_30';
+      replay.hidden = !replayEnabled;
+      replay.disabled = !replayEnabled;
+      replay.setAttribute('aria-hidden', replayEnabled ? 'false' : 'true');
+      if (replayEnabled) {
+        replay.textContent = t('e10.world_stage.replay_story', 'Replay Story');
+        replay.removeAttribute('data-i18n');
+      }
     }
     if (body) {
       body.textContent = [detail.summary, detail.progress].filter(Boolean).join(' · ');
@@ -270,6 +281,15 @@
             }
           }, null, generation);
         }
+        var replayButton = zoneSummary.querySelector('[data-e10-zone-replay]');
+        if (replayButton) {
+          window.E9.on(replayButton, 'click', function (event) {
+            if (event) event.stopPropagation();
+            if (window.E9 && typeof window.E9.replayAdventureIntro === 'function') {
+              window.E9.replayAdventureIntro(root.__e10SelectedZoneKey);
+            }
+          }, null, generation);
+        }
         if (window.I18n && window.I18n.apply) window.I18n.apply(zoneSummary);
       }
       backdrop = document.createElement('button');
@@ -334,6 +354,12 @@
       };
       var onAdventure = function () { setOpen(false, false); };
       var onZoneSelected = function (evt) { updateDrawerZoneSummary(root, evt.detail); };
+      var onZoneCardRequested = function () {
+        if (window.E9 && window.E9.latestZoneSelection) {
+          updateDrawerZoneSummary(root, window.E9.latestZoneSelection);
+        }
+        setOpen(true, false);
+      };
       var onI18nChanged = function () {
         if (!current()) return;
         var progress = root.__e9CompactProgress;
@@ -353,6 +379,7 @@
         if (backdrop) window.E9.on(backdrop, 'click', function () { setOpen(false, true); }, null, generation);
         window.E9.on(document, 'keydown', onKey, null, generation);
         window.E9.on(document, 'e9:zone-selected', onZoneSelected, null, generation);
+        window.E9.on(document, 'e9:zone-card-requested', onZoneCardRequested, null, generation);
         window.E9.on(document, 'e9:i18n-changed', onI18nChanged, null, generation);
         window.E9.on(document, 'e9:adventure-command', onAdventure, null, generation);
         if (stackedDetailSurface) window.E9.on(stackedDetailSurface, 'change', syncDetailSurfaceOwnership, null, generation);
@@ -363,6 +390,7 @@
         if (backdrop) backdrop.addEventListener('click', function () { setOpen(false, true); });
         document.addEventListener('keydown', onKey);
         document.addEventListener('e9:zone-selected', onZoneSelected);
+        document.addEventListener('e9:zone-card-requested', onZoneCardRequested);
         document.addEventListener('e9:adventure-command', onAdventure);
         document.addEventListener('e9:i18n-changed', onI18nChanged);
         if (stackedDetailSurface && stackedDetailSurface.addEventListener) {

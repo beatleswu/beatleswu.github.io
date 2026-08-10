@@ -2776,6 +2776,20 @@ def init_db():
         conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub '
                      'ON users (google_sub) WHERE google_sub IS NOT NULL')
 
+        # ── E10 cinematic state (generic, account-scoped) ──
+        # Cinematic history is presentation state, not gameplay progression.
+        # Keep one reusable relation for all governed E10 cinematic keys so
+        # future zones do not require a new user column or a guessed browser
+        # migration. Rows are created only after a legitimate completion.
+        conn.execute('''CREATE TABLE IF NOT EXISTS account_cinematic_state (
+            user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            cinematic_key TEXT    NOT NULL,
+            seen_at       TEXT    NOT NULL,
+            PRIMARY KEY (user_id, cinematic_key)
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_account_cinematic_state_user '
+                     'ON account_cinematic_state(user_id)')
+
         # ── SRS ──
         conn.execute('''CREATE TABLE IF NOT EXISTS srs_cards (
             user_id      INTEGER NOT NULL,
@@ -8073,6 +8087,18 @@ BOSS_UNLOCK_PCT = 30
 BOSS_EXAM_SIZE = 20
 BOSS_PASS_SCORE = 16
 BOSS_FAIL_COOLDOWN = 30
+# Generic E10 cinematic registry.  The registry is intentionally explicit:
+# it defines the future Zone 1-10 namespace without turning the authenticated
+# write route into an arbitrary user-metadata endpoint.  Only Zone 1 is wired
+# into the active E9 entry flow in this PR.
+E10_CINEMATIC_KEY_REGISTRY = {
+    f'e10_zone{zone_number}_intro_v1': {
+        'zone_number': zone_number,
+        'kind': 'intro',
+    }
+    for zone_number in range(1, 11)
+}
+E10_CINEMATIC_KEYS = tuple(E10_CINEMATIC_KEY_REGISTRY)
 # Boss attempt evidence window: how long after boss/start a review_log row
 # may still count as evidence for that attempt. Bounds "stale answer" replay
 # without being so tight it punishes normal play pace on a 20-question exam.
@@ -8842,6 +8868,34 @@ def _adventure_map_state(uid, selected_stage_key=None, use_cache=False):
     zones = _adventure_state_cached(uid) if use_cache else _adventure_state(uid)
     return _adventure_map_state_from_zones(zones, selected_stage_key=selected_stage_key)
 
+
+def _e10_cinematic_state_from_conn(conn, uid):
+    """Return the governed E10 cinematic state for one authenticated user.
+
+    Missing rows are deliberately represented as ``seen=False`` for every
+    registered key.  The caller supplies the authenticated session user ID;
+    no client-provided account identifier participates in this read path.
+    """
+    placeholders = ','.join('?' for _ in E10_CINEMATIC_KEYS)
+    rows = conn.execute(
+        'SELECT cinematic_key, seen_at FROM account_cinematic_state '
+        f'WHERE user_id=? AND cinematic_key IN ({placeholders})',
+        (uid, *E10_CINEMATIC_KEYS),
+    ).fetchall()
+    seen_by_key = {row['cinematic_key']: row['seen_at'] for row in rows}
+    return {
+        key: {
+            'seen': key in seen_by_key,
+            'seen_at': seen_by_key.get(key),
+        }
+        for key in E10_CINEMATIC_KEYS
+    }
+
+
+def _e10_cinematic_state(uid):
+    with get_db() as conn:
+        return _e10_cinematic_state_from_conn(conn, uid)
+
 @app.route('/api/adventure/progress')
 @login_required
 def adventure_progress():
@@ -8854,6 +8908,7 @@ def adventure_progress():
         'boss_exam_size': BOSS_EXAM_SIZE,
         'boss_pass_score': BOSS_PASS_SCORE,
         'cooldown_required': BOSS_FAIL_COOLDOWN,
+        'cinematics': _e10_cinematic_state(session['user_id']),
         **map_state,
     })
 
@@ -8870,6 +8925,7 @@ def adventure_map_state():
         'boss_exam_size': BOSS_EXAM_SIZE,
         'boss_pass_score': BOSS_PASS_SCORE,
         'cooldown_required': BOSS_FAIL_COOLDOWN,
+        'cinematics': _e10_cinematic_state(session['user_id']),
         **map_state,
     })
 
@@ -8888,7 +8944,36 @@ def adventure_bootstrap():
         'boss_exam_size': BOSS_EXAM_SIZE,
         'boss_pass_score': BOSS_PASS_SCORE,
         'cooldown_required': BOSS_FAIL_COOLDOWN,
+        'cinematics': _e10_cinematic_state(session['user_id']),
         **map_state,
+    })
+
+
+@app.route('/api/adventure/cinematics/seen', methods=['POST'])
+@login_required
+def adventure_cinematic_seen():
+    """Idempotently mark one registered cinematic seen for the session user."""
+    data = request.get_json(silent=True) or {}
+    cinematic_key = str(data.get('cinematic_key') or '').strip()
+    if cinematic_key not in E10_CINEMATIC_KEY_REGISTRY:
+        return jsonify({'ok': False, 'error': 'unsupported_cinematic_key'}), 400
+
+    uid = session['user_id']
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    with get_db() as conn:
+        conn.execute(
+            '''INSERT INTO account_cinematic_state (user_id, cinematic_key, seen_at)
+               VALUES (?, ?, ?)
+               ON CONFLICT(user_id, cinematic_key) DO NOTHING''',
+            (uid, cinematic_key, now),
+        )
+        state = _e10_cinematic_state_from_conn(conn, uid)
+        conn.commit()
+    return jsonify({
+        'ok': True,
+        'cinematic_key': cinematic_key,
+        'state': state[cinematic_key],
+        'cinematics': state,
     })
 
 
