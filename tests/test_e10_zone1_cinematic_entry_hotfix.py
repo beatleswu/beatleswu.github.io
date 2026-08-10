@@ -10,6 +10,8 @@ WORLD_STAGE = (ROOT / 'js/e9/world_stage.js').read_text(encoding='utf-8')
 ADAPTER = (ROOT / 'js/e9/adapters/adventure_state.js').read_text(encoding='utf-8')
 WORLD_STAGE_TEMPLATE = (ROOT / 'components/adventure/world_stage.html').read_text(encoding='utf-8')
 RIGHT_CARDS_TEMPLATE = (ROOT / 'components/adventure/right_cards.html').read_text(encoding='utf-8')
+WORLD_STAGE_CSS = (ROOT / 'css/e9/world_stage.css').read_text(encoding='utf-8')
+IMMERSIVE_RPG_CSS = (ROOT / 'css/e9/immersive_rpg.css').read_text(encoding='utf-8')
 I18N = (ROOT / 'i18n.js').read_text(encoding='utf-8')
 
 
@@ -104,6 +106,24 @@ def test_zone_card_replay_labels_are_i18n_backed_and_secondary():
     assert "zh: '重溫故事'" in I18N
     assert 'e9-zone-details__story-replay' in WORLD_STAGE_TEMPLATE
     assert 'e10-drawer-zone-summary__replay' in RIGHT_CARDS_TEMPLATE
+
+
+def test_replay_control_has_responsive_non_overlapping_layout_contract():
+    assert '.e9-zone-details {\n  position: relative;' in WORLD_STAGE_CSS
+    assert '.e9-zone-details__story-replay {\n  position: absolute;' in WORLD_STAGE_CSS
+    assert '.e9-zone-details__kicker { padding-right: 124px; }' in WORLD_STAGE_CSS
+    assert 'max-width: calc(100% - 32px);' in WORLD_STAGE_CSS
+    assert '[hidden] { display: none; }' in WORLD_STAGE_CSS
+    assert '.e10-drawer-zone-summary {\n  position: relative;' in IMMERSIVE_RPG_CSS
+    assert '.e10-drawer-zone-summary__kicker {\n  padding-right: 124px;' in IMMERSIVE_RPG_CSS
+    assert 'max-width: calc(100% - 24px);' in IMMERSIVE_RPG_CSS
+
+
+def test_interrupted_intro_has_no_mark_seen_path_before_legitimate_completion():
+    play = _block(INDEX, 'async function playNewbieVillageIntroFilm(zone, opts = {})', '\nfunction playZone1BossReadyFilm(')
+    assert 'markAdventureIntroSeen' not in play
+    assert 'if (!item)' in play
+    assert 'finishIntroFilm(zone);' in play
 
 
 def test_later_cinematic_gates_and_progression_boundaries_are_unchanged():

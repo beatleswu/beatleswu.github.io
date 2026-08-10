@@ -196,6 +196,32 @@ def test_same_account_reads_seen_state_across_independent_clients(client, sqlite
         assert state['e10_zone1_intro_v1']['seen'] is True
 
 
+def test_different_accounts_on_same_browser_do_not_share_seen_state(client, sqlite_conn, app_module):
+    _login(client, 991245)
+    client.post('/api/adventure/cinematics/seen', json={
+        'cinematic_key': 'e10_zone1_intro_v1',
+    })
+    with client.session_transaction() as session:
+        session['user_id'] = 991246
+    state = app_module._e10_cinematic_state(991246)
+    assert state['e10_zone1_intro_v1']['seen'] is False
+    assert sqlite_conn.execute(
+        'SELECT COUNT(*) FROM account_cinematic_state WHERE user_id=?', (991246,)
+    ).fetchone()[0] == 0
+
+
+def test_clearing_browser_storage_cannot_reset_server_seen_state(client, app_module):
+    _login(client, 991245)
+    client.post('/api/adventure/cinematics/seen', json={
+        'cinematic_key': 'e10_zone1_intro_v1',
+    })
+    index = (ROOT / 'index.html').read_text(encoding='utf-8')
+    start = index.index('function adventureCinematicKey(zone)')
+    end = index.index("// Account scope for Zone 1's POST_CLEAR state", start)
+    assert 'localStorage' not in index[start:end]
+    assert app_module._e10_cinematic_state(991245)['e10_zone1_intro_v1']['seen'] is True
+
+
 def test_mark_seen_route_does_not_touch_gameplay_progression(client, sqlite_conn):
     _login(client, 991245)
     client.post('/api/adventure/cinematics/seen', json={
