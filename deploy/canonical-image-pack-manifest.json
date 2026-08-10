@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1362,
-  "total_bytes": 761699840,
+  "total_files": 1368,
+  "total_bytes": 763477242,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 64
+    "owner-approved-project-created": 70
   },
   "files": [
     {
@@ -331,6 +331,66 @@
       "height": 720,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/zone1_first_star.webp",
+      "size": 311320,
+      "sha256": "459a2954b5977ae3f09035f916c2238031b597ec0ae4fdbeff19455ae7293c3f",
+      "mime": "image/webp",
+      "width": 1536,
+      "height": 1024,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved E10 Zone 1 Lord Trial runtime WebP; byte identity is governed by assets/e10/art/zone1/lord_trial/zone1-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/zone1_first_star_success_backplate.webp",
+      "size": 348648,
+      "sha256": "602956ffd2052073c4e859e06460469c81b3e57f564745d678885baf3fe6b947",
+      "mime": "image/webp",
+      "width": 1448,
+      "height": 1086,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved E10 Zone 1 Lord Trial runtime WebP; byte identity is governed by assets/e10/art/zone1/lord_trial/zone1-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/zone1_lord_challenge_backplate.webp",
+      "size": 290906,
+      "sha256": "b5c759f0d002e647fc154e36bf5145a8591dd4791dde6ba1a82d5004e8811f7e",
+      "mime": "image/webp",
+      "width": 1448,
+      "height": 1086,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved E10 Zone 1 Lord Trial runtime WebP; byte identity is governed by assets/e10/art/zone1/lord_trial/zone1-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/zone1_lord_failure_backplate.webp",
+      "size": 305690,
+      "sha256": "07393ac09515dd3f0425fa5961272c5537e0a6af0ceb7037d4d583043e704295",
+      "mime": "image/webp",
+      "width": 1122,
+      "height": 1402,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved E10 Zone 1 Lord Trial runtime WebP; byte identity is governed by assets/e10/art/zone1/lord_trial/zone1-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/zone1_lord_ritual_key_art.webp",
+      "size": 353556,
+      "sha256": "0965538c111273d3f2c1945c256193c3c6a233a81e0ef11a6c3da96741b7790e",
+      "mime": "image/webp",
+      "width": 1448,
+      "height": 1086,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved E10 Zone 1 Lord Trial runtime WebP; byte identity is governed by assets/e10/art/zone1/lord_trial/zone1-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone1/lord_trial/zone1_village_elder_reference.webp",
+      "size": 167282,
+      "sha256": "7af79921511484d1d133f68286e895e0b5f1bc87addf40891da46bb87eb9b767",
+      "mime": "image/webp",
+      "width": 1086,
+      "height": 1448,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved E10 Zone 1 Lord Trial runtime WebP; byte identity is governed by assets/e10/art/zone1/lord_trial/zone1-lord-trial-art-package.json."
     },
     {
       "path": "assets/e10/ui/cta/adventure-primary-frame.webp",

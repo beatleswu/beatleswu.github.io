@@ -45,6 +45,9 @@ ACTIVE_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-image-pack-manifest.
 # include this manifest's files too, or a real staging run now legitimately
 # produces "extra" files this test doesn't know about.
 ACTIVE_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-audio-pack-manifest.json"
+# E10 Zone 1 Lord Trial closure is a separate namespace so the pre-existing
+# assets/storyboards narration manifest remains image/audio-contract stable.
+ACTIVE_E10_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone1-audio-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 
@@ -64,6 +67,10 @@ def _read(path):
 
 def _load_closure_manifest():
     return json.loads(_read(CLOSURE_MANIFEST))
+
+
+def _load_active_image_manifest():
+    return json.loads(_read(ACTIVE_SUBTREE_MANIFEST))
 
 
 def _load_inventory():
@@ -100,14 +107,17 @@ def scan_runtime_image_references(repo_root=REPO_ROOT):
 # ---------------------------------------------------------------------------
 
 def test_every_runtime_image_reference_resolves_to_governed_closure():
-    manifest = _load_closure_manifest()
+    # Runtime packaging is governed by the active inventory subtree manifest.
+    # The older 243-file A2 audit manifest remains a historical regression
+    # fixture, but must not become a second source of truth for new assets.
+    manifest = _load_active_image_manifest()
     governed = {"/" + f["path"] for f in manifest["files"]}
     referenced = scan_runtime_image_references()
 
     unresolved = referenced - governed - NON_ASSET_KNOWN_GOOD
     assert not unresolved, (
         f"{len(unresolved)} referenced image path(s) are not covered by the canonical "
-        f"asset closure manifest (deploy/canonical-asset-closure-manifest.json) or the "
+        f"active canonical image pack manifest (deploy/canonical-image-pack-manifest.json) or the "
         f"known-good baked set -- this is exactly the class of dead/missing reference "
         f"that caused the 2026-07-12 outage: {sorted(unresolved)}"
     )
@@ -170,6 +180,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     # expected set must track the same manifest, not the superseded one.
     manifest = json.loads(_read(ACTIVE_SUBTREE_MANIFEST))
     audio_manifest = json.loads(_read(ACTIVE_AUDIO_SUBTREE_MANIFEST))
+    e10_audio_manifest = json.loads(_read(ACTIVE_E10_AUDIO_SUBTREE_MANIFEST))
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
@@ -195,6 +206,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
         governed_paths = (
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
+            | {f["path"] for f in e10_audio_manifest["files"]}
             | {
                 "i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html",
                 "js/e9/shell.js", "js/map_battle_v1_adapter.js",
@@ -206,7 +218,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             f"(missing: {governed_paths - set(staged_by_path)}, "
             f"extra/unreferenced: {set(staged_by_path) - governed_paths})"
         )
-        for entry in manifest["files"] + audio_manifest["files"]:
+        for entry in manifest["files"] + audio_manifest["files"] + e10_audio_manifest["files"]:
             staged_entry = staged_by_path[entry["path"]]
             assert staged_entry["sha256"] == entry["sha256"], f"SHA mismatch for {entry['path']}"
             assert staged_entry["size"] == entry["size"], f"size mismatch for {entry['path']}"
