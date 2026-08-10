@@ -52,7 +52,7 @@ def test_decorative_atmosphere_is_noninteractive_and_reduced_motion_safe():
 
 
 def test_existing_intro_and_audio_contracts_are_not_reimplemented_here():
-    assert "ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v1'" in INDEX
+    assert "ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v2'" in INDEX
     assert "function adventureIntroSeen(zone)" in INDEX
     assert "function markAdventureIntroSeen(zone)" in INDEX
     assert "function _stopIntroFilm()" in INDEX

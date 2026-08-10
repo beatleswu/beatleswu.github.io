@@ -604,6 +604,28 @@
       }
       return;
     }
+    // Zone 1's normal first-entry path must use the canonical legacy
+    // cinematic host before ordinary training. The E9 shell owns the map,
+    // so bridge its already-fetched progress cache first, then let
+    // startAdventureStage() decide whether the account needs Shots 1-6 and
+    // continue through the existing enterAdventureZoneInPage() handoff.
+    if (contract.kind === 'normal_progression' && contract.targetZoneKey === 'k26_30') {
+      var enterZone1Intro = function () {
+        if (typeof window.startAdventureStage === 'function') {
+          window.startAdventureStage(contract.targetZoneKey);
+        } else if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
+          // Keep a safe ordinary-entry fallback if a legacy host is absent;
+          // the governed runtime exports startAdventureStage().
+          window.E9.startAdventureFromE9(contract.targetZoneKey);
+        }
+      };
+      if (typeof window.ensureLegacyAdventureMapReady === 'function') {
+        window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true }).then(enterZone1Intro, enterZone1Intro);
+      } else {
+        enterZone1Intro();
+      }
+      return;
+    }
     if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
       window.E9.startAdventureFromE9(contract.targetZoneKey);
     }

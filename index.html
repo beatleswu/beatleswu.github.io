@@ -7359,7 +7359,7 @@ const HERO_GEAR_ROOT = '/assets/hero/gear_v2/';
 const HERO_ACCESSORY_ROOT = '/assets/hero/accessories/';
 const HERO_ARMOR_ROOT = '/assets/hero/armor/';
 const HERO_COMBAT_STORAGE_KEY = 'hero_combat_gear_v1';
-const ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v1';
+const ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v2';
 const HERO_ARMOR_CHARACTER_VARIANTS = {
     hero_male: 'hero_male',
     woman: 'woman',
@@ -12826,22 +12826,31 @@ async function startAdventureStage(zoneKey) {
     await showStageIntroCinematic(zone);
 }
 
+// Account scope for the PRE_PLAY intro (Shots 1-6). The previous
+// adventure_intro_seen_v1 value was keyed only by zone, so one account could
+// suppress another account's intro in the same browser. v2 deliberately
+// ignores that legacy browser-wide shape and stores only the stable internal
+// account ID -> zone -> timestamp mapping. No uid means no seen state, which
+// fails open for the presentation and never creates a browser-global marker.
 function adventureIntroSeen(zone) {
-    if (!zone?.key) return false;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return false;
     try {
-        const seen = JSON.parse(localStorage.getItem(ADVENTURE_INTRO_STORAGE_KEY) || '{}');
-        return !!seen[zone.key];
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_INTRO_STORAGE_KEY) || '{}');
+        return !!byUser[uid]?.[zone.key];
     } catch {
         return false;
     }
 }
 
 function markAdventureIntroSeen(zone) {
-    if (!zone?.key) return;
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
     try {
-        const seen = JSON.parse(localStorage.getItem(ADVENTURE_INTRO_STORAGE_KEY) || '{}');
-        seen[zone.key] = Date.now();
-        localStorage.setItem(ADVENTURE_INTRO_STORAGE_KEY, JSON.stringify(seen));
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_INTRO_STORAGE_KEY) || '{}');
+        byUser[uid] = byUser[uid] || {};
+        byUser[uid][zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_INTRO_STORAGE_KEY, JSON.stringify(byUser));
     } catch {}
 }
 
@@ -12871,10 +12880,6 @@ function _postClearAccountId() {
 // different facts that must never collapse into one flag (E10-Z1-PROD-
 // INTEGRATION-001 Owner review, Fix 1). Currently only Zone 1 (k26_30)
 // defines a postClearTimeline; other zones simply never read/write this.
-// Deliberately NOT extending this account-scoping to the pre-existing
-// ADVENTURE_INTRO_STORAGE_KEY -- that flag's historical browser-wide
-// behavior is out of scope for this Sprint (Owner review: fix only the new
-// Zone 1 POST_CLEAR lifecycle introduced by this PR).
 const ADVENTURE_POSTCLEAR_STORAGE_KEY = 'adventure_postclear_seen_v1';
 
 function adventurePostClearSeen(zone) {
