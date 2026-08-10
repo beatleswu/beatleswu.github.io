@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "fd134feca9410a53eb568ae20d7978673a6ed345",
+      "source_commit": "bcb61c0b0f91dbbb8d115f76815722c82a6efaa6",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10-zone1): keep cinematic read errors inside E10",
+      "source_commit_subject": "fix(e10-zone1): preserve narration playback across iPad cue boundary",
       "source_date": "2026-08-10",
-      "content_sha256": "b0fc3e23129c236be2d6164fd332abce35e4ee05897ed635587fc23594d954a4",
+      "content_sha256": "6a292d392f861cca4e3fcbe2e5ae31a40725e21e86d256a9be21812a055d7950",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge ab70116e333a10795e5909271c86d4e838e7bc8a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 0f40f2413dc9719c5b6394ac1a9df9a6707949e1; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -471,14 +471,14 @@
     },
     {
       "path": "components/adventure/world_stage.html",
-      "source_commit": "7c479c38b75dd99567d6ddc0b4d1c456090f4f01",
+      "source_commit": "3fc6b688ca14c83719c9c7d285fc6bbaca0d9df2",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10-zone1): add server cinematic state foundation",
+      "source_commit_subject": "fix(e10-zone1): stabilize iPad zone card layout",
       "source_date": "2026-08-10",
-      "content_sha256": "b5ca38c1d31eb61ea07b7a02277949c2af1aa51fc6405125d9fdfef276226642",
+      "content_sha256": "9a477f02a810d255e1312fc30a481755295f3d99b2243d97546504c653d68edf",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage component markup; served by app.py static route",
-      "production_hash_status": "merged to origin/master at merge ab70116e333a10795e5909271c86d4e838e7bc8a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 0f40f2413dc9719c5b6394ac1a9df9a6707949e1; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -507,14 +507,14 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "fd134feca9410a53eb568ae20d7978673a6ed345",
+      "source_commit": "3fc6b688ca14c83719c9c7d285fc6bbaca0d9df2",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10-zone1): keep cinematic read errors inside E10",
+      "source_commit_subject": "fix(e10-zone1): stabilize iPad zone card layout",
       "source_date": "2026-08-10",
-      "content_sha256": "122b4650d013194749b523332cccfddda7934cf4f2773468be36e0cf037529b1",
+      "content_sha256": "2ded7e721fc4a6ac81cdec0710c85719f00defdfc1bd64c57d7af6a03a36752e",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge ab70116e333a10795e5909271c86d4e838e7bc8a; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 0f40f2413dc9719c5b6394ac1a9df9a6707949e1; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
