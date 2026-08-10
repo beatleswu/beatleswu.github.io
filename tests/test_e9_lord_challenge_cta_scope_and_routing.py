@@ -383,16 +383,15 @@ async function main() {
   });
 
   const tutorialNotReadyContract = sandbox.ctaContract(tutorialNotReadyZone, tutorialNotReadyState);
-  const ordinaryBefore = calls.ordinary.length;
+  const tutorialOrdinaryBefore = calls.ordinary.length;
   const cinematicBefore = calls.cinematic.length;
+  const ordinaryBefore = calls.ordinary.length;
   sandbox.dispatchAdventureAction(tutorialNotReadyContract);
   await new Promise((resolve) => setImmediate(resolve));
-  check('tutorial zone not-ready click reaches the canonical cinematic host before training', () => {
-    assert.strictEqual(calls.ordinary.length, ordinaryBefore);
-    assert.strictEqual(calls.cinematic.length, cinematicBefore + 1);
-    assert.strictEqual(calls.cinematic[calls.cinematic.length - 1], 'k26_30');
-    assert.strictEqual(calls.events[calls.events.length - 2], 'ensure');
-    assert.strictEqual(calls.events[calls.events.length - 1], 'cinematic:k26_30');
+  check('tutorial zone not-ready click remains the Zone Card training handoff', () => {
+    assert.strictEqual(calls.ordinary.length, tutorialOrdinaryBefore + 1);
+    assert.strictEqual(calls.ordinary[calls.ordinary.length - 1], 'k26_30');
+    assert.strictEqual(calls.cinematic.length, cinematicBefore);
   });
 
   // -- Case 5: a completed/advanced Zone 1 remains replay training, not the

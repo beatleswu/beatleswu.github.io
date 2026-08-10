@@ -381,18 +381,22 @@ def test_newbie_mainline_cta_untouched_and_generic_cta_hidden_for_it():
     assert "cta.hidden = true;" in if_block
 
 
-def test_html_has_exactly_one_generic_cta_button_hidden_by_default():
+def test_html_has_training_cta_and_secondary_story_replay_hidden_by_default():
     details_section_start = WORLD_STAGE_HTML.index('id="e9-world-stage-details"')
     details_section_end = WORLD_STAGE_HTML.index("</section>", details_section_start)
     details_section = WORLD_STAGE_HTML[details_section_start:details_section_end]
-    assert details_section.count("<button") == 1
-    button_tag = re.search(r"<button[^>]*>", details_section).group(0)
+    assert details_section.count("<button") == 2
+    button_tag = re.search(r'<button[^>]*id="e9-world-stage-details-cta"[^>]*>', details_section).group(0)
     assert 'id="e9-world-stage-details-cta"' in button_tag
     assert 'type="button"' in button_tag
     classes = re.search(r'class="([^"]+)"', button_tag).group(1).split()
     assert "e9-zone-details__cta" in classes
     assert "e9-adventure-cta" in classes
     assert "hidden" in button_tag
+    replay_tag = re.search(r'<button[^>]*id="e9-world-stage-details-replay"[^>]*>', details_section).group(0)
+    assert 'type="button"' in replay_tag
+    assert 'data-i18n="e10.world_stage.replay_story"' in replay_tag
+    assert 'hidden' in replay_tag
 
 
 def test_beginner_and_generic_ctas_share_one_adventure_button_class():

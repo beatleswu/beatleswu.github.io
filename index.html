@@ -7359,7 +7359,6 @@ const HERO_GEAR_ROOT = '/assets/hero/gear_v2/';
 const HERO_ACCESSORY_ROOT = '/assets/hero/accessories/';
 const HERO_ARMOR_ROOT = '/assets/hero/armor/';
 const HERO_COMBAT_STORAGE_KEY = 'hero_combat_gear_v1';
-const ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v2';
 const HERO_ARMOR_CHARACTER_VARIANTS = {
     hero_male: 'hero_male',
     woman: 'woman',
@@ -11067,6 +11066,10 @@ function _zoneEn(){ return typeof I18n!=='undefined' && I18n.getLang()==='en'; }
 function _zoneLabel(z){ if(!z) return ''; const b=_ZONE_BY_KEY[z.key]; if(_zoneEn()){ if(z.labelEn) return z.labelEn; if(b&&b.labelEn) return b.labelEn; } return z.label || (b&&b.label) || ''; }
 function _zoneName(z){ if(!z) return ''; const b=_ZONE_BY_KEY[z.key]; if(_zoneEn()){ if(z.nameEn) return z.nameEn; if(b&&b.nameEn) return b.nameEn; } return z.name || (b&&b.name) || ''; }
 let _adventureProgress = [];
+// Server-authoritative account cinematic state from /api/adventure/bootstrap.
+// Missing keys are intentionally unseen; this object is never populated from
+// browser storage and is not gameplay progression.
+let _adventureCinematicState = {};
 let _activeBossZone = null;
 let _bossMode = false;
 let _bossZone = null;
@@ -11104,7 +11107,7 @@ let _introFilmRunId = 0;
 // authoritative, not this particular string's spelling. Set at the top of
 // every playNewbieVillageIntroFilm call and read back verbatim by
 // skip/replay -- never guessed independently.
-let _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play' };
+let _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play', mode: 'legacy' };
 let _introVoiceOptions = [];
 let _introVoiceIndex = 0;
 let _introZhPresetIndex = 0;
@@ -12760,6 +12763,7 @@ async function loadMapProgressStatus() {
         updateMapProgress(data);
     } catch (e) {
         _adventureProgress = [];
+        _adventureCinematicState = {};
         _activeBossZone = null;
         _setAdventureStoredSelectedStageKey('');
         renderAdventureMap();
@@ -12771,6 +12775,9 @@ function updateMapProgress(data) {
     try {
         const zones = Array.isArray(data.zones) ? data.zones : [];
         _adventureProgress = zones;
+        _adventureCinematicState = data.cinematics && typeof data.cinematics === 'object'
+            ? data.cinematics
+            : {};
         // Reload/close recovery for Zone 1's POST_CLEAR follow-up (Owner
         // review follow-up, E10-Z1-PROD-INTEGRATION-001): runs on every
         // fresh adventure-progress load, a no-op unless a genuine clear left
@@ -12815,7 +12822,7 @@ function _renderBossChallengeCard(zones = _adventureProgress) {
     refreshHomeReportPanel();
 }
 
-async function startAdventureStage(zoneKey) {
+async function startAdventureStage(zoneKey, options = {}) {
     window._nqMapActive = true;
     const zone = (_adventureProgress || []).find(z => z.key === zoneKey)
         || ADVENTURE_ZONES.find(z => z.key === zoneKey);
@@ -12823,35 +12830,52 @@ async function startAdventureStage(zoneKey) {
         setMsg(I18n.t('index.adv.zone_locked'), 'warn');
         return;
     }
-    await showStageIntroCinematic(zone);
+    await showStageIntroCinematic(zone, {
+        mode: options.mode || 'legacy',
+    });
 }
 
-// Account scope for the PRE_PLAY intro (Shots 1-6). The previous
-// adventure_intro_seen_v1 value was keyed only by zone, so one account could
-// suppress another account's intro in the same browser. v2 deliberately
-// ignores that legacy browser-wide shape and stores only the stable internal
-// account ID -> zone -> timestamp mapping. No uid means no seen state, which
-// fails open for the presentation and never creates a browser-global marker.
+function adventureCinematicKey(zone) {
+    if (!zone?.key) return null;
+    const index = ADVENTURE_ZONES.findIndex(item => item.key === zone.key);
+    return index >= 0 ? `e10_zone${index + 1}_intro_v1` : null;
+}
+
+// The server record is the only authority for intro history. A missing or
+// malformed bootstrap entry is unseen by design; no legacy v1/v2 browser
+// value is read or backfilled.
 function adventureIntroSeen(zone) {
-    const uid = _postClearAccountId();
-    if (!zone?.key || !uid) return false;
+    const key = adventureCinematicKey(zone);
+    const entry = key ? _adventureCinematicState[key] : null;
+    return !!(entry && entry.seen === true);
+}
+
+async function markAdventureIntroSeen(zone) {
+    const cinematicKey = adventureCinematicKey(zone);
+    if (!cinematicKey) return false;
     try {
-        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_INTRO_STORAGE_KEY) || '{}');
-        return !!byUser[uid]?.[zone.key];
-    } catch {
+        const response = await fetch('/api/adventure/cinematics/seen', {
+            credentials: 'include',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cinematic_key: cinematicKey }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.ok !== true || !data.state?.seen) return false;
+        _adventureCinematicState = data.cinematics && typeof data.cinematics === 'object'
+            ? data.cinematics
+            : { ..._adventureCinematicState, [cinematicKey]: data.state };
+        if (window.E9 && typeof window.E9.updateAdventureCinematicState === 'function') {
+            window.E9.updateAdventureCinematicState(_adventureCinematicState);
+        }
+        if (typeof window.invalidateE9AdventureStateCache === 'function') {
+            window.invalidateE9AdventureStateCache();
+        }
+        return true;
+    } catch (error) {
+        console.error('[E10] failed to persist cinematic seen state:', error);
         return false;
     }
-}
-
-function markAdventureIntroSeen(zone) {
-    const uid = _postClearAccountId();
-    if (!zone?.key || !uid) return;
-    try {
-        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_INTRO_STORAGE_KEY) || '{}');
-        byUser[uid] = byUser[uid] || {};
-        byUser[uid][zone.key] = Date.now();
-        localStorage.setItem(ADVENTURE_INTRO_STORAGE_KEY, JSON.stringify(byUser));
-    } catch {}
 }
 
 // Account scope for Zone 1's POST_CLEAR state (Owner review follow-up,
@@ -12875,7 +12899,7 @@ function _postClearAccountId() {
     }
 }
 
-// A separate, distinct storage key from ADVENTURE_INTRO_STORAGE_KEY --
+// A separate, distinct state from the server-authoritative intro record --
 // "seen the PRE_PLAY intro" and "seen the POST_CLEAR follow-up story" are
 // different facts that must never collapse into one flag (E10-Z1-PROD-
 // INTEGRATION-001 Owner review, Fix 1). Currently only Zone 1 (k26_30)
@@ -12955,7 +12979,7 @@ function clearAdventurePostClearPending(zone) {
 
 // 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): "seen the BOSS_READY
 // Shots 7-8 announcement" -- a third, distinct flag from both
-// ADVENTURE_INTRO_STORAGE_KEY (ZONE_ENTRY, Shots 1-6) and
+// the server cinematic state (ZONE_ENTRY, Shots 1-6) and
 // ADVENTURE_POSTCLEAR_STORAGE_KEY (POST_CLEAR, Shots 9-10). No "pending"
 // counterpart is needed here (unlike POST_CLEAR): boss-ready is a stable,
 // re-derivable STATE from _adventureBossReady(zone) on every fresh
@@ -13009,7 +13033,8 @@ function applyIntroFilmShotAssets(timeline = []) {
     });
 }
 
-async function showStageIntroCinematic(zone) {
+async function showStageIntroCinematic(zone, options = {}) {
+    const mode = options.mode || 'legacy';
     const story = ADVENTURE_STORY[zone.key] || {};
     const overlay = document.getElementById('boss-cinematic');
     const kicker = document.getElementById('boss-cinematic-kicker');
@@ -13042,7 +13067,17 @@ async function showStageIntroCinematic(zone) {
             <span>${I18n.t('index.boss.rule_exam').replace('{n}', zone.boss_exam_size || 20)}</span>
             <span>${I18n.t('index.boss.rule_pass').replace('{n}', zone.boss_pass_score || 16)}</span>`;
     }
-    const shouldShowFinalOnly = hasIntroFilm && adventureIntroSeen(zone);
+    // E9 Zone 1 node entry is a distinct product action from the Zone Card's
+    // training CTA. A server-seen account stops at the card; only the legacy
+    // path retains its existing final-state shortcut behavior.
+    if (hasIntroFilm && mode === 'first_entry' && adventureIntroSeen(zone)) {
+        hideBossCinematic();
+        if (window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
+            window.E9.showAdventureZoneCard(zone.key);
+        }
+        return;
+    }
+    const shouldShowFinalOnly = hasIntroFilm && mode === 'legacy' && adventureIntroSeen(zone);
     btn.disabled = hasIntroFilm && !shouldShowFinalOnly;
     btn.textContent = I18n.t('index.boss.start_training');
     btn.onclick = async () => {
@@ -13057,11 +13092,11 @@ async function showStageIntroCinematic(zone) {
             // so without this a stale 'post_clear' _introFilmActiveOpts left
             // over from earlier this session could make a later manual
             // replay play Shots 9-10 instead of the PRE_PLAY intro.
-            _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play' };
+            _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play', mode: 'legacy' };
             finishIntroFilm(zone);
             return;
         }
-        await playNewbieVillageIntroFilm(zone);
+        await playNewbieVillageIntroFilm(zone, { mode });
     } else {
         playBossSfx('appear');
     }
@@ -14528,8 +14563,26 @@ function speakIntroNarration(text, preferredLang = 'zh-TW', retrying = false) {
     } catch (e) {}
 }
 
-function finishIntroFilm(zone) {
-    markAdventureIntroSeen(zone);
+async function finishIntroFilm(zone) {
+    const mode = _introFilmActiveOpts.mode || 'legacy';
+    const isZoneCardFlow = zone?.key === 'k26_30'
+        && (mode === 'first_entry' || mode === 'manual_replay');
+    // FIRST_ENTRY waits for the server write before showing the Zone Card.
+    // Legacy playback keeps its established synchronous completion contract
+    // while still persisting the same idempotent state after completion.
+    // MANUAL_REPLAY is presentation-only and never changes account state.
+    if (mode === 'first_entry') {
+        await markAdventureIntroSeen(zone);
+    } else if (mode === 'legacy') {
+        void markAdventureIntroSeen(zone);
+    }
+    if (isZoneCardFlow) {
+        hideBossCinematic();
+        if (window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
+            window.E9.showAdventureZoneCard(zone.key);
+        }
+        return;
+    }
     const locale = getIntroFilmLocaleConfig(zone);
     const overlay = document.getElementById('boss-cinematic');
     const caption = document.getElementById('intro-film-caption');
@@ -14620,8 +14673,7 @@ function skipIntroFilm() {
         finishBossReadyFilm(zone);
         return;
     }
-    markAdventureIntroSeen(zone);
-    finishIntroFilm(zone);
+    void finishIntroFilm(zone);
     playBossSfx('start');
 }
 
@@ -14668,7 +14720,12 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     const locale = getIntroFilmLocaleConfig(zone);
     const phase = opts.phase || 'pre_play';
     const timeline = opts.timeline || locale.timeline;
-    _introFilmActiveOpts = { timeline: opts.timeline || null, onComplete: opts.onComplete || null, phase };
+    _introFilmActiveOpts = {
+        timeline: opts.timeline || null,
+        onComplete: opts.onComplete || null,
+        phase,
+        mode: opts.mode || _introFilmActiveOpts.mode || 'legacy',
+    };
     if (titleCard) titleCard.textContent = locale.filmTitle;
     stage.classList.remove('show-title-card');
     const shots = Array.from(stage.querySelectorAll('.film-shot'));

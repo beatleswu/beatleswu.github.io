@@ -19,8 +19,9 @@
  * (defined in shell.js), which calls the existing canonical in-page
  * question entry -- no gameplay logic is duplicated here.
  * Zone selection dispatches "e9:zone-selected" (bubbles) and updates the
- * ephemeral detail selection. Only the detail CTA invokes the adapter, so
- * selecting a card never starts an encounter or changes progression state.
+ * ephemeral detail selection. Zone 1's node selection additionally invokes
+ * the canonical first-entry cinematic when the server says it is unseen;
+ * every Zone Card CTA remains an ordinary training handoff.
  */
 (function (document) {
   'use strict';
@@ -118,6 +119,9 @@
   function findZone(zones, zoneKey) {
     return zones.filter(function (zone) { return zone.key === zoneKey; })[0] || null;
   }
+
+  var ACTIVE_INTRO_ZONE_KEY = 'k26_30';
+  var ACTIVE_INTRO_CINEMATIC_KEY = 'e10_zone1_intro_v1';
 
   function resolveChallengeTargetZoneKey(zone) {
     return zone && !zone.locked && zone.canEnter !== false ? zone.key : null;
@@ -604,30 +608,105 @@
       }
       return;
     }
-    // Zone 1's normal first-entry path must use the canonical legacy
-    // cinematic host before ordinary training. The E9 shell owns the map,
-    // so bridge its already-fetched progress cache first, then let
-    // startAdventureStage() decide whether the account needs Shots 1-6 and
-    // continue through the existing enterAdventureZoneInPage() handoff.
-    if (contract.kind === 'normal_progression' && contract.targetZoneKey === 'k26_30') {
-      var enterZone1Intro = function () {
-        if (typeof window.startAdventureStage === 'function') {
-          window.startAdventureStage(contract.targetZoneKey);
-        } else if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
-          // Keep a safe ordinary-entry fallback if a legacy host is absent;
-          // the governed runtime exports startAdventureStage().
-          window.E9.startAdventureFromE9(contract.targetZoneKey);
-        }
-      };
-      if (typeof window.ensureLegacyAdventureMapReady === 'function') {
-        window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true }).then(enterZone1Intro, enterZone1Intro);
-      } else {
-        enterZone1Intro();
-      }
-      return;
-    }
+    // normal_progression is the Zone Card's main training CTA, including
+    // Zone 1. First-entry cinematic routing is intentionally handled by the
+    // map-node selection path below so the cinematic can end at the card.
     if (window.E9 && typeof window.E9.startAdventureFromE9 === 'function') {
       window.E9.startAdventureFromE9(contract.targetZoneKey);
+    }
+  }
+
+  function cinematicSeen(state, cinematicKey) {
+    var entry = state && state.cinematics && state.cinematics[cinematicKey];
+    return !!(entry && entry.seen === true);
+  }
+
+  function withLegacyAdventureReady(callback) {
+    if (typeof window.ensureLegacyAdventureMapReady !== 'function') {
+      callback();
+      return;
+    }
+    try {
+      window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true }).then(callback, callback);
+    } catch (error) {
+      callback();
+    }
+  }
+
+  function dispatchZone1Entry(root, zone, state) {
+    if (!zone || zone.key !== ACTIVE_INTRO_ZONE_KEY || zone.locked) return;
+    // The bootstrap snapshot is server-authoritative. Missing state means
+    // unseen, so a fresh account cannot be silently promoted by browser data.
+    if (cinematicSeen(state, ACTIVE_INTRO_CINEMATIC_KEY)) return;
+    if (state.zone1EntryInFlight) return;
+    state.zone1EntryInFlight = true;
+    withLegacyAdventureReady(function () {
+      if (typeof window.startAdventureStage !== 'function') {
+        state.zone1EntryInFlight = false;
+        console.error('[E10] Zone 1 cinematic host is unavailable');
+        return;
+      }
+      try {
+        window.startAdventureStage(zone.key, { mode: 'first_entry' });
+      } catch (error) {
+        state.zone1EntryInFlight = false;
+        console.error('[E10] Zone 1 first-entry cinematic failed to start:', error);
+      }
+    });
+  }
+
+  function replayAdventureIntro(zoneKey) {
+    if (zoneKey !== ACTIVE_INTRO_ZONE_KEY) return false;
+    withLegacyAdventureReady(function () {
+      if (typeof window.startAdventureStage === 'function') {
+        window.startAdventureStage(zoneKey, { mode: 'manual_replay' });
+      }
+    });
+    return true;
+  }
+
+  function updateAdventureCinematicState(cinematics) {
+    var root = document.querySelector('#adventure-stage');
+    var state = root && root.__e9WorldStageState;
+    if (!state || !cinematics || typeof cinematics !== 'object') return;
+    state.cinematics = cinematics;
+  }
+
+  function showAdventureZoneCard(zoneKey) {
+    var root = document.querySelector('#adventure-stage');
+    var state = root && root.__e9WorldStageState;
+    var zone = state && findZone(state.zones || [], zoneKey);
+    if (!root || !state || !zone) return false;
+    state.zone1EntryInFlight = false;
+    renderSelectedZone(root, state.zones, zone.key, false);
+    dispatchZoneSelection(root, zone, state);
+    document.dispatchEvent(new CustomEvent('e9:zone-card-requested', {
+      bubbles: true,
+      detail: { zoneKey: zone.key },
+    }));
+    return true;
+  }
+
+  function configureStoryReplayButton(button, zone) {
+    if (!button || !zone) return;
+    var enabled = zone.key === ACTIVE_INTRO_ZONE_KEY;
+    button.hidden = !enabled;
+    button.disabled = !enabled;
+    button.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+    if (!enabled) return;
+    button.textContent = t('e10.world_stage.replay_story', 'Replay Story');
+    button.removeAttribute('data-i18n');
+    if (button.__e9StoryReplayHandler) {
+      button.removeEventListener('click', button.__e9StoryReplayHandler);
+    }
+    button.__e9StoryReplayHandler = function (event) {
+      if (event) event.stopPropagation();
+      replayAdventureIntro(zone.key);
+    };
+    if (window.E9 && typeof window.E9.on === 'function') {
+      window.E9.on(button, 'click', button.__e9StoryReplayHandler);
+    } else {
+      button.addEventListener('click', button.__e9StoryReplayHandler);
     }
   }
 
@@ -784,6 +863,7 @@
     var details = root.querySelector('#e9-world-stage-details');
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var cta = root.querySelector('#e9-world-stage-details-cta');
+    var replay = root.querySelector('#e9-world-stage-details-replay');
     var newbie = root.querySelector('#e9-newbie-mainline');
     if (!zone) {
       if (cta) cta.hidden = true;
@@ -805,6 +885,7 @@
     ).matches;
     if (details) details.hidden = VS1E_STATIC_CONTRACT_ACTIVE ? !isPortraitTablet : isMobile;
     updateSelectedZoneCopy(root, zone);
+    configureStoryReplayButton(replay, zone);
     if (summary) summary.textContent = zone.bossAvailable
       ? bossReadyText(zone)
       : (zone.cleared ? clearedText(zone) : t('index.adv.panel_ready', 'Adventure is ready'));
@@ -903,6 +984,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      cinematics: {},
       generation: null,
     });
     if (!state.selectedZoneKey && authority.selected && typeof authority.selected.zone_key === 'string') {
@@ -916,6 +998,9 @@
       ? authority.primaryAction
       : state.primaryAction;
     state.zones = zones;
+    if (Object.prototype.hasOwnProperty.call(authority, 'cinematics')) {
+      state.cinematics = authority.cinematics || {};
+    }
     var identities = VS1E_STATIC_CONTRACT_ACTIVE
       ? syncInteractionState(state, zones, authoritativeCurrentZoneKey, primaryAction)
       : { current: null, selected: null };
@@ -1046,6 +1131,7 @@
             bubbles: true,
             detail: selectionDetail,
           }));
+          dispatchZone1Entry(root, zone, state);
       };
       var keyActivate = function (evt) {
           if (evt.key === 'Enter' || evt.key === ' ') {
@@ -1195,6 +1281,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      cinematics: {},
       generation: generation,
     };
     var onChanged = function () {
@@ -1242,4 +1329,7 @@
   // CTA_ACTION_ROUTING_DEFECT regression reached a third surface unnoticed.
   window.E9 = window.E9 || {};
   window.E9.dispatchAdventureAction = dispatchAdventureAction;
+  window.E9.replayAdventureIntro = replayAdventureIntro;
+  window.E9.showAdventureZoneCard = showAdventureZoneCard;
+  window.E9.updateAdventureCinematicState = updateAdventureCinematicState;
 })(document);

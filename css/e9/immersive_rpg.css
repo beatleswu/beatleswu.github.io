@@ -2111,12 +2111,38 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
 }
 
 #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary {
+  position: relative;
   margin-bottom: 14px;
   padding: 14px;
   border: 2px solid var(--e10-parchment-edge);
   border-radius: 10px;
   background: rgba(255, 249, 222, .62);
   box-shadow: inset 0 0 14px rgba(116, 66, 27, .13);
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary__replay {
+  position: absolute;
+  top: 11px;
+  right: 12px;
+  z-index: 1;
+  min-height: 34px;
+  max-width: calc(100% - 24px);
+  padding: 5px 10px;
+  border: 1px solid var(--e10-parchment-edge);
+  border-radius: 999px;
+  color: var(--e10-ink-soft);
+  background: rgba(255, 249, 222, .82);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary__kicker {
+  padding-right: 124px;
+}
+
+#e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary__replay[hidden] {
+  display: none;
 }
 
 #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-drawer-zone-summary__landmark,

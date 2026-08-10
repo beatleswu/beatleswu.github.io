@@ -11,6 +11,12 @@
   'use strict';
 
   var VALID_STATUSES = ['locked', 'unlocked', 'completed', 'skipped_by_placement'];
+  var E10_CINEMATIC_KEYS = [
+    'e10_zone1_intro_v1', 'e10_zone2_intro_v1', 'e10_zone3_intro_v1',
+    'e10_zone4_intro_v1', 'e10_zone5_intro_v1', 'e10_zone6_intro_v1',
+    'e10_zone7_intro_v1', 'e10_zone8_intro_v1', 'e10_zone9_intro_v1',
+    'e10_zone10_intro_v1',
+  ];
   var cachedSuccess = null;
   var inFlight = null;
 
@@ -103,8 +109,22 @@
         }
       }
     }
+    var rawCinematics = raw.cinematics && typeof raw.cinematics === 'object'
+      ? raw.cinematics
+      : {};
+    var cinematics = {};
+    E10_CINEMATIC_KEYS.forEach(function (key) {
+      var entry = rawCinematics[key];
+      cinematics[key] = {
+        // The server is authoritative. Missing/invalid records are unseen;
+        // browser storage is intentionally not consulted here.
+        seen: !!(entry && entry.seen === true),
+        seenAt: entry && typeof entry.seen_at === 'string' ? entry.seen_at : null,
+      };
+    });
     return {
       zones: zones,
+      cinematics: cinematics,
       placement: raw.placement || null,
       recommended: raw.recommended || null,
       selected: raw.selected || null,

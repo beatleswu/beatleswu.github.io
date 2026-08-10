@@ -1,16 +1,16 @@
-"""Regression coverage for the E10 Zone 1 cinematic entry hotfix.
-
-These tests execute the real routing/state helper source from the checkout.
-They intentionally do not exercise Production or write player progression.
-"""
+"""Regression coverage for the final server-backed Zone 1 entry contract."""
 
 import subprocess
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent.parent
-INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
-WORLD_STAGE = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parents[1]
+INDEX = (ROOT / 'index.html').read_text(encoding='utf-8')
+WORLD_STAGE = (ROOT / 'js/e9/world_stage.js').read_text(encoding='utf-8')
+ADAPTER = (ROOT / 'js/e9/adapters/adventure_state.js').read_text(encoding='utf-8')
+WORLD_STAGE_TEMPLATE = (ROOT / 'components/adventure/world_stage.html').read_text(encoding='utf-8')
+RIGHT_CARDS_TEMPLATE = (ROOT / 'components/adventure/right_cards.html').read_text(encoding='utf-8')
+I18N = (ROOT / 'i18n.js').read_text(encoding='utf-8')
 
 
 def _block(source, start_marker, end_marker):
@@ -19,173 +19,161 @@ def _block(source, start_marker, end_marker):
     return source[start:end]
 
 
-def test_zone1_normal_progression_bridges_to_the_canonical_cinematic_host():
+def test_zone1_normal_progression_remains_the_zone_card_training_handoff():
     body = _block(
         WORLD_STAGE,
-        "function dispatchAdventureAction(contract) {",
-        "\n  function configureAdventureButton(",
+        'function dispatchAdventureAction(contract) {',
+        '\n  function cinematicSeen(',
     )
-    zone1 = body.index("contract.kind === 'normal_progression' && contract.targetZoneKey === 'k26_30'")
-    ordinary = body.rindex("window.E9.startAdventureFromE9(contract.targetZoneKey);")
-    branch = body[zone1:ordinary]
-    assert "window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true })" in branch
-    assert "window.startAdventureStage(contract.targetZoneKey);" in branch
-    assert "return;" in branch
-    assert zone1 < ordinary
+    assert "contract.kind === 'challenge_lord'" in body
+    assert 'window.E9.startAdventureFromE9(contract.targetZoneKey);' in body
+    assert 'window.startAdventureStage(' not in body
+    assert "targetZoneKey === 'k26_30'" not in body
 
 
-def test_canonical_zone1_host_preserves_existing_training_handoff():
-    start = INDEX.index("async function startAdventureStage(zoneKey)")
-    end = INDEX.index("\nfunction adventureIntroSeen(zone)", start)
-    body = INDEX[start:end]
-    assert "await showStageIntroCinematic(zone);" in body
-
-    cinematic_start = INDEX.index("async function showStageIntroCinematic(zone)")
-    cinematic_end = INDEX.index("\n\n window.startAdventureStage", cinematic_start)
-    cinematic_body = INDEX[cinematic_start:cinematic_end]
-    assert "enterAdventureZoneInPage(zone)" in cinematic_body
-
-
-def test_intro_seen_state_is_account_nested_and_legacy_browser_shape_is_not_read():
-    assert "ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v2'" in INDEX
-    seen = _block(INDEX, "function adventureIntroSeen(zone)", "\n\n// Account scope for Zone 1's POST_CLEAR")
-    marked = _block(INDEX, "function markAdventureIntroSeen(zone)", "\n\n// Account scope for Zone 1's POST_CLEAR")
-    assert "_postClearAccountId()" in seen
-    assert "byUser[uid]?.[zone.key]" in seen
-    assert "byUser[uid] = byUser[uid] || {}" in marked
-    assert "seen[zone.key]" not in seen
-    assert "seen[zone.key]" not in marked
-    assert "adventure_intro_seen_v1" in INDEX  # documented legacy key only
-    assert "localStorage.getItem('adventure_intro_seen_v1')" not in seen + marked
+def test_zone1_node_entry_uses_server_state_and_canonical_host():
+    body = _block(
+        WORLD_STAGE,
+        'function cinematicSeen(state, cinematicKey) {',
+        '\n  function configureStoryReplayButton(',
+    )
+    assert "ACTIVE_INTRO_ZONE_KEY = 'k26_30'" in WORLD_STAGE
+    assert "ACTIVE_INTRO_CINEMATIC_KEY = 'e10_zone1_intro_v1'" in WORLD_STAGE
+    assert "entry.seen === true" in body
+    assert "mode: 'first_entry'" in body
+    assert 'window.startAdventureStage' in body
+    assert 'window.ensureLegacyAdventureMapReady({ reuseE9Adapter: true })' in body
+    assert 'localStorage' not in body
 
 
-_INTRO_STATE_NODE_HARNESS = r"""
+def test_zone_card_replay_is_zone1_only_and_uses_same_host_in_manual_mode():
+    body = _block(
+        WORLD_STAGE,
+        'function replayAdventureIntro(zoneKey) {',
+        '\n  function updateAdventureCinematicState(',
+    )
+    assert "zoneKey !== ACTIVE_INTRO_ZONE_KEY" in body
+    assert "mode: 'manual_replay'" in body
+    assert 'window.startAdventureStage' in body
+    assert "e10_zone2_intro_v1" not in body
+    assert "data-e10-zone-replay" in RIGHT_CARDS_TEMPLATE
+    assert "data-i18n=\"e10.world_stage.replay_story\"" in WORLD_STAGE_TEMPLATE
+    assert "data-e10-zone-replay" in RIGHT_CARDS_TEMPLATE
+
+
+def test_cinematic_state_is_server_backed_and_completion_returns_to_zone_card():
+    start = INDEX.index('async function startAdventureStage(zoneKey, options = {})')
+    end = INDEX.index('\nfunction adventureCinematicKey(zone)', start)
+    start_body = INDEX[start:end]
+    assert "options.mode || 'legacy'" in start_body
+    assert 'showStageIntroCinematic(zone, {' in start_body
+
+    cinematic = _block(INDEX, 'async function showStageIntroCinematic(zone, options = {})', '\n\n window.startAdventureStage')
+    assert "const mode = options.mode || 'legacy';" in cinematic
+    assert "mode === 'first_entry' && adventureIntroSeen(zone)" in cinematic
+    assert 'hideBossCinematic();' in cinematic
+    assert 'window.E9.showAdventureZoneCard(zone.key);' in cinematic
+
+    finish = _block(INDEX, 'async function finishIntroFilm(zone) {', '\nfunction skipIntroFilm()')
+    assert 'await markAdventureIntroSeen(zone)' in finish
+    assert "mode === 'first_entry' || mode === 'manual_replay'" in finish
+    assert 'window.E9.showAdventureZoneCard(zone.key);' in finish
+    assert 'enterAdventureZoneInPage(zone)' not in finish
+
+
+def test_intro_seen_state_has_no_browser_authority_or_legacy_backfill():
+    assert 'adventure_intro_seen_v1' not in INDEX
+    assert 'adventure_intro_seen_v2' not in INDEX
+    assert "localStorage.getItem('adventure_intro" not in INDEX
+    assert '/api/adventure/cinematics/seen' in INDEX
+    assert '_adventureCinematicState' in INDEX
+    assert 'data.cinematics' in INDEX
+
+
+def test_adapter_normalizes_all_registered_keys_as_server_state():
+    assert 'e10_zone1_intro_v1' in ADAPTER
+    assert 'e10_zone10_intro_v1' in ADAPTER
+    assert 'raw.cinematics' in ADAPTER
+    assert "seen: !!(entry && entry.seen === true)" in ADAPTER
+    assert 'localStorage' not in ADAPTER
+
+
+def test_zone_card_replay_labels_are_i18n_backed_and_secondary():
+    assert "'e10.world_stage.replay_story'" in I18N
+    assert "en: 'Replay Story'" in I18N
+    assert "zh: '重溫故事'" in I18N
+    assert 'e9-zone-details__story-replay' in WORLD_STAGE_TEMPLATE
+    assert 'e10-drawer-zone-summary__replay' in RIGHT_CARDS_TEMPLATE
+
+
+def test_later_cinematic_gates_and_progression_boundaries_are_unchanged():
+    assert 'if (!_adventureBossReady(zone)) return;' in INDEX
+    assert 'if (adventureBossReadyFilmSeen(zone)) return;' in INDEX
+    assert 'challenge_lord' in WORLD_STAGE
+    assert 'window.openAdventureBossFromQuestCard(contract.targetZoneKey)' in WORLD_STAGE
+    assert 'monster_defeated' in INDEX
+    assert '_maybeTriggerZone1PostClearFilm' in INDEX
+    assert 'window.E9.replayAdventureIntro = replayAdventureIntro;' in WORLD_STAGE
+    assert 'window.E9.showAdventureZoneCard = showAdventureZoneCard;' in WORLD_STAGE
+
+
+_ENTRY_NODE_HARNESS = r"""
 'use strict';
 const fs = require('fs');
 const assert = require('assert');
 const vm = require('vm');
-
 const source = fs.readFileSync(process.argv[1], 'utf8');
-
-function extractFunction(name) {
-  const start = source.indexOf('function ' + name + '(');
-  if (start < 0) throw new Error('function not found: ' + name);
-  const open = source.indexOf('{', start);
-  let depth = 0;
-  let quote = null;
-  let escaped = false;
-  for (let i = open; i < source.length; i++) {
-    const ch = source[i];
-    if (quote) {
-      if (escaped) escaped = false;
-      else if (ch === '\\') escaped = true;
-      else if (ch === quote) quote = null;
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
-    if (ch === '{') depth++;
-    else if (ch === '}' && --depth === 0) return source.slice(start, i + 1);
-  }
-  throw new Error('unterminated function: ' + name);
+function block(startMarker, endMarker) {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error('source block not found');
+  return source.slice(start, end);
 }
-
-const helper = extractFunction('_postClearAccountId');
-const seen = extractFunction('adventureIntroSeen');
-const mark = extractFunction('markAdventureIntroSeen');
-const script = `
-const ADVENTURE_INTRO_STORAGE_KEY = 'adventure_intro_seen_v2';
-let _currentUserId = null;
-const localStorage = {
-  data: Object.create(null),
-  getItem(key) { return Object.prototype.hasOwnProperty.call(this.data, key) ? this.data[key] : null; },
-  setItem(key, value) { this.data[key] = String(value); },
+const logic = block(
+  'function cinematicSeen(state, cinematicKey) {',
+  '  function configureStoryReplayButton('
+);
+const calls = [];
+const sandbox = {
+  console,
+  document: { querySelector() { return null; } },
+  window: {
+    ensureLegacyAdventureMapReady() { calls.push('ensure'); return Promise.resolve(); },
+    startAdventureStage(zoneKey, options) { calls.push(['cinematic', zoneKey, options.mode]); },
+  },
 };
-${helper}
-${seen}
-${mark}
-function setUser(uid) { _currentUserId = uid; }
-function readIntro(zone) { return adventureIntroSeen(zone); }
-function writeIntro(zone) { markAdventureIntroSeen(zone); }
-function writeLegacyIntro(zone) { localStorage.setItem('adventure_intro_seen_v1', JSON.stringify({ [zone.key]: Date.now() })); }
-`;
-const sandbox = { console };
 vm.createContext(sandbox);
-new vm.Script(script).runInContext(sandbox);
+new vm.Script("const ACTIVE_INTRO_ZONE_KEY = 'k26_30'; const ACTIVE_INTRO_CINEMATIC_KEY = 'e10_zone1_intro_v1';").runInContext(sandbox);
+new vm.Script(logic).runInContext(sandbox);
 
-const zone = { key: 'k26_30' };
-sandbox.setUser(101);
-assert.strictEqual(sandbox.readIntro(zone), false, 'fresh account should be unseen');
-sandbox.writeIntro(zone);
-assert.strictEqual(sandbox.readIntro(zone), true, 'same account should become seen');
+const zone = { key: 'k26_30', locked: false };
+const unseen = { cinematics: { e10_zone1_intro_v1: { seen: false } } };
+const seen = { cinematics: { e10_zone1_intro_v1: { seen: true } } };
+sandbox.dispatchZone1Entry({}, zone, unseen);
+sandbox.dispatchZone1Entry({}, zone, seen);
+unseen.zone1EntryInFlight = true;
+sandbox.dispatchZone1Entry({}, zone, unseen);
+sandbox.replayAdventureIntro('k26_30');
 
-sandbox.setUser(202);
-assert.strictEqual(sandbox.readIntro(zone), false, 'second account must not inherit first account seen state');
-sandbox.writeIntro(zone);
-assert.strictEqual(sandbox.readIntro(zone), true, 'second account should keep its own seen state');
-
-sandbox.setUser(101);
-assert.strictEqual(sandbox.readIntro(zone), true, 'first account state remains isolated and durable');
-
-// A legacy browser-wide v1 value must never suppress a newly resolved account.
-sandbox.setUser(303);
-    sandbox.writeLegacyIntro(zone);
-assert.strictEqual(sandbox.readIntro(zone), false, 'legacy browser-wide state must not cross-suppress');
-
-console.log('account-scoped intro state: 5 passed, 0 failed');
+setTimeout(() => {
+  assert.deepStrictEqual(calls, [
+    'ensure',
+    'ensure',
+    ['cinematic', 'k26_30', 'first_entry'],
+    ['cinematic', 'k26_30', 'manual_replay'],
+  ]);
+  console.log('entry/replay server-state routing: 4 passed, 0 failed');
+}, 0);
 """
 
 
-def test_account_scoped_intro_state_real_helpers_cover_same_and_cross_account_browser_cases():
+def test_real_entry_helpers_cover_unseen_seen_and_manual_replay_modes():
     result = subprocess.run(
-        ["node", "-e", _INTRO_STATE_NODE_HARNESS, "--", str(ROOT / "index.html")],
+        ['node', '-e', _ENTRY_NODE_HARNESS, '--', str(ROOT / 'js/e9/world_stage.js')],
         capture_output=True,
         text=True,
         timeout=30,
         cwd=str(ROOT),
     )
-    assert result.returncode == 0, f"account-scoped intro state failed:\n{result.stdout}\n{result.stderr}"
-    assert "5 passed, 0 failed" in result.stdout
-
-
-def test_later_cinematic_gates_and_progression_boundaries_are_unchanged():
-    assert "if (!_adventureBossReady(zone)) return;" in INDEX
-    assert "if (adventureBossReadyFilmSeen(zone)) return;" in INDEX
-    assert "challenge_lord" in WORLD_STAGE
-    assert "window.openAdventureBossFromQuestCard(contract.targetZoneKey)" in WORLD_STAGE
-    assert "monster_defeated" in INDEX
-    assert "_maybeTriggerZone1PostClearFilm" in INDEX
-
-    dispatch = _block(
-        WORLD_STAGE,
-        "function dispatchAdventureAction(contract) {",
-        "\n  function configureAdventureButton(",
-    )
-    assert "/api/" not in dispatch
-    assert "submit" not in dispatch.lower()
-    assert "fetch(" not in dispatch
-
-
-def test_zone1_completed_account_keeps_replay_training_contract_instead_of_intro_route():
-    # The existing E9 contract classifies a completed Zone 1 as replay_completed;
-    # only normal_progression is sent to the cinematic host by this hotfix.
-    assert "if (zone.status === 'completed')" in WORLD_STAGE
-    assert "kind: 'replay_completed'" in WORLD_STAGE
-    dispatch = _block(
-        WORLD_STAGE,
-        "function dispatchAdventureAction(contract) {",
-        "\n  function configureAdventureButton(",
-    )
-    assert "contract.kind === 'normal_progression' && contract.targetZoneKey === 'k26_30'" in dispatch
-    assert "contract.kind === 'replay_completed'" not in dispatch
-
-
-def test_other_zone_normal_progression_still_uses_existing_ordinary_entry():
-    dispatch = _block(
-        WORLD_STAGE,
-        "function dispatchAdventureAction(contract) {",
-        "\n  function configureAdventureButton(",
-    )
-    zone1_branch = dispatch.index("contract.kind === 'normal_progression' && contract.targetZoneKey === 'k26_30'")
-    ordinary = dispatch.rindex("window.E9.startAdventureFromE9(contract.targetZoneKey);")
-    assert zone1_branch < ordinary
-    assert "targetZoneKey === 'k26_30'" in dispatch[zone1_branch:ordinary]
+    assert result.returncode == 0, f'entry/replay routing failed:\n{result.stdout}\n{result.stderr}'
+    assert '4 passed, 0 failed' in result.stdout
