@@ -9,12 +9,13 @@
  * presentation labels use the shared i18n.js registry. No component-local
  * translation dictionary or progression mapping is created.
  * If the data fetch fails (or the session is unauthorized), this is
- * treated as a CRITICAL failure (a World Stage that can't show real
- * state is non-functional) and triggers full shell recovery to the
- * legacy Adventure Map via window.E9.recoverToLegacy(), NOT just a local
- * error message. A single retry is offered first for a recoverable
- * (non-auth) error, dispatching "e9:refresh-requested" before falling
- * back to recovery if the retry also fails.
+ * treated as a CRITICAL failure unless it is the recoverable cinematic
+ * state read-error boundary. A single retry is offered first for a
+ * recoverable (non-auth) error, dispatching "e9:refresh-requested".
+ * After that retry, a cinematic-state read error stays inside E10 and
+ * uses a conservative Zone 1 first-entry fallback; unrelated critical
+ * failures still recover the full shell to the legacy Adventure Map via
+ * window.E9.recoverToLegacy().
  * Adventure Start uses the thin adapter window.E9.startAdventureFromE9()
  * (defined in shell.js), which calls the existing canonical in-page
  * question entry -- no gameplay logic is duplicated here.
@@ -118,6 +119,39 @@
 
   function findZone(zones, zoneKey) {
     return zones.filter(function (zone) { return zone.key === zoneKey; })[0] || null;
+  }
+
+  // A cinematic-state read failure must not hand the player to the Legacy
+  // shell, but the E10 World Stage still needs an actionable Zone 1 node if
+  // the initial bootstrap failed before any authoritative zones were drawn.
+  // Use previously rendered authoritative zones when available. On a cold
+  // failure, use only static zone identity/coordinates already declared by
+  // the page and conservatively enable Zone 1; no progression values are
+  // inferred or persisted by this fallback, and Zones 2-10 stay disabled.
+  function readErrorFallbackZones(root) {
+    var previous = root && root.__e9WorldStageState && root.__e9WorldStageState.zones;
+    if (Array.isArray(previous) && previous.length) return previous;
+    if (typeof ADVENTURE_ZONES === 'undefined' || !Array.isArray(ADVENTURE_ZONES)) return [];
+    return ADVENTURE_ZONES.map(function (source, index) {
+      var zone1 = index === 0;
+      return {
+        key: source.key,
+        name: source.name,
+        nameEn: source.nameEn || null,
+        status: zone1 ? 'unlocked' : 'locked',
+        locked: !zone1,
+        canEnter: zone1,
+        cleared: false,
+        skippedByPlacement: false,
+        recommended: zone1,
+        selected: zone1,
+        stars: 0,
+        bossAvailable: false,
+        bossKey: null,
+        seen: 0,
+        total: 0,
+      };
+    });
   }
 
   var ACTIVE_INTRO_ZONE_KEY = 'k26_30';
@@ -617,6 +651,11 @@
   }
 
   function cinematicSeen(state, cinematicKey) {
+    if (state && state.cinematicReadError && cinematicKey === ACTIVE_INTRO_CINEMATIC_KEY) {
+      // Read-error degraded mode is a per-invocation UI decision only. It is
+      // deliberately not a persisted unseen record or a browser cache.
+      return false;
+    }
     var entry = state && state.cinematics && state.cinematics[cinematicKey];
     return !!(entry && entry.seen === true);
   }
@@ -633,6 +672,24 @@
     }
   }
 
+  function withCinematicHost(callback, state) {
+    if (state && state.cinematicReadError) {
+      // The E10 shell already owns the cinematic host. Do not restore the
+      // Legacy Adventure Map merely because account cinematic state failed
+      // to load.
+      callback();
+      return;
+    }
+    withLegacyAdventureReady(callback);
+  }
+
+  function worldStageRoot() {
+    // component_loader mounts world_stage on the slot; #adventure-stage is
+    // the injected child markup, not the state-owning root.
+    return document.querySelector('#e9-world-stage-slot')
+      || document.querySelector('#adventure-stage');
+  }
+
   function dispatchZone1Entry(root, zone, state) {
     if (!zone || zone.key !== ACTIVE_INTRO_ZONE_KEY || zone.locked) return;
     // The bootstrap snapshot is server-authoritative. Missing state means
@@ -640,40 +697,48 @@
     if (cinematicSeen(state, ACTIVE_INTRO_CINEMATIC_KEY)) return;
     if (state.zone1EntryInFlight) return;
     state.zone1EntryInFlight = true;
-    withLegacyAdventureReady(function () {
+    var start = function () {
       if (typeof window.startAdventureStage !== 'function') {
         state.zone1EntryInFlight = false;
         console.error('[E10] Zone 1 cinematic host is unavailable');
         return;
       }
       try {
-        window.startAdventureStage(zone.key, { mode: 'first_entry' });
+        var options = { mode: 'first_entry' };
+        if (state.cinematicReadError) options.readErrorDegraded = true;
+        window.startAdventureStage(zone.key, options);
       } catch (error) {
         state.zone1EntryInFlight = false;
         console.error('[E10] Zone 1 first-entry cinematic failed to start:', error);
       }
-    });
+    };
+    withCinematicHost(start, state);
   }
 
   function replayAdventureIntro(zoneKey) {
     if (zoneKey !== ACTIVE_INTRO_ZONE_KEY) return false;
-    withLegacyAdventureReady(function () {
+    var root = worldStageRoot();
+    var state = root && root.__e9WorldStageState;
+    withCinematicHost(function () {
       if (typeof window.startAdventureStage === 'function') {
-        window.startAdventureStage(zoneKey, { mode: 'manual_replay' });
+        var options = { mode: 'manual_replay' };
+        if (state && state.cinematicReadError) options.readErrorDegraded = true;
+        window.startAdventureStage(zoneKey, options);
       }
-    });
+    }, state);
     return true;
   }
 
   function updateAdventureCinematicState(cinematics) {
-    var root = document.querySelector('#adventure-stage');
+    var root = worldStageRoot();
     var state = root && root.__e9WorldStageState;
     if (!state || !cinematics || typeof cinematics !== 'object') return;
     state.cinematics = cinematics;
+    state.cinematicReadError = false;
   }
 
   function showAdventureZoneCard(zoneKey) {
-    var root = document.querySelector('#adventure-stage');
+    var root = worldStageRoot();
     var state = root && root.__e9WorldStageState;
     var zone = state && findZone(state.zones || [], zoneKey);
     if (!root || !state || !zone) return false;
@@ -1001,6 +1066,9 @@
     if (Object.prototype.hasOwnProperty.call(authority, 'cinematics')) {
       state.cinematics = authority.cinematics || {};
     }
+    if (Object.prototype.hasOwnProperty.call(authority, 'cinematicReadError')) {
+      state.cinematicReadError = authority.cinematicReadError === true;
+    }
     var identities = VS1E_STATIC_CONTRACT_ACTIVE
       ? syncInteractionState(state, zones, authoritativeCurrentZoneKey, primaryAction)
       : { current: null, selected: null };
@@ -1205,6 +1273,27 @@
     }
   }
 
+  function renderReadErrorDegradedState(root, generation, reason) {
+    var zones = readErrorFallbackZones(root);
+    if (!zones.length) {
+      console.error('[E10] cinematic-state read error has no E10 zone fallback:', reason);
+      return false;
+    }
+    var stageState = root.__e9WorldStageState || (root.__e9WorldStageState = {});
+    stageState.cinematicReadError = true;
+    stageState.cinematics = {};
+    renderZones(root, zones, {
+      generation: generation,
+      currentZoneKey: null,
+      primaryAction: null,
+      cinematics: {},
+      cinematicReadError: true,
+    });
+    enableImmersiveRpgSkin(root, generation);
+    console.warn('[E10] cinematic-state read unavailable; keeping E10 shell with conservative Zone 1 entry:', reason);
+    return true;
+  }
+
   function load(root, isRetry, generation) {
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' ||
@@ -1237,7 +1326,11 @@
           load(root, true, generation);
           return;
         }
-        recoverToLegacy(new Error('adventure data fetch failed: ' + result.kind + ' (status ' + result.status + ')'));
+        renderReadErrorDegradedState(
+          root,
+          generation,
+          new Error('adventure data fetch failed: ' + result.kind + ' (status ' + result.status + ')')
+        );
         return;
       }
       if (!result.data.zones.length) {

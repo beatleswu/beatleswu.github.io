@@ -12826,7 +12826,10 @@ async function startAdventureStage(zoneKey, options = {}) {
     window._nqMapActive = true;
     const zone = (_adventureProgress || []).find(z => z.key === zoneKey)
         || ADVENTURE_ZONES.find(z => z.key === zoneKey);
-    if (!zone || !_adventureCanEnter(zone)) {
+    const readErrorDegraded = options.readErrorDegraded === true
+        && zoneKey === 'k26_30'
+        && (options.mode === 'first_entry' || options.mode === 'manual_replay');
+    if (!zone || (!_adventureCanEnter(zone) && !readErrorDegraded)) {
         setMsg(I18n.t('index.adv.zone_locked'), 'warn');
         return;
     }

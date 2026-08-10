@@ -137,6 +137,132 @@ def test_later_cinematic_gates_and_progression_boundaries_are_unchanged():
     assert 'window.E9.showAdventureZoneCard = showAdventureZoneCard;' in WORLD_STAGE
 
 
+def test_read_error_stays_in_e10_and_only_enables_conservative_zone1_entry():
+    retry_boundary = _block(
+        WORLD_STAGE,
+        '        if (!isRetry) {',
+        '      if (!result.data.zones.length) {',
+    )
+    assert 'load(root, true, generation);' in retry_boundary
+    assert 'renderReadErrorDegradedState(' in retry_boundary
+    assert 'recoverToLegacy(' not in retry_boundary
+
+    degraded = _block(
+        WORLD_STAGE,
+        'function renderReadErrorDegradedState(root, generation, reason) {',
+        '\n  function load(root, isRetry, generation) {',
+    )
+    assert 'cinematicReadError: true' in degraded
+    assert 'cinematics: {}' in degraded
+    assert 'enableImmersiveRpgSkin(root, generation);' in degraded
+    assert 'applyShellState' not in degraded
+    assert 'ensureLegacyAdventureMapReady' not in degraded
+
+    fallback = _block(
+        WORLD_STAGE,
+        'function readErrorFallbackZones(root) {',
+        '\n  var ACTIVE_INTRO_ZONE_KEY',
+    )
+    assert 'previous' in fallback
+    assert 'typeof ADVENTURE_ZONES' in fallback
+    assert 'var zone1 = index === 0;' in fallback
+    assert 'canEnter: zone1' in fallback
+    assert 'status: zone1 ? \'unlocked\' : \'locked\'' in fallback
+
+
+def test_read_error_entry_never_promotes_browser_state_or_legacy_readiness():
+    seen = _block(
+        WORLD_STAGE,
+        'function cinematicSeen(state, cinematicKey) {',
+        '\n  function configureStoryReplayButton(',
+    )
+    assert 'state.cinematicReadError' in seen
+    assert 'return false;' in seen
+
+    host = _block(
+        WORLD_STAGE,
+        'function withCinematicHost(callback, state) {',
+        '\n  function dispatchZone1Entry(',
+    )
+    assert "state && state.cinematicReadError" in host
+    assert 'callback();' in host
+    assert 'withLegacyAdventureReady(callback);' in host
+    assert "document.querySelector('#e9-world-stage-slot')" in WORLD_STAGE
+    assert 'readErrorDegraded = true' in WORLD_STAGE
+
+    start = _block(INDEX, 'async function startAdventureStage(zoneKey, options = {})', '\nfunction adventureCinematicKey(zone)')
+    assert "options.readErrorDegraded === true" in start
+    assert "zoneKey === 'k26_30'" in start
+    assert "options.mode === 'first_entry' || options.mode === 'manual_replay'" in start
+    assert '(!_adventureCanEnter(zone) && !readErrorDegraded)' in start
+
+    finish = _block(INDEX, 'async function finishIntroFilm(zone) {', '\nfunction skipIntroFilm()')
+    assert 'await markAdventureIntroSeen(zone);' in finish
+    assert 'if (isZoneCardFlow) {' in finish
+    assert 'window.E9.showAdventureZoneCard(zone.key);' in finish
+    assert 'if (!await markAdventureIntroSeen' not in finish
+
+
+_READ_ERROR_LOAD_HARNESS = r"""
+'use strict';
+const fs = require('fs');
+const assert = require('assert');
+const vm = require('vm');
+const source = fs.readFileSync(process.argv[1], 'utf8');
+const start = source.indexOf('function load(root, isRetry, generation) {');
+const end = source.indexOf('\n  function init(', start);
+if (start < 0 || end < 0) throw new Error('load block not found');
+const loadBlock = source.slice(start, end);
+let requests = 0;
+const calls = [];
+const root = {
+  __e9WorldStageState: { zones: [] },
+  dispatchEvent(event) {
+    if (event.type === 'e9:refresh-requested') calls.push('retry-event');
+  },
+};
+const sandbox = {
+  console,
+  CustomEvent: function (type, init) { return { type, ...(init || {}) }; },
+  renderReadErrorDegradedState() { calls.push('e10-degraded'); },
+  recoverToLegacy() { calls.push('recover'); },
+  window: {
+    E9: {
+      isLifecycleCurrent() { return true; },
+      Adapters: {
+        AdventureState: {
+          refreshAdventureState() {
+            requests += 1;
+            return Promise.resolve({ ok: false, kind: 'network', status: null });
+          },
+        },
+      },
+    },
+  },
+};
+vm.createContext(sandbox);
+new vm.Script(loadBlock).runInContext(sandbox);
+sandbox.load(root, false, 'generation-1');
+setTimeout(() => {
+  assert.strictEqual(requests, 2, 'read error must retry exactly once');
+  assert.deepStrictEqual(calls, ['retry-event', 'e10-degraded']);
+  console.log('read-error retry/E10 boundary: 3 passed, 0 failed');
+}, 0);
+"""
+
+
+def test_read_error_load_retries_once_and_stays_in_e10():
+    result = subprocess.run(
+        ['node', '-e', _READ_ERROR_LOAD_HARNESS, '--', str(ROOT / 'js/e9/world_stage.js')],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        cwd=str(ROOT),
+    )
+    assert result.returncode == 0, f'read-error load routing failed:\n{result.stdout}\n{result.stderr}'
+    assert '3 passed, 0 failed' in result.stdout
+
+
 _ENTRY_NODE_HARNESS = r"""
 'use strict';
 const fs = require('fs');
@@ -154,9 +280,12 @@ const logic = block(
   '  function configureStoryReplayButton('
 );
 const calls = [];
+const e10Root = { __e9WorldStageState: null };
 const sandbox = {
   console,
-  document: { querySelector() { return null; } },
+  document: {
+    querySelector(selector) { return selector === '#adventure-stage' ? e10Root : null; },
+  },
   window: {
     ensureLegacyAdventureMapReady() { calls.push('ensure'); return Promise.resolve(); },
     startAdventureStage(zoneKey, options) { calls.push(['cinematic', zoneKey, options.mode]); },
@@ -169,10 +298,14 @@ new vm.Script(logic).runInContext(sandbox);
 const zone = { key: 'k26_30', locked: false };
 const unseen = { cinematics: { e10_zone1_intro_v1: { seen: false } } };
 const seen = { cinematics: { e10_zone1_intro_v1: { seen: true } } };
+const readError = { cinematicReadError: true, cinematics: { e10_zone1_intro_v1: { seen: true } } };
 sandbox.dispatchZone1Entry({}, zone, unseen);
 sandbox.dispatchZone1Entry({}, zone, seen);
 unseen.zone1EntryInFlight = true;
 sandbox.dispatchZone1Entry({}, zone, unseen);
+sandbox.replayAdventureIntro('k26_30');
+e10Root.__e9WorldStageState = readError;
+sandbox.dispatchZone1Entry({}, zone, readError);
 sandbox.replayAdventureIntro('k26_30');
 
 setTimeout(() => {
@@ -181,8 +314,10 @@ setTimeout(() => {
     'ensure',
     ['cinematic', 'k26_30', 'first_entry'],
     ['cinematic', 'k26_30', 'manual_replay'],
+    ['cinematic', 'k26_30', 'first_entry'],
+    ['cinematic', 'k26_30', 'manual_replay'],
   ]);
-  console.log('entry/replay server-state routing: 4 passed, 0 failed');
+  console.log('entry/replay server-state routing: 6 passed, 0 failed');
 }, 0);
 """
 
@@ -196,4 +331,4 @@ def test_real_entry_helpers_cover_unseen_seen_and_manual_replay_modes():
         cwd=str(ROOT),
     )
     assert result.returncode == 0, f'entry/replay routing failed:\n{result.stdout}\n{result.stderr}'
-    assert '4 passed, 0 failed' in result.stdout
+    assert '6 passed, 0 failed' in result.stdout
