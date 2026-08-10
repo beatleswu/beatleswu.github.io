@@ -8,6 +8,7 @@ SHELL = (ROOT / "js/e9/shell.js").read_text(encoding="utf-8")
 WORLD = (ROOT / "js/e9/world_stage.js").read_text(encoding="utf-8")
 RIGHT = (ROOT / "js/e9/right_cards.js").read_text(encoding="utf-8")
 CSS = (ROOT / "css/e9/immersive_rpg.css").read_text(encoding="utf-8")
+WORLD_STAGE_CSS = (ROOT / "css/e9/world_stage.css").read_text(encoding="utf-8")
 SHELL_CSS = (ROOT / "css/e9/shell.css").read_text(encoding="utf-8")
 REFERENCE_CSS = (ROOT / "css/e9/reference_world_map.css").read_text(encoding="utf-8")
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -76,11 +77,41 @@ def test_portrait_detail_exposes_complete_selected_zone_identity():
         "e9-world-stage-details-summary",
         "e9-world-stage-details-progress",
         "e9-world-stage-details-region-progress",
+        "e9-world-stage-details-boss-progress",
         "e9-world-stage-details-cta",
     ):
         assert f'id="{identity}"' in detail
+    assert 'id="e9-world-stage-details-replay"' in detail
     assert "zone.__e10Index" in WORLD
     assert "zone.stars" in WORLD
+
+
+def test_portrait_detail_uses_authoritative_boss_progress_and_replay_surface():
+    assert "function zoneBossProgressText(zone)" in WORLD
+    assert "if (zone.bossAvailable) return bossReadyText(zone);" in WORLD
+    assert "if (zone.cleared) return clearedText(zone);" in WORLD
+    assert "index.adv.boss_intro_progress" in WORLD
+    assert "var bossProgress = root.querySelector('#e9-world-stage-details-boss-progress');" in WORLD
+    assert "bossProgress.textContent = zoneBossProgressText(zone);" in WORLD
+    assert "configureStoryReplayButton(replay, zone);" in WORLD
+
+
+def test_ipad_zone_card_responsive_layout_preserves_replay_and_close_controls():
+    portrait = CSS.split(
+        '@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait)',
+        1,
+    )[1]
+    detail_rule = portrait.split(
+        '.e9-zone-details:not([hidden]) {',
+        1,
+    )[1].split('}', 1)[0]
+    assert "position: relative" in detail_rule
+    assert "overflow: visible" in detail_rule
+    assert ".e9-zone-details__story-replay" in WORLD_STAGE_CSS
+    assert "white-space: nowrap" in WORLD_STAGE_CSS
+    assert ".e10-drawer-zone-summary {" in CSS
+    summary_rule = CSS.split('.e10-drawer-zone-summary {', 1)[1].split('}', 1)[0]
+    assert "clear: both" in summary_rule
 
 
 def test_all_responsive_ctas_share_one_selected_target_action():
