@@ -14747,9 +14747,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             : Math.max(4200, t.length * 210);
     }
     function playAssetVoice(beat, onDone) {
-        const finishSilently = (audio = null) => {
-            if (audio && audio._introNarrationFinished) return;
-            if (audio) audio._introNarrationFinished = true;
+        const finishSilently = () => {
             const holdMs = computeBeatHoldMs(beat.text);
             const id = setTimeout(() => {
                 if (runId !== _introFilmRunId) return;
@@ -14761,8 +14759,21 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             finishSilently();
             return;
         }
-        const audio = new Audio(beat.audioSrc);
+        // iPad/Safari can grant audible playback to the narration element
+        // created during the entry gesture, but reject later fresh elements
+        // after the media-session boundary. Reuse one narration element for
+        // every spoken beat in this cinematic run; BGM, ambience, and SFX
+        // intentionally keep their separate bed elements.
+        const audio = _introAudio || new Audio();
         _introAudio = audio;
+        try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.onended = null;
+            audio.onerror = null;
+        } catch (e) {}
+        audio.preload = 'auto';
+        audio.src = beat.audioSrc;
         let finished = false;
         const finishSuccess = (delay = 520) => {
             if (finished || runId !== _introFilmRunId) return;
@@ -14770,7 +14781,6 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
-            if (_introAudio === audio) _introAudio = null;
             const id = setTimeout(onDone, delay);
             _introFilmTimers.push(id);
         };
@@ -14787,8 +14797,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
-            if (_introAudio === audio) _introAudio = null;
-            finishSilently(audio);
+            finishSilently();
         };
         audio.onended = () => finishSuccess(720);
         audio.onerror = finishAudioSilently;
