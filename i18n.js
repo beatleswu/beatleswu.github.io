@@ -1442,6 +1442,8 @@ const I18n = (() => {
 'index.adv.quest_challenge_boss': { en: 'Challenge this area\'s boss', zh: '挑戰本區領主' },
 'index.adv.quest_boss_unlocked': { en: 'You can challenge this area\'s boss now.', zh: '可以挑戰本區領主。' },
 'index.adv.quest_boss_remaining': { en: 'Complete {count} more problems to challenge this area\'s boss.', zh: '再完成 {count} 題即可挑戰本區領主。' },
+'index.adv.quest_retry_training': { en: 'Training Again', zh: '再次挑戰修行' },
+'index.adv.quest_retry_training_cta': { en: 'Go Train', zh: '前往修行' },
 'index.adv.boss_first_star_hint': { en: 'Defeat the boss to earn your first star here.', zh: '打敗後可取得第 1 顆星。' },
 'index.adv.quest_replay_training': { en: 'Star training', zh: '補星修行' },
         'index.adv.quest_return_main': { en: 'Return to Mainline', zh: '返回主線' },

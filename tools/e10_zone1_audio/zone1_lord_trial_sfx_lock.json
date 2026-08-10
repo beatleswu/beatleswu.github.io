@@ -1,0 +1,20 @@
+{
+  "_comment": "Governance lock for E10 Zone 1 Lord Trial SFX (2026-08-09, GO ODYSSEY E10 ZONE 1 BEGINNER VILLAGE COMPLETE RPG JOURNEY, Gate A). Completely separate category from zone1_sound_design_lock.json's 35-asset package -- promoting/regenerating these 8 files must never touch that lock or its files. Once status is OWNER_APPROVED, no automated tool may regenerate this set without an explicit override, mirroring zone1_final_tts_lock.json / zone1_sound_design_lock.json's contract.",
+  "status": "OWNER_APPROVED",
+  "approved_date": "2026-08-09",
+  "gate": "GATE_A_SFX_AUDITION",
+  "approved_lord_trial_sfx": [
+    "zone1_lordtrial_lord_card_reveal.mp3",
+    "zone1_lordtrial_lord_challenge_confirm.mp3",
+    "zone1_lordtrial_lord_ritual_energy.mp3",
+    "zone1_lordtrial_go_stone_impact.mp3",
+    "zone1_lordtrial_lord_trial_success.mp3",
+    "zone1_lordtrial_lord_trial_failure.mp3",
+    "zone1_lordtrial_zone_route_energy.mp3",
+    "zone1_lordtrial_zone_unlock_chime.mp3"
+  ],
+  "audition_brief": "tools/e10_zone1_audio/zone1_lord_trial_sfx_brief.json",
+  "source_audition_dir": "tools/e10_zone1_audio/_local_review/lord_trial_sfx",
+  "canonical_package_manifest": "assets/e10/audio/zone1/lord_trial/zone1-lord-trial-sfx-package.json",
+  "does_not_affect": "assets/e10/audio/zone1/zone1-audio-package.json (locked 35-asset package, OWNER_APPROVED_AUDIO_REGENERATED=0)"
+}

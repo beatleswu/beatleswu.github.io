@@ -2710,6 +2710,497 @@
         border-color: rgba(239,68,68,.65);
         box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 0 42px rgba(239,68,68,.18);
     }
+    /* 2026-08-10 (E10 Zone 1 Lord Trial Production Art Integration):
+       Lord Challenge Card / Lord Entrance Ritual / Zone 1 result cards now
+       render the Owner-supplied production backplate/key-art (assets/e10/
+       art/zone1/lord_trial/*.webp) as the primary illustration. CSS here
+       only positions/animates real DOM text and buttons over that art --
+       it is never the artwork itself. Reuses the same bottom-scrim-panel
+       pattern already established for `.intro-film.ready .boss-cinematic-
+       content` (storyboard image + real caption panel), just with a
+       taller panel since these screens carry more content. */
+    .boss-cinematic.phase-lord-card .boss-cinematic-scene,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-scene,
+    .boss-cinematic.result-zone1-win .boss-cinematic-scene,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        padding: 0;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        border-color: rgba(245,201,112,.55);
+        box-shadow: 0 24px 90px rgba(0,0,0,.6);
+        animation: lordCardFrameReveal .6s ease-out both;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-scene,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-scene,
+    .boss-cinematic.result-zone1-win .boss-cinematic-scene {
+        width: min(760px, 92vw);
+        aspect-ratio: 1448 / 1086;
+    }
+    .boss-cinematic.result-zone1-fail .boss-cinematic-scene {
+        width: min(480px, 88vw);
+        aspect-ratio: 1122 / 1402;
+    }
+    /* Narrow phones: the Lord Card / Success panel carries more text than
+       a 4:3 crop has height for at phone width, which clipped the kicker/
+       title above the visible card. Cover-cropping into a taller box keeps
+       the elder and the art's vertical layout (incl. the Success backplate's
+       reveal-circle position, which #zone1-first-star-icon's top:% still
+       relies on) intact -- it only tightens the left/right environment
+       crop, which is an acceptable, common mobile-focus tradeoff. */
+    @media (max-width: 600px) {
+        .boss-cinematic.phase-lord-card .boss-cinematic-scene,
+        .boss-cinematic.phase-lord-ritual .boss-cinematic-scene,
+        .boss-cinematic.result-zone1-win .boss-cinematic-scene {
+            width: 94vw;
+            aspect-ratio: 9 / 16;
+            max-height: 88vh;
+        }
+        /* Lord Card carries the most text of the four (kicker + prompt +
+           title + eligibility + reward + two rules + two buttons) -- give
+           it extra height so the Elder stays visible above the panel
+           instead of being cropped down to just hair/background. */
+        .boss-cinematic.phase-lord-card .boss-cinematic-scene {
+            aspect-ratio: 1 / 2;
+        }
+        .boss-cinematic.result-zone1-fail .boss-cinematic-scene {
+            width: 90vw;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-content,
+        .boss-cinematic.result-zone1-win .boss-cinematic-content,
+        .boss-cinematic.result-zone1-fail .boss-cinematic-content {
+            padding: 10px 14px;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-title,
+        .boss-cinematic.result-zone1-win .boss-cinematic-title,
+        .boss-cinematic.result-zone1-fail .boss-cinematic-title {
+            font-size: clamp(18px, 5.5vw, 26px);
+            margin-bottom: 3px;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-kicker,
+        .boss-cinematic.result-zone1-win .boss-cinematic-kicker,
+        .boss-cinematic.result-zone1-fail .boss-cinematic-kicker {
+            margin-bottom: 5px;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-books,
+        .boss-cinematic.result-zone1-win .boss-cinematic-line,
+        .boss-cinematic.result-zone1-fail .boss-cinematic-line {
+            margin-bottom: 4px;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-progress-body {
+            font-size: 12px;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-rules,
+        .boss-cinematic.result-zone1-fail .boss-cinematic-rules {
+            margin: 2px 0 8px;
+            gap: 6px;
+        }
+        .boss-cinematic.phase-lord-card .boss-cinematic-rules span,
+        .boss-cinematic.result-zone1-fail .boss-cinematic-rules span {
+            font-size: 10px;
+            padding: 5px 8px;
+        }
+        .boss-cinematic-btn, .boss-cinematic-cancel-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+        }
+        .boss-cinematic-actions {
+            gap: 6px;
+        }
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone1/lord_trial/zone1_lord_challenge_backplate.webp');
+    }
+    .boss-cinematic.result-zone1-win .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone1/lord_trial/zone1_first_star_success_backplate.webp');
+    }
+    .boss-cinematic.result-zone1-fail .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone1/lord_trial/zone1_lord_failure_backplate.webp');
+        border-color: rgba(180,170,150,.45);
+        filter: saturate(.82) brightness(.92);
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-monster,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-monster,
+    .boss-cinematic.result-zone1-win .boss-cinematic-monster,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-monster {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-title,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-title,
+    .boss-cinematic.result-zone1-win .boss-cinematic-title,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-title {
+        font-size: clamp(22px, 3.4vw, 34px);
+        background: linear-gradient(90deg, #f5c970, #e8f4e0 45%, #2dd4bf);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 6px;
+    }
+    /* Bottom scrim panel -- same idea as .intro-film.ready's caption
+       panel: art carries the illustration, this panel exists only so
+       dynamic text/rules/buttons stay legible over it. */
+    .boss-cinematic.phase-lord-card .boss-cinematic-content,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-content,
+    .boss-cinematic.result-zone1-win .boss-cinematic-content,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-content {
+        position: absolute;
+        left: 6%;
+        right: 6%;
+        bottom: 5%;
+        z-index: 3;
+        text-align: center;
+        padding: 14px 18px;
+        border: 1px solid rgba(245,201,112,.35);
+        border-radius: 14px;
+        background: rgba(15, 14, 10, .68);
+        backdrop-filter: blur(6px);
+    }
+    /* The progress block was designed for a different, taller modal --
+       here only its "prompt" body line is used, so strip its own nested
+       box chrome and empty title/boss/zone/count rows rather than let
+       them eat vertical space inside the (already boxed) scrim panel. */
+    .boss-cinematic.phase-lord-card .boss-cinematic-progress-title,
+    .boss-cinematic.phase-lord-card .boss-cinematic-progress-boss,
+    .boss-cinematic.phase-lord-card .boss-cinematic-progress-zone,
+    .boss-cinematic.phase-lord-card .boss-cinematic-progress-count {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-progress {
+        margin: 0 0 10px;
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-progress-body {
+        margin-top: 0;
+        font-size: 13px;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-kicker,
+    .boss-cinematic.phase-lord-card .boss-cinematic-title,
+    .boss-cinematic.phase-lord-card .boss-cinematic-books,
+    .boss-cinematic.phase-lord-card .boss-cinematic-line {
+        margin-bottom: 6px;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-rules {
+        margin: 4px 0 12px;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-kicker,
+    .boss-cinematic.result-zone1-win .boss-cinematic-kicker,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-kicker {
+        margin-bottom: 8px;
+    }
+    @keyframes lordCardFrameReveal {
+        from { opacity: 0; transform: scale(.97); filter: brightness(.7); }
+        to { opacity: 1; transform: scale(1); filter: brightness(1); }
+    }
+    /* Entrance Ritual: the key art IS the scene (real <img>, gently
+       pushed-in/panned via transform, never a static 4s picture) with the
+       existing board/particle/stone overlay layered on top. */
+    #lord-ritual-key-art {
+        display: none;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 38%;
+        z-index: 0;
+    }
+    .boss-cinematic.phase-lord-ritual #lord-ritual-key-art {
+        display: block;
+        animation: lordRitualKeyArtPushIn 4s ease-out both;
+    }
+    @keyframes lordRitualKeyArtPushIn {
+        0% { transform: scale(1.14) translateY(1%); filter: brightness(.55) saturate(.75); }
+        30% { filter: brightness(.85) saturate(.9); }
+        100% { transform: scale(1.02) translateY(0); filter: brightness(1) saturate(1); }
+    }
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-scene {
+        border-color: rgba(20,184,166,.55);
+        box-shadow: 0 24px 100px rgba(0,0,0,.7), inset 0 0 70px rgba(20,184,166,.22);
+    }
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-books,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-rules,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-progress,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-cancel-btn,
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-btn {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-kicker {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-content {
+        background: rgba(10, 14, 12, .45);
+        border-color: rgba(20,184,166,.4);
+        bottom: 8%;
+        animation: ritualBoardGlow 3.6s ease-in-out infinite;
+    }
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-title {
+        text-shadow: 0 0 30px rgba(245,201,112,.6);
+    }
+    .boss-cinematic.phase-lord-ritual .boss-cinematic-line {
+        color: #e8f4e0;
+        font-style: italic;
+        margin-bottom: 0;
+    }
+    @keyframes ritualBoardGlow {
+        0%, 100% { box-shadow: inset 0 0 0 rgba(245,201,112,0); }
+        50% { box-shadow: inset 0 0 30px rgba(20,184,166,.25); }
+    }
+    #lord-ritual-stones, #lord-ritual-particles, #lord-ritual-final-stone {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 2;
+    }
+    .lord-ritual-stone {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        opacity: 0;
+        animation: lordRitualStoneFloat 2.4s ease-in-out forwards;
+    }
+    .lord-ritual-stone.black { background: radial-gradient(circle at 35% 30%, #444, #050505); box-shadow: 0 0 10px rgba(0,0,0,.6); }
+    .lord-ritual-stone.white { background: radial-gradient(circle at 35% 30%, #fff, #d9d2c0); box-shadow: 0 0 12px rgba(245,201,112,.5); }
+    @keyframes lordRitualStoneFloat {
+        0% { opacity: 0; transform: translateY(30px) scale(.6); }
+        18% { opacity: 1; }
+        75% { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-40px) scale(1); }
+    }
+    /* Note: the CSS-drawn board-grid overlay (#lord-ritual-board) used
+       here before the production key art was integrated has been removed
+       -- 04_lord_ritual_key_art.webp already shows a real Go board, and a
+       second CSS grid on top of it read as redundant/competing geometry
+       rather than an enhancement. */
+    /* Restrained gold/teal embers -- ambient texture behind the stones, not
+       a generic sparkle-everywhere effect. */
+    .lord-ritual-particle {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        opacity: 0;
+        animation: lordRitualParticleRise 3.2s ease-in forwards;
+    }
+    .lord-ritual-particle.gold { background: #f5c970; box-shadow: 0 0 6px rgba(245,201,112,.9); }
+    .lord-ritual-particle.teal { background: #2dd4bf; box-shadow: 0 0 6px rgba(45,212,191,.9); }
+    @keyframes lordRitualParticleRise {
+        0% { opacity: 0; transform: translateY(0) translateX(0); }
+        12% { opacity: .85; }
+        80% { opacity: .5; }
+        100% { opacity: 0; transform: translateY(-90px) translateX(var(--drift, 12px)); }
+    }
+    /* The decisive stone: appears only at the GO_STONE_IMPACT beat, slams
+       down with weight, then a brief shockwave ring -- the signature
+       battle-transition moment (never generic combat VFX). */
+    .lord-ritual-final-stone-piece {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 34px;
+        height: 34px;
+        margin: -17px 0 0 -17px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #444, #050505);
+        box-shadow: 0 0 0 rgba(0,0,0,0);
+        animation: lordRitualStoneSlam .45s cubic-bezier(.2,.9,.3,1.3) both;
+    }
+    .lord-ritual-final-stone-ring {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 34px;
+        height: 34px;
+        margin: -17px 0 0 -17px;
+        border-radius: 50%;
+        border: 2px solid rgba(245,201,112,.8);
+        opacity: 0;
+        animation: lordRitualStoneRing .7s ease-out .12s both;
+    }
+    @keyframes lordRitualStoneSlam {
+        0% { transform: scale(2.6) translateY(-60px); opacity: 0; }
+        70% { transform: scale(.92) translateY(0); opacity: 1; }
+        100% { transform: scale(1) translateY(0); opacity: 1; box-shadow: 0 0 24px rgba(245,201,112,.6); }
+    }
+    @keyframes lordRitualStoneRing {
+        0% { transform: scale(.4); opacity: .9; border-width: 4px; }
+        100% { transform: scale(3.2); opacity: 0; border-width: 1px; }
+    }
+    /* Zone 1 success/failure result cards -- restrained, not a generic RPG
+       win/lose flash. Backplate/border/box-shadow are set above alongside
+       the other Lord Trial phases; this section covers the First Star
+       reward object (the actual Owner-supplied icon, never a CSS/Unicode
+       star) and failure's darker, non-death treatment. */
+    #zone1-first-star-icon {
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 27%;
+        width: 20%; /* ~18% larger than the original 17% -- Zone 1's biggest payoff moment (Owner polish request) */
+        transform: translate(-50%, -50%) scale(.4);
+        opacity: 0;
+        z-index: 3;
+        filter: drop-shadow(0 0 26px rgba(245,201,112,.7));
+    }
+    /* Lord Challenge Card's top ornamental plaque -- real DOM text placed
+       over the art's own blank title bar (Owner polish request). Position
+       is a %-of-scene anchor, which stays correctly aligned across the
+       desktop/iPad 4:3 crop and the phone 1:2 crop because background-size:
+       cover scales this backplate by height in both cases, preserving the
+       art's vertical layout 1:1 regardless of aspect ratio (the same
+       property #zone1-first-star-icon's top:27% already relies on). */
+    #zone1-lord-card-plaque-title {
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 10%;
+        width: 62%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 3;
+        font: 700 clamp(9px, 2.4vw, 11px)/1.3 'DM Mono', monospace;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #fbbf24;
+        text-shadow: 0 1px 3px rgba(0,0,0,.65), 0 0 12px rgba(0,0,0,.4);
+        pointer-events: none;
+    }
+    .boss-cinematic.phase-lord-card #zone1-lord-card-plaque-title {
+        display: block;
+    }
+    .boss-cinematic.phase-lord-card .boss-cinematic-content #boss-cinematic-kicker {
+        display: none;
+    }
+    .boss-cinematic.result-zone1-win #zone1-first-star-icon {
+        display: block;
+        animation: zone1StarMaterialize 1.1s cubic-bezier(.2,.85,.3,1.2) .15s both;
+    }
+    @keyframes zone1StarMaterialize {
+        0% { transform: translate(-50%, -50%) scale(.3); opacity: 0; }
+        60% { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    .boss-cinematic.result-zone1-win .boss-cinematic-progress,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-progress,
+    .boss-cinematic.result-zone1-win .boss-cinematic-cancel-btn,
+    .boss-cinematic.result-zone1-fail .boss-cinematic-cancel-btn {
+        display: none;
+    }
+    /* Zone Unlock Reveal (2026-08-10 Owner correction) -- the animation
+       itself runs directly on the real #adventure-map-shell /
+       #adventure-route-progress / .adventure-node elements declared with
+       #skill-map above; nothing here draws a second map. These rules are
+       just the temporary state classes showZone1UnlockReveal() toggles on
+       those real elements, plus the compact result banner shown after. */
+    #adventure-map-shell {
+        transform: scale(1);
+        transform-origin: 50% 50%;
+    }
+    .adventure-node.zone1-reveal-pulse {
+        animation: zone1RevealNodePulse 1.1s ease-out infinite;
+    }
+    @keyframes zone1RevealNodePulse {
+        0% { box-shadow: 0 8px 14px rgba(41,27,10,.18), 0 0 0 0 rgba(245,201,112,.7); }
+        70% { box-shadow: 0 8px 14px rgba(41,27,10,.18), 0 0 0 16px rgba(245,201,112,0); }
+        100% { box-shadow: 0 8px 14px rgba(41,27,10,.18), 0 0 0 0 rgba(245,201,112,0); }
+    }
+    /* Re-fogged Zone 2 node mid-reveal (already-unlocked real node, briefly
+       dimmed back so the player watches it wake up). */
+    .adventure-node.zone1-reveal-relock {
+        filter: grayscale(.4) brightness(.75);
+    }
+    .adventure-node .zone1-reveal-fog {
+        transition: opacity .6s ease;
+    }
+    .adventure-node .zone1-reveal-fog.fade-out {
+        opacity: 0;
+    }
+    .adventure-node.zone1-reveal-awaken {
+        animation: zone1RevealNodeAwaken .7s ease-out both;
+    }
+    @keyframes zone1RevealNodeAwaken {
+        0% { filter: grayscale(.4) brightness(.75); transform: translate(-50%, -50%) scale(1); }
+        55% { filter: grayscale(0) brightness(1.3); transform: translate(-50%, -50%) scale(1.22); }
+        100% { filter: grayscale(0) brightness(1); transform: translate(-50%, -50%) scale(1); }
+    }
+    /* Compact result banner -- a slim bottom sheet, shown only after the
+       real-map animation above finishes. Must never cover the map/route. */
+    #zone1-unlock-banner {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%) translateY(140%);
+        z-index: 9500;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        max-width: min(640px, 94vw);
+        padding: 12px 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(245,201,112,.5);
+        background: rgba(15,20,18,.92);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 18px 50px rgba(0,0,0,.5);
+        color: #fff7df;
+        opacity: 0;
+        pointer-events: none;
+        transition: transform .5s cubic-bezier(.22,.85,.32,1.15), opacity .4s ease;
+    }
+    #zone1-unlock-banner.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    #zone1-unlock-banner-kicker {
+        font: 700 10px/1 'DM Mono', monospace;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #fbbf24;
+        margin-bottom: 4px;
+    }
+    #zone1-unlock-banner-title {
+        font-size: 18px;
+        font-weight: 800;
+        background: linear-gradient(90deg, #f5c970, #2dd4bf);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    #zone1-unlock-banner-sub {
+        font-size: 12px;
+        color: rgba(255,247,223,.75);
+    }
+    #zone1-unlock-banner-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-left: auto;
+    }
+    #zone1-unlock-banner-actions .boss-cinematic-cancel-btn,
+    #zone1-unlock-banner-actions .boss-cinematic-btn {
+        padding: 9px 16px;
+        font-size: 13px;
+    }
+    @media (max-width: 600px) {
+        #zone1-unlock-banner {
+            left: 3vw;
+            right: 3vw;
+            max-width: none;
+            transform: translateY(140%);
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+        #zone1-unlock-banner.show { transform: translateY(0); }
+        #zone1-unlock-banner-actions { margin-left: 0; justify-content: center; }
+    }
     .boss-cinematic-content {
         position: relative;
         z-index: 3;
@@ -6714,6 +7205,20 @@
             </div>
             <div class="film-title-card" data-i18n="index.film.title_card">圍棋新手村：木劍的試煉</div>
         </div>
+        <img id="lord-ritual-key-art" src="/assets/e10/art/zone1/lord_trial/zone1_lord_ritual_key_art.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+        <div id="lord-ritual-particles" aria-hidden="true"></div>
+        <div id="lord-ritual-stones" aria-hidden="true"></div>
+        <div id="lord-ritual-final-stone" aria-hidden="true"></div>
+        <img id="zone1-first-star-icon" src="/assets/e10/art/zone1/lord_trial/zone1_first_star.webp" alt="" aria-hidden="true">
+        <!-- Real DOM title placed over the Lord Challenge Card backplate's
+             own top ornamental plaque (Owner polish request), instead of
+             leaving that plaque blank while the kicker also sits in the
+             bottom content panel. #boss-cinematic-kicker itself is shared
+             across every zone's boss-cinematic phase, so it isn't moved in
+             markup -- this is a separate element, shown only for
+             phase-lord-card, and the shared kicker is hidden for that one
+             phase only (see CSS). -->
+        <div id="zone1-lord-card-plaque-title" aria-hidden="true"></div>
         <div class="boss-cinematic-content" id="boss-cinematic-content">
             <div class="boss-cinematic-kicker modal-system-eyebrow" id="boss-cinematic-kicker" data-i18n="index.boss.kicker">領主封印解除</div>
             <div class="boss-cinematic-progress" id="boss-cinematic-progress">
@@ -6737,6 +7242,25 @@
                 <button class="boss-cinematic-btn modal-system-cta" id="boss-cinematic-btn" onclick="confirmBossBattle()" data-i18n="index.boss.start">開始決戰</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- ZONE UNLOCK BANNER (E10 Zone 1, 2026-08-10 Owner correction) -- the
+     Zone 1 -> Zone 2 route animation itself happens directly on the real
+     #adventure-map-shell / #adventure-route-progress / .adventure-node
+     elements (see the showZone1UnlockReveal function). This is only the
+     compact result banner that appears AFTER that real-map animation
+     finishes -- a slim bottom sheet, never a full-screen modal, so it never
+     covers the map or the road it just lit up. -->
+<div id="zone1-unlock-banner" aria-hidden="true">
+    <div id="zone1-unlock-banner-text">
+        <div id="zone1-unlock-banner-kicker"></div>
+        <div id="zone1-unlock-banner-title"></div>
+        <div id="zone1-unlock-banner-sub"></div>
+    </div>
+    <div id="zone1-unlock-banner-actions">
+        <button class="boss-cinematic-cancel-btn" id="zone1-unlock-banner-stay" type="button"></button>
+        <button class="boss-cinematic-btn modal-system-cta" id="zone1-unlock-banner-go" type="button"></button>
     </div>
 </div>
 
@@ -10555,14 +11079,31 @@ let _introFilmTimers = [];
 let _introNarration = null;
 let _introSpeechTimers = [];
 let _introAudio = null;
+// Decorative BGM/ambience/SFX beds for Zone 1's cinematic (E10-Z1-AUDIO-
+// PRODUCTION-001). Separate from _introAudio (spoken narration, which gates
+// the sequencer's pacing) -- these never affect activateShot's advance
+// timing, and a blocked/rejected play() (browser autoplay policy) is always
+// silently swallowed so the cinematic plays out identically with or without
+// sound. Every other zone leaves locale.bgmMainTheme/bgmPostClearUrgency/
+// ambienceVillageDawn undefined, so none of this fires for them.
+let _introBgmAudio = null;
+let _introAmbienceAudio = null;
+let _introSfxAudio = null;
 let _introFilmRunId = 0;
 // Tracks what the CURRENTLY-SHOWING (or most-recently-shown) intro-film
 // overlay run actually is, so skipIntroFilm()/replayIntroFilm() -- both
 // zone-key-driven, not caller-driven -- can resume/finish the SAME phase
-// instead of always falling back to the PRE_PLAY timeline. 'pre_play' is
-// every existing zone's only phase; 'post_clear' is Zone 1-only (see
-// playZone1PostClearFilm). Set at the top of every playNewbieVillageIntroFilm
-// call and read back verbatim by skip/replay -- never guessed independently.
+// instead of always falling back to the ZONE_ENTRY timeline. 'pre_play' is
+// every existing zone's only phase (and Zone 1's ZONE_ENTRY, Shots 1-6);
+// 'boss_ready' (Zone 1's BOSS_READY, Shots 7-8, see playZone1BossReadyFilm)
+// and 'post_clear' (Zone 1's POST_CLEAR, Shots 9-10, see
+// playZone1PostClearFilm) are Zone-1-only. The internal string 'pre_play'
+// is kept as-is for ZONE_ENTRY (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT,
+// 2026-08-09) to avoid an unrelated rename churn -- the Owner's three-act
+// semantic model (ZONE_ENTRY / BOSS_READY / POST_CLEAR) is what's
+// authoritative, not this particular string's spelling. Set at the top of
+// every playNewbieVillageIntroFilm call and read back verbatim by
+// skip/replay -- never guessed independently.
 let _introFilmActiveOpts = { timeline: null, onComplete: null, phase: 'pre_play' };
 let _introVoiceOptions = [];
 let _introVoiceIndex = 0;
@@ -11451,6 +11992,18 @@ function _adventureBossReady(zone) {
     // resets) -- so it must never be treated as "still challengeable" on
     // its own once the boss has already been defeated.
     if (zone?.cleared) return false;
+    // 2026-08-09 (E10 Zone 1 Beginner Village Complete RPG Journey, section
+    // 11): a failed Lord Trial attempt sets a real server-side cooldown
+    // (app.py BOSS_FAIL_COOLDOWN, exposed as zone.cooldown_left) that is
+    // completely separate from boss.remaining_to_challenge (which only
+    // tracks the original 30% unlock threshold and can already be 0/stale
+    // during an active cooldown, since the player necessarily passed that
+    // threshold once already to reach the boss). Without this check, a
+    // player mid-cooldown could see a "Challenge Lord" CTA that the server
+    // would then correctly reject at /api/adventure/boss/start (fail-closed
+    // there too) -- this just keeps the client UI honest about the same
+    // authoritative state, it does not compute cooldown itself.
+    if (Number(zone?.cooldown_left) > 0) return false;
     const boss = zone?.boss && typeof zone.boss === 'object' ? zone.boss : null;
     const remaining = Number(boss?.remaining_to_challenge);
     return boss?.available === true || (Number.isFinite(remaining) && remaining <= 0);
@@ -11475,6 +12028,9 @@ function _adventureQuestStatusMeta(zone, cta) {
     }
     if (cta?.state === 'replay_training') {
         return { className: 'replay', text: I18n.t('index.adv.skipped_replay') };
+    }
+    if (cta?.state === 'retry_training') {
+        return { className: 'training', text: I18n.t('index.adv.quest_retry_training') };
     }
     if (cta?.messageKey) {
         const count = cta.messageCount;
@@ -11577,6 +12133,26 @@ function _adventureQuestCtaState(zone) {
             sfx: 'map_start',
         };
     }
+    // 2026-08-09 (E10 Zone 1 Beginner Village Complete RPG Journey, section
+    // 11/16/41): a DISTINCT state from 'training_needed' -- this is the
+    // post-failure retry-training count (zone.cooldown_left, server-real,
+    // see _adventureBossReady's matching fix above), never the original
+    // 30% unlock count (boss.remaining_to_challenge). Confusing the two
+    // was the exact bug the Owner flagged: remaining_to_challenge is
+    // already 0 at this point (the player necessarily passed 30% once to
+    // reach the boss), so falling through to 'training_needed' below would
+    // silently show "0 more questions" during an active cooldown.
+    if (Number(zone?.cooldown_left) > 0) {
+        return {
+            state: 'retry_training',
+            action: `startAdventureStage('${zone.key}')`,
+            labelKey: 'index.adv.quest_retry_training_cta',
+            nextLabelKey: 'index.adv.quest_retry_training_cta',
+            messageKey: 'index.adv.quest_boss_remaining',
+            messageCount: zone.cooldown_left,
+            sfx: 'map_start',
+        };
+    }
     return {
         state: 'training_needed',
         action: `startAdventureStage('${zone.key}')`,
@@ -11596,7 +12172,13 @@ function _renderNewbieVillageMainline(zone, cta) {
         ? 'adventure.newbie.cta_boss'
         : (zone?.seen || zone?.progress?.completed_count ? 'adventure.newbie.cta_continue' : 'adventure.newbie.cta_begin');
     const progress = zone?.progress && typeof zone.progress === 'object' ? zone.progress : null;
-    const remaining = zone?.boss?.remaining_to_challenge;
+    // 2026-08-09: read the count off cta.messageCount (correctly switches
+    // between the 30% unlock threshold and the post-failure retry-cooldown
+    // count depending on cta.state -- see _adventureQuestCtaState's
+    // 'retry_training' branch) rather than always reading
+    // zone.boss.remaining_to_challenge directly, which would show a stale
+    // 0 during an active cooldown (section 11).
+    const remaining = cta?.messageCount != null ? cta.messageCount : zone?.boss?.remaining_to_challenge;
     const progressLine = bossReady
         ? I18n.t('adventure.newbie.boss_ready')
         : cleared
@@ -12194,6 +12776,10 @@ function updateMapProgress(data) {
         // fresh adventure-progress load, a no-op unless a genuine clear left
         // Shots 9-10 pending but unseen (see _resumeZone1PostClearIfPending).
         _resumeZone1PostClearIfPending();
+        // BOSS_READY announcement (Shots 7-8, E10-Z1-CINEMATIC-TRIGGER-
+        // REALIGNMENT): also runs on every fresh load, a no-op unless
+        // _adventureBossReady(k26_30) is newly true and not yet seen.
+        _maybeTriggerZone1BossReadyFilm(zones);
         if (!zones.length) {
             _activeBossZone = null;
             _setAdventureStoredSelectedStageKey('');
@@ -12362,6 +12948,40 @@ function clearAdventurePostClearPending(zone) {
     } catch {}
 }
 
+// 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): "seen the BOSS_READY
+// Shots 7-8 announcement" -- a third, distinct flag from both
+// ADVENTURE_INTRO_STORAGE_KEY (ZONE_ENTRY, Shots 1-6) and
+// ADVENTURE_POSTCLEAR_STORAGE_KEY (POST_CLEAR, Shots 9-10). No "pending"
+// counterpart is needed here (unlike POST_CLEAR): boss-ready is a stable,
+// re-derivable STATE from _adventureBossReady(zone) on every fresh
+// adventure-progress load, not a one-time server event that could be lost
+// on reload -- there is nothing to "recover", it's simply re-checked.
+// Account-scoped via the same _postClearAccountId() as POST_CLEAR, same
+// shared-browser rationale.
+const ADVENTURE_BOSSREADY_STORAGE_KEY = 'adventure_bossready_seen_v1';
+
+function adventureBossReadyFilmSeen(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return false;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_BOSSREADY_STORAGE_KEY) || '{}');
+        return !!byUser[uid]?.[zone.key];
+    } catch {
+        return false;
+    }
+}
+
+function markAdventureBossReadyFilmSeen(zone) {
+    const uid = _postClearAccountId();
+    if (!zone?.key || !uid) return;
+    try {
+        const byUser = JSON.parse(localStorage.getItem(ADVENTURE_BOSSREADY_STORAGE_KEY) || '{}');
+        byUser[uid] = byUser[uid] || {};
+        byUser[uid][zone.key] = Date.now();
+        localStorage.setItem(ADVENTURE_BOSSREADY_STORAGE_KEY, JSON.stringify(byUser));
+    } catch {}
+}
+
 function applyIntroFilmShotAssets(timeline = []) {
     const stage = document.getElementById('intro-film-stage');
     const shots = stage ? Array.from(stage.querySelectorAll('.film-shot')) : [];
@@ -12457,6 +13077,74 @@ function getCurrentIntroZone() {
         || ADVENTURE_ZONES[0];
 }
 
+// Decorative bed helpers (BGM/ambience/SFX). Never gate the dialogue
+// sequencer: no error here is allowed to throw or affect activateShot's
+// pacing. loop/volume defaults keep BGM/ambience well under spoken
+// dialogue's implicit full volume.
+function _stopIntroBgm() {
+    if (_introBgmAudio) {
+        try { _introBgmAudio.pause(); _introBgmAudio.currentTime = 0; } catch (e) {}
+    }
+    _introBgmAudio = null;
+}
+function _stopIntroAmbience() {
+    if (_introAmbienceAudio) {
+        try { _introAmbienceAudio.pause(); _introAmbienceAudio.currentTime = 0; } catch (e) {}
+    }
+    _introAmbienceAudio = null;
+}
+function _stopIntroSfx() {
+    if (_introSfxAudio) {
+        try { _introSfxAudio.pause(); } catch (e) {}
+    }
+    _introSfxAudio = null;
+}
+function _startIntroBgm(src, opts = {}) {
+    const loop = opts.loop !== false;
+    const volume = opts.volume ?? 0.35;
+    if (!src) return;
+    if (_introBgmAudio && _introBgmAudio.src && _introBgmAudio.src.indexOf(src) !== -1) return;
+    _stopIntroBgm();
+    try {
+        const audio = new Audio(src);
+        audio.loop = loop;
+        audio.volume = volume;
+        _introBgmAudio = audio;
+        audio.play().catch(() => {});
+    } catch (e) {}
+}
+function _startIntroAmbience(src, opts = {}) {
+    const volume = opts.volume ?? 0.22;
+    if (!src) return;
+    if (_introAmbienceAudio && _introAmbienceAudio.src && _introAmbienceAudio.src.indexOf(src) !== -1) return;
+    _stopIntroAmbience();
+    try {
+        const audio = new Audio(src);
+        // opts.loop:false lets one-shot underscore beds (e.g. Lord Trial
+        // ritual energy, zone-route travel energy) share this same bed slot
+        // instead of duplicating BGM/ambience's play/stop machinery.
+        audio.loop = opts.loop !== false;
+        audio.volume = volume;
+        _introAmbienceAudio = audio;
+        audio.play().catch(() => {});
+    } catch (e) {}
+}
+function _playIntroSfxAsset(src, opts = {}) {
+    const volume = opts.volume ?? 0.8;
+    if (!src) return;
+    // Stop any still-playing one-shot before starting the next -- prevents a
+    // later stinger (e.g. GO_STONE_IMPACT) from ringing on top of an earlier
+    // one that hasn't finished, and prevents duplicate overlap on repeat
+    // triggers (e.g. re-opening the same card).
+    _stopIntroSfx();
+    try {
+        const audio = new Audio(src);
+        audio.volume = volume;
+        _introSfxAudio = audio;
+        audio.play().catch(() => {});
+    } catch (e) {}
+}
+
 function _stopIntroFilm() {
     _introFilmRunId++;
     _introFilmTimers.forEach(id => clearTimeout(id));
@@ -12472,6 +13160,9 @@ function _stopIntroFilm() {
         } catch (e) {}
     }
     _introAudio = null;
+    _stopIntroBgm();
+    _stopIntroAmbience();
+    _stopIntroSfx();
     try {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } catch (e) {}
@@ -13461,6 +14152,9 @@ function getIntroFilmLocaleConfig(zone) {
                 uiLang: 'en',
                 preferredLang: 'en-GB',
                 filmTitle: zone?.filmTitle || ADVENTURE_STORY_EN?.[zone?.key]?.filmTitle || 'Go Starter Village: The Wooden Sword Trial',
+                bgmMainTheme: '/assets/e10/audio/zone1/bgm/zone1_bgm_main_theme.mp3',
+                bgmPostClearUrgency: '/assets/e10/audio/zone1/bgm/zone1_bgm_post_clear_urgency.mp3',
+                ambienceVillageDawn: '/assets/e10/audio/zone1/ambience/zone1_ambience_village_dawn.mp3',
                 timeline: [
                     {
                         shot: 0,
@@ -13469,7 +14163,7 @@ function getIntroFilmLocaleConfig(zone) {
                         imageAlt: 'Morning light settles over the sleeping village',
                         sfx: 'morning',
                         beats: [
-                            { speaker: 'anna', text: "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual." },
+                            { speaker: 'anna', text: "The morning bells haven't rung yet, but the village wind already carries a hint of... something unusual.", audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot01_beat01_en_anna.mp3' },
                         ],
                     },
                     {
@@ -13479,8 +14173,8 @@ function getIntroFilmLocaleConfig(zone) {
                         imageAlt: 'Hero wakes beside Shui',
                         sfx: 'appear',
                         beats: [
-                            { speaker: 'elder', text: 'Morning, child.' },
-                            { speaker: 'hero', text: 'Morning, Shui.' },
+                            { speaker: 'elder', text: 'Morning, child.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat01_en_elder.mp3' },
+                            { speaker: 'hero', text: 'Morning, Shui.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat02_en_hero.mp3' },
                         ],
                     },
                     {
@@ -13497,9 +14191,9 @@ function getIntroFilmLocaleConfig(zone) {
                         imageAlt: 'The Elder points at a cloud that has not moved in three days',
                         sfx: 'pulse',
                         beats: [
-                            { speaker: 'elder', text: 'Look at that cloud.' },
-                            { speaker: 'elder', text: "It's been sitting there for three days." },
-                            { speaker: 'elder', text: 'And... every day, it gets a little closer.' },
+                            { speaker: 'elder', text: 'Look at that cloud.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat01_en_elder.mp3' },
+                            { speaker: 'elder', text: "It's been sitting there for three days.", audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat02_en_elder.mp3' },
+                            { speaker: 'elder', text: 'And... every day, it gets a little closer.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat03_en_elder.mp3' },
                         ],
                     },
                     {
@@ -13507,6 +14201,7 @@ function getIntroFilmLocaleConfig(zone) {
                         caption: 'Shot 5: The Wooden Sword',
                         imageSrc: '/assets/storyboards/e10_z1_shot05.webp',
                         imageAlt: 'Hero grips a wooden sword',
+                        sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot05_wooden_sword_grip.mp3',
                         beats: [],
                     },
                     {
@@ -13516,15 +14211,25 @@ function getIntroFilmLocaleConfig(zone) {
                         imageAlt: 'Hero, Shui, and the wooden sword in the farmyard',
                         sfx: 'journey',
                         beats: [
-                            { speaker: 'hero', text: "I don't know if I can do this..." },
-                            { speaker: 'hero', text: 'But I want to go see for myself.' },
+                            { speaker: 'hero', text: "I don't know if I can do this...", audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat01_en_hero.mp3' },
+                            { speaker: 'hero', text: 'But I want to go see for myself.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat02_en_hero.mp3' },
                         ],
                     },
+                ],
+                // 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): Shots 7-8
+                // moved out of `timeline` (ZONE_ENTRY, Shots 1-6) into their own
+                // array, played only on the authoritative boss-ready transition
+                // (see playZone1BossReadyFilm) -- never as part of first zone
+                // entry. Elder's Shot 8 line ("play one game with me first")
+                // narratively only makes sense once the player has actually
+                // earned the challenge.
+                bossReadyTimeline: [
                     {
                         shot: 6,
                         caption: 'Shot 7: The Ritual Board',
                         imageSrc: '/assets/storyboards/e10_z1_shot07.webp',
                         imageAlt: 'A 19x19 stone board as the Elder gestures',
+                        sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3',
                         beats: [],
                     },
                     {
@@ -13534,9 +14239,9 @@ function getIntroFilmLocaleConfig(zone) {
                         imageAlt: 'The board covered in scattered stones',
                         sfx: 'start',
                         beats: [
-                            { speaker: 'elder', text: 'If you want to leave the village, play one game with me first.' },
-                            { speaker: 'elder', text: "Don't rush." },
-                            { speaker: 'elder', text: 'Look carefully. Then make your move.' },
+                            { speaker: 'elder', text: 'If you want to leave the village, play one game with me first.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat01_en_elder.mp3' },
+                            { speaker: 'elder', text: "Don't rush.", audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat02_en_elder.mp3' },
+                            { speaker: 'elder', text: 'Look carefully. Then make your move.', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat03_en_elder.mp3' },
                         ],
                     },
                 ],
@@ -13546,6 +14251,7 @@ function getIntroFilmLocaleConfig(zone) {
                         caption: 'Shot 9: Echo of the Trial',
                         imageSrc: '/assets/storyboards/e10_z1_shot09.webp',
                         imageAlt: 'The board after the trial, silence intentional',
+                        sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot09_seal_unlock_pulse.mp3',
                         beats: [],
                     },
                     {
@@ -13554,10 +14260,11 @@ function getIntroFilmLocaleConfig(zone) {
                         imageSrc: '/assets/storyboards/e10_z1_shot10.webp',
                         imageAlt: 'A village runner arrives with urgent news',
                         sfx: 'pulse',
+                        sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot10_hard_cut_sting.mp3',
                         beats: [
-                            { speaker: 'runner', text: 'Elder!' },
-                            { speaker: 'runner', text: 'The caravan from the Slime Plains...' },
-                            { speaker: 'runner', text: "It's been three days, and they still haven't come back!" },
+                            { speaker: 'runner', text: 'Elder!', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat01_en_runner.mp3' },
+                            { speaker: 'runner', text: 'The caravan from the Slime Plains...', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat02_en_runner.mp3' },
+                            { speaker: 'runner', text: "It's been three days, and they still haven't come back!", audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat03_en_runner.mp3' },
                         ],
                     },
                 ],
@@ -13567,6 +14274,9 @@ function getIntroFilmLocaleConfig(zone) {
             uiLang: 'zh',
             preferredLang: 'zh-TW',
             filmTitle: zone?.filmTitle || ADVENTURE_STORY[zone?.key]?.filmTitle || '圍棋新手村：木劍的試煉',
+            bgmMainTheme: '/assets/e10/audio/zone1/bgm/zone1_bgm_main_theme.mp3',
+            bgmPostClearUrgency: '/assets/e10/audio/zone1/bgm/zone1_bgm_post_clear_urgency.mp3',
+            ambienceVillageDawn: '/assets/e10/audio/zone1/ambience/zone1_ambience_village_dawn.mp3',
             timeline: [
                 {
                     shot: 0,
@@ -13575,7 +14285,7 @@ function getIntroFilmLocaleConfig(zone) {
                     imageAlt: '晨光落在沉睡的村莊上',
                     sfx: 'morning',
                     beats: [
-                        { speaker: 'anna', text: '清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。' },
+                        { speaker: 'anna', text: '清晨的鐘聲還沒響起，村子的風，已經帶來一絲……不尋常的氣息。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot01_beat01_zh_anna.mp3' },
                     ],
                 },
                 {
@@ -13585,8 +14295,8 @@ function getIntroFilmLocaleConfig(zone) {
                     imageAlt: '主角在小水身邊醒來',
                     sfx: 'appear',
                     beats: [
-                        { speaker: 'elder', text: '孩子，天亮了。' },
-                        { speaker: 'hero', text: '早啊，小水。' },
+                        { speaker: 'elder', text: '孩子，天亮了。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat01_zh_elder.mp3' },
+                        { speaker: 'hero', text: '早啊，小水。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot02_beat02_zh_hero.mp3' },
                     ],
                 },
                 {
@@ -13603,9 +14313,9 @@ function getIntroFilmLocaleConfig(zone) {
                     imageAlt: '村長指向三天未曾移動的雲',
                     sfx: 'pulse',
                     beats: [
-                        { speaker: 'elder', text: '你看，那片雲。' },
-                        { speaker: 'elder', text: '它已經停在那裡三天了。' },
-                        { speaker: 'elder', text: '而且……每天都更近一點。' },
+                        { speaker: 'elder', text: '你看，那片雲。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat01_zh_elder.mp3' },
+                        { speaker: 'elder', text: '它已經停在那裡三天了。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat02_zh_elder.mp3' },
+                        { speaker: 'elder', text: '而且……每天都更近一點。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot04_beat03_zh_elder.mp3' },
                     ],
                 },
                 {
@@ -13613,6 +14323,7 @@ function getIntroFilmLocaleConfig(zone) {
                     caption: '第五幕：木劍',
                     imageSrc: '/assets/storyboards/e10_z1_shot05.webp',
                     imageAlt: '主角握緊木劍',
+                    sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot05_wooden_sword_grip.mp3',
                     beats: [],
                 },
                 {
@@ -13622,15 +14333,21 @@ function getIntroFilmLocaleConfig(zone) {
                     imageAlt: '主角、小水與木劍在農舍前',
                     sfx: 'journey',
                     beats: [
-                        { speaker: 'hero', text: '我不知道自己行不行……' },
-                        { speaker: 'hero', text: '但我想去看看。' },
+                        { speaker: 'hero', text: '我不知道自己行不行……', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat01_zh_hero.mp3' },
+                        { speaker: 'hero', text: '但我想去看看。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot06_beat02_zh_hero.mp3' },
                     ],
                 },
+            ],
+            // 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): see the
+            // matching English comment above -- Shots 7-8 play only on the
+            // authoritative boss-ready transition, never at first zone entry.
+            bossReadyTimeline: [
                 {
                     shot: 6,
                     caption: '第七幕：儀式棋盤',
                     imageSrc: '/assets/storyboards/e10_z1_shot07.webp',
                     imageAlt: '十九路棋盤與村長的手勢',
+                    sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot07_stone_placement.mp3',
                     beats: [],
                 },
                 {
@@ -13640,9 +14357,9 @@ function getIntroFilmLocaleConfig(zone) {
                     imageAlt: '棋盤上散落的棋子',
                     sfx: 'start',
                     beats: [
-                        { speaker: 'elder', text: '想出村，就先陪我下一局。' },
-                        { speaker: 'elder', text: '別急。' },
-                        { speaker: 'elder', text: '看清楚，再落子。' },
+                        { speaker: 'elder', text: '想出村，就先陪我下一局。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat01_zh_elder.mp3' },
+                        { speaker: 'elder', text: '別急。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat02_zh_elder.mp3' },
+                        { speaker: 'elder', text: '看清楚，再落子。', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot08_beat03_zh_elder.mp3' },
                     ],
                 },
             ],
@@ -13652,6 +14369,7 @@ function getIntroFilmLocaleConfig(zone) {
                     caption: '第九幕：考驗的迴響',
                     imageSrc: '/assets/storyboards/e10_z1_shot09.webp',
                     imageAlt: '考驗過後的棋盤，刻意的沉默',
+                    sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot09_seal_unlock_pulse.mp3',
                     beats: [],
                 },
                 {
@@ -13660,10 +14378,11 @@ function getIntroFilmLocaleConfig(zone) {
                     imageSrc: '/assets/storyboards/e10_z1_shot10.webp',
                     imageAlt: '村莊信使帶著急訊趕來',
                     sfx: 'pulse',
+                    sfxCue: '/assets/e10/audio/zone1/sfx/zone1_sfx_shot10_hard_cut_sting.mp3',
                     beats: [
-                        { speaker: 'runner', text: '村長！' },
-                        { speaker: 'runner', text: '史萊姆平原的商隊……' },
-                        { speaker: 'runner', text: '三天了，還沒回來！' },
+                        { speaker: 'runner', text: '村長！', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat01_zh_runner.mp3' },
+                        { speaker: 'runner', text: '史萊姆平原的商隊……', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat02_zh_runner.mp3' },
+                        { speaker: 'runner', text: '三天了，還沒回來！', audioSrc: '/assets/e10/audio/zone1/dialogue/zone1_final_shot10_beat03_zh_runner.mp3' },
                     ],
                 },
             ],
@@ -13827,8 +14546,27 @@ function finishIntroFilm(zone) {
         // activateShot -- hide the badge here too, not just there (Owner
         // review follow-up, Fix B).
         if (caption) caption.style.display = 'none';
+        // 2026-08-09 (GO ODYSSEY E10 ZONE 1 BEGINNER VILLAGE COMPLETE RPG
+        // JOURNEY, section 8): this is the ZONE_ENTRY (Shots 1-6) completion
+        // state. The player has only just arrived and is beginning
+        // training -- the Lord challenge is NOT yet unlocked. Must never
+        // read like the Lord is already available (the generic
+        // showBossCinematic() "領主封印解除/已解除/開始決戰" unsealing copy
+        // is correct only once _adventureBossReady(zone) is genuinely
+        // true -- see playZone1BossReadyFilm for that separate moment).
+        const kicker = document.getElementById('boss-cinematic-kicker');
+        const title = document.getElementById('boss-cinematic-title');
+        const isEn = locale.uiLang === 'en';
+        if (kicker) kicker.textContent = isEn ? 'Training Begins' : '新手村修行開啟';
+        if (title) title.textContent = isEn ? 'The Path of Training' : '修行之路開始';
+        if (line) line.textContent = isEn
+            ? 'Train in the village to grow stronger. At 30% progress, you’ll earn the right to challenge the Village Elder.'
+            : '先在村中修行，提升實力。修行達到 30% 後，即可取得村長的領主挑戰資格。';
         if (overlay) overlay.classList.add('ready');
-        if (btn) btn.disabled = false;
+        if (btn) {
+            btn.textContent = isEn ? 'Begin Training' : '開始修行';
+            btn.disabled = false;
+        }
         return;
     }
     if (titleCard) titleCard.textContent = locale.filmTitle;
@@ -13855,6 +14593,9 @@ function skipIntroFilm() {
         } catch (e) {}
     }
     _introAudio = null;
+    _stopIntroBgm();
+    _stopIntroAmbience();
+    _stopIntroSfx();
     try {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } catch (e) {}
@@ -13863,6 +14604,15 @@ function skipIntroFilm() {
     // _introFilmActiveOpts.
     if (_introFilmActiveOpts.phase === 'post_clear') {
         finishPostClearFilm(zone);
+        return;
+    }
+    // Same for BOSS_READY (Zone 1 Shots 7-8): skipping must close back to
+    // the map, not fall through to the ZONE_ENTRY completion path below
+    // (which would show the wrong final state and mark the wrong "seen"
+    // flag). "seen" for BOSS_READY is already marked at trigger time (see
+    // _maybeTriggerZone1BossReadyFilm), so there's nothing left to mark here.
+    if (_introFilmActiveOpts.phase === 'boss_ready') {
+        finishBossReadyFilm(zone);
         return;
     }
     markAdventureIntroSeen(zone);
@@ -13885,6 +14635,13 @@ function replayIntroFilm() {
     // to the PRE_PLAY intro -- see _introFilmActiveOpts.
     if (_introFilmActiveOpts.phase === 'post_clear') {
         playZone1PostClearFilm(zone);
+        return;
+    }
+    // Same for BOSS_READY (Zone 1 Shots 7-8) -- an explicit replay while
+    // that announcement is showing must replay Shots 7-8, not fall back to
+    // ZONE_ENTRY's Shots 1-6.
+    if (_introFilmActiveOpts.phase === 'boss_ready') {
+        playZone1BossReadyFilm(zone);
         return;
     }
     playNewbieVillageIntroFilm(zone);
@@ -14028,6 +14785,13 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         if (runId !== _introFilmRunId) return;
         const item = timeline[shotIndex];
         if (!item) {
+            // Cinematic sequence complete (either PRE_PLAY's own end or
+            // POST_CLEAR's, via opts.onComplete) -- decorative BGM/ambience
+            // must not bleed into whatever comes next (gameplay handoff,
+            // or the overlay closing), even though the short POST_CLEAR
+            // urgency cue will typically have already finished on its own.
+            _stopIntroBgm();
+            _stopIntroAmbience();
             if (opts.onComplete) {
                 opts.onComplete();
                 return;
@@ -14037,6 +14801,21 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             return;
         }
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
+        // Main theme + ambience start fresh at the first shot of ANY
+        // non-POST_CLEAR playback session -- both ZONE_ENTRY (Shots 1-6,
+        // phase 'pre_play') and BOSS_READY (Shots 7-8, phase 'boss_ready')
+        // are separate cinematic sessions (often far apart in real time) so
+        // each restarts its own BGM/ambience at its own first shot, rather
+        // than trying to literally continue audio across sessions. Never
+        // for POST_CLEAR: Shot 9 (its first shot) is deliberately silent.
+        if (shotIndex === 0 && phase !== 'post_clear') {
+            _startIntroBgm(locale.bgmMainTheme);
+            _startIntroAmbience(locale.ambienceVillageDawn);
+        }
+        if (item.shot === 9) {
+            _startIntroBgm(locale.bgmPostClearUrgency, { loop: false, volume: 0.4 });
+        }
+        if (item.sfxCue) _playIntroSfxAsset(item.sfxCue);
         // item.caption is the persistent scene-label badge for the whole
         // shot (set once here); the dialogue subtitle line is set per-beat
         // below, not here -- a shot's caption and its spoken content are
@@ -14098,6 +14877,73 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         activateBeat(0);
     }
     activateShot(0);
+}
+
+// 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT): Zone 1's BOSS_READY
+// announcement (Shots 7-8). Reuses _adventureBossReady(zone) -- the SAME
+// authoritative predicate that already drives the map's "Challenge Lord"
+// CTA (_adventureQuestCtaState) -- as the sole trigger condition. This
+// function never computes readiness itself; it only reacts to it. Called
+// from updateMapProgress() on every fresh adventure-progress load (the
+// same place _resumeZone1PostClearIfPending already runs), which is safe
+// because boss-ready is a stable re-derivable state, not a one-time event:
+// there is no risk of "missing" it across a reload the way a one-time
+// server event could be missed, so no pending/recovery flag is needed --
+// only a "seen" flag (ADVENTURE_BOSSREADY_STORAGE_KEY) to make it play at
+// most once. Does NOT start the boss battle: see playZone1BossReadyFilm's
+// own comment for why that must stay the player's own explicit choice.
+function _maybeTriggerZone1BossReadyFilm(zones) {
+    const zone = (zones || _adventureProgress || []).find(z => z.key === 'k26_30');
+    if (!zone) return;
+    if (!_adventureBossReady(zone)) return;
+    if (adventureBossReadyFilmSeen(zone)) return;
+    // Don't restart if a boss-ready run (or any other intro-film run) is
+    // already actively playing -- updateMapProgress can fire more than
+    // once in quick succession (e.g. two polls landing close together).
+    if (_introFilmActiveOpts.phase === 'boss_ready') return;
+    markAdventureBossReadyFilmSeen(zone);
+    playZone1BossReadyFilm(zone);
+}
+
+// Plays Zone 1's BOSS_READY announcement (Shots 7-8) in the existing
+// #boss-cinematic overlay. Purely visual, same as playZone1PostClearFilm:
+// no fetch/POST, no reward/settlement/unlock authority here. Deliberately
+// does NOT open the actual boss battle on completion (see
+// finishBossReadyFilm) -- the Owner's explicit requirement is that seeing
+// this announcement must never itself commit the player to a fight; they
+// return to the map with the existing "Challenge Lord" CTA (already
+// rendered from the same _adventureBossReady state) available whenever
+// they choose to click it via the UNCHANGED openAdventureBossFromQuestCard
+// -> showBossCinematic path.
+function playZone1BossReadyFilm(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!overlay || !zone) return;
+    const locale = getIntroFilmLocaleConfig(zone);
+    const bossReadyTimeline = locale.bossReadyTimeline || [];
+    if (!bossReadyTimeline.length) return;
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show intro-film';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    const stage = document.getElementById('intro-film-stage');
+    if (stage) stage.classList.remove('show-title-card');
+    // No "start training" CTA applies here either -- battle entry is via
+    // the map's own CTA, not this overlay's button.
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (btn) btn.disabled = true;
+    playNewbieVillageIntroFilm(zone, {
+        timeline: bossReadyTimeline,
+        phase: 'boss_ready',
+        onComplete: () => finishBossReadyFilm(zone),
+    });
+}
+
+// Ends BOSS_READY exactly on Shot 8's own dialogue, mirroring
+// finishPostClearFilm's shape: just closes the overlay, returns the player
+// to the map/quest-card view underneath (where the boss-ready CTA already
+// renders), and does not start a battle.
+function finishBossReadyFilm(zone) {
+    hideBossCinematic();
 }
 
 // Triggered from a genuine, fresh, server-authoritative Map Battle v1
@@ -14176,6 +15022,185 @@ function finishPostClearFilm(zone) {
     markAdventurePostClearSeen(zone);
     clearAdventurePostClearPending(zone);
     hideBossCinematic();
+    // E10 Zone 1 Beginner Village Complete RPG Journey (2026-08-09): a short
+    // reveal after Shot 10, instead of hard-cutting straight to a static
+    // map. Only ever DISPLAYS the already-authoritative Zone 2 unlock state
+    // (_adventureCanEnter, driven by the real k21_25.unlocked from the
+    // server) -- never performs the unlock itself, and simply does nothing
+    // if that state hasn't actually landed yet (e.g. a stale/offline
+    // _adventureProgress), rather than showing a false promise.
+    showZone1UnlockReveal(zone);
+}
+
+// Pending timers for the reveal's own route-fill -> chime beat. Separate
+// from _introFilmTimers (the film sequencer's clock) since the reveal isn't
+// part of a shot timeline; cleared at the top of every call so a repeat
+// render/reload never lands two chimes or two audio beds on top of each other.
+let _zoneUnlockRevealTimers = [];
+function _stopZoneUnlockRevealAudio() {
+    _zoneUnlockRevealTimers.forEach(id => clearTimeout(id));
+    _zoneUnlockRevealTimers = [];
+    _stopIntroAmbience();
+    _stopIntroSfx();
+}
+
+// 2026-08-10 (Owner correction): the reveal happens ON the real, already-
+// on-page E10 Adventure Map -- #adventure-route-progress and the real
+// .adventure-node elements inside #adventure-map-nodes -- never a cloned
+// mini-map inside a modal. By the time this runs, renderAdventureMap() has
+// ALREADY re-rendered the map to its final, correct, authoritative state
+// (see _finishBossBattle: _adventureProgress is replaced and
+// renderAdventureMap() called before the result card even opens). So the
+// route/node here are already sitting at their true "after" appearance;
+// this function's whole job is to visually REWIND the real route and
+// briefly re-fog the real Zone 2 node, then animate them forward again in
+// front of the player -- a presentation layer on top of state that was
+// already correct, never a second source of truth for it.
+let _zoneUnlockRevealCleanup = null;
+function _cleanupZoneUnlockReveal() {
+    if (_zoneUnlockRevealCleanup) {
+        try { _zoneUnlockRevealCleanup(); } catch (e) {}
+        _zoneUnlockRevealCleanup = null;
+    }
+}
+
+function showZone1UnlockReveal(zone) {
+    if (zone?.key !== 'k26_30') return;
+    const stats = _adventureZoneStats();
+    const fromZone = stats.find(z => z.key === 'k26_30');
+    const nextZone = stats.find(z => z.key === 'k21_25');
+    if (!fromZone || !nextZone || !nextZone.unlocked) return;
+
+    const mapSection = document.getElementById('skill-map');
+    const mapShell = document.getElementById('adventure-map-shell');
+    const routePath = document.getElementById('adventure-route-progress');
+    const nodesHost = document.getElementById('adventure-map-nodes');
+    const fromNode = nodesHost?.querySelector(`.adventure-node[data-zone="${fromZone.key}"]`);
+    const toNode = nodesHost?.querySelector(`.adventure-node[data-zone="${nextZone.key}"]`);
+    if (!mapShell || !routePath || !fromNode || !toNode) return;
+
+    _stopZoneUnlockRevealAudio();
+    _cleanupZoneUnlockReveal();
+    _hideZone1UnlockBanner();
+
+    mapSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Camera: a gentle zoom focused on the midpoint between the two real
+    // nodes -- CSS transform on the shell, every node/road inside it scales
+    // and pans together since they're all normal in-flow/percent-positioned
+    // children. Reverted at the end of the reveal.
+    const midX = (fromZone.x + nextZone.x) / 2;
+    const midY = (fromZone.y + nextZone.y) / 2;
+    const prevTransition = mapShell.style.transition;
+    const prevTransform = mapShell.style.transform;
+    const prevOrigin = mapShell.style.transformOrigin;
+    mapShell.style.transition = 'none';
+    mapShell.style.transformOrigin = `${midX}% ${midY}%`;
+    mapShell.style.transform = 'scale(1)';
+    void mapShell.getBoundingClientRect();
+    mapShell.style.transition = 'transform 1.5s ease-in-out';
+
+    fromNode.classList.add('zone1-reveal-pulse');
+
+    // Re-fog Zone 2's real node (already rendered unlocked) so the player
+    // watches it wake up rather than seeing it pre-solved.
+    toNode.classList.add('zone1-reveal-relock');
+    const fogEl = document.createElement('span');
+    fogEl.className = 'adventure-node-lock-fog zone1-reveal-fog';
+    fogEl.setAttribute('aria-hidden', 'true');
+    const badgeEl = document.createElement('span');
+    badgeEl.className = 'adventure-node-lock-badge zone1-reveal-fog';
+    badgeEl.setAttribute('aria-hidden', 'true');
+    badgeEl.innerHTML = '&#128274;';
+    toNode.appendChild(fogEl);
+    toNode.appendChild(badgeEl);
+
+    // Rewind the REAL route to its pre-clear length, then let it travel
+    // forward again to the real (already-authoritative) length -- same
+    // element the persistent map always renders, never a copy.
+    const total = ADVENTURE_ZONES.length;
+    const beforeFrac = total <= 1 ? 1 : Math.max(0, Math.min(1, fromZone.index / (total - 1)));
+    const afterFrac = total <= 1 ? 1 : Math.max(0, Math.min(1, nextZone.index / (total - 1)));
+    const len = routePath.getTotalLength();
+    const prevRouteTransition = routePath.style.transition;
+    const prevRouteDasharray = routePath.style.strokeDasharray;
+    routePath.style.transition = 'none';
+    routePath.style.strokeDasharray = `${len * beforeFrac} ${len}`;
+    void routePath.getBoundingClientRect();
+    routePath.style.transition = 'stroke-dasharray 1.8s cubic-bezier(.22,.7,.32,1)';
+
+    const cleanup = () => {
+        mapShell.style.transition = prevTransition;
+        mapShell.style.transform = prevTransform;
+        mapShell.style.transformOrigin = prevOrigin;
+        routePath.style.transition = prevRouteTransition;
+        routePath.style.strokeDasharray = prevRouteDasharray;
+        fromNode.classList.remove('zone1-reveal-pulse');
+        toNode.classList.remove('zone1-reveal-relock', 'zone1-reveal-awaken');
+        fogEl.remove();
+        badgeEl.remove();
+    };
+    _zoneUnlockRevealCleanup = cleanup;
+
+    _startIntroAmbience(ZONE1_LORD_SFX.zoneRouteEnergy, { loop: false, volume: 0.22 });
+    // rAF, not a 0ms timeout -- guarantees the rewound "before" state paints
+    // first so the browser actually animates the change forward.
+    requestAnimationFrame(() => {
+        mapShell.style.transform = 'scale(1.55)';
+        routePath.style.strokeDasharray = `${len * afterFrac} ${len}`;
+    });
+
+    _zoneUnlockRevealTimers.push(setTimeout(() => {
+        // Light has reached Zone 2 -- wake the real node and chime.
+        fogEl.classList.add('fade-out');
+        badgeEl.classList.add('fade-out');
+        toNode.classList.remove('zone1-reveal-relock');
+        toNode.classList.add('zone1-reveal-awaken');
+        _playIntroSfxAsset(ZONE1_LORD_SFX.zoneUnlockChime, { volume: 0.85 });
+    }, 1800));
+
+    _zoneUnlockRevealTimers.push(setTimeout(() => {
+        _cleanupZoneUnlockReveal();
+        _showZone1UnlockBanner(nextZone);
+    }, 2900));
+}
+
+// Compact result banner -- appears ONLY after the real map has finished
+// animating, and must never obscure the map/route itself (Owner: "卡片只能
+// 是最後的結果提示，不能拿來代替世界地圖動畫"). A slim bottom sheet, not a
+// full-screen modal.
+function _showZone1UnlockBanner(nextZone) {
+    const el = document.getElementById('zone1-unlock-banner');
+    if (!el) return;
+    const isEn = getCurrentUiLang() === 'en';
+    const kicker = document.getElementById('zone1-unlock-banner-kicker');
+    const title = document.getElementById('zone1-unlock-banner-title');
+    const sub = document.getElementById('zone1-unlock-banner-sub');
+    const stayBtn = document.getElementById('zone1-unlock-banner-stay');
+    const goBtn = document.getElementById('zone1-unlock-banner-go');
+    if (kicker) kicker.textContent = isEn ? 'NEW AREA UNLOCKED' : '新區域解鎖';
+    if (title) title.textContent = (isEn ? nextZone.nameEn : nextZone.name) || _zoneName(nextZone);
+    if (sub) sub.textContent = isEn ? (nextZone.name || '') : (nextZone.nameEn || 'Slime Plains');
+    if (stayBtn) {
+        stayBtn.textContent = isEn ? 'Stay in the Village' : '留在新手村';
+        stayBtn.onclick = () => _hideZone1UnlockBanner();
+    }
+    if (goBtn) {
+        goBtn.textContent = isEn ? 'Go to Slime Plains' : '前往史萊姆平原';
+        // Player's own choice -- never auto-teleported (section 54).
+        goBtn.onclick = () => {
+            _hideZone1UnlockBanner();
+            window.location.href = firstQuestionHref(nextZone);
+        };
+    }
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+}
+function _hideZone1UnlockBanner() {
+    const el = document.getElementById('zone1-unlock-banner');
+    if (!el) return;
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
 }
 
 async function startBossBattle(zoneKey) {
@@ -14184,6 +15209,14 @@ async function startBossBattle(zoneKey) {
         : _activeBossZone;
     if (!zone || !zone.boss_ready) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
+        return;
+    }
+    // E10 Zone 1 Beginner Village Complete RPG Journey (2026-08-09): Zone 1
+    // gets its own Lord Challenge Card (real 30%/rules copy, Go-themed
+    // entrance ritual) instead of the generic seal-unlock modal. Every
+    // other zone is completely unchanged.
+    if (zone.key === 'k26_30') {
+        showZone1LordChallengeCard(zone);
         return;
     }
     await showBossCinematic(zone);
@@ -14210,8 +15243,220 @@ async function openAdventureBossFromQuestCard(zoneKey) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
         return false;
     }
+    if (zone.key === 'k26_30') {
+        showZone1LordChallengeCard(zone);
+        return true;
+    }
     await showBossCinematic(zone);
     return true;
+}
+
+// ============================================================
+// E10 ZONE 1 BEGINNER VILLAGE COMPLETE RPG JOURNEY (2026-08-09)
+// Lord Challenge Card -> Entrance Ritual -> (existing real 20-question
+// exam, unchanged) -> Success/Failure Result Card -> (success only)
+// POST_CLEAR (Shots 9-10). Every function below is k26_30-specific;
+// every other zone keeps using the existing generic showBossCinematic /
+// showBossResultCinematic untouched. None of this computes or writes
+// progression -- all numbers (pct, boss_exam_size, boss_pass_score,
+// cooldown_required, correct/total/cooldown_left) are read verbatim from
+// the real /api/adventure/* responses already flowing through
+// _adventureProgress / _finishBossBattle's `data`.
+// ============================================================
+// 8 Owner-approved Lord Trial SFX (2026-08-09 Gate A audition, see
+// tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json +
+// assets/e10/audio/zone1/lord_trial/zone1-lord-trial-sfx-package.json).
+// Each is wired to exactly one trigger moment below -- no other cue reuses
+// these paths.
+const ZONE1_LORD_SFX = {
+    cardReveal: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_card_reveal.mp3',
+    challengeConfirm: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_challenge_confirm.mp3',
+    ritualEnergy: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_ritual_energy.mp3',
+    stoneImpact: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_go_stone_impact.mp3',
+    trialSuccess: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_trial_success.mp3',
+    trialFailure: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_trial_failure.mp3',
+    zoneRouteEnergy: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_zone_route_energy.mp3',
+    zoneUnlockChime: '/assets/e10/audio/zone1/lord_trial/zone1_lordtrial_zone_unlock_chime.mp3',
+};
+
+function _zone1LordCopy(isEn) {
+    return isEn ? {
+        kicker: 'Lord Trial',
+        title: 'Beginner Village Lord · Village Elder',
+        eligibility: (pct) => `Beginner Village training progress ${pct}% ✓`,
+        reward: '★ Defeat him to earn your first star',
+        rule1: (total, pass) => `Answer ${pass} of ${total} correctly to pass the trial`,
+        rule2: (cooldown) => `If you fail, train ${cooldown} more questions before trying again`,
+        prompt: 'Ready to face the Village Elder?',
+        continueTraining: 'Continue Training',
+        startChallenge: 'Start Challenge',
+    } : {
+        kicker: '領主試煉 · Lord Trial',
+        title: '新手村領主・村長',
+        eligibility: (pct) => `新手村修行進度 ${pct}% ✓`,
+        reward: '★ 勝利可取得第 1 顆星',
+        rule1: (total, pass) => `${total} 題中答對 ${pass} 題，即可通過試煉`,
+        rule2: (cooldown) => `若挑戰失敗，需再修行 ${cooldown} 題，才能再次挑戰`,
+        prompt: '準備好與村長對局了嗎？',
+        continueTraining: '繼續修行',
+        startChallenge: '開始挑戰',
+    };
+}
+
+function showZone1LordChallengeCard(zone) {
+    _pendingBossZone = zone;
+    _stopIntroFilm();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const progressTitle = document.getElementById('boss-cinematic-progress-title');
+    const progressBoss = document.getElementById('boss-cinematic-progress-boss');
+    const progressZone = document.getElementById('boss-cinematic-progress-zone');
+    const progressCount = document.getElementById('boss-cinematic-progress-count');
+    const progressBody = document.getElementById('boss-cinematic-progress-body');
+    const plaqueTitle = document.getElementById('zone1-lord-card-plaque-title');
+    if (!overlay || !title || !btn) {
+        _pendingBossZone = null;
+        setMsg(I18n.t('index.boss.start_fail'), 'warn');
+        return false;
+    }
+    const isEn = getCurrentUiLang() === 'en';
+    const copy = _zone1LordCopy(isEn);
+    overlay.className = 'boss-cinematic show phase-lord-card';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    // The shared #boss-cinematic-kicker is hidden by CSS for this phase --
+    // its text now lives on the art's own top plaque instead (Owner polish
+    // request). Keep both in sync anyway so nothing looks stale if the CSS
+    // override is ever removed.
+    if (kicker) kicker.textContent = copy.kicker;
+    if (plaqueTitle) plaqueTitle.textContent = copy.kicker;
+    title.textContent = copy.title;
+    // zone.pct is the real authoritative training-progress percentage
+    // (server-computed, see app.py _adventure_state) -- never recomputed here.
+    const pct = Math.max(0, Math.min(100, Math.round(Number(zone.pct) || 0)));
+    if (books) books.textContent = copy.eligibility(pct);
+    if (line) line.textContent = copy.reward;
+    if (rules) {
+        const total = zone.boss_exam_size || 20;
+        const pass = zone.boss_pass_score || 16;
+        const cooldown = zone.cooldown_required || 30;
+        rules.innerHTML = `<span>${copy.rule1(total, pass)}</span><span>${copy.rule2(cooldown)}</span>`;
+    }
+    if (progress) progress.style.display = '';
+    if (progressTitle) progressTitle.textContent = '';
+    if (progressBoss) progressBoss.textContent = '';
+    if (progressZone) progressZone.textContent = '';
+    if (progressCount) progressCount.textContent = '';
+    if (progressBody) progressBody.textContent = copy.prompt;
+    if (cancelBtn) {
+        cancelBtn.textContent = copy.continueTraining;
+        cancelBtn.onclick = cancelBossCinematic;
+        cancelBtn.disabled = false;
+    }
+    btn.textContent = copy.startChallenge;
+    btn.disabled = false;
+    btn.onclick = () => startZone1LordRitual(zone);
+    _playIntroSfxAsset(ZONE1_LORD_SFX.cardReveal, { volume: 0.8 });
+    return true;
+}
+
+// 3-5s Go-themed entrance ritual (Owner reference C). Purely presentational
+// -- writes no progression, and always ends by calling the EXISTING real
+// _startBossBattleNow(zone), which is what actually calls
+// POST /api/adventure/boss/start and hands off to the real (unchanged)
+// question-answering battle UI.
+function startZone1LordRitual(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    const title = document.getElementById('boss-cinematic-title');
+    const line = document.getElementById('boss-cinematic-line');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    if (!overlay) return;
+    const isEn = getCurrentUiLang() === 'en';
+    overlay.className = 'boss-cinematic show phase-lord-ritual';
+    if (btn) btn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (title) title.textContent = isEn ? 'Lord Trial' : '領主試煉';
+    if (line) line.textContent = '';
+    // Confirm stinger lands the moment the player commits; the ritual-energy
+    // bed then plays underneath at a restrained volume (well below spoken
+    // dialogue) for the rest of the ritual, sharing the ambience bed slot so
+    // it always gets torn down the same way BGM/ambience already are.
+    _playIntroSfxAsset(ZONE1_LORD_SFX.challengeConfirm, { volume: 0.75 });
+    _startIntroAmbience(ZONE1_LORD_SFX.ritualEnergy, { loop: false, volume: 0.25 });
+    _spawnLordRitualStones();
+    _spawnLordRitualParticles();
+    const finalStoneEl = document.getElementById('lord-ritual-final-stone');
+    if (finalStoneEl) finalStoneEl.innerHTML = '';
+    const elderLine = isEn ? 'Look closely. Then make your move.' : '看清楚，再落子。';
+    const ritualTimers = [
+        setTimeout(() => { if (line) line.textContent = elderLine; }, 1800),
+        // The decisive stone lands slightly ahead of the hand-off so its
+        // click+resonance tail is the last thing heard before battle --
+        // ritual energy is cut in the same tick so it never washes over it.
+        setTimeout(() => {
+            _stopIntroAmbience();
+            _playIntroSfxAsset(ZONE1_LORD_SFX.stoneImpact, { volume: 0.9 });
+            _spawnLordRitualFinalStone();
+        }, 3600),
+        setTimeout(() => { _startBossBattleNow(zone); }, 4000),
+    ];
+    _introFilmTimers.push(...ritualTimers);
+}
+
+// Restrained gold/teal embers drifting behind the stones -- ambient texture,
+// not a generic sparkle burst.
+function _spawnLordRitualParticles() {
+    const container = document.getElementById('lord-ritual-particles');
+    if (!container) return;
+    container.innerHTML = '';
+    const count = 20;
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'lord-ritual-particle ' + (i % 2 === 0 ? 'gold' : 'teal');
+        p.style.left = (10 + Math.random() * 80) + '%';
+        p.style.top = (30 + Math.random() * 60) + '%';
+        p.style.setProperty('--drift', (Math.random() * 24 - 12) + 'px');
+        p.style.animationDelay = (Math.random() * 2.6) + 's';
+        container.appendChild(p);
+    }
+}
+
+// The decisive stone: only appears at the GO_STONE_IMPACT beat, synced with
+// its audio cue. This is the moment the ritual has been building to.
+function _spawnLordRitualFinalStone() {
+    const container = document.getElementById('lord-ritual-final-stone');
+    if (!container) return;
+    container.innerHTML = '';
+    const piece = document.createElement('div');
+    piece.className = 'lord-ritual-final-stone-piece';
+    const ring = document.createElement('div');
+    ring.className = 'lord-ritual-final-stone-ring';
+    container.appendChild(piece);
+    container.appendChild(ring);
+}
+
+function _spawnLordRitualStones() {
+    const container = document.getElementById('lord-ritual-stones');
+    if (!container) return;
+    container.innerHTML = '';
+    const count = 14;
+    for (let i = 0; i < count; i++) {
+        const stone = document.createElement('div');
+        stone.className = 'lord-ritual-stone ' + (i % 2 === 0 ? 'black' : 'white');
+        stone.style.left = (5 + Math.random() * 90) + '%';
+        stone.style.top = (10 + Math.random() * 70) + '%';
+        stone.style.animationDelay = (Math.random() * 1.6) + 's';
+        container.appendChild(stone);
+    }
 }
 
 async function showBossCinematic(zone) {
@@ -14381,17 +15626,35 @@ async function _finishBossBattle() {
         });
         const data = await res.json();
         if (data.ok) {
+            const finishedZone = _bossZone;
             _adventureProgress = data.zones || _adventureProgress;
             renderAdventureMap();
             _renderBossChallengeCard();
             invalidateE9AdventureStateCache();
-            await showBossResultCinematic({
-                passed: data.passed,
-                zoneName,
-                correct,
-                total,
-                cooldown: data.cooldown_left || 30,
-            });
+            // Zone 1's own result card (star VFX / retry-training copy),
+            // instead of the generic win/lose modal. Every other zone is
+            // unchanged. This is also where the real boss-win authoritative
+            // signal (data.passed) gets wired to POST_CLEAR (Shots 9-10) --
+            // see _triggerZone1PostClearFromBossWin, called only from the
+            // success card's own "Continue" button.
+            if (finishedZone?.key === 'k26_30') {
+                showZone1LordResultCard({
+                    passed: data.passed,
+                    correct,
+                    total,
+                    cooldown: data.cooldown_left || finishedZone.cooldown_required || 30,
+                    bossExamSize: finishedZone.boss_exam_size || total || 20,
+                    bossPassScore: finishedZone.boss_pass_score || 16,
+                }, finishedZone);
+            } else {
+                await showBossResultCinematic({
+                    passed: data.passed,
+                    zoneName,
+                    correct,
+                    total,
+                    cooldown: data.cooldown_left || 30,
+                });
+            }
             setMsg(
                 (data.passed
                     ? I18n.t('index.boss.finish_pass_msg')
@@ -14405,6 +15668,74 @@ async function _finishBossBattle() {
         }
     } catch (e) {
         setMsg(I18n.t('index.boss.finish_fail'), 'err');
+    }
+}
+
+// Reads data.passed straight from the authoritative /api/adventure/boss/finish
+// response (recomputed server-side from review_log, never trusted from the
+// client -- see app.py _adventure_boss_authoritative_result). Fires
+// POST_CLEAR at most once (adventurePostClearSeen/markAdventurePostClearPending
+// are the exact same account-scoped guards _maybeTriggerZone1PostClearFilm
+// already uses for the Map Battle V1 path) -- this is simply a second,
+// correct trigger point for the SAME real boss-clear event, not a new rule.
+function _triggerZone1PostClearFromBossWin(zone) {
+    if (!zone || zone.key !== 'k26_30') return;
+    if (adventurePostClearSeen(zone)) return;
+    markAdventurePostClearPending(zone);
+    playZone1PostClearFilm(zone);
+}
+
+function showZone1LordResultCard(result, zone) {
+    _stopIntroFilm();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (!overlay || !title || !btn) return;
+    const isEn = getCurrentUiLang() === 'en';
+    overlay.className = `boss-cinematic show ${result.passed ? 'result-zone1-win' : 'result-zone1-fail'}`;
+    overlay.setAttribute('aria-hidden', 'false');
+    if (result.passed) {
+        if (kicker) kicker.textContent = isEn ? 'Lord Trial Success' : '領主試煉成功';
+        title.textContent = isEn ? 'First Star Earned' : '取得第 1 顆星';
+        if (books) books.textContent = '';
+        if (line) line.textContent = isEn
+            ? `You answered ${result.correct} of ${result.total} correctly.`
+            : `你答對了 ${result.total} 題中的 ${result.correct} 題。`;
+        if (rules) rules.innerHTML = '';
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Continue' : '繼續';
+        btn.onclick = () => {
+            hideBossCinematic();
+            // Brief settling moment before Shots 9-10 (section 43) --
+            // the star VFX above already ran via the CSS reveal animation;
+            // this is just pacing the hand-off, not gating on anything new.
+            setTimeout(() => _triggerZone1PostClearFromBossWin(zone), 400);
+        };
+        _playIntroSfxAsset(ZONE1_LORD_SFX.trialSuccess, { volume: 0.85 });
+    } else {
+        if (kicker) kicker.textContent = isEn ? 'Trial Failed' : '挑戰失敗';
+        title.textContent = isEn ? 'Trial Failed' : '挑戰失敗';
+        if (books) books.textContent = isEn ? 'Beginner Village Lord Trial' : '新手村領主試煉';
+        if (line) line.textContent = isEn
+            ? 'You need more training before you can challenge the Village Elder again.'
+            : '你還需要再修行，才能再次挑戰村長。';
+        if (rules) {
+            rules.innerHTML = isEn
+                ? `<span>Train ${result.cooldown} more questions to regain eligibility</span><span>Answer ${result.bossPassScore} of ${result.bossExamSize} correctly to pass the trial</span>`
+                : `<span>再修行 ${result.cooldown} 題，可重新取得挑戰資格</span><span>${result.bossExamSize} 題中答對 ${result.bossPassScore} 題，即可通過試煉</span>`;
+        }
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Go Train' : '前往修行';
+        btn.onclick = () => {
+            hideBossCinematic();
+            window.location.href = firstQuestionHref(zone);
+        };
+        _playIntroSfxAsset(ZONE1_LORD_SFX.trialFailure, { volume: 0.85 });
     }
 }
 

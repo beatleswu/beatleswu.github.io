@@ -1,0 +1,103 @@
+{
+  "contract": "e10-zone1-lord-trial-sfx-package-v1",
+  "_comment": "Governed E10 Zone 1 Lord Trial SFX package: 8 Owner-approved SFX from the 2026-08-09 Gate A audition (GO ODYSSEY E10 ZONE 1 BEGINNER VILLAGE COMPLETE RPG JOURNEY). Separate from zone1-audio-package.json's locked 35-asset dialogue/BGM/ambience/SFX package -- that package's totals must remain unaffected by this one.",
+  "status": "OWNER_APPROVED_LOCKED",
+  "approved_date": "2026-08-09",
+  "lord_trial_sfx": {
+    "count": 8,
+    "source_lock_record": "tools/e10_zone1_audio/zone1_lord_trial_sfx_lock.json",
+    "cues": [
+      {
+        "cue_key": "lord_card_reveal",
+        "trigger": "Lord Challenge Card reveal (showZone1LordChallengeCard)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_lord_card_reveal.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_card_reveal.mp3",
+          "sha256": "ade6e1bb55c5077918e62acc5c4a68ee40ede1d00da5ab3f894755d3ad3d7af7",
+          "size_bytes": 20106
+        }
+      },
+      {
+        "cue_key": "lord_challenge_confirm",
+        "trigger": "Player presses Start Challenge (startZone1LordRitual entry)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_lord_challenge_confirm.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_challenge_confirm.mp3",
+          "sha256": "2e8936b3831403716a55eca51adc1d23e8ca1431ede41b046eab37092b8b07d3",
+          "size_bytes": 13836
+        }
+      },
+      {
+        "cue_key": "lord_ritual_energy",
+        "trigger": "Underscore bed during the Lord Entrance Ritual (startZone1LordRitual)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_lord_ritual_energy.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_ritual_energy.mp3",
+          "sha256": "3c924269798f2fcd29b07ba61a1f1ec5ab319c0b13939d430316dd20e6c013ba",
+          "size_bytes": 65245
+        }
+      },
+      {
+        "cue_key": "go_stone_impact",
+        "trigger": "Decisive stone lands at the end of the ritual, hands off into the real exam (_startBossBattleNow)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_go_stone_impact.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_go_stone_impact.mp3",
+          "sha256": "4658bb233d9de9d6454b01b7b2cca561b4e3a87cb40ec0e80c979bb4cfe7f8cb",
+          "size_bytes": 17180
+        }
+      },
+      {
+        "cue_key": "lord_trial_success",
+        "trigger": "Lord Trial passed (showZone1LordResultCard, passed branch)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_lord_trial_success.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_trial_success.mp3",
+          "sha256": "137d09c7b2338ba6026634fe00bbc0a583890bd391d2d087b1b697e7ccfb9600",
+          "size_bytes": 33062
+        }
+      },
+      {
+        "cue_key": "lord_trial_failure",
+        "trigger": "Lord Trial failed (showZone1LordResultCard, failed branch)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_lord_trial_failure.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_lord_trial_failure.mp3",
+          "sha256": "6241db56ba795791cbf503d9556a62b4ada6af7996b31dafd8ae0917ceafe788",
+          "size_bytes": 24703
+        }
+      },
+      {
+        "cue_key": "zone_route_energy",
+        "trigger": "Route-illumination travel animation, before the unlock chime (showZone1UnlockReveal)",
+        "highlight": false,
+        "file": {
+          "filename": "zone1_lordtrial_zone_route_energy.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_zone_route_energy.mp3",
+          "sha256": "218e11b6abb154cc1ba8a864eadb46d36b7a81c0effcb6e13f87e56313b89f61",
+          "size_bytes": 40586
+        }
+      },
+      {
+        "cue_key": "zone_unlock_chime",
+        "trigger": "Zone 2 node awakens at the end of the route animation (showZone1UnlockReveal)",
+        "highlight": true,
+        "file": {
+          "filename": "zone1_lordtrial_zone_unlock_chime.mp3",
+          "path": "assets/e10/audio/zone1/lord_trial/zone1_lordtrial_zone_unlock_chime.mp3",
+          "sha256": "ffd58a776b1670bba36e1194437bbdb8284637109bf5775eea968e55d2cdafe9",
+          "size_bytes": 24703
+        }
+      }
+    ]
+  },
+  "totals": {
+    "lord_trial_sfx_files": 8
+  }
+}

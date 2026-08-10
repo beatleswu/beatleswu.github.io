@@ -1,0 +1,89 @@
+{
+  "_comment": "E10 Zone 1 (k26_30) non-dialogue sound design brief. Derived from docs/planning/e10_final_screenplay_v1.md's Zone 1 shot table (Audio column) and docs/planning/e10_zone1_bilingual_script_v1.md's silence-shot rules (S3/S5/S7/S9 structurally silent) plus the Owner's 2026-08-09 direction. BGM/ambience/SFX are shared across locales (not localized) per the bilingual script's Shared vs. Localized table. This is an audition-first pack: local review only, not wired into index.html, not deployed.",
+  "status": "AUDITION_PACK_V1",
+  "lifecycle_reference": "Shots 1-8 PRE_PLAY -> HANDOFF_TO_GAMEPLAY_AFTER_SHOT (interactive Go puzzle, outside this cinematic timeline) -> Shots 9-10 POST_CLEAR / POST_CLEAR_HOOK (screenplay terms).",
+  "silence_shots": [3, 5, 7, 9],
+  "silence_shots_note": "S3 (Village Overlook) and S7 (Ritual Board) are dialogue-silent per the bilingual script but are NOT sound-silent -- they still carry ambience/foley per the screenplay's Character Action column ('Only ritual stone-placement sound/action' at S7). S5 (Wooden Sword) is also dialogue-silent and 'carried entirely by visual/action/SFX'. S9 (Board after trial) is the one shot that is genuinely near-total silence by design ('silence intentional', 'Elder acknowledges the clear visually only') -- BGM must stay out of S9 entirely; only the sealUnlockPulse-paired SFX and ambience bed continue.",
+  "bgm_cues": [
+    {
+      "cue_key": "main_theme",
+      "label": "Zone 1 Main Theme (Shots 1-8, PRE_PLAY)",
+      "usage_note": "One continuous cue under Shots 1-8. Starts soft at Shot 1 ('Village-dawn ambience; soft BGM' per the screenplay's explicit Audio column, the only shot with an explicit audio direction). May allow the faintest rise in warmth/tension through Shot 4 (the cloud omen) and Shot 6 (Hero's resolve), but stays emotionally restrained throughout -- never swells into Shot 7/8's ritual/trial gravity. Must leave headroom under all spoken dialogue.",
+      "length_ms": 30000,
+      "candidates": [
+        {
+          "variant": "a_flute_led",
+          "label": "Variant A - solo flute, pastoral",
+          "prompt": "Warm gentle fantasy village theme for a children's game, solo wooden flute melody over soft acoustic guitar and light strings, peaceful morning atmosphere, cinematic but understated, a subtle thread of quiet mystery beneath the calm, no percussion, no bombast, emotionally restrained, leaves space for spoken dialogue, instrumental, loop-friendly"
+        },
+        {
+          "variant": "b_strings_led",
+          "label": "Variant B - string ensemble, warmer",
+          "prompt": "Warm pastoral fantasy village theme, gentle string ensemble of violin and cello with soft harp arpeggios, tender and hopeful morning mood, cinematic and understated, a faint undercurrent of quiet mystery, no drums, not cute or comedic, restrained emotional warmth, leaves headroom for dialogue, instrumental, loop-friendly"
+        }
+      ]
+    },
+    {
+      "cue_key": "post_clear_urgency",
+      "label": "Post-Clear Urgency (Shot 10 only)",
+      "usage_note": "Shot 9 stays musically silent (screenplay: 'silence intentional'). This cue begins only at Shot 10 when the Runner bursts in with alarming news, and must be able to cut hard and cleanly at the shot's 'Hard cut to black' transition -- avoid a long musical tail that would fight the cut sting.",
+      "length_ms": 12000,
+      "candidates": [
+        {
+          "variant": "a_tremolo_pulse",
+          "label": "Variant A - string tremolo, rising pulse",
+          "prompt": "Sudden shift to tense urgent orchestral underscore, low string tremolo and a rising pulse, breathless worried mood as a messenger arrives with alarming news, no percussion hits, restrained but unmistakably tense, instrumental, short cue, child-friendly game score"
+        },
+        {
+          "variant": "b_sparse_piano",
+          "label": "Variant B - sparse piano, quiet dread",
+          "prompt": "Quiet dread rising into urgency, sparse low piano notes and a slow string swell, a child-friendly game's version of alarm rather than horror, still emotionally restrained, ends on an unresolved tense note, instrumental, short cue"
+        }
+      ]
+    }
+  ],
+  "ambience": [
+    {
+      "key": "village_dawn",
+      "label": "Village Dawn Ambience (Shot 1, extends under Shots 2-8)",
+      "prompt": "Peaceful village dawn ambience, distant soft birdsong, a gentle breeze through leaves, faint far-off rooster call, no music, no percussion, calm morning atmosphere, loopable field-recording style",
+      "duration_seconds": 12,
+      "usage_note": "Explicit screenplay direction for Shot 1 ('Village-dawn ambience'). One representative bed is enough for the whole PRE_PLAY sequence (Shots 1-8) rather than inventing a distinct ambience per shot -- Zone 10's own continuity notes call back to 'Zone 1's morning ambience' as a single recognizable motif."
+    }
+  ],
+  "sfx": [
+    {
+      "key": "shot05_wooden_sword_grip",
+      "label": "Shot 5 - Wooden sword grip/lift",
+      "prompt": "A wooden training sword being gripped firmly and lifted, single soft creak of wood and cloth, no music, foley style, very short",
+      "duration_seconds": 2,
+      "highlight": false,
+      "screenplay_note": "Screenplay: dialogue-silent, 'carried entirely by visual/action/SFX' -- this is the shot's only audio."
+    },
+    {
+      "key": "shot07_stone_placement",
+      "label": "Shot 7 - Ritual stone placement",
+      "prompt": "A single Go stone placed onto a wooden board with a solid, resonant click, deliberate and ritualistic, no music, foley style, very short",
+      "duration_seconds": 2,
+      "highlight": true,
+      "screenplay_note": "Screenplay: dialogue-silent, 'Only ritual stone-placement sound/action' -- flagged as cinematically important since it's the sole carrier of the shot."
+    },
+    {
+      "key": "shot09_seal_unlock_pulse",
+      "label": "Shot 9 - sealUnlockPulse sting",
+      "prompt": "A magical seal unlocking, a soft resonant chime pulse that blooms and gently fades, warm and reassuring rather than ominous, no music bed, short",
+      "duration_seconds": 3,
+      "highlight": true,
+      "screenplay_note": "Screenplay explicitly names 'sealUnlockPulse' as a 'real production candidate' Story VFX for this shot -- this SFX is its audio pair. Elder acknowledges the clear visually only; BGM stays silent here."
+    },
+    {
+      "key": "shot10_hard_cut_sting",
+      "label": "Shot 10 - Hard-cut-to-black sting",
+      "prompt": "A sudden dramatic tension sting for a hard cut to black, one sharp low orchestral hit that decays quickly, no music bed, short",
+      "duration_seconds": 2,
+      "highlight": true,
+      "screenplay_note": "Screenplay transition: 'Hard cut to black' / END_CINEMATIC_SEQUENCE_AFTER_SHOT -- the cinematic's final beat, worth the Owner's direct listen."
+    }
+  ],
+  "existing_procedural_sfx_note": "index.html already has a zero-asset procedural chiptune SFX system (playBossSfx: appear/start/win/lose/morning/grub/pulse/woodhit/journey/seal) used by every other zone's intro film for simple transition blips. Zone 1 can reuse these for free where a simple UI-style blip is enough; the 4 SFX above are only for moments the screenplay calls out as carrying real narrative/cinematic weight on their own."
+}

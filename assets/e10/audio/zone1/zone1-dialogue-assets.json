@@ -1,0 +1,290 @@
+{
+  "contract": "e10-zone1-dialogue-audio-v1",
+  "_comment": "Canonical promoted Zone 1 (k26_30) Final TTS dialogue assets. Byte-identical copies of tools/e10_zone1_audio/_local_review/zone1_final_voices/, promoted after Owner approval (2026-08-09). See tools/e10_zone1_audio/zone1_final_tts_lock.json for the full governance record (casting, hashes, approval date, regeneration policy). SUPERSEDED AS THE INTEGRATION SOURCE OF TRUTH by assets/e10/audio/zone1/zone1-audio-package.json (2026-08-09), which covers this same dialogue set plus the approved BGM/ambience/SFX -- this file is kept for its dialogue-specific detail (shot/beat/phase/speaker per file) but runtime integration reads the unified package manifest.",
+  "status": "OWNER_APPROVED_INTEGRATED",
+  "model_id": "eleven_v3",
+  "zone_key": "k26_30",
+  "total_files": 28,
+  "entries": [
+    {
+      "filename": "zone1_final_shot01_beat01_en_anna.mp3",
+      "shot": 1,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "anna",
+      "locale": "en",
+      "sha256": "01a9b17989e2563bd14a8f0a13eb4260e91f5a8b31bba1a978f0d1eb3ed4deac",
+      "size_bytes": 111221
+    },
+    {
+      "filename": "zone1_final_shot01_beat01_zh_anna.mp3",
+      "shot": 1,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "anna",
+      "locale": "zh-TW",
+      "sha256": "c13ad50dd9b78e3470ffec3d0bcfaedeec6a1b0f4bcba47d70e0ffe5f76f7231",
+      "size_bytes": 111221
+    },
+    {
+      "filename": "zone1_final_shot02_beat01_en_elder.mp3",
+      "shot": 2,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "799db9b517e016ae792df01cd759278468bfae8f77287e3708165100ad8d87dd",
+      "size_bytes": 26793
+    },
+    {
+      "filename": "zone1_final_shot02_beat01_zh_elder.mp3",
+      "shot": 2,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "3894cdacdc2bfe9ab40bdd40d62b8188bc0966e68486f74ce7e7881f54964617",
+      "size_bytes": 26793
+    },
+    {
+      "filename": "zone1_final_shot02_beat02_en_hero.mp3",
+      "shot": 2,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "en",
+      "sha256": "f0d4d5566cc479c1b1b64420786759e8c108d1ff51370bfa4339aed199440ee8",
+      "size_bytes": 12582
+    },
+    {
+      "filename": "zone1_final_shot02_beat02_zh_hero.mp3",
+      "shot": 2,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "zh-TW",
+      "sha256": "3e5d88a6c945fc3f88ac747e31f7ab454132424753004c75644243061a71a306",
+      "size_bytes": 11328
+    },
+    {
+      "filename": "zone1_final_shot04_beat01_en_elder.mp3",
+      "shot": 4,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "609521d75c429c55b310f6a4708bb6b2c5686f433114b832bd6f0d8a7eb67c78",
+      "size_bytes": 25539
+    },
+    {
+      "filename": "zone1_final_shot04_beat01_zh_elder.mp3",
+      "shot": 4,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "a3f96f99b6198285da348c5bc6f5e83dfe57291765d0b5e6febd1fa1c5d738f3",
+      "size_bytes": 28047
+    },
+    {
+      "filename": "zone1_final_shot04_beat02_en_elder.mp3",
+      "shot": 4,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "8864bea7690260d3a57845ba390d6263869f4a781780f767e5496381d059efcf",
+      "size_bytes": 38078
+    },
+    {
+      "filename": "zone1_final_shot04_beat02_zh_elder.mp3",
+      "shot": 4,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "6f0ad0c19602a26208a820e054ba4c51f17877f50c32fc68452998b2543503c6",
+      "size_bytes": 39332
+    },
+    {
+      "filename": "zone1_final_shot04_beat03_en_elder.mp3",
+      "shot": 4,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "60baee0e96aefc686ea862ea536e2c6121d3c13b78ac32ea8346919b263772a4",
+      "size_bytes": 65245
+    },
+    {
+      "filename": "zone1_final_shot04_beat03_zh_elder.mp3",
+      "shot": 4,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "6efa8648a84cc1fe4e99b1df68ee793cb244f5255da4c92e51377898c9a9a187",
+      "size_bytes": 48527
+    },
+    {
+      "filename": "zone1_final_shot06_beat01_en_hero.mp3",
+      "shot": 6,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "en",
+      "sha256": "c3483e0d04b1b47e9a78981e7d437b0e9e8387f5d4f6654d5cef638adc7dd6d6",
+      "size_bytes": 23031
+    },
+    {
+      "filename": "zone1_final_shot06_beat01_zh_hero.mp3",
+      "shot": 6,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "zh-TW",
+      "sha256": "4109475596835e45db146d4569d1e9be1d8dec5266a2c232b00813277d5c5a0e",
+      "size_bytes": 26793
+    },
+    {
+      "filename": "zone1_final_shot06_beat02_en_hero.mp3",
+      "shot": 6,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "en",
+      "sha256": "9db2530a1a9185ee15f9c7f7f633564c1d7c19eb760f4c99d0521ccaa915b146",
+      "size_bytes": 28047
+    },
+    {
+      "filename": "zone1_final_shot06_beat02_zh_hero.mp3",
+      "shot": 6,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "hero",
+      "locale": "zh-TW",
+      "sha256": "c0ffd4de714bd530735fd66c44ed6f16bc8d7400e4a6fe5be3d4cf7052a0464a",
+      "size_bytes": 18852
+    },
+    {
+      "filename": "zone1_final_shot08_beat01_en_elder.mp3",
+      "shot": 8,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "a7d5cc758543328ad63d99fe62ba30e460d35a32bb6bada29019004cacb9d5cb",
+      "size_bytes": 52288
+    },
+    {
+      "filename": "zone1_final_shot08_beat01_zh_elder.mp3",
+      "shot": 8,
+      "beat": 1,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "2f51cfdd0479bd18ed5cb8e96e73fcba8ce6efc44d0e3295c52dd05882d8bfd1",
+      "size_bytes": 44765
+    },
+    {
+      "filename": "zone1_final_shot08_beat02_en_elder.mp3",
+      "shot": 8,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "af367123c78b949c880bb1ea5de3ffa73d0b711f141d696eb1cfee20d9310b40",
+      "size_bytes": 16344
+    },
+    {
+      "filename": "zone1_final_shot08_beat02_zh_elder.mp3",
+      "shot": 8,
+      "beat": 2,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "6c0a527ef3e54f8a18f94378919e74b316772e382ff8652255c312a1ff033464",
+      "size_bytes": 16344
+    },
+    {
+      "filename": "zone1_final_shot08_beat03_en_elder.mp3",
+      "shot": 8,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "en",
+      "sha256": "6dfb854194d16c1a30a2cdf36dbf56d56b623456ae3f22b742d6b5a08dfa35c2",
+      "size_bytes": 44765
+    },
+    {
+      "filename": "zone1_final_shot08_beat03_zh_elder.mp3",
+      "shot": 8,
+      "beat": 3,
+      "phase": "PRE_PLAY",
+      "speaker": "elder",
+      "locale": "zh-TW",
+      "sha256": "f6f96dea558ed62e62e308ac2dfb4d61eaf4a9c9067aa456e36bfd9345bc0abd",
+      "size_bytes": 33062
+    },
+    {
+      "filename": "zone1_final_shot10_beat01_en_runner.mp3",
+      "shot": 10,
+      "beat": 1,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "en",
+      "sha256": "ad68713f1079b008e9679ef6db49ca7524427e3175a468f086b2299bf485d7a8",
+      "size_bytes": 17598
+    },
+    {
+      "filename": "zone1_final_shot10_beat01_zh_runner.mp3",
+      "shot": 10,
+      "beat": 1,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "zh-TW",
+      "sha256": "e38712c4ad337700abbaab1f31c7d692420b1be2c9b2fa7a8b8098d7af68173e",
+      "size_bytes": 17598
+    },
+    {
+      "filename": "zone1_final_shot10_beat02_en_runner.mp3",
+      "shot": 10,
+      "beat": 2,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "en",
+      "sha256": "80b1dd39f9f2c3bf77c03f215ff3d7a8f8278ccf7e5171abcf179f061d7a6d7a",
+      "size_bytes": 40586
+    },
+    {
+      "filename": "zone1_final_shot10_beat02_zh_runner.mp3",
+      "shot": 10,
+      "beat": 2,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "zh-TW",
+      "sha256": "003a89aa0e4e7e0069c3bb01d458952ddfed4dbdcc733f2824e1a4c0e2729013",
+      "size_bytes": 24285
+    },
+    {
+      "filename": "zone1_final_shot10_beat03_en_runner.mp3",
+      "shot": 10,
+      "beat": 3,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "en",
+      "sha256": "deb44f6f41f8639029b696c4b1e0d3dfe947b6d674a88818766c44b34c139f78",
+      "size_bytes": 43511
+    },
+    {
+      "filename": "zone1_final_shot10_beat03_zh_runner.mp3",
+      "shot": 10,
+      "beat": 3,
+      "phase": "POST_CLEAR",
+      "speaker": "runner",
+      "locale": "zh-TW",
+      "sha256": "2dce67519e9a33841c3d05e71790ea896f75748e33ad2019e218a1e4c4da1b37",
+      "size_bytes": 28047
+    }
+  ]
+}
