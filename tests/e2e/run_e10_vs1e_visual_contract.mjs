@@ -1682,7 +1682,7 @@ async function runLifecycleCase(browser, origin) {
 }
 
 async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) {
-  const page = await browser.newPage({ viewport: spec.viewport });
+  const page = await browser.newPage({ viewport: spec.viewport, hasTouch: spec.hasTouch === true });
   const browserErrors = [];
   await installApiFixture(page, browserErrors, 'mage', spec.fixtureMode || 'default',
     spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
@@ -1696,14 +1696,16 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   });
   await page.goto(`${origin}/index.html?lang=${spec.lang}&${shellFlags}`, { waitUntil: 'domcontentloaded' });
   await waitForShell(page);
-  if (spec.resumableEncounterZone) {
-    await page.evaluate((zoneKey) => {
+  if (spec.resumableEncounterZone || spec.productionLifecycleNoZone) {
+    await page.evaluate(({ zoneKey, noZone }) => {
       window.__GO_E10_BATTLE_LIFECYCLE__ = {
         mode: 'active',
         hasNonce: true,
-        zoneKey,
+        zoneKey: noZone ? undefined : zoneKey,
+        attemptState: 'ISSUED',
+        expiresAt: '2099-01-01T00:00:00+00:00',
       };
-    }, spec.resumableEncounterZone);
+    }, { zoneKey: spec.resumableEncounterZone, noZone: spec.productionLifecycleNoZone === true });
   }
 
   const target = page.locator(`[data-zone="${spec.zone}"]`);
@@ -1978,6 +1980,9 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
           rowDisplay: row ? getComputedStyle(row).display : null,
           mainLeft: box(document.querySelector('#main-left')),
           side: box(document.querySelector('#side-col')),
+          board: box(document.querySelector('#board-canvas-wrap')),
+          battleArena: box(document.querySelector('#battle-arena')),
+          viewportHeight: window.innerHeight,
         };
       })(),
       legacyMapVisible: (() => {
@@ -1996,8 +2001,7 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   }
 
   const failures = [];
-  const expectedChallengeTargetZoneKey = spec.resumableEncounterZone
-    || (spec.playable ? spec.zone : null);
+  const expectedChallengeTargetZoneKey = spec.playable ? spec.zone : null;
   if (selected.selectedZoneKey !== spec.zone
     || selected.challengeTargetZoneKey !== expectedChallengeTargetZoneKey) {
     failures.push(`${spec.name}: selected/challenge target identities did not preserve their contract`);
@@ -2064,10 +2068,17 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   }
   if (spec.expectDesktopCombatSameRow) {
     const layout = questionEntry?.combatLayout;
-    if (!layout || layout.rowDisplay !== 'grid' || !layout.mainLeft || !layout.side
-      || layout.side.left < layout.mainLeft.right
-      || Math.abs(layout.side.top - layout.mainLeft.top) > 1) {
+    if (!layout || layout.rowDisplay !== 'grid' || !layout.board || !layout.battleArena
+      || layout.board.right >= layout.battleArena.left
+      || layout.battleArena.bottom > layout.viewportHeight) {
       failures.push(`${spec.name}: desktop combat panel is not beside the board`);
+    }
+  }
+  if (spec.expectStackedCombat) {
+    const layout = questionEntry?.combatLayout;
+    if (!layout || layout.rowDisplay !== 'block' || !layout.board || !layout.battleArena
+      || layout.battleArena.top < layout.board.bottom) {
+      failures.push(`${spec.name}: touch gameplay no longer preserves the intended stacked layout`);
     }
   }
   if (!spec.playable && !selected.ctaDisabled) failures.push(`${spec.name}: locked CTA is not disabled`);
@@ -2452,10 +2463,16 @@ async function main({
   try {
     if (args.includes('--post-global-regression-only')) {
       const regressionSpecs = [
-        { name: 'post-global-ipad-768-selected-low-zone', viewport: { width: 768, height: 1024 }, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true },
+        { name: 'post-global-ipad-768-selected-low-zone', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true, expectStackedCombat: true },
         { name: 'post-global-ipad-1180-selected-low-zone', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
         { name: 'post-global-windowed-desktop-combat-layout', viewport: { width: 823, height: 794 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
-        { name: 'post-global-resumable-encounter-authority', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k21_25', portrait: false, playable: true, journey: true },
+        { name: 'post-global-narrow-fine-desktop-combat-layout', viewport: { width: 768, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
+        { name: 'post-global-1024-fine-desktop-combat-layout', viewport: { width: 1024, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
+        { name: 'post-global-wide-desktop-combat-layout', viewport: { width: 1366, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
+        { name: 'post-global-ipad-landscape-layout', viewport: { width: 1024, height: 768 }, hasTouch: true, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectStackedCombat: true },
+        { name: 'post-global-same-zone-resumable-encounter', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k16_20', portrait: false, playable: true, journey: true },
+        { name: 'post-global-cross-zone-encounter-does-not-hijack', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k21_25', portrait: false, playable: true, journey: true },
+        { name: 'post-global-production-lifecycle-without-zone-does-not-fallback', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'en', zone: 'k16_20', productionLifecycleNoZone: true, portrait: true, expectDrawerHidden: true, playable: true, journey: true, expectStackedCombat: true },
         { name: 'post-global-desktop-completed-zone1', viewport: { width: 1366, height: 1024 }, lang: 'zh', zone: 'k26_30', portrait: false, playable: true, journey: true },
         { name: 'post-global-mobile-selected-low-zone', viewport: { width: 430, height: 932 }, lang: 'zh', zone: 'k16_20', portrait: false, expectDrawerHidden: true, playable: true, journey: true, journeySurface: 'inline' },
       ];

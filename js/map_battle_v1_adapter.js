@@ -88,12 +88,15 @@
     state.playerDefeated = response.player_defeated === true || Number(state.playerHp) === 0;
     state.lastResult = response.result || state.lastResult || null;
     state.lastDuplicate = response.duplicate === true;
+    if (response.attempt_state) state.attemptState = String(response.attempt_state);
     state.lastResponse = {
       result: response.result || null,
       duplicate: response.duplicate === true,
       accepted: response.accepted === true,
       damageToMonster: Number(response.damage_to_monster || 0),
       damageToPlayer: Number(response.damage_to_player || 0),
+      healToPlayer: Number(response.heal_to_player || 0),
+      playerHealApplied: Number(response.player_heal_applied || 0),
       battleRevision: Number.isFinite(response.battle_revision)
         ? Number(response.battle_revision) : state.battleRevision
     };
@@ -126,6 +129,7 @@
       transformVersion: String(data.transform_version || attempt.transform_version),
       issuedAt: data.issued_at || attempt.issued_at,
       expiresAt: data.expires_at || attempt.expires_at,
+      attemptState: String(attempt.state || 'ISSUED'),
       moves: []
     };
     applyAuthoritativeState(state, data.battle || data);
@@ -143,6 +147,30 @@
       headers: { 'X-Map-Battle-Client-Protocol': 'v1' }
     });
     applyAuthoritativeState(state, data.battle || data);
+    return state;
+  }
+
+  async function validateResume(state, fetchImpl) {
+    var fetcher = fetchImpl || global.fetch;
+    if (typeof fetcher !== 'function') throw new Error('fetch is unavailable');
+    state = state || {};
+    var attemptId = requiredText(state.attemptId || state.attempt_id, 'attempt_id');
+    var data = await request(fetcher, ATTEMPT_ENDPOINT + '/' + encodeURIComponent(attemptId) + '/resume-validation', {
+      credentials: 'include',
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        battle_id: requiredText(state.battleId || state.battle_id, 'battle_id'),
+        question_id: Number(state.questionId != null ? state.questionId : state.question_id),
+        zone_key: requiredText(state.zoneKey || state.zone_key, 'zone_key'),
+        submission_nonce: requiredText(state.submissionNonce || state.submission_nonce, 'submission_nonce')
+      })
+    });
+    var attempt = data.attempt || {};
+    state.attemptState = String(attempt.state || 'ISSUED');
+    state.issuedAt = attempt.issued_at || state.issuedAt;
+    state.expiresAt = attempt.expires_at || state.expiresAt;
+    applyAuthoritativeState(state, data);
     return state;
   }
 
@@ -171,6 +199,7 @@
     buildRequest: buildRequest,
     prepare: prepare,
     refreshBattle: refreshBattle,
+    validateResume: validateResume,
     submit: submit,
     retry: retry,
     applyAuthoritativeState: applyAuthoritativeState,
@@ -183,6 +212,7 @@
     buildRequest: buildRequest,
     prepare: prepare,
     refreshBattle: refreshBattle,
+    validateResume: validateResume,
     submit: submit,
     retry: retry,
     applyAuthoritativeState: applyAuthoritativeState,

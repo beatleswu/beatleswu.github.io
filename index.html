@@ -4208,13 +4208,14 @@
        alone is not a device contract: a windowed desktop at 769-1024px must
        keep the combat actors beside the board instead of pushing them below
        the first viewport. */
-    @media (max-width: 1024px) and (pointer: coarse), (max-width: 768px) {
+    @media (max-width: 1024px) and (pointer: coarse) and (hover: none) and (any-hover: none) {
         #main-row { display: block; }
         #main-row > #main-left { width: 100%; max-width: 100%; }
         #main-row > #side-col { width: 100%; max-width: 100%; margin-top: 14px; }
     }
 
-    @media (min-width: 769px) and (max-width: 1024px) and (pointer: fine) {
+    @media (max-width: 1024px) and (any-hover: hover),
+           (max-width: 1024px) and (any-pointer: fine) {
         #main-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
@@ -8189,6 +8190,9 @@ function _publishMapBattleV1Lifecycle() {
         questionType: currentQ?.interaction_type || currentQ?.question_type || null,
         battleId: state?.battleId || null,
         attemptId: state?.attemptId || null,
+        zoneKey: state?.zoneKey || null,
+        attemptState: state?.attemptState || null,
+        expiresAt: state?.expiresAt || null,
         hasNonce: !!state?.submissionNonce,
         mode: _mapBattleV1Mode,
         transitionPending: !!_mapBattleV1Transition,
@@ -8228,6 +8232,7 @@ function _persistMapBattleV1Resume(q, state) {
             transformVersion: state.transformVersion,
             issuedAt: state.issuedAt,
             expiresAt: state.expiresAt,
+            attemptState: state.attemptState || 'ISSUED',
             savedAt: Date.now(),
         }));
     } catch (e) {}
@@ -8947,10 +8952,13 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
     if (response && typeof response === 'object') {
         _recordE10BattleAnswerResult(response);
     }
-    const damageToMonster = response && Number.isFinite(Number(response.damage_to_monster))
+    const renderSettlementDelta = response?.duplicate !== true;
+    const damageToMonster = renderSettlementDelta && response && Number.isFinite(Number(response.damage_to_monster))
         ? Number(response.damage_to_monster) : 0;
-    const damageToPlayer = response && Number.isFinite(Number(response.damage_to_player))
+    const damageToPlayer = renderSettlementDelta && response && Number.isFinite(Number(response.damage_to_player))
         ? Number(response.damage_to_player) : 0;
+    const playerHealApplied = renderSettlementDelta && response && Number.isFinite(Number(response.player_heal_applied))
+        ? Number(response.player_heal_applied) : 0;
     updateMonsterUI({
         type: q.monster_type || 'goblin',
         name: q.monster_name,
@@ -8964,7 +8972,7 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
     updatePlayerHPUI({
         hp: Number(state.playerHp),
         max_hp: Number(state.playerHpMax || 100),
-        hp_change: -damageToPlayer,
+        hp_change: playerHealApplied - damageToPlayer,
         ko: state.playerDefeated === true
     });
     if (response && typeof response === 'object') _syncE10BattleActions(true);
@@ -8994,7 +9002,8 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
         if (resumeState && Number(resumeState.questionId) === Number(q.id)) {
             state = { ...resumeState, active: true, questionId: Number(q.id), moves: [] };
             try {
-                await adapter.refreshBattle(state);
+                if (typeof adapter.validateResume !== 'function') throw new Error('resume validation unavailable');
+                await adapter.validateResume(state);
             } catch (resumeError) {
                 // A session record can outlive logout, account switching, or
                 // an expired battle. Only the server can validate it; if that
@@ -11423,6 +11432,21 @@ async function _resolveMapBattleV1Resume(zoneKey, qs) {
     const candidate = _readMapBattleV1Resume();
     if (!candidate || String(candidate.zoneKey || '') !== String(zoneKey || '')) return null;
     if (!candidate.battleId || !candidate.attemptId || !candidate.submissionNonce) {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    const adapter = window.MapBattleV1 && window.MapBattleV1.legacy;
+    if (!adapter || typeof adapter.validateResume !== 'function') {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    try {
+        await adapter.validateResume(candidate);
+    } catch (error) {
+        _clearMapBattleV1Resume();
+        return null;
+    }
+    if (candidate.attemptState !== 'ISSUED' || String(candidate.zoneKey || '') !== String(zoneKey || '')) {
         _clearMapBattleV1Resume();
         return null;
     }

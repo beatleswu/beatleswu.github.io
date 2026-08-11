@@ -95,7 +95,7 @@ def test_v1_resume_is_one_server_validated_session_record_and_excludes_completed
     assert "sessionStorage" in INDEX
     assert "_MAP_BATTLE_V1_RESUME_STORAGE_KEY" in INDEX
     assert "/api/adventure/bootstrap?selected_stage_key=" in resume
-    assert "adapter.refreshBattle" in _function_block("_prepareMapBattleV1ForQuestion", "_mapBattleV1IsStaleError")
+    assert "adapter.validateResume" in _function_block("_prepareMapBattleV1ForQuestion", "_mapBattleV1IsStaleError")
     # E10_MAP_BATTLE_V1_RESUME_MASTERY_GUARD_CORRECTION: historical SRS mastery
     # (_adventureQuestionSeen/_adventureQuestionDefeated) is a NEW-target
     # selection preference, not an active-attempt validity gate -- an
@@ -138,10 +138,11 @@ def test_automatic_answer_feedback_renders_without_scrolling_the_viewport():
 
 
 def test_windowed_desktop_keeps_combat_panel_beside_board():
-    assert "@media (max-width: 1024px) and (pointer: coarse), (max-width: 768px)" in INDEX
-    assert "@media (min-width: 769px) and (max-width: 1024px) and (pointer: fine)" in INDEX
+    assert "(pointer: coarse) and (hover: none) and (any-hover: none)" in INDEX
+    assert "(any-pointer: fine)" in INDEX
+    assert "@media (max-width: 1024px) and (any-hover: hover)" in INDEX
     compact = INDEX.split(
-        "@media (min-width: 769px) and (max-width: 1024px) and (pointer: fine)", 1
+        "@media (max-width: 1024px) and (any-hover: hover)", 1
     )[1].split("@media (max-width: 768px)", 1)[0]
     assert "#main-row" in compact
     assert "display: grid" in compact

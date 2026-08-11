@@ -77,7 +77,7 @@ const _MAP_BATTLE_V1_RESUME_STORAGE_KEY = 'go:e10:map-battle:v1:resume';
 
 {functions_js}
 
-async function runCase(caseSpec) {{
+    async function runCase(caseSpec) {{
     _mapBattleV1ServerProgress = new Map();
     const store = {{}};
     global.sessionStorage = {{
@@ -90,10 +90,17 @@ async function runCase(caseSpec) {{
     }}
     const seenIds = new Set(caseSpec.seenIds || []);
     const defeatedIds = new Set(caseSpec.defeatedIds || []);
-    global.SRS = {{
+        global.SRS = {{
         getCard: (qid) => (defeatedIds.has(Number(qid)) ? {{ last_grade: 3 }} : (seenIds.has(Number(qid)) ? {{ last_grade: 0 }} : null)),
         isSeen: (qid) => seenIds.has(Number(qid)),
-    }};
+        }};
+        global.window = {{ MapBattleV1: {{ legacy: {{
+            validateResume: async (candidate) => {{
+                if (caseSpec.resumeValidationOk === false) throw new Error('not resumable');
+                candidate.attemptState = 'ISSUED';
+                return candidate;
+            }},
+        }} }} }};
     const fetchCalls = [];
     global.fetch = async (url) => {{
         fetchCalls.push(url);
@@ -196,6 +203,18 @@ def test_case7_wrong_zone_does_not_consume_resume():
     }])
     assert out["result"] is None
     assert out["hydrationFetched"] is False, "a zone mismatch must short-circuit before any hydration attempt"
+
+
+def test_server_rejected_settled_expired_or_stale_attempt_fails_closed():
+    [out] = _run_harness([{
+        "zoneKey": "d3_4",
+        "qs": [QUESTION_A],
+        "resumeCandidate": _candidate(50175),
+        "bootstrapResponse": BASE_BOOTSTRAP,
+        "resumeValidationOk": False,
+    }])
+    assert out["result"] is None
+    assert out["resumeClearedAfter"] is True
 
 
 def test_case8_historical_mastery_does_not_block_cross_pool_resume():

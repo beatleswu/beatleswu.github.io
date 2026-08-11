@@ -79,8 +79,7 @@ def test_map_primary_cta_preserves_selected_zone_identity_through_gameplay_hando
     primary = WORLD[WORLD.index("function configurePrimaryCta"):WORLD.index("function updateSelectedZoneCopy")]
 
     assert "resolveChallengeTargetZoneKey(selected)" in sync
-    assert "var mandatory = activeMandatoryEncounterAction(state);" in sync
-    assert "var mandatoryAction = activeMandatoryEncounterAction(state);" in primary
-    assert ": zone;" in primary
+    assert "activeMandatoryEncounterAction(state, selected && selected.key)" in sync
+    assert "var targetZone = zone;" in primary
     assert "configureAdventureButton(primary, targetZone, contract);" in primary
     assert "var primaryAction = resolvePrimaryCta" not in primary

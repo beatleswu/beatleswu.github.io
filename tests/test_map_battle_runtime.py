@@ -243,6 +243,8 @@ def test_server_judge_and_damage_matrix(battle_db):
     assert correct["authoritative_grade"] == 5
     assert correct["damage_to_monster"] == 5
     assert correct["damage_to_player"] == 0
+    assert correct["heal_to_player"] == 1
+    assert correct["player_heal_applied"] == 0
     assert correct["monster_hp_after"] == 15
     assert correct["player_hp_after"] == 20
     assert correct["battle_revision"] == 1
@@ -254,6 +256,8 @@ def test_wrong_answer_is_server_incorrect_and_player_damage(battle_db):
     assert wrong["result"] == "INCORRECT"
     assert wrong["damage_to_monster"] == 0
     assert wrong["damage_to_player"] == 6
+    assert wrong["heal_to_player"] == 0
+    assert wrong["player_heal_applied"] == 0
     assert wrong["monster_hp_after"] == 20
     assert wrong["player_hp_after"] == 14
 
@@ -266,6 +270,8 @@ def test_duplicate_same_request_is_exactly_once_and_conflict_is_rejected(battle_
     assert duplicate["duplicate"] is True
     assert duplicate["battle_revision"] == first["battle_revision"] == 1
     assert duplicate["damage_to_monster"] == first["damage_to_monster"]
+    assert duplicate["heal_to_player"] == first["heal_to_player"] == 1
+    assert duplicate["player_heal_applied"] == first["player_heal_applied"]
     with pytest.raises(RequestRejected):
         _settle(battle_db, {**payload, "moves": [{"x": 0, "y": 0}]})
     assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 1
@@ -331,6 +337,49 @@ def test_settled_duplicate_with_stale_client_revision_replays_without_mutation_o
     assert len(judge_calls) == 1
 
 
+def test_correct_answer_heals_one_below_max_and_duplicate_does_not_repeat(battle_db):
+    battle_db.execute("UPDATE map_battles SET player_hp=19 WHERE id='battle-s2'")
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
+    first = _settle(battle_db, payload)
+    battle_db.commit()
+    duplicate = _settle(battle_db, payload)
+
+    assert first["player_hp_before"] == 19
+    assert first["player_hp_after"] == 20
+    assert first["heal_to_player"] == 1
+    assert first["player_heal_applied"] == 1
+    assert duplicate["duplicate"] is True
+    assert duplicate["player_hp_after"] == 20
+    assert duplicate["player_heal_applied"] == 1
+    assert battle_db.execute(
+        "SELECT player_hp FROM map_battles WHERE id='battle-s2'"
+    ).fetchone()[0] == 20
+
+
+def test_correct_monster_ko_keeps_authoritative_heal_and_transition(battle_db):
+    battle_db.execute(
+        "UPDATE map_battles SET player_hp=19, monster_hp=5, monster_hp_max=5 WHERE id='battle-s2'"
+    )
+    result = _settle(battle_db, _payload(battle_db, moves=[{"x": 3, "y": 3}]))
+    assert result["monster_hp_after"] == 0
+    assert result["player_hp_after"] == 20
+    assert result["player_heal_applied"] == 1
+    assert result["monster_defeated"] is True
+    assert result["player_defeated"] is False
+    assert result["next_action"] == "monster_defeated"
+
+
+def test_wrong_player_ko_does_not_damage_monster_or_heal(battle_db):
+    battle_db.execute("UPDATE map_battles SET player_hp=6 WHERE id='battle-s2'")
+    result = _settle(battle_db, _payload(battle_db, moves=[{"x": 0, "y": 0}]))
+    assert result["player_hp_after"] == 0
+    assert result["monster_hp_after"] == 20
+    assert result["player_heal_applied"] == result["heal_to_player"] == 0
+    assert result["player_defeated"] is True
+    assert result["monster_defeated"] is False
+    assert result["next_action"] == "player_defeated"
+
+
 def test_new_submission_with_stale_revision_still_rejects_without_persisting(battle_db):
     first = _settle(battle_db, _payload(battle_db, moves=[{"x": 3, "y": 3}]))
     battle_db.commit()
@@ -382,6 +431,8 @@ def test_forged_fields_cross_account_and_revision_mismatch_are_rejected(battle_d
     payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
     with pytest.raises(ForbiddenClientAuthority):
         _settle(battle_db, {**payload, "damage_to_monster": 999})
+    with pytest.raises(ForbiddenClientAuthority):
+        _settle(battle_db, {**payload, "heal_to_player": 999})
     with pytest.raises(RequestRejected):
         settle_answer(
             battle_db,
