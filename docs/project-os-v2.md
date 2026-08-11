@@ -22,8 +22,8 @@ Normal and Hotfix work should ordinarily follow:
 
 Heavy work retains the stronger existing lifecycle and may require broader
 validation. The final release declaration is APP_ONLY, STATIC_ONLY, or
-PAIRED_APP_STATIC. Paired app/static coherence and rollback remain a Phase 2
-requirement.
+PAIRED_APP_STATIC. Paired app/static coherence and rollback are defined by the
+Phase 2 paired-release envelope; its Production use remains owner-gated.
 
 ## Risk Classes
 
