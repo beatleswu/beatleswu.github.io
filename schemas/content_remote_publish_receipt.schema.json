@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/content_remote_publish_receipt.schema.json",
+  "title": "Go Odyssey governed remote content publish receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_kind",
+    "state",
+    "release_id",
+    "created_at_utc",
+    "target",
+    "predecessor",
+    "candidate",
+    "release_package_sha256",
+    "rollback_manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "receipt_kind": {"enum": ["remote_content_rollback", "remote_content_publish"]},
+    "state": {"enum": ["PREPARED", "NEW_VERIFIED_CONTENT", "OLD_VERIFIED_CONTENT"]},
+    "release_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
+    "created_at_utc": {"type": "string", "minLength": 1},
+    "published_at_utc": {"type": "string", "minLength": 1},
+    "rollback_receipt_sha256": {"$ref": "#/$defs/sha256"},
+    "rollback_executed": {"type": "boolean"},
+    "rollback_reason": {"type": "string", "minLength": 1},
+    "target": {"$ref": "#/$defs/target"},
+    "predecessor": {"$ref": "#/$defs/identityWithArtifact"},
+    "candidate": {"$ref": "#/$defs/identity"},
+    "post_promotion": {"$ref": "#/$defs/identity"},
+    "release_package_sha256": {"$ref": "#/$defs/sha256"},
+    "rollback_manifest_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size_bytes", "sha256", "record_count"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "record_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "identityWithArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "size_bytes", "sha256", "record_count", "stored_artifact"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "record_count": {"type": "integer", "minimum": 0},
+        "stored_artifact": {"$ref": "#/$defs/identity"}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["container_name", "mount_destination", "volume_name", "mountpoint", "target_path"],
+      "properties": {
+        "container_name": {"type": "string", "minLength": 1},
+        "mount_destination": {"type": "string", "pattern": "^/[^/].*$"},
+        "volume_name": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"},
+        "mountpoint": {"type": "string", "pattern": "^/[^/].*$"},
+        "target_path": {"const": "/app/data/questions.json"}
+      }
+    }
+  }
+}
