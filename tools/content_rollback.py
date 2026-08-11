@@ -17,6 +17,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--live", required=True, type=Path)
     result.add_argument("--baseline", required=True, type=Path)
     result.add_argument("--rollback-manifest", required=True, type=Path)
+    result.add_argument("--rollback-proof", required=True, type=Path)
     result.add_argument("--expected-current-sha256", required=True)
     result.add_argument("--expected-baseline-sha256", required=True)
     result.add_argument("--expected-rollback-manifest-sha256", required=True)
@@ -33,6 +34,7 @@ def main() -> int:
             live=args.live,
             baseline=args.baseline,
             rollback_manifest=args.rollback_manifest,
+            rollback_proof=args.rollback_proof,
             expected_current_sha256=args.expected_current_sha256,
             expected_baseline_sha256=args.expected_baseline_sha256,
             expected_rollback_manifest_sha256=args.expected_rollback_manifest_sha256,

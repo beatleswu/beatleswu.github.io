@@ -40,6 +40,12 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--offsite-receipt", required=True, type=Path)
     result.add_argument("--release-manifest", required=True, type=Path)
     result.add_argument("--rollback-manifest", required=True, type=Path)
+    result.add_argument("--rollback-proof", required=True, type=Path)
+    result.add_argument("--source-provenance", required=True, type=Path)
+    result.add_argument("--review-binding", required=True, type=Path)
+    result.add_argument("--repair-batch-manifest", required=True, type=Path)
+    result.add_argument("--mutation-audit", required=True, type=Path)
+    result.add_argument("--acceptance-evidence", required=True, type=Path)
     result.add_argument("--expected-baseline-sha256", required=True)
     result.add_argument("--expected-candidate-sha256", required=True)
     result.add_argument("--expected-release-manifest-sha256", required=True)
@@ -67,6 +73,13 @@ def run(args: argparse.Namespace) -> dict:
         expected_release_manifest_sha256=args.expected_release_manifest_sha256,
         expected_record_count=args.expected_record_count,
         expected_backup_tag=args.expected_backup_tag,
+        rollback_manifest=args.rollback_manifest,
+        rollback_proof=args.rollback_proof,
+        source_provenance=args.source_provenance,
+        review_binding=args.review_binding,
+        repair_batch_manifest=args.repair_batch_manifest,
+        mutation_audit=args.mutation_audit,
+        acceptance_evidence=args.acceptance_evidence,
         execute=True,
         owner_gate=PUBLISH_EXECUTION_GATE,
         directory_fsync=simulated_directory_fsync,
@@ -80,6 +93,7 @@ def run(args: argparse.Namespace) -> dict:
         expected_baseline_sha256=args.expected_baseline_sha256,
         expected_rollback_manifest_sha256=args.expected_rollback_manifest_sha256,
         expected_record_count=args.expected_record_count,
+        rollback_proof=args.rollback_proof,
         execute=True,
         owner_gate=ROLLBACK_EXECUTION_GATE,
         directory_fsync=simulated_directory_fsync,

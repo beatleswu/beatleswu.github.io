@@ -1,11 +1,16 @@
 # GitHub private content Release governance
 
-Status: design and local implementation only. No repository or Release was
-created and no corpus bytes were uploaded.
+Status: historical design/local implementation record plus current operational
+contract. The historical implementation performed no repository creation,
+Release upload, or Production mutation. Current read-only inventory confirms
+the private repository and baseline Release; fresh verification remains a hard
+preflight.
 
 ## Repository decision
 
-Proposed repository: `beatleswu/go-odyssey-content-backup`.
+Operational repository: `beatleswu/go-odyssey-content-backup` (currently
+verified PRIVATE). The original "proposed repository" wording is retained as
+history, not as current state.
 
 Required visibility: **PRIVATE**. The tooling refuses a non-private repository
 before upload or verification. Repository creation and visibility changes are
@@ -58,9 +63,12 @@ Owner gates.
 10. Permit a later Production publisher gate to consume that receipt.
 
 The `gh` adapter can create/upload a Release only with both `--execute-remote`
-and `GO_GITHUB_CONTENT_BACKUP_RELEASE`. It never creates repositories. Phase 2H
-uses only `LocalReleaseRegistry` to exercise the complete upload/list/download
-contract against disposable directories.
+and `GO_GITHUB_CONTENT_BACKUP_RELEASE`. It never creates repositories. Every
+future remote operation must first verify current PRIVATE visibility, exact
+Release/tag identity, full asset inventory, predecessor identity, and all
+asset hashes. Existing tags/assets are never overwritten; only ABSENT or exact
+byte-identical targets are admissible. Phase 2H used only
+`LocalReleaseRegistry` to exercise the contract against disposable directories.
 
 ## Independent Owner gates
 
@@ -68,10 +76,12 @@ contract against disposable directories.
   private registry and its least-privilege credential.
 - A later backup-upload gate creates and re-verifies the immutable baseline
   Release.
-- Gate 2: `GO_PRODUCTION_CONTENT_RELEASE_54` permits the exact 54-record
-  candidate publication only after local and off-site backup verification.
-- Rollback remains independently gated by
-  `GO_PRODUCTION_CONTENT_ROLLBACK_54`.
+- Gate 2: `GO_PRODUCTION_CONTENT_RELEASE` permits publication only after
+  local/off-site verification, semantic manifests, typed acceptance evidence,
+  exact predecessor identity, and a valid rollback proof. Counts are
+  manifest-derived.
+- Rollback remains independently gated by `GO_PRODUCTION_CONTENT_ROLLBACK`
+  and requires the same exact-byte proof chain.
 
 These decisions must never be collapsed into repository creation, PR merge,
 application deployment, or corpus publication as one implicit action.

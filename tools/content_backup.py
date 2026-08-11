@@ -15,6 +15,8 @@ try:
         REMOTE_EXECUTION_GATE,
         build_backup_bundle,
         build_release_bundle,
+        load_json_object,
+        upload_immutable_release,
         verify_release_round_trip,
         write_round_trip_receipt,
     )
@@ -26,6 +28,8 @@ except ModuleNotFoundError:  # Direct `python tools/content_backup.py` execution
         REMOTE_EXECUTION_GATE,
         build_backup_bundle,
         build_release_bundle,
+        load_json_object,
+        upload_immutable_release,
         verify_release_round_trip,
         write_round_trip_receipt,
     )
@@ -49,6 +53,11 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--expected-rollback-manifest-sha256")
     result.add_argument("--release-records", type=int)
     result.add_argument("--excluded-map-battle-records", type=int)
+    result.add_argument("--source-provenance", type=Path)
+    result.add_argument("--review-binding", type=Path)
+    result.add_argument("--repair-batch-manifest", type=Path)
+    result.add_argument("--mutation-audit", type=Path)
+    result.add_argument("--acceptance-evidence", type=Path)
     result.add_argument("--simulate-remote-dir", type=Path)
     result.add_argument("--github-repo")
     result.add_argument("--execute-remote", action="store_true")
@@ -66,6 +75,11 @@ def run(args: argparse.Namespace) -> dict:
             "expected_rollback_manifest_sha256": args.expected_rollback_manifest_sha256,
             "release_records": args.release_records,
             "excluded_map_battle_records": args.excluded_map_battle_records,
+            "source_provenance": args.source_provenance,
+            "review_binding": args.review_binding,
+            "repair_batch_manifest": args.repair_batch_manifest,
+            "mutation_audit": args.mutation_audit,
+            "acceptance_evidence": args.acceptance_evidence,
         }
         missing = [name for name, value in required.items() if value is None]
         if missing:
@@ -82,11 +96,17 @@ def run(args: argparse.Namespace) -> dict:
             baseline_sha256=args.baseline_sha256,
             release_records=args.release_records,
             excluded_map_battle_records=args.excluded_map_battle_records,
+            source_provenance=args.source_provenance,
+            review_binding=args.review_binding,
+            repair_batch_manifest=args.repair_batch_manifest,
+            mutation_audit=args.mutation_audit,
+            acceptance_evidence=args.acceptance_evidence,
         )
         upload_paths = [
             Path(bundle.compressed_path),
             Path(bundle.release_manifest_path),
             Path(bundle.rollback_manifest_path),
+            Path(bundle.acceptance_evidence_path),
             Path(bundle.registry_entry_path),
             Path(bundle.checksums_path),
         ]
@@ -99,13 +119,18 @@ def run(args: argparse.Namespace) -> dict:
             artifact_role=args.artifact_role,
             source_environment=args.source_environment,
             source_path_label=args.source_path_label,
+            source_provenance=(
+                load_json_object(args.source_provenance, label="source_provenance")
+                if args.source_provenance
+                else None
+            ),
         )
         upload_paths = [Path(bundle.compressed_path), Path(bundle.manifest_path), Path(bundle.checksums_path)]
     evidence: dict = {"bundle": asdict(bundle), "remote_execution": "not_requested"}
     registry = None
     if args.simulate_remote_dir:
         registry = LocalReleaseRegistry(args.simulate_remote_dir, visibility="PRIVATE", tag=args.release_tag)
-        registry.upload(upload_paths)
+        upload_immutable_release(registry, upload_paths)
         evidence["remote_execution"] = "local_simulation"
     elif args.github_repo:
         registry = GitHubReleaseRegistry(
@@ -119,7 +144,7 @@ def run(args: argparse.Namespace) -> dict:
         if args.owner_gate != REMOTE_EXECUTION_GATE:
             raise GovernanceError("github_remote_execution_not_authorized")
         registry.prepare_release(title=args.release_tag, notes="Governed Go Odyssey content backup")
-        registry.upload(upload_paths)
+        upload_immutable_release(registry, upload_paths)
         evidence["remote_execution"] = "github_release"
 
     if registry is not None:
@@ -131,6 +156,7 @@ def run(args: argparse.Namespace) -> dict:
             expected_record_count=args.expected_record_count,
             expected_tag=args.release_tag,
             download_dir=args.output_dir / "remote-redownload",
+            expected_assets=upload_paths,
         )
         receipt_path = args.output_dir / "offsite-verification-receipt.json"
         write_round_trip_receipt(receipt_path, receipt)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -11,6 +12,8 @@ try:
     from tools.content_release_core import (
         GovernanceError,
         LocalReleaseRegistry,
+        load_json_object,
+        validate_acceptance_evidence,
         verify_backup_bundle,
         verify_release_round_trip,
     )
@@ -18,6 +21,8 @@ except ModuleNotFoundError:  # Direct script execution.
     from content_release_core import (  # type: ignore[no-redef]
         GovernanceError,
         LocalReleaseRegistry,
+        load_json_object,
+        validate_acceptance_evidence,
         verify_backup_bundle,
         verify_release_round_trip,
     )
@@ -36,12 +41,28 @@ def parser() -> argparse.ArgumentParser:
     triple.add_argument("--expected-sha256", required=True)
     triple.add_argument("--expected-record-count", required=True, type=int)
     triple.add_argument("--download-dir", required=True, type=Path)
+    acceptance = subparsers.add_parser("acceptance")
+    acceptance.add_argument("--evidence", required=True, type=Path)
+    acceptance.add_argument("--expected-candidate-sha256", required=True)
+    acceptance.add_argument("--expected-record-count", type=int)
+    acceptance.add_argument("--expected-repair-batch-manifest-sha256", required=True)
     return result
 
 
 def run(args: argparse.Namespace) -> dict:
     if args.command == "bundle":
         return {"bundle": asdict(verify_backup_bundle(args.directory))}
+    if args.command == "acceptance":
+        payload = load_json_object(args.evidence, label="acceptance_evidence")
+        if payload.get("repair_batch_manifest_sha256") != args.expected_repair_batch_manifest_sha256:
+            raise GovernanceError("acceptance_evidence_repair_batch_mismatch")
+        validated = validate_acceptance_evidence(
+            payload,
+            expected_candidate_sha256=args.expected_candidate_sha256,
+            expected_record_count=args.expected_record_count,
+            expected_repair_batch_manifest_sha256=args.expected_repair_batch_manifest_sha256,
+        )
+        return {"acceptance_evidence": validated, "artifact_sha256": hashlib.sha256(args.evidence.read_bytes()).hexdigest()}
     registry = LocalReleaseRegistry(args.remote_dir, visibility="PRIVATE", tag=args.release_tag)
     receipt = verify_release_round_trip(
         registry=registry,

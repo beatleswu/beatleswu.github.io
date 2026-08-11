@@ -1,12 +1,14 @@
 # Content backup architecture
 
-Status: Phase 2H local candidate; no remote repository, Release, Production
-write, or credential was created.
+Status: Historical Phase 2H discovery plus current operational contract.
+Phase 2H itself performed no Production write or credential operation. The
+current read-only inventory confirms that the private backup repository and a
+baseline Release now exist; every executable operation must re-verify them.
 
 ## Boundary
 
 The application repository governs code and release tooling. It does not own
-the 41,591-record `questions.json` corpus. Real corpus snapshots must never be
+the canonical `questions.json` corpus. Real corpus snapshots must never be
 committed to this repository or to `beatleswu/beatleswu.github.io`.
 
 The proposed off-site registry is a separate private repository with the
@@ -14,10 +16,11 @@ logical name `go-odyssey-content-backup`. The repository itself stays small:
 policy, schemas, verifier source, and a human-readable index may be tracked.
 Byte-exact corpus snapshots are immutable GitHub Release assets.
 
-Phase 2H read-only discovery found no existing repository named
-`beatleswu/go-odyssey-content-backup` and no similarly named Go Odyssey
-content/backup repository. Remote creation requires the separate Owner gate
-`GO_CREATE_PRIVATE_GITHUB_CONTENT_REPO`.
+The Phase 2H discovery statement that no repository named
+`beatleswu/go-odyssey-content-backup` existed is historical. Current inventory
+reports `beatleswu/go-odyssey-content-backup` as PRIVATE and a baseline Release
+`content-baseline-20260810-012752Z`. Fresh repo visibility, exact tag/Release
+identity, asset inventory, and hashes remain mandatory before any use.
 
 ## Artifact model
 
@@ -32,6 +35,7 @@ Each governed content Release contains:
 - `questions.repaired-candidate.json.gz`;
 - the byte-exact approved content release manifest;
 - the byte-exact approved rollback manifest;
+- typed six-surface acceptance evidence;
 - `content-registry-entry.json`;
 - `SHA256SUMS.txt`.
 
@@ -41,7 +45,8 @@ exact uncompressed JSON bytes plus its record count.
 
 The backup manifest schema is
 `schemas/content_backup_manifest.schema.json`; the candidate registry schema
-is `schemas/content_release_registry.schema.json`. Neither permits or needs
+is `schemas/content_release_registry.schema.json`; acceptance evidence is
+typed by `schemas/content_acceptance_evidence.schema.json`. Neither permits or needs
 credentials, tokens, environment values, SSH key paths, or database secrets.
 
 ## Required backup proof
@@ -64,10 +69,12 @@ off-site Release and the local copy are independent mandatory gates.
 ## Publisher and rollback boundary
 
 The publisher verifies the current live hash/count, local baseline backup,
-off-site verification receipt, approved release-manifest hash, and candidate
-hash/count before it can execute. Verification is the default mode. Execution
-additionally requires `--execute` and the exact Owner gate
-`GO_PRODUCTION_CONTENT_RELEASE_54`.
+off-site verification receipt, approved release-manifest hash, candidate
+hash/count, semantic provenance, acceptance evidence, and rollback proof before
+it can execute. Verification is the default mode. Execution additionally
+requires `--execute` and the generic Owner gate
+`GO_PRODUCTION_CONTENT_RELEASE`; the exact manifest and candidate identities,
+not a batch number, authorize the operation.
 
 The replacement sequence is:
 
@@ -86,21 +93,24 @@ used for Production execution.
 Rollback is separately invokable and requires the current live corpus to equal
 the expected candidate. It verifies the rollback manifest and byte-exact
 baseline, then uses the same stage/fsync/replace/directory-fsync/post-verify
-sequence. Its execution gate is `GO_PRODUCTION_CONTENT_ROLLBACK_54`.
+sequence. Its execution gate is the generic
+`GO_PRODUCTION_CONTENT_ROLLBACK`, and a hashed rollback proof is mandatory.
 
 ## Locked Phase 2F package
 
-Phase 2H consumes but does not regenerate these bytes:
+Phase 2H consumed but did not regenerate these bytes. The numbers below are
+historical artifact values, not global operational invariants:
 
 | Artifact | SHA-256 |
 | --- | --- |
 | Production baseline | `4d13fa98af8c1a180e719b7a261c5ca638e042a8edbd3fdfe8d2c2f947cdaa28` |
-| 54-record candidate | `b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232` |
+| Historical candidate artifact | `b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232` |
 | Release manifest | `c337c68804bf346fea80e3facbf9edbe0651075cb9464761c87209c1bbd81745` |
 | Rollback manifest | `f1e970d91546f27cc65ba503c39fab2cd27adaef29a3bfbcdd38ee238a87fc23` |
 
-The release remains 43 groups / 54 records. The 11 Map Battle multi-reply
-traversal records remain excluded and no membership is recalculated here.
+That historical package contained 43 groups / 54 records and excluded 11 Map
+Battle multi-reply traversal records. Future releases must derive counts and
+exclusions from their manifests; no membership is recalculated implicitly.
 
 ## Legacy managed backup
 

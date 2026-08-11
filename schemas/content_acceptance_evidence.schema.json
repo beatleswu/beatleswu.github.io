@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/content_acceptance_evidence.schema.json",
+  "title": "Go Odyssey Typed Content Acceptance Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "authority",
+    "canonicality",
+    "candidate_sha256",
+    "records",
+    "summary",
+    "evidence_identity_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "authority": {"type": "string", "minLength": 1},
+    "canonicality": {"const": "VERIFICATION_EVIDENCE_ONLY"},
+    "candidate_sha256": {"$ref": "#/$defs/sha256"},
+    "repair_batch_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "source_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "records": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/record"}
+    },
+    "summary": {"$ref": "#/$defs/summary"},
+    "evidence_identity_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "surfaceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass", "match", "evidence_artifact_sha256"],
+      "properties": {
+        "pass": {"const": true},
+        "match": {"const": true},
+        "final_effective_player_verdict": {},
+        "evidence_artifact_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_index",
+        "legacy_question_id",
+        "content_sha256",
+        "owner_desired_verdict",
+        "final_effective_player_verdict",
+        "source_precedence_used",
+        "surfaces",
+        "evidence_artifact_sha256"
+      ],
+      "properties": {
+        "record_index": {"type": "integer", "minimum": 0},
+        "legacy_question_id": {"type": "integer", "minimum": 0},
+        "content_sha256": {"$ref": "#/$defs/sha256"},
+        "owner_desired_verdict": {},
+        "final_effective_player_verdict": {},
+        "source_precedence_used": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["accepted_moves", "native_sgf", "historical_katago_best_move", "none"]}
+        },
+        "accepted_moves_influence": {"type": "boolean"},
+        "native_sgf_influence": {"type": "boolean"},
+        "historical_katago_best_move_influence": {"type": "boolean"},
+        "surfaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sgf_engine_native",
+            "rating_test_server",
+            "map_battle_server",
+            "main_practice_client",
+            "daily_challenge_client",
+            "friend_challenge_client_then_server_trust"
+          ],
+          "properties": {
+            "sgf_engine_native": {"$ref": "#/$defs/surfaceResult"},
+            "rating_test_server": {"$ref": "#/$defs/surfaceResult"},
+            "map_battle_server": {"$ref": "#/$defs/surfaceResult"},
+            "main_practice_client": {"$ref": "#/$defs/surfaceResult"},
+            "daily_challenge_client": {"$ref": "#/$defs/surfaceResult"},
+            "friend_challenge_client_then_server_trust": {"$ref": "#/$defs/surfaceResult"}
+          }
+        },
+        "evidence_artifact_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["records_validated", "all_final_effective_match", "surfaces"],
+      "properties": {
+        "records_validated": {"type": "integer", "minimum": 0},
+        "all_final_effective_match": {"const": true},
+        "surfaces": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 6,
+          "items": {"enum": [
+            "sgf_engine_native",
+            "rating_test_server",
+            "map_battle_server",
+            "main_practice_client",
+            "daily_challenge_client",
+            "friend_challenge_client_then_server_trust"
+          ]}
+        }
+      }
+    }
+  }
+}

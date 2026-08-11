@@ -19,6 +19,13 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--local-baseline-backup", required=True, type=Path)
     result.add_argument("--offsite-receipt", required=True, type=Path)
     result.add_argument("--release-manifest", required=True, type=Path)
+    result.add_argument("--rollback-manifest", required=True, type=Path)
+    result.add_argument("--rollback-proof", required=True, type=Path)
+    result.add_argument("--source-provenance", required=True, type=Path)
+    result.add_argument("--review-binding", required=True, type=Path)
+    result.add_argument("--repair-batch-manifest", required=True, type=Path)
+    result.add_argument("--mutation-audit", required=True, type=Path)
+    result.add_argument("--acceptance-evidence", required=True, type=Path)
     result.add_argument("--expected-live-sha256", required=True)
     result.add_argument("--expected-candidate-sha256", required=True)
     result.add_argument("--expected-release-manifest-sha256", required=True)
@@ -38,6 +45,13 @@ def main() -> int:
             local_baseline_backup=args.local_baseline_backup,
             offsite_receipt=args.offsite_receipt,
             release_manifest=args.release_manifest,
+            rollback_manifest=args.rollback_manifest,
+            rollback_proof=args.rollback_proof,
+            source_provenance=args.source_provenance,
+            review_binding=args.review_binding,
+            repair_batch_manifest=args.repair_batch_manifest,
+            mutation_audit=args.mutation_audit,
+            acceptance_evidence=args.acceptance_evidence,
             expected_live_sha256=args.expected_live_sha256,
             expected_candidate_sha256=args.expected_candidate_sha256,
             expected_release_manifest_sha256=args.expected_release_manifest_sha256,
