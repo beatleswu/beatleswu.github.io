@@ -9081,13 +9081,11 @@ async function _submitMapBattleV1IfActive(moves) {
                 _publishMapBattleV1Lifecycle();
                 if (response.next_action === 'monster_defeated') {
                     if (!showBeginnerVillageEncounterContinuation()) returnToAdventureMapAfterEncounter();
-                    // Genuine, server-authoritative Zone 1 clear (never fired
-                    // on 'player_defeated'/loss -- see next_action's mutually
-                    // exclusive branches in map_battle_runtime.py). Self-
-                    // guards on isBeginnerVillageAdventureResult() and
-                    // "already seen"; a no-op for every other zone and for
-                    // Zone 1's second-and-later clears.
-                    _maybeTriggerZone1PostClearFilm();
+                    // Ordinary Map Battle victories are encounter presentation
+                    // only. They never clear an Adventure Zone, mark its
+                    // POST_CLEAR seen/pending state, or reveal the next zone.
+                    // Only the server-authoritative Lord success path below
+                    // may hand off to Zone POST_CLEAR.
                     return;
                 }
                 srsDoneCount++;
@@ -12968,19 +12966,18 @@ function markAdventurePostClearSeen(zone) {
 }
 
 // Reload-resilience for POST_CLEAR (Owner review follow-up,
-// E10-Z1-PROD-INTEGRATION-001): a genuine 'monster_defeated' win is
-// server-confirmed the instant it happens, but "seen" is only written after
-// Shot 10 actually finishes playing (or is explicitly skipped). Without a
-// third state, a reload/close mid-S9/S10 would permanently lose the
-// follow-up story -- the win already happened server-side and never repeats
-// as a fresh 'monster_defeated' event, and "seen" was never set, so nothing
-// would ever re-trigger it. "Pending" bridges that gap: it is written the
-// moment playback starts (see _maybeTriggerZone1PostClearFilm) and cleared
-// only by finishPostClearFilm (normal completion or explicit skip -- both
-// call it). _resumeZone1PostClearIfPending() checks pending-but-not-seen on
-// every fresh adventure-progress load and safely replays Shots 9-10 from
-// the top. Purely a client-side presentation flag: no reward, no
-// settlement, no DB/schema change. Account-scoped via the same
+// E10-Z1-PROD-INTEGRATION-001): a genuine Lord-success clear is
+// server-confirmed before this presentation path is reached, but "seen" is
+// only written after Shot 10 actually finishes playing (or is explicitly
+// skipped). Without a third state, a reload/close mid-S9/S10 would lose the
+// follow-up story -- the clear already happened server-side and the result
+// card will not be shown again automatically. "Pending" bridges that gap:
+// it is written by _triggerZone1PostClearFromBossWin immediately before
+// playback and cleared only by finishPostClearFilm (normal completion or
+// explicit skip -- both call it). _resumeZone1PostClearIfPending() checks
+// pending-but-not-seen on every fresh adventure-progress load and safely
+// replays Shots 9-10 from the top. Purely a client-side presentation flag:
+// no reward, no settlement, no DB/schema change. Account-scoped via the same
 // _postClearAccountId() as the seen flag above -- same rationale.
 const ADVENTURE_POSTCLEAR_PENDING_STORAGE_KEY = 'adventure_postclear_pending_v1';
 
@@ -14205,9 +14202,9 @@ function getIntroFilmLocaleConfig(zone) {
     // play before gameplay. `postClearTimeline` (Shots 9-10, DOM shot
     // indices 8-9) is a SEPARATE array only ever passed to
     // playNewbieVillageIntroFilm() via playZone1PostClearFilm(), which is
-    // only invoked after a genuine server-authoritative Map Battle v1
-    // 'monster_defeated' response for k26_30 (see _submitMapBattleV1IfActive
-    // below) -- never at zone-entry time, never on a loss/abandon. There is
+    // only invoked after a genuine server-authoritative Zone Lord success
+    // for k26_30 (see _triggerZone1PostClearFromBossWin below) -- never at
+    // zone-entry time, never on a loss/abandon or ordinary Map Battle win. There is
     // deliberately no finalCaption/finalLine here: PRE_PLAY hands off to
     // gameplay right after Shot 8's own dialogue (see finishIntroFilm's
     // k26_30 branch) and POST_CLEAR ends right after Shot 10's own dialogue
@@ -15056,32 +15053,15 @@ function finishBossReadyFilm(zone) {
     hideBossCinematic();
 }
 
-// Triggered from a genuine, fresh, server-authoritative Map Battle v1
-// 'monster_defeated' response for Zone 1 (k26_30) -- see the next_action
-// branch in _submitMapBattleV1IfActive. Never called at zone-entry time,
-// never on 'player_defeated'/loss, never on an abandoned attempt: this is
-// exactly what makes it safe to gate Shots 9-10 on. Fires at most once per
-// zone (ADVENTURE_POSTCLEAR_STORAGE_KEY), though the underlying server event
-// itself can repeat for later battles in the same zone.
-function _maybeTriggerZone1PostClearFilm() {
-    if (!isBeginnerVillageAdventureResult()) return;
-    const zone = (_adventureProgress || []).find(z => z.key === 'k26_30')
-        || ADVENTURE_ZONES.find(z => z.key === 'k26_30');
-    if (!zone || adventurePostClearSeen(zone)) return;
-    // Mark pending BEFORE starting playback, not after: if the page reloads
-    // or closes anywhere during Shots 9-10, pending survives (this genuine
-    // win event itself never repeats) and _resumeZone1PostClearIfPending()
-    // recovers it on the next adventure-progress load.
-    markAdventurePostClearPending(zone);
-    playZone1PostClearFilm(zone);
-}
-
-// Reload/close recovery: called whenever fresh adventure progress loads
-// (see updateMapProgress). If a genuine clear left POST_CLEAR pending but
-// never reached normal completion/skip, safely replay Shots 9-10 from the
-// top. No-op once seen, no-op if nothing is pending, and no-op if a
+// Reload/close recovery after a real Lord success: called whenever fresh
+// adventure progress loads. If the authoritative clear left POST_CLEAR
+// pending but never reached normal completion/skip, safely replay Shots 9-10
+// from the top. No-op once seen, no-op if nothing is pending, and no-op if a
 // POST_CLEAR run is already actively playing (avoids restarting a resume
 // that's already in progress if this is called again mid-playback).
+//
+// Ordinary Map Battle victories never write this pending marker, so they can
+// never enter this recovery path.
 function _resumeZone1PostClearIfPending() {
     const zone = (_adventureProgress || []).find(z => z.key === 'k26_30')
         || ADVENTURE_ZONES.find(z => z.key === 'k26_30');
@@ -15095,10 +15075,10 @@ function _resumeZone1PostClearIfPending() {
 // #boss-cinematic overlay. Purely visual: no fetch/POST of any kind, no
 // reward or settlement authority here or in finishPostClearFilm -- the
 // server already settled the battle before this function is ever reached.
-// Safe to call directly for a manual replay (see replayIntroFilm), a reload
-// recovery (see _resumeZone1PostClearIfPending), or the automatic
-// first-clear trigger above; the "have we shown this already" decision
-// lives only in _maybeTriggerZone1PostClearFilm/_resumeZone1PostClearIfPending.
+// Safe to call directly for a manual replay (see replayIntroFilm) or a reload
+// recovery (see _resumeZone1PostClearIfPending). Gameplay authority is
+// established only by _triggerZone1PostClearFromBossWin after Lord success;
+// this function is presentation-only.
 function playZone1PostClearFilm(zone) {
     const overlay = document.getElementById('boss-cinematic');
     if (!overlay || !zone) return;
@@ -15785,9 +15765,8 @@ async function _finishBossBattle() {
 // response (recomputed server-side from review_log, never trusted from the
 // client -- see app.py _adventure_boss_authoritative_result). Fires
 // POST_CLEAR at most once (adventurePostClearSeen/markAdventurePostClearPending
-// are the exact same account-scoped guards _maybeTriggerZone1PostClearFilm
-// already uses for the Map Battle V1 path) -- this is simply a second,
-// correct trigger point for the SAME real boss-clear event, not a new rule.
+// are account-scoped presentation guards). This is the sole gameplay-success
+// trigger: ordinary Map Battle victories never reach this function.
 function _triggerZone1PostClearFromBossWin(zone) {
     if (!zone || zone.key !== 'k26_30') return;
     if (adventurePostClearSeen(zone)) return;
