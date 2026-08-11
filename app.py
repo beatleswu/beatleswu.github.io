@@ -8090,10 +8090,10 @@ BOSS_UNLOCK_PCT = 30
 BOSS_EXAM_SIZE = 20
 BOSS_PASS_SCORE = 16
 BOSS_FAIL_COOLDOWN = 30
-# Generic E10 cinematic registry.  The registry is intentionally explicit:
-# it defines the future Zone 1-10 namespace without turning the authenticated
-# write route into an arbitrary user-metadata endpoint.  Only Zone 1 is wired
-# into the active E9 entry flow in this PR.
+# Generic E10 cinematic registry. The registry is intentionally explicit: it
+# defines the Zone 1-10 namespace without turning the authenticated write route
+# into an arbitrary user-metadata endpoint. Zone 1 and Zone 2 currently use
+# the active E9 entry flow; later zones remain slots until authorized.
 E10_CINEMATIC_KEY_REGISTRY = {
     f'e10_zone{zone_number}_intro_v1': {
         'zone_number': zone_number,
@@ -8127,7 +8127,9 @@ ADVENTURE_ZONES = [
 
 ADVENTURE_BOSS_META = {
     'k26_30': {'key': 'village_examiner', 'name': '村莊考核官', 'name_en': 'Village Examiner'},
-    'k21_25': {'key': 'swarm_lord', 'name': '蜂群領主', 'name_en': 'Swarm Lord'},
+    # The hive is the environmental source of the imbalance; the Zone Lord
+    # authority remains the massive slime entity, not a humanoid bee.
+    'k21_25': {'key': 'swarm_lord', 'name': '史萊姆群領主', 'name_en': 'Swarm Lord'},
     'k16_20': {'key': 'goblin_centurion', 'name': '哥布林百夫長', 'name_en': 'Goblin Centurion'},
     'k11_15': {'key': 'misty_phantom_rabbit_king', 'name': '迷霧幻影兔王', 'name_en': 'Misty Phantom Rabbit King'},
     'k6_10': {'key': 'iron_orc_chieftain', 'name': '鋼鐵獸人酋長', 'name_en': 'Iron Orc Chieftain'},
