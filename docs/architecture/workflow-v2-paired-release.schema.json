@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/workflow-v2-paired-release.schema.json",
+  "title": "Workflow V2 paired app/static release envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "release_type",
+    "release_id",
+    "merged_source_sha",
+    "new_pair",
+    "compatibility",
+    "predeploy",
+    "old_pair",
+    "convergence"
+  ],
+  "properties": {
+    "schema_version": {"const": "workflow-v2-paired-release-v1"},
+    "artifact_kind": {"const": "PAIRED_RELEASE_ENVELOPE"},
+    "release_type": {"const": "PAIRED_APP_STATIC"},
+    "release_id": {"type": "string", "minLength": 1},
+    "merged_source_sha": {"$ref": "#/$defs/sha40"},
+    "new_pair": {"$ref": "#/$defs/pair"},
+    "old_pair": {"$ref": "#/$defs/pair"},
+    "compatibility": {"$ref": "#/$defs/compatibility"},
+    "predeploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "captured_at",
+        "evidence_sha256",
+        "source_tool",
+        "capture_scope",
+        "coherence_verified",
+        "previous_compatibility_id"
+      ],
+      "properties": {
+        "observation_id": {"type": "string", "minLength": 1},
+        "captured_at": {"type": "string", "minLength": 1},
+        "evidence_sha256": {"$ref": "#/$defs/sha256"},
+        "source_tool": {"const": "preflight-production.ps1"},
+        "capture_scope": {
+          "type": "array",
+          "prefixItems": [{"const": "app"}, {"const": "static"}],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "coherence_verified": {"const": true},
+        "previous_compatibility_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "convergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_final_states",
+        "transition_guard_required",
+        "subjective_owner_rejection_auto_rollback",
+        "objective_failures"
+      ],
+      "properties": {
+        "allowed_final_states": {
+          "const": ["NEW_COHERENT_PAIR", "OLD_COHERENT_PAIR"]
+        },
+        "transition_guard_required": {"const": true},
+        "subjective_owner_rejection_auto_rollback": {"const": false},
+        "objective_failures": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "app_health_failure",
+              "container_unhealthy",
+              "artifact_identity_mismatch",
+              "static_integrity_failure",
+              "readiness_failure",
+              "critical_affected_path_smoke_failure"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha40": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "appIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_manifest_sha256",
+        "archive_sha256",
+        "image_id",
+        "image_tag",
+        "oci_revision"
+      ],
+      "properties": {
+        "release_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "archive_sha256": {"$ref": "#/$defs/sha256"},
+        "image_id": {"type": "string", "minLength": 1},
+        "image_tag": {"type": "string", "minLength": 1},
+        "oci_revision": {"$ref": "#/$defs/sha40"}
+      }
+    },
+    "staticIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "archive_sha256",
+        "static_generation_id",
+        "release_git_sha",
+        "service_worker_identity"
+      ],
+      "properties": {
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "archive_sha256": {"$ref": "#/$defs/sha256"},
+        "static_generation_id": {"type": "string", "minLength": 1},
+        "release_git_sha": {"$ref": "#/$defs/sha40"},
+        "service_worker_identity": {"type": "string", "minLength": 1}
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compatibility_id", "app", "static"],
+      "properties": {
+        "compatibility_id": {"type": "string", "pattern": "^pair-[0-9a-f]{64}$"},
+        "app": {"$ref": "#/$defs/appIdentity"},
+        "static": {"$ref": "#/$defs/staticIdentity"}
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declared",
+        "declared_by",
+        "compatibility_id",
+        "merged_source_sha",
+        "app_artifact_identity",
+        "app_archive_sha256",
+        "static_generation_identity",
+        "static_archive_sha256",
+        "service_worker_identity"
+      ],
+      "properties": {
+        "declared": {"const": true},
+        "declared_by": {"type": "string", "minLength": 1},
+        "compatibility_id": {"type": "string", "pattern": "^pair-[0-9a-f]{64}$"},
+        "merged_source_sha": {"$ref": "#/$defs/sha40"},
+        "app_artifact_identity": {"type": "string", "minLength": 1},
+        "app_archive_sha256": {"$ref": "#/$defs/sha256"},
+        "static_generation_identity": {"type": "string", "minLength": 1},
+        "static_archive_sha256": {"$ref": "#/$defs/sha256"},
+        "service_worker_identity": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

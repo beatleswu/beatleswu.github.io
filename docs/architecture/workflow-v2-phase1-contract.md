@@ -132,8 +132,9 @@ Release types are:
 - PAIRED_APP_STATIC.
 
 APP_ONLY and STATIC_ONLY are independently supported by the existing
-artifact tooling. PAIRED_APP_STATIC is a declaration only in Phase 1.
-Coherent pair switching and pair rollback remain Phase 2 requirements.
+artifact tooling. PAIRED_APP_STATIC was a declaration only in Phase 1; the
+Phase 2 paired-release envelope now binds its exact artifacts and rollback
+pair under a guarded convergence contract.
 
 The release helper requires artifact identities to match the merged source:
 the application OCI revision and static release_git_sha must equal
@@ -185,9 +186,10 @@ different boundaries.
 
 ## Explicit non-goals
 
-Phase 1 does not solve app/static compatibility or coherent rollback. A
-paired release must currently be reported as requiring Phase 2 protection
-against mixed states.
+Phase 1 did not solve app/static compatibility or coherent rollback. Phase 2
+adds that protection in
+`docs/architecture/workflow-v2-phase2-contract.md`; Production use remains
+owner-gated and no deployment is implied by the evidence artifact.
 
 FAST_STATIC remains a complete manifest-bound live-static generation. Phase 1
 does not widen it to arbitrary file promotion.
