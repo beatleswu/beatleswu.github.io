@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/content_backup_manifest.schema.json",
+  "title": "Go Odyssey Content Backup Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_role",
+    "created_at_utc",
+    "source_environment",
+    "source_path",
+    "record_count",
+    "uncompressed_byte_count",
+    "uncompressed_sha256",
+    "compressed_filename",
+    "compressed_sha256",
+    "baseline_sha256",
+    "source_provenance",
+    "release_candidate_sha256",
+    "release_manifest_sha256",
+    "rollback_manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.1"},
+    "artifact_role": {"type": "string", "minLength": 1},
+    "created_at_utc": {"type": "string", "minLength": 1},
+    "source_environment": {"type": "string", "minLength": 1},
+    "source_path": {"type": "string", "minLength": 1},
+    "record_count": {"type": "integer", "minimum": 0},
+    "uncompressed_byte_count": {"type": "integer", "minimum": 1},
+    "uncompressed_sha256": {"$ref": "#/$defs/sha256"},
+    "compressed_filename": {"type": "string", "pattern": "^[^/\\\\]+\\.gz$"},
+    "compressed_sha256": {"$ref": "#/$defs/sha256"},
+    "baseline_sha256": {"$ref": "#/$defs/sha256"},
+    "source_provenance": {"$ref": "#/$defs/sourceProvenance"},
+    "release_candidate_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "release_manifest_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "rollback_manifest_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sourceProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_repo_id",
+        "source_commit_or_snapshot_id",
+        "source_path",
+        "source_sha256",
+        "source_size_bytes",
+        "source_record_count",
+        "source_status",
+        "source_identity_sha256"
+      ],
+      "properties": {
+        "source_kind": {"enum": ["local_file", "git_blob", "immutable_snapshot"]},
+        "source_repo_id": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
+        "source_commit_or_snapshot_id": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
+        "source_path": {"type": "string", "minLength": 1},
+        "source_sha256": {"$ref": "#/$defs/sha256"},
+        "source_size_bytes": {"type": "integer", "minimum": 1},
+        "source_record_count": {"type": "integer", "minimum": 0},
+        "source_status": {"type": "string", "minLength": 1},
+        "source_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "review_source_id": {"$ref": "#/$defs/sha256"},
+        "source_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+        "detector_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "validation_pack_id": {"$ref": "#/$defs/sha256"},
+        "approved_proposal_set_sha256": {"$ref": "#/$defs/sha256"},
+        "repair_batch_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "source_identity_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}
