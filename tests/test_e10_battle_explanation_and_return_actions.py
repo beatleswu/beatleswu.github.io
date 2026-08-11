@@ -32,7 +32,7 @@ def test_e10_battle_exposes_explicit_explanation_and_map_actions():
 def test_explanation_action_reuses_canonical_explanation_path_without_settlement():
     action = _function_block("showE10BattleExplanation", "returnToAdventureMapAfterEncounter")
     assert "_isE10BattleRevealAvailable()" in action
-    assert "showExplanation(_lastWrongMove || null)" in action
+    assert "showExplanation(_lastWrongMove || null, { reveal: true })" in action
     assert "submitSRS" not in action
     assert "/api/srs/review" not in action
     assert "adapter.submit" not in action

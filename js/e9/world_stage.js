@@ -213,14 +213,31 @@
     state.authoritativeCurrentZoneKey = state.currentPlayerZoneKey;
     state.primaryAction = primaryAction || null;
     state.selectedZoneKey = selected ? selected.key : null;
-    var primary = resolvePrimaryCta(state, zones);
-    state.challengeTargetZoneKey = primary && primary.zoneKey
-      ? primary.zoneKey
+    // Selection and authoritative player location are separate identities.
+    // The selected card owns the next challenge target unless an already-
+    // issued encounter must be resumed; ordinary current-zone arbitration
+    // must never overwrite a deliberate lower-zone selection.
+    var mandatory = activeMandatoryEncounterAction(state);
+    state.challengeTargetZoneKey = mandatory && mandatory.zoneKey
+      ? mandatory.zoneKey
       : resolveChallengeTargetZoneKey(selected);
     return { current: current, selected: selected };
   }
 
   function ctaContract(zone, state) {
+    // An already-issued encounter is the sole authority allowed to override
+    // a newly selected zone. Keep every CTA surface (primary, details,
+    // inline, and drawer) on that same resumable encounter identity.
+    var mandatory = activeMandatoryEncounterAction(state);
+    var mandatoryZone = mandatory && findZone(state.zones || [], mandatory.zoneKey);
+    if (mandatoryZone) {
+      return {
+        enabled: true,
+        targetZoneKey: mandatoryZone.key,
+        label: actionLabel(mandatory, state),
+        kind: mandatory.kind,
+      };
+    }
     var target = resolveChallengeTargetZoneKey(zone);
     if (!target) {
       return { enabled: false, targetZoneKey: null, label: t('e10.world_stage.state_locked', 'Locked') };
@@ -812,14 +829,13 @@
       if (primary) primary.hidden = true;
       return;
     }
-    // The primary CTA is a single "most important thing to do right now"
-    // control, independent of which zone card the player merely has
-    // selected for viewing -- it must always target the root-level
-    // arbitration's own zone (falling back to the selected zone only when
-    // no arbitration exists), never the selected zone's unrelated state.
-    var primaryAction = resolvePrimaryCta(state, state.zones || []);
-    var targetZone = primaryAction && primaryAction.zoneKey
-      ? findZone(state.zones || [], primaryAction.zoneKey) || zone
+    // The map-level CTA is rendered beside the selected-zone details, so its
+    // action identity must be that selected zone.  Only an already-issued
+    // mandatory encounter may temporarily override selection so the player
+    // can resume the canonical server-owned attempt.
+    var mandatoryAction = activeMandatoryEncounterAction(state);
+    var targetZone = mandatoryAction && mandatoryAction.zoneKey
+      ? findZone(state.zones || [], mandatoryAction.zoneKey) || zone
       : zone;
     var contract = targetZone && ctaContract(targetZone, state);
     var label = contract ? contract.label : '';
@@ -946,7 +962,7 @@
     }
 
     state.selectedZoneKey = zone.key;
-    state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(zone);
+    state.challengeTargetZoneKey = ctaContract(zone, state).targetZoneKey;
     // Keep the prior aria-pressed target while a locked zone is inspected;
     // the locked tile receives the visual/state selection class and its
     // details, but it must not become an actionable selection in the
@@ -1264,7 +1280,7 @@
         state.selectedZoneKey = recommended.key;
         setSelectedTileState(root, recommended.key);
         updateSelectedZoneCopy(root, recommended);
-        state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(recommended);
+        state.challengeTargetZoneKey = ctaContract(recommended, state).targetZoneKey;
         configurePrimaryCta(root, recommended, state);
         dispatchZoneSelection(root, recommended, state);
         var portraitDetails = root.querySelector('#e9-world-stage-details');

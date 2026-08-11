@@ -126,7 +126,7 @@ def test_all_responsive_ctas_share_one_selected_target_action():
     assert "window.E9.dispatchAdventureAction(" in RIGHT
     assert "targetZoneKey: root.__e10ChallengeTargetZoneKey" in RIGHT
     assert "kind: root.__e10ChallengeTargetKind" in RIGHT
-    assert "state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(zone)" in WORLD
+    assert "state.challengeTargetZoneKey = ctaContract(zone, state).targetZoneKey" in WORLD
 
 
 def test_e9_shell_yields_to_canonical_question_practice_state():

@@ -196,15 +196,18 @@ def test_only_one_dispatch_function_exists_for_all_world_stage_ctas():
     assert WORLD_STAGE.count("dispatchAdventureAction(inlineContract);") == 1
 
 
-def test_primary_cta_targets_the_arbitrated_zone_not_merely_the_selected_zone():
+def test_primary_cta_targets_selected_zone_except_mandatory_encounter_resume():
     start = WORLD_STAGE.index("function configurePrimaryCta(")
     end = WORLD_STAGE.index("\n  function updateSelectedZoneCopy(", start)
     body = WORLD_STAGE[start:end]
-    # Must resolve the root-level arbitration's OWN zone before computing a
-    # contract -- not ctaContract(zone, state) on whatever zone the caller
-    # (renderSelectedZone) merely has selected for viewing.
-    assert "var primaryAction = resolvePrimaryCta(state, state.zones || []);" in body
-    assert body.index("resolvePrimaryCta(") < body.index("ctaContract(targetZone, state)")
+    # The map CTA is visually associated with the selected details and must
+    # therefore preserve that selected identity.  A server-issued encounter
+    # is the only allowed temporary override.
+    assert "var mandatoryAction = activeMandatoryEncounterAction(state);" in body
+    assert "? findZone(state.zones || [], mandatoryAction.zoneKey) || zone" in body
+    assert ": zone;" in body
+    assert "ctaContract(targetZone, state)" in body
+    assert "var primaryAction = resolvePrimaryCta" not in body
 
 
 def test_ctacontract_gates_root_arbitration_on_matching_zone_key():
@@ -220,6 +223,26 @@ def test_ctacontract_gates_root_arbitration_on_matching_zone_key():
     # able to produce challenge_lord even when it isn't the single
     # globally-arbitrated pick -- never inferred from seen/total.
     assert "zone.bossAvailable === true && !zone.cleared" in body
+
+
+def test_resumable_encounter_is_the_only_cross_zone_cta_override():
+    start = WORLD_STAGE.index("function ctaContract(")
+    end = WORLD_STAGE.index("\n  function usesLandmarkCards(", start)
+    body = WORLD_STAGE[start:end]
+    mandatory = body.index("var mandatory = activeMandatoryEncounterAction(state);")
+    locked = body.index("var target = resolveChallengeTargetZoneKey(zone);")
+    assert mandatory < locked
+    assert "var mandatoryZone = mandatory && findZone(state.zones || [], mandatory.zoneKey);" in body
+    assert "targetZoneKey: mandatoryZone.key" in body
+    assert "kind: mandatory.kind" in body
+
+
+def test_selected_zone_render_uses_shared_contract_for_challenge_target_identity():
+    start = WORLD_STAGE.index("function renderSelectedZone(")
+    end = WORLD_STAGE.index("\n  function renderZones(", start)
+    body = WORLD_STAGE[start:end]
+    assert "state.challengeTargetZoneKey = ctaContract(zone, state).targetZoneKey;" in body
+    assert "state.challengeTargetZoneKey = resolveChallengeTargetZoneKey(zone);" not in body
 
 
 # ---------------------------------------------------------------------
@@ -306,6 +329,19 @@ async function main() {
     const contract = sandbox.ctaContract(otherZone, state);
     assert.strictEqual(contract.targetZoneKey, 'k16_20');
   });
+
+  // -- Case 1b: an already-issued resumable encounter is the only allowed
+  // cross-zone override. Every selected-zone CTA surface must resume the
+  // authoritative encounter rather than creating a new lower-zone attempt.
+  sandbox.window.__GO_E10_BATTLE_LIFECYCLE__ = {
+    mode: 'active', hasNonce: true, zoneKey: 'k21_25',
+  };
+  check('resumable encounter overrides a newly selected lower zone', () => {
+    const contract = sandbox.ctaContract(otherZone, state);
+    assert.strictEqual(contract.kind, 'resume_encounter');
+    assert.strictEqual(contract.targetZoneKey, 'k21_25');
+  });
+  sandbox.window.__GO_E10_BATTLE_LIFECYCLE__ = undefined;
   check('locked zone is never an actionable challenge target', () => {
     const contract = sandbox.ctaContract(lockedZone, state);
     assert.strictEqual(contract.enabled, false);
