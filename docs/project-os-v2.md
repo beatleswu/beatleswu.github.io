@@ -3,6 +3,28 @@
 This document captures the durable workflow that governs Go Odyssey change
 delivery.
 
+Workflow V2 Phase 1 operational classes and evidence contracts are defined in
+docs/architecture/workflow-v2-phase1-contract.md. The A/B/C labels below
+remain useful legacy impact labels, but they do not replace the authority-
+based NORMAL, HOTFIX, and HEAVY classification.
+
+## Workflow V2 delivery path
+
+Normal and Hotfix work should ordinarily follow:
+
+1. development
+2. focused PR validation and machine-readable PR evidence
+3. owner merge decision
+4. merge
+5. merged-source release evidence and exact artifact preparation, when needed
+6. owner deploy decision, when needed
+7. deployment and objective verification
+
+Heavy work retains the stronger existing lifecycle and may require broader
+validation. The final release declaration is APP_ONLY, STATIC_ONLY, or
+PAIRED_APP_STATIC. Paired app/static coherence and rollback remain a Phase 2
+requirement.
+
 ## Risk Classes
 
 - `A` - docs/config-only

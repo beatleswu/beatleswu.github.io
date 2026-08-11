@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/workflow-v2-release-provenance.schema.json",
+  "title": "Go Odyssey Workflow V2 release provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "repository",
+    "generated_at",
+    "release_id",
+    "release_type",
+    "risk_class",
+    "classification_basis",
+    "merged_source_sha",
+    "merged_tree_sha",
+    "merge_parents",
+    "canonical_ref",
+    "canonical_ancestor",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "workflow-v2-evidence-v1"
+    },
+    "artifact_kind": {
+      "const": "RELEASE_PROVENANCE"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "release_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"
+    },
+    "release_type": {
+      "enum": [
+        "APP_ONLY",
+        "STATIC_ONLY",
+        "PAIRED_APP_STATIC"
+      ]
+    },
+    "risk_class": {
+      "enum": [
+        "NORMAL",
+        "HOTFIX",
+        "HEAVY"
+      ]
+    },
+    "classification_basis": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "merged_source_sha": {
+      "$ref": "#/$defs/sha40"
+    },
+    "merged_tree_sha": {
+      "$ref": "#/$defs/sha40"
+    },
+    "merge_parents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sha40"
+      }
+    },
+    "canonical_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonical_ancestor": {
+      "const": true
+    },
+    "pr_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pr_head_sha",
+        "artifact_sha256"
+      ],
+      "properties": {
+        "pr_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pr_head_sha": {
+          "$ref": "#/$defs/sha40"
+        },
+        "artifact_sha256": {
+          "$ref": "#/$defs/sha64"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "app",
+        "static",
+        "external_content"
+      ],
+      "properties": {
+        "app": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/app_artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "static": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/static_artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "external_content": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "identity"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "identity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha40": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "app_artifact": {
+      "type": "object",
+      "required": [
+        "image_tag",
+        "image_id",
+        "archive_sha256",
+        "oci_revision"
+      ],
+      "properties": {
+        "image_tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "archive_sha256": {
+          "$ref": "#/$defs/sha64"
+        },
+        "oci_revision": {
+          "$ref": "#/$defs/sha40"
+        }
+      }
+    },
+    "static_artifact": {
+      "type": "object",
+      "required": [
+        "static_generation_id",
+        "archive_sha256",
+        "release_git_sha",
+        "service_worker_identity"
+      ],
+      "properties": {
+        "static_generation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "archive_sha256": {
+          "$ref": "#/$defs/sha64"
+        },
+        "release_git_sha": {
+          "$ref": "#/$defs/sha40"
+        },
+        "service_worker_identity": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
