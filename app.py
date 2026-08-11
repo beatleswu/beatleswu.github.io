@@ -65,6 +65,20 @@ from map_battle_persistence import (
     load_authoritative_battle_state,
 )
 from sgf_answer_review_queue import ensure_review_queue_tables
+from sgf_admin_workbench import (
+    WORKBENCH_ACTIONS,
+    WORKBENCH_REPORT_REASONS,
+    WORKBENCH_SOURCES,
+    WORKBENCH_STATUSES,
+    capture_workbench_report,
+    create_workbench_batch,
+    ensure_sgf_workbench_tables,
+    get_workbench_item,
+    list_workbench_items,
+    resolve_workbench_item,
+    stage_workbench_repair,
+    workbench_constants,
+)
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
@@ -3908,6 +3922,11 @@ def init_db():
     with get_db() as conn:
         ensure_review_queue_tables(conn)
 
+    # Unified SGF Admin Workbench is an additive evidence/staging projection.
+    # It deliberately has no write path to questions.json or Production.
+    with get_db() as conn:
+        ensure_sgf_workbench_tables(conn)
+
 # ── 認證裝飾器 ─────────────────────────────────────────────────
 def login_required(f):
     @wraps(f)
@@ -3933,12 +3952,282 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-from sgf_answer_review_routes import create_sgf_answer_review_blueprint
+from sgf_answer_review_routes import (
+    create_sgf_answer_review_blueprint,
+    _REVIEW_CSRF_HEADER,
+    _review_csrf_failure,
+    _review_csrf_token,
+)
 
 app.register_blueprint(create_sgf_answer_review_blueprint(
     admin_required=admin_required,
     get_db_provider=lambda: get_db(),
 ))
+
+
+def _workbench_state_for_question(context):
+    q = context['record']
+    return {
+        'question_id': context['question_id'],
+        'record_index': context['record_index'],
+        'content_sha256': context['question_content_sha256'],
+        'enabled': bool(q.get('enabled', True)),
+        'solution_state': q.get('solution_state'),
+        'accepted_moves': _question_accepted_moves(q),
+        'native_sgf': q.get('native_answer') or q.get('solution'),
+        'historical_katago_best_move': q.get('katago_best_move'),
+    }
+
+
+def _workbench_staged_question(context, staged_repair):
+    q = json.loads(json.dumps(context['record']))
+    proposed = staged_repair.get('proposed_state') or {}
+    if isinstance(proposed, dict):
+        for key in ('accepted_moves', 'enabled', 'solution_state'):
+            if key in proposed:
+                q[key] = proposed[key]
+    return q
+
+
+def _workbench_verdict(value):
+    if value is True:
+        return 'CORRECT'
+    if value is False:
+        return 'WRONG'
+    return 'UNDETERMINED'
+
+
+@app.route('/api/admin/sgf-workbench/bootstrap')
+@admin_required
+def admin_sgf_workbench_bootstrap():
+    with get_db() as conn:
+        ensure_sgf_workbench_tables(conn)
+        items = list_workbench_items(
+            conn, source=request.args.get('source'), status=request.args.get('status'),
+            limit=request.args.get('limit', 200),
+        )
+        staged_count = conn.execute("SELECT COUNT(*) AS n FROM sgf_workbench_staged_repairs WHERE status IN ('STAGED','BATCHED')").fetchone()['n']
+    return jsonify({
+        'ok': True,
+        'items': items,
+        'staged_count': int(staged_count),
+        'constants': workbench_constants(),
+        'existing_review_queue': '/admin/sgf-answer-review',
+        'desktop_ipad_authority_parity': True,
+        'production_mutation': False,
+        'canonical_mutation': False,
+        'security': {'csrf_header': _REVIEW_CSRF_HEADER, 'csrf_token': _review_csrf_token()},
+    })
+
+
+@app.route('/api/admin/sgf-workbench/items')
+@admin_required
+def admin_sgf_workbench_items():
+    with get_db() as conn:
+        return jsonify({'ok': True, 'items': list_workbench_items(
+            conn, source=request.args.get('source'), status=request.args.get('status'),
+            limit=request.args.get('limit', 200),
+        )})
+
+
+@app.route('/api/admin/sgf-workbench/items/<int:item_id>')
+@admin_required
+def admin_sgf_workbench_item(item_id):
+    with get_db() as conn:
+        item = get_workbench_item(conn, item_id)
+    if not item:
+        return jsonify({'error': 'not_found'}), 404
+    return jsonify({'ok': True, 'item': item})
+
+
+@app.route('/api/admin/sgf-workbench/flag', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_flag():
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    try:
+        question_id = int(data.get('question_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid_question_id'}), 400
+    context = _workbench_question_context(
+        question_id, record_index=data.get('record_index'),
+        surface=data.get('surface') or 'admin_play',
+        node_identity=data.get('node_identity'), board_state=data.get('board_state'),
+        candidate_move=data.get('move') or data.get('candidate_move'),
+    )
+    if not context:
+        return jsonify({'error': 'question_not_found'}), 404
+    issue = str(data.get('issue_type') or data.get('reason') or 'OTHER').strip().upper()
+    if issue not in WORKBENCH_REPORT_REASONS:
+        issue = 'OTHER'
+    now = _review_queue_now_iso()
+    with get_db() as conn:
+        capture = capture_workbench_report(
+            conn, source='ADMIN_PLAY', reporter_id=session['user_id'],
+            question_id=question_id, record_index=context['record_index'], issue_type=issue,
+            candidate_move=context['candidate_move'],
+            observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+            gameplay_surface=context['gameplay_surface'], sgf_identity=context['sgf_identity'],
+            node_identity=context['node_identity'], board_state=context['board_state'],
+            question_content_sha256=context['question_content_sha256'],
+            comment=str(data.get('comment') or data.get('note') or '')[:1000],
+            authority=context['authority'],
+            source_provenance={'admin_play': True, 'questions_json_commit': _get_questions_json_commit()},
+            external_key=str(data.get('flag_id') or f'admin-play:{session["user_id"]}:{question_id}:{now}'),
+            now=now,
+        )
+    return jsonify({'ok': True, 'source': 'ADMIN_PLAY', 'status': 'OPEN',
+                    'production_mutation': False,
+                    'review_item_id': capture['review_item_id'],
+                    'group_key': capture['group_key'],
+                    'report_count': capture['report_count']})
+
+
+@app.route('/api/admin/sgf-workbench/items/<int:item_id>/stage', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_stage(item_id):
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    action = str(data.get('action') or '').strip().upper()
+    if action not in WORKBENCH_ACTIONS:
+        return jsonify({'error': 'invalid_action'}), 400
+    with get_db() as conn:
+        item = get_workbench_item(conn, item_id)
+        if not item:
+            return jsonify({'error': 'not_found'}), 404
+        context = _workbench_question_context(
+            item['question_id'], record_index=item.get('record_index'),
+            surface='admin_workbench',
+            candidate_move=data.get('candidate_move') or item.get('candidate_move'),
+        )
+        if not context:
+            return jsonify({'error': 'question_not_found'}), 404
+        original = _workbench_state_for_question(context)
+        candidate = context.get('candidate_move')
+        if action in ('ADD_ALTERNATIVE_CORRECT_MOVE', 'REMOVE_INCORRECT_ACCEPTED_MOVE', 'REPLACE_ANSWER') and not candidate:
+            return jsonify({'error': 'candidate_move_required'}), 400
+        proposed = json.loads(json.dumps(original))
+        accepted = list(original.get('accepted_moves') or [])
+        if action == 'ADD_ALTERNATIVE_CORRECT_MOVE':
+            if not any(m.get('x') == candidate['x'] and m.get('y') == candidate['y'] for m in accepted):
+                accepted.append(candidate)
+            proposed['accepted_moves'] = accepted
+            proposed['solution_state'] = 'accepted_alternative'
+        elif action == 'REMOVE_INCORRECT_ACCEPTED_MOVE':
+            proposed['accepted_moves'] = [m for m in accepted if not (m.get('x') == candidate['x'] and m.get('y') == candidate['y'])]
+        elif action == 'REPLACE_ANSWER':
+            proposed['accepted_moves'] = [candidate]
+            proposed['solution_state'] = 'replaced_answer'
+        elif action == 'DISABLE_BROKEN_QUESTION':
+            proposed['enabled'] = False
+            proposed['solution_state'] = 'disabled_no_answer'
+        else:
+            result = resolve_workbench_item(
+                conn, item_id=item_id, reviewer_id=session['user_id'],
+                status='NEEDS_RESEARCH', note=str(data.get('reason') or data.get('note') or '')[:1000],
+            )
+            return jsonify({'ok': True, 'staged': False, 'status': result['status'],
+                            'production_mutation': False, 'review_item_id': item_id})
+        try:
+            repair = stage_workbench_repair(
+                conn, item_id=item_id, reviewer_id=session['user_id'], action=action,
+                original_state=original, proposed_state=proposed, candidate_move=candidate,
+                reason=str(data.get('reason') or data.get('note') or '')[:1000],
+                source_provenance={'review_item_id': item_id, 'source_types': item.get('source_types', [])},
+                baseline_sha256=data.get('baseline_sha256') or context['question_content_sha256'],
+                mutation_key=data.get('mutation_key'),
+            )
+        except (ValueError, LookupError) as error:
+            return jsonify({'error': str(error)}), 400
+    return jsonify({'ok': True, 'staged': True, 'production_mutation': False, 'repair': repair})
+
+
+@app.route('/api/admin/sgf-workbench/items/<int:item_id>/status', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_status(item_id):
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    status = str(data.get('status') or '').strip().upper()
+    try:
+        with get_db() as conn:
+            result = resolve_workbench_item(
+                conn, item_id=item_id, reviewer_id=session['user_id'], status=status,
+                note=str(data.get('note') or '')[:1000],
+            )
+    except (ValueError, LookupError) as error:
+        return jsonify({'error': str(error)}), 400
+    return jsonify({'ok': True, **result, 'evidence_preserved': True, 'production_mutation': False})
+
+
+@app.route('/api/admin/sgf-workbench/items/<int:item_id>/retest', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_retest(item_id):
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    moves = data.get('moves')
+    if not isinstance(moves, list) or not moves:
+        return jsonify({'error': 'moves_required'}), 400
+    with get_db() as conn:
+        item = get_workbench_item(conn, item_id)
+        if not item:
+            return jsonify({'error': 'not_found'}), 404
+        repairs = item.get('staged_repairs') or []
+        staged = next((row for row in reversed(repairs) if row.get('status') in ('STAGED', 'BATCHED')), None)
+        if not staged:
+            return jsonify({'error': 'staged_repair_required'}), 409
+        context = _workbench_question_context(
+            item['question_id'], record_index=item.get('record_index'), surface='admin_retest'
+        )
+        if not context:
+            return jsonify({'error': 'question_not_found'}), 404
+        staged_q = _workbench_staged_question(context, staged)
+        sid = f'admin-workbench-{session["user_id"]}'
+        production = _rt_server_verify(context['record'], sid, moves)
+        staged_result = _rt_server_verify(staged_q, sid, moves)
+    return jsonify({
+        'ok': True,
+        'question_id': item['question_id'],
+        'review_item_id': item_id,
+        'production_verdict': _workbench_verdict(production),
+        'staged_verdict': _workbench_verdict(staged_result),
+        'production_verdict_source': 'LEGACY_SGF_ENGINE_RUNTIME',
+        'staged_verdict_source': 'ADMIN_ONLY_STAGED_OVERLAY',
+        'staged_only_for_admin': True,
+        'normal_player_canonical_unchanged': True,
+    })
+
+
+@app.route('/api/admin/sgf-workbench/batches', methods=['GET', 'POST'])
+@admin_required
+def admin_sgf_workbench_batches():
+    if request.method == 'GET':
+        with get_db() as conn:
+            ensure_sgf_workbench_tables(conn)
+            rows = conn.execute(
+                'SELECT id,batch_key,status,manifest_sha256,staged_count,created_at '
+                'FROM sgf_workbench_batches ORDER BY id DESC LIMIT 100'
+            ).fetchall()
+        return jsonify({'ok': True, 'batches': [dict(row) for row in rows], 'production_mutation': False})
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    try:
+        with get_db() as conn:
+            batch = create_workbench_batch(
+                conn, created_by=session['user_id'], baseline_sha256=data.get('baseline_sha256')
+            )
+    except ValueError as error:
+        return jsonify({'error': str(error)}), 400
+    return jsonify({'ok': True, 'batch': batch, 'handoff_only': True, 'production_mutation': False})
 
 # ── SM-2 ───────────────────────────────────────────────────────
 
@@ -14430,6 +14719,99 @@ def _parse_queue_resolution_action(data):
     return action
 
 
+_WORKBENCH_REASON_TO_LEGACY = {
+    'ALTERNATIVE_CORRECT_MOVE': 'answer_seems_wrong',
+    'SYSTEM_ANSWER_INCORRECT': 'answer_seems_wrong',
+    'QUESTION_CONTENT_PROBLEM': 'unclear',
+    'BOARD_OR_DISPLAY_PROBLEM': 'display_glitch',
+    'OTHER': 'other',
+}
+_LEGACY_REASON_TO_WORKBENCH = {value: key for key, value in _WORKBENCH_REASON_TO_LEGACY.items()}
+_LEGACY_REASON_TO_WORKBENCH.update({
+    'broken_unanswerable': 'QUESTION_CONTENT_PROBLEM',
+    'unclear': 'QUESTION_CONTENT_PROBLEM',
+    'wrong_difficulty': 'QUESTION_CONTENT_PROBLEM',
+    'wrong_category': 'QUESTION_CONTENT_PROBLEM',
+    'display_glitch': 'BOARD_OR_DISPLAY_PROBLEM',
+    'no_valid_answer': 'SYSTEM_ANSWER_INCORRECT',
+})
+
+
+def _workbench_question_context(question_id, *, record_index=None,
+                                surface=None, node_identity=None,
+                                board_state=None, candidate_move=None):
+    """Bind report context to the current question bytes without trusting labels."""
+    try:
+        question_id = int(question_id)
+    except (TypeError, ValueError):
+        return None
+    questions = _load_questions_fresh()
+    matches = _find_question_records_by_legacy_id(question_id, questions=questions)
+    if not matches:
+        return None
+    selected = None
+    if record_index not in (None, ''):
+        try:
+            selected = next(row for row in matches if int(row['record_index']) == int(record_index))
+        except (StopIteration, TypeError, ValueError):
+            return None
+    else:
+        # A legacy question id can occur more than once in a corpus snapshot.
+        # Never silently bind a report to the first array entry; the caller
+        # must provide the stable record identity in that case.
+        if len(matches) > 1:
+            return None
+        selected = matches[0]
+    record = selected['record']
+    content = str(record.get('content') or record.get('sgf') or '')
+    size_match = _re_mod.search(r'SZ\[(\d+)\]', content)
+    size = int(size_match.group(1)) if size_match else 19
+    move = candidate_move if isinstance(candidate_move, dict) else None
+    if move is not None:
+        try:
+            move = {'x': int(move.get('x')), 'y': int(move.get('y'))}
+        except (TypeError, ValueError):
+            move = None
+        if move and not (0 <= move['x'] < size and 0 <= move['y'] < size):
+            return None
+    content_sha = selected.get('content_sha256') or hashlib.sha256(content.encode('utf-8')).hexdigest()
+    return {
+        'question_id': question_id,
+        'record_index': selected['record_index'],
+        'record': record,
+        'question_content_sha256': content_sha,
+        'sgf_identity': content_sha,
+        'node_identity': str(node_identity or record.get('node_id') or record.get('node_index') or ''),
+        'board_state': board_state if board_state is not None else record.get('board_preview') or {},
+        'candidate_move': move,
+        'gameplay_surface': str(surface or '').strip()[:80] or None,
+        'authority': {
+            'native_sgf': record.get('native_answer') or record.get('solution') or None,
+            'accepted_moves': _question_accepted_moves(record),
+            'historical_katago_best_move': record.get('katago_best_move'),
+            'solution_state': record.get('solution_state'),
+            'enabled': bool(record.get('enabled', True)),
+        },
+        'ambiguous_question_id': len(matches) > 1 and record_index in (None, ''),
+    }
+
+
+def _workbench_report_response(capture, *, reason, context, observed_system_verdict=None):
+    return {
+        'ok': True,
+        'review_item_id': capture.get('review_item_id'),
+        'group_key': capture.get('group_key'),
+        'report_count': capture.get('report_count', 0),
+        'source': 'PLAYER_REPORT',
+        'issue_type': reason,
+        'question_id': context['question_id'],
+        'record_index': context['record_index'],
+        'reported_move': context.get('candidate_move'),
+        'system_verdict': observed_system_verdict,
+        'position_identity': capture.get('group_key'),
+    }
+
+
 @app.route('/api/question/problem-report', methods=['POST'])
 @login_required
 def api_question_problem_report():
@@ -14439,12 +14821,24 @@ def api_question_problem_report():
         question_id = int(data.get('question_id'))
     except (TypeError, ValueError):
         return jsonify({'error': 'invalid_question_id'}), 400
-    reason_code = str(data.get('reason_code') or '').strip()
-    note = str(data.get('note') or '').strip()
-    if reason_code not in QUESTION_PROBLEM_REPORT_REASON_CODES:
+    raw_reason = str(data.get('reason_code') or data.get('reason') or '').strip()
+    reason = raw_reason.upper() if raw_reason.upper() in WORKBENCH_REPORT_REASONS else _LEGACY_REASON_TO_WORKBENCH.get(raw_reason, '')
+    reason_code = _WORKBENCH_REASON_TO_LEGACY.get(reason, raw_reason)
+    note = str(data.get('note') or data.get('comment') or '').strip()
+    if reason not in WORKBENCH_REPORT_REASONS or reason_code not in QUESTION_PROBLEM_REPORT_REASON_CODES:
         return jsonify({'error': 'invalid_reason_code'}), 400
     if len(note) > 500:
         return jsonify({'error': 'note_too_long'}), 400
+    context = _workbench_question_context(
+        question_id,
+        record_index=data.get('record_index'),
+        surface=data.get('surface') or data.get('gameplay_surface'),
+        node_identity=data.get('node_identity'),
+        board_state=data.get('board_state'),
+        candidate_move=data.get('move') or data.get('reported_move'),
+    )
+    if not context:
+        return jsonify({'error': 'question_not_found'}), 404
     now = _review_queue_now_iso()
     with get_db() as conn:
         row = conn.execute('''
@@ -14453,7 +14847,21 @@ def api_question_problem_report():
             VALUES(?,?,?,?,?,?)
             RETURNING id
         ''', (uid, question_id, reason_code, note, 'open', now)).fetchone()
-    return jsonify({
+        capture = capture_workbench_report(
+            conn, source='PLAYER_REPORT', reporter_id=uid, question_id=question_id,
+            record_index=context['record_index'], issue_type=reason,
+            candidate_move=context['candidate_move'],
+            observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+            gameplay_surface=context['gameplay_surface'], sgf_identity=context['sgf_identity'],
+            node_identity=context['node_identity'], board_state=context['board_state'],
+            question_content_sha256=context['question_content_sha256'], comment=note,
+            authority=context['authority'],
+            source_provenance={'legacy_report_type': 'question_problem_reports', 'legacy_report_id': row['id'],
+                               'questions_json_commit': _get_questions_json_commit()},
+            legacy_report_type='question_problem_reports', legacy_report_id=row['id'],
+            external_key=f'problem:{row["id"]}', now=now,
+        )
+    response = {
         'ok': True,
         'report_id': row['id'],
         'question_id': question_id,
@@ -14461,7 +14869,88 @@ def api_question_problem_report():
         'note': note,
         'status': 'open',
         'created_at': now,
-    })
+    }
+    response.update(_workbench_report_response(
+        capture, reason=reason, context=context,
+        observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+    ))
+    return jsonify(response)
+
+
+@app.route('/api/question/report', methods=['POST'])
+@login_required
+def api_question_unified_report():
+    """One lightweight player report endpoint shared by all SGF surfaces."""
+    data = request.get_json(silent=True) or {}
+    raw_reason = str(data.get('reason') or data.get('reason_code') or '').strip()
+    reason = raw_reason.upper()
+    if reason not in WORKBENCH_REPORT_REASONS:
+        reason = _LEGACY_REASON_TO_WORKBENCH.get(raw_reason, '')
+    try:
+        question_id = int(data.get('question_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid_question_id'}), 400
+    comment = str(data.get('comment') or data.get('note') or '').strip()
+    if reason not in WORKBENCH_REPORT_REASONS:
+        return jsonify({'error': 'invalid_reason'}), 400
+    if len(comment) > 500:
+        return jsonify({'error': 'note_too_long'}), 400
+    context = _workbench_question_context(
+        question_id, record_index=data.get('record_index'),
+        surface=data.get('surface') or data.get('gameplay_surface'),
+        node_identity=data.get('node_identity'), board_state=data.get('board_state'),
+        candidate_move=data.get('move') or data.get('reported_move'),
+    )
+    if not context:
+        return jsonify({'error': 'question_not_found'}), 404
+    if reason == 'ALTERNATIVE_CORRECT_MOVE' and not context.get('candidate_move'):
+        return jsonify({'error': 'reported_move_required'}), 400
+    now = _review_queue_now_iso()
+    with get_db() as conn:
+        # Keep the established report tables as the historical source of
+        # truth while the workbench adds semantic grouping/provenance.  This
+        # is additive; neither branch writes question content or answers.
+        legacy_report_id = None
+        legacy_report_type = None
+        if reason == 'ALTERNATIVE_CORRECT_MOVE':
+            move = context['candidate_move']
+            legacy_report = conn.execute('''
+                INSERT INTO question_alternative_reports
+                    (user_id, question_id, wrong_move_x, wrong_move_y, note, status, created_at)
+                VALUES(?,?,?,?,?,?,?) RETURNING id
+            ''', (session['user_id'], question_id, move['x'], move['y'], comment, 'open', now)).fetchone()
+            legacy_report_id = legacy_report['id']
+            legacy_report_type = 'question_alternative_reports'
+        else:
+            legacy_reason_code = _WORKBENCH_REASON_TO_LEGACY.get(reason, 'other')
+            legacy_report = conn.execute('''
+                INSERT INTO question_problem_reports
+                    (user_id, question_id, reason_code, note, status, created_at)
+                VALUES(?,?,?,?,?,?) RETURNING id
+            ''', (session['user_id'], question_id, legacy_reason_code, comment, 'open', now)).fetchone()
+            legacy_report_id = legacy_report['id']
+            legacy_report_type = 'question_problem_reports'
+        capture = capture_workbench_report(
+            conn, source='PLAYER_REPORT', reporter_id=session['user_id'],
+            question_id=question_id, record_index=context['record_index'], issue_type=reason,
+            candidate_move=context['candidate_move'],
+            observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+            gameplay_surface=context['gameplay_surface'], sgf_identity=context['sgf_identity'],
+            node_identity=context['node_identity'], board_state=context['board_state'],
+            question_content_sha256=context['question_content_sha256'], comment=comment,
+            authority=context['authority'],
+            source_provenance={'questions_json_commit': _get_questions_json_commit(), 'endpoint': '/api/question/report',
+                               'legacy_report_type': legacy_report_type, 'legacy_report_id': legacy_report_id},
+            legacy_report_type=legacy_report_type, legacy_report_id=legacy_report_id,
+            external_key=str(data.get('client_report_id') or f'generic:{legacy_report_type}:{legacy_report_id}'),
+            now=now,
+        )
+    response = _workbench_report_response(
+        capture, reason=reason, context=context,
+        observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+    )
+    response.update({'report_id': legacy_report_id, 'legacy_report_type': legacy_report_type})
+    return jsonify(response)
 
 
 @app.route('/api/admin/question-problem-reports')
@@ -14596,6 +15085,31 @@ def admin_question_problem_report_resolve(report_id):
                 now,
                 None,
             ))
+            resolved_context = _workbench_question_context(
+                report['question_id'], record_index=resolved_record['record_index'],
+                surface='player_report',
+            )
+            if resolved_context:
+                reason = _LEGACY_REASON_TO_WORKBENCH.get(
+                    str(report['reason_code'] or '').strip(), 'OTHER'
+                )
+                unified_capture = capture_workbench_report(
+                    conn, source='PLAYER_REPORT', reporter_id=report['user_id'],
+                    question_id=report['question_id'], record_index=resolved_record['record_index'],
+                    issue_type=reason, gameplay_surface='player_report',
+                    sgf_identity=resolved_context['sgf_identity'],
+                    node_identity=resolved_context['node_identity'],
+                    board_state=resolved_context['board_state'],
+                    question_content_sha256=resolved_context['question_content_sha256'],
+                    authority=resolved_context['authority'],
+                    comment=report['note'],
+                    source_provenance={'legacy_report_type': 'question_problem_reports',
+                                       'legacy_report_id': report_id,
+                                       'questions_json_commit': _get_questions_json_commit()},
+                    legacy_report_type='question_problem_reports', legacy_report_id=report_id,
+                    external_key=f'problem:{report_id}', now=now,
+                )
+                unified_item_id = unified_capture['review_item_id']
         now = _review_queue_now_iso()
         conn.execute('''
             UPDATE question_problem_reports
@@ -14615,6 +15129,7 @@ def admin_question_problem_report_resolve(report_id):
         'report_id': report_id,
         'action': action,
         'selected_record_index': resolved_record['record_index'] if resolved_record else None,
+        'review_item_id': unified_item_id,
     })
 
 
@@ -15186,6 +15701,15 @@ def question_alternative_report():
     if len(note) > 500:
         return jsonify({'error': '說明最多 500 字'}), 400
 
+    context = _workbench_question_context(
+        question_id, record_index=data.get('record_index'),
+        surface=data.get('surface') or data.get('gameplay_surface'),
+        node_identity=data.get('node_identity'), board_state=data.get('board_state'),
+        candidate_move={'x': wrong_x, 'y': wrong_y},
+    )
+    if not context:
+        return jsonify({'error': '找不到題目'}), 404
+    now = datetime.datetime.now().isoformat()
     with get_db() as conn:
         conn.execute('''
             INSERT INTO question_alternative_reports
@@ -15193,9 +15717,32 @@ def question_alternative_report():
             VALUES(?,?,?,?,?,'open',?)
             ON CONFLICT(user_id,question_id,wrong_move_x,wrong_move_y) DO UPDATE SET
                 note=excluded.note
-        ''', (uid, question_id, wrong_x, wrong_y, note, datetime.datetime.now().isoformat()))
+        ''', (uid, question_id, wrong_x, wrong_y, note, now))
+        report_row = conn.execute('''
+            SELECT id FROM question_alternative_reports
+            WHERE user_id=? AND question_id=? AND wrong_move_x=? AND wrong_move_y=?
+        ''', (uid, question_id, wrong_x, wrong_y)).fetchone()
+        capture = capture_workbench_report(
+            conn, source='PLAYER_REPORT', reporter_id=uid, question_id=question_id,
+            record_index=context['record_index'], issue_type='ALTERNATIVE_CORRECT_MOVE',
+            candidate_move={'x': wrong_x, 'y': wrong_y},
+            observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+            gameplay_surface=context['gameplay_surface'], sgf_identity=context['sgf_identity'],
+            node_identity=context['node_identity'], board_state=context['board_state'],
+            question_content_sha256=context['question_content_sha256'], comment=note,
+            authority=context['authority'],
+            source_provenance={'legacy_report_type': 'question_alternative_reports',
+                               'legacy_report_id': report_row['id'] if report_row else None,
+                               'questions_json_commit': _get_questions_json_commit()},
+            legacy_report_type='question_alternative_reports',
+            legacy_report_id=report_row['id'] if report_row else None,
+            external_key=f'alternative:{uid}:{question_id}:{wrong_x}:{wrong_y}', now=now,
+        )
         conn.commit()
-    return jsonify({'ok': True})
+    return jsonify(_workbench_report_response(
+        capture, reason='ALTERNATIVE_CORRECT_MOVE', context=context,
+        observed_system_verdict=data.get('system_verdict') or data.get('verdict'),
+    ))
 
 
 @app.route('/api/admin/dm/reports')
@@ -15309,25 +15856,68 @@ def admin_question_alternative_report_resolve(report_id):
 
     with get_db() as conn:
         report = conn.execute(
-            'SELECT id,status,question_id FROM question_alternative_reports WHERE id=?',
+            'SELECT id,status,user_id,question_id,wrong_move_x,wrong_move_y FROM question_alternative_reports WHERE id=?',
             (report_id,)
         ).fetchone()
         if not report:
             return jsonify({'error': '找不到回報'}), 404
         if report['status'] != 'open':
             return jsonify({'error': 'already_resolved'}), 409
-        qs = _load_questions()
-        q = next((x for x in qs if x['id'] == report['question_id']), None)
-        if not q:
+        reported_move = move if isinstance(move, dict) and move else {
+            'x': report['wrong_move_x'], 'y': report['wrong_move_y']
+        }
+        context = _workbench_question_context(
+            report['question_id'], candidate_move=reported_move,
+            surface='admin_review',
+        )
+        if not context:
             return jsonify({'error': '找不到題目'}), 404
         now = datetime.datetime.now().isoformat()
+        q = context['record']
+        original_state = {
+            'accepted_moves': _question_accepted_moves(q),
+            'enabled': bool(q.get('enabled', True)),
+            'solution_state': q.get('solution_state'),
+            'content_sha256': context['question_content_sha256'],
+        }
         if action == 'accept':
-            if not _append_question_accepted_move(q, move, report_id=report_id, admin_id=admin_id, note=note):
+            if not context.get('candidate_move'):
                 return jsonify({'error': '無效座標'}), 400
-            _save_questions(qs)
+            proposed_state = dict(original_state)
+            proposed_state['accepted_moves'] = original_state['accepted_moves'] + [context['candidate_move']]
+            staged_action = 'ADD_ALTERNATIVE_CORRECT_MOVE'
         elif action == 'disable':
-            _disable_question_solution(q, admin_id=admin_id, note=note)
-            _save_questions(qs)
+            proposed_state = dict(original_state)
+            proposed_state.update({'enabled': False, 'solution_state': 'disabled_no_answer'})
+            staged_action = 'DISABLE_BROKEN_QUESTION'
+        else:
+            proposed_state = original_state
+            staged_action = 'NEEDS_RESEARCH'
+        capture = capture_workbench_report(
+            conn, source='PLAYER_REPORT', reporter_id=report['user_id'],
+            question_id=report['question_id'], record_index=context['record_index'],
+            issue_type='ALTERNATIVE_CORRECT_MOVE', candidate_move=context.get('candidate_move'),
+            gameplay_surface='admin_review', sgf_identity=context['sgf_identity'],
+            node_identity=context['node_identity'], board_state=context['board_state'],
+            question_content_sha256=context['question_content_sha256'], comment=note,
+            authority=context['authority'],
+            legacy_report_type='question_alternative_reports', legacy_report_id=report_id,
+            source_provenance={'legacy_report_id': report_id, 'questions_json_commit': _get_questions_json_commit()},
+            external_key=f'alternative:{report["user_id"]}:{report["question_id"]}:{context.get("candidate_move", {}).get("x", "")}:{context.get("candidate_move", {}).get("y", "")}',
+            now=now,
+        )
+        item_id = capture['review_item_id']
+        if action == 'dismiss':
+            resolve_workbench_item(conn, item_id=item_id, reviewer_id=admin_id, status='REJECTED', note=note, now=now)
+        else:
+            stage_workbench_repair(
+                conn, item_id=item_id, reviewer_id=admin_id, action=staged_action,
+                original_state=original_state, proposed_state=proposed_state,
+                candidate_move=context.get('candidate_move'), reason=note,
+                source_provenance={'legacy_report_id': report_id, 'review_item_id': item_id},
+                baseline_sha256=context['question_content_sha256'],
+                mutation_key=f'legacy-alt:{report_id}:{staged_action}', now=now,
+            )
         conn.execute('''
             UPDATE question_alternative_reports
                SET status=?, admin_note=?, reviewed_by=?, reviewed_at=?
@@ -15340,7 +15930,8 @@ def admin_question_alternative_report_resolve(report_id):
             f'question_id={report["question_id"]}; action={action}; note={note[:120]}; move={move}'
         )
         conn.commit()
-    return jsonify({'ok': True})
+    return jsonify({'ok': True, 'staged': action in ('accept', 'disable'),
+                    'production_mutation': False, 'review_item_id': item_id})
 
 
 @app.route('/api/admin/dm/reports/<int:report_id>/context')
@@ -19007,6 +19598,12 @@ def serve_sound(filename):
 
 @app.route('/srs.js')
 def serve_srs_js(): return _serve_live_static_or_baked('srs.js')
+
+@app.route('/sgf_report_widget.js')
+def serve_sgf_report_widget_js():
+    # Shared player/admin report control; use the same live-static/baked
+    # resolver as the other governed first-party scripts.
+    return _serve_live_static_or_baked('sgf_report_widget.js')
 
 @app.route('/monster_trash.js')
 def serve_monster_trash_js(): return _serve_live_static_or_baked('monster_trash.js')

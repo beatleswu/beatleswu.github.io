@@ -734,7 +734,7 @@ aside {
 </style>
 <script src="/pwa.js"></script>
 </head>
-<body>
+<body data-sgf-report-surface="main_practice">
 
 <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
 <header>
@@ -1116,6 +1116,13 @@ function resetBoard(){
 // ═══════════════════════════════════════════════════════════════
 function loadMistake(m){
     currentMistake=m;
+    window.SGFReportWidget?.setContext({
+        question_id: Number(m.question_id),
+        surface: 'main_practice',
+        system_verdict: 'WRONG',
+        sgf_identity: m.content_sha256 || m.sgf_identity || null,
+        accepted_moves: m.accepted_moves || []
+    });
     setNpc('select');
     hideRecommend();   // 切題時清掉舊推薦
     _altAnswerReportMode = false;
@@ -1171,6 +1178,10 @@ function onBoardClick(bx,by){
     if(!logicBoard[x] || y<0 || y>=boardSize)return;
     const matched=currentNode.children.find(c=>c.move&&c.move.x===x&&c.move.y===y);
     if(!matched){
+        window.SGFReportWidget?.setContext({
+            question_id: Number(currentMistake?.question_id), surface: 'main_practice',
+            move: {x,y}, system_verdict: 'WRONG'
+        });
         playWrong();
         petReact('wrong');   // 陪伴棋靈：答錯加油打氣
         const opp=playerColor==='B'?'W':'B';
@@ -2059,5 +2070,6 @@ async function doLogout() {
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
+<script src="/sgf_report_widget.js" defer></script>
 </body>
 </html>

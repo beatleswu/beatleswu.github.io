@@ -805,7 +805,7 @@ header:not(.cg-nav) {
 </style>
 <script src="/pwa.js"></script>
 </head>
-<body>
+<body data-sgf-report-surface="daily_challenge_client">
 
 <!-- ── HEADER ── -->
 <header>
@@ -1311,6 +1311,12 @@ function initBoard(sgfContent) {
   try {
     currentProblem = parseSGF(sgfContent);
     if (!currentProblem) { setMsg(I18n.t('index.parse_err'), 'warn'); return; }
+    window.SGFReportWidget?.setContext({
+      question_id: Number(todayData?.question_id || todayData?.id),
+      surface: 'daily_challenge_client',
+      sgf_identity: todayData?.content_sha256 || todayData?.sgf_identity || null,
+      native_sgf: todayData?.content || null
+    });
 
     board = new WGo.Board(container, {
       width: container.offsetWidth || 380,
@@ -1482,6 +1488,10 @@ function onBoardClick(x, y) {
 
   if (!match) {
     // Wrong
+    window.SGFReportWidget?.setContext({
+      question_id: Number(todayData?.question_id || todayData?.id),
+      surface: 'daily_challenge_client', move: {x, y}, system_verdict: 'WRONG'
+    });
     setMsg(I18n.t('index.wrong'), 'err');
     answering = true;
     board.removeAllObjects();
@@ -1867,5 +1877,6 @@ async function doLogout() {
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>
 <script src="/site-nav.js?v=20260625presence1"></script>
+<script src="/sgf_report_widget.js" defer></script>
 </body>
 </html>
