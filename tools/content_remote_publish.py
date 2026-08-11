@@ -296,6 +296,8 @@ def validate_bundle(
     if not bundle_dir.is_dir() or bundle_dir.is_symlink():
         raise ContentPublishError("bundle_directory_invalid")
     registry = load_object(bundle_dir / "content-registry-entry.json", "content_registry_entry")
+    if registry.get("schema_version") != "1.1" or registry.get("artifact_role") != "content_release_candidate":
+        raise ContentPublishError("registry_schema_or_role_mismatch")
     allowed = registry.get("allowed_asset_names")
     if not isinstance(allowed, list) or not allowed or len(set(allowed)) != len(allowed):
         raise ContentPublishError("registry_asset_inventory_invalid")
@@ -361,7 +363,7 @@ def validate_bundle(
         raise ContentPublishError("release_manifest_predecessor_sha256_mismatch")
     candidate_artifact = release_manifest.get("repaired_candidate_artifact")
     previous_artifact = release_manifest.get("pre_mutation_artifact")
-    if not isinstance(candidate_artifact, Mapping) or candidate_artifact.get("sha256") != candidate_sha256 or candidate_artifact.get("record_count") != expected_candidate_record_count:
+    if not isinstance(candidate_artifact, Mapping) or candidate_artifact.get("sha256") != candidate_sha256 or candidate_artifact.get("record_count") != expected_candidate_record_count or candidate_artifact.get("size_bytes") != candidate.size_bytes:
         raise ContentPublishError("release_manifest_candidate_identity_mismatch")
     if not isinstance(previous_artifact, Mapping) or previous_artifact.get("sha256") != predecessor_sha256 or previous_artifact.get("record_count") != expected_predecessor_record_count:
         raise ContentPublishError("release_manifest_predecessor_identity_mismatch")
@@ -387,6 +389,8 @@ def validate_bundle(
         raise ContentPublishError("mutation_audit_identity_mismatch")
     if mutation_audit.get("changed_record_count") != governance.get("changed_record_count") or mutation_audit.get("review_group_count") != governance.get("review_group_count"):
         raise ContentPublishError("mutation_audit_count_mismatch")
+    if not isinstance(mutation_audit.get("records"), list) or len(mutation_audit["records"]) != governance.get("changed_record_count"):
+        raise ContentPublishError("mutation_audit_record_set_mismatch")
     if mutation_audit.get("non_target_records_changed", 0) != 0 or mutation_audit.get("accepted_moves_changed", 0) != 0:
         raise ContentPublishError("mutation_audit_forbidden_mutation")
 

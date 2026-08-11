@@ -123,7 +123,7 @@ if ($targetPath -ne '/app/data/questions.json') {
 }
 Assert-AbsoluteRemotePath -Value ([string]$layout.remote_release_staging_directory) -Label 'remote_release_staging_directory'
 Assert-AbsoluteRemotePath -Value ([string]$layout.compose_directory) -Label 'compose_directory'
-$bundle = (Resolve-Path -LiteralPath $BundlePath -ErrorAction Stop).Path
+$bundle = Assert-NoReparsePointPath -Path ((Resolve-Path -LiteralPath $BundlePath -ErrorAction Stop).Path) -Label 'Content release bundle'
 if (-not (Test-Path -LiteralPath $bundle -PathType Container)) { throw 'BundlePath must resolve to a directory.' }
 $helperPath = Resolve-RepoPath 'tools/content_remote_publish.py'
 $python = Get-LocalPythonExecutable
