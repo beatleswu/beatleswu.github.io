@@ -12,6 +12,7 @@ import argparse
 import copy
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -51,10 +52,40 @@ HISTORICAL_CANDIDATE_SHA256 = (
     "b7b4eedf72a87ab8fbc82ff51b658cd4dc0f08cb33426aee013e97814edae232"
 )
 CONTRACT_AUTHORITY = "SGF_REPAIR_BATCH_REBASE_CURRENT_CANONICAL_001"
+CURRENT_BASE_COMMIT = "890f9b1d9f6eb3a4e38e5b74a9062f1d66d59a07"
+CANONICAL_REPOSITORY_ID = "beatleswu/beatleswu.github.io"
 
 
 class RebaseError(RuntimeError):
     """A fail-closed current-canonical replay failure."""
+
+
+def verify_current_base(base_ref: str, *, repo_root: Path | None = None) -> None:
+    """Verify that the declared base is the fetched canonical master tip."""
+
+    root = (repo_root or Path.cwd()).resolve()
+    if base_ref != CURRENT_BASE_COMMIT:
+        raise RebaseError("base_ref_not_authorized_current_master")
+    try:
+        actual_master = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "origin/master^{commit}"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        remote = subprocess.run(
+            ["git", "-C", str(root), "remote", "get-url", "origin"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise RebaseError("current_master_identity_unavailable") from error
+    if actual_master != CURRENT_BASE_COMMIT:
+        raise RebaseError("origin_master_drifted_during_rebase")
+    normalized_remote = remote.removesuffix(".git").rstrip("/")
+    if normalized_remote.endswith("github.com/" + CANONICAL_REPOSITORY_ID) is False:
+        raise RebaseError("canonical_repository_identity_mismatch")
 
 
 def _json_load(path: Path, label: str) -> Any:
@@ -682,6 +713,7 @@ def _cli(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-dir", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
+        verify_current_base(args.base_ref)
         rebase = build_current_candidate(
             baseline_path=args.baseline,
             safe_release_batch_path=args.safe_release_batch,

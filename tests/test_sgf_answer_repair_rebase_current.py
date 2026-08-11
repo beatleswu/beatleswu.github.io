@@ -147,3 +147,10 @@ def test_target_drift_is_classified_without_mutating_the_canonical_snapshot() ->
     row = next(item for item in classified if int(item["legacy_question_id"]) == target_id)
     assert row["classification"] == "DRIFTED_TARGET"
     assert LOCAL_CANONICAL.stat().st_size > 0
+
+
+def test_wrong_current_master_ref_fails_closed() -> None:
+    from tools.sgf_answer_repair_rebase import RebaseError, verify_current_base
+
+    with pytest.raises(RebaseError, match="base_ref_not_authorized_current_master"):
+        verify_current_base("0" * 40, repo_root=ROOT)
