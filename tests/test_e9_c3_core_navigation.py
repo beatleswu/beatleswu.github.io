@@ -72,3 +72,15 @@ def test_canonical_adventure_entry_is_exposed_to_the_e9_adapter():
     assert "window.startAdventureStage = startAdventureStage;" in INDEX
     assert "global.enterAdventureZoneInPage({ key: zoneKey })" in SHELL
     assert "global.location.href = '/?zone='" not in SHELL
+
+
+def test_map_primary_cta_preserves_selected_zone_identity_through_gameplay_handoff():
+    sync = WORLD[WORLD.index("function syncInteractionState"):WORLD.index("function ctaContract")]
+    primary = WORLD[WORLD.index("function configurePrimaryCta"):WORLD.index("function updateSelectedZoneCopy")]
+
+    assert "resolveChallengeTargetZoneKey(selected)" in sync
+    assert "var mandatory = activeMandatoryEncounterAction(state);" in sync
+    assert "var mandatoryAction = activeMandatoryEncounterAction(state);" in primary
+    assert ": zone;" in primary
+    assert "configureAdventureButton(primary, targetZone, contract);" in primary
+    assert "var primaryAction = resolvePrimaryCta" not in primary

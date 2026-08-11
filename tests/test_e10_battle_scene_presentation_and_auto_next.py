@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
+E9_SHELL = (ROOT / "css" / "e9" / "shell.css").read_text(encoding="utf-8")
 
 
 def _function_block(name: str, end_name: str | None = None) -> str:
@@ -118,3 +119,35 @@ def test_principal_battle_contract_is_true_v1_and_never_legacy_srs_review():
     assert "_mapBattleV1IsActive()" in submit
     assert "no battle fallback was used" in submit or "no battle fallback was used" in INDEX
     assert "if (_mapBattleV1Mode === 'active' && _mapBattleV1State)" in INDEX
+
+
+def test_automatic_answer_feedback_renders_without_scrolling_the_viewport():
+    explanation = _function_block("showExplanation", "_drawCoordOverlay")
+    explicit_reveal = _function_block("showE10BattleExplanation", "returnToAdventureMapAfterEncounter")
+    load_question = _function_block("loadQuestion", "_cancelAutoSolution")
+    board_flow = _function_block("onBoardClick", "resetProblem")
+
+    assert "function showExplanation(wrongMove, { reveal = false } = {})" in explanation
+    assert "if (reveal) _revealExplanationPanel(panel);" in explanation
+    assert "showExplanation(_lastWrongMove || null, { reveal: true });" in explicit_reveal
+    assert "scrollIntoView" not in explicit_reveal
+    assert board_flow.count("showExplanation({x, y});") == 3
+    assert "showExplanation();submitSRS(3)" in board_flow
+    assert "showExplanation(null, { reveal: true });" in _function_block("showAnswer", "_renderShopStatus")
+    assert "hideExplanation();" in load_question
+
+
+def test_windowed_desktop_keeps_combat_panel_beside_board():
+    assert "@media (max-width: 1024px) and (pointer: coarse), (max-width: 768px)" in INDEX
+    assert "@media (min-width: 769px) and (max-width: 1024px) and (pointer: fine)" in INDEX
+    compact = INDEX.split(
+        "@media (min-width: 769px) and (max-width: 1024px) and (pointer: fine)", 1
+    )[1].split("@media (max-width: 768px)", 1)[0]
+    assert "#main-row" in compact
+    assert "display: grid" in compact
+    assert "minmax(260px, 320px)" in compact
+    assert (
+        'body[data-adventure-shell-active="e9"]:not(:has(#welcome-state.hidden)) #main-row'
+        in E9_SHELL
+    )
+    assert 'body[data-adventure-shell-active="e9"] #main-row {' not in E9_SHELL

@@ -66,7 +66,10 @@ body[data-adventure-shell-active="e9"] main .practice {
   align-items: stretch;
 }
 
-body[data-adventure-shell-active="e9"] #main-row {
+/* Map ownership needs one full-width column.  Once #welcome-state becomes
+   hidden, the canonical question/battle layout owns #main-row again so the
+   board and combat actors can share the desktop viewport. */
+body[data-adventure-shell-active="e9"]:not(:has(#welcome-state.hidden)) #main-row {
   width: 100%;
   max-width: none;
   display: block;

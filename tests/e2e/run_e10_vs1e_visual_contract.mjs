@@ -34,7 +34,11 @@ const zones = [
   stars,
   seen,
   total,
-  boss: { available: !locked && !cleared },
+  // The fixture has one authoritative current Lord opportunity.  Other
+  // enterable zones remain ordinary selected-zone training targets; marking
+  // every unlocked zone boss-ready makes the journey exercise Lord routing
+  // while it is explicitly waiting for an ordinary question handoff.
+  boss: { available: key === 'k21_25' },
   skipped_by_placement: status === 'skipped_by_placement',
 }));
 
@@ -456,6 +460,9 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
       placement: fixtureMode === 'placement-high' ? { effective_start_zone_key: 'k1_5' } : null,
       recommended: current ? { zone_key: current.key } : null,
       selected: current ? { zone_key: current.key } : null,
+      cinematics: {
+        e10_zone1_intro_v1: { seen: true, seen_at: '2026-08-10T00:00:00' },
+      },
       // Mirror the server-owned progression authority: this is the first
       // canonical playable incomplete node for the fixture, not a selected
       // display zone.
@@ -1384,7 +1391,7 @@ function assertCase(result) {
   if (snapshot.zoneIdentities.selectedZoneKey !== expectedSelected || snapshot.selectedZone !== expectedSelected) {
     failures.push(`${specName}: selectedZoneKey ${snapshot.zoneIdentities.selectedZoneKey}/${snapshot.selectedZone}`);
   }
-  const expectedChallenge = result.zone === 'd1_2' ? null : expectedCurrent;
+  const expectedChallenge = result.zone === 'd1_2' ? null : expectedSelected;
   if (snapshot.zoneIdentities.challengeTargetZoneKey !== expectedChallenge) {
     failures.push(`${specName}: challengeTargetZoneKey ${snapshot.zoneIdentities.challengeTargetZoneKey}`);
   }
@@ -1560,12 +1567,12 @@ function assertCase(result) {
     const action = result.challengeAction;
     const expectedTargets = result.lockedChallengeCheck ? [] : [snapshot.zoneIdentities.challengeTargetZoneKey];
     if (action.targets.join(',') !== expectedTargets.join(',')) failures.push(`${specName}: challenge targets ${action.targets.join(',')}`);
-    // Fixture apiResponse() always arbitrates primary_action.kind as
-    // 'challenge_lord' for whichever zone is `current` -- the primary CTA
-    // must therefore route through the canonical Lord entry
-    // (openAdventureBossFromQuestCard), never the ordinary
-    // startAdventureFromE9 handoff (CTA_ACTION_ROUTING_DEFECT regression guard).
-    const expectedKinds = result.lockedChallengeCheck ? [] : ['lord'];
+    // The selected zone owns the map CTA.  It only inherits the server's
+    // challenge_lord arbitration when that arbitration names the selected
+    // zone; a lower-zone replay must use the ordinary selected-zone handoff.
+    const expectedKinds = result.lockedChallengeCheck
+      ? []
+      : [snapshot.zoneIdentities.selectedZoneKey === snapshot.zoneIdentities.currentPlayerZoneKey ? 'lord' : 'ordinary'];
     if (action.kinds.join(',') !== expectedKinds.join(',')) {
       failures.push(`${specName}: challenge routing kind ${action.kinds.join(',')} expected ${expectedKinds.join(',')}`);
     }
@@ -1689,6 +1696,15 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   });
   await page.goto(`${origin}/index.html?lang=${spec.lang}&${shellFlags}`, { waitUntil: 'domcontentloaded' });
   await waitForShell(page);
+  if (spec.resumableEncounterZone) {
+    await page.evaluate((zoneKey) => {
+      window.__GO_E10_BATTLE_LIFECYCLE__ = {
+        mode: 'active',
+        hasNonce: true,
+        zoneKey,
+      };
+    }, spec.resumableEncounterZone);
+  }
 
   const target = page.locator(`[data-zone="${spec.zone}"]`);
   if (await target.count() !== 1) throw new Error(`${spec.name}: target zone is not unique`);
@@ -1949,6 +1965,21 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       welcomeDisplay: getComputedStyle(document.querySelector('#welcome-state')).display,
       e9ShellDisplay: getComputedStyle(document.querySelector('#e9-adventure-shell')).display,
       boardHidden: document.querySelector('#board-canvas-wrap').classList.contains('hidden'),
+      combatLayout: (() => {
+        const box = (element) => {
+          const value = element?.getBoundingClientRect();
+          return value ? {
+            top: value.top, bottom: value.bottom, left: value.left,
+            right: value.right, width: value.width, height: value.height,
+          } : null;
+        };
+        const row = document.querySelector('#main-row');
+        return {
+          rowDisplay: row ? getComputedStyle(row).display : null,
+          mainLeft: box(document.querySelector('#main-left')),
+          side: box(document.querySelector('#side-col')),
+        };
+      })(),
       legacyMapVisible: (() => {
         const legacy = document.querySelector('#adventure-map-shell');
         if (!legacy) return false;
@@ -1965,9 +1996,11 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   }
 
   const failures = [];
+  const expectedChallengeTargetZoneKey = spec.resumableEncounterZone
+    || (spec.playable ? spec.zone : null);
   if (selected.selectedZoneKey !== spec.zone
-    || (spec.playable ? selected.challengeTargetZoneKey !== spec.zone : selected.challengeTargetZoneKey !== null)) {
-    failures.push(`${spec.name}: selected/challenge target did not converge on ${spec.zone}`);
+    || selected.challengeTargetZoneKey !== expectedChallengeTargetZoneKey) {
+    failures.push(`${spec.name}: selected/challenge target identities did not preserve their contract`);
   }
   if (selected.selectedCount !== 1
     || (spec.portrait && (selected.detailTargetZoneKey !== (spec.playable ? expectedActionZoneKey : '') || selected.detailHidden))
@@ -2021,12 +2054,21 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   if (spec.journey && (!questionEntry || questionEntry.starts.length !== 1
     || questionEntry.starts[0].zoneKey !== expectedActionZoneKey || !questionEntry.questionVisible
     || questionEntry.commands.length !== 1 || questionEntry.commands[0].zoneKey !== expectedActionZoneKey
+    || new URL(questionEntry.url).searchParams.get('zone') !== expectedActionZoneKey
     || (spec.deferRuntimeReady && questionEntry.startsBeforeReady !== 0)
     || questionEntry.actionTrace.some((entry) => entry.resourceType === 'document')
     || !questionEntry.welcomeHidden || questionEntry.welcomeDisplay !== 'none' || questionEntry.boardHidden
     || questionEntry.activeShell !== 'e9' || questionEntry.bodyShell !== 'e9'
     || questionEntry.legacyMapVisible)) {
     failures.push(`${spec.name}: CTA did not enter the expected in-page question state exactly once`);
+  }
+  if (spec.expectDesktopCombatSameRow) {
+    const layout = questionEntry?.combatLayout;
+    if (!layout || layout.rowDisplay !== 'grid' || !layout.mainLeft || !layout.side
+      || layout.side.left < layout.mainLeft.right
+      || Math.abs(layout.side.top - layout.mainLeft.top) > 1) {
+      failures.push(`${spec.name}: desktop combat panel is not beside the board`);
+    }
   }
   if (!spec.playable && !selected.ctaDisabled) failures.push(`${spec.name}: locked CTA is not disabled`);
   if (browserErrors.length) failures.push(`${spec.name}: browser errors ${JSON.stringify(browserErrors)}`);
@@ -2118,8 +2160,10 @@ async function runStackedDetailOwnershipTransition(browser, origin, outputDir) {
   return { portrait, landscape, browserErrors, failures };
 }
 
-async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir) {
-  const specs = [
+async function captureIpadInteractionRecoveryEvidence(
+  browser, origin, outputDir, specsOverride = null, includeOrientationTransition = true
+) {
+  const specs = specsOverride || [
     { name: 'ipad-768x1024-selected', viewport: { width: 768, height: 1024 }, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true },
     { name: 'ipad-820x1180-selected', viewport: { width: 820, height: 1180 }, lang: 'en', zone: 'k16_20', portrait: true, expectDrawerHidden: true, playable: true, journey: true },
     { name: 'ipad-768x1024-locked', viewport: { width: 768, height: 1024 }, lang: 'en', zone: 'd1_2', portrait: true, expectDrawerHidden: true, playable: false },
@@ -2135,7 +2179,9 @@ async function captureIpadInteractionRecoveryEvidence(browser, origin, outputDir
     process.stdout.write(`capture ${spec.name}\n`);
     results.push(await runIpadInteractionRecoveryCase(browser, origin, outputDir, spec));
   }
-  const orientationTransition = await runStackedDetailOwnershipTransition(browser, origin, outputDir);
+  const orientationTransition = includeOrientationTransition
+    ? await runStackedDetailOwnershipTransition(browser, origin, outputDir)
+    : { skipped: true, failures: [] };
   const report = {
     contract: 'e10-ipad-adventure-interaction-recovery-v1',
     ok: results.every((result) => result.failures.length === 0) && orientationTransition.failures.length === 0,
@@ -2404,7 +2450,31 @@ async function main({
   let lifecycleOutcome = null;
   let successPayload = null;
   try {
-    if (args.includes('--ipad-interaction-only')) {
+    if (args.includes('--post-global-regression-only')) {
+      const regressionSpecs = [
+        { name: 'post-global-ipad-768-selected-low-zone', viewport: { width: 768, height: 1024 }, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true },
+        { name: 'post-global-ipad-1180-selected-low-zone', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
+        { name: 'post-global-windowed-desktop-combat-layout', viewport: { width: 823, height: 794 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
+        { name: 'post-global-resumable-encounter-authority', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k21_25', portrait: false, playable: true, journey: true },
+        { name: 'post-global-desktop-completed-zone1', viewport: { width: 1366, height: 1024 }, lang: 'zh', zone: 'k26_30', portrait: false, playable: true, journey: true },
+        { name: 'post-global-mobile-selected-low-zone', viewport: { width: 430, height: 932 }, lang: 'zh', zone: 'k16_20', portrait: false, expectDrawerHidden: true, playable: true, journey: true, journeySurface: 'inline' },
+      ];
+      const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(
+        browser, origin, outputDir, regressionSpecs, false
+      );
+      await fs.writeFile(
+        path.join(outputDir, 'e10-post-global-regression-contract.json'),
+        JSON.stringify({
+          ok: ipadInteractionRecovery.ok,
+          source_root: repoRoot,
+          runtime_origin: origin,
+          ipadInteractionRecovery,
+          failures: ipadInteractionRecovery.failures,
+        }, null, 2)
+      );
+      if (!ipadInteractionRecovery.ok) throw new Error(ipadInteractionRecovery.failures.join('\n'));
+      successPayload = { ok: true, output_dir: outputDir, cases: ipadInteractionRecovery.results.length };
+    } else if (args.includes('--ipad-interaction-only')) {
       const ipadInteractionRecovery = await captureIpadInteractionRecoveryEvidence(browser, origin, outputDir);
       await fs.writeFile(
         path.join(outputDir, 'e10-vs1f-visual-contract.json'),

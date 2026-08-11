@@ -4204,11 +4204,27 @@
         }
     }
 
-    /* iPad / 平板：棋盤獨佔整列，戰鬥面板移到下方，避免被 420px 側欄擠小 */
-    @media (max-width: 1024px) {
+    /* Touch tablets/phones keep the stacked battle presentation.  Width
+       alone is not a device contract: a windowed desktop at 769-1024px must
+       keep the combat actors beside the board instead of pushing them below
+       the first viewport. */
+    @media (max-width: 1024px) and (pointer: coarse), (max-width: 768px) {
         #main-row { display: block; }
         #main-row > #main-left { width: 100%; max-width: 100%; }
         #main-row > #side-col { width: 100%; max-width: 100%; margin-top: 14px; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) and (pointer: fine) {
+        #main-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+            gap: 12px;
+        }
+        #main-row > #side-col {
+            width: auto;
+            max-width: none;
+            margin-top: 0;
+        }
     }
 
     @media (max-width: 768px) {
@@ -9224,11 +9240,7 @@ function _syncE10BattleActions(active) {
 
 function showE10BattleExplanation() {
     if (!_isE10BattleRevealAvailable()) return;
-    showExplanation(_lastWrongMove || null);
-    const panel = document.getElementById('explanation-panel');
-    if (panel && typeof panel.scrollIntoView === 'function') {
-        panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
+    showExplanation(_lastWrongMove || null, { reveal: true });
 }
 
 function returnToAdventureMapAfterEncounter() {
@@ -10244,7 +10256,7 @@ function showAnswer(){
     if(node&&!node.move&&node.children&&node.children.length) node=node.children[0];
     while(node&&node.move){moves.push(node);node=node.children[0]||null;}
     let step=0;
-    function pn(){if(step>=moves.length){setMsg(I18n.t('index.answer_done'),'info');showExplanation();return;}const n=moves[step++];playStone(n.move.x,n.move.y,n.color,true);setMsg(I18n.t('index.answer_step')+` ${step}${I18n.t('index.answer_of')}${moves.length} `+(n.color==='B'?'⚫':'⚪'),'info');setTimeout(pn,700);}
+    function pn(){if(step>=moves.length){setMsg(I18n.t('index.answer_done'),'info');showExplanation(null, { reveal: true });return;}const n=moves[step++];playStone(n.move.x,n.move.y,n.color,true);setMsg(I18n.t('index.answer_step')+` ${step}${I18n.t('index.answer_of')}${moves.length} `+(n.color==='B'?'⚫':'⚪'),'info');setTimeout(pn,700);}
     setMsg(I18n.t('index.answer_play'),'info');setTimeout(pn,300);
 }
 // ─── 商城道具（提示券 / 護盾 / XP 藥水）────────────────────────
@@ -10744,7 +10756,7 @@ function hideExplanation() {
 
 // ── 主入口：答對或看答案後呼叫 ────────────────────────────────
 // wrongMove: {x, y} 若是錯題觸發；null 表示答對
-function showExplanation(wrongMove) {
+function showExplanation(wrongMove, { reveal = false } = {}) {
     if (!currentQ) return;
     const panel = document.getElementById('explanation-panel');
     if (!panel) return;
@@ -10757,13 +10769,13 @@ function showExplanation(wrongMove) {
     if (_currentExplanation?.qid === currentQ.id && sameWrong) {
         _renderExplanation(_currentExplanation);
         panel.style.display = 'block';
-        _revealExplanationPanel(panel);
+        if (reveal) _revealExplanationPanel(panel);
         return;
     }
 
     _lastWrongMove = wrongMove || null;
     panel.style.display = 'block';
-    _revealExplanationPanel(panel);
+    if (reveal) _revealExplanationPanel(panel);
 
     // 英文模式不可先閃出只有中文的 SGF comment；交由英文解說分支處理。
     const safeComment = I18n.getLang() === 'en' && /[\u3400-\u9fff]/.test(currentQ.comment || '')

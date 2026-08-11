@@ -25,7 +25,10 @@ SW = (ROOT / "sw.js").read_text(encoding="utf-8")
 def test_skin_is_activated_only_after_real_world_stage_data_renders():
     render_call = "renderZones(root, result.data.zones, authority);"
     enable_call = "enableImmersiveRpgSkin(root, generation);"
-    assert WORLD_JS.index(render_call) < WORLD_JS.index(enable_call)
+    load_start = WORLD_JS.index("function load(root, isRetry, generation)")
+    load_end = WORLD_JS.index("function init(root, generation)", load_start)
+    load = WORLD_JS[load_start:load_end]
+    assert load.index(render_call) < load.index(enable_call)
     assert "if (!result.data.zones.length)" in WORLD_JS
     assert "data-e10-visual-skin" in WORLD_JS
     assert "window.E9.registerCleanup" in WORLD_JS
