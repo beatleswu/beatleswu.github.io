@@ -867,8 +867,8 @@ async function main() {
       });
     }, results);
 
-    // --- Q. _maybeTriggerZone1PostClearFilm fires once, is a no-op once already seen ---
-    await test('Q: _maybeTriggerZone1PostClearFilm is idempotent (fires once per zone)', async () => {
+    // --- Q. authoritative Lord success trigger fires once, is a no-op once already seen ---
+    await test('Q: _triggerZone1PostClearFromBossWin is idempotent (fires once per zone)', async () => {
       await withFreshPage(browser, origin, async (page) => {
         const firstRun = await page.evaluate(() => {
           // isBeginnerVillageAdventureResult() requires _isAdventureZonePractice()
@@ -882,9 +882,9 @@ async function main() {
           // assignment mutates the same binding the page's own script uses.
           _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
           // _adventureProgress already defaults to [] (index.html top
-          // level); _maybeTriggerZone1PostClearFilm() falls back to
+          // level); the authoritative Lord-success trigger uses the explicit
           // ADVENTURE_ZONES.find(...) when it's empty, so no override needed.
-          _maybeTriggerZone1PostClearFilm();
+          _triggerZone1PostClearFromBossWin({ key: 'k26_30' });
           return document.getElementById('boss-cinematic').className;
         });
         if (!/intro-film/.test(firstRun)) throw new Error(`expected first trigger to open the POST_CLEAR film, overlay class was ${JSON.stringify(firstRun)}`);
@@ -896,7 +896,7 @@ async function main() {
         if (!seenAfterFirst['1']?.k26_30) throw new Error('expected postClearSeen to be set (account-scoped under user "1") after the first trigger completes');
         const secondRunClass = await page.evaluate(() => {
           const before = document.getElementById('boss-cinematic').className;
-          _maybeTriggerZone1PostClearFilm();
+          _triggerZone1PostClearFromBossWin({ key: 'k26_30' });
           const after = document.getElementById('boss-cinematic').className;
           return { before, after };
         });
@@ -906,8 +906,8 @@ async function main() {
       });
     }, results);
 
-    // --- R. Source-level: no reward/settlement authority in cinematic code; trigger is win-only-scoped ---
-    await test('R: Zone 1 lifecycle functions contain no reward/settlement calls; trigger fires only on monster_defeated', async () => {
+    // --- R. Source-level: no reward/settlement authority in cinematic code; only Lord success can trigger ---
+    await test('R: Zone 1 lifecycle functions contain no reward/settlement calls; ordinary Map Battle cannot trigger POST_CLEAR', async () => {
       const source = await fs.readFile(path.join(repoRoot, 'index.html'), 'utf8');
       function extractFunctionBody(name) {
         const m = source.match(new RegExp(`function ${name}\\([^)]*\\)\\s*\\{`));
@@ -922,7 +922,7 @@ async function main() {
         }
         return source.slice(start, i - 1);
       }
-      const cinematicFns = ['playZone1PostClearFilm', 'finishPostClearFilm', '_maybeTriggerZone1PostClearFilm', '_resumeZone1PostClearIfPending', 'replayIntroFilm', 'skipIntroFilm'];
+      const cinematicFns = ['playZone1PostClearFilm', 'finishPostClearFilm', '_resumeZone1PostClearIfPending', 'replayIntroFilm', 'skipIntroFilm'];
       const violations = [];
       for (const fn of cinematicFns) {
         const body = extractFunctionBody(fn);
@@ -931,17 +931,24 @@ async function main() {
         }
       }
       if (violations.length) throw new Error(violations.join('; '));
-      // The only call site of _maybeTriggerZone1PostClearFilm() must be inside
-      // the next_action === 'monster_defeated' branch of
-      // _submitMapBattleV1IfActive -- never inside a 'player_defeated' or
-      // generic 'continue' path (FAILED_OR_ABORTED_GAMEPLAY_POST_CLEAR=NONE).
+      // Ordinary Map Battle monster_defeated is presentation-only. It must
+      // never reach the Zone POST_CLEAR trigger, pending/seen storage, or the
+      // next-zone reveal path.
       const monsterDefeatedBranch = source.match(/if \(response\.next_action === 'monster_defeated'\) \{[\s\S]*?\n\s{16}\}/);
-      if (!monsterDefeatedBranch || !monsterDefeatedBranch[0].includes('_maybeTriggerZone1PostClearFilm()')) {
-        throw new Error("_maybeTriggerZone1PostClearFilm() call site not found scoped inside the monster_defeated branch");
+      if (!monsterDefeatedBranch) {
+        throw new Error("monster_defeated branch not found in _submitMapBattleV1IfActive");
       }
-      const callOnly = source.match(/(?<!function )_maybeTriggerZone1PostClearFilm\(\);/g) || [];
+      const ordinaryForbidden = /_triggerZone1PostClearFromBossWin|playZone1PostClearFilm|markAdventurePostClearPending|markAdventurePostClearSeen|showZone1UnlockReveal/;
+      if (ordinaryForbidden.test(monsterDefeatedBranch[0])) {
+        throw new Error('ordinary monster_defeated branch contains a Zone POST_CLEAR/reveal authority call');
+      }
+      const lordResultCard = source.match(/function showZone1LordResultCard\([\s\S]*?\n\}/);
+      if (!lordResultCard || !lordResultCard[0].includes('_triggerZone1PostClearFromBossWin(zone)')) {
+        throw new Error('authoritative Lord result card does not wire success to Zone POST_CLEAR');
+      }
+      const callOnly = source.match(/(?<!function )_triggerZone1PostClearFromBossWin\(zone\)/g) || [];
       if (callOnly.length !== 1) {
-        throw new Error(`expected exactly 1 call site of _maybeTriggerZone1PostClearFilm(), found ${callOnly.length}`);
+        throw new Error(`expected exactly 1 gameplay call site of _triggerZone1PostClearFromBossWin(zone), found ${callOnly.length}`);
       }
       // Structural proof postClearTimeline is never reachable from the
       // PRE_PLAY entry path (showStageIntroCinematic never references it).
@@ -952,7 +959,7 @@ async function main() {
     }, results);
 
     // --- S & T. Reload/close resilience: a genuine clear left pending mid-S9/S10 must recover ---
-    // The real trigger (_maybeTriggerZone1PostClearFilm) marks pending BEFORE
+    // The real trigger (_triggerZone1PostClearFromBossWin) marks pending BEFORE
     // playback starts and only clears it in finishPostClearFilm (normal
     // completion/skip). Simulate "reload" with a REAL page.goto() re-
     // navigation on the SAME page/context, so localStorage genuinely
@@ -1004,7 +1011,7 @@ async function main() {
         // it does complete later.
         _currentUserId = 1;
         _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
-        _maybeTriggerZone1PostClearFilm();
+        _triggerZone1PostClearFromBossWin({ key: 'k26_30' });
       });
       for (let i = 0; i < drainsBeforeReload; i++) await drainOneFakeTimer(page1);
       const pendingBeforeReload = await page1.evaluate(() => JSON.parse(localStorage.getItem('adventure_postclear_pending_v1') || '{}'));
@@ -1123,7 +1130,7 @@ async function main() {
     async function triggerGenuineClearForCurrentUser(page) {
       await page.evaluate(() => {
         _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
-        _maybeTriggerZone1PostClearFilm();
+        _triggerZone1PostClearFromBossWin({ key: 'k26_30' });
       });
     }
 
@@ -1170,7 +1177,7 @@ async function main() {
         await gotoAsUser(page, 'userB');
         const triggeredForB = await page.evaluate(() => {
           _adventureActiveQuestions = [{ topic: 'Beginner Village' }];
-          _maybeTriggerZone1PostClearFilm();
+          _triggerZone1PostClearFromBossWin({ key: 'k26_30' });
           return _introFilmActiveOpts.phase;
         });
         if (triggeredForB !== 'post_clear') throw new Error(`expected User B's own genuine clear to trigger POST_CLEAR despite User A already seen theirs, got ${JSON.stringify(triggeredForB)}`);
