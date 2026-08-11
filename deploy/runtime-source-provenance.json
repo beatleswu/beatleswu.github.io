@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "df4f8bab8256df13beb247dcc90deabd745cfb06",
+      "source_commit": "a67d60e364eaa174476d9d145a5891d792d62cfc",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: preserve selected zone and gameplay viewport after E10 rollout",
+      "source_commit_subject": "Merge pull request #313 from beatleswu/codex/e10-owner-device-regression-fix-v2",
       "source_date": "2026-08-11",
-      "content_sha256": "9ae2531de26e5045897e4ddf490a0f411d95f81399c554a0a4464b073a9c6e58",
+      "content_sha256": "e03440784d5c6816b4b3f20240221e7d9a0bf857a08c7ec2eda4aeb6f5518774",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge 835d120a8d0d6d900c95deaf059ce692b7ccf9b3; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge a67d60e364eaa174476d9d145a5891d792d62cfc; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -507,14 +507,14 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "df4f8bab8256df13beb247dcc90deabd745cfb06",
+      "source_commit": "a67d60e364eaa174476d9d145a5891d792d62cfc",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: preserve selected zone and gameplay viewport after E10 rollout",
+      "source_commit_subject": "Merge pull request #313 from beatleswu/codex/e10-owner-device-regression-fix-v2",
       "source_date": "2026-08-11",
-      "content_sha256": "22ffc889387a0411f03188d55b2d1fe657e9a539bf28d3f847b0385c3815ea85",
+      "content_sha256": "059390355a6e60d4eba18c8f71907a0cc50f55d964b1df420e861947558ec196",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge 835d120a8d0d6d900c95deaf059ce692b7ccf9b3; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge a67d60e364eaa174476d9d145a5891d792d62cfc; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
