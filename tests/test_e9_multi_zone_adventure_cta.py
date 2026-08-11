@@ -28,6 +28,7 @@ WORLD_STAGE_PATH = ROOT / "js/e9/world_stage.js"
 WORLD_STAGE = WORLD_STAGE_PATH.read_text(encoding="utf-8")
 WORLD_STAGE_HTML = (ROOT / "components/adventure/world_stage.html").read_text(encoding="utf-8")
 WORLD_STAGE_CSS = (ROOT / "css/e9/world_stage.css").read_text(encoding="utf-8")
+IMMERSIVE_RPG_CSS = (ROOT / "css/e9/immersive_rpg.css").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "js/e9/shell.js").read_text(encoding="utf-8")
 ADAPTER_JS = (ROOT / "js/e9/adapters/adventure_state.js").read_text(encoding="utf-8")
 I18N = (ROOT / "i18n.js").read_text(encoding="utf-8")
@@ -59,23 +60,18 @@ def test_adapter_declares_seen_and_total_on_normalized_zone():
 
 
 # ---------------------------------------------------------------------
-# 2 & 3 & 4. Any unlocked, non-newbie zone shows the generic CTA and
-# passes its own zone.key through -- structurally zone-agnostic (no
-# special-casing beyond the single k26_30 exclusion), so this covers
-# zone k21_25 ("Zone 2"), k16_20 ("Zone 3"), and every other zone alike.
+# 2 & 3 & 4. Every unlocked selected zone, including Beginner Village,
+# refreshes the generic detail CTA with its own contract. Responsive CSS
+# decides which surface is visible; zone identity never does.
 # ---------------------------------------------------------------------
 
-def test_generic_cta_shown_and_wired_for_any_non_newbie_unlocked_zone():
+def test_generic_cta_shown_and_wired_for_every_unlocked_selected_zone():
     body = _render_selected_zone_body()
     cta_block_start = body.index("if (cta) {")
     cta_block_end = body.index("renderBeginnerVillageMainline(root, zone, state);", cta_block_start)
     cta_block = body[cta_block_start:cta_block_end]
-    # Exactly one zone-key special case in the whole CTA-visibility block:
-    # k26_30 (Beginner Village). No per-zone branching exists for any
-    # other zone -- so zone 2, zone 3, ... zone 10 all share one path.
-    assert cta_block.count("zone.key === 'k26_30'") == 1
-    else_branch = cta_block[cta_block.index("} else {"):]
-    assert "configureAdventureButton(cta, zone, ctaContract(zone, state));" in else_branch
+    assert "zone.key === 'k26_30'" not in cta_block
+    assert "configureAdventureButton(cta, zone, ctaContract(zone, state));" in cta_block
     assert "contract.targetZoneKey" in WORLD_STAGE
     assert "t('index.adv.start_challenge', 'Start Challenge')" in WORLD_STAGE
 
@@ -361,11 +357,12 @@ def test_i18n_boss_ready_retains_seen_and_total_placeholders():
 
 
 # ---------------------------------------------------------------------
-# 8. Beginner Village's own tutorial CTA must not regress, and must never
-# be shown alongside a second, duplicate generic CTA.
+# 8. Beginner Village's tutorial CTA remains available on its legacy/mobile
+# surface, while the portrait tablet's lower detail card owns the freshly
+# configured selected-zone CTA. CSS surface ownership prevents duplication.
 # ---------------------------------------------------------------------
 
-def test_newbie_mainline_cta_untouched_and_generic_cta_hidden_for_it():
+def test_newbie_mainline_cta_retained_without_suppressing_portrait_detail_cta():
     # "Untouched" here means presentation/exclusivity, not routing: the
     # E10_PR283_TUTORIAL_LORD_ROUTING_AMENDMENT gave this function a `state`
     # parameter so its CTA can share ctaContract()/dispatchAdventureAction()
@@ -376,9 +373,11 @@ def test_newbie_mainline_cta_untouched_and_generic_cta_hidden_for_it():
     assert "#e9-newbie-mainline-cta" in WORLD_STAGE
 
     body = _render_selected_zone_body()
-    if_block = body[body.index("if (cta) {"):body.index("} else {")]
-    assert "zone.key === 'k26_30'" in if_block
-    assert "cta.hidden = true;" in if_block
+    cta_block = body[body.index("if (cta) {"):body.index("renderBeginnerVillageMainline(root, zone, state);")]
+    assert "configureAdventureButton(cta, zone, ctaContract(zone, state));" in cta_block
+    assert "zone.key === 'k26_30'" not in cta_block
+    assert ".e9-newbie-mainline:not([hidden]) {\n    display: none;" in IMMERSIVE_RPG_CSS
+    assert ".e9-zone-details:not([hidden]) {\n    position: relative;\n    display: grid;" in IMMERSIVE_RPG_CSS
 
 
 def test_html_has_training_cta_and_secondary_story_replay_hidden_by_default():

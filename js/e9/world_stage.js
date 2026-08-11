@@ -981,15 +981,14 @@
     configurePrimaryCta(root, zone, state);
 
     if (cta) {
-      var primaryAction = resolvePrimaryCta(state, state.zones || []);
-      if (zone.key === 'k26_30' && !(primaryAction && primaryAction.kind === 'challenge_lord' && primaryAction.zoneKey !== zone.key)) {
-        // Beginner Village owns its own tutorial CTA below
-        // (renderBeginnerVillageMainline's #e9-newbie-mainline-cta) --
-        // never show a second, duplicate "start" button for it here.
-        cta.hidden = true;
-      } else {
-        configureAdventureButton(cta, zone, ctaContract(zone, state));
-      }
+      // Portrait tablets use this lower detail card as their only actionable
+      // Zone CTA.  It must always receive the freshly-derived selected-zone
+      // contract, including completed Zone 1 replay semantics.  The separate
+      // Beginner Village tutorial panel is hidden on this responsive surface;
+      // suppressing this button for k26_30 left its prior zone's label/action
+      // attached while landscape continued to use the correctly configured
+      // map/panel CTA.
+      configureAdventureButton(cta, zone, ctaContract(zone, state));
     }
 
     root.querySelectorAll('.e9-zone__inline-details').forEach(function (panel) { panel.remove(); });
