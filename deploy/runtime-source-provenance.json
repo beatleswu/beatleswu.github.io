@@ -195,14 +195,14 @@
     },
     {
       "path": "index.html",
-      "source_commit": "a67d60e364eaa174476d9d145a5891d792d62cfc",
+      "source_commit": "77444650ca72d367f344aaf045423aeea456f427",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #313 from beatleswu/codex/e10-owner-device-regression-fix-v2",
+      "source_commit_subject": "Merge pull request #321 from beatleswu/codex/e10-zone2-runtime-foundation-002",
       "source_date": "2026-08-11",
-      "content_sha256": "e03440784d5c6816b4b3f20240221e7d9a0bf857a08c7ec2eda4aeb6f5518774",
+      "content_sha256": "6411a1ede63ec4dcc08b5756a59eac7c663d05674152e7ed2cd2aede153763e6",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge a67d60e364eaa174476d9d145a5891d792d62cfc; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 77444650ca72d367f344aaf045423aeea456f427; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
@@ -507,14 +507,14 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "ec9816fa09cb5b23f19411b7e02e59fc69a08307",
+      "source_commit": "77444650ca72d367f344aaf045423aeea456f427",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #315 from beatleswu/codex/e10-ipad-portrait-zone-card-cta-hotfix",
+      "source_commit_subject": "Merge pull request #321 from beatleswu/codex/e10-zone2-runtime-foundation-002",
       "source_date": "2026-08-11",
-      "content_sha256": "c02f59ad7f014b1b175c36499cbde289abd50bf14d5e4586815d27dc00889dd5",
+      "content_sha256": "31beeedd6309afe54ae453464cab3445bc0271fe7460bfa3c473f5e813bf5d58",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge ec9816fa09cb5b23f19411b7e02e59fc69a08307; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge 77444650ca72d367f344aaf045423aeea456f427; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
