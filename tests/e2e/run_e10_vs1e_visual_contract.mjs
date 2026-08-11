@@ -43,6 +43,12 @@ const zones = [
 }));
 
 function fixtureZones(mode = 'default') {
+  if (mode === 'owner-completed-zone1-mainline') {
+    return zones.map((zone) => ({
+      ...zone,
+      boss: { available: false },
+    }));
+  }
   if (mode !== 'placement-high') return zones;
   return zones.map((zone, index) => ({
     ...zone,
@@ -469,7 +475,7 @@ function apiResponse(pathname, method, avatarKey = 'mage', fixtureMode = 'defaul
       current_zone_key: current ? current.key : null,
       primary_action: current
         ? {
-          kind: 'challenge_lord',
+          kind: fixtureMode === 'owner-completed-zone1-mainline' ? 'normal_progression' : 'challenge_lord',
           zone_key: current.key,
           boss_key: {
             k21_25: 'swarm_lord',
@@ -1813,6 +1819,17 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       ctaDisabled: cta.disabled,
       ctaVisible: !cta.hidden && getComputedStyle(cta).display !== 'none' && box.width > 0 && box.height > 0,
       ctaHit: hit ? (hit.id || hit.className || hit.tagName) : null,
+      primaryCtaText: document.querySelector('#e9-world-stage-primary-cta strong')?.textContent.trim()
+        || document.querySelector('#e9-world-stage-primary-cta')?.textContent.trim()
+        || '',
+      primaryCtaTargetZoneKey: document.querySelector('#e9-world-stage-primary-cta')?.getAttribute('data-challenge-target-zone') || '',
+      primaryCtaVisible: (() => {
+        const primary = document.querySelector('#e9-world-stage-primary-cta');
+        if (!primary) return false;
+        const primaryBox = primary.getBoundingClientRect();
+        return !primary.hidden && getComputedStyle(primary).display !== 'none'
+          && primaryBox.width > 0 && primaryBox.height > 0;
+      })(),
       currentTileOwnsPlayer: !!document.querySelector(`[data-zone="${state.currentPlayerZoneKey}"][data-player-location="true"]`),
       selectedTileOwnsPlayer: !!document.querySelector(`[data-zone="${state.selectedZoneKey}"][data-player-location="true"]`),
       selectedCount: document.querySelectorAll('[data-zone].is-selected').length,
@@ -2038,6 +2055,20 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   }
   if (spec.portrait && spec.playable && (!selected.ctaVisible || selected.ctaDisabled || selected.ctaHit !== 'e9-world-stage-details-cta')) {
     failures.push(`${spec.name}: portrait detail CTA is not directly hit-testable`);
+  }
+  if (spec.expectedCtaKind && (!canonicalDetail
+    || canonicalDetail.ctaKind !== spec.expectedCtaKind
+    || canonicalDetail.ctaLabel !== spec.expectedCtaLabel)) {
+    failures.push(`${spec.name}: canonical CTA semantic mismatch ${canonicalDetail?.ctaKind}/${canonicalDetail?.ctaLabel}`);
+  }
+  if (spec.expectedCtaKind && spec.portrait
+    && (selected.ctaText !== spec.expectedCtaLabel || selected.detailTargetZoneKey !== spec.zone)) {
+    failures.push(`${spec.name}: portrait CTA did not render the selected-zone semantic`);
+  }
+  if (spec.expectedCtaKind && !spec.portrait
+    && (!selected.primaryCtaVisible || selected.primaryCtaText !== spec.expectedCtaLabel
+      || selected.primaryCtaTargetZoneKey !== spec.zone)) {
+    failures.push(`${spec.name}: landscape/desktop CTA did not render the selected-zone semantic`);
   }
   for (const cycle of panelCycles) {
     if (cycle.opened.ctaHit !== 'panel-cta') failures.push(`${spec.name}: panel CTA missed hit test on cycle ${cycle.cycle}`);
@@ -2464,12 +2495,14 @@ async function main({
     if (args.includes('--post-global-regression-only')) {
       const regressionSpecs = [
         { name: 'post-global-ipad-768-selected-low-zone', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'zh', zone: 'k1_5', portrait: true, expectDrawerHidden: true, playable: true, journey: true, deferRuntimeReady: true, expectStackedCombat: true },
+        { name: 'post-global-ipad-portrait-completed-zone1', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'zh', zone: 'k26_30', portrait: true, fixtureMode: 'owner-completed-zone1-mainline', expectDrawerHidden: true, playable: true, journey: true, expectStackedCombat: true, expectedCtaKind: 'replay_completed', expectedCtaLabel: '補星修行' },
         { name: 'post-global-ipad-1180-selected-low-zone', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true },
         { name: 'post-global-windowed-desktop-combat-layout', viewport: { width: 823, height: 794 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
         { name: 'post-global-narrow-fine-desktop-combat-layout', viewport: { width: 768, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
         { name: 'post-global-1024-fine-desktop-combat-layout', viewport: { width: 1024, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
         { name: 'post-global-wide-desktop-combat-layout', viewport: { width: 1366, height: 900 }, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectDesktopCombatSameRow: true },
         { name: 'post-global-ipad-landscape-layout', viewport: { width: 1024, height: 768 }, hasTouch: true, lang: 'en', zone: 'k16_20', portrait: false, playable: true, journey: true, expectStackedCombat: true },
+        { name: 'post-global-ipad-landscape-completed-zone1', viewport: { width: 1024, height: 768 }, hasTouch: true, lang: 'zh', zone: 'k26_30', portrait: false, fixtureMode: 'owner-completed-zone1-mainline', playable: true, journey: true, expectStackedCombat: true, expectedCtaKind: 'replay_completed', expectedCtaLabel: '補星修行' },
         { name: 'post-global-same-zone-resumable-encounter', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k16_20', portrait: false, playable: true, journey: true },
         { name: 'post-global-cross-zone-encounter-does-not-hijack', viewport: { width: 1180, height: 820 }, lang: 'en', zone: 'k16_20', resumableEncounterZone: 'k21_25', portrait: false, playable: true, journey: true },
         { name: 'post-global-production-lifecycle-without-zone-does-not-fallback', viewport: { width: 768, height: 1024 }, hasTouch: true, lang: 'en', zone: 'k16_20', productionLifecycleNoZone: true, portrait: true, expectDrawerHidden: true, playable: true, journey: true, expectStackedCombat: true },
