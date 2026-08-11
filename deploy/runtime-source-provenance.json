@@ -507,14 +507,14 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "a67d60e364eaa174476d9d145a5891d792d62cfc",
+      "source_commit": "ec9816fa09cb5b23f19411b7e02e59fc69a08307",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #313 from beatleswu/codex/e10-owner-device-regression-fix-v2",
+      "source_commit_subject": "Merge pull request #315 from beatleswu/codex/e10-ipad-portrait-zone-card-cta-hotfix",
       "source_date": "2026-08-11",
-      "content_sha256": "059390355a6e60d4eba18c8f71907a0cc50f55d964b1df420e861947558ec196",
+      "content_sha256": "c02f59ad7f014b1b175c36499cbde289abd50bf14d5e4586815d27dc00889dd5",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge a67d60e364eaa174476d9d145a5891d792d62cfc; deployment status is governed separately and is not asserted by this provenance refresh",
+      "production_hash_status": "merged to origin/master at merge ec9816fa09cb5b23f19411b7e02e59fc69a08307; deployment status is governed separately and is not asserted by this provenance refresh",
       "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
