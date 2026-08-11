@@ -192,6 +192,11 @@ try {
     $helperRemotePath = "$remoteReleaseDir/.runner/content_remote_publish.py"
     $helperUpload = Invoke-BoundedScpUpload -LocalPath $helperPath -SshAlias $layout.ssh_alias -RemotePath $helperRemotePath -TimeoutSeconds $RemoteUploadTimeoutSeconds -OperationLabel 'content release helper upload'
     if ($helperUpload.exit_code -ne 0) { throw "Remote content helper upload failed: $($helperUpload.output)" }
+    $helperSha256 = (Get-FileHash -LiteralPath $helperPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $helperVerify = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -Command ("sha256sum -- " + (Quote-PosixShellArgument $helperRemotePath)) -TimeoutSeconds $RemoteCommandTimeoutSeconds -OperationLabel 'content release helper hash verification'
+    if ($helperVerify.exit_code -ne 0) { throw "Remote content helper hash verification failed: $($helperVerify.output)" }
+    $helperObservedSha256 = (([string](Get-RemoteStandardOutput -Result $helperVerify)).Trim() -split '\s+')[0].ToLowerInvariant()
+    if ($helperObservedSha256 -ne $helperSha256) { throw "Remote content helper SHA-256 mismatch." }
 
     $remotePromoteCommand = @(
         'sudo -n python3', (Quote-PosixShellArgument $helperRemotePath), 'remote-promote',
@@ -219,6 +224,7 @@ try {
         target = $targetPath
         release_id = $ReleaseId
         local_bundle = $validation
+        helper_sha256 = $helperSha256
         remote_result = $remoteResult
         existing_remote_primitives_reused = @('Invoke-BoundedNativeCommand', 'Invoke-BoundedSshCommand', 'Invoke-BoundedScpUpload', 'Enter-RemoteReleaseOperationLock', 'Exit-RemoteReleaseOperationLock')
     }
