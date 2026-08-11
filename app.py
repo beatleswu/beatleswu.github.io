@@ -8436,15 +8436,47 @@ def _home_report_action(weakness, boss, mistakes_due):
         return {'kind': 'weakness_training', 'zone_key': None, 'discipline_key': weakness.get('discipline_key')}
     return {'kind': 'none', 'zone_key': None, 'discipline_key': None}
 
+def _adventure_correct_question_ids(conn, uid, cards):
+    """Return distinct adventure questions with authoritative correct evidence.
+
+    Adventure Lord progress is historical mastery: one passing answer is
+    enough to credit a question, and a later failing SRS review must not take
+    that credit away.  ``review_log.grade >= 3`` is the server's existing
+    passing-grade predicate (also used by boss-attempt scoring).  The sticky
+    ``progress_credited`` bit is retained as a compatibility/fail-safe mirror
+    for rows written by the anti-farming progression path; ``last_grade`` is a
+    narrow legacy fallback for rows created before that mirror was populated.
+    None of these sources credit a question that was only displayed or only
+    answered incorrectly.
+    """
+    correct_ids = {
+        row['question_id']
+        for row in conn.execute(
+            'SELECT DISTINCT question_id FROM review_log '
+            'WHERE user_id=? AND grade>=3',
+            (uid,),
+        ).fetchall()
+    }
+    for row in cards:
+        try:
+            progress_credited = row['progress_credited']
+        except (KeyError, IndexError, TypeError):
+            progress_credited = 0
+        if progress_credited or (row['last_grade'] or 0) >= 3:
+            correct_ids.add(row['question_id'])
+    return correct_ids
+
+
 def _adventure_state(uid):
     qs = [q for q in _load_questions() if q.get('enabled', True)]
     premium = is_premium(uid)
     now = datetime.datetime.now().isoformat(timespec='seconds')
     with get_db() as conn:
         cards = conn.execute(
-            'SELECT question_id,last_grade FROM srs_cards WHERE user_id=?',
+            'SELECT question_id,last_grade,progress_credited FROM srs_cards WHERE user_id=?',
             (uid,)
         ).fetchall()
+        correct_ids = _adventure_correct_question_ids(conn, uid, cards)
         rows = conn.execute(
             'SELECT * FROM adventure_boss_progress WHERE user_id=?',
             (uid,)
@@ -8461,7 +8493,7 @@ def _adventure_state(uid):
             unlock_rows=[dict(r) for r in unlock_rows],
         )
 
-    seen_ids = {r['question_id'] for r in cards}
+    attempted_ids = {r['question_id'] for r in cards}
     defeated_ids = {r['question_id'] for r in cards if (r['last_grade'] or 0) >= 3}
     zones = []
     previous_cleared = True
@@ -8469,7 +8501,11 @@ def _adventure_state(uid):
     for z in ADVENTURE_ZONES:
         zone_qs = _questions_for_adventure_zone(qs, z, premium)
         total = len(zone_qs)
-        seen = len([q for q in zone_qs if q['id'] in seen_ids])
+        # ``seen`` is the long-standing API field consumed by the E9/E10
+        # progress surfaces.  Its canonical numerator is now historical
+        # distinct correct answers, not merely displayed/attempted cards.
+        seen = len([q for q in zone_qs if q['id'] in correct_ids])
+        attempted = len([q for q in zone_qs if q['id'] in attempted_ids])
         defeated = len([q for q in zone_qs if q['id'] in defeated_ids])
         pct = round(seen / total * 100) if total else 0
         defeat_pct = round(defeated / total * 100) if total else 0
@@ -8494,6 +8530,9 @@ def _adventure_state(uid):
             **z,
             'total': total,
             'seen': seen,
+            'attempted': attempted,
+            'correct_count': seen,
+            'progress_count': seen,
             'defeated': defeated,
             'pct': pct,
             'defeat_pct': defeat_pct,
@@ -8676,7 +8715,7 @@ def _adventure_zone_has_recorded_progress(zone):
         return False
     if zone.get('cleared') or zone.get('last_attempt_at') or zone.get('cleared_at'):
         return True
-    for field in ('seen', 'defeated', 'stars', 'attempts', 'best_score'):
+    for field in ('seen', 'attempted', 'defeated', 'stars', 'attempts', 'best_score'):
         try:
             if int(zone.get(field) or 0) > 0:
                 return True
