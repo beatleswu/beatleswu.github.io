@@ -78,7 +78,7 @@ const _MAP_BATTLE_V1_RESUME_STORAGE_KEY = 'go:e10:map-battle:v1:resume';
 
 {functions_js}
 
-async function runCase(caseSpec) {{
+    async function runCase(caseSpec) {{
     _mapBattleV1ServerProgress = new Map();
     const store = {{}};
     global.sessionStorage = {{
@@ -91,10 +91,17 @@ async function runCase(caseSpec) {{
     }}
     const seenIds = new Set(caseSpec.seenIds || []);
     const defeatedIds = new Set(caseSpec.defeatedIds || []);
-    global.SRS = {{
+        global.SRS = {{
         getCard: (qid) => (defeatedIds.has(Number(qid)) ? {{ last_grade: 5 }} : (seenIds.has(Number(qid)) ? {{ last_grade: 0 }} : null)),
         isSeen: (qid) => seenIds.has(Number(qid)),
-    }};
+        }};
+        global.window = {{ MapBattleV1: {{ legacy: {{
+            validateResume: async (candidate) => {{
+                if (caseSpec.resumeValidationOk === false) throw new Error('not resumable');
+                candidate.attemptState = 'ISSUED';
+                return candidate;
+            }},
+        }} }} }};
     const fetchCalls = [];
     global.fetch = async (url) => {{
         fetchCalls.push(url);

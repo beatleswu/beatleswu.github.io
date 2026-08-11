@@ -196,16 +196,15 @@ def test_only_one_dispatch_function_exists_for_all_world_stage_ctas():
     assert WORLD_STAGE.count("dispatchAdventureAction(inlineContract);") == 1
 
 
-def test_primary_cta_targets_selected_zone_except_mandatory_encounter_resume():
+def test_primary_cta_always_targets_the_explicitly_selected_zone():
     start = WORLD_STAGE.index("function configurePrimaryCta(")
     end = WORLD_STAGE.index("\n  function updateSelectedZoneCopy(", start)
     body = WORLD_STAGE[start:end]
     # The map CTA is visually associated with the selected details and must
-    # therefore preserve that selected identity.  A server-issued encounter
-    # is the only allowed temporary override.
-    assert "var mandatoryAction = activeMandatoryEncounterAction(state);" in body
-    assert "? findZone(state.zones || [], mandatoryAction.zoneKey) || zone" in body
-    assert ": zone;" in body
+    # therefore preserve that selected identity. Same-zone resume is resolved
+    # inside ctaContract; cross-zone lifecycle state may not replace it.
+    assert "var targetZone = zone;" in body
+    assert "mandatoryAction" not in body
     assert "ctaContract(targetZone, state)" in body
     assert "var primaryAction = resolvePrimaryCta" not in body
 
@@ -225,11 +224,11 @@ def test_ctacontract_gates_root_arbitration_on_matching_zone_key():
     assert "zone.bossAvailable === true && !zone.cleared" in body
 
 
-def test_resumable_encounter_is_the_only_cross_zone_cta_override():
+def test_resumable_encounter_must_match_the_explicit_zone():
     start = WORLD_STAGE.index("function ctaContract(")
     end = WORLD_STAGE.index("\n  function usesLandmarkCards(", start)
     body = WORLD_STAGE[start:end]
-    mandatory = body.index("var mandatory = activeMandatoryEncounterAction(state);")
+    mandatory = body.index("var mandatory = activeMandatoryEncounterAction(state, zone && zone.key);")
     locked = body.index("var target = resolveChallengeTargetZoneKey(zone);")
     assert mandatory < locked
     assert "var mandatoryZone = mandatory && findZone(state.zones || [], mandatory.zoneKey);" in body
@@ -330,14 +329,19 @@ async function main() {
     assert.strictEqual(contract.targetZoneKey, 'k16_20');
   });
 
-  // -- Case 1b: an already-issued resumable encounter is the only allowed
-  // cross-zone override. Every selected-zone CTA surface must resume the
-  // authoritative encounter rather than creating a new lower-zone attempt.
+  // -- Case 1b: explicit selection rejects cross-zone silent resume, while a
+  // valid same-zone issued encounter keeps the legitimate resume behavior.
   sandbox.window.__GO_E10_BATTLE_LIFECYCLE__ = {
-    mode: 'active', hasNonce: true, zoneKey: 'k21_25',
+    mode: 'active', hasNonce: true, zoneKey: 'k21_25', attemptState: 'ISSUED',
+    expiresAt: '2099-01-01T00:00:00+00:00',
   };
-  check('resumable encounter overrides a newly selected lower zone', () => {
+  check('cross-zone encounter does not override a newly selected lower zone', () => {
     const contract = sandbox.ctaContract(otherZone, state);
+    assert.notStrictEqual(contract.kind, 'resume_encounter');
+    assert.strictEqual(contract.targetZoneKey, 'k16_20');
+  });
+  check('same-zone issued encounter remains resumable', () => {
+    const contract = sandbox.ctaContract(readyZone, state);
     assert.strictEqual(contract.kind, 'resume_encounter');
     assert.strictEqual(contract.targetZoneKey, 'k21_25');
   });

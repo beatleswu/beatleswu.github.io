@@ -57,6 +57,7 @@ from map_battle_runtime import (
     mode_eligible,
     question_revision_for,
     settle_answer,
+    validate_resumable_attempt,
 )
 from map_battle_persistence import (
     create_map_battle,
@@ -10130,10 +10131,23 @@ def _map_battle_question_context(question):
     if not isinstance(content, str) or not content.strip():
         raise RequestRejected('authoritative question content is unavailable', status=503)
     size_match = re.search(r'SZ\[(\d+)\]', content, re.IGNORECASE)
-    color_match = re.search(r'PL\[([BW])\]', content, re.IGNORECASE)
     board_size = _map_battle_int(size_match.group(1) if size_match else 19, 19, minimum=2)
     board_size = min(board_size, 25)
-    player_color = (color_match.group(1).upper() if color_match else 'B')
+    try:
+        root = parse_sgf(content, strict=True)
+    except (TypeError, ValueError) as error:
+        raise RequestRejected('authoritative SGF player color is invalid', status=409) from error
+    player_color = str(root.metadata.get('player_to_move') or '').upper()
+    if not player_color:
+        first_colors = {
+            child.move.color for child in root.children
+            if child.move is not None and child.move.color in ('B', 'W')
+        }
+        if len(first_colors) != 1:
+            raise RequestRejected('authoritative SGF player color is ambiguous', status=409)
+        player_color = first_colors.pop()
+    if player_color not in ('B', 'W'):
+        raise RequestRejected('authoritative SGF player color is invalid', status=409)
     return {
         'question_revision': question_revision_for(question),
         'initial_position_identity': hashlib.sha256(content.encode('utf-8')).hexdigest(),
@@ -10142,6 +10156,19 @@ def _map_battle_question_context(question):
         'transform_version': _MAP_BATTLE_TRANSFORM_VERSION,
         'transform_id': _MAP_BATTLE_TRANSFORM_ID,
     }
+
+
+def _map_battle_require_question_in_zone(question, zone_key):
+    """Fail closed when a canonical Adventure zone is paired with another pool."""
+
+    zone = _zone_by_key(zone_key)
+    if zone is None:
+        # Legacy callers predate canonical Adventure zone keys. Their existing
+        # isolated battle identity remains valid, but canonical zones must use
+        # the canonical book mapping below.
+        return
+    if not _questions_for_adventure_zone([question], zone, premium=True):
+        raise RequestRejected('question does not belong to the requested zone', status=409)
 
 
 def _map_battle_player_hp(conn, user_id):
@@ -10250,6 +10277,7 @@ def map_battle_v1_prepare_attempt():
         if not isinstance(zone_key, str) or not zone_key.strip() or len(zone_key.strip()) > 255:
             raise RequestRejected('zone_key is required')
         zone_key = zone_key.strip()
+        _map_battle_require_question_in_zone(question, zone_key)
         metadata = _map_battle_question_context(question)
         user_id = int(session['user_id'])
         with get_db() as conn:
@@ -10309,6 +10337,54 @@ def map_battle_v1_prepare_attempt():
             'issued_at': issued['issued_at'],
             'expires_at': issued['expires_at'],
             'submission_nonce': issued['submission_nonce'],
+            'runtime_service': RUNTIME_SERVICE_ID,
+        })
+    except MapBattleRuntimeError as error:
+        return _map_battle_error_response(error)
+
+
+@app.route('/api/adventure/map-battles/v1/attempts/<attempt_id>/resume-validation', methods=['POST'])
+@login_required
+def map_battle_v1_resume_validation(attempt_id):
+    """Validate an exact owner/attempt/nonce/same-zone resume identity read-only."""
+
+    protocol = (request.headers.get('X-Map-Battle-Client-Protocol') or '').strip().lower()
+    if protocol != 'v1':
+        return jsonify({
+            'error': OLD_CLIENT_ERROR,
+            'code': OLD_CLIENT_ERROR,
+            'message': 'Game updated; refresh and continue',
+        }), OLD_CLIENT_HTTP_STATUS
+    payload = request.get_json(silent=True)
+    try:
+        if not isinstance(payload, dict):
+            raise RequestRejected('request JSON must be an object')
+        question = _map_battle_question_by_id(payload.get('question_id'))
+        if question is None:
+            raise RequestRejected('question does not exist', status=404)
+        zone_key = payload.get('zone_key')
+        if not isinstance(zone_key, str) or not zone_key.strip():
+            raise RequestRejected('zone_key is required')
+        zone_key = zone_key.strip()
+        _map_battle_require_question_in_zone(question, zone_key)
+        with get_db() as conn:
+            _map_battle_require_enabled(int(session['user_id']), conn)
+            validated = validate_resumable_attempt(
+                conn,
+                user_id=int(session['user_id']),
+                attempt_id=attempt_id,
+                battle_id=payload.get('battle_id'),
+                question_id=payload.get('question_id'),
+                zone_key=zone_key,
+                submission_nonce=payload.get('submission_nonce'),
+            )
+            if question_revision_for(question) != str(validated['attempt']['question_revision']):
+                raise RequestRejected('question revision is stale for this attempt', status=409)
+        return jsonify({
+            'ok': True,
+            'resumable': True,
+            'battle': _map_battle_public_state(validated['battle']),
+            'attempt': _map_battle_public_attempt(validated['attempt']),
             'runtime_service': RUNTIME_SERVICE_ID,
         })
     except MapBattleRuntimeError as error:

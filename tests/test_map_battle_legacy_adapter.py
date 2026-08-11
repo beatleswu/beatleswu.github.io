@@ -44,6 +44,34 @@ QUESTION = {
 }
 
 
+def _index_function(name):
+    source = (ROOT / "index.html").read_text(encoding="utf-8")
+    start = source.index(f"function {name}")
+    opening = source.index("{", start)
+    depth = 0
+    quote = None
+    escaped = False
+    for offset in range(opening, len(source)):
+        char = source[offset]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in ("'", '"', "`"):
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start:offset + 1]
+    raise AssertionError(f"unterminated JavaScript function {name}")
+
+
 def _install_app_import_stubs():
     if "katago_explain" not in sys.modules:
         module = types.ModuleType("katago_explain")
@@ -281,6 +309,7 @@ def test_legacy_bridge_is_wired_without_e10_or_srs_damage_fallback(api_env):
     assert "response.player_hp_after" in adapter
     assert "response.monster_hp_after" in adapter
     assert "response.battle_revision" in adapter
+    assert "response.player_heal_applied" in adapter
     assert "window.MapBattleV1.e10" not in adapter
     wrong_flow = html[html.index("function onBoardClick"):html.index("function resetProblem")]
     assert wrong_flow.index("_mapBattleV1IsActive()") < wrong_flow.index("/api/srs/review")
@@ -306,6 +335,121 @@ def test_legacy_prepare_creates_resumes_battle_and_hashes_nonce(api_env):
     assert first["submission_nonce"] not in stored
 
 
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("(;SZ[19]PL[B];B[dd];W[ee])", "B"),
+        ("(;SZ[19]PL[W];W[dd];B[ee])", "W"),
+        ("(;SZ[19];B[dd];W[ee])", "B"),
+        ("(;SZ[19];W[dd];B[ee])", "W"),
+    ],
+)
+def test_server_player_color_matches_canonical_sgf_first_answer_rule(app_module, content, expected):
+    assert app_module._map_battle_question_context({"id": 1, "content": content})["player_color"] == expected
+
+
+def test_browser_and_server_player_color_parity_for_explicit_and_inferred_turn(app_module):
+    cases = [
+        ("(;SZ[19]PL[B];B[dd];W[ee])", "B"),
+        ("(;SZ[19]PL[W];W[dd];B[ee])", "W"),
+        ("(;SZ[19];B[dd];W[ee])", "B"),
+        ("(;SZ[19];W[dd];B[ee])", "W"),
+    ]
+    node_script = f"""
+{_index_function('parseSGF')}
+const cases = {json.dumps([content for content, _ in cases])};
+process.stdout.write(JSON.stringify(cases.map((content) => parseSGF(content).pl)));
+"""
+    browser_colors = json.loads(subprocess.check_output(
+        ["node", "-e", node_script], cwd=ROOT, text=True
+    ))
+    server_colors = [
+        app_module._map_battle_question_context({"id": index, "content": content})["player_color"]
+        for index, (content, _) in enumerate(cases, start=1)
+    ]
+    expected = [color for _, color in cases]
+    assert browser_colors == server_colors == expected
+
+
+def test_server_player_color_fails_closed_when_root_variations_disagree(app_module):
+    with pytest.raises(Exception, match="ambiguous"):
+        app_module._map_battle_question_context({
+            "id": 1,
+            "content": "(;SZ[19](;B[dd])(;W[ee]))",
+        })
+
+
+def test_resume_validation_is_owner_scoped_same_zone_nonce_and_lifecycle_authority(api_env):
+    client, conn = api_env
+    state = _prepare(client, "legacy::forest")
+    endpoint = f"{ATTEMPT_ENDPOINT}/{state['attempt_id']}/resume-validation"
+    payload = {
+        "battle_id": state["battle_id"],
+        "question_id": state["question_id"],
+        "zone_key": "legacy::forest",
+        "submission_nonce": state["submission_nonce"],
+    }
+
+    valid = client.post(endpoint, json=payload, headers=PROTOCOL)
+    assert valid.status_code == 200, valid.get_json()
+    assert valid.get_json()["resumable"] is True
+    assert valid.get_json()["attempt"]["state"] == "ISSUED"
+    assert valid.get_json()["battle"]["zone_key"] == "legacy::forest"
+
+    assert client.post(
+        endpoint, json={**payload, "zone_key": "legacy::other"}, headers=PROTOCOL
+    ).status_code == 409
+    assert client.post(
+        endpoint, json={**payload, "submission_nonce": "stale-nonce"}, headers=PROTOCOL
+    ).status_code == 409
+
+    conn.execute(
+        "UPDATE map_battle_attempts SET issued_at=?, expires_at=? WHERE id=?",
+        ("2019-01-01T00:00:00+00:00", "2020-01-01T00:00:00+00:00", state["attempt_id"]),
+    )
+    conn.commit()
+    assert client.post(endpoint, json=payload, headers=PROTOCOL).status_code == 409
+
+
+def test_settled_attempt_cannot_resume(api_env):
+    client, _ = api_env
+    state = _prepare(client, "legacy::settled")
+    settled = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert settled.status_code == 200, settled.get_json()
+    resume = client.post(
+        f"{ATTEMPT_ENDPOINT}/{state['attempt_id']}/resume-validation",
+        json={
+            "battle_id": state["battle_id"],
+            "question_id": state["question_id"],
+            "zone_key": "legacy::settled",
+            "submission_nonce": state["submission_nonce"],
+        },
+        headers=PROTOCOL,
+    )
+    assert resume.status_code == 409
+
+
+def test_canonical_zone_rejects_question_from_another_pool(api_env, app_module, monkeypatch):
+    client, _ = api_env
+    zone = app_module.ADVENTURE_ZONES[0]
+    wrong_topic = next(
+        other["books"][0] for other in app_module.ADVENTURE_ZONES[1:] if other.get("books")
+    )
+    question = {**QUESTION, "topic": wrong_topic}
+    monkeypatch.setattr(app_module, "_load_questions", lambda: [question])
+    response = client.post(
+        ATTEMPT_ENDPOINT,
+        json={"zone_key": zone["key"], "question_id": question["id"]},
+        headers=PROTOCOL,
+    )
+    assert response.status_code == 409
+    assert response.get_json()["code"] == "invalid_map_battle_request"
+
+
 def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_env):
     client, conn = api_env
 
@@ -320,6 +464,8 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert result["result"] == "CORRECT"
     assert result["monster_hp_after"] < result["monster_hp_before"]
     assert result["player_hp_after"] == result["player_hp_before"] == 30
+    assert result["heal_to_player"] == 1
+    assert result["player_heal_applied"] == 0
     assert result["battle_revision"] == 1
     assert result["progression"]["status"] == "applied"
     assert conn.execute(
@@ -370,6 +516,7 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
     assert incorrect_result["result"] == "INCORRECT"
     assert incorrect_result["monster_hp_after"] == incorrect_result["monster_hp_before"] == 40
     assert incorrect_result["player_hp_after"] < incorrect_result["player_hp_before"]
+    assert incorrect_result["heal_to_player"] == 0
     assert incorrect_result["battle_revision"] == 1
 
     invalid = _prepare(client, "legacy::invalid")
@@ -390,6 +537,45 @@ def test_legacy_correct_duplicate_incorrect_and_invalid_are_authoritative(api_en
         "SELECT settlement_state FROM map_battle_submissions WHERE id=?",
         (invalid_result["submission_id"],),
     ).fetchone()[0] == "REJECTED"
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 2
+
+
+def test_consecutive_correct_answers_heal_once_each_and_persist_to_next_question(api_env):
+    client, conn = api_env
+    conn.execute("UPDATE user_stats SET player_hp=20, player_max_hp=30 WHERE user_id=101")
+    conn.commit()
+
+    first = _prepare(client, "legacy::healing")
+    first_result = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(first, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert (first_result["player_hp_before"], first_result["player_hp_after"]) == (20, 21)
+    assert first_result["player_heal_applied"] == 1
+
+    duplicate = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(first, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert duplicate["duplicate"] is True
+    assert duplicate["player_hp_after"] == 21
+
+    second = _prepare(client, "legacy::healing")
+    assert second["battle"]["player_hp"] == 21
+    second_result = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(second, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    ).get_json()
+    assert (second_result["player_hp_before"], second_result["player_hp_after"]) == (21, 22)
+    assert second_result["player_heal_applied"] == 1
+
+    next_question = _prepare(client, "legacy::healing")
+    assert next_question["battle"]["player_hp"] == 22
     assert conn.execute(
         "SELECT COUNT(*) FROM review_log WHERE user_id=101"
     ).fetchone()[0] == 2

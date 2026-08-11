@@ -161,11 +161,14 @@
     return zone && !zone.locked && zone.canEnter !== false ? zone.key : null;
   }
 
-  function activeMandatoryEncounterAction(state) {
+  function activeMandatoryEncounterAction(state, explicitZoneKey) {
     var lifecycle = window.__GO_E10_BATTLE_LIFECYCLE__;
-    if (!lifecycle || lifecycle.mode !== 'active' || lifecycle.hasNonce !== true) return null;
-    var targetZoneKey = lifecycle.zoneKey || state.currentPlayerZoneKey || null;
+    if (!lifecycle || lifecycle.mode !== 'active' || lifecycle.hasNonce !== true
+        || lifecycle.attemptState !== 'ISSUED') return null;
+    var targetZoneKey = lifecycle.zoneKey || null;
     if (!targetZoneKey) return null;
+    if (explicitZoneKey && String(targetZoneKey) !== String(explicitZoneKey)) return null;
+    if (lifecycle.expiresAt && Date.parse(lifecycle.expiresAt) <= Date.now()) return null;
     return { kind: 'resume_encounter', zoneKey: targetZoneKey };
   }
 
@@ -214,10 +217,10 @@
     state.primaryAction = primaryAction || null;
     state.selectedZoneKey = selected ? selected.key : null;
     // Selection and authoritative player location are separate identities.
-    // The selected card owns the next challenge target unless an already-
-    // issued encounter must be resumed; ordinary current-zone arbitration
-    // must never overwrite a deliberate lower-zone selection.
-    var mandatory = activeMandatoryEncounterAction(state);
+    // The selected card owns the next challenge target. A proven issued
+    // encounter changes only the action label when it belongs to this same
+    // zone; cross-zone lifecycle state never overwrites explicit selection.
+    var mandatory = activeMandatoryEncounterAction(state, selected && selected.key);
     state.challengeTargetZoneKey = mandatory && mandatory.zoneKey
       ? mandatory.zoneKey
       : resolveChallengeTargetZoneKey(selected);
@@ -225,10 +228,9 @@
   }
 
   function ctaContract(zone, state) {
-    // An already-issued encounter is the sole authority allowed to override
-    // a newly selected zone. Keep every CTA surface (primary, details,
-    // inline, and drawer) on that same resumable encounter identity.
-    var mandatory = activeMandatoryEncounterAction(state);
+    // A same-zone issued encounter may resume. Cross-zone lifecycle state is
+    // deliberately ignored so every CTA surface keeps explicit selection.
+    var mandatory = activeMandatoryEncounterAction(state, zone && zone.key);
     var mandatoryZone = mandatory && findZone(state.zones || [], mandatory.zoneKey);
     if (mandatoryZone) {
       return {
@@ -830,13 +832,9 @@
       return;
     }
     // The map-level CTA is rendered beside the selected-zone details, so its
-    // action identity must be that selected zone.  Only an already-issued
-    // mandatory encounter may temporarily override selection so the player
-    // can resume the canonical server-owned attempt.
-    var mandatoryAction = activeMandatoryEncounterAction(state);
-    var targetZone = mandatoryAction && mandatoryAction.zoneKey
-      ? findZone(state.zones || [], mandatoryAction.zoneKey) || zone
-      : zone;
+    // action identity must be that selected zone. Same-zone resume is decided
+    // by ctaContract and then revalidated by the server at gameplay bootstrap.
+    var targetZone = zone;
     var contract = targetZone && ctaContract(targetZone, state);
     var label = contract ? contract.label : '';
     configureAdventureButton(primary, targetZone, contract);

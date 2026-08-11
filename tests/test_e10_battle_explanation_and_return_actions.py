@@ -69,5 +69,5 @@ def test_active_attempt_resume_storage_remains_authoritative_for_return_flow():
     resume = _function_block("_persistMapBattleV1Resume", "_readMapBattleV1Resume")
     prepare = _function_block("_prepareMapBattleV1ForQuestion", "_mapBattleV1IsStaleError")
     assert "sessionStorage.setItem(_MAP_BATTLE_V1_RESUME_STORAGE_KEY" in resume
-    assert "adapter.refreshBattle(state)" in prepare
+    assert "adapter.validateResume(state)" in prepare
     assert "_clearMapBattleV1Resume();" in prepare

@@ -102,6 +102,7 @@ const contractScript = `
     let progressCalls = 0;
     let completionCalls = 0;
     let markedSeen = 0;
+    let playerRenders = [];
     let srsDoneCount = 0;
     let _mapBattleV1State = {
       active: true, monsterHp: 90, monsterHpMax: 100,
@@ -109,17 +110,38 @@ const contractScript = `
       monsterDefeated: kind === 'defeat', playerDefeated: false,
     };
     let _mapBattleV1Mode = 'active';
+    let _mapBattleV1LifecycleGeneration = 0;
     let _mapBattleV1TransitionPending = false;
+    let _mapBattleV1Transition = null;
+    let _mapBattleV1TransitionTimer = null;
+    let _mapBattleV1CompletionCallbackCount = 0;
+    let _mapBattleV1TransitionCount = 0;
+    let _mapBattleV1NextQuestionCount = 0;
     let currentQ = { id: 1, monster_type: 'goblin', monster_name: 'Goblin' };
     let _quizPet = null;
     const response = kind === 'wrong'
       ? { accepted: true, duplicate: false, result: 'INCORRECT', next_action: 'continue', damage_to_monster: 0, damage_to_player: 5 }
       : kind === 'invalid'
         ? { accepted: false, duplicate: false, result: 'INVALID', next_action: 'continue', damage_to_monster: 0, damage_to_player: 0 }
-        : { accepted: true, duplicate: kind === 'duplicate', result: 'CORRECT', next_action: kind === 'defeat' ? 'monster_defeated' : 'continue', damage_to_monster: 10, damage_to_player: 0 };
+        : { accepted: true, duplicate: kind === 'duplicate', result: 'CORRECT', next_action: kind === 'defeat' ? 'monster_defeated' : 'continue', damage_to_monster: 10, damage_to_player: 0, heal_to_player: 1, player_heal_applied: 1 };
     function _mapBattleV1IsActive() { return _mapBattleV1Mode === 'active' && _mapBattleV1State.active === true; }
+    function _syncE10BattleActions() {}
+    function _resetE10BattleRevealState() {}
+    function _recordE10BattleAnswerResult() {}
+    function _clearMapBattleV1Transition() {
+      if (_mapBattleV1TransitionTimer !== null) clearTimeout(_mapBattleV1TransitionTimer);
+      _mapBattleV1TransitionTimer = null;
+      _mapBattleV1Transition = null;
+      _mapBattleV1TransitionPending = false;
+    }
+    function _mapBattleV1IsStaleError() { return false; }
+    async function _prepareMapBattleV1ForQuestion() { return null; }
+    function _clearMapBattleV1Resume() {}
+    function _persistMapBattleV1Resume() {}
+    function _publishMapBattleV1Lifecycle() {}
+    async function _refreshMapBattleV1ServerProgress() { return true; }
     function updateMonsterUI(_monster, { onAnimationComplete = null } = {}) { if (onAnimationComplete) onAnimationComplete(); }
-    function updatePlayerHPUI() {}
+    function updatePlayerHPUI(player) { playerRenders.push(player); }
     function setMsg() {}
     function showBeginnerVillageEncounterContinuation() { return false; }
     function returnToAdventureMapAfterEncounter() { completionCalls += 1; }
@@ -132,7 +154,8 @@ const contractScript = `
     ${submitV1}
     await _submitMapBattleV1IfActive([]);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    return { nextCalls, progressCalls, completionCalls, markedSeen, srsDoneCount };
+    return { nextCalls, progressCalls, completionCalls, markedSeen, srsDoneCount,
+      playerHpChange: playerRenders.length ? playerRenders[playerRenders.length - 1].hp_change : null };
   };
 `;
 new Function(contractScript);
@@ -154,6 +177,9 @@ for (const [kind, expected] of [
     expected,
     `${kind} transition contract`,
   );
+  if (kind === 'correct') assert.equal(result.playerHpChange, 1, 'correct renders authoritative heal');
+  if (kind === 'duplicate') assert.equal(result.playerHpChange, 0, 'duplicate does not replay HP animation');
+  if (kind === 'wrong') assert.equal(result.playerHpChange, -5, 'wrong renders authoritative damage only');
 }
 
 await browser.close();

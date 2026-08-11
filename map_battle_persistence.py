@@ -695,6 +695,7 @@ def settle_map_battle_submission(
     authoritative_grade=None,
     damage_to_monster=0,
     damage_to_player=0,
+    heal_to_player=0,
     settled_at=None,
 ):
     """Apply one deterministic server result atomically within caller's tx.
@@ -730,11 +731,12 @@ def settle_map_battle_submission(
         raise InvalidSettlement("invalid judge result")
     _validate_nonnegative(damage_to_monster, "damage_to_monster")
     _validate_nonnegative(damage_to_player, "damage_to_player")
+    _validate_nonnegative(heal_to_player, "heal_to_player")
 
     timestamp = _timestamp_text(settled_at)
     if judge_result == "INVALID":
-        if damage_to_monster or damage_to_player or authoritative_grade is not None:
-            raise InvalidSettlement("invalid submissions cannot carry grade or damage")
+        if damage_to_monster or damage_to_player or heal_to_player or authoritative_grade is not None:
+            raise InvalidSettlement("invalid submissions cannot carry grade, damage, or healing")
         recorded = record_submission_settlement(
             conn,
             submission_id=submission_id,
@@ -758,7 +760,10 @@ def settle_map_battle_submission(
     monster_before = battle["monster_hp"]
     player_before = battle["player_hp"]
     monster_after = max(0, monster_before - damage_to_monster)
-    player_after = max(0, player_before - damage_to_player)
+    player_after = min(
+        int(battle["player_hp_max"]),
+        max(0, player_before - damage_to_player) + heal_to_player,
+    )
     next_revision = compare_and_advance_battle_revision(
         conn,
         user_id=user_id,

@@ -44,6 +44,9 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "authoritative_grade",
     "damage_to_monster",
     "damage_to_player",
+    "heal_to_player",
+    "player_heal",
+    "player_heal_applied",
     "monster_hp",
     "player_hp",
     "judge_result",
@@ -509,7 +512,7 @@ def judge_map_battle_answer_v1(
 
 
 def calculate_damage(result: str, authoritative_grade: int | None, monster_hp_max: int, question: Mapping[str, Any] | None = None) -> tuple[int, int]:
-    """Return existing game-balance damage as (monster_damage, player_damage)."""
+    """Return existing game-balance damage as (monster damage, player damage)."""
 
     if result == "INVALID":
         return 0, 0
@@ -532,6 +535,15 @@ def calculate_damage(result: str, authoritative_grade: int | None, monster_hp_ma
                 monster_attack = 8
         return 0, max(1, round(monster_attack))
     raise RequestRejected("unknown judge result")
+
+
+def calculate_combat_effects(result: str, authoritative_grade: int | None, monster_hp_max: int, question: Mapping[str, Any] | None = None) -> tuple[int, int, int]:
+    """Return authoritative damage and healing for one verdict settlement."""
+
+    monster_damage, player_damage = calculate_damage(
+        result, authoritative_grade, monster_hp_max, question
+    )
+    return monster_damage, player_damage, 1 if result == "CORRECT" else 0
 
 
 def mode_eligible(mode: str, user_id: int, eligibility: Mapping[str, Any] | None = None) -> bool:
@@ -599,6 +611,48 @@ def _attempt_expired(attempt: Mapping[str, Any], now: Any = None) -> bool:
     return current >= expires_at
 
 
+def validate_resumable_attempt(
+    conn: Any,
+    *,
+    user_id: int,
+    attempt_id: str,
+    battle_id: str,
+    question_id: int,
+    zone_key: str,
+    submission_nonce: str,
+    now: Any = None,
+) -> dict[str, Any]:
+    """Validate a client-held resume identity without mutating battle state."""
+
+    attempt = lookup_attempt_for_owner(
+        conn, user_id=int(user_id), attempt_id=_require_text(attempt_id, "attempt_id")
+    )
+    if attempt is None:
+        raise RequestRejected("attempt does not exist for owner", status=404)
+    if str(attempt.get("state") or "") != "ISSUED":
+        raise RequestRejected("attempt is not resumable", status=409)
+    if _attempt_expired(attempt, now):
+        raise AttemptExpired("map battle attempt has expired")
+    if str(attempt.get("battle_id")) != _require_text(battle_id, "battle_id"):
+        raise RequestRejected("battle_id does not match the issued attempt", status=409)
+    if int(attempt.get("question_id")) != _nonnegative_int(question_id, "question_id"):
+        raise RequestRejected("question_id does not match the issued attempt", status=409)
+    _validate_submission_nonce({"submission_nonce": submission_nonce}, attempt)
+
+    battle = load_authoritative_battle_state(
+        conn, user_id=int(user_id), battle_id=str(attempt["battle_id"])
+    )
+    if battle is None:
+        raise RequestRejected("battle does not exist for owner", status=404)
+    if str(battle.get("state") or "") != "OPEN":
+        raise RequestRejected("battle is not resumable", status=409)
+    if str(battle.get("zone_key") or "") != _require_text(zone_key, "zone_key"):
+        raise RequestRejected("attempt zone does not match the selected zone", status=409)
+    if int(battle.get("battle_revision") or 0) != int(attempt.get("battle_revision_at_issue") or 0):
+        raise RequestRejected("battle revision is stale for this attempt", status=409)
+    return {"attempt": attempt, "battle": battle}
+
+
 def _response_from_settlement(
     result: Mapping[str, Any],
     *,
@@ -623,6 +677,12 @@ def _response_from_settlement(
         "authoritative_grade": submission.get("authoritative_grade"),
         "damage_to_monster": int(submission.get("damage_to_monster") or 0),
         "damage_to_player": int(submission.get("damage_to_player") or 0),
+        "heal_to_player": 1 if result_name == "CORRECT" else 0,
+        "player_heal_applied": max(
+            0,
+            int(submission.get("player_hp_after") or 0)
+            - int(submission.get("player_hp_before") or 0),
+        ),
         "monster_hp_before": submission.get("monster_hp_before", battle.get("monster_hp")),
         "monster_hp_after": submission.get("monster_hp_after", battle.get("monster_hp")),
         "player_hp_before": submission.get("player_hp_before", battle.get("player_hp")),
@@ -963,7 +1023,7 @@ def settle_answer(
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")
-    damage_to_monster, damage_to_player = calculate_damage(
+    damage_to_monster, damage_to_player, heal_to_player = calculate_combat_effects(
         outcome.result,
         outcome.authoritative_grade,
         int((load_authoritative_battle_state(conn, user_id=user_id, battle_id=str(attempt["battle_id"])) or {}).get("monster_hp_max") or 0),
@@ -981,6 +1041,7 @@ def settle_answer(
             authoritative_grade=outcome.authoritative_grade,
             damage_to_monster=damage_to_monster,
             damage_to_player=damage_to_player,
+            heal_to_player=heal_to_player,
             settled_at=now,
         )
     except (StaleBattleRevision, SubmissionConflict) as error:
@@ -1012,6 +1073,7 @@ __all__ = [
     "SubmissionRequestHashMismatch",
     "canonicalize_answer",
     "calculate_damage",
+    "calculate_combat_effects",
     "ensure_submission_lifecycle_schema",
     "issue_attempt_for_context",
     "issue_attempt_with_submission_nonce",
@@ -1021,4 +1083,5 @@ __all__ = [
     "question_revision_for",
     "request_hash_for",
     "settle_answer",
+    "validate_resumable_attempt",
 ]
