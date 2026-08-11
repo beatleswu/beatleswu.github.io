@@ -176,6 +176,53 @@ def test_setter_is_not_generic_and_compose_wires_five_keys():
     assert "ValueFromPipeline" not in setter
     assert "Set-Content" not in setter
     assert "production_env_path -ne '/opt/go-odyssey/.env'" in setter
+    assert "'enable-authenticated'" in setter
+    assert "GO_ENABLE_E10_GLOBAL_ACCESS" in setter
+    assert "[switch]$Authenticated" in setter
+
+
+# --- enable-authenticated (E10 global access) ---
+
+def test_enable_authenticated_dry_run_is_explicit_and_has_no_mutation(tmp_path):
+    content = "SECRET_KEY=opaque\nE9_ROLLOUT_SCOPE=named_allowlist\nE9_ROLLOUT_ALLOWLIST=7,42\n"
+    result, payload, env = run_helper(tmp_path, "dry-run", content, ("--desired", "enable-authenticated"))
+    assert result.returncode == 0
+    assert env.read_text(encoding="utf-8") == content
+    assert payload["desired"]["E9_ROLLOUT_GLOBAL_ENABLED"] == "true"
+    assert payload["desired"]["E9_ROLLOUT_SCOPE"] == "authenticated"
+    assert payload["desired"]["E9_ROLLOUT_ALLOWLIST"] == ""
+
+
+def test_enable_authenticated_applies_and_clears_prior_allowlist(tmp_path):
+    content = f"SECRET_KEY=opaque\n# preserve\nE9_ROLLOUT_GLOBAL_ENABLED=true\nE9_ROLLOUT_ADMIN_ENABLED=true\nE9_ROLLOUT_SCOPE=named_allowlist\nE9_ROLLOUT_FLAGS={FLAGS}\nE9_ROLLOUT_ALLOWLIST=7,42\n"
+    result, payload, env = run_helper(tmp_path, "enable-authenticated", content)
+    assert result.returncode == 0
+    updated = env.read_text(encoding="utf-8")
+    assert "SECRET_KEY=opaque\n# preserve\n" in updated
+    assert "E9_ROLLOUT_SCOPE=authenticated" in updated
+    assert "E9_ROLLOUT_ALLOWLIST=\n" in updated or updated.rstrip("\n").endswith("E9_ROLLOUT_ALLOWLIST=")
+    assert set(payload["changed_keys"]) == {"E9_ROLLOUT_SCOPE", "E9_ROLLOUT_ALLOWLIST"}
+    _, status_payload, _ = run_helper(tmp_path, "status", updated)
+    assert status_payload["effective"]["state"] == "authenticated"
+    assert status_payload["effective"]["allowlist"] == []
+
+
+def test_authenticated_scope_with_nonempty_allowlist_is_invalid(tmp_path):
+    content = "E9_ROLLOUT_GLOBAL_ENABLED=true\nE9_ROLLOUT_ADMIN_ENABLED=true\nE9_ROLLOUT_SCOPE=authenticated\nE9_ROLLOUT_ALLOWLIST=42\n"
+    result, payload, _ = run_helper(tmp_path, "status", content)
+    assert result.returncode == 0
+    assert payload["effective"]["state"] == "invalid_fail_closed"
+
+
+def test_assert_e9_runtime_flags_verifies_authenticated_scope(tmp_path):
+    authenticated = {
+        "E9_ROLLOUT_GLOBAL_ENABLED": "true", "E9_ROLLOUT_ADMIN_ENABLED": "true",
+        "E9_ROLLOUT_SCOPE": "authenticated", "E9_ROLLOUT_FLAGS": FLAGS, "E9_ROLLOUT_ALLOWLIST": "",
+    }
+    assert run_assert_e9_runtime_flags(authenticated, "enable-authenticated") == "OK"
+
+    stale_allowlist = {**authenticated, "E9_ROLLOUT_ALLOWLIST": "7,42"}
+    assert run_assert_e9_runtime_flags(stale_allowlist, "enable-authenticated").startswith("THROW:")
 
 
 # --- enable-allowlist (E9 Phase 1) ---

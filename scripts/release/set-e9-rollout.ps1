@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('status','dry-run','enable-admin-only','disable','rollback','enable-allowlist')][string]$Operation,
+    [Parameter(Mandatory = $true)][ValidateSet('status','dry-run','enable-admin-only','disable','rollback','enable-allowlist','enable-authenticated')][string]$Operation,
     [string]$LayoutFile = 'deploy\release-layout.example.json',
     # Comma-separated canonical user IDs (decimal positive integers, ^[1-9][0-9]*$
     # each -- no leading zeros, no sign, no decimal point, no username/email text).
@@ -10,6 +10,9 @@ param(
     # of the default enable-admin-only preview, preserving prior dry-run behavior
     # for anyone not passing it.
     [string]$AllowlistIds,
+    # Preview authenticated scope when Operation is dry-run. Kept as a narrow
+    # switch so this operator does not become a generic key/value editor.
+    [switch]$Authenticated,
     [switch]$Execute,
     [string]$OwnerGate
 )
@@ -54,20 +57,27 @@ if ($Operation -eq 'enable-allowlist') {
 } elseif ($Operation -eq 'dry-run' -and $AllowlistIds) {
     $normalizedAllowlistIds = Assert-CanonicalAllowlistIds -Raw $AllowlistIds
 }
+if ($Authenticated -and $Operation -ne 'dry-run') {
+    throw '-Authenticated is valid only with -Operation dry-run.'
+}
+if ($Authenticated -and $AllowlistIds) {
+    throw '-Authenticated and -AllowlistIds are mutually exclusive dry-run targets.'
+}
 
-# GO_ENABLE_E9_ALLOWLIST is a distinct gate from GO_DEPLOY (finalized decision,
-# not open for reinterpretation): GO_DEPLOY authorizes deploying an approved
-# runtime/static version and says nothing about who is exposed to what;
-# enable-allowlist changes which real, non-admin end users are exposed to E9
-# on the same running image. A future action needing both a deploy and an
-# allowlist enablement must be authorized under both gates explicitly -- one
-# is never implied by the other.
+# Exposure gates are distinct from GO_DEPLOY (finalized decision, not open for
+# reinterpretation): GO_DEPLOY authorizes deploying an approved runtime/static
+# version and says nothing about who is exposed to what. A future action
+# needing both deploy and exposure changes must be authorized under both gates
+# explicitly -- one is never implied by the other.
 if ($Operation -in @('enable-admin-only','disable','rollback')) {
     if (-not $Execute) { throw 'Mutating E9 operations require -Execute.' }
     Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_DEPLOY'
 } elseif ($Operation -eq 'enable-allowlist') {
     if (-not $Execute) { throw 'Mutating E9 operations require -Execute.' }
     Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ENABLE_E9_ALLOWLIST'
+} elseif ($Operation -eq 'enable-authenticated') {
+    if (-not $Execute) { throw 'Mutating E9 operations require -Execute.' }
+    Assert-OwnerGate -Provided $OwnerGate -Expected 'GO_ENABLE_E10_GLOBAL_ACCESS'
 }
 
 $helperPath = Join-Path $repoRoot 'scripts\release\e9_rollout_config.py'
@@ -79,7 +89,9 @@ $auditPath = "$($layout.remote_release_staging_directory.TrimEnd('/'))/e9-rollou
 $lockPath = "$envPath.e9-rollout.lock"
 $operationArgs = "--operation $(Quote-PosixShellArgument $Operation) --env-path $(Quote-PosixShellArgument $envPath) --backup-dir $(Quote-PosixShellArgument $backupDir) --audit-path $(Quote-PosixShellArgument $auditPath) --lock-path $(Quote-PosixShellArgument $lockPath)"
 if ($Operation -eq 'dry-run') {
-    if ($normalizedAllowlistIds) {
+    if ($Authenticated) {
+        $operationArgs += ' --desired enable-authenticated'
+    } elseif ($normalizedAllowlistIds) {
         $operationArgs += " --desired enable-allowlist --allowlist $(Quote-PosixShellArgument $normalizedAllowlistIds)"
     } else {
         $operationArgs += ' --desired enable-admin-only'
@@ -162,10 +174,10 @@ function Assert-E9RuntimeFlags {
     # produced the current state -- including 'rollback', which can restore
     # any prior governed snapshot and so has no single fixed target to
     # assert below. Mirrors app.py's own _e9_rollout_config() fail-closed
-    # rule (`if raw_scope == 'admin_only' and entries: return None`):
-    # admin_only scope must never coexist with a non-empty allowlist.
-    if ($Flags.E9_ROLLOUT_SCOPE -eq 'admin_only' -and $Flags.E9_ROLLOUT_ALLOWLIST) {
-        throw 'E9 runtime state failed closed: admin_only scope must never have a non-empty allowlist.'
+    # rule (`if raw_scope != 'named_allowlist' and entries: return None`):
+    # only named_allowlist scope may coexist with a non-empty allowlist.
+    if ($Flags.E9_ROLLOUT_SCOPE -ne 'named_allowlist' -and $Flags.E9_ROLLOUT_ALLOWLIST) {
+        throw 'E9 runtime state failed closed: only named_allowlist scope may have a non-empty allowlist.'
     }
     if ($ExpectedOperation -eq 'enable-admin-only' -and ($Flags.E9_ROLLOUT_SCOPE -ne 'admin_only' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'true' -or $Flags.E9_ROLLOUT_ADMIN_ENABLED -ne 'true')) { throw 'E9 admin-only runtime flags failed closed.' }
     # 'disable' also always targets admin_only scope (desired_for('disable')
@@ -177,10 +189,14 @@ function Assert-E9RuntimeFlags {
         if ($Flags.E9_ROLLOUT_SCOPE -ne 'named_allowlist' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'true') { throw 'E9 allowlist runtime scope failed closed.' }
         if ($Flags.E9_ROLLOUT_ALLOWLIST -ne $ExpectedAllowlistIds) { throw "E9 allowlist runtime content failed closed: expected '$ExpectedAllowlistIds', got '$($Flags.E9_ROLLOUT_ALLOWLIST)'." }
     }
+    if ($ExpectedOperation -eq 'enable-authenticated') {
+        if ($Flags.E9_ROLLOUT_SCOPE -ne 'authenticated' -or $Flags.E9_ROLLOUT_GLOBAL_ENABLED -ne 'true') { throw 'E10 authenticated runtime scope failed closed.' }
+        if ($Flags.E9_ROLLOUT_ALLOWLIST) { throw 'E10 authenticated runtime scope must have an empty allowlist.' }
+    }
 }
 
 $result = Invoke-E9Helper -ArgumentText $operationArgs
-if ($Operation -in @('enable-admin-only','disable','rollback','enable-allowlist')) {
+if ($Operation -in @('enable-admin-only','disable','rollback','enable-allowlist','enable-authenticated')) {
     try {
         Invoke-E9ComposeRecreate
         $health = Get-E9RuntimeHealth
@@ -196,14 +212,11 @@ if ($Operation -in @('enable-admin-only','disable','rollback','enable-allowlist'
                 Invoke-E9ComposeRecreate
             } catch {}
         }
-        if ($Operation -eq 'enable-allowlist') {
+        if ($Operation -in @('enable-allowlist','enable-authenticated')) {
             # Restore the EXACT pre-operation rollout state from the operation's
             # own governed backup (scripts/release/e9_rollout_config.py's generic
             # `rollback` operation, already proven to restore prior bytes
             # byte-for-byte) -- never hard-code the fallback target to `disable`.
-            # Production's pre-Phase-2 state is admin_only; a failed
-            # enable-allowlist attempt must restore admin_only, not silently
-            # drop existing admins to fully disabled.
             try {
                 Invoke-E9Helper -ArgumentText ("--operation rollback --env-path $(Quote-PosixShellArgument $envPath) --backup-dir $(Quote-PosixShellArgument $backupDir) --audit-path $(Quote-PosixShellArgument $auditPath) --lock-path $(Quote-PosixShellArgument $lockPath)") | Out-Null
                 Invoke-E9ComposeRecreate

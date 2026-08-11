@@ -11,6 +11,8 @@ arbitrary environment editor is accepted.
 # Read-only inspection
 ./scripts/release/set-e9-rollout.ps1 status -LayoutFile ./deploy/release-layout.production.json
 ./scripts/release/set-e9-rollout.ps1 dry-run -LayoutFile ./deploy/release-layout.production.json
+# Preview all-authenticated E10 access specifically (still read-only):
+./scripts/release/set-e9-rollout.ps1 dry-run -LayoutFile ./deploy/release-layout.production.json -Authenticated
 # Preview an allowlist enablement specifically (still read-only):
 ./scripts/release/set-e9-rollout.ps1 dry-run -LayoutFile ./deploy/release-layout.production.json -AllowlistIds "7,42,100"
 
@@ -20,6 +22,8 @@ arbitrary environment editor is accepted.
 ./scripts/release/set-e9-rollout.ps1 rollback -LayoutFile ./deploy/release-layout.production.json -Execute -OwnerGate GO_DEPLOY
 # Enable a named allowlist -- separate gate, see below:
 ./scripts/release/set-e9-rollout.ps1 enable-allowlist -LayoutFile ./deploy/release-layout.production.json -AllowlistIds "7,42,100" -Execute -OwnerGate GO_ENABLE_E9_ALLOWLIST
+# Enable E10 for every authenticated player -- separate gate:
+./scripts/release/set-e9-rollout.ps1 enable-authenticated -LayoutFile ./deploy/release-layout.production.json -Execute -OwnerGate GO_ENABLE_E10_GLOBAL_ACCESS
 ```
 
 The helper accepts no arbitrary key/value input. It locks the protected file,
@@ -32,8 +36,9 @@ canonical release Compose file and restart nginx so the persisted settings
 reach both runtime services.
 
 On failure, `enable-admin-only` attempts the disabled state before returning
-failure (unchanged, pre-existing behavior). `enable-allowlist` instead
-restores the **exact pre-operation rollout state** from that operation's own
+failure (unchanged, pre-existing behavior). `enable-allowlist` and
+`enable-authenticated` instead restore the **exact pre-operation rollout
+state** from that operation's own
 governed backup (via the helper's `rollback` operation) — never a
 hard-coded target — because the pre-Phase-2 state is `admin_only`, and
 silently dropping to fully disabled on a failed allowlist enablement would be
@@ -62,6 +67,11 @@ this tool.
   this operation, and never treat `GO_ENABLE_E9_ALLOWLIST` as authorizing a
   deploy.
 
-Public, percentage-based, and arbitrary flag-set configurations remain
-unsupported by this tool — only `admin_only` and `named_allowlist` scopes
-exist.
+- `GO_ENABLE_E10_GLOBAL_ACCESS` — `enable-authenticated` only. This exposes
+  E10 to every player whose server-side session resolves both canonical user
+  ID and username. It does not make Adventure anonymous, and implementation
+  authorization alone does not authorize this Production operation.
+
+Public-anonymous, percentage-based, and arbitrary flag-set configurations
+remain unsupported by this tool. The only scopes are `admin_only`,
+`named_allowlist`, and `authenticated`; unknown values fail closed.

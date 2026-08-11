@@ -189,7 +189,7 @@ _E9_FLAG_KEYS = (
     'e9BottomDock', 'e9WorldStage',
 )
 _E9_REASON_CODES = {
-    'global_disabled', 'admin_entitled', 'named_allowlist',
+    'global_disabled', 'authenticated', 'admin_entitled', 'named_allowlist',
     'not_allowed', 'unauthenticated', 'invalid_config',
 }
 
@@ -209,7 +209,7 @@ _E9_CANONICAL_USER_ID_PATTERN = re.compile(r'[1-9][0-9]*')
 def _e9_rollout_config():
     """Load server-only E9 targeting config; malformed config fails closed."""
     raw_scope = os.environ.get('E9_ROLLOUT_SCOPE', 'admin_only').strip().casefold()
-    if raw_scope not in {'admin_only', 'named_allowlist'}:
+    if raw_scope not in {'admin_only', 'named_allowlist', 'authenticated'}:
         return None
     raw_allowlist = os.environ.get('E9_ROLLOUT_ALLOWLIST', '')
     entries = [x.strip() for x in raw_allowlist.split(',') if x.strip()]
@@ -217,7 +217,7 @@ def _e9_rollout_config():
         return None
     if len(entries) != len(set(entries)):
         return None
-    if raw_scope == 'admin_only' and entries:
+    if raw_scope != 'named_allowlist' and entries:
         return None
     raw_flags = os.environ.get('E9_ROLLOUT_FLAGS', ','.join(_E9_FLAG_KEYS))
     flags = [x.strip() for x in raw_flags.split(',') if x.strip()]
@@ -247,13 +247,15 @@ def _e9_rollout_decision(*, user_id=None, username=None, is_admin=False):
         reason = 'unauthenticated'
     elif not config['global_enabled']:
         reason = 'global_disabled'
+    elif config['scope'] == 'authenticated':
+        reason = 'authenticated'
     elif config['admin_enabled'] and is_admin:
         reason = 'admin_entitled'
     elif config['scope'] == 'named_allowlist' and str(user_id) in config['allowlist']:
         reason = 'named_allowlist'
     else:
         reason = 'not_allowed'
-    eligible = reason in {'admin_entitled', 'named_allowlist'}
+    eligible = reason in {'authenticated', 'admin_entitled', 'named_allowlist'}
     flags = {key: bool(eligible and key in config['flags']) for key in _E9_FLAG_KEYS}
     if not flags['e9Shell']:
         flags = false_flags
