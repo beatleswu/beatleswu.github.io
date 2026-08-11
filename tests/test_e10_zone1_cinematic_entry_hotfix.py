@@ -132,7 +132,17 @@ def test_later_cinematic_gates_and_progression_boundaries_are_unchanged():
     assert 'challenge_lord' in WORLD_STAGE
     assert 'window.openAdventureBossFromQuestCard(contract.targetZoneKey)' in WORLD_STAGE
     assert 'monster_defeated' in INDEX
-    assert '_maybeTriggerZone1PostClearFilm' in INDEX
+    submit = _block(
+        INDEX,
+        'async function _submitMapBattleV1IfActive(moves) {',
+        'function isBeginnerVillageAdventureResult()',
+    )
+    defeat_branch = submit[submit.index("response.next_action === 'monster_defeated'"):]
+    assert '_maybeTriggerZone1PostClearFilm' not in INDEX
+    assert '_triggerZone1PostClearFromBossWin' not in defeat_branch
+    assert 'markAdventurePostClearPending' not in defeat_branch
+    assert 'showZone1UnlockReveal' not in defeat_branch
+    assert '_triggerZone1PostClearFromBossWin' in INDEX
     assert 'window.E9.replayAdventureIntro = replayAdventureIntro;' in WORLD_STAGE
     assert 'window.E9.showAdventureZoneCard = showAdventureZoneCard;' in WORLD_STAGE
 
