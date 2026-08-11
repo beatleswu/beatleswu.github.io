@@ -1,0 +1,26 @@
+{
+  "authority": "SGF_ANSWER_REPAIR_BATCH_001_PHASE_2E_LOCAL_OFFLINE",
+  "created_at": "2026-08-11T00:00:00Z",
+  "interrupted_stage_original_recoverable": "PASS",
+  "production_contact": "NONE",
+  "production_mutation": "NO",
+  "publish": {
+    "atomic_replace": "PASS",
+    "precondition_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "result_record_count": 42804,
+    "result_sha256": "4ac424c4af4acf46d1df1dd4b4579b57b01a08745dd7f621c7f50ce21e78f125"
+  },
+  "published_sha256": "4ac424c4af4acf46d1df1dd4b4579b57b01a08745dd7f621c7f50ce21e78f125",
+  "publisher_local_simulation": "PASS",
+  "rollback": {
+    "atomic_replace": "PASS",
+    "precondition_sha256": "4ac424c4af4acf46d1df1dd4b4579b57b01a08745dd7f621c7f50ce21e78f125",
+    "result_record_count": 42804,
+    "result_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff"
+  },
+  "rollback_byte_exact": "YES",
+  "rollback_final_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+  "rollback_local_simulation": "PASS",
+  "schema_version": "1.0",
+  "wrong_hash_fail_closed_test": "PASS"
+}
