@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://godokoro.com/schemas/content_release_registry.schema.json",
+  "title": "Go Odyssey Content Release Registry Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_role",
+    "created_at_utc",
+    "record_count",
+    "uncompressed_byte_count",
+    "uncompressed_sha256",
+    "compressed_filename",
+    "compressed_sha256",
+    "baseline_sha256",
+    "release_candidate_sha256",
+    "release_manifest_filename",
+    "release_manifest_sha256",
+    "rollback_manifest_filename",
+    "rollback_manifest_sha256",
+    "release_records",
+    "excluded_map_battle_records"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "artifact_role": {"const": "content_release_candidate"},
+    "created_at_utc": {"type": "string", "format": "date-time"},
+    "record_count": {"type": "integer", "minimum": 0},
+    "uncompressed_byte_count": {"type": "integer", "minimum": 1},
+    "uncompressed_sha256": {"$ref": "#/$defs/sha256"},
+    "compressed_filename": {"type": "string", "pattern": "^[^/\\\\]+\\.gz$"},
+    "compressed_sha256": {"$ref": "#/$defs/sha256"},
+    "baseline_sha256": {"$ref": "#/$defs/sha256"},
+    "release_candidate_sha256": {"$ref": "#/$defs/sha256"},
+    "release_manifest_filename": {"type": "string", "minLength": 1},
+    "release_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "rollback_manifest_filename": {"type": "string", "minLength": 1},
+    "rollback_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "release_records": {"type": "integer", "minimum": 0},
+    "excluded_map_battle_records": {"type": "integer", "minimum": 0}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
