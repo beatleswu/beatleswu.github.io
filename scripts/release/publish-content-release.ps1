@@ -145,7 +145,10 @@ $remoteInspectCommand = @(
     '--mount-destination', (Quote-PosixShellArgument ([string]$layout.questions_content_mount_destination)),
     '--target-path', (Quote-PosixShellArgument $targetPath),
     '--expected-predecessor-sha256', (Quote-PosixShellArgument $ExpectedPredecessorSha256.ToLowerInvariant()),
-    '--expected-predecessor-record-count', (Quote-PosixShellArgument ([string]$ExpectedPredecessorRecordCount))
+    '--expected-predecessor-record-count', (Quote-PosixShellArgument ([string]$ExpectedPredecessorRecordCount)),
+    '--staging-root', (Quote-PosixShellArgument $remoteRoot),
+    '--release-dir', (Quote-PosixShellArgument $remoteReleaseDir),
+    '--release-id', (Quote-PosixShellArgument $ReleaseId)
 ) -join ' '
 
 if (-not $Execute) {

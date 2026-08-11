@@ -29,8 +29,11 @@ It never regenerates repair decisions.
 
 The default is read-only preflight. It validates the bundle locally and sends
 the helper over the existing bounded SSH primitive to inspect the live named
-volume and predecessor. Dry-run creates no remote staging directory, lock,
-backup, receipt, or content file.
+volume and predecessor. It also checks that the configured release staging
+root is the governed writable location, the derived release directory is
+inside that root and unused, and the release id can be used for an immutable
+rollback capture. Dry-run creates no remote staging directory, lock, backup,
+receipt, or content file.
 
 An explicitly gated execution is serialized by the existing release-operation
 lock and uses the existing bounded SCP transport. The exact bundle is staged

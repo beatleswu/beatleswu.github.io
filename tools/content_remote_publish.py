@@ -492,6 +492,32 @@ def resolve_volume_target(
     }
 
 
+def validate_remote_staging_paths(staging_root: str, release_dir: str, release_id: str) -> dict[str, str]:
+    """Check the governed staging location without creating anything."""
+
+    safe_release_id(release_id)
+    root = Path(staging_root)
+    directory = Path(release_dir)
+    if not root.is_absolute() or not directory.is_absolute():
+        raise ContentPublishError("remote_staging_paths_must_be_absolute")
+    if root.is_symlink() or not root.is_dir():
+        raise ContentPublishError("remote_staging_root_unavailable")
+    try:
+        relative = directory.relative_to(root)
+    except ValueError as exc:
+        raise ContentPublishError("remote_release_directory_outside_allowlist") from exc
+    if str(relative).replace("\\", "/") != f"content/{release_id}":
+        raise ContentPublishError("remote_release_directory_identity_mismatch")
+    if directory.exists() or directory.is_symlink():
+        raise ContentPublishError("remote_release_directory_already_exists")
+    parent = directory.parent
+    if parent.exists() and (parent.is_symlink() or not parent.is_dir()):
+        raise ContentPublishError("remote_release_parent_invalid")
+    if not os.access(root, os.W_OK):
+        raise ContentPublishError("remote_staging_root_not_writable")
+    return {"staging_root": str(root), "release_dir": str(directory), "release_id": release_id}
+
+
 def _copy_fsync(source: Path, destination: Path) -> None:
     if destination.exists() or destination.is_symlink():
         raise ContentPublishError(f"immutable_destination_exists:{destination}")
@@ -677,6 +703,7 @@ def promote_local(
 
 
 def remote_inspect(args: argparse.Namespace) -> int:
+    staging = validate_remote_staging_paths(args.staging_root, args.release_dir, args.release_id)
     target = resolve_volume_target(
         container_name=args.container_name,
         mount_destination=args.mount_destination,
@@ -686,7 +713,7 @@ def remote_inspect(args: argparse.Namespace) -> int:
     identity = identify_file(Path(target["live_path"]))
     if identity.sha256 != args.expected_predecessor_sha256 or identity.record_count != args.expected_predecessor_record_count:
         raise ContentPublishError("predecessor_sha256_or_record_count_mismatch")
-    print(json.dumps({"status": "PREDECESSOR_VERIFIED", "target": target, "predecessor": asdict(identity)}, sort_keys=True))
+    print(json.dumps({"status": "PREDECESSOR_VERIFIED", "target": target, "predecessor": asdict(identity), "rollback_readiness": staging}, sort_keys=True))
     return 0
 
 
@@ -770,6 +797,9 @@ def build_parser() -> argparse.ArgumentParser:
     inspect.add_argument("--target-path", required=True)
     inspect.add_argument("--expected-predecessor-sha256", required=True)
     inspect.add_argument("--expected-predecessor-record-count", required=True, type=int)
+    inspect.add_argument("--staging-root", required=True)
+    inspect.add_argument("--release-dir", required=True)
+    inspect.add_argument("--release-id", required=True)
     inspect.add_argument("--docker-executable", default="docker")
     remote = sub.add_parser("remote-promote")
     remote.add_argument("--bundle-dir", required=True)
