@@ -154,6 +154,9 @@
     });
   }
 
+  // Zone 1 remains the legacy constant consumed by the existing read-error
+  // harness. Zone 2 joins the same server-backed first-entry/replay contract
+  // without changing Zone 1's key or seen-state semantics.
   var ACTIVE_INTRO_ZONE_KEY = 'k26_30';
   var ACTIVE_INTRO_CINEMATIC_KEY = 'e10_zone1_intro_v1';
 
@@ -687,6 +690,16 @@
     return !!(entry && entry.seen === true);
   }
 
+  function introCinematicKeyForZone(zoneKey) {
+    if (zoneKey === ACTIVE_INTRO_ZONE_KEY) return ACTIVE_INTRO_CINEMATIC_KEY;
+    if (zoneKey === 'k21_25') return 'e10_zone2_intro_v1';
+    return null;
+  }
+
+  function introEntryInFlightKey(zoneKey) {
+    return zoneKey === ACTIVE_INTRO_ZONE_KEY ? 'zone1EntryInFlight' : 'zone2EntryInFlight';
+  }
+
   function withLegacyAdventureReady(callback) {
     if (typeof window.ensureLegacyAdventureMapReady !== 'function') {
       callback();
@@ -718,16 +731,18 @@
   }
 
   function dispatchZone1Entry(root, zone, state) {
-    if (!zone || zone.key !== ACTIVE_INTRO_ZONE_KEY || zone.locked) return;
+    var cinematicKey = introCinematicKeyForZone(zone && zone.key);
+    if (!zone || !cinematicKey || zone.locked) return;
     // The bootstrap snapshot is server-authoritative. Missing state means
     // unseen, so a fresh account cannot be silently promoted by browser data.
-    if (cinematicSeen(state, ACTIVE_INTRO_CINEMATIC_KEY)) return;
-    if (state.zone1EntryInFlight) return;
-    state.zone1EntryInFlight = true;
+    if (cinematicSeen(state, cinematicKey)) return;
+    var inFlightKey = introEntryInFlightKey(zone.key);
+    if (state[inFlightKey]) return;
+    state[inFlightKey] = true;
     var start = function () {
       if (typeof window.startAdventureStage !== 'function') {
-        state.zone1EntryInFlight = false;
-        console.error('[E10] Zone 1 cinematic host is unavailable');
+        state[inFlightKey] = false;
+        console.error('[E10] Zone entry cinematic host is unavailable');
         return;
       }
       try {
@@ -735,15 +750,16 @@
         if (state.cinematicReadError) options.readErrorDegraded = true;
         window.startAdventureStage(zone.key, options);
       } catch (error) {
-        state.zone1EntryInFlight = false;
-        console.error('[E10] Zone 1 first-entry cinematic failed to start:', error);
+        state[inFlightKey] = false;
+        console.error('[E10] Zone first-entry cinematic failed to start:', error);
       }
     };
     withCinematicHost(start, state);
   }
 
   function replayAdventureIntro(zoneKey) {
-    if (zoneKey !== ACTIVE_INTRO_ZONE_KEY) return false;
+    if (zoneKey !== ACTIVE_INTRO_ZONE_KEY && zoneKey !== 'k21_25') return false;
+    if (!introCinematicKeyForZone(zoneKey)) return false;
     var root = worldStageRoot();
     var state = root && root.__e9WorldStageState;
     withCinematicHost(function () {
@@ -770,6 +786,7 @@
     var zone = state && findZone(state.zones || [], zoneKey);
     if (!root || !state || !zone) return false;
     state.zone1EntryInFlight = false;
+    state.zone2EntryInFlight = false;
     renderSelectedZone(root, state.zones, zone.key, false);
     dispatchZoneSelection(root, zone, state);
     document.dispatchEvent(new CustomEvent('e9:zone-card-requested', {
@@ -781,7 +798,7 @@
 
   function configureStoryReplayButton(button, zone) {
     if (!button || !zone) return;
-    var enabled = zone.key === ACTIVE_INTRO_ZONE_KEY;
+    var enabled = !!introCinematicKeyForZone(zone.key);
     button.hidden = !enabled;
     button.disabled = !enabled;
     button.setAttribute('aria-hidden', enabled ? 'false' : 'true');

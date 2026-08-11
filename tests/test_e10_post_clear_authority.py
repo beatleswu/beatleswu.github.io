@@ -38,7 +38,7 @@ def _lord_result_block():
     return _block(
         INDEX,
         "function showZone1LordResultCard(result, zone) {",
-        "async function showBossResultCinematic(result)",
+        "function _triggerZone2PostClearFromBossWin(zone)",
     )
 
 
@@ -135,7 +135,9 @@ def test_zone1_post_clear_shots_remain_shot_9_then_shot_10():
         INDEX,
     )
 
-    assert len(ordered_timelines) == 2
+    # Zone 1 keeps its two localized POST_CLEAR arrays; Zone 2 owns a
+    # separate 3-shot phase template.
+    assert len(ordered_timelines) >= 2
 
 
 def test_no_ordinary_map_battle_post_clear_call_site_remains():
@@ -146,4 +148,8 @@ def test_no_ordinary_map_battle_post_clear_call_site_remains():
     )
 
     assert len(trigger_calls) == 1
+    assert len(re.findall(
+        r"(?<!function )_triggerZone2PostClearFromBossWin\s*\(zone\)",
+        INDEX,
+    )) == 1
     assert "_triggerZone1PostClearFromBossWin" not in submit

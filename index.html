@@ -11117,9 +11117,9 @@ let _introFilmRunId = 0;
 // zone-key-driven, not caller-driven -- can resume/finish the SAME phase
 // instead of always falling back to the ZONE_ENTRY timeline. 'pre_play' is
 // every existing zone's only phase (and Zone 1's ZONE_ENTRY, Shots 1-6);
-// 'boss_ready' (Zone 1's BOSS_READY, Shots 7-8, see playZone1BossReadyFilm)
-// and 'post_clear' (Zone 1's POST_CLEAR, Shots 9-10, see
-// playZone1PostClearFilm) are Zone-1-only. The internal string 'pre_play'
+// 'boss_ready' (Zone 1 Shots 7-8 / Zone 2 Shots 5-7) and 'post_clear'
+// (Zone 1 Shots 9-10 / Zone 2 Shots 8-10) are separate presentation phases.
+// The internal string 'pre_play'
 // is kept as-is for ZONE_ENTRY (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT,
 // 2026-08-09) to avoid an unrelated rename churn -- the Owner's three-act
 // semantic model (ZONE_ENTRY / BOSS_READY / POST_CLEAR) is what's
@@ -11254,8 +11254,11 @@ const ADVENTURE_STORY = {
         taunt: '年輕棋士，想離開村莊，就先證明你看得懂最基本的生死。'
     },
     k21_25: {
-        boss: '蜂群領主',
-        avatar: '🐝',
+        // The hive is the environmental wound; the authoritative Lord is a
+        // colossal slime entity, not a humanoid bee. Final boss art is a
+        // replaceable slot supplied separately.
+        boss: '史萊姆群領主',
+        avatar: '🟢',
         filmTitle: '史萊姆平原：破局者的初征',
         books: '3 史萊姆平原 → 4 史萊姆討伐戰',
         intro: '踏出村莊，翠綠原野上黑白史萊姆四處翻湧，戰鬥蜜蜂正襲擊旅人。你必須學會提子與逃生，將平原黑霧逼回蜂巢核心。',
@@ -12817,10 +12820,16 @@ function updateMapProgress(data) {
         // fresh adventure-progress load, a no-op unless a genuine clear left
         // Shots 9-10 pending but unseen (see _resumeZone1PostClearIfPending).
         _resumeZone1PostClearIfPending();
+        // Zone 2 uses the same account-scoped pending/seen presentation
+        // bridge for its POST_CLEAR Shots 8-10.
+        _resumeZone2PostClearIfPending();
         // BOSS_READY announcement (Shots 7-8, E10-Z1-CINEMATIC-TRIGGER-
         // REALIGNMENT): also runs on every fresh load, a no-op unless
         // _adventureBossReady(k26_30) is newly true and not yet seen.
         _maybeTriggerZone1BossReadyFilm(zones);
+        // Zone 2 uses the same presentational, re-derivable readiness model
+        // with its own Shots 5-7 slots. No gameplay state is written here.
+        _maybeTriggerZone2BossReadyFilm(zones);
         if (!zones.length) {
             _activeBossZone = null;
             _setAdventureStoredSelectedStageKey('');
@@ -13309,7 +13318,7 @@ function getCurrentUiLang() {
     return document.documentElement.lang?.toLowerCase().startsWith('en') ? 'en' : 'zh';
 }
 
-function getIntroFilmLocaleConfig(zone) {
+function _getIntroFilmLocaleConfigBase(zone) {
     const isEnglish = getCurrentUiLang() === 'en';
     if (zone?.key === 'd7_plus') {
         if (isEnglish) {
@@ -14542,6 +14551,68 @@ function getIntroFilmLocaleConfig(zone) {
     };
 }
 
+// Zone 2 phase slots are kept outside the historical Zone 1 data block so
+// the existing Zone 1 shot bytes/shape stay untouched.  The first-entry
+// timeline remains the four shipped storyboard/audio slots above; these
+// phase arrays are stable, replaceable slots for the separately produced
+// Shot 5-10 art and Owner-auditioned audio.
+function _zone2CinematicPhaseSlots(locale, isEnglish) {
+    const en = isEnglish === true;
+    const placeholderImage = '/assets/storyboards/go_slime_plains_scene_04.webp';
+    const phase = (shot, caption, text, slot, sfx, alt) => ({
+        shot,
+        caption,
+        text,
+        audioSlot: `/assets/e10/audio/zone2/dialogue/zone2_${slot}_${en ? 'en' : 'zh'}.mp3`,
+        ownerAudioPending: true,
+        imageSrc: placeholderImage,
+        imageAlt: alt,
+        assetSlot: `/assets/storyboards/e10_z2_${slot}.webp`,
+        ownerArtPending: true,
+        sfx,
+    });
+    return {
+        bossReadyTimeline: en ? [
+            phase(4, 'Shot 5: The Hive in the Cliff', 'The mountainside cave mouth is no longer stone. Honeycomb cells have overgrown the entrance, and a bee swarm pours in and out as if the wound itself were breathing.', 'shot05', 'pulse', 'Placeholder: an infected honeycomb cave entrance on the mountainside'),
+            phase(5, 'Shot 6: The Swarm Lord Wakes', 'The slimes are trembling, not attacking. They are afraid. From the infected cave, a colossal slime gathers itself and opens one luminous eye.', 'shot06', 'appear', 'Placeholder: the colossal slime Swarm Lord emerging from the hive wound'),
+            phase(6, 'Shot 7: A Freedom Without Balance', 'Why care about balance? Consume everything, and call it freedom. The Lord\'s voice rolls through the plains while the hive-crystal pulses toward the next wound.', 'shot07', 'start', 'Placeholder: the Swarm Lord challenges the hero beneath the infected hive'),
+        ] : [
+            phase(4, '第 5 幕：山壁洞口的蜂巢', '山壁的洞口已不再只是岩石。蜂蠟與六角巢房侵蝕了入口，蜂群進進出出，像傷口正在呼吸。', 'shot05', 'pulse', '佔位圖：被蜂巢感染的山壁洞口'),
+            phase(5, '第 6 幕：史萊姆群領主甦醒', '牠們在發抖。不是想攻擊我們。是在害怕什麼。感染的洞穴深處，一個巨大的史萊姆聚起身軀，睜開發光的眼睛。', 'shot06', 'appear', '佔位圖：巨大史萊姆群領主從蜂巢傷口現身'),
+            phase(6, '第 7 幕：吞噬一切的自由', '為什麼要在意平衡？吞噬一切，才是真正的自由。領主的聲音滾過平原，蜂巢水晶同時朝下一個傷口脈動。', 'shot07', 'start', '佔位圖：蜂巢異常下的史萊姆群領主向英雄挑戰'),
+        ],
+        postClearTimeline: en ? [
+            phase(7, 'Shot 8: The Same Wound', 'The Swarm Lord falls, but the slimes do not cheer. The sickness was shared by the whole plain, and a hive-crystal fragment is left behind.', 'shot08', 'pulse', 'Placeholder: the fallen slime Lord leaves a hive-crystal fragment'),
+            phase(8, 'Shot 9: Not Our Enemy', 'They are not our enemies. We only encountered the same sickness.', 'shot09', 'journey', 'Placeholder: the hero stands with the frightened slimes after the trial'),
+            phase(9, 'Shot 10: Northeast Signal', 'The hive-crystal fragment pulses northeast, pointing toward the next wound and the road to the Goblin Caves.', 'shot10', 'journey', 'Placeholder: a hive-crystal fragment points northeast toward the next wound'),
+        ] : [
+            phase(7, '第 8 幕：同一場病', '史萊姆群領主倒下了，但史萊姆沒有歡呼。整片平原承受的是同一場病，地上只留下蜂巢水晶碎片。', 'shot08', 'pulse', '佔位圖：倒下的領主留下蜂巢水晶碎片'),
+            phase(8, '第 9 幕：牠們不是敵人', '牠們不是我們的敵人。我們只是，遇到了同一場病。', 'shot09', 'journey', '佔位圖：試煉後英雄與受驚的史萊姆站在一起'),
+            phase(9, '第 10 幕：指向東北方的訊號', '蜂巢水晶碎片朝東北方脈動，指向下一個傷口，也指向哥布林洞穴的道路。', 'shot10', 'journey', '佔位圖：蜂巢水晶碎片指向東北方的下一個傷口'),
+        ],
+        audioSlots: {
+            bgmMainTheme: '/assets/e10/audio/zone2/bgm/zone2_bgm_main_theme.mp3',
+            ambiencePlains: '/assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3',
+            lordCardReveal: '/assets/e10/audio/zone2/lord_trial/zone2_lord_card_reveal.mp3',
+            challengeConfirm: '/assets/e10/audio/zone2/lord_trial/zone2_lord_challenge_confirm.mp3',
+            ritualEnergy: '/assets/e10/audio/zone2/lord_trial/zone2_lord_ritual_energy.mp3',
+            trialSuccess: '/assets/e10/audio/zone2/lord_trial/zone2_lord_trial_success.mp3',
+            trialFailure: '/assets/e10/audio/zone2/lord_trial/zone2_lord_trial_failure.mp3',
+            routeEnergy: '/assets/e10/audio/zone2/lord_trial/zone2_zone_route_energy.mp3',
+            unlockChime: '/assets/e10/audio/zone2/lord_trial/zone2_zone_unlock_chime.mp3',
+            ownerApprovalRequired: true,
+            ownerAudioPending: true,
+        },
+    };
+}
+
+function getIntroFilmLocaleConfig(zone) {
+    const locale = _getIntroFilmLocaleConfigBase(zone);
+    if (zone?.key !== 'k21_25' || !locale) return locale;
+    const isEnglish = locale.uiLang === 'en';
+    return { ...locale, ..._zone2CinematicPhaseSlots(locale, isEnglish) };
+}
+
 function pickCinematicNarratorVoice(preferredLang = 'zh-TW') {
     const voices = getCinematicNarratorVoices(preferredLang);
     if (!voices.length) return null;
@@ -14601,7 +14672,7 @@ function speakIntroNarration(text, preferredLang = 'zh-TW', retrying = false) {
 
 async function finishIntroFilm(zone) {
     const mode = _introFilmActiveOpts.mode || 'legacy';
-    const isZoneCardFlow = zone?.key === 'k26_30'
+    const isZoneCardFlow = (zone?.key === 'k26_30' || zone?.key === 'k21_25')
         && (mode === 'first_entry' || mode === 'manual_replay');
     // FIRST_ENTRY waits for the server write before showing the Zone Card.
     // Legacy playback keeps its established synchronous completion contract
@@ -14727,25 +14798,33 @@ function replayIntroFilm() {
     // phase (visual-only, no reward/settlement call of any kind), not reset
     // to the PRE_PLAY intro -- see _introFilmActiveOpts.
     if (_introFilmActiveOpts.phase === 'post_clear') {
-        playZone1PostClearFilm(zone);
+        if (zone.key === 'k21_25') playZone2PostClearFilm(zone);
+        else playZone1PostClearFilm(zone);
         return;
     }
     // Same for BOSS_READY (Zone 1 Shots 7-8) -- an explicit replay while
     // that announcement is showing must replay Shots 7-8, not fall back to
     // ZONE_ENTRY's Shots 1-6.
     if (_introFilmActiveOpts.phase === 'boss_ready') {
-        playZone1BossReadyFilm(zone);
+        if (zone.key === 'k21_25') playZone2BossReadyFilm(zone);
+        else playZone1BossReadyFilm(zone);
         return;
     }
-    playNewbieVillageIntroFilm(zone);
+    // Zone 1/2 replay is presentation-only.  Do not inherit a prior
+    // first-entry mode from the completed run, or the replay button could
+    // re-submit the seen marker on the way back to the Zone Card.
+    const replayMode = (zone.key === 'k26_30' || zone.key === 'k21_25')
+        ? 'manual_replay'
+        : null;
+    playNewbieVillageIntroFilm(zone, replayMode ? { mode: replayMode } : {});
 }
 
 // opts.timeline / opts.onComplete / opts.phase let this same sequencer drive
 // either a zone's PRE_PLAY intro (default: locale.timeline, phase 'pre_play',
-// completing into finishIntroFilm) or Zone 1's POST_CLEAR follow-up (explicit
-// override: locale.postClearTimeline, phase 'post_clear', completing into
-// finishPostClearFilm -- see playZone1PostClearFilm). No other zone currently
-// passes opts, so this is a no-op signature change for them.
+// completing into finishIntroFilm), a BOSS_READY phase, or a zone-specific
+// POST_CLEAR follow-up (explicit timeline override, completing into
+// finishPostClearFilm). Zone 1 and Zone 2 use the latter two phase contracts;
+// later zones keep the legacy path until separately authorized.
 async function playNewbieVillageIntroFilm(zone, opts = {}) {
     const overlay = document.getElementById('boss-cinematic');
     const stage = document.getElementById('intro-film-stage');
@@ -14882,8 +14961,18 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // for content that has never used it (see playBrowserVoice) -- no
         // shipped zone timeline currently sets it, so this is a no-op change
         // for existing zones and closes the silent gap for new ones.
-        if (beat.audioSrc || !beat.allowTtsFallback) {
-            playAssetVoice(beat, onDone);
+        // Owner-auditioned Zone 2 clips are represented by stable audioSlot
+        // paths first.  They become playable only when the slot is released
+        // (ownerAudioPending=false); until then the sequencer keeps the
+        // correct subtitle on screen without issuing a speculative 404.
+        const slotSrc = beat.audioSlot && beat.ownerAudioPending !== true
+            ? beat.audioSlot
+            : '';
+        const playableBeat = beat.audioSrc
+            ? beat
+            : (slotSrc ? { ...beat, audioSrc: slotSrc } : beat);
+        if (playableBeat.audioSrc || !beat.allowTtsFallback) {
+            playAssetVoice(playableBeat, onDone);
             return;
         }
         playBrowserVoice(beat, onDone);
@@ -15053,6 +15142,38 @@ function finishBossReadyFilm(zone) {
     hideBossCinematic();
 }
 
+// Zone 2 mirrors the Zone 1 BOSS_READY presentation contract, but keeps its
+// own phase slots (Shots 5-7). Readiness is still derived solely from the
+// server bootstrap's Historical Mastery 30% state; this function never starts
+// the Lord Trial and never mutates progression.
+function _maybeTriggerZone2BossReadyFilm(zones) {
+    const zone = (zones || _adventureProgress || []).find(z => z.key === 'k21_25');
+    if (!zone || !_adventureBossReady(zone) || adventureBossReadyFilmSeen(zone)) return;
+    if (_introFilmActiveOpts.phase === 'boss_ready') return;
+    markAdventureBossReadyFilmSeen(zone);
+    playZone2BossReadyFilm(zone);
+}
+
+function playZone2BossReadyFilm(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!overlay || !zone || zone.key !== 'k21_25') return;
+    const locale = getIntroFilmLocaleConfig(zone);
+    const timeline = locale.bossReadyTimeline || [];
+    if (!timeline.length) return;
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show intro-film';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (btn) btn.disabled = true;
+    playNewbieVillageIntroFilm(zone, {
+        timeline,
+        phase: 'boss_ready',
+        onComplete: () => finishBossReadyFilm(zone),
+    });
+}
+
 // Reload/close recovery after a real Lord success: called whenever fresh
 // adventure progress loads. If the authoritative clear left POST_CLEAR
 // pending but never reached normal completion/skip, safely replay Shots 9-10
@@ -15069,6 +15190,14 @@ function _resumeZone1PostClearIfPending() {
     if (!adventurePostClearPending(zone)) return;
     if (_introFilmActiveOpts.phase === 'post_clear') return;
     playZone1PostClearFilm(zone);
+}
+
+function _resumeZone2PostClearIfPending() {
+    const zone = (_adventureProgress || []).find(z => z.key === 'k21_25')
+        || ADVENTURE_ZONES.find(z => z.key === 'k21_25');
+    if (!zone || !zone.cleared || adventurePostClearSeen(zone)) return;
+    if (!adventurePostClearPending(zone) || _introFilmActiveOpts.phase === 'post_clear') return;
+    playZone2PostClearFilm(zone);
 }
 
 // Plays Zone 1's POST_CLEAR follow-up (Shots 9-10) in the existing
@@ -15101,6 +15230,29 @@ function playZone1PostClearFilm(zone) {
     });
 }
 
+// Zone 2 POST_CLEAR (Shots 8-10) is presentation-only. It is reachable only
+// through _triggerZone2PostClearFromBossWin after the server has returned an
+// authoritative passed Lord result, or through its pending replay recovery.
+function playZone2PostClearFilm(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    if (!overlay || !zone || zone.key !== 'k21_25' || !zone.cleared) return;
+    const locale = getIntroFilmLocaleConfig(zone);
+    const timeline = locale.postClearTimeline || [];
+    if (!timeline.length) return;
+    _stopIntroFilm();
+    overlay.className = 'boss-cinematic show intro-film';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (btn) btn.disabled = true;
+    playNewbieVillageIntroFilm(zone, {
+        timeline,
+        phase: 'post_clear',
+        onComplete: () => finishPostClearFilm(zone),
+    });
+}
+
 // Ends POST_CLEAR exactly on Shot 10's own dialogue -- no Hero response, no
 // legacy title-card thesis, no additional line (Owner review, Fix 2). The
 // overlay simply closes once Shot 10's last beat finishes holding. This is
@@ -15119,7 +15271,8 @@ function finishPostClearFilm(zone) {
     // server) -- never performs the unlock itself, and simply does nothing
     // if that state hasn't actually landed yet (e.g. a stale/offline
     // _adventureProgress), rather than showing a false promise.
-    showZone1UnlockReveal(zone);
+    if (zone?.key === 'k21_25') showZone2UnlockReveal(zone);
+    else showZone1UnlockReveal(zone);
 }
 
 // Pending timers for the reveal's own route-fill -> chime beat. Separate
@@ -15255,6 +15408,84 @@ function showZone1UnlockReveal(zone) {
     }, 2900));
 }
 
+// Zone 2's route reveal deliberately uses only the already-rendered,
+// server-authoritative map state. No unlock or cinematic state is written by
+// this presentation helper, and no Zone 1 audio bytes are reused while the
+// Zone 2 audio package is still awaiting Owner audition.
+function showZone2UnlockReveal(zone) {
+    if (zone?.key !== 'k21_25') return;
+    const stats = _adventureZoneStats();
+    const fromZone = stats.find(z => z.key === 'k21_25');
+    const nextZone = stats.find(z => z.key === 'k16_20');
+    if (!fromZone || !nextZone || !nextZone.unlocked) return;
+    const mapSection = document.getElementById('skill-map');
+    const mapShell = document.getElementById('adventure-map-shell');
+    const routePath = document.getElementById('adventure-route-progress');
+    const nodesHost = document.getElementById('adventure-map-nodes');
+    const fromNode = nodesHost?.querySelector(`.adventure-node[data-zone="${fromZone.key}"]`);
+    const toNode = nodesHost?.querySelector(`.adventure-node[data-zone="${nextZone.key}"]`);
+    if (!mapShell || !routePath || !fromNode || !toNode) return;
+    _stopZoneUnlockRevealAudio();
+    _cleanupZoneUnlockReveal();
+    mapSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const midX = (fromZone.x + nextZone.x) / 2;
+    const midY = (fromZone.y + nextZone.y) / 2;
+    const prevTransition = mapShell.style.transition;
+    const prevTransform = mapShell.style.transform;
+    const prevOrigin = mapShell.style.transformOrigin;
+    mapShell.style.transition = 'none';
+    mapShell.style.transformOrigin = `${midX}% ${midY}%`;
+    mapShell.style.transform = 'scale(1)';
+    void mapShell.getBoundingClientRect();
+    mapShell.style.transition = 'transform 1.5s ease-in-out';
+    fromNode.classList.add('zone1-reveal-pulse');
+    toNode.classList.add('zone1-reveal-relock');
+    const fogEl = document.createElement('span');
+    fogEl.className = 'adventure-node-lock-fog zone1-reveal-fog';
+    fogEl.setAttribute('aria-hidden', 'true');
+    const badgeEl = document.createElement('span');
+    badgeEl.className = 'adventure-node-lock-badge zone1-reveal-fog';
+    badgeEl.setAttribute('aria-hidden', 'true');
+    badgeEl.innerHTML = '&#128274;';
+    toNode.appendChild(fogEl);
+    toNode.appendChild(badgeEl);
+    const total = ADVENTURE_ZONES.length;
+    const beforeFrac = total <= 1 ? 1 : Math.max(0, Math.min(1, fromZone.index / (total - 1)));
+    const afterFrac = total <= 1 ? 1 : Math.max(0, Math.min(1, nextZone.index / (total - 1)));
+    const len = routePath.getTotalLength();
+    const prevRouteTransition = routePath.style.transition;
+    const prevRouteDasharray = routePath.style.strokeDasharray;
+    routePath.style.transition = 'none';
+    routePath.style.strokeDasharray = `${len * beforeFrac} ${len}`;
+    void routePath.getBoundingClientRect();
+    routePath.style.transition = 'stroke-dasharray 1.8s cubic-bezier(.22,.7,.32,1)';
+    const cleanup = () => {
+        mapShell.style.transition = prevTransition;
+        mapShell.style.transform = prevTransform;
+        mapShell.style.transformOrigin = prevOrigin;
+        routePath.style.transition = prevRouteTransition;
+        routePath.style.strokeDasharray = prevRouteDasharray;
+        fromNode.classList.remove('zone1-reveal-pulse');
+        toNode.classList.remove('zone1-reveal-relock', 'zone1-reveal-awaken');
+        fogEl.remove();
+        badgeEl.remove();
+    };
+    _zoneUnlockRevealCleanup = cleanup;
+    requestAnimationFrame(() => {
+        mapShell.style.transform = 'scale(1.55)';
+        routePath.style.strokeDasharray = `${len * afterFrac} ${len}`;
+    });
+    _zoneUnlockRevealTimers.push(setTimeout(() => {
+        fogEl.classList.add('fade-out');
+        badgeEl.classList.add('fade-out');
+        toNode.classList.remove('zone1-reveal-relock');
+        toNode.classList.add('zone1-reveal-awaken');
+    }, 1800));
+    _zoneUnlockRevealTimers.push(setTimeout(() => {
+        _cleanupZoneUnlockReveal();
+    }, 2900));
+}
+
 // Compact result banner -- appears ONLY after the real map has finished
 // animating, and must never obscure the map/route itself (Owner: "卡片只能
 // 是最後的結果提示，不能拿來代替世界地圖動畫"). A slim bottom sheet, not a
@@ -15301,12 +15532,15 @@ async function startBossBattle(zoneKey) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
         return;
     }
-    // E10 Zone 1 Beginner Village Complete RPG Journey (2026-08-09): Zone 1
-    // gets its own Lord Challenge Card (real 30%/rules copy, Go-themed
-    // entrance ritual) instead of the generic seal-unlock modal. Every
-    // other zone is completely unchanged.
+    // Zone 1 and Zone 2 use the explicit Lord Card -> ritual handoff. Other
+    // zones retain the existing generic seal modal until their own runtime
+    // foundation is authorized.
     if (zone.key === 'k26_30') {
         showZone1LordChallengeCard(zone);
+        return;
+    }
+    if (zone.key === 'k21_25') {
+        showZone2LordChallengeCard(zone);
         return;
     }
     await showBossCinematic(zone);
@@ -15335,6 +15569,10 @@ async function openAdventureBossFromQuestCard(zoneKey) {
     }
     if (zone.key === 'k26_30') {
         showZone1LordChallengeCard(zone);
+        return true;
+    }
+    if (zone.key === 'k21_25') {
+        showZone2LordChallengeCard(zone);
         return true;
     }
     await showBossCinematic(zone);
@@ -15456,6 +15694,90 @@ function showZone1LordChallengeCard(zone) {
     btn.onclick = () => startZone1LordRitual(zone);
     _playIntroSfxAsset(ZONE1_LORD_SFX.cardReveal, { volume: 0.8 });
     return true;
+}
+
+// Zone 2's explicit Lord Card keeps the same server-derived eligibility and
+// player-confirmed ritual boundary as Zone 1, while preserving the Swarm
+// Lord's slime authority and leaving Owner-auditioned Zone 2 audio pending.
+function showZone2LordChallengeCard(zone) {
+    _pendingBossZone = zone;
+    _stopIntroFilm();
+    const overlay = document.getElementById('boss-cinematic');
+    const kicker = document.getElementById('boss-cinematic-kicker');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    const progress = document.getElementById('boss-cinematic-progress');
+    const progressBody = document.getElementById('boss-cinematic-progress-body');
+    if (!overlay || !title || !btn) {
+        _pendingBossZone = null;
+        setMsg(I18n.t('index.boss.start_fail'), 'warn');
+        return false;
+    }
+    const isEn = getCurrentUiLang() === 'en';
+    overlay.className = 'boss-cinematic show phase-lord-card';
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    if (kicker) kicker.textContent = isEn ? 'Lord Trial' : '領主試煉';
+    if (monster) monster.textContent = ADVENTURE_STORY[zone.key]?.avatar || '🟢';
+    title.textContent = isEn ? 'Slime Plains · Swarm Lord' : '史萊姆平原・史萊姆群領主';
+    if (books) books.textContent = isEn
+        ? `Historical mastery ${Math.round(Number(zone.pct) || 0)}% ✓`
+        : `正確答題修行進度 ${Math.round(Number(zone.pct) || 0)}% ✓`;
+    if (line) line.textContent = isEn
+        ? 'Defeat the Swarm Lord to heal the plains and earn the zone star.'
+        : '擊敗史萊姆群領主，讓平原恢復平衡並取得本區星星。';
+    if (rules) {
+        const total = zone.boss_exam_size || 20;
+        const pass = zone.boss_pass_score || 16;
+        const cooldown = zone.cooldown_required || 30;
+        rules.innerHTML = isEn
+            ? `<span>Answer ${pass} of ${total} correctly to pass</span><span>Failure: train ${cooldown} more questions before retry</span>`
+            : `<span>${total} 題中答對 ${pass} 題即可通過</span><span>失敗後再答對 ${cooldown} 題才能重試</span>`;
+    }
+    if (progress) progress.style.display = '';
+    if (progressBody) progressBody.textContent = isEn
+        ? 'The slimes are frightened, and the hive is only the wound. Are you ready?'
+        : '史萊姆在害怕；蜂巢只是傷口。準備好接受挑戰了嗎？';
+    if (cancelBtn) {
+        cancelBtn.textContent = isEn ? 'Continue Training' : '繼續修行';
+        cancelBtn.onclick = cancelBossCinematic;
+        cancelBtn.disabled = false;
+    }
+    btn.textContent = isEn ? 'Start Challenge' : '開始挑戰';
+    btn.disabled = false;
+    btn.onclick = () => startZone2LordRitual(zone);
+    return true;
+}
+
+function startZone2LordRitual(zone) {
+    const overlay = document.getElementById('boss-cinematic');
+    const title = document.getElementById('boss-cinematic-title');
+    const line = document.getElementById('boss-cinematic-line');
+    const btn = document.getElementById('boss-cinematic-btn');
+    const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
+    if (!overlay || !zone || zone.key !== 'k21_25') return;
+    overlay.className = 'boss-cinematic show phase-lord-ritual';
+    if (btn) btn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    const isEn = getCurrentUiLang() === 'en';
+    if (title) title.textContent = isEn ? 'Swarm Lord Trial' : '史萊姆群領主試煉';
+    if (line) line.textContent = isEn ? 'Read the board. Then make your move.' : '看清楚，再落子。';
+    _spawnLordRitualStones();
+    _spawnLordRitualParticles();
+    const finalStoneEl = document.getElementById('lord-ritual-final-stone');
+    if (finalStoneEl) finalStoneEl.innerHTML = '';
+    const ritualTimers = [
+        setTimeout(() => {
+            _spawnLordRitualFinalStone();
+        }, 2600),
+        setTimeout(() => { _startBossBattleNow(zone); }, 3000),
+    ];
+    _introFilmTimers.push(...ritualTimers);
 }
 
 // 3-5s Go-themed entrance ritual (Owner reference C). Purely presentational
@@ -15716,8 +16038,10 @@ async function _finishBossBattle() {
         });
         const data = await res.json();
         if (data.ok) {
-            const finishedZone = _bossZone;
+            const finishedZoneKey = _bossZone?.key;
             _adventureProgress = data.zones || _adventureProgress;
+            const finishedZone = (_adventureProgress || []).find(z => z.key === finishedZoneKey)
+                || _bossZone;
             renderAdventureMap();
             _renderBossChallengeCard();
             invalidateE9AdventureStateCache();
@@ -15729,6 +16053,15 @@ async function _finishBossBattle() {
             // success card's own "Continue" button.
             if (finishedZone?.key === 'k26_30') {
                 showZone1LordResultCard({
+                    passed: data.passed,
+                    correct,
+                    total,
+                    cooldown: data.cooldown_left || finishedZone.cooldown_required || 30,
+                    bossExamSize: finishedZone.boss_exam_size || total || 20,
+                    bossPassScore: finishedZone.boss_pass_score || 16,
+                }, finishedZone);
+            } else if (finishedZone?.key === 'k21_25') {
+                showZone2LordResultCard({
                     passed: data.passed,
                     correct,
                     total,
@@ -15825,6 +16158,60 @@ function showZone1LordResultCard(result, zone) {
             window.location.href = firstQuestionHref(zone);
         };
         _playIntroSfxAsset(ZONE1_LORD_SFX.trialFailure, { volume: 0.85 });
+    }
+}
+
+function _triggerZone2PostClearFromBossWin(zone) {
+    if (!zone || zone.key !== 'k21_25' || !zone.cleared) return;
+    if (adventurePostClearSeen(zone)) return;
+    markAdventurePostClearPending(zone);
+    playZone2PostClearFilm(zone);
+}
+
+function showZone2LordResultCard(result, zone) {
+    _stopIntroFilm();
+    const overlay = document.getElementById('boss-cinematic');
+    const monster = document.getElementById('boss-cinematic-monster');
+    const title = document.getElementById('boss-cinematic-title');
+    const books = document.getElementById('boss-cinematic-books');
+    const line = document.getElementById('boss-cinematic-line');
+    const rules = document.getElementById('boss-cinematic-rules');
+    const btn = document.getElementById('boss-cinematic-btn');
+    if (!overlay || !title || !btn || !zone) return;
+    const isEn = getCurrentUiLang() === 'en';
+    overlay.className = `boss-cinematic show ${result.passed ? 'result-zone2-win' : 'result-zone2-fail'}`;
+    overlay.setAttribute('aria-hidden', 'false');
+    if (monster) monster.textContent = ADVENTURE_STORY[zone.key]?.avatar || '🟢';
+    if (result.passed) {
+        if (title) title.textContent = isEn ? 'Slime Plains Cleared' : '史萊姆平原清關';
+        if (books) books.textContent = isEn
+            ? `You answered ${result.correct} of ${result.total} correctly.`
+            : `本次答對 ${result.correct} / ${result.total} 題。`;
+        if (line) line.textContent = isEn
+            ? 'The slimes are not our enemies. We met the same sickness.'
+            : '牠們不是我們的敵人。我們只是，遇到了同一場病。';
+        if (rules) rules.innerHTML = '';
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Continue' : '繼續';
+        btn.onclick = () => {
+            hideBossCinematic();
+            setTimeout(() => _triggerZone2PostClearFromBossWin(zone), 400);
+        };
+    } else {
+        if (title) title.textContent = isEn ? 'Trial Failed' : '領主試煉失敗';
+        if (books) books.textContent = isEn ? 'The earned progress remains.' : '已累積的正確進度會保留。';
+        if (line) line.textContent = isEn
+            ? 'Train again, then challenge the Swarm Lord when the cooldown ends.'
+            : '保留進度，冷卻結束後可以再次挑戰史萊姆群領主。';
+        if (rules) rules.innerHTML = isEn
+            ? `<span>Train ${result.cooldown} more questions before retrying</span><span>Zone 3 stays locked until a Lord victory</span>`
+            : `<span>再答對 ${result.cooldown} 題後即可重試</span><span>打贏領主前不會解鎖 Zone 3</span>`;
+        btn.disabled = false;
+        btn.textContent = isEn ? 'Go Train' : '去修行';
+        btn.onclick = () => {
+            hideBossCinematic();
+            window.location.href = firstQuestionHref(zone);
+        };
     }
 }
 
