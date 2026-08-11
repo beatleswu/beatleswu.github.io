@@ -147,6 +147,40 @@ def test_named_allowlist_matches_canonical_user_id_not_username(monkeypatch):
     # silently coupled.
 
 
+def test_authenticated_scope_allows_every_resolved_user_and_keeps_anonymous_out(monkeypatch):
+    app = _load_rollout_module()
+    monkeypatch.setenv("E9_ROLLOUT_GLOBAL_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_ADMIN_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_SCOPE", "authenticated")
+    monkeypatch.setenv("E9_ROLLOUT_ALLOWLIST", "")
+
+    admin = app._e9_rollout_decision(user_id=101, username="synthetic-admin", is_admin=True)
+    former_allowlist_user = app._e9_rollout_decision(user_id=991043, username="former-allowlist", is_admin=False)
+    normal_user = app._e9_rollout_decision(user_id=202, username="synthetic-user", is_admin=False)
+    anonymous = app._e9_rollout_decision()
+
+    for decision in (admin, former_allowlist_user, normal_user):
+        assert decision["reason"] == "authenticated"
+        assert decision["eligible"] is True
+        assert all(decision["effective_flags"].values())
+    assert anonymous["reason"] == "unauthenticated"
+    assert anonymous["eligible"] is False
+    assert all(not value for value in anonymous["effective_flags"].values())
+
+
+def test_authenticated_scope_with_stale_allowlist_fails_closed(monkeypatch):
+    app = _load_rollout_module()
+    monkeypatch.setenv("E9_ROLLOUT_GLOBAL_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_ADMIN_ENABLED", "true")
+    monkeypatch.setenv("E9_ROLLOUT_SCOPE", "authenticated")
+    monkeypatch.setenv("E9_ROLLOUT_ALLOWLIST", "42")
+
+    decision = app._e9_rollout_decision(user_id=42, username="synthetic-user", is_admin=True)
+    assert decision["reason"] == "invalid_config"
+    assert decision["eligible"] is False
+    assert all(not value for value in decision["effective_flags"].values())
+
+
 def test_invalid_rollout_config_fails_closed_for_everyone_including_admins(monkeypatch):
     # Task book WI-4 eligibility matrix, row 5: a malformed rollout config
     # must fail closed to invalid_config for EVERY caller, including admins --

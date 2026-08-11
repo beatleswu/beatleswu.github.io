@@ -123,8 +123,8 @@ def effective(values, allowlist):
     flags = values["E9_ROLLOUT_FLAGS"] or FLAGS
     allowlist_ids = parse_allowlist(allowlist)
     valid = (
-        scope in {"admin_only", "named_allowlist"}
-        and not (scope == "admin_only" and allowlist.strip())
+        scope in {"admin_only", "named_allowlist", "authenticated"}
+        and not (scope != "named_allowlist" and allowlist.strip())
         and flags == FLAGS
         and (values["E9_ROLLOUT_GLOBAL_ENABLED"] in {None, "true", "false"})
         and (values["E9_ROLLOUT_ADMIN_ENABLED"] in {None, "true", "false"})
@@ -139,6 +139,8 @@ def effective(values, allowlist):
     # inspectable facts rather than collapsed into one opaque string.
     if not global_enabled:
         state = "disabled"
+    elif scope == "authenticated":
+        state = "authenticated"
     elif scope == "named_allowlist":
         state = "named_allowlist"
     elif admin_enabled and scope == "admin_only":
@@ -213,6 +215,10 @@ def desired_for(operation, allowlist_csv=None):
             raise ConfigError("invalid_or_empty_allowlist")
         base = dict(zip(ALLOWED_KEYS, ("true", "true", "named_allowlist", FLAGS)))
         base[ALLOWLIST_KEY] = ",".join(ids)
+        return base
+    if operation == "enable-authenticated":
+        base = dict(zip(ALLOWED_KEYS, ("true", "true", "authenticated", FLAGS)))
+        base[ALLOWLIST_KEY] = ""
         return base
     return None
 
@@ -382,7 +388,7 @@ def run(args):
         desired = desired_for(args.operation, args.allowlist)
         if desired is None:
             raise ConfigError("unsupported_operation")
-        if eff["state"] == "invalid_fail_closed" and args.operation in {"enable-admin-only", "enable-allowlist"}:
+        if eff["state"] == "invalid_fail_closed" and args.operation in {"enable-admin-only", "enable-allowlist", "enable-authenticated"}:
             raise ConfigError("current_e9_configuration_invalid")
         snapshot = safe_snapshot(env_path)
         backup_info = backup(env_path, backup_dir, snapshot)
@@ -395,8 +401,8 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--operation", choices=("status", "dry-run", "enable-admin-only", "disable", "rollback", "enable-allowlist"), required=True)
-    parser.add_argument("--desired", choices=("enable-admin-only", "disable", "enable-allowlist"))
+    parser.add_argument("--operation", choices=("status", "dry-run", "enable-admin-only", "disable", "rollback", "enable-allowlist", "enable-authenticated"), required=True)
+    parser.add_argument("--desired", choices=("enable-admin-only", "disable", "enable-allowlist", "enable-authenticated"))
     parser.add_argument("--env-path", required=True)
     parser.add_argument("--backup-dir", required=True)
     parser.add_argument("--audit-path", required=True)

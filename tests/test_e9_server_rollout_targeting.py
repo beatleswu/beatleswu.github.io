@@ -6,10 +6,12 @@ ROOT = Path(__file__).resolve().parent.parent
 APP = (ROOT / 'app.py').read_text(encoding='utf-8')
 INDEX = (ROOT / 'index.html').read_text(encoding='utf-8')
 FLAGS = (ROOT / 'js/e9/feature_flags.js').read_text(encoding='utf-8')
+SHELL = (ROOT / 'js/e9/shell.js').read_text(encoding='utf-8')
 
 
 def test_server_decision_contract_is_fail_closed_and_authenticated():
     assert "'global_disabled'" in APP
+    assert "'authenticated'" in APP
     assert "'admin_entitled'" in APP
     assert "'named_allowlist'" in APP
     assert "'unauthenticated'" in APP
@@ -41,9 +43,18 @@ def test_allowlist_matches_canonical_user_id_not_username_with_no_fallback():
 
 def test_admin_only_scope_is_default_and_allowlist_cannot_expand_it():
     assert "os.environ.get('E9_ROLLOUT_SCOPE', 'admin_only')" in APP
-    assert "raw_scope not in {'admin_only', 'named_allowlist'}" in APP
-    assert "if raw_scope == 'admin_only' and entries" in APP
+    assert "raw_scope not in {'admin_only', 'named_allowlist', 'authenticated'}" in APP
+    assert "if raw_scope != 'named_allowlist' and entries" in APP
     assert "config['scope'] == 'named_allowlist'" in APP
+
+
+def test_authenticated_scope_is_server_owned_and_legacy_recovery_remains_present():
+    decision_fn = APP[APP.index('def _e9_rollout_decision'):APP.index('def _e9_rollout_telemetry')]
+    assert "config['scope'] == 'authenticated'" in decision_fn
+    assert "reason = 'authenticated'" in decision_fn
+    assert "function recoverToLegacy" in SHELL
+    assert "global.E9.recoverToLegacy = recoverToLegacy" in SHELL
+    assert "applyShellState('legacy')" in SHELL
 
 
 def test_auth_me_is_the_server_decision_boundary():
