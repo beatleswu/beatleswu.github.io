@@ -29,8 +29,8 @@ def _zone2_slots() -> str:
 
 def test_final_art_and_audio_are_exactly_governed():
     assert len(ART_MANIFEST["files"]) == 10
-    assert len(AUD_MANIFEST["files"]) == 23
-    assert PACKAGE["asset_count"] == 23
+    assert len(AUD_MANIFEST["files"]) == 53
+    assert PACKAGE["asset_count"] == 53
     for entry in ART_MANIFEST["files"] + AUD_MANIFEST["files"]:
         path = ROOT / entry["path"]
         assert path.is_file(), entry["path"]
@@ -40,15 +40,14 @@ def test_final_art_and_audio_are_exactly_governed():
 
 def test_bilingual_dialogue_is_complete_and_uses_locked_identities():
     dialogue = [item for item in PACKAGE["assets"] if item["category"] == "dialogue"]
-    assert len(dialogue) == 6
+    assert len(dialogue) == 36
     assert {item["locale"] for item in dialogue} == {"zh-TW", "en"}
-    by_id = {item["asset_id"]: item for item in dialogue}
-    assert by_id["ZONE2_SHOT02_HERO"]["voice_id"] == "XXxvxx0YUt8icTEFE3c6"
-    assert by_id["ZONE2_SHOT02_HERO_EN"]["voice_id"] == "6aOpkucJD6a4vTXyUKon"
-    assert by_id["ZONE2_SHOT04_HERDER_V5"]["voice_id"] == "UwT0JPexcCbH107hq7i5"
-    assert by_id["ZONE2_SHOT04_HERDER_V5_EN"]["voice_id"] == "UwT0JPexcCbH107hq7i5"
-    assert by_id["ZONE2_SHOT09_HERO"]["voice_id"] == "XXxvxx0YUt8icTEFE3c6"
-    assert by_id["ZONE2_SHOT09_HERO_EN"]["voice_id"] == "6aOpkucJD6a4vTXyUKon"
+    assert sum(item["locale"] == "zh-TW" for item in dialogue) == 18
+    assert sum(item["locale"] == "en" for item in dialogue) == 18
+    assert {item["voice_id"] for item in dialogue if item["locale"] == "zh-TW" and item["speaker"] == "hero"} == {"XXxvxx0YUt8icTEFE3c6"}
+    assert {item["voice_id"] for item in dialogue if item["locale"] == "en" and item["speaker"] == "hero"} == {"6aOpkucJD6a4vTXyUKon"}
+    assert {item["voice_id"] for item in dialogue if item["locale"] == "zh-TW" and item["speaker"] == "herder"} == {"BrbEfHMQu0fyclQR7lfh"}
+    assert {item["voice_id"] for item in dialogue if item["locale"] == "en" and item["speaker"] == "herder"} == {"dqdOhmL2BvMSx2KtSAtN"}
     assert all(item["model"] == "eleven_v3" for item in dialogue)
 
 
@@ -63,9 +62,9 @@ def test_shot_phases_and_locale_audio_wiring_are_stable():
     assert slots.index("shot(10,") < slots.index("audioSlots")
     assert "locale.uiLang === 'en'" in INDEX
     assert "audioSrc: en ? enAudioSrc : zhAudioSrc" in slots
-    assert "dialogueHeroShot02En" in slots
-    assert "dialogueHerderShot04En" in slots
-    assert "dialogueHeroShot09En" in slots
+    assert "ZONE2_AUDIO.dialogue.zh" in INDEX
+    assert "ZONE2_AUDIO.dialogue.en" in INDEX
+    assert "_setIntroBgmDucked" in INDEX
 
 
 def test_zone2_player_copy_uses_i18n_keys_in_both_locales():

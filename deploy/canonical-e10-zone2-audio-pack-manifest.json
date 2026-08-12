@@ -1,11 +1,11 @@
 {
-  "$schema_note": "Canonical governed E10 Zone 2 audio closure. This dedicated namespace keeps the existing Zone 1 and storyboard narration manifests disjoint while staging the twenty Owner-locked Zone 2 audio files through live-static-asset-inventory.json.",
+  "$schema_note": "Canonical governed E10 Zone 2 bilingual audio closure with Owner-locked V3 dialogue and unchanged shared music/SFX.",
   "manifest_version": "1.0.0",
   "generated_for": "E10 Zone 2 final bilingual integration",
-  "total_files": 23,
-  "total_bytes": 3167465,
+  "total_files": 53,
+  "total_bytes": 4540932,
   "provenance_summary": {
-    "owner-approved-project-created": 23
+    "owner-approved-project-created": 53
   },
   "files": [
     {
@@ -14,7 +14,7 @@
       "sha256": "fc97aa931796961d69bb1e89697d06ea38faf7a7cca8ae8be783505b7e5f423c",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/ambience/zone2_ambience_plains_recovery.mp3",
@@ -22,7 +22,7 @@
       "sha256": "b32c771f92fcadc322cf461352e3680ae51ba4b0fd23b93aaf64c9837fb9f6d8",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3",
@@ -30,7 +30,7 @@
       "sha256": "3f2b548ca0ed90a17534d8b3f1d83e132c0cb3aac29c6ff64500da789f7e385f",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/bgm/zone2_bgm_discovery.mp3",
@@ -38,7 +38,7 @@
       "sha256": "80271cc4098e48f3ca4febc73d2f2778a7dbc16e0fe40182457d5c09a328e7de",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/bgm/zone2_bgm_escalation.mp3",
@@ -46,7 +46,7 @@
       "sha256": "22f85db007a164d2775400bb7a20ee7b4b7abaec2b5442bde96d4c883d3b0e6d",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/bgm/zone2_bgm_recovery.mp3",
@@ -54,55 +54,295 @@
       "sha256": "39c3b5dd1a0c789d901aa8f6d92f22a52e71a80b8e105f1e0d86269b1bb45a12",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_en_hero.mp3",
-      "size": 84471,
-      "sha256": "89fed7b536780d665103eae56044c52fea4a64686b38105fe2357de4df91b100",
+      "size": 44765,
+      "sha256": "a9aebdbd266a906e692a8787d395b95a7c1f93e0224bb9512eadbf662cef88d6",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_zh_hero.mp3",
-      "size": 74022,
-      "sha256": "eab7024fc3169c978096f9d31c7fcc04f50d39735d07774b3e40dedd8591dbba",
+      "size": 33062,
+      "sha256": "d4fb7184cf095c3a7fada7be265a87194e8c6095dfb8fda4647cbba34ddfcd6e",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
-      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_en_herder.mp3",
-      "size": 116236,
-      "sha256": "163060c5f9545409a89673f89036e0d6b6933a05aa428b58cf58ff725ed02b83",
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat02_en_hero.mp3",
+      "size": 54796,
+      "sha256": "8f0566d4e132a05cc23d9a027ae3aa045930b69aee955d7e22f1016a27488a48",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
-      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_zh_herder.mp3",
-      "size": 100772,
-      "sha256": "7cd5043fe0e8bbc942f3ec868ecd6255a6833f555bf662bd5561ef090bb08a63",
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat02_zh_hero.mp3",
+      "size": 58558,
+      "sha256": "8b205257c7e2a563f8d8e3f225eb53689b891c15ead8017d9dc06cbc80de8368",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat01_en_herder.mp3",
+      "size": 36824,
+      "sha256": "fb24b8734ab6dd057c7aad58e5906edd6e16b8ec741cafd5d002bc4a396b1a42",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat01_zh_herder.mp3",
+      "size": 34316,
+      "sha256": "4dd01bef951eacb49a605a7c4e353d9aeaceecfb5ae631b8ae28b566c0f3c217",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat02_en_hero.mp3",
+      "size": 11328,
+      "sha256": "17e70ea076a61e149588fc6b3e3851483d1ef45767f35dd97d3cd1b2616da4a6",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat02_zh_hero.mp3",
+      "size": 15090,
+      "sha256": "e82aa329be950f67f1a873b6f256c5fcaf3ab212b2abe9b2711c23bc8a7a0914",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat03_en_herder.mp3",
+      "size": 76530,
+      "sha256": "2459e4eb3a57574debefca46381db5c7f335371b32cc07bdd255f2920d2adebe",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat03_zh_herder.mp3",
+      "size": 91995,
+      "sha256": "8481df00577ff25fb1dcff3c475f618607566f1c6238801d7a4630d24946dbcc",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat04_en_hero.mp3",
+      "size": 24285,
+      "sha256": "973a3675f6b91da1d6f1e5753ce650ccc79e74fde922729490e355f1e1d19baa",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat04_zh_hero.mp3",
+      "size": 24285,
+      "sha256": "f20a6cfccb0d08c2c7f67e4e9c81578c8cc7e9c88ea7f22b2ede2a073db9a506",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat05_en_herder.mp3",
+      "size": 86979,
+      "sha256": "3cf0c1cddc293c7ec122fffcaa350775fa911bbb33080d67a0d54eebc3f904d8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat05_zh_herder.mp3",
+      "size": 117490,
+      "sha256": "f9db367fb8cdeeb58a91853aa50d57eab04e76ba04623fd0eefba434f11ed294",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_en_hero.mp3",
+      "size": 30555,
+      "sha256": "9eaf1739f2c2f3e15ac1b1acfba74000795033312c9be74c489b8104d8d55a88",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_zh_hero.mp3",
+      "size": 44765,
+      "sha256": "91514bbe975ce10ed4a84c20cb38a622211bed52154a262daa4cf1faef521887",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat02_en_herder.mp3",
+      "size": 48527,
+      "sha256": "e6141057fb8ac51d1521b54c257b8e5b00e27c8feb3270728dadee19f1fd8b90",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat02_zh_herder.mp3",
+      "size": 66499,
+      "sha256": "9156e3dd6ec9e9ac7dd6a3f6219a40dbcebd23d396c866289e6ca2c2cb49644e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat03_en_herder.mp3",
+      "size": 123759,
+      "sha256": "a980abba3debf24b3c6df79f77af2254fa2a7027c1e4892221fba3b998e4ecdc",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat03_zh_herder.mp3",
+      "size": 90741,
+      "sha256": "d0b9c3e12931073d0af5f7f4355acd9c2118e28abc607f23ff2814453b92e746",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat04_en_hero.mp3",
+      "size": 79038,
+      "sha256": "21d99a4e070f3cdbed9ab9bd58e52e914cf8bad124e4df8fc3ac01f9e5e33f71",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat04_zh_hero.mp3",
+      "size": 63991,
+      "sha256": "e16f2639356f3a6f270ea928267b6243adf569bae22d84edc6d2de5df2d6cb2c",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat05_en_herder.mp3",
+      "size": 39332,
+      "sha256": "6dd310cd8b932d813b8a59a0471ccdaf69d90512da8a2344730c74c562e57bf1",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat05_zh_herder.mp3",
+      "size": 49781,
+      "sha256": "70bb89606448efa2d63e3a7775f346e10890833cf1f78c4f52854a6034b080a8",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat01_en_hero.mp3",
+      "size": 51035,
+      "sha256": "f32b46fb1ee3961e6c5d7632b26cf14e130a3f2a5b7d8729afbff389c23d85e2",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat01_zh_hero.mp3",
+      "size": 49781,
+      "sha256": "3046ac11d3b8a447214672e41195304b957303b4311fafc3970da710c9c8b63e",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat02_en_hero.mp3",
+      "size": 71515,
+      "sha256": "2800a383d66a793700c77fd781eb8e3638ae786832240d25107ec2803d0b5e00",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat02_zh_hero.mp3",
+      "size": 79038,
+      "sha256": "06f9504b77dc2469f5235362b7cf17e809cd1a6e0caa397a89e1efe4f2ce1e6d",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat03_en_hero.mp3",
+      "size": 26793,
+      "sha256": "bf28f988676640c6a54a3a5f82bfe14c73e74d27e9098aeec840ced556148a94",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat03_zh_hero.mp3",
+      "size": 29301,
+      "sha256": "d6e42edc4f8645edcef49253d647170a31e859c3af395528158f3d982b9feceb",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_en_hero.mp3",
-      "size": 56050,
-      "sha256": "c92d9ac0d4dbbaa8791a38a88f031808dd1729a3e6aecea6037b3c4ffa21e5fa",
+      "size": 35570,
+      "sha256": "a7d2f4390ef1607197ac2321383d26786fa35618fe39b2888f87a9603c3945de",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_zh_hero.mp3",
-      "size": 80292,
-      "sha256": "beda548f9db0138db613e9602ff3c3d0f92bcc814c11085a63f08dcef328f406",
+      "size": 36824,
+      "sha256": "762ef08653c895846a4f3f9f570e81d80fba38e68551496cb25102033ece2e1f",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat02_en_hero.mp3",
+      "size": 49781,
+      "sha256": "7acaf7399382827e7bdae466ca22fb85529c717d560b535c5b4474647f0d9f2b",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat02_zh_hero.mp3",
+      "size": 52288,
+      "sha256": "e57d72aa16e2e41b0e5f1d5305c51a32a29817ed4f92407b50c82aa5e4314fca",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot10_beat01_en_hero.mp3",
+      "size": 11328,
+      "sha256": "88fb78253055795b66216808d2ea29228ff34c2eb8818af6836f39fb8b384c6a",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
+    },
+    {
+      "path": "assets/e10/audio/zone2/dialogue/zone2_final_shot10_beat01_zh_hero.mp3",
+      "size": 44765,
+      "sha256": "76820e77be7cc835e791c58a02f04322d207f1ebf77771d9dde0127924a393ab",
+      "mime": "audio/mpeg",
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_ambient_bee_distant.mp3",
@@ -110,7 +350,7 @@
       "sha256": "4b89d642d53fb2cc2ff8a282d8c15172269d8b8c564c3b0d317ba26b2c996ac9",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_bee_close.mp3",
@@ -118,7 +358,7 @@
       "sha256": "455d060a6f1c1864a39e98cef2747b5699bacb0939d2d0e45a07bb68da1566f6",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_crown_impact.mp3",
@@ -126,7 +366,7 @@
       "sha256": "1cf93a46b9a885f7600522f262d42c11946a25e85565aa2c4683148e1d97f3a9",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_frightened_slime.mp3",
@@ -134,7 +374,7 @@
       "sha256": "161f8fc9597b7e1b2339f2c43156c248a454a35d62b7a0f12ee94e2da527c3e8",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_lord_defeat.mp3",
@@ -142,7 +382,7 @@
       "sha256": "14ea6dce8555f29e54b4306f9bdbe5eca654f3583b2ade7c94175bc7573dbcf3",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_lord_emergence.mp3",
@@ -150,7 +390,7 @@
       "sha256": "52abe659de441457f7c49cb766b7f5ee8e725a4c84aa5a29f22b799ad2151246",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_lord_movement.mp3",
@@ -158,7 +398,7 @@
       "sha256": "75d4d674ca633e8777224ba2a291f5aeaa10b96c83a10ff8d5aa611b1ab54e28",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_lord_rumble.mp3",
@@ -166,7 +406,7 @@
       "sha256": "e8d0d14132b2588770e4b561a1b8961e8a484730cbf1ceb308f1ddd1724c9f39",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_route_reveal.mp3",
@@ -174,7 +414,7 @@
       "sha256": "10656b350d138d342fe931a82dd235229bde9d857a033cb26f28a4f271ab154e",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_shui_reaction_2.mp3",
@@ -182,7 +422,7 @@
       "sha256": "eca548be1adbad93de25264b43be866264763da45ca6d149934b5f6ba8f50e17",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     },
     {
       "path": "assets/e10/audio/zone2/sfx/zone2_sfx_slime_movement.mp3",
@@ -190,8 +430,7 @@
       "sha256": "ca11bd5d7055c7f18e9ba6fb7c870ee15be39cea80397cd1e53ee45ef4276a63",
       "mime": "audio/mpeg",
       "provenance": "owner-approved-project-created",
-      "source_evidence": "Owner-locked Zone 2 bilingual audio package and exact-byte promotion record under assets/e10/audio/zone2/ and docs/planning/e10_zone2_audio_integration_gate_20260812.md."
+      "source_evidence": "Owner-locked Zone 2 V3 bilingual dialogue and unchanged approved BGM/ambient/SFX package."
     }
-  ],
-  "$schema_note": "Canonical governed E10 Zone 2 bilingual audio closure. This namespace keeps the existing Zone 1 and storyboard narration manifests disjoint while staging the Owner-locked 23-file Zone 2 audio package through live-static-asset-inventory.json."
+  ]
 }

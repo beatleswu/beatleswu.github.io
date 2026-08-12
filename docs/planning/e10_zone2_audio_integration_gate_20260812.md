@@ -15,7 +15,7 @@ deployment, or Production authorization.
 - Final branch: `codex/e10-zone2-final-bilingual-integration-001`
 - Final base captured before local work:
   `8910160855030d6266b52b63242b7a9c384d0e24`
-- Script: `OWNER_APPROVED_V2`
+- Script: `OWNER_DIALOGUE_V3` (Owner-approved V3 bilingual dialogue)
 
 ## Owner lock
 
@@ -37,11 +37,13 @@ used `叫` to obtain the verified `jiào` pronunciation.
 ## Promoted canonical assets
 
 - Final art: `10/10`, attachment order preserved, `1280x720` WebP.
-- Audio: `23` selected files (6 dialogue, 3 BGM, 3 ambience, 11 SFX), each SHA-256 verified by
+- Audio: `53` selected files (36 V3 dialogue, 3 BGM, 3 ambience, 11 SFX), each SHA-256 verified by
   `assets/e10/audio/zone2/zone2-audio-package.json`.
-- Dialogue: Hero Shot 2, Herder Shot 4, Hero Shot 9 in both `zh-TW` and `en`.
-  English Hero reuses Anvay (`6aOpkucJD6a4vTXyUKon`); English Herder reuses
-  James (`UwT0JPexcCbH107hq7i5`), preserving cross-language identity.
+- Dialogue: Owner V3 Hero and Herder beats on Shots 2, 3, 4, 7, 9, and 10 in
+  both `zh-TW` and `en`; Shots 1, 5, 6, and 8 remain silent by design.
+  English Hero reuses Anvay (`6aOpkucJD6a4vTXyUKon`). Chinese Herder uses
+  Brb (`BrbEfHMQu0fyclQR7lfh`); English Herder uses the approved clean retake
+  of Ali (`dqdOhmL2BvMSx2KtSAtN`).
 - Swarm Lord: creature-vocal/liquid rumble SFX only; no human Lord dialogue.
 - Water Spirit Horse: remains nonverbal; selected reaction is SFX `2`.
 
@@ -58,7 +60,13 @@ used `叫` to obtain the verified `jiào` pronunciation.
 
 English audio was generated with the locked Zone 1 identities and exact-byte
 promoted into the final package. The English lines are semantically aligned
-with `OWNER_APPROVED_V2`; no locale falls back to the other locale's dialogue.
+with `OWNER_DIALOGUE_V3`; no locale falls back to the other locale's dialogue.
+
+## V3 dialogue lock update
+
+The prior sparse V2 Shot 2/4/9 dialogue remains historical audition evidence
+only. It is not present in the runtime package; in particular, the former
+"same sickness" line is removed from runtime subtitles and audio mapping.
 
 ## Gate boundaries
 

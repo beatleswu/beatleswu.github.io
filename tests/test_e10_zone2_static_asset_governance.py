@@ -40,11 +40,11 @@ def test_zone2_art_manifest_is_exact_ten_owner_locked_webp_files():
     ]
 
 
-def test_zone2_audio_manifest_is_exact_twenty_three_owner_locked_mp3_files():
+def test_zone2_audio_manifest_is_exact_fifty_three_owner_locked_mp3_files():
     manifest = _load(AUDIO_MANIFEST_PATH)
     _assert_exact_files(manifest, mime="audio/mpeg", prefix="assets/e10/audio/zone2/")
-    assert manifest["total_files"] == 23
-    assert manifest["provenance_summary"] == {"owner-approved-project-created": 23}
+    assert manifest["total_files"] == 53
+    assert manifest["provenance_summary"] == {"owner-approved-project-created": 53}
 
 
 def test_zone2_manifests_are_wired_as_disjoint_inventory_subtrees():

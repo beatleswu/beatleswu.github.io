@@ -11195,6 +11195,7 @@ let _introAudio = null;
 // other non-Zone-1/non-Zone-2 zone leaves these locale fields undefined, so
 // none of this fires for them.
 let _introBgmAudio = null;
+let _introBgmBaseVolume = 0.35;
 let _introAmbienceAudio = null;
 let _introSfxAudio = null;
 let _introFilmRunId = 0;
@@ -13257,6 +13258,7 @@ function _stopIntroBgm() {
         try { _introBgmAudio.pause(); _introBgmAudio.currentTime = 0; } catch (e) {}
     }
     _introBgmAudio = null;
+    _introBgmBaseVolume = 0.35;
 }
 function _stopIntroAmbience() {
     if (_introAmbienceAudio) {
@@ -13280,8 +13282,17 @@ function _startIntroBgm(src, opts = {}) {
         const audio = new Audio(src);
         audio.loop = loop;
         audio.volume = volume;
+        _introBgmBaseVolume = volume;
         _introBgmAudio = audio;
         audio.play().catch(() => {});
+    } catch (e) {}
+}
+function _setIntroBgmDucked(active) {
+    if (!_introBgmAudio) return;
+    try {
+        _introBgmAudio.volume = active
+            ? Math.min(_introBgmBaseVolume, 0.12)
+            : _introBgmBaseVolume;
     } catch (e) {}
 }
 function _startIntroAmbience(src, opts = {}) {
@@ -14649,12 +14660,76 @@ const ZONE2_AUDIO = Object.freeze({
     ambiencePlains: '/assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3',
     ambienceHive: '/assets/e10/audio/zone2/ambience/zone2_ambience_hive_cave.mp3',
     ambienceRecovery: '/assets/e10/audio/zone2/ambience/zone2_ambience_plains_recovery.mp3',
-    dialogueHeroShot02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_zh_hero.mp3',
-    dialogueHerderShot04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_zh_herder.mp3',
-    dialogueHeroShot09: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_zh_hero.mp3',
-    dialogueHeroShot02En: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_en_hero.mp3',
-    dialogueHerderShot04En: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_en_herder.mp3',
-    dialogueHeroShot09En: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_en_hero.mp3',
+    // V3 dialogue is explicit per beat so the subtitle, speaker and exact
+    // locale-specific byte cannot drift apart.  The sequencer plays beats
+    // serially and waits for each clip's real duration, which is the locale-
+    // aware timing contract for the bilingual cinematic.
+    dialogue: {
+        zh: {
+            shot02: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat02_zh_hero.mp3',
+            },
+            shot03: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat01_zh_herder.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat02_zh_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat03_zh_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat04_zh_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat05_zh_herder.mp3',
+            },
+            shot04: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat02_zh_herder.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat03_zh_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat04_zh_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat05_zh_herder.mp3',
+            },
+            shot07: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat02_zh_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat03_zh_hero.mp3',
+            },
+            shot09: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat02_zh_hero.mp3',
+            },
+            shot10: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot10_beat01_zh_hero.mp3',
+            },
+        },
+        en: {
+            shot02: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat02_en_hero.mp3',
+            },
+            shot03: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat01_en_herder.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat02_en_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat03_en_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat04_en_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat05_en_herder.mp3',
+            },
+            shot04: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat02_en_herder.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat03_en_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat04_en_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat05_en_herder.mp3',
+            },
+            shot07: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat02_en_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat03_en_hero.mp3',
+            },
+            shot09: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat02_en_hero.mp3',
+            },
+            shot10: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot10_beat01_en_hero.mp3',
+            },
+        },
+    },
     sfx: {
         grassland: '/assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3',
         hive: '/assets/e10/audio/zone2/ambience/zone2_ambience_hive_cave.mp3',
@@ -14702,6 +14777,10 @@ function _zone2CinematicPhaseSlots(locale, isEnglish) {
         ownerArtPending: false,
         ownerAudioPending: false,
     });
+    const d = {
+        zh: ZONE2_AUDIO.dialogue.zh,
+        en: ZONE2_AUDIO.dialogue.en,
+    };
     return {
         bgmMainTheme: ZONE2_AUDIO.bgmDiscovery,
         bgmBossReady: ZONE2_AUDIO.bgmEscalation,
@@ -14711,19 +14790,43 @@ function _zone2CinematicPhaseSlots(locale, isEnglish) {
         ambiencePostClear: ZONE2_AUDIO.ambienceRecovery,
         timeline: [
             shot(1, 'e10.zone2.shot01.caption', 'e10.zone2.shot01.alt', 'e10.zone2.shot01.alt'),
-            shot(2, 'e10.zone2.shot02.caption', 'e10.zone2.shot02.alt', 'e10.zone2.shot02.alt', [line('hero', 'e10.zone2.shot02.dialogue', 'e10.zone2.shot02.dialogue', ZONE2_AUDIO.dialogueHeroShot02, ZONE2_AUDIO.dialogueHeroShot02En)], [ZONE2_AUDIO.sfx.frightenedSlime, ZONE2_AUDIO.sfx.shuiReaction]),
-            shot(3, 'e10.zone2.shot03.caption', 'e10.zone2.shot03.alt', 'e10.zone2.shot03.alt', [], [ZONE2_AUDIO.sfx.slimeMovement, ZONE2_AUDIO.sfx.beeDistant]),
-            shot(4, 'e10.zone2.shot04.caption', 'e10.zone2.shot04.alt', 'e10.zone2.shot04.alt', [line('herder', 'e10.zone2.shot04.dialogue', 'e10.zone2.shot04.dialogue', ZONE2_AUDIO.dialogueHerderShot04, ZONE2_AUDIO.dialogueHerderShot04En)], [ZONE2_AUDIO.sfx.beeDistant, ZONE2_AUDIO.sfx.beeClose]),
+            shot(2, 'e10.zone2.shot02.caption', 'e10.zone2.shot02.alt', 'e10.zone2.shot02.alt', [
+                line('hero', 'e10.zone2.shot02.line01', 'e10.zone2.shot02.line01', d.zh.shot02.line01, d.en.shot02.line01),
+                line('hero', 'e10.zone2.shot02.line02', 'e10.zone2.shot02.line02', d.zh.shot02.line02, d.en.shot02.line02),
+            ], [ZONE2_AUDIO.sfx.frightenedSlime, ZONE2_AUDIO.sfx.shuiReaction]),
+            shot(3, 'e10.zone2.shot03.caption', 'e10.zone2.shot03.alt', 'e10.zone2.shot03.alt', [
+                line('herder', 'e10.zone2.shot03.line01', 'e10.zone2.shot03.line01', d.zh.shot03.line01, d.en.shot03.line01),
+                line('hero', 'e10.zone2.shot03.line02', 'e10.zone2.shot03.line02', d.zh.shot03.line02, d.en.shot03.line02),
+                line('herder', 'e10.zone2.shot03.line03', 'e10.zone2.shot03.line03', d.zh.shot03.line03, d.en.shot03.line03),
+                line('hero', 'e10.zone2.shot03.line04', 'e10.zone2.shot03.line04', d.zh.shot03.line04, d.en.shot03.line04),
+                line('herder', 'e10.zone2.shot03.line05', 'e10.zone2.shot03.line05', d.zh.shot03.line05, d.en.shot03.line05),
+            ], [ZONE2_AUDIO.sfx.slimeMovement, ZONE2_AUDIO.sfx.beeDistant]),
+            shot(4, 'e10.zone2.shot04.caption', 'e10.zone2.shot04.alt', 'e10.zone2.shot04.alt', [
+                line('hero', 'e10.zone2.shot04.line01', 'e10.zone2.shot04.line01', d.zh.shot04.line01, d.en.shot04.line01),
+                line('herder', 'e10.zone2.shot04.line02', 'e10.zone2.shot04.line02', d.zh.shot04.line02, d.en.shot04.line02),
+                line('herder', 'e10.zone2.shot04.line03', 'e10.zone2.shot04.line03', d.zh.shot04.line03, d.en.shot04.line03),
+                line('hero', 'e10.zone2.shot04.line04', 'e10.zone2.shot04.line04', d.zh.shot04.line04, d.en.shot04.line04),
+                line('herder', 'e10.zone2.shot04.line05', 'e10.zone2.shot04.line05', d.zh.shot04.line05, d.en.shot04.line05),
+            ], [ZONE2_AUDIO.sfx.beeDistant, ZONE2_AUDIO.sfx.beeClose]),
         ],
         bossReadyTimeline: [
             shot(5, 'e10.zone2.shot05.caption', 'e10.zone2.shot05.alt', 'e10.zone2.shot05.alt', [], [ZONE2_AUDIO.sfx.beeClose, ZONE2_AUDIO.sfx.slimeMovement]),
             shot(6, 'e10.zone2.shot06.caption', 'e10.zone2.shot06.alt', 'e10.zone2.shot06.alt', [], [ZONE2_AUDIO.sfx.lordEmergence, ZONE2_AUDIO.sfx.lordRumble]),
-            shot(7, 'e10.zone2.shot07.caption', 'e10.zone2.shot07.alt', 'e10.zone2.shot07.alt', [], [ZONE2_AUDIO.sfx.lordMovement, ZONE2_AUDIO.sfx.lordRumble]),
+            shot(7, 'e10.zone2.shot07.caption', 'e10.zone2.shot07.alt', 'e10.zone2.shot07.alt', [
+                line('hero', 'e10.zone2.shot07.line01', 'e10.zone2.shot07.line01', d.zh.shot07.line01, d.en.shot07.line01),
+                line('hero', 'e10.zone2.shot07.line02', 'e10.zone2.shot07.line02', d.zh.shot07.line02, d.en.shot07.line02),
+                line('hero', 'e10.zone2.shot07.line03', 'e10.zone2.shot07.line03', d.zh.shot07.line03, d.en.shot07.line03),
+            ], [ZONE2_AUDIO.sfx.lordMovement, ZONE2_AUDIO.sfx.lordRumble]),
         ],
         postClearTimeline: [
             shot(8, 'e10.zone2.shot08.caption', 'e10.zone2.shot08.alt', 'e10.zone2.shot08.alt', [], [ZONE2_AUDIO.sfx.lordDefeat, ZONE2_AUDIO.sfx.crownImpact]),
-            shot(9, 'e10.zone2.shot09.caption', 'e10.zone2.shot09.alt', 'e10.zone2.shot09.alt', [line('hero', 'e10.zone2.shot09.dialogue', 'e10.zone2.shot09.dialogue', ZONE2_AUDIO.dialogueHeroShot09, ZONE2_AUDIO.dialogueHeroShot09En)]),
-            shot(10, 'e10.zone2.shot10.caption', 'e10.zone2.shot10.alt', 'e10.zone2.shot10.alt', [], [ZONE2_AUDIO.sfx.routeReveal]),
+            shot(9, 'e10.zone2.shot09.caption', 'e10.zone2.shot09.alt', 'e10.zone2.shot09.alt', [
+                line('hero', 'e10.zone2.shot09.line01', 'e10.zone2.shot09.line01', d.zh.shot09.line01, d.en.shot09.line01),
+                line('hero', 'e10.zone2.shot09.line02', 'e10.zone2.shot09.line02', d.zh.shot09.line02, d.en.shot09.line02),
+            ]),
+            shot(10, 'e10.zone2.shot10.caption', 'e10.zone2.shot10.alt', 'e10.zone2.shot10.alt', [
+                line('hero', 'e10.zone2.shot10.line01', 'e10.zone2.shot10.line01', d.zh.shot10.line01, d.en.shot10.line01),
+            ], [ZONE2_AUDIO.sfx.routeReveal]),
         ],
         audioSlots: {
             bgmMainTheme: ZONE2_AUDIO.bgmDiscovery,
@@ -14999,6 +15102,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             : Math.max(4200, t.length * 210);
     }
     function playAssetVoice(beat, onDone) {
+        const shouldDuckZone2Bgm = zone?.key === 'k21_25';
         const finishSilently = () => {
             const holdMs = computeBeatHoldMs(beat.text);
             const id = setTimeout(() => {
@@ -15033,6 +15137,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
+            if (shouldDuckZone2Bgm) _setIntroBgmDucked(false);
             const id = setTimeout(onDone, delay);
             _introFilmTimers.push(id);
         };
@@ -15049,8 +15154,10 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
+            if (shouldDuckZone2Bgm) _setIntroBgmDucked(false);
             finishSilently();
         };
+        if (shouldDuckZone2Bgm) _setIntroBgmDucked(true);
         audio.onended = () => finishSuccess(720);
         audio.onerror = finishAudioSilently;
         audio.play().catch(finishAudioSilently);
