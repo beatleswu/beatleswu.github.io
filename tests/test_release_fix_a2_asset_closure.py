@@ -48,6 +48,10 @@ ACTIVE_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-audio-pack-man
 # E10 Zone 1 Lord Trial closure is a separate namespace so the pre-existing
 # assets/storyboards narration manifest remains image/audio-contract stable.
 ACTIVE_E10_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone1-audio-pack-manifest.json"
+# E10 Zone 2 final art/audio use dedicated Owner-locked namespaces so the
+# historical image pack and Zone 1 closure remain byte-stable.
+ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-art-pack-manifest.json"
+ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-audio-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 
@@ -181,6 +185,8 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     manifest = json.loads(_read(ACTIVE_SUBTREE_MANIFEST))
     audio_manifest = json.loads(_read(ACTIVE_AUDIO_SUBTREE_MANIFEST))
     e10_audio_manifest = json.loads(_read(ACTIVE_E10_AUDIO_SUBTREE_MANIFEST))
+    e10_zone2_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST))
+    e10_zone2_audio_manifest = json.loads(_read(ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST))
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
@@ -207,6 +213,8 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
             | {f["path"] for f in e10_audio_manifest["files"]}
+            | {f["path"] for f in e10_zone2_art_manifest["files"]}
+            | {f["path"] for f in e10_zone2_audio_manifest["files"]}
             | {
                 "i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html",
                 "js/e9/shell.js", "js/map_battle_v1_adapter.js",
@@ -218,7 +226,13 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             f"(missing: {governed_paths - set(staged_by_path)}, "
             f"extra/unreferenced: {set(staged_by_path) - governed_paths})"
         )
-        for entry in manifest["files"] + audio_manifest["files"] + e10_audio_manifest["files"]:
+        for entry in (
+            manifest["files"]
+            + audio_manifest["files"]
+            + e10_audio_manifest["files"]
+            + e10_zone2_art_manifest["files"]
+            + e10_zone2_audio_manifest["files"]
+        ):
             staged_entry = staged_by_path[entry["path"]]
             assert staged_entry["sha256"] == entry["sha256"], f"SHA mismatch for {entry['path']}"
             assert staged_entry["size"] == entry["size"], f"size mismatch for {entry['path']}"

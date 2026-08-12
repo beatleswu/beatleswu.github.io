@@ -308,12 +308,21 @@
     };
     var setOpen = function (open, restoreFocus) {
       if (!toggle || !panel) return;
+      // On stacked portrait surfaces the lower Zone Card owns the detail
+      // interaction. A late zone-card event must not reopen the desktop
+      // drawer/backdrop after ownership has already moved to that card.
+      if (root.getAttribute('data-e10-detail-owner') === 'lower-card') open = false;
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       panel.hidden = !open;
       root.classList.toggle('is-drawer-open', open);
       if (slot) slot.classList.toggle('is-drawer-open', open);
       if (shell) shell.classList.toggle('is-right-drawer-open', open);
-      if (backdrop) backdrop.hidden = !open;
+      if (backdrop) {
+        backdrop.hidden = !open;
+        backdrop.style.display = open ? '' : 'none';
+        backdrop.style.pointerEvents = open ? '' : 'none';
+        backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
+      }
       syncDrawerLandmark(root);
       if (!open && restoreFocus && root.__e9DrawerTrigger) {
         root.__e9DrawerTrigger.focus();

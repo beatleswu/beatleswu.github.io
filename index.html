@@ -3224,7 +3224,7 @@
         padding: 0;
         overflow: hidden;
         border-radius: 16px;
-        background: #5f8f75;
+        background: #15130f;
         border-color: rgba(254, 243, 199, .62);
     }
     .boss-cinematic.intro-film .boss-cinematic-content {
@@ -3310,6 +3310,37 @@
         opacity: 0;
         transform: scale(1.04);
         transition: opacity .55s ease, transform 1.8s ease;
+        isolation: isolate;
+        overflow: hidden;
+        background: #15130f;
+    }
+    /*
+       Portrait devices cannot fill a tall viewport with the undistorted
+       16:9 Owner frame without either cropping the story or exposing a flat
+       colour.  Keep the canonical frame untouched in the foreground and
+       use the same shot as a restrained, blurred fill layer behind it.
+       The custom property is assigned by applyIntroFilmShotAssets(), so this
+       never invents or substitutes artwork.
+    */
+    .film-shot::before {
+        content: '';
+        position: absolute;
+        inset: -10%;
+        z-index: 0;
+        pointer-events: none;
+        background-image: var(--film-backdrop-image, linear-gradient(180deg, #2a2a25, #10100d));
+        background-position: center;
+        background-size: cover;
+        filter: blur(24px) saturate(.82) brightness(.54);
+        transform: scale(1.08);
+    }
+    .film-shot::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(0,0,0,.16), rgba(0,0,0,.32));
     }
     .film-shot.active {
         opacity: 1;
@@ -3320,6 +3351,9 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        position: relative;
+        z-index: 1;
+        background: transparent;
     }
     .film-shot.active img {
         animation: storyboardDrift 14s ease-out both;
@@ -3409,6 +3443,79 @@
         .intro-replay-btn {
             padding: 7px 11px;
             font-size: 11px;
+        }
+    }
+    /* Zone 2 RWD contract: keep the 16:9 Owner art legible on every
+       required device class. Portrait uses contain (letterbox rather than
+       cropping faces), while landscape/desktop retain the cinematic cover
+       treatment. Text and Lord controls stay inside the viewport. */
+    #boss-cinematic.intro-film[data-zone-key="k21_25"] {
+        overflow: hidden;
+        overscroll-behavior: contain;
+    }
+    #boss-cinematic.intro-film[data-zone-key="k21_25"] .boss-cinematic-scene,
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene,
+    #boss-cinematic.phase-lord-ritual[data-zone-key="k21_25"] .boss-cinematic-scene,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+        width: min(960px, 96vw);
+        max-width: 100vw;
+        box-sizing: border-box;
+    }
+    #boss-cinematic.intro-film[data-zone-key="k21_25"] .boss-cinematic-line,
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-line,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-line,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-line {
+        overflow-wrap: anywhere;
+        word-break: normal;
+        max-width: 100%;
+    }
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-rules,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-rules {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+    @media (orientation: portrait) and (max-width: 900px) {
+        #boss-cinematic.intro-film[data-zone-key="k21_25"] .boss-cinematic-scene {
+            width: 100vw;
+            min-height: 100dvh;
+            border-radius: 0;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k21_25"] .film-shot img {
+            object-fit: contain;
+            background: transparent;
+            object-position: center;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k21_25"] .boss-cinematic-content {
+            left: max(12px, env(safe-area-inset-left));
+            right: max(12px, env(safe-area-inset-right));
+            bottom: max(12px, env(safe-area-inset-bottom));
+            max-height: 34dvh;
+            overflow: auto;
+        }
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        #boss-cinematic.intro-film[data-zone-key="k21_25"] .boss-cinematic-line {
+            font-size: clamp(12px, 3.4vw, 15px);
+            line-height: 1.45;
+        }
+        #boss-cinematic.intro-film[data-zone-key="k21_25"] .intro-film-controls {
+            max-width: calc(100vw - 24px);
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+            width: min(94vw, 520px);
+            max-height: 88dvh;
+            overflow: auto;
+            box-sizing: border-box;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-btn,
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-cancel-btn,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-btn,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-btn {
+            min-height: 44px;
+            max-width: 100%;
         }
     }
     .adventure-ritual-toast,
@@ -10029,6 +10136,13 @@ function _revealExplanationPanel(panel) {
 
 async function loadQuestion(q, { resumeState = null } = {}){
     const generation = ++_mapBattleV1LifecycleGeneration;
+    window.SGFReportWidget?.setContext({
+        question_id: Number(q.id),
+        surface: document.body.dataset.sgfReportSurface || 'main_practice',
+        sgf_identity: q.content_sha256 || q.sgf_identity || null,
+        accepted_moves: q.accepted_moves || [],
+        native_sgf: q.native_answer || q.solution || null
+    });
     _resetE10BattleRevealState();
     _clearMapBattleV1Transition();
     _clearMapBattleV1Resume();
@@ -10050,13 +10164,6 @@ async function loadQuestion(q, { resumeState = null } = {}){
     if(mb) mb.classList.remove('hidden');
 
     currentQ=q;
-    window.SGFReportWidget?.setContext({
-        question_id: Number(q.id),
-        surface: document.body.dataset.sgfReportSurface || 'main_practice',
-        sgf_identity: q.content_sha256 || q.sgf_identity || null,
-        accepted_moves: q.accepted_moves || [],
-        native_sgf: q.native_answer || q.solution || null
-    });
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
@@ -11119,12 +11226,16 @@ let _introAudio = null;
 // the sequencer's pacing) -- these never affect activateShot's advance
 // timing, and a blocked/rejected play() (browser autoplay policy) is always
 // silently swallowed so the cinematic plays out identically with or without
-// sound. Every other zone leaves locale.bgmMainTheme/bgmPostClearUrgency/
-// ambienceVillageDawn undefined, so none of this fires for them.
+// sound. Zone 2 supplies its own explicit phase audio slots below; every
+// other non-Zone-1/non-Zone-2 zone leaves these locale fields undefined, so
+// none of this fires for them.
 let _introBgmAudio = null;
+let _introBgmBaseVolume = 0.35;
 let _introAmbienceAudio = null;
 let _introSfxAudio = null;
 let _introFilmRunId = 0;
+let _introAudioUnlockPromise = null;
+let _introAudioUnlocked = false;
 // Tracks what the CURRENTLY-SHOWING (or most-recently-shown) intro-film
 // overlay run actually is, so skipIntroFilm()/replayIntroFilm() -- both
 // zone-key-driven, not caller-driven -- can resume/finish the SAME phase
@@ -13087,6 +13198,7 @@ function applyIntroFilmShotAssets(timeline = []) {
         shotEl.style.display = item ? '' : 'none';
         if (!img || !item?.imageSrc) return;
         img.src = item.imageSrc;
+        shotEl.style.setProperty('--film-backdrop-image', `url("${item.imageSrc}")`);
         if (item.imageAlt) img.alt = item.imageAlt;
     });
 }
@@ -13181,51 +13293,234 @@ function getCurrentIntroZone() {
 // dialogue's implicit full volume.
 function _stopIntroBgm() {
     if (_introBgmAudio) {
-        try { _introBgmAudio.pause(); _introBgmAudio.currentTime = 0; } catch (e) {}
+        try {
+            _introBgmAudio.pause();
+            _introBgmAudio.currentTime = 0;
+            _introBgmAudio.onended = null;
+            _introBgmAudio.onerror = null;
+        } catch (e) {}
     }
-    _introBgmAudio = null;
+    _introBgmBaseVolume = 0.35;
 }
 function _stopIntroAmbience() {
     if (_introAmbienceAudio) {
-        try { _introAmbienceAudio.pause(); _introAmbienceAudio.currentTime = 0; } catch (e) {}
+        try {
+            _introAmbienceAudio.pause();
+            _introAmbienceAudio.currentTime = 0;
+            _introAmbienceAudio.onended = null;
+            _introAmbienceAudio.onerror = null;
+        } catch (e) {}
     }
-    _introAmbienceAudio = null;
 }
 function _stopIntroSfx() {
     if (_introSfxAudio) {
-        try { _introSfxAudio.pause(); } catch (e) {}
+        try {
+            _introSfxAudio.pause();
+            _introSfxAudio.currentTime = 0;
+            _introSfxAudio.onended = null;
+            _introSfxAudio.onerror = null;
+        } catch (e) {}
     }
-    _introSfxAudio = null;
 }
+
+function _introAudioDiagnosticsEnabled() {
+    // The acceptance harness adds this banner only to the isolated
+    // non-Production runtime.  Keep detailed playback diagnostics out of
+    // the normal Production console while making Safari failures observable
+    // during Owner acceptance.
+    return Boolean(document.getElementById('go-odyssey-acceptance-banner'));
+}
+
+function _introAudioContextState() {
+    return _bossAudioCtx?.state || 'unavailable';
+}
+
+function _introLocaleCode(value = getCurrentUiLang()) {
+    return value === 'zh' ? 'zh-TW' : (value || 'unknown');
+}
+
+function _logIntroAudio(event, details = {}) {
+    if (!_introAudioDiagnosticsEnabled()) return;
+    try {
+        console.info(`[E10_AUDIO] ${event}`, {
+            AUDIO_PLAY_ATTEMPT: event === 'AUDIO_PLAY_ATTEMPT',
+            AUDIO_PLAY_RESOLVED: event === 'AUDIO_PLAY_RESOLVED',
+            AUDIO_PLAY_REJECTED: event === 'AUDIO_PLAY_REJECTED',
+            AUDIO_CONTEXT_STATE: _introAudioContextState(),
+            CURRENT_SHOT: details.shot ?? null,
+            LOCALE: _introLocaleCode(details.locale),
+            VOICE_FILE: details.voiceFile || null,
+            reason: details.reason || null,
+        });
+    } catch (e) {}
+}
+
+function _firstIntroAudioSources() {
+    const zone = getCurrentIntroZone();
+    if (!zone) return { locale: 'unknown', voice: '', bgm: '', ambience: '', sfx: '' };
+    const locale = getIntroFilmLocaleConfig(zone);
+    const phase = _introFilmActiveOpts.phase || 'pre_play';
+    const timeline = _introFilmActiveOpts.timeline || (
+        phase === 'boss_ready'
+            ? locale.bossReadyTimeline
+            : phase === 'post_clear'
+                ? locale.postClearTimeline
+                : locale.timeline
+    ) || [];
+    const firstBeat = timeline.flatMap(item => item?.beats || []).find(beat => beat?.audioSrc);
+    const firstItem = timeline.find(item => item);
+    const phaseBgm = phase === 'boss_ready'
+        ? (locale.bgmBossReady || locale.bgmMainTheme)
+        : phase === 'post_clear'
+            ? (locale.bgmPostClear || locale.bgmPostClearUrgency)
+            : locale.bgmMainTheme;
+    const phaseAmbience = phase === 'boss_ready'
+        ? (locale.ambienceBossReady || locale.ambienceVillageDawn)
+        : phase === 'post_clear'
+            ? (locale.ambiencePostClear || locale.ambienceVillageDawn)
+            : locale.ambienceVillageDawn;
+    const firstSfx = (firstItem?.sfxCues || (firstItem?.sfxCue ? [firstItem.sfxCue] : [])).find(Boolean) || '';
+    return {
+        locale: locale.uiLang || 'zh',
+        voice: firstBeat?.audioSrc || '',
+        bgm: phaseBgm || '',
+        ambience: phaseAmbience || '',
+        sfx: firstSfx,
+    };
+}
+
+function _primeIntroMediaElement(existing, src, kind, volume, loop = false) {
+    if (!src) return Promise.resolve();
+    const audio = existing || new Audio();
+    audio.preload = 'auto';
+    audio.playsInline = true;
+    audio.loop = loop;
+    audio.src = src;
+    audio.muted = true;
+    audio.volume = 0;
+    if (kind === 'voice') _introAudio = audio;
+    if (kind === 'bgm') _introBgmAudio = audio;
+    if (kind === 'ambience') _introAmbienceAudio = audio;
+    if (kind === 'sfx') _introSfxAudio = audio;
+    _logIntroAudio('AUDIO_PLAY_ATTEMPT', { locale: _introLocaleCode(), voiceFile: src, reason: `gesture_unlock:${kind}` });
+    let playResult;
+    try {
+        playResult = audio.play();
+    } catch (error) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        return Promise.resolve(false);
+    }
+    return Promise.resolve(playResult).then(() => {
+        _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: `gesture_unlock:${kind}` });
+        try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = false;
+            audio.volume = volume;
+        } catch (e) {}
+        return true;
+    }).catch(error => {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        try { audio.pause(); audio.muted = false; audio.volume = volume; } catch (e) {}
+        return false;
+    });
+}
+
+// Safari requires media playback to be opened by a user gesture.  The
+// explicit "播放動畫 / Play animation" control is that gesture.  Prime the
+// actual reusable narration/bed elements while muted, then reuse those same
+// elements for the rest of the cinematic run.  This does not start audible
+// content before interaction and does not alter any locked media bytes.
+function _unlockIntroAudioFromGesture() {
+    if (_introAudioUnlocked) return Promise.resolve();
+    if (_introAudioUnlockPromise) return _introAudioUnlockPromise;
+    const sources = _firstIntroAudioSources();
+    const context = _bossAudioCtx || _bossAudio();
+    const resumePromise = context?.resume ? Promise.resolve(context.resume()).catch(error => {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(sources.locale), reason: `AudioContext.resume: ${String(error)}` });
+    }) : Promise.resolve();
+    _introAudioUnlockPromise = Promise.all([
+        resumePromise,
+        _primeIntroMediaElement(_introAudio, sources.voice, 'voice', 1),
+        _primeIntroMediaElement(_introBgmAudio, sources.bgm, 'bgm', 0.35, true),
+        _primeIntroMediaElement(_introAmbienceAudio, sources.ambience, 'ambience', 0.22, true),
+        _primeIntroMediaElement(_introSfxAudio, sources.sfx, 'sfx', 0.8),
+    ]).then(results => {
+        _introAudioUnlocked = results.every(result => result !== false);
+        if (!_introAudioUnlocked) _introAudioUnlockPromise = null;
+    }).catch(() => {
+        // Individual media failures are logged by _primeIntroMediaElement;
+        // leave the promise settled so the cinematic can still proceed and
+        // a later explicit tap can retry the unlock.
+        _introAudioUnlockPromise = null;
+    });
+    return _introAudioUnlockPromise;
+}
+
 function _startIntroBgm(src, opts = {}) {
     const loop = opts.loop !== false;
     const volume = opts.volume ?? 0.35;
     if (!src) return;
-    if (_introBgmAudio && _introBgmAudio.src && _introBgmAudio.src.indexOf(src) !== -1) return;
+    if (_introBgmAudio && _introBgmAudio.src && _introBgmAudio.src.indexOf(src) !== -1 && !_introBgmAudio.paused) return;
     _stopIntroBgm();
     try {
-        const audio = new Audio(src);
+        const audio = _introBgmAudio || new Audio();
+        audio.src = src;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.onended = null;
+        audio.onerror = null;
         audio.loop = loop;
+        audio.muted = false;
         audio.volume = volume;
+        _introBgmBaseVolume = volume;
         _introBgmAudio = audio;
-        audio.play().catch(() => {});
+        const playResult = audio.play();
+        Promise.resolve(playResult).then(() => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: 'bgm' });
+        }).catch(error => {
+            _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        });
+    } catch (e) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(e) });
+    }
+}
+function _setIntroBgmDucked(active) {
+    if (!_introBgmAudio) return;
+    try {
+        _introBgmAudio.volume = active
+            ? Math.min(_introBgmBaseVolume, 0.12)
+            : _introBgmBaseVolume;
     } catch (e) {}
 }
 function _startIntroAmbience(src, opts = {}) {
     const volume = opts.volume ?? 0.22;
     if (!src) return;
-    if (_introAmbienceAudio && _introAmbienceAudio.src && _introAmbienceAudio.src.indexOf(src) !== -1) return;
+    if (_introAmbienceAudio && _introAmbienceAudio.src && _introAmbienceAudio.src.indexOf(src) !== -1 && !_introAmbienceAudio.paused) return;
     _stopIntroAmbience();
     try {
-        const audio = new Audio(src);
+        const audio = _introAmbienceAudio || new Audio();
+        audio.src = src;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.onended = null;
+        audio.onerror = null;
         // opts.loop:false lets one-shot underscore beds (e.g. Lord Trial
         // ritual energy, zone-route travel energy) share this same bed slot
         // instead of duplicating BGM/ambience's play/stop machinery.
         audio.loop = opts.loop !== false;
+        audio.muted = false;
         audio.volume = volume;
         _introAmbienceAudio = audio;
-        audio.play().catch(() => {});
-    } catch (e) {}
+        const playResult = audio.play();
+        Promise.resolve(playResult).then(() => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: 'ambience' });
+        }).catch(error => {
+            _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        });
+    } catch (e) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(e) });
+    }
 }
 function _playIntroSfxAsset(src, opts = {}) {
     const volume = opts.volume ?? 0.8;
@@ -13236,11 +13531,24 @@ function _playIntroSfxAsset(src, opts = {}) {
     // triggers (e.g. re-opening the same card).
     _stopIntroSfx();
     try {
-        const audio = new Audio(src);
+        const audio = _introSfxAudio || new Audio();
+        audio.src = src;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.muted = false;
         audio.volume = volume;
         _introSfxAudio = audio;
-        audio.play().catch(() => {});
-    } catch (e) {}
+        const playResult = audio.play();
+        Promise.resolve(playResult).then(() => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: 'sfx' });
+        }).catch(error => {
+            _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        });
+    } catch (e) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(e) });
+    }
 }
 
 function _stopIntroFilm() {
@@ -13257,7 +13565,6 @@ function _stopIntroFilm() {
             _introAudio.onerror = null;
         } catch (e) {}
     }
-    _introAudio = null;
     _stopIntroBgm();
     _stopIntroAmbience();
     _stopIntroSfx();
@@ -14564,57 +14871,203 @@ function _getIntroFilmLocaleConfigBase(zone) {
     };
 }
 
-// Zone 2 phase slots are kept outside the historical Zone 1 data block so
-// the existing Zone 1 shot bytes/shape stay untouched.  The first-entry
-// timeline remains the four shipped storyboard/audio slots above; these
-// phase arrays are stable, replaceable slots for the separately produced
-// Shot 5-10 art and Owner-auditioned audio.
+// Owner-locked Zone 2 runtime package.  It stays outside the historical Zone
+// 1 data block so the Zone 1 shot bytes/shape remain untouched.  The package
+// is byte-promoted from the review-only audition pack by the allowlisted
+// promotion tool; the client only presents it and never creates progression
+// or unlock authority.
+const ZONE2_AUDIO = Object.freeze({
+    bgmDiscovery: '/assets/e10/audio/zone2/bgm/zone2_bgm_discovery.mp3',
+    bgmEscalation: '/assets/e10/audio/zone2/bgm/zone2_bgm_escalation.mp3',
+    bgmRecovery: '/assets/e10/audio/zone2/bgm/zone2_bgm_recovery.mp3',
+    ambiencePlains: '/assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3',
+    ambienceHive: '/assets/e10/audio/zone2/ambience/zone2_ambience_hive_cave.mp3',
+    ambienceRecovery: '/assets/e10/audio/zone2/ambience/zone2_ambience_plains_recovery.mp3',
+    // V3 dialogue is explicit per beat so the subtitle, speaker and exact
+    // locale-specific byte cannot drift apart.  The sequencer plays beats
+    // serially and waits for each clip's real duration, which is the locale-
+    // aware timing contract for the bilingual cinematic.
+    dialogue: {
+        zh: {
+            shot02: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat02_zh_hero.mp3',
+            },
+            shot03: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat01_zh_herder.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat02_zh_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat03_zh_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat04_zh_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat05_zh_herder.mp3',
+            },
+            shot04: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat02_zh_herder.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat03_zh_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat04_zh_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat05_zh_herder.mp3',
+            },
+            shot07: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat02_zh_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat03_zh_hero.mp3',
+            },
+            shot09: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_zh_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat02_zh_hero.mp3',
+            },
+            shot10: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot10_beat01_zh_hero.mp3',
+            },
+        },
+        en: {
+            shot02: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot02_beat02_en_hero.mp3',
+            },
+            shot03: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat01_en_herder.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat02_en_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat03_en_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat04_en_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot03_beat05_en_herder.mp3',
+            },
+            shot04: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat02_en_herder.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat03_en_herder.mp3',
+                line04: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat04_en_hero.mp3',
+                line05: '/assets/e10/audio/zone2/dialogue/zone2_final_shot04_beat05_en_herder.mp3',
+            },
+            shot07: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat02_en_hero.mp3',
+                line03: '/assets/e10/audio/zone2/dialogue/zone2_final_shot07_beat03_en_hero.mp3',
+            },
+            shot09: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat01_en_hero.mp3',
+                line02: '/assets/e10/audio/zone2/dialogue/zone2_final_shot09_beat02_en_hero.mp3',
+            },
+            shot10: {
+                line01: '/assets/e10/audio/zone2/dialogue/zone2_final_shot10_beat01_en_hero.mp3',
+            },
+        },
+    },
+    sfx: {
+        grassland: '/assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3',
+        hive: '/assets/e10/audio/zone2/ambience/zone2_ambience_hive_cave.mp3',
+        recovery: '/assets/e10/audio/zone2/ambience/zone2_ambience_plains_recovery.mp3',
+        frightenedSlime: '/assets/e10/audio/zone2/sfx/zone2_sfx_frightened_slime.mp3',
+        slimeMovement: '/assets/e10/audio/zone2/sfx/zone2_sfx_slime_movement.mp3',
+        beeDistant: '/assets/e10/audio/zone2/sfx/zone2_ambient_bee_distant.mp3',
+        beeClose: '/assets/e10/audio/zone2/sfx/zone2_sfx_bee_close.mp3',
+        lordEmergence: '/assets/e10/audio/zone2/sfx/zone2_sfx_lord_emergence.mp3',
+        lordMovement: '/assets/e10/audio/zone2/sfx/zone2_sfx_lord_movement.mp3',
+        lordRumble: '/assets/e10/audio/zone2/sfx/zone2_sfx_lord_rumble.mp3',
+        lordDefeat: '/assets/e10/audio/zone2/sfx/zone2_sfx_lord_defeat.mp3',
+        crownImpact: '/assets/e10/audio/zone2/sfx/zone2_sfx_crown_impact.mp3',
+        routeReveal: '/assets/e10/audio/zone2/sfx/zone2_sfx_route_reveal.mp3',
+        shuiReaction: '/assets/e10/audio/zone2/sfx/zone2_sfx_shui_reaction_2.mp3',
+    },
+});
+
+function _zone2I18n(key) {
+    const value = window.I18n && typeof window.I18n.t === 'function' ? window.I18n.t(key) : '';
+    return value && value !== key ? value : '';
+}
+function _zone2Format(key, values = {}) {
+    return Object.entries(values).reduce(
+        (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+        _zone2I18n(key),
+    );
+}
+
 function _zone2CinematicPhaseSlots(locale, isEnglish) {
     const en = isEnglish === true;
-    const placeholderImage = '/assets/storyboards/go_slime_plains_scene_04.webp';
-    const phase = (shot, caption, text, slot, sfx, alt) => ({
-        shot,
-        caption,
-        text,
-        audioSlot: `/assets/e10/audio/zone2/dialogue/zone2_${slot}_${en ? 'en' : 'zh'}.mp3`,
-        ownerAudioPending: true,
-        imageSrc: placeholderImage,
-        imageAlt: alt,
-        assetSlot: `/assets/storyboards/e10_z2_${slot}.webp`,
-        ownerArtPending: true,
-        sfx,
+    const image = (shot) => `/assets/storyboards/e10_z2_shot${String(shot).padStart(2, '0')}.webp`;
+    const line = (speaker, zhKey, enKey, zhAudioSrc = '', enAudioSrc = '') => ({
+        speaker,
+        text: _zone2I18n(en ? enKey : zhKey),
+        ...((en ? enAudioSrc : zhAudioSrc) ? { audioSrc: en ? enAudioSrc : zhAudioSrc } : {}),
     });
+    const shot = (shotNumber, captionKey, zhAltKey, enAltKey, beats = [], sfxCues = []) => ({
+        shot: shotNumber - 1,
+        caption: _zone2I18n(captionKey),
+        imageSrc: image(shotNumber),
+        imageAlt: _zone2I18n(en ? enAltKey : zhAltKey),
+        beats,
+        sfxCues,
+        ownerArtPending: false,
+        ownerAudioPending: false,
+    });
+    const d = {
+        zh: ZONE2_AUDIO.dialogue.zh,
+        en: ZONE2_AUDIO.dialogue.en,
+    };
     return {
-        bossReadyTimeline: en ? [
-            phase(4, 'Shot 5: The Hive in the Cliff', 'The mountainside cave mouth is no longer stone. Honeycomb cells have overgrown the entrance, and a bee swarm pours in and out as if the wound itself were breathing.', 'shot05', 'pulse', 'Placeholder: an infected honeycomb cave entrance on the mountainside'),
-            phase(5, 'Shot 6: The Swarm Lord Wakes', 'The slimes are trembling, not attacking. They are afraid. From the infected cave, a colossal slime gathers itself and opens one luminous eye.', 'shot06', 'appear', 'Placeholder: the colossal slime Swarm Lord emerging from the hive wound'),
-            phase(6, 'Shot 7: A Freedom Without Balance', 'Why care about balance? Consume everything, and call it freedom. The Lord\'s voice rolls through the plains while the hive-crystal pulses toward the next wound.', 'shot07', 'start', 'Placeholder: the Swarm Lord challenges the hero beneath the infected hive'),
-        ] : [
-            phase(4, '第 5 幕：山壁洞口的蜂巢', '山壁的洞口已不再只是岩石。蜂蠟與六角巢房侵蝕了入口，蜂群進進出出，像傷口正在呼吸。', 'shot05', 'pulse', '佔位圖：被蜂巢感染的山壁洞口'),
-            phase(5, '第 6 幕：史萊姆群領主甦醒', '牠們在發抖。不是想攻擊我們。是在害怕什麼。感染的洞穴深處，一個巨大的史萊姆聚起身軀，睜開發光的眼睛。', 'shot06', 'appear', '佔位圖：巨大史萊姆群領主從蜂巢傷口現身'),
-            phase(6, '第 7 幕：吞噬一切的自由', '為什麼要在意平衡？吞噬一切，才是真正的自由。領主的聲音滾過平原，蜂巢水晶同時朝下一個傷口脈動。', 'shot07', 'start', '佔位圖：蜂巢異常下的史萊姆群領主向英雄挑戰'),
+        bgmMainTheme: ZONE2_AUDIO.bgmDiscovery,
+        bgmBossReady: ZONE2_AUDIO.bgmEscalation,
+        bgmPostClear: ZONE2_AUDIO.bgmRecovery,
+        ambienceVillageDawn: ZONE2_AUDIO.ambiencePlains,
+        ambienceBossReady: ZONE2_AUDIO.ambienceHive,
+        ambiencePostClear: ZONE2_AUDIO.ambienceRecovery,
+        timeline: [
+            shot(1, 'e10.zone2.shot01.caption', 'e10.zone2.shot01.alt', 'e10.zone2.shot01.alt'),
+            shot(2, 'e10.zone2.shot02.caption', 'e10.zone2.shot02.alt', 'e10.zone2.shot02.alt', [
+                line('hero', 'e10.zone2.shot02.line01', 'e10.zone2.shot02.line01', d.zh.shot02.line01, d.en.shot02.line01),
+                line('hero', 'e10.zone2.shot02.line02', 'e10.zone2.shot02.line02', d.zh.shot02.line02, d.en.shot02.line02),
+            ], [ZONE2_AUDIO.sfx.frightenedSlime, ZONE2_AUDIO.sfx.shuiReaction]),
+            shot(3, 'e10.zone2.shot03.caption', 'e10.zone2.shot03.alt', 'e10.zone2.shot03.alt', [
+                line('herder', 'e10.zone2.shot03.line01', 'e10.zone2.shot03.line01', d.zh.shot03.line01, d.en.shot03.line01),
+                line('hero', 'e10.zone2.shot03.line02', 'e10.zone2.shot03.line02', d.zh.shot03.line02, d.en.shot03.line02),
+                line('herder', 'e10.zone2.shot03.line03', 'e10.zone2.shot03.line03', d.zh.shot03.line03, d.en.shot03.line03),
+                line('hero', 'e10.zone2.shot03.line04', 'e10.zone2.shot03.line04', d.zh.shot03.line04, d.en.shot03.line04),
+                line('herder', 'e10.zone2.shot03.line05', 'e10.zone2.shot03.line05', d.zh.shot03.line05, d.en.shot03.line05),
+            ], [ZONE2_AUDIO.sfx.slimeMovement, ZONE2_AUDIO.sfx.beeDistant]),
+            shot(4, 'e10.zone2.shot04.caption', 'e10.zone2.shot04.alt', 'e10.zone2.shot04.alt', [
+                line('hero', 'e10.zone2.shot04.line01', 'e10.zone2.shot04.line01', d.zh.shot04.line01, d.en.shot04.line01),
+                line('herder', 'e10.zone2.shot04.line02', 'e10.zone2.shot04.line02', d.zh.shot04.line02, d.en.shot04.line02),
+                line('herder', 'e10.zone2.shot04.line03', 'e10.zone2.shot04.line03', d.zh.shot04.line03, d.en.shot04.line03),
+                line('hero', 'e10.zone2.shot04.line04', 'e10.zone2.shot04.line04', d.zh.shot04.line04, d.en.shot04.line04),
+                line('herder', 'e10.zone2.shot04.line05', 'e10.zone2.shot04.line05', d.zh.shot04.line05, d.en.shot04.line05),
+            ], [ZONE2_AUDIO.sfx.beeDistant, ZONE2_AUDIO.sfx.beeClose]),
         ],
-        postClearTimeline: en ? [
-            phase(7, 'Shot 8: The Same Wound', 'The Swarm Lord falls, but the slimes do not cheer. The sickness was shared by the whole plain, and a hive-crystal fragment is left behind.', 'shot08', 'pulse', 'Placeholder: the fallen slime Lord leaves a hive-crystal fragment'),
-            phase(8, 'Shot 9: Not Our Enemy', 'They are not our enemies. We only encountered the same sickness.', 'shot09', 'journey', 'Placeholder: the hero stands with the frightened slimes after the trial'),
-            phase(9, 'Shot 10: Northeast Signal', 'The hive-crystal fragment pulses northeast, pointing toward the next wound and the road to the Goblin Caves.', 'shot10', 'journey', 'Placeholder: a hive-crystal fragment points northeast toward the next wound'),
-        ] : [
-            phase(7, '第 8 幕：同一場病', '史萊姆群領主倒下了，但史萊姆沒有歡呼。整片平原承受的是同一場病，地上只留下蜂巢水晶碎片。', 'shot08', 'pulse', '佔位圖：倒下的領主留下蜂巢水晶碎片'),
-            phase(8, '第 9 幕：牠們不是敵人', '牠們不是我們的敵人。我們只是，遇到了同一場病。', 'shot09', 'journey', '佔位圖：試煉後英雄與受驚的史萊姆站在一起'),
-            phase(9, '第 10 幕：指向東北方的訊號', '蜂巢水晶碎片朝東北方脈動，指向下一個傷口，也指向哥布林洞穴的道路。', 'shot10', 'journey', '佔位圖：蜂巢水晶碎片指向東北方的下一個傷口'),
+        bossReadyTimeline: [
+            shot(5, 'e10.zone2.shot05.caption', 'e10.zone2.shot05.alt', 'e10.zone2.shot05.alt', [], [ZONE2_AUDIO.sfx.beeClose, ZONE2_AUDIO.sfx.slimeMovement]),
+            shot(6, 'e10.zone2.shot06.caption', 'e10.zone2.shot06.alt', 'e10.zone2.shot06.alt', [], [ZONE2_AUDIO.sfx.lordEmergence, ZONE2_AUDIO.sfx.lordRumble]),
+            shot(7, 'e10.zone2.shot07.caption', 'e10.zone2.shot07.alt', 'e10.zone2.shot07.alt', [
+                line('hero', 'e10.zone2.shot07.line01', 'e10.zone2.shot07.line01', d.zh.shot07.line01, d.en.shot07.line01),
+                line('hero', 'e10.zone2.shot07.line02', 'e10.zone2.shot07.line02', d.zh.shot07.line02, d.en.shot07.line02),
+                line('hero', 'e10.zone2.shot07.line03', 'e10.zone2.shot07.line03', d.zh.shot07.line03, d.en.shot07.line03),
+            ], [ZONE2_AUDIO.sfx.lordMovement, ZONE2_AUDIO.sfx.lordRumble]),
+        ],
+        postClearTimeline: [
+            shot(8, 'e10.zone2.shot08.caption', 'e10.zone2.shot08.alt', 'e10.zone2.shot08.alt', [], [ZONE2_AUDIO.sfx.lordDefeat, ZONE2_AUDIO.sfx.crownImpact]),
+            shot(9, 'e10.zone2.shot09.caption', 'e10.zone2.shot09.alt', 'e10.zone2.shot09.alt', [
+                line('hero', 'e10.zone2.shot09.line01', 'e10.zone2.shot09.line01', d.zh.shot09.line01, d.en.shot09.line01),
+                line('hero', 'e10.zone2.shot09.line02', 'e10.zone2.shot09.line02', d.zh.shot09.line02, d.en.shot09.line02),
+            ]),
+            shot(10, 'e10.zone2.shot10.caption', 'e10.zone2.shot10.alt', 'e10.zone2.shot10.alt', [
+                line('hero', 'e10.zone2.shot10.line01', 'e10.zone2.shot10.line01', d.zh.shot10.line01, d.en.shot10.line01),
+            ], [ZONE2_AUDIO.sfx.routeReveal]),
         ],
         audioSlots: {
-            bgmMainTheme: '/assets/e10/audio/zone2/bgm/zone2_bgm_main_theme.mp3',
-            ambiencePlains: '/assets/e10/audio/zone2/ambience/zone2_ambience_slime_plains.mp3',
-            lordCardReveal: '/assets/e10/audio/zone2/lord_trial/zone2_lord_card_reveal.mp3',
-            challengeConfirm: '/assets/e10/audio/zone2/lord_trial/zone2_lord_challenge_confirm.mp3',
-            ritualEnergy: '/assets/e10/audio/zone2/lord_trial/zone2_lord_ritual_energy.mp3',
-            trialSuccess: '/assets/e10/audio/zone2/lord_trial/zone2_lord_trial_success.mp3',
-            trialFailure: '/assets/e10/audio/zone2/lord_trial/zone2_lord_trial_failure.mp3',
-            routeEnergy: '/assets/e10/audio/zone2/lord_trial/zone2_zone_route_energy.mp3',
-            unlockChime: '/assets/e10/audio/zone2/lord_trial/zone2_zone_unlock_chime.mp3',
-            ownerApprovalRequired: true,
-            ownerAudioPending: true,
+            bgmMainTheme: ZONE2_AUDIO.bgmDiscovery,
+            bgmBossReady: ZONE2_AUDIO.bgmEscalation,
+            bgmPostClear: ZONE2_AUDIO.bgmRecovery,
+            ambiencePlains: ZONE2_AUDIO.ambiencePlains,
+            ambienceHive: ZONE2_AUDIO.ambienceHive,
+            ambienceRecovery: ZONE2_AUDIO.ambienceRecovery,
+            lordCardReveal: ZONE2_AUDIO.sfx.lordEmergence,
+            challengeConfirm: ZONE2_AUDIO.sfx.lordMovement,
+            ritualEnergy: ZONE2_AUDIO.sfx.lordRumble,
+            stoneImpact: ZONE2_AUDIO.sfx.crownImpact,
+            trialSuccess: ZONE2_AUDIO.sfx.crownImpact,
+            trialFailure: ZONE2_AUDIO.sfx.lordRumble,
+            routeEnergy: ZONE2_AUDIO.sfx.routeReveal,
+            unlockChime: ZONE2_AUDIO.sfx.routeReveal,
+            ownerApprovalRequired: false,
+            ownerAudioPending: false,
         },
     };
 }
@@ -14770,7 +15223,6 @@ function skipIntroFilm() {
             _introAudio.onerror = null;
         } catch (e) {}
     }
-    _introAudio = null;
     _stopIntroBgm();
     _stopIntroAmbience();
     _stopIntroSfx();
@@ -14797,7 +15249,11 @@ function skipIntroFilm() {
     playBossSfx('start');
 }
 
-function replayIntroFilm() {
+async function replayIntroFilm() {
+    // This handler is intentionally the explicit user-gesture boundary for
+    // Safari/iPad media playback.  Prime the reusable voice/BGM/ambience/SFX
+    // elements before restarting the presentation-only replay.
+    await _unlockIntroAudioFromGesture();
     const zone = getCurrentIntroZone();
     if (!zone) return;
     _stopIntroFilm();
@@ -14872,6 +15328,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             : Math.max(4200, t.length * 210);
     }
     function playAssetVoice(beat, onDone) {
+        const shouldDuckZone2Bgm = zone?.key === 'k21_25';
         const finishSilently = () => {
             const holdMs = computeBeatHoldMs(beat.text);
             const id = setTimeout(() => {
@@ -14898,7 +15355,10 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onerror = null;
         } catch (e) {}
         audio.preload = 'auto';
+        audio.playsInline = true;
         audio.src = beat.audioSrc;
+        audio.muted = false;
+        audio.volume = 1;
         let finished = false;
         const finishSuccess = (delay = 520) => {
             if (finished || runId !== _introFilmRunId) return;
@@ -14906,6 +15366,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
+            if (shouldDuckZone2Bgm) _setIntroBgmDucked(false);
             const id = setTimeout(onDone, delay);
             _introFilmTimers.push(id);
         };
@@ -14916,18 +15377,53 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // narration assets were unavailable (see 2026-07-14 incident).
         // Keep the beat's current visual composition and subtitle on screen
         // for its computed hold duration, then advance exactly once.
-        const finishAudioSilently = () => {
+        const finishAudioSilently = (reason = 'media_error_or_rejected') => {
             if (finished || runId !== _introFilmRunId) return;
             finished = true;
+            _logIntroAudio('AUDIO_PLAY_REJECTED', {
+                shot: activeShotNumber,
+                locale: _introLocaleCode(locale.uiLang),
+                voiceFile: beat.audioSrc,
+                reason,
+            });
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
+            if (shouldDuckZone2Bgm) _setIntroBgmDucked(false);
             finishSilently();
         };
-        audio.onended = () => finishSuccess(720);
-        audio.onerror = finishAudioSilently;
-        audio.play().catch(finishAudioSilently);
+        if (shouldDuckZone2Bgm) _setIntroBgmDucked(true);
+        audio.onended = () => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', {
+                shot: activeShotNumber,
+                locale: _introLocaleCode(locale.uiLang),
+                voiceFile: beat.audioSrc,
+                reason: 'voice_ended',
+            });
+            finishSuccess(720);
+        };
+        audio.onerror = () => finishAudioSilently('media_error');
+        _logIntroAudio('AUDIO_PLAY_ATTEMPT', {
+            shot: activeShotNumber,
+            locale: _introLocaleCode(locale.uiLang),
+            voiceFile: beat.audioSrc,
+            reason: _introAudioUnlocked ? 'voice_reuse_after_gesture_unlock' : 'voice_run_start',
+        });
+        try {
+            const playResult = audio.play();
+            Promise.resolve(playResult).then(() => {
+                _logIntroAudio('AUDIO_PLAY_RESOLVED', {
+                    shot: activeShotNumber,
+                    locale: _introLocaleCode(locale.uiLang),
+                    voiceFile: beat.audioSrc,
+                    reason: 'voice_play_started',
+                });
+            }).catch(error => finishAudioSilently(String(error)));
+        } catch (error) {
+            finishAudioSilently(String(error));
+        }
     }
+    let activeShotNumber = null;
     function playBrowserVoice(beat, onDone) {
         const fallbackMs = computeBeatHoldMs(beat.text);
         if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
@@ -14993,6 +15489,12 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
     function activateShot(shotIndex) {
         if (runId !== _introFilmRunId) return;
         const item = timeline[shotIndex];
+        // Clear the previous beat before a new shot paints.  This matters for
+        // intentional silent shots (for example Zone 1 POST_CLEAR Shot 9):
+        // without an eager clear, a subtitle from the preceding shot can
+        // remain visible during the silent visual hold.
+        const shotLine = document.getElementById('boss-cinematic-line');
+        if (item && shotLine) shotLine.textContent = '';
         if (!item) {
             // Cinematic sequence complete (either PRE_PLAY's own end or
             // POST_CLEAR's, via opts.onComplete) -- decorative BGM/ambience
@@ -15009,22 +15511,50 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             playBossSfx('start');
             return;
         }
+        activeShotNumber = Number(item.shot) + 1;
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
-        // Main theme + ambience start fresh at the first shot of ANY
-        // non-POST_CLEAR playback session -- both ZONE_ENTRY (Shots 1-6,
-        // phase 'pre_play') and BOSS_READY (Shots 7-8, phase 'boss_ready')
-        // are separate cinematic sessions (often far apart in real time) so
-        // each restarts its own BGM/ambience at its own first shot, rather
-        // than trying to literally continue audio across sessions. Never
-        // for POST_CLEAR: Shot 9 (its first shot) is deliberately silent.
-        if (shotIndex === 0 && phase !== 'post_clear') {
-            _startIntroBgm(locale.bgmMainTheme);
-            _startIntroAmbience(locale.ambienceVillageDawn);
+        // Each cinematic phase is its own audio session.  Zone 2 uses the
+        // Owner-locked A3/B3/C3 cues; Zone 1 keeps its historical fallback
+        // fields and therefore remains byte/behavior compatible.
+        if (shotIndex === 0) {
+            const phaseBgm = phase === 'boss_ready'
+                ? (locale.bgmBossReady || locale.bgmMainTheme)
+                : phase === 'post_clear'
+                    ? (locale.bgmPostClear || locale.bgmPostClearUrgency)
+                    : locale.bgmMainTheme;
+            const phaseAmbience = phase === 'boss_ready'
+                ? (locale.ambienceBossReady || locale.ambienceVillageDawn)
+                : phase === 'post_clear'
+                    ? (locale.ambiencePostClear || locale.ambienceVillageDawn)
+                    : locale.ambienceVillageDawn;
+            // Historical Zone 1 POST_CLEAR intentionally starts no bed on
+            // its first shot; its short urgency cue begins on the final
+            // shot below.  Only a phase with an explicit post-clear package
+            // (Zone 2's locked C3/recovery pair) starts audio at shot zero.
+            const startPostClearBgm = phase !== 'post_clear' || Boolean(locale.bgmPostClear);
+            const startPostClearAmbience = phase !== 'post_clear' || Boolean(locale.ambiencePostClear);
+            if (startPostClearBgm && phaseBgm) _startIntroBgm(phaseBgm, { loop: true, volume: 0.35 });
+            if (startPostClearAmbience && phaseAmbience) _startIntroAmbience(phaseAmbience);
         }
-        if (item.shot === 9) {
+        // Legacy Zone 1 starts its short urgency cue on its final post-clear
+        // shot.  Zone 2 has an explicit locked recovery BGM and must not
+        // replace it with the Zone 1 cue.
+        if (item.shot === 9 && phase === 'post_clear' && !locale.bgmPostClear) {
             _startIntroBgm(locale.bgmPostClearUrgency, { loop: false, volume: 0.4 });
         }
-        if (item.sfxCue) _playIntroSfxAsset(item.sfxCue);
+        const sfxCues = (Array.isArray(item.sfxCues)
+            ? item.sfxCues
+            : (item.sfxCue ? [item.sfxCue] : [])).filter(Boolean);
+        // One-shot SFX share a guarded audio slot.  When a shot has more
+        // than one approved cue, stagger them instead of starting all of
+        // them in the same tick (the later cue would otherwise cancel the
+        // earlier one).
+        sfxCues.forEach((cue, cueIndex) => {
+            const cueTimer = setTimeout(() => {
+                if (runId === _introFilmRunId) _playIntroSfxAsset(cue);
+            }, cueIndex * 760);
+            _introFilmTimers.push(cueTimer);
+        });
         // item.caption is the persistent scene-label badge for the whole
         // shot (set once here); the dialogue subtitle line is set per-beat
         // below, not here -- a shot's caption and its spoken content are
@@ -15423,8 +15953,8 @@ function showZone1UnlockReveal(zone) {
 
 // Zone 2's route reveal deliberately uses only the already-rendered,
 // server-authoritative map state. No unlock or cinematic state is written by
-// this presentation helper, and no Zone 1 audio bytes are reused while the
-// Zone 2 audio package is still awaiting Owner audition.
+// this presentation helper. Its one-shot cue is presentation audio only;
+// the server-derived `nextZone.unlocked` check remains the gate.
 function showZone2UnlockReveal(zone) {
     if (zone?.key !== 'k21_25') return;
     const stats = _adventureZoneStats();
@@ -15441,6 +15971,7 @@ function showZone2UnlockReveal(zone) {
     _stopZoneUnlockRevealAudio();
     _cleanupZoneUnlockReveal();
     mapSection?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    _playIntroSfxAsset(ZONE2_AUDIO.sfx.routeReveal, { volume: 0.78 });
     const midX = (fromZone.x + nextZone.x) / 2;
     const midY = (fromZone.y + nextZone.y) / 2;
     const prevTransition = mapShell.style.transition;
@@ -15711,7 +16242,7 @@ function showZone1LordChallengeCard(zone) {
 
 // Zone 2's explicit Lord Card keeps the same server-derived eligibility and
 // player-confirmed ritual boundary as Zone 1, while preserving the Swarm
-// Lord's slime authority and leaving Owner-auditioned Zone 2 audio pending.
+// Lord's slime authority and using only the Owner-locked Zone 2 audio pack.
 function showZone2LordChallengeCard(zone) {
     _pendingBossZone = zone;
     _stopIntroFilm();
@@ -15735,35 +16266,28 @@ function showZone2LordChallengeCard(zone) {
     overlay.className = 'boss-cinematic show phase-lord-card';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
-    if (kicker) kicker.textContent = isEn ? 'Lord Trial' : '領主試煉';
+    if (kicker) kicker.textContent = _zone2I18n('e10.zone2.lord.kicker');
     if (monster) monster.textContent = ADVENTURE_STORY[zone.key]?.avatar || '🟢';
-    title.textContent = isEn ? 'Slime Plains · Swarm Lord' : '史萊姆平原・史萊姆群領主';
-    if (books) books.textContent = isEn
-        ? `Historical mastery ${Math.round(Number(zone.pct) || 0)}% ✓`
-        : `正確答題修行進度 ${Math.round(Number(zone.pct) || 0)}% ✓`;
-    if (line) line.textContent = isEn
-        ? 'Defeat the Swarm Lord to heal the plains and earn the zone star.'
-        : '擊敗史萊姆群領主，讓平原恢復平衡並取得本區星星。';
+    title.textContent = _zone2I18n('e10.zone2.lord.title');
+    if (books) books.textContent = _zone2Format('e10.zone2.lord.mastery', { pct: Math.round(Number(zone.pct) || 0) });
+    if (line) line.textContent = _zone2I18n('e10.zone2.lord.reward');
     if (rules) {
         const total = zone.boss_exam_size || 20;
         const pass = zone.boss_pass_score || 16;
         const cooldown = zone.cooldown_required || 30;
-        rules.innerHTML = isEn
-            ? `<span>Answer ${pass} of ${total} correctly to pass</span><span>Failure: train ${cooldown} more questions before retry</span>`
-            : `<span>${total} 題中答對 ${pass} 題即可通過</span><span>失敗後再答對 ${cooldown} 題才能重試</span>`;
+        rules.innerHTML = `<span>${_zone2Format('e10.zone2.lord.rule_pass', { pass, total })}</span><span>${_zone2Format('e10.zone2.lord.rule_retry', { cooldown })}</span>`;
     }
     if (progress) progress.style.display = '';
-    if (progressBody) progressBody.textContent = isEn
-        ? 'The slimes are frightened, and the hive is only the wound. Are you ready?'
-        : '史萊姆在害怕；蜂巢只是傷口。準備好接受挑戰了嗎？';
+    if (progressBody) progressBody.textContent = _zone2I18n('e10.zone2.lord.prompt');
     if (cancelBtn) {
-        cancelBtn.textContent = isEn ? 'Continue Training' : '繼續修行';
+        cancelBtn.textContent = _zone2I18n('e10.zone2.lord.continue');
         cancelBtn.onclick = cancelBossCinematic;
         cancelBtn.disabled = false;
     }
-    btn.textContent = isEn ? 'Start Challenge' : '開始挑戰';
+    btn.textContent = _zone2I18n('e10.zone2.lord.start');
     btn.disabled = false;
     btn.onclick = () => startZone2LordRitual(zone);
+    _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordEmergence, { volume: 0.8 });
     return true;
 }
 
@@ -15774,19 +16298,23 @@ function startZone2LordRitual(zone) {
     const btn = document.getElementById('boss-cinematic-btn');
     const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
     if (!overlay || !zone || zone.key !== 'k21_25') return;
+    _stopIntroFilm();
     overlay.className = 'boss-cinematic show phase-lord-ritual';
     if (btn) btn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
-    const isEn = getCurrentUiLang() === 'en';
-    if (title) title.textContent = isEn ? 'Swarm Lord Trial' : '史萊姆群領主試煉';
-    if (line) line.textContent = isEn ? 'Read the board. Then make your move.' : '看清楚，再落子。';
+    if (title) title.textContent = _zone2I18n('e10.zone2.ritual.title');
+    if (line) line.textContent = _zone2I18n('e10.zone2.ritual.line');
     _spawnLordRitualStones();
     _spawnLordRitualParticles();
     const finalStoneEl = document.getElementById('lord-ritual-final-stone');
     if (finalStoneEl) finalStoneEl.innerHTML = '';
+    _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordMovement, { volume: 0.75 });
+    _startIntroAmbience(ZONE2_AUDIO.sfx.lordRumble, { loop: false, volume: 0.28 });
     const ritualTimers = [
         setTimeout(() => {
             _spawnLordRitualFinalStone();
+            _stopIntroAmbience();
+            _playIntroSfxAsset(ZONE2_AUDIO.sfx.crownImpact, { volume: 0.88 });
         }, 2600),
         setTimeout(() => { _startBossBattleNow(zone); }, 3000),
     ];
@@ -16191,40 +16719,33 @@ function showZone2LordResultCard(result, zone) {
     const rules = document.getElementById('boss-cinematic-rules');
     const btn = document.getElementById('boss-cinematic-btn');
     if (!overlay || !title || !btn || !zone) return;
-    const isEn = getCurrentUiLang() === 'en';
     overlay.className = `boss-cinematic show ${result.passed ? 'result-zone2-win' : 'result-zone2-fail'}`;
     overlay.setAttribute('aria-hidden', 'false');
     if (monster) monster.textContent = ADVENTURE_STORY[zone.key]?.avatar || '🟢';
     if (result.passed) {
-        if (title) title.textContent = isEn ? 'Slime Plains Cleared' : '史萊姆平原清關';
-        if (books) books.textContent = isEn
-            ? `You answered ${result.correct} of ${result.total} correctly.`
-            : `本次答對 ${result.correct} / ${result.total} 題。`;
-        if (line) line.textContent = isEn
-            ? 'The slimes are not our enemies. We met the same sickness.'
-            : '牠們不是我們的敵人。我們只是，遇到了同一場病。';
+        if (title) title.textContent = _zone2I18n('e10.zone2.result.win.title');
+        if (books) books.textContent = _zone2Format('e10.zone2.result.win.score', { correct: result.correct, total: result.total });
+        if (line) line.textContent = _zone2I18n('e10.zone2.result.win.line');
         if (rules) rules.innerHTML = '';
         btn.disabled = false;
-        btn.textContent = isEn ? 'Continue' : '繼續';
+        btn.textContent = _zone2I18n('e10.zone2.result.continue');
         btn.onclick = () => {
             hideBossCinematic();
             setTimeout(() => _triggerZone2PostClearFromBossWin(zone), 400);
         };
+        _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordDefeat, { volume: 0.85 });
     } else {
-        if (title) title.textContent = isEn ? 'Trial Failed' : '領主試煉失敗';
-        if (books) books.textContent = isEn ? 'The earned progress remains.' : '已累積的正確進度會保留。';
-        if (line) line.textContent = isEn
-            ? 'Train again, then challenge the Swarm Lord when the cooldown ends.'
-            : '保留進度，冷卻結束後可以再次挑戰史萊姆群領主。';
-        if (rules) rules.innerHTML = isEn
-            ? `<span>Train ${result.cooldown} more questions before retrying</span><span>Zone 3 stays locked until a Lord victory</span>`
-            : `<span>再答對 ${result.cooldown} 題後即可重試</span><span>打贏領主前不會解鎖 Zone 3</span>`;
+        if (title) title.textContent = _zone2I18n('e10.zone2.result.fail.title');
+        if (books) books.textContent = _zone2I18n('e10.zone2.result.fail.progress');
+        if (line) line.textContent = _zone2I18n('e10.zone2.result.fail.line');
+        if (rules) rules.innerHTML = `<span>${_zone2Format('e10.zone2.result.fail.retry', { cooldown: result.cooldown })}</span><span>${_zone2I18n('e10.zone2.result.fail.lock')}</span>`;
         btn.disabled = false;
-        btn.textContent = isEn ? 'Go Train' : '去修行';
+        btn.textContent = _zone2I18n('e10.zone2.result.go_train');
         btn.onclick = () => {
             hideBossCinematic();
             window.location.href = firstQuestionHref(zone);
         };
+        _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordRumble, { volume: 0.7 });
     }
 }
 

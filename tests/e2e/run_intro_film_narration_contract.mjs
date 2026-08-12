@@ -12,13 +12,12 @@
  * Zone fixture note (E10-Z1-PROD-INTEGRATION-001): tests A-F/H exercise the
  * SHARED engine's generic success/failure/replay pacing behavior and were
  * originally written against zone k26_30 back when it was a placeholder
- * 4-shot timeline with audioSrc on every shot. k26_30 is now the canonical
- * Zone 1 bilingual cinematic (10 shots, intentionally zero audioSrc until
- * real narration is recorded -- see getIntroFilmLocaleConfig in index.html),
- * so these generic-engine tests were retargeted to k21_25 (unchanged, still
- * a 4-shot/all-audioSrc zone) to keep testing the same engine mechanics
- * without coupling them to Zone 1's content shape. Test J below covers Zone
- * 1's own contract (10 shots, silence shots, zero TTS/audio calls) directly.
+ * 4-shot timeline with audioSrc on every shot. The production zones now use
+ * their real 10-shot bilingual timelines (including intentional silent
+ * shots), so the generic engine tests inject this deterministic 4-shot
+ * fixture instead of coupling pacing assertions to a content timeline.
+ * Test J below covers Zone 1's own contract (10 shots, silence shots, zero
+ * TTS/audio calls) directly.
  *
  * Exits non-zero with a printed failure list on any assertion failure.
  */
@@ -125,9 +124,18 @@ const FAKE_INIT_SCRIPT = `
   }
   window.Audio = FakeAudio;
   window.__finishNextSuccessAudio = function () {
-    const a = window.__pendingSuccessAudio.shift();
-    if (a && a.onended) a.onended();
-    return !!a;
+    let a;
+    while ((a = window.__pendingSuccessAudio.shift())) {
+      // BGM/ambience/SFX fakes are intentionally allowed to share the
+      // queue, but only the narration element has an onended callback that
+      // advances the cinematic.  Consume decorative beds without letting
+      // them steal a deterministic narration step.
+      if (a.onended) {
+        a.onended();
+        return true;
+      }
+    }
+    return false;
   };
 
   window.__fakeTimers = [];
@@ -199,8 +207,17 @@ async function withFreshPage(browser, origin, fn) {
   }
 }
 
-async function runFilm(page, zoneKey, mode = null) {
-  await page.evaluate(({ key, playMode }) => {
+const GENERIC_AUDIO_TIMELINE = [0, 1, 2, 3].map((shot) => ({
+  shot,
+  caption: `Generic shot ${shot + 1}`,
+  text: `Generic narration ${shot + 1}`,
+  audioSrc: `/tests/e2e/fixtures/generic-narration-${shot + 1}.mp3`,
+  imageSrc: `/assets/storyboards/e10_z2_shot0${shot + 1}.webp`,
+  imageAlt: `Generic narration shot ${shot + 1}`
+}));
+
+async function runFilm(page, zoneKey, mode = null, timeline = null) {
+  await page.evaluate(({ key, playMode, timeline }) => {
     window.__filmDone = false;
     // Mirror what showStageIntroCinematic does in production: stamp the
     // active zone onto the overlay so getCurrentIntroZone() (used by
@@ -208,9 +225,9 @@ async function runFilm(page, zoneKey, mode = null) {
     // test, instead of silently falling back to ADVENTURE_ZONES[0].
     const overlay = document.getElementById('boss-cinematic');
     if (overlay) overlay.dataset.zoneKey = key;
-    const opts = playMode ? { mode: playMode } : undefined;
+    const opts = { ...(playMode ? { mode: playMode } : {}), ...(timeline ? { timeline } : {}) };
     playNewbieVillageIntroFilm({ key }, opts).then(() => { window.__filmDone = true; });
-  }, { key: zoneKey, playMode: mode });
+  }, { key: zoneKey, playMode: mode, timeline });
 }
 
 async function main() {
@@ -222,7 +239,7 @@ async function main() {
     await test('A: successful MP3 narration advances shots without TTS', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'success'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         // drive all 4 shots to completion via onended
         for (let i = 0; i < 4; i++) {
           const advanced = await page.evaluate(() => window.__finishNextSuccessAudio());
@@ -240,7 +257,7 @@ async function main() {
     await test('B: audio.onerror holds the shot silently instead of finish(0)', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         // let the microtask-queued onerror fire
         await page.waitForTimeout(20);
         const delaysAfterError = await page.evaluate(() => window.__pendingTimerDelays());
@@ -265,7 +282,7 @@ async function main() {
         const pageErrors = [];
         page.on('pageerror', (e) => pageErrors.push(String(e)));
         await page.evaluate(() => { window.__audioMode = 'reject'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         await page.waitForTimeout(20);
         const delays = await page.evaluate(() => window.__pendingTimerDelays());
         if (!delays.some((d) => d >= 4000)) throw new Error(`expected silent-hold timer after play() rejection, got ${JSON.stringify(delays)}`);
@@ -277,7 +294,7 @@ async function main() {
     await test('D: four consecutive failures still show all shots with holds, complete once', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         const seenShots = [];
         for (let i = 0; i < 4; i++) {
           await page.waitForTimeout(5); // let onerror microtask fire
@@ -303,7 +320,7 @@ async function main() {
     await test('E: onended firing after onerror does not double-advance', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         await page.waitForTimeout(20);
         // simulate a stale onended firing on the same (already-failed) audio instance
         await page.evaluate(() => {
@@ -328,14 +345,19 @@ async function main() {
     await test('F: replay cancels pending silent-hold timer from previous run', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         await page.waitForTimeout(20);
         const delaysBeforeReplay = await page.evaluate(() => window.__pendingTimerDelays());
         if (!delaysBeforeReplay.some((d) => d >= 4000)) throw new Error(`expected a pending >=4000ms silent-hold timer before replay, got ${JSON.stringify(delaysBeforeReplay)}`);
-        // replayIntroFilm() calls _stopIntroFilm() which must clear that stale hold timer
-        // (a fresh run legitimately schedules its OWN new short timers, e.g. the shot-0
-        // 'grub' sfx cue at 620ms -- we only assert the stale >=4000ms one is gone).
-        await page.evaluate(() => { window.__audioMode = 'success'; replayIntroFilm(); });
+        // Replaying through the same sequencer after _stopIntroFilm() must
+        // clear that stale hold timer.  Inject the deterministic fixture into
+        // the fresh run so a real Zone 2 silent shot cannot be mistaken for
+        // the stale callback this test is targeting.
+        await page.evaluate((timeline) => {
+          window.__audioMode = 'success';
+          _stopIntroFilm();
+          playNewbieVillageIntroFilm({ key: 'k21_25' }, { timeline, mode: 'manual_replay' });
+        }, GENERIC_AUDIO_TIMELINE);
         const delaysAfterReplay = await page.evaluate(() => window.__pendingTimerDelays());
         if (delaysAfterReplay.some((d) => d >= 4000)) throw new Error(`stale silent-hold timer survived replay: ${JSON.stringify(delaysAfterReplay)}`);
       });
@@ -345,7 +367,7 @@ async function main() {
     await test('H: narration failure path never calls playBrowserVoice/speechSynthesis', async () => {
       await withFreshPage(browser, origin, async (page) => {
         await page.evaluate(() => { window.__audioMode = 'error'; });
-        await runFilm(page, 'k21_25');
+        await runFilm(page, 'k21_25', null, GENERIC_AUDIO_TIMELINE);
         for (let i = 0; i < 4; i++) {
           await page.waitForTimeout(5);
           await page.evaluate(() => window.__flushFakeTimers());
