@@ -111,6 +111,43 @@ socketio = SocketIO(app, cors_allowed_origins='*', async_mode=_socketio_async_mo
 app.register_blueprint(grimoire_bp)
 _startup_diagnostics.mark('application_creation', 'success')
 
+_ACCEPTANCE_SOURCE_SHA_PATTERN = re.compile(r'^[0-9a-f]{40}$')
+
+def _acceptance_mode():
+    """Return True only for the explicitly isolated LAN acceptance profile."""
+    return os.environ.get('GO_ODYSSEY_ACCEPTANCE_MODE', '').strip().lower() in {
+        '1', 'true', 'yes', 'on'
+    }
+
+
+def _acceptance_source_sha():
+    value = os.environ.get('APP_GIT_SHA', '').strip().lower()
+    return value if _ACCEPTANCE_SOURCE_SHA_PATTERN.fullmatch(value) else ''
+
+
+@app.route('/api/acceptance/identity')
+def acceptance_identity():
+    """Expose bounded source/profile identity for non-Production acceptance only."""
+    if not _acceptance_mode():
+        return jsonify({'ok': False, 'reason': 'not_acceptance_profile'}), 404
+    runtime_sha = _acceptance_source_sha()
+    expected_sha = os.environ.get('GO_ODYSSEY_ACCEPTANCE_SOURCE_SHA', '').strip().lower()
+    expected_sha = expected_sha if _ACCEPTANCE_SOURCE_SHA_PATTERN.fullmatch(expected_sha) else ''
+    source_sha_match = bool(runtime_sha and expected_sha and runtime_sha == expected_sha)
+    return jsonify({
+        'ok': source_sha_match,
+        'environment': 'NON-PRODUCTION ACCEPTANCE',
+        'environment_id': 'go-odyssey-local-lan-acceptance-v1',
+        'source_sha': runtime_sha,
+        'expected_source_sha': expected_sha,
+        'source_sha_match': source_sha_match,
+        'production': False,
+        'production_publish_available': False,
+        'canonical_mutation': False,
+        'production_mutation': False,
+        'content_path': os.environ.get('QUESTIONS_JSON_PATH', 'questions.json'),
+    })
+
 @app.route('/healthz')
 def healthz():
     _startup_diagnostics.mark_ready('healthz_readiness')
@@ -391,6 +428,10 @@ def add_no_cache_headers(response):
     """自訂 JS 短暫快取；HTML 讓瀏覽器必須 revalidate（304 機制）。"""
     ct = response.content_type or ''
     path = request.path or ''
+    if _acceptance_mode():
+        response.headers['X-Go-Odyssey-Environment'] = 'NON-PRODUCTION-ACCEPTANCE'
+        response.headers['X-Go-Odyssey-Source-SHA'] = _acceptance_source_sha() or 'unverified'
+        response.headers['X-Go-Odyssey-Production-Publish'] = 'disabled'
     if path.startswith('/api/'):
         response.headers['Cache-Control'] = 'private, no-store'
         response.headers['Pragma'] = 'no-cache'
@@ -419,6 +460,20 @@ def add_no_cache_headers(response):
     elif 'text/html' in ct:
         # HTML：允許快取但必須 revalidate（304 走快取，變更後才重下載）
         response.headers['Cache-Control'] = 'no-cache'
+        if _acceptance_mode() and response.status_code == 200:
+            if getattr(response, 'direct_passthrough', False):
+                response.direct_passthrough = False
+            body = response.get_data(as_text=True)
+            if 'go-odyssey-acceptance-banner' not in body and '</body>' in body:
+                short_sha = _acceptance_source_sha()[:12] or 'unverified'
+                banner = (
+                    '<div id="go-odyssey-acceptance-banner" '
+                    'style="position:fixed;z-index:2147483647;left:0;right:0;bottom:0;'
+                    'padding:6px 10px;background:#17324d;color:#fff;font:600 12px/1.3 sans-serif;'
+                    'text-align:center;letter-spacing:.02em;pointer-events:none">'
+                    f'NON-PRODUCTION ACCEPTANCE · {short_sha}</div>'
+                )
+                response.set_data(body.replace('</body>', banner + '</body>', 1))
     return response
 
 DATA_FILE = os.environ.get('QUESTIONS_JSON_PATH', 'questions.json')

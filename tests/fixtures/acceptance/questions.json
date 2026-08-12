@@ -1,0 +1,50 @@
+[
+  {
+    "id": 900001,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B](;B[dd]))",
+    "source": "acceptance-fixture/q900001.sgf",
+    "display_name": "Acceptance question 900001",
+    "topic": "life_death",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [{"x": 3, "y": 3}],
+    "solution_state": "open"
+  },
+  {
+    "id": 900002,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B](;B[pd]))",
+    "source": "acceptance-fixture/q900002.sgf",
+    "display_name": "Acceptance question 900002",
+    "topic": "life_death",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [{"x": 15, "y": 3}],
+    "solution_state": "open"
+  },
+  {
+    "id": 900003,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B](;B[qq]))",
+    "source": "acceptance-fixture/q900003.sgf",
+    "display_name": "Acceptance question 900003",
+    "topic": "life_death",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [{"x": 16, "y": 16}],
+    "solution_state": "open"
+  }
+]
