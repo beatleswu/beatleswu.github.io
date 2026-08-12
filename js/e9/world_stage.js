@@ -294,6 +294,18 @@
     return !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
   }
 
+  function usesInlinePlayerMarkerSurface() {
+    if (!window.matchMedia) return false;
+    var mobile = window.matchMedia('(max-width: 767px)').matches;
+    var tabletPortrait = window.matchMedia(
+      '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
+    ).matches;
+    var touchSurface = window.matchMedia('(pointer: coarse)').matches
+      || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+    var tabletPortraitViewport = typeof window.innerHeight === 'number' && window.innerHeight >= 960;
+    return mobile || (tabletPortrait && (touchSurface || tabletPortraitViewport));
+  }
+
   function updateRouteProgress(root, zones) {
     if (!VS1E_STATIC_CONTRACT_ACTIVE || !zones.length) return;
     var completed = zones.filter(function (zone) {
@@ -517,7 +529,7 @@
       syncPlayerMarkerPresentation(root, null);
       return;
     }
-    if (usesLandmarkCards()) {
+    if (usesInlinePlayerMarkerSurface()) {
       marker.hidden = false;
       var currentTile = root.querySelector('[data-zone="' + zone.key + '"]');
       if (currentTile) {

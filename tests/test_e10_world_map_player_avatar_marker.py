@@ -80,6 +80,14 @@ def test_exactly_one_marker_host_moves_between_responsive_surfaces():
     assert WORLD.count("function reconcilePlayerNodeMarker(") == 1
     assert "markerHosts.slice(1).forEach(function (duplicate) { duplicate.remove(); });" in reconcile
     assert "restorePlayerMarkerHost(root, mapStage);" in reconcile
+    assert "function usesInlinePlayerMarkerSurface()" in WORLD
+    inline_surface = _function_body(WORLD, "usesInlinePlayerMarkerSurface")
+    assert "(max-width: 767px)" in inline_surface
+    assert "(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)" in inline_surface
+    assert "(pointer: coarse)" in inline_surface
+    assert "navigator.maxTouchPoints" in inline_surface
+    assert "window.innerHeight >= 960" in inline_surface
+    assert "if (usesInlinePlayerMarkerSurface())" in reconcile
     assert "var mobileHero = marker;" in reconcile
     assert "document.createElement('span')" not in reconcile
     assert "mobileHero.style.pointerEvents = 'none';" in reconcile

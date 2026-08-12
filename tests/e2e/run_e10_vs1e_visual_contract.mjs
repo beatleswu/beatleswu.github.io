@@ -716,6 +716,8 @@ async function runtimeSnapshot(page) {
         challengeTargetZoneKey: worldState.challengeTargetZoneKey || null,
       },
       visibleHeroCount: markerElements.filter(isVisible).length,
+      playerMarkerParentZone: marker?.parentElement?.getAttribute('data-zone') || null,
+      playerMarkerParentId: marker?.parentElement?.id || null,
       landmarkRequestCount: performance.getEntriesByType('resource')
         .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/')).length,
       landmarkRequestUrls: [...new Set(performance.getEntriesByType('resource')
@@ -1331,6 +1333,23 @@ function assertCase(result) {
   if (snapshot.playerMarkerPointerEvents !== 'none') {
     failures.push(`${specName}: player marker intercepts pointer input (${snapshot.playerMarkerPointerEvents})`);
   }
+  const portraitInlineSurface = result.viewport.width < 768
+    || (result.viewport.width >= 768 && result.viewport.width <= 1279
+      && result.viewport.height > result.viewport.width
+      && (result.hasTouch === true || result.viewport.height >= 960));
+  const expectedMarkerParent = portraitInlineSurface
+    ? snapshot.zoneIdentities.currentPlayerZoneKey
+    : 'e9-map-stage';
+  const markerParentMatches = portraitInlineSurface
+    ? snapshot.playerMarkerParentZone === expectedMarkerParent
+    : snapshot.playerMarkerParentId === expectedMarkerParent;
+  if (!markerParentMatches) {
+    failures.push(`${specName}: player marker surface ${JSON.stringify({
+      parentZone: snapshot.playerMarkerParentZone,
+      parentId: snapshot.playerMarkerParentId,
+      expected: expectedMarkerParent,
+    })}`);
+  }
   const landscapeContract = result.viewport.width >= 768 && result.viewport.width > result.viewport.height;
   if (landscapeContract) {
     const plaque = snapshot.plaqueLayout;
@@ -1869,6 +1888,8 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       playerMarkerPresentation: player?.getAttribute('data-player-avatar-presentation') || null,
       visibleHeroCount: markerElements.filter(isVisibleMarker).length,
       playerMarkerPointerEvents: visibleMarker ? getComputedStyle(visibleMarker).pointerEvents : null,
+      playerMarkerParentZone: visibleMarker?.parentElement?.getAttribute('data-zone') || null,
+      playerMarkerParentId: visibleMarker?.parentElement?.id || null,
       inlineTargetZoneKey: document.querySelector('.e9-zone__inline-cta')?.getAttribute('data-challenge-target-zone') || null,
       interactionGeometry: {
         viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -2101,6 +2122,21 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       presentation: selected.playerMarkerPresentation,
       visible: selected.visibleHeroCount,
       pointerEvents: selected.playerMarkerPointerEvents,
+    })}`);
+  }
+  const portraitInlineSurface = spec.viewport.width < 768
+    || (spec.viewport.width >= 768 && spec.viewport.width <= 1279
+      && spec.viewport.height > spec.viewport.width
+      && (spec.hasTouch === true || spec.viewport.height >= 960));
+  const expectedMarkerParent = portraitInlineSurface ? selected.currentZoneKey : 'e9-map-stage';
+  const markerParentMatches = portraitInlineSurface
+    ? selected.playerMarkerParentZone === expectedMarkerParent
+    : selected.playerMarkerParentId === expectedMarkerParent;
+  if (!markerParentMatches) {
+    failures.push(`${spec.name}: player marker was not on the expected responsive surface ${JSON.stringify({
+      parentZone: selected.playerMarkerParentZone,
+      parentId: selected.playerMarkerParentId,
+      expected: expectedMarkerParent,
     })}`);
   }
   if (spec.portrait && spec.playable && (!selected.ctaVisible || selected.ctaDisabled || selected.ctaHit !== 'e9-world-stage-details-cta')) {
