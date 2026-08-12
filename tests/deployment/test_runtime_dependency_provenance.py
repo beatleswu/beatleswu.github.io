@@ -82,6 +82,29 @@ def _run_git(repo_root, *arguments):
     )
 
 
+def _provenance_ref(entry, repo_root, fallback="origin/master"):
+    """Resolve a candidate-local provenance ref, falling back to canonical master.
+
+    Workflow V2 keeps runtime provenance in the same implementation PR.  A
+    source commit from that PR is not an ancestor of origin/master until the
+    Owner merge, so the manifest's explicit local ref is authoritative while
+    the branch exists.  Historical entries continue to use origin/master (or
+    fall back to it when their old branch label is no longer present).
+    """
+    label = entry.get("source_branch_or_local_ref")
+    # Canonical/remote labels keep the caller-supplied ref semantics. Only a
+    # feature-branch/local label opts into same-PR validation.
+    if isinstance(label, str) and label.strip() and not label.startswith("origin/"):
+        candidate = subprocess.run(
+            ["git", "rev-parse", "--verify", f"{label}^{{commit}}"],
+            cwd=repo_root,
+            capture_output=True,
+        )
+        if candidate.returncode == 0:
+            return label
+    return fallback
+
+
 def _assert_normalized_manifest_path(path):
     assert isinstance(path, str) and path, "provenance path must be nonblank"
     assert SAFE_PATH_RE.fullmatch(path), f"unsafe or malformed provenance path: {path!r}"
@@ -108,7 +131,7 @@ def _assert_provenance_entry(entry, repo_root=REPO_ROOT, master_ref="origin/mast
     commit = entry["source_commit"]
     path = entry["path"]
     _run_git(repo_root, "cat-file", "-e", f"{commit}^{{commit}}")
-    _run_git(repo_root, "merge-base", "--is-ancestor", commit, master_ref)
+    _run_git(repo_root, "merge-base", "--is-ancestor", commit, _provenance_ref(entry, repo_root, master_ref))
     _run_git(repo_root, "cat-file", "-e", f"{commit}:{path}")
     source = _run_git(repo_root, "cat-file", "blob", f"{commit}:{path}").stdout
     governed_path = repo_root / pathlib.PurePosixPath(path)
@@ -178,13 +201,7 @@ def test_every_recorded_commit_exists_and_is_reachable_from_origin_master():
     for entry in entries:
         _assert_entry_metadata(entry)
         _run_git(REPO_ROOT, "cat-file", "-e", f"{entry['source_commit']}^{{commit}}")
-        _run_git(
-            REPO_ROOT,
-            "merge-base",
-            "--is-ancestor",
-            entry["source_commit"],
-            "origin/master",
-        )
+        _run_git(REPO_ROOT, "merge-base", "--is-ancestor", entry["source_commit"], _provenance_ref(entry, REPO_ROOT))
 
 
 def _synthetic_provenance_repository(tmp_path):
