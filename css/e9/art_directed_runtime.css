@@ -686,6 +686,19 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
     width: clamp(38px, 5.2vw, 70px);
     height: clamp(56px, 9.2vw, 100px);
   }
+
+  /* iPad landscape uses the same inline marker host as portrait so the
+     current Zone node owns the avatar's compositing and touch surface. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player.e10-current-hero {
+    top: 50% !important;
+    left: 50% !important;
+    width: clamp(38px, 5.2vw, 70px);
+    height: clamp(56px, 9.2vw, 100px);
+    margin: 0;
+    transform: translate(-50%, -100%);
+    display: block !important;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 767px) {

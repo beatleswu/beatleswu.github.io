@@ -83,6 +83,7 @@ def test_exactly_one_marker_host_moves_between_responsive_surfaces():
     assert "function usesInlinePlayerMarkerSurface()" in WORLD
     inline_surface = _function_body(WORLD, "usesInlinePlayerMarkerSurface")
     assert "(max-width: 767px)" in inline_surface
+    assert "(min-width: 768px) and (max-width: 1279px)" in inline_surface
     assert "(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)" in inline_surface
     assert "(pointer: coarse)" in inline_surface
     assert "navigator.maxTouchPoints" in inline_surface

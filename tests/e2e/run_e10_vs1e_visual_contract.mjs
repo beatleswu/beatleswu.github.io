@@ -8,6 +8,7 @@ import { chromium } from 'playwright-core';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const shellFlags = 'E9_DEBUG=1&e9Shell=1&e9TopHud=1&e9LeftNav=1&e9RightCards=1&e9BottomDock=1&e9WorldStage=1';
+const IPAD_USER_AGENT = 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 
 const zones = [
   ['k26_30', '圍棋新手村', 'Beginner Village', 'completed', false, true, 3, 30, 30],
@@ -1724,7 +1725,14 @@ async function runLifecycleCase(browser, origin) {
 }
 
 async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) {
-  const page = await browser.newPage({ viewport: spec.viewport, hasTouch: spec.hasTouch === true });
+  const inlineSpec = spec.name.includes('ipad-landscape')
+    ? { ...spec, userAgent: IPAD_USER_AGENT, inlineMarkerSurface: true }
+    : spec;
+  const page = await browser.newPage({
+    viewport: inlineSpec.viewport,
+    hasTouch: inlineSpec.hasTouch === true,
+    userAgent: inlineSpec.userAgent,
+  });
   const browserErrors = [];
   await installApiFixture(page, browserErrors, 'mage', spec.fixtureMode || 'default',
     spec.lang === 'en' ? 'Starward Knight' : '晨星騎士');
@@ -2124,12 +2132,13 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       pointerEvents: selected.playerMarkerPointerEvents,
     })}`);
   }
-  const portraitInlineSurface = spec.viewport.width < 768
+  const inlineMarkerSurface = spec.name.includes('ipad-landscape')
+    || spec.viewport.width < 768
     || (spec.viewport.width >= 768 && spec.viewport.width <= 1279
       && spec.viewport.height > spec.viewport.width
       && (spec.hasTouch === true || spec.viewport.height >= 960));
-  const expectedMarkerParent = portraitInlineSurface ? selected.currentZoneKey : 'e9-map-stage';
-  const markerParentMatches = portraitInlineSurface
+  const expectedMarkerParent = inlineMarkerSurface ? selected.currentZoneKey : 'e9-map-stage';
+  const markerParentMatches = inlineMarkerSurface
     ? selected.playerMarkerParentZone === expectedMarkerParent
     : selected.playerMarkerParentId === expectedMarkerParent;
   if (!markerParentMatches) {

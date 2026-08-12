@@ -297,6 +297,9 @@
   function usesInlinePlayerMarkerSurface() {
     if (!window.matchMedia) return false;
     var mobile = window.matchMedia('(max-width: 767px)').matches;
+    var tablet = window.matchMedia(
+      '(min-width: 768px) and (max-width: 1279px)'
+    ).matches;
     var tabletPortrait = window.matchMedia(
       '(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)'
     ).matches;
@@ -304,10 +307,12 @@
       || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
     var appleTouchSurface = typeof navigator !== 'undefined'
       && touchSurface
-      && navigator.maxTouchPoints > 1
+      && navigator.maxTouchPoints > 0
       && /iPad|Macintosh/.test(navigator.userAgent || '');
-    var tabletPortraitViewport = typeof window.innerHeight === 'number' && window.innerHeight >= 960;
-    return mobile || (tabletPortrait && (tabletPortraitViewport || appleTouchSurface));
+    var tabletPortraitViewport = tabletPortrait
+      && typeof window.innerHeight === 'number'
+      && window.innerHeight >= 960;
+    return mobile || (tablet && (tabletPortraitViewport || appleTouchSurface));
   }
 
   function updateRouteProgress(root, zones) {
