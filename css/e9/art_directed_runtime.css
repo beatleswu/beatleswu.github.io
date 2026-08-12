@@ -631,44 +631,89 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player,
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-current-hero {
   position: absolute;
-  width: 31px;
-  height: 38px;
+  z-index: 8;
+  width: clamp(40px, 5.6vw, 82px);
+  height: clamp(61px, 9.4vw, 118px);
   border: 0;
+  border-radius: 0;
   background: none;
   box-shadow: none;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player {
   top: var(--anchor-y);
   left: var(--anchor-x);
-  margin: -16px 0 0 18px;
+  margin: 0;
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player::before,
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-current-hero::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  background: var(--e10-art-player-pin) center / contain no-repeat;
+  display: none !important;
 }
 
-body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] .e10-player-marker-portrait {
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-player-marker-avatar {
   position: absolute;
   z-index: 1;
-  top: 6px;
-  left: 9px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  object-fit: cover;
-  object-position: center 16%;
-  transform: scale(1.4);
-  transform-origin: 50% 18%;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  filter: drop-shadow(0 3px 2px rgba(30, 17, 8, .52));
+  pointer-events: none;
 }
 
-body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player::after {
-  display: none;
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player::after,
+body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e10-current-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: 18%;
+  bottom: -2px;
+  left: 18%;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(42, 20, 8, .48);
+  box-shadow: 0 1px 3px rgba(24, 12, 4, .35);
+  pointer-events: none;
+}
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player {
+    width: clamp(38px, 5.2vw, 70px);
+    height: clamp(56px, 9.2vw, 100px);
+  }
+
+  /* iPad landscape uses the same inline marker host as portrait so the
+     current Zone node owns the avatar's compositing and touch surface. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player.e10-current-hero {
+    top: 50% !important;
+    left: 50% !important;
+    width: clamp(38px, 5.2vw, 70px);
+    height: clamp(56px, 9.2vw, 100px);
+    margin: 0;
+    transform: translate(-50%, -100%);
+    display: block !important;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 767px) {
+  /* The same marker host is moved into the current Zone card. It stays in
+     the leading landmark column, leaving the node label and state control
+     readable while the button remains the touch target. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player.e10-current-hero {
+    display: block !important;
+    top: 50%;
+    left: 28px;
+    width: 42px;
+    height: 68px;
+    margin: 0;
+    transform: translate(-50%, -50%);
+  }
 }
 
 body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-nav__item:focus-visible,
@@ -968,6 +1013,24 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 }
 
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player {
+    width: clamp(35px, 7vw, 64px);
+    height: clamp(54px, 11.5vw, 92px);
+  }
+
+  /* iPad portrait keeps the same single marker host, but nests it in the
+     current Zone button so the avatar survives map-layer/compositing quirks. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player.e10-current-hero {
+    top: 50% !important;
+    left: 50% !important;
+    width: clamp(40px, 6.8vw, 61px);
+    height: clamp(61px, 10.5vw, 84px);
+    margin: 0;
+    transform: translate(-50%, -100%);
+    display: block !important;
+    overflow: visible;
+  }
+
   /* Keep the canonical E9 map action measurable at tablet portrait widths;
      the lower detail CTA remains the VS1E journey entry surface.
      The map stage keeps a fixed 1672:941 aspect ratio, so portrait's much

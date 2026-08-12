@@ -103,8 +103,10 @@ def test_bespoke_assets_cover_every_required_runtime_component():
 
 def test_live_avatar_and_star_dom_remain_dynamic_and_accessible():
     assert "e9:player-avatar-updated" in TOP
-    assert "syncPlayerMarkerPortrait" in WORLD
-    assert "e10-player-marker-portrait" in WORLD
+    assert "syncPlayerMarkerPresentation" in WORLD
+    assert "fetchAvatarPresentation" in WORLD
+    assert "e10-player-marker-avatar" in WORLD
+    assert "e10-player-marker-portrait" not in WORLD
     assert "detail.stars" in RIGHT and "zone.stars" in WORLD
     assert "e10-art-star" in RIGHT and "e10-art-star" in WORLD
     assert "index.adv.stars_label" in RIGHT and "index.adv.stars_label" in WORLD
@@ -140,8 +142,18 @@ def test_final_visual_refinement_contracts_are_explicit_and_asset_preserving():
 
     assert ".e9-zone.is-current::before" in CSS
     assert "background-image: none" in CSS
-    assert "width: 31px" in CSS and "height: 38px" in CSS
-    assert "margin: -16px 0 0 18px" in CSS
+    assert "width: clamp(40px, 5.6vw, 82px)" in CSS
+    assert "height: clamp(61px, 9.4vw, 118px)" in CSS
+    assert "width: clamp(38px, 5.2vw, 70px)" in CSS
+    assert "height: clamp(56px, 9.2vw, 100px)" in CSS
+    assert "width: 42px" in CSS
+    assert "height: 68px" in CSS
+    assert "width: clamp(35px, 7vw, 64px)" in CSS
+    assert "height: clamp(54px, 11.5vw, 92px)" in CSS
+    assert "width: clamp(40px, 6.8vw, 61px)" in CSS
+    assert "height: clamp(61px, 10.5vw, 84px)" in CSS
+    assert "transform: translate(-50%, -100%)" in CSS
+    assert "left: 28px" in CSS
     assert "player-location-pin.webp" in CSS
 
 

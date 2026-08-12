@@ -102,12 +102,21 @@ test('normalizeCoins: string coerced value rejected (must be real number type)',
 test('normalizeAppearance: known runtime character uses the formal asset', () => {
   const r = PlayerState.normalizeAppearance({ character_key: 'mage' });
   assert.strictEqual(r.avatarSrc, '/assets/hero/characters/chibi_mage_normalized.webp');
+  assert.strictEqual(r.avatarPresentation.id, 'mage');
+  assert.strictEqual(r.avatarPresentation.presentationType, 'full-body-character');
 });
-test('normalizeAppearance: unknown or missing character uses the neutral project fallback', () => {
+test('resolveCurrentPlayerAvatarPresentation: provider exposes only the narrow map contract', () => {
+  const r = PlayerState.resolveCurrentPlayerAvatarPresentation({ character_key: 'mage' });
+  assert.deepStrictEqual(Object.keys(r).sort(), ['asset', 'fallbackAsset', 'id', 'presentationType']);
+  assert.strictEqual(r.asset, '/assets/hero/characters/chibi_mage_normalized.webp');
+  assert.strictEqual(r.fallbackAsset, '/assets/hero/characters/chibi_apprentice_normalized.webp');
+});
+test('normalizeAppearance: unknown or missing character uses the Character Appearance default', () => {
   const missing = PlayerState.normalizeAppearance(null);
   const unknown = PlayerState.normalizeAppearance({ character_key: 'not-a-runtime-character' });
-  assert.strictEqual(missing.avatarSrc, '/assets/hero/characters/chibi_reference_normalized.webp');
+  assert.strictEqual(missing.avatarSrc, '/assets/hero/characters/chibi_apprentice_normalized.webp');
   assert.strictEqual(unknown.avatarSrc, missing.avatarSrc);
+  assert.strictEqual(missing.avatarPresentation.id, 'apprentice');
 });
 
 // --- AdventureState.normalizeZone -------------------------------------------
@@ -310,6 +319,22 @@ async function run() {
     assert.strictEqual(r.data.level, 8);
     assert.strictEqual(r.data.coins, 250);
     assert.strictEqual(r.data.avatarSrc, '/assets/hero/characters/chibi_mage_normalized.webp');
+    assert.strictEqual(r.data.avatarPresentation.id, 'mage');
+  });
+  await testAsync('fetchAvatarPresentation: reads committed appearance, not a preview field', async () => {
+    const r = await PlayerState.fetchAvatarPresentation(fakeFetch([
+      { ok: true, status: 200, body: { character_key: 'sage', preview_character_key: 'mage' } },
+    ]));
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(r.data.id, 'sage');
+    assert.strictEqual(r.data.asset, '/assets/hero/characters/chibi_sage_normalized.webp');
+  });
+  await testAsync('fetchAvatarPresentation: unavailable endpoint uses the canonical default', async () => {
+    const r = await PlayerState.fetchAvatarPresentation(fakeFetch([{ ok: false, status: 500 }]));
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(r.fallback, true);
+    assert.strictEqual(r.data.id, 'apprentice');
+    assert.strictEqual(r.data.asset, '/assets/hero/characters/chibi_apprentice_normalized.webp');
   });
   await testAsync('fetchAdventureState: network failure classified as network', async () => {
     const fetchImpl = function () { return Promise.reject(new Error('boom')); };
