@@ -142,8 +142,16 @@ def test_final_visual_refinement_contracts_are_explicit_and_asset_preserving():
 
     assert ".e9-zone.is-current::before" in CSS
     assert "background-image: none" in CSS
-    assert "width: clamp(34px, 4.8vw, 70px)" in CSS
-    assert "height: clamp(52px, 8vw, 100px)" in CSS
+    assert "width: clamp(40px, 5.6vw, 82px)" in CSS
+    assert "height: clamp(61px, 9.4vw, 118px)" in CSS
+    assert "width: clamp(38px, 5.2vw, 70px)" in CSS
+    assert "height: clamp(56px, 9.2vw, 100px)" in CSS
+    assert "width: 42px" in CSS
+    assert "height: 68px" in CSS
+    assert "width: clamp(35px, 7vw, 64px)" in CSS
+    assert "height: clamp(54px, 11.5vw, 92px)" in CSS
+    assert "width: clamp(40px, 6.8vw, 61px)" in CSS
+    assert "height: clamp(61px, 10.5vw, 84px)" in CSS
     assert "transform: translate(-50%, -100%)" in CSS
     assert "left: 28px" in CSS
     assert "player-location-pin.webp" in CSS

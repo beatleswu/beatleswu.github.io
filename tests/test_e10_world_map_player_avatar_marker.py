@@ -86,6 +86,8 @@ def test_exactly_one_marker_host_moves_between_responsive_surfaces():
     assert "(min-width: 768px) and (max-width: 1279px) and (orientation: portrait)" in inline_surface
     assert "(pointer: coarse)" in inline_surface
     assert "navigator.maxTouchPoints" in inline_surface
+    assert "appleTouchSurface" in inline_surface
+    assert "navigator.userAgent" in inline_surface
     assert "window.innerHeight >= 960" in inline_surface
     assert "if (usesInlinePlayerMarkerSurface())" in reconcile
     assert "var mobileHero = marker;" in reconcile

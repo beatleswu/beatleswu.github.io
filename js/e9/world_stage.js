@@ -302,8 +302,12 @@
     ).matches;
     var touchSurface = window.matchMedia('(pointer: coarse)').matches
       || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+    var appleTouchSurface = typeof navigator !== 'undefined'
+      && touchSurface
+      && navigator.maxTouchPoints > 1
+      && /iPad|Macintosh/.test(navigator.userAgent || '');
     var tabletPortraitViewport = typeof window.innerHeight === 'number' && window.innerHeight >= 960;
-    return mobile || (tabletPortrait && (touchSurface || tabletPortraitViewport));
+    return mobile || (tabletPortrait && (tabletPortraitViewport || appleTouchSurface));
   }
 
   function updateRouteProgress(root, zones) {
