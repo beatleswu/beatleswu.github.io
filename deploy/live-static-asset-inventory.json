@@ -52,7 +52,7 @@
     ]
   },
   "required_subtrees": {
-    "description": "RELEASE-FIX-A2 (see docs/incidents/2026-07-12-full-site-asset-outage.md): RELEASE-FIX-A's narrow i18n.js/sw.js-only scope left assets/ management to whatever the production host happened to have mounted -- an undocumented, untracked 757MB tree that RELEASE-FIX-A's own generation switch silently orphaned, breaking every image on the site. assets/ is no longer excluded_prefixes; it is now release-bound and generation-managed, staged from the declarative closure manifest below -- NOT by copying an entire directory tree wholesale (that reintroduces exactly the untracked-content problem this fixes). RELEASE-FIX-A3 superseded the original 180-file runtime-reference-derived closure with the complete verified historical image pack (1,298 files) -- a runtime reference scan proved to be an incomplete ownership boundary (query-string and dynamically-constructed paths were invisible to it; see docs/incidents/2026-07-12-full-site-asset-outage.md's RELEASE-FIX-A3 addendum). Reference scanning remains a regression/observability layer (tests/test_release_fix_a2_asset_closure.py), not the source of truth for what ships. A second, narrower entry was added for assets/storyboards/*.mp3 narration audio (2026-07-15) -- canonical-image-pack-manifest.json is validated image/*-MIME-only (test_manifest_contains_only_image_mime_types) and its own $schema_note documents deliberately excluding these 90 files, so a companion audio-specific closure manifest governs them instead of weakening the image contract. See docs/deployment/canonical_static_narration_audio_contract.md.",
+    "description": "RELEASE-FIX-A2 (see docs/incidents/2026-07-12-full-site-asset-outage.md): RELEASE-FIX-A's narrow i18n.js/sw.js-only scope left assets/ management to whatever the production host happened to have mounted -- an undocumented, untracked 757MB tree that RELEASE-FIX-A's own generation switch silently orphaned, breaking every image on the site. assets/ is no longer excluded_prefixes; it is now release-bound and generation-managed, staged from the declarative closure manifests below -- NOT by copying an entire directory tree wholesale (that reintroduces exactly the untracked-content problem this fixes). RELEASE-FIX-A3 superseded the original 180-file runtime-reference-derived closure with the complete verified historical image pack (1,298 files) -- a runtime reference scan proved to be an incomplete ownership boundary (query-string and dynamically-constructed paths were invisible to it; see docs/incidents/2026-07-12-full-site-asset-outage.md's RELEASE-FIX-A3 addendum). Reference scanning remains a regression/observability layer (tests/test_release_fix_a2_asset_closure.py), not the source of truth for what ships. A second, narrower entry was added for assets/storyboards/*.mp3 narration audio (2026-07-15) -- canonical-image-pack-manifest.json is validated image/*-MIME-only (test_manifest_contains_only_image_mime_types) and its own $schema_note documents deliberately excluding these 90 files, so a companion audio-specific closure manifest governs them instead of weakening the image contract. Dedicated E10 Zone 1 and Zone 2 media entries keep Owner-locked namespaces separate from the historical image pack and storyboard narration audio.",
     "entries": [
       {
         "prefix": "assets/",
@@ -68,6 +68,16 @@
         "prefix": "assets/e10/audio/zone1/",
         "manifest": "deploy/canonical-e10-zone1-audio-pack-manifest.json",
         "staging_rule": "Stage exactly the files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 1 audio file that is not in this manifest, even if present on disk -- a partial or over-broad generation must fail closed. This namespace is disjoint from the storyboard audio pack and the image pack."
+      },
+      {
+        "prefix": "assets/storyboards/e10_z2_",
+        "manifest": "deploy/canonical-e10-zone2-art-pack-manifest.json",
+        "staging_rule": "Stage exactly the ten Owner-selected Zone 2 WebP files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage a Zone 2 storyboard file that is not in this manifest. This namespace is disjoint from the historical image pack by file membership."
+      },
+      {
+        "prefix": "assets/e10/audio/zone2/",
+        "manifest": "deploy/canonical-e10-zone2-audio-pack-manifest.json",
+        "staging_rule": "Stage exactly the twenty-three Owner-locked bilingual Zone 2 audio files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 2 audio file that is not in this manifest. This namespace is disjoint from Zone 1 audio and storyboard narration audio."
       }
     ]
   },

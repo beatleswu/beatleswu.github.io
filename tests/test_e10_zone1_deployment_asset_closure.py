@@ -21,6 +21,8 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 IMAGE_MANIFEST = REPO_ROOT / "deploy" / "canonical-image-pack-manifest.json"
 AUDIO_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone1-audio-pack-manifest.json"
+ZONE2_ART_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-art-pack-manifest.json"
+ZONE2_AUDIO_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-audio-pack-manifest.json"
 STORYBOARD_AUDIO_MANIFEST = REPO_ROOT / "deploy" / "canonical-audio-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
@@ -152,7 +154,15 @@ def test_actual_governed_static_bundle_contains_closure_and_no_broad_assets(gene
     expected_images = {entry["path"] for entry in _load(IMAGE_MANIFEST)["files"]}
     expected_storyboard_audio = {entry["path"] for entry in _load(STORYBOARD_AUDIO_MANIFEST)["files"]}
     expected_e10_audio = {entry["path"] for entry in _load(AUDIO_MANIFEST)["files"]}
-    governed_assets = expected_images | expected_storyboard_audio | expected_e10_audio
+    expected_zone2_art = {entry["path"] for entry in _load(ZONE2_ART_MANIFEST)["files"]}
+    expected_zone2_audio = {entry["path"] for entry in _load(ZONE2_AUDIO_MANIFEST)["files"]}
+    governed_assets = (
+        expected_images
+        | expected_storyboard_audio
+        | expected_e10_audio
+        | expected_zone2_art
+        | expected_zone2_audio
+    )
 
     lord_paths = _lord_trial_runtime_webp_paths()
     zone1_audio = _zone1_audio_paths()

@@ -2126,7 +2126,7 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
   top: 11px;
   right: 12px;
   z-index: 1;
-  min-height: 34px;
+  min-height: 44px;
   max-width: calc(100% - 24px);
   padding: 5px 10px;
   border: 1px solid var(--e10-parchment-edge);
@@ -2779,6 +2779,14 @@ body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot {
     min-height: 0;
   }
 
+  /* Portrait owns the lower detail card; keep it in normal flow so the
+     selected-zone CTA remains directly hit-testable after an orientation
+     change from the side-panel layout. */
+  body[data-e10-visual-skin="immersive-rpg"] #e9-world-stage-details:not([hidden]) {
+    position: static;
+    margin: 10px;
+  }
+
   #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e10-zone-landmark {
     width: clamp(78px, 10vw, 100px);
   }
@@ -3107,6 +3115,11 @@ body[data-e10-visual-skin="immersive-rpg"] .cg-nav[data-e10-session-strip="1"] .
 
 body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-backdrop {
   display: none;
+}
+
+body[data-e10-visual-skin="immersive-rpg"] .e10-drawer-backdrop[hidden] {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot[hidden][data-e10-detail-owner="lower-card"] {

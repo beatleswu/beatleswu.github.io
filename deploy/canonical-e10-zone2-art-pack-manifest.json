@@ -1,0 +1,112 @@
+{
+  "$schema_note": "Canonical governed E10 Zone 2 final cinematic art closure. This dedicated namespace keeps the historical full image pack immutable while staging the ten Owner-selected Zone 2 storyboard WebP files through live-static-asset-inventory.json.",
+  "manifest_version": "1.0.0",
+  "generated_for": "E10 Zone 2 complete production integration",
+  "total_files": 10,
+  "total_bytes": 1466428,
+  "provenance_summary": {
+    "owner-approved-project-created": 10
+  },
+  "files": [
+    {
+      "path": "assets/storyboards/e10_z2_shot01.webp",
+      "size": 135686,
+      "sha256": "cfcb2c6b45c9ced4708a982bdab6c799b496169b2d24768997a4cc85ee90c2f5",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot02.webp",
+      "size": 91622,
+      "sha256": "d90ac3ffd9d4ba391ba49279d88e6f5b8fc60c53ce77935a5865930cb90ba11f",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot03.webp",
+      "size": 110872,
+      "sha256": "4bc0b672e627422cb0e4c159cf2cf98d26d9ede0ceab79faa557e383a9322c8d",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot04.webp",
+      "size": 170300,
+      "sha256": "5b993885c5167bf275117916ca83c8e1b15fa5d90a0d2b473094d76d75dd3e77",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot05.webp",
+      "size": 156526,
+      "sha256": "155e483a6ac5f9c0107a9ee2b38ede22d034ad3056ceebba7c478ac8c2602153",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot06.webp",
+      "size": 170266,
+      "sha256": "5440d67a82ae5d0d742956486aee0289b7f8ef86b4a2da9d8e9481594fb396ac",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot07.webp",
+      "size": 156582,
+      "sha256": "e869291c301d225fb4e449c03adeb587eb25b50b50f16af37747008cf3e6df0e",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot08.webp",
+      "size": 173096,
+      "sha256": "e6a4baa3630024a2aff01104a8bc545d4e72c8cc5a76e72b54d48d5cc483b95c",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot09.webp",
+      "size": 168048,
+      "sha256": "459e18af2bb892c8e1a8d26701d37f486903058075f85e515b0469cba5ca2cb2",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    },
+    {
+      "path": "assets/storyboards/e10_z2_shot10.webp",
+      "size": 133430,
+      "sha256": "0b891452628efc985eea25766569b10c51a593276035e994a10d3b0584f23324",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 720,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-selected Zone 2 final art attachment order, recorded in docs/planning/e10_zone2_pre_audio_production_gate_20260812.md."
+    }
+  ]
+}

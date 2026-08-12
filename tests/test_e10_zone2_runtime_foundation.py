@@ -3,7 +3,8 @@
 These are source-level contracts for the runtime boundary: server-owned
 Historical Mastery/Lord state, Zone 2-only cinematic phase slots, explicit
 Lord Card -> ritual entry, and Lord-success-only POST_CLEAR presentation.
-Final art/audio bytes are intentionally not part of this change.
+Owner-locked final art/audio bytes are verified separately by
+test_e10_zone2_audio_integration.py.
 """
 
 import re
@@ -64,20 +65,20 @@ def test_zone2_audio_slot_becomes_playable_only_after_owner_release():
     assert "playAssetVoice(playableBeat, onDone);" in play_voice
 
 
-def test_zone2_phase_slots_are_4_3_3_and_replaceable():
+def test_zone2_phase_slots_are_4_3_3_and_owner_locked():
     slots = _block(INDEX, "function _zone2CinematicPhaseSlots", "\nfunction getIntroFilmLocaleConfig")
     assert "bossReadyTimeline" in slots
     assert "postClearTimeline" in slots
-    assert re.search(r"phase\(4,", slots)
-    assert re.search(r"phase\(5,", slots)
-    assert re.search(r"phase\(6,", slots)
-    assert re.search(r"phase\(7,", slots)
-    assert re.search(r"phase\(8,", slots)
-    assert re.search(r"phase\(9,", slots)
-    assert "ownerArtPending: true" in slots
-    assert "ownerAudioPending: true" in slots
-    assert "/assets/storyboards/e10_z2_${slot}" in slots
-    assert "/assets/e10/audio/zone2/" in slots
+    assert re.search(r"shot\(4,", slots)
+    assert re.search(r"shot\(5,", slots)
+    assert re.search(r"shot\(6,", slots)
+    assert re.search(r"shot\(7,", slots)
+    assert re.search(r"shot\(8,", slots)
+    assert re.search(r"shot\(9,", slots)
+    assert "ownerArtPending: false" in slots
+    assert "ownerAudioPending: false" in slots
+    assert "/assets/storyboards/e10_z2_shot" in slots
+    assert "/assets/e10/audio/zone2/" in INDEX
 
 
 def test_zone2_boss_ready_is_presentational_and_does_not_auto_start_trial():
@@ -95,7 +96,7 @@ def test_zone2_lord_card_and_ritual_are_explicit_player_actions():
     assert "zone.key === 'k21_25'" in start
     assert "showZone2LordChallengeCard(zone)" in start
     card = _block(INDEX, "function showZone2LordChallengeCard(zone)", "\nfunction startZone2LordRitual")
-    assert "史萊姆群領主" in card
+    assert "e10.zone2.lord.title" in card
     assert "btn.onclick = () => startZone2LordRitual(zone);" in card
     ritual = _block(INDEX, "function startZone2LordRitual(zone)", "\n// 3-5s Go-themed entrance ritual")
     assert "_startBossBattleNow(zone)" in ritual
@@ -123,7 +124,7 @@ def test_zone2_failure_has_no_post_clear_and_success_has_one_trigger():
     assert "_triggerZone2PostClearFromBossWin(zone)" in success
     assert "_triggerZone2PostClearFromBossWin" not in failure
     assert "firstQuestionHref(zone)" in failure
-    assert "zone 3" in failure.lower()
+    assert "e10.zone2.result.fail.lock" in failure
 
 
 def test_zone2_route_reveal_reads_server_unlock_without_writing_it():
@@ -136,11 +137,18 @@ def test_zone2_route_reveal_reads_server_unlock_without_writing_it():
     assert "showZone2UnlockReveal(zone)" in finish
 
 
-def test_zone2_audio_slots_are_pending_and_do_not_reuse_zone1_bytes():
+def test_zone2_audio_slots_are_owner_locked_and_do_not_reuse_zone1_bytes():
     slots = _block(INDEX, "function _zone2CinematicPhaseSlots", "\nfunction getIntroFilmLocaleConfig")
-    assert "ownerApprovalRequired: true" in slots
-    assert "ownerAudioPending: true" in slots
+    assert "ownerApprovalRequired: false" in slots
+    assert "ownerAudioPending: false" in slots
     assert "/assets/e10/audio/zone1/" not in slots
+
+
+def test_zone1_post_clear_audio_fallback_remains_final_shot_only():
+    sequencer = _block(INDEX, "async function playNewbieVillageIntroFilm", "// 2026-08-09 (E10-Z1-CINEMATIC-TRIGGER-REALIGNMENT)")
+    assert "phase !== 'post_clear' || Boolean(locale.bgmPostClear)" in sequencer
+    assert "phase !== 'post_clear' || Boolean(locale.ambiencePostClear)" in sequencer
+    assert "item.shot === 9 && phase === 'post_clear' && !locale.bgmPostClear" in sequencer
 
 
 def test_shared_server_gate_remains_historical_correct_mastery_at_thirty_percent():
