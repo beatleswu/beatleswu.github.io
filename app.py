@@ -77,6 +77,14 @@ from sgf_admin_workbench import (
     list_workbench_items,
     resolve_workbench_item,
     stage_workbench_repair,
+    DIRECT_APPLY_ACTIONS,
+    DIRECT_APPLY_SOURCE,
+    apply_direct_question_edit,
+    direct_record_hash,
+    get_direct_version,
+    list_direct_versions,
+    rollback_direct_question_edit,
+    validate_direct_record,
     workbench_constants,
 )
 
@@ -110,6 +118,44 @@ socketio = SocketIO(app, cors_allowed_origins='*', async_mode=_socketio_async_mo
                     manage_session=False)
 app.register_blueprint(grimoire_bp)
 _startup_diagnostics.mark('application_creation', 'success')
+
+_ACCEPTANCE_SOURCE_SHA_PATTERN = re.compile(r'^[0-9a-f]{40}$')
+
+def _acceptance_mode():
+    """Return True only for the explicitly isolated LAN acceptance profile."""
+    return os.environ.get('GO_ODYSSEY_ACCEPTANCE_MODE', '').strip().lower() in {
+        '1', 'true', 'yes', 'on'
+    }
+
+
+def _acceptance_source_sha():
+    value = os.environ.get('APP_GIT_SHA', '').strip().lower()
+    return value if _ACCEPTANCE_SOURCE_SHA_PATTERN.fullmatch(value) else ''
+
+
+@app.route('/api/acceptance/identity')
+def acceptance_identity():
+    """Expose bounded source/profile identity for non-Production acceptance only."""
+    if not _acceptance_mode():
+        return jsonify({'ok': False, 'reason': 'not_acceptance_profile'}), 404
+    runtime_sha = _acceptance_source_sha()
+    expected_sha = os.environ.get('GO_ODYSSEY_ACCEPTANCE_SOURCE_SHA', '').strip().lower()
+    expected_sha = expected_sha if _ACCEPTANCE_SOURCE_SHA_PATTERN.fullmatch(expected_sha) else ''
+    source_sha_match = bool(runtime_sha and expected_sha and runtime_sha == expected_sha)
+    return jsonify({
+        'ok': source_sha_match,
+        'environment': 'NON-PRODUCTION ACCEPTANCE',
+        'environment_id': 'go-odyssey-local-lan-acceptance-v1',
+        'source_sha': runtime_sha,
+        'expected_source_sha': expected_sha,
+        'source_sha_match': source_sha_match,
+        'production': False,
+        'production_publish_available': False,
+        'canonical_mutation': False,
+        'production_mutation': False,
+        'direct_apply_enabled': os.environ.get('GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED', '').strip().lower() in {'1', 'true', 'yes', 'on'},
+        'content_path': os.environ.get('QUESTIONS_JSON_PATH', 'questions.json'),
+    })
 
 @app.route('/healthz')
 def healthz():
@@ -391,6 +437,10 @@ def add_no_cache_headers(response):
     """自訂 JS 短暫快取；HTML 讓瀏覽器必須 revalidate（304 機制）。"""
     ct = response.content_type or ''
     path = request.path or ''
+    if _acceptance_mode():
+        response.headers['X-Go-Odyssey-Environment'] = 'NON-PRODUCTION-ACCEPTANCE'
+        response.headers['X-Go-Odyssey-Source-SHA'] = _acceptance_source_sha() or 'unverified'
+        response.headers['X-Go-Odyssey-Production-Publish'] = 'disabled'
     if path.startswith('/api/'):
         response.headers['Cache-Control'] = 'private, no-store'
         response.headers['Pragma'] = 'no-cache'
@@ -419,6 +469,20 @@ def add_no_cache_headers(response):
     elif 'text/html' in ct:
         # HTML：允許快取但必須 revalidate（304 走快取，變更後才重下載）
         response.headers['Cache-Control'] = 'no-cache'
+        if _acceptance_mode() and response.status_code == 200:
+            if getattr(response, 'direct_passthrough', False):
+                response.direct_passthrough = False
+            body = response.get_data(as_text=True)
+            if 'go-odyssey-acceptance-banner' not in body and '</body>' in body:
+                short_sha = _acceptance_source_sha()[:12] or 'unverified'
+                banner = (
+                    '<div id="go-odyssey-acceptance-banner" '
+                    'style="position:fixed;z-index:2147483647;left:0;right:0;bottom:0;'
+                    'padding:6px 10px;background:#17324d;color:#fff;font:600 12px/1.3 sans-serif;'
+                    'text-align:center;letter-spacing:.02em;pointer-events:none">'
+                    f'NON-PRODUCTION ACCEPTANCE · {short_sha}</div>'
+                )
+                response.set_data(body.replace('</body>', banner + '</body>', 1))
     return response
 
 DATA_FILE = os.environ.get('QUESTIONS_JSON_PATH', 'questions.json')
@@ -4203,6 +4267,209 @@ def admin_sgf_workbench_retest(item_id):
         'staged_only_for_admin': True,
         'normal_player_canonical_unchanged': True,
     })
+
+
+def _direct_apply_enabled():
+    """Direct apply is acceptance-only until a separate Production gate."""
+    return _acceptance_mode() and os.environ.get(
+        'GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED', ''
+    ).strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def _direct_move_from_payload(value, *, size=19):
+    if not isinstance(value, dict):
+        return None
+    try:
+        move = {'x': int(value.get('x')), 'y': int(value.get('y'))}
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= move['x'] < int(size) and 0 <= move['y'] < int(size)):
+        return None
+    return move
+
+
+def _direct_side_to_play_content(content, side):
+    side = str(side or '').strip().upper()
+    if side not in {'B', 'W'}:
+        raise ValueError('invalid_side_to_play')
+    if re.search(r'PL\[[BW]\]', content):
+        return re.sub(r'PL\[[BW]\]', f'PL[{side}]', content, count=1)
+    if content.startswith('(;'):
+        return content[:2] + f'PL[{side}]' + content[2:]
+    raise ValueError('sgf_root_missing')
+
+
+def _direct_proposed_record(current, action, data):
+    proposed = json.loads(json.dumps(current))
+    action = str(action or '').strip().upper()
+    if action == 'REBUILD_QUESTION':
+        raise ValueError('rebuild_requires_review')
+    if action in {'ADD_ALTERNATIVE_CORRECT_MOVE', 'REMOVE_INCORRECT_ACCEPTED_MOVE', 'REPLACE_ANSWER'}:
+        candidate = _direct_move_from_payload(data.get('candidate_move') or data.get('move'))
+        if candidate is None:
+            raise ValueError('candidate_move_required')
+        accepted = []
+        for move in _question_accepted_moves(current):
+            normalized = _direct_move_from_payload(move)
+            if normalized and normalized not in accepted:
+                accepted.append(normalized)
+        if action == 'ADD_ALTERNATIVE_CORRECT_MOVE':
+            if candidate not in accepted:
+                accepted.append(candidate)
+            proposed['solution_state'] = 'accepted_alternative'
+        elif action == 'REMOVE_INCORRECT_ACCEPTED_MOVE':
+            accepted = [move for move in accepted if move != candidate]
+        else:
+            accepted = [candidate]
+            proposed['solution_state'] = 'replaced_answer'
+        proposed['accepted_moves'] = accepted
+    elif action == 'DISABLE_BROKEN_QUESTION':
+        proposed['enabled'] = False
+        proposed['solution_state'] = 'disabled_no_answer'
+    elif action == 'EDIT_BOARD_SETUP':
+        content = data.get('proposed_content')
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError('proposed_content_required')
+        proposed['content'] = content
+    elif action == 'CHANGE_SIDE_TO_PLAY':
+        content = str(current.get('content') or current.get('sgf') or '')
+        proposed['content'] = _direct_side_to_play_content(content, data.get('side_to_play'))
+    else:
+        raise ValueError('direct_action_not_supported')
+    return proposed
+
+
+@app.route('/api/admin/sgf-workbench/direct-context/<int:question_id>')
+@admin_required
+def admin_sgf_workbench_direct_context(question_id):
+    context = _workbench_question_context(
+        question_id, record_index=request.args.get('record_index'),
+        surface='admin_play', candidate_move=request.args.get('candidate_move'),
+    )
+    if not context:
+        return jsonify({'error': 'question_not_found'}), 404
+    record = context['record']
+    with get_db() as conn:
+        history = list_direct_versions(
+            conn, question_id=question_id, record_index=context['record_index'], limit=20
+        )
+    return jsonify({
+        'ok': True,
+        'question_id': question_id,
+        'record_index': context['record_index'],
+        'record': record,
+        'predecessor_hash': direct_record_hash(record),
+        'authority': context['authority'],
+        'content_sha256': context['question_content_sha256'],
+        'source': DIRECT_APPLY_SOURCE,
+        'direct_apply_enabled': _direct_apply_enabled(),
+        'history': history,
+        'production_mutation': False,
+    })
+
+
+@app.route('/api/admin/sgf-workbench/direct-apply', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_direct_apply():
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    if not _direct_apply_enabled():
+        return jsonify({'error': 'direct_apply_disabled', 'production_mutation': False}), 403
+    data = request.get_json(silent=True) or {}
+    try:
+        question_id = int(data.get('question_id'))
+        record_index = int(data.get('record_index'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid_question_identity'}), 400
+    action = str(data.get('action') or '').strip().upper()
+    if action not in DIRECT_APPLY_ACTIONS:
+        return jsonify({'error': 'invalid_action'}), 400
+    context = _workbench_question_context(
+        question_id, record_index=record_index, surface='admin_play',
+    )
+    if not context:
+        return jsonify({'error': 'question_not_found'}), 404
+    try:
+        proposed = _direct_proposed_record(context['record'], action, data)
+        validation = validate_direct_record(proposed, parse_sgf_fn=parse_sgf)
+        if not validation.get('ok'):
+            return jsonify({'error': 'validation_failed', 'validation': validation,
+                            'predecessor_preserved': True, 'production_mutation': False}), 422
+        with get_db() as conn:
+            version = apply_direct_question_edit(
+                conn, questions_path=DATA_FILE, actor_id=int(session['user_id']),
+                question_id=question_id, record_index=record_index,
+                expected_predecessor_hash=data.get('predecessor_hash'),
+                action_type=action, proposed_record=proposed,
+                operation_id=data.get('operation_id'), parse_sgf_fn=parse_sgf,
+            )
+        _invalidate_questions_cache()
+    except (ValueError, LookupError) as error:
+        status = 409 if str(error) in {'stale_predecessor', 'record_index_mismatch', 'no_change'} else 422
+        return jsonify({'error': str(error), 'predecessor_preserved': True,
+                        'production_mutation': False}), status
+    return jsonify({
+        'ok': True, 'direct_apply': True, 'source': DIRECT_APPLY_SOURCE,
+        'version': version, 'duplicate': bool(version.get('duplicate')),
+        'message': '修改已套用', 'rollback_available': True,
+        'production_mutation': False,
+    })
+
+
+@app.route('/api/admin/sgf-workbench/direct-retest', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_direct_retest():
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    try:
+        question_id = int(data.get('question_id'))
+        record_index = int(data.get('record_index'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid_question_identity'}), 400
+    moves = data.get('moves')
+    if not isinstance(moves, list) or not moves:
+        return jsonify({'error': 'moves_required'}), 400
+    context = _workbench_question_context(question_id, record_index=record_index, surface='admin_direct_retest')
+    if not context:
+        return jsonify({'error': 'question_not_found'}), 404
+    sid = f'admin-direct-{session["user_id"]}'
+    result = _rt_server_verify(context['record'], sid, moves)
+    with get_db() as conn:
+        versions = list_direct_versions(conn, question_id=question_id, record_index=record_index, limit=1)
+    return jsonify({
+        'ok': True, 'question_id': question_id, 'record_index': record_index,
+        'applied_verdict': _workbench_verdict(result),
+        'canonical_verdict': _workbench_verdict(result),
+        'applied_version': versions[0] if versions else None,
+        'production_verdict_unchanged': True,
+        'source': DIRECT_APPLY_SOURCE,
+    })
+
+
+@app.route('/api/admin/sgf-workbench/direct-versions/<int:version_id>/rollback', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_direct_rollback(version_id):
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    if not _direct_apply_enabled():
+        return jsonify({'error': 'direct_apply_disabled', 'production_mutation': False}), 403
+    data = request.get_json(silent=True) or {}
+    try:
+        with get_db() as conn:
+            result = rollback_direct_question_edit(
+                conn, questions_path=DATA_FILE, actor_id=int(session['user_id']),
+                version_id=version_id, operation_id=data.get('operation_id'),
+                parse_sgf_fn=parse_sgf,
+            )
+        _invalidate_questions_cache()
+    except (ValueError, LookupError) as error:
+        return jsonify({'error': str(error), 'production_mutation': False}), 409
+    return jsonify({'ok': True, 'version': result, 'rollback': True,
+                    'message': '已還原上一版', 'production_mutation': False})
 
 
 @app.route('/api/admin/sgf-workbench/batches', methods=['GET', 'POST'])

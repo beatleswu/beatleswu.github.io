@@ -144,6 +144,13 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
         response.headers["Cache-Control"] = "private, no-store"
         return response
 
+    @blueprint.route("/admin/sgf-answer-review-ux-v2.js")
+    @admin_required
+    def review_ux_v2_script():
+        response = send_from_directory(root, "sgf_admin_workbench_ux_v2.js", mimetype="application/javascript")
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
     @blueprint.route("/api/admin/sgf-answer-review/bootstrap")
     @admin_required
     def review_bootstrap():

@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
@@ -42,6 +44,17 @@ WORKBENCH_REPORT_REASONS = (
     "OTHER",
 )
 
+DIRECT_APPLY_SOURCE = "ADMIN_PLAY_DIRECT"
+DIRECT_APPLY_ACTIONS = (
+    "ADD_ALTERNATIVE_CORRECT_MOVE",
+    "REMOVE_INCORRECT_ACCEPTED_MOVE",
+    "REPLACE_ANSWER",
+    "EDIT_BOARD_SETUP",
+    "CHANGE_SIDE_TO_PLAY",
+    "DISABLE_BROKEN_QUESTION",
+    "REBUILD_QUESTION",
+)
+
 
 def _is_sqlite(conn) -> bool:
     raw = getattr(conn, "_conn", conn)
@@ -71,6 +84,70 @@ def _loads(value: Any, fallback: Any) -> Any:
 
 def _sha256(value: bytes | str) -> str:
     return hashlib.sha256(value if isinstance(value, bytes) else value.encode("utf-8")).hexdigest()
+
+
+def direct_record_hash(record: Any) -> str:
+    """Hash one question record independent of JSON whitespace/key order."""
+    return _sha256(_json(record if isinstance(record, dict) else {}))
+
+
+def _direct_atomic_write(path: str, payload: bytes) -> None:
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    fd, temp_path = tempfile.mkstemp(prefix="questions-direct-", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except OSError:
+            pass
+        raise
+
+
+def _direct_load_questions(path: str) -> tuple[bytes, list[dict]]:
+    with open(path, "rb") as handle:
+        raw = handle.read()
+    records = json.loads(raw.decode("utf-8"))
+    if not isinstance(records, list) or not all(isinstance(row, dict) for row in records):
+        raise ValueError("questions_json_must_be_list_of_objects")
+    return raw, records
+
+
+def validate_direct_record(record: Any, *, parse_sgf_fn=None) -> dict:
+    """Fail-closed structural validation for one proposed question record."""
+    errors: list[str] = []
+    if not isinstance(record, dict):
+        return {"ok": False, "errors": ["record_not_object"]}
+    if not isinstance(record.get("id"), int) or int(record["id"]) <= 0:
+        errors.append("question_identity_invalid")
+    content = str(record.get("content") or record.get("sgf") or "")
+    if not content.strip():
+        errors.append("sgf_content_missing")
+    elif parse_sgf_fn is not None:
+        try:
+            parse_sgf_fn(content)
+        except Exception:
+            errors.append("sgf_not_parseable")
+    accepted = record.get("accepted_moves")
+    if not isinstance(accepted, list) or not accepted:
+        errors.append("empty_answer_set")
+    seen: set[tuple[int, int]] = set()
+    for move in accepted if isinstance(accepted, list) else []:
+        normalized = _normalize_move(move)
+        if normalized is None or not (0 <= normalized["x"] < 19 and 0 <= normalized["y"] < 19):
+            errors.append("accepted_move_invalid")
+            continue
+        key = (normalized["x"], normalized["y"])
+        if key in seen:
+            errors.append("duplicate_accepted_move")
+        seen.add(key)
+    if "enabled" in record and not isinstance(record.get("enabled"), bool):
+        errors.append("enabled_invalid")
+    return {"ok": not errors, "errors": errors}
 
 
 def _row_dict(row) -> dict:
@@ -174,6 +251,26 @@ def ensure_sgf_workbench_tables(conn) -> None:
         created_at TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sgw_audit_target ON sgf_workbench_audit(target_type, target_id, created_at DESC)")
+    conn.execute(f"""CREATE TABLE IF NOT EXISTS sgf_workbench_direct_versions (
+        id {identifier},
+        question_id BIGINT NOT NULL,
+        record_index BIGINT NOT NULL,
+        predecessor_hash TEXT NOT NULL,
+        new_hash TEXT NOT NULL,
+        predecessor_version TEXT NOT NULL,
+        new_version TEXT NOT NULL,
+        operation_id TEXT NOT NULL UNIQUE,
+        action_type TEXT NOT NULL,
+        actor_id BIGINT NOT NULL,
+        old_record_json TEXT NOT NULL,
+        new_record_json TEXT NOT NULL,
+        validation_result_json TEXT NOT NULL,
+        rollback_reference BIGINT,
+        source TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'APPLIED',
+        created_at TEXT NOT NULL
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sgw_direct_versions_question ON sgf_workbench_direct_versions(question_id, record_index, id DESC)")
 
 
 def _normalize_move(move: Any) -> dict | None:
@@ -187,6 +284,167 @@ def _normalize_move(move: Any) -> dict | None:
     if move.get("color") in ("B", "W"):
         result["color"] = move["color"]
     return result
+
+
+def _serialize_direct_version(row: Any) -> dict:
+    result = _row_dict(row)
+    for key in ("old_record_json", "new_record_json", "validation_result_json"):
+        target = key.removesuffix("_json")
+        result[target] = _loads(result.pop(key, None), {})
+    return result
+
+
+def get_direct_version(conn, version_id: int) -> dict | None:
+    ensure_sgf_workbench_tables(conn)
+    row = conn.execute("SELECT * FROM sgf_workbench_direct_versions WHERE id=?", (int(version_id),)).fetchone()
+    return _serialize_direct_version(row) if row else None
+
+
+def list_direct_versions(conn, *, question_id: int, record_index: int | None = None, limit: int = 50) -> list[dict]:
+    ensure_sgf_workbench_tables(conn)
+    bounded = max(1, min(int(limit), 100))
+    if record_index is None:
+        rows = conn.execute(
+            "SELECT * FROM sgf_workbench_direct_versions WHERE question_id=? ORDER BY id DESC LIMIT ?",
+            (int(question_id), bounded),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM sgf_workbench_direct_versions WHERE question_id=? AND record_index=? ORDER BY id DESC LIMIT ?",
+            (int(question_id), int(record_index), bounded),
+        ).fetchall()
+    return [_serialize_direct_version(row) for row in rows]
+
+
+def apply_direct_question_edit(conn, *, questions_path: str, actor_id: int,
+                               question_id: int, record_index: int,
+                               expected_predecessor_hash: str,
+                               action_type: str, proposed_record: dict,
+                               operation_id: str, parse_sgf_fn=None,
+                               now: str | None = None) -> dict:
+    """Atomically apply one validated Admin Play edit with idempotency."""
+    ensure_sgf_workbench_tables(conn)
+    action = str(action_type or "").strip().upper()
+    if action not in DIRECT_APPLY_ACTIONS or action == "REBUILD_QUESTION":
+        raise ValueError("direct_action_not_supported")
+    operation = str(operation_id or "").strip()
+    if not operation or len(operation) > 180:
+        raise ValueError("operation_id_required")
+    expected = str(expected_predecessor_hash or "").strip().lower()
+    if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
+        raise ValueError("predecessor_hash_required")
+    existing = conn.execute(
+        "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
+    ).fetchone()
+    if existing:
+        result = _serialize_direct_version(existing)
+        result["duplicate"] = True
+        return result
+    raw_before, records = _direct_load_questions(questions_path)
+    record_count_before = len(records)
+    matches = [(idx, row) for idx, row in enumerate(records) if row.get("id") == int(question_id)]
+    if len(matches) != 1:
+        raise LookupError("question_identity_not_unique")
+    actual_index, old_record = matches[0]
+    if int(record_index) != actual_index:
+        raise ValueError("record_index_mismatch")
+    predecessor_hash = direct_record_hash(old_record)
+    if predecessor_hash != expected:
+        raise ValueError("stale_predecessor")
+    if not isinstance(proposed_record, dict) or int(proposed_record.get("id", 0)) != int(question_id):
+        raise ValueError("question_identity_changed")
+    proposed = json.loads(_json(proposed_record))
+    validation = validate_direct_record(proposed, parse_sgf_fn=parse_sgf_fn)
+    if not validation["ok"]:
+        raise ValueError(";".join(validation["errors"]))
+    if len(records) != record_count_before:
+        raise ValueError("record_count_changed")
+    new_hash = direct_record_hash(proposed)
+    if new_hash == predecessor_hash:
+        raise ValueError("no_change")
+    records[actual_index] = proposed
+    raw_after = (json.dumps(records, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    _direct_atomic_write(questions_path, raw_after)
+    timestamp = _now(now)
+    predecessor_version = f"{predecessor_hash[:16]}:{actual_index}"
+    new_version = f"{new_hash[:16]}:{actual_index}"
+    try:
+        row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
+            (question_id, record_index, predecessor_hash, new_hash,
+             predecessor_version, new_version, operation_id, action_type,
+             actor_id, old_record_json, new_record_json, validation_result_json,
+             rollback_reference, source, status, created_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
+            int(question_id), actual_index, predecessor_hash, new_hash,
+            predecessor_version, new_version, operation, action, int(actor_id),
+            _json(old_record), _json(proposed), _json(validation), None,
+            DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
+        )).fetchone()
+        version = _serialize_direct_version(row)
+        _audit(conn, "sgf_workbench_direct_version", version["id"], actor_id,
+               "DIRECT_APPLY", {
+                   "question_id": int(question_id), "action_type": action,
+                   "predecessor_hash": predecessor_hash, "new_hash": new_hash,
+                   "operation_id": operation, "validation": validation,
+                   "source": DIRECT_APPLY_SOURCE,
+               }, timestamp)
+        return version
+    except Exception:
+        _direct_atomic_write(questions_path, raw_before)
+        raise
+
+
+def rollback_direct_question_edit(conn, *, questions_path: str, actor_id: int,
+                                  version_id: int, operation_id: str,
+                                  parse_sgf_fn=None, now: str | None = None) -> dict:
+    ensure_sgf_workbench_tables(conn)
+    original = get_direct_version(conn, int(version_id))
+    if not original:
+        raise LookupError("direct_version_not_found")
+    operation = str(operation_id or "").strip()
+    if not operation:
+        raise ValueError("operation_id_required")
+    existing = conn.execute(
+        "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
+    ).fetchone()
+    if existing:
+        result = _serialize_direct_version(existing)
+        result["duplicate"] = True
+        return result
+    raw_before, records = _direct_load_questions(questions_path)
+    matches = [(idx, row) for idx, row in enumerate(records) if row.get("id") == int(original["question_id"])]
+    if len(matches) != 1 or matches[0][0] != int(original["record_index"]):
+        raise LookupError("question_identity_not_unique")
+    idx, current = matches[0]
+    if direct_record_hash(current) != original["new_hash"]:
+        raise ValueError("rollback_stale_predecessor")
+    restored = json.loads(_json(original["old_record"]))
+    validation = validate_direct_record(restored, parse_sgf_fn=parse_sgf_fn)
+    if not validation["ok"]:
+        raise ValueError("rollback_record_invalid")
+    records[idx] = restored
+    raw_after = (json.dumps(records, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    _direct_atomic_write(questions_path, raw_after)
+    timestamp = _now(now)
+    try:
+        row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
+            (question_id, record_index, predecessor_hash, new_hash,
+             predecessor_version, new_version, operation_id, action_type,
+             actor_id, old_record_json, new_record_json, validation_result_json,
+             rollback_reference, source, status, created_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
+            int(original["question_id"]), idx, original["new_hash"], original["predecessor_hash"],
+            original["new_version"], original["predecessor_version"], operation,
+            "ROLLBACK", int(actor_id), _json(current), _json(restored), _json(validation),
+            int(version_id), DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
+        )).fetchone()
+        result = _serialize_direct_version(row)
+        _audit(conn, "sgf_workbench_direct_version", result["id"], actor_id,
+               "ROLLBACK", {"rollback_reference": int(version_id), "restored_hash": original["predecessor_hash"]}, timestamp)
+        return result
+    except Exception:
+        _direct_atomic_write(questions_path, raw_before)
+        raise
 
 
 def build_position_identity(*, question_id: int, record_index: int | None,
@@ -465,4 +723,7 @@ def workbench_constants() -> dict:
         "production_mutation": False,
         "canonical_mutation": False,
         "future_source_ready": "CORPUS_SCAN",
+        "direct_apply_source": DIRECT_APPLY_SOURCE,
+        "direct_apply_actions": list(DIRECT_APPLY_ACTIONS),
+        "direct_apply_requires_acceptance_gate": True,
     }

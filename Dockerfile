@@ -86,7 +86,8 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
      games.html ./
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
-     community_reward_rules.js pwa.js sgf_answer_review.js ./
+     community_reward_rules.js pwa.js sgf_answer_review.js \
+     sgf_admin_workbench_ux_v2.js ./
 COPY review_data/sgf_answer_review_queue_v1.json \
      ./review_data/sgf_answer_review_queue_v1.json
 # Legacy Map Battle V1 is an explicitly routed subpath asset. Keep the

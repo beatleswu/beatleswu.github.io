@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: acceptance
+      POSTGRES_PASSWORD: ${ACCEPTANCE_DB_PASSWORD:?ACCEPTANCE_DB_PASSWORD must come from the acceptance state file}
+      POSTGRES_DB: go_odyssey_acceptance
+    volumes:
+      - acceptance-pg-data:/var/lib/postgresql/data
+    networks:
+      - acceptance-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acceptance -d go_odyssey_acceptance"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_GIT_SHA: ${ACCEPTANCE_SOURCE_SHA:?ACCEPTANCE_SOURCE_SHA must be verified by the launcher}
+        APP_BUILD_DATE: ${ACCEPTANCE_BUILD_DATE:?ACCEPTANCE_BUILD_DATE must come from the launcher}
+        SGF_ENGINE_SOURCE_COMMIT: ${ACCEPTANCE_SGF_ENGINE_SOURCE_COMMIT:-unknown}
+    image: ${ACCEPTANCE_IMAGE:-go-odyssey-app:acceptance}
+    environment:
+      PORT: 8080
+      PRODUCTION: "0"
+      DATABASE_URL: postgresql://acceptance:${ACCEPTANCE_DB_PASSWORD}@postgres:5432/go_odyssey_acceptance
+      SECRET_KEY: ${ACCEPTANCE_SECRET_KEY:?ACCEPTANCE_SECRET_KEY must come from the acceptance state file}
+      SITE_URL: http://localhost:${ACCEPTANCE_PORT:-5080}
+      QUESTIONS_JSON_PATH: /app/data/questions.json
+      SHADOW_EVENTS_PATH: /app/data/shadow_events.jsonl
+      SHADOW_JUDGING_ENABLED: "false"
+      GO_ODYSSEY_ACCEPTANCE_MODE: "1"
+      GO_ODYSSEY_ACCEPTANCE_SOURCE_SHA: ${ACCEPTANCE_SOURCE_SHA}
+      GO_ODYSSEY_ACCEPTANCE_PUBLISH_DISABLED: "1"
+      GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED: "1"
+      E10_MAP_BATTLE_V1_MODE: "off"
+      E9_ROLLOUT_GLOBAL_ENABLED: "false"
+      E9_ROLLOUT_ADMIN_ENABLED: "false"
+      COMMUNITY_LEADERBOARD_REWARDS_ENABLED: "false"
+      PREMIUM_WEEKLY_SCHEDULER_ENABLED: "false"
+      NEWEBPAY_TEST: "1"
+      PAYPAL_TEST: "1"
+      ACCEPTANCE_ADMIN_USERNAME: ${ACCEPTANCE_ADMIN_USERNAME}
+      ACCEPTANCE_ADMIN_PASSWORD: ${ACCEPTANCE_ADMIN_PASSWORD}
+      ACCEPTANCE_PLAYER_USERNAME: ${ACCEPTANCE_PLAYER_USERNAME}
+      ACCEPTANCE_PLAYER_PASSWORD: ${ACCEPTANCE_PLAYER_PASSWORD}
+    ports:
+      - "${ACCEPTANCE_BIND_HOST:-0.0.0.0}:${ACCEPTANCE_PORT:-5080}:8080"
+    volumes:
+      - acceptance-app-data:/app/data
+      # Seed is read-only; the target questions.json lives in the isolated
+      # acceptance volume so Admin direct-apply can snapshot/rollback it.
+      - ./tests/fixtures/acceptance/questions.json:/app/data/questions.seed.json:ro
+      # The merged SGF Workbench module is intentionally mounted only into
+      # this acceptance image. Production image packaging remains untouched.
+      - ./sgf_admin_workbench.py:/app/sgf_admin_workbench.py:ro
+      - ./scripts/acceptance/seed_acceptance.py:/tmp/seed_acceptance.py:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - acceptance-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  acceptance-pg-data:
+  acceptance-app-data:
+
+networks:
+  acceptance-net:
