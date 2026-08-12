@@ -681,26 +681,6 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
   pointer-events: none;
 }
 
-@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player {
-    width: clamp(30px, 6vw, 54px);
-    height: clamp(46px, 10vw, 78px);
-  }
-
-  /* iPad portrait keeps the same single marker host, but nests it in the
-     current Zone button so the avatar survives map-layer/compositing quirks. */
-  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player.e10-current-hero {
-    top: 50% !important;
-    left: 50% !important;
-    width: clamp(34px, 5.8vw, 52px);
-    height: clamp(52px, 9vw, 72px);
-    margin: 0;
-    transform: translate(-50%, -100%);
-    display: block !important;
-    overflow: visible;
-  }
-}
-
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
   body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player {
     width: clamp(32px, 4.5vw, 60px);
@@ -1020,6 +1000,24 @@ body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-ad
 }
 
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player {
+    width: clamp(30px, 6vw, 54px);
+    height: clamp(46px, 10vw, 78px);
+  }
+
+  /* iPad portrait keeps the same single marker host, but nests it in the
+     current Zone button so the avatar survives map-layer/compositing quirks. */
+  body[data-e10-visual-skin="immersive-rpg"][data-e10-art-kit="runtime-v1"] #e9-adventure-shell .e9-map-stage__player.e10-current-hero {
+    top: 50% !important;
+    left: 50% !important;
+    width: clamp(34px, 5.8vw, 52px);
+    height: clamp(52px, 9vw, 72px);
+    margin: 0;
+    transform: translate(-50%, -100%);
+    display: block !important;
+    overflow: visible;
+  }
+
   /* Keep the canonical E9 map action measurable at tablet portrait widths;
      the lower detail CTA remains the VS1E journey entry surface.
      The map stage keeps a fixed 1672:941 aspect ratio, so portrait's much
