@@ -61,6 +61,53 @@ acceptance branch):
    removes only its named volumes before reseeding. It cannot target the
    Production Compose project.
 
+## Temporary remote iPad acceptance
+
+The LAN target can be exposed temporarily through a Cloudflare Quick Tunnel
+without exposing port `5080` or PostgreSQL to the Internet. This is not a
+staging platform and it has no Production publisher. The URL is HTTPS-only,
+unguessable, and revoked when the recorded `cloudflared` process is stopped.
+
+One-time local CLI installation (outside this repository, if needed):
+
+```powershell
+winget install --id Cloudflare.cloudflared --exact --scope user
+```
+
+The launcher fails closed if the CLI is absent; it never downloads or commits
+a third-party binary. With the local acceptance app already running:
+
+1. Start the temporary remote access:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/acceptance/run-lan-acceptance.ps1 -Action StartRemote
+   ```
+
+   Copy the printed `REMOTE_ACCEPTANCE_URL=https://...trycloudflare.com` to
+   the Owner. The command verifies source SHA, environment identity, login,
+   CSRF fail-closed behavior, Admin Workbench API access, and the required
+   routes through the actual HTTPS tunnel.
+
+2. From the iPad on any external network, open the printed HTTPS URL and use
+   the existing generated acceptance Admin credentials. Test `/index.html`
+   and `/admin/sgf-answer-review`; staged repairs and batch handoff remain
+   non-Production.
+
+3. Revoke the URL immediately after testing:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts/acceptance/run-lan-acceptance.ps1 -Action StopRemote
+   ```
+
+   `StopRemote` only stops the PID recorded by this acceptance launcher and
+   refuses to stop an unrelated process. `Stop` also revokes any recorded
+   tunnel before stopping the local stack.
+
+The current app paths use ordinary HTTPS HTTP/fetch requests; no separate
+WebSocket/SSE transport is required for the acceptance flows. Cloudflare
+Quick Tunnel still forwards the app's existing transport if an optional
+Socket.IO path is encountered.
+
 ## Boundaries
 
 - `tests/fixtures/acceptance/questions.json` is the only corpus mounted; it is
@@ -71,5 +118,8 @@ acceptance branch):
   services/credentials make Production content publication unavailable.
 - The stack is a reusable local/LAN target for future merged feature SHAs; it
   is not a cloud staging platform or a Production deployment framework.
+- Remote access is an ephemeral `cloudflared tunnel --url
+  http://127.0.0.1:<acceptance-port>` process. No tunnel token, provider
+  credential, or remote URL is stored in Git.
 - Codex can verify local HTTP routes and backend identity, but cannot claim an
   iPad Safari pass without the Owner completing the real-device exercise.

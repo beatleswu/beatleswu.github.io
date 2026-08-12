@@ -43,6 +43,45 @@ def test_acceptance_launcher_is_source_checked_and_scope_guarded():
     assert "deploy.ps1" not in text
 
 
+def test_remote_launcher_is_https_only_ephemeral_and_acceptance_scoped():
+    text = LAUNCHER.read_text(encoding="utf-8")
+    assert "StartRemote" in text
+    assert "StopRemote" in text
+    assert "cloudflared" in text
+    assert "tunnel" in text
+    assert "--url" in text
+    assert "REMOTE_ACCESS_METHOD=Cloudflare Quick Tunnel" in text
+    assert "http://127.0.0.1:$Port" in text
+    assert "https://[a-z0-9-]+\\.trycloudflare\\.com" in text
+    assert "REMOTE_PROTOCOL=https" in text
+    assert "TEMPORARY_URL=YES" in text
+    assert "REVOCABLE=YES" in text
+    assert "STOP_COMMAND_INVALIDATES_REMOTE_ACCESS=YES" in text
+    assert "0.0.0.0:80" not in text
+    assert "5432" not in text
+    assert "router port" not in text.lower()
+    assert "secret_key.txt" not in text
+
+
+def test_remote_state_is_outside_git_and_stop_checks_process_ownership():
+    text = LAUNCHER.read_text(encoding="utf-8")
+    assert "LOCALAPPDATA" in text
+    assert "remote-tunnel" in text
+    assert "Assert-RemoteProcessOwnership" in text
+    assert "Stop-Process -Id $process.Id -Force" in text
+    assert "production" not in text.lower() or "PRODUCTION_PUBLISH_AVAILABLE=NO" in text
+
+
+def test_remote_docs_require_https_and_do_not_publish_a_url_or_secret():
+    text = (ROOT / "docs" / "testing" / "sgf_admin_workbench_real_device_acceptance.md").read_text(encoding="utf-8")
+    assert "StartRemote" in text
+    assert "StopRemote" in text
+    assert "https://...trycloudflare.com" in text
+    assert "5080" in text
+    assert "Production" in text
+    assert "cloudflared tunnel --url" in text
+
+
 def test_acceptance_fixture_is_small_valid_and_representative():
     records = json.loads(FIXTURE.read_text(encoding="utf-8"))
     assert isinstance(records, list)
