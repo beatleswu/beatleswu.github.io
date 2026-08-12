@@ -3224,7 +3224,7 @@
         padding: 0;
         overflow: hidden;
         border-radius: 16px;
-        background: #5f8f75;
+        background: #15130f;
         border-color: rgba(254, 243, 199, .62);
     }
     .boss-cinematic.intro-film .boss-cinematic-content {
@@ -3310,6 +3310,37 @@
         opacity: 0;
         transform: scale(1.04);
         transition: opacity .55s ease, transform 1.8s ease;
+        isolation: isolate;
+        overflow: hidden;
+        background: #15130f;
+    }
+    /*
+       Portrait devices cannot fill a tall viewport with the undistorted
+       16:9 Owner frame without either cropping the story or exposing a flat
+       colour.  Keep the canonical frame untouched in the foreground and
+       use the same shot as a restrained, blurred fill layer behind it.
+       The custom property is assigned by applyIntroFilmShotAssets(), so this
+       never invents or substitutes artwork.
+    */
+    .film-shot::before {
+        content: '';
+        position: absolute;
+        inset: -10%;
+        z-index: 0;
+        pointer-events: none;
+        background-image: var(--film-backdrop-image, linear-gradient(180deg, #2a2a25, #10100d));
+        background-position: center;
+        background-size: cover;
+        filter: blur(24px) saturate(.82) brightness(.54);
+        transform: scale(1.08);
+    }
+    .film-shot::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(0,0,0,.16), rgba(0,0,0,.32));
     }
     .film-shot.active {
         opacity: 1;
@@ -3320,6 +3351,9 @@
         height: 100%;
         object-fit: cover;
         display: block;
+        position: relative;
+        z-index: 1;
+        background: transparent;
     }
     .film-shot.active img {
         animation: storyboardDrift 14s ease-out both;
@@ -3449,7 +3483,8 @@
         }
         #boss-cinematic.intro-film[data-zone-key="k21_25"] .film-shot img {
             object-fit: contain;
-            background: #5f8f75;
+            background: transparent;
+            object-position: center;
         }
         #boss-cinematic.intro-film[data-zone-key="k21_25"] .boss-cinematic-content {
             left: max(12px, env(safe-area-inset-left));
@@ -11199,6 +11234,8 @@ let _introBgmBaseVolume = 0.35;
 let _introAmbienceAudio = null;
 let _introSfxAudio = null;
 let _introFilmRunId = 0;
+let _introAudioUnlockPromise = null;
+let _introAudioUnlocked = false;
 // Tracks what the CURRENTLY-SHOWING (or most-recently-shown) intro-film
 // overlay run actually is, so skipIntroFilm()/replayIntroFilm() -- both
 // zone-key-driven, not caller-driven -- can resume/finish the SAME phase
@@ -13161,6 +13198,7 @@ function applyIntroFilmShotAssets(timeline = []) {
         shotEl.style.display = item ? '' : 'none';
         if (!img || !item?.imageSrc) return;
         img.src = item.imageSrc;
+        shotEl.style.setProperty('--film-backdrop-image', `url("${item.imageSrc}")`);
         if (item.imageAlt) img.alt = item.imageAlt;
     });
 }
@@ -13255,37 +13293,197 @@ function getCurrentIntroZone() {
 // dialogue's implicit full volume.
 function _stopIntroBgm() {
     if (_introBgmAudio) {
-        try { _introBgmAudio.pause(); _introBgmAudio.currentTime = 0; } catch (e) {}
+        try {
+            _introBgmAudio.pause();
+            _introBgmAudio.currentTime = 0;
+            _introBgmAudio.onended = null;
+            _introBgmAudio.onerror = null;
+        } catch (e) {}
     }
-    _introBgmAudio = null;
     _introBgmBaseVolume = 0.35;
 }
 function _stopIntroAmbience() {
     if (_introAmbienceAudio) {
-        try { _introAmbienceAudio.pause(); _introAmbienceAudio.currentTime = 0; } catch (e) {}
+        try {
+            _introAmbienceAudio.pause();
+            _introAmbienceAudio.currentTime = 0;
+            _introAmbienceAudio.onended = null;
+            _introAmbienceAudio.onerror = null;
+        } catch (e) {}
     }
-    _introAmbienceAudio = null;
 }
 function _stopIntroSfx() {
     if (_introSfxAudio) {
-        try { _introSfxAudio.pause(); } catch (e) {}
+        try {
+            _introSfxAudio.pause();
+            _introSfxAudio.currentTime = 0;
+            _introSfxAudio.onended = null;
+            _introSfxAudio.onerror = null;
+        } catch (e) {}
     }
-    _introSfxAudio = null;
 }
+
+function _introAudioDiagnosticsEnabled() {
+    // The acceptance harness adds this banner only to the isolated
+    // non-Production runtime.  Keep detailed playback diagnostics out of
+    // the normal Production console while making Safari failures observable
+    // during Owner acceptance.
+    return Boolean(document.getElementById('go-odyssey-acceptance-banner'));
+}
+
+function _introAudioContextState() {
+    return _bossAudioCtx?.state || 'unavailable';
+}
+
+function _introLocaleCode(value = getCurrentUiLang()) {
+    return value === 'zh' ? 'zh-TW' : (value || 'unknown');
+}
+
+function _logIntroAudio(event, details = {}) {
+    if (!_introAudioDiagnosticsEnabled()) return;
+    try {
+        console.info(`[E10_AUDIO] ${event}`, {
+            AUDIO_PLAY_ATTEMPT: event === 'AUDIO_PLAY_ATTEMPT',
+            AUDIO_PLAY_RESOLVED: event === 'AUDIO_PLAY_RESOLVED',
+            AUDIO_PLAY_REJECTED: event === 'AUDIO_PLAY_REJECTED',
+            AUDIO_CONTEXT_STATE: _introAudioContextState(),
+            CURRENT_SHOT: details.shot ?? null,
+            LOCALE: _introLocaleCode(details.locale),
+            VOICE_FILE: details.voiceFile || null,
+            reason: details.reason || null,
+        });
+    } catch (e) {}
+}
+
+function _firstIntroAudioSources() {
+    const zone = getCurrentIntroZone();
+    if (!zone) return { locale: 'unknown', voice: '', bgm: '', ambience: '', sfx: '' };
+    const locale = getIntroFilmLocaleConfig(zone);
+    const phase = _introFilmActiveOpts.phase || 'pre_play';
+    const timeline = _introFilmActiveOpts.timeline || (
+        phase === 'boss_ready'
+            ? locale.bossReadyTimeline
+            : phase === 'post_clear'
+                ? locale.postClearTimeline
+                : locale.timeline
+    ) || [];
+    const firstBeat = timeline.flatMap(item => item?.beats || []).find(beat => beat?.audioSrc);
+    const firstItem = timeline.find(item => item);
+    const phaseBgm = phase === 'boss_ready'
+        ? (locale.bgmBossReady || locale.bgmMainTheme)
+        : phase === 'post_clear'
+            ? (locale.bgmPostClear || locale.bgmPostClearUrgency)
+            : locale.bgmMainTheme;
+    const phaseAmbience = phase === 'boss_ready'
+        ? (locale.ambienceBossReady || locale.ambienceVillageDawn)
+        : phase === 'post_clear'
+            ? (locale.ambiencePostClear || locale.ambienceVillageDawn)
+            : locale.ambienceVillageDawn;
+    const firstSfx = (firstItem?.sfxCues || (firstItem?.sfxCue ? [firstItem.sfxCue] : [])).find(Boolean) || '';
+    return {
+        locale: locale.uiLang || 'zh',
+        voice: firstBeat?.audioSrc || '',
+        bgm: phaseBgm || '',
+        ambience: phaseAmbience || '',
+        sfx: firstSfx,
+    };
+}
+
+function _primeIntroMediaElement(existing, src, kind, volume, loop = false) {
+    if (!src) return Promise.resolve();
+    const audio = existing || new Audio();
+    audio.preload = 'auto';
+    audio.playsInline = true;
+    audio.loop = loop;
+    audio.src = src;
+    audio.muted = true;
+    audio.volume = 0;
+    if (kind === 'voice') _introAudio = audio;
+    if (kind === 'bgm') _introBgmAudio = audio;
+    if (kind === 'ambience') _introAmbienceAudio = audio;
+    if (kind === 'sfx') _introSfxAudio = audio;
+    _logIntroAudio('AUDIO_PLAY_ATTEMPT', { locale: _introLocaleCode(), voiceFile: src, reason: `gesture_unlock:${kind}` });
+    let playResult;
+    try {
+        playResult = audio.play();
+    } catch (error) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        return Promise.resolve(false);
+    }
+    return Promise.resolve(playResult).then(() => {
+        _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: `gesture_unlock:${kind}` });
+        try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = false;
+            audio.volume = volume;
+        } catch (e) {}
+        return true;
+    }).catch(error => {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        try { audio.pause(); audio.muted = false; audio.volume = volume; } catch (e) {}
+        return false;
+    });
+}
+
+// Safari requires media playback to be opened by a user gesture.  The
+// explicit "播放動畫 / Play animation" control is that gesture.  Prime the
+// actual reusable narration/bed elements while muted, then reuse those same
+// elements for the rest of the cinematic run.  This does not start audible
+// content before interaction and does not alter any locked media bytes.
+function _unlockIntroAudioFromGesture() {
+    if (_introAudioUnlocked) return Promise.resolve();
+    if (_introAudioUnlockPromise) return _introAudioUnlockPromise;
+    const sources = _firstIntroAudioSources();
+    const context = _bossAudioCtx || _bossAudio();
+    const resumePromise = context?.resume ? Promise.resolve(context.resume()).catch(error => {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(sources.locale), reason: `AudioContext.resume: ${String(error)}` });
+    }) : Promise.resolve();
+    _introAudioUnlockPromise = Promise.all([
+        resumePromise,
+        _primeIntroMediaElement(_introAudio, sources.voice, 'voice', 1),
+        _primeIntroMediaElement(_introBgmAudio, sources.bgm, 'bgm', 0.35, true),
+        _primeIntroMediaElement(_introAmbienceAudio, sources.ambience, 'ambience', 0.22, true),
+        _primeIntroMediaElement(_introSfxAudio, sources.sfx, 'sfx', 0.8),
+    ]).then(results => {
+        _introAudioUnlocked = results.every(result => result !== false);
+        if (!_introAudioUnlocked) _introAudioUnlockPromise = null;
+    }).catch(() => {
+        // Individual media failures are logged by _primeIntroMediaElement;
+        // leave the promise settled so the cinematic can still proceed and
+        // a later explicit tap can retry the unlock.
+        _introAudioUnlockPromise = null;
+    });
+    return _introAudioUnlockPromise;
+}
+
 function _startIntroBgm(src, opts = {}) {
     const loop = opts.loop !== false;
     const volume = opts.volume ?? 0.35;
     if (!src) return;
-    if (_introBgmAudio && _introBgmAudio.src && _introBgmAudio.src.indexOf(src) !== -1) return;
+    if (_introBgmAudio && _introBgmAudio.src && _introBgmAudio.src.indexOf(src) !== -1 && !_introBgmAudio.paused) return;
     _stopIntroBgm();
     try {
-        const audio = new Audio(src);
+        const audio = _introBgmAudio || new Audio();
+        audio.src = src;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.onended = null;
+        audio.onerror = null;
         audio.loop = loop;
+        audio.muted = false;
         audio.volume = volume;
         _introBgmBaseVolume = volume;
         _introBgmAudio = audio;
-        audio.play().catch(() => {});
-    } catch (e) {}
+        const playResult = audio.play();
+        Promise.resolve(playResult).then(() => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: 'bgm' });
+        }).catch(error => {
+            _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        });
+    } catch (e) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(e) });
+    }
 }
 function _setIntroBgmDucked(active) {
     if (!_introBgmAudio) return;
@@ -13298,18 +13496,31 @@ function _setIntroBgmDucked(active) {
 function _startIntroAmbience(src, opts = {}) {
     const volume = opts.volume ?? 0.22;
     if (!src) return;
-    if (_introAmbienceAudio && _introAmbienceAudio.src && _introAmbienceAudio.src.indexOf(src) !== -1) return;
+    if (_introAmbienceAudio && _introAmbienceAudio.src && _introAmbienceAudio.src.indexOf(src) !== -1 && !_introAmbienceAudio.paused) return;
     _stopIntroAmbience();
     try {
-        const audio = new Audio(src);
+        const audio = _introAmbienceAudio || new Audio();
+        audio.src = src;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.onended = null;
+        audio.onerror = null;
         // opts.loop:false lets one-shot underscore beds (e.g. Lord Trial
         // ritual energy, zone-route travel energy) share this same bed slot
         // instead of duplicating BGM/ambience's play/stop machinery.
         audio.loop = opts.loop !== false;
+        audio.muted = false;
         audio.volume = volume;
         _introAmbienceAudio = audio;
-        audio.play().catch(() => {});
-    } catch (e) {}
+        const playResult = audio.play();
+        Promise.resolve(playResult).then(() => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: 'ambience' });
+        }).catch(error => {
+            _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        });
+    } catch (e) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(e) });
+    }
 }
 function _playIntroSfxAsset(src, opts = {}) {
     const volume = opts.volume ?? 0.8;
@@ -13320,11 +13531,24 @@ function _playIntroSfxAsset(src, opts = {}) {
     // triggers (e.g. re-opening the same card).
     _stopIntroSfx();
     try {
-        const audio = new Audio(src);
+        const audio = _introSfxAudio || new Audio();
+        audio.src = src;
+        audio.preload = 'auto';
+        audio.playsInline = true;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.muted = false;
         audio.volume = volume;
         _introSfxAudio = audio;
-        audio.play().catch(() => {});
-    } catch (e) {}
+        const playResult = audio.play();
+        Promise.resolve(playResult).then(() => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', { locale: _introLocaleCode(), voiceFile: src, reason: 'sfx' });
+        }).catch(error => {
+            _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(error) });
+        });
+    } catch (e) {
+        _logIntroAudio('AUDIO_PLAY_REJECTED', { locale: _introLocaleCode(), voiceFile: src, reason: String(e) });
+    }
 }
 
 function _stopIntroFilm() {
@@ -13341,7 +13565,6 @@ function _stopIntroFilm() {
             _introAudio.onerror = null;
         } catch (e) {}
     }
-    _introAudio = null;
     _stopIntroBgm();
     _stopIntroAmbience();
     _stopIntroSfx();
@@ -15000,7 +15223,6 @@ function skipIntroFilm() {
             _introAudio.onerror = null;
         } catch (e) {}
     }
-    _introAudio = null;
     _stopIntroBgm();
     _stopIntroAmbience();
     _stopIntroSfx();
@@ -15027,7 +15249,11 @@ function skipIntroFilm() {
     playBossSfx('start');
 }
 
-function replayIntroFilm() {
+async function replayIntroFilm() {
+    // This handler is intentionally the explicit user-gesture boundary for
+    // Safari/iPad media playback.  Prime the reusable voice/BGM/ambience/SFX
+    // elements before restarting the presentation-only replay.
+    await _unlockIntroAudioFromGesture();
     const zone = getCurrentIntroZone();
     if (!zone) return;
     _stopIntroFilm();
@@ -15129,7 +15355,10 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             audio.onerror = null;
         } catch (e) {}
         audio.preload = 'auto';
+        audio.playsInline = true;
         audio.src = beat.audioSrc;
+        audio.muted = false;
+        audio.volume = 1;
         let finished = false;
         const finishSuccess = (delay = 520) => {
             if (finished || runId !== _introFilmRunId) return;
@@ -15148,9 +15377,15 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
         // narration assets were unavailable (see 2026-07-14 incident).
         // Keep the beat's current visual composition and subtitle on screen
         // for its computed hold duration, then advance exactly once.
-        const finishAudioSilently = () => {
+        const finishAudioSilently = (reason = 'media_error_or_rejected') => {
             if (finished || runId !== _introFilmRunId) return;
             finished = true;
+            _logIntroAudio('AUDIO_PLAY_REJECTED', {
+                shot: activeShotNumber,
+                locale: _introLocaleCode(locale.uiLang),
+                voiceFile: beat.audioSrc,
+                reason,
+            });
             audio.onended = null;
             audio.onerror = null;
             try { audio.pause(); } catch (e) {}
@@ -15158,10 +15393,37 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             finishSilently();
         };
         if (shouldDuckZone2Bgm) _setIntroBgmDucked(true);
-        audio.onended = () => finishSuccess(720);
-        audio.onerror = finishAudioSilently;
-        audio.play().catch(finishAudioSilently);
+        audio.onended = () => {
+            _logIntroAudio('AUDIO_PLAY_RESOLVED', {
+                shot: activeShotNumber,
+                locale: _introLocaleCode(locale.uiLang),
+                voiceFile: beat.audioSrc,
+                reason: 'voice_ended',
+            });
+            finishSuccess(720);
+        };
+        audio.onerror = () => finishAudioSilently('media_error');
+        _logIntroAudio('AUDIO_PLAY_ATTEMPT', {
+            shot: activeShotNumber,
+            locale: _introLocaleCode(locale.uiLang),
+            voiceFile: beat.audioSrc,
+            reason: _introAudioUnlocked ? 'voice_reuse_after_gesture_unlock' : 'voice_run_start',
+        });
+        try {
+            const playResult = audio.play();
+            Promise.resolve(playResult).then(() => {
+                _logIntroAudio('AUDIO_PLAY_RESOLVED', {
+                    shot: activeShotNumber,
+                    locale: _introLocaleCode(locale.uiLang),
+                    voiceFile: beat.audioSrc,
+                    reason: 'voice_play_started',
+                });
+            }).catch(error => finishAudioSilently(String(error)));
+        } catch (error) {
+            finishAudioSilently(String(error));
+        }
     }
+    let activeShotNumber = null;
     function playBrowserVoice(beat, onDone) {
         const fallbackMs = computeBeatHoldMs(beat.text);
         if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
@@ -15249,6 +15511,7 @@ async function playNewbieVillageIntroFilm(zone, opts = {}) {
             playBossSfx('start');
             return;
         }
+        activeShotNumber = Number(item.shot) + 1;
         shots.forEach((el, idx) => el.classList.toggle('active', idx === item.shot));
         // Each cinematic phase is its own audio session.  Zone 2 uses the
         // Owner-locked A3/B3/C3 cues; Zone 1 keeps its historical fallback
