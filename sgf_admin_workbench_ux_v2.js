@@ -107,6 +107,7 @@
       .v2-pending-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:4px 0 14px}.v2-pending-head h2{margin:0;font-size:clamp(22px,4vw,34px)}.v2-pending-head p{margin:6px 0 0;color:#a8b5aa}.v2-pending-list{display:grid;gap:10px}.v2-pending-card{padding:15px;display:flex;align-items:center;justify-content:space-between;gap:12px}.v2-pending-card h3{margin:0 0 5px;font-size:16px}.v2-pending-card p{margin:0;color:#a8b5aa;font-size:13px}.v2-pending-card .v2-chip{margin-top:8px}.v2-handoff{margin-top:14px;padding:14px;border:1px solid #405548;border-radius:16px;background:#101a15;color:#bcd2c1;line-height:1.55}.v2-handoff strong{color:#8de4ad}.v2-empty{padding:44px 22px;text-align:center;color:#a8b5aa}.v2-toast{position:fixed;z-index:100;left:50%;bottom:22px;transform:translate(-50%,18px);opacity:0;pointer-events:none;max-width:calc(100% - 28px);padding:12px 17px;border-radius:14px;background:#eef7f0;color:#16251c;font-weight:850;box-shadow:0 12px 40px rgba(0,0,0,.4);transition:.2s}.v2-toast.is-visible{opacity:1;transform:translate(-50%,0)}.v2-toast.is-error{background:#ffd7d3;color:#52211d}
       @media(max-width:899px){.ux-v2-root{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}.v2-topbar{padding-top:max(12px,env(safe-area-inset-top))}.v2-brand span{display:none}.v2-review-grid{grid-template-columns:1fr}.v2-control{position:static}.v2-board-card{padding:10px}.v2-board-wrap{width:min(100%,calc(100vw - 38px))}.v2-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v2-pending-card{align-items:flex-start;flex-direction:column}.v2-pending-card button{width:100%}}
       @media(max-width:899px) and (orientation:landscape){.v2-board-wrap{width:min(72vh,calc(100vw - 38px))}.v2-review-grid{grid-template-columns:minmax(0,1fr) minmax(285px,350px)}.v2-control{position:sticky;top:10px}.v2-decision{min-height:60px}.v2-home-hero{padding:26px 22px}}
+      @media(min-width:600px) and (max-width:899px) and (orientation:portrait){.v2-board-wrap{width:min(calc(100vw - 38px),calc(100vh - 465px))}.v2-board-card{padding:10px}.v2-control{padding:14px}.v2-decision{min-height:62px}.v2-prompt{margin-bottom:10px}.v2-detail-card{margin-top:8px}}
       @media(min-width:900px){.v2-home-hero{min-height:510px;display:flex;flex-direction:column;justify-content:center}.v2-review-grid{grid-template-columns:minmax(0,1fr) 390px}}
       @media(prefers-reduced-motion:reduce){.ux-v2-root *{animation:none!important;transition:none!important}}
     `;
@@ -310,9 +311,14 @@
   }
 
   async function showPending() {
-    const payload = await jsonFetch(`${API}/items`); state.items = payload.items || state.items; const list = stagedItems();
+    const payload = await jsonFetch(`${API}/items`); state.items = payload.items || state.items;
+    const list = stagedItems();
+    const enriched = await Promise.all(list.map(async (item) => {
+      try { return (await jsonFetch(`${API}/items/${item.id}`)).item || item; } catch (_) { return item; }
+    }));
+    enriched.forEach((item) => { const index = state.items.findIndex((row) => row.id === item.id); if (index >= 0) state.items[index] = item; });
     const node = el("v2-pending-list");
-    node.innerHTML = list.length ? list.map((item) => { const repair = (item.staged_repairs || [])[0] || {}; const action = repair.action || "待確認"; return `<article class="v2-card v2-pending-card"><div><h3>題目 #${esc(item.question_id)}</h3><p>${esc(ACTION_LABELS[action] || action)} · ${esc(sourceLabel(item))}</p><span class="v2-chip">尚未發布，不會影響玩家</span></div><button class="v2-secondary" data-open-staged="${esc(item.id)}">查看題目</button></article>`; }).join("") : `<div class="v2-card v2-empty"><h3>目前沒有待套用修改</h3><p>審題時確認的修改會自動出現在這裡。</p></div>`;
+    node.innerHTML = enriched.length ? enriched.map((item) => { const repair = (item.staged_repairs || [])[0] || {}; const action = repair.action || "已暫存修改"; return `<article class="v2-card v2-pending-card"><div><h3>題目 #${esc(item.question_id)}</h3><p>${esc(ACTION_LABELS[action] || action)} · ${esc(sourceLabel(item))}</p><span class="v2-chip">尚未發布，不會影響玩家</span></div><button class="v2-secondary" data-open-staged="${esc(item.id)}">查看題目</button></article>`; }).join("") : `<div class="v2-card v2-empty"><h3>目前沒有待套用修改</h3><p>審題時確認的修改會自動出現在這裡。</p></div>`;
     el("v2-handoff-note").hidden = true; show("pending");
   }
 
@@ -325,6 +331,8 @@
     el("v2-start").addEventListener("click", () => { state.currentIndex = 0; openNext().catch((error) => toast(error.message, true)); });
     el("v2-resume").addEventListener("click", () => openNext().catch((error) => toast(error.message, true)));
     el("v2-pending").addEventListener("click", () => showPending().catch((error) => toast(error.message, true)));
+    el("v2-home-details-toggle").addEventListener("click", () => { el("v2-home-details").open = true; });
+    el("v2-done").addEventListener("click", () => toast("已處理題目會保留在詳細資料與伺服器紀錄中"));
     el("v2-review-pending").addEventListener("click", () => showPending().catch((error) => toast(error.message, true)));
     el("v2-review-home").addEventListener("click", () => { show("home"); renderHome({ staged_count: stagedItems().length }); });
     el("v2-pending-home").addEventListener("click", () => { show("home"); renderHome({ staged_count: stagedItems().length }); });
