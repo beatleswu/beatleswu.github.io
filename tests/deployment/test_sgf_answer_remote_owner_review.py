@@ -14,12 +14,26 @@ COMPOSE = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
 NGINX = (ROOT / "nginx" / "default.conf").read_text(encoding="utf-8")
 SERVICE_WORKER = (ROOT / "sw.js").read_text(encoding="utf-8")
 
+# The UX-v2 script is an intentionally protected admin asset. Keep the route
+# inventory explicit so a legitimate new admin endpoint is reviewed as a
+# route, rather than hiding an accidental duplicate by changing a count.
+EXPECTED_ADMIN_ROUTES = (
+    "/admin/sgf-answer-review",
+    "/admin/sgf-answer-review.js",
+    "/admin/sgf-answer-review-ux-v2.js",
+    "/api/admin/sgf-answer-review/bootstrap",
+    "/api/admin/sgf-answer-review/groups/<group_key>",
+    "/api/admin/sgf-answer-review/groups/<group_key>/undo",
+    "/api/admin/sgf-answer-review/progress",
+)
+
 
 def test_remote_route_reuses_normal_admin_authorization_without_qa_bypass():
     assert "create_sgf_answer_review_blueprint" in APP
     assert "admin_required=admin_required" in APP
-    assert ROUTES.count("@admin_required") == 6
-    assert "/admin/sgf-answer-review" in ROUTES
+    assert ROUTES.count("@admin_required") == len(EXPECTED_ADMIN_ROUTES)
+    for route in EXPECTED_ADMIN_ROUTES:
+        assert ROUTES.count(f'"{route}"') == 1, route
     assert "/__local_qa__/owner-login" not in APP
     assert "/__local_qa__/owner-login" not in ROUTES
 

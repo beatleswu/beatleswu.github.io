@@ -922,6 +922,11 @@ $records | ConvertTo-Json -Compress
         ("scripts/release/ReleaseTooling.psm1", "Test-GnuTarExecutableCapability"): (2, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "New-DeterministicStaticArchive"): (1, "directory_independent"),
         ("scripts/release/ReleaseTooling.psm1", "Test-StaticArchiveEntrySafety"): (1, "directory_independent"),
+        # PR326 added these two bounded callers to the content-only release
+        # runner. Keep them explicitly classified so the inventory remains a
+        # fail-closed review of every native-process boundary.
+        ("scripts/release/publish-content-release.ps1", "Invoke-LocalBundleValidation"): (1, "local_context"),
+        ("scripts/release/publish-content-release.ps1", "Invoke-RemotePythonStdin"): (1, "remote_context"),
     }
     actual = {}
     for record in records:
