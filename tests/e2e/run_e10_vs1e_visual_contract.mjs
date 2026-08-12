@@ -651,10 +651,14 @@ async function runtimeSnapshot(page) {
     const dockSlotCentersX = dockGeometryItems.map((item) => item.slot_center_x).filter(Number.isFinite);
     const dockSlotSpacings = dockSlotCentersX.slice(1).map((value, index) => value - dockSlotCentersX[index]);
     const currentZone = document.querySelector('[data-player-location="true"]');
-    const marker = [
+    // Mobile moves the same #e9-world-stage-player host into the current
+    // card and adds .e10-current-hero. De-duplicate the selector union so
+    // one physical marker remains one reported marker.
+    const markerElements = [...new Set([
       document.querySelector('#e9-world-stage-player'),
       ...document.querySelectorAll('.e10-current-hero'),
-    ].find(isVisible) || null;
+    ].filter(Boolean))];
+    const marker = markerElements.find(isVisible) || null;
     const currentNodeBox = currentZone?.getBoundingClientRect();
     const markerBox = marker?.getBoundingClientRect();
     const currentPlaqueBox = currentZone?.querySelector('.e9-zone__plaque')?.getBoundingClientRect();
@@ -711,10 +715,7 @@ async function runtimeSnapshot(page) {
         selectedZoneKey: worldState.selectedZoneKey || null,
         challengeTargetZoneKey: worldState.challengeTargetZoneKey || null,
       },
-      visibleHeroCount: [
-        document.querySelector('#e9-world-stage-player'),
-        ...document.querySelectorAll('.e10-current-hero'),
-      ].filter(isVisible).length,
+      visibleHeroCount: markerElements.filter(isVisible).length,
       landmarkRequestCount: performance.getEntriesByType('resource')
         .filter((entry) => entry.name.includes('/assets/maps/e10-vs1f-landmarks/')).length,
       landmarkRequestUrls: [...new Set(performance.getEntriesByType('resource')
@@ -898,9 +899,10 @@ async function runtimeSnapshot(page) {
         .filter((entry) => entry.name.includes('/assets/e10/ui/')).length,
       artAssetErrorCount: Array.from(document.querySelectorAll('#e9-adventure-shell img[src*="/assets/e10/ui/"]'))
         .filter((image) => !image.complete || image.naturalWidth === 0).length,
-      playerMarkerPortraitCount: document.querySelectorAll(
-        '#e9-world-stage-player .e10-player-marker-portrait, .e10-current-hero .e10-player-marker-portrait'
-      ).length,
+      playerMarkerAvatarCount: document.querySelectorAll('.e10-player-marker-avatar').length,
+      playerMarkerAvatarId: document.querySelector('#e9-world-stage-player')?.getAttribute('data-player-avatar-id'),
+      playerMarkerPresentation: document.querySelector('#e9-world-stage-player')?.getAttribute('data-player-avatar-presentation'),
+      playerMarkerPointerEvents: marker ? getComputedStyle(marker).pointerEvents : null,
       artSurfaces: {
         playerPlaque: getComputedStyle(document.querySelector('.e9-hud__player')).backgroundImage,
         titlePlaque: getComputedStyle(document.querySelector('.e10-hud-brand')).backgroundImage,
@@ -1313,7 +1315,22 @@ function assertCase(result) {
   if (snapshot.artAssetNodeCount < 22 || snapshot.artAssetRequestCount < 22 || snapshot.artAssetErrorCount !== 0) {
     failures.push(`${specName}: runtime art asset contract ${snapshot.artAssetNodeCount}/${snapshot.artAssetRequestCount}/${snapshot.artAssetErrorCount}`);
   }
-  if (snapshot.playerMarkerPortraitCount !== 1) failures.push(`${specName}: player marker portrait count ${snapshot.playerMarkerPortraitCount}`);
+  const expectedAvatarId = result.avatarKey && result.avatarKey !== 'unknown-character'
+    ? result.avatarKey
+    : 'apprentice';
+  if (snapshot.playerMarkerAvatarCount !== 1
+    || snapshot.playerMarkerAvatarId !== expectedAvatarId
+    || snapshot.playerMarkerPresentation !== 'full-body-character') {
+    failures.push(`${specName}: resolved player marker avatar ${JSON.stringify({
+      count: snapshot.playerMarkerAvatarCount,
+      id: snapshot.playerMarkerAvatarId,
+      presentation: snapshot.playerMarkerPresentation,
+      expectedAvatarId,
+    })}`);
+  }
+  if (snapshot.playerMarkerPointerEvents !== 'none') {
+    failures.push(`${specName}: player marker intercepts pointer input (${snapshot.playerMarkerPointerEvents})`);
+  }
   const landscapeContract = result.viewport.width >= 768 && result.viewport.width > result.viewport.height;
   if (landscapeContract) {
     const plaque = snapshot.plaqueLayout;
@@ -1783,6 +1800,18 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
     const detail = document.querySelector('#e9-world-stage-details');
     const cta = document.querySelector('#e9-world-stage-details-cta');
     const player = document.querySelector('#e9-world-stage-player');
+    const markerElements = [...new Set([
+      player,
+      ...document.querySelectorAll('.e10-current-hero'),
+    ].filter(Boolean))];
+    const isVisibleMarker = (element) => {
+      if (!element || element.hidden) return false;
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden'
+        && box.width > 0 && box.height > 0;
+    };
+    const visibleMarker = markerElements.find(isVisibleMarker) || null;
     const inlineCta = document.querySelector('.e9-zone__inline-cta');
     const navSlot = document.querySelector('#e9-left-nav-slot');
     const nav = document.querySelector('#left-nav');
@@ -1834,6 +1863,12 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
       selectedTileOwnsPlayer: !!document.querySelector(`[data-zone="${state.selectedZoneKey}"][data-player-location="true"]`),
       selectedCount: document.querySelectorAll('[data-zone].is-selected').length,
       playerCount: document.querySelectorAll('[data-player-location="true"]').length,
+      playerMarkerHostCount: document.querySelectorAll('#e9-world-stage-player').length,
+      playerMarkerAvatarCount: document.querySelectorAll('.e10-player-marker-avatar').length,
+      playerMarkerAvatarId: player?.getAttribute('data-player-avatar-id') || null,
+      playerMarkerPresentation: player?.getAttribute('data-player-avatar-presentation') || null,
+      visibleHeroCount: markerElements.filter(isVisibleMarker).length,
+      playerMarkerPointerEvents: visibleMarker ? getComputedStyle(visibleMarker).pointerEvents : null,
       inlineTargetZoneKey: document.querySelector('.e9-zone__inline-cta')?.getAttribute('data-challenge-target-zone') || null,
       interactionGeometry: {
         viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -2052,6 +2087,21 @@ async function runIpadInteractionRecoveryCase(browser, origin, outputDir, spec) 
   if (!selected.currentTileOwnsPlayer || selected.playerCount !== 1
     || (selected.selectedZoneKey !== selected.currentZoneKey && selected.selectedTileOwnsPlayer)) {
     failures.push(`${spec.name}: selection moved or duplicated the authoritative player marker`);
+  }
+  if (selected.playerMarkerHostCount !== 1
+    || selected.playerMarkerAvatarCount !== 1
+    || selected.playerMarkerAvatarId !== 'mage'
+    || selected.playerMarkerPresentation !== 'full-body-character'
+    || selected.visibleHeroCount !== 1
+    || selected.playerMarkerPointerEvents !== 'none') {
+    failures.push(`${spec.name}: player avatar marker contract ${JSON.stringify({
+      host: selected.playerMarkerHostCount,
+      avatar: selected.playerMarkerAvatarCount,
+      id: selected.playerMarkerAvatarId,
+      presentation: selected.playerMarkerPresentation,
+      visible: selected.visibleHeroCount,
+      pointerEvents: selected.playerMarkerPointerEvents,
+    })}`);
   }
   if (spec.portrait && spec.playable && (!selected.ctaVisible || selected.ctaDisabled || selected.ctaHit !== 'e9-world-stage-details-cta')) {
     failures.push(`${spec.name}: portrait detail CTA is not directly hit-testable`);

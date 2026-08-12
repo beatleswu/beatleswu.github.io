@@ -15,26 +15,44 @@
   'use strict';
 
   var CHARACTER_ROOT = '/assets/hero/characters/';
-  var FALLBACK_AVATAR = CHARACTER_ROOT + 'chibi_reference_normalized.webp';
-  var CHARACTER_ASSETS = {
-    apprentice: 'chibi_apprentice_normalized.webp',
-    apprentice_girl: 'chibi_apprentice_girl_normalized.webp',
-    swordsman: 'chibi_swordsman_normalized.webp',
-    rogue: 'chibi_rogue_normalized.webp',
-    ranger: 'chibi_ranger_normalized.webp',
-    berserker: 'chibi_berserker_normalized.webp',
-    guardian: 'chibi_guardian_normalized.webp',
-    paladin: 'chibi_paladin_normalized.webp',
-    mage: 'chibi_mage_normalized.webp',
-    sage: 'chibi_sage_normalized.webp',
+  var DEFAULT_CHARACTER_KEY = 'apprentice';
+  var CHARACTER_PRESENTATIONS = {
+    apprentice: { id: 'apprentice', asset: CHARACTER_ROOT + 'chibi_apprentice_normalized.webp' },
+    apprentice_girl: { id: 'apprentice_girl', asset: CHARACTER_ROOT + 'chibi_apprentice_girl_normalized.webp' },
+    swordsman: { id: 'swordsman', asset: CHARACTER_ROOT + 'chibi_swordsman_normalized.webp' },
+    rogue: { id: 'rogue', asset: CHARACTER_ROOT + 'chibi_rogue_normalized.webp' },
+    ranger: { id: 'ranger', asset: CHARACTER_ROOT + 'chibi_ranger_normalized.webp' },
+    berserker: { id: 'berserker', asset: CHARACTER_ROOT + 'chibi_berserker_normalized.webp' },
+    guardian: { id: 'guardian', asset: CHARACTER_ROOT + 'chibi_guardian_normalized.webp' },
+    paladin: { id: 'paladin', asset: CHARACTER_ROOT + 'chibi_paladin_normalized.webp' },
+    mage: { id: 'mage', asset: CHARACTER_ROOT + 'chibi_mage_normalized.webp' },
+    sage: { id: 'sage', asset: CHARACTER_ROOT + 'chibi_sage_normalized.webp' },
   };
 
-  function normalizeAppearance(raw) {
+  /*
+   * Narrow boundary for consumers that need the player's map presentation.
+   * The catalog and its asset ownership stay private to this adapter. A
+   * future character compositor can replace this provider while the World
+   * Map continues to consume this resolved shape.
+   */
+  function resolveCurrentPlayerAvatarPresentation(raw) {
     var key = raw && typeof raw.character_key === 'string' ? raw.character_key.trim() : '';
-    var filename = CHARACTER_ASSETS[key];
+    var resolved = CHARACTER_PRESENTATIONS[key] || CHARACTER_PRESENTATIONS[DEFAULT_CHARACTER_KEY];
+    var fallback = CHARACTER_PRESENTATIONS[DEFAULT_CHARACTER_KEY];
     return {
-      avatarSrc: filename ? CHARACTER_ROOT + filename : FALLBACK_AVATAR,
-      avatarFallbackSrc: FALLBACK_AVATAR,
+      id: resolved.id,
+      asset: resolved.asset,
+      fallbackAsset: fallback.asset,
+      presentationType: 'full-body-character',
+    };
+  }
+
+  function normalizeAppearance(raw) {
+    var presentation = resolveCurrentPlayerAvatarPresentation(raw);
+    return {
+      avatarSrc: presentation.asset,
+      avatarFallbackSrc: presentation.fallbackAsset,
+      avatarPresentation: presentation,
     };
   }
 
@@ -86,11 +104,43 @@
     return 'error';
   }
 
+  function defaultAvatarPresentationResult(kind, status) {
+    return {
+      ok: true,
+      data: resolveCurrentPlayerAvatarPresentation({ character_key: DEFAULT_CHARACTER_KEY }),
+      fallback: true,
+      kind: kind || null,
+      status: status || null,
+    };
+  }
+
+  /**
+   * Read only the committed appearance endpoint for consumers such as the
+   * World Map. Preview/local-loadout state is deliberately not an input.
+   * Missing or invalid committed character data resolves through the same
+   * canonical default used by Character Appearance (apprentice).
+   */
+  function fetchAvatarPresentation(fetchImpl) {
+    var doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
+    if (!doFetch) return Promise.resolve(defaultAvatarPresentationResult('network', null));
+
+    return doFetch('/api/player/appearance', { credentials: 'same-origin' }).then(function (response) {
+      if (!response.ok) return defaultAvatarPresentationResult(classifyHttpError(response.status), response.status);
+      return response.json().then(function (raw) {
+        return { ok: true, data: resolveCurrentPlayerAvatarPresentation(raw), fallback: false };
+      }, function () {
+        return defaultAvatarPresentationResult('error', response.status);
+      });
+    }, function () {
+      return defaultAvatarPresentationResult('network', null);
+    });
+  }
+
   /**
    * fetchImpl is injectable so this file can be unit-tested under Node
    * without a real network/browser (see tests/e9_node_tests/).
    * Returns a Promise resolving to either:
-   *   { ok: true, data: { name, level, coins, avatarSrc, avatarFallbackSrc } }
+   *   { ok: true, data: { name, level, coins, avatarSrc, avatarFallbackSrc, avatarPresentation } }
    *   { ok: false, kind: 'unauthorized'|'error'|'network', status }
    */
   function fetchPlayerState(fetchImpl) {
@@ -119,6 +169,7 @@
           coins: coins.coins,
           avatarSrc: appearance.avatarSrc,
           avatarFallbackSrc: appearance.avatarFallbackSrc,
+          avatarPresentation: appearance.avatarPresentation,
         } };
       });
     }).catch(function () {
@@ -130,6 +181,8 @@
     normalizeProfile: normalizeProfile,
     normalizeCoins: normalizeCoins,
     normalizeAppearance: normalizeAppearance,
+    resolveCurrentPlayerAvatarPresentation: resolveCurrentPlayerAvatarPresentation,
+    fetchAvatarPresentation: fetchAvatarPresentation,
     fetchPlayerState: fetchPlayerState,
   };
 

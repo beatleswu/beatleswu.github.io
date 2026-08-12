@@ -11,8 +11,10 @@
   Chinese source string, if missing), via world_stage.js's zoneDisplayName()
   -- the same precedence the legacy Adventure Map's own _zoneName() uses,
   not a second naming scheme.
-  No Avatar, Monster, Boss art, or Fog of War -- placeholder tiles only,
-  per E9.1A2 scope.
+  The single current-player marker consumes the resolved full-body avatar
+  presentation supplied by the Character Appearance authority; this
+  component does not own appearance, equipment, unlock, or asset registry
+  state. Monster/Boss art and Fog of War remain outside this component.
 -->
 <main id="adventure-stage" class="e9-stage" data-e9-component="world_stage" data-i18n-aria-label="e9.world_stage.aria_label">
   <!-- Base L0-L3 is the governed, static V1 asset. L4 route and L5 nodes

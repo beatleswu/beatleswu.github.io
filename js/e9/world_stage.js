@@ -430,37 +430,67 @@
     });
   }
 
-  function syncPlayerMarkerPortrait(root, explicitSource) {
+  function syncPlayerMarkerPresentation(root, presentation) {
     if (!VS1E_STATIC_CONTRACT_ACTIVE) return;
-    var hudAvatar = document.querySelector('#top-hud-avatar-image');
-    var source = explicitSource || (hudAvatar && hudAvatar.getAttribute('src')) || '';
     var mobileCards = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-    var hosts = Array.prototype.slice.call(root.querySelectorAll(
-      mobileCards ? '.e10-current-hero' : '#e9-world-stage-player'
-    ));
-    root.querySelectorAll('.e10-player-marker-portrait').forEach(function (portrait) {
-      if (!source || hosts.indexOf(portrait.parentNode) === -1) portrait.remove();
-    });
-    if (!source) return;
-    hosts.forEach(function (host) {
-      var portrait = host.querySelector('.e10-player-marker-portrait');
-      if (!portrait) {
-        portrait = document.createElement('img');
-        portrait.className = 'e10-player-marker-portrait';
-        portrait.alt = '';
-        portrait.width = 64;
-        portrait.height = 64;
-        portrait.decoding = 'async';
-        portrait.draggable = false;
-        portrait.setAttribute('aria-hidden', 'true');
-        host.appendChild(portrait);
+    // Keep this selector split as a compatibility hook for the two existing
+    // responsive surfaces, while the runtime now moves one marker host
+    // between them instead of creating desktop/mobile duplicates.
+    var markerSelector = mobileCards ? '.e10-current-hero' : '#e9-world-stage-player';
+    var hosts = Array.prototype.slice.call(root.querySelectorAll(markerSelector));
+    var marker = root.querySelector('#e9-world-stage-player') || hosts[0] || null;
+    if (!marker || !presentation || typeof presentation.asset !== 'string' || !presentation.asset) {
+      if (marker) marker.querySelectorAll('.e10-player-marker-avatar').forEach(function (avatar) { avatar.remove(); });
+      return;
+    }
+
+    var avatar = marker.querySelector('.e10-player-marker-avatar');
+    if (!avatar) {
+      avatar = document.createElement('img');
+      avatar.className = 'e10-player-marker-avatar';
+      avatar.alt = '';
+      avatar.width = 96;
+      avatar.height = 128;
+      avatar.decoding = 'async';
+      avatar.draggable = false;
+      avatar.setAttribute('aria-hidden', 'true');
+      marker.appendChild(avatar);
+    }
+    var fallbackAsset = typeof presentation.fallbackAsset === 'string'
+      ? presentation.fallbackAsset
+      : '';
+    avatar.onerror = function () {
+      if (avatar.getAttribute('data-e10-avatar-fallback') === '1') {
+        avatar.hidden = true;
+        return;
       }
-      if (portrait.getAttribute('src') !== source) portrait.setAttribute('src', source);
-    });
+      if (fallbackAsset && avatar.getAttribute('src') !== fallbackAsset) {
+        avatar.setAttribute('data-e10-avatar-fallback', '1');
+        avatar.hidden = false;
+        avatar.setAttribute('src', fallbackAsset);
+        return;
+      }
+      avatar.hidden = true;
+    };
+    avatar.hidden = false;
+    avatar.removeAttribute('data-e10-avatar-fallback');
+    if (avatar.getAttribute('src') !== presentation.asset) avatar.setAttribute('src', presentation.asset);
+    marker.setAttribute('data-player-avatar-id', presentation.id || '');
+    marker.setAttribute('data-player-avatar-presentation', presentation.presentationType || 'resolved-avatar');
+  }
+
+  function restorePlayerMarkerHost(root, mapStage) {
+    if (!root || !mapStage) return;
+    var marker = root.querySelector('#e9-world-stage-player');
+    if (!marker) return;
+    marker.classList.remove('e10-current-hero');
+    if (marker.parentNode !== mapStage) mapStage.appendChild(marker);
   }
 
   function reconcilePlayerNodeMarker(root, zone, generation) {
     var generationKey = String(generation || '');
+    var stageState = root.__e9WorldStageState || {};
+    var presentation = stageState.avatarPresentation || null;
     var markerHosts = Array.prototype.slice.call(root.querySelectorAll('#e9-world-stage-player'));
     var marker = markerHosts[0] || null;
     markerHosts.slice(1).forEach(function (duplicate) { duplicate.remove(); });
@@ -474,28 +504,32 @@
       var sameGeneration = hero.getAttribute('data-e10-shell-generation') === generationKey;
       if (!belongsToRoot || !sameGeneration) hero.remove();
     });
+    if (marker) marker.classList.remove('e10-current-hero');
     root.querySelectorAll('.e10-current-hero').forEach(function (hero) { hero.remove(); });
-    root.querySelectorAll('.e10-player-marker-portrait').forEach(function (portrait) { portrait.remove(); });
     var anchor = zone && (VS1E_STATIC_CONTRACT_ACTIVE ? VS1F_ZONE_ANCHORS : ZONE_ANCHORS)[zone.key];
     var mapStage = root.querySelector('#e9-map-stage');
     if (!marker) return;
+    restorePlayerMarkerHost(root, mapStage);
     marker.style.pointerEvents = 'none';
     marker.setAttribute('data-e10-shell-generation', generationKey);
     if (!zone || !anchor) {
       marker.hidden = true;
+      syncPlayerMarkerPresentation(root, null);
       return;
     }
     if (usesLandmarkCards()) {
-      marker.hidden = true;
+      marker.hidden = false;
       var currentTile = root.querySelector('[data-zone="' + zone.key + '"]');
       if (currentTile) {
-        var mobileHero = document.createElement('span');
-        mobileHero.className = 'e10-current-hero';
+        var mobileHero = marker;
+        mobileHero.classList.add('e10-current-hero');
         mobileHero.setAttribute('aria-hidden', 'true');
         mobileHero.setAttribute('data-e10-shell-generation', generationKey);
         mobileHero.style.pointerEvents = 'none';
         currentTile.appendChild(mobileHero);
-        syncPlayerMarkerPortrait(root);
+        syncPlayerMarkerPresentation(root, presentation);
+      } else {
+        marker.hidden = true;
       }
       return;
     }
@@ -505,7 +539,7 @@
       mapStage.style.setProperty('--focus-y', anchor.y + '%');
     }
     marker.hidden = false;
-    syncPlayerMarkerPortrait(root);
+    syncPlayerMarkerPresentation(root, presentation);
   }
 
   function newbieCtaText(zone) {
@@ -1089,6 +1123,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      avatarPresentation: null,
       cinematics: {},
       generation: null,
     });
@@ -1118,6 +1153,10 @@
     });
     ensureVs1fRouteLayers(root, zones);
     updateRouteProgress(root, zones);
+    // A mobile marker is temporarily nested inside its current Zone tile.
+    // Move that same host back to the map frame before replacing tile DOM so
+    // the next render cannot orphan or duplicate the player marker.
+    restorePlayerMarkerHost(root, mapStage);
     zonesEl.innerHTML = '';
     bossAnchorsEl.innerHTML = '';
     zones.forEach(function (zone, index) {
@@ -1334,6 +1373,33 @@
     return true;
   }
 
+  function loadAvatarPresentation(root, generation) {
+    var current = function () {
+      return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' ||
+        window.E9.isLifecycleCurrent(generation);
+    };
+    var adapter = window.E9 && window.E9.Adapters && window.E9.Adapters.PlayerState;
+    if (!adapter || typeof adapter.fetchAvatarPresentation !== 'function') {
+      console.error('[E10] world_stage: resolved avatar presentation provider unavailable');
+      return;
+    }
+    adapter.fetchAvatarPresentation().then(function (result) {
+      if (!current()) return;
+      var state = root.__e9WorldStageState;
+      if (!state) return;
+      state.avatarPresentation = result && result.ok ? result.data : null;
+      if (state.zones && state.zones.length) {
+        renderZones(root, state.zones, {
+          currentZoneKey: state.authoritativeCurrentZoneKey,
+          primaryAction: state.primaryAction,
+          generation: state.generation,
+        });
+      }
+    }).catch(function (err) {
+      if (current()) console.error('[E10] world_stage avatar presentation fetch failed:', err);
+    });
+  }
+
   function load(root, isRetry, generation) {
     var current = function () {
       return !window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' ||
@@ -1414,6 +1480,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      avatarPresentation: null,
       cinematics: {},
       generation: generation,
     };
@@ -1434,8 +1501,9 @@
       });
     };
     var onAvatar = function (event) {
-      var source = event && event.detail && event.detail.source;
-      syncPlayerMarkerPortrait(root, source);
+      // The event is a refresh hint only. Never trust the HUD DOM/source or a
+      // preview event as appearance authority; re-read the committed provider.
+      loadAvatarPresentation(root, generation);
     };
     if (window.E9 && typeof window.E9.on === 'function') {
       window.E9.on(document, 'e9:i18n-changed', onChanged, null, generation);
@@ -1446,6 +1514,7 @@
       document.addEventListener('e9:i18n-ready', onReady);
       document.addEventListener('e9:player-avatar-updated', onAvatar);
     }
+    loadAvatarPresentation(root, generation);
     load(root, false, generation);
   }
 

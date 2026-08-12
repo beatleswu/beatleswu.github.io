@@ -103,8 +103,10 @@ def test_bespoke_assets_cover_every_required_runtime_component():
 
 def test_live_avatar_and_star_dom_remain_dynamic_and_accessible():
     assert "e9:player-avatar-updated" in TOP
-    assert "syncPlayerMarkerPortrait" in WORLD
-    assert "e10-player-marker-portrait" in WORLD
+    assert "syncPlayerMarkerPresentation" in WORLD
+    assert "fetchAvatarPresentation" in WORLD
+    assert "e10-player-marker-avatar" in WORLD
+    assert "e10-player-marker-portrait" not in WORLD
     assert "detail.stars" in RIGHT and "zone.stars" in WORLD
     assert "e10-art-star" in RIGHT and "e10-art-star" in WORLD
     assert "index.adv.stars_label" in RIGHT and "index.adv.stars_label" in WORLD
@@ -140,8 +142,10 @@ def test_final_visual_refinement_contracts_are_explicit_and_asset_preserving():
 
     assert ".e9-zone.is-current::before" in CSS
     assert "background-image: none" in CSS
-    assert "width: 31px" in CSS and "height: 38px" in CSS
-    assert "margin: -16px 0 0 18px" in CSS
+    assert "width: clamp(34px, 4.8vw, 70px)" in CSS
+    assert "height: clamp(52px, 8vw, 100px)" in CSS
+    assert "transform: translate(-50%, -100%)" in CSS
+    assert "left: 28px" in CSS
     assert "player-location-pin.webp" in CSS
 
 
