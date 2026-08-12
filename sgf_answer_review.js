@@ -948,6 +948,87 @@
     return payload;
   }
 
+  async function reloadWorkbench() {
+    const target = element("workbench-items");
+    if (!target) return;
+    const query = new URLSearchParams();
+    const source = element("workbench-source-filter")?.value;
+    const status = element("workbench-status-filter")?.value;
+    if (source) query.set("source", source);
+    if (status) query.set("status", status);
+    target.innerHTML = '<p class="workbench-note">Loading unified review items…</p>';
+    const response = await root.fetch(`/api/admin/sgf-workbench/items?${query.toString()}`, { credentials: "same-origin", headers: { "Accept": "application/json" }, cache: "no-store" });
+    const payload = await response.json().catch(function () { return {}; });
+    if (!response.ok || !payload.ok) throw new Error(payload.error || "Unified workbench unavailable");
+    renderWorkbenchItems(payload.items || []);
+  }
+
+  function renderWorkbenchItems(items) {
+    const target = element("workbench-items");
+    if (!target) return;
+    if (!items.length) {
+      target.innerHTML = '<p class="workbench-note">No unified review items match the current filters.</p>';
+      return;
+    }
+    target.innerHTML = items.map(function (item) {
+      const sources = (item.source_types || []).join(", ") || "—";
+      const surfaces = (item.gameplay_surfaces || []).join(", ") || "—";
+      const move = item.candidate_move ? ` · move ${escapeText(JSON.stringify(item.candidate_move))}` : "";
+      return `<article class="workbench-card" data-workbench-item="${escapeText(item.id)}"><strong>#${escapeText(item.question_id)} · ${escapeText(item.issue_type || "OTHER")}</strong><p>${escapeText(item.status)} · ${escapeText(sources)} · ${escapeText(surfaces)}${move}</p><p>${escapeText(item.report_count || 0)} report(s) · ${escapeText(item.first_report_at || "")} → ${escapeText(item.last_report_at || "")}</p><div class="workbench-actions"><button type="button" data-action="inspect">Inspect</button><button type="button" data-action="stage" data-stage-action="ADD_ALTERNATIVE_CORRECT_MOVE">Stage alternative</button><button type="button" data-action="stage" data-stage-action="REPLACE_ANSWER">Stage replace</button><button type="button" data-action="stage" data-stage-action="REMOVE_INCORRECT_ACCEPTED_MOVE">Stage remove</button><button type="button" data-action="stage" data-stage-action="DISABLE_BROKEN_QUESTION">Stage disable</button><button type="button" data-action="research">Needs research</button><button type="button" data-action="reject">Reject</button></div></article>`;
+    }).join("");
+  }
+
+  async function workbenchPost(path, body) {
+    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+    if (runtime.csrfHeader && runtime.csrfToken) headers[runtime.csrfHeader] = runtime.csrfToken;
+    const response = await root.fetch(path, { method: "POST", credentials: "same-origin", headers, body: JSON.stringify(body || {}) });
+    const payload = await response.json().catch(function () { return {}; });
+    if (!response.ok || !payload.ok) throw new Error(payload.error || payload.detail || "Workbench action failed");
+    return payload;
+  }
+
+  async function handleWorkbenchAction(event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const card = button.closest("[data-workbench-item]");
+    if (!card) return;
+    const itemId = Number(card.dataset.workbenchItem);
+    try {
+      if (button.dataset.action === "inspect") {
+        const response = await root.fetch(`/api/admin/sgf-workbench/items/${itemId}`, { credentials: "same-origin", headers: { "Accept": "application/json" }, cache: "no-store" });
+        const payload = await response.json().catch(function () { return {}; });
+        if (!response.ok || !payload.ok) throw new Error(payload.error || "Workbench item unavailable");
+        const detail = element("workbench-detail");
+        if (detail) {
+          const item = payload.item || {};
+          detail.hidden = false;
+          detail.innerHTML = `<h4>Question #${escapeText(item.question_id)} · ${escapeText(item.status)}</h4><div>Source: ${escapeText((item.source_types || []).join(", "))} · Reports: ${escapeText(item.report_count || 0)}</div><div>Issue: ${escapeText(item.issue_type || "OTHER")} · Surfaces: ${escapeText((item.gameplay_surfaces || []).join(", ") || "—")}</div><pre>${escapeText(JSON.stringify({ reports: item.reports || [], staged_repairs: item.staged_repairs || [], authority: item.authority || {}, provenance: item.provenance || {} }, null, 2))}</pre>`;
+          detail.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+        return;
+      }
+      if (button.dataset.action === "stage") {
+        await workbenchPost(`/api/admin/sgf-workbench/items/${itemId}/stage`, { action: button.dataset.stageAction });
+      } else {
+        await workbenchPost(`/api/admin/sgf-workbench/items/${itemId}/status`, { status: button.dataset.action === "reject" ? "REJECTED" : "NEEDS_RESEARCH" });
+      }
+      showToast("Workbench evidence saved; canonical content unchanged", false);
+      await reloadWorkbench();
+    } catch (error) {
+      showToast(error.message || "Workbench action failed", true);
+    }
+  }
+
+  async function createWorkbenchBatchFromQueue() {
+    try {
+      const result = await workbenchPost("/api/admin/sgf-workbench/batches", {});
+      showToast(`Staged batch ${result.batch.batch_key} created for repair-pipeline handoff`, false);
+      await reloadWorkbench();
+    } catch (error) {
+      showToast(error.message || "No staged repairs available", true);
+    }
+  }
+
   function bindEvents() {
     const mobileFastBar = document.createElement("div");
     mobileFastBar.id = "mobile-fast-bar";
@@ -1017,6 +1098,11 @@
     element("reconstruct-btn").addEventListener("click", saveReconstructionProposal);
     element("undo-btn").addEventListener("click", undoCurrent);
     element("previous-reviewed-btn").addEventListener("click", openPreviousReviewed);
+    element("workbench-refresh-btn")?.addEventListener("click", function () { reloadWorkbench().catch(renderFatalError); });
+    element("workbench-source-filter")?.addEventListener("change", function () { reloadWorkbench().catch(renderFatalError); });
+    element("workbench-status-filter")?.addEventListener("change", function () { reloadWorkbench().catch(renderFatalError); });
+    element("workbench-batch-btn")?.addEventListener("click", createWorkbenchBatchFromQueue);
+    element("workbench-items")?.addEventListener("click", handleWorkbenchAction);
     element("staged-list").addEventListener("click", function (event) {
       const open = event.target.closest("[data-open-group]");
       if (open) return openGroup(open.dataset.openGroup);
@@ -1038,6 +1124,7 @@
   async function boot() {
     bindEvents();
     await reloadBootstrap(true);
+    await reloadWorkbench();
     await retryPendingOperations();
   }
 

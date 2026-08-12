@@ -517,7 +517,7 @@ body::before {
 }
 </style>
 </head>
-<body>
+<body data-sgf-report-surface="rating_test_server">
 
 <header><!-- site-nav.js will replace this --></header>
 
@@ -1581,6 +1581,14 @@ async function startTest() {
 function loadTestQuestion(q) {
   _answered = false;
   _curQ     = q;
+  window.SGFReportWidget?.setContext({
+    question_id: Number(q.id),
+    surface: 'rating_test_server',
+    system_verdict: null,
+    sgf_identity: q.content_sha256 || q.sgf_identity || null,
+    native_sgf: q.native_answer || q.solution || null,
+    accepted_moves: q.accepted_moves || []
+  });
   _playerMoves = [];
   _rememberQuestionId(q.id);
 
@@ -1615,6 +1623,14 @@ function loadTestQuestion(q) {
 async function submitMove(result) {
   // result = 'correct' | 'wrong' | '' (timeout)
   if (_answered) return;
+  const reportedMove = _playerMoves.length ? _playerMoves[_playerMoves.length - 1] : null;
+  window.SGFReportWidget?.setContext({
+    question_id: Number(_curQ?.id),
+    surface: 'rating_test_server',
+    move: reportedMove,
+    moves: _playerMoves.slice(),
+    system_verdict: result === 'correct' ? 'CORRECT' : 'WRONG'
+  });
   _answered = true;
   stopTimer();
   const skip = document.getElementById('btn-skip');
@@ -2095,5 +2111,6 @@ window.onLangChange = function () {
 })();
 </script>
 <script src="/sound.js?v=2"></script>
+<script src="/sgf_report_widget.js" defer></script>
 </body>
 </html>

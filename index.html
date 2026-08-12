@@ -6549,7 +6549,7 @@
     <link rel="stylesheet" href="/css/e9/reference_world_map.css?v=20260801e10art1">
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
 </head>
-<body>
+<body data-sgf-report-surface="main_practice">
 
 <!-- ══ 命名儀式 Modal ══════════════════════════════════════════ -->
 <div id="naming-modal" role="dialog" aria-modal="true"
@@ -10050,6 +10050,13 @@ async function loadQuestion(q, { resumeState = null } = {}){
     if(mb) mb.classList.remove('hidden');
 
     currentQ=q;
+    window.SGFReportWidget?.setContext({
+        question_id: Number(q.id),
+        surface: document.body.dataset.sgfReportSurface || 'main_practice',
+        sgf_identity: q.content_sha256 || q.sgf_identity || null,
+        accepted_moves: q.accepted_moves || [],
+        native_sgf: q.native_answer || q.solution || null
+    });
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
@@ -10765,6 +10772,12 @@ function hideExplanation() {
 // wrongMove: {x, y} 若是錯題觸發；null 表示答對
 function showExplanation(wrongMove, { reveal = false } = {}) {
     if (!currentQ) return;
+    window.SGFReportWidget?.setContext({
+        question_id: Number(currentQ.id),
+        surface: document.body.dataset.sgfReportSurface || 'main_practice',
+        move: wrongMove || null,
+        system_verdict: wrongMove ? 'WRONG' : 'CORRECT'
+    });
     const panel = document.getElementById('explanation-panel');
     if (!panel) return;
 
@@ -18865,5 +18878,6 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/bottom_dock.js?v=20260801e10art1"></script>
 <script src="/js/e9/world_stage.js?v=20260801e10art1"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
+<script src="/sgf_report_widget.js" defer></script>
 </body>
 </html>
