@@ -31,6 +31,14 @@
     currentIndex: 0,
     current: null,
     mode: null,
+    directMode: false,
+    directContext: null,
+    directVersion: null,
+    directHistory: [],
+    directSide: null,
+    boardEditTool: null,
+    boardEditStones: [],
+    directContent: "",
     selectedMove: null,
     proposal: null,
     csrfHeader: "",
@@ -135,6 +143,71 @@
         <section id="v2-pending-view" class="v2-view" hidden><div class="v2-pending-head"><div><button id="v2-pending-home" class="v2-link">← 回到審題首頁</button><h2>待套用修改</h2><p>這裡集中查看已暫存的修改，再交給既有修正流程。</p></div><button id="v2-create-batch" class="v2-primary">準備批次交接</button></div><div id="v2-pending-list" class="v2-pending-list"></div><div id="v2-handoff-note" class="v2-handoff" hidden></div></section>
       </main><div id="v2-toast" class="v2-toast" role="status" aria-live="polite"></div>`;
     document.body.appendChild(root);
+    augmentDirectMarkup(root);
+  }
+
+  function augmentDirectMarkup(root) {
+    const control = root.querySelector('.v2-control');
+    if (!control) return;
+    const boardStyle = document.createElement('style');
+    boardStyle.textContent = '.v2-board-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.v2-board-tools button{border:1px solid #587c66;border-radius:12px;background:#152b20;color:#dff4e3;padding:9px 8px;font-weight:850;cursor:pointer}.v2-board-tools button.active{background:#397a53;border-color:#8de4ad;color:#fff}.v2-board-edit-note{margin:8px 0 0;color:#b9d9bf;font-size:12px;line-height:1.5}';
+    document.head.appendChild(boardStyle);
+    const note = document.createElement('div');
+    note.id = 'v2-direct-note';
+    note.className = 'v2-selection-banner';
+    note.hidden = true;
+    note.textContent = '管理員直接修正：套用前會自動保留上一版，失敗會保留原題。';
+    control.querySelector('#v2-prompt')?.after(note);
+    const shortcut = document.createElement('button');
+    shortcut.id = 'v2-direct-shortcut';
+    shortcut.className = 'v2-primary';
+    shortcut.hidden = true;
+    shortcut.textContent = '把剛才這一手加入正解';
+    control.querySelector('#v2-decision-grid')?.after(shortcut);
+    shortcut.addEventListener('click', () => {
+      if (!state.current?.candidate_move) return;
+      state.mode = 'ADD_ALTERNATIVE_CORRECT_MOVE';
+      state.selectedMove = state.current.candidate_move;
+      state.proposal = state.current.candidate_move;
+      renderReview();
+    });
+    const advanced = document.createElement('div');
+    advanced.className = 'v2-broken-grid';
+    advanced.dataset.directAdvanced = 'true';
+    advanced.hidden = true;
+    [
+      ['REMOVE_INCORRECT_ACCEPTED_MOVE', '移除錯誤答案／分支'],
+      ['EDIT_BOARD_SETUP', '修正題目棋盤'],
+      ['CHANGE_SIDE_TO_PLAY', '修正黑先／白先'],
+    ].forEach(([action, label]) => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.dataset.directAction = action; button.textContent = label;
+      button.addEventListener('click', () => beginDirectAction(action));
+      advanced.appendChild(button);
+    });
+    control.querySelector('#v2-broken-panel')?.appendChild(advanced);
+    const boardTools = document.createElement('div');
+    boardTools.id = 'v2-board-tools';
+    boardTools.hidden = true;
+    boardTools.innerHTML = '<div class="v2-board-tools"><button type="button" data-board-tool="B">放黑子</button><button type="button" data-board-tool="W">放白子</button><button type="button" data-board-tool="REMOVE">移除棋子</button></div><p class="v2-board-edit-note">選擇工具後直接在棋盤點擊；套用前會顯示棋盤前後差異。</p>';
+    control.querySelector('#v2-broken-panel')?.appendChild(boardTools);
+    boardTools.querySelectorAll('[data-board-tool]').forEach((button) => button.addEventListener('click', () => {
+      state.boardEditTool = button.dataset.boardTool;
+      boardTools.querySelectorAll('[data-board-tool]').forEach((candidate) => candidate.classList.toggle('active', candidate === button));
+      toast(state.boardEditTool === 'REMOVE' ? '請在棋盤點擊要移除的棋子' : `請在棋盤點擊要放置的${state.boardEditTool === 'B' ? '黑子' : '白子'}`);
+    }));
+    const result = control.querySelector('#v2-staged-result');
+    if (result) {
+      const title = result.querySelector('h3');
+      if (title) { title.id = 'v2-result-title'; }
+      const copy = result.querySelector('p');
+      if (copy) { copy.id = 'v2-result-copy'; }
+      const rollback = document.createElement('button');
+      rollback.id = 'v2-rollback'; rollback.className = 'v2-warn'; rollback.hidden = true;
+      rollback.textContent = '還原上一版';
+      result.querySelector('.v2-result-actions')?.insertBefore(rollback, result.querySelector('#v2-next'));
+      rollback.addEventListener('click', rollbackDirect);
+    }
   }
 
   function normalizeQuestion(payload) {
@@ -148,7 +221,15 @@
     state.csrfToken = security.csrf_token || "";
     state.items = Array.isArray(payload.items) ? payload.items : [];
     await Promise.all(state.items.map(async (item) => {
-      try { state.questions.set(item.question_id, normalizeQuestion(await jsonFetch(`/api/question/${encodeURIComponent(item.question_id)}`))); } catch (_) { state.questions.set(item.question_id, { accepted_moves: item.authority && item.authority.accepted_moves || [], content: "" }); }
+      try {
+        if ((item.source_types || []).includes("ADMIN_PLAY")) {
+          const context = await jsonFetch(`${API}/direct-context/${encodeURIComponent(item.question_id)}?record_index=${encodeURIComponent(item.record_index ?? "")}`);
+          item._direct = context;
+          state.questions.set(item.question_id, normalizeQuestion(context.record));
+        } else {
+          state.questions.set(item.question_id, normalizeQuestion(await jsonFetch(`/api/question/${encodeURIComponent(item.question_id)}`)));
+        }
+      } catch (_) { state.questions.set(item.question_id, { accepted_moves: item.authority && item.authority.accepted_moves || [], content: "" }); }
     }));
     renderHome(payload);
   }
@@ -194,6 +275,30 @@
     return stones;
   }
 
+  function setupSgf(stones) {
+    const grouped = { B: [], W: [] };
+    (stones || []).forEach((stone) => {
+      const coord = String.fromCharCode(97 + Number(stone.x)) + String.fromCharCode(97 + Number(stone.y));
+      if (grouped[stone.color] && !grouped[stone.color].includes(coord)) grouped[stone.color].push(coord);
+    });
+    return Object.entries(grouped).filter(([, coords]) => coords.length)
+      .map(([color, coords]) => `${color === 'B' ? 'AB' : 'AW'}${coords.sort().map((coord) => `[${coord}]`).join('')}`).join('');
+  }
+
+  function withSetupSgf(content, stones) {
+    const source = String(content || '');
+    const withoutSetup = source.replace(/A[BW](?:\[[a-s]{2}\])+/gi, '');
+    const properties = setupSgf(stones);
+    if (!properties) return withoutSetup;
+    return withoutSetup.replace(/^(\s*\(\s*;)/, `$1${properties}`);
+  }
+
+  function boardEditSummary(stones) {
+    const black = (stones || []).filter((stone) => stone.color === 'B').length;
+    const white = (stones || []).filter((stone) => stone.color === 'W').length;
+    return `黑子 ${black} 顆 · 白子 ${white} 顆`;
+  }
+
   function drawBoard() {
     const canvas = el("v2-go-board");
     const wrap = el("v2-board-wrap");
@@ -210,7 +315,8 @@
     ctx.fillStyle = "rgba(65,42,14,.74)";
     [3, 9, 15].forEach((x) => [3, 9, 15].forEach((y) => { ctx.beginPath(); ctx.arc(pad + cell * x, pad + cell * y, Math.max(3, cell * .095), 0, Math.PI * 2); ctx.fill(); }));
     const q = state.questions.get(state.current.question_id) || {};
-    parseStones(q.content).forEach((stone) => {
+    const boardStones = state.mode === 'EDIT_BOARD_SETUP' ? state.boardEditStones : parseStones(q.content);
+    boardStones.forEach((stone) => {
       const px = pad + cell * stone.x, py = pad + cell * stone.y, radius = cell * .44;
       ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI * 2); ctx.fillStyle = stone.color === "B" ? "#17231d" : "#faf7ec"; ctx.fill(); ctx.strokeStyle = stone.color === "B" ? "#07100b" : "#81683a"; ctx.lineWidth = 1.5; ctx.stroke();
     });
@@ -247,16 +353,52 @@
     const sourceClass = (item.source_types || []).includes("PLAYER_REPORT") ? "player" : ((item.source_types || []).includes("CORPUS_SCAN") ? "scan" : "admin");
     el("v2-board-meta").innerHTML = `<span class="v2-chip ${sourceClass}">${esc(sourceLabel(item))}</span><span class="v2-chip">${esc(ISSUE_LABELS[item.issue_type] || item.issue_type || "待確認")}</span><span class="v2-chip">${Number(item.report_count || 0)} 筆相關紀錄</span>`;
     const candidate = item.candidate_move ? `候選落點：${gtp(item.candidate_move)}` : "目前沒有候選落點";
-    el("v2-prompt").textContent = state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "請直接在棋盤上點選另一個也成立的正解。" : state.mode === "REPLACE_ANSWER" ? "請在棋盤上點選你認為正確的答案。" : `${ISSUE_LABELS[item.issue_type] || "這題需要你的判斷"}。${candidate}`;
+    el("v2-prompt").textContent = state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "請直接在棋盤上點選另一個也成立的正解。" : state.mode === "REPLACE_ANSWER" ? "請在棋盤上點選你認為正確的答案。" : state.mode === "EDIT_BOARD_SETUP" ? "請選擇放子或移除工具，再直接在棋盤上編輯題目局面。" : `${ISSUE_LABELS[item.issue_type] || "這題需要你的判斷"}。${candidate}`;
+    const directNote = el("v2-direct-note");
+    if (directNote) directNote.hidden = !state.directMode;
+    const shortcut = el("v2-direct-shortcut");
+    if (shortcut) shortcut.hidden = !(state.directMode && item.candidate_move && !acceptedMoves(item).some((move) => sameMove(move, item.candidate_move)) && !state.stagedResult);
+    const advanced = document.querySelector('[data-direct-advanced="true"]');
+    if (advanced) advanced.hidden = !state.directMode;
+    const boardTools = el('v2-board-tools');
+    if (boardTools) boardTools.hidden = !(state.directMode && state.mode === 'EDIT_BOARD_SETUP');
     const details = item.provenance || {};
     el("v2-detail-grid").innerHTML = [["來源", sourceLabel(item)], ["報告數", `${item.report_count || 0} 筆`], ["候選落點", item.candidate_move ? gtp(item.candidate_move) : "—"], ["目前正解", acceptedMoves(item).map(gtp).join("、") || "—"], ["第一筆紀錄", item.first_report_at || "—"], ["最後更新", item.updated_at || "—"], ["位置識別", item.position_identity || "—"], ["證據來源", details.fixture_path || details.source || "已保留於伺服器"]].map(([label, value]) => `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("");
     const banner = el("v2-selection-banner");
     banner.hidden = !state.mode;
-    if (state.mode) banner.innerHTML = `<strong>${state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "選另一個正解" : "選新的正確答案"}</strong>${state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "請直接在棋盤上點選另一個也成立的正解。" : "請在棋盤上點選你認為正確的答案。"}`;
+    if (state.mode) {
+      const title = state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "選另一個正解" : state.mode === "REPLACE_ANSWER" ? "選新的正確答案" : state.mode === "EDIT_BOARD_SETUP" ? "編輯題目棋盤" : "確認先手修改";
+      const instruction = state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "請直接在棋盤上點選另一個也成立的正解。" : state.mode === "REPLACE_ANSWER" ? "請在棋盤上點選你認為正確的答案。" : state.mode === "EDIT_BOARD_SETUP" ? "請使用放子或移除工具修改題目局面。" : "確認後會先驗證，再保存上一版本。";
+      banner.innerHTML = `<strong>${title}</strong>${instruction}`;
+    }
     el("v2-proposal-confirm").hidden = !state.proposal;
-    if (state.proposal) { el("v2-current-point").textContent = gtp(currentMove(item)); el("v2-proposed-point").textContent = gtp(state.proposal); el("v2-proposed-label").textContent = state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "新增正解" : "修改為"; }
+    const confirmButton = el("v2-confirm-proposal");
+    if (confirmButton) confirmButton.textContent = state.directMode ? "儲存並套用" : "暫存這項修改";
+    if (state.proposal) {
+      if (state.mode === 'EDIT_BOARD_SETUP') {
+        el('v2-current-point').textContent = boardEditSummary(parseStones(state.directContext?.record?.content || ''));
+        el('v2-proposed-point').textContent = boardEditSummary(state.boardEditStones);
+        el('v2-proposed-label').textContent = '修改後棋盤';
+      } else if (state.mode === 'CHANGE_SIDE_TO_PLAY') {
+        el('v2-current-point').textContent = '目前先手';
+        el('v2-proposed-point').textContent = state.directSide === 'W' ? '白先' : '黑先';
+        el('v2-proposed-label').textContent = '修改為';
+      } else {
+        el("v2-current-point").textContent = gtp(currentMove(item));
+        el("v2-proposed-point").textContent = gtp(state.proposal);
+        el("v2-proposed-label").textContent = state.mode === "ADD_ALTERNATIVE_CORRECT_MOVE" ? "新增正解" : "修改為";
+      }
+    }
     el("v2-broken-panel").hidden = !state.brokenOpen;
     el("v2-staged-result").hidden = !state.stagedResult;
+    const resultTitle = el("v2-result-title");
+    const resultCopy = el("v2-result-copy");
+    if (resultTitle) resultTitle.textContent = state.directMode && state.directVersion ? "修改已套用" : "修改已暫存";
+    if (resultCopy) resultCopy.textContent = state.directMode && state.directVersion ? "已保存上一版本，可還原；目前玩家仍只會看到這個接受環境的版本。" : "尚未發布，不會影響目前玩家作答。";
+    const rollback = el("v2-rollback");
+    if (rollback) rollback.hidden = !(state.directMode && state.directVersion);
+    const retestButton = el("v2-retest");
+    if (retestButton) retestButton.textContent = state.directMode ? "重新測試本題" : "用修改後答案重測";
     el("v2-details").open = false;
     drawBoard();
   }
@@ -269,14 +411,96 @@
 
   async function openNext() {
     state.items = (await jsonFetch(`${API}/items`)).items || state.items;
+    await Promise.all(state.items.filter((item) => (item.source_types || []).includes("ADMIN_PLAY")).map(async (item) => {
+      try {
+        const context = await jsonFetch(`${API}/direct-context/${encodeURIComponent(item.question_id)}?record_index=${encodeURIComponent(item.record_index ?? "")}`);
+        item._direct = context;
+        state.questions.set(item.question_id, normalizeQuestion(context.record));
+      } catch (_) { /* Review Queue remains usable even when direct mode is gated. */ }
+    }));
     const all = visibleItems();
     if (!all.length) { state.current = null; show("home"); renderHome({ staged_count: stagedItems().length }); toast("目前沒有待確認題目"); return; }
     state.currentIndex = Math.min(state.currentIndex, all.length - 1);
-    state.current = all[state.currentIndex]; state.mode = null; state.selectedMove = null; state.proposal = null; state.stagedResult = false; state.brokenOpen = false; show("review"); renderReview();
+    state.current = all[state.currentIndex];
+    state.directMode = (state.current.source_types || []).includes("ADMIN_PLAY") && !!state.current._direct;
+    state.directContext = state.current._direct || null;
+    state.directVersion = null;
+    state.directHistory = state.directContext?.history || [];
+    state.directSide = null;
+    state.boardEditTool = null;
+    state.boardEditStones = [];
+    state.directContent = '';
+    state.mode = null; state.selectedMove = null; state.proposal = null; state.stagedResult = false; state.brokenOpen = false;
+    show("review"); renderReview();
+  }
+
+  function newOperationId(prefix) {
+    const uuid = window.crypto && typeof window.crypto.randomUUID === "function" ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    return `${prefix || "direct"}:${uuid}`;
+  }
+
+  async function beginDirectAction(action) {
+    if (!state.directMode || !state.current) return;
+    state.brokenOpen = false;
+    if (action === "CHANGE_SIDE_TO_PLAY") {
+      const currentContent = state.directContext?.record?.content || '';
+      const currentSide = (currentContent.match(/(?:^|;)PL\[([BW])\]/i) || [])[1]?.toUpperCase() || 'B';
+      state.directSide = currentSide === 'B' ? 'W' : 'B';
+      state.mode = action; state.proposal = { side_to_play: state.directSide }; renderReview(); return;
+    }
+    if (action === "EDIT_BOARD_SETUP") {
+      const current = state.directContext?.record?.content || state.questions.get(state.current.question_id)?.content || "";
+      state.directContent = current;
+      state.boardEditStones = parseStones(current);
+      state.boardEditTool = 'B';
+      state.brokenOpen = true;
+      state.mode = action; state.proposal = { content: current }; renderReview(); return;
+    }
+    state.mode = action; state.proposal = null; state.selectedMove = null; renderReview();
+  }
+
+  async function applyDirect(action, move) {
+    if (!state.current || !state.directMode || state.busy) return;
+    state.busy = true;
+    try {
+      const context = state.directContext || (await jsonFetch(`${API}/direct-context/${encodeURIComponent(state.current.question_id)}?record_index=${encodeURIComponent(state.current.record_index ?? "")}`));
+      state.directContext = context;
+      const body = {
+        question_id: state.current.question_id,
+        record_index: context.record_index,
+        predecessor_hash: context.predecessor_hash,
+        action,
+        candidate_move: move || state.selectedMove || state.current.candidate_move || undefined,
+        operation_id: newOperationId("admin-play-direct"),
+      };
+      if (action === "EDIT_BOARD_SETUP") body.proposed_content = state.directContent;
+      if (action === "CHANGE_SIDE_TO_PLAY") body.side_to_play = state.directSide;
+      const result = await postJson(`${API}/direct-apply`, body);
+      state.directVersion = result.version;
+      if (result.version?.new_record) {
+        state.questions.set(state.current.question_id, result.version.new_record);
+        if (state.directContext) state.directContext.record = result.version.new_record;
+      }
+      state.directHistory = [result.version, ...(state.directHistory || [])];
+      state.stagedResult = true; state.mode = null; state.proposal = null; state.selectedMove = move || state.selectedMove;
+      renderReview(); toast(result.duplicate ? "這項修改已經套用過" : "修改已套用，上一版已保存");
+    } catch (error) { toast(error.message, true); } finally { state.busy = false; }
+  }
+
+  async function rollbackDirect() {
+    if (!state.directVersion || state.busy) return;
+    if (!window.confirm("確認還原上一版？系統會建立新的版本，不會刪除修改紀錄。")) return;
+    state.busy = true;
+    try {
+      const result = await postJson(`${API}/direct-versions/${encodeURIComponent(state.directVersion.id)}/rollback`, { operation_id: newOperationId("admin-play-rollback") });
+      state.directVersion = result.version; state.directHistory = [result.version, ...(state.directHistory || [])];
+      state.stagedResult = true; renderReview(); toast("已還原上一版");
+    } catch (error) { toast(error.message, true); } finally { state.busy = false; }
   }
 
   async function stage(action, move, reason) {
     if (!state.current || state.busy) return;
+    if (state.directMode && action !== "NEEDS_RESEARCH") return applyDirect(action, move);
     state.busy = true;
     try {
       const payload = { action, reason: reason || "OWNER_UX_V2_REVIEW", candidate_move: move || undefined };
@@ -301,7 +525,17 @@
   }
 
   async function retest() {
-    if (!state.current || state.busy || !state.current.staged_repairs?.length) return toast("請先暫存一個修改", true);
+    if (!state.current || state.busy) return;
+    if (state.directMode && state.directVersion) {
+      state.busy = true;
+      try {
+        const moves = [state.selectedMove || state.current.candidate_move || currentMove(state.current)].filter(Boolean);
+        const result = await postJson(`${API}/direct-retest`, { question_id: state.current.question_id, record_index: state.current.record_index ?? state.directContext?.record_index, moves });
+        el("v2-verdict-compare").hidden = false; el("v2-production-verdict").textContent = result.canonical_verdict || "未定"; el("v2-staged-verdict").textContent = result.applied_verdict || "未定"; toast("已重新測試目前已套用版本");
+      } catch (error) { toast(error.message, true); } finally { state.busy = false; }
+      return;
+    }
+    if (!state.current.staged_repairs?.length) return toast("請先暫存一個修改", true);
     state.busy = true;
     try {
       const moves = [state.selectedMove || state.current.candidate_move || currentMove(state.current)].filter(Boolean);
@@ -341,14 +575,30 @@
     el("v2-wrong").addEventListener("click", () => { state.mode = "REPLACE_ANSWER"; state.proposal = null; state.brokenOpen = false; el("v2-board-wrap").classList.add("selecting"); renderReview(); });
     el("v2-defer").addEventListener("click", () => stage("NEEDS_RESEARCH", null, "OWNER_DEFERRED"));
     el("v2-broken-toggle").addEventListener("click", () => { state.brokenOpen = !state.brokenOpen; renderReview(); });
-    document.querySelectorAll("[data-broken]").forEach((button) => button.addEventListener("click", () => { const kind = button.dataset.broken; stage(kind === "REBUILD" || kind === "BOARD_OR_SGF" ? "DISABLE_BROKEN_QUESTION" : "NEEDS_RESEARCH", null, `OWNER_BROKEN_${kind}`); }));
-    el("v2-confirm-proposal").addEventListener("click", () => stage(state.mode, state.proposal, "OWNER_BOARD_DECISION"));
+    document.querySelectorAll("[data-broken]").forEach((button) => button.addEventListener("click", () => { const kind = button.dataset.broken; if (state.directMode && kind === "SIDE_TO_MOVE") return beginDirectAction("CHANGE_SIDE_TO_PLAY"); if (state.directMode && kind === "BOARD_OR_SGF") return beginDirectAction("EDIT_BOARD_SETUP"); stage(kind === "REBUILD" || kind === "BOARD_OR_SGF" ? "DISABLE_BROKEN_QUESTION" : "NEEDS_RESEARCH", null, `OWNER_BROKEN_${kind}`); }));
+    el("v2-confirm-proposal").addEventListener("click", () => state.directMode ? applyDirect(state.mode, state.proposal?.x ? state.proposal : state.selectedMove) : stage(state.mode, state.proposal, "OWNER_BOARD_DECISION"));
     el("v2-cancel-proposal").addEventListener("click", () => { state.proposal = null; state.selectedMove = null; renderReview(); });
     el("v2-retest").addEventListener("click", retest);
     el("v2-next").addEventListener("click", () => { state.currentIndex += 1; openNext().catch((error) => toast(error.message, true)); });
     el("v2-back-review").addEventListener("click", () => { state.stagedResult = false; state.mode = null; renderReview(); });
     el("v2-create-batch").addEventListener("click", createBatch);
-    el("v2-go-board").addEventListener("pointerup", (event) => { if (!state.mode || !state.current) return; const move = pointFromEvent(event); if (!move) return; state.selectedMove = move; state.proposal = move; renderReview(); });
+    el("v2-go-board").addEventListener("pointerup", (event) => {
+      if (!state.mode || !state.current) return;
+      const move = pointFromEvent(event); if (!move) return;
+      if (state.mode === 'EDIT_BOARD_SETUP') {
+        const existing = state.boardEditStones.findIndex((stone) => sameMove(stone, move));
+        if (state.boardEditTool === 'REMOVE') {
+          if (existing >= 0) state.boardEditStones.splice(existing, 1);
+        } else {
+          if (existing >= 0) state.boardEditStones.splice(existing, 1);
+          state.boardEditStones.push({ ...move, color: state.boardEditTool || 'B' });
+        }
+        state.directContent = withSetupSgf(state.directContext?.record?.content || '', state.boardEditStones);
+        state.proposal = { content: state.directContent };
+        renderReview(); return;
+      }
+      state.selectedMove = move; state.proposal = move; renderReview();
+    });
     window.addEventListener("resize", () => { if (!el("v2-review").hidden) drawBoard(); });
     el("v2-pending-list").addEventListener("click", (event) => { const button = event.target.closest("[data-open-staged]"); if (!button) return; const item = state.items.find((row) => String(row.id) === String(button.dataset.openStaged)); if (!item) return; state.current = item; state.mode = null; state.selectedMove = item.candidate_move || currentMove(item); state.stagedResult = true; state.proposal = null; state.brokenOpen = false; show("review"); renderReview(); });
   }
@@ -356,7 +606,15 @@
   async function boot() {
     injectMarkup();
     bind();
-    try { await loadData(); show("home"); } catch (error) { el("v2-home-details-body").textContent = `工作台載入失敗：${error.message}`; toast("工作台暫時無法載入", true); }
+    try {
+      await loadData();
+      const directId = Number(new URLSearchParams(window.location.search).get("direct_question_id"));
+      if (Number.isInteger(directId) && directId > 0) {
+        const index = visibleItems().findIndex((item) => Number(item.question_id) === directId);
+        if (index >= 0) { state.currentIndex = index; await openNext(); return; }
+      }
+      show("home");
+    } catch (error) { el("v2-home-details-body").textContent = `工作台載入失敗：${error.message}`; toast("工作台暫時無法載入", true); }
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true }); else boot();

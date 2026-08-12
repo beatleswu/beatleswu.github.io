@@ -36,6 +36,7 @@ services:
       GO_ODYSSEY_ACCEPTANCE_MODE: "1"
       GO_ODYSSEY_ACCEPTANCE_SOURCE_SHA: ${ACCEPTANCE_SOURCE_SHA}
       GO_ODYSSEY_ACCEPTANCE_PUBLISH_DISABLED: "1"
+      GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED: "1"
       E10_MAP_BATTLE_V1_MODE: "off"
       E9_ROLLOUT_GLOBAL_ENABLED: "false"
       E9_ROLLOUT_ADMIN_ENABLED: "false"
@@ -51,7 +52,9 @@ services:
       - "${ACCEPTANCE_BIND_HOST:-0.0.0.0}:${ACCEPTANCE_PORT:-5080}:8080"
     volumes:
       - acceptance-app-data:/app/data
-      - ./tests/fixtures/acceptance/questions.json:/app/data/questions.json:ro
+      # Seed is read-only; the target questions.json lives in the isolated
+      # acceptance volume so Admin direct-apply can snapshot/rollback it.
+      - ./tests/fixtures/acceptance/questions.json:/app/data/questions.seed.json:ro
       # The merged SGF Workbench module is intentionally mounted only into
       # this acceptance image. Production image packaging remains untouched.
       - ./sgf_admin_workbench.py:/app/sgf_admin_workbench.py:ro

@@ -33,7 +33,7 @@
       '<textarea maxlength="1000" rows="3" data-sgf-report-comment placeholder="補充說明（可選）"></textarea>' +
       '<div class="sgf-report-actions"><button type="button" data-sgf-report-cancel>取消</button><button type="button" data-sgf-report-submit disabled>送出回報</button></div>' +
       '<div class="sgf-report-status" data-sgf-report-status role="status" aria-live="polite"></div>' +
-      '<div class="sgf-admin-tools" data-sgf-admin-tools hidden><strong>管理員工作台</strong><div class="sgf-admin-actions"><button type="button" data-sgf-admin-flag>標記待審</button><select data-sgf-admin-repair aria-label="repair action"><option value="NEEDS_RESEARCH">需要研究</option><option value="ADD_ALTERNATIVE_CORRECT_MOVE">加入另解</option><option value="REMOVE_INCORRECT_ACCEPTED_MOVE">移除錯誤答案</option><option value="REPLACE_ANSWER">替換答案</option><option value="DISABLE_BROKEN_QUESTION">停用破題</option></select><button type="button" data-sgf-admin-stage>建立 staged 修正</button><button type="button" data-sgf-admin-retest hidden>重新測試本題</button></div><div class="sgf-admin-status" data-sgf-admin-status role="status" aria-live="polite"></div></div></div>';
+      '<div class="sgf-admin-tools" data-sgf-admin-tools hidden><strong>管理員工作台</strong><div class="sgf-admin-actions"><button type="button" data-sgf-admin-direct>修正此題</button><button type="button" data-sgf-admin-direct-last hidden>把剛才這一手加入正解</button><button type="button" data-sgf-admin-flag>標記待審</button><select data-sgf-admin-repair aria-label="repair action"><option value="NEEDS_RESEARCH">需要研究</option><option value="ADD_ALTERNATIVE_CORRECT_MOVE">加入另解</option><option value="REMOVE_INCORRECT_ACCEPTED_MOVE">移除錯誤答案</option><option value="REPLACE_ANSWER">替換答案</option><option value="DISABLE_BROKEN_QUESTION">停用破題</option></select><button type="button" data-sgf-admin-stage>建立 staged 修正</button><button type="button" data-sgf-admin-retest hidden>重新測試本題</button></div><div class="sgf-admin-status" data-sgf-admin-status role="status" aria-live="polite"></div></div></div>';
     document.body.appendChild(host);
     var style = document.createElement('style');
     style.textContent = '.sgf-report-widget{position:fixed;z-index:70;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));font:14px/1.4 system-ui,sans-serif;color:#17231d}.sgf-report-trigger{min-height:48px;border:1px solid #80622b;border-radius:999px;padding:0 16px;background:#fff7df;color:#3a2a12;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.2);touch-action:manipulation}.sgf-report-sheet{width:min(360px,calc(100vw - 28px));margin-top:8px;padding:14px;border:1px solid #d6c59c;border-radius:16px;background:#fffdf7;box-shadow:0 16px 42px rgba(0,0,0,.28)}.sgf-report-sheet strong{display:block;font-size:16px}.sgf-report-context{margin:5px 0 10px;color:#695b42;font-size:12px}.sgf-report-reasons{display:grid;gap:7px}.sgf-report-reasons button,.sgf-report-actions button,.sgf-admin-actions button,.sgf-admin-actions select{min-height:44px;border:1px solid #c9b98e;border-radius:11px;background:#fff;color:#352914;padding:7px 10px;text-align:left;touch-action:manipulation}.sgf-report-reasons button[aria-pressed=true]{border-color:#2d8e59;background:#e6f5eb}.sgf-report-sheet textarea{display:block;width:100%;margin-top:10px;border:1px solid #c9b98e;border-radius:10px;padding:8px;resize:vertical}.sgf-report-actions,.sgf-admin-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}.sgf-report-actions button:last-child,.sgf-admin-actions button{background:#2d8e59;color:#fff;border-color:#2d8e59}.sgf-report-actions button:disabled{opacity:.5}.sgf-report-status,.sgf-admin-status{min-height:20px;margin-top:7px;color:#356c49;font-size:12px}.sgf-report-status.error,.sgf-admin-status.error{color:#a43125}.sgf-admin-tools{margin-top:14px;padding-top:12px;border-top:1px solid #d6c59c}.sgf-admin-tools strong{font-size:13px}.sgf-admin-actions select{max-width:100%;flex:1 1 150px}@media(max-width:600px){.sgf-report-widget{left:14px;right:14px}.sgf-report-trigger{width:100%}.sgf-report-sheet{width:100%}}';
@@ -58,6 +58,8 @@
     host.querySelector('[data-sgf-report-cancel]').addEventListener('click', function () { state.panel.hidden = true; });
     host.querySelector('[data-sgf-report-submit]').addEventListener('click', submit);
     host.querySelector('[data-sgf-admin-flag]').addEventListener('click', flagForReview);
+    host.querySelector('[data-sgf-admin-direct]').addEventListener('click', openDirectWorkbench);
+    host.querySelector('[data-sgf-admin-direct-last]').addEventListener('click', directApplyLastMove);
     host.querySelector('[data-sgf-admin-stage]').addEventListener('click', stageRepair);
     host.querySelector('[data-sgf-admin-retest]').addEventListener('click', retestStaged);
     loadAdminCapabilities();
@@ -90,7 +92,11 @@
     if (merged.question_id == null && state.context) merged.question_id = state.context.question_id;
     state.context = merged;
     var host = ensureHost();
-    if (host) host.querySelector('[data-sgf-report-context]').textContent = describeContext();
+    if (host) {
+      host.querySelector('[data-sgf-report-context]').textContent = describeContext();
+      var shortcut = host.querySelector('[data-sgf-admin-direct-last]');
+      if (shortcut) shortcut.hidden = !(state.admin && merged.move);
+    }
     root.dispatchEvent(new CustomEvent('sgf:report-context', { detail: merged }));
     return merged;
   }
@@ -126,6 +132,30 @@
       state.stagedItemId = result.review_item_id;
       setAdminStatus('已建立 ADMIN_PLAY 待審項目。', false);
     } catch (error) { setAdminStatus(error.message || '標記失敗', true); }
+  }
+
+  function openDirectWorkbench() {
+    if (!state.admin || !state.context || state.context.question_id == null) return;
+    var params = new URLSearchParams({ direct_question_id: String(state.context.question_id) });
+    if (state.context.record_index != null) params.set('record_index', String(state.context.record_index));
+    window.location.href = '/admin/sgf-answer-review?' + params.toString();
+  }
+
+  async function directApplyLastMove() {
+    if (!state.admin || !state.context || !state.context.question_id || !state.context.move) return;
+    try {
+      var context = await fetch('/api/admin/sgf-workbench/direct-context/' + encodeURIComponent(state.context.question_id) + '?record_index=' + encodeURIComponent(state.context.record_index == null ? '' : state.context.record_index), { credentials: 'include' }).then(function (response) { return response.json(); });
+      if (!context || !context.direct_apply_enabled) throw new Error('目前環境尚未開啟管理員直接套用');
+      var result = await adminPost('/api/admin/sgf-workbench/direct-apply', {
+        question_id: Number(state.context.question_id), record_index: Number(context.record_index),
+        predecessor_hash: context.predecessor_hash, action: 'ADD_ALTERNATIVE_CORRECT_MOVE',
+        candidate_move: state.context.move, operation_id: 'admin-play-direct:' + Date.now() + ':' + Math.random().toString(16).slice(2)
+      });
+      setAdminStatus('修改已套用。已保存上一版本，可回到審題工作台重測。', false);
+      state.host.querySelector('[data-sgf-admin-direct-last]').hidden = true;
+      state.host.querySelector('[data-sgf-admin-retest]').hidden = false;
+      state.directVersion = result.version;
+    } catch (error) { setAdminStatus(error.message || '直接套用失敗', true); }
   }
 
   async function stageRepair() {

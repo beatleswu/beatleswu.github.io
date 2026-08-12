@@ -5,13 +5,13 @@ param(
     [ValidatePattern('^[0-9a-fA-F]{40}$')]
     [string]$ExpectedSourceSha = '8910160855030d6266b52b63242b7a9c384d0e24',
     [ValidateRange(1024, 65535)]
-    [int]$Port = 5080,
+    [int]$Port = 5084,
     [string]$LanHost = '',
     [switch]$NoBuild
 )
 
 $ErrorActionPreference = 'Stop'
-$ProjectName = 'go-odyssey-acceptance'
+$ProjectName = 'go-odyssey-acceptance-direct-apply'
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $ComposeFile = Join-Path $RepoRoot 'docker-compose.acceptance.yml'
 $StateRoot = Join-Path $env:LOCALAPPDATA 'GoOdyssey\acceptance\sgf-admin-workbench'
@@ -29,7 +29,7 @@ function Assert-SafeAcceptancePaths {
         [IO.Path]::GetFileName($ComposeFile) -ne 'docker-compose.acceptance.yml') {
         throw "Acceptance compose file is missing or not the governed acceptance compose file."
     }
-    if ($ProjectName -ne 'go-odyssey-acceptance') {
+    if ($ProjectName -ne 'go-odyssey-acceptance-direct-apply') {
         throw "Unexpected acceptance compose project name."
     }
 }
@@ -448,6 +448,10 @@ function Start-Acceptance {
     Invoke-AcceptanceCompose $upArgs
     Wait-ForHealth
     Invoke-AcceptanceCompose @('run', '--rm', '--no-deps', 'app', 'python', '/tmp/seed_acceptance.py')
+    # The seed writes the isolated named volume after the app has started;
+    # restart the app so its question cache observes the seeded target.
+    Invoke-AcceptanceCompose @('restart', 'app')
+    Wait-ForHealth
     Invoke-Verify $state
     Write-Output 'STARTED=YES'
     Write-Output 'STOP_COMMAND=powershell -ExecutionPolicy Bypass -File scripts/acceptance/run-lan-acceptance.ps1 -Action Stop'

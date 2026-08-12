@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 import sys
 from datetime import datetime, timezone
 
@@ -26,7 +27,8 @@ from db import get_db
 from sgf_admin_workbench import capture_workbench_report
 
 
-FIXTURE_PATH = os.environ.get("QUESTIONS_JSON_PATH", "/app/data/questions.json")
+TARGET_PATH = os.environ.get("QUESTIONS_JSON_PATH", "/app/data/questions.json")
+FIXTURE_PATH = os.environ.get("ACCEPTANCE_FIXTURE_PATH", "/app/data/questions.seed.json")
 
 
 def _now() -> str:
@@ -39,6 +41,25 @@ def _fixture() -> tuple[list[dict], str]:
     records = json.loads(raw.decode("utf-8"))
     if not isinstance(records, list) or not records:
         raise RuntimeError("acceptance fixture must be a non-empty JSON list")
+    # The seed is mounted read-only; the target is the writable isolated
+    # volume used by direct-apply version/snapshot tests.  Never overwrite an
+    # existing target during a normal Start, so Owner-created acceptance data
+    # survives restarts. Reset removes the named volume before this runs.
+    if not os.path.exists(TARGET_PATH):
+        directory = os.path.dirname(os.path.abspath(TARGET_PATH)) or "."
+        fd, temp_path = tempfile.mkstemp(prefix="questions-seed-", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "wb") as output:
+                output.write(raw)
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temp_path, TARGET_PATH)
+        except Exception:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
     return records, hashlib.sha256(raw).hexdigest()
 
 

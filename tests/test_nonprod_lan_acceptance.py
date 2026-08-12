@@ -22,8 +22,11 @@ def test_acceptance_compose_isolated_and_single_host_http_port():
     assert "PRODUCTION: \"0\"" in text
     assert "GO_ODYSSEY_ACCEPTANCE_MODE: \"1\"" in text
     assert "GO_ODYSSEY_ACCEPTANCE_PUBLISH_DISABLED: \"1\"" in text
+    assert "GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED: \"1\"" in text
     assert "./sgf_admin_workbench.py:/app/sgf_admin_workbench.py:ro" in text
     assert "go-data" not in text
+    assert "questions.seed.json:ro" in text
+    assert "questions.json:ro" not in text
     assert "docker-compose.prod.yml" not in text
     assert "${ACCEPTANCE_BIND_HOST:-0.0.0.0}:${ACCEPTANCE_PORT:-5080}:8080" in text
     assert text.count("ports:") == 1

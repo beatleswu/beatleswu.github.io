@@ -60,3 +60,20 @@ def test_workbench_routes_are_explicitly_non_mutating_and_csrf_protected():
     assert block.count("_review_csrf_failure()") >= 5
     assert "production_mutation': False" in block
     assert "_save_questions" not in block
+
+
+def test_owner_direct_apply_is_versioned_and_acceptance_gated():
+    app = _read("app.py")
+    module = _read("sgf_admin_workbench.py")
+    widget = _read("sgf_report_widget.js")
+    ux = _read("sgf_admin_workbench_ux_v2.js")
+    assert "/api/admin/sgf-workbench/direct-apply" in app
+    assert "/direct-versions/<int:version_id>/rollback" in app
+    assert "GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED" in app
+    assert "sgf_workbench_direct_versions" in module
+    assert "predecessor_hash" in module and "old_record_json" in module
+    assert "修正此題" in widget and "把剛才這一手加入正解" in widget
+    assert "儲存並套用" in ux and "還原上一版" in ux
+    assert "ADMIN_PLAY_DIRECT" in module and "direct-retest" in app
+    assert "放黑子" in ux and "放白子" in ux and "移除棋子" in ux
+    assert "withSetupSgf" in ux and "EDIT_BOARD_SETUP" in ux
