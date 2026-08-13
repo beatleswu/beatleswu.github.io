@@ -12,7 +12,9 @@ import hashlib
 import json
 import os
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
+from itertools import count
 from typing import Any, Iterable
 
 
@@ -66,7 +68,11 @@ def _id_type(conn) -> str:
 
 
 def _now(value: str | None = None) -> str:
-    return value or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    # Workbench optimistic concurrency uses ``updated_at`` as its existing
+    # version token.  Preserve caller-supplied historical timestamps, but keep
+    # generated tokens sub-second precise so two admin writes in one second do
+    # not become an accidental last-write-wins operation.
+    return value or datetime.now(timezone.utc).isoformat()
 
 
 def _json(value: Any) -> str:
@@ -159,8 +165,180 @@ def _row_dict(row) -> dict:
         return {key: row[key] for key in row.keys()}
 
 
+class WorkbenchPersistenceError(ValueError):
+    """Base error for a Workbench state change rejected by the repository."""
+
+
+class InvalidWorkbenchState(WorkbenchPersistenceError):
+    """The requested lifecycle transition is not allowed."""
+
+
+class StaleWorkbenchState(WorkbenchPersistenceError):
+    """The caller attempted to write from an obsolete review-item version."""
+
+
+_SAVEPOINTS = count(1)
+
+
+class WorkbenchRepository:
+    """Small transaction-aware repository facade for the seven Workbench tables.
+
+    Routes continue to use the existing module-level service functions, while
+    all governed multi-table writes use this facade for savepoints, row locks,
+    and audit insertion.  It never owns canonical question content and never
+    enables Direct Apply.
+    """
+
+    def __init__(self, conn):
+        self.conn = conn
+
+    @contextmanager
+    def atomic(self, label: str):
+        """Make one logical Workbench operation atomic inside the caller txn."""
+        safe_label = "".join(ch if ch.isalnum() else "_" for ch in str(label))[:24] or "operation"
+        name = f"sgf_wb_{safe_label}_{next(_SAVEPOINTS)}"
+        self.conn.execute(f"SAVEPOINT {name}")
+        try:
+            yield
+        except BaseException:
+            try:
+                self.conn.execute(f"ROLLBACK TO SAVEPOINT {name}")
+                self.conn.execute(f"RELEASE SAVEPOINT {name}")
+            except Exception:
+                # The caller's connection context remains the final rollback
+                # authority if the database has already entered a failed txn.
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
+            raise
+        else:
+            self.conn.execute(f"RELEASE SAVEPOINT {name}")
+
+    def lock_review_item(self, item_id: int):
+        sql = "SELECT * FROM sgf_workbench_review_items WHERE id=?"
+        if not _is_sqlite(self.conn):
+            sql += " FOR UPDATE"
+        return self.conn.execute(sql, (int(item_id),)).fetchone()
+
+    def lock_staged_repairs(self):
+        sql = """SELECT * FROM sgf_workbench_staged_repairs
+                  WHERE status='STAGED' ORDER BY review_item_id, id"""
+        if not _is_sqlite(self.conn):
+            sql += " FOR UPDATE"
+        return self.conn.execute(sql).fetchall()
+
+    def lock_direct_operation(self, operation_id: str, question_id: int) -> None:
+        """Serialize retries for one direct operation/question on PostgreSQL."""
+        if _is_sqlite(self.conn):
+            return
+        digest = hashlib.sha256(f"{operation_id}:{int(question_id)}".encode("utf-8")).digest()
+        lock_key = int.from_bytes(digest[:8], "big", signed=True)
+        self.conn.execute("SELECT pg_advisory_xact_lock(?)", (lock_key,)).fetchone()
+
+    def audit(self, target_type: str, target_id: int | None, actor_id: int | None,
+              action: str, detail: Any, now: str) -> None:
+        _audit(self.conn, target_type, target_id, actor_id, action, detail, now)
+
+    def schema_status(self) -> dict:
+        """Return the governed seven-table schema status without creating it."""
+        if _is_sqlite(self.conn):
+            return {"schema_version": "sqlite-test", "valid": True, "missing": []}
+        from migrations.sgf_admin_workbench_v1 import validate_schema
+
+        return validate_schema(self.conn)
+
+    def require_schema(self) -> dict:
+        result = self.schema_status()
+        if result.get("missing"):
+            raise RuntimeError("sgf_workbench_schema_missing:" + ",".join(result["missing"]))
+        return result
+
+    def staged_count(self) -> int:
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS n FROM sgf_workbench_staged_repairs "
+            "WHERE status IN ('STAGED','BATCHED')"
+        ).fetchone()
+        return int(row["n"] if isinstance(row, dict) or hasattr(row, "keys") else row[0])
+
+    def list_batches(self, limit: int = 100) -> list[dict]:
+        bounded = max(1, min(int(limit), 500))
+        rows = self.conn.execute(
+            "SELECT id,batch_key,status,manifest_sha256,staged_count,created_at "
+            "FROM sgf_workbench_batches ORDER BY id DESC LIMIT ?", (bounded,)
+        ).fetchall()
+        return [_row_dict(row) for row in rows]
+
+
+def workbench_persistence_map() -> dict[str, dict[str, str]]:
+    """Concise authority map used by the review artifact and diagnostics."""
+    return {
+        "reports": {
+            "table": "sgf_workbench_reports",
+            "operation": "capture_workbench_report",
+            "lifecycle": "immutable PLAYER_REPORT/ADMIN_PLAY/CORPUS_SCAN evidence",
+            "transaction": "report insert + semantic group rebuild",
+            "audit": "source evidence remains immutable; review mutations are audited",
+        },
+        "review_items": {
+            "table": "sgf_workbench_review_items",
+            "operation": "list_workbench_items/get_workbench_item/resolve_workbench_item",
+            "lifecycle": "OPEN -> STAGED/NEEDS_RESEARCH/REJECTED (published is terminal)",
+            "transaction": "locked state transition with stale check",
+            "audit": "resolution and staging audit rows are atomic",
+        },
+        "staged_repairs": {
+            "table": "sgf_workbench_staged_repairs",
+            "operation": "stage_workbench_repair",
+            "lifecycle": "STAGED -> BATCHED; canonical content remains untouched",
+            "transaction": "repair insert + review-item transition",
+            "audit": "required STAGED_REPAIR audit is in the same transaction",
+        },
+        "batches": {
+            "table": "sgf_workbench_batches",
+            "operation": "create_workbench_batch",
+            "lifecycle": "deterministic staged handoff package",
+            "transaction": "batch + items + repair transitions",
+            "audit": "BATCH_CREATED is atomic with all batch rows",
+        },
+        "batch_items": {
+            "table": "sgf_workbench_batch_items",
+            "operation": "create_workbench_batch",
+            "lifecycle": "ordered membership of one deterministic batch",
+            "transaction": "same batch transaction",
+            "audit": "covered by parent batch audit",
+        },
+        "audit": {
+            "table": "sgf_workbench_audit",
+            "operation": "_audit/WorkbenchRepository.audit",
+            "lifecycle": "append-only mutation evidence",
+            "transaction": "mutation fails if required audit insert fails",
+            "audit": "self-describing target/action/detail record",
+        },
+        "direct_versions": {
+            "table": "sgf_workbench_direct_versions",
+            "operation": "apply_direct_question_edit/rollback_direct_question_edit",
+            "lifecycle": "snapshot -> validate -> version/audit -> gated apply",
+            "transaction": "version + audit are atomic; file is restored on failure",
+            "audit": "DIRECT_APPLY/ROLLBACK audit references version identity",
+        },
+    }
+
+
 def ensure_sgf_workbench_tables(conn) -> None:
-    """Create additive workbench tables on both the app DB and test SQLite."""
+    """Keep SQLite fixtures convenient and fail closed on PostgreSQL drift.
+
+    PostgreSQL schema authority is the already-reviewed PR332 migration.  The
+    application must not silently create a partial/unknown Production shape at
+    request time; missing or mismatched tables are an operator-visible error.
+    """
+    if not _is_sqlite(conn):
+        from migrations.sgf_admin_workbench_v1 import SchemaMismatch, validate_schema
+
+        status = validate_schema(conn)
+        if status.get("missing"):
+            raise SchemaMismatch("workbench schema missing: " + ",".join(status["missing"]))
+        return
     identifier = _id_type(conn)
     conn.execute(f"""CREATE TABLE IF NOT EXISTS sgf_workbench_reports (
         id {identifier},
@@ -333,6 +511,8 @@ def apply_direct_question_edit(conn, *, questions_path: str, actor_id: int,
     expected = str(expected_predecessor_hash or "").strip().lower()
     if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
         raise ValueError("predecessor_hash_required")
+    repo = WorkbenchRepository(conn)
+    repo.lock_direct_operation(operation, int(question_id))
     existing = conn.execute(
         "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
     ).fetchone()
@@ -369,26 +549,27 @@ def apply_direct_question_edit(conn, *, questions_path: str, actor_id: int,
     predecessor_version = f"{predecessor_hash[:16]}:{actual_index}"
     new_version = f"{new_hash[:16]}:{actual_index}"
     try:
-        row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
-            (question_id, record_index, predecessor_hash, new_hash,
-             predecessor_version, new_version, operation_id, action_type,
-             actor_id, old_record_json, new_record_json, validation_result_json,
-             rollback_reference, source, status, created_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
-            int(question_id), actual_index, predecessor_hash, new_hash,
-            predecessor_version, new_version, operation, action, int(actor_id),
-            _json(old_record), _json(proposed), _json(validation), None,
-            DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
-        )).fetchone()
-        version = _serialize_direct_version(row)
-        _audit(conn, "sgf_workbench_direct_version", version["id"], actor_id,
-               "DIRECT_APPLY", {
-                   "question_id": int(question_id), "action_type": action,
-                   "predecessor_hash": predecessor_hash, "new_hash": new_hash,
-                   "operation_id": operation, "validation": validation,
-                   "source": DIRECT_APPLY_SOURCE,
-               }, timestamp)
-        return version
+        with repo.atomic("direct_version"):
+            row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
+                (question_id, record_index, predecessor_hash, new_hash,
+                 predecessor_version, new_version, operation_id, action_type,
+                 actor_id, old_record_json, new_record_json, validation_result_json,
+                 rollback_reference, source, status, created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
+                int(question_id), actual_index, predecessor_hash, new_hash,
+                predecessor_version, new_version, operation, action, int(actor_id),
+                _json(old_record), _json(proposed), _json(validation), None,
+                DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
+            )).fetchone()
+            version = _serialize_direct_version(row)
+            repo.audit("sgf_workbench_direct_version", version["id"], actor_id,
+                       "DIRECT_APPLY", {
+                           "question_id": int(question_id), "action_type": action,
+                           "predecessor_hash": predecessor_hash, "new_hash": new_hash,
+                           "operation_id": operation, "validation": validation,
+                           "source": DIRECT_APPLY_SOURCE,
+                       }, timestamp)
+            return version
     except Exception:
         _direct_atomic_write(questions_path, raw_before)
         raise
@@ -404,6 +585,8 @@ def rollback_direct_question_edit(conn, *, questions_path: str, actor_id: int,
     operation = str(operation_id or "").strip()
     if not operation:
         raise ValueError("operation_id_required")
+    repo = WorkbenchRepository(conn)
+    repo.lock_direct_operation(operation, int(original["question_id"]))
     existing = conn.execute(
         "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
     ).fetchone()
@@ -427,21 +610,22 @@ def rollback_direct_question_edit(conn, *, questions_path: str, actor_id: int,
     _direct_atomic_write(questions_path, raw_after)
     timestamp = _now(now)
     try:
-        row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
-            (question_id, record_index, predecessor_hash, new_hash,
-             predecessor_version, new_version, operation_id, action_type,
-             actor_id, old_record_json, new_record_json, validation_result_json,
-             rollback_reference, source, status, created_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
-            int(original["question_id"]), idx, original["new_hash"], original["predecessor_hash"],
-            original["new_version"], original["predecessor_version"], operation,
-            "ROLLBACK", int(actor_id), _json(current), _json(restored), _json(validation),
-            int(version_id), DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
-        )).fetchone()
-        result = _serialize_direct_version(row)
-        _audit(conn, "sgf_workbench_direct_version", result["id"], actor_id,
-               "ROLLBACK", {"rollback_reference": int(version_id), "restored_hash": original["predecessor_hash"]}, timestamp)
-        return result
+        with repo.atomic("rollback_version"):
+            row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
+                (question_id, record_index, predecessor_hash, new_hash,
+                 predecessor_version, new_version, operation_id, action_type,
+                 actor_id, old_record_json, new_record_json, validation_result_json,
+                 rollback_reference, source, status, created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
+                int(original["question_id"]), idx, original["new_hash"], original["predecessor_hash"],
+                original["new_version"], original["predecessor_version"], operation,
+                "ROLLBACK", int(actor_id), _json(current), _json(restored), _json(validation),
+                int(version_id), DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
+            )).fetchone()
+            result = _serialize_direct_version(row)
+            repo.audit("sgf_workbench_direct_version", result["id"], actor_id,
+                       "ROLLBACK", {"rollback_reference": int(version_id), "restored_hash": original["predecessor_hash"]}, timestamp)
+            return result
     except Exception:
         _direct_atomic_write(questions_path, raw_before)
         raise
@@ -539,51 +723,54 @@ def capture_workbench_report(conn, *, source: str, reporter_id: int | None,
     )
     external_key = str(external_key or f"{source.lower()}:{question_id}:{group_key}:{timestamp}")
     provenance = source_provenance if isinstance(source_provenance, dict) else {}
-    conn.execute("""INSERT INTO sgf_workbench_reports
-        (source, legacy_report_type, legacy_report_id, reporter_id, question_id,
-         record_index, issue_type, candidate_move_json, observed_system_verdict,
-         gameplay_surface, sgf_identity, node_identity, position_identity,
-         board_state_json, comment, question_content_sha256, source_provenance_json,
-         external_key, created_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        ON CONFLICT(external_key) DO NOTHING""", (
-        source, legacy_report_type, legacy_report_id, reporter_id, question_id,
-        record_index, issue_type, _json(move) if move else None,
-        observed_system_verdict, gameplay_surface, sgf_identity, node_identity,
-        group_key, _json(board_state if board_state is not None else {}),
-        str(comment or "")[:1000], question_content_sha256, _json(provenance),
-        external_key, timestamp,
-    ))
-    existing = conn.execute("SELECT * FROM sgf_workbench_review_items WHERE group_key=?", (group_key,)).fetchone()
-    if not existing:
-        conn.execute("""INSERT INTO sgf_workbench_review_items
-            (group_key, question_id, record_index, issue_type, candidate_move_json,
-             position_identity, source_types_json, report_count,
-             gameplay_surfaces_json, first_report_at, last_report_at,
-             authority_json, provenance_json, status, created_at, updated_at)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
-            group_key, question_id, record_index, issue_type,
-            _json(move) if move else None, group_key, _json([source]), 0,
-            _json([gameplay_surface] if gameplay_surface else []), timestamp,
-            timestamp, _json({}), _json(provenance), "OPEN", timestamp, timestamp,
+    repo = WorkbenchRepository(conn)
+    with repo.atomic("capture_report"):
+        conn.execute("""INSERT INTO sgf_workbench_reports
+            (source, legacy_report_type, legacy_report_id, reporter_id, question_id,
+             record_index, issue_type, candidate_move_json, observed_system_verdict,
+             gameplay_surface, sgf_identity, node_identity, position_identity,
+             board_state_json, comment, question_content_sha256, source_provenance_json,
+             external_key, created_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(external_key) DO NOTHING""", (
+            source, legacy_report_type, legacy_report_id, reporter_id, question_id,
+            record_index, issue_type, _json(move) if move else None,
+            observed_system_verdict, gameplay_surface, sgf_identity, node_identity,
+            group_key, _json(board_state if board_state is not None else {}),
+            str(comment or "")[:1000], question_content_sha256, _json(provenance),
+            external_key, timestamp,
         ))
-    item = _rebuild_group(conn, group_key, timestamp)
-    if isinstance(authority, dict):
-        conn.execute(
-            "UPDATE sgf_workbench_review_items SET authority_json=?, provenance_json=? WHERE group_key=?",
-            (_json(authority), _json(provenance), group_key),
-        )
-        item = _serialize_item(_row_dict(conn.execute(
-            "SELECT * FROM sgf_workbench_review_items WHERE group_key=?", (group_key,)
-        ).fetchone()))
-    report_row = conn.execute("SELECT * FROM sgf_workbench_reports WHERE external_key=?", (external_key,)).fetchone()
-    return {
-        "report": _serialize_report(_row_dict(report_row)),
-        "item": item,
-        "review_item_id": item.get("id"),
-        "group_key": group_key,
-        "report_count": item.get("report_count", 0),
-    }
+        existing = conn.execute("SELECT * FROM sgf_workbench_review_items WHERE group_key=?", (group_key,)).fetchone()
+        if not existing:
+            conn.execute("""INSERT INTO sgf_workbench_review_items
+                (group_key, question_id, record_index, issue_type, candidate_move_json,
+                 position_identity, source_types_json, report_count,
+                 gameplay_surfaces_json, first_report_at, last_report_at,
+                 authority_json, provenance_json, status, created_at, updated_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(group_key) DO NOTHING""", (
+                group_key, question_id, record_index, issue_type,
+                _json(move) if move else None, group_key, _json([source]), 0,
+                _json([gameplay_surface] if gameplay_surface else []), timestamp,
+                timestamp, _json({}), _json(provenance), "OPEN", timestamp, timestamp,
+            ))
+        item = _rebuild_group(conn, group_key, timestamp)
+        if isinstance(authority, dict):
+            conn.execute(
+                "UPDATE sgf_workbench_review_items SET authority_json=?, provenance_json=? WHERE group_key=?",
+                (_json(authority), _json(provenance), group_key),
+            )
+            item = _serialize_item(_row_dict(conn.execute(
+                "SELECT * FROM sgf_workbench_review_items WHERE group_key=?", (group_key,)
+            ).fetchone()))
+        report_row = conn.execute("SELECT * FROM sgf_workbench_reports WHERE external_key=?", (external_key,)).fetchone()
+        return {
+            "report": _serialize_report(_row_dict(report_row)),
+            "item": item,
+            "review_item_id": item.get("id"),
+            "group_key": group_key,
+            "report_count": item.get("report_count", 0),
+        }
 
 
 def list_workbench_items(conn, *, source: str | None = None,
@@ -630,88 +817,140 @@ def stage_workbench_repair(conn, *, item_id: int, reviewer_id: int,
                            reason: str = "", source_provenance: Any = None,
                            baseline_sha256: str | None = None,
                            mutation_key: str | None = None,
-                           now: str | None = None) -> dict:
+                           now: str | None = None,
+                           expected_item_updated_at: str | None = None) -> dict:
     ensure_sgf_workbench_tables(conn)
     action = str(action or "").strip().upper()
     if action not in WORKBENCH_ACTIONS:
         raise ValueError("invalid_workbench_action")
-    item = conn.execute("SELECT * FROM sgf_workbench_review_items WHERE id=?", (item_id,)).fetchone()
-    if not item:
-        raise LookupError("workbench_item_not_found")
     timestamp = _now(now)
     mutation_key = str(mutation_key or _sha256(_json({"item": item_id, "action": action, "proposed": proposed_state})))
     provenance = source_provenance if isinstance(source_provenance, dict) else {}
-    conn.execute("""INSERT INTO sgf_workbench_staged_repairs
-        (review_item_id, reviewer_id, action, reason, original_state_json,
-         proposed_state_json, candidate_move_json, source_provenance_json,
-         baseline_sha256, mutation_key, status, created_at, updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(mutation_key) DO NOTHING""", (
-        item_id, reviewer_id, action, str(reason or "")[:1000], _json(original_state if original_state is not None else {}),
-        _json(proposed_state if proposed_state is not None else {}),
-        _json(_normalize_move(candidate_move)) if _normalize_move(candidate_move) else None,
-        _json(provenance), baseline_sha256, mutation_key, "STAGED", timestamp, timestamp,
-    ))
-    repair = conn.execute("SELECT * FROM sgf_workbench_staged_repairs WHERE mutation_key=?", (mutation_key,)).fetchone()
-    conn.execute("UPDATE sgf_workbench_review_items SET status='STAGED', updated_at=? WHERE id=?", (timestamp, item_id))
-    _audit(conn, "sgf_workbench_review_item", item_id, reviewer_id, "STAGED_REPAIR", {"action": action, "repair_id": repair["id"]}, timestamp)
-    return _serialize_repair(_row_dict(repair))
+    repo = WorkbenchRepository(conn)
+    with repo.atomic("stage_repair"):
+        item = repo.lock_review_item(item_id)
+        if not item:
+            raise LookupError("workbench_item_not_found")
+        item_status = str(item["status"] or "OPEN").upper()
+        if expected_item_updated_at is not None and str(item["updated_at"]) != str(expected_item_updated_at):
+            raise StaleWorkbenchState("stale_workbench_item")
+        if item_status in {"REJECTED", "PUBLISHED"}:
+            raise InvalidWorkbenchState(f"invalid_state_transition:{item_status}->STAGED")
+        existing = conn.execute(
+            "SELECT * FROM sgf_workbench_staged_repairs WHERE mutation_key=?", (mutation_key,)
+        ).fetchone()
+        if existing:
+            result = _serialize_repair(_row_dict(existing))
+            result["duplicate"] = True
+            return result
+        conn.execute("""INSERT INTO sgf_workbench_staged_repairs
+            (review_item_id, reviewer_id, action, reason, original_state_json,
+             proposed_state_json, candidate_move_json, source_provenance_json,
+             baseline_sha256, mutation_key, status, created_at, updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(mutation_key) DO NOTHING""", (
+            item_id, reviewer_id, action, str(reason or "")[:1000], _json(original_state if original_state is not None else {}),
+            _json(proposed_state if proposed_state is not None else {}),
+            _json(_normalize_move(candidate_move)) if _normalize_move(candidate_move) else None,
+            _json(provenance), baseline_sha256, mutation_key, "STAGED", timestamp, timestamp,
+        ))
+        repair = conn.execute("SELECT * FROM sgf_workbench_staged_repairs WHERE mutation_key=?", (mutation_key,)).fetchone()
+        if not repair:
+            raise RuntimeError("staged_repair_insert_missing")
+        conn.execute("UPDATE sgf_workbench_review_items SET status='STAGED', updated_at=? WHERE id=?", (timestamp, item_id))
+        repo.audit("sgf_workbench_review_item", item_id, reviewer_id, "STAGED_REPAIR", {"action": action, "repair_id": repair["id"]}, timestamp)
+        return _serialize_repair(_row_dict(repair))
 
 
 def resolve_workbench_item(conn, *, item_id: int, reviewer_id: int,
-                           status: str, note: str = "", now: str | None = None) -> dict:
+                           status: str, note: str = "", now: str | None = None,
+                           expected_item_updated_at: str | None = None) -> dict:
     ensure_sgf_workbench_tables(conn)
     status = str(status or "").strip().upper()
     if status not in ("NEEDS_RESEARCH", "REJECTED"):
         raise ValueError("invalid_workbench_resolution")
     timestamp = _now(now)
-    row = conn.execute("SELECT id FROM sgf_workbench_review_items WHERE id=?", (item_id,)).fetchone()
-    if not row:
-        raise LookupError("workbench_item_not_found")
-    conn.execute("UPDATE sgf_workbench_review_items SET status=?, provenance_json=?, updated_at=? WHERE id=?", (status, _json({"resolution_note": str(note or "")[:1000], "reviewer_id": reviewer_id}), timestamp, item_id))
-    _audit(conn, "sgf_workbench_review_item", item_id, reviewer_id, status, note, timestamp)
-    return {"id": item_id, "status": status, "updated_at": timestamp}
+    repo = WorkbenchRepository(conn)
+    with repo.atomic("resolve_item"):
+        row = repo.lock_review_item(item_id)
+        if not row:
+            raise LookupError("workbench_item_not_found")
+        current = str(row["status"] or "OPEN").upper()
+        if expected_item_updated_at is not None and str(row["updated_at"]) != str(expected_item_updated_at):
+            raise StaleWorkbenchState("stale_workbench_item")
+        if current == status:
+            return {"id": item_id, "status": status, "updated_at": row["updated_at"], "duplicate": True}
+        if current in {"REJECTED", "PUBLISHED"}:
+            raise InvalidWorkbenchState(f"invalid_state_transition:{current}->{status}")
+        provenance = _loads(row["provenance_json"], {})
+        if not isinstance(provenance, dict):
+            provenance = {}
+        provenance.update({"resolution_note": str(note or "")[:1000], "reviewer_id": reviewer_id})
+        conn.execute("UPDATE sgf_workbench_review_items SET status=?, provenance_json=?, updated_at=? WHERE id=?", (status, _json(provenance), timestamp, item_id))
+        repo.audit("sgf_workbench_review_item", item_id, reviewer_id, status, note, timestamp)
+        return {"id": item_id, "status": status, "updated_at": timestamp}
 
 
 def create_workbench_batch(conn, *, created_by: int, baseline_sha256: str | None = None,
-                           now: str | None = None) -> dict:
+                           now: str | None = None, idempotency_key: str | None = None) -> dict:
     ensure_sgf_workbench_tables(conn)
     timestamp = _now(now)
-    rows = conn.execute("""SELECT * FROM sgf_workbench_staged_repairs
-        WHERE status='STAGED' ORDER BY review_item_id, id""").fetchall()
-    repairs = [_serialize_repair(_row_dict(row)) for row in rows]
-    if not repairs:
-        raise ValueError("no_staged_repairs")
-    manifest = {
-        "schema_version": "sgf-admin-workbench-batch-v1",
-        "baseline_sha256": baseline_sha256,
-        "created_at": timestamp,
-        "source": "SGF_ADMIN_WORKBENCH",
-        "staged_repair_count": len(repairs),
-        "repairs": repairs,
-        "handoff": {
-            "repair_batch_tool": "tools/sgf_answer_repair_batch.py",
-            "content_release_validator": "PR318_SGF_CONTENT_RELEASE_INFRASTRUCTURE",
-            "production_mutation": False,
-        },
-    }
-    manifest_sha = _sha256(_json(manifest))
-    batch_key = f"sgf-workbench-{manifest_sha[:24]}"
-    conn.execute("""INSERT INTO sgf_workbench_batches
-        (batch_key, created_by, status, manifest_json, manifest_sha256, staged_count, created_at)
-        VALUES(?,?,?,?,?,?,?) ON CONFLICT(batch_key) DO NOTHING""", (
-        batch_key, created_by, "STAGED", _json(manifest), manifest_sha, len(repairs), timestamp,
-    ))
-    batch = conn.execute("SELECT * FROM sgf_workbench_batches WHERE batch_key=?", (batch_key,)).fetchone()
-    for order, repair in enumerate(repairs):
-        conn.execute("""INSERT INTO sgf_workbench_batch_items(batch_id, staged_repair_id, order_index)
-            VALUES(?,?,?) ON CONFLICT(batch_id, staged_repair_id) DO NOTHING""", (batch["id"], repair["id"], order))
-        conn.execute("UPDATE sgf_workbench_staged_repairs SET status='BATCHED', updated_at=? WHERE id=?", (timestamp, repair["id"]))
-    _audit(conn, "sgf_workbench_batch", batch["id"], created_by, "BATCH_CREATED", {"manifest_sha256": manifest_sha, "count": len(repairs)}, timestamp)
-    return {
-        "id": batch["id"], "batch_key": batch_key, "manifest": manifest,
-        "manifest_sha256": manifest_sha, "staged_count": len(repairs),
-        "status": batch["status"],
-    }
+    requested_key = str(idempotency_key or "").strip()
+    if len(requested_key) > 180:
+        raise ValueError("idempotency_key_too_long")
+    repo = WorkbenchRepository(conn)
+    with repo.atomic("create_batch"):
+        if requested_key:
+            existing = conn.execute("SELECT * FROM sgf_workbench_batches WHERE batch_key=?", (requested_key,)).fetchone()
+            if existing:
+                result = _row_dict(existing)
+                result["manifest"] = _loads(result.get("manifest_json"), {})
+                result.pop("manifest_json", None)
+                result["duplicate"] = True
+                return result
+        rows = repo.lock_staged_repairs()
+        repairs = [_serialize_repair(_row_dict(row)) for row in rows]
+        if not repairs:
+            raise ValueError("no_staged_repairs")
+        manifest = {
+            "schema_version": "sgf-admin-workbench-batch-v1",
+            "baseline_sha256": baseline_sha256,
+            "created_at": timestamp,
+            "source": "SGF_ADMIN_WORKBENCH",
+            "staged_repair_count": len(repairs),
+            "repairs": repairs,
+            "handoff": {
+                "repair_batch_tool": "tools/sgf_answer_repair_batch.py",
+                "content_release_validator": "PR318_SGF_CONTENT_RELEASE_INFRASTRUCTURE",
+                "production_mutation": False,
+            },
+        }
+        manifest_sha = _sha256(_json(manifest))
+        batch_key = requested_key or f"sgf-workbench-{manifest_sha[:24]}"
+        existing = conn.execute("SELECT * FROM sgf_workbench_batches WHERE batch_key=?", (batch_key,)).fetchone()
+        if existing:
+            result = _row_dict(existing)
+            result["manifest"] = _loads(result.get("manifest_json"), {})
+            result.pop("manifest_json", None)
+            result["duplicate"] = True
+            return result
+        conn.execute("""INSERT INTO sgf_workbench_batches
+            (batch_key, created_by, status, manifest_json, manifest_sha256, staged_count, created_at)
+            VALUES(?,?,?,?,?,?,?) ON CONFLICT(batch_key) DO NOTHING""", (
+            batch_key, created_by, "STAGED", _json(manifest), manifest_sha, len(repairs), timestamp,
+        ))
+        batch = conn.execute("SELECT * FROM sgf_workbench_batches WHERE batch_key=?", (batch_key,)).fetchone()
+        if not batch:
+            raise RuntimeError("batch_insert_missing")
+        for order, repair in enumerate(repairs):
+            conn.execute("""INSERT INTO sgf_workbench_batch_items(batch_id, staged_repair_id, order_index)
+                VALUES(?,?,?) ON CONFLICT(batch_id, staged_repair_id) DO NOTHING""", (batch["id"], repair["id"], order))
+            conn.execute("UPDATE sgf_workbench_staged_repairs SET status='BATCHED', updated_at=? WHERE id=?", (timestamp, repair["id"]))
+        repo.audit("sgf_workbench_batch", batch["id"], created_by, "BATCH_CREATED", {"manifest_sha256": manifest_sha, "count": len(repairs)}, timestamp)
+        return {
+            "id": batch["id"], "batch_key": batch_key, "manifest": manifest,
+            "manifest_sha256": manifest_sha, "staged_count": len(repairs),
+            "status": batch["status"],
+        }
 
 
 def workbench_constants() -> dict:
