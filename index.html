@@ -11627,6 +11627,7 @@ let _bossZone = null;
 let _bossQueue = [];
 let _bossIndex = 0;
 let _bossCorrect = 0;
+let _bossReplay = false;
 let _bossFinishInFlight = false;
 let _pendingBossZone = null;
 let _bossAudioCtx = null;
@@ -12242,6 +12243,8 @@ function _applyAdventureSelectedZone(zones, zoneKey) {
 }
 
 const ADVENTURE_MAP_TEXT_FALLBACKS = {
+    'index.adv.quest_rechallenge_boss': { en: 'Challenge this boss again', zh: '再次挑戰領主' },
+    'index.adv.boss_replay_ready': { en: 'Replay this Lord Trial without rewards.', zh: '可再次挑戰領主，本次不再取得首通獎勵。' },
     'index.adv.best_score': { en: 'Best Score', zh: '最佳分數' },
     'index.adv.completed': { en: 'Completed', zh: '已完成' },
     'index.adv.current_position': { en: 'Current Location', zh: '目前位置' },
@@ -12511,6 +12514,7 @@ function _adventureNodeBadge(zone) {
 function _adventurePanelSubtitle(zone, recommendedZone) {
     if (!zone) return I18n.t('index.adv.info_empty');
     if (!_adventureCanEnter(zone)) return I18n.t('index.adv.zone_locked');
+    if (_adventureBossReplayAvailable(zone)) return _adventureText('index.adv.boss_replay_ready');
     if (_adventureSkipped(zone) && recommendedZone && recommendedZone.key !== zone.key) {
         return _adventureText('index.adv.replaying_lower_with_main').replace('{stageName}', _adventureStageLabel(recommendedZone));
     }
@@ -12538,6 +12542,9 @@ function _adventureQuestDetailLines(zone) {
     }
     if (cta.state === 'training_needed' || cta.state === 'replay_training' || cta.state === 'boss_ready') {
         lines.push(`<div>${I18n.t('index.adv.boss_first_star_hint')}</div>`);
+    }
+    if (cta.state === 'boss_replay') {
+        lines.push(`<div>${_adventureText('index.adv.boss_replay_ready')}</div>`);
     }
     if (cta.state === 'boss_defeated') {
         lines.push(`<div>${I18n.t('index.adv.boss_defeated_stars').replace('{stars}', zone?.stars ?? progress?.stars ?? 0)}</div>`);
@@ -12590,9 +12597,19 @@ function _adventureBossDefeated(zone) {
     return !!zone?.cleared && !zone?.progress?.stars_complete;
 }
 
+// A cleared zone remains challengeable through the same Lord Card -> Ritual
+// -> Trial path, but the server-owned clear bit makes this a replay attempt.
+// No client-side completion or reward state is inferred here.
+function _adventureBossReplayAvailable(zone) {
+    return !!zone?.cleared && _adventureCanEnter(zone);
+}
+
 function _adventureQuestStatusMeta(zone, cta) {
     if (!_adventureCanEnter(zone)) {
         return { className: 'locked', text: I18n.t('index.adv.locked') };
+    }
+    if (cta?.state === 'boss_replay') {
+        return { className: 'replay', text: _adventureText('index.adv.quest_rechallenge_boss') };
     }
     if (zone?.progress?.stars_complete) {
         return { className: 'complete', text: I18n.t('index.adv.quest_stars_complete_area') };
@@ -12669,6 +12686,16 @@ function _adventureQuestCtaState(zone) {
     if (!_adventureCanEnter(zone)) {
         return { state: 'locked', action: null, labelKey: '', nextLabelKey: '', messageKey: '' };
     }
+    if (_adventureBossReplayAvailable(zone)) {
+        return {
+            state: 'boss_replay',
+            action: `openAdventureBossFromQuestCard('${zone.key}')`,
+            labelKey: 'index.adv.quest_rechallenge_boss',
+            nextLabelKey: 'index.adv.quest_rechallenge_boss',
+            messageKey: 'index.adv.boss_replay_ready',
+            sfx: 'map_start',
+        };
+    }
     if (progress?.stars_complete) {
         return {
             state: 'stars_complete',
@@ -12743,9 +12770,12 @@ function _adventureQuestCtaState(zone) {
 
 function _renderNewbieVillageMainline(zone, cta) {
     const bossReady = cta?.state === 'boss_ready';
-    const cleared = cta?.state === 'boss_defeated' || cta?.state === 'stars_complete';
+    const replay = cta?.state === 'boss_replay';
+    const cleared = replay || cta?.state === 'boss_defeated' || cta?.state === 'stars_complete';
     const action = cta?.action || `startAdventureStage('${zone.key}')`;
-    const labelKey = bossReady
+    const labelKey = replay
+        ? 'index.adv.quest_rechallenge_boss'
+        : bossReady
         ? 'adventure.newbie.cta_boss'
         : (zone?.seen || zone?.progress?.completed_count ? 'adventure.newbie.cta_continue' : 'adventure.newbie.cta_begin');
     const progress = zone?.progress && typeof zone.progress === 'object' ? zone.progress : null;
@@ -12756,7 +12786,9 @@ function _renderNewbieVillageMainline(zone, cta) {
     // zone.boss.remaining_to_challenge directly, which would show a stale
     // 0 during an active cooldown (section 11).
     const remaining = cta?.messageCount != null ? cta.messageCount : zone?.boss?.remaining_to_challenge;
-    const progressLine = bossReady
+    const progressLine = replay
+        ? _adventureText('index.adv.boss_replay_ready')
+        : bossReady
         ? I18n.t('adventure.newbie.boss_ready')
         : cleared
             ? I18n.t('adventure.newbie.first_star_earned')
@@ -16485,7 +16517,7 @@ async function startBossBattle(zoneKey) {
     const zone = zoneKey
         ? (_adventureProgress || []).find(z => z.key === zoneKey)
         : _activeBossZone;
-    if (!zone || !zone.boss_ready) {
+    if (!zone || !(_adventureBossReady(zone) || _adventureBossReplayAvailable(zone))) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
         return;
     }
@@ -16511,16 +16543,8 @@ async function openAdventureBossFromQuestCard(zoneKey) {
         setMsg(I18n.t('index.adv.zone_locked'), 'warn');
         return false;
     }
-    // Defense in depth: the quest-card CTA no longer offers this action once
-    // a zone is cleared (see _adventureBossDefeated), but guard the entry
-    // point itself too in case it's ever reached some other way -- replay
-    // isn't supported yet, so never open the overlay for an already-defeated
-    // boss.
-    if (_adventureBossDefeated(zone)) {
-        setMsg(_adventureText('index.adv.boss_replay_unavailable'), 'info');
-        return false;
-    }
-    if (!_adventureBossReady(zone)) {
+    const replay = _adventureBossReplayAvailable(zone);
+    if (!replay && !_adventureBossReady(zone)) {
         setMsg(I18n.t('index.boss.not_unsealed'), 'warn');
         return false;
     }
@@ -16614,6 +16638,11 @@ function showZone1LordChallengeCard(zone) {
     }
     const isEn = getCurrentUiLang() === 'en';
     const copy = _zone1LordCopy(isEn);
+    const replay = _adventureBossReplayAvailable(zone);
+    if (replay) {
+        copy.reward = I18n.t('e10.zone1.lord.replay_reward');
+        copy.startChallenge = I18n.t('e10.zone1.lord.replay_start');
+    }
     overlay.className = 'boss-cinematic show phase-lord-card';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
@@ -16679,6 +16708,7 @@ function showZone2LordChallengeCard(zone) {
         return false;
     }
     const isEn = getCurrentUiLang() === 'en';
+    const replay = _adventureBossReplayAvailable(zone);
     overlay.className = 'boss-cinematic show phase-lord-card';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
@@ -16695,7 +16725,9 @@ function showZone2LordChallengeCard(zone) {
             pct: trial.pct === null ? '—' : Math.round(trial.pct),
         });
     }
-    if (line) line.textContent = _zone2I18n('e10.zone2.lord.reward');
+    if (line) line.textContent = replay
+        ? _zone2I18n('e10.zone2.lord.replay_reward')
+        : _zone2I18n('e10.zone2.lord.reward');
     if (rules) {
         rules.dataset.authoritySource = '/api/adventure/progress';
         const ruleLines = [];
@@ -16720,7 +16752,9 @@ function showZone2LordChallengeCard(zone) {
         cancelBtn.onclick = cancelBossCinematic;
         cancelBtn.disabled = false;
     }
-    btn.textContent = _zone2I18n('e10.zone2.lord.start');
+    btn.textContent = replay
+        ? _zone2I18n('e10.zone2.lord.replay_start')
+        : _zone2I18n('e10.zone2.lord.start');
     btn.disabled = false;
     btn.onclick = () => startZone2LordRitual(zone);
     _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordEmergence, { volume: 0.8 });
@@ -16873,6 +16907,7 @@ function _spawnLordRitualStones() {
 
 async function showBossCinematic(zone) {
     _pendingBossZone = zone;
+    const replay = _adventureBossReplayAvailable(zone);
     _stopIntroFilm();
     const overlay = document.getElementById('boss-cinematic');
     const kicker = document.getElementById('boss-cinematic-kicker');
@@ -16898,7 +16933,9 @@ async function showBossCinematic(zone) {
     if (monster) monster.textContent = story.avatar || zone.icon || '🔥';
     title.textContent = I18n.t('index.boss.title');
     if (books) books.textContent = _storyField(zone.key, story, 'books') || '';
-    if (line) line.textContent = I18n.t('index.boss.line');
+    if (line) line.textContent = replay
+        ? _adventureText('index.adv.boss_replay_ready')
+        : I18n.t('index.boss.line');
     if (rules) {
         rules.innerHTML = `
             <span>${I18n.t('index.boss.rule_trial').replace('{n}', zone.boss_exam_size || 20)}</span>
@@ -16929,9 +16966,13 @@ async function showBossCinematic(zone) {
     overlay.className = 'boss-cinematic show phase-boss';
     if (kicker) kicker.textContent = I18n.t('index.boss.boss_appears');
     title.textContent = _storyField(zone.key, story, 'boss') || I18n.t('index.adv.boss_suffix').replace('{name}', _zoneName(zone));
-    if (line) line.textContent = _storyField(zone.key, story, 'taunt') || I18n.t('index.boss.taunt_default');
+    if (line) line.textContent = replay
+        ? _adventureText('index.adv.boss_replay_ready')
+        : (_storyField(zone.key, story, 'taunt') || I18n.t('index.boss.taunt_default'));
     btn.disabled = false;
-    btn.textContent = I18n.t('index.boss.start');
+    btn.textContent = replay
+        ? _adventureText('index.adv.quest_rechallenge_boss')
+        : I18n.t('index.boss.start');
     playBossSfx('appear');
     return true;
 }
@@ -16956,6 +16997,7 @@ function cancelBossCinematic() {
 }
 
 async function _startBossBattleNow(zone) {
+    _bossReplay = false;
     try {
         const res = await fetch('/api/adventure/boss/start', {
             credentials: 'include',
@@ -16971,6 +17013,7 @@ async function _startBossBattleNow(zone) {
             return;
         }
         _bossMode = true;
+        _bossReplay = data.replay === true || data.attempt_mode === 'replay';
         _bossZone = data.zone || zone;
         _bossQueue = data.question_ids || [];
         _bossIndex = 0;
@@ -17066,6 +17109,7 @@ async function _finishBossBattle() {
             body: JSON.stringify({ correct, total })
         });
         const data = await res.json();
+        const replay = Boolean(data.replay || data.attempt_mode === 'replay' || _bossReplay);
         if (!data.ok) {
             // Never leave the player with a vanished progress message and no
             // explanation when the authoritative settlement fails closed.
@@ -17096,9 +17140,14 @@ async function _finishBossBattle() {
                     passed: data.passed,
                     correct: serverCorrect,
                     total: serverTotal,
-                    cooldown: data.cooldown_left || finishedZone.cooldown_required || 30,
+                    cooldown: replay
+                        ? 0
+                        : (Number.isFinite(Number(data.cooldown_left))
+                            ? Number(data.cooldown_left)
+                            : (finishedZone.cooldown_required || 30)),
                     bossExamSize: finishedZone.boss_exam_size || serverTotal || 20,
                     bossPassScore: finishedZone.boss_pass_score || 16,
+                    replay,
                 }, finishedZone);
             } else if (finishedZone?.key === 'k21_25') {
                 const serverTotal = Number(data.total);
@@ -17111,6 +17160,7 @@ async function _finishBossBattle() {
                     cooldown: Number.isFinite(serverCooldown) ? serverCooldown : null,
                     bossExamSize: Number.isFinite(serverTotal) ? serverTotal : null,
                     bossPassScore: Number.isFinite(serverPassScore) ? serverPassScore : null,
+                    replay,
                 }, finishedZone);
             } else {
                 await showBossResultCinematic({
@@ -17118,17 +17168,23 @@ async function _finishBossBattle() {
                     zoneName,
                     correct,
                     total,
-                    cooldown: data.cooldown_left || 30,
+                    cooldown: replay
+                        ? 0
+                        : (Number.isFinite(Number(data.cooldown_left)) ? Number(data.cooldown_left) : 30),
+                    replay,
                 });
-            }
-            setMsg(
-                (data.passed
+    }
+            const finishMessage = replay
+                ? I18n.t('index.boss.replay_finish_msg')
+                : ((data.passed
                     ? I18n.t('index.boss.finish_pass_msg')
                     : I18n.t('index.boss.finish_retry_msg'))
                     .replace('{name}', zoneName)
                     .replace('{correct}', serverCorrect)
                     .replace('{total}', serverTotal)
-                    .replace('{cooldown}', data.cooldown_left || 30),
+                    .replace('{cooldown}', data.cooldown_left || 30));
+            setMsg(
+                finishMessage,
                 data.passed ? 'ok' : 'warn'
             );
             _hideBossTrialProgress();
@@ -17136,6 +17192,7 @@ async function _finishBossBattle() {
     } catch (e) {
         setMsg(I18n.t('index.boss.finish_fail'), 'err');
     } finally {
+        _bossReplay = false;
         _bossFinishInFlight = false;
     }
 }
@@ -17172,9 +17229,14 @@ function showZone1LordResultCard(result, zone) {
         if (kicker) kicker.textContent = isEn ? 'Lord Trial Success' : '領主試煉成功';
         title.textContent = isEn ? 'First Star Earned' : '取得第 1 顆星';
         if (books) books.textContent = '';
+        if (result.replay) {
+            title.textContent = I18n.t('e10.zone1.result.replay.title');
+            if (line) line.textContent = I18n.t('e10.zone1.result.replay.line');
+        }
         if (line) line.textContent = isEn
             ? `You answered ${result.correct} of ${result.total} correctly.`
             : `你答對了 ${result.total} 題中的 ${result.correct} 題。`;
+        if (result.replay && line) line.textContent = I18n.t('e10.zone1.result.replay.line');
         if (rules) rules.innerHTML = '';
         btn.disabled = false;
         btn.textContent = isEn ? 'Continue' : '繼續';
@@ -17183,10 +17245,22 @@ function showZone1LordResultCard(result, zone) {
             // Brief settling moment before Shots 9-10 (section 43) --
             // the star VFX above already ran via the CSS reveal animation;
             // this is just pacing the hand-off, not gating on anything new.
-            setTimeout(() => _triggerZone1PostClearFromBossWin(zone), 400);
+            if (!result.replay) setTimeout(() => _triggerZone1PostClearFromBossWin(zone), 400);
         };
         _playIntroSfxAsset(ZONE1_LORD_SFX.trialSuccess, { volume: 0.85 });
     } else {
+        if (result.replay) {
+            if (kicker) kicker.textContent = isEn ? 'Replay Not Passed' : '再次挑戰未通過';
+            title.textContent = I18n.t('e10.zone1.result.replay.fail_title');
+            if (books) books.textContent = '';
+            if (line) line.textContent = I18n.t('e10.zone1.result.replay.fail_line');
+            if (rules) rules.innerHTML = '';
+            btn.disabled = false;
+            btn.textContent = isEn ? 'Continue' : '繼續';
+            btn.onclick = () => hideBossCinematic();
+            _playIntroSfxAsset(ZONE1_LORD_SFX.trialFailure, { volume: 0.85 });
+            return;
+        }
         if (kicker) kicker.textContent = isEn ? 'Trial Failed' : '挑戰失敗';
         title.textContent = isEn ? 'Trial Failed' : '挑戰失敗';
         if (books) books.textContent = isEn ? 'Beginner Village Lord Trial' : '新手村領主試煉';
@@ -17249,15 +17323,30 @@ function showZone2LordResultCard(result, zone) {
             });
         }
         if (line) line.textContent = _zone2I18n('e10.zone2.result.win.line');
+        if (result.replay) {
+            if (title) title.textContent = _zone2I18n('e10.zone2.result.replay.title');
+            if (line) line.textContent = _zone2I18n('e10.zone2.result.replay.line');
+        }
         if (rules) rules.innerHTML = '';
         btn.disabled = false;
         btn.textContent = _zone2I18n('e10.zone2.result.continue');
         btn.onclick = () => {
             hideBossCinematic();
-            setTimeout(() => _triggerZone2PostClearFromBossWin(zone), 400);
+            if (!result.replay) setTimeout(() => _triggerZone2PostClearFromBossWin(zone), 400);
         };
         _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordDefeat, { volume: 0.85 });
     } else {
+        if (result.replay) {
+            if (title) title.textContent = _zone2I18n('e10.zone2.result.replay.fail_title');
+            if (books) books.textContent = '';
+            if (line) line.textContent = _zone2I18n('e10.zone2.result.replay.fail_line');
+            if (rules) rules.innerHTML = '';
+            btn.disabled = false;
+            btn.textContent = _zone2I18n('e10.zone2.result.continue');
+            btn.onclick = () => hideBossCinematic();
+            _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordRumble, { volume: 0.7 });
+            return;
+        }
         if (title) title.textContent = _zone2I18n('e10.zone2.result.fail.title');
         if (books) {
             books.dataset.authoritySource = '/api/adventure/boss/finish';
@@ -17315,11 +17404,16 @@ async function showBossResultCinematic(result) {
                 .replace('{total}', result.total)
                 .replace('{cooldown}', result.cooldown);
     }
+    if (result.replay) {
+        title.textContent = I18n.t('index.boss.replay_complete_title');
+        if (line) line.textContent = I18n.t('index.boss.replay_complete_line');
+    }
     if (rules) {
         rules.innerHTML = result.passed
             ? `<span>${I18n.t('index.boss.result_win_rule_1')}</span><span>${I18n.t('index.boss.result_win_rule_2')}</span>`
             : `<span>${I18n.t('index.boss.result_fail_rule_1').replace('{cooldown}', result.cooldown)}</span><span>${I18n.t('index.boss.result_fail_rule_2')}</span>`;
     }
+    if (result.replay && rules) rules.innerHTML = '';
     btn.disabled = false;
     btn.textContent = I18n.t('index.boss.back_to_map');
     btn.onclick = () => {
