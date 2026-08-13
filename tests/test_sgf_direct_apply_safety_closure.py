@@ -103,6 +103,16 @@ def test_known_fallback_conflicts_are_denied(tmp_path, question_id):
     assert conn.execute("SELECT COUNT(*) FROM sgf_workbench_direct_versions").fetchone()[0] == 0
 
 
+def test_known_fallback_conflict_id_fails_closed_without_marker(tmp_path):
+    record = _record(65095)
+    path = tmp_path / "questions.json"
+    _write(path, [record])
+    conn = _db()
+    with pytest.raises(wb.DirectApplyPolicyError, match="historical_fallback_conflict"):
+        _apply(conn, path, record, _proposed(record), "fallback-unresolved", lambda current: True)
+    assert conn.execute("SELECT COUNT(*) FROM sgf_workbench_direct_versions").fetchone()[0] == 0
+
+
 def test_gf003_fixture_is_denied_at_service_boundary(tmp_path):
     record = _record(431, fallback="T14")
     record["source"] = "fixture431"
