@@ -124,3 +124,158 @@ TRACK_B_CHANGED_BY_R1B=NO
 PRODUCTION_DB_MUTATION=NO
 PRODUCTION_APP_DEPLOY=NO
 ```
+
+## R1C shadow coverage expansion
+
+This section is the current R1C implementation evidence for
+`RPG_R1C_XP_SHADOW_EXPANSION_001`. It extends observation only; the legacy
+writers remain authoritative.
+
+```text
+TOTAL_RUNTIME_XP_WRITERS=8
+CLASSIFIED_RUNTIME_XP_WRITERS=8
+UNCLASSIFIED_RUNTIME_XP_WRITERS=0
+R1B_EXISTING_SHADOW_WRITERS=QUEST_BOARD_STAGE,DAILY_CHALLENGE
+R1C_IMPLEMENTED_SHADOW_WRITERS=REVIEW_SUBMISSION,DAILY_QUEST,DAILY_QUEST_ALL_COMPLETE,FRIEND_CHALLENGE_REWARD
+ADMIN_XP_STATUS=DEFERRED_SPECIAL_SEMANTICS
+LEGACY_RANK_MIGRATION_STATUS=DEFERRED_MIGRATION_SEMANTICS
+WEAK_SYNTHETIC_EVENT_IDENTITY_CREATED=NO
+```
+
+### R1C provenance matrix
+
+| Writer | Legacy authority / event identity | Premium handling | R1C shadow status | Cutover status |
+|---|---|---|---|---|
+| `REVIEW_SUBMISSION` | Public credited progress is the server-owned `srs_cards.progress_credited` identity for `(user_id, question_id)`. Internal Map Battle progression uses the settled server `submission_id` and `source_context`. Shadow is created only when `should_grant_review_progress()` authorizes the first credited progression. | No explicit Premium 18% stage in this writer. Appearance, companion, and potion values remain support-stage inputs; Premium is `PREMIUM_INELIGIBLE`. | `SHADOW_NOW` | `NO_CUTOVER` |
+| `DAILY_QUEST` | `daily_quests(user_id, quest_key, quest_date)` plus the committed `xp_awarded` state. Event identity is date/key-specific and is emitted only when the quest transitions to completed with XP. | Per-definition quest XP; no Premium factor. | `SHADOW_NOW` | `NO_CUTOVER` |
+| `DAILY_QUEST_ALL_COMPLETE` | Separate `quest_key=all_complete` completion state on the same daily date. Its event identity and idempotency key are distinct from every ordinary daily quest key. | Definition bonus XP; no Premium factor. | `SHADOW_NOW` | `NO_CUTOVER` |
+| `FRIEND_CHALLENGE_REWARD` | The answer primary key `(challenge_id, user_id, question_id)` prevents replay. Completion reward identity is per `(challenge_id, reward recipient user_id)`, so each participant has an independent event. | Per-answer XP plus the existing win/draw bonus; no Premium factor. | `SHADOW_NOW` | `NO_CUTOVER` |
+| `ADMIN_XP` | Admin-authorized signed adjustment / SET semantics. | Premium and gameplay modifiers are ineligible. | `DEFERRED_SPECIAL_SEMANTICS` | `NO_CUTOVER` |
+| `LEGACY_RANK_MIGRATION` | Startup compatibility migration, not an earned reward event. | Not applicable. | `DEFERRED_MIGRATION_SEMANTICS` | `NO_CUTOVER` |
+
+The R1C event identities are server-generated and stable across retries:
+
+```text
+REVIEW_SUBMISSION_PUBLIC_EVENT=
+srs_cards.progress_credited:user:{user_id}:question:{question_id}
+REVIEW_SUBMISSION_MAP_BATTLE_EVENT=
+review_log:map_battle:submission:{submission_id}:user:{user_id}
+DAILY_QUEST_EVENT=
+daily_quests:user:{user_id}:date:{quest_date}:key:{quest_key}:completion
+DAILY_QUEST_ALL_COMPLETE_EVENT=
+daily_quests:user:{user_id}:date:{quest_date}:key:all_complete:completion
+FRIEND_CHALLENGE_EVENT=
+friend_challenge_reward:challenge:{challenge_id}:user:{reward_recipient_id}
+```
+
+`DAILY_QUEST_AND_ALL_COMPLETE_COLLISION=NO`: the ordinary quest key and the
+`all_complete` key produce different event identities and different shadow
+idempotency keys. A friend challenge retry reuses the same challenge/recipient
+identity; the existing answer marker rejects the repeated answer before the
+legacy reward path can run again.
+
+### R1C calculation contract
+
+The side-effect-free shadow path preserves the established fixed-point order:
+
+```text
+BASE
+→ additive first_correct / mistake_correction
+→ combo
+→ support appearance / companion / potion
+→ Premium
+→ one final ROUND_HALF_UP
+```
+
+```text
+FACTOR_SCALE=1000000
+PREMIUM_FACTOR_PPM=1180000
+PREMIUM_DOUBLE_STACK=NO
+ROUNDING_MODE=ROUND_HALF_UP
+FINAL_ROUNDING_ONLY=YES
+SHADOW_CALCULATION_SIDE_EFFECT_FREE=YES
+SHADOW_PLAYER_MUTATION=NO
+SHADOW_LEDGER_INSERT=NO
+SHADOW_IDEMPOTENCY_CONSUMPTION=NO
+SHADOW_RESPONSE_CHANGE=NO
+SHADOW_FAILURE_BLOCKS_LEGACY_REWARD=NO
+```
+
+Legacy review behavior can round between its existing modifier stages. R1C
+records any resulting difference under the existing mismatch categories; it
+does not silently rebalance the legacy reward. Legacy Premium state is
+classified per writer and no caller adds a second 18% factor.
+
+The R1C implementation extends the evidence payload with canonical integer
+`support_factors_ppm` when multiple support factors are present. Decimal legacy
+effect values are converted at the boundary with no floating-point authority;
+the calculation itself remains integer/fixed-point only.
+
+### Future writer-cutover evidence contract
+
+This is a planning gate, not an R1C authorization to cut over any writer.
+Before a writer can be considered for authoritative settlement, its observed
+evidence must satisfy:
+
+```text
+EVENT_IDENTITY_MISMATCH=0
+PREMIUM_MISMATCH=0
+ROUNDING_MISMATCH=0
+BASE_XP_MISMATCH=0
+MODIFIER_MISMATCH=0
+DUPLICATE_REWARD_OR_SETTLEMENT=0
+PLAYER_IMPACT_DURING_SHADOW=0
+SHADOW_FAILURE_AFFECTS_LEGACY_REWARD=0
+LEGACY_SEMANTIC_DIFFERENCES=INDIVIDUALLY_CLASSIFIED_AND_OWNER_APPROVED
+```
+
+`ERROR_FAIL_CLOSED` is an observation failure only. It cannot deny or alter a
+legacy reward. No arbitrary Production event-count threshold is locked here.
+The following are `PROPOSED_FOR_OWNER_REVIEW` minimum observation samples,
+chosen to cover both frequency and semantic diversity:
+
+```text
+REVIEW_SUBMISSION=
+500 credited events, 50 users, with first-correct/mistake/combo/support
+dimensions represented where the product produces them
+DAILY_QUEST=
+100 completion events, 30 users, with each ordinary quest key represented
+DAILY_QUEST_ALL_COMPLETE=
+50 completion events, 20 users, including the transition from all three
+ordinary quests to the bonus completion
+FRIEND_CHALLENGE_REWARD=
+100 participant completion events, 20 challenges, with win/draw/loss and
+retry paths represented where available
+```
+
+These sample sizes remain Owner-review proposals. They do not enable shadow,
+writer cutover, Production configuration, migration, Opening Balance, or the
+Level 51–100 curve.
+
+### R1C safety status
+
+```text
+CURRENT_WRITER_CUTOVER_COUNT=0
+R1C_WRITER_CUTOVER_EXECUTED=NO
+XP_SHADOW_DEFAULT_ENABLED=NO
+XP_WRITER_CUTOVER_DEFAULT_ENABLED=NO
+LV51_100_DEFAULT_ENABLED=NO
+OPENING_BALANCE_EXECUTED=NO
+OPENING_BALANCE_ROWS_CREATED=0
+PLAYER_XP_ROWS_MUTATED_BY_TASK=0
+PLAYER_MIGRATION=NO
+ORPHAN_ROWS_CHANGED=0
+LEVEL_CURVE_RUNTIME_CHANGED=NO
+LV51_100_VISIBLE=NO
+PLAYER_VISIBLE_XP_RESULT_CHANGED=NO
+PLAYER_VISIBLE_LEVEL_CHANGED=NO
+PLAYER_VISIBLE_REWARD_CHANGED=NO
+PLAYER_VISIBLE_UI_CHANGED=NO
+TRACK_A_CHANGED=NO
+TRACK_B_CHANGED_BY_R1C=NO
+PRODUCTION_DB_MUTATION=NO
+PRODUCTION_APP_DEPLOY=NO
+PRODUCTION_STATIC_DEPLOY=NO
+PRODUCTION_XP_SHADOW_ENABLED=NO
+PRODUCTION_XP_WRITER_CUTOVER=NO
+```

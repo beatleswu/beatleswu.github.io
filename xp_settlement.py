@@ -8,6 +8,7 @@ calculation primitives; current XP writers are not routed here yet.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP as DECIMAL_ROUND_HALF_UP
 import json
 import os
 import re
@@ -30,7 +31,7 @@ LEDGER_SCHEMA_FLAG = "XP_LEDGER_SCHEMA_ENABLED"
 SETTLEMENT_FLAG = "XP_SETTLEMENT_ENABLED"
 SHADOW_FLAG = "XP_SHADOW_ENABLED"
 
-_CANONICAL_SAFE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+_CANONICAL_SAFE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_._:-]*$")
 _MAX_KEY_LENGTHS = {
     "source_type": 64,
     "source_id": 255,
@@ -85,6 +86,25 @@ def _require_factor_ppm(value: Any, name: str = "factor_ppm") -> int:
     return value
 
 
+def factor_value_to_ppm(value: Any, name: str = "factor") -> int:
+    """Convert a legacy decimal factor to canonical integer PPM.
+
+    The calculation pipeline never uses the input decimal directly. Values
+    that cannot be represented exactly at six decimal places fail closed so
+    the conversion does not introduce a second rounding policy.
+    """
+
+    try:
+        decimal_value = Decimal(str(value))
+        scaled = decimal_value * Decimal(FACTOR_SCALE)
+        integral = scaled.to_integral_value(rounding=DECIMAL_ROUND_HALF_UP)
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError(f"{name} must be a decimal factor") from None
+    if scaled != integral:
+        raise ValueError(f"{name} exceeds six decimal places")
+    return _require_factor_ppm(int(integral), f"{name}_ppm")
+
+
 def round_half_up_fraction(numerator: int, denominator: int) -> int:
     """Round an integer fraction half-up, without float or Decimal arithmetic.
 
@@ -125,19 +145,23 @@ class XPCalculation:
     additive_learning_xp: int
     combo_factor_ppm: int
     support_factor_ppm: int
+    support_factors_ppm: tuple[int, ...]
     premium_factor_ppm: int
     numerator: int
     denominator: int
     final_xp: int
 
     @property
-    def modifier_payload(self) -> dict[str, int]:
-        return {
+    def modifier_payload(self) -> dict[str, Any]:
+        payload = {
             "factor_scale": FACTOR_SCALE,
             "combo_factor_ppm": self.combo_factor_ppm,
             "support_factor_ppm": self.support_factor_ppm,
             "premium_factor_ppm": self.premium_factor_ppm,
         }
+        if len(self.support_factors_ppm) > 1:
+            payload["support_factors_ppm"] = list(self.support_factors_ppm)
+        return payload
 
 
 SHADOW_MISMATCH_CATEGORIES = (
@@ -180,12 +204,13 @@ class XPShadowComparison:
     additive_learning_xp: int
     combo_factor_ppm: int
     support_factor_ppm: int
+    support_factors_ppm: tuple[int, ...]
     premium_factor_ppm: int
     numerator: int
     denominator: int
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        evidence = {
             "schema_version": "xp-shadow-v1",
             "source_type": self.source_type,
             "source_id": self.source_id,
@@ -209,6 +234,9 @@ class XPShadowComparison:
             "ledger_inserted": False,
             "idempotency_consumed": False,
         }
+        if len(self.support_factors_ppm) > 1:
+            evidence["support_factors_ppm"] = list(self.support_factors_ppm)
+        return evidence
 
 
 def compare_xp_shadow(
@@ -223,6 +251,7 @@ def compare_xp_shadow(
     additive_learning_bonuses: Iterable[int] = (),
     combo_factor_ppm: int = FACTOR_SCALE,
     support_factor_ppm: int = FACTOR_SCALE,
+    support_factors_ppm: Iterable[int] = (),
     premium_eligibility: str = "PREMIUM_INELIGIBLE",
     already_premium_adjusted: bool = False,
     legacy_premium_already_applied: bool = False,
@@ -263,6 +292,7 @@ def compare_xp_shadow(
         additive_learning_bonuses,
         combo_factor_ppm=combo_factor_ppm,
         support_factor_ppm=support_factor_ppm,
+        support_factors_ppm=support_factors_ppm,
         premium_factor_ppm=premium_factor_ppm,
     )
     difference = calculation.final_xp - legacy_xp
@@ -276,13 +306,13 @@ def compare_xp_shadow(
         calculation.base_xp != legacy_xp
         and not calculation.additive_learning_xp
         and combo_factor_ppm == FACTOR_SCALE
-        and support_factor_ppm == FACTOR_SCALE
+        and calculation.support_factors_ppm == (FACTOR_SCALE,)
     ):
         mismatch_category = "BASE_XP_MISMATCH"
     elif (
         calculation.additive_learning_xp
         or combo_factor_ppm != FACTOR_SCALE
-        or support_factor_ppm != FACTOR_SCALE
+        or calculation.support_factors_ppm != (FACTOR_SCALE,)
     ):
         mismatch_category = "MODIFIER_MISMATCH"
     else:
@@ -304,6 +334,7 @@ def compare_xp_shadow(
         additive_learning_xp=calculation.additive_learning_xp,
         combo_factor_ppm=calculation.combo_factor_ppm,
         support_factor_ppm=calculation.support_factor_ppm,
+        support_factors_ppm=calculation.support_factors_ppm,
         premium_factor_ppm=calculation.premium_factor_ppm,
         numerator=calculation.numerator,
         denominator=calculation.denominator,
@@ -340,6 +371,7 @@ def calculate_xp(
     *,
     combo_factor_ppm: int = FACTOR_SCALE,
     support_factor_ppm: int = FACTOR_SCALE,
+    support_factors_ppm: Iterable[int] = (),
     premium_factor_ppm: int = FACTOR_SCALE,
 ) -> XPCalculation:
     """Calculate review-stage XP using the locked R1A modifier order.
@@ -356,10 +388,20 @@ def calculate_xp(
     )
     combo_factor_ppm = _require_factor_ppm(combo_factor_ppm, "combo_factor_ppm")
     support_factor_ppm = _require_factor_ppm(support_factor_ppm, "support_factor_ppm")
+    supplied_support_factors = tuple(support_factors_ppm)
+    if supplied_support_factors and support_factor_ppm != FACTOR_SCALE:
+        raise ValueError("support_factor_ppm cannot be combined with support_factors_ppm")
+    if supplied_support_factors:
+        support_factors = tuple(
+            _require_factor_ppm(value, f"support_factors_ppm[{index}]")
+            for index, value in enumerate(supplied_support_factors)
+        )
+    else:
+        support_factors = (support_factor_ppm,)
     premium_factor_ppm = _require_factor_ppm(premium_factor_ppm, "premium_factor_ppm")
 
     amount = base_xp + sum(bonuses)
-    factors = (combo_factor_ppm, support_factor_ppm, premium_factor_ppm)
+    factors = (combo_factor_ppm, *support_factors, premium_factor_ppm)
     numerator = amount
     denominator = 1
     for factor in factors:
@@ -370,7 +412,8 @@ def calculate_xp(
         base_xp=base_xp,
         additive_learning_xp=sum(bonuses),
         combo_factor_ppm=combo_factor_ppm,
-        support_factor_ppm=support_factor_ppm,
+        support_factor_ppm=support_factors[0],
+        support_factors_ppm=support_factors,
         premium_factor_ppm=premium_factor_ppm,
         numerator=numerator,
         denominator=denominator,
@@ -864,10 +907,10 @@ CREATE TABLE IF NOT EXISTS xp_settlement_ledger (
         ),
     CONSTRAINT xp_settlement_key_chars_check
         CHECK (
-            idempotency_key ~ '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
-            AND source_type ~ '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
-            AND source_id ~ '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
-            AND source_version ~ '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+            idempotency_key ~ '^[A-Za-z0-9][A-Za-z0-9_._:-]*$'
+            AND source_type ~ '^[A-Za-z0-9][A-Za-z0-9_._:-]*$'
+            AND source_id ~ '^[A-Za-z0-9][A-Za-z0-9_._:-]*$'
+            AND source_version ~ '^[A-Za-z0-9][A-Za-z0-9_._:-]*$'
         ),
     CONSTRAINT xp_settlement_idempotency_unique
         UNIQUE (user_id, idempotency_key)
@@ -983,6 +1026,7 @@ __all__ = [
     "xp_shadow_enabled",
     "round_half_up_fraction",
     "multiply_factors_final_round",
+    "factor_value_to_ppm",
     "calculate_xp",
     "compare_xp_shadow",
     "xp_shadow_error_evidence",
