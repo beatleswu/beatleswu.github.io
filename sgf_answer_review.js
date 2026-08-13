@@ -1021,8 +1021,27 @@
 
   async function createWorkbenchBatchFromQueue() {
     try {
+      const listResponse = await root.fetch("/api/admin/sgf-workbench/items?status=STAGED", { credentials: "same-origin", headers: { "Accept": "application/json" }, cache: "no-store" });
+      const listPayload = await listResponse.json().catch(function () { return {}; });
+      if (!listResponse.ok || !listPayload.ok) throw new Error(listPayload.error || "No staged repairs available");
+      const stagedItems = listPayload.items || [];
+      if (!stagedItems.length) throw new Error("No staged repairs available");
+      for (const item of stagedItems) {
+        const detailResponse = await root.fetch(`/api/admin/sgf-workbench/items/${item.id}`, { credentials: "same-origin", headers: { "Accept": "application/json" }, cache: "no-store" });
+        const detailPayload = await detailResponse.json().catch(function () { return {}; });
+        const repairs = detailPayload.item?.staged_repairs || [];
+        const repair = repairs[repairs.length - 1];
+        if (!repair) throw new Error(`No staged repair found for item ${item.id}`);
+        const validationResponse = await root.fetch(`/api/admin/sgf-workbench/items/${item.id}/validate`, {
+          method: "POST", credentials: "same-origin", headers: Object.assign({ "Content-Type": "application/json", "Accept": "application/json" }, runtime.csrfHeader && runtime.csrfToken ? { [runtime.csrfHeader]: runtime.csrfToken } : {}),
+          body: JSON.stringify({ repair_id: repair.id }),
+        });
+        const validationPayload = await validationResponse.json().catch(function () { return {}; });
+        if (!validationResponse.ok || validationPayload.status !== "PASS") throw new Error(`Validation ${validationPayload.status || "FAILED"}`);
+      }
       const result = await workbenchPost("/api/admin/sgf-workbench/batches", {});
-      showToast(`Staged batch ${result.batch.batch_key} created for repair-pipeline handoff`, false);
+      const ready = await workbenchPost(`/api/admin/sgf-workbench/batches/${result.batch.id}/ready`, {});
+      showToast(`Batch ${ready.batch.batch_key} is READY_FOR_APPLY; canonical content unchanged`, false);
       await reloadWorkbench();
     } catch (error) {
       showToast(error.message || "No staged repairs available", true);

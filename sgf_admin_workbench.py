@@ -228,6 +228,18 @@ class WorkbenchRepository:
             sql += " FOR UPDATE"
         return self.conn.execute(sql).fetchall()
 
+    def lock_staged_repair(self, repair_id: int):
+        sql = "SELECT * FROM sgf_workbench_staged_repairs WHERE id=?"
+        if not _is_sqlite(self.conn):
+            sql += " FOR UPDATE"
+        return self.conn.execute(sql, (int(repair_id),)).fetchone()
+
+    def lock_batch(self, batch_id: int):
+        sql = "SELECT * FROM sgf_workbench_batches WHERE id=?"
+        if not _is_sqlite(self.conn):
+            sql += " FOR UPDATE"
+        return self.conn.execute(sql, (int(batch_id),)).fetchone()
+
     def lock_direct_operation(self, operation_id: str, question_id: int) -> None:
         """Serialize retries for one direct operation/question on PostgreSQL."""
         if _is_sqlite(self.conn):
@@ -289,17 +301,17 @@ def workbench_persistence_map() -> dict[str, dict[str, str]]:
         },
         "staged_repairs": {
             "table": "sgf_workbench_staged_repairs",
-            "operation": "stage_workbench_repair",
-            "lifecycle": "STAGED -> BATCHED; canonical content remains untouched",
+            "operation": "stage_workbench_repair/validate_staged_repair",
+            "lifecycle": "STAGED -> BATCHED; validation evidence stays in provenance",
             "transaction": "repair insert + review-item transition",
-            "audit": "required STAGED_REPAIR audit is in the same transaction",
+            "audit": "STAGED_REPAIR and VALIDATION audit are in the same transaction",
         },
         "batches": {
             "table": "sgf_workbench_batches",
-            "operation": "create_workbench_batch",
-            "lifecycle": "deterministic staged handoff package",
+            "operation": "create_workbench_batch/mark_batch_ready_for_apply",
+            "lifecycle": "STAGED -> READY_FOR_APPLY; no canonical apply",
             "transaction": "batch + items + repair transitions",
-            "audit": "BATCH_CREATED is atomic with all batch rows",
+            "audit": "BATCH_CREATED and READY_FOR_APPLY are atomic with validation evidence",
         },
         "batch_items": {
             "table": "sgf_workbench_batch_items",
@@ -671,6 +683,27 @@ def _serialize_repair(row: dict) -> dict:
     return repair
 
 
+def _validation_from_repair(repair: dict) -> dict | None:
+    provenance = repair.get("source_provenance")
+    if not isinstance(provenance, dict):
+        return None
+    workflow = provenance.get("workflow")
+    if not isinstance(workflow, dict):
+        return None
+    validation = workflow.get("validation")
+    return validation if isinstance(validation, dict) else None
+
+
+def _merge_proposed_record(current_record: dict, proposed_state: Any) -> dict:
+    """Overlay the staged state on a fresh canonical record for dry-run checks."""
+    proposed = json.loads(json.dumps(current_record if isinstance(current_record, dict) else {}))
+    if isinstance(proposed_state, dict):
+        for key in ("content", "sgf", "accepted_moves", "enabled", "solution_state"):
+            if key in proposed_state:
+                proposed[key] = proposed_state[key]
+    return proposed
+
+
 def _rebuild_group(conn, group_key: str, now: str) -> dict:
     rows = conn.execute("SELECT * FROM sgf_workbench_reports WHERE position_identity=? ORDER BY id", (group_key,)).fetchall()
     if not rows:
@@ -725,6 +758,9 @@ def capture_workbench_report(conn, *, source: str, reporter_id: int | None,
     provenance = source_provenance if isinstance(source_provenance, dict) else {}
     repo = WorkbenchRepository(conn)
     with repo.atomic("capture_report"):
+        existing_report = conn.execute(
+            "SELECT id FROM sgf_workbench_reports WHERE external_key=?", (external_key,)
+        ).fetchone()
         conn.execute("""INSERT INTO sgf_workbench_reports
             (source, legacy_report_type, legacy_report_id, reporter_id, question_id,
              record_index, issue_type, candidate_move_json, observed_system_verdict,
@@ -764,6 +800,16 @@ def capture_workbench_report(conn, *, source: str, reporter_id: int | None,
                 "SELECT * FROM sgf_workbench_review_items WHERE group_key=?", (group_key,)
             ).fetchone()))
         report_row = conn.execute("SELECT * FROM sgf_workbench_reports WHERE external_key=?", (external_key,)).fetchone()
+        if not existing_report and report_row:
+            repo.audit(
+                "sgf_workbench_report", int(report_row["id"]), reporter_id,
+                "REPORT_CAPTURED", {
+                    "review_item_id": item.get("id"),
+                    "source": source,
+                    "question_id": question_id,
+                    "group_key": group_key,
+                }, timestamp,
+            )
         return {
             "report": _serialize_report(_row_dict(report_row)),
             "item": item,
@@ -861,6 +907,168 @@ def stage_workbench_repair(conn, *, item_id: int, reviewer_id: int,
         return _serialize_repair(_row_dict(repair))
 
 
+def validate_staged_repair(conn, *, repair_id: int, actor_id: int,
+                           current_record: dict | None,
+                           current_content_sha256: str | None,
+                           current_record_hash: str | None = None,
+                           parse_sgf_fn=None, verdict_fn=None,
+                           now: str | None = None) -> dict:
+    """Dry-run one staged repair against the currently loaded canonical record.
+
+    Validation is deliberately an evidence operation: it writes only the
+    validation result/provenance and audit row.  It never receives a corpus
+    path and therefore cannot mutate canonical question content.
+    """
+    ensure_sgf_workbench_tables(conn)
+    timestamp = _now(now)
+    repo = WorkbenchRepository(conn)
+    with repo.atomic("validate_repair"):
+        repair_row = repo.lock_staged_repair(repair_id)
+        if not repair_row:
+            raise LookupError("staged_repair_not_found")
+        repair = _serialize_repair(_row_dict(repair_row))
+        item_row = repo.lock_review_item(int(repair["review_item_id"]))
+        if not item_row:
+            raise LookupError("workbench_item_not_found")
+        item = _row_dict(item_row)
+        action = str(repair.get("action") or "").upper()
+        provenance = repair.get("source_provenance")
+        if not isinstance(provenance, dict):
+            provenance = {}
+        result = {
+            "status": "PASS",
+            "ok": True,
+            "repair_id": int(repair_id),
+            "review_item_id": int(repair["review_item_id"]),
+            "action": action,
+            "canonical_mutation": False,
+            "checks": {},
+            "basis": {
+                "content_sha256": current_content_sha256,
+                "record_hash": current_record_hash,
+            },
+        }
+        errors: list[str] = []
+        # The corpus/content and full-record identity are both checked.  The
+        # latter catches accepted-move metadata changes that do not alter SGF
+        # bytes.
+        baseline = repair.get("baseline_sha256")
+        if not baseline or not current_content_sha256:
+            result["status"] = "FAIL"
+            errors.append("canonical_basis_missing")
+        elif str(baseline) != str(current_content_sha256):
+            result["status"] = "STALE"
+            errors.append("canonical_content_basis_changed")
+        staged_basis = provenance.get("canonical_record_hash")
+        if staged_basis and not current_record_hash:
+            result["status"] = "FAIL"
+            errors.append("canonical_record_basis_missing")
+        elif staged_basis and str(staged_basis) != str(current_record_hash):
+            result["status"] = "STALE"
+            errors.append("canonical_record_basis_changed")
+        if not isinstance(current_record, dict):
+            result["status"] = "FAIL"
+            errors.append("current_record_unavailable")
+        else:
+            proposed = _merge_proposed_record(current_record, repair.get("proposed_state"))
+            structural = validate_direct_record(proposed, parse_sgf_fn=parse_sgf_fn)
+            result["checks"]["sgf_structural_validation"] = structural
+            if not structural.get("ok"):
+                result["status"] = "FAIL"
+                errors.extend(str(error) for error in structural.get("errors", []))
+            original = repair.get("original_state") if isinstance(repair.get("original_state"), dict) else {}
+            original_moves = {_json(_normalize_move(move)) for move in (original.get("accepted_moves") or []) if _normalize_move(move)}
+            current_moves = {_json(_normalize_move(move)) for move in (current_record.get("accepted_moves") or []) if _normalize_move(move)}
+            if "accepted_moves" in original and original_moves != current_moves:
+                result["status"] = "CONFLICT"
+                errors.append("original_answer_state_changed")
+            if "enabled" in original and bool(original.get("enabled")) != bool(current_record.get("enabled", True)):
+                result["status"] = "CONFLICT"
+                errors.append("original_enabled_state_changed")
+            if "solution_state" in original and original.get("solution_state") != current_record.get("solution_state"):
+                result["status"] = "CONFLICT"
+                errors.append("original_solution_state_changed")
+            proposed_moves = {_json(_normalize_move(move)) for move in (proposed.get("accepted_moves") or []) if _normalize_move(move)}
+            candidate = _normalize_move(repair.get("candidate_move"))
+            candidate_key = _json(candidate) if candidate else None
+            result["checks"]["question_identity_preserved"] = proposed.get("id") == current_record.get("id")
+            if not result["checks"]["question_identity_preserved"]:
+                result["status"] = "FAIL"
+                errors.append("question_identity_changed")
+            if action == "NEEDS_RESEARCH":
+                result["status"] = "FAIL"
+                errors.append("needs_research_not_batchable")
+            elif candidate_key is None and action in {
+                "ADD_ALTERNATIVE_CORRECT_MOVE", "REMOVE_INCORRECT_ACCEPTED_MOVE", "REPLACE_ANSWER"
+            }:
+                result["status"] = "FAIL"
+                errors.append("candidate_move_missing")
+            elif action == "ADD_ALTERNATIVE_CORRECT_MOVE":
+                if candidate_key in original_moves:
+                    result["status"] = "CONFLICT"
+                    errors.append("alternative_already_accepted")
+                elif candidate_key not in proposed_moves:
+                    result["status"] = "FAIL"
+                    errors.append("alternative_not_in_proposed_answers")
+            elif action == "REMOVE_INCORRECT_ACCEPTED_MOVE":
+                if candidate_key not in original_moves:
+                    result["status"] = "CONFLICT"
+                    errors.append("remove_candidate_not_in_original_answers")
+                elif candidate_key in proposed_moves:
+                    result["status"] = "FAIL"
+                    errors.append("removed_answer_still_present")
+                if not proposed_moves:
+                    result["status"] = "FAIL"
+                    errors.append("empty_answer_set")
+            elif action == "REPLACE_ANSWER":
+                if candidate_key not in proposed_moves:
+                    result["status"] = "FAIL"
+                    errors.append("replacement_not_in_proposed_answers")
+                if len(proposed_moves) != 1:
+                    result["status"] = "FAIL"
+                    errors.append("replacement_answer_set_not_singleton")
+            elif action == "DISABLE_BROKEN_QUESTION":
+                if proposed.get("enabled", True) is not False:
+                    result["status"] = "FAIL"
+                    errors.append("disable_state_missing")
+            if verdict_fn is not None and candidate is not None:
+                before = verdict_fn(current_record, candidate)
+                after = verdict_fn(proposed, candidate)
+                result["checks"]["same_question_regression"] = {"before": before, "after": after}
+                if action in {"ADD_ALTERNATIVE_CORRECT_MOVE", "REPLACE_ANSWER"} and after is not True:
+                    result["status"] = "FAIL"
+                    errors.append("candidate_not_accepted_by_runtime")
+                if action == "REMOVE_INCORRECT_ACCEPTED_MOVE" and after is True:
+                    result["status"] = "CONFLICT"
+                    errors.append("removed_candidate_still_accepted_by_runtime")
+            result["checks"]["validation_record_hash"] = direct_record_hash(proposed)
+        result["errors"] = sorted(set(errors))
+        result["ok"] = result["status"] == "PASS"
+        validation_provenance = dict(provenance)
+        validation_provenance["workflow"] = {
+            "validation": result,
+            "validated_at": timestamp,
+            "validated_by": actor_id,
+        }
+        conn.execute(
+            "UPDATE sgf_workbench_staged_repairs SET source_provenance_json=?, updated_at=? WHERE id=?",
+            (_json(validation_provenance), timestamp, int(repair_id)),
+        )
+        if result["status"] == "STALE":
+            conn.execute(
+                "UPDATE sgf_workbench_review_items SET status='STALE', stale_reason=?, updated_at=? WHERE id=?",
+                (_json(result["errors"]), timestamp, int(repair["review_item_id"])),
+            )
+        repo.audit(
+            "sgf_workbench_staged_repair", int(repair_id), actor_id,
+            "VALIDATION_" + result["status"], result, timestamp,
+        )
+        result["repair"] = _serialize_repair(_row_dict(conn.execute(
+            "SELECT * FROM sgf_workbench_staged_repairs WHERE id=?", (int(repair_id),)
+        ).fetchone()))
+        return result
+
+
 def resolve_workbench_item(conn, *, item_id: int, reviewer_id: int,
                            status: str, note: str = "", now: str | None = None,
                            expected_item_updated_at: str | None = None) -> dict:
@@ -891,7 +1099,8 @@ def resolve_workbench_item(conn, *, item_id: int, reviewer_id: int,
 
 
 def create_workbench_batch(conn, *, created_by: int, baseline_sha256: str | None = None,
-                           now: str | None = None, idempotency_key: str | None = None) -> dict:
+                           now: str | None = None, idempotency_key: str | None = None,
+                           require_validation: bool = False) -> dict:
     ensure_sgf_workbench_tables(conn)
     timestamp = _now(now)
     requested_key = str(idempotency_key or "").strip()
@@ -911,12 +1120,21 @@ def create_workbench_batch(conn, *, created_by: int, baseline_sha256: str | None
         repairs = [_serialize_repair(_row_dict(row)) for row in rows]
         if not repairs:
             raise ValueError("no_staged_repairs")
+        if require_validation:
+            invalid = [
+                int(repair["id"])
+                for repair in repairs
+                if (_validation_from_repair(repair) or {}).get("status") != "PASS"
+            ]
+            if invalid:
+                raise InvalidWorkbenchState("validation_required:" + ",".join(map(str, invalid)))
         manifest = {
             "schema_version": "sgf-admin-workbench-batch-v1",
             "baseline_sha256": baseline_sha256,
             "created_at": timestamp,
             "source": "SGF_ADMIN_WORKBENCH",
             "staged_repair_count": len(repairs),
+            "validation_required": bool(require_validation),
             "repairs": repairs,
             "handoff": {
                 "repair_batch_tool": "tools/sgf_answer_repair_batch.py",
@@ -953,6 +1171,113 @@ def create_workbench_batch(conn, *, created_by: int, baseline_sha256: str | None
         }
 
 
+def get_workbench_batch(conn, batch_id: int) -> dict | None:
+    ensure_sgf_workbench_tables(conn)
+    row = conn.execute("SELECT * FROM sgf_workbench_batches WHERE id=?", (int(batch_id),)).fetchone()
+    if not row:
+        return None
+    batch = _row_dict(row)
+    batch["manifest"] = _loads(batch.pop("manifest_json", None), {})
+    rows = conn.execute(
+        """SELECT bi.id AS batch_item_id, bi.order_index,
+                  bi.staged_repair_id, sr.review_item_id, sr.status AS repair_status,
+                  sr.action, sr.source_provenance_json, sr.baseline_sha256,
+                  ri.question_id, ri.record_index, ri.status AS review_status,
+                  ri.group_key
+             FROM sgf_workbench_batch_items bi
+             JOIN sgf_workbench_staged_repairs sr ON sr.id=bi.staged_repair_id
+             JOIN sgf_workbench_review_items ri ON ri.id=sr.review_item_id
+            WHERE bi.batch_id=? ORDER BY bi.order_index, bi.id""",
+        (int(batch_id),),
+    ).fetchall()
+    items = []
+    for row in rows:
+        item = _row_dict(row)
+        item["source_provenance"] = _loads(item.pop("source_provenance_json", None), {})
+        item["validation"] = _validation_from_repair({"source_provenance": item.get("source_provenance")})
+        items.append(item)
+    batch["items"] = items
+    return batch
+
+
+def mark_batch_ready_for_apply(conn, *, batch_id: int, actor_id: int,
+                               current_bases: dict[int, dict[str, str | None]],
+                               now: str | None = None) -> dict:
+    """Advance a validated batch to READY_FOR_APPLY without applying content."""
+    ensure_sgf_workbench_tables(conn)
+    timestamp = _now(now)
+    repo = WorkbenchRepository(conn)
+    with repo.atomic("ready_batch"):
+        batch_row = repo.lock_batch(batch_id)
+        if not batch_row:
+            raise LookupError("workbench_batch_not_found")
+        batch = _row_dict(batch_row)
+        current_status = str(batch.get("status") or "STAGED").upper()
+        if current_status == "READY_FOR_APPLY":
+            result = get_workbench_batch(conn, batch_id) or batch
+            result["duplicate"] = True
+            return result
+        if current_status != "STAGED":
+            raise InvalidWorkbenchState(f"invalid_batch_transition:{current_status}->READY_FOR_APPLY")
+        rows = conn.execute(
+            """SELECT bi.staged_repair_id, sr.review_item_id, sr.status AS repair_status,
+                      sr.source_provenance_json, sr.baseline_sha256,
+                      ri.question_id, ri.record_index, ri.status AS review_status
+                 FROM sgf_workbench_batch_items bi
+                 JOIN sgf_workbench_staged_repairs sr ON sr.id=bi.staged_repair_id
+                 JOIN sgf_workbench_review_items ri ON ri.id=sr.review_item_id
+                WHERE bi.batch_id=? ORDER BY bi.order_index, bi.id""",
+            (int(batch_id),),
+        ).fetchall()
+        if not rows:
+            raise InvalidWorkbenchState("empty_batch")
+        failures = []
+        for row in rows:
+            item = _row_dict(row)
+            repair = {"source_provenance": _loads(item.get("source_provenance_json"), {})}
+            validation = _validation_from_repair(repair) or {}
+            if item.get("repair_status") != "BATCHED":
+                failures.append({"repair_id": item["staged_repair_id"], "reason": "repair_not_batched"})
+            if validation.get("status") != "PASS":
+                failures.append({"repair_id": item["staged_repair_id"], "reason": "validation_not_pass"})
+            basis = current_bases.get(int(item["review_item_id"])) or {}
+            if not item.get("baseline_sha256") or basis.get("content_sha256") != item.get("baseline_sha256"):
+                failures.append({"repair_id": item["staged_repair_id"], "reason": "canonical_content_basis_changed"})
+            validated_hash = (validation.get("basis") or {}).get("record_hash")
+            if not validated_hash or not basis.get("record_hash") or validated_hash != basis.get("record_hash"):
+                failures.append({"repair_id": item["staged_repair_id"], "reason": "canonical_record_basis_changed"})
+            if str(item.get("review_status") or "").upper() in {"STALE", "REJECTED", "PUBLISHED"}:
+                failures.append({"repair_id": item["staged_repair_id"], "reason": "review_item_not_ready"})
+        if failures:
+            repo.audit(
+                "sgf_workbench_batch", int(batch_id), actor_id,
+                "READY_FOR_APPLY_REJECTED", {"failures": failures}, timestamp,
+            )
+            return {"id": int(batch_id), "status": "BLOCKED", "ready_for_apply": False,
+                    "canonical_mutation": False, "failures": failures}
+        manifest = _loads(batch.get("manifest_json"), {})
+        if not isinstance(manifest, dict):
+            manifest = {}
+        manifest["ready_for_apply"] = True
+        manifest["ready_at"] = timestamp
+        manifest["ready_by"] = actor_id
+        manifest["canonical_mutation"] = False
+        manifest_sha = _sha256(_json(manifest))
+        conn.execute(
+            "UPDATE sgf_workbench_batches SET status='READY_FOR_APPLY', manifest_json=?, manifest_sha256=? WHERE id=?",
+            (_json(manifest), manifest_sha, int(batch_id)),
+        )
+        repo.audit(
+            "sgf_workbench_batch", int(batch_id), actor_id,
+            "READY_FOR_APPLY", {"manifest_sha256": manifest_sha, "canonical_mutation": False}, timestamp,
+        )
+        result = get_workbench_batch(conn, batch_id) or {}
+        result["ready_for_apply"] = True
+        result["canonical_mutation"] = False
+        result["apply_enabled"] = False
+        return result
+
+
 def workbench_constants() -> dict:
     return {
         "sources": list(WORKBENCH_SOURCES),
@@ -961,6 +1286,9 @@ def workbench_constants() -> dict:
         "report_reasons": list(WORKBENCH_REPORT_REASONS),
         "production_mutation": False,
         "canonical_mutation": False,
+        "validation_statuses": ["PASS", "FAIL", "STALE", "CONFLICT"],
+        "ready_status": "READY_FOR_APPLY",
+        "apply_enabled": False,
         "future_source_ready": "CORPUS_SCAN",
         "direct_apply_source": DIRECT_APPLY_SOURCE,
         "direct_apply_actions": list(DIRECT_APPLY_ACTIONS),
