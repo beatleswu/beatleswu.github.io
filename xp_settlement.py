@@ -28,6 +28,7 @@ LOCK_TIMEOUT_VALUE = None
 LEDGER_TABLE_NAME = "xp_settlement_ledger"
 LEDGER_SCHEMA_FLAG = "XP_LEDGER_SCHEMA_ENABLED"
 SETTLEMENT_FLAG = "XP_SETTLEMENT_ENABLED"
+SHADOW_FLAG = "XP_SHADOW_ENABLED"
 
 _CANONICAL_SAFE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
 _MAX_KEY_LENGTHS = {
@@ -56,6 +57,12 @@ def xp_settlement_enabled() -> bool:
     """Return the server-side settlement mutation flag; it is OFF by default."""
 
     return _env_flag(SETTLEMENT_FLAG, False)
+
+
+def xp_shadow_enabled() -> bool:
+    """Return the observational shadow flag; it is OFF unless explicitly enabled."""
+
+    return _env_flag(SHADOW_FLAG, False)
 
 
 def _require_int(value: Any, name: str) -> int:
@@ -131,6 +138,200 @@ class XPCalculation:
             "support_factor_ppm": self.support_factor_ppm,
             "premium_factor_ppm": self.premium_factor_ppm,
         }
+
+
+SHADOW_MISMATCH_CATEGORIES = (
+    "MATCH",
+    "ROUNDING_MISMATCH",
+    "PREMIUM_MISMATCH",
+    "BASE_XP_MISMATCH",
+    "MODIFIER_MISMATCH",
+    "EVENT_IDENTITY_MISMATCH",
+    "UNSUPPORTED_WRITER",
+    "LEGACY_SEMANTIC_DIFFERENCE",
+    "ERROR_FAIL_CLOSED",
+)
+
+
+def _validate_shadow_text(value: Any, field_name: str, max_length: int = 255) -> str:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{field_name} must be a non-empty string")
+    if len(value) > max_length:
+        raise ValueError(f"{field_name} exceeds {max_length} characters")
+    return value
+
+
+@dataclass(frozen=True)
+class XPShadowComparison:
+    """Read-only old-vs-new evidence for one already-authoritative reward event."""
+
+    source_type: str
+    source_id: str
+    source_marker: str
+    event_identity: str
+    idempotency_key: str
+    legacy_xp: int
+    shadow_xp: int
+    difference: int
+    mismatch_category: str
+    premium_eligibility: str
+    legacy_premium_already_applied: bool
+    base_xp: int
+    additive_learning_xp: int
+    combo_factor_ppm: int
+    support_factor_ppm: int
+    premium_factor_ppm: int
+    numerator: int
+    denominator: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": "xp-shadow-v1",
+            "source_type": self.source_type,
+            "source_id": self.source_id,
+            "source_marker": self.source_marker,
+            "event_identity": self.event_identity,
+            "idempotency_key": self.idempotency_key,
+            "legacy_xp": self.legacy_xp,
+            "shadow_xp": self.shadow_xp,
+            "difference": self.difference,
+            "mismatch_category": self.mismatch_category,
+            "premium_eligibility": self.premium_eligibility,
+            "legacy_premium_already_applied": self.legacy_premium_already_applied,
+            "base_xp": self.base_xp,
+            "additive_learning_xp": self.additive_learning_xp,
+            "combo_factor_ppm": self.combo_factor_ppm,
+            "support_factor_ppm": self.support_factor_ppm,
+            "premium_factor_ppm": self.premium_factor_ppm,
+            "numerator": self.numerator,
+            "denominator": self.denominator,
+            "side_effect_free": True,
+            "ledger_inserted": False,
+            "idempotency_consumed": False,
+        }
+
+
+def compare_xp_shadow(
+    *,
+    source_type: str,
+    source_id: str,
+    source_marker: str,
+    event_identity: str,
+    idempotency_key: str,
+    legacy_xp: int,
+    base_xp: int,
+    additive_learning_bonuses: Iterable[int] = (),
+    combo_factor_ppm: int = FACTOR_SCALE,
+    support_factor_ppm: int = FACTOR_SCALE,
+    premium_eligibility: str = "PREMIUM_INELIGIBLE",
+    already_premium_adjusted: bool = False,
+    legacy_premium_already_applied: bool = False,
+    mismatch_hint: Optional[str] = None,
+) -> XPShadowComparison:
+    """Compare a legacy award with the R1A calculation without touching storage.
+
+    The caller supplies the event identity and the amount the existing writer
+    would award.  This function deliberately does not accept a database
+    connection and cannot insert a ledger row, consume an idempotency key, or
+    mutate player state.
+    """
+
+    source_type = _validate_key(source_type, "source_type")
+    source_id = _validate_shadow_text(source_id, "source_id")
+    source_marker = _validate_shadow_text(source_marker, "source_marker")
+    event_identity = _validate_shadow_text(event_identity, "event_identity")
+    idempotency_key = _validate_key(idempotency_key, "idempotency_key")
+    legacy_xp = _require_nonnegative_int(legacy_xp, "legacy_xp")
+    if mismatch_hint is not None and mismatch_hint not in SHADOW_MISMATCH_CATEGORIES:
+        raise ValueError("invalid mismatch_hint")
+    if premium_eligibility not in {
+        "PREMIUM_ELIGIBLE",
+        "PREMIUM_INELIGIBLE",
+        "ALREADY_PREMIUM_ADJUSTED",
+    }:
+        raise ValueError("invalid premium_eligibility")
+    if premium_eligibility == "PREMIUM_ELIGIBLE" and already_premium_adjusted:
+        raise ValueError("Premium cannot be eligible and already adjusted")
+
+    premium_factor_ppm = (
+        PREMIUM_18_FACTOR_PPM
+        if premium_eligibility == "PREMIUM_ELIGIBLE" and not already_premium_adjusted
+        else NO_PREMIUM_FACTOR_PPM
+    )
+    calculation = calculate_xp(
+        base_xp,
+        additive_learning_bonuses,
+        combo_factor_ppm=combo_factor_ppm,
+        support_factor_ppm=support_factor_ppm,
+        premium_factor_ppm=premium_factor_ppm,
+    )
+    difference = calculation.final_xp - legacy_xp
+    if difference == 0:
+        mismatch_category = "MATCH"
+    elif mismatch_hint is not None:
+        mismatch_category = mismatch_hint
+    elif premium_eligibility != "PREMIUM_INELIGIBLE" or legacy_premium_already_applied:
+        mismatch_category = "PREMIUM_MISMATCH"
+    elif (
+        calculation.base_xp != legacy_xp
+        and not calculation.additive_learning_xp
+        and combo_factor_ppm == FACTOR_SCALE
+        and support_factor_ppm == FACTOR_SCALE
+    ):
+        mismatch_category = "BASE_XP_MISMATCH"
+    elif (
+        calculation.additive_learning_xp
+        or combo_factor_ppm != FACTOR_SCALE
+        or support_factor_ppm != FACTOR_SCALE
+    ):
+        mismatch_category = "MODIFIER_MISMATCH"
+    else:
+        mismatch_category = "LEGACY_SEMANTIC_DIFFERENCE"
+
+    return XPShadowComparison(
+        source_type=source_type,
+        source_id=source_id,
+        source_marker=source_marker,
+        event_identity=event_identity,
+        idempotency_key=idempotency_key,
+        legacy_xp=legacy_xp,
+        shadow_xp=calculation.final_xp,
+        difference=difference,
+        mismatch_category=mismatch_category,
+        premium_eligibility=premium_eligibility,
+        legacy_premium_already_applied=bool(legacy_premium_already_applied),
+        base_xp=calculation.base_xp,
+        additive_learning_xp=calculation.additive_learning_xp,
+        combo_factor_ppm=calculation.combo_factor_ppm,
+        support_factor_ppm=calculation.support_factor_ppm,
+        premium_factor_ppm=calculation.premium_factor_ppm,
+        numerator=calculation.numerator,
+        denominator=calculation.denominator,
+    )
+
+
+def xp_shadow_error_evidence(
+    *,
+    source_type: str,
+    source_id: str,
+    source_marker: str,
+    event_identity: str,
+    error: BaseException,
+) -> dict[str, Any]:
+    """Return bounded failure evidence without serializing exception payloads."""
+
+    return {
+        "schema_version": "xp-shadow-v1",
+        "source_type": str(source_type)[:64],
+        "source_id": str(source_id)[:255],
+        "source_marker": str(source_marker)[:255],
+        "event_identity": str(event_identity)[:255],
+        "mismatch_category": "ERROR_FAIL_CLOSED",
+        "error_class": type(error).__name__,
+        "side_effect_free": True,
+        "ledger_inserted": False,
+        "idempotency_consumed": False,
+    }
 
 
 def calculate_xp(
@@ -776,15 +977,20 @@ __all__ = [
     "LEDGER_COLUMNS",
     "LEDGER_CONSTRAINT_NAMES",
     "LEDGER_INDEXES",
+    "SHADOW_MISMATCH_CATEGORIES",
     "xp_ledger_schema_enabled",
     "xp_settlement_enabled",
+    "xp_shadow_enabled",
     "round_half_up_fraction",
     "multiply_factors_final_round",
     "calculate_xp",
+    "compare_xp_shadow",
+    "xp_shadow_error_evidence",
     "canonical_modifier_payload",
     "SettlementRequest",
     "SettlementResult",
     "XPCalculation",
+    "XPShadowComparison",
     "XPSettlement",
     "XPSettlementDisabled",
     "XPSettlementConflict",
