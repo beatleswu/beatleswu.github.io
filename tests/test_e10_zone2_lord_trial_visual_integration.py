@@ -169,6 +169,8 @@ def test_zone2_lord_trial_portrait_alignment_is_large_lower_and_ring_bound():
     assert "width: 32%;" in alignment
     assert "width: 40%;" in alignment
     assert "width: 42%;" in alignment
+    assert "@media (min-width: 420px) and (max-width: 480px)" in alignment
+    assert "top: 30%;" in alignment
     assert "transform: translate(-50%, -50%);" in alignment
     assert "#zone2-lord-portrait" in alignment
     assert "#zone2-success-lord-portrait" in alignment

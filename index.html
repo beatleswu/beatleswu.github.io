@@ -3898,6 +3898,16 @@
             width: 42%;
         }
     }
+    /* The 430x932 owner-review viewport has a taller portrait canvas than
+       the iPhone-sized view. Lift the portrait slightly so its cyan ring is
+       centered on the gold medallion rather than hanging below it. */
+    @media (min-width: 420px) and (max-width: 480px) and
+           (min-height: 850px) and (max-height: 1000px) {
+        .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-portrait,
+        .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] #zone2-success-lord-portrait {
+            top: 30%;
+        }
+    }
     .adventure-ritual-toast,
     .zone-softfall-toast {
         position: fixed;
