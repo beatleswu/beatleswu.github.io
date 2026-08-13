@@ -3873,6 +3873,31 @@
             grid-template-columns: minmax(0, 1fr);
         }
     }
+    /* Owner-approved portrait alignment: the Lord portrait is intentionally
+       larger and lower than the original integration so its cyan ring sits
+       over the gold medallion instead of floating above it. The ring is the
+       portrait's own border, so both layers move together as one unit. */
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-portrait,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] #zone2-success-lord-portrait {
+        top: 34%;
+        width: 32%;
+        z-index: 4;
+        transform: translate(-50%, -50%);
+    }
+    @media (orientation: portrait) and (max-width: 900px) {
+        .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-portrait,
+        .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] #zone2-success-lord-portrait {
+            top: 34%;
+            width: 40%;
+        }
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-portrait,
+        .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] #zone2-success-lord-portrait {
+            top: 34%;
+            width: 42%;
+        }
+    }
     .adventure-ritual-toast,
     .zone-softfall-toast {
         position: fixed;
