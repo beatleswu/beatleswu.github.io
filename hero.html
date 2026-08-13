@@ -3894,13 +3894,17 @@ function selectCombatGear(slot, key) {
     ? (isEn() ? 'Unequipped' : '已卸下')
     : I18n.t('hero.toast.equipped');
   showToast(actionLabel + ' ' + (dispName(picked) || I18n.t('hero.toast.gear')));
-  saveLoadoutToServer();
+  saveLoadoutToServer()
+    .then(() => fetch('/api/skills/profile', { credentials: 'include' }))
+    .then(r => r.json())
+    .then(profile => { _profileData = profile; renderHeroOverview(); })
+    .catch(() => {});
   renderHeroOverview();
 }
 
 // 換任何一件都把整套 loadout 存後端（角色給排行榜用；四件裝備給效果引擎用）
 function saveLoadoutToServer() {
-  fetch('/api/skills/character', {
+  return fetch('/api/skills/character', {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -4409,6 +4413,11 @@ function renderHeroOverview() {
   const bonusLabels = [];
   if (bonusTotals.xp_bonus) bonusLabels.push(`XP +${Math.round(bonusTotals.xp_bonus * 100)}%`);
   if (bonusTotals.drop_bonus) bonusLabels.push(`${isEn() ? 'Drop' : '掉落'} +${Math.round(bonusTotals.drop_bonus * 100)}%`);
+  const combatStats = res.combat_stats || {};
+  const attackBonusPct = Number(combatStats.attack_bonus_pct || 0);
+  const damageReductionPct = Number(combatStats.damage_reduction_pct || 0);
+  if (attackBonusPct > 0) bonusLabels.push(`${isEn() ? 'ATK' : '攻擊'} +${attackBonusPct}%`);
+  if (damageReductionPct > 0) bonusLabels.push(`${isEn() ? 'DEF' : '防禦'} -${damageReductionPct}%`);
   const petBonus = Number(_petState?.bonus?.current_pct || 0);
   if (petBonus) bonusLabels.push(`${isEn() ? 'Spirit' : '棋靈'} +${petBonus}%`);
   const title = isEn()
