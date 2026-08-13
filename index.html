@@ -3518,6 +3518,361 @@
             max-width: 100%;
         }
     }
+    /* Zone 2 Lord Trial visual integration (Owner attachments 1-6).
+       These rules reuse the Zone 1 DOM/state contract while giving Zone 2
+       its own governed backplates, portraits, and ritual key art. All
+       titles, rules, progress, and CTAs remain live DOM content. */
+    #zone2-lord-card-plaque-title,
+    #zone2-lord-portrait,
+    #zone2-success-lord-portrait {
+        display: none;
+        position: absolute;
+        pointer-events: none;
+        z-index: 4;
+    }
+    #zone2-lord-card-plaque-title {
+        left: 50%;
+        top: 4.5%;
+        width: 62%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font: 700 clamp(8px, 2.2vw, 10px)/1.3 'DM Mono', monospace;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #8de8ff;
+        text-shadow: 0 1px 3px rgba(0,0,0,.8), 0 0 14px rgba(0,180,255,.46);
+    }
+    #zone2-lord-portrait,
+    #zone2-success-lord-portrait {
+        left: 50%;
+        top: 17%;
+        width: 19%;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        object-fit: cover;
+        object-position: center 34%;
+        border: 2px solid rgba(125, 232, 255, .78);
+        border-radius: 50%;
+        box-shadow: 0 0 0 5px rgba(8, 25, 38, .68), 0 0 30px rgba(0, 174, 255, .58);
+        filter: saturate(1.05) brightness(.94);
+    }
+    #zone2-success-lord-portrait {
+        border-color: rgba(255, 222, 133, .9);
+        box-shadow: 0 0 0 5px rgba(50, 35, 16, .68), 0 0 34px rgba(255, 202, 83, .62);
+        object-position: center 26%;
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-card-plaque-title,
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-portrait,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] #zone2-success-lord-portrait {
+        display: block;
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        width: min(760px, 92vw);
+        aspect-ratio: 4 / 3;
+        padding: 0;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        border-color: rgba(73, 210, 255, .62);
+        box-shadow: 0 24px 90px rgba(0,0,0,.68), inset 0 0 52px rgba(0, 173, 255, .2);
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone2/lord_trial/zone2_lord_challenge_backplate.webp');
+    }
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone2/lord_trial/zone2_first_star_success_backplate.webp');
+        border-color: rgba(255, 214, 111, .72);
+        box-shadow: 0 24px 90px rgba(0,0,0,.62), inset 0 0 52px rgba(255, 196, 76, .25);
+    }
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+        background-image: url('/assets/e10/art/zone2/lord_trial/zone2_lord_failure_backplate.webp');
+        border-color: rgba(154, 190, 206, .48);
+        filter: saturate(.84) brightness(.9);
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-monster,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-monster,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-monster {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+        position: absolute;
+        left: 6%;
+        right: 6%;
+        min-width: 0;
+        max-width: 88%;
+        box-sizing: border-box;
+        bottom: 5%;
+        z-index: 5;
+        padding: 14px 18px;
+        border: 1px solid rgba(125, 232, 255, .4);
+        border-radius: 14px;
+        background: rgba(8, 18, 25, .72);
+        backdrop-filter: blur(7px);
+        text-align: center;
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-title,
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-books,
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-line,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-title,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-books,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-line,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-title,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-books,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-line {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content {
+        border-color: rgba(255, 214, 111, .48);
+        background: rgba(29, 23, 12, .7);
+    }
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+        border-color: rgba(177, 207, 220, .42);
+        background: rgba(10, 14, 18, .76);
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content #boss-cinematic-kicker {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone1-lord-card-plaque-title {
+        display: none;
+    }
+    /* Attachment 02 reserves the ornate circular plaque for the portrait.
+       Keep the actual Lord name in the live content panel below rather than
+       competing with the portrait inside that small ornament. */
+    .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-card-plaque-title {
+        display: none;
+    }
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-progress,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-progress,
+    .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-cancel-btn,
+    .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-cancel-btn {
+        display: none;
+    }
+    .boss-cinematic.phase-lord-ritual[data-zone-key="k21_25"] .boss-cinematic-scene {
+        display: block;
+        overflow: hidden;
+        min-height: 0;
+        width: min(560px, 90vw);
+        max-height: 88vh;
+        aspect-ratio: 853 / 1280;
+        padding: 0;
+        border-color: rgba(61, 218, 255, .68);
+        background: #07131c;
+        box-shadow: 0 24px 100px rgba(0,0,0,.72), inset 0 0 70px rgba(0, 170, 255, .26);
+    }
+    .boss-cinematic.phase-lord-ritual[data-zone-key="k21_25"] #lord-ritual-key-art {
+        content: url('/assets/e10/art/zone2/lord_trial/zone2_lord_ritual_key_art.webp');
+        object-position: center 44%;
+    }
+    .boss-cinematic.phase-lord-ritual[data-zone-key="k21_25"] .boss-cinematic-content {
+        left: 7%;
+        right: 7%;
+        bottom: 6%;
+        border-color: rgba(61, 218, 255, .46);
+        background: rgba(5, 15, 23, .5);
+    }
+    .boss-cinematic.phase-lord-ritual[data-zone-key="k21_25"] .boss-cinematic-title {
+        color: #e4f8ff;
+        text-shadow: 0 0 30px rgba(56, 210, 255, .7);
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene,
+        .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene,
+        .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+            width: 94vw;
+            max-height: 88dvh;
+            aspect-ratio: 1 / 1.28;
+        }
+        .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content,
+        .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content,
+        .boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+            left: 4%;
+            right: 4%;
+            bottom: 3.5%;
+            max-height: 52%;
+            overflow: auto;
+            padding: 10px 12px;
+        }
+        .boss-cinematic.phase-lord-card[data-zone-key="k21_25"] #zone2-lord-portrait,
+        .boss-cinematic.result-zone2-win[data-zone-key="k21_25"] #zone2-success-lord-portrait {
+            top: 18%;
+            width: 24%;
+        }
+        .boss-cinematic.phase-lord-ritual[data-zone-key="k21_25"] .boss-cinematic-scene {
+            width: min(88vw, 520px);
+            max-height: 88dvh;
+        }
+    }
+    /* Owner review refinement: the overlay owns the viewport width. The
+       earlier 94vw scene plus the overlay's outer padding could exceed a
+       narrow Safari viewport, making the right side of live copy disappear.
+       Keep every text-bearing child shrinkable and let the card grow
+       vertically on portrait devices instead of clipping horizontally. */
+    #boss-cinematic {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+    }
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+        width: min(760px, 100%);
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        box-sizing: border-box;
+    }
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-title,
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-books,
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-line,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-title,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-books,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-line,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-title,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-books,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-line,
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-rules,
+    #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-rules,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-rules {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        white-space: normal;
+    }
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-rules span,
+    #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-rules span {
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: normal;
+        text-align: center;
+    }
+    /* The supplied challenge backplate can contain faint generative
+       lettering near its upper plaque. It is decorative source material, not
+       runtime copy; this soft shield hides it behind the live portrait while
+       leaving the frame and the actual DOM title untouched. */
+    #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene::before {
+        content: '';
+        position: absolute;
+        z-index: 2;
+        top: 5%;
+        left: 25%;
+        width: 50%;
+        height: 16%;
+        border-radius: 999px;
+        background: radial-gradient(ellipse, rgba(13, 25, 28, .84) 0 48%, rgba(13, 25, 28, .42) 68%, transparent 82%);
+        filter: blur(3px);
+        pointer-events: none;
+    }
+    @media (orientation: portrait) and (max-width: 900px) {
+        #boss-cinematic {
+            padding-left: max(12px, env(safe-area-inset-left));
+            padding-right: max(12px, env(safe-area-inset-right));
+            padding-top: max(12px, env(safe-area-inset-top));
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+            width: 100%;
+            height: min(86dvh, 780px);
+            max-height: calc(100dvh - 24px);
+            aspect-ratio: auto;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+            left: 3%;
+            right: 3%;
+            bottom: 3%;
+            max-height: none;
+            overflow: visible;
+            padding: 12px;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-title,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-title,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-title {
+            font-size: clamp(24px, 5.4vw, 36px);
+            line-height: 1.1;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-books,
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-line,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-books,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-line,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-books,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-line {
+            font-size: clamp(12px, 3.2vw, 15px);
+            line-height: 1.45;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-rules,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-rules {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            width: 100%;
+            gap: 6px;
+            margin: 8px 0 12px;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-actions,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-actions,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-actions > button,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-actions > button,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-actions > button {
+            width: 100%;
+            min-width: 0;
+            min-height: 44px;
+            padding-left: 10px;
+            padding-right: 10px;
+            white-space: normal;
+        }
+    }
+    @media (max-width: 600px), (max-height: 700px) {
+        #boss-cinematic {
+            padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-scene,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-scene,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-scene {
+            width: 100%;
+            height: min(88dvh, 760px);
+            max-height: calc(100dvh - 20px);
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-content,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-content,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-content {
+            left: 3%;
+            right: 3%;
+            bottom: 2.5%;
+            padding: 12px 10px;
+        }
+        #boss-cinematic.phase-lord-card[data-zone-key="k21_25"] .boss-cinematic-actions,
+        #boss-cinematic.result-zone2-win[data-zone-key="k21_25"] .boss-cinematic-actions,
+        #boss-cinematic.result-zone2-fail[data-zone-key="k21_25"] .boss-cinematic-actions {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
     .adventure-ritual-toast,
     .zone-softfall-toast {
         position: fixed;
@@ -7334,6 +7689,8 @@
         <div id="lord-ritual-stones" aria-hidden="true"></div>
         <div id="lord-ritual-final-stone" aria-hidden="true"></div>
         <img id="zone1-first-star-icon" src="/assets/e10/art/zone1/lord_trial/zone1_first_star.webp" alt="" aria-hidden="true">
+        <img id="zone2-lord-portrait" src="/assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+        <img id="zone2-success-lord-portrait" src="/assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
         <!-- Real DOM title placed over the Lord Challenge Card backplate's
              own top ornamental plaque (Owner polish request), instead of
              leaving that plaque blank while the kicker also sits in the
@@ -7343,6 +7700,7 @@
              phase-lord-card, and the shared kicker is hidden for that one
              phase only (see CSS). -->
         <div id="zone1-lord-card-plaque-title" aria-hidden="true"></div>
+        <div id="zone2-lord-card-plaque-title" aria-hidden="true"></div>
         <div class="boss-cinematic-content" id="boss-cinematic-content">
             <div class="boss-cinematic-kicker modal-system-eyebrow" id="boss-cinematic-kicker" data-i18n="index.boss.kicker">領主封印解除</div>
             <div class="boss-cinematic-progress" id="boss-cinematic-progress">
@@ -16257,6 +16615,9 @@ function showZone2LordChallengeCard(zone) {
     const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
     const progress = document.getElementById('boss-cinematic-progress');
     const progressBody = document.getElementById('boss-cinematic-progress-body');
+    const plaqueTitle = document.getElementById('zone2-lord-card-plaque-title');
+    const challengePortrait = document.getElementById('zone2-lord-portrait');
+    const successPortrait = document.getElementById('zone2-success-lord-portrait');
     if (!overlay || !title || !btn) {
         _pendingBossZone = null;
         setMsg(I18n.t('index.boss.start_fail'), 'warn');
@@ -16267,15 +16628,35 @@ function showZone2LordChallengeCard(zone) {
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
     if (kicker) kicker.textContent = _zone2I18n('e10.zone2.lord.kicker');
+    if (plaqueTitle) plaqueTitle.textContent = _zone2I18n('e10.zone2.lord.kicker');
+    if (challengePortrait) challengePortrait.src = '/assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp';
+    if (successPortrait) successPortrait.src = '/assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp';
     if (monster) monster.textContent = ADVENTURE_STORY[zone.key]?.avatar || '🟢';
     title.textContent = _zone2I18n('e10.zone2.lord.title');
-    if (books) books.textContent = _zone2Format('e10.zone2.lord.mastery', { pct: Math.round(Number(zone.pct) || 0) });
+    const trial = _zone2LordTrialAuthority(zone);
+    if (books) {
+        books.dataset.authoritySource = '/api/adventure/progress';
+        books.textContent = _zone2Format('e10.zone2.lord.mastery', {
+            pct: trial.pct === null ? '—' : Math.round(trial.pct),
+        });
+    }
     if (line) line.textContent = _zone2I18n('e10.zone2.lord.reward');
     if (rules) {
-        const total = zone.boss_exam_size || 20;
-        const pass = zone.boss_pass_score || 16;
-        const cooldown = zone.cooldown_required || 30;
-        rules.innerHTML = `<span>${_zone2Format('e10.zone2.lord.rule_pass', { pass, total })}</span><span>${_zone2Format('e10.zone2.lord.rule_retry', { cooldown })}</span>`;
+        rules.dataset.authoritySource = '/api/adventure/progress';
+        const ruleLines = [];
+        if (trial.examSize !== null && trial.passScore !== null) {
+            ruleLines.push(_zone2Format('e10.zone2.lord.rule_pass', {
+                pass: trial.passScore,
+                total: trial.examSize,
+            }));
+        }
+        if (trial.cooldownRequired !== null) {
+            ruleLines.push(_zone2Format('e10.zone2.lord.rule_retry', {
+                cooldown: trial.cooldownRequired,
+            }));
+        }
+        rules.innerHTML = ruleLines.map(text => `<span>${text}</span>`).join('');
+        rules.hidden = ruleLines.length === 0;
     }
     if (progress) progress.style.display = '';
     if (progressBody) progressBody.textContent = _zone2I18n('e10.zone2.lord.prompt');
@@ -16291,6 +16672,23 @@ function showZone2LordChallengeCard(zone) {
     return true;
 }
 
+// These values are copied from the authenticated adventure-progress payload.
+// The Lord Card must never invent exam size, pass score, or retry training
+// requirements for a visual preview. Missing authority fails closed by
+// omitting the affected rule instead of substituting a guessed number.
+function _zone2LordTrialAuthority(zone) {
+    const read = (value) => {
+        const number = Number(value);
+        return Number.isFinite(number) && number >= 0 ? number : null;
+    };
+    return {
+        pct: read(zone?.pct),
+        examSize: read(zone?.boss_exam_size),
+        passScore: read(zone?.boss_pass_score),
+        cooldownRequired: read(zone?.cooldown_required),
+    };
+}
+
 function startZone2LordRitual(zone) {
     const overlay = document.getElementById('boss-cinematic');
     const title = document.getElementById('boss-cinematic-title');
@@ -16300,6 +16698,9 @@ function startZone2LordRitual(zone) {
     if (!overlay || !zone || zone.key !== 'k21_25') return;
     _stopIntroFilm();
     overlay.className = 'boss-cinematic show phase-lord-ritual';
+    overlay.dataset.zoneKey = zone.key || '';
+    const ritualArt = document.getElementById('lord-ritual-key-art');
+    if (ritualArt) ritualArt.src = '/assets/e10/art/zone2/lord_trial/zone2_lord_ritual_key_art.webp';
     if (btn) btn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
     if (title) title.textContent = _zone2I18n('e10.zone2.ritual.title');
@@ -16335,6 +16736,9 @@ function startZone1LordRitual(zone) {
     if (!overlay) return;
     const isEn = getCurrentUiLang() === 'en';
     overlay.className = 'boss-cinematic show phase-lord-ritual';
+    overlay.dataset.zoneKey = zone?.key || 'k26_30';
+    const ritualArt = document.getElementById('lord-ritual-key-art');
+    if (ritualArt) ritualArt.src = '/assets/e10/art/zone1/lord_trial/zone1_lord_ritual_key_art.webp';
     if (btn) btn.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
     if (title) title.textContent = isEn ? 'Lord Trial' : '領主試煉';
@@ -16602,13 +17006,16 @@ async function _finishBossBattle() {
                     bossPassScore: finishedZone.boss_pass_score || 16,
                 }, finishedZone);
             } else if (finishedZone?.key === 'k21_25') {
+                const serverTotal = Number(data.total);
+                const serverPassScore = Number(data.pass_score);
+                const serverCooldown = Number(data.cooldown_left);
                 showZone2LordResultCard({
                     passed: data.passed,
-                    correct,
-                    total,
-                    cooldown: data.cooldown_left || finishedZone.cooldown_required || 30,
-                    bossExamSize: finishedZone.boss_exam_size || total || 20,
-                    bossPassScore: finishedZone.boss_pass_score || 16,
+                    correct: Number(data.correct),
+                    total: Number(data.total),
+                    cooldown: Number.isFinite(serverCooldown) ? serverCooldown : null,
+                    bossExamSize: Number.isFinite(serverTotal) ? serverTotal : null,
+                    bossPassScore: Number.isFinite(serverPassScore) ? serverPassScore : null,
                 }, finishedZone);
             } else {
                 await showBossResultCinematic({
@@ -16662,6 +17069,7 @@ function showZone1LordResultCard(result, zone) {
     const isEn = getCurrentUiLang() === 'en';
     overlay.className = `boss-cinematic show ${result.passed ? 'result-zone1-win' : 'result-zone1-fail'}`;
     overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone?.key || 'k26_30';
     if (result.passed) {
         if (kicker) kicker.textContent = isEn ? 'Lord Trial Success' : '領主試煉成功';
         title.textContent = isEn ? 'First Star Earned' : '取得第 1 顆星';
@@ -16721,10 +17129,27 @@ function showZone2LordResultCard(result, zone) {
     if (!overlay || !title || !btn || !zone) return;
     overlay.className = `boss-cinematic show ${result.passed ? 'result-zone2-win' : 'result-zone2-fail'}`;
     overlay.setAttribute('aria-hidden', 'false');
+    overlay.dataset.zoneKey = zone.key || '';
+    const challengePortrait = document.getElementById('zone2-lord-portrait');
+    const successPortrait = document.getElementById('zone2-success-lord-portrait');
+    if (challengePortrait) challengePortrait.src = '/assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp';
+    if (successPortrait) successPortrait.src = '/assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp';
     if (monster) monster.textContent = ADVENTURE_STORY[zone.key]?.avatar || '🟢';
+    const trial = _zone2LordTrialAuthority({
+        pct: zone.pct,
+        boss_exam_size: result.bossExamSize,
+        boss_pass_score: result.bossPassScore,
+        cooldown_required: result.cooldown,
+    });
     if (result.passed) {
         if (title) title.textContent = _zone2I18n('e10.zone2.result.win.title');
-        if (books) books.textContent = _zone2Format('e10.zone2.result.win.score', { correct: result.correct, total: result.total });
+        if (books) {
+            books.dataset.authoritySource = '/api/adventure/boss/finish';
+            books.textContent = _zone2Format('e10.zone2.result.win.score', {
+                correct: result.correct,
+                total: result.total,
+            });
+        }
         if (line) line.textContent = _zone2I18n('e10.zone2.result.win.line');
         if (rules) rules.innerHTML = '';
         btn.disabled = false;
@@ -16736,9 +17161,23 @@ function showZone2LordResultCard(result, zone) {
         _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordDefeat, { volume: 0.85 });
     } else {
         if (title) title.textContent = _zone2I18n('e10.zone2.result.fail.title');
-        if (books) books.textContent = _zone2I18n('e10.zone2.result.fail.progress');
+        if (books) {
+            books.dataset.authoritySource = '/api/adventure/boss/finish';
+            books.textContent = _zone2I18n('e10.zone2.result.fail.progress');
+        }
         if (line) line.textContent = _zone2I18n('e10.zone2.result.fail.line');
-        if (rules) rules.innerHTML = `<span>${_zone2Format('e10.zone2.result.fail.retry', { cooldown: result.cooldown })}</span><span>${_zone2I18n('e10.zone2.result.fail.lock')}</span>`;
+        if (rules) {
+            rules.dataset.authoritySource = '/api/adventure/boss/finish';
+            const ruleLines = [];
+            if (trial.cooldownRequired !== null) {
+                ruleLines.push(_zone2Format('e10.zone2.result.fail.retry', {
+                    cooldown: trial.cooldownRequired,
+                }));
+            }
+            ruleLines.push(_zone2I18n('e10.zone2.result.fail.lock'));
+            rules.innerHTML = ruleLines.map(text => `<span>${text}</span>`).join('');
+            rules.hidden = false;
+        }
         btn.disabled = false;
         btn.textContent = _zone2I18n('e10.zone2.result.go_train');
         btn.onclick = () => {

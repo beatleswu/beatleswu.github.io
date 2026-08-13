@@ -75,6 +75,11 @@
         "staging_rule": "Stage exactly the ten Owner-selected Zone 2 WebP files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage a Zone 2 storyboard file that is not in this manifest. This namespace is disjoint from the historical image pack by file membership."
       },
       {
+        "prefix": "assets/e10/art/zone2/lord_trial/",
+        "manifest": "deploy/canonical-e10-zone2-lord-trial-art-pack-manifest.json",
+        "staging_rule": "Stage exactly the six Owner-attached Zone 2 Lord Trial WebP files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Canonical JPEG source evidence is never staged. This namespace is disjoint from the historical image pack and the Zone 2 storyboard pack."
+      },
+      {
         "prefix": "assets/e10/audio/zone2/",
         "manifest": "deploy/canonical-e10-zone2-audio-pack-manifest.json",
         "staging_rule": "Stage exactly the twenty-three Owner-locked bilingual Zone 2 audio files listed in the manifest's `files` array, at their declared `path`, verified against their declared `sha256`. Never stage an E10 Zone 2 audio file that is not in this manifest. This namespace is disjoint from Zone 1 audio and storyboard narration audio."
