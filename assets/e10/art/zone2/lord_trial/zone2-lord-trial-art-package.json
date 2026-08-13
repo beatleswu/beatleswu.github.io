@@ -1,0 +1,141 @@
+{
+  "contract": "e10-zone2-lord-trial-art-package-v1",
+  "status": "OWNER_PROVIDED_PRODUCTION_ART",
+  "integrated_date": "2026-08-13",
+  "source_evidence": "Owner-attached six-image Zone 2 Lord Trial visual set; attachment order and SHA-256 values are recorded per asset below.",
+  "runtime_delivery": "Only runtime_webp paths are staged by the dedicated static closure manifest; canonical JPEGs remain source evidence and are never staged as runtime assets.",
+  "assets": [
+    {
+      "key": "LORD_RITUAL_KEY_ART",
+      "role": "Zone 2 Lord entrance ritual / challenge-start visual",
+      "source_filename": "1-照片-1.jpg",
+      "source_sha256": "1861193aeaaf3bc64edc3cdadb1d3eaa13b8f3aa9f03a8abf17ca6c6727d5f13",
+      "canonical_source": {
+        "filename": "zone2_lord_ritual_key_art.jpg",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_ritual_key_art.jpg",
+        "sha256": "1861193aeaaf3bc64edc3cdadb1d3eaa13b8f3aa9f03a8abf17ca6c6727d5f13",
+        "size_bytes": 427313,
+        "dimensions": "853x1280",
+        "mime": "image/jpeg"
+      },
+      "runtime_webp": {
+        "filename": "zone2_lord_ritual_key_art.webp",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_ritual_key_art.webp",
+        "sha256": "6970441474abe1261cd637a9f697cbb6e000bb460395d6f38278ab3204cbfb25",
+        "size_bytes": 389476,
+        "dimensions": "853x1280",
+        "mime": "image/webp"
+      }
+    },
+    {
+      "key": "LORD_CHALLENGE_BACKPLATE",
+      "role": "Zone 2 Lord Challenge Card backplate",
+      "source_filename": "2-照片-2.jpg",
+      "source_sha256": "f073c52e1babdaa837819d6557cbc090853b55e76f6fbd0f0e07fd5a6ca1d23b",
+      "canonical_source": {
+        "filename": "zone2_lord_challenge_backplate.jpg",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_challenge_backplate.jpg",
+        "sha256": "f073c52e1babdaa837819d6557cbc090853b55e76f6fbd0f0e07fd5a6ca1d23b",
+        "size_bytes": 504488,
+        "dimensions": "1280x960",
+        "mime": "image/jpeg"
+      },
+      "runtime_webp": {
+        "filename": "zone2_lord_challenge_backplate.webp",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_challenge_backplate.webp",
+        "sha256": "6da7347f4b0d6e9e9c02f332b8a8e04b47c101745fd8e28cb34a7c1b7dff9c8f",
+        "size_bytes": 455618,
+        "dimensions": "1280x960",
+        "mime": "image/webp"
+      }
+    },
+    {
+      "key": "LORD_FAILURE_BACKPLATE",
+      "role": "Zone 2 Lord Trial failure / retraining card",
+      "source_filename": "3-照片-3.jpg",
+      "source_sha256": "479cc504d081cbcecd530e53914e5b92f494d9326e3f74b7e1ab9617bf146de8",
+      "canonical_source": {
+        "filename": "zone2_lord_failure_backplate.jpg",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_failure_backplate.jpg",
+        "sha256": "479cc504d081cbcecd530e53914e5b92f494d9326e3f74b7e1ab9617bf146de8",
+        "size_bytes": 281126,
+        "dimensions": "1280x960",
+        "mime": "image/jpeg"
+      },
+      "runtime_webp": {
+        "filename": "zone2_lord_failure_backplate.webp",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_failure_backplate.webp",
+        "sha256": "2220d12f4d99234a9122d42e09729012610fef22ac926377e5dc2707c5fdaa12",
+        "size_bytes": 227996,
+        "dimensions": "1280x960",
+        "mime": "image/webp"
+      }
+    },
+    {
+      "key": "FIRST_STAR_SUCCESS_BACKPLATE",
+      "role": "Zone 2 Lord success / recovery and reward card backplate",
+      "source_filename": "4-照片-4.jpg",
+      "source_sha256": "c8adfc461a986355493119a0faeca1ebd2c557ed67a6aa578ccb330112642518",
+      "canonical_source": {
+        "filename": "zone2_first_star_success_backplate.jpg",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_first_star_success_backplate.jpg",
+        "sha256": "c8adfc461a986355493119a0faeca1ebd2c557ed67a6aa578ccb330112642518",
+        "size_bytes": 523726,
+        "dimensions": "1280x960",
+        "mime": "image/jpeg"
+      },
+      "runtime_webp": {
+        "filename": "zone2_first_star_success_backplate.webp",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_first_star_success_backplate.webp",
+        "sha256": "d2ba55c558b966e97ee7ed0014691a4b444dba9e100bdf0249c38c8719a46ce5",
+        "size_bytes": 459852,
+        "dimensions": "1280x960",
+        "mime": "image/webp"
+      }
+    },
+    {
+      "key": "SUCCESS_LORD_PORTRAIT",
+      "role": "Zone 2 success card Lord portrait / reward focal visual",
+      "source_filename": "5-照片-5.jpg",
+      "source_sha256": "1f617f31e087204d9bbd70ca1335f7ff1cd6a08ac4dff0d38fe5aaec415092fd",
+      "canonical_source": {
+        "filename": "zone2_success_lord_portrait.jpg",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.jpg",
+        "sha256": "1f617f31e087204d9bbd70ca1335f7ff1cd6a08ac4dff0d38fe5aaec415092fd",
+        "size_bytes": 464719,
+        "dimensions": "853x1280",
+        "mime": "image/jpeg"
+      },
+      "runtime_webp": {
+        "filename": "zone2_success_lord_portrait.webp",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp",
+        "sha256": "2b695c5d44042fe9e30d9ec5ac556d2d305597e8dfff2bfac495a3c7f0df4b13",
+        "size_bytes": 414684,
+        "dimensions": "853x1280",
+        "mime": "image/webp"
+      }
+    },
+    {
+      "key": "LORD_PORTRAIT",
+      "role": "Zone 2 Lord Challenge Card portrait / focal visual",
+      "source_filename": "6-照片-6.jpg",
+      "source_sha256": "97e2ee459f8da39393f7176f717ace5cb43d510cafe8a171d4c55c1f35aa285c",
+      "canonical_source": {
+        "filename": "zone2_lord_portrait.jpg",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_portrait.jpg",
+        "sha256": "97e2ee459f8da39393f7176f717ace5cb43d510cafe8a171d4c55c1f35aa285c",
+        "size_bytes": 403256,
+        "dimensions": "1254x1254",
+        "mime": "image/jpeg"
+      },
+      "runtime_webp": {
+        "filename": "zone2_lord_portrait.webp",
+        "path": "assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp",
+        "sha256": "4acd6fb29227d1a1178bf14a521d43651395713d11a6df28e2ccaeac30858947",
+        "size_bytes": 330638,
+        "dimensions": "1254x1254",
+        "mime": "image/webp"
+      }
+    }
+  ]
+}

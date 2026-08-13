@@ -52,6 +52,7 @@ ACTIVE_E10_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone1-
 # historical image pack and Zone 1 closure remain byte-stable.
 ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-art-pack-manifest.json"
 ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-audio-pack-manifest.json"
+ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-lord-trial-art-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 
@@ -116,6 +117,8 @@ def test_every_runtime_image_reference_resolves_to_governed_closure():
     # fixture, but must not become a second source of truth for new assets.
     manifest = _load_active_image_manifest()
     governed = {"/" + f["path"] for f in manifest["files"]}
+    lord_trial_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
+    governed |= {"/" + f["path"] for f in lord_trial_manifest["files"]}
     referenced = scan_runtime_image_references()
 
     unresolved = referenced - governed - NON_ASSET_KNOWN_GOOD
@@ -187,6 +190,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
     e10_audio_manifest = json.loads(_read(ACTIVE_E10_AUDIO_SUBTREE_MANIFEST))
     e10_zone2_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_ART_SUBTREE_MANIFEST))
     e10_zone2_audio_manifest = json.loads(_read(ACTIVE_E10_ZONE2_AUDIO_SUBTREE_MANIFEST))
+    e10_zone2_lord_trial_art_manifest = json.loads(_read(ACTIVE_E10_ZONE2_LORD_TRIAL_ART_SUBTREE_MANIFEST))
     with tempfile.TemporaryDirectory() as tmp:
         source = Path(tmp) / "source"
         stage = Path(tmp) / "stage"
@@ -215,6 +219,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             | {f["path"] for f in e10_audio_manifest["files"]}
             | {f["path"] for f in e10_zone2_art_manifest["files"]}
             | {f["path"] for f in e10_zone2_audio_manifest["files"]}
+            | {f["path"] for f in e10_zone2_lord_trial_art_manifest["files"]}
             | {
                 "i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html",
                 "js/e9/shell.js", "js/map_battle_v1_adapter.js",
@@ -232,6 +237,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             + e10_audio_manifest["files"]
             + e10_zone2_art_manifest["files"]
             + e10_zone2_audio_manifest["files"]
+            + e10_zone2_lord_trial_art_manifest["files"]
         ):
             staged_entry = staged_by_path[entry["path"]]
             assert staged_entry["sha256"] == entry["sha256"], f"SHA mismatch for {entry['path']}"

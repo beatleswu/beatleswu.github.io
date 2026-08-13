@@ -1,0 +1,72 @@
+{
+  "$schema_note": "Dedicated governed runtime closure for the six Owner-attached Zone 2 Lord Trial visual assets. Canonical JPEGs remain source evidence; only the six listed WebP derivatives are staged.",
+  "manifest_version": "1.0.0",
+  "generated_for": "E10 Zone 2 Lord Trial visual integration",
+  "total_files": 6,
+  "total_bytes": 2278264,
+  "provenance_summary": {
+    "owner-provided-runtime-derivative": 6
+  },
+  "files": [
+    {
+      "path": "assets/e10/art/zone2/lord_trial/zone2_first_star_success_backplate.webp",
+      "size": 459852,
+      "sha256": "d2ba55c558b966e97ee7ed0014691a4b444dba9e100bdf0249c38c8719a46ce5",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 960,
+      "provenance": "owner-provided-runtime-derivative",
+      "source_evidence": "Owner attachment 04; exact source is recorded in assets/e10/art/zone2/lord_trial/zone2-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone2/lord_trial/zone2_lord_challenge_backplate.webp",
+      "size": 455618,
+      "sha256": "6da7347f4b0d6e9e9c02f332b8a8e04b47c101745fd8e28cb34a7c1b7dff9c8f",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 960,
+      "provenance": "owner-provided-runtime-derivative",
+      "source_evidence": "Owner attachment 02; exact source is recorded in assets/e10/art/zone2/lord_trial/zone2-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone2/lord_trial/zone2_lord_failure_backplate.webp",
+      "size": 227996,
+      "sha256": "2220d12f4d99234a9122d42e09729012610fef22ac926377e5dc2707c5fdaa12",
+      "mime": "image/webp",
+      "width": 1280,
+      "height": 960,
+      "provenance": "owner-provided-runtime-derivative",
+      "source_evidence": "Owner attachment 03; exact source is recorded in assets/e10/art/zone2/lord_trial/zone2-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone2/lord_trial/zone2_lord_portrait.webp",
+      "size": 330638,
+      "sha256": "4acd6fb29227d1a1178bf14a521d43651395713d11a6df28e2ccaeac30858947",
+      "mime": "image/webp",
+      "width": 1254,
+      "height": 1254,
+      "provenance": "owner-provided-runtime-derivative",
+      "source_evidence": "Owner attachment 06; exact source is recorded in assets/e10/art/zone2/lord_trial/zone2-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone2/lord_trial/zone2_lord_ritual_key_art.webp",
+      "size": 389476,
+      "sha256": "6970441474abe1261cd637a9f697cbb6e000bb460395d6f38278ab3204cbfb25",
+      "mime": "image/webp",
+      "width": 853,
+      "height": 1280,
+      "provenance": "owner-provided-runtime-derivative",
+      "source_evidence": "Owner attachment 01; exact source is recorded in assets/e10/art/zone2/lord_trial/zone2-lord-trial-art-package.json."
+    },
+    {
+      "path": "assets/e10/art/zone2/lord_trial/zone2_success_lord_portrait.webp",
+      "size": 414684,
+      "sha256": "2b695c5d44042fe9e30d9ec5ac556d2d305597e8dfff2bfac495a3c7f0df4b13",
+      "mime": "image/webp",
+      "width": 853,
+      "height": 1280,
+      "provenance": "owner-provided-runtime-derivative",
+      "source_evidence": "Owner attachment 05; exact source is recorded in assets/e10/art/zone2/lord_trial/zone2-lord-trial-art-package.json."
+    }
+  ]
+}

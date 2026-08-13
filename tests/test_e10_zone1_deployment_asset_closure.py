@@ -23,6 +23,7 @@ IMAGE_MANIFEST = REPO_ROOT / "deploy" / "canonical-image-pack-manifest.json"
 AUDIO_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone1-audio-pack-manifest.json"
 ZONE2_ART_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-art-pack-manifest.json"
 ZONE2_AUDIO_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-audio-pack-manifest.json"
+ZONE2_LORD_TRIAL_ART_MANIFEST = REPO_ROOT / "deploy" / "canonical-e10-zone2-lord-trial-art-pack-manifest.json"
 STORYBOARD_AUDIO_MANIFEST = REPO_ROOT / "deploy" / "canonical-audio-pack-manifest.json"
 INVENTORY = REPO_ROOT / "deploy" / "live-static-asset-inventory.json"
 PSM1 = REPO_ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
@@ -156,21 +157,26 @@ def test_actual_governed_static_bundle_contains_closure_and_no_broad_assets(gene
     expected_e10_audio = {entry["path"] for entry in _load(AUDIO_MANIFEST)["files"]}
     expected_zone2_art = {entry["path"] for entry in _load(ZONE2_ART_MANIFEST)["files"]}
     expected_zone2_audio = {entry["path"] for entry in _load(ZONE2_AUDIO_MANIFEST)["files"]}
+    expected_zone2_lord_trial_art = {
+        entry["path"] for entry in _load(ZONE2_LORD_TRIAL_ART_MANIFEST)["files"]
+    }
     governed_assets = (
         expected_images
         | expected_storyboard_audio
         | expected_e10_audio
         | expected_zone2_art
         | expected_zone2_audio
+        | expected_zone2_lord_trial_art
     )
 
     lord_paths = _lord_trial_runtime_webp_paths()
     zone1_audio = _zone1_audio_paths()
     assert len(lord_paths & staged_paths) == 6
+    assert len(expected_zone2_lord_trial_art & staged_paths) == 6
     assert len(zone1_audio & staged_paths) == 43
     assert all((stage / path).is_file() for path in lord_paths | zone1_audio)
 
-    for path in lord_paths | zone1_audio:
+    for path in lord_paths | zone1_audio | expected_zone2_lord_trial_art:
         source = REPO_ROOT / path
         packaged = stage / path
         assert _sha256(packaged) == _sha256(source), path
