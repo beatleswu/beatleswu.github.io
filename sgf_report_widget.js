@@ -148,7 +148,9 @@
       if (!context || !context.direct_apply_enabled) throw new Error('目前環境尚未開啟管理員直接套用');
       var result = await adminPost('/api/admin/sgf-workbench/direct-apply', {
         question_id: Number(state.context.question_id), record_index: Number(context.record_index),
-        predecessor_hash: context.predecessor_hash, action: 'ADD_ALTERNATIVE_CORRECT_MOVE',
+        predecessor_hash: context.predecessor_hash,
+        canonical_source_sha256: context.canonical_source_sha256,
+        retest_moves: [state.context.move], action: 'ADD_ALTERNATIVE_CORRECT_MOVE',
         candidate_move: state.context.move, operation_id: 'admin-play-direct:' + Date.now() + ':' + Math.random().toString(16).slice(2)
       });
       setAdminStatus('修改已套用。已保存上一版本，可回到審題工作台重測。', false);

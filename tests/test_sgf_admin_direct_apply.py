@@ -5,6 +5,7 @@ import pytest
 
 from sgf_admin_workbench import (
     apply_direct_question_edit,
+    canonical_file_sha256,
     direct_record_hash,
     ensure_sgf_workbench_tables,
     list_direct_versions,
@@ -46,8 +47,10 @@ def test_direct_apply_snapshots_version_and_is_idempotent(tmp_path):
     first = apply_direct_question_edit(
         conn, questions_path=str(path), actor_id=7, question_id=900001,
         record_index=0, expected_predecessor_hash=old_hash,
+        expected_canonical_sha256=canonical_file_sha256(str(path)),
         action_type="ADD_ALTERNATIVE_CORRECT_MOVE", proposed_record=proposed,
-        operation_id="op-1", now="2026-08-12T00:00:00+00:00",
+        operation_id="op-1", retest_fn=lambda record: True,
+        now="2026-08-12T00:00:00+00:00",
     )
     assert first["predecessor_hash"] == old_hash
     assert first["new_hash"] == direct_record_hash(proposed)
@@ -55,8 +58,9 @@ def test_direct_apply_snapshots_version_and_is_idempotent(tmp_path):
     duplicate = apply_direct_question_edit(
         conn, questions_path=str(path), actor_id=7, question_id=900001,
         record_index=0, expected_predecessor_hash=old_hash,
+        expected_canonical_sha256=canonical_file_sha256(str(path)),
         action_type="ADD_ALTERNATIVE_CORRECT_MOVE", proposed_record=proposed,
-        operation_id="op-1",
+        operation_id="op-1", retest_fn=lambda record: True,
     )
     assert duplicate["duplicate"] is True
     assert len(list_direct_versions(conn, question_id=900001)) == 1
@@ -72,8 +76,9 @@ def test_direct_apply_rejects_stale_or_invalid_without_mutating(tmp_path):
         apply_direct_question_edit(
             conn, questions_path=str(path), actor_id=7, question_id=900001,
             record_index=0, expected_predecessor_hash="0" * 64,
+            expected_canonical_sha256=canonical_file_sha256(str(path)),
             action_type="ADD_ALTERNATIVE_CORRECT_MOVE", proposed_record=proposed,
-            operation_id="stale",
+            operation_id="stale", retest_fn=lambda record: True,
         )
     assert path.read_bytes() == before
     invalid = json.loads(json.dumps(proposed))
@@ -90,8 +95,9 @@ def test_rollback_creates_new_version_and_restores_exact_predecessor(tmp_path):
     version = apply_direct_question_edit(
         conn, questions_path=str(path), actor_id=7, question_id=900001,
         record_index=0, expected_predecessor_hash=direct_record_hash(old),
+        expected_canonical_sha256=canonical_file_sha256(str(path)),
         action_type="ADD_ALTERNATIVE_CORRECT_MOVE", proposed_record=proposed,
-        operation_id="op-rollback",
+        operation_id="op-rollback", retest_fn=lambda record: True,
     )
     restored = rollback_direct_question_edit(
         conn, questions_path=str(path), actor_id=7, version_id=version["id"],
@@ -122,8 +128,9 @@ def test_direct_action_versions_preserve_identity(tmp_path, action, accepted_mov
     result = apply_direct_question_edit(
         conn, questions_path=str(path), actor_id=7, question_id=900001,
         record_index=0, expected_predecessor_hash=direct_record_hash(old),
+        expected_canonical_sha256=canonical_file_sha256(str(path)),
         action_type=action, proposed_record=proposed,
-        operation_id=f"op-{action}",
+        operation_id=f"op-{action}", retest_fn=lambda record: True,
     )
     assert result["action_type"] == action
     assert result["new_record"]["id"] == old["id"]

@@ -94,7 +94,11 @@ from sgf_admin_workbench import (
     DIRECT_APPLY_ACTIONS,
     DIRECT_APPLY_SOURCE,
     apply_direct_question_edit,
+    canonical_file_sha256,
     direct_record_hash,
+    DirectApplyPolicyError,
+    DirectApplyRecoveryError,
+    DirectApplyRetestFailed,
     get_direct_version,
     list_direct_versions,
     rollback_direct_question_edit,
@@ -242,7 +246,7 @@ def acceptance_identity():
         'production_publish_available': False,
         'canonical_mutation': False,
         'production_mutation': False,
-        'direct_apply_enabled': os.environ.get('GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED', '').strip().lower() in {'1', 'true', 'yes', 'on'},
+        'direct_apply_enabled': _direct_apply_enabled(),
         'content_path': os.environ.get('QUESTIONS_JSON_PATH', 'questions.json'),
     })
 
@@ -4420,10 +4424,24 @@ def admin_sgf_workbench_retest(item_id):
 
 
 def _direct_apply_enabled():
-    """Direct apply is acceptance-only until a separate Production gate."""
-    return _acceptance_mode() and os.environ.get(
+    """Resolve the explicit two-key Direct Apply gate.
+
+    Acceptance mode remains the default non-Production path.  A future
+    Production enablement requires both the ordinary feature flag and a
+    separate owner-gate setting; neither is present in Production today.
+    """
+    enabled = os.environ.get(
         'GO_ODYSSEY_ADMIN_DIRECT_APPLY_ENABLED', ''
     ).strip().lower() in {'1', 'true', 'yes', 'on'}
+    if not enabled:
+        return False
+    if _acceptance_mode():
+        return True
+    production_enable = os.environ.get(
+        'GO_ODYSSEY_ADMIN_DIRECT_APPLY_PRODUCTION_ENABLE', ''
+    ).strip().lower() in {'1', 'true', 'yes', 'on'}
+    owner_gate = os.environ.get('GO_ODYSSEY_ADMIN_DIRECT_APPLY_OWNER_GATE', '').strip()
+    return production_enable and owner_gate == 'GO_ENABLE_DIRECT_APPLY'
 
 
 def _direct_move_from_payload(value, *, size=19):
@@ -4509,6 +4527,7 @@ def admin_sgf_workbench_direct_context(question_id):
         'record_index': context['record_index'],
         'record': record,
         'predecessor_hash': direct_record_hash(record),
+        'canonical_source_sha256': canonical_file_sha256(DATA_FILE),
         'authority': context['authority'],
         'content_sha256': context['question_content_sha256'],
         'source': DIRECT_APPLY_SOURCE,
@@ -4540,6 +4559,22 @@ def admin_sgf_workbench_direct_apply():
     )
     if not context:
         return jsonify({'error': 'question_not_found'}), 404
+    retest_moves = data.get('retest_moves')
+    if not isinstance(retest_moves, list) or not retest_moves:
+        candidate = data.get('candidate_move')
+        retest_moves = [candidate] if isinstance(candidate, dict) else []
+    if not retest_moves or not all(isinstance(move, dict) for move in retest_moves):
+        return jsonify({'error': 'retest_moves_required', 'predecessor_preserved': True,
+                        'production_mutation': False}), 400
+    sid = f'admin-direct-{session["user_id"]}'
+
+    def mandatory_retest(record):
+        result = _rt_server_verify(record, sid, retest_moves)
+        return {
+            'ok': result is True,
+            'verdict': _workbench_verdict(result),
+            'moves': retest_moves,
+        }
     try:
         proposed = _direct_proposed_record(context['record'], action, data)
         validation = validate_direct_record(proposed, parse_sgf_fn=parse_sgf)
@@ -4551,17 +4586,36 @@ def admin_sgf_workbench_direct_apply():
                 conn, questions_path=DATA_FILE, actor_id=int(session['user_id']),
                 question_id=question_id, record_index=record_index,
                 expected_predecessor_hash=data.get('predecessor_hash'),
+                expected_canonical_sha256=data.get('canonical_source_sha256'),
                 action_type=action, proposed_record=proposed,
-                operation_id=data.get('operation_id'), parse_sgf_fn=parse_sgf,
+                operation_id=data.get('operation_id'), retest_fn=mandatory_retest,
+                parse_sgf_fn=parse_sgf,
             )
         _invalidate_questions_cache()
+    except DirectApplyPolicyError as error:
+        return jsonify({'error': str(error), 'predecessor_preserved': True,
+                        'production_mutation': False}), 403
+    except DirectApplyRetestFailed as error:
+        return jsonify({
+            'ok': False, 'error': 'direct_apply_failed_rolled_back',
+            'retest': error.result, 'rolled_back': True,
+            'canonical_before_sha256': error.before_sha256,
+            'canonical_after_sha256': error.after_sha256,
+            'predecessor_preserved': True, 'production_mutation': False,
+        }), 422
+    except DirectApplyRecoveryError as error:
+        return jsonify({'ok': False, 'error': str(error), 'rolled_back': False,
+                        'predecessor_preserved': False, 'production_mutation': False}), 500
     except (ValueError, LookupError) as error:
-        status = 409 if str(error) in {'stale_predecessor', 'record_index_mismatch', 'no_change'} else 422
+        status = 409 if str(error) in {
+            'stale_predecessor', 'stale_canonical_basis', 'record_index_mismatch', 'no_change',
+        } else 422
         return jsonify({'error': str(error), 'predecessor_preserved': True,
                         'production_mutation': False}), status
     return jsonify({
         'ok': True, 'direct_apply': True, 'source': DIRECT_APPLY_SOURCE,
         'version': version, 'duplicate': bool(version.get('duplicate')),
+        'apply_state': 'APPLIED', 'retest_passed': True, 'rolled_back': False,
         'message': '修改已套用', 'rollback_available': True,
         'production_mutation': False,
     })
