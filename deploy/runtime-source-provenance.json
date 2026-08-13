@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "64c44b6f7b96f38dad429531d15a0ba000dde9a0",
-      "source_branch_or_local_ref": "codex/e10-zone1-lord-trial-progress-completion-fix-001",
-      "source_commit_subject": "fix(e10): preserve Lord Trial progress and completion",
+      "source_commit": "d810a3efd81a45e58433c8889b41c8a0a35d3648",
+      "source_branch_or_local_ref": "codex/e10-lord-trial-replay-001",
+      "source_commit_subject": "feat(e10): support replay Lord Trials",
       "source_date": "2026-08-14",
-      "content_sha256": "fdd6f2dbdb545874476ee5c39a785f654eab90ff72fa5b909ce322faff9d4f8c",
+      "content_sha256": "a60b4242e7e1f6372820bd01ff2bdb931317244111f8f285c6db405d3c58bd56",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the hotfix branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded hotfix commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the replay feature branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded replay commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -258,7 +258,7 @@
       "source_commit": "1f0728663090a38931fc584e80005343d6d1d723",
       "source_branch_or_local_ref": "origin/master",
       "source_commit_subject": "feat: unify SGF admin workbench and reports",
-      "source_date": "2026-08-12",
+      "source_date": "2026-08-14",
       "content_sha256": "6ecfbf57ad0d3e81224d8e33c676664b7dac71486ad99dc8de03f2a653f7a147",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
@@ -459,15 +459,15 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "adcb44bd5962b98b896e3cbe91643b73a1682ccf",
-      "source_branch_or_local_ref": "codex/e10-zone2-final-bilingual-integration-001",
-      "source_commit_subject": "feat: integrate Zone 2 V3 bilingual dialogue",
+      "source_commit": "d810a3efd81a45e58433c8889b41c8a0a35d3648",
+      "source_branch_or_local_ref": "codex/e10-lord-trial-replay-001",
+      "source_commit_subject": "feat(e10): support replay Lord Trials",
       "source_date": "2026-08-12",
-      "content_sha256": "fc22a7351b2ef17a5d215132042db0ca02507ee97482025ec32244a7ef06437a",
+      "content_sha256": "74de654263432446af8bcec1d16ae82e794e86af475eda82fdf6081f5c442b35",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate branch provenance; merge and deployment status are governed separately and are not asserted by this record",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is the current branch candidate commit and raw-byte-verified against the candidate content"
+      "production_hash_status": "candidate on the replay feature branch; merge and deployment status are governed separately and are not asserted by this record",
+      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is the replay feature commit and raw-byte-verified against the candidate content"
     },
     {
       "path": "components/adventure/world_stage.html",
