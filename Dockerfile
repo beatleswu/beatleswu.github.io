@@ -54,6 +54,9 @@ COPY map_battle_persistence.py ./
 # Its detector-derived source is read-only evidence, never canonical content.
 COPY sgf_answer_review_queue.py ./
 COPY sgf_answer_review_routes.py ./
+# SGF Admin Workbench is imported by app.py during process startup. Keep the
+# server-side module explicit so image builds cannot omit this runtime import.
+COPY sgf_admin_workbench.py ./
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
 # absent from this explicit COPY list despite app.py already depending on

@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "b8587860944a5c4f12867c9e92b75c1dacd7fe1c",
-      "source_branch_or_local_ref": "codex/e10-zone2-final-bilingual-integration-001",
-      "source_commit_subject": "fix: unlock E10 Zone 2 iPad cinematic audio",
-      "source_date": "2026-08-12",
-      "content_sha256": "b9286d06bc4b4ba8e243dda11be1e4b59355120996393b2c693491a448093a4b",
+      "source_commit": "ce22313440fbc8d5b47dc9bc1a4c7a97a60bee23",
+      "source_branch_or_local_ref": "origin/master",
+      "source_commit_subject": "fix(e10): center narrow Zone 2 Lord portrait",
+      "source_date": "2026-08-13",
+      "content_sha256": "9e52d2e611d1d225013a8fbf8204184e0c61959626ecf4f7edb97e1f42b2d79b",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate branch provenance; merge and deployment status are governed separately and are not asserted by this record",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is the current branch candidate commit and raw-byte-verified against the candidate content"
+      "production_hash_status": "merged to origin/master at merge 591253330b49ec6140024ad9c20f5b37d3b43e41; deployment status is governed separately and is not asserted by this record",
+      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
