@@ -64,6 +64,10 @@ from map_battle_persistence import (
     get_map_battle_v1_mode,
     load_authoritative_battle_state,
 )
+from xp_settlement import (
+    ensure_xp_settlement_schema,
+    xp_ledger_schema_enabled,
+)
 from sgf_answer_review_queue import ensure_review_queue_tables
 from sgf_admin_workbench import (
     WORKBENCH_ACTIONS,
@@ -2903,6 +2907,12 @@ def init_db():
             rank_level          TEXT    NOT NULL DEFAULT 'LV1',
             rank_xp             INTEGER NOT NULL DEFAULT 0
         )''')
+
+        # R1A additive foundation remains dormant by default.  Enabling this
+        # server-side flag creates/validates the ledger only; no existing XP
+        # writer or player row is touched by this path.
+        if xp_ledger_schema_enabled():
+            ensure_xp_settlement_schema(conn)
 
         # ── 委託獎勵發放紀錄（防止重練刷幣）──
         conn.execute('''CREATE TABLE IF NOT EXISTS reward_claimed (
