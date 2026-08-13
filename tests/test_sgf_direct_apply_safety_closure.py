@@ -314,3 +314,63 @@ def test_disposable_postgres_safety_closure(monkeypatch, tmp_path):
     finally:
         conn.rollback()
         conn.close()
+
+
+def test_disposable_postgres_distinct_operations_cas(monkeypatch, tmp_path):
+    """PostgreSQL advisory lock + byte SHA CAS allow only one concurrent writer."""
+    url = os.environ.get("SGF_WORKBENCH_PERSISTENCE_DATABASE_URL")
+    if not url:
+        pytest.skip("requires explicitly marked disposable PostgreSQL")
+    from migrations.sgf_admin_workbench_v1 import TABLE_SPECS, upgrade
+
+    setup = _pg_connection(url)
+    try:
+        setup.execute(
+            "DROP TABLE IF EXISTS "
+            + ", ".join(f"public.{name}" for name in reversed(tuple(TABLE_SPECS)))
+            + " CASCADE"
+        )
+        setup.commit()
+        upgrade(setup)
+        setup.commit()
+    finally:
+        setup.close()
+
+    record = _record()
+    path = tmp_path / "questions.json"
+    _write(path, [record])
+    basis = wb.canonical_file_sha256(str(path))
+    predecessor = wb.direct_record_hash(record)
+    proposals = []
+    for x in (14, 15):
+        proposal = _proposed(record)
+        proposal["accepted_moves"][-1]["x"] = x
+        proposals.append(proposal)
+    results = []
+
+    def run(index):
+        conn = _pg_connection(url)
+        try:
+            try:
+                result = wb.apply_direct_question_edit(
+                    conn, questions_path=str(path), actor_id=index + 1,
+                    question_id=record["id"], record_index=0,
+                    expected_predecessor_hash=predecessor,
+                    expected_canonical_sha256=basis,
+                    action_type="ADD_ALTERNATIVE_CORRECT_MOVE", proposed_record=proposals[index],
+                    operation_id=f"pg-concurrent-{index}", retest_fn=lambda current: True,
+                )
+                results.append(("ok", result))
+            except Exception as error:
+                results.append(("error", str(error)))
+        finally:
+            conn.close()
+
+    threads = [threading.Thread(target=run, args=(index,)) for index in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+    assert len(results) == 2
+    assert sum(kind == "ok" for kind, _ in results) == 1
+    assert sum(kind == "error" and value == "stale_canonical_basis" for kind, value in results) == 1
