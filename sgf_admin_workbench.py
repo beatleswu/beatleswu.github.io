@@ -841,6 +841,10 @@ def rollback_direct_question_edit(conn, *, questions_path: str, actor_id: int,
         validation = validate_direct_record(restored, parse_sgf_fn=parse_sgf_fn)
         if not validation["ok"]:
             raise ValueError("rollback_record_invalid")
+        # Rollback is also a canonical mutation.  Reapply the same authority
+        # boundary so an old/legacy version cannot be used to promote GF003 or
+        # silently bypass an unresolved fallback conflict.
+        direct_apply_policy_check(current, restored)
         validation["canonical_before_sha256"] = _sha256(raw_before)
         validation["canonical_after_sha256"] = snapshot_sha
         _direct_atomic_write(questions_path, exact_snapshot)
