@@ -8678,6 +8678,32 @@ BOSS_ATTEMPT_MAX_MINUTES = 60
 # via _grant_coins(bypass_daily_cap=True), never subject to the daily coin cap.
 ADVENTURE_FIRST_CLEAR_REWARD_COINS = 200
 
+
+def _adventure_boss_question_is_active(question_id):
+    """Return whether *question_id* belongs to the current live boss exam.
+
+    A Lord Trial is an explicitly unlocked, server-created exam.  Its review
+    submissions must not be cut off by the ordinary free-practice daily cap;
+    otherwise a player can enter a valid trial but can never provide the
+    review_log evidence that the authoritative boss/finish route requires.
+    The same attempt time window used by boss/finish is enforced here so an
+    expired session cannot be used as a free-practice bypass.
+    """
+    exam = session.get('adventure_boss_exam') or {}
+    question_ids = exam.get('question_ids')
+    started_at_raw = exam.get('started_at')
+    if not isinstance(question_ids, list) or not started_at_raw:
+        return False
+    try:
+        question_id = int(question_id)
+        question_ids = {int(qid) for qid in question_ids}
+        started_at = datetime.datetime.fromisoformat(str(started_at_raw))
+    except (TypeError, ValueError):
+        return False
+    if datetime.datetime.now() > started_at + datetime.timedelta(minutes=BOSS_ATTEMPT_MAX_MINUTES):
+        return False
+    return question_id in question_ids
+
 # 每關綁定的劇情主線書（topic）。地圖通關只算這幾本，避免題量爆炸；
 # 額外大題庫（初階元素魔法導論、萬陣試煉、懸賞令…）不綁關卡，留給自由練習。
 ADVENTURE_ZONES = [
@@ -11200,6 +11226,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         return jsonify({'error':'參數錯誤'}), 400
 
     # ── 訂閱牆：免費用戶檢查 ────────────────────────────────
+    active_boss_question = (not internal and _adventure_boss_question_is_active(qid))
     if not internal and not is_premium():
         qs_map_check = {q['id']: q for q in _load_questions()}
         q_check = qs_map_check.get(qid, {})
@@ -11221,7 +11248,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         except Exception:
             pass
         _eff_limit = FREE_DAILY_LIMIT + _extra
-        if today_count >= _eff_limit:
+        if today_count >= _eff_limit and not active_boss_question:
             return jsonify({
                 'error':       'daily_limit',
                 'message':     f'免費版每日上限 {_eff_limit} 題，今日已完成 {today_count} 題',

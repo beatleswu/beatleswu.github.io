@@ -593,6 +593,24 @@
     #msg-box.ok   { background: var(--green-bg); color: var(--green); border-color: #bbf7d0; }
     #msg-box.err  { background: var(--red-bg); color: var(--red); border-color: #fecaca; }
     #msg-box.warn { background: var(--amber-bg); color: var(--amber); border-color: #fde68a; }
+    #boss-trial-progress {
+        display: none;
+        width: min(100%, 620px);
+        box-sizing: border-box;
+        margin: 0 auto 6px;
+        padding: 6px 12px;
+        border: 1px solid rgba(200,154,69,.72);
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(53,33,19,.96), rgba(33,20,12,.96));
+        color: #f4d58a;
+        text-align: center;
+        font: 600 11px/1.35 'DM Mono', monospace;
+        letter-spacing: .35px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        box-shadow: 0 2px 8px rgba(0,0,0,.16);
+    }
+    #boss-trial-progress.show { display: block; }
     #guild-quest-hud {
         position: relative; width: min(100%, 620px); box-sizing: border-box;
         padding: 10px 16px 11px; border: 3px double #c89a45; border-radius: 5px;
@@ -7458,6 +7476,7 @@
                         <div class="guild-quest-hud-track"><span id="guild-quest-hud-fill"></span></div>
                     </div>
                     <div id="msg-box" class="hidden" data-i18n="index.waiting">等待選題...</div>
+                    <div id="boss-trial-progress" aria-live="polite" aria-atomic="true"></div>
                     <div id="daily-limit-wall" class="daily-limit-wall" role="dialog" aria-modal="true" aria-labelledby="daily-limit-wall-title" hidden>
                         <div class="daily-limit-wall-card modal-system-card">
                             <div class="daily-limit-wall-kicker modal-system-eyebrow" data-i18n="index.free_limit_wall.eyebrow">✅ 今日練習完成</div>
@@ -11608,6 +11627,7 @@ let _bossZone = null;
 let _bossQueue = [];
 let _bossIndex = 0;
 let _bossCorrect = 0;
+let _bossFinishInFlight = false;
 let _pendingBossZone = null;
 let _bossAudioCtx = null;
 let _introFilmTimers = [];
@@ -16976,6 +16996,25 @@ function hideBossCinematic() {
     _pendingBossZone = null;
 }
 
+function _renderBossTrialProgress(current = _bossIndex + 1) {
+    const el = document.getElementById('boss-trial-progress');
+    const total = Number(_bossQueue?.length || 0);
+    if (!el || !total) return;
+    const position = Math.max(1, Math.min(total, Number(current) || 1));
+    el.textContent = I18n.t('index.boss.progress_status')
+        .replace('{current}', position)
+        .replace('{total}', total)
+        .replace('{correct}', _bossCorrect);
+    el.classList.add('show');
+}
+
+function _hideBossTrialProgress() {
+    const el = document.getElementById('boss-trial-progress');
+    if (!el) return;
+    el.classList.remove('show');
+    el.textContent = '';
+}
+
 async function _loadBossQuestion() {
     if (!_bossMode) return;
     if (_bossIndex >= _bossQueue.length) {
@@ -16985,6 +17024,10 @@ async function _loadBossQuestion() {
     const qid = _bossQueue[_bossIndex];
     const q = allQuestions.find(x => x.id == qid) || await fetch(`/api/question/${qid}`, { credentials:'include' }).then(r => r.json());
     await loadQuestion(q);
+    // Keep trial progress in a dedicated sibling node. #msg-box is a shared
+    // transient status surface and is intentionally overwritten by answer,
+    // explanation, and save-state messages.
+    _renderBossTrialProgress();
     setMsg(
         I18n.t('index.boss.progress_status')
             .replace('{current}', _bossIndex + 1)
@@ -16995,9 +17038,13 @@ async function _loadBossQuestion() {
 }
 
 async function _handleBossAnswer(grade) {
+    if (!_bossMode || _bossFinishInFlight) return;
     if (grade >= 3) _bossCorrect++;
     _bossIndex++;
     if (_bossIndex >= _bossQueue.length) {
+        // Show the final 20/20 position while the server-authoritative finish
+        // request settles; the displayed count never grants the clear.
+        _renderBossTrialProgress(_bossQueue.length);
         await _finishBossBattle();
     } else {
         await _loadBossQuestion();
@@ -17005,6 +17052,8 @@ async function _handleBossAnswer(grade) {
 }
 
 async function _finishBossBattle() {
+    if (_bossFinishInFlight) return;
+    _bossFinishInFlight = true;
     const total = _bossQueue.length;
     const correct = _bossCorrect;
     const zoneName = _bossZone?.nameEn || _bossZone?.name || I18n.t('index.boss.zone_default');
@@ -17017,11 +17066,22 @@ async function _finishBossBattle() {
             body: JSON.stringify({ correct, total })
         });
         const data = await res.json();
+        if (!data.ok) {
+            // Never leave the player with a vanished progress message and no
+            // explanation when the authoritative settlement fails closed.
+            setMsg(
+                I18n.t('index.boss.finish_fail') + (data.error ? ` (${data.error})` : ''),
+                'err'
+            );
+            return;
+        }
         if (data.ok) {
             const finishedZoneKey = _bossZone?.key;
             _adventureProgress = data.zones || _adventureProgress;
             const finishedZone = (_adventureProgress || []).find(z => z.key === finishedZoneKey)
                 || _bossZone;
+            const serverCorrect = Number.isFinite(Number(data.correct)) ? Number(data.correct) : correct;
+            const serverTotal = Number.isFinite(Number(data.total)) ? Number(data.total) : total;
             renderAdventureMap();
             _renderBossChallengeCard();
             invalidateE9AdventureStateCache();
@@ -17034,10 +17094,10 @@ async function _finishBossBattle() {
             if (finishedZone?.key === 'k26_30') {
                 showZone1LordResultCard({
                     passed: data.passed,
-                    correct,
-                    total,
+                    correct: serverCorrect,
+                    total: serverTotal,
                     cooldown: data.cooldown_left || finishedZone.cooldown_required || 30,
-                    bossExamSize: finishedZone.boss_exam_size || total || 20,
+                    bossExamSize: finishedZone.boss_exam_size || serverTotal || 20,
                     bossPassScore: finishedZone.boss_pass_score || 16,
                 }, finishedZone);
             } else if (finishedZone?.key === 'k21_25') {
@@ -17066,14 +17126,17 @@ async function _finishBossBattle() {
                     ? I18n.t('index.boss.finish_pass_msg')
                     : I18n.t('index.boss.finish_retry_msg'))
                     .replace('{name}', zoneName)
-                    .replace('{correct}', correct)
-                    .replace('{total}', total)
+                    .replace('{correct}', serverCorrect)
+                    .replace('{total}', serverTotal)
                     .replace('{cooldown}', data.cooldown_left || 30),
                 data.passed ? 'ok' : 'warn'
             );
+            _hideBossTrialProgress();
         }
     } catch (e) {
         setMsg(I18n.t('index.boss.finish_fail'), 'err');
+    } finally {
+        _bossFinishInFlight = false;
     }
 }
 
