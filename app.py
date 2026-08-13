@@ -15,6 +15,7 @@ from functools import wraps
 from collections import Counter
 import psycopg2
 import json, os, subprocess, threading, queue, uuid, time, sqlite3, datetime, secrets, bisect
+from decimal import Decimal
 import csv, io
 import math, re
 import mimetypes
@@ -65,8 +66,10 @@ from map_battle_persistence import (
     load_authoritative_battle_state,
 )
 from xp_settlement import (
+    FACTOR_SCALE,
     compare_xp_shadow,
     ensure_xp_settlement_schema,
+    factor_value_to_ppm,
     xp_shadow_enabled,
     xp_ledger_schema_enabled,
     xp_shadow_error_evidence,
@@ -142,9 +145,16 @@ def _observe_xp_shadow(
     source_marker,
     legacy_xp,
     base_xp,
+    additive_learning_bonuses=(),
+    combo_factor_ppm=FACTOR_SCALE,
+    support_factor_ppm=FACTOR_SCALE,
+    support_factors_ppm=(),
     premium_eligibility='PREMIUM_INELIGIBLE',
     already_premium_adjusted=False,
     legacy_premium_already_applied=False,
+    event_identity=None,
+    idempotency_key=None,
+    mismatch_hint=None,
 ):
     """Record bounded XP shadow evidence without touching the reward path.
 
@@ -155,10 +165,12 @@ def _observe_xp_shadow(
     if not xp_shadow_enabled():
         return None
 
-    source_digest = hashlib.sha256(str(source_id).encode('utf-8')).hexdigest()
-    event_identity = f'{source_marker}:user:{int(user_id)}:sha256:{source_digest}'
-    key_material = f'{source_type}|{int(user_id)}|{source_id}'.encode('utf-8')
-    idempotency_key = f'xp-shadow:{hashlib.sha256(key_material).hexdigest()}'
+    if event_identity is None:
+        source_digest = hashlib.sha256(str(source_id).encode('utf-8')).hexdigest()
+        event_identity = f'{source_marker}:user:{int(user_id)}:sha256:{source_digest}'
+    if idempotency_key is None:
+        key_material = f'{source_type}|{int(user_id)}|{source_id}'.encode('utf-8')
+        idempotency_key = f'xp-shadow:{hashlib.sha256(key_material).hexdigest()}'
     try:
         evidence = compare_xp_shadow(
             source_type=source_type,
@@ -168,9 +180,14 @@ def _observe_xp_shadow(
             idempotency_key=idempotency_key,
             legacy_xp=int(legacy_xp),
             base_xp=int(base_xp),
+            additive_learning_bonuses=additive_learning_bonuses,
+            combo_factor_ppm=combo_factor_ppm,
+            support_factor_ppm=support_factor_ppm,
+            support_factors_ppm=support_factors_ppm,
             premium_eligibility=premium_eligibility,
             already_premium_adjusted=already_premium_adjusted,
             legacy_premium_already_applied=legacy_premium_already_applied,
+            mismatch_hint=mismatch_hint,
         ).as_dict()
         app.logger.info(
             'xp_shadow_comparison %s',
@@ -5610,7 +5627,9 @@ def _gain_sp(conn, uid, amount):
     conn.execute('UPDATE player_sp SET current_sp=? WHERE user_id=?', (new_sp, uid))
     return new_sp
 
-def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak, today_str, should_grant_progress=True):
+def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
+                               today_str, should_grant_progress=True,
+                               shadow_events=None):
     # 從題目取攻擊力（怪物反擊傷害），HP 由戰場系統管理
     monster_atk = q_info.get('monster_atk', 8)
 
@@ -5719,6 +5738,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak, toda
         monster_type=monster_type,
         combo_streak=combo_streak,
         progress_eligible=should_grant_progress,
+        shadow_events=shadow_events,
     )
 
     # ── KO 懲罰：扣 SP ──────────────────────────────────────
@@ -5803,6 +5823,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak, toda
         'sp':              sp_result,
         'loot':            loot_result,
         'appearance_loot': appearance_loot,
+        **({'_xp_shadow_inputs': shadow_events} if shadow_events is not None else {}),
     }
 
 
@@ -5875,7 +5896,8 @@ def monster_status():
 
 
 def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
-                         monster_type, combo_streak, progress_eligible=True):
+                         monster_type, combo_streak, progress_eligible=True,
+                         shadow_events=None):
     results          = []
     non_bonus_done   = 0
 
@@ -5938,6 +5960,19 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                 (prog, int(prog >= target), xp_awarded, uid, key, today_str)
             )
             completed = (prog >= target)
+            if shadow_events is not None and xp_awarded:
+                shadow_events.append({
+                    'source_type': 'DAILY_QUEST',
+                    'source_id': f'{today_str}:{key}',
+                    'source_marker': 'daily_quests(user_id,quest_key,quest_date).xp_awarded',
+                    'event_identity': (
+                        f'daily_quests:user:{int(uid)}:date:{today_str}:key:{key}:completion'
+                    ),
+                    'idempotency_key': f'xp-shadow:daily-quest:{int(uid)}:{today_str}:{key}',
+                    'legacy_xp': int(xp_awarded),
+                    'base_xp': int(xp_awarded),
+                    'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                })
 
         if not q.get('bonus') and completed:
             non_bonus_done += 1
@@ -5976,6 +6011,21 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                 'WHERE user_id=? AND quest_key=? AND quest_date=?',
                 (bxp, uid, 'all_complete', today_str)
             )
+            if shadow_events is not None:
+                shadow_events.append({
+                    'source_type': 'DAILY_QUEST_ALL_COMPLETE',
+                    'source_id': f'{today_str}:all_complete',
+                    'source_marker': 'daily_quests(user_id,quest_key,quest_date).xp_awarded',
+                    'event_identity': (
+                        f'daily_quests:user:{int(uid)}:date:{today_str}:key:all_complete:completion'
+                    ),
+                    'idempotency_key': (
+                        f'xp-shadow:daily-quest-all-complete:{int(uid)}:{today_str}'
+                    ),
+                    'legacy_xp': int(bxp),
+                    'base_xp': int(bxp),
+                    'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                })
 
     return results
 
@@ -11425,6 +11475,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             }), 429
 
     now = datetime.datetime.now().isoformat()
+    review_shadow_input = None
+    quest_shadow_inputs = []
 
     qs_map = {q['id']: q for q in _load_questions()}
     q_info = qs_map.get(qid, {})
@@ -11557,6 +11609,9 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         pet_xp_added = 0          # 本次由棋靈夥伴帶來的額外 XP
         pet_xp_ratio = 0.0
         pet_xp_gained = 0         # 本次寵物實際獲得的 XP
+        review_shadow_base_xp = 0
+        review_shadow_additive_bonuses = ()
+        review_shadow_support_values = []
         new_rank_level = rank_level
         # 裝備外觀加成
         _appear_fx = _get_appearance_effects(uid, conn)
@@ -11574,10 +11629,20 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
             if should_grant_progress:
                 diff = q_info.get('difficulty', '')
+                review_shadow_base_xp = XP_BY_DIFF.get(diff, 10)
+                review_shadow_additive_bonuses = tuple(
+                    bonus for bonus, enabled in (
+                        (XP_FIRST_CORRECT, is_new),
+                        (XP_MISTAKE_CORRECT, is_mc),
+                    ) if enabled
+                )
                 xp_gain, combo_mult = calc_xp_gain(diff, combo_streak, is_new, is_mc)
                 # 套用外觀 XP 加成（光環 / 袍服 / 配飾）
                 if _appear_fx.get('xp_bonus', 0) > 0:
                     xp_gain = int(xp_gain * (1 + _appear_fx['xp_bonus']))
+                    review_shadow_support_values.append(
+                        Decimal('1') + Decimal(str(_appear_fx['xp_bonus']))
+                    )
                 # 棋靈夥伴 XP 加成（陪練）
                 _pet_xp_b = _pet_player_xp_bonus(conn, uid, {'combo': combo_streak, 'is_mc': is_mc})
                 if _pet_xp_b > 0:
@@ -11585,14 +11650,72 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     xp_gain = int(xp_gain * (1 + _pet_xp_b))
                     pet_xp_added = xp_gain - _xp_before_pet
                     pet_xp_ratio = _pet_xp_b
+                    review_shadow_support_values.append(
+                        Decimal('1') + Decimal(str(_pet_xp_b))
+                    )
                 # XP 藥水（商城道具）：30 分鐘內 ×1.5
                 try:
                     _potion = _effect_get(conn, uid, 'xp_potion')
                     if _potion:
-                        xp_gain = int(xp_gain * float(_potion['value'] or 1.5))
+                        _potion_factor = _potion['value'] or 1.5
+                        xp_gain = int(xp_gain * float(_potion_factor))
                         xp_potion_active = True
+                        review_shadow_support_values.append(Decimal(str(_potion_factor)))
                 except Exception:
                     pass
+                try:
+                    if internal:
+                        review_source_id = f'map-battle:{submission_id}'
+                        review_event_identity = (
+                            f'review_log:map_battle:submission:{submission_id}:user:{uid}'
+                        )
+                        review_idempotency_key = (
+                            f'xp-shadow:review:map-battle:{uid}:{submission_id}'
+                        )
+                        review_source_marker = 'review_log(user_id,source_context)'
+                    else:
+                        review_source_id = f'question:{int(qid)}'
+                        review_event_identity = (
+                            f'srs_cards.progress_credited:user:{uid}:question:{int(qid)}'
+                        )
+                        review_idempotency_key = (
+                            f'xp-shadow:review:credited:{uid}:{int(qid)}'
+                        )
+                        review_source_marker = (
+                            'srs_cards(user_id,question_id).progress_credited'
+                        )
+                    review_shadow_input = {
+                        'source_type': 'REVIEW_SUBMISSION',
+                        'source_id': review_source_id,
+                        'source_marker': review_source_marker,
+                        'event_identity': review_event_identity,
+                        'idempotency_key': review_idempotency_key,
+                        'legacy_xp': int(xp_gain),
+                        'base_xp': int(review_shadow_base_xp),
+                        'additive_learning_bonuses': review_shadow_additive_bonuses,
+                        'combo_factor_ppm': factor_value_to_ppm(
+                            Decimal(str(combo_mult)), 'combo_factor'
+                        ),
+                        'support_factors_ppm': tuple(
+                            factor_value_to_ppm(value, 'support_factor')
+                            for value in review_shadow_support_values
+                        ),
+                        'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                        'legacy_premium_already_applied': False,
+                    }
+                except Exception as exc:
+                    review_shadow_input = None
+                    app.logger.warning(
+                        'xp_shadow_comparison %s',
+                        json.dumps({
+                            'source_type': 'REVIEW_SUBMISSION',
+                            'source_id': str(qid)[:255],
+                            'mismatch_category': 'ERROR_FAIL_CLOSED',
+                            'error_class': type(exc).__name__,
+                            'side_effect_free': True,
+                            'legacy_reward_preserved': True,
+                        }, sort_keys=True),
+                    )
                 xp      += xp_gain
                 rank_xp += xp_gain
                 if pet_row and _decayed_fullness(pet_row) > 0:
@@ -11673,15 +11796,19 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         conn.commit()
 
         monster_data = {}
+        quest_shadow_events = [] if xp_shadow_enabled() else None
         try:
             monster_data = _update_monster_and_quests(
                 conn, uid, qid, grade, q_info, combo_streak,
                 datetime.date.today().isoformat(),
                 should_grant_progress=should_grant_progress,
+                shadow_events=quest_shadow_events,
             )
             conn.commit()
+            quest_shadow_inputs = monster_data.pop('_xp_shadow_inputs', [])
         except Exception:
             conn.rollback()
+            quest_shadow_inputs = []
             app.logger.exception('optional monster/quest update failed after answer %s for user %s', qid, uid)
 
         # ── 同步法典純淨度 (grimoire_api 系統) ─────────────────────
@@ -11756,6 +11883,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 app.logger.exception('optional grimoire update failed after answer %s for user %s', qid, uid)
 
         pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+
+    if review_shadow_input:
+        _observe_xp_shadow(user_id=uid, **review_shadow_input)
+    for quest_shadow_input in quest_shadow_inputs:
+        _observe_xp_shadow(user_id=uid, **quest_shadow_input)
 
     return jsonify({
         'ok': True, 'ease_factor': ef, 'interval': iv, 'due_date': due,
@@ -16808,6 +16940,7 @@ def friend_challenge_answer(cid):
     data = request.get_json() or {}
     qid  = data.get('question_id')
     correct = 1 if data.get('correct') else 0
+    friend_shadow_input = None
 
     if qid is None:
         return jsonify({'error': '缺少 question_id'}), 400
@@ -16870,8 +17003,34 @@ def friend_challenge_answer(cid):
                 my_correct_final=my_correct,
                 opp_correct_final=opp_correct,
             )
+            if rewards is not None:
+                result_bonus = (
+                    30 if rewards.get('result') == 'win'
+                    else 10 if rewards.get('result') == 'draw'
+                    else 0
+                )
+                friend_shadow_input = {
+                    'source_type': 'FRIEND_CHALLENGE_REWARD',
+                    'source_id': f'{int(cid)}:{int(uid)}',
+                    'source_marker': (
+                        'friend_challenge_answers(challenge_id,user_id,question_id):completion'
+                    ),
+                    'event_identity': (
+                        f'friend_challenge_reward:challenge:{int(cid)}:user:{int(uid)}'
+                    ),
+                    'idempotency_key': (
+                        f'xp-shadow:friend-challenge-reward:{int(cid)}:{int(uid)}'
+                    ),
+                    'legacy_xp': int(rewards.get('xp') or 0),
+                    'base_xp': int(my_correct * 5),
+                    'additive_learning_bonuses': ((result_bonus,) if result_bonus else ()),
+                    'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                }
 
         conn.commit()
+
+    if friend_shadow_input:
+        _observe_xp_shadow(user_id=uid, **friend_shadow_input)
 
     try:
         import shadow_judging
