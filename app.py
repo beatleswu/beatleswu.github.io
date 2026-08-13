@@ -65,8 +65,11 @@ from map_battle_persistence import (
     load_authoritative_battle_state,
 )
 from xp_settlement import (
+    compare_xp_shadow,
     ensure_xp_settlement_schema,
+    xp_shadow_enabled,
     xp_ledger_schema_enabled,
+    xp_shadow_error_evidence,
 )
 from sgf_answer_review_queue import ensure_review_queue_tables
 from sgf_admin_workbench import (
@@ -125,6 +128,66 @@ app.register_blueprint(grimoire_bp)
 _startup_diagnostics.mark('application_creation', 'success')
 
 _ACCEPTANCE_SOURCE_SHA_PATTERN = re.compile(r'^[0-9a-f]{40}$')
+
+
+def _observe_xp_shadow(
+    *,
+    user_id,
+    source_type,
+    source_id,
+    source_marker,
+    legacy_xp,
+    base_xp,
+    premium_eligibility='PREMIUM_INELIGIBLE',
+    already_premium_adjusted=False,
+    legacy_premium_already_applied=False,
+):
+    """Record bounded XP shadow evidence without touching the reward path.
+
+    The existing writer remains authoritative.  This helper is deliberately
+    called only after its source marker has won and never receives a database
+    connection, so a shadow failure cannot consume a grant or alter a reply.
+    """
+    if not xp_shadow_enabled():
+        return None
+
+    source_digest = hashlib.sha256(str(source_id).encode('utf-8')).hexdigest()
+    event_identity = f'{source_marker}:user:{int(user_id)}:sha256:{source_digest}'
+    key_material = f'{source_type}|{int(user_id)}|{source_id}'.encode('utf-8')
+    idempotency_key = f'xp-shadow:{hashlib.sha256(key_material).hexdigest()}'
+    try:
+        evidence = compare_xp_shadow(
+            source_type=source_type,
+            source_id=str(source_id),
+            source_marker=source_marker,
+            event_identity=event_identity,
+            idempotency_key=idempotency_key,
+            legacy_xp=int(legacy_xp),
+            base_xp=int(base_xp),
+            premium_eligibility=premium_eligibility,
+            already_premium_adjusted=already_premium_adjusted,
+            legacy_premium_already_applied=legacy_premium_already_applied,
+        ).as_dict()
+        app.logger.info(
+            'xp_shadow_comparison %s',
+            json.dumps(evidence, sort_keys=True, ensure_ascii=True),
+        )
+        return evidence
+    except Exception as exc:
+        # Observational failure is explicitly fail-closed and must never make
+        # the legacy reward fail.  Do not serialize exception messages.
+        evidence = xp_shadow_error_evidence(
+            source_type=source_type,
+            source_id=str(source_id),
+            source_marker=source_marker,
+            event_identity=event_identity,
+            error=exc,
+        )
+        app.logger.warning(
+            'xp_shadow_comparison %s',
+            json.dumps(evidence, sort_keys=True, ensure_ascii=True),
+        )
+        return None
 
 def _acceptance_mode():
     """Return True only for the explicitly isolated LAN acceptance profile."""
@@ -12017,6 +12080,7 @@ def rewards_sync():
 
         granted = []; tot_c = tot_x = 0
         won_keys = []
+        xp_shadow_inputs = []
         for k in new_keys:
             seg = segments.get(k)
             if not seg:
@@ -12035,6 +12099,17 @@ def rewards_sync():
             won_keys.append(k)
             tot_c += c; tot_x += x
             granted.append(_quest_public_meta(seg, practiced_ids))
+            xp_shadow_inputs.append({
+                'source_type': 'QUEST_BOARD_STAGE',
+                'source_id': k,
+                'source_marker': 'reward_claimed(user_id,stage_key)',
+                'legacy_xp': x,
+                'base_xp': x,
+                # Premium changes the accessible segment shape before this
+                # writer receives ``seg``; it is not a second 18% XP factor.
+                'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                'legacy_premium_already_applied': False,
+            })
         if won_keys:
             conn.execute(
                 'INSERT INTO user_stats(user_id,coins,xp,updated_at) VALUES(?,?,?,?) '
@@ -12045,6 +12120,9 @@ def rewards_sync():
                 conn.execute('DELETE FROM quest_accepted WHERE user_id=? AND quest_key=?', (uid, k))
         row = conn.execute('SELECT coins, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         conn.commit()
+
+    for shadow_input in xp_shadow_inputs:
+        _observe_xp_shadow(user_id=uid, **shadow_input)
 
     return jsonify({
         'granted': granted,
@@ -12876,6 +12954,7 @@ def dc_submit():
         return jsonify({'error': '題庫為空'}), 503
 
     now = datetime.datetime.now().isoformat()
+    xp_shadow_input = None
     with get_db() as conn:
         existing = conn.execute(
             'SELECT id FROM daily_challenge_log '
@@ -12894,6 +12973,15 @@ def dc_submit():
 
         xp_awarded = DAILY_CHALLENGE_XP_REWARD if correct else 0
         if xp_awarded:
+            xp_shadow_input = {
+                'source_type': 'DAILY_CHALLENGE',
+                'source_id': f'{today}:{dc["question_id"]}',
+                'source_marker': 'daily_challenge_log(user_id,challenge_date)',
+                'legacy_xp': xp_awarded,
+                'base_xp': xp_awarded,
+                'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                'legacy_premium_already_applied': False,
+            }
             row = conn.execute(
                 'SELECT xp FROM user_stats WHERE user_id=?',
                 (uid,)
@@ -12934,6 +13022,9 @@ def dc_submit():
         streak = get_daily_submit_streak(uid, today)
         new_appear_ids = give_daily_appearance(conn, uid, streak)
         conn.commit()
+
+    if xp_shadow_input:
+        _observe_xp_shadow(user_id=uid, **xp_shadow_input)
 
     try:
         import shadow_judging
