@@ -12,6 +12,8 @@ import hashlib
 import json
 import os
 import tempfile
+import base64
+import gzip
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from itertools import count
@@ -57,6 +59,13 @@ DIRECT_APPLY_ACTIONS = (
     "REBUILD_QUESTION",
 )
 
+# These records are governed by the existing SGF quality contracts.  They are
+# deliberately kept as policy data at the mutation boundary rather than in
+# the UI, so a caller cannot promote them by bypassing the browser.
+GF003_QUESTION_IDS = frozenset({431})
+HISTORICAL_FALLBACK_CONFLICT_QUESTION_IDS = frozenset({15436, 15388, 65095})
+_DIRECT_SNAPSHOT_MARKER = "sgf_direct_snapshot_v1"
+
 
 def _is_sqlite(conn) -> bool:
     raw = getattr(conn, "_conn", conn)
@@ -92,6 +101,12 @@ def _sha256(value: bytes | str) -> str:
     return hashlib.sha256(value if isinstance(value, bytes) else value.encode("utf-8")).hexdigest()
 
 
+def canonical_file_sha256(path: str) -> str:
+    """Return the byte hash of the canonical JSON file used by Direct Apply."""
+    with open(path, "rb") as handle:
+        return _sha256(handle.read())
+
+
 def direct_record_hash(record: Any) -> str:
     """Hash one question record independent of JSON whitespace/key order."""
     return _sha256(_json(record if isinstance(record, dict) else {}))
@@ -112,6 +127,75 @@ def _direct_atomic_write(path: str, payload: bytes) -> None:
         except OSError:
             pass
         raise
+
+
+@contextmanager
+def _canonical_mutation_lock(path: str):
+    """Serialize all writers for one canonical file across operation IDs.
+
+    PostgreSQL advisory locking protects processes sharing the Workbench DB;
+    this sidecar lock also protects a shared content volume and SQLite/local
+    acceptance runs.  The sidecar is intentionally not the corpus itself.
+    """
+    # Keep the lock marker outside the canonical-content directory so a
+    # request cannot leave an untracked sibling beside questions.json.  The
+    # absolute path digest makes all local processes targeting the same file
+    # share one lock while different acceptance fixtures remain independent.
+    lock_name = f"go-odyssey-direct-apply-{_sha256(os.path.abspath(path))[:32]}.lock"
+    lock_path = os.path.join(tempfile.gettempdir(), lock_name)
+    handle = open(lock_path, "a+b")
+    try:
+        handle.seek(0, os.SEEK_END)
+        if handle.tell() == 0:
+            handle.write(b"\0")
+            handle.flush()
+        handle.seek(0)
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        finally:
+            handle.close()
+
+
+def _snapshot_payload(record: dict, raw_bytes: bytes) -> dict:
+    """Store the old record plus exact whole-file bytes without a new column."""
+    compressed = gzip.compress(raw_bytes, compresslevel=6, mtime=0)
+    return {
+        "_snapshot_marker": _DIRECT_SNAPSHOT_MARKER,
+        "record": record,
+        "canonical_sha256": _sha256(raw_bytes),
+        "canonical_bytes_gzip_b64": base64.b64encode(compressed).decode("ascii"),
+    }
+
+
+def _unwrap_snapshot(value: Any) -> tuple[dict, bytes | None, str | None]:
+    """Read new snapshot envelopes and retain compatibility with old rows."""
+    if not isinstance(value, dict) or value.get("_snapshot_marker") != _DIRECT_SNAPSHOT_MARKER:
+        return value if isinstance(value, dict) else {}, None, None
+    record = value.get("record")
+    encoded = value.get("canonical_bytes_gzip_b64")
+    try:
+        raw = gzip.decompress(base64.b64decode(str(encoded), validate=True))
+    except (TypeError, ValueError, OSError):
+        raw = None
+    return record if isinstance(record, dict) else {}, raw, str(value.get("canonical_sha256") or "") or None
 
 
 def _direct_load_questions(path: str) -> tuple[bytes, list[dict]]:
@@ -175,6 +259,55 @@ class InvalidWorkbenchState(WorkbenchPersistenceError):
 
 class StaleWorkbenchState(WorkbenchPersistenceError):
     """The caller attempted to write from an obsolete review-item version."""
+
+
+class DirectApplyPolicyError(WorkbenchPersistenceError):
+    """The governed SGF policy refuses a canonical direct mutation."""
+
+
+class DirectApplyRetestFailed(WorkbenchPersistenceError):
+    """The mandatory same-question retest failed after a file write."""
+
+    def __init__(self, result: Any, *, before_sha256: str, after_sha256: str):
+        super().__init__("direct_retest_failed")
+        self.result = result
+        self.before_sha256 = before_sha256
+        self.after_sha256 = after_sha256
+
+
+class DirectApplyRecoveryError(WorkbenchPersistenceError):
+    """The canonical bytes could not be restored after a failed mutation."""
+
+
+def direct_apply_policy_check(current: dict, proposed: dict) -> None:
+    """Reject locked or unresolved authority before any canonical write."""
+    try:
+        question_id = int(current.get("id"))
+    except (TypeError, ValueError):
+        question_id = None
+    source = str(current.get("source") or current.get("fixture") or "").strip().lower()
+    if question_id in GF003_QUESTION_IDS or source in {"fixture431", "gf003", "gf-003"}:
+        raise DirectApplyPolicyError("gf003_direct_apply_denied")
+
+    # A non-empty historical fallback remains part of the effective runtime
+    # authority.  Direct Apply cannot infer whether an answer edit resolves or
+    # conflicts with it, so all unresolved fallback-bearing records fail closed.
+    fallback = str(current.get("katago_best_move") or "").strip()
+    if fallback and (
+        question_id in HISTORICAL_FALLBACK_CONFLICT_QUESTION_IDS
+        or str(proposed.get("katago_best_move") or "").strip() != fallback
+        or current.get("accepted_moves") != proposed.get("accepted_moves")
+        or current.get("content") != proposed.get("content")
+    ):
+        raise DirectApplyPolicyError("historical_fallback_conflict")
+
+
+def _retest_result_ok(result: Any) -> bool:
+    if result is True:
+        return True
+    if isinstance(result, dict):
+        return result.get("ok") is True or result.get("passed") is True
+    return False
 
 
 _SAVEPOINTS = count(1)
@@ -245,6 +378,19 @@ class WorkbenchRepository:
         if _is_sqlite(self.conn):
             return
         digest = hashlib.sha256(f"{operation_id}:{int(question_id)}".encode("utf-8")).digest()
+        lock_key = int.from_bytes(digest[:8], "big", signed=True)
+        self.conn.execute("SELECT pg_advisory_xact_lock(?)", (lock_key,)).fetchone()
+
+    def lock_canonical_source(self, questions_path: str) -> None:
+        """Serialize all Direct Apply writers for one canonical source.
+
+        The operation-id lock above only deduplicates retries of one request.
+        This second lock is deliberately path-scoped so distinct operation IDs
+        cannot race through a read/modify/write cycle.
+        """
+        if _is_sqlite(self.conn):
+            return
+        digest = hashlib.sha256(os.path.abspath(questions_path).encode("utf-8")).digest()
         lock_key = int.from_bytes(digest[:8], "big", signed=True)
         self.conn.execute("SELECT pg_advisory_xact_lock(?)", (lock_key,)).fetchone()
 
@@ -481,6 +627,9 @@ def _serialize_direct_version(row: Any) -> dict:
     for key in ("old_record_json", "new_record_json", "validation_result_json"):
         target = key.removesuffix("_json")
         result[target] = _loads(result.pop(key, None), {})
+    result["old_record"], _raw_snapshot, snapshot_sha = _unwrap_snapshot(result["old_record"])
+    if snapshot_sha:
+        result["canonical_snapshot_sha256"] = snapshot_sha
     return result
 
 
@@ -509,10 +658,18 @@ def list_direct_versions(conn, *, question_id: int, record_index: int | None = N
 def apply_direct_question_edit(conn, *, questions_path: str, actor_id: int,
                                question_id: int, record_index: int,
                                expected_predecessor_hash: str,
+                               expected_canonical_sha256: str,
                                action_type: str, proposed_record: dict,
-                               operation_id: str, parse_sgf_fn=None,
+                               operation_id: str, retest_fn,
+                               parse_sgf_fn=None,
                                now: str | None = None) -> dict:
-    """Atomically apply one validated Admin Play edit with idempotency."""
+    """Apply one Admin Play edit only after a mandatory same-question retest.
+
+    The canonical file lock and the path-scoped PostgreSQL advisory lock are
+    both held across the read/verify/write/version/audit sequence.  This makes
+    the predecessor and whole-file SHA a real CAS boundary for distinct
+    operation IDs, not merely an idempotency check for one retry.
+    """
     ensure_sgf_workbench_tables(conn)
     action = str(action_type or "").strip().upper()
     if action not in DIRECT_APPLY_ACTIONS or action == "REBUILD_QUESTION":
@@ -523,124 +680,205 @@ def apply_direct_question_edit(conn, *, questions_path: str, actor_id: int,
     expected = str(expected_predecessor_hash or "").strip().lower()
     if len(expected) != 64 or any(ch not in "0123456789abcdef" for ch in expected):
         raise ValueError("predecessor_hash_required")
+    expected_source = str(expected_canonical_sha256 or "").strip().lower()
+    if len(expected_source) != 64 or any(ch not in "0123456789abcdef" for ch in expected_source):
+        raise ValueError("canonical_basis_sha256_required")
+    if not callable(retest_fn):
+        raise ValueError("retest_required")
+
     repo = WorkbenchRepository(conn)
-    repo.lock_direct_operation(operation, int(question_id))
-    existing = conn.execute(
-        "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
-    ).fetchone()
-    if existing:
-        result = _serialize_direct_version(existing)
-        result["duplicate"] = True
-        return result
-    raw_before, records = _direct_load_questions(questions_path)
-    record_count_before = len(records)
-    matches = [(idx, row) for idx, row in enumerate(records) if row.get("id") == int(question_id)]
-    if len(matches) != 1:
-        raise LookupError("question_identity_not_unique")
-    actual_index, old_record = matches[0]
-    if int(record_index) != actual_index:
-        raise ValueError("record_index_mismatch")
-    predecessor_hash = direct_record_hash(old_record)
-    if predecessor_hash != expected:
-        raise ValueError("stale_predecessor")
-    if not isinstance(proposed_record, dict) or int(proposed_record.get("id", 0)) != int(question_id):
-        raise ValueError("question_identity_changed")
-    proposed = json.loads(_json(proposed_record))
-    validation = validate_direct_record(proposed, parse_sgf_fn=parse_sgf_fn)
-    if not validation["ok"]:
-        raise ValueError(";".join(validation["errors"]))
-    if len(records) != record_count_before:
-        raise ValueError("record_count_changed")
-    new_hash = direct_record_hash(proposed)
-    if new_hash == predecessor_hash:
-        raise ValueError("no_change")
-    records[actual_index] = proposed
-    raw_after = (json.dumps(records, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    _direct_atomic_write(questions_path, raw_after)
-    timestamp = _now(now)
-    predecessor_version = f"{predecessor_hash[:16]}:{actual_index}"
-    new_version = f"{new_hash[:16]}:{actual_index}"
-    try:
-        with repo.atomic("direct_version"):
-            row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
-                (question_id, record_index, predecessor_hash, new_hash,
-                 predecessor_version, new_version, operation_id, action_type,
-                 actor_id, old_record_json, new_record_json, validation_result_json,
-                 rollback_reference, source, status, created_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
-                int(question_id), actual_index, predecessor_hash, new_hash,
-                predecessor_version, new_version, operation, action, int(actor_id),
-                _json(old_record), _json(proposed), _json(validation), None,
-                DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
-            )).fetchone()
-            version = _serialize_direct_version(row)
-            repo.audit("sgf_workbench_direct_version", version["id"], actor_id,
-                       "DIRECT_APPLY", {
-                           "question_id": int(question_id), "action_type": action,
-                           "predecessor_hash": predecessor_hash, "new_hash": new_hash,
-                           "operation_id": operation, "validation": validation,
-                           "source": DIRECT_APPLY_SOURCE,
-                       }, timestamp)
+    with _canonical_mutation_lock(questions_path):
+        repo.lock_canonical_source(questions_path)
+        repo.lock_direct_operation(operation, int(question_id))
+        existing = conn.execute(
+            "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
+        ).fetchone()
+        if existing:
+            result = _serialize_direct_version(existing)
+            result["duplicate"] = True
+            return result
+
+        raw_before, records = _direct_load_questions(questions_path)
+        canonical_before_sha256 = _sha256(raw_before)
+        if canonical_before_sha256 != expected_source:
+            raise ValueError("stale_canonical_basis")
+        record_count_before = len(records)
+        matches = [(idx, row) for idx, row in enumerate(records) if row.get("id") == int(question_id)]
+        if len(matches) != 1:
+            raise LookupError("question_identity_not_unique")
+        actual_index, old_record = matches[0]
+        if int(record_index) != actual_index:
+            raise ValueError("record_index_mismatch")
+        predecessor_hash = direct_record_hash(old_record)
+        if predecessor_hash != expected:
+            raise ValueError("stale_predecessor")
+        if not isinstance(proposed_record, dict) or int(proposed_record.get("id", 0)) != int(question_id):
+            raise ValueError("question_identity_changed")
+        proposed = json.loads(_json(proposed_record))
+        direct_apply_policy_check(old_record, proposed)
+        validation = validate_direct_record(proposed, parse_sgf_fn=parse_sgf_fn)
+        if not validation["ok"]:
+            raise ValueError(";".join(validation["errors"]))
+        if len(records) != record_count_before:
+            raise ValueError("record_count_changed")
+        new_hash = direct_record_hash(proposed)
+        if new_hash == predecessor_hash:
+            raise ValueError("no_change")
+        records[actual_index] = proposed
+        raw_after = (json.dumps(records, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        canonical_after_sha256 = _sha256(raw_after)
+        validation["canonical_before_sha256"] = canonical_before_sha256
+        validation["canonical_after_sha256"] = canonical_after_sha256
+
+        _direct_atomic_write(questions_path, raw_after)
+        try:
+            try:
+                retest_result = retest_fn(proposed)
+            except Exception as error:
+                retest_result = {"ok": False, "error": "retest_exception", "type": type(error).__name__}
+            if not _retest_result_ok(retest_result):
+                raise DirectApplyRetestFailed(
+                    retest_result,
+                    before_sha256=canonical_before_sha256,
+                    after_sha256=canonical_after_sha256,
+                )
+            validation["retest"] = retest_result if isinstance(retest_result, dict) else {"ok": True}
+            timestamp = _now(now)
+            predecessor_version = f"{predecessor_hash[:16]}:{actual_index}"
+            new_version = f"{new_hash[:16]}:{actual_index}"
+            with repo.atomic("direct_version"):
+                row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
+                    (question_id, record_index, predecessor_hash, new_hash,
+                     predecessor_version, new_version, operation_id, action_type,
+                     actor_id, old_record_json, new_record_json, validation_result_json,
+                     rollback_reference, source, status, created_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
+                    int(question_id), actual_index, predecessor_hash, new_hash,
+                    predecessor_version, new_version, operation, action, int(actor_id),
+                    _json(_snapshot_payload(old_record, raw_before)), _json(proposed),
+                    _json(validation), None, DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
+                )).fetchone()
+                version = _serialize_direct_version(row)
+                repo.audit("sgf_workbench_direct_version", version["id"], actor_id,
+                           "DIRECT_APPLY", {
+                               "question_id": int(question_id), "action_type": action,
+                               "predecessor_hash": predecessor_hash, "new_hash": new_hash,
+                               "canonical_before_sha256": canonical_before_sha256,
+                               "canonical_after_sha256": canonical_after_sha256,
+                               "operation_id": operation, "validation": validation,
+                               "source": DIRECT_APPLY_SOURCE,
+                           }, timestamp)
+            # Direct Apply is a transaction root: do not return APPLIED while
+            # the version/audit rows are still waiting for an outer request
+            # context to commit.  If this commit fails, the exception path
+            # below restores the exact canonical bytes.
+            conn.commit()
             return version
-    except Exception:
-        _direct_atomic_write(questions_path, raw_before)
-        raise
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            try:
+                _direct_atomic_write(questions_path, raw_before)
+            except Exception as restore_error:
+                raise DirectApplyRecoveryError("direct_apply_restore_failed") from restore_error
+            raise
 
 
 def rollback_direct_question_edit(conn, *, questions_path: str, actor_id: int,
                                   version_id: int, operation_id: str,
                                   parse_sgf_fn=None, now: str | None = None) -> dict:
     ensure_sgf_workbench_tables(conn)
-    original = get_direct_version(conn, int(version_id))
-    if not original:
+    raw_version = conn.execute(
+        "SELECT * FROM sgf_workbench_direct_versions WHERE id=?", (int(version_id),)
+    ).fetchone()
+    original = _serialize_direct_version(raw_version) if raw_version else None
+    if not original or not raw_version:
         raise LookupError("direct_version_not_found")
     operation = str(operation_id or "").strip()
     if not operation:
         raise ValueError("operation_id_required")
+    stored_old = _loads(raw_version["old_record_json"], {})
+    restored, exact_snapshot, snapshot_sha = _unwrap_snapshot(stored_old)
+    if exact_snapshot is None or not snapshot_sha:
+        raise ValueError("rollback_snapshot_missing")
+    if _sha256(exact_snapshot) != str(snapshot_sha).lower():
+        raise ValueError("rollback_snapshot_invalid")
+    expected_after = (original.get("validation_result") or {}).get("canonical_after_sha256")
+    if not expected_after:
+        raise ValueError("rollback_snapshot_metadata_missing")
+
     repo = WorkbenchRepository(conn)
-    repo.lock_direct_operation(operation, int(original["question_id"]))
-    existing = conn.execute(
-        "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
-    ).fetchone()
-    if existing:
-        result = _serialize_direct_version(existing)
-        result["duplicate"] = True
-        return result
-    raw_before, records = _direct_load_questions(questions_path)
-    matches = [(idx, row) for idx, row in enumerate(records) if row.get("id") == int(original["question_id"])]
-    if len(matches) != 1 or matches[0][0] != int(original["record_index"]):
-        raise LookupError("question_identity_not_unique")
-    idx, current = matches[0]
-    if direct_record_hash(current) != original["new_hash"]:
-        raise ValueError("rollback_stale_predecessor")
-    restored = json.loads(_json(original["old_record"]))
-    validation = validate_direct_record(restored, parse_sgf_fn=parse_sgf_fn)
-    if not validation["ok"]:
-        raise ValueError("rollback_record_invalid")
-    records[idx] = restored
-    raw_after = (json.dumps(records, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    _direct_atomic_write(questions_path, raw_after)
-    timestamp = _now(now)
-    try:
-        with repo.atomic("rollback_version"):
-            row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
-                (question_id, record_index, predecessor_hash, new_hash,
-                 predecessor_version, new_version, operation_id, action_type,
-                 actor_id, old_record_json, new_record_json, validation_result_json,
-                 rollback_reference, source, status, created_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
-                int(original["question_id"]), idx, original["new_hash"], original["predecessor_hash"],
-                original["new_version"], original["predecessor_version"], operation,
-                "ROLLBACK", int(actor_id), _json(current), _json(restored), _json(validation),
-                int(version_id), DIRECT_APPLY_SOURCE, "APPLIED", timestamp,
-            )).fetchone()
-            result = _serialize_direct_version(row)
-            repo.audit("sgf_workbench_direct_version", result["id"], actor_id,
-                       "ROLLBACK", {"rollback_reference": int(version_id), "restored_hash": original["predecessor_hash"]}, timestamp)
+    with _canonical_mutation_lock(questions_path):
+        repo.lock_canonical_source(questions_path)
+        repo.lock_direct_operation(operation, int(original["question_id"]))
+        existing = conn.execute(
+            "SELECT * FROM sgf_workbench_direct_versions WHERE operation_id=?", (operation,)
+        ).fetchone()
+        if existing:
+            result = _serialize_direct_version(existing)
+            result["duplicate"] = True
             return result
-    except Exception:
-        _direct_atomic_write(questions_path, raw_before)
-        raise
+        raw_before, records = _direct_load_questions(questions_path)
+        if _sha256(raw_before) != str(expected_after).lower():
+            raise ValueError("rollback_stale_canonical_basis")
+        matches = [(idx, row) for idx, row in enumerate(records) if row.get("id") == int(original["question_id"])]
+        if len(matches) != 1 or matches[0][0] != int(original["record_index"]):
+            raise LookupError("question_identity_not_unique")
+        idx, current = matches[0]
+        if direct_record_hash(current) != original["new_hash"]:
+            raise ValueError("rollback_stale_predecessor")
+        try:
+            snapshot_records = json.loads(exact_snapshot.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError("rollback_snapshot_invalid") from error
+        if not isinstance(snapshot_records, list) or len(snapshot_records) != len(records):
+            raise ValueError("rollback_snapshot_invalid")
+        if idx >= len(snapshot_records) or direct_record_hash(snapshot_records[idx]) != original["predecessor_hash"]:
+            raise ValueError("rollback_snapshot_identity_mismatch")
+        restored = json.loads(_json(snapshot_records[idx]))
+        validation = validate_direct_record(restored, parse_sgf_fn=parse_sgf_fn)
+        if not validation["ok"]:
+            raise ValueError("rollback_record_invalid")
+        validation["canonical_before_sha256"] = _sha256(raw_before)
+        validation["canonical_after_sha256"] = snapshot_sha
+        _direct_atomic_write(questions_path, exact_snapshot)
+        timestamp = _now(now)
+        try:
+            with repo.atomic("rollback_version"):
+                row = conn.execute("""INSERT INTO sgf_workbench_direct_versions
+                    (question_id, record_index, predecessor_hash, new_hash,
+                    predecessor_version, new_version, operation_id, action_type,
+                    actor_id, old_record_json, new_record_json, validation_result_json,
+                    rollback_reference, source, status, created_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING *""", (
+                    int(original["question_id"]), idx, original["new_hash"], original["predecessor_hash"],
+                    original["new_version"], original["predecessor_version"], operation,
+                    "ROLLBACK", int(actor_id), _json(_snapshot_payload(current, raw_before)),
+                    _json(restored), _json(validation), int(version_id), DIRECT_APPLY_SOURCE,
+                    "APPLIED", timestamp,
+                )).fetchone()
+                result = _serialize_direct_version(row)
+                repo.audit("sgf_workbench_direct_version", result["id"], actor_id,
+                           "ROLLBACK", {
+                               "rollback_reference": int(version_id),
+                               "restored_hash": original["predecessor_hash"],
+                               "canonical_before_sha256": _sha256(raw_before),
+                               "canonical_after_sha256": snapshot_sha,
+                           }, timestamp)
+            conn.commit()
+            return result
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            try:
+                _direct_atomic_write(questions_path, raw_before)
+            except Exception as restore_error:
+                raise DirectApplyRecoveryError("rollback_restore_failed") from restore_error
+            raise
 
 
 def build_position_identity(*, question_id: int, record_index: int | None,

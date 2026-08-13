@@ -471,6 +471,8 @@
         predecessor_hash: context.predecessor_hash,
         action,
         candidate_move: move || state.selectedMove || state.current.candidate_move || undefined,
+        canonical_source_sha256: context.canonical_source_sha256,
+        retest_moves: [move || state.selectedMove || state.current.candidate_move || currentMove(state.current)].filter(Boolean),
         operation_id: newOperationId("admin-play-direct"),
       };
       if (action === "EDIT_BOARD_SETUP") body.proposed_content = state.directContent;
