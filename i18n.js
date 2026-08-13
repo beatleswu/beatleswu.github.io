@@ -14,6 +14,23 @@ const I18n = (() => {
 
     // ── 翻譯字典 ────────────────────────────────────────────────
     const dict = {
+        'index.adv.quest_rechallenge_boss': { en: 'Challenge this boss again', zh: '再次挑戰領主' },
+        'index.adv.boss_replay_ready': { en: 'Replay this Lord Trial without rewards.', zh: '可再次挑戰領主，本次不再取得首通獎勵。' },
+        'e10.zone2.lord.replay_reward': { en: 'Replay the Swarm Lord trial. No first-clear reward is granted.', zh: '再次挑戰史萊姆群領主；本次不再取得首通獎勵。' },
+        'e10.zone2.lord.replay_start': { en: 'Challenge Again', zh: '再次挑戰領主' },
+        'e10.zone2.result.replay.title': { en: 'Replay Complete', zh: '再次挑戰完成' },
+        'e10.zone2.result.replay.line': { en: 'The clear state and rewards remain unchanged.', zh: '本次挑戰不會改變清關狀態或再次取得獎勵。' },
+        'e10.zone2.result.replay.fail_title': { en: 'Replay Not Passed', zh: '再次挑戰未通過' },
+        'e10.zone2.result.replay.fail_line': { en: 'The clear state remains unchanged. You can challenge again.', zh: '清關狀態維持不變；你之後仍可再次挑戰。' },
+        'e10.zone1.lord.replay_reward': { en: 'Replay the Village Elder trial. No first-clear reward is granted.', zh: '再次挑戰村長領主；本次不再取得首通獎勵。' },
+        'e10.zone1.lord.replay_start': { en: 'Challenge Again', zh: '再次挑戰領主' },
+        'e10.zone1.result.replay.title': { en: 'Replay Complete', zh: '再次挑戰完成' },
+        'e10.zone1.result.replay.line': { en: 'The clear state and rewards remain unchanged.', zh: '本次挑戰不會改變清關狀態或再次取得獎勵。' },
+        'e10.zone1.result.replay.fail_title': { en: 'Replay Not Passed', zh: '再次挑戰未通過' },
+        'e10.zone1.result.replay.fail_line': { en: 'The clear state remains unchanged. You can challenge again.', zh: '清關狀態維持不變；你之後仍可再次挑戰。' },
+        'index.boss.replay_complete_title': { en: 'Replay Complete', zh: '再次挑戰完成' },
+        'index.boss.replay_complete_line': { en: 'The clear state and rewards remain unchanged.', zh: '本次挑戰不會改變清關狀態或再次取得獎勵。' },
+        'index.boss.replay_finish_msg': { en: 'Replay recorded. Clear state and rewards remain unchanged.', zh: '本次 replay 已記錄；清關狀態與獎勵維持不變。' },
 
         // E10 Zone 2 bilingual cinematic/runtime copy.  The timeline and
         // Lord hand-off resolve these keys at render time so orientation or

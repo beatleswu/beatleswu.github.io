@@ -83,6 +83,20 @@ def test_active_boss_exam_question_is_scoped_and_live(app_module):
         assert app_module._adventure_boss_question_is_active(999) is False
 
 
+def test_active_replay_exam_uses_the_same_question_scoped_limit_bypass(app_module):
+    with app_module.app.test_request_context("/"):
+        from flask import session
+
+        session["adventure_boss_exam"] = {
+            "zone_key": "k26_30",
+            "question_ids": [201, 202],
+            "started_at": _started_at(),
+            "attempt_mode": "replay",
+        }
+        assert app_module._adventure_boss_question_is_active(201) is True
+        assert app_module._adventure_boss_question_is_active(999) is False
+
+
 def test_expired_or_malformed_boss_exam_cannot_bypass_practice_limit(app_module):
     with app_module.app.test_request_context("/"):
         from flask import session

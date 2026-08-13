@@ -213,6 +213,34 @@ async function main() {
       });
     }, results);
 
+    await test('cleared zones expose a replay Lord CTA while uncleared Boss Ready keeps the first-clear CTA', async () => {
+      await withFreshPage(browser, origin, async (page) => {
+        const result = await page.evaluate(() => {
+          const cleared = {
+            key: 'k26_30', unlocked: true, cleared: true, cooldown_left: 0,
+            boss: { available: false, remaining_to_challenge: 0 },
+            progress: { stars_complete: true, stars: 1 },
+          };
+          const bossReady = {
+            key: 'k26_30', unlocked: true, cleared: false, cooldown_left: 0,
+            boss: { available: true, remaining_to_challenge: 0 },
+            progress: { stars_complete: false, stars: 0 },
+          };
+          return {
+            cleared: _adventureQuestCtaState(cleared),
+            bossReady: _adventureQuestCtaState(bossReady),
+            replayAvailable: _adventureBossReplayAvailable(cleared),
+            replayUnavailable: _adventureBossReplayAvailable(bossReady),
+          };
+        });
+        if (result.cleared.state !== 'boss_replay') throw new Error(`expected boss_replay state, got ${JSON.stringify(result.cleared)}`);
+        if (!result.cleared.action.includes('openAdventureBossFromQuestCard')) throw new Error('replay CTA must use the existing Lord Card entry point');
+        if (result.cleared.labelKey !== 'index.adv.quest_rechallenge_boss') throw new Error(`unexpected replay label: ${result.cleared.labelKey}`);
+        if (result.bossReady.state !== 'boss_ready') throw new Error(`uncleared Boss Ready CTA changed: ${JSON.stringify(result.bossReady)}`);
+        if (result.replayAvailable !== true || result.replayUnavailable !== false) throw new Error(`replay availability was not server-clear driven: ${JSON.stringify(result)}`);
+      });
+    }, results);
+
     // --- Lord Challenge Card: real data, no forced battle entry ---
     await test('showZone1LordChallengeCard renders real zone data and never auto-starts the battle', async () => {
       await withFreshPage(browser, origin, async (page) => {
