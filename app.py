@@ -78,9 +78,13 @@ from sgf_admin_workbench import (
     create_workbench_batch,
     ensure_sgf_workbench_tables,
     get_workbench_item,
+    get_workbench_batch,
     list_workbench_items,
+    mark_batch_ready_for_apply,
     resolve_workbench_item,
     stage_workbench_repair,
+    validate_staged_repair,
+    InvalidWorkbenchState,
     DIRECT_APPLY_ACTIONS,
     DIRECT_APPLY_SOURCE,
     apply_direct_question_edit,
@@ -4213,7 +4217,11 @@ def admin_sgf_workbench_stage(item_id):
                 conn, item_id=item_id, reviewer_id=session['user_id'], action=action,
                 original_state=original, proposed_state=proposed, candidate_move=candidate,
                 reason=str(data.get('reason') or data.get('note') or '')[:1000],
-                source_provenance={'review_item_id': item_id, 'source_types': item.get('source_types', [])},
+                source_provenance={
+                    'review_item_id': item_id,
+                    'source_types': item.get('source_types', []),
+                    'canonical_record_hash': direct_record_hash(context['record']),
+                },
                 baseline_sha256=data.get('baseline_sha256') or context['question_content_sha256'],
                 mutation_key=data.get('mutation_key'),
                 expected_item_updated_at=data.get('expected_item_updated_at') or data.get('expected_updated_at'),
@@ -4221,6 +4229,54 @@ def admin_sgf_workbench_stage(item_id):
         except (ValueError, LookupError) as error:
             return jsonify({'error': str(error)}), 400
     return jsonify({'ok': True, 'staged': True, 'production_mutation': False, 'repair': repair})
+
+
+@app.route('/api/admin/sgf-workbench/items/<int:item_id>/validate', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_validate(item_id):
+    """Validate a staged repair against the current question, without applying it."""
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    data = request.get_json(silent=True) or {}
+    with get_db() as conn:
+        item = get_workbench_item(conn, item_id)
+        if not item:
+            return jsonify({'error': 'not_found'}), 404
+        repairs = item.get('staged_repairs') or []
+        repair_id = data.get('repair_id')
+        if repair_id not in (None, ''):
+            try:
+                repair_id = int(repair_id)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'invalid_repair_id'}), 400
+        else:
+            candidates = [row for row in repairs if row.get('status') in ('STAGED', 'BATCHED')]
+            repair_id = int(candidates[-1]['id']) if candidates else None
+        if repair_id is None:
+            return jsonify({'error': 'staged_repair_required'}), 409
+        context = _workbench_question_context(
+            item['question_id'], record_index=item.get('record_index'),
+            surface='admin_workbench_validation',
+        )
+        if not context:
+            return jsonify({'error': 'question_not_found'}), 404
+        sid = f'admin-workbench-validation-{session["user_id"]}'
+        result = validate_staged_repair(
+            conn, repair_id=repair_id, actor_id=int(session['user_id']),
+            current_record=context['record'],
+            current_content_sha256=context['question_content_sha256'],
+            current_record_hash=direct_record_hash(context['record']),
+            parse_sgf_fn=parse_sgf,
+            verdict_fn=lambda record, move: _rt_server_verify(record, sid, [move]),
+        )
+    return jsonify({
+        'ok': result.get('status') == 'PASS',
+        'validation': result,
+        'status': result.get('status'),
+        'production_mutation': False,
+        'canonical_mutation': False,
+    })
 
 
 @app.route('/api/admin/sgf-workbench/items/<int:item_id>/status', methods=['POST'])
@@ -4502,11 +4558,59 @@ def admin_sgf_workbench_batches():
         with get_db() as conn:
             batch = create_workbench_batch(
                 conn, created_by=session['user_id'], baseline_sha256=data.get('baseline_sha256'),
-                idempotency_key=data.get('idempotency_key') or data.get('batch_key')
+                idempotency_key=data.get('idempotency_key') or data.get('batch_key'),
+                require_validation=True,
             )
-    except ValueError as error:
-        return jsonify({'error': str(error)}), 400
+    except (ValueError, InvalidWorkbenchState) as error:
+        return jsonify({'error': str(error), 'ready_for_apply': False,
+                        'production_mutation': False}), 409
     return jsonify({'ok': True, 'batch': batch, 'handoff_only': True, 'production_mutation': False})
+
+
+@app.route('/api/admin/sgf-workbench/batches/<int:batch_id>')
+@admin_required
+def admin_sgf_workbench_batch(batch_id):
+    with get_db() as conn:
+        batch = get_workbench_batch(conn, batch_id)
+    if not batch:
+        return jsonify({'error': 'not_found'}), 404
+    return jsonify({'ok': True, 'batch': batch, 'production_mutation': False,
+                    'canonical_mutation': False, 'apply_enabled': False})
+
+
+@app.route('/api/admin/sgf-workbench/batches/<int:batch_id>/ready', methods=['POST'])
+@admin_required
+def admin_sgf_workbench_batch_ready(batch_id):
+    csrf_failure = _review_csrf_failure()
+    if csrf_failure is not None:
+        return csrf_failure
+    with get_db() as conn:
+        batch = get_workbench_batch(conn, batch_id)
+        if not batch:
+            return jsonify({'error': 'not_found'}), 404
+        current_bases = {}
+        for item in batch.get('items') or []:
+            context = _workbench_question_context(
+                item.get('question_id'), record_index=item.get('record_index'),
+                surface='admin_workbench_ready',
+            )
+            if not context:
+                return jsonify({'error': 'question_not_found',
+                                'review_item_id': item.get('review_item_id')}), 409
+            current_bases[int(item['review_item_id'])] = {
+                'content_sha256': context['question_content_sha256'],
+                'record_hash': direct_record_hash(context['record']),
+            }
+        result = mark_batch_ready_for_apply(
+            conn, batch_id=batch_id, actor_id=int(session['user_id']),
+            current_bases=current_bases,
+        )
+    if result.get('status') == 'BLOCKED':
+        return jsonify({'ok': False, **result, 'production_mutation': False,
+                        'canonical_mutation': False, 'apply_enabled': False}), 409
+    return jsonify({'ok': True, 'batch': result, 'ready_for_apply': True,
+                    'production_mutation': False, 'canonical_mutation': False,
+                    'apply_enabled': False})
 
 # ── SM-2 ───────────────────────────────────────────────────────
 

@@ -140,7 +140,7 @@
           <div class="v2-review-grid"><section class="v2-card v2-board-card"><div id="v2-board-meta" class="v2-board-meta"></div><div id="v2-selection-banner" class="v2-selection-banner" hidden></div><div class="v2-board-wrap" id="v2-board-wrap"><canvas id="v2-go-board" aria-label="SGF 圍棋題目棋盤"></canvas></div><div class="v2-board-caption"><span><b class="v2-answer">A</b>目前正解</span><span><b class="v2-candidate">●</b>待確認候選</span><span><b class="v2-picked">＋</b>你選的落點</span></div></section>
             <aside class="v2-card v2-control"><div class="v2-progress"><span id="v2-reviewed-label">第 1 題</span><span id="v2-pending-label">待確認</span></div><div class="v2-progress-bar"><span id="v2-progress-fill" style="width:0%"></span></div><p id="v2-prompt" class="v2-prompt">這題目前的正解是否正確？</p><div id="v2-decision-grid" class="v2-decision-grid"><button id="v2-correct" class="v2-decision good">正解正確<small>確認目前答案沒有問題</small></button><button id="v2-alternative" class="v2-decision alt">還有其他正解<small>直接在棋盤上點另一個答案</small></button><button id="v2-wrong" class="v2-decision wrong">正解錯誤<small>直接點選你認為正確的位置</small></button><button id="v2-defer" class="v2-decision defer">看不出來／稍後處理<small>先保留，之後再回來</small></button></div><button id="v2-broken-toggle" class="v2-secondary-action">⚠ 題目本身有問題</button><div id="v2-broken-panel" class="v2-broken-panel" hidden><div class="v2-broken-grid"><button data-broken="SIDE_TO_MOVE">黑白先標示錯誤</button><button data-broken="BOARD_OR_SGF">棋譜／局面有問題</button><button data-broken="REBUILD">題目需要重建</button><button data-broken="OTHER">其他問題</button></div></div><div id="v2-proposal-confirm" class="v2-proposal" hidden><h3>確認你的修改</h3><div class="v2-proposal-compare"><div><span>目前正解</span><strong id="v2-current-point">—</strong></div><div><span id="v2-proposed-label">新增正解</span><strong id="v2-proposed-point">—</strong></div></div><div class="v2-proposal-actions"><button id="v2-confirm-proposal" class="v2-primary">確認修改</button><button id="v2-cancel-proposal" class="v2-quiet">重新選擇</button></div></div><div id="v2-staged-result" class="v2-result" hidden><h3>修改已暫存</h3><p>尚未發布，不會影響目前玩家作答。</p><div id="v2-verdict-compare" class="v2-verdict" hidden><div><span>目前線上判定</span><strong id="v2-production-verdict">—</strong></div><div><span>修改後判定</span><strong id="v2-staged-verdict">—</strong></div></div><div class="v2-result-actions"><button id="v2-retest" class="v2-secondary">用修改後答案重測</button><button id="v2-next" class="v2-primary">下一題</button><button id="v2-back-review" class="v2-quiet">返回</button></div></div><details id="v2-details" class="v2-detail-card"><summary>詳細資料</summary><div id="v2-detail-grid" class="v2-detail-grid"></div></details></aside></div>
         </section>
-        <section id="v2-pending-view" class="v2-view" hidden><div class="v2-pending-head"><div><button id="v2-pending-home" class="v2-link">← 回到審題首頁</button><h2>待套用修改</h2><p>這裡集中查看已暫存的修改，再交給既有修正流程。</p></div><button id="v2-create-batch" class="v2-primary">準備批次交接</button></div><div id="v2-pending-list" class="v2-pending-list"></div><div id="v2-handoff-note" class="v2-handoff" hidden></div></section>
+        <section id="v2-pending-view" class="v2-view" hidden><div class="v2-pending-head"><div><button id="v2-pending-home" class="v2-link">← 回到審題首頁</button><h2>待套用修改</h2><p>這裡集中查看已暫存的修改，再交給既有修正流程。</p></div><button id="v2-create-batch" class="v2-primary">驗證並準備批次</button></div><div id="v2-pending-list" class="v2-pending-list"></div><div id="v2-handoff-note" class="v2-handoff" hidden></div></section>
       </main><div id="v2-toast" class="v2-toast" role="status" aria-live="polite"></div>`;
     document.body.appendChild(root);
     augmentDirectMarkup(root);
@@ -552,13 +552,28 @@
     }));
     enriched.forEach((item) => { const index = state.items.findIndex((row) => row.id === item.id); if (index >= 0) state.items[index] = item; });
     const node = el("v2-pending-list");
-    node.innerHTML = enriched.length ? enriched.map((item) => { const repair = (item.staged_repairs || [])[0] || {}; const action = repair.action || "已暫存修改"; return `<article class="v2-card v2-pending-card"><div><h3>題目 #${esc(item.question_id)}</h3><p>${esc(ACTION_LABELS[action] || action)} · ${esc(sourceLabel(item))}</p><span class="v2-chip">尚未發布，不會影響玩家</span></div><button class="v2-secondary" data-open-staged="${esc(item.id)}">查看題目</button></article>`; }).join("") : `<div class="v2-card v2-empty"><h3>目前沒有待套用修改</h3><p>審題時確認的修改會自動出現在這裡。</p></div>`;
+    node.innerHTML = enriched.length ? enriched.map((item) => { const repairs = item.staged_repairs || []; const repair = repairs[repairs.length - 1] || {}; const action = repair.action || "已暫存修改"; const validation = repair.source_provenance?.workflow?.validation; const validationLabel = validation ? `驗證：${validation.status}` : "尚未驗證"; return `<article class="v2-card v2-pending-card"><div><h3>題目 #${esc(item.question_id)}</h3><p>${esc(ACTION_LABELS[action] || action)} · ${esc(sourceLabel(item))}</p><span class="v2-chip">${esc(validationLabel)} · 尚未發布，不會影響玩家</span></div><button class="v2-secondary" data-open-staged="${esc(item.id)}">查看題目</button></article>`; }).join("") : `<div class="v2-card v2-empty"><h3>目前沒有待套用修改</h3><p>審題時確認的修改會自動出現在這裡。</p></div>`;
     el("v2-handoff-note").hidden = true; show("pending");
   }
 
   async function createBatch() {
     if (!stagedItems().length) return toast("目前沒有可交接的暫存修改", true);
-    try { const result = await postJson(`${API}/batches`, {}); el("v2-handoff-note").hidden = false; el("v2-handoff-note").innerHTML = `<strong>批次已準備好</strong><br>這只建立既有修正流程的 handoff 證據，沒有發布內容，也沒有修改 Production。批次識別：${esc(result.batch?.batch_key || result.batch?.manifest_sha256 || "已建立")}`; toast("已準備批次交接"); } catch (error) { toast(error.message, true); }
+    try {
+      for (const item of stagedItems()) {
+        const detail = (await jsonFetch(`${API}/items/${item.id}`)).item || item;
+        const repairs = detail.staged_repairs || [];
+        const repair = repairs[repairs.length - 1];
+        if (!repair) throw new Error("找不到暫存修改");
+        const validation = await postJson(`${API}/items/${item.id}/validate`, { repair_id: repair.id });
+        if (validation.status !== "PASS") throw new Error(`驗證${validation.status}：${(validation.validation?.errors || []).join(", ")}`);
+      }
+      const result = await postJson(`${API}/batches`, {});
+      const ready = await postJson(`${API}/batches/${encodeURIComponent(result.batch.id)}/ready`, {});
+      await showPending();
+      el("v2-handoff-note").hidden = false;
+      el("v2-handoff-note").innerHTML = `<strong>批次已驗證，狀態：READY_FOR_APPLY</strong><br>這只建立既有修正流程的 handoff 證據，沒有發布內容，也沒有修改 Production。批次識別：${esc(ready.batch?.batch_key || result.batch?.batch_key || "已建立")}`;
+      toast("已完成驗證，批次可供套用審核");
+    } catch (error) { toast(error.message, true); }
   }
 
   function bind() {

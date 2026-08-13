@@ -15,7 +15,9 @@ def test_workbench_contract_routes_and_widget_are_present():
     assert "/api/admin/sgf-workbench/bootstrap" in app
     assert "/api/admin/sgf-workbench/items/<int:item_id>/stage" in app
     assert "/api/admin/sgf-workbench/items/<int:item_id>/retest" in app
+    assert "/api/admin/sgf-workbench/items/<int:item_id>/validate" in app
     assert "/api/admin/sgf-workbench/batches" in app
+    assert "/api/admin/sgf-workbench/batches/<int:batch_id>/ready" in app
     assert "WORKBENCH_SOURCES" in module and "CORPUS_SCAN" in module
     assert "OWNER_DESIRED_VERDICT" not in widget  # widget captures, it does not redefine judging
     assert "/api/question/report" in widget
@@ -77,3 +79,21 @@ def test_owner_direct_apply_is_versioned_and_acceptance_gated():
     assert "ADMIN_PLAY_DIRECT" in module and "direct-retest" in app
     assert "放黑子" in ux and "放白子" in ux and "移除棋子" in ux
     assert "withSetupSgf" in ux and "EDIT_BOARD_SETUP" in ux
+
+
+def test_workbench_workflow_exposes_dry_run_validation_and_ready_gate():
+    app = _read("app.py")
+    module = _read("sgf_admin_workbench.py")
+    ux = _read("sgf_admin_workbench_ux_v2.js")
+    browser_contract = _read("tests/e2e/run_sgf_workbench_workflow_contract.mjs")
+    assert "validate_staged_repair" in module
+    assert "mark_batch_ready_for_apply" in module
+    assert "READY_FOR_APPLY" in module
+    assert "canonical_mutation': False" in app
+    assert "驗證並準備批次" in ux
+    assert "READY_FOR_APPLY" in ux
+    review_js = _read("sgf_answer_review.js")
+    assert "/api/admin/sgf-workbench/items?status=STAGED" in review_js
+    assert "/api/admin/sgf-workbench/items/${item.id}/validate" in review_js
+    assert "/api/admin/sgf-workbench/batches/${result.batch.id}/ready" in review_js
+    assert "run_sgf_workbench_workflow_contract.mjs" in browser_contract or "SGF_WORKBENCH_BROWSER_WORKFLOW=PASS" in browser_contract
