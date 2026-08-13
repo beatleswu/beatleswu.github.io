@@ -289,16 +289,12 @@ def direct_apply_policy_check(current: dict, proposed: dict) -> None:
     if question_id in GF003_QUESTION_IDS or source in {"fixture431", "gf003", "gf-003"}:
         raise DirectApplyPolicyError("gf003_direct_apply_denied")
 
-    # A non-empty historical fallback remains part of the effective runtime
-    # authority.  Direct Apply cannot infer whether an answer edit resolves or
-    # conflicts with it, so all unresolved fallback-bearing records fail closed.
+    # The known historical-conflict class is intentionally hard blocked until
+    # an explicit governed resolution exists.  A non-empty fallback remains
+    # part of effective runtime authority; without a resolution marker, any
+    # mutation (including disable/setup metadata) must fail closed.
     fallback = str(current.get("katago_best_move") or "").strip()
-    if fallback and (
-        question_id in HISTORICAL_FALLBACK_CONFLICT_QUESTION_IDS
-        or str(proposed.get("katago_best_move") or "").strip() != fallback
-        or current.get("accepted_moves") != proposed.get("accepted_moves")
-        or current.get("content") != proposed.get("content")
-    ):
+    if question_id in HISTORICAL_FALLBACK_CONFLICT_QUESTION_IDS or (fallback and proposed != current):
         raise DirectApplyPolicyError("historical_fallback_conflict")
 
 
