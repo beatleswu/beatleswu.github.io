@@ -89,6 +89,7 @@ from sgf_admin_workbench import (
     list_direct_versions,
     rollback_direct_question_edit,
     validate_direct_record,
+    WorkbenchRepository,
     workbench_constants,
 )
 
@@ -4080,7 +4081,7 @@ def admin_sgf_workbench_bootstrap():
             conn, source=request.args.get('source'), status=request.args.get('status'),
             limit=request.args.get('limit', 200),
         )
-        staged_count = conn.execute("SELECT COUNT(*) AS n FROM sgf_workbench_staged_repairs WHERE status IN ('STAGED','BATCHED')").fetchone()['n']
+        staged_count = WorkbenchRepository(conn).staged_count()
     return jsonify({
         'ok': True,
         'items': items,
@@ -4203,6 +4204,7 @@ def admin_sgf_workbench_stage(item_id):
             result = resolve_workbench_item(
                 conn, item_id=item_id, reviewer_id=session['user_id'],
                 status='NEEDS_RESEARCH', note=str(data.get('reason') or data.get('note') or '')[:1000],
+                expected_item_updated_at=data.get('expected_item_updated_at') or data.get('expected_updated_at'),
             )
             return jsonify({'ok': True, 'staged': False, 'status': result['status'],
                             'production_mutation': False, 'review_item_id': item_id})
@@ -4214,6 +4216,7 @@ def admin_sgf_workbench_stage(item_id):
                 source_provenance={'review_item_id': item_id, 'source_types': item.get('source_types', [])},
                 baseline_sha256=data.get('baseline_sha256') or context['question_content_sha256'],
                 mutation_key=data.get('mutation_key'),
+                expected_item_updated_at=data.get('expected_item_updated_at') or data.get('expected_updated_at'),
             )
         except (ValueError, LookupError) as error:
             return jsonify({'error': str(error)}), 400
@@ -4233,6 +4236,7 @@ def admin_sgf_workbench_status(item_id):
             result = resolve_workbench_item(
                 conn, item_id=item_id, reviewer_id=session['user_id'], status=status,
                 note=str(data.get('note') or '')[:1000],
+                expected_item_updated_at=data.get('expected_item_updated_at') or data.get('expected_updated_at'),
             )
     except (ValueError, LookupError) as error:
         return jsonify({'error': str(error)}), 400
@@ -4488,11 +4492,8 @@ def admin_sgf_workbench_batches():
     if request.method == 'GET':
         with get_db() as conn:
             ensure_sgf_workbench_tables(conn)
-            rows = conn.execute(
-                'SELECT id,batch_key,status,manifest_sha256,staged_count,created_at '
-                'FROM sgf_workbench_batches ORDER BY id DESC LIMIT 100'
-            ).fetchall()
-        return jsonify({'ok': True, 'batches': [dict(row) for row in rows], 'production_mutation': False})
+            rows = WorkbenchRepository(conn).list_batches()
+        return jsonify({'ok': True, 'batches': rows, 'production_mutation': False})
     csrf_failure = _review_csrf_failure()
     if csrf_failure is not None:
         return csrf_failure
@@ -4500,7 +4501,8 @@ def admin_sgf_workbench_batches():
     try:
         with get_db() as conn:
             batch = create_workbench_batch(
-                conn, created_by=session['user_id'], baseline_sha256=data.get('baseline_sha256')
+                conn, created_by=session['user_id'], baseline_sha256=data.get('baseline_sha256'),
+                idempotency_key=data.get('idempotency_key') or data.get('batch_key')
             )
     except ValueError as error:
         return jsonify({'error': str(error)}), 400
