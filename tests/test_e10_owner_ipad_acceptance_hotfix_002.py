@@ -80,18 +80,23 @@ def test_zone2_automatic_phases_require_explicit_audio_gesture_when_unprimed():
 def test_all_shared_question_modes_keep_the_same_return_map_control():
     audited_modes = (
         "ordinary practice",
-        "Adventure zone training",
+        "Adventure zone practice",
         "Map Battle",
-        "Lord Trial first-clear",
-        "Lord Trial replay",
-        "challenge mode",
+        "Lord first-clear",
+        "Lord replay",
+        "challenge",
         "daily training",
         "mistake/review",
-        "guild quest",
-        "premium weekly",
+        "guild",
+        "premium",
     )
+    e2e = (ROOT / "tests" / "e2e" / "run_e10_owner_ipad_acceptance_hotfix_002.mjs").read_text(encoding="utf-8")
+    assert "async function runReturnMapModeMatrix(browser, origin)" in e2e
+    assert "returnMapModeMatrix" in e2e
+    assert "forbiddenRequests" in e2e
+    assert "page.waitForURL(/\\/\\?adventure=1/" in e2e
     for mode in audited_modes:
-        assert mode
+        assert f"name: '{mode}'" in e2e
     assert 'id="btn-return-map"' in INDEX
     assert 'onclick="returnToAdventureMap()"' in INDEX
     assert "window.location.href = '/?adventure=1';" in INDEX

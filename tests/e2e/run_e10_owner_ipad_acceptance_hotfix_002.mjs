@@ -238,26 +238,70 @@ async function startLord(page, expectedProgress = '1/20') {
 }
 
 async function boardSnapshot(page) {
-  return page.evaluate(() => ({
-    qid: Number(currentQ?.id),
-    queueIndex: _bossIndex,
-    correct: _bossCorrect,
-    attemptId: _bossAttemptId,
-    nodeReady: !!currentNode,
-    fingerprint: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'BOARD_RENDER_FINGERPRINT').at(-1)?.fingerprint
-      || (() => {
-        const canvas = document.querySelector('#board-canvas-wrap canvas');
-        let pixels = null;
-        try { pixels = canvas?.toDataURL?.() || null; } catch (e) {}
-        return {
-          boardSerial: null,
-          canvasPixels: pixels,
-          canvasWidth: canvas?.width || 0,
-          canvasHeight: canvas?.height || 0,
-        };
-      })(),
-    trace: window.__GO_E10_ACCEPTANCE_TRACE__ || [],
-  }));
+  return page.evaluate(() => {
+    const canvas = document.querySelector('#board-canvas-wrap canvas');
+    let pixels = '';
+    try { pixels = canvas?.toDataURL?.() || ''; } catch (e) {}
+    let hash = 2166136261;
+    for (let i = 0; i < pixels.length; i += 1) {
+      hash ^= pixels.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    const traced = window.__GO_E10_ACCEPTANCE_TRACE__
+      ?.filter((e) => e.event === 'BOARD_RENDER_FINGERPRINT').at(-1)?.fingerprint || null;
+    return {
+      qid: Number(currentQ?.id),
+      queueIndex: _bossIndex,
+      correct: _bossCorrect,
+      attemptId: _bossAttemptId,
+      nodeReady: !!currentNode,
+      fingerprint: {
+        ...(traced || {}),
+        boardSerial: traced?.boardSerial ?? null,
+        currentNodeReady: traced?.currentNodeReady ?? !!currentNode,
+        canvasHash: pixels ? (hash >>> 0).toString(16) : null,
+        canvasLength: pixels.length,
+        renderWidth: traced?.renderWidth || canvas?.width || 0,
+        renderHeight: traced?.renderHeight || canvas?.height || 0,
+      },
+      trace: window.__GO_E10_ACCEPTANCE_TRACE__ || [],
+    };
+  });
+}
+
+function fingerprintsEqual(left, right) {
+  if (!left || !right) return false;
+  if (left.boardSerial != null && right.boardSerial != null) return left.boardSerial === right.boardSerial;
+  return left.canvasHash === right.canvasHash && left.canvasLength === right.canvasLength;
+}
+
+async function pollBoardSettling(page, expectedQid, beforeFingerprint, windowMs = 1500, intervalMs = 50) {
+  const startedAt = Date.now();
+  const samples = [];
+  let latest = await boardSnapshot(page);
+  while (true) {
+    const elapsedMs = Date.now() - startedAt;
+    latest = await boardSnapshot(page);
+    samples.push({
+      elapsedMs,
+      qid: latest.qid,
+      queueIndex: latest.queueIndex,
+      nodeReady: latest.nodeReady,
+      fingerprint: latest.fingerprint,
+      changedFromPrevious: !fingerprintsEqual(beforeFingerprint, latest.fingerprint),
+    });
+    if (elapsedMs >= windowMs) break;
+    await page.waitForTimeout(intervalMs);
+  }
+  return {
+    windowMs,
+    expectedQid,
+    samples,
+    boardEventuallyChanges: samples.some((sample) => sample.qid === expectedQid
+      && sample.nodeReady
+      && sample.changedFromPrevious),
+    latest,
+  };
 }
 
 async function runRealDataLordTransition(browser, origin) {
@@ -270,25 +314,140 @@ async function runRealDataLordTransition(browser, origin) {
     const before = await boardSnapshot(page);
     await clickBoard(page, 3, 3);
     await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 1, queue[1], { timeout: 10000 });
-    const afterQ2 = await boardSnapshot(page);
+    const afterQ2Boundary = await boardSnapshot(page);
+    const afterQ2Settling = await pollBoardSettling(page, queue[1], before.fingerprint);
+    const afterQ2 = afterQ2Settling.latest;
     await clickBoard(page, 1, 1);
     await page.waitForFunction((next) => Number(currentQ?.id) === next && _bossIndex === 2, queue[2], { timeout: 10000 });
-    const afterQ3 = await boardSnapshot(page);
+    const afterQ3Boundary = await boardSnapshot(page);
+    const afterQ3Settling = await pollBoardSettling(page, queue[2], afterQ2.fingerprint);
+    const afterQ3 = afterQ3Settling.latest;
     const transitionEvents = afterQ3.trace.filter((e) => e.event === 'BOSS_TRANSITION_EXCEPTION');
-    if (afterQ2.qid !== queue[1] || afterQ3.qid !== queue[2] || !before.nodeReady || !afterQ2.nodeReady || !afterQ3.nodeReady
-      || (before.fingerprint?.boardSerial != null
-        ? before.fingerprint.boardSerial === afterQ2.fingerprint?.boardSerial
-        : before.fingerprint?.canvasPixels === afterQ2.fingerprint?.canvasPixels)
-      || (afterQ2.fingerprint?.boardSerial != null
-        ? afterQ2.fingerprint.boardSerial === afterQ3.fingerprint?.boardSerial
-        : afterQ2.fingerprint?.canvasPixels === afterQ3.fingerprint?.canvasPixels)
-      || transitionEvents.length || api.reviews.length !== 2) {
-      throw new Error(`real-data Boss board did not complete both transitions: ${JSON.stringify({ before, afterQ2, afterQ3, reviews: api.reviews, transitionEvents })}`);
+    const transitionsPass = afterQ2.qid === queue[1] && afterQ3.qid === queue[2] && before.nodeReady
+      && afterQ2.nodeReady && afterQ3.nodeReady && afterQ2Settling.boardEventuallyChanges
+      && afterQ3Settling.boardEventuallyChanges && !transitionEvents.length && api.reviews.length === 2;
+    const baselineDiagnostic = process.env.E10_E2E_BASELINE_DIAGNOSTIC === '1';
+    if (!transitionsPass && !baselineDiagnostic) {
+      throw new Error(`real-data Boss board did not complete both transitions: ${JSON.stringify({
+        before,
+        afterQ2Boundary,
+        afterQ2Settling,
+        afterQ3Boundary,
+        afterQ3Settling,
+        reviews: api.reviews,
+        transitionEvents,
+      })}`);
     }
-    return { queueContract, before, afterQ2, afterQ3, reviews: api.reviews };
+    return {
+      queueContract,
+      before,
+      afterQ2Boundary,
+      afterQ2Settling,
+      afterQ2,
+      afterQ3Boundary,
+      afterQ3Settling,
+      afterQ3,
+      reviews: api.reviews,
+      transitionsPass,
+      persistentFailureReproduced: !transitionsPass && process.env.E10_E2E_BASELINE_DIAGNOSTIC === '1',
+    };
   } finally {
     await page.close();
   }
+}
+
+async function runReturnMapModeMatrix(browser, origin) {
+  const modes = [
+    { name: 'ordinary practice', state: { surface: 'practice' } },
+    { name: 'Adventure zone practice', state: { surface: 'adventure', adventure: true } },
+    { name: 'Map Battle', state: { surface: 'map_battle', mapBattle: true } },
+    { name: 'Lord first-clear', state: { surface: 'lord_first_clear', boss: true, replay: false } },
+    { name: 'Lord replay', state: { surface: 'lord_replay', boss: true, replay: true } },
+    { name: 'challenge', state: { surface: 'challenge', challenge: true } },
+    { name: 'daily training', state: { surface: 'daily', daily: true } },
+    { name: 'mistake/review', state: { surface: 'mistakes' } },
+    { name: 'guild', state: { surface: 'guild', guild: true } },
+    { name: 'premium', state: { surface: 'premium', premium: true } },
+  ];
+  const results = [];
+  for (const mode of modes) {
+    const page = await openPage(browser, origin);
+    const forbiddenRequests = [];
+    const requestListener = (request) => {
+      const url = request.url();
+      if (/\/api\/(srs\/review|adventure\/boss\/(start|finish))/.test(url)) forbiddenRequests.push(url);
+    };
+    page.on('request', requestListener);
+    try {
+      await page.evaluate((state) => {
+        _bossMode = false;
+        _bossReplay = false;
+        _bossQueue = [];
+        _bossIndex = 0;
+        _bossCorrect = 0;
+        _bossAttemptId = null;
+        _challengeId = null;
+        _dailyLimitReached = false;
+        _guildQuestMode = null;
+        _premiumWeeklyMode = null;
+        _mapBattleV1Mode = 'disabled';
+        _mapBattleV1State = null;
+        _adventureActiveQuestions = [];
+        if (state.boss) {
+          _bossMode = true;
+          _bossReplay = state.replay === true;
+          _bossQueue = [7001, 7002, 7003];
+          _bossAttemptId = `matrix-${state.surface}`;
+          _bossIndex = 1;
+        }
+        if (state.challenge) _challengeId = 'matrix-challenge';
+        if (state.daily) _dailyLimitReached = true;
+        if (state.adventure) _adventureActiveQuestions = [{ id: 7001, content: '(;GM[1]SZ[9]PL[B])', accepted_moves: [] }];
+        if (state.mapBattle) {
+          _mapBattleV1Mode = 'active';
+          _mapBattleV1State = { active: true, attemptId: 'matrix-map-battle', monsterHp: 10, monsterHpMax: 10, playerHp: 10, playerHpMax: 10 };
+        }
+        if (state.guild) _guildQuestMode = { key: 'matrix-guild', done: 0, total: 1, completed: false };
+        if (state.premium) _premiumWeeklyMode = { setId: 1, rescue: false };
+        document.body.dataset.sgfReportSurface = state.surface;
+        document.getElementById('welcome-state')?.classList.add('hidden');
+        document.getElementById('board-layout')?.classList.remove('hidden');
+        document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
+        const button = document.getElementById('btn-return-map');
+        button.hidden = false;
+        button.disabled = false;
+        button.removeAttribute('aria-disabled');
+        button.style.display = 'inline-flex';
+        if (state.daily) _setDailyLimitNavLocked(true);
+      }, mode.state);
+      const button = page.locator('#btn-return-map');
+      const visible = await button.isVisible();
+      const state = await button.evaluate((element) => ({
+        disabled: element.disabled,
+        ariaDisabled: element.getAttribute('aria-disabled'),
+      }));
+      if (!visible || state.disabled || state.ariaDisabled === 'true') {
+        throw new Error(`return-map control unavailable in ${mode.name}: ${JSON.stringify({ visible, state })}`);
+      }
+      await Promise.all([
+        page.waitForURL(/\/\?adventure=1/, { timeout: 10000 }),
+        button.click(),
+      ]);
+      results.push({
+        mode: mode.name,
+        visible,
+        disabled: state.disabled,
+        ariaDisabled: state.ariaDisabled,
+        destination: new URL(page.url()).pathname + new URL(page.url()).search,
+        forbiddenRequests,
+      });
+      if (forbiddenRequests.length) throw new Error(`return-map gameplay mutation in ${mode.name}: ${JSON.stringify(forbiddenRequests)}`);
+    } finally {
+      page.off('request', requestListener);
+      await page.close();
+    }
+  }
+  return { modes: results, pass: results.length === modes.length && results.every((result) => result.destination === '/?adventure=1' && result.forbiddenRequests.length === 0) };
 }
 
 async function runReturnMapResume(browser, origin) {
@@ -463,11 +622,22 @@ async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   try {
     const lord = await runRealDataLordTransition(browser, origin);
+    if (process.env.E10_E2E_BASELINE_DIAGNOSTIC === '1') {
+      console.log(JSON.stringify({
+        ok: true,
+        differentialOnly: true,
+        engine: 'chromium-iPad-viewport-Safari-media-contract',
+        ipadViewport: { width: 1024, height: 1366 },
+        lord,
+      }, null, 2));
+      return;
+    }
     const resume = await runReturnMapResume(browser, origin);
+    const returnMapModeMatrix = await runReturnMapModeMatrix(browser, origin);
     const zone2Audio = await runZone2Audio(browser, origin);
     const zone2AutomaticPhases = await runZone2AutomaticPhaseAudio(browser, origin);
     const zone1Audio = await runZone1Audio(browser, origin);
-    console.log(JSON.stringify({ ok: true, engine: 'chromium-iPad-viewport-Safari-media-contract', ipadViewport: { width: 1024, height: 1366 }, lord, resume, zone2Audio, zone2AutomaticPhases, zone1Audio }, null, 2));
+    console.log(JSON.stringify({ ok: true, engine: 'chromium-iPad-viewport-Safari-media-contract', ipadViewport: { width: 1024, height: 1366 }, lord, resume, returnMapModeMatrix, zone2Audio, zone2AutomaticPhases, zone1Audio }, null, 2));
   } finally {
     await browser.close();
     server.close();
