@@ -8673,9 +8673,12 @@ let _questionStartedAt=0;
 function _currentReviewMetadata(){
     const params=new URLSearchParams(location.search);
     const setId=params.get('premium_set');
+    const bossSourceContext = _bossMode && _bossAttemptId
+        ? `boss_trial:${_bossAttemptId}`
+        : null;
     return {
         response_ms:_questionStartedAt?Math.round(performance.now()-_questionStartedAt):null,
-        source_context:setId?'premium_weekly':(_guildQuestMode?'guild_quest':'practice'),
+        source_context:bossSourceContext || (setId?'premium_weekly':(_guildQuestMode?'guild_quest':'practice')),
         training_set_id:setId?Number(setId):null,
         is_scaffolding:params.get('scaffold')==='1'||!!_premiumWeeklyMode?.rescue
     };
@@ -11650,6 +11653,7 @@ let _bossZone = null;
 let _bossQueue = [];
 let _bossIndex = 0;
 let _bossCorrect = 0;
+let _bossAttemptId = null;
 let _bossReplay = false;
 let _bossFinishInFlight = false;
 let _bossTransitionInFlightKey = null;
@@ -17039,6 +17043,12 @@ async function _startBossBattleNow(zone) {
         }
         _bossMode = true;
         _bossReplay = data.replay === true || data.attempt_mode === 'replay';
+        if (typeof data.attempt_id !== 'string' || !data.attempt_id) {
+            _bossMode = false;
+            setMsg(I18n.t('index.boss.start_fail'), 'err');
+            return;
+        }
+        _bossAttemptId = data.attempt_id;
         _bossZone = data.zone || zone;
         _bossQueue = data.question_ids || [];
         const serverResumeIndex = Number(data.resume_index);
@@ -17260,6 +17270,7 @@ async function _finishBossBattle() {
     } catch (e) {
         setMsg(I18n.t('index.boss.finish_fail'), 'err');
     } finally {
+        _bossAttemptId = null;
         _bossReplay = false;
         _bossFinishInFlight = false;
     }

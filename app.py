@@ -8891,6 +8891,39 @@ E10_CINEMATIC_KEYS = tuple(E10_CINEMATIC_KEY_REGISTRY)
 # may still count as evidence for that attempt. Bounds "stale answer" replay
 # without being so tight it punishes normal play pace on a 20-question exam.
 BOSS_ATTEMPT_MAX_MINUTES = 60
+BOSS_REVIEW_SOURCE_CONTEXT_PREFIX = 'boss_trial:'
+BOSS_REVIEW_SOURCE_CONTEXT_MAX_LENGTH = 40
+
+
+def _adventure_boss_attempt_id_is_valid(attempt_id):
+    """Return whether an opaque signed-session Boss attempt id is safe to bind.
+
+    The id is generated server-side and carried back only as an opaque runtime
+    value.  The compact character/length contract keeps the reserved
+    ``source_context`` marker within review_log's existing 40-character
+    boundary while still rejecting arbitrary caller-controlled strings.
+    """
+    return (
+        isinstance(attempt_id, str)
+        and 8 <= len(attempt_id) <= 32
+        and re.fullmatch(r'[A-Za-z0-9_-]+', attempt_id) is not None
+    )
+
+
+def _adventure_boss_source_context(attempt_id):
+    if not _adventure_boss_attempt_id_is_valid(attempt_id):
+        raise _AdventureBossAttemptError('malformed_session')
+    marker = f'{BOSS_REVIEW_SOURCE_CONTEXT_PREFIX}{attempt_id}'
+    if len(marker) > BOSS_REVIEW_SOURCE_CONTEXT_MAX_LENGTH:
+        raise _AdventureBossAttemptError('malformed_session')
+    return marker
+
+
+def _new_adventure_boss_attempt_id():
+    # 18 bytes produces a 24-character URL-safe token; together with the
+    # reserved prefix it remains below review_log.source_context's 40-char
+    # contract and is not guessable from a timestamp or zone key.
+    return secrets.token_urlsafe(18)
 # Fixed, same for every zone. Achievement-style, one-time reward -- granted
 # via _grant_coins(bypass_daily_cap=True), never subject to the daily coin cap.
 ADVENTURE_FIRST_CLEAR_REWARD_COINS = 200
@@ -8909,7 +8942,11 @@ def _adventure_boss_question_is_active(question_id):
     exam = session.get('adventure_boss_exam') or {}
     question_ids = exam.get('question_ids')
     started_at_raw = exam.get('started_at')
-    if not isinstance(question_ids, list) or not started_at_raw:
+    if (
+        not isinstance(question_ids, list)
+        or not started_at_raw
+        or not _adventure_boss_attempt_id_is_valid(exam.get('attempt_id'))
+    ):
         return False
     try:
         question_id = int(question_id)
@@ -9927,6 +9964,7 @@ def adventure_boss_start():
                         'attempt_mode': attempt_mode,
                         'replay': is_replay,
                         'resumed': True,
+                        'attempt_id': resume_exam['attempt_id'],
                         'resume_index': answered_count,
                         'answered_count': answered_count,
                         'correct': evidence['correct_count'],
@@ -9958,10 +9996,12 @@ def adventure_boss_start():
     rng.shuffle(pool)
     selected = pool[:min(BOSS_EXAM_SIZE, len(pool))]
     qids = [q['id'] for q in selected]
+    attempt_id = _new_adventure_boss_attempt_id()
     session['adventure_boss_exam'] = {
         'zone_key': zone_key,
         'question_ids': qids,
         'started_at': datetime.datetime.now().isoformat(timespec='seconds'),
+        'attempt_id': attempt_id,
         # Stored in the signed server session for finish-time validation; this
         # is never accepted from the client request body.
         'attempt_mode': attempt_mode,
@@ -9975,6 +10015,7 @@ def adventure_boss_start():
         'attempt_mode': attempt_mode,
         'replay': is_replay,
         'resumed': False,
+        'attempt_id': attempt_id,
         'resume_index': 0,
         'answered_count': 0,
         'correct': 0,
@@ -9990,7 +10031,13 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     """
     question_ids = exam.get('question_ids') if isinstance(exam, dict) else None
     started_at_raw = exam.get('started_at') if isinstance(exam, dict) else None
-    if not isinstance(question_ids, list) or not question_ids or not started_at_raw:
+    attempt_id = exam.get('attempt_id') if isinstance(exam, dict) else None
+    if (
+        not isinstance(question_ids, list)
+        or not question_ids
+        or not started_at_raw
+        or not _adventure_boss_attempt_id_is_valid(attempt_id)
+    ):
         raise _AdventureBossAttemptError('malformed_session')
     if any(isinstance(q, bool) or not isinstance(q, int) for q in question_ids):
         raise _AdventureBossAttemptError('malformed_session')
@@ -10006,12 +10053,14 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     if datetime.datetime.now() > deadline:
         raise _AdventureBossAttemptError('attempt_expired')
 
+    source_context = _adventure_boss_source_context(attempt_id)
+
     placeholders = ','.join('?' for _ in qids)
     rows = conn.execute(
         'SELECT question_id, grade FROM review_log '
-        f'WHERE user_id=? AND question_id IN ({placeholders}) '
+        f'WHERE user_id=? AND source_context=? AND question_id IN ({placeholders}) '
         'AND reviewed_at >= ? AND reviewed_at <= ?',
-        (uid, *qids, started_at.isoformat(), deadline.isoformat())
+        (uid, source_context, *qids, started_at.isoformat(), deadline.isoformat())
     ).fetchall()
 
     best_grade_by_qid = {}
@@ -11530,6 +11579,48 @@ def _map_battle_progression_already_applied(conn, user_id, marker):
     ).fetchone() is not None
 
 
+def _validate_adventure_boss_review_context(conn, uid, qid, source_context):
+    """Validate a client-declared Boss review against the signed exam.
+
+    Boss review rows are deliberately bound to the exact server-generated
+    attempt marker.  A syntactically valid marker is not enough: the signed
+    session, question membership, expiry, and authoritative next unsettled
+    question all have to agree before any review_log write is possible.
+    """
+    if not isinstance(source_context, str):
+        raise _AdventureBossAttemptError('invalid_boss_attempt_context')
+    prefix = BOSS_REVIEW_SOURCE_CONTEXT_PREFIX
+    if not source_context.startswith(prefix):
+        raise _AdventureBossAttemptError('invalid_boss_attempt_context')
+    attempt_id = source_context[len(prefix):]
+    if (
+        not _adventure_boss_attempt_id_is_valid(attempt_id)
+        or source_context != _adventure_boss_source_context(attempt_id)
+    ):
+        raise _AdventureBossAttemptError('invalid_boss_attempt_context')
+
+    exam = session.get('adventure_boss_exam')
+    if not isinstance(exam, dict) or exam.get('attempt_id') != attempt_id:
+        raise _AdventureBossAttemptError('invalid_boss_attempt_context')
+
+    try:
+        evidence = _adventure_boss_attempt_evidence(conn, uid, exam)
+    except _AdventureBossAttemptError as exc:
+        raise _AdventureBossAttemptError(
+            'invalid_boss_attempt_context'
+            if exc.code in ('malformed_session', 'attempt_expired')
+            else exc.code
+        )
+
+    if isinstance(qid, bool) or not isinstance(qid, int):
+        raise _AdventureBossAttemptError('invalid_boss_attempt_question')
+    if qid not in evidence['question_ids']:
+        raise _AdventureBossAttemptError('invalid_boss_attempt_question')
+    if evidence['complete'] or qid != evidence['question_ids'][evidence['answered_count']]:
+        raise _AdventureBossAttemptError('invalid_boss_attempt_question')
+    return source_context
+
+
 @app.route('/api/srs/review', methods=['POST'])
 @login_required
 def srs_review():
@@ -11561,15 +11652,22 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             if data.get('response_ms') is not None else None
     except (TypeError, ValueError):
         response_ms = None
+    boss_source_context = None
     if internal:
         submission_id = str(submission_id or '').strip()
         if not submission_id:
             return jsonify({'error': 'invalid_submission_identity'}), 500
         source_context = f'{_MAP_BATTLE_PROGRESS_MARKER_PREFIX}{submission_id}'
     else:
-        source_context = str(data.get('source_context') or 'practice')[:40]
+        source_context = str(data.get('source_context') or 'practice')
+        if len(source_context) > BOSS_REVIEW_SOURCE_CONTEXT_MAX_LENGTH:
+            return jsonify({'error': 'invalid_source_context'}), 400
         if source_context.startswith(_MAP_BATTLE_PROGRESS_MARKER_PREFIX):
             return jsonify({'error': 'reserved_source_context'}), 400
+        if source_context.startswith(BOSS_REVIEW_SOURCE_CONTEXT_PREFIX):
+            boss_source_context = source_context
+        else:
+            source_context = source_context[:40]
     training_set_id = data.get('training_set_id')
     try:
         training_set_id = int(training_set_id) if training_set_id is not None else None
@@ -11620,6 +11718,13 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     ITEM_RATING_VERSION, _, rank_to_rating = _load_premium_weekly_rating_helpers()
 
     with get_db() as conn:
+        if boss_source_context is not None:
+            try:
+                source_context = _validate_adventure_boss_review_context(
+                    conn, uid, qid, boss_source_context
+                )
+            except _AdventureBossAttemptError as exc:
+                return jsonify({'error': exc.code}), 400
         if internal:
             submission = _map_battle_progression_submission(
                 conn, uid, submission_id

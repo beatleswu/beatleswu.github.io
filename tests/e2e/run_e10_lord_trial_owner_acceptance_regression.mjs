@@ -158,6 +158,7 @@ async function runRealBoardProgress(browser, origin) {
         replay: false,
         attempt_mode: 'first_clear',
         question_ids: [101, 102, 103],
+        attempt_id: 'ipad-board-attempt-001',
         zone: lordZone(),
       }),
     });
@@ -178,9 +179,11 @@ async function runRealBoardProgress(browser, origin) {
         index: 0,
         stages: [{ can_enter: true, completed: false }],
       }];
-      SRS.review = async (questionId, grade) => {
+      SRS.review = async (questionId, grade, unit, unitDone, metadata) => {
         window.__ownerReviewLog = window.__ownerReviewLog || [];
-        window.__ownerReviewLog.push({ questionId: Number(questionId), grade: Number(grade) });
+        window.__ownerReviewLog.push({
+          questionId: Number(questionId), grade: Number(grade), metadata,
+        });
         return { ok: true };
       };
       SRS.reportUnitProgress = async () => ({ unit_complete: false });
@@ -239,7 +242,9 @@ async function runRealBoardProgress(browser, origin) {
     }
     if (trace.reviewLog.length !== 2
       || trace.reviewLog[0].questionId !== 101 || trace.reviewLog[0].grade < 3
-      || trace.reviewLog[1].questionId !== 102 || trace.reviewLog[1].grade !== 0) {
+      || trace.reviewLog[1].questionId !== 102 || trace.reviewLog[1].grade !== 0
+      || trace.reviewLog[0].metadata?.source_context !== 'boss_trial:ipad-board-attempt-001'
+      || trace.reviewLog[1].metadata?.source_context !== 'boss_trial:ipad-board-attempt-001') {
       throw new Error(`unexpected real board review path: ${JSON.stringify(trace.reviewLog)}`);
     }
     if (!trace.nextDisabled || JSON.stringify(trace.queue) !== JSON.stringify([101, 102, 103])) {
@@ -294,6 +299,7 @@ async function runRealBoardResume(browser, origin) {
         correct: resumed ? 1 : 0,
         resumed,
         ready_to_finish: false,
+        attempt_id: 'ipad-resume-attempt-001',
         zone: fixtureZone,
       }),
     });
@@ -318,9 +324,11 @@ async function runRealBoardResume(browser, origin) {
         index: 0,
         stages: [{ can_enter: true, completed: false }],
       }];
-      SRS.review = async (questionId, grade) => {
+      SRS.review = async (questionId, grade, unit, unitDone, metadata) => {
         window.__ownerResumeReviewLog = window.__ownerResumeReviewLog || [];
-        window.__ownerResumeReviewLog.push({ questionId: Number(questionId), grade: Number(grade) });
+        window.__ownerResumeReviewLog.push({
+          questionId: Number(questionId), grade: Number(grade), metadata,
+        });
         return { ok: true };
       };
       SRS.reportUnitProgress = async () => ({ unit_complete: false });
@@ -352,8 +360,12 @@ async function runRealBoardResume(browser, origin) {
       currentQuestion: Number(currentQ?.id),
       bossIndex: _bossIndex,
       bossCorrect: _bossCorrect,
+      attemptId: _bossAttemptId,
+      reviewLog: window.__ownerResumeReviewLog || [],
     }));
-    if (beforeReload.currentQuestion !== 102 || beforeReload.bossIndex !== 1 || beforeReload.bossCorrect !== 1) {
+    if (beforeReload.currentQuestion !== 102 || beforeReload.bossIndex !== 1 || beforeReload.bossCorrect !== 1
+      || beforeReload.attemptId !== 'ipad-resume-attempt-001'
+      || beforeReload.reviewLog[0]?.metadata?.source_context !== 'boss_trial:ipad-resume-attempt-001') {
       throw new Error(`pre-reload Boss state is wrong: ${JSON.stringify(beforeReload)}`);
     }
 
@@ -374,9 +386,11 @@ async function runRealBoardResume(browser, origin) {
       bossIndex: _bossIndex,
       bossCorrect: _bossCorrect,
       queue: _bossQueue.slice(),
+      attemptId: _bossAttemptId,
     }));
     if (afterReload.currentQuestion !== 102 || afterReload.bossIndex !== 1 || afterReload.bossCorrect !== 1
-      || JSON.stringify(afterReload.queue) !== JSON.stringify([101, 102, 103])) {
+      || JSON.stringify(afterReload.queue) !== JSON.stringify([101, 102, 103])
+      || afterReload.attemptId !== 'ipad-resume-attempt-001') {
       throw new Error(`page reload did not resume Q2 from server state: ${JSON.stringify(afterReload)}`);
     }
     await clickBoardAt(1, 1);
@@ -417,6 +431,7 @@ async function runLostFinishRecovery(browser, origin) {
       answered_count: 3,
       correct: 2,
       ready_to_finish: true,
+      attempt_id: 'lost-finish-attempt-001',
       zone: fixtureZone,
     }),
   }));
@@ -504,7 +519,7 @@ async function runReplayCta(browser, origin, stars) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ ok: true, replay: true, attempt_mode: 'replay', question_ids: [201], zone: lordZone({ cleared: true }) }),
+      body: JSON.stringify({ ok: true, replay: true, attempt_mode: 'replay', attempt_id: `replay-attempt-${stars}`, question_ids: [201], zone: lordZone({ cleared: true }) }),
     });
   });
   try {
