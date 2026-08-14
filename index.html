@@ -13661,8 +13661,7 @@ async function startAdventureStage(zoneKey, options = {}) {
     // This function is reached from the real map CTA user gesture.  Zone 2's
     // first spoken beat intentionally starts on Shot 2 (Shot 1 is silent), so
     // prime the reusable media elements before the cinematic's silent hold.
-    if (zone.key === 'k21_25'
-        && (options.mode === 'first_entry' || options.mode === 'manual_replay')) {
+    if (zone.key === 'k21_25') {
         await _unlockIntroAudioFromGesture();
     }
     await showStageIntroCinematic(zone, {
