@@ -1442,6 +1442,7 @@ const I18n = (() => {
         'index.film.caption': { en: '00:00 Awakening', zh: '00:00 覺醒' },
         'index.film.voice_btn': { en: 'Change style', zh: '換風格' },
         'index.film.replay':  { en: 'Play animation', zh: '播放動畫' },
+        'index.film.audio_gesture_required': { en: 'Tap Play animation to enable the recorded narration.', zh: '請點選「播放動畫」以啟用錄音旁白。' },
         'index.film.skip':    { en: 'Skip animation', zh: '略過動畫' },
         'index.film.title_card': { en: 'Beginner Village: Trial of the Wooden Sword', zh: '圍棋新手村：木劍的試煉' },
         'index.pwa.title':    { en: '📱 Add to Home Screen', zh: '📱 加到主畫面' },
@@ -1664,6 +1665,7 @@ const I18n = (() => {
 
         // index.html — boss battle dynamic
         'index.boss.start_fail':  { en: 'Failed to start BOSS challenge', zh: 'BOSS 挑戰啟動失敗' },
+        'index.boss.question_load_fail': { en: 'The next Lord Trial board could not be rendered. Return to the map and re-enter to resume safely.', zh: '下一題領主棋盤無法顯示，請返回地圖後重新進入以安全繼續。' },
         'index.boss.finish_fail': { en: 'BOSS result failed. Refresh to check status.', zh: 'BOSS 結算失敗，請重新整理確認狀態' },
         'index.boss.zone_default':      { en: 'Boss', zh: '領主' },
         'index.boss.progress_status':   { en: 'Boss Trial {current}/{total} · Correct: {correct}', zh: '領主試煉 {current}/{total} · 已答對 {correct} 題' },

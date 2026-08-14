@@ -7519,6 +7519,7 @@
                     </div>
                 </div>
                 <div class="btn-row">
+                    <button class="btn-nav" id="btn-return-map" type="button" onclick="returnToAdventureMap()" data-i18n="index.boss.back_to_map" data-i18n-aria-label="index.boss.back_to_map" aria-label="返回地圖">返回地圖</button>
                     <button class="btn-nav" id="btn-adventure-return" onclick="returnToAdventureMapAfterEncounter()" style="display:none;"></button>
                     <button class="btn-nav teal-btn" id="btn-e10-battle-explain" type="button" onclick="showE10BattleExplanation()" aria-controls="explanation-panel" style="display:none;">看解答</button>
                     <button class="btn-nav" onclick="prevQuestion()" data-i18n="index.btn.prev">◀ 上一題</button>
@@ -8669,6 +8670,36 @@ function bindXpHelp() {
 // ─── 全域狀態 ──────────────────────────────────────────────────
 let board=null,currentProblem=null,currentNode=null,currentQ=null;
 let _questionStartedAt=0;
+let _e10AcceptanceBoardRenderSerial = 0;
+
+// Bounded, opt-in diagnostics for Owner acceptance and non-Production E2E
+// harnesses.  The normal runtime never writes these events to the console;
+// an isolated harness opts in by setting the flag before page scripts run.
+function _e10AcceptanceDiagnosticsEnabled() {
+    return window.__GO_E10_ACCEPTANCE_DIAGNOSTIC__ === true
+        || document.documentElement?.dataset.e10AcceptanceDiagnostic === 'true';
+}
+
+function _e10AcceptanceTrace(event, details = {}) {
+    if (!_e10AcceptanceDiagnosticsEnabled()) return;
+    try {
+        const trace = window.__GO_E10_ACCEPTANCE_TRACE__ || (window.__GO_E10_ACCEPTANCE_TRACE__ = []);
+        trace.push({ event, at: Math.round(performance.now()), ...details });
+        if (trace.length > 300) trace.splice(0, trace.length - 300);
+    } catch (e) {}
+}
+
+function _e10BoardRenderFingerprint(question = currentQ) {
+    const wrap = document.getElementById('board-canvas-wrap');
+    return {
+        questionId: Number(question?.id) || null,
+        boardSerial: _e10AcceptanceBoardRenderSerial,
+        currentNodeReady: !!currentNode,
+        canvasCount: wrap ? wrap.querySelectorAll('canvas').length : 0,
+        renderWidth: wrap?.clientWidth || 0,
+        renderHeight: wrap?.clientHeight || 0,
+    };
+}
 
 function _currentReviewMetadata(){
     const params=new URLSearchParams(location.search);
@@ -9787,6 +9818,14 @@ function showE10BattleExplanation() {
     showExplanation(_lastWrongMove || null, { reveal: true });
 }
 
+// Shared, deterministic escape from every question surface.  The canonical
+// helper below invalidates page callbacks and navigates to the E10 map URL;
+// it deliberately does not submit, abandon, or clear an active Boss attempt.
+function returnToAdventureMap() {
+    // Preserve the signed server Boss attempt; this is navigation only.
+    returnToAdventureMapAfterEncounter();
+}
+
 function returnToAdventureMapAfterEncounter() {
     // Returning is presentation/navigation only. Preserve the server-issued
     // active attempt in sessionStorage so re-entry can resume it; invalidate
@@ -10479,6 +10518,11 @@ function initBoard(size, cropInfo){
     _cropInfo = cropInfo;
 
     const wrap=document.getElementById('board-canvas-wrap');
+    _e10AcceptanceTrace('BOARD_INIT_BEGIN', {
+        questionId: Number(currentQ?.id) || null,
+        size,
+        generation: _mapBattleV1LifecycleGeneration,
+    });
     wrap.innerHTML='';
     // WGo.Board 會在 wrap 上設 inline style.width；清掉後才能量到 CSS 計算寬度
     wrap.style.width='';
@@ -10493,8 +10537,14 @@ function initBoard(size, cropInfo){
         w = Math.max(w, 200);
     }
     board=new WGo.Board(wrap,{width:w,size:cropInfo.displayLines,section:{top:-.5,left:-.5,right:-.5,bottom:-.5}});
+    _e10AcceptanceBoardRenderSerial += 1;
     board.addEventListener('click',onBoardClick);
     _drawCoordOverlay(w, size, cropInfo);
+    _e10AcceptanceTrace('BOARD_INIT_END', {
+        questionId: Number(currentQ?.id) || null,
+        boardSerial: _e10AcceptanceBoardRenderSerial,
+        width: w,
+    });
 }
 
 // ── 座標轉換：原始19路 ↔ 顯示棋盤 ─────────────────────────────
@@ -10564,8 +10614,57 @@ function _revealExplanationPanel(panel) {
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function _runQuestionBoardSetup(setup, { generation, question } = {}) {
+    return new Promise(resolve => {
+        let settled = false;
+        const finish = value => {
+            if (settled) return;
+            settled = true;
+            resolve(value === true);
+        };
+        const run = () => {
+            if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== question) {
+                _e10AcceptanceTrace('GENERATION_INVALID_BEFORE_BOARD_SETUP', {
+                    questionId: Number(question?.id) || null,
+                    generation,
+                    currentGeneration: _mapBattleV1LifecycleGeneration,
+                });
+                finish(false);
+                return;
+            }
+            try {
+                finish(setup() !== false);
+            } catch (error) {
+                _e10AcceptanceTrace('BOARD_SETUP_EXCEPTION', {
+                    questionId: Number(question?.id) || null,
+                    message: String(error),
+                });
+                finish(false);
+            }
+        };
+        const wrap = document.getElementById('board-canvas-wrap');
+        const visibleWidth = wrap?.getBoundingClientRect?.().width || wrap?.clientWidth || 0;
+        if (visibleWidth > 0) {
+            run();
+            return;
+        }
+        const frame = typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : callback => setTimeout(callback, 0);
+        frame(() => frame(run));
+    });
+}
+
 async function loadQuestion(q, { resumeState = null } = {}){
+    const questionId = Number(q?.id);
+    if (!q || !Number.isFinite(questionId)) {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, reason: 'invalid_question' });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        return false;
+    }
     const generation = ++_mapBattleV1LifecycleGeneration;
+    _e10AcceptanceTrace('LOADQUESTION_ENTER_QID', { qid: questionId, generation });
+    _e10AcceptanceTrace('LOADQUESTION_GENERATION', { qid: questionId, generation });
     window.SGFReportWidget?.setContext({
         question_id: Number(q.id),
         surface: document.body.dataset.sgfReportSurface || 'main_practice',
@@ -10581,8 +10680,20 @@ async function loadQuestion(q, { resumeState = null } = {}){
     _mapBattleV1Context = null;
     _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _publishMapBattleV1Lifecycle();
-    await _hydrateE10BattlePresentation();
-    if (generation !== _mapBattleV1LifecycleGeneration) return false;
+    _e10AcceptanceTrace('HYDRATION_BEGIN', { qid: questionId, generation });
+    try {
+        await _hydrateE10BattlePresentation();
+    } catch (error) {
+        _e10AcceptanceTrace('HYDRATION_EXCEPTION', { qid: questionId, message: String(error) });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        return false;
+    }
+    _e10AcceptanceTrace('HYDRATION_END', { qid: questionId, generation });
+    if (generation !== _mapBattleV1LifecycleGeneration) {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_after_hydration' });
+        return false;
+    }
+    _e10AcceptanceTrace('GENERATION_VALID_AFTER_HYDRATION', { qid: questionId, generation });
     _setBeginnerVillagePostAnswerControls(false);
     _hideRecommend();   // 切題時清掉推薦
     // Hide welcome screen, show practice elements
@@ -10594,6 +10705,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
     if(mb) mb.classList.remove('hidden');
 
     currentQ=q;
+    _e10AcceptanceTrace('CURRENT_Q_ASSIGNED', { qid: questionId, generation });
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
@@ -10611,7 +10723,11 @@ async function loadQuestion(q, { resumeState = null } = {}){
         }
         active.scrollIntoView({block:'nearest'});
     }
-    if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }   // 已達上限，不載新題（挑戰模式跳過）
+    if(_dailyLimitBlocksCurrentFlow()){
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'daily_limit' });
+        _applyDailyLimit();
+        return false;
+    }   // 已達上限，不載新題（挑戰模式跳過）
     solved=false;answering=false;_exploringAfterWrong=false;
     _cancelAutoSolution();
     hideExplanation();
@@ -10626,18 +10742,36 @@ async function loadQuestion(q, { resumeState = null } = {}){
 
     // ── 付費題目鎖定 ──────────────────────────────────────────
     if(q.locked){
-        if(!q.content){try{const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});const _d=await _r.json();q.content=_d.content||'';}catch(e){}}
+        if(!q.content){
+            try{
+                const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});
+                if (_r?.ok === false) throw new Error(`question_fetch_${_r.status}`);
+                const _d=await _r.json();
+                q.content=_d.content||'';
+            }catch(e){
+                _e10AcceptanceTrace('LOADQUESTION_FETCH_ERROR', { qid: questionId, message: String(e) });
+            }
+        }
         currentProblem=parseSGF((q.content||'').trim());
-        if(currentProblem){
-            const _setup=()=>{
-                if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return;
-                const _ci=calcCropSection(currentProblem);
-                initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
-                currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
-                currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
-            };
-            const wrap=document.getElementById('board-canvas-wrap');
-            if(wrap.clientWidth>0){_setup();}else{requestAnimationFrame(()=>requestAnimationFrame(_setup));}
+        if(!currentProblem){
+            _e10AcceptanceTrace('SGF_PARSE_FAILED', { qid: questionId, generation });
+            setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+            return false;
+        }
+        const _setup=()=>{
+            _e10AcceptanceTrace('BOARD_SETUP_BEGIN', { qid: questionId, generation });
+            const _ci=calcCropSection(currentProblem);
+            initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
+            currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
+            currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+            _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
+            return true;
+        };
+        const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q });
+        if (!_setupReady) {
+            _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
+            setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+            return false;
         }
         solved=true; // 鎖定棋盤，防止落子
         document.getElementById('btn-reset').style.display='none';
@@ -10645,17 +10779,44 @@ async function loadQuestion(q, { resumeState = null } = {}){
         _syncE10BattleActions(false);
         setMsg(I18n.t('index.premium_req'),'err');
         _publishMapBattleV1Lifecycle();
+        _e10AcceptanceTrace('CURRENT_NODE_READY', { qid: questionId, generation, fingerprint: _e10BoardRenderFingerprint(q) });
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: true, qid: questionId, generation });
         return true;
     }
-    if(!q.content || q.accepted_moves === undefined){try{const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});const _d=await _r.json();Object.assign(q,_d||{});}catch(e){}}
-    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return false;
+    if(!q.content || q.accepted_moves === undefined){
+        try{
+            const _r=await fetch(`/api/question/${q.id}`,{credentials:'include'});
+            if (_r?.ok === false) throw new Error(`question_fetch_${_r.status}`);
+            const _d=await _r.json();
+            if (_d?.error) throw new Error(String(_d.error));
+            Object.assign(q,_d||{});
+        }catch(e){
+            _e10AcceptanceTrace('LOADQUESTION_FETCH_ERROR', { qid: questionId, message: String(e) });
+            setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+            _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'question_fetch' });
+            return false;
+        }
+    }
+    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_before_parse' });
+        return false;
+    }
     currentProblem=parseSGF((q.content||'').trim());
-    if(!currentProblem){setMsg(I18n.t('index.parse_err'),'warn');return;}
+    if(!currentProblem){
+        _e10AcceptanceTrace('SGF_PARSE_FAILED', { qid: questionId, generation });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'sgf_parse' });
+        return false;
+    }
+    _e10AcceptanceTrace('SGF_PARSE_OK', { qid: questionId, generation });
     await _prepareMapBattleV1ForQuestion(q, { generation, resumeState });
-    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return false;
+    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_after_prepare' });
+        return false;
+    }
     _syncE10BattleActions(true);
     const _setup=()=>{
-        if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) return;
+        _e10AcceptanceTrace('BOARD_SETUP_BEGIN', { qid: questionId, generation });
         const _ci=calcCropSection(currentProblem);
         initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
@@ -10674,10 +10835,19 @@ async function loadQuestion(q, { resumeState = null } = {}){
             setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
         }
         initMonsterForQuestion(q);
+        _e10AcceptanceTrace('CURRENT_NODE_READY', { qid: questionId, generation, fingerprint: _e10BoardRenderFingerprint(q) });
+        _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
+        return true;
     };
-    const wrap=document.getElementById('board-canvas-wrap');
-    if(wrap.clientWidth>0){_setup();}else{requestAnimationFrame(()=>requestAnimationFrame(_setup));}
+    const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q });
+    if (!_setupReady) {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        return false;
+    }
     _publishMapBattleV1Lifecycle();
+    _e10AcceptanceTrace('BOARD_RENDER_FINGERPRINT', { qid: questionId, fingerprint: _e10BoardRenderFingerprint(q) });
+    _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: true, qid: questionId, generation });
     return true;
 }
 
@@ -11241,6 +11411,7 @@ function _rememberDailyLimitLock() {
 
 function _setDailyLimitNavLocked(locked) {
     document.querySelectorAll('.btn-nav').forEach(btn => {
+        if (btn.id === 'btn-return-map' || btn.id === 'btn-adventure-return') return;
         btn.disabled = locked;
         btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
         btn.classList.toggle('daily-limit-locked', locked);
@@ -13485,6 +13656,13 @@ async function startAdventureStage(zoneKey, options = {}) {
     if (!zone || (!_adventureCanEnter(zone) && !readErrorDegraded)) {
         setMsg(I18n.t('index.adv.zone_locked'), 'warn');
         return;
+    }
+    _activeBossZone = zone;
+    // This function is reached from the real map CTA user gesture.  Zone 2's
+    // first spoken beat intentionally starts on Shot 2 (Shot 1 is silent), so
+    // prime the reusable media elements before the cinematic's silent hold.
+    if (zone.key === 'k21_25') {
+        await _unlockIntroAudioFromGesture();
     }
     await showStageIntroCinematic(zone, {
         mode: options.mode || 'legacy',
@@ -16179,27 +16357,75 @@ function _maybeTriggerZone2BossReadyFilm(zones) {
     const zone = (zones || _adventureProgress || []).find(z => z.key === 'k21_25');
     if (!zone || !_adventureBossReady(zone) || adventureBossReadyFilmSeen(zone)) return;
     if (_introFilmActiveOpts.phase === 'boss_ready') return;
-    markAdventureBossReadyFilmSeen(zone);
     playZone2BossReadyFilm(zone);
 }
 
-function playZone2BossReadyFilm(zone) {
+// Zone 2's BOSS_READY and POST_CLEAR presentations can be triggered by
+// bootstrap/recovery rather than a click. Safari/WebKit does not guarantee
+// that a later recorded narration play() is allowed after such an automatic
+// trigger, even when an earlier page interaction happened in the same tab.
+// Keep the approved timeline and reusable media elements, but stop at an
+// explicit gesture boundary until the actual narration element is primed.
+function _startZone2CinematicWithGesture(zone, opts = {}) {
     const overlay = document.getElementById('boss-cinematic');
-    if (!overlay || !zone || zone.key !== 'k21_25') return;
-    const locale = getIntroFilmLocaleConfig(zone);
-    const timeline = locale.bossReadyTimeline || [];
-    if (!timeline.length) return;
+    const timeline = opts.timeline || [];
+    const phase = opts.phase || 'pre_play';
+    if (!overlay || !zone || zone.key !== 'k21_25' || !timeline.length) return false;
+    const begin = () => {
+        delete overlay.dataset.zone2AudioGesturePending;
+        const btn = document.getElementById('boss-cinematic-btn');
+        if (btn) btn.disabled = true;
+        if (typeof opts.onStarted === 'function') opts.onStarted();
+        void playNewbieVillageIntroFilm(zone, {
+            timeline,
+            phase,
+            onComplete: opts.onComplete || null,
+        });
+    };
+    if (_introAudioUnlocked) {
+        begin();
+        return true;
+    }
     _stopIntroFilm();
-    overlay.className = 'boss-cinematic show intro-film';
+    _introFilmActiveOpts = {
+        timeline,
+        onComplete: opts.onComplete || null,
+        phase,
+        mode: 'legacy',
+    };
+    overlay.className = 'boss-cinematic show intro-film ready';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
+    overlay.dataset.zone2AudioGesturePending = phase;
     document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
+    const line = document.getElementById('boss-cinematic-line');
+    if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
     const btn = document.getElementById('boss-cinematic-btn');
-    if (btn) btn.disabled = true;
-    playNewbieVillageIntroFilm(zone, {
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = I18n.t('index.film.replay');
+        btn.onclick = async () => {
+            btn.disabled = true;
+            await _unlockIntroAudioFromGesture();
+            if (!_introAudioUnlocked) {
+                btn.disabled = false;
+                if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
+                return;
+            }
+            begin();
+        };
+    }
+    return false;
+}
+
+function playZone2BossReadyFilm(zone) {
+    const locale = getIntroFilmLocaleConfig(zone);
+    const timeline = locale.bossReadyTimeline || [];
+    return _startZone2CinematicWithGesture(zone, {
         timeline,
         phase: 'boss_ready',
         onComplete: () => finishBossReadyFilm(zone),
+        onStarted: () => markAdventureBossReadyFilmSeen(zone),
     });
 }
 
@@ -16263,19 +16489,10 @@ function playZone1PostClearFilm(zone) {
 // through _triggerZone2PostClearFromBossWin after the server has returned an
 // authoritative passed Lord result, or through its pending replay recovery.
 function playZone2PostClearFilm(zone) {
-    const overlay = document.getElementById('boss-cinematic');
-    if (!overlay || !zone || zone.key !== 'k21_25' || !zone.cleared) return;
+    if (!zone || zone.key !== 'k21_25' || !zone.cleared) return false;
     const locale = getIntroFilmLocaleConfig(zone);
     const timeline = locale.postClearTimeline || [];
-    if (!timeline.length) return;
-    _stopIntroFilm();
-    overlay.className = 'boss-cinematic show intro-film';
-    overlay.setAttribute('aria-hidden', 'false');
-    overlay.dataset.zoneKey = zone.key || '';
-    document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
-    const btn = document.getElementById('boss-cinematic-btn');
-    if (btn) btn.disabled = true;
-    playNewbieVillageIntroFilm(zone, {
+    return _startZone2CinematicWithGesture(zone, {
         timeline,
         phase: 'post_clear',
         onComplete: () => finishPostClearFilm(zone),
@@ -16826,6 +17043,10 @@ function startZone2LordRitual(zone) {
     const btn = document.getElementById('boss-cinematic-btn');
     const cancelBtn = document.getElementById('boss-cinematic-cancel-btn');
     if (!overlay || !zone || zone.key !== 'k21_25') return;
+    // The ritual button is also a genuine user gesture.  Prime the same
+    // reusable audio elements here for the Zone 2 boss-ready path; this is
+    // intentionally fire-and-forget so the ritual timing stays unchanged.
+    void _unlockIntroAudioFromGesture();
     _stopIntroFilm();
     overlay.className = 'boss-cinematic show phase-lord-ritual';
     overlay.dataset.zoneKey = zone.key || '';
@@ -17099,6 +17320,7 @@ function hideBossCinematic() {
     if (overlay) {
         overlay.className = 'boss-cinematic';
         overlay.setAttribute('aria-hidden', 'true');
+        delete overlay.dataset.zone2AudioGesturePending;
     }
     _pendingBossZone = null;
 }
@@ -17131,15 +17353,55 @@ function _syncBossNextButton() {
 }
 
 async function _loadBossQuestion() {
-    if (!_bossMode) return;
+    if (!_bossMode) return false;
     _syncBossNextButton();
+    _e10AcceptanceTrace('LOAD_BOSS_QUESTION_ENTER', {
+        index: _bossIndex,
+        qid: _bossQueue?.[_bossIndex] ?? null,
+        queueLength: _bossQueue?.length || 0,
+    });
     if (_bossIndex >= _bossQueue.length) {
         await _finishBossBattle();
-        return;
+        return true;
     }
-    const qid = _bossQueue[_bossIndex];
-    const q = allQuestions.find(x => x.id == qid) || await fetch(`/api/question/${qid}`, { credentials:'include' }).then(r => r.json());
-    await loadQuestion(q);
+    const qid = Number(_bossQueue[_bossIndex]);
+    if (!Number.isInteger(qid) || qid <= 0) {
+        _e10AcceptanceTrace('BOSS_TRANSITION_EXCEPTION', { reason: 'invalid_queue_qid', qid });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        return false;
+    }
+    try {
+        let q = allQuestions.find(x => Number(x?.id) === qid);
+        if (!q) {
+            const response = await fetch(`/api/question/${qid}`, { credentials:'include' });
+            if (response?.ok === false) throw new Error(`question_fetch_${response.status}`);
+            q = await response.json();
+        }
+        if (!q || Number(q.id) !== qid || q.error) throw new Error('question_payload_invalid');
+        _e10AcceptanceTrace('LOAD_BOSS_QUESTION_RESOLVED_QID', { qid, index: _bossIndex });
+        const loaded = await loadQuestion(q);
+        const boardReady = loaded === true
+            && Number(currentQ?.id) === qid
+            && !!currentProblem
+            && !!currentNode
+            && !!board;
+        _e10AcceptanceTrace('BOSS_TRANSITION_BOARD_READY', {
+            qid,
+            index: _bossIndex,
+            loaded,
+            boardReady,
+            fingerprint: _e10BoardRenderFingerprint(q),
+        });
+        if (!boardReady) {
+            _e10AcceptanceTrace('BOSS_TRANSITION_EXCEPTION', { reason: 'board_not_ready', qid, index: _bossIndex });
+            setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+            return false;
+        }
+    } catch (error) {
+        _e10AcceptanceTrace('BOSS_TRANSITION_EXCEPTION', { reason: 'load_exception', qid, index: _bossIndex, message: String(error) });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        return false;
+    }
     // Keep trial progress in a dedicated sibling node. #msg-box is a shared
     // transient status surface and is intentionally overwritten by answer,
     // explanation, and save-state messages.
@@ -17151,6 +17413,7 @@ async function _loadBossQuestion() {
             .replace('{correct}', _bossCorrect),
         'info'
     );
+    return true;
 }
 
 async function _handleBossAnswer(grade, context = null) {
@@ -17167,16 +17430,30 @@ async function _handleBossAnswer(grade, context = null) {
     if (_bossTransitionInFlightKey === settlementKey || _bossLastSettledKey === settlementKey) return false;
     _bossTransitionInFlightKey = settlementKey;
     _bossLastSettledKey = settlementKey;
+    _e10AcceptanceTrace('BOSS_TRANSITION_FROM_INDEX', { index: submittedIndex, qid: submittedQuestionId, grade });
+    _e10AcceptanceTrace('BOSS_TRANSITION_FROM_QID', { index: submittedIndex, qid: submittedQuestionId, grade });
     try {
         if (grade >= 3) _bossCorrect++;
         _bossIndex++;
+        _e10AcceptanceTrace('BOSS_TRANSITION_TO_INDEX', {
+            fromIndex: submittedIndex,
+            fromQid: submittedQuestionId,
+            toIndex: _bossIndex,
+            toQid: _bossQueue?.[_bossIndex] ?? null,
+        });
+        _e10AcceptanceTrace('BOSS_TRANSITION_TO_QID', {
+            fromQid: submittedQuestionId,
+            toQid: _bossQueue?.[_bossIndex] ?? null,
+            toIndex: _bossIndex,
+        });
         if (_bossIndex >= _bossQueue.length) {
             // Show the final 20/20 position while the server-authoritative
             // finish request settles; the displayed count never grants clear.
             _renderBossTrialProgress(_bossQueue.length);
             await _finishBossBattle();
         } else {
-            await _loadBossQuestion();
+            const loaded = await _loadBossQuestion();
+            if (loaded !== true) return false;
         }
         return true;
     } finally {
