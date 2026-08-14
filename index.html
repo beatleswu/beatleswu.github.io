@@ -16357,27 +16357,75 @@ function _maybeTriggerZone2BossReadyFilm(zones) {
     const zone = (zones || _adventureProgress || []).find(z => z.key === 'k21_25');
     if (!zone || !_adventureBossReady(zone) || adventureBossReadyFilmSeen(zone)) return;
     if (_introFilmActiveOpts.phase === 'boss_ready') return;
-    markAdventureBossReadyFilmSeen(zone);
     playZone2BossReadyFilm(zone);
 }
 
-function playZone2BossReadyFilm(zone) {
+// Zone 2's BOSS_READY and POST_CLEAR presentations can be triggered by
+// bootstrap/recovery rather than a click. Safari/WebKit does not guarantee
+// that a later recorded narration play() is allowed after such an automatic
+// trigger, even when an earlier page interaction happened in the same tab.
+// Keep the approved timeline and reusable media elements, but stop at an
+// explicit gesture boundary until the actual narration element is primed.
+function _startZone2CinematicWithGesture(zone, opts = {}) {
     const overlay = document.getElementById('boss-cinematic');
-    if (!overlay || !zone || zone.key !== 'k21_25') return;
-    const locale = getIntroFilmLocaleConfig(zone);
-    const timeline = locale.bossReadyTimeline || [];
-    if (!timeline.length) return;
+    const timeline = opts.timeline || [];
+    const phase = opts.phase || 'pre_play';
+    if (!overlay || !zone || zone.key !== 'k21_25' || !timeline.length) return false;
+    const begin = () => {
+        delete overlay.dataset.zone2AudioGesturePending;
+        const btn = document.getElementById('boss-cinematic-btn');
+        if (btn) btn.disabled = true;
+        if (typeof opts.onStarted === 'function') opts.onStarted();
+        void playNewbieVillageIntroFilm(zone, {
+            timeline,
+            phase,
+            onComplete: opts.onComplete || null,
+        });
+    };
+    if (_introAudioUnlocked) {
+        begin();
+        return true;
+    }
     _stopIntroFilm();
-    overlay.className = 'boss-cinematic show intro-film';
+    _introFilmActiveOpts = {
+        timeline,
+        onComplete: opts.onComplete || null,
+        phase,
+        mode: 'legacy',
+    };
+    overlay.className = 'boss-cinematic show intro-film ready';
     overlay.setAttribute('aria-hidden', 'false');
     overlay.dataset.zoneKey = zone.key || '';
+    overlay.dataset.zone2AudioGesturePending = phase;
     document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
+    const line = document.getElementById('boss-cinematic-line');
+    if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
     const btn = document.getElementById('boss-cinematic-btn');
-    if (btn) btn.disabled = true;
-    playNewbieVillageIntroFilm(zone, {
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = I18n.t('index.film.replay');
+        btn.onclick = async () => {
+            btn.disabled = true;
+            await _unlockIntroAudioFromGesture();
+            if (!_introAudioUnlocked) {
+                btn.disabled = false;
+                if (line) line.textContent = I18n.t('index.film.audio_gesture_required');
+                return;
+            }
+            begin();
+        };
+    }
+    return false;
+}
+
+function playZone2BossReadyFilm(zone) {
+    const locale = getIntroFilmLocaleConfig(zone);
+    const timeline = locale.bossReadyTimeline || [];
+    return _startZone2CinematicWithGesture(zone, {
         timeline,
         phase: 'boss_ready',
         onComplete: () => finishBossReadyFilm(zone),
+        onStarted: () => markAdventureBossReadyFilmSeen(zone),
     });
 }
 
@@ -16441,19 +16489,10 @@ function playZone1PostClearFilm(zone) {
 // through _triggerZone2PostClearFromBossWin after the server has returned an
 // authoritative passed Lord result, or through its pending replay recovery.
 function playZone2PostClearFilm(zone) {
-    const overlay = document.getElementById('boss-cinematic');
-    if (!overlay || !zone || zone.key !== 'k21_25' || !zone.cleared) return;
+    if (!zone || zone.key !== 'k21_25' || !zone.cleared) return false;
     const locale = getIntroFilmLocaleConfig(zone);
     const timeline = locale.postClearTimeline || [];
-    if (!timeline.length) return;
-    _stopIntroFilm();
-    overlay.className = 'boss-cinematic show intro-film';
-    overlay.setAttribute('aria-hidden', 'false');
-    overlay.dataset.zoneKey = zone.key || '';
-    document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
-    const btn = document.getElementById('boss-cinematic-btn');
-    if (btn) btn.disabled = true;
-    playNewbieVillageIntroFilm(zone, {
+    return _startZone2CinematicWithGesture(zone, {
         timeline,
         phase: 'post_clear',
         onComplete: () => finishPostClearFilm(zone),
@@ -17281,6 +17320,7 @@ function hideBossCinematic() {
     if (overlay) {
         overlay.className = 'boss-cinematic';
         overlay.setAttribute('aria-hidden', 'true');
+        delete overlay.dataset.zone2AudioGesturePending;
     }
     _pendingBossZone = null;
 }

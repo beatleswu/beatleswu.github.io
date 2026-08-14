@@ -85,10 +85,35 @@ def test_zone2_boss_ready_is_presentational_and_does_not_auto_start_trial():
     ready = _block(INDEX, "function _maybeTriggerZone2BossReadyFilm", "\nfunction playZone2PostClearFilm")
     assert "_adventureBossReady(zone)" in ready
     assert "adventureBossReadyFilmSeen(zone)" in ready
-    assert "markAdventureBossReadyFilmSeen(zone)" in ready
     assert "playZone2BossReadyFilm(zone)" in ready
     assert "fetch(" not in ready
     assert "_startBossBattleNow" not in ready
+
+
+def test_zone2_automatic_audio_phases_stop_at_a_real_gesture_boundary():
+    helper = _block(INDEX, "function _startZone2CinematicWithGesture", "\nfunction playZone2BossReadyFilm")
+    assert "_introAudioUnlocked" in helper
+    assert "dataset.zone2AudioGesturePending" in helper
+    assert "_unlockIntroAudioFromGesture" in helper
+    assert "I18n.t('index.film.audio_gesture_required')" in helper
+    assert "void playNewbieVillageIntroFilm(zone" in helper
+
+    ready = _block(INDEX, "function playZone2BossReadyFilm", "\n// Reload/close recovery")
+    assert "_startZone2CinematicWithGesture(zone" in ready
+    assert "onStarted: () => markAdventureBossReadyFilmSeen(zone)" in ready
+
+    post_clear = _block(INDEX, "function playZone2PostClearFilm", "\n// Ends POST_CLEAR")
+    assert "zone.key !== 'k21_25' || !zone.cleared" in post_clear
+    assert "_startZone2CinematicWithGesture(zone" in post_clear
+    assert "onComplete: () => finishPostClearFilm(zone)" in post_clear
+
+
+def test_zone2_gesture_prompt_is_not_a_second_gameplay_authority():
+    helper = _block(INDEX, "function _startZone2CinematicWithGesture", "\nfunction playZone2BossReadyFilm")
+    assert "/api/" not in helper
+    assert "_startBossBattleNow" not in helper
+    assert "markAdventureBossReadyFilmSeen" not in helper
+    assert "finishPostClearFilm" not in helper
 
 
 def test_zone2_lord_card_and_ritual_are_explicit_player_actions():

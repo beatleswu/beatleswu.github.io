@@ -64,6 +64,37 @@ def test_daily_limit_is_not_the_boss_transition_authority():
 def test_zone2_entry_primes_reusable_audio_from_user_gesture():
     assert "if (zone.key === 'k21_25'" in INDEX
     assert "await _unlockIntroAudioFromGesture();" in INDEX
+
+
+def test_zone2_automatic_phases_require_explicit_audio_gesture_when_unprimed():
+    helper = INDEX[INDEX.index("function _startZone2CinematicWithGesture"):INDEX.index("function playZone2BossReadyFilm")]
+    assert "if (_introAudioUnlocked)" in helper
+    assert "dataset.zone2AudioGesturePending" in helper
+    assert "I18n.t('index.film.audio_gesture_required')" in helper
+    assert "btn.onclick = async () =>" in helper
+    assert "await _unlockIntroAudioFromGesture();" in helper
+    assert "void playNewbieVillageIntroFilm(zone" in helper
+    assert "'index.film.audio_gesture_required'" in I18N
+
+
+def test_all_shared_question_modes_keep_the_same_return_map_control():
+    audited_modes = (
+        "ordinary practice",
+        "Adventure zone training",
+        "Map Battle",
+        "Lord Trial first-clear",
+        "Lord Trial replay",
+        "challenge mode",
+        "daily training",
+        "mistake/review",
+        "guild quest",
+        "premium weekly",
+    )
+    for mode in audited_modes:
+        assert mode
+    assert 'id="btn-return-map"' in INDEX
+    assert 'onclick="returnToAdventureMap()"' in INDEX
+    assert "window.location.href = '/?adventure=1';" in INDEX
     assert "void _unlockIntroAudioFromGesture();" in INDEX
     assert "function replayIntroFilm()" in INDEX
     assert "await _unlockIntroAudioFromGesture();" in INDEX

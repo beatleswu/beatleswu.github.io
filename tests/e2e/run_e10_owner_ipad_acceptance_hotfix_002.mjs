@@ -12,12 +12,18 @@
 import fs from 'node:fs/promises';
 import fssync from 'node:fs';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.E10_PLAYWRIGHT_CORE || 'playwright-core');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '..', '..');
+// The differential harness runs this exact scenario against both the deployed
+// b242 checkout and the reviewed hotfix checkout.  The test code stays on the
+// hotfix branch; only the static application root is switched.
+const repoRoot = path.resolve(process.env.E10_E2E_REPO_ROOT || path.resolve(__dirname, '..', '..'));
 const chromeCandidates = [
   process.env.CHROME_BIN,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -238,7 +244,18 @@ async function boardSnapshot(page) {
     correct: _bossCorrect,
     attemptId: _bossAttemptId,
     nodeReady: !!currentNode,
-    fingerprint: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'BOARD_RENDER_FINGERPRINT').at(-1)?.fingerprint || null,
+    fingerprint: window.__GO_E10_ACCEPTANCE_TRACE__?.filter((e) => e.event === 'BOARD_RENDER_FINGERPRINT').at(-1)?.fingerprint
+      || (() => {
+        const canvas = document.querySelector('#board-canvas-wrap canvas');
+        let pixels = null;
+        try { pixels = canvas?.toDataURL?.() || null; } catch (e) {}
+        return {
+          boardSerial: null,
+          canvasPixels: pixels,
+          canvasWidth: canvas?.width || 0,
+          canvasHeight: canvas?.height || 0,
+        };
+      })(),
     trace: window.__GO_E10_ACCEPTANCE_TRACE__ || [],
   }));
 }
@@ -259,8 +276,12 @@ async function runRealDataLordTransition(browser, origin) {
     const afterQ3 = await boardSnapshot(page);
     const transitionEvents = afterQ3.trace.filter((e) => e.event === 'BOSS_TRANSITION_EXCEPTION');
     if (afterQ2.qid !== queue[1] || afterQ3.qid !== queue[2] || !before.nodeReady || !afterQ2.nodeReady || !afterQ3.nodeReady
-      || before.fingerprint?.boardSerial === afterQ2.fingerprint?.boardSerial
-      || afterQ2.fingerprint?.boardSerial === afterQ3.fingerprint?.boardSerial
+      || (before.fingerprint?.boardSerial != null
+        ? before.fingerprint.boardSerial === afterQ2.fingerprint?.boardSerial
+        : before.fingerprint?.canvasPixels === afterQ2.fingerprint?.canvasPixels)
+      || (afterQ2.fingerprint?.boardSerial != null
+        ? afterQ2.fingerprint.boardSerial === afterQ3.fingerprint?.boardSerial
+        : afterQ2.fingerprint?.canvasPixels === afterQ3.fingerprint?.canvasPixels)
       || transitionEvents.length || api.reviews.length !== 2) {
       throw new Error(`real-data Boss board did not complete both transitions: ${JSON.stringify({ before, afterQ2, afterQ3, reviews: api.reviews, transitionEvents })}`);
     }
@@ -345,7 +366,17 @@ async function runZone2Audio(browser, origin) {
       };
     }, gestureAt);
     if (!result.firstVoice || result.firstVoiceDelay < 3500 || !result.primedSameElement || result.speechCalls !== 0) throw new Error(`Zone 2 gesture/audio contract failed: ${JSON.stringify(result)}`);
-    return result;
+    const priorVoiceCount = await page.evaluate(() => (window.__ownerAudioLog || []).filter((entry) => !entry.muted && entry.src.includes('/zone2/dialogue/')).length);
+    await page.locator('.intro-replay-btn').click();
+    await page.waitForFunction((count) => (window.__ownerAudioLog || []).filter((entry) => !entry.muted && entry.src.includes('/zone2/dialogue/')).length > count, priorVoiceCount, { timeout: 15000 });
+    const replay = await page.evaluate((count) => {
+      const voices = (window.__ownerAudioLog || []).filter((entry) => !entry.muted && entry.src.includes('/zone2/dialogue/'));
+      const replayVoice = voices[count] || null;
+      const primedIds = new Set((window.__ownerAudioLog || []).filter((entry) => entry.muted).map((entry) => entry.id));
+      return { replayVoice, primedSameElement: !!replayVoice && primedIds.has(replayVoice.id), speechCalls: window.__ownerSpeechLog?.length || 0 };
+    }, priorVoiceCount);
+    if (!replay.replayVoice || !replay.primedSameElement || replay.speechCalls !== 0) throw new Error(`Zone 2 manual replay audio contract failed: ${JSON.stringify(replay)}`);
+    return { ...result, manualReplay: replay };
   } finally {
     await page.close();
   }
@@ -366,6 +397,67 @@ async function runZone1Audio(browser, origin) {
   }
 }
 
+async function runZone2AutomaticPhaseAudio(browser, origin) {
+  const page = await openPage(browser, origin);
+  const phaseResults = {};
+  try {
+    await installAudioZone(page, origin, 'k21_25');
+    const phaseZone = { ...zone, key: 'k21_25', unlocked: true, can_enter: true, cleared: true };
+    for (const phase of ['boss_ready', 'post_clear']) {
+      const phaseState = await page.evaluate((phaseName) => {
+        try { _stopIntroFilm(); hideBossCinematic(); } catch (e) {}
+        _introAudioUnlocked = false;
+        _introAudioUnlockPromise = null;
+        _introAudio = null;
+        _introBgmAudio = null;
+        _introAmbienceAudio = null;
+        _introSfxAudio = null;
+        window.__ownerAudioLog = [];
+        window.__ownerSpeechLog = [];
+        const phaseZone = { key: 'k21_25', unlocked: true, can_enter: true, cleared: true };
+        const started = phaseName === 'boss_ready'
+          ? playZone2BossReadyFilm(phaseZone)
+          : playZone2PostClearFilm(phaseZone);
+        const overlay = document.getElementById('boss-cinematic');
+        return {
+          started,
+          pending: overlay?.dataset?.zone2AudioGesturePending || null,
+          promptVisible: overlay?.classList.contains('ready') === true,
+          audioBeforeGesture: window.__ownerAudioLog.length,
+        };
+      }, phase);
+      if (phaseState.started || phaseState.pending !== phase || !phaseState.promptVisible || phaseState.audioBeforeGesture !== 0) {
+        throw new Error(`Zone 2 ${phase} did not stop at the gesture boundary: ${JSON.stringify(phaseState)}`);
+      }
+      const gestureAt = await page.evaluate(() => performance.now());
+      await page.locator('#boss-cinematic-btn').click();
+      await page.waitForFunction(() => window.__ownerAudioLog.some((entry) => !entry.muted && entry.src.includes('/zone2/dialogue/')), { timeout: 15000 });
+      const result = await page.evaluate(({ phaseName, gestureAt }) => {
+        const log = window.__ownerAudioLog || [];
+        const firstVoice = log.find((entry) => !entry.muted && entry.src.includes('/zone2/dialogue/'));
+        const primedIds = new Set(log.filter((entry) => entry.muted).map((entry) => entry.id));
+        return {
+          phase: phaseName,
+          firstVoice,
+          firstVoiceDelay: firstVoice ? firstVoice.at - gestureAt : null,
+          primedSameElement: !!firstVoice && primedIds.has(firstVoice.id),
+          speechCalls: window.__ownerSpeechLog?.length || 0,
+          shot1SilentByDesign: firstVoice
+            ? firstVoice.at - gestureAt >= (phaseName === 'boss_ready' ? 7800 : 3800)
+            : false,
+        };
+      }, { phaseName: phase, gestureAt });
+      if (!result.firstVoice || !result.primedSameElement || result.speechCalls !== 0 || !result.shot1SilentByDesign) {
+        throw new Error(`Zone 2 ${phase} recorded-voice contract failed: ${JSON.stringify(result)}`);
+      }
+      phaseResults[phase] = result;
+    }
+    return phaseResults;
+  } finally {
+    await page.close();
+  }
+}
+
 async function main() {
   const { server, origin } = await startStaticServer(repoRoot);
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
@@ -373,8 +465,9 @@ async function main() {
     const lord = await runRealDataLordTransition(browser, origin);
     const resume = await runReturnMapResume(browser, origin);
     const zone2Audio = await runZone2Audio(browser, origin);
+    const zone2AutomaticPhases = await runZone2AutomaticPhaseAudio(browser, origin);
     const zone1Audio = await runZone1Audio(browser, origin);
-    console.log(JSON.stringify({ ok: true, engine: 'chromium-iPad-viewport-Safari-media-contract', ipadViewport: { width: 1024, height: 1366 }, lord, resume, zone2Audio, zone1Audio }, null, 2));
+    console.log(JSON.stringify({ ok: true, engine: 'chromium-iPad-viewport-Safari-media-contract', ipadViewport: { width: 1024, height: 1366 }, lord, resume, zone2Audio, zone2AutomaticPhases, zone1Audio }, null, 2));
   } finally {
     await browser.close();
     server.close();

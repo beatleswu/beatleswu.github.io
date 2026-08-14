@@ -1442,6 +1442,7 @@ const I18n = (() => {
         'index.film.caption': { en: '00:00 Awakening', zh: '00:00 覺醒' },
         'index.film.voice_btn': { en: 'Change style', zh: '換風格' },
         'index.film.replay':  { en: 'Play animation', zh: '播放動畫' },
+        'index.film.audio_gesture_required': { en: 'Tap Play animation to enable the recorded narration.', zh: '請點選「播放動畫」以啟用錄音旁白。' },
         'index.film.skip':    { en: 'Skip animation', zh: '略過動畫' },
         'index.film.title_card': { en: 'Beginner Village: Trial of the Wooden Sword', zh: '圍棋新手村：木劍的試煉' },
         'index.pwa.title':    { en: '📱 Add to Home Screen', zh: '📱 加到主畫面' },
