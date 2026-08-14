@@ -117,7 +117,7 @@ function question(id, move, acceptedMove = null) {
   };
 }
 
-async function runRealBoardProgress(browser, origin) {
+async function runRealBoardProgress(browser, origin, { dailyLimitReached = false } = {}) {
   const fixtureQuestions = [
     question(101, 'dd', { x: 3, y: 3 }),
     question(102, 'ee', { x: 3, y: 3 }),
@@ -172,8 +172,9 @@ async function runRealBoardProgress(browser, origin) {
     }),
   }));
   try {
-    await page.evaluate(({ fixtureQuestions, fixtureZone }) => {
+    await page.evaluate(({ fixtureQuestions, fixtureZone, dailyLimitReached: atLimit }) => {
       allQuestions = fixtureQuestions;
+      _dailyLimitReached = atLimit;
       _adventureProgress = [{
         ...fixtureZone,
         index: 0,
@@ -195,7 +196,7 @@ async function runRealBoardProgress(browser, origin) {
       trigger.textContent = '挑戰領主';
       trigger.addEventListener('click', () => openAdventureBossFromQuestCard('k26_30'));
       document.body.appendChild(trigger);
-    }, { fixtureQuestions, fixtureZone });
+    }, { fixtureQuestions, fixtureZone, dailyLimitReached });
     await page.locator('#owner-fixture-lord-cta').click();
     await page.locator('#boss-cinematic-btn').click();
     await page.waitForTimeout(6500);
@@ -217,6 +218,7 @@ async function runRealBoardProgress(browser, origin) {
       currentQuestion: Number(currentQ?.id),
       bossIndex: _bossIndex,
       bossCorrect: _bossCorrect,
+      boardSeed: currentQ?.content || '',
     }));
     if (!afterCorrect.progress.includes('已答對 1') || afterCorrect.currentQuestion !== 102
       || afterCorrect.bossIndex !== 1 || afterCorrect.bossCorrect !== 1) {
@@ -234,6 +236,8 @@ async function runRealBoardProgress(browser, origin) {
       bossCorrect: _bossCorrect,
       reviewLog: window.__ownerReviewLog || [],
       nextDisabled: !!document.querySelector('.btn-row button[onclick="nextQuestion()"]')?.disabled,
+      nextHidden: !!document.querySelector('.btn-row button[onclick="nextQuestion()"]')?.hidden,
+      boardSeed: currentQ?.content || '',
       queue: _bossQueue.slice(),
     }));
     if (!trace.progress.includes('已答對 1') || trace.currentQuestion !== 103
@@ -247,17 +251,22 @@ async function runRealBoardProgress(browser, origin) {
       || trace.reviewLog[1].metadata?.source_context !== 'boss_trial:ipad-board-attempt-001') {
       throw new Error(`unexpected real board review path: ${JSON.stringify(trace.reviewLog)}`);
     }
-    if (!trace.nextDisabled || JSON.stringify(trace.queue) !== JSON.stringify([101, 102, 103])) {
+    if (!trace.nextDisabled || (dailyLimitReached && !trace.nextHidden)
+      || JSON.stringify(trace.queue) !== JSON.stringify([101, 102, 103])) {
       throw new Error(`Boss queue/Next authority contract failed: ${JSON.stringify(trace)}`);
     }
+    if (dailyLimitReached && (!afterCorrect.boardSeed || !trace.boardSeed
+      || afterCorrect.boardSeed === trace.boardSeed)) {
+      throw new Error(`daily-limit Boss board did not change with the queue: ${JSON.stringify({ afterCorrect, trace })}`);
+    }
     if (startRequests.length !== 1) throw new Error(`expected one Lord start request, got ${startRequests.length}`);
-    return { afterCorrect, trace };
+    return { dailyLimitReached, afterCorrect, trace };
   } finally {
     await page.close();
   }
 }
 
-async function runRealBoardResume(browser, origin) {
+async function runRealBoardResume(browser, origin, { dailyLimitReached = false } = {}) {
   const fixtureQuestions = [
     question(101, 'dd', { x: 3, y: 3 }),
     question(102, 'ee', { x: 3, y: 3 }),
@@ -317,8 +326,9 @@ async function runRealBoardResume(browser, origin) {
   await page.waitForTimeout(150);
 
   async function installRealEntryAndSrs() {
-    await page.evaluate(({ fixtureQuestions: questions, fixtureZone: zone }) => {
+    await page.evaluate(({ fixtureQuestions: questions, fixtureZone: zone, dailyLimitReached: atLimit }) => {
       allQuestions = questions;
+      _dailyLimitReached = atLimit;
       _adventureProgress = [{
         ...zone,
         index: 0,
@@ -338,7 +348,7 @@ async function runRealBoardResume(browser, origin) {
       trigger.textContent = '??蜓';
       trigger.addEventListener('click', () => openAdventureBossFromQuestCard('k26_30'));
       document.body.appendChild(trigger);
-    }, { fixtureQuestions, fixtureZone });
+    }, { fixtureQuestions, fixtureZone, dailyLimitReached });
   }
 
   async function clickBoardAt(x, y) {
@@ -396,7 +406,7 @@ async function runRealBoardResume(browser, origin) {
     await clickBoardAt(1, 1);
     await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('3/3'));
     if (startRequests.length !== 2) throw new Error(`expected exactly two start calls, got ${startRequests.length}`);
-    return { beforeReload, afterReload, startRequests };
+    return { dailyLimitReached, beforeReload, afterReload, startRequests };
   } finally {
     await page.close();
   }
@@ -569,6 +579,8 @@ async function main() {
   try {
     const board = await runRealBoardProgress(browser, origin);
     const resume = await runRealBoardResume(browser, origin);
+    const dailyLimitBoard = await runRealBoardProgress(browser, origin, { dailyLimitReached: true });
+    const dailyLimitResume = await runRealBoardResume(browser, origin, { dailyLimitReached: true });
     const lostFinish = await runLostFinishRecovery(browser, origin);
     const replay = [];
     for (const stars of [1, 2, 3]) replay.push(await runReplayCta(browser, origin, stars));
@@ -577,6 +589,8 @@ async function main() {
       ipadViewport: { width: 1024, height: 1366 },
       realBoard: board,
       resume,
+      dailyLimitBoard,
+      dailyLimitResume,
       lostFinish,
       replay,
     }, null, 2));
