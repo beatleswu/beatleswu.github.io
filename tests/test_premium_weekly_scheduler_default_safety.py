@@ -1,6 +1,8 @@
 import builtins
 import types
 
+import pytest
+
 import app as app_module
 
 
@@ -48,40 +50,38 @@ def test_premium_weekly_scheduler_disabled_by_default_never_imports_or_starts_th
     assert "premium_weekly_job" not in import_calls
 
 
-def test_premium_weekly_scheduler_starts_only_for_explicit_true(monkeypatch):
-    original_import = builtins.__import__
+def test_premium_weekly_scheduler_explicit_enable_fails_closed_without_import_or_thread(monkeypatch):
     imported = []
     thread_started = []
+    original_import = builtins.__import__
 
     def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
         imported.append(name)
         if name == "premium_weekly_job":
-            module = types.SimpleNamespace(run_once=lambda app_module: (_ for _ in ()).throw(SystemExit("stop after import")))
-            return module
+            raise AssertionError("the retired premium scheduler must never be imported")
         return original_import(name, globals, locals, fromlist, level)
 
     class FakeThread:
-        def __init__(self, target=None, name=None, daemon=None):
-            self.target = target
-            self.name = name
-            self.daemon = daemon
+        def __init__(self, *args, **kwargs):
+            thread_started.append((args, kwargs))
 
         def start(self):
-            thread_started.append((self.name, self.daemon, callable(self.target)))
-            try:
-                self.target()
-            except SystemExit:
-                thread_started.append(("system_exit",))
+            thread_started.append(("start",))
 
     monkeypatch.setenv("PREMIUM_WEEKLY_SCHEDULER_ENABLED", "true")
     monkeypatch.setattr(builtins, "__import__", fake_import)
     monkeypatch.setattr(app_module.threading, "Thread", FakeThread)
 
-    app_module._start_premium_weekly_scheduler()
+    try:
+        with pytest.raises(RuntimeError, match="unsupported in this release"):
+            app_module._start_premium_weekly_scheduler()
+    finally:
+        # The monkeypatch fixture restores this after the test; retaining the
+        # local name documents that this test never imports a legacy module.
+        assert original_import is not None
 
-    assert any(name == "premium_weekly_job" for name in imported)
-    assert thread_started[0] == ("premium-weekly", True, True)
-    assert thread_started[-1] == ("system_exit",)
+    assert "premium_weekly_job" not in imported
+    assert thread_started == []
 
 
 def test_community_leaderboard_weekly_flag_parser_treats_false_values_as_disabled(monkeypatch):
