@@ -8854,7 +8854,7 @@ function currentUnitName(){if(!currentQ)return null;const t=currentQ.topic&&curr
 // ─── SRS ───────────────────────────────────────────────────────
 async function submitSRS(grade){
     if(!currentQ)return;
-    if(_dailyLimitReached && !_challengeId && !_bossMode){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
+    if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
     const bossAnswerContext = _bossMode
         ? { questionId: Number(currentQ.id), index: _bossIndex }
         : null;
@@ -8887,10 +8887,10 @@ async function submitSRS(grade){
             _dailyLimitMax = data.limit || _dailyLimitMax;
             if (_bossMode) {
                 // A valid Lord attempt is exempt from ordinary free-practice
-                // limits.  If a stale/legacy response still reports the wall,
-                // keep Boss progression authoritative and do not fall through
-                // to ordinary practice selection.
-                await _handleBossAnswer(grade, bossAnswerContext);
+                // limits. A daily-limit response means this review was not
+                // accepted; never advance from an uncommitted answer.
+                console.warn('[BOSS] daily_limit review rejected; no progress recorded');
+                setMsg(I18n.t('index.srs.save_fail'), 'err');
             } else if(_challengeId){
                 // 挑戰模式：不鎖定，直接進下一題
                 if(grade>0){ srsDoneCount++; nextQuestion(); }
@@ -10611,7 +10611,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
         }
         active.scrollIntoView({block:'nearest'});
     }
-    if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }   // 已達上限，不載新題（挑戰模式跳過）
+    if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }   // 已達上限，不載新題（挑戰模式跳過）
     solved=false;answering=false;_exploringAfterWrong=false;
     _cancelAutoSolution();
     hideExplanation();
@@ -10669,7 +10669,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
             const t=document.getElementById('q-title');t.innerText=label;t.classList.add('active');
         }
         // ── 已達每日上限：顯示棋盤但鎖住互動（挑戰模式跳過）──
-        if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }
+        if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }
         if (!_bossMode) {
             setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
         }
@@ -10880,7 +10880,7 @@ function nextQuestion({ mapBattleV1Transition = false } = {}){
         _mapBattleV1NextQuestionCount += 1;
         _publishMapBattleV1Lifecycle();
     }
-    if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }
+    if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }
     if (window.SFX) SFX.play('next');
     if (_guildQuestMode?.completed) {
         _showGuildQuestComplete();
@@ -11206,6 +11206,14 @@ function _dailyLimitStorageDate() {
     return new Date().toISOString().slice(0, 10);
 }
 
+// The ordinary free-practice wall must never block an active, server-owned
+// Lord Trial. Keep this predicate as the single client-side authority for
+// daily-limit guards across loading, review submission, navigation, and
+// language refreshes.
+function _dailyLimitBlocksCurrentFlow() {
+    return _dailyLimitReached && !_challengeId && !_bossMode;
+}
+
 function _dailyLimitStorageKey() {
     const fallbackUserId = (() => {
         try { return localStorage.getItem('last_session_uid_v1'); } catch (e) { return null; }
@@ -11282,11 +11290,15 @@ function _renderDailyLimitBlockedState() {
 
 function _applyDailyLimit() {
     _dailyLimitReached = true;
+    _rememberDailyLimitLock();
+    // A background subscription poll may notice the ordinary wall while a
+    // Lord Trial is active. Preserve the lock for later practice, but never
+    // disable the current Boss board or mark its answer settled.
+    if (_bossMode) return;
     // 鎖住 SRS 按鈕
     document.querySelectorAll('.srs-btn').forEach(b => { b.disabled = true; b.style.opacity = '.45'; });
     // 鎖住棋盤點擊（solved = true 可防止 onBoardClick 執行）
     solved = true;
-    _rememberDailyLimitLock();
     _renderDailyLimitBlockedState();
     // 顯示鎖定訊息（用 innerHTML 讓連結正常渲染）
     const el = document.getElementById('msg-box');
@@ -17114,6 +17126,7 @@ function _syncBossNextButton() {
     const next = document.querySelector('.btn-row button[onclick="nextQuestion()"]');
     if (!next) return;
     next.disabled = _bossMode;
+    next.hidden = _bossMode;
     next.setAttribute('aria-disabled', _bossMode ? 'true' : 'false');
 }
 
@@ -18673,7 +18686,7 @@ async function initStreakDots() {
 // ─── 啟動 ──────────────────────────────────────────────────────
 window.onLangChange = () => {
     I18n.apply();
-    if (_dailyLimitReached && !_challengeId) {
+    if (_dailyLimitBlocksCurrentFlow()) {
         _renderDailyLimitBlockedState();
     }
     if (typeof renderList === 'function' && allQuestions) renderList(allQuestions);
