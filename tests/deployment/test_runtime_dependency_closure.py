@@ -145,11 +145,43 @@ def _absolute_import_names(node: ast.ImportFrom, module_name: str, index: dict[s
     return names
 
 
+def _dynamic_import_aliases(tree: ast.AST) -> tuple[set[str], set[str]]:
+    """Return imported names that can invoke importlib.import_module.
+
+    The callable has two common AST shapes:
+
+    * ``importlib.import_module(...)`` is an Attribute whose value is a
+      Name (not another Attribute).
+    * ``from importlib import import_module`` is a direct Name call.
+
+    Track aliases explicitly so neither form becomes an unobserved dynamic
+    import, while unrelated functions named ``import_module`` remain outside
+    this special case.
+    """
+    importlib_module_aliases: set[str] = set()
+    import_module_aliases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "importlib":
+                    importlib_module_aliases.add(alias.asname or "importlib")
+        elif (
+            isinstance(node, ast.ImportFrom)
+            and node.level == 0
+            and node.module == "importlib"
+        ):
+            for alias in node.names:
+                if alias.name == "import_module":
+                    import_module_aliases.add(alias.asname or "import_module")
+    return importlib_module_aliases, import_module_aliases
+
+
 def _scan_module(
     module: LocalModule,
     index: dict[str, LocalModule],
 ) -> tuple[list[ImportObservation], list[LocalModule]]:
     tree = ast.parse(module.path.read_text(encoding="utf-8"), filename=str(module.path))
+    importlib_module_aliases, import_module_aliases = _dynamic_import_aliases(tree)
     observations: list[ImportObservation] = []
     resolved: list[LocalModule] = []
     for node in ast.walk(tree):
@@ -163,9 +195,11 @@ def _scan_module(
             is_importlib_import = (
                 isinstance(node.func, ast.Attribute)
                 and node.func.attr == "import_module"
-                and isinstance(node.func.value, ast.Attribute)
-                and isinstance(node.func.value.value, ast.Name)
-                and node.func.value.value.id == "importlib"
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in importlib_module_aliases
+            ) or (
+                isinstance(node.func, ast.Name)
+                and node.func.id in import_module_aliases
             )
             if is_builtin_import or is_importlib_import:
                 argument = node.args[0] if node.args else None
@@ -184,6 +218,83 @@ def _scan_module(
             observations.append(ImportObservation(module.path, name, kind, node.lineno))
             resolved.extend(_resolve_local(name, index))
     return observations, resolved
+
+
+def _scan_fixture(source: str, tmp_path: pathlib.Path) -> tuple[list[ImportObservation], list[LocalModule]]:
+    """Run the real AST scanner against a deterministic temporary module."""
+    fixture_path = tmp_path / "dynamic_import_fixture.py"
+    fixture_path.write_text(source, encoding="utf-8")
+    fixture = LocalModule(name="dynamic_import_fixture", path=fixture_path)
+    index = _module_index()
+    index[fixture.name] = fixture
+    return _scan_module(fixture, index)
+
+
+def test_scanner_detects_standard_importlib_literal_and_resolves_local_module(tmp_path):
+    observations, resolved = _scan_fixture(
+        "import importlib\n"
+        "importlib.import_module('migrations.sgf_admin_workbench_v1')\n",
+        tmp_path,
+    )
+    assert any(
+        observation.kind == "DYNAMIC_LITERAL"
+        and observation.name == "migrations.sgf_admin_workbench_v1"
+        for observation in observations
+    )
+    assert any(module.name == "migrations.sgf_admin_workbench_v1" for module in resolved)
+
+
+def test_scanner_classifies_standard_importlib_dynamic_argument_as_unresolved(tmp_path):
+    observations, _resolved = _scan_fixture(
+        "import importlib\n"
+        "name = 'migrations.sgf_admin_workbench_v1'\n"
+        "importlib.import_module(name)\n",
+        tmp_path,
+    )
+    assert any(observation.kind == "DYNAMIC_UNRESOLVED" for observation in observations)
+
+
+def test_scanner_detects_builtin_import_literal_and_resolves_local_module(tmp_path):
+    observations, resolved = _scan_fixture(
+        "__import__('migrations.sgf_admin_workbench_v1')\n",
+        tmp_path,
+    )
+    assert any(
+        observation.kind == "DYNAMIC_LITERAL"
+        and observation.name == "migrations.sgf_admin_workbench_v1"
+        for observation in observations
+    )
+    assert any(module.name == "migrations.sgf_admin_workbench_v1" for module in resolved)
+
+
+def test_scanner_classifies_builtin_import_dynamic_argument_as_unresolved(tmp_path):
+    observations, _resolved = _scan_fixture(
+        "name = 'migrations.sgf_admin_workbench_v1'\n"
+        "__import__(name)\n",
+        tmp_path,
+    )
+    assert any(observation.kind == "DYNAMIC_UNRESOLVED" for observation in observations)
+
+
+def test_scanner_accepts_intentional_self_module_import_handoff(tmp_path):
+    observations, resolved = _scan_fixture("__import__(__name__)\n", tmp_path)
+    assert not any(observation.kind == "DYNAMIC_UNRESOLVED" for observation in observations)
+    assert not any(observation.kind == "DYNAMIC_LITERAL" for observation in observations)
+    assert resolved == []
+
+
+def test_scanner_supports_importlib_import_module_alias_form(tmp_path):
+    observations, resolved = _scan_fixture(
+        "from importlib import import_module\n"
+        "import_module('migrations.sgf_admin_workbench_v1')\n",
+        tmp_path,
+    )
+    assert any(
+        observation.kind == "DYNAMIC_LITERAL"
+        and observation.name == "migrations.sgf_admin_workbench_v1"
+        for observation in observations
+    )
+    assert any(module.name == "migrations.sgf_admin_workbench_v1" for module in resolved)
 
 
 def dependency_closure() -> tuple[dict[str, LocalModule], list[ImportObservation]]:
