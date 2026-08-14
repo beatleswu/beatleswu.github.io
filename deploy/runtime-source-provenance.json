@@ -327,15 +327,15 @@
     },
     {
       "path": "hero.html",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "9fd7af5ed6ad8e8dc3efd1c12ebad9cddeb873ac56937ffa0d7e737267e15930",
+      "source_commit": "f772966953852a00b6f02b00227077d4bda21935",
+      "source_branch_or_local_ref": "codex/rpg-r2a-combat-equipment-effectiveness-001",
+      "source_commit_subject": "feat(rpg): make equipment affect combat",
+      "source_date": "2026-08-14",
+      "content_sha256": "672106aa422d7bf48821fb897fe3e3c3cefa4ffe0086d94c2454b1ea517ed60b",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the R2A feature branch; Production deployment status is governed separately and is not asserted by this provenance record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded R2A implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "rating_test.html",
