@@ -23759,18 +23759,20 @@ def _env_flag_exact_true(name, default=False):
 
 @_startup_diagnostics.instrument('premium_scheduler_initialization')
 def _start_premium_weekly_scheduler():
-    """Run the idempotent job hourly; generation itself is keyed by report week."""
+    """Keep the retired premium weekly scheduler permanently fail-closed.
+
+    The historical worker module was never part of the governed Production
+    image.  Leaving its lazy import behind made a custom flag turn a dormant
+    path into a runtime ModuleNotFoundError.  The feature remains disabled by
+    default; an explicit enable is an operator configuration error until a
+    separately governed implementation exists.
+    """
     if not _env_flag_enabled('PREMIUM_WEEKLY_SCHEDULER_ENABLED'):
         return
-    def worker():
-        from premium_weekly_job import run_once
-        while True:
-            try:
-                run_once(__import__(__name__))
-            except Exception:
-                app.logger.exception('[premium_weekly] scheduled job failed')
-            time.sleep(3600)
-    threading.Thread(target=worker, name='premium-weekly', daemon=True).start()
+    raise RuntimeError(
+        'PREMIUM_WEEKLY_SCHEDULER_ENABLED is unsupported in this release; '
+        'the legacy premium weekly scheduler has no governed implementation.'
+    )
 
 
 @_startup_diagnostics.instrument('community_scheduler_initialization', ready_for_role='scheduler')
