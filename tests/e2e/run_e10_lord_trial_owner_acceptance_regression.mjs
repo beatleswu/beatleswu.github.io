@@ -252,6 +252,210 @@ async function runRealBoardProgress(browser, origin) {
   }
 }
 
+async function runRealBoardResume(browser, origin) {
+  const fixtureQuestions = [
+    question(101, 'dd', { x: 3, y: 3 }),
+    question(102, 'ee', { x: 3, y: 3 }),
+    question(103, 'ff', { x: 3, y: 3 }),
+  ];
+  const fixtureZone = lordZone();
+  const page = await newPage(browser, origin, {
+    viewport: { width: 1024, height: 1366 },
+  });
+  await page.route('**/api/adventure/bootstrap**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ zones: [fixtureZone], cinematics: {} }),
+  }));
+  await page.route('**/api/questions**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(fixtureQuestions),
+  }));
+  await page.addInitScript(() => {
+    localStorage.setItem('last_session_uid_v1', '1');
+    localStorage.setItem('adventure_bossready_seen_v1', JSON.stringify({ 1: { k26_30: Date.now() } }));
+  });
+  const startRequests = [];
+  await page.route('**/api/adventure/boss/start', async (route) => {
+    const callIndex = startRequests.length;
+    startRequests.push(route.request().postData() || '');
+    const resumed = callIndex === 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        replay: false,
+        attempt_mode: 'first_clear',
+        question_ids: [101, 102, 103],
+        resume_index: resumed ? 1 : 0,
+        answered_count: resumed ? 1 : 0,
+        correct: resumed ? 1 : 0,
+        resumed,
+        ready_to_finish: false,
+        zone: fixtureZone,
+      }),
+    });
+  });
+  await page.route('**/api/adventure/boss/finish', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true, passed: false, correct: 1, total: 3, cooldown_left: 30,
+      zones: [fixtureZone, { key: 'k21_25', unlocked: false }],
+    }),
+  }));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true, { timeout: 10000 });
+  await page.waitForTimeout(150);
+
+  async function installRealEntryAndSrs() {
+    await page.evaluate(({ fixtureQuestions: questions, fixtureZone: zone }) => {
+      allQuestions = questions;
+      _adventureProgress = [{
+        ...zone,
+        index: 0,
+        stages: [{ can_enter: true, completed: false }],
+      }];
+      SRS.review = async (questionId, grade) => {
+        window.__ownerResumeReviewLog = window.__ownerResumeReviewLog || [];
+        window.__ownerResumeReviewLog.push({ questionId: Number(questionId), grade: Number(grade) });
+        return { ok: true };
+      };
+      SRS.reportUnitProgress = async () => ({ unit_complete: false });
+      SRS.markSeen = () => {};
+      const trigger = document.createElement('button');
+      trigger.id = 'owner-fixture-lord-resume-cta';
+      trigger.textContent = '??蜓';
+      trigger.addEventListener('click', () => openAdventureBossFromQuestCard('k26_30'));
+      document.body.appendChild(trigger);
+    }, { fixtureQuestions, fixtureZone });
+  }
+
+  async function clickBoardAt(x, y) {
+    const box = await page.locator('#board-canvas-wrap canvas').first().boundingBox();
+    if (!box) throw new Error('WGo board canvas has no hit-test box');
+    await page.mouse.click(box.x + box.width * ((x + 0.5) / 9), box.y + box.height * ((y + 0.5) / 9));
+  }
+
+  try {
+    await installRealEntryAndSrs();
+    await page.locator('#owner-fixture-lord-resume-cta').click();
+    await page.locator('#boss-cinematic-btn').click();
+    await page.waitForTimeout(6500);
+    await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('1/3'));
+    await clickBoardAt(3, 3);
+    await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('2/3'));
+    const beforeReload = await page.evaluate(() => ({
+      progress: document.getElementById('boss-trial-progress')?.textContent || '',
+      currentQuestion: Number(currentQ?.id),
+      bossIndex: _bossIndex,
+      bossCorrect: _bossCorrect,
+    }));
+    if (beforeReload.currentQuestion !== 102 || beforeReload.bossIndex !== 1 || beforeReload.bossCorrect !== 1) {
+      throw new Error(`pre-reload Boss state is wrong: ${JSON.stringify(beforeReload)}`);
+    }
+
+    // Preserve the browser session, but rebuild the page and re-enter through
+    // the same Lord CTA. The second mocked start response is the server-owned
+    // resume response, not a client cursor supplied by this test.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true, { timeout: 10000 });
+    await page.waitForTimeout(150);
+    await installRealEntryAndSrs();
+    await page.locator('#owner-fixture-lord-resume-cta').click();
+    await page.locator('#boss-cinematic-btn').click();
+    await page.waitForTimeout(6500);
+    await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('2/3'));
+    const afterReload = await page.evaluate(() => ({
+      progress: document.getElementById('boss-trial-progress')?.textContent || '',
+      currentQuestion: Number(currentQ?.id),
+      bossIndex: _bossIndex,
+      bossCorrect: _bossCorrect,
+      queue: _bossQueue.slice(),
+    }));
+    if (afterReload.currentQuestion !== 102 || afterReload.bossIndex !== 1 || afterReload.bossCorrect !== 1
+      || JSON.stringify(afterReload.queue) !== JSON.stringify([101, 102, 103])) {
+      throw new Error(`page reload did not resume Q2 from server state: ${JSON.stringify(afterReload)}`);
+    }
+    await clickBoardAt(1, 1);
+    await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('3/3'));
+    if (startRequests.length !== 2) throw new Error(`expected exactly two start calls, got ${startRequests.length}`);
+    return { beforeReload, afterReload, startRequests };
+  } finally {
+    await page.close();
+  }
+}
+
+async function runLostFinishRecovery(browser, origin) {
+  const fixtureZone = lordZone();
+  const page = await newPage(browser, origin, {
+    viewport: { width: 1024, height: 1366 },
+  });
+  let finishCalls = 0;
+  await page.route('**/api/adventure/bootstrap**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ zones: [fixtureZone], cinematics: {} }),
+  }));
+  await page.route('**/api/questions**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([question(301, 'dd')]),
+  }));
+  await page.route('**/api/adventure/boss/start', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      ok: true,
+      replay: false,
+      attempt_mode: 'first_clear',
+      question_ids: [301, 302, 303],
+      resumed: true,
+      resume_index: 3,
+      answered_count: 3,
+      correct: 2,
+      ready_to_finish: true,
+      zone: fixtureZone,
+    }),
+  }));
+  await page.route('**/api/adventure/boss/finish', async (route) => {
+    finishCalls += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true, passed: false, correct: 2, total: 3, cooldown_left: 30,
+        zones: [fixtureZone],
+      }),
+    });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem('last_session_uid_v1', '1');
+    localStorage.setItem('adventure_bossready_seen_v1', JSON.stringify({ 1: { k26_30: Date.now() } }));
+  });
+  await page.goto(`${origin}/index.html?lang=zh`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.__GO_ADVENTURE_QUESTION_RUNTIME_READY__ === true, { timeout: 10000 });
+  await page.evaluate((zone) => {
+    _adventureProgress = [{ ...zone, index: 0, stages: [{ can_enter: true, completed: false }] }];
+    const trigger = document.createElement('button');
+    trigger.id = 'owner-fixture-lord-finish-recovery-cta';
+    trigger.textContent = '??蜓';
+    trigger.addEventListener('click', () => openAdventureBossFromQuestCard('k26_30'));
+    document.body.appendChild(trigger);
+  }, fixtureZone);
+  try {
+    await page.locator('#owner-fixture-lord-finish-recovery-cta').click();
+    await page.locator('#boss-cinematic-btn').click();
+    for (let i = 0; i < 100 && finishCalls !== 1; i += 1) await page.waitForTimeout(50);
+    if (finishCalls !== 1) throw new Error(`lost-finish recovery called finish ${finishCalls} times`);
+    return { finishCalls };
+  } finally {
+    await page.close();
+  }
+}
+
 async function runReplayCta(browser, origin, stars) {
   const page = await newPage(browser, origin, {
     viewport: { width: 1024, height: 1366 },
@@ -349,12 +553,16 @@ async function main() {
   const browser = await chromium.launch({ headless: true, executablePath: chromePath });
   try {
     const board = await runRealBoardProgress(browser, origin);
+    const resume = await runRealBoardResume(browser, origin);
+    const lostFinish = await runLostFinishRecovery(browser, origin);
     const replay = [];
     for (const stars of [1, 2, 3]) replay.push(await runReplayCta(browser, origin, stars));
     console.log(JSON.stringify({
       ok: true,
       ipadViewport: { width: 1024, height: 1366 },
       realBoard: board,
+      resume,
+      lostFinish,
       replay,
     }, null, 2));
   } finally {

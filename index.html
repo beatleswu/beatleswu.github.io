@@ -17041,8 +17041,14 @@ async function _startBossBattleNow(zone) {
         _bossReplay = data.replay === true || data.attempt_mode === 'replay';
         _bossZone = data.zone || zone;
         _bossQueue = data.question_ids || [];
-        _bossIndex = 0;
-        _bossCorrect = 0;
+        const serverResumeIndex = Number(data.resume_index);
+        const serverCorrect = Number(data.correct);
+        _bossIndex = Number.isInteger(serverResumeIndex)
+            ? Math.max(0, Math.min(_bossQueue.length, serverResumeIndex))
+            : 0;
+        _bossCorrect = Number.isInteger(serverCorrect)
+            ? Math.max(0, Math.min(_bossIndex, serverCorrect))
+            : 0;
         _bossTransitionInFlightKey = null;
         _bossLastSettledKey = null;
         _syncBossNextButton();
@@ -17050,7 +17056,15 @@ async function _startBossBattleNow(zone) {
         document.getElementById('welcome-state')?.classList.add('hidden');
         document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
         document.getElementById('msg-box')?.classList.remove('hidden');
-        await _loadBossQuestion();
+        if (data.ready_to_finish === true || _bossIndex >= _bossQueue.length) {
+            // All questions have authoritative review evidence but the prior
+            // finish response was lost.  Reuse this signed exam and invoke
+            // the existing finish path exactly once; never reshuffle Q1.
+            _renderBossTrialProgress(_bossQueue.length);
+            await _finishBossBattle();
+        } else {
+            await _loadBossQuestion();
+        }
     } catch (e) {
         hideBossCinematic();
         setMsg(I18n.t('index.boss.start_fail'), 'err');

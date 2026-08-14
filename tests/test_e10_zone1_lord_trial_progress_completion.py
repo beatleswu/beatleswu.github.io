@@ -117,3 +117,16 @@ def test_srs_review_limit_guard_exempts_only_active_boss_questions():
     guard = source[guard_start:guard_start + 1400]
     assert "if today_count >= _eff_limit and not active_boss_question:" in guard
     assert "if today_count >= _eff_limit:" not in guard
+
+
+def test_boss_resume_consumes_server_state_without_client_storage_authority():
+    source = (ROOT / "index.html").read_text(encoding="utf-8")
+    start = source.index("async function _startBossBattleNow(zone)")
+    end = source.index("function hideBossCinematic", start)
+    section = source[start:end]
+    assert "data.resume_index" in section
+    assert "data.correct" in section
+    assert "localStorage" not in section
+    assert "sessionStorage" not in section
+    assert "indexedDB" not in section
+    assert "body: JSON.stringify({ zone_key: zone.key })" in section

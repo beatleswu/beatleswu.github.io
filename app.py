@@ -9877,7 +9877,9 @@ def home_report_summary():
 @login_required
 def adventure_boss_start():
     uid = session['user_id']
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        data = {}
     zone_key = (data.get('zone_key') or '').strip()
     zone = _zone_by_key(zone_key)
     if not zone:
@@ -9888,8 +9890,60 @@ def adventure_boss_start():
     if not state or not state.get('unlocked'):
         return jsonify({'ok': False, 'error': 'zone_locked', 'message': '此區域尚未解鎖'}), 403
     # Replay mode is derived from the server-owned clear bit.  The request
-    # body is deliberately not consulted for a replay flag.
+    # body is deliberately not consulted for a replay flag or cursor.
     is_replay = bool(state.get('cleared'))
+    attempt_mode = 'replay' if is_replay else 'first_clear'
+
+    # Resume a valid same-zone signed exam before applying fresh-attempt gates
+    # such as ordinary cooldown.  The signed question order and review_log
+    # evidence, never request-body fields, own the returned cursor/tally.
+    existing_exam = session.get('adventure_boss_exam')
+    if isinstance(existing_exam, dict):
+        existing_zone_key = existing_exam.get('zone_key')
+        if existing_zone_key == zone_key:
+            existing_mode = str(existing_exam.get('attempt_mode') or '').strip()
+            if existing_mode in ('', attempt_mode):
+                resume_exam = dict(existing_exam)
+                resume_exam['attempt_mode'] = attempt_mode
+                try:
+                    with get_db() as conn:
+                        evidence = _adventure_boss_attempt_evidence(conn, uid, resume_exam)
+                except _AdventureBossAttemptError as exc:
+                    if exc.code == 'nonsequential_attempt_evidence':
+                        return jsonify({'ok': False, 'error': exc.code}), 400
+                    if exc.code in ('malformed_session', 'attempt_expired'):
+                        session.pop('adventure_boss_exam', None)
+                    else:
+                        return jsonify({'ok': False, 'error': exc.code}), 400
+                else:
+                    session['adventure_boss_exam'] = resume_exam
+                    answered_count = evidence['answered_count']
+                    return jsonify({
+                        'ok': True,
+                        'zone': state,
+                        'question_ids': list(resume_exam['question_ids']),
+                        'total': evidence['total'],
+                        'pass_score': min(BOSS_PASS_SCORE, evidence['total']),
+                        'attempt_mode': attempt_mode,
+                        'replay': is_replay,
+                        'resumed': True,
+                        'resume_index': answered_count,
+                        'answered_count': answered_count,
+                        'correct': evidence['correct_count'],
+                        'ready_to_finish': evidence['complete'],
+                    })
+            else:
+                # A first-clear exam cannot turn into replay (or vice versa)
+                # merely because the client requested a new mode.  Abandon the
+                # stale signed exam and apply fresh-attempt gates below.
+                session.pop('adventure_boss_exam', None)
+        else:
+            # Selecting another zone deterministically abandons the old
+            # unfinished exam; its signed qids can never be used for Zone B.
+            session.pop('adventure_boss_exam', None)
+    elif existing_exam is not None:
+        session.pop('adventure_boss_exam', None)
+
     if not is_replay and state.get('cooldown_left', 0) > 0:
         return jsonify({'ok': False, 'error': 'cooldown', 'cooldown_left': state['cooldown_left']}), 400
     if not is_replay and state.get('pct', 0) < BOSS_UNLOCK_PCT:
@@ -9910,7 +9964,7 @@ def adventure_boss_start():
         'started_at': datetime.datetime.now().isoformat(timespec='seconds'),
         # Stored in the signed server session for finish-time validation; this
         # is never accepted from the client request body.
-        'attempt_mode': 'replay' if is_replay else 'first_clear',
+        'attempt_mode': attempt_mode,
     }
     return jsonify({
         'ok': True,
@@ -9918,37 +9972,31 @@ def adventure_boss_start():
         'question_ids': qids,
         'total': len(qids),
         'pass_score': min(BOSS_PASS_SCORE, len(qids)),
-        'attempt_mode': 'replay' if is_replay else 'first_clear',
+        'attempt_mode': attempt_mode,
         'replay': is_replay,
+        'resumed': False,
+        'resume_index': 0,
+        'answered_count': 0,
+        'correct': 0,
+        'ready_to_finish': False,
     })
 
-class _AdventureBossAttemptError(Exception):
-    """Fail-closed reason for a boss/finish evaluation that cannot be safely
-    scored from server-owned evidence. The `code` is returned to the client
-    verbatim as `error` and must never imply a pass/fail result."""
-    def __init__(self, code):
-        self.code = code
-        super().__init__(code)
+def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
+    """Derive ordered Boss progress from signed-session and review evidence.
 
-
-def _adventure_boss_authoritative_result(conn, uid, exam):
-    """Recompute (correct, total) for a boss attempt from review_log
-    evidence recorded server-side during the attempt window. Client-supplied
-    correct/total values have zero authority over this result.
-
-    A question_id counts as correct if at least one review_log row for that
-    (user_id, question_id) pair inside the window has grade>=3 -- the same
-    threshold the client itself uses to tally a correct answer. Every
-    question_id in the exam must have at least one row in the window or the
-    whole attempt fails closed as incomplete (no partial credit).
+    The signed session owns the ordered question list and attempt start time;
+    review_log owns whether each question settled and its best grade.  Resume
+    and final finish both use this helper so they cannot drift apart.
     """
-    question_ids = exam.get('question_ids')
-    started_at_raw = exam.get('started_at')
+    question_ids = exam.get('question_ids') if isinstance(exam, dict) else None
+    started_at_raw = exam.get('started_at') if isinstance(exam, dict) else None
     if not isinstance(question_ids, list) or not question_ids or not started_at_raw:
         raise _AdventureBossAttemptError('malformed_session')
     try:
         qids = [int(q) for q in question_ids]
     except (TypeError, ValueError):
+        raise _AdventureBossAttemptError('malformed_session')
+    if len(set(qids)) != len(qids):
         raise _AdventureBossAttemptError('malformed_session')
     try:
         started_at = datetime.datetime.fromisoformat(str(started_at_raw))
@@ -9969,17 +10017,50 @@ def _adventure_boss_authoritative_result(conn, uid, exam):
 
     best_grade_by_qid = {}
     for row in rows:
-        qid = row['question_id']
-        grade = row['grade']
+        qid = int(row['question_id'])
+        grade = int(row['grade'])
         if qid not in best_grade_by_qid or grade > best_grade_by_qid[qid]:
             best_grade_by_qid[qid] = grade
 
-    if any(qid not in best_grade_by_qid for qid in qids):
+    settled_prefix_count = 0
+    for qid in qids:
+        if qid not in best_grade_by_qid:
+            break
+        settled_prefix_count += 1
+    if any(qid in best_grade_by_qid for qid in qids[settled_prefix_count:]):
+        raise _AdventureBossAttemptError('nonsequential_attempt_evidence')
+
+    complete = settled_prefix_count == len(qids)
+    if require_complete and not complete:
         raise _AdventureBossAttemptError('incomplete_attempt')
 
-    total = len(qids)
-    correct = sum(1 for qid in qids if best_grade_by_qid[qid] >= 3)
-    return correct, total
+    settled_qids = qids[:settled_prefix_count]
+    return {
+        'question_ids': qids,
+        'started_at': started_at,
+        'deadline': deadline,
+        'best_grade_by_qid': best_grade_by_qid,
+        'settled_prefix_count': settled_prefix_count,
+        'answered_count': settled_prefix_count,
+        'correct_count': sum(1 for qid in settled_qids if best_grade_by_qid[qid] >= 3),
+        'total': len(qids),
+        'complete': complete,
+    }
+
+
+class _AdventureBossAttemptError(Exception):
+    """Fail-closed reason for a boss/finish evaluation that cannot be safely
+    scored from server-owned evidence. The `code` is returned to the client
+    verbatim as `error` and must never imply a pass/fail result."""
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def _adventure_boss_authoritative_result(conn, uid, exam):
+    """Recompute complete (correct, total) from shared attempt evidence."""
+    evidence = _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=True)
+    return evidence['correct_count'], evidence['total']
 
 
 @app.route('/api/adventure/boss/finish', methods=['POST'])
