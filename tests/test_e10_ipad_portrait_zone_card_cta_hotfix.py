@@ -31,6 +31,18 @@ def test_completed_zone_semantics_are_not_orientation_derived():
     assert "matchMedia" not in contract
 
 
+def test_cleared_zone_has_replay_primary_and_star_training_secondary_surface():
+    start = WORLD.index("function secondaryCtaContract(zone, state)")
+    end = WORLD.index("\n  function usesLandmarkCards(", start)
+    contract = WORLD[WORLD.index("function ctaContract(zone, state)"):end]
+    assert "zone.cleared === true || zone.status === 'completed'" in contract
+    assert "kind: 'replay_completed'" in contract
+    assert "function secondaryCtaContract(zone, state)" in contract
+    assert "zone.cleared === true && Number(zone.stars || 0) < 3" in contract
+    assert "kind: 'replenish_stars'" in contract
+    assert "#e9-world-stage-details-secondary-cta" in WORLD
+
+
 def test_current_mainline_continue_semantics_remain_scoped_to_current_zone():
     start = WORLD.index("function ctaContract(zone, state)")
     end = WORLD.index("\n  function usesLandmarkCards(", start)

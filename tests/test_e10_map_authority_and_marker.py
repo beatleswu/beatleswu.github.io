@@ -136,6 +136,26 @@ def test_completed_lord_never_emits_incorrect_challenge_action(app_module):
     assert result["primary_action"]["kind"] != "challenge_lord"
 
 
+@pytest.mark.parametrize("stars", [1, 2, 3])
+def test_cleared_zone_always_exposes_lord_replay_primary_action(app_module, stars):
+    zones = [
+        _zone("k26_30", effective_start_zone_key="k26_30", cleared=True, stars=stars),
+        _zone("k21_25", unlocked=False),
+    ]
+    result = app_module._adventure_map_state_from_zones(zones)
+    assert result["primary_action"] == {
+        "kind": "replay_completed",
+        "zone_key": "k26_30",
+    }
+    if stars < 3:
+        assert result["secondary_action"] == {
+            "kind": "replenish_stars",
+            "zone_key": "k26_30",
+        }
+    else:
+        assert result["secondary_action"] is None
+
+
 def test_marker_reconciliation_is_single_authoritative_pipeline():
     assert WORLD_STAGE.count("function reconcilePlayerNodeMarker(") == 1
     assert "function updatePlayerMarker(" not in WORLD_STAGE

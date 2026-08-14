@@ -8851,12 +8851,15 @@ function currentUnitName(){if(!currentQ)return null;const t=currentQ.topic&&curr
 // ─── SRS ───────────────────────────────────────────────────────
 async function submitSRS(grade){
     if(!currentQ)return;
-    if(_dailyLimitReached && !_challengeId){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
-    if (_mapBattleV1Mode === 'active' && _mapBattleV1State) {
+    if(_dailyLimitReached && !_challengeId && !_bossMode){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
+    const bossAnswerContext = _bossMode
+        ? { questionId: Number(currentQ.id), index: _bossIndex }
+        : null;
+    if (!_bossMode && _mapBattleV1Mode === 'active' && _mapBattleV1State) {
         await _submitMapBattleV1IfActive(_mapBattleV1Moves);
         return;
     }
-    if (_mapBattleV1Mode === 'blocked') {
+    if (!_bossMode && _mapBattleV1Mode === 'blocked') {
         setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
         return;
     }
@@ -8879,7 +8882,13 @@ async function submitSRS(grade){
             setMsg(I18n.t('index.premium_req'),'err');
         }else if(data.error==='daily_limit'){
             _dailyLimitMax = data.limit || _dailyLimitMax;
-            if(_challengeId){
+            if (_bossMode) {
+                // A valid Lord attempt is exempt from ordinary free-practice
+                // limits.  If a stale/legacy response still reports the wall,
+                // keep Boss progression authoritative and do not fall through
+                // to ordinary practice selection.
+                await _handleBossAnswer(grade, bossAnswerContext);
+            } else if(_challengeId){
                 // 挑戰模式：不鎖定，直接進下一題
                 if(grade>0){ srsDoneCount++; nextQuestion(); }
             } else {
@@ -8985,7 +8994,7 @@ async function submitSRS(grade){
         }
         if (_bossMode) {
             shouldAdvance = false;
-            await _handleBossAnswer(grade);
+            await _handleBossAnswer(grade, bossAnswerContext);
             return;
         }
         loadMapProgressStatus();
@@ -9451,7 +9460,8 @@ function _isAdventureZonePractice() {
 }
 
 function _mapBattleV1IsActive() {
-    return _isAdventureZonePractice()
+    return !_bossMode
+        && _isAdventureZonePractice()
         && _mapBattleV1Mode === 'active'
         && !!_mapBattleV1State
         && _mapBattleV1State.active === true;
@@ -9505,6 +9515,11 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
     _publishMapBattleV1Lifecycle();
+    if (_bossMode) {
+        _mapBattleV1Mode = 'disabled';
+        _publishMapBattleV1Lifecycle();
+        return null;
+    }
     if (!_isAdventureZonePractice()) {
         _mapBattleV1Mode = 'disabled';
         _publishMapBattleV1Lifecycle();
@@ -10561,7 +10576,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
-    _mapBattleV1Mode = _isAdventureZonePractice() ? 'pending' : 'disabled';
+    _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _publishMapBattleV1Lifecycle();
     await _hydrateE10BattlePresentation();
     if (generation !== _mapBattleV1LifecycleGeneration) return false;
@@ -10579,7 +10594,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
     _mapBattleV1Context = null;
-    _mapBattleV1Mode = _isAdventureZonePractice() ? 'pending' : 'disabled';
+    _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _questionStartedAt=performance.now();
     const idx=allQuestions.findIndex(x=>x.id===q.id);if(idx!==-1)currentIndex=idx;
     document.querySelectorAll('.q-item').forEach(el=>el.classList.remove('active'));
@@ -10722,13 +10737,13 @@ function onBoardClick(bx,by){
     if(!matched){
         playWrong();const opp=playerColor==='B'?'W':'B';playStone(x,y,playerColor);
         setMsg(I18n.t('index.wrong'),'err');
-        if (_mapBattleV1IsActive()) {
+        if (_mapBattleV1IsActive() && !_bossMode) {
             _mapBattleV1Moves.push({x, y});
             showExplanation({x, y});
             submitSRS(0);
             return;
         }
-        if (_mapBattleV1Mode === 'blocked') {
+        if (!_bossMode && _mapBattleV1Mode === 'blocked') {
             setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
             return;
         }
@@ -10850,6 +10865,14 @@ async function useHintTicket(){
 }
 
 function nextQuestion({ mapBattleV1Transition = false } = {}){
+    // During a Lord Trial the settled answer is the sole advancement
+    // authority.  The shared practice button (and any delayed callback that
+    // invokes it) must never select an ordinary question or increment a
+    // Map-Battle transition while the Boss queue is active.
+    if (_bossMode) {
+        _syncBossNextButton();
+        return;
+    }
     if (mapBattleV1Transition) {
         _mapBattleV1NextQuestionCount += 1;
         _publishMapBattleV1Lifecycle();
@@ -11629,6 +11652,8 @@ let _bossIndex = 0;
 let _bossCorrect = 0;
 let _bossReplay = false;
 let _bossFinishInFlight = false;
+let _bossTransitionInFlightKey = null;
+let _bossLastSettledKey = null;
 let _pendingBossZone = null;
 let _bossAudioCtx = null;
 let _introFilmTimers = [];
@@ -17018,6 +17043,9 @@ async function _startBossBattleNow(zone) {
         _bossQueue = data.question_ids || [];
         _bossIndex = 0;
         _bossCorrect = 0;
+        _bossTransitionInFlightKey = null;
+        _bossLastSettledKey = null;
+        _syncBossNextButton();
         hideBossCinematic();
         document.getElementById('welcome-state')?.classList.add('hidden');
         document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
@@ -17058,8 +17086,16 @@ function _hideBossTrialProgress() {
     el.textContent = '';
 }
 
+function _syncBossNextButton() {
+    const next = document.querySelector('.btn-row button[onclick="nextQuestion()"]');
+    if (!next) return;
+    next.disabled = _bossMode;
+    next.setAttribute('aria-disabled', _bossMode ? 'true' : 'false');
+}
+
 async function _loadBossQuestion() {
     if (!_bossMode) return;
+    _syncBossNextButton();
     if (_bossIndex >= _bossQueue.length) {
         await _finishBossBattle();
         return;
@@ -17080,17 +17116,34 @@ async function _loadBossQuestion() {
     );
 }
 
-async function _handleBossAnswer(grade) {
-    if (!_bossMode || _bossFinishInFlight) return;
-    if (grade >= 3) _bossCorrect++;
-    _bossIndex++;
-    if (_bossIndex >= _bossQueue.length) {
-        // Show the final 20/20 position while the server-authoritative finish
-        // request settles; the displayed count never grants the clear.
-        _renderBossTrialProgress(_bossQueue.length);
-        await _finishBossBattle();
-    } else {
-        await _loadBossQuestion();
+async function _handleBossAnswer(grade, context = null) {
+    if (!_bossMode || _bossFinishInFlight) return false;
+    const submittedIndex = Number.isInteger(context?.index) ? context.index : _bossIndex;
+    const submittedQuestionId = context?.questionId == null
+        ? Number(currentQ?.id)
+        : Number(context.questionId);
+    // A delayed review callback belongs to the question that was on the board
+    // when it was submitted.  If the queue already moved, it must not settle
+    // the newer question or increment the Boss counter a second time.
+    if (submittedIndex !== _bossIndex || submittedQuestionId !== Number(currentQ?.id)) return false;
+    const settlementKey = `${submittedIndex}:${submittedQuestionId}`;
+    if (_bossTransitionInFlightKey === settlementKey || _bossLastSettledKey === settlementKey) return false;
+    _bossTransitionInFlightKey = settlementKey;
+    _bossLastSettledKey = settlementKey;
+    try {
+        if (grade >= 3) _bossCorrect++;
+        _bossIndex++;
+        if (_bossIndex >= _bossQueue.length) {
+            // Show the final 20/20 position while the server-authoritative
+            // finish request settles; the displayed count never grants clear.
+            _renderBossTrialProgress(_bossQueue.length);
+            await _finishBossBattle();
+        } else {
+            await _loadBossQuestion();
+        }
+        return true;
+    } finally {
+        _bossTransitionInFlightKey = null;
     }
 }
 
@@ -17101,6 +17154,7 @@ async function _finishBossBattle() {
     const correct = _bossCorrect;
     const zoneName = _bossZone?.nameEn || _bossZone?.name || I18n.t('index.boss.zone_default');
     _bossMode = false;
+    _syncBossNextButton();
     try {
         const res = await fetch('/api/adventure/boss/finish', {
             credentials: 'include',

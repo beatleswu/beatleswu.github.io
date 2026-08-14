@@ -109,6 +109,22 @@
         }
       }
     }
+    var secondaryAction = null;
+    var rawSecondaryAction = raw.secondary_action;
+    if (rawSecondaryAction && typeof rawSecondaryAction.kind === 'string'
+        && validActionKinds.indexOf(rawSecondaryAction.kind) !== -1) {
+      for (var s = 0; s < zones.length; s++) {
+        if (zones[s].key === rawSecondaryAction.zone_key
+            && !zones[s].locked && zones[s].canEnter === true) {
+          secondaryAction = {
+            kind: rawSecondaryAction.kind,
+            zoneKey: rawSecondaryAction.zone_key,
+            bossKey: typeof rawSecondaryAction.boss_key === 'string' ? rawSecondaryAction.boss_key : null,
+          };
+          break;
+        }
+      }
+    }
     var rawCinematics = raw.cinematics && typeof raw.cinematics === 'object'
       ? raw.cinematics
       : {};
@@ -130,6 +146,7 @@
       selected: raw.selected || null,
       currentZoneKey: currentZoneKey,
       primaryAction: primaryAction,
+      secondaryAction: secondaryAction,
     };
   }
 

@@ -9604,14 +9604,36 @@ def _adventure_primary_action_payload(zones, current_zone_key):
         except (TypeError, ValueError):
             return 0
 
-    refill = next((z for z in ordered if _stars(z) < 3), None)
-    if refill:
-        return {'kind': 'replenish_stars', 'zone_key': refill['key']}
-
     completed = [z for z in ordered if z.get('cleared')]
     if completed:
         return {'kind': 'replay_completed', 'zone_key': completed[-1]['key']}
+
+    refill = next((z for z in ordered if _stars(z) < 3), None)
+    if refill:
+        return {'kind': 'replenish_stars', 'zone_key': refill['key']}
     return None
+
+
+def _adventure_secondary_action_payload(zones, primary_action):
+    """Return the server-owned star-training action kept beside Lord replay."""
+    ordered = sorted(
+        [z for z in (zones or []) if _adventure_zone_is_authoritative_playable(z)],
+        key=lambda z: _adventure_zone_index(z.get('key')),
+    )
+
+    def _stars(zone):
+        try:
+            return int(zone.get('stars') or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    refill = next((z for z in ordered if _stars(z) < 3), None)
+    if not refill:
+        return None
+    if primary_action and primary_action.get('kind') == 'replenish_stars':
+        if primary_action.get('zone_key') == refill.get('key'):
+            return None
+    return {'kind': 'replenish_stars', 'zone_key': refill['key']}
 
 
 def _adventure_map_state_from_zones(zones, selected_stage_key=None):
@@ -9709,12 +9731,14 @@ def _adventure_map_state_from_zones(zones, selected_stage_key=None):
         'effective_start_zone_label': effective_start_zone.get('label') if effective_start_zone else None,
         'effective_start_zone_name': effective_start_zone.get('name') if effective_start_zone else None,
     }
+    primary_action = _adventure_primary_action_payload(zones, current_zone_key)
     return {
         'placement': placement_payload,
         'recommended': recommended_payload,
         'selected': selected_payload,
         'current_zone_key': current_zone_key,
-        'primary_action': _adventure_primary_action_payload(zones, current_zone_key),
+        'primary_action': primary_action,
+        'secondary_action': _adventure_secondary_action_payload(zones, primary_action),
         'active_zone_key': selected_payload.get('zone_key') if selected_payload else None,
         'zones': zone_payloads,
     }
