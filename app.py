@@ -5570,7 +5570,118 @@ def _get_or_create_battlefield(conn, uid, today_str):
         'max_hp': m[2], 'current_hp': m[2], 'defeated': 0, 'kill_count': 0,
     }
 
-def _calc_damage(grade, max_hp):
+_COMBAT_GEAR_WEAPON_DAMAGE_PER_TIER = 0.02
+_COMBAT_GEAR_ARMOR_REDUCTION_PER_TIER = 0.01
+_COMBAT_ATTACK_BONUS_CAP = 0.75
+_COMBAT_DAMAGE_REDUCTION_CAP = 0.99
+_COMBAT_GEAR_DEFAULT_KEYS = {
+    'armor': {'', 'cloth'},
+    'cape': {'', 'none'},
+    'weapon': {'', 'none'},
+    'offhand': {'', 'none'},
+    'hat': {'', 'none'},
+    'pet': {'', 'none'},
+    'aura': {'', 'none'},
+    'acc': {'', 'none'},
+}
+_COMBAT_GEAR_MAX_TIERS = {
+    'armor': 10, 'cape': 10, 'weapon': 10, 'offhand': 10,
+    'hat': 7, 'pet': 0, 'aura': 7, 'acc': 7,
+}
+
+
+def _known_combat_gear_key(slot, key):
+    """Return whether a client-supplied combat loadout key is structural."""
+    slot = str(slot or '').strip().lower()
+    key = str(key or '').strip()
+    if slot not in _COMBAT_GEAR_MAX_TIERS:
+        return False
+    if key in _COMBAT_GEAR_DEFAULT_KEYS[slot]:
+        return True
+    match = re.fullmatch(rf'{re.escape(slot)}_t(\d+)', key)
+    if not match:
+        return False
+    tier = int(match.group(1))
+    return 1 <= tier <= _COMBAT_GEAR_MAX_TIERS[slot]
+
+
+def _validated_combat_gear_tier(slot, key, rank_tier, total_correct):
+    """Return an unlocked tier, or zero for missing/legacy/forged data."""
+    if not _known_combat_gear_key(slot, key):
+        return 0
+    key = str(key or '').strip()
+    match = re.fullmatch(rf'{re.escape(slot)}_t(\d+)', key)
+    if not match:
+        return 0
+    tier = int(match.group(1))
+    try:
+        return tier if _gear_unlocked(key, rank_tier, total_correct) else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+def _nonnegative_effect(value):
+    try:
+        return max(0.0, float(value or 0.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _get_authoritative_combat_stats(conn, uid, monster_type=None):
+    """Resolve effective combat equipment from server-owned player state.
+
+    The old ``player_inventory`` effects remain the source for legacy loot,
+    while the modern ``player_appearance.combat_*`` loadout contributes the
+    tier-based weapon/armor values that were previously only cosmetic or
+    economy modifiers.  Invalid or stale loadout keys contribute zero.
+    """
+    legacy_attack = _nonnegative_effect(_get_equip_effect(conn, uid, 'dmg_bonus'))
+    if monster_type:
+        legacy_attack += _nonnegative_effect(
+            _get_equip_effect(conn, uid, f'{monster_type}_dmg_bonus')
+        )
+    legacy_reduction = _nonnegative_effect(
+        _get_combined_effect(conn, uid, 'player_dmg_reduce')
+    )
+
+    loadout = conn.execute(
+        'SELECT combat_weapon, combat_armor FROM player_appearance WHERE user_id=?',
+        (uid,),
+    ).fetchone()
+    stats = conn.execute(
+        'SELECT go_rank, total_correct FROM user_stats WHERE user_id=?',
+        (uid,),
+    ).fetchone()
+    rank_tier = _rank_to_tier(stats['go_rank'] if stats else '')
+    total_correct = (stats['total_correct'] if stats else 0) or 0
+    weapon_key = loadout['combat_weapon'] if loadout else ''
+    armor_key = loadout['combat_armor'] if loadout else ''
+    weapon_tier = _validated_combat_gear_tier(
+        'weapon', weapon_key, rank_tier, total_correct
+    )
+    armor_tier = _validated_combat_gear_tier(
+        'armor', armor_key, rank_tier, total_correct
+    )
+
+    attack_bonus = min(
+        _COMBAT_ATTACK_BONUS_CAP,
+        legacy_attack + weapon_tier * _COMBAT_GEAR_WEAPON_DAMAGE_PER_TIER,
+    )
+    damage_reduction = min(
+        _COMBAT_DAMAGE_REDUCTION_CAP,
+        legacy_reduction + armor_tier * _COMBAT_GEAR_ARMOR_REDUCTION_PER_TIER,
+    )
+    return {
+        'attack_bonus': round(attack_bonus, 4),
+        'attack_bonus_pct': round(attack_bonus * 100, 1),
+        'damage_reduction': round(damage_reduction, 4),
+        'damage_reduction_pct': round(damage_reduction * 100, 1),
+        'weapon_tier': weapon_tier,
+        'armor_tier': armor_tier,
+    }
+
+
+def _calc_damage(grade, max_hp, attack_bonus=0.0):
     """
     傷害計算：每擊約扣 4~8%，讓每場戰鬥持續 15~25 題。
     連擊加成在 srs_review 傳入 combo_streak 後由呼叫端加乘。
@@ -5580,7 +5691,8 @@ def _calc_damage(grade, max_hp):
     if grade < 3:
         return 0
     pct = {3: 0.04, 4: 0.06, 5: 0.08}.get(grade, 0.04)
-    return max(5, math.ceil(max_hp * pct))
+    attack_bonus = min(_COMBAT_ATTACK_BONUS_CAP, _nonnegative_effect(attack_bonus))
+    return max(5, math.ceil(max_hp * pct * (1.0 + attack_bonus)))
 
 def _get_equip_effect(conn, uid, effect_key):
     """加總玩家所有已裝備物品對某效果的貢獻（數值加法）。"""
@@ -5639,6 +5751,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     max_hp       = bf['max_hp']
     current_hp   = bf['current_hp']
     kill_count   = bf['kill_count']
+    combat_stats  = _get_authoritative_combat_stats(conn, uid, monster_type)
 
     dmg_dealt        = 0
     monster_defeated = False
@@ -5661,7 +5774,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     player_hp_change = 0   # 正=回血, 負=受傷
 
     if grade >= 3 and should_grant_progress:
-        dmg_dealt = _calc_damage(grade, max_hp)
+        dmg_dealt = _calc_damage(grade, max_hp, combat_stats['attack_bonus'])
         new_hp    = max(0, current_hp - dmg_dealt)
         if new_hp == 0:
             monster_defeated = True
@@ -5716,7 +5829,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         pass
     else:
         # 答錯：怪物反擊，扣玩家血量
-        dmg_reduce   = _get_combined_effect(conn, uid, 'player_dmg_reduce')
+        dmg_reduce   = combat_stats['damage_reduction']
         player_dmg   = max(1, round(monster_atk * (1.0 - dmg_reduce)))
         player_hp    = player_hp - player_dmg
         player_hp_change = -player_dmg
@@ -5823,6 +5936,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         'sp':              sp_result,
         'loot':            loot_result,
         'appearance_loot': appearance_loot,
+        'combat_stats':    combat_stats,
         **({'_xp_shadow_inputs': shadow_events} if shadow_events is not None else {}),
     }
 
@@ -5841,6 +5955,7 @@ def monster_status():
         ).fetchall()
         sp_row = conn.execute('SELECT current_sp FROM player_sp WHERE user_id=?', (uid,)).fetchone()
         equip_bonus = _get_equip_effect(conn, uid, 'sp_bonus')   # 必須在 conn 關閉前呼叫
+        combat_stats = _get_authoritative_combat_stats(conn, uid, bf['monster_type'])
         conn.commit()
 
     _bf_xp        = (s['xp'] or 0) if s else 0
@@ -5892,6 +6007,7 @@ def monster_status():
         'skills':     skills_info,
         'current_sp': current_sp,
         'max_sp':     max_sp,
+        'combat_stats': combat_stats,
     })
 
 
@@ -14007,6 +14123,7 @@ def skills_profile():
                           if _title_id and _title_id in _APPEAR_MAP else None)
         _eq_title_en = _i18n_title_en(_title_id) if _title_id else None
         equipped_title_en = _eq_title_en[0] if _eq_title_en else equipped_title
+        combat_stats = _get_authoritative_combat_stats(conn, uid)
 
     # ── active_effects & equipped_visuals ───────────────────────
     with get_db() as _conn2:
@@ -14064,6 +14181,7 @@ def skills_profile():
         },
         'wardrobe':          wardrobe,
         'active_effects':    appear_fx,
+        'combat_stats':      combat_stats,
         'equipped_visuals':  equipped_visuals,
         'new_unlock':        new_unlock,
         'is_premium':        is_premium(uid),
@@ -14108,7 +14226,8 @@ def skills_character():
         rank_tier = _rank_to_tier(metrics.get('go_rank'))
         char_ok   = _cosmetic_unlocked('character', ckey, metrics, is_prem)
         combat_fields = [(c, v) for c, v in combat_in.items()
-                         if _gear_unlocked(v, rank_tier, metrics.get('total_correct', 0))]   # 段位/累積答對未到 → 丟棄
+                         if _known_combat_gear_key(c[len('combat_'):], v)
+                         and _gear_unlocked(v, rank_tier, metrics.get('total_correct', 0))]   # 結構/段位/累積答對未到 → 丟棄
         rejected = ([] if char_ok else ['character']) + \
                    [c for c in combat_in if c not in dict(combat_fields)]
 
