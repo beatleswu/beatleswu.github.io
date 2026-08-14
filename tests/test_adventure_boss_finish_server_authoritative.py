@@ -508,3 +508,180 @@ class TestFinishRouteNoRewardSideEffects:
         for forbidden in ('_spend_coins', '_coin_balance', 'INSERT INTO currency_log', 'UPDATE user_stats'):
             assert forbidden not in section, f"{forbidden} must not appear directly in boss/finish scoring logic"
         assert app_py.count('def _grant_coins(') == 1, "must reuse the single existing _grant_coins(), not fork it"
+
+
+# ===========================================================================
+# Tier 3 -- server-authoritative Lord replay mode
+# ===========================================================================
+
+@pytest.fixture()
+def stub_cleared_adventure_state(app_module, monkeypatch):
+    state = {'seen': 50}
+
+    def fake_adventure_state(uid):
+        return [{'key': 'k26_30', 'seen': state['seen'], 'unlocked': True, 'cleared': True}]
+
+    def fake_map_state(uid, selected_stage_key=None, use_cache=False):
+        return {}
+
+    monkeypatch.setattr(app_module, '_adventure_state', fake_adventure_state)
+    monkeypatch.setattr(app_module, '_adventure_map_state', fake_map_state)
+    return state
+
+
+@pytest.fixture()
+def stub_boss_start_state(app_module, monkeypatch):
+    state = {
+        'key': 'k26_30',
+        'seen': 50,
+        'pct': 100,
+        'unlocked': True,
+        'cleared': True,
+        'cooldown_left': 0,
+    }
+    monkeypatch.setattr(app_module, '_adventure_state', lambda uid: [dict(state)])
+    monkeypatch.setattr(app_module, '_load_questions', lambda: [{'id': i, 'enabled': True} for i in range(1, 21)])
+    monkeypatch.setattr(app_module, '_questions_for_adventure_zone', lambda qs, zone, premium: list(qs))
+    monkeypatch.setattr(app_module, 'is_premium', lambda *args, **kwargs: True)
+    return state
+
+
+class TestLordReplayMode:
+    def test_start_derives_replay_from_authoritative_clear_ignoring_client_flag(
+        self, client, app_module, stub_boss_start_state
+    ):
+        _login(client, 20)
+        response = client.post('/api/adventure/boss/start', json={
+            'zone_key': 'k26_30',
+            'replay': False,
+        })
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['replay'] is True
+        assert body['attempt_mode'] == 'replay'
+        with client.session_transaction() as sess:
+            assert sess['adventure_boss_exam']['attempt_mode'] == 'replay'
+
+    def test_uncleared_start_ignores_forged_replay_flag(self, client, app_module, stub_boss_start_state):
+        stub_boss_start_state.update({'cleared': False, 'pct': 30})
+        _login(client, 21)
+        response = client.post('/api/adventure/boss/start', json={
+            'zone_key': 'k26_30',
+            'replay': True,
+        })
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['replay'] is False
+        assert body['attempt_mode'] == 'first_clear'
+
+    def test_explicit_replay_attempt_for_uncleared_zone_fails_closed(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        uid = 22
+        qids = list(range(6101, 6121))
+        for qid in qids:
+            _seed_review(patched_get_db, uid, qid, 5, within_window())
+        _login(client, uid)
+        _set_exam(client, {**_exam(qids, zone_key='k26_30'), 'attempt_mode': 'replay'})
+        response = client.post('/api/adventure/boss/finish', json={})
+        assert response.status_code == 400
+        assert response.get_json()['error'] == 'invalid_replay_attempt'
+
+    def _seed_cleared_row(self, conn, uid, zone_key='k26_30'):
+        conn.execute('''
+            INSERT INTO adventure_boss_progress
+                (user_id, zone_key, cleared, stars, attempts, best_score,
+                 cooldown_until_seen, last_attempt_at, cleared_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        ''', (uid, zone_key, 1, 2, 3, 18, 0,
+              '2026-08-14T10:00:00', '2026-08-14T09:00:00', '2026-08-14T10:00:00'))
+        conn.commit()
+
+    def test_replay_pass_preserves_clear_and_has_zero_rewards(
+        self, client, app_module, patched_get_db, stub_cleared_adventure_state, monkeypatch
+    ):
+        uid = 23
+        self._seed_cleared_row(patched_get_db, uid)
+        qids = list(range(6201, 6221))
+        for qid in qids:
+            _seed_review(patched_get_db, uid, qid, 5, within_window())
+        grants = []
+        monkeypatch.setattr(app_module, '_grant_coins', lambda *args, **kwargs: grants.append(args) or 999)
+        _login(client, uid)
+        _set_exam(client, {**_exam(qids, zone_key='k26_30'), 'attempt_mode': 'replay'})
+
+        response = client.post('/api/adventure/boss/finish', json={'correct': 0, 'total': 0})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['passed'] is True
+        assert body['replay'] is True
+        assert body['attempt_mode'] == 'replay'
+        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['cooldown_left'] == 0
+        assert grants == []
+        row = patched_get_db.execute(
+            'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?', (uid, 'k26_30')
+        ).fetchone()
+        assert row['cleared'] == 1
+        assert row['stars'] == 2
+        assert row['best_score'] == 18
+        assert row['cleared_at'] == '2026-08-14T09:00:00'
+        assert row['attempts'] == 4
+
+    def test_replay_fail_preserves_clear_and_does_not_create_cooldown(
+        self, client, app_module, patched_get_db, stub_cleared_adventure_state
+    ):
+        uid = 24
+        self._seed_cleared_row(patched_get_db, uid)
+        qids = list(range(6301, 6321))
+        for qid in qids:
+            _seed_review(patched_get_db, uid, qid, 0, within_window())
+        _login(client, uid)
+        _set_exam(client, {**_exam(qids, zone_key='k26_30'), 'attempt_mode': 'replay'})
+
+        response = client.post('/api/adventure/boss/finish', json={})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['passed'] is False
+        assert body['replay'] is True
+        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert body['cooldown_left'] == 0
+        row = patched_get_db.execute(
+            'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?', (uid, 'k26_30')
+        ).fetchone()
+        assert row['cleared'] == 1
+        assert row['stars'] == 2
+        assert row['best_score'] == 18
+        assert row['cooldown_until_seen'] == 0
+        assert row['attempts'] == 4
+
+    def test_zone2_replay_pass_uses_same_authoritative_zero_reward_contract(
+        self, client, app_module, patched_get_db, stub_cleared_adventure_state, monkeypatch
+    ):
+        uid = 25
+        monkeypatch.setattr(app_module, '_adventure_state', lambda _uid: [{
+            'key': 'k21_25', 'seen': 50, 'unlocked': True, 'cleared': True,
+        }])
+        self._seed_cleared_row(patched_get_db, uid, zone_key='k21_25')
+        qids = list(range(6401, 6421))
+        for qid in qids:
+            _seed_review(patched_get_db, uid, qid, 5, within_window())
+        grants = []
+        monkeypatch.setattr(app_module, '_grant_coins', lambda *args, **kwargs: grants.append(args) or 999)
+        _login(client, uid)
+        _set_exam(client, {**_exam(qids, zone_key='k21_25'), 'attempt_mode': 'replay'})
+
+        response = client.post('/api/adventure/boss/finish', json={})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['passed'] is True
+        assert body['replay'] is True
+        assert body['attempt_mode'] == 'replay'
+        assert body['reward'] == {'coins': 0, 'first_clear': False}
+        assert grants == []
+        row = patched_get_db.execute(
+            'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?', (uid, 'k21_25')
+        ).fetchone()
+        assert row['cleared'] == 1
+        assert row['stars'] == 2
+        assert row['best_score'] == 18

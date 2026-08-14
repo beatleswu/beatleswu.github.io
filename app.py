@@ -9555,6 +9555,7 @@ def _adventure_boss_payload(zone):
         'name': meta.get('name') or zone.get('name'),
         'name_en': meta.get('name_en'),
         'available': bool(zone.get('boss_ready')),
+        'replay_available': bool(zone.get('cleared')),
         'challenge_threshold': threshold,
         'remaining_to_challenge': max(0, threshold - completed_count),
     }
@@ -9978,11 +9979,12 @@ def adventure_boss_start():
     state = next((z for z in zones if z['key'] == zone_key), None)
     if not state or not state.get('unlocked'):
         return jsonify({'ok': False, 'error': 'zone_locked', 'message': '此區域尚未解鎖'}), 403
-    if state.get('cleared'):
-        return jsonify({'ok': False, 'error': 'already_cleared', 'message': '此領主已擊破'}), 400
-    if state.get('cooldown_left', 0) > 0:
+    # Replay mode is derived from the server-owned clear bit.  The request
+    # body is deliberately not consulted for a replay flag.
+    is_replay = bool(state.get('cleared'))
+    if not is_replay and state.get('cooldown_left', 0) > 0:
         return jsonify({'ok': False, 'error': 'cooldown', 'cooldown_left': state['cooldown_left']}), 400
-    if state.get('pct', 0) < BOSS_UNLOCK_PCT:
+    if not is_replay and state.get('pct', 0) < BOSS_UNLOCK_PCT:
         return jsonify({'ok': False, 'error': 'progress_not_enough', 'progress': state.get('pct', 0)}), 400
 
     premium = is_premium(uid)
@@ -9998,6 +10000,9 @@ def adventure_boss_start():
         'zone_key': zone_key,
         'question_ids': qids,
         'started_at': datetime.datetime.now().isoformat(timespec='seconds'),
+        # Stored in the signed server session for finish-time validation; this
+        # is never accepted from the client request body.
+        'attempt_mode': 'replay' if is_replay else 'first_clear',
     }
     return jsonify({
         'ok': True,
@@ -10005,6 +10010,8 @@ def adventure_boss_start():
         'question_ids': qids,
         'total': len(qids),
         'pass_score': min(BOSS_PASS_SCORE, len(qids)),
+        'attempt_mode': 'replay' if is_replay else 'first_clear',
+        'replay': is_replay,
     })
 
 class _AdventureBossAttemptError(Exception):
@@ -10101,12 +10108,33 @@ def adventure_boss_finish():
             'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
             (uid, zone_key)
         ).fetchone()
-        is_first_clear = bool(passed and not (existing and existing['cleared']))
+        attempt_mode = str(exam.get('attempt_mode') or '').strip()
+        if attempt_mode not in ('', 'first_clear', 'replay'):
+            session.pop('adventure_boss_exam', None)
+            return jsonify({'ok': False, 'error': 'invalid_attempt_mode'}), 400
+        already_cleared = bool(existing and existing['cleared'])
+        # An explicit replay mode is accepted only when the authoritative
+        # progress row still says the zone is cleared.  Missing mode is kept
+        # backward-compatible for sessions issued before replay support.
+        if attempt_mode == 'replay' and not already_cleared:
+            session.pop('adventure_boss_exam', None)
+            return jsonify({'ok': False, 'error': 'invalid_replay_attempt'}), 400
+        is_replay = already_cleared
+        is_first_clear = bool(passed and not is_replay)
         attempts = (existing['attempts'] if existing else 0) + 1
-        best_score = max(correct, existing['best_score'] if existing else 0)
-        cleared = 1 if passed else (existing['cleared'] if existing else 0)
-        stars = max(1 if passed else 0, existing['stars'] if existing else 0)
-        cleared_at = now if is_first_clear else (existing['cleared_at'] if existing else None)
+        if is_replay:
+            # Replay is practice content: preserve the authoritative clear,
+            # stars, best score, cooldown, and first-clear timestamp.
+            best_score = existing['best_score'] if existing else 0
+            cleared = existing['cleared'] if existing else 0
+            stars = existing['stars'] if existing else 0
+            cleared_at = existing['cleared_at'] if existing else None
+            cooldown_until = existing['cooldown_until_seen'] if existing else 0
+        else:
+            best_score = max(correct, existing['best_score'] if existing else 0)
+            cleared = 1 if passed else (existing['cleared'] if existing else 0)
+            stars = max(1 if passed else 0, existing['stars'] if existing else 0)
+            cleared_at = now if is_first_clear else (existing['cleared_at'] if existing else None)
         conn.execute('''
             INSERT INTO adventure_boss_progress
                 (user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,last_attempt_at,cleared_at,updated_at)
@@ -10142,7 +10170,9 @@ def adventure_boss_finish():
         'correct': correct,
         'total': total,
         'pass_score': pass_score,
-        'cooldown_left': 0 if passed else BOSS_FAIL_COOLDOWN,
+        'cooldown_left': 0 if is_replay else (0 if passed else BOSS_FAIL_COOLDOWN),
+        'attempt_mode': 'replay' if is_replay else 'first_clear',
+        'replay': is_replay,
         'reward': {'coins': reward_coins, 'first_clear': is_first_clear},
         **map_state,
     })
