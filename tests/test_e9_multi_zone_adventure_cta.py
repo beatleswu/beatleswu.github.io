@@ -384,7 +384,7 @@ def test_html_has_training_cta_and_secondary_story_replay_hidden_by_default():
     details_section_start = WORLD_STAGE_HTML.index('id="e9-world-stage-details"')
     details_section_end = WORLD_STAGE_HTML.index("</section>", details_section_start)
     details_section = WORLD_STAGE_HTML[details_section_start:details_section_end]
-    assert details_section.count("<button") == 2
+    assert details_section.count("<button") == 3
     button_tag = re.search(r'<button[^>]*id="e9-world-stage-details-cta"[^>]*>', details_section).group(0)
     assert 'id="e9-world-stage-details-cta"' in button_tag
     assert 'type="button"' in button_tag
@@ -490,7 +490,7 @@ def test_no_new_i18n_key_introduced_for_this_fix():
     expected = {
         'index.adv.boss_ready', 'index.adv.boss_cleared', 'index.adv.panel_ready',
         'index.adv.summary', 'index.adv.zone_locked', 'index.adv.start_challenge',
-        'index.adv.status_skipped_by_placement', 'index.adv.quest_replay_training',
+        'index.adv.status_skipped_by_placement', 'index.adv.quest_rechallenge_boss',
         'index.adv.skipped_replay', 'index.adv.skipped_help', 'index.adv.stars_label',
         'index.adv.boss_intro_progress',
     }

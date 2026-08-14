@@ -118,7 +118,7 @@ def test_principal_battle_contract_is_true_v1_and_never_legacy_srs_review():
     assert "/api/adventure/map-battles/v1/answers" in adapter
     assert "_mapBattleV1IsActive()" in submit
     assert "no battle fallback was used" in submit or "no battle fallback was used" in INDEX
-    assert "if (_mapBattleV1Mode === 'active' && _mapBattleV1State)" in INDEX
+    assert "if (!_bossMode && _mapBattleV1Mode === 'active' && _mapBattleV1State)" in INDEX
 
 
 def test_automatic_answer_feedback_renders_without_scrolling_the_viewport():

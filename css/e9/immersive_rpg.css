@@ -2235,7 +2235,8 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
       "landmark state"
       "landmark summary"
       "landmark progress"
-      "landmark cta";
+      "landmark cta"
+      "landmark cta-secondary";
     align-items: start;
     column-gap: 18px;
     row-gap: 6px;
@@ -2322,6 +2323,10 @@ body[data-e10-visual-skin="immersive-rpg"] main .practice {
     grid-area: cta;
     display: inline-flex;
     justify-self: stretch;
+  }
+
+  #e9-adventure-shell[data-e10-visual-skin="immersive-rpg"] .e9-zone-details__cta--secondary {
+    grid-area: cta-secondary;
   }
 
   body[data-e10-visual-skin="immersive-rpg"] #e9-right-cards-slot.is-drawer-open {

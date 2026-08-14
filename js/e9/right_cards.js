@@ -82,12 +82,16 @@
     var regionValue = root.querySelector('[data-e10-zone-region-value]');
     var regionBar = root.querySelector('[data-e10-zone-region-bar]');
     var cta = root.querySelector('[data-e10-zone-cta]');
+    var secondaryCta = root.querySelector('[data-e10-zone-secondary-cta]');
     var replay = root.querySelector('[data-e10-zone-replay]');
     root.__e10SelectedLandmarkSrc = detail.landmarkSrc || '';
     root.__e10SelectedZoneKey = detail.zoneKey || '';
     root.__e10ChallengeTargetZoneKey = detail.challengeTargetZoneKey || '';
     root.__e10ChallengeTargetEnabled = detail.ctaEnabled === true;
     root.__e10ChallengeTargetKind = detail.ctaKind || null;
+    root.__e10SecondaryTargetZoneKey = detail.zoneKey || '';
+    root.__e10SecondaryTargetEnabled = detail.secondaryCtaEnabled === true;
+    root.__e10SecondaryTargetKind = detail.secondaryCtaKind || null;
     syncDrawerLandmark(root);
     if (kicker) {
       kicker.textContent = detail.headingText || t(detail.headingKey, 'Selected Zone');
@@ -124,6 +128,14 @@
       cta.setAttribute('data-challenge-target-zone', detail.challengeTargetZoneKey || '');
       cta.textContent = detail.ctaLabel || t('e10.world_stage.state_locked', 'Locked');
       cta.removeAttribute('data-i18n');
+    }
+    if (secondaryCta) {
+      secondaryCta.hidden = detail.secondaryCtaEnabled !== true;
+      secondaryCta.disabled = detail.secondaryCtaEnabled !== true;
+      secondaryCta.setAttribute('aria-disabled', detail.secondaryCtaEnabled === true ? 'false' : 'true');
+      secondaryCta.setAttribute('data-challenge-target-zone', detail.zoneKey || '');
+      secondaryCta.textContent = detail.secondaryCtaLabel || t('e10.world_stage.replenish_stars', 'Replenish Stars');
+      secondaryCta.removeAttribute('data-i18n');
     }
     if (replay) {
       var replayEnabled = detail.zoneKey === 'k26_30';
@@ -263,7 +275,8 @@
         presentation.innerHTML = '<span class="e10-zone-panel-runtime__stars" data-e10-zone-stars></span>'
           + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.task_progress"></span><strong data-e10-zone-quest-value></strong><i><b data-e10-zone-quest-bar></b></i></div>'
           + '<div class="e10-zone-panel-runtime__metric"><span data-i18n="e10.world_stage.region_progress"></span><strong data-e10-zone-region-value></strong><i><b data-e10-zone-region-bar></b></i></div>'
-          + '<button type="button" class="e10-zone-panel-runtime__cta" data-e10-zone-cta data-i18n="e10.world_stage.continue_adventure"></button>';
+          + '<button type="button" class="e10-zone-panel-runtime__cta" data-e10-zone-cta data-i18n="e10.world_stage.continue_adventure"></button>'
+          + '<button type="button" class="e10-zone-panel-runtime__cta e10-zone-panel-runtime__cta--secondary" data-e10-zone-secondary-cta hidden></button>';
         zoneSummary.appendChild(presentation);
         var zoneCta = presentation.querySelector('[data-e10-zone-cta]');
         if (zoneCta) {
@@ -277,6 +290,18 @@
                 enabled: root.__e10ChallengeTargetEnabled,
                 targetZoneKey: root.__e10ChallengeTargetZoneKey,
                 kind: root.__e10ChallengeTargetKind,
+              });
+            }
+          }, null, generation);
+        }
+        var secondaryCta = presentation.querySelector('[data-e10-zone-secondary-cta]');
+        if (secondaryCta) {
+          window.E9.on(secondaryCta, 'click', function () {
+            if (window.E9 && typeof window.E9.dispatchAdventureAction === 'function') {
+              window.E9.dispatchAdventureAction({
+                enabled: root.__e10SecondaryTargetEnabled,
+                targetZoneKey: root.__e10SecondaryTargetZoneKey,
+                kind: root.__e10SecondaryTargetKind,
               });
             }
           }, null, generation);
@@ -418,6 +443,9 @@
         delete root.__e10SelectedZoneKey;
         delete root.__e10ChallengeTargetZoneKey;
         delete root.__e10ChallengeTargetEnabled;
+        delete root.__e10SecondaryTargetZoneKey;
+        delete root.__e10SecondaryTargetEnabled;
+        delete root.__e10SecondaryTargetKind;
         if (backdrop) backdrop.remove();
         if (slot) slot.classList.remove('is-drawer-open');
         root.hidden = false;

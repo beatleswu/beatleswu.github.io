@@ -820,6 +820,72 @@ def test_normal_srs_review_stays_on_canonical_route_and_reserved_marker_is_serve
     ).fetchone()[0] == 0
 
 
+def test_boss_review_context_is_server_bound_and_practice_rows_do_not_resume_boss(
+    api_env, app_module, monkeypatch
+):
+    client, conn = api_env
+    monkeypatch.setattr(app_module, "is_premium", lambda *args, **kwargs: True)
+    attempt_id = "context-attempt"
+    source_context = f"boss_trial:{attempt_id}"
+    started_at = app_module.datetime.datetime.now().isoformat(timespec="seconds")
+    with client.session_transaction() as session:
+        session["adventure_boss_exam"] = {
+            "zone_key": "k26_30",
+            "question_ids": [QUESTION["id"], 9002],
+            "started_at": started_at,
+            "attempt_id": attempt_id,
+            "attempt_mode": "first_clear",
+        }
+
+    valid = client.post(
+        "/api/srs/review",
+        json={"question_id": QUESTION["id"], "grade": 5,
+              "source_context": source_context},
+    )
+    assert valid.status_code == 200, valid.get_json()
+    assert conn.execute(
+        "SELECT source_context FROM review_log WHERE question_id=?",
+        (QUESTION["id"],),
+    ).fetchone()[0] == source_context
+
+    # A normal-practice review is still a valid ordinary review, but it is not
+    # evidence for the active Boss attempt because the server filters the exact
+    # reserved marker.
+    ordinary = client.post(
+        "/api/srs/review",
+        json={"question_id": 9002, "grade": 5, "source_context": "practice"},
+    )
+    assert ordinary.status_code == 200, ordinary.get_json()
+    with app_module.app.test_request_context("/"):
+        from flask import session
+        session["adventure_boss_exam"] = {
+            "zone_key": "k26_30",
+            "question_ids": [QUESTION["id"], 9002],
+            "started_at": started_at,
+            "attempt_id": attempt_id,
+            "attempt_mode": "first_clear",
+        }
+        evidence = app_module._adventure_boss_attempt_evidence(
+            conn, 101, session["adventure_boss_exam"]
+        )
+    assert evidence["answered_count"] == 1
+    assert evidence["correct_count"] == 1
+
+    before_rejections = conn.execute(
+        "SELECT COUNT(*) FROM review_log"
+    ).fetchone()[0]
+    for payload in (
+        {"question_id": QUESTION["id"], "grade": 5,
+         "source_context": "boss_trial:forged-attempt"},
+        {"question_id": 9999, "grade": 5, "source_context": source_context},
+        {"question_id": QUESTION["id"], "grade": 5,
+         "source_context": "boss_trial:previous-attempt"},
+    ):
+        rejected = client.post("/api/srs/review", json=payload)
+        assert rejected.status_code == 400, rejected.get_json()
+    assert conn.execute("SELECT COUNT(*) FROM review_log").fetchone()[0] == before_rejections
+
+
 def test_progression_failure_does_not_rollback_authoritative_battle_settlement(
     api_env, app_module, monkeypatch
 ):

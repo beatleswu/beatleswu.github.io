@@ -134,10 +134,17 @@ def test_all_four_production_lord_capable_cta_entries_converge_on_one_dispatcher
     # world_stage.js; the right-drawer CTA lives in right_cards.js and calls
     # the same function via its window.E9 export. Four distinct call sites,
     # one routing decision.
-    assert WORLD_STAGE.count("dispatchAdventureAction(contract);") == 2  # desktop + tutorial
+    assert WORLD_STAGE.count("dispatchAdventureAction(contract);") == 3  # desktop + tutorial + secondary
     assert WORLD_STAGE.count("dispatchAdventureAction(inlineContract);") == 1  # mobile
     assert "window.E9.dispatchAdventureAction(" in RIGHT_CARDS  # right drawer
     assert WORLD_STAGE.count("function dispatchAdventureAction(") == 1
+
+
+def test_right_drawer_keeps_star_training_as_a_secondary_action():
+    assert "data-e10-zone-secondary-cta" in RIGHT_CARDS
+    assert "detail.secondaryCtaEnabled === true" in RIGHT_CARDS
+    assert "root.__e10SecondaryTargetKind" in RIGHT_CARDS
+    assert "kind: root.__e10SecondaryTargetKind" in RIGHT_CARDS
 
 
 def _real_code_matches(source, pattern):
@@ -192,7 +199,7 @@ def test_only_one_dispatch_function_exists_for_all_world_stage_ctas():
     # the one shared dispatcher (right_cards.js's drawer CTA is the fourth
     # production-reachable surface, calling this same function via its
     # window.E9 export -- covered by test_right_cards_* below).
-    assert WORLD_STAGE.count("dispatchAdventureAction(contract);") == 2
+    assert WORLD_STAGE.count("dispatchAdventureAction(contract);") == 3
     assert WORLD_STAGE.count("dispatchAdventureAction(inlineContract);") == 1
 
 
@@ -446,13 +453,46 @@ async function main() {
     assert.strictEqual(advancedContract.kind, 'replay_completed');
   });
   const advancedOrdinaryBefore = calls.ordinary.length;
+  const advancedBossBefore = calls.boss.length;
   const advancedCinematicBefore = calls.cinematic.length;
   sandbox.dispatchAdventureAction(advancedContract);
   await new Promise((resolve) => setImmediate(resolve));
-  check('completed Zone 1 does not enter the first-entry cinematic host', () => {
-    assert.strictEqual(calls.ordinary.length, advancedOrdinaryBefore + 1);
+  check('completed Zone 1 re-enters the canonical Lord flow without first-entry cinematic', () => {
+    assert.strictEqual(calls.ordinary.length, advancedOrdinaryBefore);
+    assert.strictEqual(calls.boss.length, advancedBossBefore + 1);
     assert.strictEqual(calls.cinematic.length, advancedCinematicBefore);
   });
+
+  // -- Case 6: a cleared Zone remains replayable at every star count.  The
+  // Lord replay is the primary action, while 1/2-star zones retain an
+  // independently reachable star-training secondary action.
+  for (const stars of [1, 2, 3]) {
+    const replayZone = makeZone({
+      key: 'k26_30', status: 'completed', cleared: true, stars,
+    });
+    const replayState = {
+      zones: [replayZone], currentPlayerZoneKey: 'k26_30',
+      primaryAction: { kind: 'replay_completed', zoneKey: 'k26_30' },
+      secondaryAction: stars < 3
+        ? { kind: 'replenish_stars', zoneKey: 'k26_30' }
+        : null,
+    };
+    check(`cleared ${stars}-star zone keeps replay as primary`, () => {
+      const contract = sandbox.ctaContract(replayZone, replayState);
+      assert.strictEqual(contract.enabled, true);
+      assert.strictEqual(contract.kind, 'replay_completed');
+      assert.match(contract.label, /Challenge Lord again/);
+    });
+    check(`cleared ${stars}-star zone exposes intended secondary training contract`, () => {
+      const secondary = sandbox.secondaryCtaContract(replayZone, replayState);
+      if (stars < 3) {
+        assert.strictEqual(secondary.enabled, true);
+        assert.strictEqual(secondary.kind, 'replenish_stars');
+      } else {
+        assert.strictEqual(secondary, null);
+      }
+    });
+  }
 
   if (failures.length) {
     console.error('FAILURES:');

@@ -86,7 +86,8 @@ def sqlite_conn():
         user_id INTEGER NOT NULL,
         question_id INTEGER NOT NULL,
         grade INTEGER NOT NULL,
-        reviewed_at TEXT NOT NULL
+        reviewed_at TEXT NOT NULL,
+        source_context TEXT NOT NULL DEFAULT 'practice'
     )''')
     conn.execute('''CREATE TABLE adventure_boss_progress (
         user_id             INTEGER NOT NULL,
@@ -118,10 +119,15 @@ def sqlite_conn():
     conn.close()
 
 
-def _seed_review(conn, uid, question_id, grade, reviewed_at):
+TEST_BOSS_ATTEMPT_ID = 'unit-attempt'
+TEST_BOSS_SOURCE_CONTEXT = f'boss_trial:{TEST_BOSS_ATTEMPT_ID}'
+
+
+def _seed_review(conn, uid, question_id, grade, reviewed_at,
+                 source_context=TEST_BOSS_SOURCE_CONTEXT):
     conn.execute(
-        'INSERT INTO review_log(user_id,question_id,grade,reviewed_at) VALUES (?,?,?,?)',
-        (uid, question_id, grade, reviewed_at),
+        'INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) VALUES (?,?,?,?,?)',
+        (uid, question_id, grade, reviewed_at, source_context),
     )
     conn.commit()
 
@@ -177,8 +183,14 @@ STARTED_AT_DT = _TEST_NOW - _dt.timedelta(minutes=5)
 STARTED_AT = STARTED_AT_DT.isoformat()
 
 
-def _exam(question_ids, started_at=STARTED_AT, zone_key=ZONE_KEY):
-    return {'zone_key': zone_key, 'question_ids': question_ids, 'started_at': started_at}
+def _exam(question_ids, started_at=STARTED_AT, zone_key=ZONE_KEY,
+          attempt_id=TEST_BOSS_ATTEMPT_ID):
+    return {
+        'zone_key': zone_key,
+        'question_ids': question_ids,
+        'started_at': started_at,
+        'attempt_id': attempt_id,
+    }
 
 
 def within_window(offset_seconds=60):

@@ -180,7 +180,7 @@
     if (action.kind === 'resume_encounter') return t('e10.world_stage.resume_encounter', 'Resume Encounter');
     if (action.kind === 'challenge_lord') return t('e10.world_stage.challenge_lord', 'Challenge Lord');
     if (action.kind === 'replenish_stars') return t('e10.world_stage.replenish_stars', 'Replenish Stars');
-    if (action.kind === 'replay_completed') return t('index.adv.quest_replay_training', 'Star training');
+    if (action.kind === 'replay_completed') return t('index.adv.quest_rechallenge_boss', 'Challenge Lord again');
     return action.zoneKey === state.currentPlayerZoneKey
       ? t('e10.world_stage.continue_adventure', 'Continue Adventure')
       : t('index.adv.start_challenge', 'Start Challenge');
@@ -247,6 +247,17 @@
     if (!target) {
       return { enabled: false, targetZoneKey: null, label: t('e10.world_stage.state_locked', 'Locked') };
     }
+    // A cleared, enterable zone always keeps Lord replay as its primary card
+    // action.  Star completion is independent from the server-owned clear
+    // bit, so 1/2-star cleared zones must not fall through to training here.
+    if (zone.cleared === true || zone.status === 'completed') {
+      return {
+        enabled: true,
+        targetZoneKey: target,
+        label: actionLabel({ kind: 'replay_completed', zoneKey: zone.key }, state),
+        kind: 'replay_completed',
+      };
+    }
     // The root-level arbitration (state.primaryAction / the client-computed
     // fallback in resolvePrimaryCta) names exactly ONE zone. A per-zone card
     // may only inherit that decision when it IS the named zone -- otherwise
@@ -274,9 +285,6 @@
         kind: 'challenge_lord',
       };
     }
-    if (zone.status === 'completed') {
-      return { enabled: true, targetZoneKey: target, label: t('index.adv.quest_replay_training', 'Star training'), kind: 'replay_completed' };
-    }
     if (zone.status === 'skipped_by_placement') {
       return { enabled: true, targetZoneKey: target, label: t('index.adv.skipped_replay', 'Star training available'), kind: 'replenish_stars' };
     }
@@ -288,6 +296,32 @@
         : t('index.adv.start_challenge', 'Start Challenge'),
       kind: 'normal_progression',
     };
+  }
+
+  function secondaryCtaContract(zone, state) {
+    if (!zone || zone.locked || zone.canEnter === false) return null;
+    var secondary = state && state.secondaryAction;
+    if (secondary && secondary.zoneKey === zone.key && secondary.kind === 'replenish_stars') {
+      return {
+        enabled: true,
+        targetZoneKey: zone.key,
+        label: actionLabel(secondary, state),
+        kind: secondary.kind,
+      };
+    }
+    // The cleared-zone card is allowed to retain its own server-normalized
+    // star count as the secondary training surface; the replay eligibility
+    // itself remains the server-owned cleared bit above and in the Lord start
+    // contract.
+    if (zone.cleared === true && Number(zone.stars || 0) < 3) {
+      return {
+        enabled: true,
+        targetZoneKey: zone.key,
+        label: actionLabel({ kind: 'replenish_stars', zoneKey: zone.key }, state),
+        kind: 'replenish_stars',
+      };
+    }
+    return null;
   }
 
   function usesLandmarkCards() {
@@ -714,7 +748,7 @@
   // bridge (window.ensureLegacyAdventureMapReady), not a new one.
   function dispatchAdventureAction(contract) {
     if (!contract || !contract.enabled || !contract.targetZoneKey) return;
-    if (contract.kind === 'challenge_lord') {
+    if (contract.kind === 'challenge_lord' || contract.kind === 'replay_completed') {
       var enter = function () {
         if (typeof window.openAdventureBossFromQuestCard === 'function') {
           window.openAdventureBossFromQuestCard(contract.targetZoneKey);
@@ -897,6 +931,32 @@
     }
   }
 
+  function configureSecondaryAdventureButton(button, zone, contract) {
+    if (!button) return;
+    if (!zone || !contract || !contract.enabled) {
+      button.hidden = true;
+      button.disabled = true;
+      button.removeAttribute('data-challenge-target-zone');
+      return;
+    }
+    button.hidden = false;
+    button.disabled = false;
+    button.setAttribute('aria-disabled', 'false');
+    button.setAttribute('data-challenge-target-zone', contract.targetZoneKey || '');
+    button.textContent = contract.label;
+    if (button.__e9SecondaryAdventureHandler) {
+      button.removeEventListener('click', button.__e9SecondaryAdventureHandler);
+    }
+    button.__e9SecondaryAdventureHandler = function () {
+      dispatchAdventureAction(contract);
+    };
+    if (window.E9 && typeof window.E9.on === 'function') {
+      window.E9.on(button, 'click', button.__e9SecondaryAdventureHandler);
+    } else {
+      button.addEventListener('click', button.__e9SecondaryAdventureHandler);
+    }
+  }
+
   function configurePrimaryCta(root, zone, state) {
     var primary = root.querySelector('#e9-world-stage-primary-cta');
     if (!VS1E_STATIC_CONTRACT_ACTIVE) {
@@ -961,6 +1021,7 @@
 
   function zoneSelectionDetail(zone, state) {
     var contract = ctaContract(zone, state);
+    var secondary = secondaryCtaContract(zone, state);
     var isCurrent = zone.key === state.currentPlayerZoneKey;
     return {
       zoneKey: zone.key,
@@ -988,6 +1049,9 @@
       locked: !!zone.locked,
       ctaEnabled: contract.enabled,
       ctaLabel: contract.label,
+      secondaryCtaKind: secondary && secondary.kind || null,
+      secondaryCtaEnabled: !!(secondary && secondary.enabled),
+      secondaryCtaLabel: secondary && secondary.label || '',
     };
   }
 
@@ -1024,6 +1088,7 @@
     var details = root.querySelector('#e9-world-stage-details');
     var summary = root.querySelector('#e9-world-stage-details-summary');
     var cta = root.querySelector('#e9-world-stage-details-cta');
+    var secondaryCta = root.querySelector('#e9-world-stage-details-secondary-cta');
     var replay = root.querySelector('#e9-world-stage-details-replay');
     var newbie = root.querySelector('#e9-newbie-mainline');
     if (!zone) {
@@ -1062,6 +1127,9 @@
       // map/panel CTA.
       configureAdventureButton(cta, zone, ctaContract(zone, state));
     }
+    if (secondaryCta) {
+      configureSecondaryAdventureButton(secondaryCta, zone, secondaryCtaContract(zone, state));
+    }
 
     root.querySelectorAll('.e9-zone__inline-details').forEach(function (panel) { panel.remove(); });
     if (isMobile) {
@@ -1087,6 +1155,20 @@
             dispatchAdventureAction(inlineContract);
           });
           inline.appendChild(inlineCta);
+          var inlineSecondary = secondaryCtaContract(zone, state);
+          if (inlineSecondary && inlineSecondary.enabled) {
+            var inlineSecondaryCta = document.createElement('button');
+            inlineSecondaryCta.type = 'button';
+            inlineSecondaryCta.className = 'e9-zone__inline-cta e9-zone__inline-cta--secondary e9-adventure-cta';
+            inlineSecondaryCta.textContent = inlineSecondary.label;
+            inlineSecondaryCta.setAttribute('aria-disabled', 'false');
+            inlineSecondaryCta.setAttribute('data-challenge-target-zone', inlineSecondary.targetZoneKey || '');
+            inlineSecondaryCta.addEventListener('click', function (evt) {
+              evt.stopPropagation();
+              dispatchAdventureAction(inlineSecondary);
+            });
+            inline.appendChild(inlineSecondaryCta);
+          }
         }
         selectedTile.appendChild(inline);
       }
@@ -1144,6 +1226,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      secondaryAction: null,
       avatarPresentation: null,
       cinematics: {},
       generation: null,
@@ -1158,7 +1241,11 @@
     var primaryAction = Object.prototype.hasOwnProperty.call(authority, 'primaryAction')
       ? authority.primaryAction
       : state.primaryAction;
+    var secondaryAction = Object.prototype.hasOwnProperty.call(authority, 'secondaryAction')
+      ? authority.secondaryAction
+      : state.secondaryAction;
     state.zones = zones;
+    state.secondaryAction = secondaryAction || null;
     if (Object.prototype.hasOwnProperty.call(authority, 'cinematics')) {
       state.cinematics = authority.cinematics || {};
     }
@@ -1386,6 +1473,7 @@
       generation: generation,
       currentZoneKey: null,
       primaryAction: null,
+      secondaryAction: null,
       cinematics: {},
       cinematicReadError: true,
     });
@@ -1413,6 +1501,7 @@
         renderZones(root, state.zones, {
           currentZoneKey: state.authoritativeCurrentZoneKey,
           primaryAction: state.primaryAction,
+          secondaryAction: state.secondaryAction,
           generation: state.generation,
         });
       }
@@ -1501,6 +1590,7 @@
       selectedZoneKey: null,
       challengeTargetZoneKey: null,
       primaryAction: null,
+      secondaryAction: null,
       avatarPresentation: null,
       cinematics: {},
       generation: generation,
@@ -1510,6 +1600,7 @@
       if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones, {
         currentZoneKey: state.authoritativeCurrentZoneKey,
         primaryAction: state.primaryAction,
+        secondaryAction: state.secondaryAction,
         generation: state.generation,
       });
     };
@@ -1518,6 +1609,7 @@
       if ((!window.E9 || typeof window.E9.isLifecycleCurrent !== 'function' || window.E9.isLifecycleCurrent(generation)) && state && state.zones && state.zones.length) renderZones(root, state.zones, {
         currentZoneKey: state.authoritativeCurrentZoneKey,
         primaryAction: state.primaryAction,
+        secondaryAction: state.secondaryAction,
         generation: state.generation,
       });
     };

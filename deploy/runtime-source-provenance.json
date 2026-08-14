@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "d810a3efd81a45e58433c8889b41c8a0a35d3648",
-      "source_branch_or_local_ref": "codex/e10-lord-trial-replay-001",
-      "source_commit_subject": "feat(e10): support replay Lord Trials",
+      "source_commit": "05236e1806620d0244240a005f59177cc0cb06ec",
+      "source_branch_or_local_ref": "codex/e10-lord-trial-owner-acceptance-hotfix-001",
+      "source_commit_subject": "fix(e10): bind Lord progress to attempt evidence",
       "source_date": "2026-08-14",
-      "content_sha256": "a60b4242e7e1f6372820bd01ff2bdb931317244111f8f285c6db405d3c58bd56",
+      "content_sha256": "d0a2e6a4aa1baba593ffd121a2f75b3cae8dc0048287aa6dc776d0fdbf666975",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the replay feature branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded replay commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner acceptance hotfix commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -471,15 +471,15 @@
     },
     {
       "path": "components/adventure/world_stage.html",
-      "source_commit": "baa063d9858cd86bfc683e283fd69944a939fd52",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "feat(e10): render equipped avatar on world map",
-      "source_date": "2026-08-12",
-      "content_sha256": "a6f95d9de5938a124899b564cc7f180c62f7382edad1642fc411a966f380f644",
+      "source_commit": "0a5270af7d7f5c67bae7a72a94b14d5a6e903c37",
+      "source_branch_or_local_ref": "codex/e10-lord-trial-owner-acceptance-hotfix-001",
+      "source_commit_subject": "fix(e10): restore Lord Trial answer and replay entry",
+      "source_date": "2026-08-14",
+      "content_sha256": "1f40e6fababf1c6d32800187da792ee00109b7d3b24ce712b0a219fcfc79ba2e",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage component markup; served by app.py static route",
-      "production_hash_status": "merged to origin/master at merge 0f40f2413dc9719c5b6394ac1a9df9a6707949e1; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner acceptance hotfix commit and raw-byte-verified against current content"
     },
     {
       "path": "css/e9/world_stage.css",
@@ -507,15 +507,15 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "29dadb86c6996c5369c187ef68013f30bcea3d77",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): inline player marker on ipad landscape",
-      "source_date": "2026-08-12",
-      "content_sha256": "de465cd3dce14a6401519bcab1a48d04103c2e38124b1d1795ad25aa77df49cb",
+      "source_commit": "0a5270af7d7f5c67bae7a72a94b14d5a6e903c37",
+      "source_branch_or_local_ref": "codex/e10-lord-trial-owner-acceptance-hotfix-001",
+      "source_commit_subject": "fix(e10): restore Lord Trial answer and replay entry",
+      "source_date": "2026-08-14",
+      "content_sha256": "f705493b8eca22ff354ca6737db93115df836fd5da3a27fdfb1c314f4122d5c1",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "merged to origin/master at merge 77444650ca72d367f344aaf045423aeea456f427; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner acceptance hotfix commit and raw-byte-verified against current content"
     },
     {
       "path": "sw.js",

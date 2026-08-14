@@ -103,7 +103,8 @@ def sqlite_conn():
         user_id INTEGER NOT NULL,
         question_id INTEGER NOT NULL,
         grade INTEGER NOT NULL,
-        reviewed_at TEXT NOT NULL
+        reviewed_at TEXT NOT NULL,
+        source_context TEXT NOT NULL DEFAULT 'practice'
     )''')
     conn.execute('''CREATE TABLE adventure_boss_progress (
         user_id             INTEGER NOT NULL,
@@ -138,10 +139,15 @@ def sqlite_conn():
     conn.close()
 
 
-def _seed_review(conn, uid, question_id, grade, reviewed_at):
+TEST_BOSS_ATTEMPT_ID = 'unit-attempt'
+TEST_BOSS_SOURCE_CONTEXT = f'boss_trial:{TEST_BOSS_ATTEMPT_ID}'
+
+
+def _seed_review(conn, uid, question_id, grade, reviewed_at,
+                 source_context=TEST_BOSS_SOURCE_CONTEXT):
     conn.execute(
-        'INSERT INTO review_log(user_id,question_id,grade,reviewed_at) VALUES (?,?,?,?)',
-        (uid, question_id, grade, reviewed_at),
+        'INSERT INTO review_log(user_id,question_id,grade,reviewed_at,source_context) VALUES (?,?,?,?,?)',
+        (uid, question_id, grade, reviewed_at, source_context),
     )
     conn.commit()
 
@@ -205,8 +211,14 @@ STARTED_AT_DT = _TEST_NOW - _dt.timedelta(minutes=5)
 STARTED_AT = STARTED_AT_DT.isoformat()
 
 
-def _exam(question_ids, started_at=STARTED_AT, zone_key=ZONE_KEY):
-    return {'zone_key': zone_key, 'question_ids': question_ids, 'started_at': started_at}
+def _exam(question_ids, started_at=STARTED_AT, zone_key=ZONE_KEY,
+          attempt_id=TEST_BOSS_ATTEMPT_ID):
+    return {
+        'zone_key': zone_key,
+        'question_ids': question_ids,
+        'started_at': started_at,
+        'attempt_id': attempt_id,
+    }
 
 
 def within_window(offset_seconds=60):
@@ -547,6 +559,41 @@ def stub_boss_start_state(app_module, monkeypatch):
 
 
 class TestLordReplayMode:
+    def test_new_attempts_receive_distinct_server_generated_ids(
+        self, client, app_module, stub_boss_start_state, monkeypatch
+    ):
+        _login(client, 19)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert first.status_code == 200
+        first_id = first.get_json()['attempt_id']
+        assert app_module._adventure_boss_attempt_id_is_valid(first_id)
+
+        # A mode transition abandons the old signed exam and creates a fresh
+        # server-owned attempt, rather than reusing its identity.
+        stub_boss_start_state.update({'cleared': False, 'pct': 100})
+        second = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert second.status_code == 200
+        second_id = second.get_json()['attempt_id']
+        assert app_module._adventure_boss_attempt_id_is_valid(second_id)
+        assert first_id != second_id
+
+    def test_legacy_same_zone_exam_without_attempt_id_is_not_resumed(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        _login(client, 18)
+        with client.session_transaction() as sess:
+            sess['adventure_boss_exam'] = {
+                'zone_key': 'k26_30',
+                'question_ids': [1, 2],
+                'started_at': STARTED_AT,
+                'attempt_mode': 'replay',
+            }
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['resumed'] is False
+        assert _session_exam(client)['attempt_id'] == body['attempt_id']
+
     def test_start_derives_replay_from_authoritative_clear_ignoring_client_flag(
         self, client, app_module, stub_boss_start_state
     ):
@@ -627,6 +674,313 @@ class TestLordReplayMode:
         assert row['best_score'] == 18
         assert row['cleared_at'] == '2026-08-14T09:00:00'
         assert row['attempts'] == 4
+
+
+# ===========================================================================
+# Tier 4 -- signed-session Boss resume authority
+# ===========================================================================
+
+def _exam_review_time(exam, offset_seconds=5):
+    started_at = _dt.datetime.fromisoformat(exam['started_at'])
+    return (started_at + _dt.timedelta(seconds=offset_seconds)).isoformat()
+
+
+def _session_exam(client):
+    with client.session_transaction() as sess:
+        return dict(sess['adventure_boss_exam'])
+
+
+def _seed_exam_review(conn, app_module, uid, exam, question_id, grade, reviewed_at):
+    _seed_review(
+        conn, uid, question_id, grade, reviewed_at,
+        source_context=app_module._adventure_boss_source_context(exam['attempt_id']),
+    )
+
+
+class TestBossResumeAuthority:
+    def test_practice_row_inside_attempt_window_is_ignored(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        uid = 40
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        exam = _session_exam(client)
+        _seed_exam_review(
+            patched_get_db, app_module, uid, exam, exam['question_ids'][0], 5,
+            _exam_review_time(exam),
+        )
+        _seed_review(
+            patched_get_db, uid, exam['question_ids'][1], 5,
+            _exam_review_time(exam, 6), source_context='practice',
+        )
+
+        resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resumed.status_code == 200
+        body = resumed.get_json()
+        assert body['resume_index'] == 1
+        assert body['answered_count'] == 1
+        assert body['correct'] == 1
+
+    def test_review_from_another_attempt_cannot_contaminate_current_resume(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        uid = 41
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        exam_a = _session_exam(client)
+        exam_b = {**exam_a, 'attempt_id': 'previous-attempt'}
+        _seed_exam_review(
+            patched_get_db, app_module, uid, exam_a, exam_a['question_ids'][0], 5,
+            _exam_review_time(exam_a),
+        )
+        _set_exam(client, exam_b)
+
+        resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resumed.status_code == 200
+        body = resumed.get_json()
+        assert body['resume_index'] == 0
+        assert body['correct'] == 0
+        assert body['attempt_id'] == 'previous-attempt'
+
+    def test_resumed_response_preserves_exact_attempt_id(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        _login(client, 42)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        exam = _session_exam(client)
+        attempt_id = first.get_json()['attempt_id']
+        _seed_exam_review(
+            patched_get_db, app_module, 42, exam, exam['question_ids'][0], 5,
+            _exam_review_time(exam),
+        )
+        resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resumed.status_code == 200
+        assert resumed.get_json()['attempt_id'] == attempt_id
+
+    def test_q1_resume_reuses_queue_started_at_and_rejects_client_cursor(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        uid = 30
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={
+            'zone_key': 'k26_30',
+            'resume_index': 19,
+            'correct': 20,
+            'answered_count': 20,
+            'replay': False,
+        })
+        assert first.status_code == 200
+        initial = first.get_json()
+        exam_before = _session_exam(client)
+        _seed_exam_review(
+            patched_get_db, app_module, uid, exam_before,
+            exam_before['question_ids'][0], 5, _exam_review_time(exam_before),
+        )
+
+        resumed = client.post('/api/adventure/boss/start', json={
+            'zone_key': 'k26_30',
+            'resume_index': 19,
+            'correct': 20,
+            'answered_count': 20,
+            'replay': False,
+        })
+        assert resumed.status_code == 200
+        body = resumed.get_json()
+        exam_after = _session_exam(client)
+        assert body['resumed'] is True
+        assert body['question_ids'] == initial['question_ids']
+        assert body['resume_index'] == 1
+        assert body['answered_count'] == 1
+        assert body['correct'] == 1
+        assert body['attempt_mode'] == 'replay'
+        assert body['ready_to_finish'] is False
+        assert exam_after['question_ids'] == exam_before['question_ids']
+        assert exam_after['started_at'] == exam_before['started_at']
+
+    def test_multi_question_resume_uses_best_grade_prefix(self, client, app_module, patched_get_db, stub_boss_start_state):
+        uid = 31
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert first.status_code == 200
+        exam = _session_exam(client)
+        grades = [5, 0, 5, 5, 0]
+        for qid, grade in zip(exam['question_ids'][:5], grades):
+            _seed_exam_review(
+                patched_get_db, app_module, uid, exam, qid, grade,
+                _exam_review_time(exam, qid % 7 + 5),
+            )
+
+        resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resumed.status_code == 200
+        body = resumed.get_json()
+        assert body['resumed'] is True
+        assert body['answered_count'] == 5
+        assert body['resume_index'] == 5
+        assert body['correct'] == 3
+        assert body['question_ids'] == exam['question_ids']
+
+    def test_duplicate_rows_count_once(self, client, app_module, patched_get_db, stub_boss_start_state):
+        uid = 32
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        exam = _session_exam(client)
+        qid = exam['question_ids'][0]
+        for offset, grade in ((5, 0), (6, 5), (7, 5)):
+            _seed_exam_review(
+                patched_get_db, app_module, uid, exam, qid, grade,
+                _exam_review_time(exam, offset),
+            )
+
+        resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resumed.status_code == 200
+        body = resumed.get_json()
+        assert body['answered_count'] == 1
+        assert body['correct'] == 1
+
+    def test_nonsequential_evidence_fails_closed_and_preserves_exam(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        uid = 33
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        exam = _session_exam(client)
+        _seed_exam_review(
+            patched_get_db, app_module, uid, exam, exam['question_ids'][1], 5,
+            _exam_review_time(exam),
+        )
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 400
+        assert response.get_json()['error'] == 'nonsequential_attempt_evidence'
+        assert _session_exam(client) == exam
+
+    @pytest.mark.parametrize('malformed_exam', [
+        {'zone_key': 'k26_30', 'question_ids': 'bad', 'started_at': STARTED_AT, 'attempt_mode': 'replay'},
+        {'zone_key': 'k26_30', 'question_ids': [1, 2], 'started_at': 'not-a-date', 'attempt_mode': 'replay'},
+    ])
+    def test_malformed_exam_is_not_resumed_and_fresh_exam_is_created(
+        self, client, app_module, patched_get_db, stub_boss_start_state, malformed_exam
+    ):
+        _login(client, 34)
+        with client.session_transaction() as sess:
+            sess['adventure_boss_exam'] = malformed_exam
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['resumed'] is False
+        assert body['resume_index'] == 0
+        assert _session_exam(client)['question_ids'] == body['question_ids']
+
+    def test_expired_exam_is_not_resumed_and_fresh_exam_is_created(
+        self, client, app_module, patched_get_db, stub_boss_start_state
+    ):
+        _login(client, 35)
+        old_started_at = (_dt.datetime.now() - _dt.timedelta(minutes=app_module.BOSS_ATTEMPT_MAX_MINUTES + 1)).isoformat()
+        with client.session_transaction() as sess:
+            sess['adventure_boss_exam'] = {
+                'zone_key': 'k26_30', 'question_ids': [999],
+                'started_at': old_started_at, 'attempt_mode': 'replay',
+            }
+        response = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert response.status_code == 200
+        body = response.get_json()
+        assert body['resumed'] is False
+        assert _session_exam(client)['started_at'] != old_started_at
+
+    def test_different_zone_exam_is_abandoned_not_reused(self, client, app_module, stub_boss_start_state, monkeypatch):
+        states = [
+            {**stub_boss_start_state, 'key': 'k26_30', 'cleared': True},
+            {**stub_boss_start_state, 'key': 'k21_25', 'cleared': True},
+        ]
+        monkeypatch.setattr(app_module, '_adventure_state', lambda _uid: [dict(s) for s in states])
+        _login(client, 36)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert first.status_code == 200
+        old_exam = _session_exam(client)
+        second = client.post('/api/adventure/boss/start', json={'zone_key': 'k21_25'})
+        assert second.status_code == 200
+        body = second.get_json()
+        new_exam = _session_exam(client)
+        assert body['resumed'] is False
+        assert new_exam['zone_key'] == 'k21_25'
+        assert new_exam['zone_key'] != old_exam['zone_key']
+
+    def test_attempt_mode_cannot_change_across_authoritative_clear_state(
+        self, client, app_module, stub_boss_start_state, monkeypatch
+    ):
+        _login(client, 37)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert first.status_code == 200
+        assert _session_exam(client)['attempt_mode'] == 'replay'
+
+        stub_boss_start_state.update({'cleared': False, 'pct': 100})
+        second = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert second.status_code == 200
+        body = second.get_json()
+        assert body['resumed'] is False
+        assert body['attempt_mode'] == 'first_clear'
+        assert body['replay'] is False
+
+    def test_first_clear_resume_remains_first_clear(self, client, app_module, patched_get_db, stub_boss_start_state):
+        stub_boss_start_state.update({'cleared': False, 'pct': 100})
+        _login(client, 38)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert first.status_code == 200
+        exam = _session_exam(client)
+        _seed_exam_review(
+            patched_get_db, app_module, 38, exam, exam['question_ids'][0], 0,
+            _exam_review_time(exam),
+        )
+        resumed = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30', 'replay': True})
+        assert resumed.status_code == 200
+        body = resumed.get_json()
+        assert body['attempt_mode'] == 'first_clear'
+        assert body['replay'] is False
+        assert body['resume_index'] == 1
+        assert body['correct'] == 0
+
+    def test_lost_finish_response_reuses_complete_exam_and_finish_is_single_use(
+        self, client, app_module, patched_get_db, stub_boss_start_state, monkeypatch
+    ):
+        stub_boss_start_state.update({'cleared': False, 'pct': 100})
+        monkeypatch.setattr(app_module, '_grant_coins', lambda *args, **kwargs: 0)
+        uid = 39
+        _login(client, uid)
+        first = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert first.status_code == 200
+        exam = _session_exam(client)
+        for qid in exam['question_ids']:
+            _seed_exam_review(
+                patched_get_db, app_module, uid, exam, qid, 5,
+                _exam_review_time(exam, qid % 11 + 5),
+            )
+
+        resume = client.post('/api/adventure/boss/start', json={'zone_key': 'k26_30'})
+        assert resume.status_code == 200
+        body = resume.get_json()
+        assert body['resumed'] is True
+        assert body['ready_to_finish'] is True
+        assert body['resume_index'] == len(exam['question_ids'])
+        assert body['correct'] == len(exam['question_ids'])
+        assert _session_exam(client)['question_ids'] == exam['question_ids']
+
+        finish = client.post('/api/adventure/boss/finish', json={'correct': 0, 'total': 0})
+        assert finish.status_code == 200
+        assert finish.get_json()['passed'] is True
+        second_finish = client.post('/api/adventure/boss/finish', json={})
+        assert second_finish.status_code == 400
+        assert second_finish.get_json()['error'] == 'no_active_exam'
+
+class TestLordReplayModeContinuation:
+    @staticmethod
+    def _seed_cleared_row(conn, uid, zone_key='k26_30'):
+        conn.execute('''
+            INSERT INTO adventure_boss_progress
+                (user_id, zone_key, cleared, stars, attempts, best_score,
+                 cooldown_until_seen, last_attempt_at, cleared_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        ''', (uid, zone_key, 1, 2, 3, 18, 0,
+              '2026-08-14T10:00:00', '2026-08-14T09:00:00', '2026-08-14T10:00:00'))
+        conn.commit()
 
     def test_replay_fail_preserves_clear_and_does_not_create_cooldown(
         self, client, app_module, patched_get_db, stub_cleared_adventure_state

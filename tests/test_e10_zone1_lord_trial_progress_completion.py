@@ -77,6 +77,7 @@ def test_active_boss_exam_question_is_scoped_and_live(app_module):
             "zone_key": "k26_30",
             "question_ids": [101, 102],
             "started_at": _started_at(),
+            "attempt_id": "zone1-active-attempt",
         }
         assert app_module._adventure_boss_question_is_active(101) is True
         assert app_module._adventure_boss_question_is_active("102") is True
@@ -91,6 +92,7 @@ def test_active_replay_exam_uses_the_same_question_scoped_limit_bypass(app_modul
             "zone_key": "k26_30",
             "question_ids": [201, 202],
             "started_at": _started_at(),
+            "attempt_id": "zone1-replay-attempt",
             "attempt_mode": "replay",
         }
         assert app_module._adventure_boss_question_is_active(201) is True
@@ -105,6 +107,7 @@ def test_expired_or_malformed_boss_exam_cannot_bypass_practice_limit(app_module)
             "zone_key": "k26_30",
             "question_ids": [101],
             "started_at": _started_at(app_module.BOSS_ATTEMPT_MAX_MINUTES + 1),
+            "attempt_id": "expired-attempt",
         }
         assert app_module._adventure_boss_question_is_active(101) is False
         session["adventure_boss_exam"] = {"question_ids": [101], "started_at": "not-a-date"}
@@ -117,3 +120,19 @@ def test_srs_review_limit_guard_exempts_only_active_boss_questions():
     guard = source[guard_start:guard_start + 1400]
     assert "if today_count >= _eff_limit and not active_boss_question:" in guard
     assert "if today_count >= _eff_limit:" not in guard
+
+
+def test_boss_resume_consumes_server_state_without_client_storage_authority():
+    source = (ROOT / "index.html").read_text(encoding="utf-8")
+    start = source.index("async function _startBossBattleNow(zone)")
+    end = source.index("function hideBossCinematic", start)
+    section = source[start:end]
+    assert "data.resume_index" in section
+    assert "data.correct" in section
+    assert "data.attempt_id" in section
+    assert "_bossAttemptId" in section
+    assert "boss_trial:" in source
+    assert "localStorage" not in section
+    assert "sessionStorage" not in section
+    assert "indexedDB" not in section
+    assert "body: JSON.stringify({ zone_key: zone.key })" in section
