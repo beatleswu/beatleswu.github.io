@@ -212,7 +212,7 @@ function Invoke-BoundedPublicVerification {
     $worker = {
         param($Url, $ExpectedHash, $Path, $TimeoutSeconds)
         try {
-            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSeconds -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
+            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0 -TimeoutSec $TimeoutSeconds -Headers @{ 'Cache-Control' = 'no-cache'; 'Pragma' = 'no-cache' }
             $bytes = $response.Content
             if ($bytes -is [string]) {
                 $bytes = [System.Text.Encoding]::UTF8.GetBytes($bytes)
@@ -363,7 +363,7 @@ function Get-RemoteCurrentTarget {
 function Get-SwVersionFromUrl {
     param([Parameter(Mandatory = $true)][string]$Url)
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
     }
     catch {
         throw "Could not fetch $Url for sw.js VERSION verification: $($_.Exception.Message)"
@@ -374,7 +374,7 @@ function Get-SwVersionFromUrl {
 function Get-PublicFileSha256 {
     param([Parameter(Mandatory = $true)][string]$Url)
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
     }
     catch {
         throw "Could not fetch $Url for content verification: $($_.Exception.Message)"
@@ -646,6 +646,11 @@ try {
     if ($containerServedHash -ne $expectedI18nHash) {
         throw "Container-internal i18n.js hash still does not match the new release after restart. Expected '$expectedI18nHash', observed '$containerServedHash'."
     }
+    $containerInventoryHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/inventory.html")" -OperationLabel 'container-internal inventory.html hash').Split(' ')[0].Trim().ToLowerInvariant()
+    $expectedInventoryHash = ($manifest.files | Where-Object { $_.path -eq 'inventory.html' }).sha256
+    if ($containerInventoryHash -ne $expectedInventoryHash) {
+        throw "Container-internal inventory.html hash still does not match the new release after restart. Expected '$expectedInventoryHash', observed '$containerInventoryHash'."
+    }
 
     Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
     Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
@@ -653,10 +658,43 @@ try {
     # packaged-byte URL. Verify it through the narrow runtime provenance
     # endpoint; all other governed files retain canonical body-hash checks.
     $publicEntries = @($manifest.files | Where-Object { $_.path -ne 'index.html' })
-    $publicResults = Invoke-BoundedPublicVerification -Entries $publicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts
+    $rawPublicEntries = @()
+    $authenticatedPublicEntries = @()
+    foreach ($entry in $publicEntries) {
+        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path)
+        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
+            $authenticatedPublicEntries += [pscustomobject]@{ entry = $entry; plan = $plan }
+        }
+        else {
+            $rawPublicEntries += $entry
+        }
+    }
+    $rawPublicResults = @(Invoke-BoundedPublicVerification -Entries $rawPublicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts)
+    $authenticatedPublicResults = @()
+    foreach ($protected in $authenticatedPublicEntries) {
+        $authUrl = "$publicBase$($protected.plan.route)"
+        $authenticatedPublicResults += @(Test-PublicAuthenticatedRoute -Url $authUrl -Path ([string]$protected.entry.path) -ExpectedRedirectStatus ([int]$protected.plan.expected_redirect_status) -ExpectedRedirectPath ([string]$protected.plan.expected_redirect_path) -TimeoutSeconds $PublicVerificationRequestTimeoutSeconds)
+    }
+    $publicResults = @($rawPublicResults) + @($authenticatedPublicResults)
     $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object {
-        $route = Resolve-StaticPublicRoute -RelativePath ([string]$_.path)
-        [ordered]@{ path = $_.path; url = "$publicBase$route"; sha256_match = $true }
+        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$_.path)
+        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
+            [ordered]@{
+                path = $_.path
+                url = "$publicBase$($plan.route)"
+                verification_mode = 'AUTHENTICATED_ROUTE'
+                authenticated_route_verified = $true
+                login_body_hashed = $false
+            }
+        }
+        else {
+            [ordered]@{
+                path = $_.path
+                url = "$publicBase$($plan.route)"
+                verification_mode = 'RAW_PUBLIC_BYTES'
+                sha256_match = $true
+            }
+        }
     })
     $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
     if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $publicEntries.Count) {
@@ -665,6 +703,9 @@ try {
             verified = @($publicResults | Where-Object { $_.status -eq 'passed' }).Count
             http_non_200 = @($publicResults | Where-Object { $_.status -eq 'http_non_200' }).Count
             hash_mismatch = @($publicResults | Where-Object { $_.status -eq 'sha_mismatch' }).Count
+            unexpected_auth_status = @($publicResults | Where-Object { $_.status -eq 'unexpected_auth_status' }).Count
+            unexpected_redirect = @($publicResults | Where-Object { $_.status -eq 'unexpected_redirect' }).Count
+            request_error = @($publicResults | Where-Object { $_.status -eq 'request_error' }).Count
             request_timeout = @($publicResults | Where-Object { $_.status -eq 'request_timeout' }).Count
             cancelled_deadline = @($publicResults | Where-Object { $_.status -eq 'cancelled_deadline' }).Count
             unexpected_exception = @($publicResults | Where-Object { $_.status -eq 'unexpected_exception' -or $_.status -eq 'worker_exception' }).Count

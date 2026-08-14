@@ -1844,6 +1844,216 @@ function Resolve-StaticPublicRoute {
     return "/$normalized"
 }
 
+function Get-StaticPublicVerificationPlan {
+    <#
+    Return the explicit verification contract for one governed static
+    manifest entry.  Most entries are raw public bytes.  inventory.html is
+    intentionally served by the authenticated Flask /inventory route, so it
+    must be verified as an auth redirect rather than by hashing /login.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [switch]$E10Context
+    )
+    $normalized = $RelativePath.Replace('\\', '/').TrimStart('/')
+    $route = Resolve-StaticPublicRoute -RelativePath $normalized -E10Context:$E10Context
+    if ($normalized -eq 'inventory.html') {
+        return [pscustomobject]@{
+            path = $normalized
+            route = $route
+            verification_mode = 'AUTHENTICATED_ROUTE'
+            expected_redirect_status = 302
+            expected_redirect_path = '/login'
+        }
+    }
+    return [pscustomobject]@{
+        path = $normalized
+        route = $route
+        verification_mode = 'RAW_PUBLIC_BYTES'
+        expected_redirect_status = $null
+        expected_redirect_path = $null
+    }
+}
+
+function Test-PublicAuthenticatedRoute {
+    <#
+    Verify a protected public route without credentials.  The response body
+    is deliberately never read or hashed: a followed login page must never
+    be mistaken for the protected manifest file's bytes.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [int]$ExpectedRedirectStatus = 302,
+        [string]$ExpectedRedirectPath = '/login',
+        [int]$TimeoutSeconds = 15
+    )
+    $response = $null
+    try {
+        $request = [System.Net.HttpWebRequest]::Create($Url)
+        $request.Method = 'GET'
+        $request.AllowAutoRedirect = $false
+        $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.Headers['Cache-Control'] = 'no-cache'
+        $request.Headers['Pragma'] = 'no-cache'
+        try {
+            $response = [System.Net.HttpWebResponse]$request.GetResponse()
+        }
+        catch [System.Net.WebException] {
+            $response = $_.Exception.Response
+            if (-not $response) { throw }
+        }
+        $status = [int]$response.StatusCode
+        $location = [string]$response.Headers['Location']
+        if ($status -ne $ExpectedRedirectStatus) {
+            return [pscustomobject]@{
+                path = $Path
+                status = 'unexpected_auth_status'
+                verification_mode = 'AUTHENTICATED_ROUTE'
+                http_status = $status
+                redirect_location = $location
+                login_body_hashed = $false
+                error = "Expected HTTP $ExpectedRedirectStatus authentication redirect, observed HTTP $status."
+            }
+        }
+        if ([string]::IsNullOrWhiteSpace($location)) {
+            return [pscustomobject]@{
+                path = $Path
+                status = 'unexpected_redirect'
+                verification_mode = 'AUTHENTICATED_ROUTE'
+                http_status = $status
+                redirect_location = $location
+                login_body_hashed = $false
+                error = 'Authentication response did not include a Location header.'
+            }
+        }
+        $resolved = [System.Uri]::new([System.Uri]$Url, $location)
+        if ($resolved.AbsolutePath -ne $ExpectedRedirectPath) {
+            return [pscustomobject]@{
+                path = $Path
+                status = 'unexpected_redirect'
+                verification_mode = 'AUTHENTICATED_ROUTE'
+                http_status = $status
+                redirect_location = $location
+                redirect_path = $resolved.AbsolutePath
+                login_body_hashed = $false
+                error = "Expected redirect path '$ExpectedRedirectPath', observed '$($resolved.AbsolutePath)'."
+            }
+        }
+        return [pscustomobject]@{
+            path = $Path
+            status = 'passed'
+            verification_mode = 'AUTHENTICATED_ROUTE'
+            http_status = $status
+            redirect_location = $location
+            redirect_path = $resolved.AbsolutePath
+            authenticated_route_verified = $true
+            login_body_hashed = $false
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            path = $Path
+            status = 'request_error'
+            verification_mode = 'AUTHENTICATED_ROUTE'
+            login_body_hashed = $false
+            error = $_.Exception.Message
+        }
+    }
+    finally {
+        if ($response) { $response.Close() }
+    }
+}
+
+function Test-PublicRawStaticRoute {
+    <#
+    Strict raw-byte verification for a public, byte-preserving route.  Auto
+    redirects are disabled so an unexpected authentication or other redirect
+    cannot be followed and hashed as the manifest resource.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedHash,
+        [int]$TimeoutSeconds = 15
+    )
+    $response = $null
+    $stream = $null
+    $memory = $null
+    try {
+        $request = [System.Net.HttpWebRequest]::Create($Url)
+        $request.Method = 'GET'
+        $request.AllowAutoRedirect = $false
+        $request.Timeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.ReadWriteTimeout = [Math]::Max(1000, $TimeoutSeconds * 1000)
+        $request.Headers['Cache-Control'] = 'no-cache'
+        $request.Headers['Pragma'] = 'no-cache'
+        try {
+            $response = [System.Net.HttpWebResponse]$request.GetResponse()
+        }
+        catch [System.Net.WebException] {
+            $response = $_.Exception.Response
+            if (-not $response) { throw }
+        }
+        $status = [int]$response.StatusCode
+        if ($status -ne 200) {
+            return [pscustomobject]@{
+                path = $Path
+                status = if ($status -ge 300 -and $status -lt 400) { 'unexpected_redirect' } else { 'http_non_200' }
+                verification_mode = 'RAW_PUBLIC_BYTES'
+                http_status = $status
+                expected = $ExpectedHash
+                error = "Expected HTTP 200 raw bytes, observed HTTP $status."
+            }
+        }
+        $stream = $response.GetResponseStream()
+        $memory = New-Object System.IO.MemoryStream
+        $stream.CopyTo($memory)
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $observedHash = ([System.BitConverter]::ToString($hasher.ComputeHash($memory.ToArray())) -replace '-', '').ToLowerInvariant()
+        }
+        finally {
+            $hasher.Dispose()
+        }
+        if ($observedHash -ne $ExpectedHash) {
+            return [pscustomobject]@{
+                path = $Path
+                status = 'sha_mismatch'
+                verification_mode = 'RAW_PUBLIC_BYTES'
+                http_status = $status
+                expected = $ExpectedHash
+                observed = $observedHash
+                error = 'Public content hash mismatch.'
+            }
+        }
+        return [pscustomobject]@{
+            path = $Path
+            status = 'passed'
+            verification_mode = 'RAW_PUBLIC_BYTES'
+            http_status = $status
+            expected = $ExpectedHash
+            observed = $observedHash
+            sha256_match = $true
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            path = $Path
+            status = 'request_error'
+            verification_mode = 'RAW_PUBLIC_BYTES'
+            expected = $ExpectedHash
+            error = $_.Exception.Message
+        }
+    }
+    finally {
+        if ($stream) { $stream.Dispose() }
+        if ($memory) { $memory.Dispose() }
+        if ($response) { $response.Close() }
+    }
+}
+
 function Get-SwVersionFromText {
     <#
     .SYNOPSIS
@@ -2540,6 +2750,9 @@ Export-ModuleMember -Function @(
     'Write-JsonFile',
     'Get-StaticAssetInventory',
     'Resolve-StaticPublicRoute',
+    'Get-StaticPublicVerificationPlan',
+    'Test-PublicAuthenticatedRoute',
+    'Test-PublicRawStaticRoute',
     'Get-SwVersionFromText',
     'Get-SwAssetIdentityFromText',
     'Get-StaticReleaseAssetIdentity',

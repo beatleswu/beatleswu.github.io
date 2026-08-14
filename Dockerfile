@@ -39,6 +39,7 @@ COPY scheduler.py ./
 COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
 COPY explain_overrides.py ./
+COPY xp_settlement.py ./
 COPY grimoire_api.py ./
 COPY question_taxonomy.py ./
 COPY monster_taxonomy.py ./

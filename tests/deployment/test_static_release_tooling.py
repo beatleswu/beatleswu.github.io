@@ -14,6 +14,8 @@ checks are exactly what let the original drift go undetected.
 import json
 import re
 import subprocess
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -56,6 +58,52 @@ def _run_powershell(tmp_path, body):
         ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
         capture_output=True, text=True, timeout=120,
     )
+
+
+def _run_route_fixture(tmp_path, inventory_status=302, inventory_location="/login"):
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802 - stdlib handler contract
+            if self.path.startswith("/inventory"):
+                self.send_response(inventory_status)
+                if inventory_location is not None:
+                    self.send_header("Location", inventory_location)
+                self.end_headers()
+                if inventory_status == 200:
+                    self.wfile.write(b"unexpected inventory body")
+                return
+            if self.path.startswith("/login"):
+                body = b"login page body"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            body = b"raw public bytes"
+            self.send_response(200)
+            self.send_header("Content-Type", "application/javascript")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+Test-PublicAuthenticatedRoute -Url {_ps_quote(f'http://127.0.0.1:{server.server_port}/inventory')} -Path 'inventory.html' | ConvertTo-Json -Compress
+"""
+        result = _run_powershell(tmp_path, body)
+        assert result.returncode == 0, f"PowerShell route helper failed:\n{result.stdout}\n{result.stderr}"
+        return json.loads(result.stdout.strip().splitlines()[-1])
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def _bundle_inventory(entries):
@@ -299,11 +347,101 @@ Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
     }
 
 
+def test_inventory_verification_plan_is_authenticated_route_not_raw_bytes(tmp_path):
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+[ordered]@{{
+    inventory = Get-StaticPublicVerificationPlan -RelativePath 'inventory.html'
+    javascript = Get-StaticPublicVerificationPlan -RelativePath 'i18n.js'
+}} | ConvertTo-Json -Compress
+"""
+    result = _run_powershell(tmp_path, body)
+    assert result.returncode == 0, f"verification plan helper failed:\n{result.stdout}\n{result.stderr}"
+    payload = json.loads(result.stdout)
+    assert payload["inventory"]["verification_mode"] == "AUTHENTICATED_ROUTE"
+    assert payload["inventory"]["route"] == "/inventory"
+    assert payload["inventory"]["expected_redirect_path"] == "/login"
+    assert payload["javascript"]["verification_mode"] == "RAW_PUBLIC_BYTES"
+
+
+def test_authenticated_inventory_redirect_is_verified_without_hashing_login_body(tmp_path):
+    result = _run_route_fixture(tmp_path)
+    assert result["status"] == "passed"
+    assert result["verification_mode"] == "AUTHENTICATED_ROUTE"
+    assert result["http_status"] == 302
+    assert result["redirect_path"] == "/login"
+    assert result["authenticated_route_verified"] is True
+    assert result["login_body_hashed"] is False
+
+
+def test_authenticated_inventory_unexpected_redirect_fails_closed(tmp_path):
+    result = _run_route_fixture(tmp_path, inventory_status=302, inventory_location="/other")
+    assert result["status"] == "unexpected_redirect"
+    assert result["login_body_hashed"] is False
+
+
+def test_authenticated_inventory_unexpected_unauthenticated_200_fails_closed(tmp_path):
+    result = _run_route_fixture(tmp_path, inventory_status=200, inventory_location=None)
+    assert result["status"] == "unexpected_auth_status"
+    assert result["http_status"] == 200
+    assert result["login_body_hashed"] is False
+
+
+def test_raw_public_route_exact_bytes_pass_and_wrong_bytes_fail(tmp_path):
+    expected = "726177207075626c6963206279746573"  # SHA is supplied below by PS.
+    body = f"""
+Import-Module {_ps_quote(PSM1)} -Force -DisableNameChecking
+$good = (Get-FileHash -Algorithm SHA256 -LiteralPath {_ps_quote(str(tmp_path / 'raw.txt'))}).Hash.ToLowerInvariant()
+$pass = Test-PublicRawStaticRoute -Url 'http://127.0.0.1:__PORT__/raw' -Path 'i18n.js' -ExpectedHash $good
+$fail = Test-PublicRawStaticRoute -Url 'http://127.0.0.1:__PORT__/raw' -Path 'i18n.js' -ExpectedHash ('0' * 64)
+[ordered]@{{ pass = $pass; fail = $fail }} | ConvertTo-Json -Compress
+"""
+    # This test uses the same deterministic fixture server as the auth tests;
+    # replace the port after the server is allocated below.
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802 - stdlib handler contract
+            payload = b"raw public bytes"
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, *_args):
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    raw_file = tmp_path / "raw.txt"
+    raw_file.write_bytes(b"raw public bytes")
+    try:
+        result = _run_powershell(
+            tmp_path,
+            body.replace("__PORT__", str(server.server_port)),
+        )
+        assert result.returncode == 0, f"raw route helper failed:\n{result.stdout}\n{result.stderr}"
+        payload = json.loads(result.stdout.strip().splitlines()[-1])
+        assert payload["pass"]["status"] == "passed"
+        assert payload["pass"]["sha256_match"] is True
+        assert payload["fail"]["status"] == "sha_mismatch"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def test_static_verifiers_use_canonical_route_helper_for_inventory():
     deploy = _read(DEPLOY_SCRIPT)
     rollback = _read(ROLLBACK_SCRIPT)
     assert "Resolve-StaticPublicRoute -RelativePath" in deploy
-    assert "Resolve-StaticPublicRoute -RelativePath" in rollback
+    assert "Get-StaticPublicVerificationPlan" in deploy
+    assert "Get-StaticPublicVerificationPlan" in rollback
+    assert "Test-PublicAuthenticatedRoute" in deploy
+    assert "Test-PublicAuthenticatedRoute" in rollback
+    assert "MaximumRedirection 0" in deploy
+    assert "MaximumRedirection 0" in rollback
+    assert "container-internal inventory.html hash" in deploy
+    assert "Mounted inventory.html hash" in rollback
     assert '"$publicBase/$($entry.path)"' not in rollback
 
 
