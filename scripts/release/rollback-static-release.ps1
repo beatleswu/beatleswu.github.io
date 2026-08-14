@@ -52,7 +52,7 @@ function Get-RemoteCurrentTarget {
 function Get-SwVersionFromUrl {
     param([Parameter(Mandatory = $true)][string]$Url)
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
     }
     catch {
         throw "Could not fetch $Url for sw.js VERSION verification: $($_.Exception.Message)"
@@ -73,7 +73,7 @@ function Get-PublicStaticReleaseProvenance {
 function Get-PublicFileSha256 {
     param([Parameter(Mandatory = $true)][string]$Url)
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -MaximumRedirection 0
     }
     catch {
         throw "Could not fetch $Url for content verification: $($_.Exception.Message)"
@@ -139,19 +139,46 @@ if (-not $appHealthy) {
     throw "App container did not become healthy after restart following the static release rollback."
 }
 
+$targetInventoryEntry = @($targetManifest.files | Where-Object { $_.path -eq 'inventory.html' })
+if ($targetInventoryEntry.Count -eq 1) {
+    $targetInventoryHash = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument "$TargetGenerationPath/inventory.html")").Split(' ')[0].Trim().ToLowerInvariant()
+    if ($targetInventoryHash -ne $targetInventoryEntry[0].sha256) {
+        throw "Target generation inventory.html hash does not match its manifest. Expected '$($targetInventoryEntry[0].sha256)', observed '$targetInventoryHash'."
+    }
+    $mountedInventoryHash = (Invoke-RemoteText "docker exec $(Quote-PosixShellArgument $layout.app_service_name) sha256sum $(Quote-PosixShellArgument "$($layout.asset_container_mount_destination)/inventory.html")").Split(' ')[0].Trim().ToLowerInvariant()
+    if ($mountedInventoryHash -ne $targetInventoryEntry[0].sha256) {
+        throw "Mounted inventory.html hash does not match the rollback target manifest. Expected '$($targetInventoryEntry[0].sha256)', observed '$mountedInventoryHash'."
+    }
+}
+
 $publicVerification = @()
 foreach ($entry in $targetManifest.files) {
     if ($entry.path -eq 'index.html') { continue }
     # Canonical URL verification is mandatory.  Query-string variants are
     # diagnostic only and are not part of the rollback acceptance contract.
     # Manifest filenames are not necessarily public route paths.
-    $route = Resolve-StaticPublicRoute -RelativePath ([string]$entry.path)
+    $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path)
+    $route = $plan.route
     $url = "$publicBase$route"
+    if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
+        $authResult = Test-PublicAuthenticatedRoute -Url $url -Path ([string]$entry.path) -ExpectedRedirectStatus ([int]$plan.expected_redirect_status) -ExpectedRedirectPath ([string]$plan.expected_redirect_path)
+        if ($authResult.status -ne 'passed') {
+            throw "Authenticated public route verification failed after rollback for '$($entry.path)'. Details: $($authResult | ConvertTo-Json -Compress)"
+        }
+        $publicVerification += [ordered]@{
+            path = $entry.path
+            url = $url
+            verification_mode = 'AUTHENTICATED_ROUTE'
+            authenticated_route_verified = $true
+            login_body_hashed = $false
+        }
+        continue
+    }
     $observedHash = Get-PublicFileSha256 -Url $url
     if ($observedHash -ne $entry.sha256) {
         throw "Public content hash mismatch after rollback for '$($entry.path)'. Expected '$($entry.sha256)', observed '$observedHash'."
     }
-    $publicVerification += [ordered]@{ path = $entry.path; url = $url; sha256_match = $true }
+    $publicVerification += [ordered]@{ path = $entry.path; url = $url; verification_mode = 'RAW_PUBLIC_BYTES'; sha256_match = $true }
 }
 $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
 if ($publicSwVersion -ne $targetManifest.service_worker_version) {

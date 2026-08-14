@@ -5,6 +5,11 @@ the deployment canary at process startup: app.py imports
 ``sgf_admin_workbench`` while the Dockerfile's explicit COPY list omitted the
 module. Source-only application tests could not detect that image boundary.
 
+The same explicit-copy boundary also protects ``xp_settlement.py``: app.py
+imports it during process startup, while the XP writer/shadow/schema flags
+remain dormant by default. Keeping both checks in this existing image
+packaging architecture prevents a second, weaker packaging test framework.
+
 The fast tests below keep the explicit Dockerfile and build-manifest contracts
 in sync. Built-image and built-container checks run when
 ``SGF_WORKBENCH_PACKAGING_TEST_IMAGE`` names a real validation image; without
@@ -30,6 +35,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOCKERFILE = REPO_ROOT / "Dockerfile"
 BUILD_MANIFEST = REPO_ROOT / "deploy" / "build-manifest.json"
 MODULE = REPO_ROOT / "sgf_admin_workbench.py"
+XP_MODULE = REPO_ROOT / "xp_settlement.py"
 IMAGE_TAG = os.environ.get("SGF_WORKBENCH_PACKAGING_TEST_IMAGE")
 BUILT_IMAGE_SKIP_REASON = (
     "SGF_WORKBENCH_PACKAGING_TEST_IMAGE not set; real built-image and "
@@ -101,6 +107,23 @@ def test_build_manifest_tracks_and_verifies_sgf_admin_workbench_module():
     assert "/app/sgf_admin_workbench.py" in verified
 
 
+def test_dockerfile_explicitly_copies_xp_settlement_module():
+    content = _read(DOCKERFILE)
+    sources = _docker_copy_sources(content)
+    assert "xp_settlement.py" in sources
+    assert "." not in sources and "*.py" not in sources, (
+        "xp settlement packaging must preserve the explicit COPY boundary"
+    )
+
+
+def test_build_manifest_tracks_and_verifies_xp_settlement_module():
+    manifest = json.loads(_read(BUILD_MANIFEST))
+    tracked = set(manifest["build_inputs"]["tracked_in_canonical_branch_this_sprint"])
+    verified = set(manifest["post_build_verification_files"])
+    assert "xp_settlement.py" in tracked
+    assert "/app/xp_settlement.py" in verified
+
+
 @pytest.mark.skipif(not IMAGE_TAG, reason=BUILT_IMAGE_SKIP_REASON)
 def test_built_image_contains_exact_sgf_admin_workbench_module_bytes():
     script = (
@@ -112,6 +135,19 @@ def test_built_image_contains_exact_sgf_admin_workbench_module_bytes():
     result = _run_in_image("-c", script)
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == _sha256(MODULE)
+
+
+@pytest.mark.skipif(not IMAGE_TAG, reason=BUILT_IMAGE_SKIP_REASON)
+def test_built_image_contains_exact_xp_settlement_module_bytes():
+    script = (
+        "import hashlib,pathlib; "
+        "p=pathlib.Path('/app/xp_settlement.py'); "
+        "assert p.is_file() and p.stat().st_size > 0; "
+        "print(hashlib.sha256(p.read_bytes()).hexdigest())"
+    )
+    result = _run_in_image("-c", script)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == _sha256(XP_MODULE)
 
 
 @pytest.mark.skipif(not IMAGE_TAG, reason=BUILT_IMAGE_SKIP_REASON)
@@ -139,6 +175,38 @@ def test_built_image_imports_workbench_and_app_with_direct_apply_off_by_default(
     assert result.returncode == 0, result.stderr
     assert "SGF_ADMIN_WORKBENCH_IMPORT=PASS" in result.stdout
     assert "DIRECT_APPLY_DEFAULT_ENABLED=NO" in result.stdout
+
+
+@pytest.mark.skipif(not IMAGE_TAG, reason=BUILT_IMAGE_SKIP_REASON)
+def test_built_image_imports_xp_settlement_and_app_with_xp_locks_off():
+    script = (
+        "import os; "
+        "assert all(os.environ.get(name, '').strip().lower() not in {'1','true','yes','on'} "
+        "for name in ('XP_LEDGER_SCHEMA_ENABLED','XP_SETTLEMENT_ENABLED','XP_SHADOW_ENABLED')); "
+        "import xp_settlement; "
+        "assert xp_settlement.xp_ledger_schema_enabled() is False; "
+        "assert xp_settlement.xp_settlement_enabled() is False; "
+        "assert xp_settlement.xp_shadow_enabled() is False; "
+        "import app as application; "
+        "print('XP_SETTLEMENT_IMPORT=PASS'); "
+        "print('APP_IMPORT=PASS'); "
+        "print('XP_DEFAULTS=OFF')"
+    )
+    result = subprocess.run(
+        [
+            "docker", "run", "--rm",
+            "--env", "SECRET_KEY=non-production-packaging-test",
+            "--env", "SOCKETIO_ASYNC_MODE=threading",
+            "--entrypoint", "python", IMAGE_TAG, "-c", script,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "XP_SETTLEMENT_IMPORT=PASS" in result.stdout
+    assert "APP_IMPORT=PASS" in result.stdout
+    assert "XP_DEFAULTS=OFF" in result.stdout
 
 
 @pytest.mark.skipif(not IMAGE_TAG, reason=BUILT_IMAGE_SKIP_REASON)
