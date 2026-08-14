@@ -481,7 +481,7 @@ async function runLostFinishRecovery(browser, origin) {
   }
 }
 
-async function runReplayCta(browser, origin, stars) {
+async function runReplayCta(browser, origin, stars, { dailyLimitReached = false, dailyLimitProgress = false } = {}) {
   const page = await newPage(browser, origin, {
     viewport: { width: 1024, height: 1366 },
     shell: true,
@@ -526,20 +526,26 @@ async function runReplayCta(browser, origin, stars) {
   }));
   await page.route('**/api/adventure/boss/start', async (route) => {
     bossStarts.push(route.request().postData() || '');
+    const questionIds = dailyLimitProgress ? [201, 202, 203] : [201];
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ ok: true, replay: true, attempt_mode: 'replay', attempt_id: `replay-attempt-${stars}`, question_ids: [201], zone: lordZone({ cleared: true }) }),
+      body: JSON.stringify({ ok: true, replay: true, attempt_mode: 'replay', attempt_id: `replay-attempt-${stars}`, question_ids: questionIds, zone: lordZone({ cleared: true }) }),
     });
   });
   try {
-    const fixtureQuestion = question(201, 'dd');
-    await page.evaluate((fixtureQuestion) => {
-      allQuestions = [fixtureQuestion];
+    const fixtureQuestions = [
+      question(201, 'dd', { x: 3, y: 3 }),
+      question(202, 'ee', { x: 3, y: 3 }),
+      question(203, 'ff', { x: 3, y: 3 }),
+    ];
+    await page.evaluate(({ fixtureQuestions: questions, atLimit }) => {
+      allQuestions = questions;
+      _dailyLimitReached = atLimit;
       SRS.review = async () => ({ ok: true });
       SRS.reportUnitProgress = async () => ({ unit_complete: false });
       SRS.markSeen = () => {};
-    }, fixtureQuestion);
+    }, { fixtureQuestions, atLimit: dailyLimitReached });
     await page.locator('#e9-world-stage-details-cta').waitFor({ state: 'visible', timeout: 10000 });
     const before = await page.evaluate(() => ({
       primary: document.getElementById('e9-world-stage-details-cta')?.textContent || '',
@@ -567,7 +573,29 @@ async function runReplayCta(browser, origin, stars) {
     await page.locator('#boss-cinematic-btn').click();
     await page.locator('#boss-trial-progress').waitFor({ state: 'visible', timeout: 10000 });
     if (bossStarts.length !== 1) throw new Error(`expected one replay boss/start request, got ${bossStarts.length}`);
-    return { stars, primary: before.primary, secondary: before.secondary?.text || '', bossStarts };
+    if (dailyLimitProgress) {
+      const board = page.locator('#board-canvas-wrap canvas').first();
+      await board.waitFor({ state: 'visible' });
+      async function clickBoardAt(x, y) {
+        const box = await board.boundingBox();
+        if (!box) throw new Error('replay WGo board canvas has no hit-test box');
+        await page.mouse.click(box.x + box.width * ((x + 0.5) / 9), box.y + box.height * ((y + 0.5) / 9));
+      }
+      await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('1/3'));
+      await clickBoardAt(3, 3);
+      await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('2/3'));
+      const afterCorrect = await page.evaluate(() => ({ currentQuestion: Number(currentQ?.id), bossIndex: _bossIndex, bossCorrect: _bossCorrect, board: currentQ?.content || '' }));
+      await clickBoardAt(1, 1);
+      await page.waitForFunction(() => document.getElementById('boss-trial-progress')?.textContent.includes('3/3'));
+      const afterWrong = await page.evaluate(() => ({ currentQuestion: Number(currentQ?.id), bossIndex: _bossIndex, bossCorrect: _bossCorrect, board: currentQ?.content || '' }));
+      if (afterCorrect.currentQuestion !== 202 || afterCorrect.bossIndex !== 1 || afterCorrect.bossCorrect !== 1
+        || afterWrong.currentQuestion !== 203 || afterWrong.bossIndex !== 2 || afterWrong.bossCorrect !== 1
+        || afterCorrect.board === afterWrong.board) {
+        throw new Error(`replay daily-limit Boss did not auto-advance: ${JSON.stringify({ afterCorrect, afterWrong })}`);
+      }
+      return { stars, dailyLimitReached, dailyLimitProgress, primary: before.primary, secondary: before.secondary?.text || '', bossStarts, afterCorrect, afterWrong };
+    }
+    return { stars, dailyLimitReached, dailyLimitProgress, primary: before.primary, secondary: before.secondary?.text || '', bossStarts };
   } finally {
     await page.close();
   }
@@ -584,6 +612,10 @@ async function main() {
     const lostFinish = await runLostFinishRecovery(browser, origin);
     const replay = [];
     for (const stars of [1, 2, 3]) replay.push(await runReplayCta(browser, origin, stars));
+    const replayDailyLimit = await runReplayCta(browser, origin, 1, {
+      dailyLimitReached: true,
+      dailyLimitProgress: true,
+    });
     console.log(JSON.stringify({
       ok: true,
       ipadViewport: { width: 1024, height: 1366 },
@@ -593,6 +625,7 @@ async function main() {
       dailyLimitResume,
       lostFinish,
       replay,
+      replayDailyLimit,
     }, null, 2));
   } finally {
     await browser.close();
