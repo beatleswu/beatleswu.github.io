@@ -9992,10 +9992,9 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
     started_at_raw = exam.get('started_at') if isinstance(exam, dict) else None
     if not isinstance(question_ids, list) or not question_ids or not started_at_raw:
         raise _AdventureBossAttemptError('malformed_session')
-    try:
-        qids = [int(q) for q in question_ids]
-    except (TypeError, ValueError):
+    if any(isinstance(q, bool) or not isinstance(q, int) for q in question_ids):
         raise _AdventureBossAttemptError('malformed_session')
+    qids = list(question_ids)
     if len(set(qids)) != len(qids):
         raise _AdventureBossAttemptError('malformed_session')
     try:
@@ -10017,8 +10016,11 @@ def _adventure_boss_attempt_evidence(conn, uid, exam, require_complete=False):
 
     best_grade_by_qid = {}
     for row in rows:
-        qid = int(row['question_id'])
-        grade = int(row['grade'])
+        try:
+            qid = int(row['question_id'])
+            grade = int(row['grade'])
+        except (TypeError, ValueError):
+            raise _AdventureBossAttemptError('malformed_review_evidence')
         if qid not in best_grade_by_qid or grade > best_grade_by_qid[qid]:
             best_grade_by_qid[qid] = grade
 
