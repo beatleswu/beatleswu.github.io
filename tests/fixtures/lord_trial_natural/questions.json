@@ -1,0 +1,662 @@
+[
+  {
+    "id": 970001,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dd]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970001.sgf",
+    "display_name": "Lord Trial natural fixture 970001",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 3,
+        "y": 3
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970002,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ed]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970002.sgf",
+    "display_name": "Lord Trial natural fixture 970002",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 4,
+        "y": 3
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970003,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[fd]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970003.sgf",
+    "display_name": "Lord Trial natural fixture 970003",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 5,
+        "y": 3
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970004,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[gd]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970004.sgf",
+    "display_name": "Lord Trial natural fixture 970004",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 6,
+        "y": 3
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970005,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[hd]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970005.sgf",
+    "display_name": "Lord Trial natural fixture 970005",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 7,
+        "y": 3
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970006,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[id]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970006.sgf",
+    "display_name": "Lord Trial natural fixture 970006",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 8,
+        "y": 3
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970007,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[de]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970007.sgf",
+    "display_name": "Lord Trial natural fixture 970007",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 3,
+        "y": 4
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970008,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ee]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970008.sgf",
+    "display_name": "Lord Trial natural fixture 970008",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 4,
+        "y": 4
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970009,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[fe]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970009.sgf",
+    "display_name": "Lord Trial natural fixture 970009",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 5,
+        "y": 4
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970010,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ge]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970010.sgf",
+    "display_name": "Lord Trial natural fixture 970010",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 6,
+        "y": 4
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970011,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[he]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970011.sgf",
+    "display_name": "Lord Trial natural fixture 970011",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 7,
+        "y": 4
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970012,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ie]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970012.sgf",
+    "display_name": "Lord Trial natural fixture 970012",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 8,
+        "y": 4
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970013,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[df]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970013.sgf",
+    "display_name": "Lord Trial natural fixture 970013",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 3,
+        "y": 5
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970014,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ef]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970014.sgf",
+    "display_name": "Lord Trial natural fixture 970014",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 4,
+        "y": 5
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970015,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ff]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970015.sgf",
+    "display_name": "Lord Trial natural fixture 970015",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 5,
+        "y": 5
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970016,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[gf]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970016.sgf",
+    "display_name": "Lord Trial natural fixture 970016",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 6,
+        "y": 5
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970017,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[hf]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970017.sgf",
+    "display_name": "Lord Trial natural fixture 970017",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 7,
+        "y": 5
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970018,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[if]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970018.sgf",
+    "display_name": "Lord Trial natural fixture 970018",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 8,
+        "y": 5
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970019,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dg]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970019.sgf",
+    "display_name": "Lord Trial natural fixture 970019",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 3,
+        "y": 6
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970020,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[eg]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970020.sgf",
+    "display_name": "Lord Trial natural fixture 970020",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 4,
+        "y": 6
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970021,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[fg]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970021.sgf",
+    "display_name": "Lord Trial natural fixture 970021",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 5,
+        "y": 6
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970022,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[gg]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970022.sgf",
+    "display_name": "Lord Trial natural fixture 970022",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 6,
+        "y": 6
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970023,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[hg]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970023.sgf",
+    "display_name": "Lord Trial natural fixture 970023",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 7,
+        "y": 6
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970024,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ig]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970024.sgf",
+    "display_name": "Lord Trial natural fixture 970024",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 8,
+        "y": 6
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970025,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[dh]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970025.sgf",
+    "display_name": "Lord Trial natural fixture 970025",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 3,
+        "y": 7
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970026,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[eh]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970026.sgf",
+    "display_name": "Lord Trial natural fixture 970026",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 4,
+        "y": 7
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970027,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[fh]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970027.sgf",
+    "display_name": "Lord Trial natural fixture 970027",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 5,
+        "y": 7
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970028,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[gh]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970028.sgf",
+    "display_name": "Lord Trial natural fixture 970028",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 6,
+        "y": 7
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970029,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[hh]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970029.sgf",
+    "display_name": "Lord Trial natural fixture 970029",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 7,
+        "y": 7
+      }
+    ],
+    "solution_state": "open"
+  },
+  {
+    "id": 970030,
+    "content": "(;GM[1]FF[4]CA[UTF-8]SZ[19]PL[B]AB[dp]AW[pd](;B[ih]C[Deterministic Lord Trial fixture answer]))",
+    "source": "lord-trial-natural-fixture/q970030.sgf",
+    "display_name": "Lord Trial natural fixture 970030",
+    "topic": "1圍棋新手村",
+    "level": "LV1",
+    "discipline": "life_death",
+    "stage": "LV1",
+    "rank": "30k",
+    "difficulty": "30k",
+    "enabled": true,
+    "is_free": true,
+    "free": true,
+    "accepted_moves": [
+      {
+        "x": 8,
+        "y": 7
+      }
+    ],
+    "solution_state": "open"
+  }
+]

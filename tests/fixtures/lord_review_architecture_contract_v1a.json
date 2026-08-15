@@ -1,0 +1,33 @@
+{
+  "contract_version": "E10_LORD_REVIEW_ARCHITECTURE_CONTRACTS_V1A",
+  "controller_observable": "window.__GO_E10_LORD_REVIEW_CONTRACT__",
+  "required_observations": [
+    "review_request",
+    "server_commit",
+    "client_transition",
+    "presentation_failure",
+    "visible_board_commit"
+  ],
+  "required_separation": [
+    "review_transport_is_not_lord_transition",
+    "presentation_callbacks_are_not_lord_authority",
+    "generic_next_question_is_not_lord_authority",
+    "server_rejection_does_not_transition"
+  ],
+  "presentation_faults": [
+    "BADGE_PRESENTATION_THROW",
+    "PET_PRESENTATION_THROW",
+    "MONSTER_PRESENTATION_THROW",
+    "QUEST_PRESENTATION_THROW",
+    "XP_PRESENTATION_THROW",
+    "LOOT_PRESENTATION_THROW",
+    "AUDIO_PRESENTATION_REJECT"
+  ],
+  "required_real_path_flags": [
+    "REAL_FLASK",
+    "REAL_ROUTE",
+    "REAL_SIGNED_ATTEMPT",
+    "REAL_WGO_CLICK",
+    "PRODUCTION_SHAPED_RESPONSE"
+  ]
+}
