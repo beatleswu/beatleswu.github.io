@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "386b99067f16934edc7c244fe9e38e0afb0df3a0",
-      "source_branch_or_local_ref": "codex/e10-owner-ipad-acceptance-hotfix-002",
-      "source_commit_subject": "fix(e10): gate automatic Zone 2 audio behind gesture",
+      "source_commit": "9309807eca7a90c2512f8317353fd3602ff154bf",
+      "source_branch_or_local_ref": "claude/e10-lord-trial-one-shot-safari-recovery-001",
+      "source_commit_subject": "fix(e10): make Lord Trial board transitions Safari-safe and self-healing",
       "source_date": "2026-08-15",
-      "content_sha256": "41812f50e489fdf8b4da83e78cad5adc333e62f6beb0e5d8bed331c053e675ab",
+      "content_sha256": "7149c0070d2cfdadd640b4b023fd95dfc47e86ad0912e54b487f7456cffe3e0f",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner iPad acceptance hotfix commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Lord Trial Safari recovery branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Lord Trial Safari recovery commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -459,15 +459,15 @@
     },
     {
       "path": "i18n.js",
-      "source_commit": "386b99067f16934edc7c244fe9e38e0afb0df3a0",
-      "source_branch_or_local_ref": "codex/e10-owner-ipad-acceptance-hotfix-002",
-      "source_commit_subject": "fix(e10): gate automatic Zone 2 audio behind gesture",
+      "source_commit": "9309807eca7a90c2512f8317353fd3602ff154bf",
+      "source_branch_or_local_ref": "claude/e10-lord-trial-one-shot-safari-recovery-001",
+      "source_commit_subject": "fix(e10): make Lord Trial board transitions Safari-safe and self-healing",
       "source_date": "2026-08-15",
-      "content_sha256": "c6dbacfbdd175f1189cdbb52b07fbd43c361f1393447f581de9763fd368d52be",
+      "content_sha256": "112058ba8f215a0a5e9434fdc04ac8be4edfc999118febdbf478dd8db923a896",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner iPad acceptance hotfix commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Lord Trial Safari recovery branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Lord Trial Safari recovery commit and raw-byte-verified against current content"
     },
     {
       "path": "components/adventure/world_stage.html",
@@ -519,15 +519,15 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "b62b21d01d384ec2fd7a729d922d844ebaf178e3",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): Owner review corrections for Zone 1 lifecycle, exposition, beats, sw version",
-      "source_date": "2026-08-08",
-      "content_sha256": "9f35bfee2c9a83dc8d7be339a798bfb29365de10cd490ff0d33df4282b7684d6",
+      "source_commit": "9309807eca7a90c2512f8317353fd3602ff154bf",
+      "source_branch_or_local_ref": "claude/e10-lord-trial-one-shot-safari-recovery-001",
+      "source_commit_subject": "fix(e10): make Lord Trial board transitions Safari-safe and self-healing",
+      "source_date": "2026-08-15",
+      "content_sha256": "eeaf7a17e0f807943a98b5448482fc52fcb00c77da6862dc66d047cf814e8e45",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "merged to origin/master at merge 532ee47ae987e7e7f1b2c2ffe6c06385634402ab; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Lord Trial Safari recovery branch (VERSION bumped v229 -> v230 because index.html/i18n.js changed); Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Lord Trial Safari recovery commit and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",

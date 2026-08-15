@@ -1340,4 +1340,4 @@ def test_normal_srs_route_remains_present_and_service_worker_identity_is_unchang
     assert "@app.route('/api/srs/review', methods=['POST'])" in (ROOT / "app.py").read_text(encoding="utf-8")
     assert "SRS.review(currentQ.id,grade" in html
     assert "?v=20260803e10s2b" in html
-    assert "const VERSION     = 'v229-e10-z1-prod-integration'" in sw
+    assert "const VERSION     = 'v230-e10-lord-trial-safari-recovery'" in sw

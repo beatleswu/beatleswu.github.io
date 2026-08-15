@@ -8694,11 +8694,34 @@ function _e10BoardRenderFingerprint(question = currentQ) {
     return {
         questionId: Number(question?.id) || null,
         boardSerial: _e10AcceptanceBoardRenderSerial,
+        renderGeneration: _questionBoardRenderGeneration,
         currentNodeReady: !!currentNode,
         canvasCount: wrap ? wrap.querySelectorAll('canvas').length : 0,
         renderWidth: wrap?.clientWidth || 0,
         renderHeight: wrap?.clientHeight || 0,
     };
+}
+
+// Test-only fault injection for the visible-board recovery contract.  Real
+// runtime never sets this global; only non-Production Playwright harnesses
+// do, to deterministically force the primary and/or recovery attempt to
+// fail without depending on a genuine Safari timing/compositor race.
+function _e10BoardTestHooks() {
+    return (typeof window !== 'undefined' && window.__E10_BOARD_TEST_HOOKS__) || null;
+}
+
+// Measures the board wrapper (or one of its canvases) for layout-readiness
+// and visible-board verification.  Test hooks can force a zero rect for a
+// given attempt number so recovery can be exercised deterministically; the
+// real runtime path always falls through to the live DOM measurement.
+function _e10MeasureElementRect(el, attemptNumber) {
+    const hooks = _e10BoardTestHooks();
+    if (attemptNumber != null && hooks?.forceZeroWidth && hooks.forceZeroWidth(attemptNumber)) {
+        return { width: 0, height: 0 };
+    }
+    if (!el || !el.isConnected) return { width: 0, height: 0 };
+    const rect = el.getBoundingClientRect();
+    return { width: rect.width || 0, height: rect.height || 0 };
 }
 
 function _currentReviewMetadata(){
@@ -8725,6 +8748,18 @@ let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
 let _mapBattleV1TransitionPending = false;
 let _mapBattleV1LifecycleGeneration = 0;
+// Board-construction-scoped identity, independent of the question-load
+// lifecycle generation above.  Bumped once per actual initBoard() call
+// (primary attempt, Boss recovery remount, or ordinary practice/premium
+// load alike) and stamped onto every canvas that construction produces, so
+// the visible-board contract can tell "belongs to the current construction"
+// apart from "logically the right question but a stale/superseded paint".
+let _questionBoardRenderGeneration = 0;
+// Set true only when both the primary render and the one bounded recovery
+// remount fail the visible-board contract; onBoardClick and the Boss
+// transition orchestrator both fail closed on this rather than leaving a
+// stale board looking playable.
+let _questionBoardFailedClosed = false;
 let _mapBattleV1Transition = null;
 let _mapBattleV1TransitionTimer = null;
 let _mapBattleV1CompletionCallbackCount = 0;
@@ -10513,23 +10548,41 @@ function playStone(x,y,color,skipRules){
 }
 
 // ─── 棋盤初始化 ────────────────────────────────────────────────
-function initBoard(size, cropInfo){
+function initBoard(size, cropInfo, attemptNumber){
     cropInfo = cropInfo || {section:{top:-.5,left:-.5,right:-.5,bottom:-.5}, displayLines:size, startX:0, startY:0};
     _cropInfo = cropInfo;
 
     const wrap=document.getElementById('board-canvas-wrap');
+    // Every real board construction gets a fresh identity, independent of
+    // the outer question-load generation -- this is what lets the visible-
+    // board contract detect a stale/duplicate canvas from a superseded
+    // attempt even when the question id itself didn't change (Boss recovery
+    // rebuilds the SAME question under a NEW render generation).
+    _questionBoardRenderGeneration += 1;
+    const renderGeneration = _questionBoardRenderGeneration;
     _e10AcceptanceTrace('BOARD_INIT_BEGIN', {
         questionId: Number(currentQ?.id) || null,
         size,
         generation: _mapBattleV1LifecycleGeneration,
+        renderGeneration,
+        attemptNumber: attemptNumber ?? null,
     });
-    wrap.innerHTML='';
+    const _boardTestHooks = _e10BoardTestHooks();
+    const _skipTeardown = !!(_boardTestHooks?.skipTeardownOnce && _boardTestHooks.skipTeardownOnce(attemptNumber));
+    // Deterministic old-board teardown: retiring the previous canvas(es)
+    // here, before the new WGo.Board exists, is what stops a stale
+    // previous-question canvas from ever competing with the new one for the
+    // same wrapper.  (Test-only skip hook exists so the visible-board
+    // contract's stale-canvas detection can itself be exercised.)
+    if (!_skipTeardown) {
+        wrap.innerHTML='';
+    }
     // WGo.Board 會在 wrap 上設 inline style.width；清掉後才能量到 CSS 計算寬度
     wrap.style.width='';
     wrap.style.height='';
 
     // 重新量 CSS 計算寬度
-    let w = wrap.getBoundingClientRect().width || wrap.clientWidth || wrap.offsetWidth;
+    let w = _e10MeasureElementRect(wrap, attemptNumber).width || wrap.clientWidth || wrap.offsetWidth;
     if(!w || w < 80){
         // fallback：用視窗可用寬度估算（題目側欄已移除，棋盤用全寬）
         const padding = 32;
@@ -10540,11 +10593,149 @@ function initBoard(size, cropInfo){
     _e10AcceptanceBoardRenderSerial += 1;
     board.addEventListener('click',onBoardClick);
     _drawCoordOverlay(w, size, cropInfo);
+    _finalizeVisibleBoardRender(renderGeneration, attemptNumber);
     _e10AcceptanceTrace('BOARD_INIT_END', {
         questionId: Number(currentQ?.id) || null,
         boardSerial: _e10AcceptanceBoardRenderSerial,
+        renderGeneration,
         width: w,
     });
+}
+
+// Stamps every canvas WGo (and our own coordinate/mark overlays) just built
+// under #board-canvas-wrap with the question id and render generation they
+// belong to, then forces a synchronous reflow of the wrapper.  Real iPad
+// Safari failures on this transition were never explainable by JS/DOM state
+// alone -- currentQ/currentProblem/currentNode/board were already correct --
+// so the remaining, unproven-but-well-evidenced suspect is WebKit
+// compositing-layer staleness: #board-canvas-wrap is promoted to its own
+// layer by border-radius+overflow:hidden, and a synchronous canvas swap
+// inside one JS task does not always get freshly composited on real
+// hardware even though the automated Chromium/iPad-viewport differential
+// (which does not reproduce WebKit compositing quirks) never catches it.
+// Toggling display:none -> reflow -> restore is a well-established,
+// flicker-free way to force a layer to be torn down and recomposited; it is
+// applied on every construction, not only recovery, because it is cheap and
+// safe even when the underlying theory is wrong.
+function _finalizeVisibleBoardRender(renderGeneration, attemptNumber) {
+    const wrap = document.getElementById('board-canvas-wrap');
+    if (!wrap) return;
+    const hooks = _e10BoardTestHooks();
+    const qid = Number(currentQ?.id) || null;
+    const forcedWrongQid = !!(hooks?.forceWrongQuestionIdOnce && hooks.forceWrongQuestionIdOnce(attemptNumber));
+    const forcedStaleGeneration = !!(hooks?.forceGenerationMismatchOnce && hooks.forceGenerationMismatchOnce(attemptNumber));
+    const stampedQid = forcedWrongQid ? `${qid}-test-forced-wrong-qid` : String(qid);
+    const stampedGeneration = forcedStaleGeneration ? String(renderGeneration - 1) : String(renderGeneration);
+    // Scope stamping to the board we JUST built (board.element) plus the
+    // freshly (re)created coordinate/mark overlays -- never to a stale
+    // sibling canvas left behind by a skipped teardown, or stamping it
+    // "current" would defeat the stale-canvas detection it exists to prove.
+    const freshRoots = [board?.element, document.getElementById('coord-overlay'), document.getElementById('mark-overlay')]
+        .filter(Boolean);
+    const freshCanvases = new Set();
+    freshRoots.forEach(root => {
+        if (root instanceof HTMLCanvasElement) freshCanvases.add(root);
+        root.querySelectorAll?.('canvas').forEach(c => freshCanvases.add(c));
+    });
+    freshCanvases.forEach(c => {
+        c.dataset.questionId = stampedQid;
+        c.dataset.renderGeneration = stampedGeneration;
+    });
+    try {
+        const displayBefore = wrap.style.display;
+        wrap.style.display = 'none';
+        void wrap.offsetHeight;
+        wrap.style.display = displayBefore;
+    } catch (e) {}
+    _e10AcceptanceTrace('BOARD_RENDER_FINALIZED', {
+        qid,
+        renderGeneration,
+        canvasCount: wrap.querySelectorAll('canvas').length,
+        forcedWrongQid,
+        forcedStaleGeneration,
+    });
+}
+
+// Bounded wait for the board wrapper to report a real, non-zero layout size
+// before constructing WGo against it.  Resolves immediately in the common
+// case (already visible); otherwise polls once per animation frame up to
+// timeoutMs and then gives up -- initBoard()'s own fallback-width estimate
+// takes over from there, and the downstream visible-board contract
+// independently re-checks the ACTUAL resulting canvas rect regardless of
+// whether this wait ever saw a non-zero width.
+function _waitForVisibleBoardLayout(wrap, { timeoutMs = 1200, minWidth = 1, attemptNumber = 1 } = {}) {
+    const measure = () => _e10MeasureElementRect(wrap, attemptNumber).width;
+    if (measure() >= minWidth) return Promise.resolve(true);
+    return new Promise(resolve => {
+        const startedAt = performance.now();
+        const check = () => {
+            if (measure() >= minWidth) { resolve(true); return; }
+            if (performance.now() - startedAt >= timeoutMs) { resolve(false); return; }
+            requestAnimationFrame(check);
+        };
+        requestAnimationFrame(check);
+    });
+}
+
+// Lets an actual paint/composite cycle elapse before the visible-board
+// contract reads the DOM.  requestAnimationFrame callbacks run immediately
+// before the browser paints, so by the time the SECOND callback fires at
+// least one real paint has occurred since the synchronous DOM mutations
+// above -- the standard, cross-browser "wait until painted" idiom.
+function _settleForVisiblePaint() {
+    return new Promise(resolve => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+}
+
+// The acceptance authority for "did the player's screen actually change" --
+// validates real DOM/canvas state, not just JS state.  currentQ/
+// currentProblem/currentNode/board being correct is necessary but was
+// already proven insufficient on real iPad Safari; this additionally
+// requires the wrapper and its active canvas(es) to be connected, visibly
+// sized (both canvas.width/height buffer AND getBoundingClientRect), and
+// stamped with the CURRENT render generation -- so a stale canvas left
+// behind by a failed teardown, or a canvas that never got composited, is
+// caught explicitly instead of assumed away.
+function _verifyVisibleQuestionBoard(question, attemptNumber) {
+    const qid = Number(question?.id);
+    const out = {
+        ok: false,
+        reason: null,
+        qid,
+        renderGeneration: _questionBoardRenderGeneration,
+        canvasCount: 0,
+    };
+    if (!Number.isInteger(qid) || qid <= 0) { out.reason = 'invalid_expected_question'; return out; }
+    if (Number(currentQ?.id) !== qid) { out.reason = 'current_q_mismatch'; return out; }
+    if (!currentProblem) { out.reason = 'current_problem_missing'; return out; }
+    if (!currentNode) { out.reason = 'current_node_missing'; return out; }
+    if (!board) { out.reason = 'board_missing'; return out; }
+
+    const wrap = document.getElementById('board-canvas-wrap');
+    if (!wrap || !wrap.isConnected) { out.reason = 'wrap_not_connected'; return out; }
+    const wrapRect = _e10MeasureElementRect(wrap, attemptNumber);
+    if (!(wrapRect.width > 0) || !(wrapRect.height > 0)) { out.reason = 'wrap_zero_rect'; return out; }
+
+    const allCanvases = Array.from(wrap.querySelectorAll('canvas'));
+    out.canvasCount = allCanvases.length;
+    if (!allCanvases.length) { out.reason = 'no_canvas'; return out; }
+
+    const expectedGeneration = String(_questionBoardRenderGeneration);
+    const staleCanvas = allCanvases.find(c => c.dataset.renderGeneration !== expectedGeneration);
+    if (staleCanvas) { out.reason = 'stale_canvas_present'; return out; }
+
+    const activeCanvases = allCanvases.filter(c => c.dataset.questionId === String(qid));
+    if (!activeCanvases.length) { out.reason = 'active_canvas_missing'; return out; }
+    for (const c of activeCanvases) {
+        if (!c.isConnected) { out.reason = 'canvas_disconnected'; return out; }
+        if (!(c.width > 0) || !(c.height > 0)) { out.reason = 'canvas_zero_buffer'; return out; }
+        const rect = _e10MeasureElementRect(c, attemptNumber);
+        if (!(rect.width > 0) || !(rect.height > 0)) { out.reason = 'canvas_rect_zero'; return out; }
+    }
+
+    out.ok = true;
+    return out;
 }
 
 // ── 座標轉換：原始19路 ↔ 顯示棋盤 ─────────────────────────────
@@ -10614,48 +10805,41 @@ function _revealExplanationPanel(panel) {
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function _runQuestionBoardSetup(setup, { generation, question } = {}) {
-    return new Promise(resolve => {
-        let settled = false;
-        const finish = value => {
-            if (settled) return;
-            settled = true;
-            resolve(value === true);
-        };
-        const run = () => {
-            if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== question) {
-                _e10AcceptanceTrace('GENERATION_INVALID_BEFORE_BOARD_SETUP', {
-                    questionId: Number(question?.id) || null,
-                    generation,
-                    currentGeneration: _mapBattleV1LifecycleGeneration,
-                });
-                finish(false);
-                return;
-            }
-            try {
-                finish(setup() !== false);
-            } catch (error) {
-                _e10AcceptanceTrace('BOARD_SETUP_EXCEPTION', {
-                    questionId: Number(question?.id) || null,
-                    message: String(error),
-                });
-                finish(false);
-            }
-        };
+function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1 } = {}) {
+    return (async () => {
         const wrap = document.getElementById('board-canvas-wrap');
-        const visibleWidth = wrap?.getBoundingClientRect?.().width || wrap?.clientWidth || 0;
-        if (visibleWidth > 0) {
-            run();
-            return;
+        // Bounded poll (not a fixed single defer) so a genuinely delayed
+        // layout -- not just a momentarily zero-width wrapper -- gets a real
+        // chance to settle before we proceed anyway on the fallback width.
+        const becameVisible = await _waitForVisibleBoardLayout(wrap, { attemptNumber });
+        if (!becameVisible) {
+            _e10AcceptanceTrace('BOARD_LAYOUT_WAIT_TIMEOUT', {
+                questionId: Number(question?.id) || null,
+                generation,
+                attemptNumber,
+            });
         }
-        const frame = typeof requestAnimationFrame === 'function'
-            ? requestAnimationFrame
-            : callback => setTimeout(callback, 0);
-        frame(() => frame(run));
-    });
+        if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== question) {
+            _e10AcceptanceTrace('GENERATION_INVALID_BEFORE_BOARD_SETUP', {
+                questionId: Number(question?.id) || null,
+                generation,
+                currentGeneration: _mapBattleV1LifecycleGeneration,
+            });
+            return false;
+        }
+        try {
+            return setup() !== false;
+        } catch (error) {
+            _e10AcceptanceTrace('BOARD_SETUP_EXCEPTION', {
+                questionId: Number(question?.id) || null,
+                message: String(error),
+            });
+            return false;
+        }
+    })();
 }
 
-async function loadQuestion(q, { resumeState = null } = {}){
+async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
     const questionId = Number(q?.id);
     if (!q || !Number.isFinite(questionId)) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, reason: 'invalid_question' });
@@ -10761,13 +10945,13 @@ async function loadQuestion(q, { resumeState = null } = {}){
         const _setup=()=>{
             _e10AcceptanceTrace('BOARD_SETUP_BEGIN', { qid: questionId, generation });
             const _ci=calcCropSection(currentProblem);
-            initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
+            initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
             currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
             currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
             _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
             return true;
         };
-        const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q });
+        const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q, attemptNumber });
         if (!_setupReady) {
             _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
             setMsg(I18n.t('index.boss.question_load_fail'), 'err');
@@ -10818,7 +11002,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
     const _setup=()=>{
         _e10AcceptanceTrace('BOARD_SETUP_BEGIN', { qid: questionId, generation });
         const _ci=calcCropSection(currentProblem);
-        initBoard(currentProblem.size,_ci);initLogicBoard(currentProblem.size);
+        initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
         currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
         currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
         playerColor=currentProblem.pl;
@@ -10839,7 +11023,7 @@ async function loadQuestion(q, { resumeState = null } = {}){
         _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
         return true;
     };
-    const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q });
+    const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q, attemptNumber });
     if (!_setupReady) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
@@ -10867,7 +11051,7 @@ function showSolutionNow() {
 
 function onBoardClick(bx,by){
     const x=_ox(bx),y=_oy(by);  // 顯示座標 → 原始19路座標
-    if(answering||!currentNode)return;
+    if(_questionBoardFailedClosed||answering||!currentNode)return;
     if(logicBoard[x]&&logicBoard[x][y]!==null)return;
 
     // ── 圍棋規則前端攔截（打劫 / 禁著點）────────────────────────
@@ -11557,7 +11741,11 @@ function showExplanation(wrongMove, { reveal = false } = {}) {
 
 // ── 畫座標 overlay（A-T 和 1-19）────────────────────────────
 function _drawCoordOverlay(w, size, cropInfo) {
-    const wgoBoard = document.querySelector('#board-canvas-wrap .wgo-board');
+    // Bind to the live board's own container rather than re-querying "the
+    // first .wgo-board under the wrapper" -- if a stale previous-question
+    // board is ever left undetached, a DOM-order query would silently
+    // attach the overlay to the WRONG (old) board instead of this one.
+    const wgoBoard = board?.element || document.querySelector('#board-canvas-wrap .wgo-board');
     if (!wgoBoard) return;
     const old = document.getElementById('coord-overlay');
     if (old) old.remove();
@@ -11592,7 +11780,7 @@ function _drawCoordOverlay(w, size, cropInfo) {
 
 // ── 解說座標標記在棋盤上（Canvas overlay）────────────────────
 function _markExplanationCoords(text) {
-    const wgoBoard = document.querySelector('#board-canvas-wrap .wgo-board');
+    const wgoBoard = board?.element || document.querySelector('#board-canvas-wrap .wgo-board');
     if (!wgoBoard || !text) return;
     const old = document.getElementById('mark-overlay');
     if (old) old.remove();
@@ -17352,6 +17540,126 @@ function _syncBossNextButton() {
     next.setAttribute('aria-disabled', _bossMode ? 'true' : 'false');
 }
 
+// Fast-path Boss board recovery: rebuilds the WGo board for the SAME
+// question already validated by the primary attempt (currentProblem/q
+// already parsed and hydrated), without a second network fetch or re-
+// running hydration/monster-init side effects.  Used only when the
+// primary attempt got the JS/DOM state right for this exact question and
+// only the visible-board contract failed; falls back to a full
+// loadQuestion() retry (in _attemptQuestionBoardRender) when that
+// precondition does not hold, e.g. the primary attempt failed before
+// currentProblem was ever set for this question.
+async function _rebuildCurrentBossQuestionBoard(q, { attemptNumber } = {}) {
+    const qid = Number(q?.id);
+    if (!currentProblem || Number(currentQ?.id) !== qid) return false;
+    const generation = _mapBattleV1LifecycleGeneration;
+    const question = currentQ;
+    const _setup = () => {
+        _e10AcceptanceTrace('BOARD_REBUILD_BEGIN', { qid, attemptNumber });
+        const _ci = calcCropSection(currentProblem);
+        initBoard(currentProblem.size, _ci, attemptNumber);
+        initLogicBoard(currentProblem.size);
+        currentProblem.black.forEach(s => { placeStone(s.x, s.y, 'B'); board.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.B }); });
+        currentProblem.white.forEach(s => { placeStone(s.x, s.y, 'W'); board.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.W }); });
+        playerColor = currentProblem.pl;
+        // currentProblem.tree already carries the accepted-answer nodes
+        // injected during the primary attempt; re-assigning currentNode is
+        // enough, no need to re-run makeAnswerRoot/_injectAcceptedAnswerNodes.
+        currentNode = currentProblem.tree;
+        _e10AcceptanceTrace('BOARD_REBUILD_END', { qid, attemptNumber });
+        return true;
+    };
+    return _runQuestionBoardSetup(_setup, { generation, question, attemptNumber });
+}
+
+// One attempt (primary or recovery) at getting the Boss board for `q` onto
+// the actual visible screen.  Recovery reuses already-validated state when
+// safe (fast path); otherwise it re-runs the full loadQuestion() so a
+// primary attempt that failed too early to leave reusable state still gets
+// a genuine second chance -- "re-fetch or reuse ... safely".
+async function _attemptQuestionBoardRender(q, { attemptNumber, mode }) {
+    const qid = Number(q?.id);
+    _e10AcceptanceTrace('BOARD_TRANSITION_ATTEMPT_BEGIN', { qid, attemptNumber, mode });
+    const canReuse = mode === 'recovery' && currentProblem && Number(currentQ?.id) === qid;
+    const loaded = canReuse
+        ? await _rebuildCurrentBossQuestionBoard(q, { attemptNumber })
+        : await loadQuestion(q, { attemptNumber });
+    const boardReady = loaded === true
+        && Number(currentQ?.id) === qid
+        && !!currentProblem
+        && !!currentNode
+        && !!board;
+    if (!boardReady) {
+        _e10AcceptanceTrace('BOARD_TRANSITION_ATTEMPT_RESULT', { qid, attemptNumber, mode, ok: false, reason: 'board_not_ready' });
+        return { ok: false, reason: 'board_not_ready' };
+    }
+    // Let a real paint cycle elapse, then read the ACTUAL DOM/canvas state --
+    // this is the acceptance authority, not the JS-state checks above, which
+    // were already proven insufficient on real iPad Safari.
+    await _settleForVisiblePaint();
+    const verify = _verifyVisibleQuestionBoard(q, attemptNumber);
+    _e10AcceptanceTrace('VISIBLE_BOARD_CONTRACT_RESULT', {
+        qid, attemptNumber, mode, ok: verify.ok, reason: verify.reason, canvasCount: verify.canvasCount,
+    });
+    return verify.ok ? { ok: true, verify } : { ok: false, reason: verify.reason, verify };
+}
+
+// Primary render, then -- if and only if it did not visibly commit -- ONE
+// bounded recovery remount for the SAME server-authoritative question.
+// Never resubmits the answer, never touches _bossIndex/_bossCorrect/rewards;
+// this only ever rebuilds the client-side board presentation.  If recovery
+// also fails, fails closed rather than leaving a stale board on screen.
+async function _settleVisibleBossQuestionBoard(q) {
+    const qid = Number(q?.id);
+    const primary = await _attemptQuestionBoardRender(q, { attemptNumber: 1, mode: 'primary' });
+    if (primary.ok) {
+        _e10AcceptanceTrace('VISIBLE_BOARD_CONTRACT_PASS', { qid, attempts: 1 });
+        return { ok: true, attempts: 1 };
+    }
+    _e10AcceptanceTrace('AUTOMATIC_RECOVERY_ATTEMPTED', { qid, primaryReason: primary.reason });
+    const recovery = await _attemptQuestionBoardRender(q, { attemptNumber: 2, mode: 'recovery' });
+    if (recovery.ok) {
+        _e10AcceptanceTrace('RECOVERY_VISIBLE_VALIDATION_PASS', { qid, attempts: 2 });
+        return { ok: true, attempts: 2 };
+    }
+    _e10AcceptanceTrace('DOUBLE_FAILURE_FAIL_CLOSED', { qid, primaryReason: primary.reason, recoveryReason: recovery.reason });
+    _failCloseBossQuestionBoard(q, { primaryReason: primary.reason, recoveryReason: recovery.reason });
+    return { ok: false, attempts: 2, primaryReason: primary.reason, recoveryReason: recovery.reason };
+}
+
+// Both the primary render and the one recovery remount failed the visible-
+// board contract.  The player must not be left staring at a stale playable
+// old board: freeze/clear the board area, show the required explicit
+// message, and keep 返回地圖 (never touched here) visible and enabled.
+// Server-authoritative state (attempt id, Boss index, review count) is left
+// completely untouched -- this function only ever changes what is on screen.
+function _failCloseBossQuestionBoard(q, diagnostics = {}) {
+    _questionBoardFailedClosed = true;
+    solved = true;
+    answering = false;
+    const wrap = document.getElementById('board-canvas-wrap');
+    if (wrap) {
+        wrap.innerHTML = '';
+        const notice = document.createElement('div');
+        notice.id = 'board-transition-failed-notice';
+        notice.setAttribute('role', 'alert');
+        notice.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:200px;padding:24px;text-align:center;box-sizing:border-box;font-size:15px;line-height:1.6;color:#6b4a1f;background:#eed292;';
+        notice.textContent = I18n.t('index.boss.board_transition_failed');
+        wrap.appendChild(notice);
+    }
+    const resetBtn = document.getElementById('btn-reset');
+    if (resetBtn) resetBtn.style.display = 'none';
+    const solutionBtn = document.getElementById('btn-show-solution');
+    if (solutionBtn) solutionBtn.style.display = 'none';
+    _syncE10BattleActions(false);
+    setMsg(I18n.t('index.boss.board_transition_failed'), 'err');
+    _e10AcceptanceTrace('BOARD_TRANSITION_FAIL_CLOSED', {
+        qid: Number(q?.id) || null,
+        bossIndex: _bossIndex,
+        ...diagnostics,
+    });
+}
+
 async function _loadBossQuestion() {
     if (!_bossMode) return false;
     _syncBossNextButton();
@@ -17370,8 +17678,9 @@ async function _loadBossQuestion() {
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
         return false;
     }
+    let q;
     try {
-        let q = allQuestions.find(x => Number(x?.id) === qid);
+        q = allQuestions.find(x => Number(x?.id) === qid);
         if (!q) {
             const response = await fetch(`/api/question/${qid}`, { credentials:'include' });
             if (response?.ok === false) throw new Error(`question_fetch_${response.status}`);
@@ -17379,27 +17688,23 @@ async function _loadBossQuestion() {
         }
         if (!q || Number(q.id) !== qid || q.error) throw new Error('question_payload_invalid');
         _e10AcceptanceTrace('LOAD_BOSS_QUESTION_RESOLVED_QID', { qid, index: _bossIndex });
-        const loaded = await loadQuestion(q);
-        const boardReady = loaded === true
-            && Number(currentQ?.id) === qid
-            && !!currentProblem
-            && !!currentNode
-            && !!board;
-        _e10AcceptanceTrace('BOSS_TRANSITION_BOARD_READY', {
-            qid,
-            index: _bossIndex,
-            loaded,
-            boardReady,
-            fingerprint: _e10BoardRenderFingerprint(q),
-        });
-        if (!boardReady) {
-            _e10AcceptanceTrace('BOSS_TRANSITION_EXCEPTION', { reason: 'board_not_ready', qid, index: _bossIndex });
-            setMsg(I18n.t('index.boss.question_load_fail'), 'err');
-            return false;
-        }
     } catch (error) {
         _e10AcceptanceTrace('BOSS_TRANSITION_EXCEPTION', { reason: 'load_exception', qid, index: _bossIndex, message: String(error) });
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+        return false;
+    }
+    _questionBoardFailedClosed = false;
+    const settled = await _settleVisibleBossQuestionBoard(q);
+    _e10AcceptanceTrace('BOSS_TRANSITION_BOARD_READY', {
+        qid,
+        index: _bossIndex,
+        ok: settled.ok,
+        attempts: settled.attempts,
+        fingerprint: _e10BoardRenderFingerprint(q),
+    });
+    if (!settled.ok) {
+        // _settleVisibleBossQuestionBoard already rendered the fail-closed
+        // UI and message; nothing else here may overwrite it.
         return false;
     }
     // Keep trial progress in a dedicated sibling node. #msg-box is a shared

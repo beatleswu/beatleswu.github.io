@@ -11,7 +11,7 @@ INVENTORY = json.loads(
 )
 
 
-SOURCE_ASSET_IDENTITY = "source-v229-e10-z1-prod-integration"
+SOURCE_ASSET_IDENTITY = "source-v230-e10-lord-trial-safari-recovery"
 
 
 def _script_identity(path: str) -> str:
