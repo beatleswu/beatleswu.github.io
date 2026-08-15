@@ -21,10 +21,34 @@ SYNTHETIC_SECRET = "e10-v1a-runtime-serving-test-secret"
 # This module may be collected alongside tests that import app.py.  Set the
 # process-only synthetic value before this module can import the application.
 os.environ["SECRET_KEY"] = SYNTHETIC_SECRET
-sys.path.insert(0, str(REPO_ROOT / "tests"))
-import lord_trial_natural_runtime as runtime_hygiene  # noqa: E402
 
-runtime_hygiene.install_secret_hygiene()
+SECRET_FILE_ACCESS_ATTEMPTS = []
+KATAGO_CACHE_ACCESS_ATTEMPTS = []
+
+
+def _protected_file_audit_hook(event, args):
+    """Fail closed before a runtime process can touch protected stray files."""
+    if event == "open":
+        try:
+            target = args[0]
+            name = os.path.basename(os.fspath(target))
+        except Exception:
+            return
+        if str(name).lower() == "secret_key.txt":
+            SECRET_FILE_ACCESS_ATTEMPTS.append({"blocked": True})
+            raise PermissionError("runtime-serving test refuses secret_key.txt access")
+    elif event == "sqlite3.connect":
+        try:
+            target = args[0]
+            name = os.path.basename(os.fspath(target))
+        except Exception:
+            return
+        if str(name).lower() == "katago_cache.db":
+            KATAGO_CACHE_ACCESS_ATTEMPTS.append({"blocked": True})
+            raise PermissionError("runtime-serving test refuses katago_cache.db access")
+
+
+sys.addaudithook(_protected_file_audit_hook)
 
 
 def _install_app_import_stubs():
@@ -121,3 +145,8 @@ def test_controller_route_rejects_traversal_and_other_assets(client, path):
 
     assert response.status_code != 200
     assert response.status_code != 500
+
+
+def test_protected_runtime_files_remain_unaccessed():
+    assert SECRET_FILE_ACCESS_ATTEMPTS == []
+    assert KATAGO_CACHE_ACCESS_ATTEMPTS == []
