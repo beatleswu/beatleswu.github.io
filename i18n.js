@@ -1666,6 +1666,7 @@ const I18n = (() => {
         // index.html — boss battle dynamic
         'index.boss.start_fail':  { en: 'Failed to start BOSS challenge', zh: 'BOSS 挑戰啟動失敗' },
         'index.boss.question_load_fail': { en: 'The next Lord Trial board could not be rendered. Return to the map and re-enter to resume safely.', zh: '下一題領主棋盤無法顯示，請返回地圖後重新進入以安全繼續。' },
+        'index.boss.board_transition_failed': { en: 'The next board failed to load. Please re-enter the Lord Trial to continue.', zh: '下一題棋盤載入失敗，請重新進入領主試煉繼續。' },
         'index.boss.finish_fail': { en: 'BOSS result failed. Refresh to check status.', zh: 'BOSS 結算失敗，請重新整理確認狀態' },
         'index.boss.zone_default':      { en: 'Boss', zh: '領主' },
         'index.boss.progress_status':   { en: 'Boss Trial {current}/{total} · Correct: {correct}', zh: '領主試煉 {current}/{total} · 已答對 {correct} 題' },

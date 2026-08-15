@@ -35,7 +35,15 @@ def test_lord_transition_has_bounded_observability_and_real_board_gate():
 
 
 def test_boss_load_waits_for_actual_board_setup_and_fails_closed():
-    assert "const loaded = await loadQuestion(q);" in INDEX
+    # currentQ/currentProblem/currentNode/board being correct is necessary
+    # but was proven insufficient on real iPad Safari (JS state can be right
+    # while the visible canvas is still the previous question) -- the visible-
+    # board contract added in e10-lord-trial-one-shot-safari-recovery-001
+    # additionally requires an actual, correctly-stamped, non-zero-rect
+    # canvas before a Boss transition is allowed to declare success, with one
+    # bounded automatic recovery remount and an explicit fail-closed UI if
+    # that still does not hold.
+    assert ": await loadQuestion(q, { attemptNumber });" in INDEX
     assert "const boardReady = loaded === true" in INDEX
     assert "&& !!currentProblem" in INDEX
     assert "&& !!currentNode" in INDEX
@@ -43,6 +51,12 @@ def test_boss_load_waits_for_actual_board_setup_and_fails_closed():
     assert "setMsg(I18n.t('index.boss.question_load_fail'), 'err');" in INDEX
     assert "const _setupReady = await _runQuestionBoardSetup" in INDEX
     assert "function _runQuestionBoardSetup" in INDEX
+    assert "function _verifyVisibleQuestionBoard(question, attemptNumber)" in INDEX
+    assert "function _settleVisibleBossQuestionBoard(q)" in INDEX
+    assert "function _failCloseBossQuestionBoard(q, diagnostics = {})" in INDEX
+    assert "_questionBoardFailedClosed = true;" in INDEX
+    assert "'index.boss.board_transition_failed'" in INDEX
+    assert "'index.boss.board_transition_failed'" in I18N
 
 
 def test_boss_transition_does_not_create_a_second_next_authority():

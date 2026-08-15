@@ -86,6 +86,22 @@ async function newPage(browser, origin) {
       tour_done: true,
     }),
   }));
+  // The app's own startup fetches /api/questions asynchronously and
+  // assigns the result to allQuestions; the generic '{}' catch-all above
+  // is not an array, so whenever that in-flight fetch resolves it silently
+  // clobbers the array each test scenario sets up by hand.  Previously this
+  // never had a real window to land in because a Boss transition completed
+  // in a handful of milliseconds; it stays a live race with any slower
+  // (bounded-wait, settle-then-verify) transition.  A superset covering
+  // every question id any scenario below references means the race is
+  // harmless regardless of which assignment lands last.
+  await page.route('**/api/questions*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(Array.from({ length: 20 }, (_, index) => ({
+      id: index + 1, topic: 'Zone 1 fixture', content: '(;GM[1]SZ[9])', accepted_moves: [],
+    }))),
+  }));
   await page.goto(`${origin}/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(80);
   return page;
@@ -107,7 +123,23 @@ async function main() {
         }));
         SRS.review = async () => ({ ok: true });
         SRS.markSeen = () => {};
-        window.loadQuestion = async (question) => { currentQ = question; };
+        // A bare `currentQ = question` stub used to be enough to isolate
+        // Boss progress/finish logic from real board rendering.  The new
+        // visible-board contract now requires currentProblem/currentNode/
+        // board and a genuinely visible, correctly-stamped canvas before it
+        // will consider a transition settled -- so the stub does the same
+        // minimal real work loadQuestion() itself does (unhide the wrapper,
+        // build a real board via the production initBoard()) instead of
+        // faking success.
+        window.loadQuestion = async (question) => {
+          currentQ = question;
+          document.getElementById('welcome-state')?.classList.add('hidden');
+          document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
+          currentProblem = { size: 9, tree: { move: null, color: null, children: [] }, black: [], white: [], pl: 'B' };
+          currentNode = currentProblem.tree;
+          initBoard(9, { section: { top: -.5, left: -.5, right: -.5, bottom: -.5 }, displayLines: 9, startX: 0, startY: 0 });
+          return true;
+        };
         _adventureProgress = [
           { key: 'k26_30', cleared: false, unlocked: true, index: 0 },
           { key: 'k21_25', unlocked: false, index: 1 },
@@ -199,7 +231,23 @@ async function main() {
         allQuestions = [{ id: 1, topic: 'Zone 1 fixture', content: '(;GM[1]SZ[9])', accepted_moves: [] }];
         SRS.review = async () => ({ ok: true });
         SRS.markSeen = () => {};
-        window.loadQuestion = async (question) => { currentQ = question; };
+        // A bare `currentQ = question` stub used to be enough to isolate
+        // Boss progress/finish logic from real board rendering.  The new
+        // visible-board contract now requires currentProblem/currentNode/
+        // board and a genuinely visible, correctly-stamped canvas before it
+        // will consider a transition settled -- so the stub does the same
+        // minimal real work loadQuestion() itself does (unhide the wrapper,
+        // build a real board via the production initBoard()) instead of
+        // faking success.
+        window.loadQuestion = async (question) => {
+          currentQ = question;
+          document.getElementById('welcome-state')?.classList.add('hidden');
+          document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
+          currentProblem = { size: 9, tree: { move: null, color: null, children: [] }, black: [], white: [], pl: 'B' };
+          currentNode = currentProblem.tree;
+          initBoard(9, { section: { top: -.5, left: -.5, right: -.5, bottom: -.5 }, displayLines: 9, startX: 0, startY: 0 });
+          return true;
+        };
         _adventureProgress = [
           { key: 'k26_30', cleared: false, unlocked: true, index: 0 },
           { key: 'k21_25', cleared: false, unlocked: false, index: 1 },
@@ -251,7 +299,23 @@ async function main() {
         allQuestions = [{ id: 1, topic: 'Zone 1 fixture', content: '(;GM[1]SZ[9])', accepted_moves: [] }];
         SRS.review = async () => ({ ok: true });
         SRS.markSeen = () => {};
-        window.loadQuestion = async (question) => { currentQ = question; };
+        // A bare `currentQ = question` stub used to be enough to isolate
+        // Boss progress/finish logic from real board rendering.  The new
+        // visible-board contract now requires currentProblem/currentNode/
+        // board and a genuinely visible, correctly-stamped canvas before it
+        // will consider a transition settled -- so the stub does the same
+        // minimal real work loadQuestion() itself does (unhide the wrapper,
+        // build a real board via the production initBoard()) instead of
+        // faking success.
+        window.loadQuestion = async (question) => {
+          currentQ = question;
+          document.getElementById('welcome-state')?.classList.add('hidden');
+          document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
+          currentProblem = { size: 9, tree: { move: null, color: null, children: [] }, black: [], white: [], pl: 'B' };
+          currentNode = currentProblem.tree;
+          initBoard(9, { section: { top: -.5, left: -.5, right: -.5, bottom: -.5 }, displayLines: 9, startX: 0, startY: 0 });
+          return true;
+        };
         _adventureProgress = [
           { key: 'k26_30', cleared: false, unlocked: true, index: 0 },
           { key: 'k21_25', cleared: false, unlocked: false, index: 1 },
@@ -309,9 +373,15 @@ async function main() {
         await responsivePage.setViewportSize({ width: viewport.width, height: viewport.height });
         const state = await responsivePage.evaluate(async () => {
           allQuestions = [{ id: 1, topic: 'Zone 1 fixture', content: '(;GM[1]SZ[9])', accepted_moves: [] }];
-          window.loadQuestion = async (question) => { currentQ = question; };
-          document.getElementById('welcome-state')?.classList.add('hidden');
-          document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
+          window.loadQuestion = async (question) => {
+            currentQ = question;
+            document.getElementById('welcome-state')?.classList.add('hidden');
+            document.getElementById('board-canvas-wrap')?.classList.remove('hidden');
+            currentProblem = { size: 9, tree: { move: null, color: null, children: [] }, black: [], white: [], pl: 'B' };
+            currentNode = currentProblem.tree;
+            initBoard(9, { section: { top: -.5, left: -.5, right: -.5, bottom: -.5 }, displayLines: 9, startX: 0, startY: 0 });
+            return true;
+          };
           _bossMode = true; _bossZone = { key: 'k26_30' }; _bossQueue = [1]; _bossIndex = 0; _bossCorrect = 0;
           await _loadBossQuestion();
           const el = document.getElementById('boss-trial-progress');
