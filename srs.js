@@ -91,42 +91,68 @@ const SRS = (() => {
             })
         });
         const data = await res.json();
+        if (!data || typeof data !== 'object') {
+            throw new Error('invalid_review_response');
+        }
         if (!res.ok && !['premium_required', 'daily_limit'].includes(data.error)) {
             throw new Error(data.error || `HTTP ${res.status}`);
         }
         if (data.ok) {
             _allCards[qid] = { ...(_allCards[qid]||{}), ...data, question_id: qid };
             if (grade >= 3 && _dueSet) _dueSet.delete(qid);
+        }
+        return data;
+    }
 
-            // 處理新獎章
-            if (data.new_badges && data.new_badges.length) {
+    // Presentation callbacks intentionally live outside review().  A callback
+    // is allowed to fail without converting an already-committed review into
+    // a transport failure.  The authoritative review path still throws for
+    // network, parse, and non-accepted server errors.
+    function dispatchReviewPresentation(data, { onError } = {}) {
+        if (!data || data.ok !== true) return { ok: false, skipped: true, failures: [] };
+        const failures = [];
+        const reportFailure = (stage, error) => {
+            const failure = {
+                stage,
+                errorType: error?.name || 'Error',
+                message: error?.message || String(error || ''),
+            };
+            failures.push(failure);
+            if (typeof onError === 'function') {
+                try { onError(failure); } catch (observerError) { /* diagnostics are non-authoritative */ }
+            }
+        };
+        const dispatch = (stage, callback, payload) => {
+            if (typeof callback !== 'function') return;
+            try { callback(payload); } catch (error) { reportFailure(stage, error); }
+        };
+
+        if (data.new_badges && data.new_badges.length) {
+            try {
                 _lsMerge(data.new_badges);
                 data.new_badges.forEach(bid => {
                     _earned[bid] = new Date().toISOString();
-                    if (_onBadge) {
-                        const def = getBadgeDef(bid);
-                        if (def) _onBadge(def);
-                    }
+                    const def = getBadgeDef(bid);
+                    if (def) dispatch('badge', _onBadge, def);
                 });
+            } catch (error) {
+                reportFailure('badge_state', error);
+            }
+            try {
                 fetch('/api/badges/seen', {
                     credentials: 'include',
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ids: data.new_badges })
-                });
-            }
-
-            // 怪物回調
-            if (data.monster && _onMonster) {
-                _onMonster(data.monster);
-            }
-
-            // 任務回調
-            if (data.quest_updates && _onQuest) {
-                _onQuest(data.quest_updates);
+                }).catch(() => {});
+            } catch (error) {
+                reportFailure('badge_seen', error);
             }
         }
-        return data;
+
+        if (data.monster) dispatch('monster', _onMonster, data.monster);
+        if (data.quest_updates) dispatch('quest', _onQuest, data.quest_updates);
+        return { ok: failures.length === 0, skipped: false, failures };
     }
 
     // ── 載入今日任務 ──────────────────────────────────────────
@@ -242,7 +268,7 @@ const SRS = (() => {
     return {
         GRADE, DIFFICULTY_ORDER, MONSTER_AVATARS, QUEST_COLORS,
         init, isDue, isSeen, markSeen, getCard, getBadgeDef, isEarned, allDefs, allEarned,
-        review, loadQuests, reportUnitProgress,
+        review, dispatchReviewPresentation, loadQuests, reportUnitProgress,
         diffBadge, intervalLabel, badgeHtml, monsterHtml, questListHtml
     };
 })();

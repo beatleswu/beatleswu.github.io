@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "9309807eca7a90c2512f8317353fd3602ff154bf",
-      "source_branch_or_local_ref": "claude/e10-lord-trial-one-shot-safari-recovery-001",
-      "source_commit_subject": "fix(e10): make Lord Trial board transitions Safari-safe and self-healing",
+      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
+      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
+      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
       "source_date": "2026-08-15",
-      "content_sha256": "7149c0070d2cfdadd640b4b023fd95dfc47e86ad0912e54b487f7456cffe3e0f",
+      "content_sha256": "2d90d92cfae1c427ae39b7f7ec1f5e5c0ae704c80783f69099d2615b7a18505e",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the Lord Trial Safari recovery branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Lord Trial Safari recovery commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -519,27 +519,39 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "9309807eca7a90c2512f8317353fd3602ff154bf",
-      "source_branch_or_local_ref": "claude/e10-lord-trial-one-shot-safari-recovery-001",
-      "source_commit_subject": "fix(e10): make Lord Trial board transitions Safari-safe and self-healing",
+      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
+      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
+      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
       "source_date": "2026-08-15",
-      "content_sha256": "eeaf7a17e0f807943a98b5448482fc52fcb00c77da6862dc66d047cf814e8e45",
+      "content_sha256": "6acf6bc2128eb214f30e46c7e67bf0c8cf7ef54a8dfb83c0f044841f76f22213",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "candidate on the Lord Trial Safari recovery branch (VERSION bumped v229 -> v230 because index.html/i18n.js changed); Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Lord Trial Safari recovery commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
-      "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "bac408cf15db682453cf6761d66f7e84b7c6610605e9b29758153eaf10ab31fe",
+      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
+      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
+      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
+      "source_date": "2026-08-15",
+      "content_sha256": "6006baef478d633924d67a9d740a2e6debde3396226bd202312648ddbb0235c6",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/game/lord_trial_controller.js",
+      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
+      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
+      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
+      "source_date": "2026-08-15",
+      "content_sha256": "320967b79e470e4f9e527e305f98a3a3b3e875629157428d6174b7ab03311121",
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required Lord Trial review authority browser module (governed static subpath asset)",
+      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
     },
     {
       "path": "monster_trash.js",

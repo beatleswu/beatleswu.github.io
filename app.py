@@ -20726,6 +20726,12 @@ def serve_map_battle_v1_adapter():
         'map_battle_v1_adapter.js', 'js', 'js'
     )
 
+@app.route('/js/game/lord_trial_controller.js')
+def serve_lord_trial_controller_js():
+    return _serve_live_static_or_baked_subpath(
+        'lord_trial_controller.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

@@ -103,6 +103,10 @@ COPY review_data/sgf_answer_review_queue_v1.json \
 # repository-relative path so /js/map_battle_v1_adapter.js resolves in the
 # built image exactly as it does from the source tree.
 COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js
+# Lord Trial review authority is an explicitly referenced browser module.
+# Keep the repository-relative path so the built image retains the same
+# /js/game/lord_trial_controller.js identity as the source checkout.
+COPY js/game/lord_trial_controller.js ./js/game/lord_trial_controller.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
