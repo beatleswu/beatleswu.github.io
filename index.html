@@ -24,6 +24,7 @@
     <script src="/community_reward_notifications.js?v=20260706b" defer></script>
     <link rel="stylesheet" href="/wgo/wgo.player.css">
     <script src="/srs.js?v=20260622i18n1"></script>
+    <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
     <script src="/monster_trash.js?v=20260622i18n1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -8918,61 +8919,53 @@ let _premiumWeeklyMode=null;
 function currentUnitName(){if(!currentQ)return null;const t=currentQ.topic&&currentQ.topic!=='Unknown'?I18n.localized(currentQ,'topic'):null,l=currentQ.level&&currentQ.level!=='Unknown'?I18n.localized(currentQ,'level'):null;return t||l||null;}
 
 // ─── SRS ───────────────────────────────────────────────────────
-async function submitSRS(grade){
-    if(!currentQ)return;
-    if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
-    const bossAnswerContext = _bossMode
-        ? { questionId: Number(currentQ.id), index: _bossIndex }
-        : null;
-    if (!_bossMode && _mapBattleV1Mode === 'active' && _mapBattleV1State) {
-        await _submitMapBattleV1IfActive(_mapBattleV1Moves);
-        return;
+function _getLordTrialController() {
+    if (_lordTrialController) return _lordTrialController;
+    const factory = window.GoOdysseyLordTrialController;
+    if (!factory || typeof factory.create !== 'function') {
+        throw new Error('lord_trial_controller_unavailable');
     }
-    if (!_bossMode && _mapBattleV1Mode === 'blocked') {
-        setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
-        return;
-    }
-    const unit=currentUnitName();let unitDone=false;
-    if(grade>=3&&unit){
-        try{const prog=await SRS.reportUnitProgress(currentQ.id,unit);unitDone=prog.unit_complete;}
-        catch(e){/* /api/unit-progress 不存在時靜默忽略 */}
-    }
-    let data;
-    try {
-        data = await SRS.review(currentQ.id,grade,unit,unitDone,_currentReviewMetadata());
-    } catch(e) {
-        console.warn('[SRS.review] failed; answer was not saved', e);
-        setMsg(I18n.t('index.srs.save_fail'), 'err');
-        return;
-    }
-    SRS.markSeen(currentQ.id); // 即時標記為已作答
-    if(!data.ok){
-        if(data.error==='premium_required'){
-            setMsg(I18n.t('index.premium_req'),'err');
-        }else if(data.error==='daily_limit'){
-            _dailyLimitMax = data.limit || _dailyLimitMax;
-            if (_bossMode) {
-                // A valid Lord attempt is exempt from ordinary free-practice
-                // limits. A daily-limit response means this review was not
-                // accepted; never advance from an uncommitted answer.
-                console.warn('[BOSS] daily_limit review rejected; no progress recorded');
-                setMsg(I18n.t('index.srs.save_fail'), 'err');
-            } else if(_challengeId){
-                // 挑戰模式：不鎖定，直接進下一題
-                if(grade>0){ srsDoneCount++; nextQuestion(); }
-            } else {
-                _applyDailyLimit();
-            }
-        }else{
-            setMsg(I18n.t('index.srs.save_fail_detail').replace('{e}', data.error || 'unknown_error'), 'err');
+    _lordTrialController = factory.create({
+        getContext: () => ({
+            active: _bossMode === true,
+            attemptId: _bossAttemptId,
+            index: _bossIndex,
+            questionId: Number(currentQ?.id),
+            queue: _bossQueue,
+            queueLength: _bossQueue.length,
+            correct: _bossCorrect,
+        }),
+        applyProgress: ({ index, correct }) => {
+            _bossIndex = index;
+            _bossCorrect = correct;
+        },
+        loadNextQuestion: () => _loadBossQuestion(),
+        finishTrial: () => _finishBossBattle(),
+        trace: (event, details) => _e10AcceptanceTrace(event, details),
+        setTransitionMarkers: ({ inFlightKey, lastSettledKey }) => {
+            _bossTransitionInFlightKey = inFlightKey;
+            _bossLastSettledKey = lastSettledKey;
+        },
+    });
+    return _lordTrialController;
+}
+
+function _dispatchCommittedReviewPresentation(data, grade) {
+    const dispatchLater = (stage, callback, delay = 0) => setTimeout(() => {
+        try { callback(); } catch (error) {
+            _e10AcceptanceTrace('PRESENTATION_ERROR', {
+                stage, errorType: error?.name || 'Error',
+            });
         }
-        return;
+    }, delay);
+    if (typeof SRS.dispatchReviewPresentation === 'function') {
+        SRS.dispatchReviewPresentation(data, {
+            onError: failure => _e10AcceptanceTrace('PRESENTATION_ERROR', {
+                stage: failure.stage,
+                errorType: failure.errorType,
+            }),
+        });
     }
-    _todayTotal++; if(grade>=3) _todayCorrect++;
-    if (grade >= 3 && window._nqMapActive && _newbieQuestActive) {
-        _nqCheckMapQuiz();
-    }
-    updateTodayMini();
     // ── 商城道具回饋 ────────────────────────────────────────────
     if (data.shield_used) { setMsg(I18n.t('shop.shieldUsed'), 'ok'); _refreshShopStatus(); }
     // ── XP ─────────────────────────────────────────────────────
@@ -8997,75 +8990,163 @@ async function submitSRS(grade){
         }
         fetch('/api/xp/status', { credentials:'include' })
             .then(r => r.json())
-            .then(d => { updateXpHud(d.xp, d.rank_level, d.rank_pct, d); popRankBadge(); });
+            .then(d => { updateXpHud(d.xp, d.rank_level, d.rank_pct, d); popRankBadge(); })
+            .catch(error => _e10AcceptanceTrace('PRESENTATION_ERROR', {
+                stage: 'xp_status', errorType: error?.name || 'Error',
+            }));
     }
+    // ── 怪物 / 寵物 / 玩家狀態 / 掉寶 / 任務 UI ────────────────
+    if (data.monster && !_isAdventureZonePractice()) {
+        updateMonsterUI(data.monster);
+        const mtype = data.monster.type || _lastMonsterType;
+        if (data.monster.defeated) {
+            monsterSpeakDie(mtype);
+        } else if (grade >= 3 && data.monster.dmg > 0) {
+            const pct = data.monster.max_hp > 0
+                ? Math.round(data.monster.hp / data.monster.max_hp * 100) : 100;
+            monsterSpeakHurt(mtype, pct);
+        }
+    }
+    if (_quizPet) {
+        if (grade >= 3) {
+            if (data.ranked_up)                               dispatchLater('pet_levelup', () => petReact('levelup'), 700);
+            else if (data.monster && data.monster.defeated)   dispatchLater('pet_victory', () => petReact('victory'), 650);
+            else if (data.combo_streak && data.combo_streak % 5 === 0) petReact('combo');
+            else                                              petReact('correct');
+        } else {
+            petReact('wrong');
+        }
+    }
+    if (_quizPet && grade >= 3 && Number(data.pet_xp_gained || 0) > 0) {
+        showQuizPetMarker('+1', 'xp', Number(data.combo_streak || 0));
+    }
+    if (data.pet) {
+        updateQuizPetStatusBadge({
+            pet: data.pet,
+            practice: data.practice || { active: Number(data.pet.fullness || 0) > 0, ready: false },
+        });
+        if (Number(data.pet.fullness || 0) <= 0) {
+            showQuizPetMarker(isEn() ? 'Feed' : '餵食', 'food');
+        }
+    }
+    if (data.player) updatePlayerHPUI(data.player);
+    if (data.sp) updateSPUI(data.sp.current);
+    if (data.loot) showLootToast(data.loot);
+    if (data.appearance_loot) {
+        dispatchLater('appearance_loot', () => showAppearToast(data.appearance_loot), data.loot ? 1800 : 0);
+    }
+    if (data.new_appearance_items && data.new_appearance_items.length) {
+        const delay = (data.loot ? 1800 : 0) + (data.appearance_loot ? 1800 : 0);
+        data.new_appearance_items.forEach((item, i) => {
+            dispatchLater('new_appearance_item', () => showAppearToast(item), delay + i * 1800);
+        });
+    }
+    if (data.quest_updates) {
+        updateQuestPanel(data.quest_updates);
+        showQuestPetRewardToasts(data.quest_updates, (data.loot || data.appearance_loot) ? 1800 : 0);
+    }
+}
+
+async function submitSRS(grade){
+    if(!currentQ)return;
+    if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }  // 已鎖，不再送出（挑戰模式跳過）
+    const bossAnswerContext = _bossMode
+        ? { questionId: Number(currentQ.id), index: _bossIndex }
+        : null;
+    if (!_bossMode && _mapBattleV1Mode === 'active' && _mapBattleV1State) {
+        await _submitMapBattleV1IfActive(_mapBattleV1Moves);
+        return;
+    }
+    if (!_bossMode && _mapBattleV1Mode === 'blocked') {
+        setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
+        return;
+    }
+    const reviewRequestKey = `${_bossMode ? (_bossAttemptId || 'active') + ':' + _bossIndex : 'practice'}:${Number(currentQ.id)}`;
+    if (_reviewRequestInFlightKey === reviewRequestKey) return;
+    _reviewRequestInFlightKey = reviewRequestKey;
+    return (async () => {
+    const unit=currentUnitName();let unitDone=false;
+    if(grade>=3&&unit){
+        try{const prog=await SRS.reportUnitProgress(currentQ.id,unit);unitDone=prog.unit_complete;}
+        catch(e){/* /api/unit-progress 不存在時靜默忽略 */}
+    }
+    let data;
+    _e10AcceptanceTrace('REVIEW_REQUESTED', {
+        qid: Number(currentQ.id), grade, lord: _bossMode === true,
+    });
+    try {
+        data = await SRS.review(currentQ.id,grade,unit,unitDone,_currentReviewMetadata());
+    } catch(e) {
+        console.warn('[SRS.review] failed; answer was not saved', e);
+        setMsg(I18n.t('index.srs.save_fail'), 'err');
+        return;
+    }
+    if (data.ok) SRS.markSeen(currentQ.id); // 只在伺服器接受後標記已作答
+    if(!data.ok){
+        _e10AcceptanceTrace('REVIEW_REJECTED', {
+            qid: Number(currentQ.id), grade, reason: data.error || 'not_committed',
+        });
+        if(data.error==='premium_required'){
+            setMsg(I18n.t('index.premium_req'),'err');
+        }else if(data.error==='daily_limit'){
+            _dailyLimitMax = data.limit || _dailyLimitMax;
+            if (_bossMode) {
+                // A valid Lord attempt is exempt from ordinary free-practice
+                // limits. A daily-limit response means this review was not
+                // accepted; never advance from an uncommitted answer.
+                console.warn('[BOSS] daily_limit review rejected; no progress recorded');
+                setMsg(I18n.t('index.srs.save_fail'), 'err');
+            } else if(_challengeId){
+                // 挑戰模式：不鎖定，直接進下一題
+                if(grade>0){ srsDoneCount++; nextQuestion(); }
+            } else {
+                _applyDailyLimit();
+            }
+        }else{
+            setMsg(I18n.t('index.srs.save_fail_detail').replace('{e}', data.error || 'unknown_error'), 'err');
+        }
+        return;
+    }
+    _e10AcceptanceTrace('REVIEW_COMMITTED', {
+        qid: Number(currentQ.id), grade, lord: _bossMode === true,
+    });
+    if (_bossMode) {
+        bossAnswerContext.reviewResult = data;
+        try {
+            await _handleBossAnswer(grade, bossAnswerContext);
+        } catch (error) {
+            _e10AcceptanceTrace('LORD_ADVANCE_ERROR', {
+                qid: Number(bossAnswerContext.questionId),
+                index: bossAnswerContext.index,
+                errorType: error?.name || 'Error',
+            });
+            console.error('[BOSS] committed review transition failed', error);
+        }
+        _todayTotal++; if(grade>=3) _todayCorrect++;
+        _e10AcceptanceTrace('PRESENTATION_DISPATCH_STARTED', {
+            qid: Number(bossAnswerContext.questionId), grade,
+        });
+        try {
+            _dispatchCommittedReviewPresentation(data, grade);
+        } catch (error) {
+            _e10AcceptanceTrace('PRESENTATION_ERROR', {
+                stage: 'lord_review_presentation', errorType: error?.name || 'Error',
+            });
+            console.error('[BOSS] presentation dispatch failed after commit', error);
+        }
+        return;
+    }
+    _todayTotal++; if(grade>=3) _todayCorrect++;
+    if (grade >= 3 && window._nqMapActive && _newbieQuestActive) {
+        _nqCheckMapQuiz();
+    }
+    updateTodayMini();
     let shouldAdvance = true;
     try {
-        // ── 怪物 UI 更新 ────────────────────────────────────────────
-        if (data.monster && !_isAdventureZonePractice()) {
-            updateMonsterUI(data.monster);
-            const mtype = data.monster.type || _lastMonsterType;
-            if (data.monster.defeated) {
-                monsterSpeakDie(mtype);
-            } else if (grade >= 3 && data.monster.dmg > 0) {
-                const pct = data.monster.max_hp > 0
-                    ? Math.round(data.monster.hp / data.monster.max_hp * 100) : 100;
-                monsterSpeakHurt(mtype, pct);
-            }
-        }
-        // ── 陪伴棋靈反應（每次答題僅取一句最高優先）────────────────
-        if (_quizPet) {
-            if (grade >= 3) {
-                if (data.ranked_up)                               setTimeout(() => petReact('levelup'), 700);
-                else if (data.monster && data.monster.defeated)   setTimeout(() => petReact('victory'), 650);
-                else if (data.combo_streak && data.combo_streak % 5 === 0) petReact('combo');
-                else                                              petReact('correct');
-            } else {
-                petReact('wrong');
-            }
-        }
-        if (_quizPet && grade >= 3 && Number(data.pet_xp_gained || 0) > 0) {
-            showQuizPetMarker('+1', 'xp', Number(data.combo_streak || 0));
-        }
-        if (data.pet) {
-            updateQuizPetStatusBadge({
-                pet: data.pet,
-                practice: data.practice || { active: Number(data.pet.fullness || 0) > 0, ready: false }
-            });
-            if (Number(data.pet.fullness || 0) <= 0) {
-                showQuizPetMarker(isEn() ? 'Feed' : '餵食', 'food');
-            }
-        }
-        // ── 玩家 HP 更新 ────────────────────────────────────────────
-        if (data.player) updatePlayerHPUI(data.player);
-        // ── SP 更新 ────────────────────────────────────────────────
-        if (data.sp) updateSPUI(data.sp.current);
-        // ── 掉寶 Toast ──────────────────────────────────────────────
-        if (data.loot) {
-            showLootToast(data.loot);
-        }
-        // ── 外觀掉落 Toast ──────────────────────────────────────────
-        if (data.appearance_loot) {
-            // 稍微延遲，避免與掉寶 toast 重疊
-            setTimeout(() => showAppearToast(data.appearance_loot), data.loot ? 1800 : 0);
-        }
-        // ── 升段外觀獎勵 ────────────────────────────────────────────
-        if (data.new_appearance_items && data.new_appearance_items.length) {
-            const delay = (data.loot ? 1800 : 0) + (data.appearance_loot ? 1800 : 0);
-            data.new_appearance_items.forEach((item, i) => {
-                setTimeout(() => showAppearToast(item), delay + i * 1800);
-            });
-        }
-        // ── 每日任務更新 ────────────────────────────────────────────
-        if (data.quest_updates) {
-            updateQuestPanel(data.quest_updates);
-            showQuestPetRewardToasts(data.quest_updates, (data.loot || data.appearance_loot) ? 1800 : 0);
-        }
-        if (_bossMode) {
-            shouldAdvance = false;
-            await _handleBossAnswer(grade, bossAnswerContext);
-            return;
-        }
+        _e10AcceptanceTrace('PRESENTATION_DISPATCH_STARTED', {
+            qid: Number(currentQ.id), grade,
+        });
+        _dispatchCommittedReviewPresentation(data, grade);
         loadMapProgressStatus();
         if (grade === 0 && _activeBossZone && currentQ && String(currentQ.stage || '') === String(_activeBossZone.stage || '')) {
             _zoneWrongStreak++;
@@ -9121,6 +9202,9 @@ async function submitSRS(grade){
             if(grade===0){resetProblem();}else{srsDoneCount++;updateSRSProgress();nextQuestion();}
         }
     }
+    })().finally(() => {
+        if (_reviewRequestInFlightKey === reviewRequestKey) _reviewRequestInFlightKey = null;
+    });
 }
 // ═══════════════════════════════════════════════════════════════
 // ─── 怪物 UI ──────────────────────────────────────────────────
@@ -12029,6 +12113,8 @@ let _bossReplay = false;
 let _bossFinishInFlight = false;
 let _bossTransitionInFlightKey = null;
 let _bossLastSettledKey = null;
+let _reviewRequestInFlightKey = null;
+let _lordTrialController = null;
 let _pendingBossZone = null;
 let _bossAudioCtx = null;
 let _introFilmTimers = [];
@@ -17482,6 +17568,7 @@ async function _startBossBattleNow(zone) {
             : 0;
         _bossTransitionInFlightKey = null;
         _bossLastSettledKey = null;
+        if (_lordTrialController) _lordTrialController.reset();
         _syncBossNextButton();
         hideBossCinematic();
         document.getElementById('welcome-state')?.classList.add('hidden');
@@ -17722,48 +17809,17 @@ async function _loadBossQuestion() {
 }
 
 async function _handleBossAnswer(grade, context = null) {
-    if (!_bossMode || _bossFinishInFlight) return false;
-    const submittedIndex = Number.isInteger(context?.index) ? context.index : _bossIndex;
-    const submittedQuestionId = context?.questionId == null
-        ? Number(currentQ?.id)
-        : Number(context.questionId);
-    // A delayed review callback belongs to the question that was on the board
-    // when it was submitted.  If the queue already moved, it must not settle
-    // the newer question or increment the Boss counter a second time.
-    if (submittedIndex !== _bossIndex || submittedQuestionId !== Number(currentQ?.id)) return false;
-    const settlementKey = `${submittedIndex}:${submittedQuestionId}`;
-    if (_bossTransitionInFlightKey === settlementKey || _bossLastSettledKey === settlementKey) return false;
-    _bossTransitionInFlightKey = settlementKey;
-    _bossLastSettledKey = settlementKey;
-    _e10AcceptanceTrace('BOSS_TRANSITION_FROM_INDEX', { index: submittedIndex, qid: submittedQuestionId, grade });
-    _e10AcceptanceTrace('BOSS_TRANSITION_FROM_QID', { index: submittedIndex, qid: submittedQuestionId, grade });
-    try {
-        if (grade >= 3) _bossCorrect++;
-        _bossIndex++;
-        _e10AcceptanceTrace('BOSS_TRANSITION_TO_INDEX', {
-            fromIndex: submittedIndex,
-            fromQid: submittedQuestionId,
-            toIndex: _bossIndex,
-            toQid: _bossQueue?.[_bossIndex] ?? null,
-        });
-        _e10AcceptanceTrace('BOSS_TRANSITION_TO_QID', {
-            fromQid: submittedQuestionId,
-            toQid: _bossQueue?.[_bossIndex] ?? null,
-            toIndex: _bossIndex,
-        });
-        if (_bossIndex >= _bossQueue.length) {
-            // Show the final 20/20 position while the server-authoritative
-            // finish request settles; the displayed count never grants clear.
-            _renderBossTrialProgress(_bossQueue.length);
-            await _finishBossBattle();
-        } else {
-            const loaded = await _loadBossQuestion();
-            if (loaded !== true) return false;
-        }
-        return true;
-    } finally {
-        _bossTransitionInFlightKey = null;
-    }
+    // The controller emits the legacy 'BOSS_TRANSITION_FROM_INDEX',
+    // 'BOSS_TRANSITION_FROM_QID', 'BOSS_TRANSITION_TO_INDEX', and
+    // 'BOSS_TRANSITION_TO_QID' events.  Its load handoff retains the guarded
+    // `if (loaded !== true) return false;` contract while this adapter remains
+    // the only production call site for compatibility with existing harnesses.
+    const reviewResult = context?.reviewResult || { ok: true, legacyInternalHandoff: true };
+    return _getLordTrialController().handleCommittedReview(reviewResult, {
+        grade,
+        index: Number.isInteger(context?.index) ? context.index : undefined,
+        questionId: context?.questionId == null ? undefined : Number(context.questionId),
+    });
 }
 
 async function _finishBossBattle() {
