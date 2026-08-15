@@ -112,7 +112,11 @@ const SRS = (() => {
         if (!data || data.ok !== true) return { ok: false, skipped: true, failures: [] };
         const failures = [];
         const reportFailure = (stage, error) => {
-            const failure = { stage, errorType: error?.name || 'Error' };
+            const failure = {
+                stage,
+                errorType: error?.name || 'Error',
+                message: error?.message || String(error || ''),
+            };
             failures.push(failure);
             if (typeof onError === 'function') {
                 try { onError(failure); } catch (observerError) { /* diagnostics are non-authoritative */ }

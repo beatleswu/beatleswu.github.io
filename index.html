@@ -8921,7 +8921,7 @@ function currentUnitName(){if(!currentQ)return null;const t=currentQ.topic&&curr
 // ─── SRS ───────────────────────────────────────────────────────
 function _getLordTrialController() {
     if (_lordTrialController) return _lordTrialController;
-    const factory = window.GoOdysseyLordTrialController;
+    const factory = window.LordReviewController || window.GoOdysseyLordTrialController;
     if (!factory || typeof factory.create !== 'function') {
         throw new Error('lord_trial_controller_unavailable');
     }
@@ -8950,20 +8950,30 @@ function _getLordTrialController() {
     return _lordTrialController;
 }
 
-function _dispatchCommittedReviewPresentation(data, grade) {
+function _recordLordPresentationFailure(controller, stage, failure = {}) {
+    const error = failure?.error;
+    const errorType = failure?.errorType || error?.name || 'Error';
+    const message = failure?.message || error?.message || String(error || errorType);
+    const report = { stage: stage || failure?.stage || 'unknown', errorType, message };
+    try {
+        controller?.recordDisplayFailure(report);
+    } catch (observerError) {
+        // Presentation diagnostics must never become a Lord transition error.
+    }
+    _e10AcceptanceTrace('PRESENTATION_ERROR', report);
+    if (_e10AcceptanceDiagnosticsEnabled()) {
+        console.error('[E10] presentation_failure', report);
+    }
+}
+
+function _dispatchCommittedReviewPresentation(data, grade, lordController = null) {
+    const reportFailure = (stage, failure) => _recordLordPresentationFailure(lordController, stage, failure);
     const dispatchLater = (stage, callback, delay = 0) => setTimeout(() => {
-        try { callback(); } catch (error) {
-            _e10AcceptanceTrace('PRESENTATION_ERROR', {
-                stage, errorType: error?.name || 'Error',
-            });
-        }
+        try { callback(); } catch (error) { reportFailure(stage, { error }); }
     }, delay);
     if (typeof SRS.dispatchReviewPresentation === 'function') {
         SRS.dispatchReviewPresentation(data, {
-            onError: failure => _e10AcceptanceTrace('PRESENTATION_ERROR', {
-                stage: failure.stage,
-                errorType: failure.errorType,
-            }),
+            onError: failure => reportFailure(failure.stage, failure),
         });
     }
     // ── 商城道具回饋 ────────────────────────────────────────────
@@ -9071,8 +9081,13 @@ async function submitSRS(grade){
         catch(e){/* /api/unit-progress 不存在時靜默忽略 */}
     }
     let data;
+    const lordController = _bossMode ? _getLordTrialController() : null;
     _e10AcceptanceTrace('REVIEW_REQUESTED', {
         qid: Number(currentQ.id), grade, lord: _bossMode === true,
+    });
+    lordController?.recordReviewRequest({
+        index: bossAnswerContext?.index,
+        questionId: bossAnswerContext?.questionId,
     });
     try {
         data = await SRS.review(currentQ.id,grade,unit,unitDone,_currentReviewMetadata());
@@ -9110,6 +9125,27 @@ async function submitSRS(grade){
     _e10AcceptanceTrace('REVIEW_COMMITTED', {
         qid: Number(currentQ.id), grade, lord: _bossMode === true,
     });
+    // Read the production-shaped response before the Lord authority handoff,
+    // but keep every callback invocation after the committed transition.  The
+    // snapshot preserves the old response-shape guard without allowing a
+    // presentation effect to become a progression authority.
+    const committedPresentation = {
+        ...data,
+        monster: data.monster,
+        pet: data.pet,
+        practice: data.practice,
+        player: data.player,
+        sp: data.sp,
+        loot: data.loot,
+        appearance_loot: data.appearance_loot,
+        new_appearance_items: data.new_appearance_items,
+        quest_updates: data.quest_updates,
+        combo_streak: data.combo_streak,
+        ranked_up: data.ranked_up,
+        xp_gain: data.xp_gain,
+        shield_used: data.shield_used,
+        pet_xp_gained: data.pet_xp_gained,
+    };
     if (_bossMode) {
         bossAnswerContext.reviewResult = data;
         try {
@@ -9127,11 +9163,9 @@ async function submitSRS(grade){
             qid: Number(bossAnswerContext.questionId), grade,
         });
         try {
-            _dispatchCommittedReviewPresentation(data, grade);
+            _dispatchCommittedReviewPresentation(committedPresentation, grade, lordController);
         } catch (error) {
-            _e10AcceptanceTrace('PRESENTATION_ERROR', {
-                stage: 'lord_review_presentation', errorType: error?.name || 'Error',
-            });
+            _recordLordPresentationFailure(lordController, 'lord_review_presentation', { error });
             console.error('[BOSS] presentation dispatch failed after commit', error);
         }
         return;

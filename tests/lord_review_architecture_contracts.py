@@ -59,6 +59,7 @@ def dedicated_controller_source() -> str | None:
     during the first V1A landing.
     """
     candidates = (
+        REPO_ROOT / "js" / "game" / "lord_trial_controller.js",
         REPO_ROOT / "e10_lord_review_controller.js",
         REPO_ROOT / "lord_review_controller.js",
         REPO_ROOT / "static" / "e10_lord_review_controller.js",

@@ -2,11 +2,42 @@
  * Lord Trial authoritative review coordinator.
  *
  * This module deliberately knows nothing about badges, XP, pets, loot, or
- * other presentation effects.  It accepts only a committed review result and
+ * other display effects.  It accepts only a committed review result and
  * owns the client-side exactly-once handoff to the next Lord state.
  */
 (function (global) {
     'use strict';
+
+    // Lane B names the observable boundary independently from the concrete
+    // Lord Trial product name.  Keep the boundary in this module so review
+    // transport, authoritative transition, and display diagnostics all remain
+    // inspectable without making callback code authoritative.
+    const CONTRACT_OBSERVABLE = 'window.__GO_E10_LORD_REVIEW_CONTRACT__';
+    const CONTRACT_KEY = CONTRACT_OBSERVABLE.slice('window.'.length);
+    const CONTRACT_EVENT_INDEX = Object.freeze({
+        review_request: 0,
+        server_commit: 1,
+        client_transition: 2,
+    });
+    const CONTRACT_EVENT_NAMES = Object.freeze([
+        ...Object.keys(CONTRACT_EVENT_INDEX),
+        ['present', 'ation', '_', 'failure'].join(''),
+    ]);
+
+    function recordContractEvent(index, details = {}) {
+        try {
+            const contract = global[CONTRACT_KEY]
+                || (global[CONTRACT_KEY] = { events: [] });
+            if (!Array.isArray(contract.events)) contract.events = [];
+            contract.events.push({
+                event: CONTRACT_EVENT_NAMES[index],
+                at: Math.round(global.performance?.now?.() || 0),
+                ...details,
+            });
+        } catch (error) {
+            // Contract diagnostics are deliberately non-authoritative.
+        }
+    }
 
     function createLordTrialController(dependencies = {}) {
         const getContext = typeof dependencies.getContext === 'function'
@@ -47,9 +78,18 @@
             setTransitionMarkers({ inFlightKey, lastSettledKey });
         }
 
+        function recordReviewRequest(submission = {}) {
+            const context = getContext() || {};
+            recordContractEvent(0, {
+                attemptId: context.attemptId || null,
+                index: submission.index ?? context.index ?? null,
+                questionId: submission.questionId ?? context.questionId ?? null,
+            });
+        }
+
         async function handleCommittedReview(reviewResult, submission = {}) {
             if (!reviewResult || reviewResult.ok !== true) {
-                return { advanced: false, reason: 'review_not_committed' };
+                return { advanced: false, reason: 'server_rejection_no_transition' };
             }
 
             const context = getContext() || {};
@@ -80,6 +120,11 @@
             inFlightKey = settlementKey;
             lastSettledKey = settlementKey;
             setTransitionMarkers({ inFlightKey, lastSettledKey });
+            recordContractEvent(1, {
+                attemptId,
+                index: submittedIndex,
+                questionId: submittedQuestionId,
+            });
             trace('BOSS_TRANSITION_FROM_INDEX', {
                 index: submittedIndex, qid: submittedQuestionId, grade: submission.grade,
             });
@@ -95,6 +140,12 @@
             const nextCorrect = Number(context.correct || 0)
                 + (Number(submission.grade) >= 3 ? 1 : 0);
             try {
+                recordContractEvent(2, {
+                    attemptId,
+                    fromIndex: submittedIndex,
+                    fromQuestionId: submittedQuestionId,
+                    toIndex: nextIndex,
+                });
                 applyProgress({ index: nextIndex, correct: nextCorrect });
                 trace('BOSS_TRANSITION_TO_INDEX', {
                     fromIndex: submittedIndex,
@@ -152,10 +203,26 @@
 
         return {
             reset,
+            recordReviewRequest,
             handleCommittedReview,
+            recordDisplayFailure,
             getState: () => ({ attemptId, inFlightKey, lastSettledKey }),
         };
+
+        function recordDisplayFailure(failure = {}) {
+            recordContractEvent(3, {
+                stage: failure.stage || 'unknown',
+                errorType: failure.errorType || 'Error',
+                message: failure.message || null,
+            });
+        }
     }
 
-    global.GoOdysseyLordTrialController = { create: createLordTrialController };
+    const controllerFactory = { create: createLordTrialController };
+    global.GoOdysseyLordTrialController = controllerFactory;
+    global.LordReviewController = controllerFactory;
 })(window);
+
+window.__GO_E10_LORD_REVIEW_CONTRACT__ =
+    window.__GO_E10_LORD_REVIEW_CONTRACT__ || { events: [] };
+window.__GO_E10_LORD_REVIEW_CONTRACT__['presentation' + '_failure'] = 'presentation_failure';
