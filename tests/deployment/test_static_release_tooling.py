@@ -177,6 +177,7 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
         "i18n.js", "sw.js", "index.html", "site-nav.js",
         "inventory.html",
         "js/e9/shell.js", "js/map_battle_v1_adapter.js",
+        "js/game/lord_trial_controller.js",
     }
 
 
