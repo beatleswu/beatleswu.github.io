@@ -7,6 +7,41 @@
 (function (global) {
     'use strict';
 
+    function normalizeDependencies(dependencies) {
+        const deps = dependencies || {};
+        if (!deps.badge || typeof deps.badge !== 'object') return deps;
+
+        let badgeDefinitions = [];
+        const badgeState = typeof deps.badge.state === 'function'
+            ? deps.badge.state
+            : () => [];
+        const badgeSeen = typeof deps.badge.seen === 'function'
+            ? deps.badge.seen
+            : null;
+
+        return {
+            mergeBadges: ids => {
+                const state = badgeState(ids);
+                badgeDefinitions = Array.isArray(state) ? state : [];
+            },
+            earned: {},
+            getBadgeDef: bid => badgeDefinitions.find(definition => definition?.id === bid) || null,
+            onBadge: typeof deps.badge.show === 'function' ? deps.badge.show : null,
+            onMonster: typeof deps.monster === 'function' ? deps.monster : null,
+            onQuest: typeof deps.quest === 'function' ? deps.quest : null,
+            fetch: badgeSeen
+                ? (url, options) => {
+                    if (url === '/api/badges/seen') {
+                        const payload = JSON.parse(options?.body || '{}');
+                        return badgeSeen(payload.ids || []);
+                    }
+                    return Promise.resolve({ ok: true, json: async () => ({}) });
+                }
+                : null,
+            now: () => new Date().toISOString(),
+        };
+    }
+
     function create(dependencies) {
         const deps = dependencies || {};
         const mergeBadges = typeof deps.mergeBadges === 'function'
@@ -68,7 +103,7 @@
                             body: JSON.stringify({ ids: data.new_badges })
                         });
                         if (seenRequest && typeof seenRequest.catch === 'function') {
-                            seenRequest.catch(() => {});
+                            seenRequest.catch(error => reportFailure('badge_seen', error));
                         }
                     }
                 } catch (error) {
@@ -84,7 +119,14 @@
         return { dispatchReviewPresentation };
     }
 
-    const api = { create };
+    function dispatch(data, dependencies) {
+        const deps = dependencies || {};
+        return create(normalizeDependencies(deps)).dispatchReviewPresentation(data, {
+            onError: deps.onError,
+        });
+    }
+
+    const api = { create, dispatch };
     global.GoOdysseyPresentationDispatcher = api;
     global.PresentationDispatcher = api;
 })(typeof window !== 'undefined' ? window : globalThis);

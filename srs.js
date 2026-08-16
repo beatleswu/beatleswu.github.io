@@ -74,21 +74,8 @@ const SRS = (() => {
         _lsSave(ls);
     }
 
-    const _presentationDispatcherFactory =
-        typeof window !== 'undefined' ? window.GoOdysseyPresentationDispatcher : null;
-    const _presentationDispatcher = _presentationDispatcherFactory &&
-        typeof _presentationDispatcherFactory.create === 'function'
-        ? _presentationDispatcherFactory.create({
-            mergeBadges: _lsMerge,
-            earned: _earned,
-            getBadgeDef,
-            onBadge: payload => { if (typeof _onBadge === 'function') _onBadge(payload); },
-            onMonster: payload => { if (typeof _onMonster === 'function') _onMonster(payload); },
-            onQuest: payload => { if (typeof _onQuest === 'function') _onQuest(payload); },
-            fetch: (url, options) => fetch(url, options),
-            now: () => new Date().toISOString(),
-        })
-        : null;
+    const _presentationDispatcher =
+        typeof window !== 'undefined' ? window.PresentationDispatcher : null;
 
     // ── 送出評分 ──────────────────────────────────────────────
     async function review(qid, grade, unitName, unitDone, metadata = {}) {
@@ -121,10 +108,20 @@ const SRS = (() => {
     }
 
     function dispatchReviewPresentation(data, { onError } = {}) {
-        if (!_presentationDispatcher) {
+        if (!_presentationDispatcher || typeof _presentationDispatcher.dispatch !== 'function') {
             throw new Error('presentation_dispatcher_unavailable');
         }
-        return _presentationDispatcher.dispatchReviewPresentation(data, { onError });
+        return _presentationDispatcher.dispatch(data, {
+            mergeBadges: _lsMerge,
+            earned: _earned,
+            getBadgeDef,
+            onBadge: payload => { if (typeof _onBadge === 'function') _onBadge(payload); },
+            onMonster: payload => { if (typeof _onMonster === 'function') _onMonster(payload); },
+            onQuest: payload => { if (typeof _onQuest === 'function') _onQuest(payload); },
+            fetch: (url, options) => fetch(url, options),
+            now: () => new Date().toISOString(),
+            onError,
+        });
     }
 
     // ── 載入今日任務 ──────────────────────────────────────────
