@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
-      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
-      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
-      "source_date": "2026-08-15",
-      "content_sha256": "2d90d92cfae1c427ae39b7f7ec1f5e5c0ae704c80783f69099d2615b7a18505e",
+      "source_commit": "76f014e9c3d7710f2490d81ba234ab9bf62d8625",
+      "source_branch_or_local_ref": "codex/e10-v1b-b1-product-integration-001",
+      "source_commit_subject": "refactor(frontend): integrate PresentationDispatcher B1",
+      "source_date": "2026-08-16",
+      "content_sha256": "23fed8b6b7e6a37d2995f3377122642839660f9c45cf83f11415f4a9c2682225",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -519,27 +519,39 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
-      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
-      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
-      "source_date": "2026-08-15",
-      "content_sha256": "6acf6bc2128eb214f30e46c7e67bf0c8cf7ef54a8dfb83c0f044841f76f22213",
+      "source_commit": "76f014e9c3d7710f2490d81ba234ab9bf62d8625",
+      "source_branch_or_local_ref": "codex/e10-v1b-b1-product-integration-001",
+      "source_commit_subject": "refactor(frontend): integrate PresentationDispatcher B1",
+      "source_date": "2026-08-16",
+      "content_sha256": "86813ba842bc5470f7bbd23757a0dddefb128a977b789c427e8f93ff59da84a4",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",
-      "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
-      "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
-      "source_commit_subject": "fix(e10): adapt frozen lord review contracts",
-      "source_date": "2026-08-15",
-      "content_sha256": "6006baef478d633924d67a9d740a2e6debde3396226bd202312648ddbb0235c6",
+      "source_commit": "a4d5695621abe1f15c33407d5726bb77944f6fd7",
+      "source_branch_or_local_ref": "codex/e10-v1b-b1-final-closure-016",
+      "source_commit_subject": "fix: close B1 presentation dispatcher contract",
+      "source_date": "2026-08-17",
+      "content_sha256": "f7e67fc0b59d504ca45c7660ca37b696a6ec91b438b96b1322ae64717018f560",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/game/presentation_dispatcher.js",
+      "source_commit": "a4d5695621abe1f15c33407d5726bb77944f6fd7",
+      "source_branch_or_local_ref": "codex/e10-v1b-b1-final-closure-016",
+      "source_commit_subject": "fix: close B1 presentation dispatcher contract",
+      "source_date": "2026-08-17",
+      "content_sha256": "db0be5650f637fe5553fcfc5f669b5507d440f977563ca7d18f744881245e76a",
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (observer-only committed-review presentation dispatcher; governed static subpath asset)",
+      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
     },
     {
       "path": "js/game/lord_trial_controller.js",

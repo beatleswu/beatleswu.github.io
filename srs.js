@@ -74,6 +74,9 @@ const SRS = (() => {
         _lsSave(ls);
     }
 
+    const _presentationDispatcher =
+        typeof window !== 'undefined' ? window.PresentationDispatcher : null;
+
     // ── 送出評分 ──────────────────────────────────────────────
     async function review(qid, grade, unitName, unitDone, metadata = {}) {
         const res = await fetch('/api/srs/review', {
@@ -104,55 +107,21 @@ const SRS = (() => {
         return data;
     }
 
-    // Presentation callbacks intentionally live outside review().  A callback
-    // is allowed to fail without converting an already-committed review into
-    // a transport failure.  The authoritative review path still throws for
-    // network, parse, and non-accepted server errors.
     function dispatchReviewPresentation(data, { onError } = {}) {
-        if (!data || data.ok !== true) return { ok: false, skipped: true, failures: [] };
-        const failures = [];
-        const reportFailure = (stage, error) => {
-            const failure = {
-                stage,
-                errorType: error?.name || 'Error',
-                message: error?.message || String(error || ''),
-            };
-            failures.push(failure);
-            if (typeof onError === 'function') {
-                try { onError(failure); } catch (observerError) { /* diagnostics are non-authoritative */ }
-            }
-        };
-        const dispatch = (stage, callback, payload) => {
-            if (typeof callback !== 'function') return;
-            try { callback(payload); } catch (error) { reportFailure(stage, error); }
-        };
-
-        if (data.new_badges && data.new_badges.length) {
-            try {
-                _lsMerge(data.new_badges);
-                data.new_badges.forEach(bid => {
-                    _earned[bid] = new Date().toISOString();
-                    const def = getBadgeDef(bid);
-                    if (def) dispatch('badge', _onBadge, def);
-                });
-            } catch (error) {
-                reportFailure('badge_state', error);
-            }
-            try {
-                fetch('/api/badges/seen', {
-                    credentials: 'include',
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ids: data.new_badges })
-                }).catch(() => {});
-            } catch (error) {
-                reportFailure('badge_seen', error);
-            }
+        if (!_presentationDispatcher || typeof _presentationDispatcher.dispatch !== 'function') {
+            throw new Error('presentation_dispatcher_unavailable');
         }
-
-        if (data.monster) dispatch('monster', _onMonster, data.monster);
-        if (data.quest_updates) dispatch('quest', _onQuest, data.quest_updates);
-        return { ok: failures.length === 0, skipped: false, failures };
+        return _presentationDispatcher.dispatch(data, {
+            mergeBadges: _lsMerge,
+            earned: _earned,
+            getBadgeDef,
+            onBadge: payload => { if (typeof _onBadge === 'function') _onBadge(payload); },
+            onMonster: payload => { if (typeof _onMonster === 'function') _onMonster(payload); },
+            onQuest: payload => { if (typeof _onQuest === 'function') _onQuest(payload); },
+            fetch: (url, options) => fetch(url, options),
+            now: () => new Date().toISOString(),
+            onError,
+        });
     }
 
     // ── 載入今日任務 ──────────────────────────────────────────
