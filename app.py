@@ -20613,6 +20613,12 @@ def serve_lord_trial_controller_js():
         'lord_trial_controller.js', 'js/game', 'js/game'
     )
 
+@app.route('/js/game/presentation_dispatcher.js')
+def serve_presentation_dispatcher_js():
+    return _serve_live_static_or_baked_subpath(
+        'presentation_dispatcher.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):
