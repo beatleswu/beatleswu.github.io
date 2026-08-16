@@ -1,10 +1,8 @@
-"""E10 Frontend V1B B3 ReviewTransport contract preparation tests.
+"""E10 Frontend V1B B3 ReviewTransport contract tests.
 
-The source-characterization tests are current-base checks and do not import
-the Flask application or touch a database.  The final test invokes the
-future-facing Node runner.  On the pinned base it has one deliberate red with
-the explicit reason MISSING_FUTURE_REVIEW_TRANSPORT_SEAM; no xfail/skip hides
-that missing implementation seam.
+The source-characterization tests do not import the Flask application or
+touch a database.  The final test invokes the Node contract runner directly;
+no xfail/skip hides a missing implementation seam.
 """
 
 from __future__ import annotations
@@ -23,26 +21,40 @@ import review_contracts
 APP_SOURCE = (ROOT / "app.py").read_text(encoding="utf-8")
 INDEX_SOURCE = (ROOT / "index.html").read_text(encoding="utf-8")
 SRS_SOURCE = (ROOT / "srs.js").read_text(encoding="utf-8")
+REVIEW_TRANSPORT_SOURCE = (ROOT / "js" / "game" / "review_transport.js").read_text(encoding="utf-8")
 RUNNER = ROOT / "tests" / "e2e" / "run_e10_review_transport_contract.mjs"
 FUTURE_MODULE = ROOT / "js" / "game" / "review_transport.js"
 
 
-def test_current_request_boundary_is_the_canonical_legacy_post():
-    assert "fetch('/api/srs/review'" in SRS_SOURCE
-    assert "credentials: 'include'" in SRS_SOURCE
-    assert "method: 'POST'" in SRS_SOURCE
-    assert "headers: { 'Content-Type': 'application/json' }" in SRS_SOURCE
-    assert "question_id: qid, grade," in SRS_SOURCE
-    assert "unit_name: unitName || null" in SRS_SOURCE
-    assert "unit_done: !!unitDone" in SRS_SOURCE
-    assert "response_ms: metadata.response_ms ?? null" in SRS_SOURCE
-    assert "source_context: metadata.source_context || 'practice'" in SRS_SOURCE
-    assert "training_set_id: metadata.training_set_id ?? null" in SRS_SOURCE
-    assert "is_scaffolding: !!metadata.is_scaffolding" in SRS_SOURCE
+def test_review_transport_is_the_only_frontend_review_post():
+    assert "fetch('/api/srs/review'" not in INDEX_SOURCE
+    assert "fetch('/api/srs/review'" not in SRS_SOURCE
+    assert "window.ReviewTransport.review(observerCommand)" in INDEX_SOURCE
+    assert "_reviewTransport.legacyReview(" in SRS_SOURCE
+    assert "request.question_id = value.question_id" in REVIEW_TRANSPORT_SOURCE
+    assert "request.is_scaffolding = !!value.is_scaffolding" in REVIEW_TRANSPORT_SOURCE
 
     assert "@app.route('/api/srs/review', methods=['POST'])" in APP_SOURCE
     assert "if not internal and (qid is None or grade not in (0,3,5)):" in APP_SOURCE
     assert "source_context = str(data.get('source_context') or 'practice')" in APP_SOURCE
+
+
+def test_rejected_review_paths_cannot_advance_or_dispatch():
+    review_start = INDEX_SOURCE.index("data = await SRS.review")
+    committed_start = INDEX_SOURCE.index("_e10AcceptanceTrace('REVIEW_COMMITTED'", review_start)
+    failure_region = INDEX_SOURCE[review_start:committed_start]
+
+    for forbidden in (
+        "nextQuestion(",
+        "loadQuestion(",
+        "_handleBossAnswer(",
+        "_submitMapBattleV1IfActive(",
+        "_dispatchCommittedReviewPresentation(",
+        "_syncGuildQuestProgress(",
+    ):
+        assert forbidden not in failure_region
+    assert "return;" in failure_region
+    assert "_applyDailyLimit();" in failure_region
 
 
 def test_current_identity_and_mode_values_are_not_expanded_by_the_prep():

@@ -9181,8 +9181,8 @@ async function submitSRS(grade){
                 console.warn('[BOSS] daily_limit review rejected; no progress recorded');
                 setMsg(I18n.t('index.srs.save_fail'), 'err');
             } else if(_challengeId){
-                // 挑戰模式：不鎖定，直接進下一題
-                if(grade>0){ srsDoneCount++; nextQuestion(); }
+                // Challenge mode stays unlocked, but a rejected review never advances.
+                setMsg(I18n.t('index.srs.save_fail'), 'err');
             } else {
                 _applyDailyLimit();
             }
@@ -11304,7 +11304,16 @@ function onBoardClick(bx,by){
             return;
         }
         if(_challengeId&&window._challengeWrongHandler){window._challengeWrongHandler();}
-        if(currentQ&&!_dailyLimitReached)fetch('/api/srs/review',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:currentQ.id,grade:0,unit_name:null,unit_done:false,..._currentReviewMetadata()})}).then(r=>r.json()).then(d=>{if(d.error==='daily_limit'){_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();return;}if(d.error)return;_syncGuildQuestProgress();if(d.monster&&!_isAdventureZonePractice()){updateMonsterUI(d.monster);if(!d.monster.defeated)monsterSpeakTaunt(d.monster.type||_lastMonsterType);}if(d.player)updatePlayerHPUI(d.player);if(d.quest_updates)updateQuestPanel(d.quest_updates);}).catch(()=>{});
+        if(currentQ&&!_dailyLimitReached&&window.ReviewTransport&&typeof window.ReviewTransport.review==='function'){
+            const observerCommand={
+                question_id:currentQ.id,
+                grade:0,
+                unit_name:null,
+                unit_done:false,
+                ..._currentReviewMetadata()
+            };
+            window.ReviewTransport.review(observerCommand).then(({payload:d})=>{if(d.error==='daily_limit'){_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();return;}if(d.error)return;_syncGuildQuestProgress();if(d.monster&&!_isAdventureZonePractice()){updateMonsterUI(d.monster);if(!d.monster.defeated)monsterSpeakTaunt(d.monster.type||_lastMonsterType);}if(d.player)updatePlayerHPUI(d.player);if(d.quest_updates)updateQuestPanel(d.quest_updates);}).catch(error=>{if(error?.kind==='REJECTED'&&error.code==='daily_limit'){const d=error.payload||{};_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();}});
+        }
         setMsg('🤖 GnuGo 思考中…','err');
         askGnuGo(opp).then(mv=>{
             if(mv){ playStone(mv.x,mv.y,opp,true); }
