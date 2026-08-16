@@ -7,6 +7,14 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..', '..');
 const INDEX = await fs.readFile(path.join(REPO_ROOT, 'index.html'), 'utf8');
+const PRESENTATION_DISPATCHER = await fs.readFile(
+  path.join(REPO_ROOT, 'js/game/presentation_dispatcher.js'),
+  'utf8',
+);
+const PRESENTATION_EFFECTS_B2 = await fs.readFile(
+  path.join(REPO_ROOT, 'js/game/presentation_effects_b2.js'),
+  'utf8',
+);
 const SRS = await fs.readFile(path.join(REPO_ROOT, 'srs.js'), 'utf8');
 
 function extractFunction(source, name) {
@@ -554,6 +562,7 @@ async function characterizeSrsPresentationFailureBoundary() {
   let reviewCalls = 0;
   const storage = new Map();
   const context = vm.createContext({
+    window: {},
     localStorage: {
       getItem: (key) => storage.get(key) || null,
       setItem: (key, value) => storage.set(key, value),
@@ -574,7 +583,10 @@ async function characterizeSrsPresentationFailureBoundary() {
       return Promise.resolve(makeResponse({}));
     },
   });
-  vm.runInContext(`${SRS}\nthis.api = SRS;`, context);
+  vm.runInContext(
+    `${PRESENTATION_DISPATCHER}\n${PRESENTATION_EFFECTS_B2}\n${SRS}\nthis.api = SRS;`,
+    context,
+  );
   const api = context.api;
   await api.init(null, () => { throw new Error('monster renderer failed'); }, null);
   const committed = await api.review(7, 3, null, false, {});
@@ -630,6 +642,7 @@ async function characterizeReviewCommitAndMapBattleAuthority() {
     _mapBattleV1Mode: 'disabled',
     _mapBattleV1State: null,
     _mapBattleV1Moves: [],
+    _mapBattleV1LifecycleGeneration: 0,
     _dailyLimitBlocksCurrentFlow: () => false,
     _reviewRequestInFlightKey: null,
     _activeBossZone: null,
