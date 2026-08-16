@@ -50,12 +50,13 @@ SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 CONFLICT_MARKER_LINE = re.compile(rb"(?m)^(?:<<<<<<<|=======|>>>>>>>)")
 
-# CONTROL_PLANE_ONLY owns only local workflow/release tooling, deployment
-# tests, and workflow documentation.  PRODUCT_CHANGE uses an explicit exact
-# file set and never broadens this control-plane allowlist implicitly.
-ALLOWED_WORKFLOW_PREFIXES = (
+CONTROL_PLANE_EXACT_PATHS = frozenset(
+    {"scripts/build-production-image.ps1"}
+)
+CONTROL_PLANE_PREFIXES = (
     "scripts/release/",
     "tests/deployment/",
+    "tests/release/",
     "docs/deployment/",
 )
 FORBIDDEN_EXACT_PATHS = frozenset(
@@ -255,15 +256,16 @@ def _is_forbidden_product_path(path: str) -> bool:
 
 def _is_allowed_workflow_path(path: str) -> bool:
     normalized = _path_for_scope(path)
-    return normalized.startswith(ALLOWED_WORKFLOW_PREFIXES)
+    return normalized in CONTROL_PLANE_EXACT_PATHS or normalized.startswith(CONTROL_PLANE_PREFIXES)
 
 
 def _product_runtime_changed_files(paths: Sequence[str]) -> list[str]:
-    non_runtime_prefixes = ("tests/", "docs/", "scripts/release/")
+    non_runtime_prefixes = ("tests/", "docs/")
     return sorted(
         path
         for path in {_path_for_scope(item) for item in paths}
         if not path.startswith(non_runtime_prefixes)
+        and not _is_allowed_workflow_path(path)
     )
 
 

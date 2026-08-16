@@ -12,6 +12,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "release" / "e10_development_workflow_v2.py"
+BUILD_PRODUCTION_IMAGE = "scripts/build-production-image.ps1"
+RELEASE_WORKFLOW_TEST = "tests/release/workflow_contract_test.py"
 sys.path.insert(0, str(SCRIPT.parent))
 import e10_development_workflow_v2 as workflow  # noqa: E402
 
@@ -257,8 +259,9 @@ def test_candidate_not_descendant_of_expected_base_fails_closed(tmp_path: Path) 
         workflow.build_pr_ready_packet(payload)
 
 
-def test_current_canonical_r2a_history_is_accepted() -> None:
+def test_current_canonical_r2a_history_is_accepted(tmp_path: Path) -> None:
     canonical = "19814adbacf4837ad4f1134469f500f1a64d787a"
+    base = "7b25a4b180f514cafab1945ea2ee62b9c97c5438"
     r2a = "d6ea55376c82940713b0d2ce7ddffd4ba7e342bd"
     assert git(ROOT, "rev-parse", canonical + "^{commit}") == canonical
     lineage = subprocess.run(
@@ -268,28 +271,76 @@ def test_current_canonical_r2a_history_is_accepted() -> None:
     )
     assert lineage.returncode == 0
 
-    candidate = git(ROOT, "rev-parse", "HEAD")
-    packet = workflow.build_pr_ready_packet(
-        {
-            "repo": str(ROOT),
-            "scope_mode": workflow.CONTROL_PLANE_ONLY,
-            "base_sha": canonical,
-            "candidate_sha": candidate,
-            "implementation_sha": candidate,
-            "product_source_sha": canonical,
-            "tooling_sha": candidate,
-            "tests": [
-                {
-                    "name": "workflow module exists",
-                    "path": "tests/deployment/test_e10_development_workflow_v2.py",
-                    "command": [sys.executable, "-c", "assert True"],
-                }
-            ],
-        }
+    # Use a temporary detached worktree pinned to a stable canonical anchor.
+    # This keeps the regression valid after future Product merges advance
+    # ROOT/HEAD without copying the repository or contacting a remote.
+    fixture = tmp_path / "canonical-anchor"
+    worktree = subprocess.run(
+        ["git", "worktree", "add", "--quiet", "--detach", str(fixture), canonical],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
     )
+    assert worktree.returncode == 0, worktree.stderr or worktree.stdout
+    try:
+        assert git(fixture, "rev-parse", "HEAD") == canonical
+        packet = workflow.build_pr_ready_packet(
+            {
+                "repo": str(fixture),
+                "scope_mode": workflow.CONTROL_PLANE_ONLY,
+                "base_sha": base,
+                "candidate_sha": canonical,
+                "implementation_sha": canonical,
+                "product_source_sha": base,
+                "tooling_sha": canonical,
+                "tests": [
+                    {
+                        "name": "canonical source-separation test exists",
+                        "path": "tests/deployment/test_release_source_separation.py",
+                        "command": [sys.executable, "-c", "assert True"],
+                    }
+                ],
+            }
+        )
+        assert packet["PR_READY"] == "YES"
+        assert packet["R2A_HISTORY_PRESENT"] == "YES_EXPECTED"
+        assert packet["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] == "NO"
+    finally:
+        removed = subprocess.run(
+            ["git", "worktree", "remove", str(fixture)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        assert removed.returncode == 0, removed.stderr or removed.stdout
+
+
+def test_control_plane_only_accepts_build_production_image_script(tmp_path: Path) -> None:
+    repo, _root, base = make_repo(tmp_path)
+    candidate = add_candidate(repo, BUILD_PRODUCTION_IMAGE)
+    packet = workflow.build_pr_ready_packet(pr_payload(repo, base, candidate))
+
     assert packet["PR_READY"] == "YES"
-    assert packet["R2A_HISTORY_PRESENT"] == "YES_EXPECTED"
-    assert packet["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] == "NO"
+    assert packet["SCOPE_MODE"] == workflow.CONTROL_PLANE_ONLY
+    assert packet["PRODUCT_RUNTIME_CHANGED_FILES"] == []
+    assert workflow._is_allowed_workflow_path(BUILD_PRODUCTION_IMAGE)
+    assert workflow._product_runtime_changed_files([BUILD_PRODUCTION_IMAGE]) == []
+
+
+def test_control_plane_only_accepts_release_test_path(tmp_path: Path) -> None:
+    repo, _root, base = make_repo(tmp_path)
+    candidate = add_candidate(repo, RELEASE_WORKFLOW_TEST)
+    packet = workflow.build_pr_ready_packet(pr_payload(repo, base, candidate))
+
+    assert packet["PR_READY"] == "YES"
+    assert packet["SCOPE_MODE"] == workflow.CONTROL_PLANE_ONLY
+    assert packet["PRODUCT_RUNTIME_CHANGED_FILES"] == []
+    assert workflow._is_allowed_workflow_path(RELEASE_WORKFLOW_TEST)
+    assert workflow._product_runtime_changed_files([RELEASE_WORKFLOW_TEST]) == []
 
 
 def test_product_change_pr_ready_requires_exact_scope_and_separates_identities(tmp_path: Path) -> None:
@@ -354,6 +405,24 @@ def test_product_change_rejects_mixed_control_plane_source(tmp_path: Path) -> No
     _repo, _base, _candidate, payload = make_product_candidate(
         tmp_path,
         extra_files={"scripts/release/should-split.txt": "control-plane\n"},
+    )
+    with pytest.raises(workflow.WorkflowError, match="mixed Product and control-plane"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_build_production_image_mixed_scope(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(
+        tmp_path,
+        extra_files={BUILD_PRODUCTION_IMAGE: "control-plane\n"},
+    )
+    with pytest.raises(workflow.WorkflowError, match="mixed Product and control-plane"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_release_test_mixed_scope(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(
+        tmp_path,
+        extra_files={RELEASE_WORKFLOW_TEST: "control-plane test\n"},
     )
     with pytest.raises(workflow.WorkflowError, match="mixed Product and control-plane"):
         workflow.build_pr_ready_packet(payload)

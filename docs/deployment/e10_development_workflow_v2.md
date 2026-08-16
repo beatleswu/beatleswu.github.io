@@ -23,9 +23,9 @@ Every packet declares exactly one `SCOPE_MODE`:
 `PRODUCT_CHANGE` requires an explicit non-empty `expected_changed_files`
 input. The actual candidate diff must equal that set exactly. The workflow
 does not invent a Product allowlist. Files under `tests/`, `docs/`, and
-`scripts/release/` are not counted as Product runtime files; every other
-changed path is conservatively classified as Product/runtime. Product and
-control-plane files cannot be combined in one candidate. Mixed scope fails
+canonical control-plane paths are not counted as Product runtime files; every
+other changed path is conservatively classified as Product/runtime. Product
+and control-plane files cannot be combined in one candidate. Mixed scope fails
 closed and must be split into separate changes.
 
 The following local or secret artifacts are always protected, including in
@@ -83,9 +83,16 @@ For `CONTROL_PLANE_ONLY`, only these roots are allowed:
 
 ```text
 scripts/release/*
+scripts/build-production-image.ps1
 tests/deployment/*
+tests/release/*
 docs/deployment/*
 ```
+
+This is the Python equivalent of the canonical #357 ReleaseTooling
+control-plane contract. The exact `scripts/build-production-image.ps1` path,
+including `tests/release/**`, is control-plane; it is not a Product runtime
+classification.
 
 For `PRODUCT_CHANGE`, the supplied exact file set is the authority. The
 packet reports `PRODUCT_RUNTIME_CHANGED_FILES` deterministically and can
