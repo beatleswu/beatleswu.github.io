@@ -1,9 +1,9 @@
-# E10 Development Workflow V2 Foundation
+# E10 Development Workflow V2
 
-This foundation is a local evidence and handoff layer for daily E10
-architecture and bug-fix work. It does not change Product runtime behavior,
-execute a merge, deploy, roll back, contact Production, or infer an Owner
-gate.
+This workflow is a local evidence and release-preparation layer for daily E10
+architecture and bug-fix work. It never changes Product runtime by itself,
+performs a merge, deploys, rolls back, contacts Production, or infers an
+Owner gate.
 
 The runner is:
 
@@ -11,39 +11,75 @@ The runner is:
 scripts/release/e10_development_workflow_v2.py
 ```
 
+## Explicit scope modes
+
+Every packet declares exactly one `SCOPE_MODE`:
+
+| Mode | Use | Product source identity | Runtime scope |
+| --- | --- | --- | --- |
+| `CONTROL_PLANE_ONLY` | Workflow, release tooling, deployment tests, and workflow docs | `PRODUCT_SOURCE_SHA` identifies the unchanged Product source and must differ from `IMPLEMENTATION_SHA` and `TOOLING_SHA` | Must be empty |
+| `PRODUCT_CHANGE` | A bounded E10 Product bug fix or Product integration | `PRODUCT_SOURCE_SHA == IMPLEMENTATION_SHA`; `TOOLING_SHA` remains distinct and must be in the candidate lineage | Exact deterministic classification from the supplied file set |
+
+`PRODUCT_CHANGE` requires an explicit non-empty `expected_changed_files`
+input. The actual candidate diff must equal that set exactly. The workflow
+does not invent a Product allowlist. Files under `tests/`, `docs/`, and
+`scripts/release/` are not counted as Product runtime files; every other
+changed path is conservatively classified as Product/runtime. Product and
+control-plane files cannot be combined in one candidate. Mixed scope fails
+closed and must be split into separate changes.
+
+The following local or secret artifacts are always protected, including in
+`PRODUCT_CHANGE`, and an expected-file entry cannot override that protection:
+
+```text
+secret_key.txt  .env*  *.db  *.sqlite*  *.pem  *.key  *.p12  *.pfx
+*.exe  *.dll  node_modules/  venv*/  backups/  katago/  ngrok/  cygwin/
+```
+
+`secret_key.txt` is never read by the runner.
+
 ## Identity contract
 
-Every packet carries these identities separately:
+Every packet keeps these identities separate:
 
 | Field | Meaning |
 | --- | --- |
 | `BASE_SHA` | Exact expected starting commit for the implementation worktree. |
 | `IMPLEMENTATION_SHA` | Exact implementation/candidate commit under review. |
-| `PRODUCT_SOURCE_SHA` | Exact Product source identity to use for a later release. It is never inferred from tooling. |
-| `TOOLING_SHA` | Exact workflow/release tooling identity. It must not collapse to Product source. |
+| `PRODUCT_SOURCE_SHA` | Exact Product source identity that may later be released. In `PRODUCT_CHANGE` it is the implementation; in `CONTROL_PLANE_ONLY` it may remain the unchanged Product source. |
+| `TOOLING_SHA` | Exact workflow/release tooling identity. It is never silently substituted for Product source. |
 | `MERGE_SHA` | Exact Owner-executed merge identity; `NOT_YET_MERGED` is explicit only in a PR-ready packet. |
 
-Missing identities, invalid ancestry, or `PRODUCT_SOURCE_SHA == TOOLING_SHA`
-fail closed.
+Missing identities, invalid ancestry, collapsed gate/Product identities, or a
+scope-mode identity mismatch fail closed. `PRODUCT_SOURCE_SHA` may equal
+`IMPLEMENTATION_SHA` only in `PRODUCT_CHANGE`; it must not equal
+`TOOLING_SHA`.
+
+## Historical R2A governance
+
+`R2A_HISTORY_PRESENT=YES_EXPECTED` is the current governance invariant.
+Historical R2A commits may be ancestors of canonical master and do not, by
+themselves, block Workflow V2. The retired generic “R2A ancestor is
+forbidden” rule is not used. Active-tree or runtime effects, if required by a
+separate Product/governance review, must be validated independently rather
+than inferred from ancestry.
+
+Packets report:
+
+```text
+R2A_HISTORY_PRESENT=YES_EXPECTED
+R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE=NO
+```
 
 ## Stage A: PR ready
 
-`pr-ready` requires a clean implementation worktree, explicit identity input,
-valid ancestry, exact changed-file enumeration, Lane W scope, no forbidden
-R2A ancestor, no conflict markers, and a non-empty list of existing test
-commands. Test commands are argv arrays and are executed locally with no shell.
+`pr-ready` requires a clean implementation worktree, explicit scope mode and
+identity input, valid ancestry, exact changed-file enumeration, the relevant
+scope contract, no protected/local artifacts, no conflict markers, and a
+non-empty list of existing test commands. Test commands are argv arrays and
+are executed locally with no shell.
 
-The output contains both a JSON packet and a human-readable summary when
-`--output` and `--human-output` are supplied. A successful packet has:
-
-```text
-PR_READY=YES
-PRODUCT_RUNTIME_CHANGED=NO
-R2A_INCLUDED=NO
-OWNER_GATE_INFERENCE=FORBIDDEN
-```
-
-Lane W accepts only these changed-file roots:
+For `CONTROL_PLANE_ONLY`, only these roots are allowed:
 
 ```text
 scripts/release/*
@@ -51,21 +87,28 @@ tests/deployment/*
 docs/deployment/*
 ```
 
-Product runtime paths, Product Dockerfile behavior, database/schema paths,
-the SGF corpus, and `secret_key.txt` are protected. The latter is never read
-by this runner.
+For `PRODUCT_CHANGE`, the supplied exact file set is the authority. The
+packet reports `PRODUCT_RUNTIME_CHANGED_FILES` deterministically and can
+therefore represent a normal Product candidate such as `app.py` plus its
+associated test.
+
+Successful packets contain `PR_READY=YES`, `OWNER_GATE_INFERENCE=FORBIDDEN`,
+and `MERGE_SHA=NOT_YET_MERGED`.
 
 ## Stage B: post merge
 
-`post-merge` validates a merge that an Owner already executed. It requires the
-expected implementation to be in the actual merge lineage, exact expected
-changed-file scope, a clean canonical worktree, no forbidden R2A ancestor, and
-explicit provenance identities for all five fields. The provenance input must
-also contain passing `source_separation`, `canonical_ancestry`,
-`runtime_provenance`, and `repository_status` gates, with
-`runtime_source_sha == PRODUCT_SOURCE_SHA`.
+`post-merge` validates a merge that an Owner already executed. It never calls
+`git merge`. The expected implementation must be in the actual merge
+lineage, the exact expected changed-file set must remain unchanged, the
+scope-mode identity contract must still hold, the canonical worktree must be
+clean, and the explicit provenance gates must pass.
 
-The command does not call `git merge` and reports:
+`PRODUCT_CHANGE` preserves its non-empty runtime classification when present;
+`CONTROL_PLANE_ONLY` must preserve an empty runtime list. In both modes,
+`runtime_source_sha` must equal `PRODUCT_SOURCE_SHA`, while `MERGE_SHA` remains
+a distinct merge identity.
+
+The command reports:
 
 ```text
 MERGE_EXECUTED=NO
@@ -74,13 +117,16 @@ OWNER_MERGE_OBSERVED=YES
 
 ## Stage C: release-prep handoff
 
-`release-prep` accepts a successful post-merge packet plus explicit local
-handoff evidence. `REQUIRED_TEST_GATES`, `STATIC_BUILD_REQUIRED`,
-`OCI_BUILD_REQUIRED`, `ROLLBACK_PREFLIGHT_REQUIRED`, and `NEXT_OWNER_GATE`
-are required inputs; the runner never guesses them. An Owner gate must be
-provided as `{ "explicit": true, "name": "GO_DEPLOY", "evidence": "..." }`.
+`release-prep` accepts a successful post-merge packet and explicit local
+handoff evidence. It propagates `SCOPE_MODE`, `PRODUCT_SOURCE_SHA`,
+`TOOLING_SHA`, `MERGE_SHA`, and `PRODUCT_RUNTIME_CHANGED_FILES`.
+`REQUIRED_TEST_GATES`, `STATIC_BUILD_REQUIRED`, `OCI_BUILD_REQUIRED`, and
+`ROLLBACK_PREFLIGHT_REQUIRED` are explicit inputs; the workflow never guesses
+whether a build is needed. An Owner gate must be supplied explicitly as a
+recognized gate with evidence.
 
-The handoff references the existing canonical tooling:
+The handoff references existing canonical tooling and does not rewrite or
+invoke builders or deployers:
 
 ```text
 scripts/release/package-static-release.ps1
@@ -90,9 +136,10 @@ scripts/release/package-release-image.ps1
 scripts/release/preflight-production.ps1
 ```
 
-No builder or deployer is rewritten or invoked by this stage.
+## Owner authority and rollback
 
-## Rollback authority
+`OWNER_GATE_INFERENCE=FORBIDDEN`. The workflow never creates or infers
+`GO_MERGE`, `GO_DEPLOY`, `GO_ROLLBACK`, `GO_ENABLE`, or `GO_GRANT`.
 
 Rollback authority is always:
 
@@ -101,15 +148,13 @@ EXPLICIT_PRE_DEPLOY_CURRENT_PAIR
 ```
 
 The handoff must carry the app image identity and live static identity
-captured by `preflight-production.ps1` before the proposed deployment. A
-deterministic pair ID binds both identities and their shared source commit.
-A legacy `previous` symlink, by itself, is rejected and is not rollback
-authority.
+captured by `preflight-production.ps1` before a proposed deployment. A
+deterministic pair ID binds both identities and their shared source commit. A
+legacy `previous` symlink alone is rejected and is not rollback authority.
 
 ## Local invocation shape
 
-The command line is intentionally file-based so the packet can be archived and
-reviewed:
+The command line is file-based so packets can be archived and reviewed:
 
 ```powershell
 python scripts/release/e10_development_workflow_v2.py pr-ready `

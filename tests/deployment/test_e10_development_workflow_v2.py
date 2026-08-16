@@ -71,6 +71,42 @@ def add_candidate(repo: Path, relative: str = "scripts/release/workflow-change.t
     return commit(repo, [relative], "synthetic workflow implementation")
 
 
+def make_product_candidate(
+    tmp_path: Path,
+    *,
+    extra_files: dict[str, str] | None = None,
+) -> tuple[Path, str, str, dict[str, object]]:
+    repo, _root, _initial_base = make_repo(tmp_path)
+    app = repo / "app.py"
+    app.write_text("VERSION = 1\n", encoding="utf-8")
+    product_base = commit(repo, ["app.py"], "synthetic Product baseline")
+
+    app.write_text("VERSION = 2\n", encoding="utf-8")
+    bugfix_test = repo / "tests" / "test_bugfix.py"
+    bugfix_test.write_text("def test_bugfix():\n    assert True\n", encoding="utf-8")
+    changed_paths = ["app.py", "tests/test_bugfix.py"]
+    paths_to_commit = ["app.py", "tests/test_bugfix.py"]
+    for relative, content in (extra_files or {}).items():
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        changed_paths.append(relative)
+        paths_to_commit.append(relative)
+    candidate = commit(repo, paths_to_commit, "synthetic Product bugfix")
+    payload = {
+        "repo": str(repo),
+        "scope_mode": workflow.PRODUCT_CHANGE,
+        "base_sha": product_base,
+        "candidate_sha": candidate,
+        "implementation_sha": candidate,
+        "product_source_sha": candidate,
+        "tooling_sha": product_base,
+        "expected_changed_files": sorted(changed_paths),
+        "tests": smoke_test_spec(),
+    }
+    return repo, product_base, candidate, payload
+
+
 def smoke_test_spec(*, failing: bool = False) -> list[dict[str, object]]:
     code = "raise SystemExit(7)" if failing else "from pathlib import Path; assert Path('tests/smoke.py').is_file()"
     return [
@@ -85,6 +121,7 @@ def smoke_test_spec(*, failing: bool = False) -> list[dict[str, object]]:
 def pr_payload(repo: Path, base: str, candidate: str, *, tests=None) -> dict[str, object]:
     return {
         "repo": str(repo),
+        "scope_mode": workflow.CONTROL_PLANE_ONLY,
         "base_sha": base,
         "candidate_sha": candidate,
         "implementation_sha": candidate,
@@ -106,6 +143,7 @@ def make_post_merge_fixture(tmp_path: Path) -> tuple[dict[str, object], dict[str
     }
     payload = {
         "repo": str(repo),
+        "scope_mode": workflow.CONTROL_PLANE_ONLY,
         "base_sha": base,
         "expected_implementation_sha": candidate,
         "expected_product_source_sha": base,
@@ -119,6 +157,7 @@ def make_post_merge_fixture(tmp_path: Path) -> tuple[dict[str, object], dict[str
             "tooling_sha": candidate,
             "merge_sha": merge,
             "runtime_source_sha": base,
+            "scope_mode": workflow.CONTROL_PLANE_ONLY,
             "canonical_ref": "HEAD",
             "canonical_ref_sha": merge,
             "gates": gates,
@@ -183,8 +222,10 @@ def test_valid_pr_ready_packet_is_deterministic_and_separate(tmp_path: Path) -> 
     assert packet["PRODUCT_SOURCE_SHA"] == base
     assert packet["TOOLING_SHA"] == candidate
     assert packet["MERGE_SHA"] == workflow.NOT_YET_MERGED
+    assert packet["SCOPE_MODE"] == workflow.CONTROL_PLANE_ONLY
     assert packet["PRODUCT_RUNTIME_CHANGED"] == "NO"
-    assert packet["R2A_INCLUDED"] == "NO"
+    assert packet["R2A_HISTORY_PRESENT"] == "YES_EXPECTED"
+    assert packet["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] == "NO"
     assert packet["BLOCKERS"] == []
     assert packet == workflow.build_pr_ready_packet(pr_payload(repo, base, candidate))
 
@@ -216,12 +257,160 @@ def test_candidate_not_descendant_of_expected_base_fails_closed(tmp_path: Path) 
         workflow.build_pr_ready_packet(payload)
 
 
-def test_forbidden_r2a_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_current_canonical_r2a_history_is_accepted() -> None:
+    canonical = "19814adbacf4837ad4f1134469f500f1a64d787a"
+    r2a = "d6ea55376c82940713b0d2ce7ddffd4ba7e342bd"
+    assert git(ROOT, "rev-parse", canonical + "^{commit}") == canonical
+    lineage = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", r2a, canonical],
+        cwd=ROOT,
+        check=False,
+    )
+    assert lineage.returncode == 0
+
+    candidate = git(ROOT, "rev-parse", "HEAD")
+    packet = workflow.build_pr_ready_packet(
+        {
+            "repo": str(ROOT),
+            "scope_mode": workflow.CONTROL_PLANE_ONLY,
+            "base_sha": canonical,
+            "candidate_sha": candidate,
+            "implementation_sha": candidate,
+            "product_source_sha": canonical,
+            "tooling_sha": candidate,
+            "tests": [
+                {
+                    "name": "workflow module exists",
+                    "path": "tests/deployment/test_e10_development_workflow_v2.py",
+                    "command": [sys.executable, "-c", "assert True"],
+                }
+            ],
+        }
+    )
+    assert packet["PR_READY"] == "YES"
+    assert packet["R2A_HISTORY_PRESENT"] == "YES_EXPECTED"
+    assert packet["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] == "NO"
+
+
+def test_product_change_pr_ready_requires_exact_scope_and_separates_identities(tmp_path: Path) -> None:
+    _repo, base, candidate, payload = make_product_candidate(tmp_path)
+    packet = workflow.build_pr_ready_packet(payload)
+
+    assert packet["PR_READY"] == "YES"
+    assert packet["SCOPE_MODE"] == workflow.PRODUCT_CHANGE
+    assert packet["IMPLEMENTATION_SHA"] == candidate
+    assert packet["PRODUCT_SOURCE_SHA"] == candidate
+    assert packet["TOOLING_SHA"] == base
+    assert packet["PRODUCT_RUNTIME_CHANGED"] == "YES"
+    assert packet["PRODUCT_RUNTIME_CHANGED_FILES"] == ["app.py"]
+    assert packet["OWNER_GATE_INFERENCE"] == "FORBIDDEN"
+
+
+def test_product_change_requires_expected_changed_files(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(tmp_path)
+    del payload["expected_changed_files"]
+    with pytest.raises(workflow.WorkflowError, match="expected_changed_files"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_actual_extra_file(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(tmp_path)
+    payload["expected_changed_files"] = ["app.py"]
+    with pytest.raises(workflow.WorkflowError, match="do not match expected_changed_files"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_missing_expected_file(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(tmp_path)
+    payload["expected_changed_files"] = ["app.py", "tests/test_bugfix.py", "missing.py"]
+    with pytest.raises(workflow.WorkflowError, match="do not match expected_changed_files"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_protected_local_artifact(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(
+        tmp_path,
+        extra_files={"local-test.db": "synthetic protected artifact\n"},
+    )
+    with pytest.raises(workflow.WorkflowError, match="protected/local artifact"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_dirty_worktree(tmp_path: Path) -> None:
+    repo, _base, _candidate, payload = make_product_candidate(tmp_path)
+    (repo / "uncommitted.txt").write_text("dirty\n", encoding="utf-8")
+    with pytest.raises(workflow.WorkflowError, match="worktree must be clean"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_tooling_equal_to_product(tmp_path: Path) -> None:
+    _repo, _base, candidate, payload = make_product_candidate(tmp_path)
+    payload["tooling_sha"] = candidate
+    with pytest.raises(workflow.WorkflowError, match="must not equal TOOLING_SHA"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_product_change_rejects_mixed_control_plane_source(tmp_path: Path) -> None:
+    _repo, _base, _candidate, payload = make_product_candidate(
+        tmp_path,
+        extra_files={"scripts/release/should-split.txt": "control-plane\n"},
+    )
+    with pytest.raises(workflow.WorkflowError, match="mixed Product and control-plane"):
+        workflow.build_pr_ready_packet(payload)
+
+
+def test_control_plane_only_rejects_product_file(tmp_path: Path) -> None:
     repo, _root, base = make_repo(tmp_path)
-    candidate = add_candidate(repo)
-    monkeypatch.setattr(workflow, "FORBIDDEN_R2A_SHA", candidate)
-    with pytest.raises(workflow.WorkflowError, match="forbidden R2A"):
+    (repo / "app.py").write_text("Product change\n", encoding="utf-8")
+    candidate = commit(repo, ["app.py"], "control-plane fixture with Product file")
+    with pytest.raises(workflow.WorkflowError, match="forbidden Product files changed"):
         workflow.build_pr_ready_packet(pr_payload(repo, base, candidate))
+
+
+def test_product_change_survives_post_merge_and_release_prep(tmp_path: Path) -> None:
+    repo, base, candidate, payload = make_product_candidate(tmp_path)
+    pr = workflow.build_pr_ready_packet(payload)
+    git(repo, "checkout", "-q", "-b", "canonical", base)
+    git(repo, "merge", "--no-ff", "-m", "Owner Product merge for test", candidate)
+    merge = git(repo, "rev-parse", "HEAD")
+    gates = {name: {"status": "PASS"} for name in sorted(workflow.REQUIRED_POST_MERGE_GATES)}
+    post_payload = {
+        "repo": str(repo),
+        "scope_mode": workflow.PRODUCT_CHANGE,
+        "base_sha": base,
+        "expected_implementation_sha": candidate,
+        "expected_product_source_sha": candidate,
+        "tooling_sha": base,
+        "actual_merge_sha": merge,
+        "expected_changed_files": [item["path"] for item in pr["CHANGED_FILES"]],
+        "provenance": {
+            "scope_mode": workflow.PRODUCT_CHANGE,
+            "base_sha": base,
+            "implementation_sha": candidate,
+            "product_source_sha": candidate,
+            "tooling_sha": base,
+            "merge_sha": merge,
+            "runtime_source_sha": candidate,
+            "canonical_ref": "HEAD",
+            "canonical_ref_sha": merge,
+            "gates": gates,
+            "product_runtime_changed_files": ["app.py"],
+        },
+    }
+    post = workflow.build_post_merge_packet(post_payload)
+    handoff = workflow.build_release_prep_handoff(release_payload(post))
+
+    assert post["SCOPE_MODE"] == workflow.PRODUCT_CHANGE
+    assert post["PRODUCT_SOURCE_SHA"] == post["IMPLEMENTATION_SHA"] == candidate
+    assert post["PRODUCT_RUNTIME_CHANGED"] == "YES"
+    assert post["PRODUCT_RUNTIME_CHANGED_FILES"] == ["app.py"]
+    assert post["PROVENANCE"]["runtime_source_sha"] == candidate
+    assert handoff["RELEASE_PREP_HANDOFF"] == "YES"
+    assert handoff["PRODUCT_SOURCE_SHA"] == candidate
+    assert handoff["TOOLING_SHA"] == base
+    assert handoff["MERGE_SHA"] == merge
+    assert handoff["PRODUCT_RUNTIME_CHANGED_FILES"] == ["app.py"]
+    assert handoff["OWNER_GATE_INFERENCE"] == "FORBIDDEN"
 
 
 def test_missing_test_evidence_fails_closed(tmp_path: Path) -> None:
@@ -266,8 +455,10 @@ def test_valid_post_merge_packet_checks_lineage_and_provenance(tmp_path: Path) -
     assert post["POST_MERGE"] == "YES"
     assert post["MERGE_SHA"] == state["merge"]
     assert post["OWNER_MERGE_OBSERVED"] == "YES"
+    assert post["SCOPE_MODE"] == workflow.CONTROL_PLANE_ONLY
     assert post["PRODUCT_SOURCE_SHA"] != post["TOOLING_SHA"]
-    assert post["R2A_IS_ANCESTOR_OF_FINAL_HEAD"] == "NO"
+    assert post["R2A_HISTORY_PRESENT"] == "YES_EXPECTED"
+    assert post["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] == "NO"
     assert post["PROVENANCE"]["runtime_source_sha"] == state["base"]
     assert payload["actual_merge_sha"] == state["merge"]
 

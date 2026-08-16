@@ -26,7 +26,11 @@ from typing import Any, Mapping, Sequence
 
 SCHEMA_VERSION = "e10-development-workflow-v2-foundation-v1"
 NOT_YET_MERGED = "NOT_YET_MERGED"
-FORBIDDEN_R2A_SHA = "d6ea55376c82940713b0d2ce7ddffd4ba7e342bd"
+CONTROL_PLANE_ONLY = "CONTROL_PLANE_ONLY"
+PRODUCT_CHANGE = "PRODUCT_CHANGE"
+SCOPE_MODES = frozenset({CONTROL_PLANE_ONLY, PRODUCT_CHANGE})
+R2A_HISTORY_PRESENT = "YES_EXPECTED"
+R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE = "NO"
 OWNER_GATES = frozenset(
     {"GO_MERGE", "GO_DEPLOY", "GO_ROLLBACK", "GO_ENABLE", "GO_GRANT"}
 )
@@ -46,9 +50,9 @@ SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 CONFLICT_MARKER_LINE = re.compile(rb"(?m)^(?:<<<<<<<|=======|>>>>>>>)")
 
-# Lane W owns only local workflow/release tooling, deployment tests, and
-# workflow documentation.  Treat anything else as a Product/runtime delta so
-# an accidentally broad candidate fails closed.
+# CONTROL_PLANE_ONLY owns only local workflow/release tooling, deployment
+# tests, and workflow documentation.  PRODUCT_CHANGE uses an explicit exact
+# file set and never broadens this control-plane allowlist implicitly.
 ALLOWED_WORKFLOW_PREFIXES = (
     "scripts/release/",
     "tests/deployment/",
@@ -207,6 +211,28 @@ def _path_for_scope(path: str) -> str:
     return path.replace("\\", "/").lstrip("./")
 
 
+def _scope_mode(value: Any) -> str:
+    mode = _text(value, "SCOPE_MODE")
+    _require(mode in SCOPE_MODES, "SCOPE_MODE must be CONTROL_PLANE_ONLY or PRODUCT_CHANGE")
+    return mode
+
+
+def _is_protected_local_artifact_path(path: str) -> bool:
+    normalized = _path_for_scope(path)
+    lower = normalized.lower()
+    components = lower.split("/")
+    name = components[-1]
+    if name == "secret_key.txt" or name.startswith(".env"):
+        return True
+    if name.endswith((".db", ".sqlite", ".sqlite3", ".pem", ".key", ".p12", ".pfx", ".exe", ".dll")):
+        return True
+    if any(component in {"node_modules", "backups", "katago", "ngrok", "cygwin"} for component in components):
+        return True
+    if any(component.startswith("venv") for component in components):
+        return True
+    return False
+
+
 def _is_forbidden_product_path(path: str) -> bool:
     normalized = _path_for_scope(path)
     lower = normalized.lower()
@@ -230,6 +256,15 @@ def _is_forbidden_product_path(path: str) -> bool:
 def _is_allowed_workflow_path(path: str) -> bool:
     normalized = _path_for_scope(path)
     return normalized.startswith(ALLOWED_WORKFLOW_PREFIXES)
+
+
+def _product_runtime_changed_files(paths: Sequence[str]) -> list[str]:
+    non_runtime_prefixes = ("tests/", "docs/", "scripts/release/")
+    return sorted(
+        path
+        for path in {_path_for_scope(item) for item in paths}
+        if not path.startswith(non_runtime_prefixes)
+    )
 
 
 def _read_committed_file(repo: Path, commit: str, path: str) -> bytes:
@@ -256,25 +291,72 @@ def _conflict_paths(repo: Path, commit: str, files: Sequence[Mapping[str, str]])
 
 def _identity_separation(
     *,
+    scope_mode: str,
     product_source_sha: str,
     tooling_sha: str,
     implementation_sha: str,
     merge_sha: str | None = None,
 ) -> None:
     _require(product_source_sha != tooling_sha, "PRODUCT_SOURCE_SHA must not equal TOOLING_SHA")
-    _require(
-        product_source_sha != implementation_sha,
-        "PRODUCT_SOURCE_SHA must not equal IMPLEMENTATION_SHA",
-    )
+    if scope_mode == CONTROL_PLANE_ONLY:
+        _require(
+            product_source_sha != implementation_sha,
+            "PRODUCT_SOURCE_SHA must not equal IMPLEMENTATION_SHA in CONTROL_PLANE_ONLY",
+        )
+    else:
+        _require(
+            product_source_sha == implementation_sha,
+            "PRODUCT_SOURCE_SHA must equal IMPLEMENTATION_SHA in PRODUCT_CHANGE",
+        )
     if merge_sha is not None:
         _require(product_source_sha != merge_sha, "PRODUCT_SOURCE_SHA must not equal MERGE_SHA")
 
 
-def _validate_r2a_absent(repo: Path, final_head: str) -> None:
-    if _is_ancestor(repo, FORBIDDEN_R2A_SHA, final_head):
-        raise WorkflowError(
-            f"forbidden R2A commit {FORBIDDEN_R2A_SHA} is an ancestor of {final_head}"
-        )
+def _runtime_paths(value: Any, label: str) -> list[str]:
+    _require(isinstance(value, list), f"{label} must be a list")
+    paths: list[str] = []
+    for index, item in enumerate(value):
+        path = _path_for_scope(_text(item, f"{label}[{index}]"))
+        _require(path not in paths, f"duplicate {label} path: {path}")
+        paths.append(path)
+    return sorted(paths)
+
+
+def _validate_scope(
+    scope_mode: str,
+    changed_paths: Sequence[str],
+    *,
+    expected_paths: set[str] | None = None,
+) -> list[str]:
+    normalized_paths = sorted({_path_for_scope(path) for path in changed_paths})
+    protected = sorted(path for path in normalized_paths if _is_protected_local_artifact_path(path))
+    _require(
+        not protected,
+        "protected/local artifact paths changed: " + ", ".join(protected),
+    )
+    if scope_mode == CONTROL_PLANE_ONLY:
+        forbidden = sorted(path for path in normalized_paths if _is_forbidden_product_path(path))
+        runtime = sorted(path for path in normalized_paths if not _is_allowed_workflow_path(path))
+        _require(not forbidden, "forbidden Product files changed: " + ", ".join(forbidden))
+        _require(not runtime, "Product/runtime scope changed outside Lane W: " + ", ".join(runtime))
+        if expected_paths is not None:
+            _require(
+                set(normalized_paths) == expected_paths,
+                "changed files do not match expected_changed_files",
+            )
+        return []
+
+    _require(expected_paths is not None, "expected_changed_files are required for PRODUCT_CHANGE")
+    _require(
+        set(normalized_paths) == expected_paths,
+        "changed files do not match expected_changed_files",
+    )
+    mixed = sorted(path for path in normalized_paths if _is_allowed_workflow_path(path))
+    _require(
+        not mixed,
+        "mixed Product and control-plane changes are not supported: " + ", ".join(mixed),
+    )
+    return _product_runtime_changed_files(normalized_paths)
 
 
 def _test_spec(value: Any, index: int) -> tuple[str, str, list[str]]:
@@ -451,6 +533,7 @@ def _base_packet(stage: str) -> dict[str, Any]:
 
 def build_pr_ready_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
     repo = _repo_path(payload)
+    scope_mode = _scope_mode(payload.get("scope_mode"))
     base = _commit(repo, payload.get("base_sha"), "BASE_SHA")
     candidate = _commit(repo, payload.get("candidate_sha"), "CANDIDATE_SHA")
     implementation = _commit(repo, payload.get("implementation_sha"), "IMPLEMENTATION_SHA")
@@ -462,21 +545,21 @@ def build_pr_ready_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
     _require(_is_ancestor(repo, tooling, candidate), "TOOLING_SHA is not in candidate lineage")
     _require(implementation == candidate, "IMPLEMENTATION_SHA must equal CANDIDATE_SHA")
     _identity_separation(
+        scope_mode=scope_mode,
         product_source_sha=product,
         tooling_sha=tooling,
         implementation_sha=implementation,
     )
-    _validate_r2a_absent(repo, candidate)
 
     status = _working_tree_status(repo)
     _require(not status, "worktree must be clean")
     changed = _changed_files(repo, base, candidate)
     _require(changed, "changed files could not be proven for the candidate")
     changed_paths = {_path_for_scope(item["path"]) for item in changed}
-    forbidden = sorted(path for path in changed_paths if _is_forbidden_product_path(path))
-    runtime = sorted(path for path in changed_paths if not _is_allowed_workflow_path(path))
-    _require(not forbidden, "forbidden Product files changed: " + ", ".join(forbidden))
-    _require(not runtime, "Product/runtime scope changed outside Lane W: " + ", ".join(runtime))
+    expected_paths = None
+    if scope_mode == PRODUCT_CHANGE or payload.get("expected_changed_files") is not None:
+        expected_paths = _expected_paths(payload.get("expected_changed_files"))
+    runtime = _validate_scope(scope_mode, changed_paths, expected_paths=expected_paths)
     conflicts = _conflict_paths(repo, candidate, changed)
     _require(not conflicts, "unresolved conflict markers found: " + ", ".join(conflicts))
     tests = _run_supplied_tests(repo, payload.get("tests"))
@@ -485,6 +568,7 @@ def build_pr_ready_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
     packet.update(
         {
             "PR_READY": "YES",
+            "SCOPE_MODE": scope_mode,
             "BASE_SHA": base,
             "CANDIDATE_SHA": candidate,
             "IMPLEMENTATION_SHA": implementation,
@@ -496,10 +580,10 @@ def build_pr_ready_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
             "WORKTREE_CLEAN": True,
             "CHANGED_FILES": changed,
             "TESTS": tests,
-            "PRODUCT_RUNTIME_CHANGED": "NO",
-            "PRODUCT_RUNTIME_CHANGED_FILES": [],
-            "R2A_INCLUDED": "NO",
-            "R2A_IS_ANCESTOR_OF_FINAL_HEAD": "NO",
+            "PRODUCT_RUNTIME_CHANGED": "YES" if runtime else "NO",
+            "PRODUCT_RUNTIME_CHANGED_FILES": runtime,
+            "R2A_HISTORY_PRESENT": R2A_HISTORY_PRESENT,
+            "R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE": R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE,
             "BLOCKERS": [],
         }
     )
@@ -515,8 +599,14 @@ def _validate_provenance(
     product: str,
     tooling: str,
     merge: str,
+    scope_mode: str,
+    runtime_files: Sequence[str],
 ) -> dict[str, Any]:
     raw = _mapping(value, "provenance")
+    _require(
+        _scope_mode(raw.get("scope_mode")) == scope_mode,
+        "provenance.scope_mode does not match the explicit workflow scope",
+    )
     expected = {
         "base_sha": base,
         "implementation_sha": implementation,
@@ -557,9 +647,20 @@ def _validate_provenance(
     for name in REQUIRED_POST_MERGE_GATES:
         record = _mapping(gates.get(name), f"provenance.gates.{name}")
         _require(record.get("status") == "PASS", f"canonical provenance gate is not PASS: {name}")
-    _require(raw.get("product_runtime_changed_files") == [], "Product runtime provenance changed files must be empty")
+    expected_runtime_files = sorted({_path_for_scope(path) for path in runtime_files})
+    actual_runtime_files = _runtime_paths(
+        raw.get("product_runtime_changed_files"),
+        "provenance.product_runtime_changed_files",
+    )
+    _require(
+        actual_runtime_files == expected_runtime_files,
+        "provenance.product_runtime_changed_files does not match the validated Product scope",
+    )
+    if scope_mode == CONTROL_PLANE_ONLY:
+        _require(not actual_runtime_files, "CONTROL_PLANE_ONLY cannot carry Product runtime changes")
     _require(canonical_ref, "canonical_ref is required")
     return {
+        "scope_mode": scope_mode,
         "base_sha": base,
         "implementation_sha": implementation,
         "product_source_sha": product,
@@ -569,12 +670,13 @@ def _validate_provenance(
         "canonical_ref": canonical_ref,
         "canonical_ref_sha": canonical_ref_sha,
         "gates": {name: {"status": "PASS"} for name in sorted(REQUIRED_POST_MERGE_GATES)},
-        "product_runtime_changed_files": [],
+        "product_runtime_changed_files": actual_runtime_files,
     }
 
 
 def build_post_merge_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
     repo = _repo_path(payload)
+    scope_mode = _scope_mode(payload.get("scope_mode"))
     base = _commit(repo, payload.get("base_sha"), "BASE_SHA")
     implementation = _commit(
         repo, payload.get("expected_implementation_sha"), "EXPECTED_IMPLEMENTATION_SHA"
@@ -588,12 +690,12 @@ def build_post_merge_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
     _require(_is_ancestor(repo, product, merge), "PRODUCT_SOURCE_SHA is not in merge lineage")
     _require(_is_ancestor(repo, tooling, merge), "TOOLING_SHA is not in merge lineage")
     _identity_separation(
+        scope_mode=scope_mode,
         product_source_sha=product,
         tooling_sha=tooling,
         implementation_sha=implementation,
         merge_sha=merge,
     )
-    _validate_r2a_absent(repo, merge)
     parents = _parents(repo, merge)
     _require(parents, "actual merge SHA has no valid parent lineage")
     expected_paths = _expected_paths(payload.get("expected_changed_files"))
@@ -603,10 +705,7 @@ def build_post_merge_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
         actual_paths == expected_paths,
         "post-merge changed files contain unrelated or missing paths",
     )
-    forbidden = sorted(path for path in actual_paths if _is_forbidden_product_path(path))
-    runtime = sorted(path for path in actual_paths if not _is_allowed_workflow_path(path))
-    _require(not forbidden, "forbidden Product files changed after merge: " + ", ".join(forbidden))
-    _require(not runtime, "post-merge Product/runtime scope changed: " + ", ".join(runtime))
+    runtime = _validate_scope(scope_mode, actual_paths, expected_paths=expected_paths)
     conflicts = _conflict_paths(repo, merge, changed)
     _require(not conflicts, "unresolved conflict markers found after merge: " + ", ".join(conflicts))
     _require(not _working_tree_status(repo), "post-merge repository status must be clean")
@@ -618,12 +717,15 @@ def build_post_merge_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
         product=product,
         tooling=tooling,
         merge=merge,
+        scope_mode=scope_mode,
+        runtime_files=runtime,
     )
 
     packet = _base_packet("POST_MERGE")
     packet.update(
         {
             "POST_MERGE": "YES",
+            "SCOPE_MODE": scope_mode,
             "BASE_SHA": base,
             "CANDIDATE_SHA": implementation,
             "IMPLEMENTATION_SHA": implementation,
@@ -635,10 +737,10 @@ def build_post_merge_packet(payload: Mapping[str, Any]) -> dict[str, Any]:
             "WORKTREE_CLEAN": True,
             "MERGE_PARENTS": parents,
             "CHANGED_FILES": changed,
-            "PRODUCT_RUNTIME_CHANGED": "NO",
-            "PRODUCT_RUNTIME_CHANGED_FILES": [],
-            "R2A_INCLUDED": "NO",
-            "R2A_IS_ANCESTOR_OF_FINAL_HEAD": "NO",
+            "PRODUCT_RUNTIME_CHANGED": "YES" if runtime else "NO",
+            "PRODUCT_RUNTIME_CHANGED_FILES": runtime,
+            "R2A_HISTORY_PRESENT": R2A_HISTORY_PRESENT,
+            "R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE": R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE,
             "PROVENANCE": provenance,
             "BLOCKERS": [],
             "OWNER_MERGE_OBSERVED": "YES",
@@ -652,11 +754,25 @@ def _post_merge_reference(value: Any) -> dict[str, Any]:
     _require(packet.get("stage") == "POST_MERGE", "post_merge must be a POST_MERGE packet")
     _require(packet.get("POST_MERGE") == "YES", "post_merge packet is not valid")
     _require(packet.get("BLOCKERS") == [], "post_merge packet contains blockers")
+    scope_mode = _scope_mode(packet.get("SCOPE_MODE"))
     for field in ("BASE_SHA", "IMPLEMENTATION_SHA", "PRODUCT_SOURCE_SHA", "TOOLING_SHA", "MERGE_SHA"):
         _sha40(packet.get(field), f"post_merge.{field}")
-    _require(packet["PRODUCT_SOURCE_SHA"] != packet["TOOLING_SHA"], "post_merge source identities collapsed")
-    _require(packet["PRODUCT_SOURCE_SHA"] != packet["IMPLEMENTATION_SHA"], "post_merge Product/tooling identities collapsed")
-    _require(packet["PRODUCT_RUNTIME_CHANGED_FILES"] == [], "post_merge Product runtime changes are not closed")
+    _identity_separation(
+        scope_mode=scope_mode,
+        product_source_sha=packet["PRODUCT_SOURCE_SHA"],
+        tooling_sha=packet["TOOLING_SHA"],
+        implementation_sha=packet["IMPLEMENTATION_SHA"],
+        merge_sha=packet["MERGE_SHA"],
+    )
+    runtime = _runtime_paths(packet.get("PRODUCT_RUNTIME_CHANGED_FILES"), "post_merge.PRODUCT_RUNTIME_CHANGED_FILES")
+    if scope_mode == CONTROL_PLANE_ONLY:
+        _require(not runtime, "CONTROL_PLANE_ONLY post_merge runtime changes are not closed")
+    _require(
+        packet.get("PRODUCT_RUNTIME_CHANGED") == ("YES" if runtime else "NO"),
+        "post_merge Product runtime status does not match its files",
+    )
+    packet["SCOPE_MODE"] = scope_mode
+    packet["PRODUCT_RUNTIME_CHANGED_FILES"] = runtime
     return packet
 
 
@@ -688,6 +804,7 @@ def build_release_prep_handoff(payload: Mapping[str, Any]) -> dict[str, Any]:
     packet.update(
         {
             "RELEASE_PREP_HANDOFF": "YES",
+            "SCOPE_MODE": post["SCOPE_MODE"],
             "BASE_SHA": post["BASE_SHA"],
             "CANDIDATE_SHA": post["CANDIDATE_SHA"],
             "IMPLEMENTATION_SHA": post["IMPLEMENTATION_SHA"],
@@ -695,8 +812,10 @@ def build_release_prep_handoff(payload: Mapping[str, Any]) -> dict[str, Any]:
             "TOOLING_SHA": post["TOOLING_SHA"],
             "MERGE_SHA": post["MERGE_SHA"],
             "WORKTREE": str(repo),
-            "PRODUCT_RUNTIME_CHANGED": "NO",
-            "PRODUCT_RUNTIME_CHANGED_FILES": [],
+            "PRODUCT_RUNTIME_CHANGED": post["PRODUCT_RUNTIME_CHANGED"],
+            "PRODUCT_RUNTIME_CHANGED_FILES": list(post["PRODUCT_RUNTIME_CHANGED_FILES"]),
+            "R2A_HISTORY_PRESENT": R2A_HISTORY_PRESENT,
+            "R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE": R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE,
             "REQUIRED_TEST_GATES": gates,
             "STATIC_BUILD_REQUIRED": static_required,
             "OCI_BUILD_REQUIRED": oci_required,
@@ -733,10 +852,13 @@ def _failure_packet(stage: str, payload: Mapping[str, Any], error: WorkflowError
     candidate = payload.get("candidate_sha", implementation)
     packet["CANDIDATE_SHA"] = candidate if isinstance(candidate, str) else None
     packet["IMPLEMENTATION_SHA"] = implementation if isinstance(implementation, str) else None
+    scope_mode = payload.get("scope_mode")
+    if isinstance(scope_mode, str) and scope_mode in SCOPE_MODES:
+        packet["SCOPE_MODE"] = scope_mode
     packet["PRODUCT_RUNTIME_CHANGED"] = "UNKNOWN"
     packet["PRODUCT_RUNTIME_CHANGED_FILES"] = []
-    packet["R2A_INCLUDED"] = "UNKNOWN"
-    packet["R2A_IS_ANCESTOR_OF_FINAL_HEAD"] = "UNKNOWN"
+    packet["R2A_HISTORY_PRESENT"] = R2A_HISTORY_PRESENT
+    packet["R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE"] = R2A_HISTORY_ANCESTRY_CAUSES_WORKFLOW_FAILURE
     packet["BLOCKERS"] = [str(error)]
     packet.update(error.details)
     return packet
@@ -752,6 +874,7 @@ def render_human(packet: Mapping[str, Any]) -> str:
         "PR_READY",
         "POST_MERGE",
         "RELEASE_PREP_HANDOFF",
+        "SCOPE_MODE",
         "BASE_SHA",
         "CANDIDATE_SHA",
         "IMPLEMENTATION_SHA",
@@ -759,6 +882,7 @@ def render_human(packet: Mapping[str, Any]) -> str:
         "TOOLING_SHA",
         "MERGE_SHA",
         "PRODUCT_RUNTIME_CHANGED",
+        "PRODUCT_RUNTIME_CHANGED_FILES",
         "STATIC_BUILD_REQUIRED",
         "OCI_BUILD_REQUIRED",
         "ROLLBACK_PREFLIGHT_REQUIRED",
