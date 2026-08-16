@@ -499,12 +499,12 @@ def test_build_orchestration_requires_validated_exact_worktree_and_child_script(
 
     assert "$psi.WorkingDirectory = $resolvedWorkingDirectory" in module
     assert "Assert-GeneratedDetachedWorktreeIdentity" in release
-    assert "-WorkingDirectory $worktree" in release
+    assert "-WorkingDirectory $gateWorktree" in release
     assert "-RequireWorkingDirectory" in release
     assert "Assert-GovernedBuildScriptPath" in release
     assert "-TimeoutSeconds 3900" in release
     assert "Assert-ImageRevisionMatches" in release
-    assert "Remove-DetachedWorktree -Path $worktree" in release
+    assert "Remove-DetachedWorktree -Path $productWorktree" in release
     assert "docker buildx build" in production
     assert "ssh " not in production.lower()
 
@@ -521,7 +521,7 @@ def test_all_bounded_native_callers_are_reviewed_without_unrelated_rewrites():
     assert production.count("Invoke-BoundedNativeCommand") == 2
     assert package_static.count("Invoke-BoundedNativeCommand") == 2
     assert module.count("Invoke-BoundedNativeCommand") >= 10
-    assert "-WorkingDirectory $worktree" in release
+    assert "-WorkingDirectory $gateWorktree" in release
     assert "-RequireWorkingDirectory" not in package_static
 
 
@@ -937,7 +937,7 @@ $records | ConvertTo-Json -Compress
         assert len(actual[key]) == expected_count, (key, classification, actual[key])
 
     isolated = actual[("scripts/release/build-release-image.ps1", "<script>")][0]
-    assert "-WorkingDirectory $worktree" in isolated
+    assert "-WorkingDirectory $gateWorktree" in isolated
     assert "-RequireWorkingDirectory" in isolated
     production = BUILD_PRODUCTION.read_text(encoding="utf-8")
     assert production.index("Assert-GovernedBuildChildIdentity") < production.index("Invoke-BoundedNativeCommand")

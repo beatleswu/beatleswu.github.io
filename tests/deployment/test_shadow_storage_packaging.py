@@ -29,9 +29,12 @@ def test_shadow_storage_is_explicitly_copied_and_manifest_governed():
 def test_manifest_provenance_count_matches_exact_governed_set():
     manifest = json.loads(_text(BUILD_MANIFEST))
     provenance = json.loads(_text(PROVENANCE))
-    assert len(provenance["files"]) == 78
+    governed_paths = {entry["path"] for entry in provenance["files"]}
+    assert len(provenance["files"]) == len(governed_paths)
+    assert len(governed_paths) == 79
+    assert "js/game/lord_trial_controller.js" in governed_paths
     assert manifest["runtime_dependency_provenance"]["files_covered"] == len(
-        provenance["files"]
+        governed_paths
     )
 
 

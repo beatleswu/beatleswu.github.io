@@ -47,7 +47,9 @@ param(
     [Parameter(Mandatory = $true)][string]$ExpectedCanonicalWorktreeRoot,
     [Parameter(Mandatory = $true)][string]$ExpectedExactGitSha,
     [Parameter(Mandatory = $true)][string]$ExpectedGitCommonDirectory,
-    [Parameter(Mandatory = $true)][ValidateSet('detached')][string]$ExpectedHeadState
+    [Parameter(Mandatory = $true)][ValidateSet('detached', 'branch')][string]$ExpectedHeadState,
+    [string]$ProductSourceRoot,
+    [string]$ExpectedProductGitSha
 )
 
 $ErrorActionPreference = 'Stop'
@@ -129,6 +131,22 @@ function Invoke-BootstrapGit([string[]]$Arguments) {
     return $output
 }
 
+function Invoke-BootstrapGitAt([string]$WorkingDirectory, [string[]]$Arguments) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $output = @(& git -C $WorkingDirectory @Arguments 2>$null)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($exitCode -ne 0) {
+        Fail-Bootstrap "Product bootstrap Git identity command failed closed."
+    }
+    return $output
+}
+
 function Get-BootstrapSafeFirstOutputLine([AllowNull()][object]$Value) {
     $items = @($Value)
     if ($items.Count -eq 0 -or $null -eq $items[0]) {
@@ -161,8 +179,9 @@ if ($bootstrapHead -ne $bootstrapExpectedHead) {
     Fail-Bootstrap "Bootstrap HEAD does not equal the expected exact Git SHA."
 }
 $bootstrapBranch = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('branch', '--show-current'))
-if (-not [string]::IsNullOrWhiteSpace($bootstrapBranch) -or $ExpectedHeadState -ne 'detached') {
-    Fail-Bootstrap "Bootstrap worktree HEAD is not detached as required."
+if (($ExpectedHeadState -eq 'detached' -and -not [string]::IsNullOrWhiteSpace($bootstrapBranch)) -or
+    ($ExpectedHeadState -eq 'branch' -and [string]::IsNullOrWhiteSpace($bootstrapBranch))) {
+    Fail-Bootstrap "Bootstrap worktree HEAD state does not match the expected '$ExpectedHeadState' state."
 }
 $bootstrapCommonRaw = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGit @('rev-parse', '--git-common-dir'))
 $bootstrapActualCommon = if ([System.IO.Path]::IsPathRooted($bootstrapCommonRaw)) {
@@ -189,6 +208,58 @@ if ($bootstrapStatus.Count -ne 0) {
     Fail-Bootstrap "Bootstrap worktree must be completely clean, including untracked files."
 }
 
+$separatedProductBuild = -not [string]::IsNullOrWhiteSpace($ProductSourceRoot)
+if ($separatedProductBuild -and [string]::IsNullOrWhiteSpace($ExpectedProductGitSha)) {
+    Fail-Bootstrap "ExpectedProductGitSha is required when ProductSourceRoot is supplied."
+}
+if (-not $separatedProductBuild -and -not [string]::IsNullOrWhiteSpace($ExpectedProductGitSha)) {
+    Fail-Bootstrap "ProductSourceRoot is required when ExpectedProductGitSha is supplied."
+}
+$bootstrapProductRoot = $bootstrapRoot
+if ($separatedProductBuild) {
+    $bootstrapProductRoot = Assert-BootstrapNoReparse $ProductSourceRoot 'Product source worktree path'
+    if ([string]::Equals($bootstrapProductRoot, $bootstrapRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Fail-Bootstrap "Product source worktree must be separate from the Gate worktree."
+    }
+    $bootstrapProductTopLevel = Get-BootstrapCanonicalPath (Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGitAt $bootstrapProductRoot @('rev-parse', '--show-toplevel'))) 'Product Git top-level path'
+    if (-not [string]::Equals($bootstrapProductTopLevel, $bootstrapProductRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Fail-Bootstrap "Product Git top-level path does not equal the expected Product worktree root."
+    }
+    $bootstrapProductHead = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGitAt $bootstrapProductRoot @('rev-parse', 'HEAD'))
+    $bootstrapExpectedProductHead = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGitAt $bootstrapProductRoot @('rev-parse', "$ExpectedProductGitSha^{commit}"))
+    if ($bootstrapProductHead -ne $bootstrapExpectedProductHead) {
+        Fail-Bootstrap "Product worktree HEAD does not equal the expected exact Product Git SHA."
+    }
+    $bootstrapProductBranch = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGitAt $bootstrapProductRoot @('branch', '--show-current'))
+    if (-not [string]::IsNullOrWhiteSpace($bootstrapProductBranch)) {
+        Fail-Bootstrap "Product source worktree must be detached."
+    }
+    $bootstrapProductCommonRaw = Get-BootstrapSafeFirstOutputLine (Invoke-BootstrapGitAt $bootstrapProductRoot @('rev-parse', '--git-common-dir'))
+    $bootstrapProductCommon = if ([System.IO.Path]::IsPathRooted($bootstrapProductCommonRaw)) {
+        Assert-BootstrapNoReparse $bootstrapProductCommonRaw 'Product Git common directory'
+    }
+    else {
+        Assert-BootstrapNoReparse (Join-Path $bootstrapProductRoot $bootstrapProductCommonRaw) 'Product Git common directory'
+    }
+    if (-not [string]::Equals($bootstrapProductCommon, $bootstrapCommonGitDirectory, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Fail-Bootstrap "Product worktree does not belong to the expected repository common Git directory."
+    }
+    $bootstrapProductUntrackedAndIgnored = @(
+        Invoke-BootstrapGitAt $bootstrapProductRoot @('ls-files', '--others', '--exclude-standard')
+        Invoke-BootstrapGitAt $bootstrapProductRoot @('ls-files', '--others', '--ignored', '--exclude-standard')
+    ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+    foreach ($relativePath in $bootstrapProductUntrackedAndIgnored) {
+        $pattern = Get-BootstrapProtectedPattern $relativePath
+        if ($pattern) {
+            Fail-Bootstrap "Product bootstrap found protected untracked or ignored path '$relativePath' (pattern '$pattern')."
+        }
+    }
+    $bootstrapProductStatus = @(Invoke-BootstrapGitAt $bootstrapProductRoot @('status', '--porcelain=v1', '--untracked-files=all') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($bootstrapProductStatus.Count -ne 0) {
+        Fail-Bootstrap "Product source worktree must be completely clean, including untracked files."
+    }
+}
+
 Import-Module $bootstrapModule -Force -DisableNameChecking
 
 function Fail($msg) {
@@ -203,25 +274,43 @@ $validatedWorktreeRoot = Assert-GovernedBuildChildIdentity `
     -ExecutingBuildScriptPath $bootstrapScript `
     -ExpectedHeadState $ExpectedHeadState
 if ($SkipCleanCheck) {
-    Fail "SkipCleanCheck is not permitted for a governed detached-worktree build."
+    Fail "SkipCleanCheck is not permitted for a governed exact-source build."
+}
+
+if ($separatedProductBuild) {
+    $validatedProductRoot = Assert-DetachedWorktreeIdentity -Path $bootstrapProductRoot -ExpectedGitSha $ExpectedProductGitSha
+    $productCommonDirectory = Assert-NoReparsePointPath -Path (Get-GitCommonDirectory -WorkingDirectory $validatedProductRoot) -Label 'Actual Product Git common directory'
+    $expectedCommonDirectory = Assert-NoReparsePointPath -Path $bootstrapCommonGitDirectory -Label 'Expected Git common directory'
+    if (-not [string]::Equals($productCommonDirectory, $expectedCommonDirectory, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Fail "Product worktree does not belong to the expected repository common Git directory."
+    }
+}
+else {
+    $validatedProductRoot = $validatedWorktreeRoot
 }
 
 if (-not $GitSha) {
-    $GitSha = $ExpectedExactGitSha
+    $GitSha = if ($separatedProductBuild) { $ExpectedProductGitSha } else { $ExpectedExactGitSha }
 }
 else {
-    $GitSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $GitSha) -WorkingDirectory $validatedWorktreeRoot)
+    $GitSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', "$GitSha^{commit}") -WorkingDirectory $validatedProductRoot)
 }
-$resolvedExpectedExactGitSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $ExpectedExactGitSha) -WorkingDirectory $validatedWorktreeRoot)
-if ($GitSha -ne $resolvedExpectedExactGitSha) {
-    Fail "GitSha does not equal the independently validated expected exact Git SHA."
+$resolvedExpectedProductGitSha = if ($separatedProductBuild) {
+    Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', "$ExpectedProductGitSha^{commit}") -WorkingDirectory $validatedProductRoot)
+}
+else {
+    Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', "$ExpectedExactGitSha^{commit}") -WorkingDirectory $validatedProductRoot)
+}
+if ($GitSha -ne $resolvedExpectedProductGitSha) {
+    Fail "GitSha does not equal the independently validated exact Product Git SHA."
 }
 
 Write-Host "== go-odyssey-app canonical image build (build-only, never deploys) ==" -ForegroundColor Cyan
 
-# 1-2. The child has now independently proved exact cwd, canonical Git root,
-# exact SHA, detached HEAD, complete cleanliness, script provenance, and no
-# reparse boundary. No Docker/build action occurs above this point.
+# 1-2. The child has now independently proved exact Gate cwd, canonical Git
+# root, exact Gate SHA/head state, Product SHA/worktree (when separated),
+# complete cleanliness, script provenance, and no reparse boundary. No
+# Docker/build action occurs above this point.
 $shortSha = $GitSha.Substring(0, 8)
 
 # 3. Verify the commit is based on canonical origin/master.
@@ -231,7 +320,8 @@ if (-not $mergeBase) {
     Fail "Commit $GitSha has no merge-base with origin/master. Refusing to build from an unrelated history."
 }
 
-# 4. Verify required tracked build inputs exist in this checkout.
+# 4. Verify required tracked Product build inputs exist in the Product
+# checkout, not in the Gate/control-plane checkout.
 $requiredFiles = @(
     'Dockerfile',
     'requirements.txt',
@@ -260,17 +350,17 @@ $requiredFiles = @(
 )
 $missing = @()
 foreach ($f in $requiredFiles) {
-    if (-not (Test-Path $f)) { $missing += $f }
+    if (-not (Test-Path (Join-Path $validatedProductRoot $f))) { $missing += $f }
 }
 if ($missing.Count -gt 0) {
     Fail "Required tracked build inputs are missing from this checkout:`n$($missing -join "`n")"
 }
 
-# 5. Verify SGF Engine provenance / vendoring state.
-if (-not (Test-Path 'sgf_engine/VENDORED_FROM.txt')) {
+# 5. Verify SGF Engine provenance / vendoring state in the Product checkout.
+if (-not (Test-Path (Join-Path $validatedProductRoot 'sgf_engine/VENDORED_FROM.txt'))) {
     Fail "sgf_engine provenance record (sgf_engine/VENDORED_FROM.txt) missing. Do not build without an explicit, documented SGF Engine vendoring state."
 }
-$sgfEngineVendored = Test-Path 'sgf_engine/__init__.py'
+$sgfEngineVendored = Test-Path (Join-Path $validatedProductRoot 'sgf_engine/__init__.py')
 if (-not $sgfEngineVendored) {
     Write-Host "NOTE: sgf_engine/ is not vendored in this checkout (see sgf_engine/PROVENANCE_VERIFICATION.md)." -ForegroundColor Yellow
     Write-Host "The Docker build below is EXPECTED TO FAIL at 'COPY sgf_engine ./sgf_engine' until this is resolved." -ForegroundColor Yellow
@@ -278,18 +368,18 @@ if (-not $sgfEngineVendored) {
 
 # 6. Verify the large/PENDING build inputs listed in the manifest and report what's missing,
 #    rather than silently building from whatever happens to be in the working tree.
-$manifestPath = 'deploy/build-manifest.json'
+$manifestPath = Join-Path $validatedProductRoot 'deploy/build-manifest.json'
 if (-not (Test-Path $manifestPath)) {
     Fail "deploy/build-manifest.json is missing."
 }
-$manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+$manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $pendingInputs = $manifest.build_inputs.required_but_not_yet_vendored
 $missingPending = @()
 foreach ($item in $pendingInputs) {
     $p = $item.path -replace '/$', '' -split ',' | ForEach-Object { $_.Trim() } | Select-Object -First 1
     $p = ($item.path -split ',')[0].Trim().TrimEnd('/')
     if ($p -match '\*' -or $p -match '\(') { continue }  # wildcard/annotated entries: informational only
-    if (-not (Test-Path $p)) {
+    if (-not (Test-Path (Join-Path $validatedProductRoot $p))) {
         $missingPending += $p
     }
 }
@@ -312,14 +402,13 @@ Write-Host "APP_GIT_SHA:        $GitSha"
 Write-Host "APP_BUILD_DATE:     $buildDate"
 Write-Host "SGF_ENGINE_SOURCE_COMMIT: $sgfEngineCommit"
 
-# The Docker context is deliberately the independently validated detached
-# worktree, never the ambient current-directory shorthand (`.`).  That
-# worktree was generated for this exact Git SHA by build-release-image.ps1;
-# Assert-DetachedWorktreeIdentity also proves it contains no untracked or
-# ignored files.  Therefore the daemon receives tracked source for precisely
-# $GitSha, rather than any local files beside the operator's checkout.
+# The Docker context is deliberately the independently validated Product
+# worktree, never the ambient current-directory shorthand (`.`). In separated
+# mode the Gate checkout contains the test/control-plane runner, while this
+# context contains only the exact Product SHA. The identity check also proves
+# it contains no untracked or ignored files.
 $dockerBuildContext = Assert-DetachedWorktreeIdentity `
-    -Path $validatedWorktreeRoot `
+    -Path $validatedProductRoot `
     -ExpectedGitSha $GitSha
 
 # 8. Verify docker AND buildx are available, and that the active builder
@@ -421,6 +510,8 @@ if ($filesystemResult.exit_code -ne 0) {
 $record = [ordered]@{
     image_tag        = $imageTag
     git_sha           = $GitSha
+    gate_source_sha   = $ExpectedExactGitSha
+    product_source_sha = $GitSha
     build_date        = $buildDate
     sgf_engine_commit = $sgfEngineCommit
     merge_base_with_master = $mergeBase
