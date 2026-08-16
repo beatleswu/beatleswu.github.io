@@ -67,7 +67,14 @@ def _extract_function(source: str, name: str) -> str:
         source,
     )
     assert match, f"HARNESS_FAILURE: function {name} not found"
-    opening = source.find("{", match.start(), match.end())
+    # The regex above always ends its match on the function body's own
+    # opening brace (`\)\s*\{` after the parameter list), so that brace is
+    # necessarily the LAST "{" in the matched span. find() instead of
+    # rfind() previously locked onto an earlier "{" belonging to a
+    # destructured/default parameter (e.g. `function f(data, { onError } =
+    # {}) {`), truncating the extracted body at that parameter's own closing
+    # brace instead of the real function body.
+    opening = source.rfind("{", match.start(), match.end())
     depth = 0
     quote = None
     escaped = False
