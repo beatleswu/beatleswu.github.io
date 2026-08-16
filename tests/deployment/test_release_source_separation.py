@@ -7,6 +7,8 @@ import os
 import pathlib
 import subprocess
 
+import pytest
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 MODULE = ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
@@ -14,6 +16,9 @@ BUILD_RELEASE = ROOT / "scripts" / "release" / "build-release-image.ps1"
 BUILD_PRODUCTION = ROOT / "scripts" / "build-production-image.ps1"
 PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 PRODUCT_SHA = "45eef15ec259c6829bc38e57164109ad16950220"
+PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
+PRE_B1_PROVENANCE_COUNT = 79
+B1_PRESENT_PROVENANCE_COUNT = 80
 
 
 def ps_quote(value: pathlib.Path | str) -> str:
@@ -62,6 +67,46 @@ def git(cwd: pathlib.Path, *args: str) -> str:
         check=True,
     )
     return result.stdout.strip()
+
+
+def _presentation_source_present(repo_root=ROOT):
+    return (repo_root / PRESENTATION_DISPATCHER_PATH).is_file()
+
+
+def _expected_provenance_contract(presentation_present):
+    return (
+        B1_PRESENT_PROVENANCE_COUNT
+        if presentation_present
+        else PRE_B1_PROVENANCE_COUNT,
+        presentation_present,
+    )
+
+
+def _assert_provenance_contract(governed_paths, presentation_present):
+    expected_count, presentation_required = _expected_provenance_contract(
+        presentation_present
+    )
+    assert len(governed_paths) == expected_count
+    assert "js/game/lord_trial_controller.js" in governed_paths
+    assert (PRESENTATION_DISPATCHER_PATH in governed_paths) is presentation_required
+
+
+def test_provenance_dual_state_branches_are_exact():
+    assert _expected_provenance_contract(False) == (PRE_B1_PROVENANCE_COUNT, False)
+    assert _expected_provenance_contract(True) == (B1_PRESENT_PROVENANCE_COUNT, True)
+
+
+def test_provenance_dual_state_rejects_partial_b1_contract():
+    with pytest.raises(AssertionError):
+        _assert_provenance_contract(
+            {"js/game/lord_trial_controller.js"},
+            True,
+        )
+    with pytest.raises(AssertionError):
+        _assert_provenance_contract(
+            {"js/game/lord_trial_controller.js", PRESENTATION_DISPATCHER_PATH},
+            False,
+        )
 
 
 def create_source_pair(tmp_path: pathlib.Path) -> tuple[pathlib.Path, str, str]:
@@ -234,10 +279,11 @@ def test_provenance_count_recovery_and_controller_membership_remain_intact():
     provenance = json.loads(
         (ROOT / "deploy" / "runtime-source-provenance.json").read_text(encoding="utf-8")
     )
-    assert len(provenance["files"]) == 80
     governed_paths = {entry["path"] for entry in provenance["files"]}
-    assert "js/game/lord_trial_controller.js" in governed_paths
-    assert "js/game/presentation_dispatcher.js" in governed_paths
+    _assert_provenance_contract(
+        governed_paths,
+        _presentation_source_present(),
+    )
 
 
 def test_canonical_source_separation_dry_run_uses_product_identity_without_build():

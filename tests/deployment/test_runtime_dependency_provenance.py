@@ -13,25 +13,14 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 MANIFEST = REPO_ROOT / "deploy" / "runtime-source-provenance.json"
 DOCKERFILE = REPO_ROOT / "Dockerfile"
+PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
+PRE_B1_EXPECTED_COUNT = 79
+B1_PRESENT_EXPECTED_COUNT = 80
 
-
-def load_manifest():
-    return json.loads(MANIFEST.read_text(encoding="utf-8"))
-
-
-def test_manifest_exists_and_valid():
-    data = load_manifest()
-    assert isinstance(data["files"], list)
-    assert len(data["files"]) == 80
-
-
-def test_manifest_covers_every_governed_runtime_file():
-    data = load_manifest()
-    paths = {entry["path"] for entry in data["files"]}
-    expected = {
+PRE_B1_GOVERNED_RUNTIME_PATHS = frozenset(
+    {
         "js/e9/feature_flags.js", "js/e9/world_stage.js",
         "js/game/lord_trial_controller.js",
-        "js/game/presentation_dispatcher.js",
         "css/e9/world_stage.css", "components/adventure/world_stage.html",
         "backend_i18n.py", "chapter_i18n.py", "explain_overrides.py", "grimoire_api.py",
         "katago_explain.py", "monster_taxonomy.py", "question_taxonomy.py", "scheduler.py",
@@ -63,7 +52,68 @@ def test_manifest_covers_every_governed_runtime_file():
         "blog/index.html", "blog/kids-learn-go-age.html",
         "blog/what-is-life-and-death.html", "blog/what-is-tsumego.html",
     }
+)
+
+
+def load_manifest():
+    return json.loads(MANIFEST.read_text(encoding="utf-8"))
+
+
+def _presentation_source_present(repo_root=REPO_ROOT):
+    return (repo_root / PRESENTATION_DISPATCHER_PATH).is_file()
+
+
+def _expected_governed_runtime_paths(presentation_present):
+    expected = set(PRE_B1_GOVERNED_RUNTIME_PATHS)
+    if presentation_present:
+        expected.add(PRESENTATION_DISPATCHER_PATH)
+    return frozenset(expected)
+
+
+def _assert_runtime_manifest_contract(paths, count, presentation_present):
+    expected = _expected_governed_runtime_paths(presentation_present)
+    assert count == len(expected)
     assert paths == expected
+
+
+def test_runtime_dual_state_expected_sets_are_exact():
+    assert len(PRE_B1_GOVERNED_RUNTIME_PATHS) == PRE_B1_EXPECTED_COUNT
+    assert len(_expected_governed_runtime_paths(False)) == PRE_B1_EXPECTED_COUNT
+    assert PRESENTATION_DISPATCHER_PATH not in _expected_governed_runtime_paths(False)
+    assert len(_expected_governed_runtime_paths(True)) == B1_PRESENT_EXPECTED_COUNT
+    assert PRESENTATION_DISPATCHER_PATH in _expected_governed_runtime_paths(True)
+
+
+def test_runtime_dual_state_rejects_partial_b1_contract():
+    with pytest.raises(AssertionError):
+        _assert_runtime_manifest_contract(
+            PRE_B1_GOVERNED_RUNTIME_PATHS,
+            PRE_B1_EXPECTED_COUNT,
+            True,
+        )
+    with pytest.raises(AssertionError):
+        _assert_runtime_manifest_contract(
+            PRE_B1_GOVERNED_RUNTIME_PATHS | {PRESENTATION_DISPATCHER_PATH},
+            B1_PRESENT_EXPECTED_COUNT,
+            False,
+        )
+
+
+def test_manifest_exists_and_valid():
+    data = load_manifest()
+    assert isinstance(data["files"], list)
+    expected = _expected_governed_runtime_paths(_presentation_source_present())
+    assert len(data["files"]) == len(expected)
+
+
+def test_manifest_covers_every_governed_runtime_file():
+    data = load_manifest()
+    paths = {entry["path"] for entry in data["files"]}
+    _assert_runtime_manifest_contract(
+        paths,
+        len(data["files"]),
+        _presentation_source_present(),
+    )
 
 
 BINARY_EXTENSIONS = (".png", ".jpg", ".jpeg")
