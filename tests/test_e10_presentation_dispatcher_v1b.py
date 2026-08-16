@@ -30,6 +30,9 @@ BUILD_MANIFEST_PATH = ROOT / "deploy" / "build-manifest.json"
 STATIC_INVENTORY_PATH = ROOT / "deploy" / "live-static-asset-inventory.json"
 SW_PATH = ROOT / "sw.js"
 DISPATCHER_ASSET = "js/game/presentation_dispatcher.js"
+AUTHORIZED_DISPATCHER_SCRIPT_SRC = "/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"
+BASE_SRS_SCRIPT_SRC = "/srs.js?v=20260622i18n1"
+B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
 
 FROZEN_INDEX_FUNCTIONS = (
@@ -119,12 +122,58 @@ def _stable_js(source: str) -> str:
     return re.sub(r"\s+", " ", source).strip()
 
 
-def _mask_external_script_tags(source: str) -> str:
-    pattern = re.compile(
-        r"<script\b(?=[^>]*\bsrc\s*=)[^>]*>.*?</script\s*>",
-        re.IGNORECASE | re.DOTALL,
-    )
-    return pattern.sub("<EXTERNAL_SCRIPT_TAG>", source)
+_EXTERNAL_SCRIPT_TAG_RE = re.compile(
+    r"<script\b(?=[^>]*\bsrc\s*=)[^>]*>.*?</script\s*>",
+    re.IGNORECASE | re.DOTALL,
+)
+_SCRIPT_SRC_ATTRIBUTE_RE = re.compile(
+    r"\bsrc\s*=\s*(['\"])(?P<src>.*?)\1",
+    re.IGNORECASE | re.DOTALL,
+)
+_JS_IDENTIFIER = r"[A-Za-z_$][A-Za-z0-9_$]*"
+_PRESENTATION_ALIAS_DECLARATION_RE = re.compile(
+    rf"\b(?:const|let|var)\s+(?P<alias>{_JS_IDENTIFIER})\s*=\s*(?P<initializer>[^;]+);",
+    re.DOTALL,
+)
+
+
+def _external_script_tags(source: str) -> list[tuple[str, str]]:
+    entries = []
+    for match in _EXTERNAL_SCRIPT_TAG_RE.finditer(source):
+        tag = match.group(0)
+        src_match = _SCRIPT_SRC_ATTRIBUTE_RE.search(tag)
+        assert src_match, "HARNESS_FAILURE: external script tag has no src value"
+        entries.append((tag, src_match.group("src")))
+    return entries
+
+
+def _replace_script_src(tag: str, old_src: str, new_src: str) -> str:
+    match = _SCRIPT_SRC_ATTRIBUTE_RE.search(tag)
+    assert match and match.group("src") == old_src, "HARNESS_FAILURE: unexpected script src"
+    return tag[: match.start("src")] + new_src + tag[match.end("src") :]
+
+
+def _remove_external_script_tag(source: str, tag: str) -> str:
+    assert source.count(tag) == 1, "HARNESS_FAILURE: expected one authorized script tag"
+    whole_line = re.compile(rf"(?m)^[ \t]*{re.escape(tag)}[ \t]*(?:\r?\n|$)")
+    match = whole_line.search(source)
+    if match:
+        return source[: match.start()] + source[match.end() :]
+    return source.replace(tag, "", 1)
+
+
+def _verified_presentation_dispatcher_aliases(source: str) -> set[str]:
+    aliases = set()
+    for match in _PRESENTATION_ALIAS_DECLARATION_RE.finditer(source):
+        initializer = re.sub(r"\s+", "", match.group("initializer"))
+        if initializer in {
+            "window.PresentationDispatcher",
+            "window.PresentationDispatcher||null",
+            "typeofwindow!=='undefined'?window.PresentationDispatcher:null",
+            "typeofwindow===\"undefined\"?null:window.PresentationDispatcher",
+        }:
+            aliases.add(match.group("alias"))
+    return aliases
 
 
 def _contains_exact_json_value(value, expected: str) -> bool:
@@ -211,7 +260,20 @@ def test_srs_review_is_the_only_review_transport_and_private_state_stays_in_srs(
         assert private_name in source
 
     dispatch_body = _extract_function(source, "dispatchReviewPresentation")
-    if "PresentationDispatcher" not in dispatch_body or ".dispatch" not in dispatch_body:
+    direct_calls = re.findall(
+        r"(?:\bwindow\s*\.\s*)?\bPresentationDispatcher\s*\.\s*dispatch\s*\(",
+        dispatch_body,
+    )
+    verified_aliases = _verified_presentation_dispatcher_aliases(source)
+    alias_call_count = sum(
+        len(
+            re.findall(
+                rf"\b{re.escape(alias)}\s*\.\s*dispatch\s*\(", dispatch_body
+            )
+        )
+        for alias in verified_aliases
+    )
+    if len(direct_calls) + alias_call_count != 1:
         pytest.fail("EXPECTED_RED:SRS_NOT_YET_DELEGATING_TO_PRESENTATION_DISPATCHER")
     assert "/api/srs/review" not in dispatch_body
 
@@ -250,7 +312,43 @@ def test_index_html_effect_bodies_and_lord_controller_are_frozen():
 def test_b1_index_html_changes_are_script_loading_only():
     current_index = _read(INDEX_PATH)
     base_index = _git_show("index.html")
-    assert _mask_external_script_tags(current_index) == _mask_external_script_tags(base_index)
+    current_scripts = _external_script_tags(current_index)
+    base_scripts = _external_script_tags(base_index)
+    current_srcs = [src for _, src in current_scripts]
+    base_srcs = [src for _, src in base_scripts]
+
+    assert AUTHORIZED_DISPATCHER_SCRIPT_SRC not in base_srcs
+    assert current_srcs.count(AUTHORIZED_DISPATCHER_SCRIPT_SRC) == 1
+    assert len(current_srcs) == len(base_srcs) + 1
+    assert base_srcs.count(BASE_SRS_SCRIPT_SRC) == 1
+    assert current_srcs.count(B1_SRS_SCRIPT_SRC) == 1
+    assert current_srcs.count(BASE_SRS_SCRIPT_SRC) == 0
+
+    current_without_dispatcher = [
+        src for src in current_srcs if src != AUTHORIZED_DISPATCHER_SCRIPT_SRC
+    ]
+    normalized_current_srcs = [
+        BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC else src
+        for src in current_without_dispatcher
+    ]
+    assert normalized_current_srcs == base_srcs
+
+    dispatcher_tag = next(
+        tag for tag, src in current_scripts if src == AUTHORIZED_DISPATCHER_SCRIPT_SRC
+    )
+    current_remainder = _remove_external_script_tag(current_index, dispatcher_tag)
+    current_srs_tag = next(tag for tag, src in current_scripts if src == B1_SRS_SCRIPT_SRC)
+    base_srs_tag = next(tag for tag, src in base_scripts if src == BASE_SRS_SCRIPT_SRC)
+    normalized_srs_tag = _replace_script_src(
+        current_srs_tag, B1_SRS_SCRIPT_SRC, BASE_SRS_SCRIPT_SRC
+    )
+    assert normalized_srs_tag == base_srs_tag
+    current_remainder = current_remainder.replace(
+        current_srs_tag,
+        normalized_srs_tag,
+        1,
+    )
+    assert current_remainder == base_index
 
 
 def test_b0_exact_route_remains_narrow_and_app_py_is_not_a_generic_static_bridge():
