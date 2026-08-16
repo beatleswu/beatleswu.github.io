@@ -70,12 +70,31 @@ def test_detached_exact_commit_context_excludes_synthetic_untracked_canaries(tmp
             git(source, "worktree", "remove", str(context))
 
 
-def test_build_uses_validated_exact_worktree_as_docker_context_not_ambient_dot():
+def test_build_uses_validated_product_source_as_docker_context_not_ambient_dot():
     content = BUILD_SCRIPT.read_text(encoding="utf-8")
-    assert "$dockerBuildContext = Assert-DetachedWorktreeIdentity" in content
-    assert "-Path $validatedWorktreeRoot" in content
-    assert "-ExpectedGitSha $GitSha" in content
-    assert "$dockerBuildContext" in content
+
+    # A separated build has two governed identities: the Gate/control-plane
+    # checkout and the Product checkout.  The Product checkout is validated
+    # independently before it can become the Docker context.
+    assert "[string]$ProductSourceRoot" in content
+    assert "[string]$ExpectedProductGitSha" in content
+    assert "$separatedProductBuild = -not [string]::IsNullOrWhiteSpace($ProductSourceRoot)" in content
+    assert "$bootstrapProductRoot = Assert-BootstrapNoReparse $ProductSourceRoot" in content
+    assert "Product source worktree must be separate from the Gate worktree." in content
+    assert "$validatedProductRoot = Assert-DetachedWorktreeIdentity" in content
+    assert "$GitSha = if ($separatedProductBuild) { $ExpectedProductGitSha } else { $ExpectedExactGitSha }" in content
+    assert "$resolvedExpectedProductGitSha = if ($separatedProductBuild)" in content
+    assert "if ($GitSha -ne $resolvedExpectedProductGitSha)" in content
+
+    docker_context_start = content.index(
+        "$dockerBuildContext = Assert-DetachedWorktreeIdentity"
+    )
+    docker_context_end = content.index("# 8.", docker_context_start)
+    docker_context_block = content[docker_context_start:docker_context_end]
+    assert "-Path $validatedProductRoot" in docker_context_block
+    assert "-Path $validatedWorktreeRoot" not in docker_context_block
+    assert "-ExpectedGitSha $GitSha" in docker_context_block
+
     build_arguments = content[content.index("'buildx', 'build'") :]
     assert "        $dockerBuildContext" in build_arguments
     assert "        '.'" not in build_arguments
