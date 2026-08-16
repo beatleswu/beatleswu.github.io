@@ -31,9 +31,42 @@ STATIC_INVENTORY_PATH = ROOT / "deploy" / "live-static-asset-inventory.json"
 SW_PATH = ROOT / "sw.js"
 DISPATCHER_ASSET = "js/game/presentation_dispatcher.js"
 AUTHORIZED_DISPATCHER_SCRIPT_SRC = "/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"
+AUTHORIZED_EFFECTS_SCRIPT_SRC = "/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"
 BASE_SRS_SCRIPT_SRC = "/srs.js?v=20260622i18n1"
 B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
+B2_DISPATCH_INSERTION = """\
+    const b2Dispatcher = window.PresentationDispatcher;
+    const b2Effects = window.GoOdysseyPresentationEffectsB2;
+    if (b2Dispatcher && typeof b2Dispatcher.dispatchEffects === 'function' && b2Effects) {
+        const scope = _createB2PresentationScope(data, lordController);
+        b2Dispatcher.dispatchEffects(data, {
+            adapter: b2Effects,
+            dependencies: _createB2PresentationDependencies(scope),
+            grade,
+            scope,
+            onError: failure => reportFailure(failure.stage, failure),
+        });
+        return;
+    }
+"""
+B2_SUBMIT_SRS_CONTEXT = """\
+        presentation_context: {
+            mode: _bossMode ? 'lord' : 'normal',
+            questionId: Number(bossAnswerContext?.questionId || currentQ.id),
+            attemptId: _bossMode ? _bossAttemptId : null,
+            lordIndex: _bossMode ? bossAnswerContext?.index : null,
+            lifecycleGeneration: _mapBattleV1LifecycleGeneration,
+        },
+"""
+B2_INDEX_FUNCTION_DELTAS = {
+    "_dispatchCommittedReviewPresentation": B2_DISPATCH_INSERTION,
+    "submitSRS": B2_SUBMIT_SRS_CONTEXT,
+}
+B2_INDEX_HELPER_FUNCTIONS = (
+    "_createB2PresentationScope",
+    "_createB2PresentationDependencies",
+)
 
 FROZEN_INDEX_FUNCTIONS = (
     "_dispatchCommittedReviewPresentation",
@@ -127,6 +160,18 @@ def _extract_function(source: str, name: str) -> str:
 
 def _stable_js(source: str) -> str:
     return re.sub(r"\s+", " ", source).strip()
+
+
+def _remove_function(source: str, name: str) -> str:
+    function_source = _extract_function(source, name)
+    assert source.count(function_source) == 1, (
+        f"HARNESS_FAILURE: expected one function source for {name}"
+    )
+    function_line = function_source + "\n\n"
+    assert source.count(function_line) == 1, (
+        f"HARNESS_FAILURE: expected one newline after {name}"
+    )
+    return source.replace(function_line, "", 1)
 
 
 _EXTERNAL_SCRIPT_TAG_RE = re.compile(
@@ -309,7 +354,14 @@ def test_index_html_effect_bodies_and_lord_controller_are_frozen():
     current_index = _read(INDEX_PATH)
     base_index = _git_show("index.html")
     for name in FROZEN_INDEX_FUNCTIONS:
-        assert _stable_js(_extract_function(current_index, name)) == _stable_js(
+        current_function = _extract_function(current_index, name)
+        b2_delta = B2_INDEX_FUNCTION_DELTAS.get(name)
+        if b2_delta:
+            assert current_function.count(b2_delta) == 1, (
+                f"HARNESS_FAILURE: expected one exact B2 delta in {name}"
+            )
+            current_function = current_function.replace(b2_delta, "", 1)
+        assert _stable_js(current_function) == _stable_js(
             _extract_function(base_index, name)
         ), f"B1 changed frozen index function body: {name}"
 
@@ -326,13 +378,17 @@ def test_b1_index_html_changes_are_script_loading_only():
 
     assert AUTHORIZED_DISPATCHER_SCRIPT_SRC not in base_srcs
     assert current_srcs.count(AUTHORIZED_DISPATCHER_SCRIPT_SRC) == 1
-    assert len(current_srcs) == len(base_srcs) + 1
+    assert AUTHORIZED_EFFECTS_SCRIPT_SRC not in base_srcs
+    assert current_srcs.count(AUTHORIZED_EFFECTS_SCRIPT_SRC) == 1
+    assert len(current_srcs) == len(base_srcs) + 2
     assert base_srcs.count(BASE_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(B1_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(BASE_SRS_SCRIPT_SRC) == 0
 
     current_without_dispatcher = [
-        src for src in current_srcs if src != AUTHORIZED_DISPATCHER_SCRIPT_SRC
+        src
+        for src in current_srcs
+        if src not in {AUTHORIZED_DISPATCHER_SCRIPT_SRC, AUTHORIZED_EFFECTS_SCRIPT_SRC}
     ]
     normalized_current_srcs = [
         BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC else src
@@ -344,6 +400,10 @@ def test_b1_index_html_changes_are_script_loading_only():
         tag for tag, src in current_scripts if src == AUTHORIZED_DISPATCHER_SCRIPT_SRC
     )
     current_remainder = _remove_external_script_tag(current_index, dispatcher_tag)
+    effects_tag = next(
+        tag for tag, src in current_scripts if src == AUTHORIZED_EFFECTS_SCRIPT_SRC
+    )
+    current_remainder = _remove_external_script_tag(current_remainder, effects_tag)
     current_srs_tag = next(tag for tag, src in current_scripts if src == B1_SRS_SCRIPT_SRC)
     base_srs_tag = next(tag for tag, src in base_scripts if src == BASE_SRS_SCRIPT_SRC)
     normalized_srs_tag = _replace_script_src(
@@ -355,6 +415,13 @@ def test_b1_index_html_changes_are_script_loading_only():
         normalized_srs_tag,
         1,
     )
+    for name in B2_INDEX_HELPER_FUNCTIONS:
+        current_remainder = _remove_function(current_remainder, name)
+    for b2_delta in B2_INDEX_FUNCTION_DELTAS.values():
+        assert current_remainder.count(b2_delta) == 1, (
+            "HARNESS_FAILURE: expected one exact B2 index delta"
+        )
+        current_remainder = current_remainder.replace(b2_delta, "", 1)
     assert current_remainder == base_index
 
 

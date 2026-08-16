@@ -126,7 +126,56 @@
         });
     }
 
-    const api = { create, dispatch };
+    function dispatchEffects(data, {
+        adapter = global.GoOdysseyPresentationEffectsB2,
+        dependencies = {},
+        grade = 0,
+        scope = null,
+        onError,
+    } = {}) {
+        if (!data || data.ok !== true) {
+            return { ok: false, skipped: true, failures: [] };
+        }
+        const reportFailure = failure => {
+            if (typeof onError !== 'function') return;
+            try { onError(failure); } catch (observerError) { /* diagnostics only */ }
+        };
+        try {
+            const effectAdapter = adapter && typeof adapter.create === 'function'
+                ? adapter.create(dependencies)
+                : adapter;
+            if (!effectAdapter || typeof effectAdapter.dispatch !== 'function') {
+                const failure = {
+                    stage: 'presentation_effects_unavailable',
+                    errorType: 'Error',
+                    message: 'B2 presentation effects are unavailable',
+                };
+                reportFailure(failure);
+                return { ok: false, skipped: false, failures: [failure] };
+            }
+            const result = effectAdapter.dispatch(data, grade, { scope, onError });
+            if (!result || typeof result !== 'object') {
+                const failure = {
+                    stage: 'presentation_effects',
+                    errorType: 'Error',
+                    message: 'B2 presentation effects returned no result',
+                };
+                reportFailure(failure);
+                return { ok: false, skipped: false, failures: [failure] };
+            }
+            return result;
+        } catch (error) {
+            const failure = {
+                stage: 'presentation_effects',
+                errorType: error?.name || 'Error',
+                message: error?.message || String(error || ''),
+            };
+            reportFailure(failure);
+            return { ok: false, skipped: false, failures: [failure] };
+        }
+    }
+
+    const api = { create, dispatch, dispatchEffects };
     global.GoOdysseyPresentationDispatcher = api;
     global.PresentationDispatcher = api;
 })(typeof window !== 'undefined' ? window : globalThis);
