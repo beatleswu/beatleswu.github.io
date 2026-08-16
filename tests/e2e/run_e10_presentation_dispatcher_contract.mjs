@@ -179,6 +179,7 @@ function dependenciesFor(mode, events) {
     show: definition => {
       events.push(`badge:${definition?.id || 'unknown'}`);
       if (mode === 'badge_callback_throws') failure('badge callback failed');
+      if (mode === 'on_error_throws') failure('source presentation failure');
     },
     seen: ids => {
       events.push(`badge_seen:${ids.join(',')}`);
