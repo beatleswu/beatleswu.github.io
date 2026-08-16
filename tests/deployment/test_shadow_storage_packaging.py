@@ -31,6 +31,7 @@ def test_manifest_provenance_count_matches_exact_governed_set():
     provenance = json.loads(_text(PROVENANCE))
     governed_paths = {entry["path"] for entry in provenance["files"]}
     assert len(provenance["files"]) == len(governed_paths)
+    assert len(governed_paths) == 79
     assert "js/game/lord_trial_controller.js" in governed_paths
     assert manifest["runtime_dependency_provenance"]["files_covered"] == len(
         governed_paths
