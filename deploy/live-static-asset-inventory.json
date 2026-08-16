@@ -9,7 +9,7 @@
       "srs.js", "monster_trash.js", "sound.js", "mobile-nav.js",
       "site-nav.js", "community_reward_notifications.js",
       "community_reward_rules.js", "pwa.js",
-      "js/map_battle_v1_adapter.js", "js/game/lord_trial_controller.js", "js/game/presentation_dispatcher.js", "js/game/presentation_effects_b2.js", "js/e9/shell.js",
+      "js/map_battle_v1_adapter.js", "js/game/lord_trial_controller.js", "js/game/presentation_dispatcher.js", "js/game/presentation_effects_b2.js", "js/game/review_transport.js", "js/e9/shell.js",
       "js/e9/adapters/activity_state.js", "js/e9/adapters/adventure_state.js",
       "js/e9/adapters/player_state.js", "js/e9/bottom_dock.js",
       "js/e9/component_loader.js", "js/e9/feature_flags.js",
@@ -40,7 +40,7 @@
   },
   "required_in_generation": {
     "description": "The subset of eligible_files this Sprint's static release tooling (scripts/release/package-static-release.ps1 / deploy-static-release.ps1) actually stages, ships, and verifies in every generation. i18n.js and sw.js remain governed because they were observed stale in live-static. index.html is governed because an older live-static entrypoint can mask the exact app image's shell wiring. site-nav.js, js/map_battle_v1_adapter.js, js/game/lord_trial_controller.js, js/game/presentation_dispatcher.js, and js/game/presentation_effects_b2.js are required because index.html references these exact application assets. js/e9/shell.js remains required with the E10 shell navigation owner. The runtime_dependency_closure below derives the E10 JS/CSS/component closure from index.html and the shell's component references. Other eligible pages remain intentionally baked-image fallback content and are outside this focused contract.",
-    "entries": ["i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html", "js/e9/shell.js", "js/map_battle_v1_adapter.js", "js/game/lord_trial_controller.js", "js/game/presentation_dispatcher.js", "js/game/presentation_effects_b2.js"]
+    "entries": ["i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html", "js/e9/shell.js", "js/map_battle_v1_adapter.js", "js/game/lord_trial_controller.js", "js/game/presentation_dispatcher.js", "js/game/presentation_effects_b2.js", "js/game/review_transport.js"]
   },
   "runtime_dependency_closure": {
     "description": "The E10 client closure is derived from the index.html entrypoint and recursively resolved local references. Declared subtrees are the live-static-routed E9 runtime boundary; every referenced file must exist in the exact source checkout and is staged with its SHA-256 and size.",
