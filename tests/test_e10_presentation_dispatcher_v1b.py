@@ -18,7 +18,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_SHA = "e892932a046d4c1b88262b4e8adbc5f7824be8c2"
+BASE_SHA = "f9554b871eec580746b840e5d9df4278a695b464"
 PRESENTATION_PATH = ROOT / "js" / "game" / "presentation_dispatcher.js"
 NODE_CONTRACT = ROOT / "tests" / "e2e" / "run_e10_presentation_dispatcher_contract.mjs"
 SRS_PATH = ROOT / "srs.js"
