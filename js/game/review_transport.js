@@ -1,0 +1,214 @@
+(function (root) {
+    'use strict';
+
+    const CORE20 = [
+        'ok',
+        'ease_factor',
+        'interval',
+        'due_date',
+        'new_badges',
+        'stats',
+        'xp_gain',
+        'combo_mult',
+        'pet_xp_added',
+        'pet_xp_ratio',
+        'pet_xp_gained',
+        'combo_streak',
+        'shield_used',
+        'xp_potion_active',
+        'ranked_up',
+        'new_rank_level',
+        'pet',
+        'practice',
+        'training',
+        'new_appearance_items'
+    ];
+
+    const T2_OPTIONAL_FIELDS = [
+        'monster',
+        'player',
+        'quest_updates',
+        'sp',
+        'loot',
+        'appearance_loot'
+    ];
+
+    const FULL26 = CORE20.concat(T2_OPTIONAL_FIELDS);
+    const DUP4 = [
+        'ok',
+        'progression_applied',
+        'progression_duplicate',
+        'question_id'
+    ];
+
+    class ReviewRejected extends Error {
+        constructor(payload, status) {
+            const code = payload && payload.error;
+            const message = payload && payload.message
+                ? payload.message
+                : String(code || 'review_rejected');
+            super(message);
+            this.name = 'ReviewRejected';
+            this.kind = 'REJECTED';
+            this.code = code;
+            this.status = status;
+            this.payload = payload;
+        }
+    }
+
+    class ReviewTransportError extends Error {
+        constructor(code, message, cause) {
+            super(message || code);
+            this.name = 'ReviewTransportError';
+            this.kind = 'TRANSPORT_ERROR';
+            this.code = code;
+            if (cause !== undefined) this.cause = cause;
+        }
+    }
+
+    function isObjectPayload(payload) {
+        return payload !== null && typeof payload === 'object' && !Array.isArray(payload);
+    }
+
+    function hasExactKeys(payload, fields) {
+        const keys = Object.keys(payload);
+        if (keys.length !== fields.length) return false;
+        for (let index = 0; index < keys.length; index += 1) {
+            if (fields.indexOf(keys[index]) === -1) return false;
+        }
+        return true;
+    }
+
+    function snapshot(payload) {
+        const copy = new Object();
+        const keys = Object.keys(payload);
+        for (let index = 0; index < keys.length; index += 1) {
+            const key = keys[index];
+            copy[key] = payload[key];
+        }
+        return copy;
+    }
+
+    function invalidResponse() {
+        return new ReviewTransportError(
+            'invalid_review_response',
+            'invalid_review_response'
+        );
+    }
+
+    function buildRequest(command) {
+        const value = command || {};
+        const request = new Object();
+        request.question_id = value.question_id;
+        request.grade = value.grade;
+        request.unit_name = value.unit_name || null;
+        request.unit_done = !!value.unit_done;
+        request.response_ms = value.response_ms == null ? null : value.response_ms;
+        request.source_context = value.source_context || 'practice';
+        request.training_set_id = value.training_set_id == null ? null : value.training_set_id;
+        request.is_scaffolding = !!value.is_scaffolding;
+        return request;
+    }
+
+    function mapOutcome(payload, options) {
+        if (!isObjectPayload(payload)) throw invalidResponse();
+
+        const internal = !!(options && options.internal === true);
+        if (hasExactKeys(payload, DUP4)) {
+            if (!internal || payload.ok !== true) throw invalidResponse();
+            return { kind: 'INTERNAL_DUPLICATE', payload: snapshot(payload) };
+        }
+
+        if (payload.ok !== true) throw invalidResponse();
+        if (hasExactKeys(payload, FULL26)) {
+            return { kind: 'PUBLIC_FULL', payload: snapshot(payload) };
+        }
+        if (hasExactKeys(payload, CORE20)) {
+            return { kind: 'PUBLIC_CORE', payload: snapshot(payload) };
+        }
+        throw invalidResponse();
+    }
+
+    async function review(command, fetchImpl) {
+        const requester = typeof fetchImpl === 'function'
+            ? fetchImpl
+            : (typeof fetch === 'function' ? fetch : null);
+        if (!requester) {
+            throw new ReviewTransportError('review_transport_error', 'fetch_unavailable');
+        }
+
+        const headers = new Object();
+        headers['Content-Type'] = 'application/json';
+        const options = new Object();
+        options.credentials = 'include';
+        options.method = 'POST';
+        options.headers = headers;
+        options.body = JSON.stringify(buildRequest(command));
+
+        let response;
+        try {
+            response = await requester('/api/srs/review', options);
+        } catch (cause) {
+            throw new ReviewTransportError('review_transport_error', 'review_transport_error', cause);
+        }
+
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (cause) {
+            throw new ReviewTransportError(
+                'review_response_parse_error',
+                'review_response_parse_error',
+                cause
+            );
+        }
+
+        if (!response.ok) {
+            if (isObjectPayload(payload) && typeof payload.error === 'string' && payload.error) {
+                throw new ReviewRejected(payload, response.status);
+            }
+            throw new ReviewTransportError(
+                'review_http_error',
+                'review_http_error',
+            );
+        }
+
+        return mapOutcome(payload);
+    }
+
+    async function legacyReview(questionId, grade, unitName, unitDone, metadata, fetchImpl) {
+        const value = metadata || {};
+        const command = {
+            question_id: questionId,
+            grade,
+            unit_name: unitName,
+            unit_done: unitDone,
+            response_ms: value.response_ms,
+            source_context: value.source_context,
+            training_set_id: value.training_set_id,
+            is_scaffolding: value.is_scaffolding
+        };
+
+        try {
+            const outcome = await review(command, fetchImpl);
+            return outcome.payload;
+        } catch (error) {
+            if (
+                error &&
+                error.kind === 'REJECTED' &&
+                (error.code === 'premium_required' || error.code === 'daily_limit')
+            ) {
+                return error.payload;
+            }
+            throw error;
+        }
+    }
+
+    root.ReviewTransport = {
+        endpoint: '/api/srs/review',
+        buildRequest,
+        mapOutcome,
+        review,
+        legacyReview
+    };
+}(typeof window !== 'undefined' ? window : globalThis));
