@@ -345,7 +345,8 @@ function Get-ReleaseControlPlaneAllowlist {
         'scripts/release/**',
         'scripts/build-production-image.ps1',
         'tests/deployment/**',
-        'tests/release/**'
+        'tests/release/**',
+        'docs/deployment/**'
     )
 }
 
@@ -355,7 +356,7 @@ function Test-ReleaseControlPlanePath {
     if ($normalized -eq 'scripts/build-production-image.ps1') {
         return $true
     }
-    foreach ($prefix in @('scripts/release/', 'tests/deployment/', 'tests/release/')) {
+    foreach ($prefix in @('scripts/release/', 'tests/deployment/', 'tests/release/', 'docs/deployment/')) {
         if ($normalized.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
             return $true
         }
