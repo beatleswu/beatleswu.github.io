@@ -185,9 +185,11 @@ def test_direct_version_audit_failure_restores_fixture_and_db(monkeypatch, tmp_p
             question_id=900001,
             record_index=0,
             expected_predecessor_hash=wb.direct_record_hash(record),
+            expected_canonical_sha256=wb.canonical_file_sha256(str(path)),
             action_type="ADD_ALTERNATIVE_CORRECT_MOVE",
             proposed_record=proposed,
             operation_id="audit-failure-operation",
+            retest_fn=lambda current: True,
         )
     assert path.read_bytes() == original_bytes
     assert conn.execute("SELECT COUNT(*) FROM sgf_workbench_direct_versions").fetchone()[0] == 0
@@ -305,9 +307,11 @@ def test_disposable_postgres_stale_transition_and_direct_version_atomicity(monke
             question_id=900001,
             record_index=0,
             expected_predecessor_hash=wb.direct_record_hash(record),
+            expected_canonical_sha256=wb.canonical_file_sha256(str(path)),
             action_type="ADD_ALTERNATIVE_CORRECT_MOVE",
             proposed_record=proposed,
             operation_id="pg-direct-operation",
+            retest_fn=lambda current: True,
         )
         first.commit()
         assert version["new_hash"] == wb.direct_record_hash(proposed)
