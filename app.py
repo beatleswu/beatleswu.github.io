@@ -20673,6 +20673,12 @@ def serve_presentation_dispatcher_js():
         'presentation_dispatcher.js', 'js/game', 'js/game'
     )
 
+@app.route('/js/game/presentation_effects_b2.js')
+def serve_presentation_effects_b2_js():
+    return _serve_live_static_or_baked_subpath(
+        'presentation_effects_b2.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

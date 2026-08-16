@@ -554,6 +554,19 @@
       "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
     },
     {
+      "path": "js/game/presentation_effects_b2.js",
+      "source_commit": "97393af07de15f6a28c164257ba8aae71ff091f4",
+      "source_branch_or_local_ref": "codex/e10-v1b-b2-product-implementation-023-k",
+      "source_commit_subject": "feat(e10): migrate B2 presentation effects",
+      "source_date": "2026-08-17",
+      "content_sha256": "185b5867f0068f3d70d1f99c91342f66d3df28436fadfa5ab500cf39c96c1895",
+      "content_size_bytes": 13803,
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (observer-only B2 response-presentation effects; governed static subpath asset)",
+      "production_hash_status": "candidate on the V1B B2 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B2 product integration commit and raw-byte-verified against current content"
+    },
+    {
       "path": "js/game/lord_trial_controller.js",
       "source_commit": "2ebddb528ea13a097f194389b65b3794e3b03bbd",
       "source_branch_or_local_ref": "codex/arch-v1a-wave1-integration",
