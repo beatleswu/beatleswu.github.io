@@ -107,6 +107,9 @@ COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js
 # Keep the repository-relative path so the built image retains the same
 # /js/game/lord_trial_controller.js identity as the source checkout.
 COPY js/game/lord_trial_controller.js ./js/game/lord_trial_controller.js
+# Observer-only committed-review presentation dispatch is an explicitly
+# referenced browser module and must remain a narrow static copy.
+COPY js/game/presentation_dispatcher.js ./js/game/presentation_dispatcher.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
