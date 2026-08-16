@@ -32,6 +32,23 @@ ROLLBACK_SCRIPT = REPO_ROOT / "scripts" / "release" / "rollback-static-release.p
 PREFLIGHT_SCRIPT = REPO_ROOT / "scripts" / "release" / "preflight-production.ps1"
 CONTRACT_DOC = REPO_ROOT / "docs" / "deployment" / "canonical_static_release_contract.md"
 AUDIT_DOC = REPO_ROOT / "docs" / "deployment" / "live_static_drift_impact_audit_20260712.md"
+PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
+PRESENTATION_DISPATCHER_ROUTE = "@app.route('/js/game/presentation_dispatcher.js')"
+PRESENTATION_DISPATCHER_COPY = (
+    "COPY js/game/presentation_dispatcher.js ./js/game/presentation_dispatcher.js"
+)
+PRESENTATION_DISPATCHER_SCRIPT = "/js/game/presentation_dispatcher.js"
+STATIC_PRE_B1_REQUIRED_COUNT = 8
+STATIC_B1_REQUIRED_COUNT = 9
+
+PRE_B1_REQUIRED_IN_GENERATION = frozenset(
+    {
+        "i18n.js", "sw.js", "index.html", "site-nav.js",
+        "inventory.html",
+        "js/e9/shell.js", "js/map_battle_v1_adapter.js",
+        "js/game/lord_trial_controller.js",
+    }
+)
 
 
 def _read(path):
@@ -41,6 +58,70 @@ def _read(path):
 
 def _load_inventory():
     return json.loads(_read(INVENTORY_PATH))
+
+
+def _presentation_source_present(repo_root=REPO_ROOT):
+    return (repo_root / PRESENTATION_DISPATCHER_PATH).is_file()
+
+
+def _expected_required_in_generation(presentation_present):
+    expected = set(PRE_B1_REQUIRED_IN_GENERATION)
+    if presentation_present:
+        expected.add(PRESENTATION_DISPATCHER_PATH)
+    return frozenset(expected)
+
+
+def _assert_static_presentation_state(
+    presentation_present,
+    required_entries,
+    eligible_entries,
+    app_content,
+    dockerfile,
+    html,
+):
+    expected = _expected_required_in_generation(presentation_present)
+    required = set(required_entries)
+    eligible = set(eligible_entries)
+    assert len(PRE_B1_REQUIRED_IN_GENERATION) == STATIC_PRE_B1_REQUIRED_COUNT
+    assert len(required_entries) == len(expected)
+    assert required == expected
+    assert (PRESENTATION_DISPATCHER_PATH in eligible) is presentation_present
+    assert (PRESENTATION_DISPATCHER_PATH in required) is presentation_present
+    if presentation_present:
+        assert PRESENTATION_DISPATCHER_ROUTE in app_content
+    assert (PRESENTATION_DISPATCHER_COPY in dockerfile) is presentation_present
+    assert (PRESENTATION_DISPATCHER_SCRIPT in html) is presentation_present
+
+
+def test_static_dual_state_expected_sets_are_exact():
+    assert len(PRE_B1_REQUIRED_IN_GENERATION) == STATIC_PRE_B1_REQUIRED_COUNT
+    assert len(_expected_required_in_generation(False)) == STATIC_PRE_B1_REQUIRED_COUNT
+    assert PRESENTATION_DISPATCHER_PATH not in _expected_required_in_generation(False)
+    assert len(_expected_required_in_generation(True)) == STATIC_B1_REQUIRED_COUNT
+    assert PRESENTATION_DISPATCHER_PATH in _expected_required_in_generation(True)
+
+
+def test_static_dual_state_rejects_partial_b1_contract():
+    baseline = PRE_B1_REQUIRED_IN_GENERATION
+    empty_assets = ()
+    with pytest.raises(AssertionError):
+        _assert_static_presentation_state(
+            True,
+            baseline,
+            empty_assets,
+            "",
+            "",
+            "",
+        )
+    with pytest.raises(AssertionError):
+        _assert_static_presentation_state(
+            False,
+            tuple(baseline | {PRESENTATION_DISPATCHER_PATH}),
+            (PRESENTATION_DISPATCHER_PATH,),
+            PRESENTATION_DISPATCHER_ROUTE,
+            PRESENTATION_DISPATCHER_COPY,
+            PRESENTATION_DISPATCHER_SCRIPT,
+        )
 
 
 def _ps_quote(value):
@@ -151,6 +232,14 @@ def test_inventory_eligible_files_matches_app_py_allowlist_exactly():
 def test_inventory_explicit_subpath_asset_has_a_live_static_route():
     inventory = _load_inventory()
     app_content = _read(APP_PY)
+    _assert_static_presentation_state(
+        _presentation_source_present(),
+        inventory["required_in_generation"]["entries"],
+        inventory["eligible_files"]["entries"],
+        app_content,
+        _read(DOCKERFILE),
+        _read(INDEX_HTML),
+    )
     for asset_path in ("js/map_battle_v1_adapter.js", "js/e9/shell.js"):
         assert asset_path in inventory["eligible_files"]["entries"]
         assert asset_path in inventory["required_in_generation"]["entries"]
@@ -173,12 +262,9 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     inventory = _load_inventory()
     entries = inventory["required_in_generation"]["entries"]
     assert entries.count("inventory.html") == 1
-    assert set(entries) == {
-        "i18n.js", "sw.js", "index.html", "site-nav.js",
-        "inventory.html",
-        "js/e9/shell.js", "js/map_battle_v1_adapter.js",
-        "js/game/lord_trial_controller.js",
-    }
+    expected = _expected_required_in_generation(_presentation_source_present())
+    assert set(entries) == expected
+    assert len(entries) == len(expected)
 
 
 def test_inventory_declares_complete_e10_runtime_dependency_boundary():
@@ -242,21 +328,43 @@ def test_html_required_legacy_assets_have_image_and_static_contract_entries():
     eligible = set(inventory["eligible_files"]["entries"])
     required = set(inventory["required_in_generation"]["entries"])
 
+    _assert_static_presentation_state(
+        _presentation_source_present(),
+        inventory["required_in_generation"]["entries"],
+        inventory["eligible_files"]["entries"],
+        _read(APP_PY),
+        dockerfile,
+        html,
+    )
     assert "/js/map_battle_v1_adapter.js" in html
     assert "/js/e9/shell.js" in html
     assert "/site-nav.js" in html
     assert "COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js" in dockerfile
     assert "site-nav.js" in dockerfile
-    assert {"site-nav.js", "js/e9/shell.js", "js/map_battle_v1_adapter.js"} <= eligible
-    assert {"site-nav.js", "js/e9/shell.js", "js/map_battle_v1_adapter.js"} <= required
+    assert {
+        "site-nav.js",
+        "js/e9/shell.js",
+        "js/map_battle_v1_adapter.js",
+    } <= eligible
+    assert {
+        "site-nav.js",
+        "js/e9/shell.js",
+        "js/map_battle_v1_adapter.js",
+    } <= required
 
 
 def test_dockerfile_legacy_asset_sources_exist_and_are_narrow():
     dockerfile = _read(DOCKERFILE)
     assert re.search(r"COPY\s+js/map_battle_v1_adapter\.js\s+\./js/map_battle_v1_adapter\.js", dockerfile)
+    presentation_copy = re.search(
+        r"COPY\s+js/game/presentation_dispatcher\.js\s+\./js/game/presentation_dispatcher\.js",
+        dockerfile,
+    )
+    assert (presentation_copy is not None) is _presentation_source_present()
     assert not re.search(r"COPY\s+\.\s+\.", dockerfile)
     assert (REPO_ROOT / "site-nav.js").is_file()
     assert (REPO_ROOT / "js" / "map_battle_v1_adapter.js").is_file()
+    assert (REPO_ROOT / PRESENTATION_DISPATCHER_PATH).is_file() is _presentation_source_present()
 
 
 def test_dockerfile_copies_shared_map_battle_runtime_modules():
