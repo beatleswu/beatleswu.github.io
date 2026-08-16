@@ -305,27 +305,106 @@ function Assert-DetachedWorktreeIdentity {
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)][string]$ExpectedGitSha
     )
+    return Assert-GovernedWorktreeIdentity -Path $Path -ExpectedGitSha $ExpectedGitSha -ExpectedHeadState 'detached'
+}
+
+function Assert-GovernedWorktreeIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedGitSha,
+        [Parameter(Mandatory = $true)][ValidateSet('detached', 'branch')][string]$ExpectedHeadState
+    )
     $resolvedPath = Get-CanonicalFilesystemPath -Path $Path -Label 'Detached worktree path'
     if (-not [System.IO.Directory]::Exists($resolvedPath)) {
-        throw "Detached worktree path does not exist or is not a directory."
+        throw "Governed worktree path does not exist or is not a directory."
     }
-    $resolvedPath = Assert-NoReparsePointPath -Path $resolvedPath -Label 'Detached worktree path'
+    $resolvedPath = Assert-NoReparsePointPath -Path $resolvedPath -Label 'Governed worktree path'
     $topLevel = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', '--show-toplevel') -WorkingDirectory $resolvedPath)
     $resolvedTopLevel = Get-CanonicalFilesystemPath -Path $topLevel -Label 'Git top-level path'
     if (-not (Test-CanonicalPathEqual -Left $resolvedPath -Right $resolvedTopLevel)) {
-        throw "Detached worktree root does not match the supplied isolated path."
+        throw "Governed worktree root does not match the supplied isolated path."
     }
     $head = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', 'HEAD') -WorkingDirectory $resolvedPath)
     $expected = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $resolvedPath)
     if ($head -ne $expected) {
-        throw "Detached worktree HEAD does not match the expected release Git SHA."
+        throw "Governed worktree HEAD does not match the expected release Git SHA."
     }
     $branch = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('branch', '--show-current') -WorkingDirectory $resolvedPath)
-    if (-not [string]::IsNullOrWhiteSpace($branch)) {
+    if ($ExpectedHeadState -eq 'detached' -and -not [string]::IsNullOrWhiteSpace($branch)) {
         throw "Release build worktree must be detached."
+    }
+    if ($ExpectedHeadState -eq 'branch' -and [string]::IsNullOrWhiteSpace($branch)) {
+        throw "Release gate worktree must have a named branch."
     }
     Assert-CompleteWorktreeClean -WorkingDirectory $resolvedPath
     return $resolvedPath
+}
+
+function Get-ReleaseControlPlaneAllowlist {
+    return @(
+        'scripts/release/**',
+        'scripts/build-production-image.ps1',
+        'tests/deployment/**',
+        'tests/release/**'
+    )
+}
+
+function Test-ReleaseControlPlanePath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $normalized = ($Path -replace '\\', '/').TrimStart('./')
+    if ($normalized -eq 'scripts/build-production-image.ps1') {
+        return $true
+    }
+    foreach ($prefix in @('scripts/release/', 'tests/deployment/', 'tests/release/')) {
+        if ($normalized.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Assert-ReleaseSourceSeparation {
+    <#
+    Proves that a newer Gate/control-plane checkout may validate an older
+    Product checkout without allowing product/runtime bytes to drift into the
+    build subject.  The Product SHA must be an ancestor of the Gate SHA and
+    every post-Product path must be explicitly allowlisted as control-plane
+    tooling or release-test code.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$GateSourceSha,
+        [Parameter(Mandatory = $true)][string]$ProductSourceSha,
+        [string]$GateWorkingDirectory = (Get-RepoRoot)
+    )
+    $gateRoot = Assert-NoReparsePointPath -Path $GateWorkingDirectory -Label 'Gate worktree path'
+    $gateSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', "$GateSourceSha^{commit}") -WorkingDirectory $gateRoot)
+    $productSha = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('rev-parse', "$ProductSourceSha^{commit}") -WorkingDirectory $gateRoot)
+    $mergeBase = Get-SafeFirstOutputLine (Invoke-Git -Arguments @('merge-base', $productSha, $gateSha) -WorkingDirectory $gateRoot)
+    if ($mergeBase -ne $productSha) {
+        throw "GATE_PRODUCT_ANCESTRY_REQUIRED: Product source must be an ancestor of the Gate source."
+    }
+
+    $changedPaths = @(
+        Invoke-Git -Arguments @('diff', '--name-only', "$productSha..$gateSha") -WorkingDirectory $gateRoot
+    ) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        ForEach-Object { ($_ -replace '\\', '/').TrimStart('./') } |
+        Sort-Object -Unique
+    $unapprovedPaths = @($changedPaths | Where-Object { -not (Test-ReleaseControlPlanePath -Path $_) })
+    if ($unapprovedPaths.Count -gt 0) {
+        throw "UNAPPROVED_PRODUCT_DIFF_DETECTED: $($unapprovedPaths -join ', ')"
+    }
+    $allowedPaths = @($changedPaths | Where-Object { Test-ReleaseControlPlanePath -Path $_ })
+    return [ordered]@{
+        gate_source_sha = $gateSha
+        product_source_sha = $productSha
+        merge_base = $mergeBase
+        changed_paths = @($changedPaths)
+        allowed_control_plane_paths = @($allowedPaths)
+        unapproved_product_paths = @($unapprovedPaths)
+        product_runtime_diff_count = $unapprovedPaths.Count
+        allowlist = @(Get-ReleaseControlPlaneAllowlist)
+    }
 }
 
 function Assert-GeneratedDetachedWorktreeIdentity {
@@ -355,7 +434,7 @@ function Assert-GovernedBuildChildIdentity {
         [Parameter(Mandatory = $true)][string]$ExpectedGitSha,
         [Parameter(Mandatory = $true)][string]$ExpectedGitCommonDirectory,
         [Parameter(Mandatory = $true)][string]$ExecutingBuildScriptPath,
-        [Parameter(Mandatory = $true)][ValidateSet('detached')][string]$ExpectedHeadState
+        [Parameter(Mandatory = $true)][ValidateSet('detached', 'branch')][string]$ExpectedHeadState
     )
     $expectedRoot = Assert-NoReparsePointPath -Path $ExpectedCanonicalWorktreeRoot -Label 'Expected canonical worktree path'
     $actualCurrentDirectory = Get-CanonicalFilesystemPath -Path ([Environment]::CurrentDirectory) -Label 'Child process current directory'
@@ -363,7 +442,7 @@ function Assert-GovernedBuildChildIdentity {
     if (-not (Test-CanonicalPathEqual -Left $actualCurrentDirectory -Right $expectedRoot)) {
         throw "Child process current directory does not equal the expected canonical worktree root."
     }
-    $validatedRoot = Assert-DetachedWorktreeIdentity -Path $expectedRoot -ExpectedGitSha $ExpectedGitSha
+    $validatedRoot = Assert-GovernedWorktreeIdentity -Path $expectedRoot -ExpectedGitSha $ExpectedGitSha -ExpectedHeadState $ExpectedHeadState
     $expectedCommonDirectory = Assert-NoReparsePointPath -Path $ExpectedGitCommonDirectory -Label 'Expected Git common directory'
     $actualCommonDirectory = Assert-NoReparsePointPath -Path (Get-GitCommonDirectory -WorkingDirectory $validatedRoot) -Label 'Actual Git common directory'
     if (-not (Test-CanonicalPathEqual -Left $actualCommonDirectory -Right $expectedCommonDirectory)) {
@@ -2538,9 +2617,11 @@ function New-StaticReleaseManifestObject {
         [int]$ArchiveEntryCount,
         [string]$GnuTarExecutablePath,
         [string]$GnuTarVersion,
-        [string]$AssetIdentity
+        [string]$AssetIdentity,
+        [string]$GateSourceSha,
+        [string]$ProductSourceSha
     )
-    return [ordered]@{
+    $manifest = [ordered]@{
         release_git_sha = $GitSha
         static_generation_id = $GenerationId
         static_root = '/opt/go-odyssey-static'
@@ -2561,6 +2642,13 @@ function New-StaticReleaseManifestObject {
         gnu_tar_version = $GnuTarVersion
         created_at = $CreatedAtUtc
     }
+    if (-not [string]::IsNullOrWhiteSpace($GateSourceSha)) {
+        $manifest.gate_source_sha = $GateSourceSha
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ProductSourceSha)) {
+        $manifest.product_source_sha = $ProductSourceSha
+    }
+    return $manifest
 }
 
 function Enter-RemoteReleaseOperationLock {
@@ -2711,6 +2799,9 @@ Export-ModuleMember -Function @(
     'Assert-PathInsideCanonicalRoot',
     'Assert-GovernedBuildScriptPath',
     'Assert-GovernedBuildChildIdentity',
+    'Assert-GovernedWorktreeIdentity',
+    'Assert-ReleaseSourceSeparation',
+    'Get-ReleaseControlPlaneAllowlist',
     'ConvertFrom-NestedPowerShellJson',
     'ConvertFrom-FramedJsonRecord',
     'ConvertTo-FramedJsonRecord',

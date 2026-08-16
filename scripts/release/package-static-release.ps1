@@ -29,7 +29,9 @@
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][string]$ExpectedGitSha,
+    [string]$ExpectedGitSha,
+    [string]$GateSourceSha,
+    [string]$ProductSourceSha,
     [string]$ManifestPath,
     [string]$BundlePath,
     [string]$ArchivePath,
@@ -39,10 +41,29 @@ param(
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ReleaseTooling.psm1') -Force -DisableNameChecking
 
-$repoRoot = Get-RepoRoot
-$ExpectedGitSha = (Invoke-Git -Arguments @('rev-parse', $ExpectedGitSha) -WorkingDirectory $repoRoot).Trim()
-$inventory = Get-StaticAssetInventory
-$baseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
+$gateWorktree = Get-RepoRoot
+if ($ExpectedGitSha -and ($GateSourceSha -or $ProductSourceSha)) {
+    throw 'ExpectedGitSha cannot be combined with the separated GateSourceSha/ProductSourceSha inputs.'
+}
+if (($GateSourceSha -and -not $ProductSourceSha) -or ($ProductSourceSha -and -not $GateSourceSha)) {
+    throw 'GateSourceSha and ProductSourceSha must be supplied together.'
+}
+if (-not $GateSourceSha -and -not $ProductSourceSha) {
+    $GateSourceSha = if ($ExpectedGitSha) { $ExpectedGitSha } else { Get-CurrentGitSha }
+    $ProductSourceSha = $GateSourceSha
+}
+$gateSha = (Invoke-Git -Arguments @('rev-parse', "$GateSourceSha^{commit}") -WorkingDirectory $gateWorktree).Trim()
+$productSha = (Invoke-Git -Arguments @('rev-parse', "$ProductSourceSha^{commit}") -WorkingDirectory $gateWorktree).Trim()
+if ((Get-CurrentGitSha) -ne $gateSha) {
+    throw "Gate worktree HEAD does not equal GateSourceSha '$gateSha'."
+}
+Assert-TrackedTreeClean -WorkingDirectory $gateWorktree
+Assert-CompleteWorktreeClean -WorkingDirectory $gateWorktree
+Assert-ReleaseSourceSeparation -GateSourceSha $gateSha -ProductSourceSha $productSha -GateWorkingDirectory $gateWorktree | Out-Null
+
+$repoRoot = $gateWorktree
+$ExpectedGitSha = $productSha
+$baseName = Get-ReleaseArtifactBaseName -GitSha $productSha
 $serviceWorkerAssetIdentity = Get-StaticReleaseAssetIdentity -GitSha $ExpectedGitSha
 
 if (-not $ManifestPath) {
@@ -59,7 +80,9 @@ if (-not $ArchivePath) {
 
 $worktree = $null
 try {
-    $worktree = New-DetachedWorktree -GitSha $ExpectedGitSha -Prefix 'go-odyssey-static-release'
+    $worktree = New-DetachedWorktree -GitSha $productSha -Prefix 'go-odyssey-static-release'
+    $worktree = Assert-GeneratedDetachedWorktreeIdentity -Path $worktree -ExpectedGitSha $productSha
+    $inventory = Get-StaticAssetInventory -Path (Join-Path $worktree 'deploy\live-static-asset-inventory.json')
 
     $files = New-StaticReleaseBundle `
         -SourceRoot $worktree `
@@ -184,12 +207,16 @@ try {
         -ArchiveEntryCount $archiveEntryCount `
         -GnuTarExecutablePath $gnuTar.path `
         -GnuTarVersion $gnuTar.version_output `
-        -AssetIdentity $stagedAssetIdentity
+        -AssetIdentity $stagedAssetIdentity `
+        -GateSourceSha $gateSha `
+        -ProductSourceSha $productSha
 
     Write-JsonFile -InputObject $manifest -Path $ManifestPath
 
     [ordered]@{
         static_generation_id = $generationId
+        gate_source_sha = $gateSha
+        product_source_sha = $productSha
         release_git_sha = $ExpectedGitSha
         service_worker_version = $swVersion
         service_worker_asset_identity = $stagedAssetIdentity
