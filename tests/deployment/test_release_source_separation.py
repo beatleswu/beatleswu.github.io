@@ -45,7 +45,11 @@ def run_powershell(script: str, *, timeout: int = 60) -> subprocess.CompletedPro
 
 
 def parse_last_json(stdout: str) -> dict:
-    return json.loads(stdout.strip().splitlines()[-1])
+    text = stdout.strip()
+    start = text.find("{")
+    assert start >= 0, stdout
+    payload, _ = json.JSONDecoder().raw_decode(text[start:])
+    return payload
 
 
 def git(cwd: pathlib.Path, *args: str) -> str:
