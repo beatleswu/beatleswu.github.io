@@ -22,7 +22,7 @@ def load_manifest():
 def test_manifest_exists_and_valid():
     data = load_manifest()
     assert isinstance(data["files"], list)
-    assert len(data["files"]) == 79
+    assert len(data["files"]) == 80
 
 
 def test_manifest_covers_every_governed_runtime_file():
@@ -31,6 +31,7 @@ def test_manifest_covers_every_governed_runtime_file():
     expected = {
         "js/e9/feature_flags.js", "js/e9/world_stage.js",
         "js/game/lord_trial_controller.js",
+        "js/game/presentation_dispatcher.js",
         "css/e9/world_stage.css", "components/adventure/world_stage.html",
         "backend_i18n.py", "chapter_i18n.py", "explain_overrides.py", "grimoire_api.py",
         "katago_explain.py", "monster_taxonomy.py", "question_taxonomy.py", "scheduler.py",

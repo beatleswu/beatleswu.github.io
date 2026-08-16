@@ -234,8 +234,10 @@ def test_provenance_count_recovery_and_controller_membership_remain_intact():
     provenance = json.loads(
         (ROOT / "deploy" / "runtime-source-provenance.json").read_text(encoding="utf-8")
     )
-    assert len(provenance["files"]) == 79
-    assert "js/game/lord_trial_controller.js" in {entry["path"] for entry in provenance["files"]}
+    assert len(provenance["files"]) == 80
+    governed_paths = {entry["path"] for entry in provenance["files"]}
+    assert "js/game/lord_trial_controller.js" in governed_paths
+    assert "js/game/presentation_dispatcher.js" in governed_paths
 
 
 def test_canonical_source_separation_dry_run_uses_product_identity_without_build():
