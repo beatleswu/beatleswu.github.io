@@ -13,9 +13,9 @@ const SRS_PATH = path.join(ROOT, 'srs.js');
 const IDENTITY_FIELDS = [
   'questionId',
   'mode',
-  'attempt',
+  'attemptId',
   'lordIndex',
-  'lifecycle',
+  'lifecycleGeneration',
   'sourceContext',
 ];
 
@@ -87,9 +87,9 @@ function identityInput(overrides = {}) {
   return {
     questionId: '42',
     mode: 'lord',
-    attempt: 'attempt-7',
+    attemptId: 'attempt-7',
     lordIndex: '3',
-    lifecycle: 'life-9',
+    lifecycleGeneration: 'life-9',
     sourceContext: 'boss_trial',
     ...overrides,
   };
@@ -99,9 +99,9 @@ function assertIdentityShape(identity) {
   assert.deepEqual(Object.keys(identity), IDENTITY_FIELDS);
   assert.equal(identity.questionId, 42);
   assert.equal(identity.mode, 'lord');
-  assert.equal(identity.attempt, 'attempt-7');
+  assert.equal(identity.attemptId, 'attempt-7');
   assert.equal(identity.lordIndex, 3);
-  assert.equal(identity.lifecycle, 'life-9');
+  assert.equal(identity.lifecycleGeneration, 'life-9');
   assert.equal(identity.sourceContext, 'boss_trial');
   for (const field of FORBIDDEN_FIELDS) {
     assert.equal(Object.prototype.hasOwnProperty.call(identity, field), false,
@@ -169,7 +169,7 @@ function runSessionContracts(api) {
   }
 
   const first = identityInput();
-  const second = identityInput({ questionId: '43', lifecycle: 'life-10' });
+  const second = identityInput({ questionId: '43', lifecycleGeneration: 'life-10' });
   const adopted = session.adopt(first);
   assertIdentityShape(adopted);
   assert.deepEqual(session.current(), adopted);
