@@ -109,10 +109,6 @@ function assertIdentityShape(identity) {
   }
 }
 
-function duplicateError(error) {
-  return error?.code === 'duplicate_review' || error?.code === 'REVIEW_ALREADY_ACTIVE';
-}
-
 function runIdentityContracts(api) {
   assert.ok(api.QuestionIdentity && typeof api.QuestionIdentity === 'object');
   for (const method of ['normalize', 'equals', 'key']) {
@@ -161,8 +157,8 @@ function runSessionContracts(api) {
   const session = api.create();
   assert.ok(session && typeof session === 'object');
   for (const method of [
-    'adopt',
-    'current',
+    'adoptQuestion',
+    'currentQuestionIdentity',
     'isCurrent',
     'invalidate',
     'beginReview',
@@ -178,9 +174,9 @@ function runSessionContracts(api) {
 
   const first = identityInput();
   const second = identityInput({ questionId: '43', lifecycleGeneration: 10 });
-  const adopted = session.adopt(first);
+  const adopted = session.adoptQuestion(first);
   assertIdentityShape(adopted);
-  assert.deepEqual(session.current(), adopted);
+  assert.deepEqual(session.currentQuestionIdentity(), adopted);
   assert.equal(session.isCurrent(first), true);
   assert.equal(session.isCurrent(second), false);
 
@@ -188,25 +184,33 @@ function runSessionContracts(api) {
   assert.deepEqual(Object.keys(context), IDENTITY_FIELDS);
   assert.deepEqual(context, adopted);
 
-  session.beginReview(first);
-  assert.throws(() => session.beginReview(first), duplicateError,
+  assert.equal(session.beginReview(first), true,
+    'first identity must begin a review');
+  assert.equal(session.beginReview(first), false,
     'same identity must not begin two reviews concurrently');
-  session.beginReview(second);
-  assert.throws(() => session.beginReview(second), duplicateError,
-    'distinct identity may only have one active review of its own');
-  session.endReview(first);
-  session.beginReview(first);
-  session.endReview(first);
-  session.endReview(second);
+  assert.equal(session.beginReview(second), true,
+    'distinct identity must replace the active review key');
+  assert.equal(session.beginReview(second), false,
+    'same second identity must not begin two reviews concurrently');
+  assert.equal(session.endReview(first), false,
+    'non-active identity must not end the active review');
+  assert.equal(session.endReview(second), true,
+    'matching active identity must end and release the review');
+  assert.equal(session.endReview(second), false,
+    'released identity must not end a review again');
+  assert.equal(session.beginReview(first), true,
+    'released review key must be reusable');
+  assert.equal(session.endReview(first), true,
+    'matching reactivated identity must end and release the review');
 
-  session.adopt(first);
+  session.adoptQuestion(first);
   assert.equal(session.isCurrent(first), true);
-  session.adopt(second);
+  session.adoptQuestion(second);
   assert.equal(session.isCurrent(first), false, 'old identity must become stale after adopt');
   assert.equal(session.isCurrent(second), true);
-  assert.deepEqual(session.current(), api.QuestionIdentity.normalize(second));
+  assert.deepEqual(session.currentQuestionIdentity(), api.QuestionIdentity.normalize(second));
   session.invalidate();
-  assert.equal(session.current(), null, 'invalidate must clear current identity');
+  assert.equal(session.currentQuestionIdentity(), null, 'invalidate must clear current identity');
   assert.equal(session.isCurrent(second), false, 'invalidated identity must be stale');
   assert.equal(session.presentationContext(), null, 'invalidated session has no context');
 }
@@ -234,9 +238,9 @@ function runIntegrationContracts() {
     'GameSession script must load before srs.js');
   assert.match(index, /GoOdysseyGameSession/,
     'index.html must use the GameSession API');
-  assert.match(index, /\.adopt\s*\(/,
+  assert.match(index, /\.adoptQuestion\s*\(/,
     'index.html must adopt identity through GameSession');
-  assert.match(index, /\.current\s*\(/,
+  assert.match(index, /\.currentQuestionIdentity\s*\(/,
     'index.html must read current identity through GameSession');
   assert.equal(/GoOdysseyGameSession[\s\S]{0,500}currentQ\s*=/.test(index), false,
     'GameSession integration must not assign currentQ');
