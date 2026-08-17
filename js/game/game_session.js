@@ -162,6 +162,7 @@
 
     const QuestionIdentity = Object.freeze({
         fromQuestion: createIdentity,
+        normalize: identityFromValue,
         key: stableKey,
         equals,
         reviewContext: boundedContext,
