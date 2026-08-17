@@ -113,6 +113,15 @@ B4_SUBMIT_SRS_REVIEW_GUARD = """\
     });
     if (!_gameSession.beginReview(identity)) return;
 """
+B6_SUBMIT_SRS_REVIEW_GUARD = """\
+    const reviewMetadata = _currentReviewMetadata();
+    const identity = _gameSession.adoptQuestion(currentQ, {
+        ..._modeContext.identityOptions(currentQ),
+        lifecycleGeneration: _mapBattleV1LifecycleGeneration,
+        reviewMetadata,
+    });
+    if (!_gameSession.beginReview(identity)) return;
+"""
 B1_SUBMIT_SRS_REVIEW_GUARD = """\
     const reviewRequestKey = `${_bossMode ? (_bossAttemptId || 'active') + ':' + _bossIndex : 'practice'}:${Number(currentQ.id)}`;
     if (_reviewRequestInFlightKey === reviewRequestKey) return;
@@ -126,6 +135,9 @@ B1_SUBMIT_SRS_REVIEW_CALL = """\
 """
 B4_SUBMIT_SRS_PRESENTATION_CONTEXT = """\
         presentation_context: _gameSession.presentationContext(identity),
+"""
+B6_SUBMIT_SRS_PRESENTATION_CONTEXT = """\
+        presentation_mode: _modeContext.presentationMode(),
 """
 B4_SUBMIT_SRS_FINALLY = """\
     })().finally(() => _gameSession.endReview(identity));
@@ -260,6 +272,18 @@ def _remove_function(source: str, name: str) -> str:
 
 
 def _normalize_b4_submit_srs(current_function: str, base_function: str) -> str:
+    assert current_function.count(B6_SUBMIT_SRS_REVIEW_GUARD) == 1, (
+        "HARNESS_FAILURE: expected one exact B6 ModeContext identity handoff"
+    )
+    current_function = current_function.replace(
+        B6_SUBMIT_SRS_REVIEW_GUARD,
+        B4_SUBMIT_SRS_REVIEW_GUARD,
+        1,
+    )
+    assert current_function.count(B6_SUBMIT_SRS_PRESENTATION_CONTEXT) == 1, (
+        "HARNESS_FAILURE: expected one exact B6 presentation context extension"
+    )
+    current_function = current_function.replace(B6_SUBMIT_SRS_PRESENTATION_CONTEXT, "", 1)
     for label, current_delta, base_delta in (
         (
             "review guard",
@@ -532,11 +556,13 @@ def test_b1_index_html_changes_are_script_loading_only():
     assert current_srcs.index(AUTHORIZED_GAME_SESSION_SCRIPT_SRC) < current_srcs.index(
         B1_SRS_SCRIPT_SRC
     )
-    # B5 adds the two explicit QuestionLoader/BoardRenderer runtime modules
+    # B5 adds QuestionLoader/BoardRenderer and B6 adds ModeContext/GameBootstrap
     # after the four already-governed B1-B4 modules.
-    assert len(current_srcs) == len(base_srcs) + 6
+    assert len(current_srcs) == len(base_srcs) + 8
     assert any(src.startswith("/js/game/question_loader.js") for src in current_srcs)
     assert any(src.startswith("/js/game/board_renderer.js") for src in current_srcs)
+    assert any(src.startswith("/js/game/mode_context.js") for src in current_srcs)
+    assert any(src.startswith("/js/game/game_bootstrap.js") for src in current_srcs)
     assert base_srcs.count(BASE_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(B1_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(BASE_SRS_SCRIPT_SRC) == 0
@@ -553,6 +579,8 @@ def test_b1_index_html_changes_are_script_loading_only():
         }
         and not src.startswith("/js/game/question_loader.js")
         and not src.startswith("/js/game/board_renderer.js")
+        and not src.startswith("/js/game/mode_context.js")
+        and not src.startswith("/js/game/game_bootstrap.js")
     ]
     normalized_current_srcs = [
         BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC else src
