@@ -15,6 +15,10 @@ const PRESENTATION_EFFECTS_B2 = await fs.readFile(
   path.join(REPO_ROOT, 'js/game/presentation_effects_b2.js'),
   'utf8',
 );
+const REVIEW_TRANSPORT = await fs.readFile(
+  path.join(REPO_ROOT, 'js/game/review_transport.js'),
+  'utf8',
+);
 const SRS = await fs.readFile(path.join(REPO_ROOT, 'srs.js'), 'utf8');
 
 function extractFunction(source, name) {
@@ -573,7 +577,31 @@ async function characterizeSrsPresentationFailureBoundary() {
         reviewCalls += 1;
         return Promise.resolve(makeResponse({
           ok: true,
+          ease_factor: 2.5,
+          interval: 3,
+          due_date: '2026-08-17',
+          new_badges: [],
+          stats: { xp: 10, total_correct: 1 },
+          xp_gain: 0,
+          combo_mult: 1.0,
+          pet_xp_added: 0,
+          pet_xp_ratio: 0.0,
+          pet_xp_gained: 0,
+          combo_streak: 0,
+          shield_used: false,
+          xp_potion_active: false,
+          ranked_up: false,
+          new_rank_level: null,
+          pet: null,
+          practice: { level: 1 },
+          training: { level: 1 },
+          new_appearance_items: [],
           monster: { type: 'goblin', hp: 80, max_hp: 100 },
+          player: null,
+          quest_updates: [],
+          sp: null,
+          loot: null,
+          appearance_loot: null,
         }));
       }
       if (url === '/api/srs/due') return Promise.resolve(makeResponse({ due: [] }));
@@ -584,7 +612,7 @@ async function characterizeSrsPresentationFailureBoundary() {
     },
   });
   vm.runInContext(
-    `${PRESENTATION_DISPATCHER}\n${PRESENTATION_EFFECTS_B2}\n${SRS}\nthis.api = SRS;`,
+    `${PRESENTATION_DISPATCHER}\n${PRESENTATION_EFFECTS_B2}\n${REVIEW_TRANSPORT}\n${SRS}\nthis.api = SRS;`,
     context,
   );
   const api = context.api;
