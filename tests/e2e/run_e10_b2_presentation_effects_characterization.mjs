@@ -661,6 +661,42 @@ async function characterizeReviewCommitAndMapBattleAuthority() {
   assert.equal(mapEvents[0][0], 'map_submit');
 
   const events = [];
+  let activeReviewIdentity = null;
+  let reviewInFlight = false;
+  const _gameSession = {
+    adoptQuestion: (question, options = {}) => {
+      activeReviewIdentity = Object.freeze({
+        questionId: Number(question.id),
+        mode: options.mode ?? null,
+        attemptId: options.attemptId ?? null,
+        lordIndex: options.lordIndex ?? null,
+        lifecycleGeneration: options.lifecycleGeneration ?? null,
+        sourceContext: options.sourceContext ?? null,
+      });
+      return activeReviewIdentity;
+    },
+    beginReview: (identity) => {
+      if (identity !== activeReviewIdentity || reviewInFlight) return false;
+      reviewInFlight = true;
+      return true;
+    },
+    presentationContext: (identity) => {
+      if (identity !== activeReviewIdentity) return null;
+      return Object.freeze({
+        questionId: identity.questionId,
+        mode: identity.mode,
+        attemptId: identity.attemptId,
+        lordIndex: identity.lordIndex,
+        lifecycleGeneration: identity.lifecycleGeneration,
+        sourceContext: identity.sourceContext,
+      });
+    },
+    endReview: (identity) => {
+      if (identity !== activeReviewIdentity || !reviewInFlight) return false;
+      reviewInFlight = false;
+      return true;
+    },
+  };
   const commitContext = vm.createContext({
     console,
     window: { _nqMapActive: false },
@@ -683,6 +719,7 @@ async function characterizeReviewCommitAndMapBattleAuthority() {
     _guildQuestMode: null,
     currentUnitName: () => null,
     _currentReviewMetadata: () => ({}),
+    _gameSession,
     _e10AcceptanceTrace: (name) => events.push(name),
     updateTodayMini: () => events.push('today'),
     _dispatchCommittedReviewPresentation: () => {

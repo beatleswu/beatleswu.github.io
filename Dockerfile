@@ -116,6 +116,9 @@ COPY js/game/presentation_effects_b2.js ./js/game/presentation_effects_b2.js
 # B3 ReviewTransport is an explicitly referenced browser module and must
 # remain a narrow static copy.
 COPY js/game/review_transport.js ./js/game/review_transport.js
+# B4 GameSession identity is an explicitly referenced browser module and must
+# remain a narrow static copy.
+COPY js/game/game_session.js ./js/game/game_session.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
