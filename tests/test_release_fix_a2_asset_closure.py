@@ -172,6 +172,12 @@ def _copy_required_flat_generation_sources(source):
         REPO_ROOT / "js" / "map_battle_v1_adapter.js",
         adapter_target / "map_battle_v1_adapter.js",
     )
+    # deploy/live-static-asset-inventory.json's required_in_generation.entries
+    # governs the whole js/game/ family (lord_trial_controller.js through the
+    # B6/B7 mode_context.js and game_bootstrap.js additions) -- the fixture
+    # must carry all of it or staging correctly (and confusingly) fails
+    # closed on files this test never gave it in the first place.
+    shutil.copytree(REPO_ROOT / "js" / "game", source / "js" / "game")
     # The E10 static-coherence contract derives the live runtime closure from
     # index.html and shell component references, so the fixture must carry
     # the same routed JS/CSS/component subtrees as a real release checkout.
@@ -213,6 +219,12 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             path for path in _load_inventory()["eligible_files"]["entries"]
             if path.startswith(("js/e9/", "css/e9/", "components/adventure/"))
         }
+        # Derived from required_in_generation.entries itself (not a second,
+        # independently-hand-maintained literal set) so a future addition to
+        # the js/game/ family -- like B6/B7's mode_context.js and
+        # game_bootstrap.js, which this assertion previously did not know
+        # about -- cannot silently reintroduce this same drift.
+        flat_governed_paths = set(_load_inventory()["required_in_generation"]["entries"])
         governed_paths = (
             {f["path"] for f in manifest["files"]}
             | {f["path"] for f in audio_manifest["files"]}
@@ -220,10 +232,7 @@ def test_staged_generation_contains_every_governed_asset_and_matches_manifest():
             | {f["path"] for f in e10_zone2_art_manifest["files"]}
             | {f["path"] for f in e10_zone2_audio_manifest["files"]}
             | {f["path"] for f in e10_zone2_lord_trial_art_manifest["files"]}
-            | {
-                "i18n.js", "sw.js", "index.html", "site-nav.js", "inventory.html",
-                "js/e9/shell.js", "js/map_battle_v1_adapter.js",
-            }
+            | flat_governed_paths
             | closure_paths
         )
         assert set(staged_by_path.keys()) == governed_paths, (

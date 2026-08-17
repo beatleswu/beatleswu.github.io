@@ -763,8 +763,15 @@ def run_foundation_validation(runtime):
 
     srs_status, _, srs_js = session.request('GET', '/srs.js')
     report['evidence']['srs_js_status'] = srs_status
+    # B3 (ReviewTransport) moved the literal '/api/srs/review' endpoint string
+    # out of srs.js and into js/game/review_transport.js; srs.js's own
+    # review() is now a thin delegate to window.ReviewTransport.legacyReview.
+    # Check for that delegation instead of the pre-B3 literal, which would no
+    # longer appear in a genuinely current, non-stubbed srs.js.
     report['checks']['REAL_SRS_JS_LOADED'] = bool(
-        srs_status == 200 and 'review' in srs_js and '/api/srs/review' in srs_js
+        srs_status == 200
+        and 'window.ReviewTransport' in srs_js
+        and '_reviewTransport.legacyReview' in srs_js
     )
     report['evidence']['srs_js_bytes'] = len(srs_js)
 
