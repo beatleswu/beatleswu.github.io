@@ -75,6 +75,8 @@ from xp_settlement import (
     xp_shadow_error_evidence,
 )
 from sgf_answer_review_queue import ensure_review_queue_tables
+from review_contracts import ReviewCommand
+from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
 from sgf_admin_workbench import (
     WORKBENCH_ACTIONS,
     WORKBENCH_REPORT_REASONS,
@@ -11678,12 +11680,27 @@ def _validate_adventure_boss_review_context(conn, uid, qid, source_context):
 @app.route('/api/srs/review', methods=['POST'])
 @login_required
 def srs_review():
-    return _srs_review_operation(
-        session['user_id'],
-        request.get_json(silent=True) or {},
-        internal=False,
-        submission_id=None,
+    """V1A2 seam: the route's only job is auth/session + typed dispatch.
+
+    ReviewCommand carries the raw request fields through unchanged --
+    _srs_review_operation still performs all normalization/validation
+    itself (response_ms clamping, source_context truncation, Boss-marker
+    checks, grade/question_id presence). This route no longer calls the
+    durable operation directly; ReviewService does, exactly once.
+    """
+    data = request.get_json(silent=True) or {}
+    command = ReviewCommand(
+        question_id=data.get('question_id'),
+        grade=data.get('grade'),
+        unit_name=data.get('unit_name'),
+        unit_done=data.get('unit_done', False),
+        response_ms=data.get('response_ms'),
+        source_context=data.get('source_context') or 'practice',
+        training_set_id=data.get('training_set_id'),
+        is_scaffolding=bool(data.get('is_scaffolding')),
     )
+    outcome = _review_service.review(user_id=session['user_id'], command=command)
+    return jsonify(outcome.payload), outcome.http_status
 
 
 def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
@@ -12204,6 +12221,33 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     })
 
 
+def _dispatch_to_srs_review_operation(uid, data, *, internal=False, submission_id=None):
+    """Late-bound dispatch to the durable review operation.
+
+    Referencing ``_srs_review_operation`` by bare name here (rather than
+    capturing the function object once at ReviewService construction time)
+    means this module's global namespace is looked up fresh on every call --
+    exactly the same lookup timing every pre-V1A2 call site already had by
+    calling ``_srs_review_operation(...)`` directly. This preserves existing
+    test/ops patterns that rebind ``app.<name>._srs_review_operation`` (e.g.
+    ``monkeypatch.setattr``) and expect the replacement to take effect on
+    the next request -- a capture-by-reference wrapper would silently keep
+    calling the original function instead.
+    """
+    return _srs_review_operation(uid, data, internal=internal, submission_id=submission_id)
+
+
+# V1A2/V1A3: the one durable review authority (_srs_review_operation, above)
+# is wrapped by exactly one ReviewService instance, shared by both call
+# sites below -- the public route (srs_review) and the MapBattle handoff
+# (_run_map_battle_progression). Neither call site invokes
+# _srs_review_operation directly any more; this is the single funnel the
+# backend authority-closure evidence is proven against (see
+# tests/test_e10_backend_review_service_v1a2.py).
+_review_service = ReviewService(_dispatch_to_srs_review_operation)
+_map_battle_review_handoff = MapBattleReviewHandoff(_review_service)
+
+
 def _run_map_battle_progression(user_id, settlement):
     """Run canonical Adventure/SRS progression after a committed settlement."""
 
@@ -12221,23 +12265,9 @@ def _run_map_battle_progression(user_id, settlement):
             'error': 'settled_submission_identity_missing',
         }, 503
 
-    response = _srs_review_operation(
-        user_id,
-        {
-            'question_id': settlement.get('question_id'),
-            'grade': settlement.get('authoritative_grade'),
-        },
-        internal=True,
-        submission_id=submission_id,
-    )
-    if isinstance(response, tuple):
-        body, status = response[0], int(response[1])
-    else:
-        body, status = response, 200
-    payload = body.get_json(silent=True) if hasattr(body, 'get_json') else None
-    payload = payload if isinstance(payload, dict) else {
-        'error': 'adventure_progression_invalid_response',
-    }
+    outcome = _map_battle_review_handoff.apply(user_id=user_id, settlement=settlement)
+    payload = dict(outcome.payload)
+    status = outcome.http_status
     if status != 200:
         payload = {
             'status': 'pending',

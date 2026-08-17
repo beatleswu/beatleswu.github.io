@@ -77,7 +77,21 @@ def test_b2_accepted_review_shape_sets_are_exact_and_legacy_compatible():
         "progression_duplicate",
         "question_id",
     )
-    assert "return _srs_review_operation(" in APP_SOURCE
+    # V1A2 (backend Wave2 closure): the route now dispatches through
+    # ReviewService rather than calling the durable operation directly --
+    # see tests/test_e10_backend_review_service_v1a2.py for the seam's own
+    # call-path-contract proof. The durable operation itself, whose field
+    # set this test still characterizes below, is unchanged. Scoped to the
+    # route's own source span: _dispatch_to_srs_review_operation
+    # legitimately contains "return _srs_review_operation(" further down
+    # the file (that late-bound call is the whole point of the wrapper --
+    # see its docstring in app.py), so an unscoped file-wide check would be
+    # a false positive against that, not a real route regression.
+    route_start = APP_SOURCE.index("@app.route('/api/srs/review'")
+    route_end = APP_SOURCE.index("def _srs_review_operation", route_start)
+    route_source = APP_SOURCE[route_start:route_end]
+    assert "_review_service.review(user_id=session['user_id'], command=command)" in route_source
+    assert "return _srs_review_operation(" not in route_source
     for field in review_contracts.CORE_20_FIELDS:
         assert f"'{field}'" in APP_SOURCE
     for field in review_contracts.T2_OPTIONAL_FIELDS:

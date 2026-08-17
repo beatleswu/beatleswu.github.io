@@ -40,6 +40,16 @@ COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
 COPY explain_overrides.py ./
 COPY xp_settlement.py ./
+# Backend Architecture V1 Wave2 (V1A2 ReviewService / V1A3 transaction and
+# MapBattle-handoff boundaries): app.py now imports review_service.py and
+# review_contracts.py at startup; review_service.py itself imports
+# review_compatibility.py and legacy_review_serializer.py. All four are
+# pure, storage/Flask-free modules -- keep them explicit so an image build
+# cannot omit one and break app.py's own top-level import.
+COPY review_contracts.py ./
+COPY review_compatibility.py ./
+COPY legacy_review_serializer.py ./
+COPY review_service.py ./
 COPY grimoire_api.py ./
 COPY question_taxonomy.py ./
 COPY monster_taxonomy.py ./
