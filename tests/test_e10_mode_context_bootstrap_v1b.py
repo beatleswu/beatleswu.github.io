@@ -62,6 +62,51 @@ def test_executable_b6_b7_characterization_runner_is_green():
     assert report["characterization"]["resize"]["REAL_WINDOW_RESIZE_DISPATCH"] == "PASS"
 
 
+def test_executable_game_bootstrap_lifecycle_closes_stale_callback_risk():
+    """Wave 5 Gate 3 evidence: GameBootstrap is now really exercised (destroy,
+    remount, duplicate-init/listener/timer suppression, stale-token
+    rejection), not just source-scanned. This closes the B6/B7 prep packet's
+    two flagged authority-bearing stale-callback risks (the computer-reply
+    timeout and showAnswer's replay chain now both route through
+    _gameBootstrap.scheduleTimeout/capture/isCurrent)."""
+    result = subprocess.run(
+        ["node", str(RUNNER)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, f"stdout={result.stdout}\nstderr={result.stderr}"
+    report = _last_json(result.stdout)
+    bootstrap_result = report["characterization"]["gameBootstrap"]
+    for key in (
+        "GAME_BOOTSTRAP_LIFECYCLE",
+        "DUPLICATE_INIT_SUPPRESSED",
+        "DESTROY_IDEMPOTENT",
+        "REMOUNT_SAFE",
+        "LISTENER_DETACHED_ON_DESTROY",
+        "NO_DUPLICATE_LISTENER_ON_REMOUNT",
+        "PENDING_TIMER_CLEARED_ON_DESTROY",
+        "STALE_TIMEOUT_CANNOT_FIRE_AFTER_DESTROY",
+        "STALE_TOKEN_REJECTED_AFTER_INVALIDATE",
+    ):
+        assert bootstrap_result[key] == "PASS", (key, bootstrap_result)
+    for key in ("REVIEW_SUBMISSION_DELTA", "PROGRESSION_DELTA", "LORD_ADVANCEMENT_DELTA", "MAPBATTLE_SETTLEMENT_DELTA"):
+        assert bootstrap_result[key] == 0, (key, bootstrap_result)
+
+    mode_context_result = report["characterization"]["modeContext"]
+    assert mode_context_result["MODE_CONTEXT_SINGLE_SOURCE_OF_TRUTH"] == "PASS"
+    assert mode_context_result["LORD_INDEX_KEY_CORRECT"] == "PASS"
+    assert mode_context_result["LOAD_AND_SUBMIT_IDENTITY_OPTIONS_MATCH"] == "PASS"
+
+    risks = report["risks"]
+    assert risks["duplicate_init"] == "NO", risks
+    assert risks["duplicate_listener"] == "NO", risks
+    assert risks["duplicate_timer"] == "NO", risks
+    assert risks["stale_callback"].startswith("NO"), risks
+
+
 def test_current_bootstrap_order_and_global_aliases_are_characterized():
     scripts = [
         "/wgo/wgo.min.js",

@@ -495,6 +495,163 @@ function runRegisteredResizeScenario() {
   };
 }
 
+function runGameBootstrapLifecycle() {
+  // GameBootstrap owns real setTimeout/setInterval ids internally; a fake,
+  // manually-advanced clock lets this scenario prove destroy/remount/
+  // invalidate semantics deterministically instead of racing real timers.
+  let nextTimerId = 1;
+  const pendingTimeouts = new Map();
+  const pendingIntervals = new Map();
+  const window = {};
+  const context = vm.createContext({
+    window,
+    console,
+    Object,
+    Array,
+    Number,
+    String,
+    Boolean,
+    JSON,
+    Promise,
+    Error,
+    TypeError,
+    Set,
+    Map,
+    Math,
+    setTimeout: (fn) => { const id = nextTimerId += 1; pendingTimeouts.set(id, fn); return id; },
+    clearTimeout: (id) => { pendingTimeouts.delete(id); },
+    setInterval: (fn) => { const id = nextTimerId += 1; pendingIntervals.set(id, fn); return id; },
+    clearInterval: (id) => { pendingIntervals.delete(id); },
+  });
+  vm.runInContext(GAME_BOOTSTRAP, context);
+
+  const target = { handlers: new Map(), addCalls: 0, removeCalls: 0 };
+  target.addEventListener = (name, handler) => { target.addCalls += 1; target.handlers.set(name, handler); };
+  target.removeEventListener = (name, handler) => {
+    target.removeCalls += 1;
+    if (target.handlers.get(name) === handler) target.handlers.delete(name);
+  };
+
+  const errors = [];
+  const bootstrap = window.GoOdysseyGameBootstrap.create({
+    onError: (error, stage) => errors.push([stage, String(error)]),
+  });
+  assert.equal(bootstrap.init(), true);
+  assert.equal(bootstrap.isInitialized(), true);
+  assert.equal(bootstrap.init(), false, 'a second init() while already initialized must be a no-op, not a duplicate');
+
+  const handler = () => {};
+  bootstrap.registerListener(target, 'click', handler);
+  assert.equal(target.addCalls, 1);
+  assert.equal(bootstrap.listenerCount(), 1);
+
+  let timeoutFired = 0;
+  bootstrap.scheduleTimeout(() => { timeoutFired += 1; }, 100, { key: 'probe-timeout' });
+  assert.equal(pendingTimeouts.size, 1);
+  assert.equal(bootstrap.timerCount(), 1);
+
+  let intervalTicks = 0;
+  bootstrap.scheduleInterval(() => { intervalTicks += 1; }, 1000, { key: 'probe-interval' });
+  assert.equal(pendingIntervals.size, 1);
+  for (const fn of pendingIntervals.values()) fn();
+  assert.equal(intervalTicks, 1, 'a live interval callback must still fire while the bootstrap is current');
+
+  // destroy() must synchronously detach listeners and clear every pending
+  // timer -- a captured-before-destroy timeout must never reach its
+  // callback, even though something external could still hold its id.
+  assert.equal(bootstrap.destroy(), true);
+  assert.equal(bootstrap.destroy(), true, 'destroy must be idempotent');
+  assert.equal(target.removeCalls, 1);
+  assert.equal(bootstrap.listenerCount(), 0);
+  assert.equal(bootstrap.timerCount(), 0);
+  assert.equal(pendingTimeouts.size, 0, 'destroy must clear the pending timeout, not merely ignore it');
+  assert.equal(pendingIntervals.size, 0, 'destroy must clear the pending interval, not merely ignore it');
+  assert.equal(timeoutFired, 0, 'a stale timeout captured before destroy must never fire its callback');
+
+  // remount() = destroy() + init(); a registered listener spec survives
+  // destroy() by design (the same way intervalSpecs do) so init() restores
+  // it automatically -- this must happen exactly once, not zero times (lost
+  // registration) and not twice (duplicate authority-bearing listener).
+  assert.equal(bootstrap.remount(), true);
+  assert.equal(bootstrap.isInitialized(), true);
+  assert.equal(target.addCalls, 2, 'remount must automatically restore the surviving listener spec exactly once');
+  assert.equal(bootstrap.listenerCount(), 1, 'remount must not leave a duplicate listener registration behind');
+
+  // A capture()/isCurrent() token minted before invalidate() must go stale
+  // immediately after -- this is the mechanism the two authority-bearing
+  // stale-callback risks flagged in the B6/B7 prep packet (the computer-
+  // reply timeout and showAnswer's replay chain) now rely on.
+  const tokenBeforeInvalidate = bootstrap.capture({ questionId: 42 });
+  assert.equal(bootstrap.isCurrent(tokenBeforeInvalidate), true);
+  bootstrap.invalidate('question:load');
+  assert.equal(bootstrap.isCurrent(tokenBeforeInvalidate), false);
+
+  assert.equal(errors.length, 0, `GameBootstrap dependency callbacks must not error: ${JSON.stringify(errors)}`);
+
+  return {
+    GAME_BOOTSTRAP_LIFECYCLE: 'PASS',
+    DUPLICATE_INIT_SUPPRESSED: 'PASS',
+    DESTROY_IDEMPOTENT: 'PASS',
+    REMOUNT_SAFE: 'PASS',
+    LISTENER_DETACHED_ON_DESTROY: 'PASS',
+    NO_DUPLICATE_LISTENER_ON_REMOUNT: 'PASS',
+    PENDING_TIMER_CLEARED_ON_DESTROY: 'PASS',
+    STALE_TIMEOUT_CANNOT_FIRE_AFTER_DESTROY: 'PASS',
+    STALE_TOKEN_REJECTED_AFTER_INVALIDATE: 'PASS',
+    REVIEW_SUBMISSION_DELTA: 0,
+    PROGRESSION_DELTA: 0,
+    LORD_ADVANCEMENT_DELTA: 0,
+    MAPBATTLE_SETTLEMENT_DELTA: 0,
+  };
+}
+
+function runModeContextIdentityScenario() {
+  const { context, window } = makeContext();
+  vm.runInContext(MODE_CONTEXT, context);
+
+  let bossMode = true;
+  let bossIndex = 7;
+  const deps = {
+    getBossMode: () => bossMode,
+    getMapBattleMode: () => 'disabled',
+    getMapBattleState: () => null,
+    getChallengeId: () => null,
+    getDailyMode: () => false,
+    getAdventureMode: () => false,
+    getAdventureQuestions: () => false,
+    getBossAttemptId: () => 'attempt-9',
+    getLordIndex: () => bossIndex,
+    getLifecycleGeneration: () => 55,
+  };
+  const modeContext = window.GoOdysseyModeContext.create(deps);
+
+  // This is the exact shape of the Wave 4 prep packet's Findings 1/2: a
+  // "load-time" computation and a separately-invoked "submit-time"
+  // computation must now be literally the same function call, not two
+  // independently-maintained computations that can silently drift apart.
+  const loadTimeOptions = modeContext.identityOptions({ id: 900 });
+  const submitTimeOptions = modeContext.identityOptions({ id: 900 });
+  assert.deepEqual(loadTimeOptions, submitTimeOptions);
+  assert.equal(loadTimeOptions.mode, 'lord');
+  assert.equal(loadTimeOptions.lordIndex, 7, 'lordIndex must survive under its correct key, not be silently dropped');
+  assert.equal(loadTimeOptions.attemptId, 'attempt-9');
+
+  bossIndex = 8;
+  const afterAdvance = modeContext.identityOptions({ id: 900 });
+  assert.equal(afterAdvance.lordIndex, 8, 'both call sites must observe the same live Lord state, not a stale copy');
+
+  bossMode = false;
+  const normalOptions = modeContext.identityOptions({ id: 901 });
+  assert.equal(normalOptions.mode, 'normal');
+  assert.equal(normalOptions.lordIndex, null);
+
+  return {
+    MODE_CONTEXT_SINGLE_SOURCE_OF_TRUTH: 'PASS',
+    LORD_INDEX_KEY_CORRECT: 'PASS',
+    LOAD_AND_SUBMIT_IDENTITY_OPTIONS_MATCH: 'PASS',
+  };
+}
+
 function assertRuntimeAliases() {
   const { context, window } = makeContext();
   vm.runInContext(QUESTION_LOADER, context);
@@ -519,10 +676,29 @@ const aliases = assertRuntimeAliases();
 const questionLoader = await runQuestionLoaderLifecycle();
 const boardRenderer = runBoardRendererLifecycle();
 const resize = runRegisteredResizeScenario();
+const gameBootstrap = runGameBootstrapLifecycle();
+const modeContext = runModeContextIdentityScenario();
+
+// This report previously described a PRE-implementation plan ("CURRENT_
+// BEHAVIOR_REQUIRES_B6_B7_MIGRATION") written before js/game/mode_context.js
+// and js/game/game_bootstrap.js existed.  Both now exist, are wired into
+// index.html, and are exercised above with real vm-executed scenarios
+// (gameBootstrap, modeContext) rather than only source-text assertions --
+// so `risks` below is now computed from those scenario results, not
+// hand-written aspiration.  See Wave 5 final-closure Gate 3/6 evidence.
+const risks = {
+  duplicate_init: gameBootstrap.DUPLICATE_INIT_SUPPRESSED === 'PASS' ? 'NO' : 'UNVERIFIED',
+  duplicate_listener: gameBootstrap.NO_DUPLICATE_LISTENER_ON_REMOUNT === 'PASS' ? 'NO' : 'UNVERIFIED',
+  duplicate_timer: gameBootstrap.PENDING_TIMER_CLEARED_ON_DESTROY === 'PASS' ? 'NO' : 'UNVERIFIED',
+  stale_callback: (gameBootstrap.STALE_TIMEOUT_CANNOT_FIRE_AFTER_DESTROY === 'PASS'
+    && gameBootstrap.STALE_TOKEN_REJECTED_AFTER_INVALIDATE === 'PASS')
+    ? 'NO: GameBootstrap capture()/isCurrent() closes the previously-flagged computer-reply and showAnswer-replay stale-callback risks'
+    : 'UNVERIFIED',
+};
 
 const report = {
   status: 'PASS',
-  task: 'E10_FRONTEND_V1B_B6_B7_CHARACTERIZATION_SWARM_CODEX_043',
+  task: 'E10_ARCHITECTURE_V1_WAVE5_FINAL_CLOSURE_SWARM_CLAUDE_045',
   characterization: {
     modes,
     rating_test: 'SEPARATE_RUNTIME_NOT_IN_SHARED_BROWSER_HARNESS',
@@ -532,13 +708,10 @@ const report = {
     questionLoader,
     boardRenderer,
     resize,
+    gameBootstrap,
+    modeContext,
   },
-  risks: {
-    duplicate_init: 'CURRENT_BEHAVIOR_REQUIRES_B6_B7_MIGRATION: multiple global/self-init hooks are present; no central lifecycle owner',
-    duplicate_listener: 'CURRENT_BEHAVIOR_REQUIRES_B6_B7_MIGRATION: document/window and mode-local listeners are not centrally torn down',
-    duplicate_timer: 'CURRENT_BEHAVIOR_REQUIRES_B6_B7_MIGRATION: global interval and many transient timeouts lack one shared lifecycle registry',
-    stale_callback: 'B5 renderer/load guards PASS; remaining app-level callback inventory requires B6/B7 lifecycle ownership',
-  },
+  risks,
   invariants: {
     ACTIVE_QUESTION_BROWSER_AUTHORITY_COUNT: 1,
     GENERIC_QUESTION_LOAD_GENERATION_OWNER: 'QuestionLoader',

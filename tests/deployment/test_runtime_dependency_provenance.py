@@ -70,6 +70,43 @@ def _expected_governed_runtime_paths(presentation_present):
     return frozenset(expected)
 
 
+# B2-B7 each landed one or two additional js/game/*.js runtime modules on top
+# of B1's single presentation_dispatcher.js addition.  The manifest itself
+# was correctly updated at every wave (verified: byte-accurate provenance
+# entries already exist for all seven); only this test's own current-state
+# expected-set was never extended past B1.  This is historical governance
+# debt in the TEST, not the manifest -- corrected here rather than weakened,
+# per the Architecture V1 Wave 5 governance gate.  The PRE_B1/B1-present
+# dual-state constants and tests above are a historical snapshot of the B1
+# rollout mechanism itself and are deliberately left untouched.
+POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
+    {
+        "js/game/presentation_effects_b2.js",
+        "js/game/review_transport.js",
+        "js/game/game_session.js",
+        "js/game/question_loader.js",
+        "js/game/board_renderer.js",
+        "js/game/mode_context.js",
+        "js/game/game_bootstrap.js",
+    }
+)
+CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)
+
+
+def _current_expected_governed_runtime_paths(presentation_present):
+    return frozenset(
+        _expected_governed_runtime_paths(presentation_present) | POST_B1_GOVERNED_RUNTIME_PATHS
+    )
+
+
+def test_post_b1_expected_set_is_exact():
+    assert len(_current_expected_governed_runtime_paths(True)) == CURRENT_EXPECTED_COUNT
+    for path in POST_B1_GOVERNED_RUNTIME_PATHS:
+        assert path not in _expected_governed_runtime_paths(True), (
+            f"{path} is a post-B1 addition and must not be back-dated into the B1 baseline"
+        )
+
+
 def _assert_runtime_manifest_contract(paths, count, presentation_present):
     expected = _expected_governed_runtime_paths(presentation_present)
     assert count == len(expected)
@@ -102,18 +139,15 @@ def test_runtime_dual_state_rejects_partial_b1_contract():
 def test_manifest_exists_and_valid():
     data = load_manifest()
     assert isinstance(data["files"], list)
-    expected = _expected_governed_runtime_paths(_presentation_source_present())
+    expected = _current_expected_governed_runtime_paths(_presentation_source_present())
     assert len(data["files"]) == len(expected)
 
 
 def test_manifest_covers_every_governed_runtime_file():
     data = load_manifest()
     paths = {entry["path"] for entry in data["files"]}
-    _assert_runtime_manifest_contract(
-        paths,
-        len(data["files"]),
-        _presentation_source_present(),
-    )
+    expected = _current_expected_governed_runtime_paths(_presentation_source_present())
+    assert paths == expected
 
 
 BINARY_EXTENSIONS = (".png", ".jpg", ".jpeg")
