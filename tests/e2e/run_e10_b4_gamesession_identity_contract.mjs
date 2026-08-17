@@ -89,7 +89,7 @@ function identityInput(overrides = {}) {
     mode: 'lord',
     attemptId: 'attempt-7',
     lordIndex: '3',
-    lifecycleGeneration: 'life-9',
+    lifecycleGeneration: 9,
     sourceContext: 'boss_trial',
     ...overrides,
   };
@@ -101,7 +101,7 @@ function assertIdentityShape(identity) {
   assert.equal(identity.mode, 'lord');
   assert.equal(identity.attemptId, 'attempt-7');
   assert.equal(identity.lordIndex, 3);
-  assert.equal(identity.lifecycleGeneration, 'life-9');
+  assert.equal(identity.lifecycleGeneration, 9);
   assert.equal(identity.sourceContext, 'boss_trial');
   for (const field of FORBIDDEN_FIELDS) {
     assert.equal(Object.prototype.hasOwnProperty.call(identity, field), false,
@@ -169,7 +169,7 @@ function runSessionContracts(api) {
   }
 
   const first = identityInput();
-  const second = identityInput({ questionId: '43', lifecycleGeneration: 'life-10' });
+  const second = identityInput({ questionId: '43', lifecycleGeneration: 10 });
   const adopted = session.adopt(first);
   assertIdentityShape(adopted);
   assert.deepEqual(session.current(), adopted);
