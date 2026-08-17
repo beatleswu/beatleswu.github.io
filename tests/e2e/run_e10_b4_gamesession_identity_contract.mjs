@@ -125,10 +125,18 @@ function runIdentityContracts(api) {
   assertIdentityShape(normalized);
 
   for (const questionId of [null, undefined, '', 'not-a-number', NaN, Infinity, -Infinity]) {
+    const invalidInput = identityInput({ questionId });
+    const invalidNormalized = api.QuestionIdentity.normalize(invalidInput);
+    assert.equal(invalidNormalized, null,
+      `invalid questionId must normalize to null: ${String(questionId)}`);
+    assert.equal(api.QuestionIdentity.key(invalidInput), null,
+      `invalid questionId must not produce a usable key: ${String(questionId)}`);
+    assert.equal(api.QuestionIdentity.equals(invalidInput, identityInput()), false,
+      `invalid questionId must not compare equal: ${String(questionId)}`);
     assert.throws(
-      () => api.QuestionIdentity.normalize(identityInput({ questionId })),
+      () => api.QuestionIdentity.fromQuestion(invalidInput),
       /questionId|identity|finite|invalid/i,
-      `non-finite questionId must be rejected: ${String(questionId)}`,
+      `fromQuestion must reject invalid questionId: ${String(questionId)}`,
     );
   }
 
