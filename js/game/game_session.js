@@ -156,7 +156,6 @@
             lordIndex: identity.lordIndex,
             lifecycleGeneration: identity.lifecycleGeneration,
             sourceContext: identity.sourceContext,
-            identityKey: stableKey(identity),
         });
     }
 
