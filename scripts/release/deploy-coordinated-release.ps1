@@ -23,7 +23,7 @@
   (Assert-OwnerGate: exact string match, same mechanism every other gated
   release script uses). This authorizes promotion of ONE exact -ExpectedGitSha
   WITH the bounded recovery behavior documented in
-  docs/deployment/deployment_workflow_v3_operator_contract.md -- it does NOT
+  docs/deployment/deployment_workflow_v3_bounded_recovery.md -- it does NOT
   authorize changing the source SHA, modifying repo/release-tooling source
   during the run, bypassing any gate, or accepting an unverifiable Production
   state. Those remain hard L3 stops (see the state machine module).
@@ -107,13 +107,53 @@ $preflightScript = Join-Path $PSScriptRoot 'preflight-production.ps1'
 # file-based contract package-release-image.ps1/package-static-release.ps1
 # already establish with deploy-release-image.ps1/deploy-static-release.ps1;
 # this script does not invent a new handoff shape.
+#
+# Deployment Workflow V3 coordinator-review fix: the phase scriptblocks
+# below deliberately do NOT call .GetNewClosure(). That method snapshots a
+# scriptblock's variables (including $script:-scoped ones) at creation
+# time -- a mutation to $script:someVar INSIDE a .GetNewClosure()'d block
+# updates only that snapshot, never the real script scope, so a later
+# phase's own scriptblock (or this script's own code after the state
+# machine returns) would never see it. Confirmed live: an earlier version
+# of this script used .GetNewClosure() everywhere, and $script:
+# handoff variables like this one were silently never actually shared
+# between phases -- undetectable by any test that used only synthetic,
+# already-a-SHA fake state, and caught only once a realistic integration
+# test exercised the real field-mapping/handoff logic end-to-end. Plain
+# scriptblocks (no .GetNewClosure()) do not have this problem: PowerShell
+# scriptblocks already carry a reference to their defining scope, so `&
+# $SomePhase` from inside Invoke-CoordinatedReleaseStateMachine (a
+# different module/function scope) still correctly resolves and mutates
+# this script's own variables, exactly like $GetState/$Disable/etc. already
+# do in the established ShadowKillSwitchDrill.psm1 precedent this design
+# follows.
 $script:appReleaseManifestPath = $null
 $script:appArchivePath = $null
+$script:appDeploymentRecordPath = $null
 $script:staticManifestPath = $null
 $script:staticBundlePath = $null
 $script:staticArchivePath = $null
 
 function Invoke-GovernedScript {
+    <#
+    .SYNOPSIS
+    Runs one existing governed release script as a bounded child process and
+    returns a result that DISTINGUISHES a genuine process-level timeout from
+    an ordinary, definite failure (non-zero exit, or no parseable output).
+    .DESCRIPTION
+    Invoke-BoundedNativeCommand only ever throws for two reasons: an enforced
+    process-level timeout (its message always starts with "Timed out after"
+    -- see ReleaseTooling.psm1), or the child process could not be started
+    at all. Both are ambiguous about whether the child's own governed
+    mutation happened -- possible_timeout in the phase result below is set
+    ONLY for this case. A clean, non-zero EXIT from the child (the governed
+    script's own gate/verification refused, or it failed after producing a
+    definite result) is a completely different, non-ambiguous situation and
+    must never be conflated with "maybe it actually succeeded" -- doing so
+    would let a definite governed-script failure be silently reinterpreted
+    as a possibly-successful timeout and skip retry/rollback it actually
+    needs.
+    #>
     param(
         [Parameter(Mandatory = $true)][string]$ScriptPath,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
@@ -122,106 +162,143 @@ function Invoke-GovernedScript {
     )
     $psExe = (Get-Process -Id $PID).Path
     $fullArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $ScriptPath) + $Arguments
-    $result = Invoke-BoundedNativeCommand -FileName $psExe -ArgumentList $fullArgs -TimeoutSeconds $TimeoutSeconds -OperationLabel $OperationLabel
+    try {
+        $result = Invoke-BoundedNativeCommand -FileName $psExe -ArgumentList $fullArgs -TimeoutSeconds $TimeoutSeconds -OperationLabel $OperationLabel
+    }
+    catch {
+        $timedOut = [string]$_.Exception.Message -like 'Timed out after*'
+        return [ordered]@{ success = $false; timed_out = $timedOut; exit_code = $null; output = [string]$_.Exception.Message; data = $null }
+    }
     if ($result.exit_code -ne 0) {
-        throw "$OperationLabel failed (exit $($result.exit_code)): $($result.output)"
+        return [ordered]@{ success = $false; timed_out = $false; exit_code = $result.exit_code; output = $result.output; data = $null }
     }
     $jsonStart = $result.stdout.IndexOf('{')
     if ($jsonStart -lt 0) {
-        throw "$OperationLabel produced no parseable JSON output."
+        return [ordered]@{ success = $false; timed_out = $false; exit_code = $result.exit_code; output = "$OperationLabel produced no parseable JSON output: $($result.output)"; data = $null }
     }
-    return ($result.stdout.Substring($jsonStart) | ConvertFrom-Json)
+    $data = $result.stdout.Substring($jsonStart) | ConvertFrom-Json
+    return [ordered]@{ success = $true; timed_out = $false; exit_code = $result.exit_code; output = $result.output; data = $data }
 }
 
 $GetCurrentState = {
+    # Coordinator-review fix: preflight-production.ps1's own current_app.
+    # image_ref/image_id and static_generation.current_target are NEVER
+    # Git SHAs -- image_ref/image_id are a Docker tag and content digest;
+    # current_target is a remote filesystem path. Comparing either directly
+    # to -ExpectedGitSha can never correctly succeed. The real source Git
+    # SHA is read independently, over SSH, from the authoritative source
+    # for each: the running app image's own org.opencontainers.image.revision
+    # OCI label (Get-RemoteImageSourceGitSha), and the active static
+    # generation's own manifest.json release_git_sha
+    # (Get-RemoteStaticGenerationSourceGitSha) -- both already-proven
+    # mechanisms this repository's own tooling uses elsewhere, not invented
+    # here. app_sha/static_sha below are the ONLY two fields the state
+    # machine itself compares to -ExpectedGitSha; every other field is kept
+    # separate and is never used for a SHA-domain comparison.
+    $r = Invoke-GovernedScript -ScriptPath $preflightScript `
+        -Arguments @('-LayoutFile', $LayoutFile) `
+        -TimeoutSeconds 90 -OperationLabel 'coordinated-release: get current state'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; detail = $r.output }
+    }
+    $preflight = $r.data
+    $appImageId = [string]$preflight.current_app.image_id
+    $staticGenerationPath = [string]$preflight.static_generation.current_target
     try {
-        $r = Invoke-GovernedScript -ScriptPath $preflightScript `
-            -Arguments @('-LayoutFile', $LayoutFile) `
-            -TimeoutSeconds 90 -OperationLabel 'coordinated-release: get current state'
-        [ordered]@{
-            success = $true
-            app_sha = [string]$r.current_app.image_ref
-            static_sha = [string]$r.static_generation.current_target
-        }
+        $appSourceGitSha = Get-RemoteImageSourceGitSha -SshAlias $layout.ssh_alias -ImageId $appImageId -TimeoutSeconds 30
+        $staticSourceGitSha = Get-RemoteStaticGenerationSourceGitSha -SshAlias $layout.ssh_alias -GenerationPath $staticGenerationPath -TimeoutSeconds 30
     }
     catch {
-        [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
+        return [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
     }
-}.GetNewClosure()
+    [ordered]@{
+        success = $true
+        app_sha = $appSourceGitSha
+        static_sha = $staticSourceGitSha
+        app_image_tag = [string]$preflight.current_app.image_ref
+        app_image_id = $appImageId
+        static_generation_path = $staticGenerationPath
+    }
+}
 
 $Precheck = {
     [ordered]@{ success = $true; detail = "expected_git_sha=$ExpectedGitSha" }
-}.GetNewClosure()
+}
 
 $BuildApp = {
-    try {
-        Invoke-GovernedScript -ScriptPath $buildScript `
-            -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
-            -TimeoutSeconds 1800 -OperationLabel 'coordinated-release: build app image' | Out-Null
-        [ordered]@{ success = $true }
+    $r = Invoke-GovernedScript -ScriptPath $buildScript `
+        -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
+        -TimeoutSeconds 1800 -OperationLabel 'coordinated-release: build app image'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; detail = $r.output }
     }
-    catch {
-        [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
-    }
-}.GetNewClosure()
+    [ordered]@{ success = $true }
+}
 
 $PackageApp = {
-    try {
-        $r = Invoke-GovernedScript -ScriptPath $packageAppScript `
-            -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
-            -TimeoutSeconds 300 -OperationLabel 'coordinated-release: package app'
-        $script:appReleaseManifestPath = [string]$r.release_manifest_path
-        $script:appArchivePath = [string]$r.archive_path
-        [ordered]@{ success = $true }
+    $r = Invoke-GovernedScript -ScriptPath $packageAppScript `
+        -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-LayoutFile', $LayoutFile) `
+        -TimeoutSeconds 300 -OperationLabel 'coordinated-release: package app'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; detail = $r.output }
     }
-    catch {
-        [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
-    }
-}.GetNewClosure()
+    $script:appReleaseManifestPath = [string]$r.data.release_manifest_path
+    $script:appArchivePath = [string]$r.data.archive_path
+    [ordered]@{ success = $true }
+}
 
 $PackageStatic = {
-    try {
-        $r = Invoke-GovernedScript -ScriptPath $packageStaticScript `
-            -Arguments @('-ExpectedGitSha', $ExpectedGitSha) `
-            -TimeoutSeconds 600 -OperationLabel 'coordinated-release: package static'
-        $script:staticManifestPath = [string]$r.manifest_path
-        $script:staticBundlePath = [string]$r.bundle_path
-        $script:staticArchivePath = [string]$r.archive_path
-        [ordered]@{ success = $true }
+    $r = Invoke-GovernedScript -ScriptPath $packageStaticScript `
+        -Arguments @('-ExpectedGitSha', $ExpectedGitSha) `
+        -TimeoutSeconds 600 -OperationLabel 'coordinated-release: package static'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; detail = $r.output }
     }
-    catch {
-        [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
-    }
-}.GetNewClosure()
+    $script:staticManifestPath = [string]$r.data.manifest_path
+    $script:staticBundlePath = [string]$r.data.bundle_path
+    $script:staticArchivePath = [string]$r.data.archive_path
+    [ordered]@{ success = $true }
+}
 
 $SnapshotBaseline = {
     $state = & $GetCurrentState
     if (-not $state.success) {
         return [ordered]@{ success = $false; detail = 'could not establish a baseline: current Production state is not independently checkable' }
     }
-    [ordered]@{ success = $true; app_sha = $state.app_sha; static_sha = $state.static_sha }
-}.GetNewClosure()
+    # app_sha/static_sha (real Git SHAs) are the state-machine's own
+    # coherence-comparison contract. app_deployment_record_path/
+    # static_generation_path are ADDITIONAL, separately-tracked identity
+    # concepts RollbackApp/RollbackStatic need -- never conflated with the
+    # SHA fields (Section 1 of the coordinator review).
+    [ordered]@{
+        success = $true
+        app_sha = $state.app_sha
+        static_sha = $state.static_sha
+        app_image_id = $state.app_image_id
+        static_generation_path = $state.static_generation_path
+    }
+}
 
 $VerifyRollbackReady = {
     param($baseline)
-    if (-not $baseline -or [string]::IsNullOrWhiteSpace([string]$baseline.app_sha) -or [string]::IsNullOrWhiteSpace([string]$baseline.static_sha)) {
+    if (-not $baseline -or
+        [string]::IsNullOrWhiteSpace([string]$baseline.app_sha) -or
+        [string]::IsNullOrWhiteSpace([string]$baseline.static_sha) -or
+        [string]::IsNullOrWhiteSpace([string]$baseline.static_generation_path)) {
         return [ordered]@{ success = $false; detail = 'baseline identity is incomplete; refusing to proceed without a usable rollback target' }
     }
     [ordered]@{ success = $true }
-}.GetNewClosure()
+}
 
 $PromoteStatic = {
-    try {
-        Invoke-GovernedScript -ScriptPath $deployStaticScript `
-            -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-StaticManifest', $script:staticManifestPath, '-BundlePath', $script:staticBundlePath, '-ArchivePath', $script:staticArchivePath, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_DEPLOY') `
-            -TimeoutSeconds 900 -OperationLabel 'coordinated-release: promote static' |
-            Out-Null
-        [ordered]@{ success = $true; static_sha = $ExpectedGitSha }
+    $r = Invoke-GovernedScript -ScriptPath $deployStaticScript `
+        -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-StaticManifest', $script:staticManifestPath, '-BundlePath', $script:staticBundlePath, '-ArchivePath', $script:staticArchivePath, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_DEPLOY') `
+        -TimeoutSeconds 900 -OperationLabel 'coordinated-release: promote static'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; possible_timeout = $r.timed_out; detail = $r.output }
     }
-    catch {
-        [ordered]@{ success = $false; possible_timeout = $true; detail = [string]$_.Exception.Message }
-    }
-}.GetNewClosure()
+    [ordered]@{ success = $true; static_sha = $ExpectedGitSha }
+}
 
 $VerifyStatic = {
     param($promoted)
@@ -230,20 +307,32 @@ $VerifyStatic = {
         return [ordered]@{ success = $false; detail = 'could not independently verify static identity post-promotion' }
     }
     [ordered]@{ success = ($state.static_sha -eq $ExpectedGitSha) }
-}.GetNewClosure()
+}
 
 $PromoteApp = {
-    try {
-        Invoke-GovernedScript -ScriptPath $deployAppScript `
-            -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-ReleaseManifest', $script:appReleaseManifestPath, '-ReleaseArchive', $script:appArchivePath, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_DEPLOY') `
-            -TimeoutSeconds 900 -OperationLabel 'coordinated-release: promote app' |
-            Out-Null
-        [ordered]@{ success = $true; app_sha = $ExpectedGitSha }
+    # The deployment record path is deterministic from the release manifest
+    # path (see deploy-release-image.ps1's own
+    # $deploymentRecordPath = Join-Path (Split-Path -Parent $manifestPath)
+    # ("{0}.deployment.json" -f $artifactBaseName)) and is proactively
+    # computed here -- not only captured from a successful return -- because
+    # deploy-release-image.ps1 saves this record BEFORE the app switch
+    # (so a rollback identity exists even if the switch itself then fails)
+    # and again in its own failure path. RollbackApp must be able to use it
+    # even when this phase itself returns success=$false.
+    $artifactBaseName = Get-ReleaseArtifactBaseName -GitSha $ExpectedGitSha
+    $script:appDeploymentRecordPath = Join-Path (Split-Path -Parent $script:appReleaseManifestPath) ("{0}.deployment.json" -f $artifactBaseName)
+
+    $r = Invoke-GovernedScript -ScriptPath $deployAppScript `
+        -Arguments @('-ExpectedGitSha', $ExpectedGitSha, '-ReleaseManifest', $script:appReleaseManifestPath, '-ReleaseArchive', $script:appArchivePath, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_DEPLOY') `
+        -TimeoutSeconds 900 -OperationLabel 'coordinated-release: promote app'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; possible_timeout = $r.timed_out; detail = $r.output }
     }
-    catch {
-        [ordered]@{ success = $false; possible_timeout = $true; detail = [string]$_.Exception.Message }
+    if ($r.data.PSObject.Properties['deployment_record_path'] -and $r.data.deployment_record_path) {
+        $script:appDeploymentRecordPath = [string]$r.data.deployment_record_path
     }
-}.GetNewClosure()
+    [ordered]@{ success = $true; app_sha = $ExpectedGitSha }
+}
 
 $VerifyApp = {
     param($promoted)
@@ -252,40 +341,49 @@ $VerifyApp = {
         return [ordered]@{ success = $false; detail = 'could not independently verify app identity post-promotion' }
     }
     [ordered]@{ success = ($state.app_sha -eq $ExpectedGitSha) }
-}.GetNewClosure()
+}
 
 $ProductionSmoke = {
     $state = & $GetCurrentState
     [ordered]@{ success = $state.success }
-}.GetNewClosure()
+}
 
 $RollbackStatic = {
     param($baseline)
-    try {
-        Invoke-GovernedScript -ScriptPath $rollbackStaticScript `
-            -Arguments @('-TargetGenerationPath', [string]$baseline.static_sha, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_ROLLBACK') `
-            -TimeoutSeconds 600 -OperationLabel 'coordinated-release: rollback static' |
-            Out-Null
-        [ordered]@{ success = $true }
+    # -TargetGenerationPath needs the baseline's static generation
+    # DIRECTORY PATH, not its source Git SHA -- these are two separate
+    # identity concepts (Section 1 of the coordinator review) and must
+    # never be conflated.
+    if ([string]::IsNullOrWhiteSpace([string]$baseline.static_generation_path)) {
+        return [ordered]@{ success = $false; detail = 'no static generation path captured in baseline; cannot construct a rollback target' }
     }
-    catch {
-        [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
+    $r = Invoke-GovernedScript -ScriptPath $rollbackStaticScript `
+        -Arguments @('-TargetGenerationPath', [string]$baseline.static_generation_path, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_ROLLBACK') `
+        -TimeoutSeconds 600 -OperationLabel 'coordinated-release: rollback static'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; detail = $r.output }
     }
-}.GetNewClosure()
+    [ordered]@{ success = $true }
+}
 
 $RollbackApp = {
     param($baseline)
-    try {
-        Invoke-GovernedScript -ScriptPath $rollbackAppScript `
-            -Arguments @('-RollbackManifest', $script:appReleaseManifestPath, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_ROLLBACK') `
-            -TimeoutSeconds 600 -OperationLabel 'coordinated-release: rollback app' |
-            Out-Null
-        [ordered]@{ success = $true }
+    # Must be the actionable deployment record deploy-release-image.ps1
+    # itself wrote (containing rollback_image_identity -- the actual
+    # pre-promotion app/scheduler image identity) -- NEVER the package-time
+    # release manifest, which describes the candidate being promoted and
+    # has no "previous" identity to roll back to at all.
+    if ([string]::IsNullOrWhiteSpace([string]$script:appDeploymentRecordPath)) {
+        return [ordered]@{ success = $false; detail = 'no app deployment record path is known; cannot construct a rollback manifest' }
     }
-    catch {
-        [ordered]@{ success = $false; detail = [string]$_.Exception.Message }
+    $r = Invoke-GovernedScript -ScriptPath $rollbackAppScript `
+        -Arguments @('-RollbackManifest', $script:appDeploymentRecordPath, '-LayoutFile', $LayoutFile, '-Execute', '-OwnerGate', 'GO_ROLLBACK') `
+        -TimeoutSeconds 600 -OperationLabel 'coordinated-release: rollback app'
+    if (-not $r.success) {
+        return [ordered]@{ success = $false; detail = $r.output }
     }
-}.GetNewClosure()
+    [ordered]@{ success = $true }
+}
 
 $result = Invoke-CoordinatedReleaseStateMachine `
     -ExpectedGitSha $ExpectedGitSha `

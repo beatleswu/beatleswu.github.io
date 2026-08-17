@@ -62,12 +62,15 @@ script's `Get-BuildxReportedPlatforms` function and
 `tests/deployment/test_buildx_platform_parser_hotfix.py`.
 
 A note on provenance: this task's own dispatch referenced a prior "Task 055" coordinated-rollback
-incident as the origin of this investigation. No commit, PR, or unique branch content establishing
-that a "Task 055" was ever executed was found in this repository's actual history at
-implementation time — the branches with adjacent names were plain pointers at existing master
-merge commits, not independent work. The two root causes documented above were instead found and
-verified by direct, first-hand investigation of the current canonical source (parallel read-only
-agents plus live reproduction), independent of that unverifiable claim.
+incident as the origin of this investigation. Task 055's operational execution is not
+independently verifiable from Git history: no commit, PR, or unique branch content attributable to
+it was found in this repository at implementation time (the branches with adjacent names pointed
+at existing master merge commits with no unique content of their own). Deployment operations do
+not inherently create commits, so this absence of Git evidence does not by itself establish
+whether or how Task 055 ran. The two root causes documented above were instead found and verified
+independently, by direct, first-hand investigation of the current canonical source (parallel
+read-only agents plus live reproduction), so this fix does not depend on Task 055's provenance
+either way.
 
 ## Canonical bounded remote-command contract
 

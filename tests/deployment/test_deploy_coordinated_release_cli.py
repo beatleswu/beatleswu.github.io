@@ -140,8 +140,10 @@ def test_every_governed_script_invocation_is_bounded():
     call_sites = [line for line in content.splitlines() if "Invoke-GovernedScript -ScriptPath" in line]
     assert len(call_sites) == 8
     # Every one of those call sites supplies an explicit bound (plus one
-    # more -TimeoutSeconds inside Invoke-GovernedScript's own definition).
-    assert content.count("-TimeoutSeconds") == 9
+    # more -TimeoutSeconds inside Invoke-GovernedScript's own definition,
+    # plus two more for GetCurrentState's Get-RemoteImageSourceGitSha /
+    # Get-RemoteStaticGenerationSourceGitSha SSH reads).
+    assert content.count("-TimeoutSeconds") == 11
 
 
 def test_does_not_duplicate_low_level_release_logic():

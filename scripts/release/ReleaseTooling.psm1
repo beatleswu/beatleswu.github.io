@@ -1770,6 +1770,87 @@ function Assert-ImageRevisionMatches {
     return $labels
 }
 
+function Get-RemoteImageSourceGitSha {
+    <#
+    .SYNOPSIS
+    Reads the org.opencontainers.image.revision OCI label directly off a
+    running container's image, over SSH -- the authoritative source Git SHA
+    for whatever app image is actually running in Production right now.
+    .DESCRIPTION
+    Deployment Workflow V3 coordinator-review fix: an image tag/reference
+    (e.g. "go-odyssey-app:abc12345") and an image ID (a content digest) are
+    NEITHER a full 40-character Git commit SHA -- comparing either directly
+    to an -ExpectedGitSha is always wrong. This is the correct, SHA-domain
+    identity read, using the exact same `docker image inspect --format
+    '{{json .Config.Labels}}'` + org.opencontainers.image.revision pattern
+    verify-production-release.ps1's own local Get-RemoteImageLabels/
+    Get-RemoteImageSummary helpers already use (promoted here to a shared,
+    exported function so a second caller does not need to reimplement it).
+    Get-ImageLabels (above) is LOCAL-only (`& docker image inspect`, no
+    SSH) -- this is the remote equivalent.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$ImageId,
+        [int]$TimeoutSeconds = 30
+    )
+    if ([string]::IsNullOrWhiteSpace($ImageId)) {
+        throw 'Get-RemoteImageSourceGitSha: ImageId is required.'
+    }
+    $command = "docker image inspect $(Quote-PosixShellArgument $ImageId) --format '{{json .Config.Labels}}'"
+    $result = Invoke-BoundedSshCommand -SshAlias $SshAlias -Command $command -TimeoutSeconds $TimeoutSeconds -OperationLabel 'read remote app image OCI labels'
+    if ($result.exit_code -ne 0) {
+        throw "Could not read OCI labels for image $ImageId over SSH (exit $($result.exit_code)): $($result.output)"
+    }
+    $labels = $result.stdout | ConvertFrom-Json
+    $revision = [string]$labels.'org.opencontainers.image.revision'
+    if ([string]::IsNullOrWhiteSpace($revision)) {
+        throw "Image $ImageId has no org.opencontainers.image.revision label; cannot determine its source Git SHA."
+    }
+    return $revision
+}
+
+function Get-RemoteStaticGenerationSourceGitSha {
+    <#
+    .SYNOPSIS
+    Reads release_git_sha out of manifest.json inside a static generation
+    directory, over SSH -- the authoritative source Git SHA for whatever
+    static generation is actually active in Production right now.
+    .DESCRIPTION
+    Deployment Workflow V3 coordinator-review fix: a static generation's
+    "current_target" (the resolved filesystem path of the remote `current`
+    symlink, as reported by preflight-production.ps1) is a PATH, not a Git
+    SHA -- comparing it directly to an -ExpectedGitSha is always wrong.
+    deploy-static-release.ps1 already uploads manifest.json (built by
+    New-StaticReleaseManifestObject, whose first field is release_git_sha)
+    directly into every generation directory it creates, and itself reads
+    that exact file back during existing-generation adoption -- this reuses
+    that same, already-proven mechanism to recover the source SHA for
+    whichever generation is CURRENTLY active, not just the one being
+    packaged.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$SshAlias,
+        [Parameter(Mandatory = $true)][string]$GenerationPath,
+        [int]$TimeoutSeconds = 30
+    )
+    if ([string]::IsNullOrWhiteSpace($GenerationPath)) {
+        throw 'Get-RemoteStaticGenerationSourceGitSha: GenerationPath is required.'
+    }
+    $remoteManifestPath = "$($GenerationPath.TrimEnd('/'))/manifest.json"
+    $command = "cat $(Quote-PosixShellArgument $remoteManifestPath)"
+    $result = Invoke-BoundedSshCommand -SshAlias $SshAlias -Command $command -TimeoutSeconds $TimeoutSeconds -OperationLabel 'read remote static generation manifest'
+    if ($result.exit_code -ne 0) {
+        throw "Could not read static generation manifest at $remoteManifestPath over SSH (exit $($result.exit_code)): $($result.output)"
+    }
+    $manifest = $result.stdout | ConvertFrom-Json
+    $gitSha = [string]$manifest.release_git_sha
+    if ([string]::IsNullOrWhiteSpace($gitSha)) {
+        throw "Static generation manifest at $remoteManifestPath has no release_git_sha field."
+    }
+    return $gitSha
+}
+
 function New-ReleaseManifestObject {
     param(
         [Parameter(Mandatory = $true)][string]$GitSha,
@@ -2875,6 +2956,8 @@ Export-ModuleMember -Function @(
     'Get-BooleanFlag',
     'Get-CurrentGitSha',
     'Get-ImageLabels',
+    'Get-RemoteImageSourceGitSha',
+    'Get-RemoteStaticGenerationSourceGitSha',
     'Get-OriginMasterSha',
     'Get-SafeFirstOutputLine',
     'Get-GitCommonDirectory',

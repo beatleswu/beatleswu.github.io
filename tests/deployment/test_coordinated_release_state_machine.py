@@ -157,19 +157,45 @@ $PromoteStatic = {
     [ordered]@{ success = $false; possible_timeout = $true; root_cause_class = 'ssh_disconnect_after_completion'; detail = 'F2: local client lost the result after the remote command actually completed' }
 }
 """
-    report = run_scenario(overrides)
-    assert report["success"] is True
-    # PromoteStatic's own action scriptblock must only have been invoked
-    # once -- the driver must not blindly re-run it after reconciling.
-    verify_script = COMMON_PREAMBLE.replace(
-        "$PromoteStatic = { $script:currentStaticSha = $ExpectedSha; [ordered]@{ success = $true; static_sha = $ExpectedSha } }",
-        "",
+    overrides_with_count_output = overrides + """
+$__report = Invoke-CoordinatedReleaseStateMachine `
+    -ExpectedGitSha $ExpectedSha `
+    -GetCurrentState $GetCurrentState `
+    -Precheck $Precheck `
+    -BuildApp $BuildApp `
+    -PackageApp $PackageApp `
+    -PackageStatic $PackageStatic `
+    -SnapshotBaseline $SnapshotBaseline `
+    -VerifyRollbackReady $VerifyRollbackReady `
+    -PromoteStatic $PromoteStatic `
+    -VerifyStatic $VerifyStatic `
+    -PromoteApp $PromoteApp `
+    -VerifyApp $VerifyApp `
+    -ProductionSmoke $ProductionSmoke `
+    -RollbackStatic $RollbackStatic `
+    -RollbackApp $RollbackApp
+[ordered]@{ result = $__report; promote_static_call_count = $script:staticPromoteCallCount } | ConvertTo-Json -Depth 12 -Compress
+"""
+    script = COMMON_PREAMBLE + "\n" + overrides_with_count_output
+    proc = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=30, check=False,
     )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = proc.stdout.strip()
+    payload = json.loads(text[text.find("{"):])
+    report = payload["result"]
+    assert report["success"] is True
     assert report["static_promoted"] is True
     recovery = report["recovery_log"]
     assert len(recovery) == 1
     assert recovery[0]["root_cause_class"] == "post_timeout_state_reconciliation"
     assert recovery[0]["recovery_action"] == "RECONCILED_ALREADY_SUCCEEDED_NO_DUPLICATE_MUTATION"
+    # The definitive proof this test exists for: PromoteStatic's own action
+    # scriptblock must only ever have been invoked ONCE -- the driver must
+    # never blindly re-run a possibly-non-idempotent mutation after
+    # reconciling and finding it already landed.
+    assert payload["promote_static_call_count"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -438,3 +464,156 @@ def test_forbidden_mixed_state_is_structurally_impossible_by_construction():
     content = MODULE.read_text(encoding="utf-8")
     for marker in ("if ($staticPromoted)", "if ($appPromoted)"):
         assert content.count(marker) >= 2, f"expected rollback-gating on {marker} in both L2 and L3 recovery branches"
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review follow-up: timeout vs. ordinary-failure classification
+# must never be conflated. A genuine timeout (F2, above) may be promoted to
+# "already succeeded" if reconciliation confirms the candidate landed. An
+# ORDINARY, non-timeout failure must never receive that treatment, even if
+# the candidate SHA happens to be observed running -- the underlying
+# script's own definite failure signal is authoritative.
+# ---------------------------------------------------------------------------
+
+def test_definite_failure_with_candidate_landed_is_never_silently_promoted_to_success():
+    overrides = """
+$PromoteApp = {
+    $n = Get-AttemptCount 'definite_failure_candidate_landed'
+    if ($n -eq 1) {
+        # Mutation genuinely happens, but this is a DEFINITE failure (no
+        # possible_timeout) -- e.g. the underlying script's own post-switch
+        # verification explicitly failed even though the switch landed.
+        $script:currentAppSha = $ExpectedSha
+        [ordered]@{ success = $false; possible_timeout = $false; root_cause_class = 'post_switch_verification_failed'; detail = 'definite failure: post-switch verification explicitly failed even though the switch itself landed' }
+    } else {
+        $script:currentAppSha = $ExpectedSha
+        [ordered]@{ success = $true; app_sha = $ExpectedSha }
+    }
+}
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is True
+    assert report["app_rolled_back"] is True, (
+        "a definite failure must trigger a real coordinated rollback, "
+        "never be silently promoted to success merely because the "
+        "candidate SHA happened to be observed running"
+    )
+    recovery = report["recovery_log"]
+    assert len(recovery) == 1
+    assert recovery[0]["recovery_action"] != "RECONCILED_ALREADY_SUCCEEDED_NO_DUPLICATE_MUTATION"
+    assert recovery[0]["recovery_action"] == "COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA"
+    assert recovery[0]["mutation_occurred"] is True
+    assert recovery[0]["classification"] == "L2"
+
+
+def test_ordinary_non_timeout_failure_before_any_mutation_follows_normal_l1_recovery():
+    # Test C: an ordinary (non-timeout) failure that never actually mutated
+    # anything follows completely normal recovery semantics for its phase --
+    # here, a pre-mutation phase failing gets plain L1 direct retry, with no
+    # reconciliation/rollback machinery involved at all.
+    overrides = """
+$PackageStatic = {
+    $n = Get-AttemptCount 'ordinary_pre_mutation_failure'
+    if ($n -eq 1) { [ordered]@{ success = $false; possible_timeout = $false; detail = 'ordinary packaging failure, nothing mutated' } }
+    else {
+        $script:staticManifestPath = 'unused'; $script:staticBundlePath = 'unused'; $script:staticArchivePath = 'unused'
+        [ordered]@{ success = $true }
+    }
+}
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is True
+    assert report["static_promoted"] is True
+    assert report["static_rolled_back"] is False
+    recovery = report["recovery_log"]
+    assert len(recovery) == 1
+    assert recovery[0]["classification"] == "L1"
+    assert recovery[0]["recovery_action"] == "RETRY_SAME_PHASE_DIRECTLY"
+
+
+def test_reconciliation_sets_promoted_flag_from_observed_state_not_just_phase_boolean():
+    # Section 4: even when a phase's own success flag is false and it
+    # reports NO structured mutation_occurred information at all (a bare
+    # unstructured exception, exactly the "unknown failure" shape), the
+    # driver must still independently discover that mutation actually
+    # occurred by comparing observed state against baseline -- proven here
+    # by a PromoteApp that mutates state and then THROWS a bare exception
+    # with zero structured fields, yet the run still correctly rolls back
+    # the app.
+    overrides = """
+$PromoteApp = {
+    $n = Get-AttemptCount 'bare_throw_after_mutation'
+    if ($n -eq 1) {
+        $script:currentAppSha = $ExpectedSha
+        throw 'completely bare exception, no structured fields at all'
+    } else {
+        $script:currentAppSha = $ExpectedSha
+        [ordered]@{ success = $true; app_sha = $ExpectedSha }
+    }
+}
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is True
+    assert report["app_rolled_back"] is True
+    recovery = report["recovery_log"]
+    assert len(recovery) == 1
+    assert recovery[0]["failure_was_unstructured_exception"] is True
+    assert recovery[0]["mutation_occurred"] is True
+    assert recovery[0]["recovery_action"] == "COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA"
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review follow-up: every exit path must PROVE its final state
+# is exactly CANDIDATE_CANDIDATE or BASELINE_BASELINE, never assume it.
+# ---------------------------------------------------------------------------
+
+def test_final_state_domain_is_candidate_candidate_on_success():
+    report = run_scenario("")
+    assert report["success"] is True
+    assert report["final_state_domain"] == "CANDIDATE_CANDIDATE"
+
+
+def test_final_state_domain_is_baseline_baseline_after_l2_stop():
+    overrides = """
+$VerifyApp = { param($promoted) [ordered]@{ success = $false; root_cause_class = 'persistent_health_failure'; detail = 'never recovers' } }
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is False
+    assert report["final_state_domain"] == "BASELINE_BASELINE"
+
+
+def test_final_state_domain_is_baseline_baseline_after_l3_stop_with_rollback():
+    overrides = """
+$PromoteApp = { [ordered]@{ success = $false; requires_source_change = $true; detail = 'F9: a new commit is required' } }
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is False
+    assert report["final_state_domain"] == "BASELINE_BASELINE"
+
+
+def test_get_release_state_domain_reports_unverified_for_neither_candidate_nor_baseline():
+    script = COMMON_PREAMBLE + """
+$mixedState = [ordered]@{ app_sha = 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'; static_sha = $ExpectedSha }
+$baselineObj = [pscustomobject]@{ app_sha = $BaselineSha; static_sha = $BaselineSha }
+"""
+    script = script.replace(
+        "$ExpectedSha = '" + EXPECTED_SHA + "'\n",
+        "$ExpectedSha = '" + EXPECTED_SHA + "'\n$BaselineSha = '" + BASELINE_SHA + "'\n",
+    )
+    script += "Get-ReleaseStateDomain -State $mixedState -ExpectedGitSha $ExpectedSha -Baseline $baselineObj\n"
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "MIXED_OR_UNVERIFIED"
+
+
+def test_get_release_state_domain_reports_unverified_for_null_state():
+    script = COMMON_PREAMBLE + "Get-ReleaseStateDomain -State $null -ExpectedGitSha $ExpectedSha -Baseline $null\n"
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "MIXED_OR_UNVERIFIED"

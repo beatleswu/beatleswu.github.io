@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 Deployment Workflow V3: bounded operational recovery for the coordinated
 static+app release transaction.
 
-Design summary (see docs/deployment/deployment_workflow_v3_operator_contract.md
+Design summary (see docs/deployment/deployment_workflow_v3_bounded_recovery.md
 for the full operator-facing contract):
 
   - Phases run in the fixed order PRECHECK -> BUILD_APP -> PACKAGE_APP ->
@@ -131,6 +131,33 @@ function New-RootCauseKey {
     param([Parameter(Mandatory = $true)][string]$Phase, [string]$RootCauseClass = '')
     $normalizedClass = if ([string]::IsNullOrWhiteSpace($RootCauseClass)) { 'default' } else { $RootCauseClass }
     return "${Phase}::${normalizedClass}"
+}
+
+function Get-ReleaseStateDomain {
+    <#
+    .SYNOPSIS
+    Classifies an observed current state as CANDIDATE_CANDIDATE,
+    BASELINE_BASELINE, or MIXED_OR_UNVERIFIED against the authorized
+    candidate SHA and the captured baseline. Used at every exit path to
+    PROVE -- not merely assume -- that this workflow only ever leaves one
+    of the two allowed coordinated end states; a state that matches
+    neither (including one that could not be independently observed at
+    all) is always reported honestly as MIXED_OR_UNVERIFIED, never
+    silently treated as one of the two safe outcomes.
+    #>
+    param($State, [string]$ExpectedGitSha, $Baseline)
+    if (-not $State) {
+        return 'MIXED_OR_UNVERIFIED'
+    }
+    $appSha = [string]$State.app_sha
+    $staticSha = [string]$State.static_sha
+    if ($appSha -eq $ExpectedGitSha -and $staticSha -eq $ExpectedGitSha) {
+        return 'CANDIDATE_CANDIDATE'
+    }
+    if ($Baseline -and $appSha -eq [string]$Baseline.app_sha -and $staticSha -eq [string]$Baseline.static_sha) {
+        return 'BASELINE_BASELINE'
+    }
+    return 'MIXED_OR_UNVERIFIED'
 }
 
 function Get-PhaseResultProperty {
@@ -278,6 +305,7 @@ function Invoke-CoordinatedReleaseStateMachine {
         static_rolled_back = $false
         app_rolled_back = $false
         final_current_state = $null
+        final_state_domain = $null
         stop_reason = $null
         stop_phase = $null
     }
@@ -341,15 +369,37 @@ function Invoke-CoordinatedReleaseStateMachine {
             continue
         }
 
-        # --- Failure: possible-timeout state reconciliation first (Section
-        # 13/14) -- never blindly re-run a possibly-non-idempotent mutation
-        # without first checking whether it already actually landed.
-        if ($result.possible_timeout -and $phase -in @('PROMOTE_STATIC', 'PROMOTE_APP')) {
+        # --- Failure on a mutation phase: ALWAYS independently reconcile
+        # observed state before deciding anything, regardless of whether the
+        # failure was a timeout or a definite error, and regardless of the
+        # phase's own self-reported success/mutation booleans -- which may
+        # be absent entirely (a bare unstructured exception) or simply
+        # wrong (e.g. the underlying governed script has its OWN internal
+        # post-mutation auto-rollback, per deploy-release-image.ps1's
+        # documented reconcile-then-rollback-if-unstable behavior, so a
+        # "failure" return may already reflect a fully-reverted remote
+        # state, not a still-mutated one).
+        #
+        # Two independent questions, answered separately:
+        #  1. Did the candidate identity actually land despite the failure
+        #     (ambiguous-timeout reconciliation, Section 13/F2)? Only a
+        #     TIMEOUT gets promoted to "advance without retry" here -- a
+        #     definite, non-timeout failure never does, even if the
+        #     candidate SHA happens to be observed running, because the
+        #     underlying script's own definite failure signal (e.g. its
+        #     post-switch verification explicitly failed) is authoritative
+        #     over an incidental SHA match.
+        #  2. Does observed state currently differ from the captured
+        #     baseline, independent of #1 -- this is what actually
+        #     determines rollback SCOPE below, not the phase's own
+        #     mutation_occurred self-report.
+        if ($phase -in @('PROMOTE_STATIC', 'PROMOTE_APP')) {
             $reconcile = Invoke-ReleasePhase -Action $GetCurrentState
             if ($reconcile.success) {
                 $state = $reconcile.data
-                $alreadyLanded = if ($phase -eq 'PROMOTE_STATIC') { [string]$state.static_sha -eq $ExpectedGitSha } else { [string]$state.app_sha -eq $ExpectedGitSha }
-                if ($alreadyLanded) {
+                $candidateLanded = if ($phase -eq 'PROMOTE_STATIC') { [string]$state.static_sha -eq $ExpectedGitSha } else { [string]$state.app_sha -eq $ExpectedGitSha }
+
+                if ($result.possible_timeout -and $candidateLanded) {
                     $report.recovery_log += [ordered]@{
                         recovery_id = ($recoveryId++)
                         root_cause_class = 'post_timeout_state_reconciliation'
@@ -368,7 +418,25 @@ function Invoke-CoordinatedReleaseStateMachine {
                     $phaseIndex = $phaseIndex + 1
                     continue
                 }
+
+                $differsFromBaseline = $false
+                if ($baselineCaptured) {
+                    if ($phase -eq 'PROMOTE_STATIC') { $differsFromBaseline = ([string]$state.static_sha -ne [string]$baseline.static_sha) }
+                    else { $differsFromBaseline = ([string]$state.app_sha -ne [string]$baseline.app_sha) }
+                }
+                if ($phase -eq 'PROMOTE_STATIC' -and $differsFromBaseline) { $staticPromoted = $true; $report.static_promoted = $true }
+                if ($phase -eq 'PROMOTE_APP' -and $differsFromBaseline) { $appPromoted = $true; $report.app_promoted = $true }
             }
+            # If reconciliation ITSELF fails, current Production state
+            # cannot be independently established -- this is the named L3
+            # boundary condition, and is handled below: RollbackTargetAvailable
+            # stays keyed on $baselineCaptured (whether a baseline was EVER
+            # captured this run), but the rollback attempts in the L2/L3
+            # branches below each independently check their own success,
+            # and the final GetCurrentState call in both of those branches
+            # will itself fail, correctly leaving final_state_domain
+            # MIXED_OR_UNVERIFIED rather than falsely claiming a coherent
+            # end state.
         }
 
         $classification = Get-OperationalFailureClassification -Phase $phase `
@@ -408,9 +476,16 @@ function Invoke-CoordinatedReleaseStateMachine {
                     $rb = Invoke-ReleasePhase -Action $RollbackApp -ActionArgs @($baseline)
                     $report.app_rolled_back = [bool]$rb.success
                 }
+            }
+            # Always independently re-observe final state before stopping,
+            # whether or not a rollback was attempted -- proves the final
+            # domain rather than assuming "nothing was promoted" means
+            # baseline is still intact.
+            if ($baselineCaptured) {
                 $finalState = Invoke-ReleasePhase -Action $GetCurrentState
                 $recoveryEntry.post_recovery_state = $finalState.data
                 $report.final_current_state = $finalState.data
+                $report.final_state_domain = Get-ReleaseStateDomain -State $finalState.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline
             }
             $recoveryEntry.final_outcome = 'STOPPED'
             $report.recovery_log += $recoveryEntry
@@ -459,6 +534,7 @@ function Invoke-CoordinatedReleaseStateMachine {
             $report.stop_phase = $phase
             $report.final_state = 'STOPPED_OWNER_DECISION_REQUIRED'
             $report.final_current_state = $verify.data
+            $report.final_state_domain = Get-ReleaseStateDomain -State $verify.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline
             $report.success = $false
             return [pscustomobject]$report
         }
@@ -475,6 +551,7 @@ function Invoke-CoordinatedReleaseStateMachine {
 
     $report.success = $true
     $report.final_state = 'CANDIDATE_CANDIDATE_SUCCESS'
+    $report.final_state_domain = 'CANDIDATE_CANDIDATE'
     return [pscustomobject]$report
 }
 
@@ -483,6 +560,7 @@ Export-ModuleMember -Function @(
     'New-RecoveryBudgetTracker',
     'Update-RecoveryBudget',
     'New-RootCauseKey',
+    'Get-ReleaseStateDomain',
     'Get-PhaseResultProperty',
     'Invoke-ReleasePhase',
     'Invoke-CoordinatedReleaseStateMachine'
