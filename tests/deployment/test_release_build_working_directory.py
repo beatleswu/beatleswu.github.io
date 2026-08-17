@@ -927,6 +927,21 @@ $records | ConvertTo-Json -Compress
         # fail-closed review of every native-process boundary.
         ("scripts/release/publish-content-release.ps1", "Invoke-LocalBundleValidation"): (1, "local_context"),
         ("scripts/release/publish-content-release.ps1", "Invoke-RemotePythonStdin"): (1, "remote_context"),
+        # RELEASE-TOOLING-HOTFIX-04: Invoke-RemoteShellCommand previously had
+        # no timeout at all (it called two unbounded internal helpers). Both
+        # of its ssh invocation branches (the ScriptText/StdinText stdin
+        # path, and the plain -Command path) now delegate to
+        # Invoke-BoundedNativeCommand instead, closing the same class of
+        # unbounded-SSH-hang gap this inventory already exists to catch.
+        ("scripts/release/ReleaseTooling.psm1", "Invoke-RemoteShellCommand"): (2, "remote_context"),
+        # Deployment Workflow V3's coordinated orchestrator: each governed
+        # release script it sequences (build/package/deploy/rollback/
+        # preflight) is invoked as its own bounded local child process --
+        # analogous to deploy-release-image.ps1's own
+        # Invoke-ProductionVerificationSeries, which also spawns a bounded
+        # local child process (verify-production-release.ps1) that itself
+        # performs remote work internally.
+        ("scripts/release/deploy-coordinated-release.ps1", "Invoke-GovernedScript"): (1, "explicit_local_context"),
     }
     actual = {}
     for record in records:

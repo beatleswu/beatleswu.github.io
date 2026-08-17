@@ -19,6 +19,11 @@ This document is the operational summary. For the full audit narrative and evide
   switch alone is filesystem-correct but functionally inert on already-running containers, which
   resolve the target once at start; this was discovered live in a real production deploy).
 - **Rollback**: `scripts/release/rollback-release.ps1`.
+- **Coordinated release with bounded recovery** (optional; additive, not a replacement for the
+  above): `scripts/release/deploy-coordinated-release.ps1`. Sequences a full static+app promotion
+  via the scripts above and recovers automatically from bounded operational failures; never
+  duplicates their low-level logic. See
+  [deployment_workflow_v3_bounded_recovery.md](deployment_workflow_v3_bounded_recovery.md).
 - **`deploy.ps1` does not exist in this repository's tracked history and is absent from the
   production host's container filesystem.** It must never be invented, restored, or guessed at.
 
@@ -29,6 +34,17 @@ This document is the operational summary. For the full audit narrative and evide
   `deploy-static-release.ps1 -Execute`. Passed via `-OwnerGate GO_DEPLOY`; without `-Execute`, both
   scripts dry-run only and report identity/readiness. It authorizes deployment only.
 - **GO_ROLLBACK** — authorizes `rollback-release.ps1 -Execute -OwnerGate GO_ROLLBACK`.
+- **GO_DEPLOY_WITH_BOUNDED_RECOVERY** — authorizes
+  `scripts/release/deploy-coordinated-release.ps1 -Execute`, an additive orchestration entrypoint
+  that sequences `build-release-image.ps1` → `package-release-image.ps1` →
+  `package-static-release.ps1` → `deploy-static-release.ps1` → `deploy-release-image.ps1` for one
+  exact Git SHA and recovers automatically from bounded LOW/MEDIUM operational failures (transient
+  SSH/process hangs, transient readiness checks, coordinated rollback-and-retry) within that same
+  authorization, without a new Owner gate per recoverable issue. It still cannot change the source
+  SHA, bypass any gate, or accept an unverifiable Production state. See
+  [deployment_workflow_v3_bounded_recovery.md](deployment_workflow_v3_bounded_recovery.md) for the
+  full recovery model. Does not replace `GO_DEPLOY`/`GO_ROLLBACK` as direct entry points — both
+  remain approved for single-mechanism deploys/rollbacks.
 
 - **GO_ENABLE_SHADOW** — authorizes only governed Shadow enablement.
 - **GO_DISABLE_SHADOW** — authorizes only governed Shadow disablement.

@@ -980,21 +980,45 @@ function Invoke-RemoteShellCommand {
     $OutputEncoding and [Console]::OutputEncoding before landing on
     [Console]::InputEncoding, and ruled out the `|` pipe operator entirely
     for stdin payloads because of the trailing-CRLF artifact.
+
+    RELEASE-TOOLING-HOTFIX-04: this function had NO process-level timeout
+    at all -- both of its internal helpers (Invoke-ProcessWithUtf8NoBomStdin
+    and Invoke-ProcessWithSeparateOutput) call a bare $proc.WaitForExit()
+    with no timeout argument, i.e. genuinely unbounded. This is the
+    function several production release scripts (rollback-static-release.ps1
+    entirely; most of deploy-release-image.ps1, rollback-release.ps1,
+    verify-production-release.ps1, preflight-production.ps1,
+    set-e9-rollout.ps1, resume-community-leaderboard-rewards.ps1) route
+    their remote calls through -- meaning the exact class of unbounded
+    ~15-minute SSH hang that Invoke-BoundedNativeCommand (below) was built
+    to fix, and that deploy-static-release.ps1 alone was hardened against,
+    remained fully reachable through every other production release script.
+    Fixed here, once, by delegating to Invoke-BoundedNativeCommand instead
+    of the two unbounded helpers -- every caller gets a real bound for
+    free, with no call-site changes required. -TimeoutSeconds defaults to
+    120s (generous relative to existing bounded call-site timeouts
+    elsewhere in this module, which range 30-600s depending on operation,
+    to avoid prematurely failing any existing slow-but-successful remote
+    command) and can be overridden per call.
     #>
     param(
         [Parameter(Mandatory = $true)][string]$SshAlias,
         [Parameter(Mandatory = $true)][string]$Name,
         [string]$Command,
         [string]$ScriptText,
-        [string]$StdinText
+        [string]$StdinText,
+        [int]$TimeoutSeconds = 120
     )
     if ($PSBoundParameters.ContainsKey('ScriptText') -and $PSBoundParameters.ContainsKey('StdinText')) {
         throw "Invoke-RemoteShellCommand: specify only one of -ScriptText or -StdinText, not both."
     }
+    if ($TimeoutSeconds -le 0) {
+        throw "Invoke-RemoteShellCommand: TimeoutSeconds must be a positive number of seconds."
+    }
     if ($PSBoundParameters.ContainsKey('ScriptText') -or $PSBoundParameters.ContainsKey('StdinText')) {
         $remoteCommandArg = if ($PSBoundParameters.ContainsKey('ScriptText')) { 'sh -s' } else { $Command }
         $payload = if ($PSBoundParameters.ContainsKey('ScriptText')) { $ScriptText } else { $StdinText }
-        $invokeResult = Invoke-ProcessWithUtf8NoBomStdin -FileName 'ssh' -Arguments "$SshAlias `"$remoteCommandArg`"" -StdinText $payload
+        $invokeResult = Invoke-BoundedNativeCommand -FileName 'ssh' -ArgumentList @($SshAlias, $remoteCommandArg) -StdinText $payload -TimeoutSeconds $TimeoutSeconds -OperationLabel "remote shell command: $Name"
         return [ordered]@{
             name = $Name
             output = $invokeResult.output
@@ -1004,10 +1028,7 @@ function Invoke-RemoteShellCommand {
         }
     }
 
-    $sshArguments = ((@($SshAlias, $Command) | ForEach-Object {
-        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
-    }) -join ' ')
-    $invokeResult = Invoke-ProcessWithSeparateOutput -FileName 'ssh' -Arguments $sshArguments
+    $invokeResult = Invoke-BoundedNativeCommand -FileName 'ssh' -ArgumentList @($SshAlias, $Command) -TimeoutSeconds $TimeoutSeconds -OperationLabel "remote shell command: $Name"
     return [ordered]@{
         name = $Name
         output = $invokeResult.output
@@ -1108,10 +1129,45 @@ function Invoke-BoundedNativeCommand {
         $proc.StartInfo = $psi
         $proc.Start() | Out-Null
 
+        # RELEASE-TOOLING-HOTFIX-04: the stdin write must never be able to
+        # block the calling thread indefinitely before WaitForExit(timeout)
+        # is reached below -- otherwise the hard timeout this function
+        # exists to guarantee can never fire. A synchronous
+        # StandardInput.Write() here (the previous implementation) blocks
+        # indefinitely if the child process never reads stdin (e.g. it hung
+        # immediately on connect, before a remote shell ever started) and
+        # the payload exceeds the OS pipe buffer -- confirmed as a real,
+        # previously untested gap (no existing test exercised -StdinText
+        # against a child that never reads it).
+        #
+        # Writing via the raw stream's WriteAsync returns a Task
+        # immediately without blocking this thread. But stdin still needs
+        # to be CLOSED (EOF) promptly for a normally-behaving child that
+        # blocks reading until EOF (e.g. `sh -s`, `python -`, `cat`) to be
+        # able to proceed and exit at all -- closing it only after
+        # WaitForExit succeeds would deadlock exactly that common case
+        # (confirmed live: closing post-exit made a plain stdin-echo child
+        # hang for the full timeout, since it never saw EOF). So the write
+        # is given a short, FIXED bound (independent of and far shorter
+        # than the caller's own -TimeoutSeconds) to complete; if it does,
+        # stdin is closed immediately, matching the previous behavior's
+        # timing for every normal, responsive child. If it doesn't (the
+        # child genuinely never reads at all), stdin is left open and
+        # WaitForExit(timeout) below still bounds total wall-clock time --
+        # the process gets killed regardless, so a still-open stdin pipe
+        # at that point is moot.
+        $stdinWriteTask = $null
         if ($hasStdin) {
             $normalized = $StdinText -replace "`r`n", "`n" -replace "`r", "`n"
-            $proc.StandardInput.Write($normalized)
-            $proc.StandardInput.Close()
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            $stdinBytes = $utf8NoBom.GetBytes($normalized)
+            $stdinWriteTask = $proc.StandardInput.BaseStream.WriteAsync($stdinBytes, 0, $stdinBytes.Length)
+            $stdinWriteBoundMs = [Math]::Min(3000, [Math]::Max(1, $TimeoutSeconds) * 1000)
+            $stdinWriteCompletedInTime = $false
+            try { $stdinWriteCompletedInTime = $stdinWriteTask.Wait($stdinWriteBoundMs) } catch {}
+            if ($stdinWriteCompletedInTime) {
+                try { $proc.StandardInput.Close() } catch {}
+            }
         }
 
         $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
