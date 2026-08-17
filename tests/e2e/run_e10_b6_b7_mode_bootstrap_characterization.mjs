@@ -12,6 +12,8 @@ const INDEX = await fs.readFile(path.join(ROOT, 'index.html'), 'utf8');
 const QUESTION_LOADER = await fs.readFile(path.join(ROOT, 'js', 'game', 'question_loader.js'), 'utf8');
 const BOARD_RENDERER = await fs.readFile(path.join(ROOT, 'js', 'game', 'board_renderer.js'), 'utf8');
 const GAME_SESSION = await fs.readFile(path.join(ROOT, 'js', 'game', 'game_session.js'), 'utf8');
+const MODE_CONTEXT = await fs.readFile(path.join(ROOT, 'js', 'game', 'mode_context.js'), 'utf8');
+const GAME_BOOTSTRAP = await fs.readFile(path.join(ROOT, 'js', 'game', 'game_bootstrap.js'), 'utf8');
 const REVIEW_TRANSPORT = await fs.readFile(path.join(ROOT, 'js', 'game', 'review_transport.js'), 'utf8');
 const DISPATCHER = await fs.readFile(path.join(ROOT, 'js', 'game', 'presentation_dispatcher.js'), 'utf8');
 const LORD_CONTROLLER = await fs.readFile(path.join(ROOT, 'js', 'game', 'lord_trial_controller.js'), 'utf8');
@@ -29,6 +31,8 @@ const SCRIPT_PATHS = [
   '/js/game/question_loader.js',
   '/js/game/board_renderer.js',
   '/js/game/game_session.js',
+  '/js/game/mode_context.js',
+  '/js/game/game_bootstrap.js',
   '/srs.js',
   '/js/game/lord_trial_controller.js',
   '/js/map_battle_v1_adapter.js',
@@ -78,14 +82,17 @@ function characterizeBootstrap() {
   assert.match(INDEX, /const _gameSession = window\.GoOdysseyGameSession\.create\(/);
   assert.match(INDEX, /const _questionLoader = window\.GoOdysseyQuestionLoader\.create\(/);
   assert.match(INDEX, /const _boardRenderer = window\.GoOdysseyBoardRenderer\.create\(/);
+  assert.match(INDEX, /const _modeContext = window\.GoOdysseyModeContext\.create\(/);
+  assert.match(INDEX, /const _gameBootstrap = window\.GoOdysseyGameBootstrap\.create\(/);
   assert.match(INDEX, /document\.addEventListener\('DOMContentLoaded'/);
   assert.match(INDEX, /window\.onload\s*=\s*async/);
   assert.match(INDEX, /window\.addEventListener\('load'/);
-  assert.match(INDEX, /window\.addEventListener\('resize', _scheduleVisibleBoardResize\)/);
+  assert.match(INDEX, /_gameBootstrap\.registerListener\(window, 'resize', _scheduleVisibleBoardResize\)/);
 
   const listenerCount = (INDEX.match(/(?:window|document|[A-Za-z_$][\w$]*)\.addEventListener\(/g) || []).length;
   const timerCount = (INDEX.match(/(?:window\.)?setTimeout\(/g) || []).length;
-  const intervalCount = (INDEX.match(/(?:window\.)?setInterval\(/g) || []).length;
+  const intervalCount = (INDEX.match(/(?:window\.)?setInterval\(/g) || []).length
+    + (INDEX.includes('_gameBootstrap.scheduleInterval(') ? 1 : 0);
   assert.ok(listenerCount > 0);
   assert.ok(timerCount > 0);
   assert.ok(intervalCount > 0);
@@ -129,6 +136,8 @@ function characterizeAuthorityBoundaries() {
   const resizeBlock = functionSlice(INDEX, 'function _resizeVisibleBoard()', 'function _scheduleVisibleBoardResize');
   assert.match(resizeBlock, /_boardRenderer\.resize\(\{ width, height: width \}\)/);
   assert.doesNotMatch(resizeBlock, /loadQuestion\(|SRS\.review|submitSRS\(/);
+  assert.match(INDEX, /_gameBootstrap\.scheduleTimeout/);
+  assert.match(INDEX, /_gameBootstrap\.scheduleInterval/);
 
   const submit = functionSlice(INDEX, 'async function submitSRS(grade)', 'function _renderPresentationEffects');
   assert.match(submit, /_submitMapBattleV1IfActive/);
@@ -195,10 +204,12 @@ function characterizeModes() {
   assert.match(boardAnswer, /_challengeWrongHandler/);
   assert.match(mapLoad, /_questionLoader\.adoptIdentity|_mapBattleV1Mode/);
   assert.match(mapSubmit, /settle|fetch\(|_mapBattleV1/);
-  assert.match(INDEX, /_bossMode \? 'lord'/);
-  assert.match(INDEX, /_dailyMode \? 'daily' : 'normal'/);
-  assert.match(INDEX, /_challengeId \? 'friend_challenge'/);
-  assert.match(INDEX, /'map_battle'/);
+  assert.match(INDEX, /_modeContext\.identityOptions/);
+  assert.match(MODE_CONTEXT, /'lord'/);
+  assert.match(MODE_CONTEXT, /'daily'/);
+  assert.match(MODE_CONTEXT, /'friend_challenge'/);
+  assert.match(MODE_CONTEXT, /'map_battle'/);
+  assert.match(MODE_CONTEXT, /'adventure'/);
   assert.match(INDEX, /@app\.route\('\/rating_test'\)|\/rating_test/);
 
   const modes = {
@@ -445,6 +456,10 @@ function runRegisteredResizeScenario() {
     },
     _e10MeasureElementRect: () => ({ width: 320, height: 320 }),
     _e10AcceptanceTrace: () => {},
+    _gameBootstrap: {
+      registerListener: (target, name, handler) => { target.addEventListener(name, handler); },
+      scheduleTimeout: (callback) => { callback(); return 1; },
+    },
     setTimeout: (callback) => { callback(); return 1; },
     clearTimeout: () => {},
     console,
@@ -454,10 +469,10 @@ function runRegisteredResizeScenario() {
     lastResize: null,
   });
   const start = INDEX.indexOf('function _resizeVisibleBoard');
-  const registration = "window.addEventListener('resize', _scheduleVisibleBoardResize);";
+  const registration = "_gameBootstrap.registerListener(window, 'resize', _scheduleVisibleBoardResize);";
   const end = INDEX.indexOf(registration, start) + registration.length;
   assert.ok(start >= 0 && end > start);
-  vm.runInContext(`let _resizeTimer;\n${INDEX.slice(start, end)}`, context);
+  vm.runInContext(INDEX.slice(start, end), context);
   const resizeHandlers = registrations.filter(([name]) => name === 'resize');
   assert.equal(resizeHandlers.length, 1);
   const identityBefore = JSON.stringify(context.currentQ);
@@ -484,8 +499,12 @@ function assertRuntimeAliases() {
   const { context, window } = makeContext();
   vm.runInContext(QUESTION_LOADER, context);
   vm.runInContext(BOARD_RENDERER, context);
+  vm.runInContext(MODE_CONTEXT, context);
+  vm.runInContext(GAME_BOOTSTRAP, context);
   assert.equal(window.GoOdysseyQuestionLoader, window.QuestionLoader);
   assert.equal(window.GoOdysseyBoardRenderer, window.BoardRenderer);
+  assert.equal(window.GoOdysseyModeContext, window.ModeContext);
+  assert.equal(window.GoOdysseyGameBootstrap, window.GameBootstrap);
   return {
     QUESTIONLOADER_GLOBAL_ALIAS: 'PASS',
     BOARDRENDERER_GLOBAL_ALIAS: 'PASS',

@@ -133,6 +133,10 @@ COPY js/game/game_session.js ./js/game/game_session.js
 # keep the copies narrow so the image cannot silently absorb unrelated JS.
 COPY js/game/question_loader.js ./js/game/question_loader.js
 COPY js/game/board_renderer.js ./js/game/board_renderer.js
+# B6 ModeContext and B7 GameBootstrap are narrow browser runtime modules;
+# keep both explicit so the image cannot absorb unrelated game JavaScript.
+COPY js/game/mode_context.js ./js/game/mode_context.js
+COPY js/game/game_bootstrap.js ./js/game/game_bootstrap.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

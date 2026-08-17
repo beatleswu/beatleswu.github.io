@@ -20735,6 +20735,18 @@ def serve_board_renderer_js():
         'board_renderer.js', 'js/game', 'js/game'
     )
 
+@app.route('/js/game/mode_context.js')
+def serve_mode_context_js():
+    return _serve_live_static_or_baked_subpath(
+        'mode_context.js', 'js/game', 'js/game'
+    )
+
+@app.route('/js/game/game_bootstrap.js')
+def serve_game_bootstrap_js():
+    return _serve_live_static_or_baked_subpath(
+        'game_bootstrap.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

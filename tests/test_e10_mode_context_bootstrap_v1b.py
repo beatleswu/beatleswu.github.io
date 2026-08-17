@@ -17,6 +17,8 @@ INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 LOADER = (ROOT / "js" / "game" / "question_loader.js").read_text(encoding="utf-8")
 RENDERER = (ROOT / "js" / "game" / "board_renderer.js").read_text(encoding="utf-8")
 GAME_SESSION = (ROOT / "js" / "game" / "game_session.js").read_text(encoding="utf-8")
+MODE_CONTEXT = (ROOT / "js" / "game" / "mode_context.js").read_text(encoding="utf-8")
+GAME_BOOTSTRAP = (ROOT / "js" / "game" / "game_bootstrap.js").read_text(encoding="utf-8")
 REVIEW_TRANSPORT = (ROOT / "js" / "game" / "review_transport.js").read_text(encoding="utf-8")
 LORD = (ROOT / "js" / "game" / "lord_trial_controller.js").read_text(encoding="utf-8")
 MAP_BATTLE = (ROOT / "js" / "map_battle_v1_adapter.js").read_text(encoding="utf-8")
@@ -72,6 +74,8 @@ def test_current_bootstrap_order_and_global_aliases_are_characterized():
         "/js/game/question_loader.js",
         "/js/game/board_renderer.js",
         "/js/game/game_session.js",
+        "/js/game/mode_context.js",
+        "/js/game/game_bootstrap.js",
         "/srs.js",
         "/js/game/lord_trial_controller.js",
         "/js/map_battle_v1_adapter.js",
@@ -85,6 +89,8 @@ def test_current_bootstrap_order_and_global_aliases_are_characterized():
     assert "const _gameSession = window.GoOdysseyGameSession.create(" in INDEX
     assert "const _questionLoader = window.GoOdysseyQuestionLoader.create(" in INDEX
     assert "const _boardRenderer = window.GoOdysseyBoardRenderer.create(" in INDEX
+    assert "const _modeContext = window.GoOdysseyModeContext.create(" in INDEX
+    assert "const _gameBootstrap = window.GoOdysseyGameBootstrap.create(" in INDEX
 
 
 def test_current_mode_matrix_has_distinct_load_and_answer_paths():
@@ -139,6 +145,8 @@ def test_authority_boundaries_remain_separate_and_observable():
         assert forbidden not in RENDERER
 
     assert "QuestionLoader owns the generic question-load epoch" in INDEX
+    assert "ModeContext" in MODE_CONTEXT
+    assert "GameBootstrap" in GAME_BOOTSTRAP
     assert "_questionLoader.invalidate('navigation')" in INDEX
     assert "_mapBattleV1LifecycleGeneration += 1;" not in INDEX
     assert "getCurrentQuestion: () => currentQ" in INDEX
@@ -159,7 +167,7 @@ def test_real_resize_is_registered_and_cannot_reload_or_submit():
     assert "loadQuestion(" not in resize
     assert "SRS.review" not in resize
     assert "submitSRS(" not in resize
-    assert "window.addEventListener('resize', _scheduleVisibleBoardResize);" in INDEX
+    assert "_gameBootstrap.registerListener(window, 'resize', _scheduleVisibleBoardResize);" in INDEX
 
 
 def test_bootstrap_listener_timer_and_mode_switch_signals_are_recorded():
@@ -168,10 +176,10 @@ def test_bootstrap_listener_timer_and_mode_switch_signals_are_recorded():
     assert "window.addEventListener('load'" in INDEX
     assert len(re.findall(r"(?:window|document|[A-Za-z_$][\w$]*)\.addEventListener\(", INDEX)) > 0
     assert len(re.findall(r"(?:window\.)?setTimeout\(", INDEX)) > 0
-    assert len(re.findall(r"(?:window\.)?setInterval\(", INDEX)) > 0
+    assert len(re.findall(r"(?:window\.)?setInterval\(", INDEX)) + len(re.findall(r"_gameBootstrap\.scheduleInterval\(", INDEX)) > 0
     assert "returnToAdventureMapAfterEncounter" in INDEX
     assert "_questionLoader.invalidate('navigation')" in INDEX
-    assert "window.addEventListener('resize', _scheduleVisibleBoardResize)" in INDEX
+    assert "_gameBootstrap.registerListener(window, 'resize', _scheduleVisibleBoardResize)" in INDEX
 
 
 def test_gamesession_identity_and_rating_test_remain_bounded():
