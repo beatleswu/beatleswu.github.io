@@ -26,6 +26,7 @@
     <script src="/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
+    <script src="/js/game/game_session.js"></script>
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
@@ -8752,6 +8753,10 @@ let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
 let _mapBattleV1TransitionPending = false;
 let _mapBattleV1LifecycleGeneration = 0;
+const _gameSession = window.GoOdysseyGameSession.create({
+    getCurrentQuestion: () => currentQ,
+    getLifecycleGeneration: () => _mapBattleV1LifecycleGeneration,
+});
 // Board-construction-scoped identity, independent of the question-load
 // lifecycle generation above.  Bumped once per actual initBoard() call
 // (primary attempt, Boss recovery remount, or ordinary practice/premium
@@ -8973,6 +8978,7 @@ function _createB2PresentationScope(data, lordController = null) {
     const snapshot = data?.presentation_context || {};
     const question = currentQ;
     const generation = _mapBattleV1LifecycleGeneration;
+    const identity = _gameSession.currentQuestionIdentity();
     let active = true;
     const mode = snapshot.mode || (lordController ? 'lord' : 'normal');
     return {
@@ -8984,6 +8990,10 @@ function _createB2PresentationScope(data, lordController = null) {
         lifecycleGeneration: generation,
         invalidate: () => { active = false; },
         isCurrent: () => active
+            && _gameSession.isCurrent(identity, {
+                question,
+                lifecycleGeneration: generation,
+            })
             && currentQ === question
             && _mapBattleV1LifecycleGeneration === generation,
     };
@@ -9140,9 +9150,15 @@ async function submitSRS(grade){
         setMsg('Map Battle is temporarily unavailable; no battle fallback was used.', 'err');
         return;
     }
-    const reviewRequestKey = `${_bossMode ? (_bossAttemptId || 'active') + ':' + _bossIndex : 'practice'}:${Number(currentQ.id)}`;
-    if (_reviewRequestInFlightKey === reviewRequestKey) return;
-    _reviewRequestInFlightKey = reviewRequestKey;
+    const reviewMetadata = _currentReviewMetadata();
+    const identity = _gameSession.adoptQuestion(currentQ, {
+        mode: _bossMode ? 'lord' : 'normal',
+        attemptId: _bossMode ? _bossAttemptId : null,
+        index: _bossMode ? _bossIndex : null,
+        lifecycleGeneration: _mapBattleV1LifecycleGeneration,
+        reviewMetadata,
+    });
+    if (!_gameSession.beginReview(identity)) return;
     return (async () => {
     const unit=currentUnitName();let unitDone=false;
     if(grade>=3&&unit){
@@ -9159,7 +9175,7 @@ async function submitSRS(grade){
         questionId: bossAnswerContext?.questionId,
     });
     try {
-        data = await SRS.review(currentQ.id,grade,unit,unitDone,_currentReviewMetadata());
+        data = await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);
     } catch(e) {
         console.warn('[SRS.review] failed; answer was not saved', e);
         setMsg(I18n.t('index.srs.save_fail'), 'err');
@@ -9214,13 +9230,7 @@ async function submitSRS(grade){
         xp_gain: data.xp_gain,
         shield_used: data.shield_used,
         pet_xp_gained: data.pet_xp_gained,
-        presentation_context: {
-            mode: _bossMode ? 'lord' : 'normal',
-            questionId: Number(bossAnswerContext?.questionId || currentQ.id),
-            attemptId: _bossMode ? _bossAttemptId : null,
-            lordIndex: _bossMode ? bossAnswerContext?.index : null,
-            lifecycleGeneration: _mapBattleV1LifecycleGeneration,
-        },
+        presentation_context: _gameSession.presentationContext(identity),
     };
     if (_bossMode) {
         bossAnswerContext.reviewResult = data;
@@ -9312,9 +9322,7 @@ async function submitSRS(grade){
             if(grade===0){resetProblem();}else{srsDoneCount++;updateSRSProgress();nextQuestion();}
         }
     }
-    })().finally(() => {
-        if (_reviewRequestInFlightKey === reviewRequestKey) _reviewRequestInFlightKey = null;
-    });
+    })().finally(() => _gameSession.endReview(identity));
 }
 // ═══════════════════════════════════════════════════════════════
 // ─── 怪物 UI ──────────────────────────────────────────────────
@@ -12232,7 +12240,6 @@ let _bossReplay = false;
 let _bossFinishInFlight = false;
 let _bossTransitionInFlightKey = null;
 let _bossLastSettledKey = null;
-let _reviewRequestInFlightKey = null;
 let _lordTrialController = null;
 let _pendingBossZone = null;
 let _bossAudioCtx = null;
