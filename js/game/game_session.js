@@ -265,7 +265,7 @@
 
         beginReview(identity) {
             const key = QuestionIdentity.key(identity);
-            if (key === null || this._reviewInFlightKey !== null) return false;
+            if (key === null || this._reviewInFlightKey === key) return false;
             this._reviewInFlightKey = key;
             return true;
         }
