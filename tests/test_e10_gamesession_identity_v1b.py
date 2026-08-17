@@ -1,29 +1,28 @@
 """B4 GameSession + Question Identity characterization contracts.
 
-Preparation-only. Every assertion in this file locks down *existing*
+Preparation-only. The unchanged assertions in this file lock down *existing*
 observable behaviour of the real, currently-committed source
 (``index.html``, ``srs.js``, ``js/game/lord_trial_controller.js``,
 ``js/game/presentation_dispatcher.js``) at the B2 base
-(``de3194bd1a45a990466959a04db0a3d63daa3631``). It changes no Product file.
+(``de3194bd1a45a990466959a04db0a3d63daa3631``). The corrected C2/C3 seam
+assertions encode the B4 ``GameSession`` integration contract expected when
+``index.html`` adopts it. This test-only lane changes no Product file.
 
 These are source-structural characterization tests, not runtime/browser
 tests: they freeze the exact code patterns that currently implement
-question-identity/staleness handling across three independent locations
-(``submitSRS``'s review-request in-flight key, ``LordTrialController``'s
-separate in-flight and last-settled keys, and ``_createB2PresentationScope``'s
-live isCurrent() check) so a future B4 extraction that unifies them has a
-concrete, checkable "before" baseline. DEDUP_KEYS_MERGED=NO: the keys are
-not equivalent merely because Lord's two variables temporarily carry the
-same settlement key; ``inFlightKey`` is cleared in ``finally`` while
-``lastSettledKey`` survives to reject a duplicate settlement, and
-``submitSRS``'s key has a different review-request scope.
+question-identity/staleness handling across the B4 ``GameSession`` seam,
+``LordTrialController``'s separate in-flight and last-settled keys, and
+``_createB2PresentationScope``'s live isCurrent() check. DEDUP_KEYS_MERGED=NO:
+the GameSession review-request guard is distinct from Lord's settlement keys;
+``inFlightKey`` is cleared in ``finally`` while ``lastSettledKey`` survives to
+reject a duplicate settlement. On this pre-integration D base, C2/C3 are
+expected-red until ``index.html`` adopts GameSession; the remaining
+characterization checks retain their existing preparation boundary.
 
-Every test here is expected to PASS today (``CHARACTERIZATION_GREEN``).
-None of them assert on a ``GameSession``/``QuestionIdentity`` module that
-does not exist yet -- see
+The two future-seam cases (C12/C13) remain deliberately uncommitted as
+failing tests; see
 ``docs/planning/e10_frontend_v1b_b4_gamesession_question_identity_packet.md``
-section 13 for why the two future-seam cases (C12/C13) are deliberately not
-committed as failing tests.
+section 13.
 """
 
 from __future__ import annotations
@@ -87,12 +86,24 @@ def test_c1_lifecycle_generation_increments_exactly_in_loadquestion():
 
 
 # ---------------------------------------------------------------------------
-# C2 -- question identity passed into review: SRS.review(currentQ.id, ...)
+# C2 -- submitSRS adopts a bounded GameSession identity, snapshots review
+# metadata once, and preserves the current question-id/metadata semantics.
 # ---------------------------------------------------------------------------
 
-def test_c2_submit_srs_sends_current_question_id_to_srs_review():
+def test_c2_submit_srs_adopts_bounded_identity_and_reuses_review_metadata():
     submit_srs = _function_block(INDEX, "submitSRS", "loadQuestion")
-    assert "SRS.review(currentQ.id,grade,unit,unitDone,_currentReviewMetadata())" in submit_srs
+    metadata_snapshot = "const reviewMetadata = _currentReviewMetadata();"
+    identity_adoption = "const identity = _gameSession.adoptQuestion(currentQ, {"
+    review_call = "SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata)"
+
+    assert metadata_snapshot in submit_srs
+    assert submit_srs.count("_currentReviewMetadata()") == 1
+    assert identity_adoption in submit_srs
+    identity_start = submit_srs.index(identity_adoption)
+    identity_end = submit_srs.index("});", identity_start) + len("});")
+    assert "reviewMetadata," in submit_srs[identity_start:identity_end]
+    assert review_call in submit_srs
+    assert submit_srs.index(metadata_snapshot) < identity_start < submit_srs.index(review_call)
 
 
 def test_c2_srs_review_posts_question_id_verbatim():
@@ -100,21 +111,29 @@ def test_c2_srs_review_posts_question_id_verbatim():
 
 
 # ---------------------------------------------------------------------------
-# C3 -- one active question/session association: submitSRS's own in-flight
-# dedup key prevents a second concurrent SRS.review() call.
+# C3 -- GameSession owns submitSRS's review-request guard, distinct from
+# Lord's settlement markers, and releases it in finally.
 # ---------------------------------------------------------------------------
 
-def test_c3_submit_srs_has_single_in_flight_dedup_guard():
+def test_c3_submit_srs_uses_gamesession_review_guard_distinct_from_lord_settlement():
     submit_srs = _function_block(INDEX, "submitSRS", "loadQuestion")
-    # This is the review-request identity: mode plus Lord attempt/index (or
-    # practice) and the current question id. It is not a Lord settlement key.
-    assert "const reviewRequestKey = `${_bossMode ? (_bossAttemptId || 'active') + ':' + _bossIndex : 'practice'}:${Number(currentQ.id)}`;" in submit_srs
-    assert "_reviewRequestInFlightKey" in submit_srs
-    assert "if (_reviewRequestInFlightKey === reviewRequestKey) return;" in submit_srs
-    # The key is cleared unconditionally via .finally(), so a failed/rejected
-    # review does not permanently wedge the guard.
-    assert ".finally(() => {" in submit_srs
-    assert "_reviewRequestInFlightKey = null" in submit_srs
+    begin_guard = "if (!_gameSession.beginReview(identity)) return;"
+    end_guard = "})().finally(() => _gameSession.endReview(identity));"
+
+    assert begin_guard in submit_srs
+    assert end_guard in submit_srs
+    assert "let inFlightKey = null;" in LORD_CONTROLLER
+    assert "let lastSettledKey = null;" in LORD_CONTROLLER
+    assert "inFlightKey" not in submit_srs
+    assert "lastSettledKey" not in submit_srs
+    # The legacy key is no longer the active B4 submit review-request guard.
+    assert "_reviewRequestInFlightKey" not in submit_srs
+    assert "reviewRequestKey" not in submit_srs
+
+    begin_index = submit_srs.index(begin_guard)
+    async_index = submit_srs.index("return (async () => {")
+    finally_index = submit_srs.index(".finally(() =>", async_index)
+    assert begin_index < async_index < finally_index
 
 
 # ---------------------------------------------------------------------------
