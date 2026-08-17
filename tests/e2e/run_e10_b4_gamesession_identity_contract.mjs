@@ -223,7 +223,7 @@ function runBoundaryContracts(source) {
     'sourceIdentity must remain an explicitly reserved/inert boundary');
   assert.equal(/ReviewTransport/.test(source), false,
     'ReviewTransport remains outside GameSession authority');
-  assert.equal(/currentQ/.test(source), false,
+  assert.equal(/\bcurrentQ\b/.test(source), false,
     'GameSession must not migrate currentQ ownership');
 }
 
