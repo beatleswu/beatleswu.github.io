@@ -85,7 +85,16 @@ def test_characterization_locks_legacy_public_and_internal_shapes():
     operation_end = APP_SOURCE.index("def _run_map_battle_progression", operation_start)
     operation = APP_SOURCE[operation_start:operation_end]
 
-    assert "return _srs_review_operation(" in APP_SOURCE[route_start:operation_start]
+    # V1A2 (backend Wave2 closure): the public route now dispatches through
+    # ReviewService rather than calling the durable operation directly. This
+    # is the intended, accepted evolution this V1A1 file's own docstring
+    # anticipated ("without introducing a second runtime path") -- the
+    # durable operation itself, characterized below, is unchanged.
+    # See tests/test_e10_backend_review_service_v1a2.py for the V1A2 seam's
+    # own call-path-contract proof that this is the *only* route to it.
+    assert "_review_service.review(user_id=session['user_id'], command=command)" \
+        in APP_SOURCE[route_start:operation_start]
+    assert "_srs_review_operation(" not in APP_SOURCE[route_start:operation_start]
     for field in CORE_20_FIELDS:
         assert f"'{field}'" in operation, field
 
