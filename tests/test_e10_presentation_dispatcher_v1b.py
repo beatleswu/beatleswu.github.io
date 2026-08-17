@@ -34,6 +34,7 @@ DISPATCHER_ASSET = "js/game/presentation_dispatcher.js"
 AUTHORIZED_DISPATCHER_SCRIPT_SRC = "/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"
 AUTHORIZED_EFFECTS_SCRIPT_SRC = "/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"
 AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC = "/js/game/review_transport.js?v=20260817e10v1bb3"
+AUTHORIZED_GAME_SESSION_SCRIPT_SRC = "/js/game/game_session.js"
 BASE_SRS_SCRIPT_SRC = "/srs.js?v=20260622i18n1"
 B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
@@ -100,6 +101,57 @@ B3_INDEX_REPLACEMENTS = {
     ),
     "onBoardClick": (B3_WRONG_ANSWER_REVIEW, B3_BASE_WRONG_ANSWER_REVIEW),
 }
+
+B4_SUBMIT_SRS_REVIEW_GUARD = """\
+    const reviewMetadata = _currentReviewMetadata();
+    const identity = _gameSession.adoptQuestion(currentQ, {
+        mode: _bossMode ? 'lord' : 'normal',
+        attemptId: _bossMode ? _bossAttemptId : null,
+        index: _bossMode ? _bossIndex : null,
+        lifecycleGeneration: _mapBattleV1LifecycleGeneration,
+        reviewMetadata,
+    });
+    if (!_gameSession.beginReview(identity)) return;
+"""
+B1_SUBMIT_SRS_REVIEW_GUARD = """\
+    const reviewRequestKey = `${_bossMode ? (_bossAttemptId || 'active') + ':' + _bossIndex : 'practice'}:${Number(currentQ.id)}`;
+    if (_reviewRequestInFlightKey === reviewRequestKey) return;
+    _reviewRequestInFlightKey = reviewRequestKey;
+"""
+B4_SUBMIT_SRS_REVIEW_CALL = """\
+        data = await SRS.review(currentQ.id,grade,unit,unitDone,reviewMetadata);
+"""
+B1_SUBMIT_SRS_REVIEW_CALL = """\
+        data = await SRS.review(currentQ.id,grade,unit,unitDone,_currentReviewMetadata());
+"""
+B4_SUBMIT_SRS_PRESENTATION_CONTEXT = """\
+        presentation_context: _gameSession.presentationContext(identity),
+"""
+B4_SUBMIT_SRS_FINALLY = """\
+    })().finally(() => _gameSession.endReview(identity));
+"""
+B1_SUBMIT_SRS_FINALLY = """\
+    })().finally(() => {
+        if (_reviewRequestInFlightKey === reviewRequestKey) _reviewRequestInFlightKey = null;
+    });
+"""
+B4_GAME_SESSION_INITIALIZATION = """\
+const _gameSession = window.GoOdysseyGameSession.create({
+    getCurrentQuestion: () => currentQ,
+    getLifecycleGeneration: () => _mapBattleV1LifecycleGeneration,
+});
+"""
+B4_CURRENT_REVIEW_STATE = """\
+let _bossTransitionInFlightKey = null;
+let _bossLastSettledKey = null;
+let _lordTrialController = null;
+"""
+B1_REVIEW_STATE = """\
+let _bossTransitionInFlightKey = null;
+let _bossLastSettledKey = null;
+let _reviewRequestInFlightKey = null;
+let _lordTrialController = null;
+"""
 
 FROZEN_INDEX_FUNCTIONS = (
     "_dispatchCommittedReviewPresentation",
@@ -205,6 +257,46 @@ def _remove_function(source: str, name: str) -> str:
         f"HARNESS_FAILURE: expected one newline after {name}"
     )
     return source.replace(function_line, "", 1)
+
+
+def _normalize_b4_submit_srs(current_function: str, base_function: str) -> str:
+    for label, current_delta, base_delta in (
+        (
+            "review guard",
+            B4_SUBMIT_SRS_REVIEW_GUARD,
+            B1_SUBMIT_SRS_REVIEW_GUARD,
+        ),
+        (
+            "SRS.review reviewMetadata argument",
+            B4_SUBMIT_SRS_REVIEW_CALL,
+            B1_SUBMIT_SRS_REVIEW_CALL,
+        ),
+        (
+            "review finalizer",
+            B4_SUBMIT_SRS_FINALLY,
+            B1_SUBMIT_SRS_FINALLY,
+        ),
+    ):
+        assert current_function.count(current_delta) == 1, (
+            f"HARNESS_FAILURE: expected one exact B4 {label} delta in submitSRS"
+        )
+        assert base_function.count(base_delta) == 1, (
+            f"HARNESS_FAILURE: expected one exact B1 {label} baseline in submitSRS"
+        )
+        current_function = current_function.replace(current_delta, base_delta, 1)
+
+    assert current_function.count(B4_SUBMIT_SRS_PRESENTATION_CONTEXT) == 1, (
+        "HARNESS_FAILURE: expected one exact B4 presentation context delta in submitSRS"
+    )
+    assert current_function.count(B2_SUBMIT_SRS_CONTEXT) == 0, (
+        "HARNESS_FAILURE: B4 presentation context already normalized unexpectedly"
+    )
+    current_function = current_function.replace(
+        B4_SUBMIT_SRS_PRESENTATION_CONTEXT,
+        B2_SUBMIT_SRS_CONTEXT,
+        1,
+    )
+    return current_function
 
 
 _EXTERNAL_SCRIPT_TAG_RE = re.compile(
@@ -393,6 +485,8 @@ def test_index_html_effect_bodies_and_lord_controller_are_frozen():
     for name in FROZEN_INDEX_FUNCTIONS:
         current_function = _extract_function(current_index, name)
         base_function = _extract_function(base_index, name)
+        if name == "submitSRS":
+            current_function = _normalize_b4_submit_srs(current_function, base_function)
         b2_delta = B2_INDEX_FUNCTION_DELTAS.get(name)
         if b2_delta:
             assert current_function.count(b2_delta) == 1, (
@@ -430,10 +524,15 @@ def test_b1_index_html_changes_are_script_loading_only():
     assert current_srcs.count(AUTHORIZED_EFFECTS_SCRIPT_SRC) == 1
     assert AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC not in base_srcs
     assert current_srcs.count(AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC) == 1
+    assert AUTHORIZED_GAME_SESSION_SCRIPT_SRC not in base_srcs
+    assert current_srcs.count(AUTHORIZED_GAME_SESSION_SCRIPT_SRC) == 1
     assert current_srcs.index(AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC) < current_srcs.index(
         B1_SRS_SCRIPT_SRC
     )
-    assert len(current_srcs) == len(base_srcs) + 3
+    assert current_srcs.index(AUTHORIZED_GAME_SESSION_SCRIPT_SRC) < current_srcs.index(
+        B1_SRS_SCRIPT_SRC
+    )
+    assert len(current_srcs) == len(base_srcs) + 4
     assert base_srcs.count(BASE_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(B1_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(BASE_SRS_SCRIPT_SRC) == 0
@@ -446,6 +545,7 @@ def test_b1_index_html_changes_are_script_loading_only():
             AUTHORIZED_DISPATCHER_SCRIPT_SRC,
             AUTHORIZED_EFFECTS_SCRIPT_SRC,
             AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC,
+            AUTHORIZED_GAME_SESSION_SCRIPT_SRC,
         }
     ]
     normalized_current_srcs = [
@@ -470,6 +570,10 @@ def test_b1_index_html_changes_are_script_loading_only():
     current_remainder = _remove_external_script_tag(
         current_remainder, review_transport_tag
     )
+    game_session_tag = next(
+        tag for tag, src in current_scripts if src == AUTHORIZED_GAME_SESSION_SCRIPT_SRC
+    )
+    current_remainder = _remove_external_script_tag(current_remainder, game_session_tag)
     current_srs_tag = next(tag for tag, src in current_scripts if src == B1_SRS_SCRIPT_SRC)
     base_srs_tag = next(tag for tag, src in base_scripts if src == BASE_SRS_SCRIPT_SRC)
     normalized_srs_tag = _replace_script_src(
@@ -479,6 +583,42 @@ def test_b1_index_html_changes_are_script_loading_only():
     current_remainder = current_remainder.replace(
         current_srs_tag,
         normalized_srs_tag,
+        1,
+    )
+    current_submit_srs = _extract_function(current_remainder, "submitSRS")
+    base_submit_srs = _extract_function(base_index, "submitSRS")
+    normalized_submit_srs = _normalize_b4_submit_srs(
+        current_submit_srs,
+        base_submit_srs,
+    )
+    assert current_remainder.count(current_submit_srs) == 1, (
+        "HARNESS_FAILURE: expected one submitSRS function for B4 normalization"
+    )
+    current_remainder = current_remainder.replace(
+        current_submit_srs,
+        normalized_submit_srs,
+        1,
+    )
+    assert current_remainder.count(B4_GAME_SESSION_INITIALIZATION) == 1, (
+        "HARNESS_FAILURE: expected one exact B4 GameSession initializer"
+    )
+    assert base_index.count(B4_GAME_SESSION_INITIALIZATION) == 0, (
+        "HARNESS_FAILURE: B1 baseline unexpectedly contains GameSession initializer"
+    )
+    current_remainder = current_remainder.replace(
+        B4_GAME_SESSION_INITIALIZATION,
+        "",
+        1,
+    )
+    assert current_remainder.count(B4_CURRENT_REVIEW_STATE) == 1, (
+        "HARNESS_FAILURE: expected one exact B4 review-state removal"
+    )
+    assert base_index.count(B1_REVIEW_STATE) == 1, (
+        "HARNESS_FAILURE: expected one exact B1 review-state baseline"
+    )
+    current_remainder = current_remainder.replace(
+        B4_CURRENT_REVIEW_STATE,
+        B1_REVIEW_STATE,
         1,
     )
     for name in B2_INDEX_HELPER_FUNCTIONS:
