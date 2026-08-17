@@ -11109,7 +11109,7 @@ function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1
     })();
 }
 
-function loadQuestion(q, options = {}) {
+async function loadQuestion(q, options = {}) {
     // Compatibility adapter only: QuestionLoader owns generation,
     // supersession, current-question handoff, and GameSession identity.
     return _questionLoader.load(q, options);
@@ -20154,7 +20154,6 @@ function _scheduleVisibleBoardResize() {
     }, 300);
 }
 window.addEventListener('resize', _scheduleVisibleBoardResize);
-window.addEventListener('orientationchange', _scheduleVisibleBoardResize);
 
 // ═══════════════════════════════════════════════════════════
 //  好友挑戰模式

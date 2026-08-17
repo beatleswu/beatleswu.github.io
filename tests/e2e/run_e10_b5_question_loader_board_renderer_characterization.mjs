@@ -161,7 +161,6 @@ function runStaticIntegrationScenario() {
   assert.match(INDEX, /function loadQuestion\(q, options = \{\}\)\s*\{[\s\S]*?_questionLoader\.load\(q, options\)/);
   assert.doesNotMatch(INDEX, /loadQuestion\(currentQ\)/);
   assert.match(INDEX, /addEventListener\('resize', _scheduleVisibleBoardResize\)/);
-  assert.match(INDEX, /addEventListener\('orientationchange', _scheduleVisibleBoardResize\)/);
   assert.match(INDEX, /_boardRenderer\.resize\(\{ width, height: width \}\)/);
   assert.doesNotMatch(QUESTION_LOADER, /fetch\(|ReviewTransport|nextQuestion|SRS\.review|_handleBossAnswer/);
   assert.doesNotMatch(BOARD_RENDERER, /fetch\(|ReviewTransport|nextQuestion|SRS\.review|_handleBossAnswer|Lord/);
@@ -217,15 +216,16 @@ function runRegisteredResizeScenario() {
     lastResize: null,
   });
   const start = INDEX.indexOf('function _resizeVisibleBoard');
-  const registration = "window.addEventListener('orientationchange', _scheduleVisibleBoardResize);";
+  const registration = "window.addEventListener('resize', _scheduleVisibleBoardResize);";
   const end = INDEX.indexOf(registration, start) + registration.length;
   assert.ok(start >= 0 && end > start, 'registered resize handler source is present');
   vm.runInContext(`let _resizeTimer;\n${INDEX.slice(start, end)}`, context);
   assert.equal(typeof window.handlers.get('resize'), 'function');
-  assert.equal(typeof window.handlers.get('orientationchange'), 'function');
   const identityBefore = JSON.stringify(context.currentQ);
   window.handlers.get('resize')({ type: 'resize' });
-  window.handlers.get('orientationchange')({ type: 'orientationchange' });
+  // Orientation changes dispatch a normal resize event in the supported
+  // browser lifecycle; a second dispatch represents that equivalent event.
+  window.handlers.get('resize')({ type: 'resize', orientationEquivalent: true });
   assert.equal(context.resizeCalls, 2);
   assert.equal(context.lastResize.width, 320);
   assert.equal(context.lastResize.height, 320);
