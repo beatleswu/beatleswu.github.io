@@ -314,11 +314,22 @@ async function characterizeDispatcherEffects() {
   const timers = makeTimers();
   const events = [];
   const fetchCalls = [];
+  // Wave 5 failsafe-execution closure: any of these firing would mean the
+  // legacy fallback branch of _dispatchCommittedReviewPresentation reached
+  // into review-retry, progression, Lord advancement, MapBattle settlement,
+  // or GameSession authority -- none of which the canonical function body
+  // references. Tracked (not thrown) so a real call is never silently
+  // swallowed by the function's own internal try/catch wrappers.
+  const authorityCalls = [];
   const context = vm.createContext({
     document,
     window: {
       SFX: { play: (name) => events.push(['streak_sound', name]) },
       _nqMapActive: false,
+      // Deliberately absent: PresentationDispatcher, GoOdysseyPresentationEffectsB2.
+      // This IS the canonical fallback guard from index.html --
+      // `if (b2Dispatcher && typeof b2Dispatcher.dispatchEffects === 'function' && b2Effects)`
+      // -- so their absence is what forces execution into the legacy branch below.
     },
     SFX: { play: (name) => events.push(['streak_sound', name]) },
     I18n: {
@@ -356,8 +367,26 @@ async function characterizeDispatcherEffects() {
     showQuestPetRewardToasts: (...args) => events.push(['quest_pet_reward_toast', ...args]),
     SRS: {
       dispatchReviewPresentation: (...args) => events.push(['srs_presentation_dispatch', ...args]),
+      review: (...args) => { authorityCalls.push(['SRS.review', ...args]); return Promise.resolve({ ok: true }); },
+      markSeen: (...args) => authorityCalls.push(['SRS.markSeen', ...args]),
+    },
+    ReviewTransport: {
+      review: (...args) => { authorityCalls.push(['ReviewTransport.review', ...args]); return Promise.resolve({}); },
+    },
+    nextQuestion: (...args) => authorityCalls.push(['nextQuestion', ...args]),
+    _handleBossAnswer: (...args) => authorityCalls.push(['_handleBossAnswer', ...args]),
+    _submitMapBattleV1IfActive: (...args) => authorityCalls.push(['_submitMapBattleV1IfActive', ...args]),
+    _gameSession: {
+      adoptQuestion: (...args) => authorityCalls.push(['_gameSession.adoptQuestion', ...args]),
+      invalidate: (...args) => authorityCalls.push(['_gameSession.invalidate', ...args]),
+      beginReview: (...args) => authorityCalls.push(['_gameSession.beginReview', ...args]),
+      endReview: (...args) => authorityCalls.push(['_gameSession.endReview', ...args]),
     },
   });
+  assert.equal(context.window.PresentationDispatcher, undefined,
+    'fallback precondition: window.PresentationDispatcher must be unavailable for this scenario to exercise the legacy branch');
+  assert.equal(context.window.GoOdysseyPresentationEffectsB2, undefined,
+    'fallback precondition: window.GoOdysseyPresentationEffectsB2 must be unavailable for this scenario to exercise the legacy branch');
   vm.runInContext(`
     ${extractFunction(INDEX, '_dispatchCommittedReviewPresentation')}
     this.api = { dispatch: _dispatchCommittedReviewPresentation };
@@ -412,12 +441,122 @@ async function characterizeDispatcherEffects() {
   assert.ok(scheduledDelays.includes(5400), 'second new appearance preserves 1.8 second order');
   assert.ok(scheduledDelays.includes(1800), 'quest pet reward toast follows the shared loot offset');
 
+  // Wave 5 failsafe-execution closure (Test 1: Review Presentation
+  // Fallback). At this point exactly one committed-review presentation has
+  // been dispatched through the legacy branch (forced by the precondition
+  // asserted above), so these deltas are measured against a known baseline
+  // rather than accumulated across the file's later, unrelated dispatches.
+  assert.equal(fetchCalls.length, 1, 'REVIEW_HTTP_DELTA=0: the only network call the fallback makes is the XP-status read');
+  assert.equal(fetchCalls[0].url, '/api/xp/status');
+  assert.equal((fetchCalls[0].options || {}).method ?? 'GET', 'GET', 'the one fetch call is a read, not a mutation or retry');
+  assert.equal(authorityCalls.length, 0,
+    `REVIEW_RETRY_DELTA=0, PROGRESSION_DELTA=0, LORD_ADVANCEMENT_DELTA=0, MAPBATTLE_SETTLEMENT_DELTA=0, STALE_SESSION_MUTATION=NO: ${JSON.stringify(authorityCalls)}`);
+  const fallbackExecuted = events.some(([name]) => name === 'monster_presentation')
+    && events.some(([name]) => name === 'loot_toast')
+    && events.some(([name]) => name === 'quest_panel');
+  assert.equal(fallbackExecuted, true, 'FALLBACK_EXECUTED=YES: the manual/legacy presentation branch actually ran and produced its effects');
+
   context.api.dispatch({ ok: true, xp_gain: 1, ranked_up: true, new_rank_level: 'LV5' }, 3);
   assert.ok(events.some(([name, rank]) => name === 'rank_up' && rank === 'LV5'), 'B2A rank-up presentation');
   context.api.dispatch({ ok: true, xp_gain: 1, combo_streak: 7 }, 3);
   assert.ok(events.some(([name, value]) => name === 'streak_sound' && value === 'streak7'), 'B2A streak7 sound');
   context.api.dispatch({ ok: true }, 0);
   assert.ok(events.some(([name, value]) => name === 'pet_reaction' && value === 'wrong'), 'B2B wrong-answer pet reaction');
+  assert.equal(authorityCalls.length, 0, 'authority sentinels must remain untouched across every dispatch in this scenario, not only the first');
+}
+
+// Wave 5 failsafe-execution closure (Test 2: Rank-up Ritual -> Legacy Popup
+// Fallback). showRankUpPopup(newLevel, detail) = `if (showRankUpRitual(...))
+// return; showRankUpLegacyPopup(...)`. showRankUpRitual's own canonical
+// guards (index.html) are: incomplete ritual DOM, or `_rankupIsReducedMotion()`
+// -- `!!window.matchMedia && window.matchMedia('(prefers-reduced-motion:
+// reduce)').matches`. This scenario supplies every required ritual DOM node
+// (via FakeDocument's auto-create) so only the reduced-motion guard forces
+// the fallback -- the accessibility condition the task names first, not an
+// incidental missing-DOM edge case.
+async function characterizeRankUpReducedMotionFallback() {
+  const document = new FakeDocument();
+  const timers = makeTimers();
+  const events = [];
+  const authorityCalls = [];
+  const context = vm.createContext({
+    document,
+    window: {
+      matchMedia: (query) => {
+        events.push(['match_media', query]);
+        return { matches: query.includes('prefers-reduced-motion') };
+      },
+      SFX: { play: (name) => events.push(['sfx', name]) },
+    },
+    I18n: {
+      getLang: () => 'en',
+      t: (key) => key,
+    },
+    SFX: { play: (name) => events.push(['sfx', name]) },
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    popRankBadge: () => events.push(['rank_badge']),
+    launchConfetti: () => events.push(['confetti']),
+    fetch: (...args) => { authorityCalls.push(['fetch', ...args]); return Promise.resolve(makeResponse({})); },
+    SRS: {
+      review: (...args) => { authorityCalls.push(['SRS.review', ...args]); return Promise.resolve({ ok: true }); },
+      markSeen: (...args) => authorityCalls.push(['SRS.markSeen', ...args]),
+    },
+    ReviewTransport: {
+      review: (...args) => { authorityCalls.push(['ReviewTransport.review', ...args]); return Promise.resolve({}); },
+    },
+    nextQuestion: (...args) => authorityCalls.push(['nextQuestion', ...args]),
+    _handleBossAnswer: (...args) => authorityCalls.push(['_handleBossAnswer', ...args]),
+    _submitMapBattleV1IfActive: (...args) => authorityCalls.push(['_submitMapBattleV1IfActive', ...args]),
+    _gameSession: {
+      adoptQuestion: (...args) => authorityCalls.push(['_gameSession.adoptQuestion', ...args]),
+      invalidate: (...args) => authorityCalls.push(['_gameSession.invalidate', ...args]),
+      beginReview: (...args) => authorityCalls.push(['_gameSession.beginReview', ...args]),
+      endReview: (...args) => authorityCalls.push(['_gameSession.endReview', ...args]),
+    },
+  });
+  vm.runInContext(`
+    let _rankupRitualTimers = [];
+    let _rankupRitualActive = false;
+    ${extractFunction(INDEX, '_rankupIsReducedMotion')}
+    ${extractFunction(INDEX, '_clearRankupRitualTimers')}
+    ${extractFunction(INDEX, '_rankupText')}
+    ${extractFunction(INDEX, '_rankupBuildRewardItem')}
+    ${extractFunction(INDEX, '_rankupSpawnParticles')}
+    ${extractFunction(INDEX, 'showRankUpLegacyPopup')}
+    ${extractFunction(INDEX, 'closeRankUpRitual')}
+    ${extractFunction(INDEX, 'showRankUpRitual')}
+    ${extractFunction(INDEX, 'showRankUpPopup')}
+    this.api = { showRankUpPopup, isReducedMotion: _rankupIsReducedMotion };
+  `, context);
+
+  assert.equal(context.api.isReducedMotion(), true, 'fallback precondition: the canonical reduced-motion guard must actually read true in this scenario');
+
+  const detail = { xp_gain: 40, new_appearance_items: [{ name: 'Cloak', emoji: '🧥' }] };
+  context.api.showRankUpPopup('LV6', detail);
+  await Promise.resolve();
+
+  const ritual = document.getElementById('rankup-ritual');
+  const ritualCard = document.getElementById('rankup-ritual-card');
+  const legacyPopup = document.getElementById('rankup-popup');
+
+  assert.equal(ritual.classList.contains('show'), false,
+    'RANKUP_DUPLICATE_PRESENTATION=NO: the ritual DOM must never be shown when its own guard routes to the fallback');
+  assert.equal(ritualCard.classList.contains('resting'), false,
+    'the ritual card must never begin its animation sequence in the fallback path');
+  assert.equal(legacyPopup.classList.contains('show'), true,
+    'FALLBACK_EXECUTED=YES: the legacy popup DOM must be shown');
+  assert.equal(document.getElementById('rankup-title').textContent, 'index.rankup_promotedLV6！');
+  assert.equal(document.getElementById('xp-rank-badge').textContent, 'LV6');
+  assert.equal(events.filter(([name]) => name === 'rank_badge').length, 1, 'legacy popup calls popRankBadge exactly once');
+  assert.equal(events.filter(([name]) => name === 'confetti').length, 1, 'legacy popup fires its own confetti exactly once');
+  assert.equal(events.filter(([name]) => name === 'sfx').length, 1,
+    'RANKUP_DUPLICATE_PRESENTATION=NO: exactly one rankup SFX cue, not one from the ritual plus one from the legacy popup');
+
+  assert.equal(authorityCalls.length, 0,
+    `RANKUP_DUPLICATE_REWARD=NO, RANKUP_DUPLICATE_PROGRESSION=NO, RANKUP_REVIEW_HTTP_DELTA=0, RANKUP_STALE_MUTATION=NO: ${JSON.stringify(authorityCalls)}`);
+  assert.equal(timers.timers.size, 0,
+    'the fallback popup schedules no timers of its own -- the ritual`s 2400/7000/120ms sequence never started');
 }
 
 async function characterizeHpSpAndMapBattleSharedHelpers() {
@@ -764,9 +903,11 @@ async function characterizeReviewCommitAndMapBattleAuthority() {
 await characterizeToastTimers();
 await characterizeShopStatus();
 await characterizeDispatcherEffects();
+await characterizeRankUpReducedMotionFallback();
 await characterizeHpSpAndMapBattleSharedHelpers();
 await characterizeQuestPanel();
 await characterizeSrsPresentationFailureBoundary();
 await characterizeReviewCommitAndMapBattleAuthority();
 
 console.log('E10_B2_PRESENTATION_EFFECTS_CHARACTERIZATION: PASS (14 effects; legacy baseline)');
+console.log('E10_ARCHITECTURE_V1_WAVE5_FAILSAFE_EXECUTION_CLOSURE_046: PASS (review-presentation fallback + rank-up ritual fallback, both real-executed)');
