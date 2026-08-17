@@ -129,6 +129,10 @@ COPY js/game/review_transport.js ./js/game/review_transport.js
 # B4 GameSession identity is an explicitly referenced browser module and must
 # remain a narrow static copy.
 COPY js/game/game_session.js ./js/game/game_session.js
+# B5 QuestionLoader and BoardRenderer are explicit browser runtime modules;
+# keep the copies narrow so the image cannot silently absorb unrelated JS.
+COPY js/game/question_loader.js ./js/game/question_loader.js
+COPY js/game/board_renderer.js ./js/game/board_renderer.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog

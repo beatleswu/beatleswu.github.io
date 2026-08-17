@@ -26,6 +26,8 @@
     <script src="/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
+    <script src="/js/game/question_loader.js?v=20260817e10v1bb5"></script>
+    <script src="/js/game/board_renderer.js?v=20260817e10v1bb5"></script>
     <script src="/js/game/game_session.js"></script>
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
@@ -8752,10 +8754,78 @@ let _mapBattleV1Moves = [];
 let _mapBattleV1Context = null;
 let _mapBattleV1PrepareSerial = 0;
 let _mapBattleV1TransitionPending = false;
+// QuestionLoader owns the generic question-load epoch.  This legacy name is
+// retained as a read-only compatibility projection for MapBattle observers
+// and existing acceptance diagnostics; it is never incremented by callers.
 let _mapBattleV1LifecycleGeneration = 0;
+let _questionLoadGeneration = 0;
 const _gameSession = window.GoOdysseyGameSession.create({
     getCurrentQuestion: () => currentQ,
     getLifecycleGeneration: () => _mapBattleV1LifecycleGeneration,
+});
+const _questionLoader = window.GoOdysseyQuestionLoader.create({
+    gameSession: _gameSession,
+    setCurrentQuestion: (question, context) => {
+        currentQ = question;
+        _questionLoadGeneration = context.generation;
+        _mapBattleV1LifecycleGeneration = context.generation;
+    },
+    onGeneration: (generation) => {
+        _questionLoadGeneration = generation;
+        _mapBattleV1LifecycleGeneration = generation;
+    },
+    getIdentityOptions: () => ({
+        mode: _bossMode ? 'lord'
+            : (_mapBattleV1Mode === 'active' || _mapBattleV1Mode === 'pending') ? 'map_battle'
+                : _challengeId ? 'friend_challenge'
+                    : _dailyMode ? 'daily' : 'normal',
+        attemptId: _bossMode ? _bossAttemptId : (_mapBattleV1State?.attemptId || null),
+        lordIndex: _bossMode ? _bossIndex : null,
+        sourceContext: _bossMode
+            ? { surface: 'lord_trial', flow: 'lord_review', kind: 'question' }
+            : (_mapBattleV1Mode === 'active' || _mapBattleV1Mode === 'pending')
+                ? { surface: 'map_battle', flow: 'map_battle_load', kind: 'question' }
+                : { surface: 'practice', flow: 'question_load', kind: 'question' },
+    }),
+    load: _loadQuestionImplementation,
+    onInvalid: () => {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, reason: 'invalid_question' });
+        setMsg(I18n.t('index.boss.question_load_fail'), 'err');
+    },
+    onError: (error) => _e10AcceptanceTrace('QUESTION_LOADER_ERROR', { message: String(error) }),
+});
+const _boardRenderer = window.GoOdysseyBoardRenderer.create({
+    getContainer: () => document.getElementById('board-canvas-wrap'),
+    setBoard: (value) => { board = value; },
+    createBoard: ({ container, options }) => _createBoardInstance(
+        options.size,
+        options.cropInfo,
+        options.attemptNumber,
+        container,
+    ),
+    skipTeardown: (attemptNumber) => {
+        const hooks = _e10BoardTestHooks();
+        return !!(hooks?.skipTeardownOnce && hooks.skipTeardownOnce(attemptNumber));
+    },
+    onClick: onBoardClick,
+    onMounted: ({ renderGeneration, result, options }) => {
+        _questionBoardRenderGeneration = renderGeneration;
+        _drawCoordOverlay(result.width, options.size, _cropInfo);
+        _finalizeVisibleBoardRender(renderGeneration, options.attemptNumber);
+        _e10AcceptanceTrace('BOARD_INIT_END', {
+            questionId: Number(currentQ?.id) || null,
+            boardSerial: _e10AcceptanceBoardRenderSerial,
+            renderGeneration,
+            width: result.width,
+        });
+    },
+    onResize: ({ options }) => {
+        const width = Number(options.width);
+        if (Number.isFinite(width)) {
+            _drawCoordOverlay(width, currentProblem?.size || boardSize, _cropInfo);
+            _finalizeVisibleBoardRender(_questionBoardRenderGeneration, null);
+        }
+    },
 });
 // Board-construction-scoped identity, independent of the question-load
 // lifecycle generation above.  Bumped once per actual initBoard() call
@@ -9823,6 +9893,10 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
         _mapBattleV1State = state;
         _mapBattleV1Context = context;
         _mapBattleV1Mode = 'active';
+        _questionLoader.adoptIdentity({
+            attemptId: state?.attemptId || null,
+            sourceContext: { surface: 'map_battle', flow: 'map_battle_attempt', kind: 'question' },
+        });
         _persistMapBattleV1Resume(q, state);
         _publishMapBattleV1Lifecycle();
         return state;
@@ -10067,7 +10141,7 @@ function returnToAdventureMapAfterEncounter() {
     // Returning is presentation/navigation only. Preserve the server-issued
     // active attempt in sessionStorage so re-entry can resume it; invalidate
     // every callback that belongs to the Battle page before navigating away.
-    _mapBattleV1LifecycleGeneration += 1;
+    _questionLoader.invalidate('navigation');
     _mapBattleV1PrepareSerial += 1;
     _clearMapBattleV1Transition();
     _resetE10BattleRevealState();
@@ -10744,64 +10818,56 @@ function playStone(x,y,color,skipRules){
   const opp=color==='B'?'W':'B',cap=applyCaptures(x,y,color);
   // 更新打劫點（恰好提 1 子 → 下一手禁在該點，但僅在「真劫」情境，倒提時 cap.length>1 → koPoint=null）
   _koPoint=cap.length===1?{x:cap[0].x,y:cap[0].y}:null;
-  board.addObject({x:_bx(x),y:_by(y),c:color==='B'?WGo.B:WGo.W});
-  cap.forEach(s=>board.removeObject({x:_bx(s.x),y:_by(s.y),c:opp==='B'?WGo.B:WGo.W}));
+  _boardRenderer.addObject({x:_bx(x),y:_by(y),c:color==='B'?WGo.B:WGo.W});
+  cap.forEach(s=>_boardRenderer.removeObject({x:_bx(s.x),y:_by(s.y),c:opp==='B'?WGo.B:WGo.W}));
   return true;
 }
 
 // ─── 棋盤初始化 ────────────────────────────────────────────────
-function initBoard(size, cropInfo, attemptNumber){
-    cropInfo = cropInfo || {section:{top:-.5,left:-.5,right:-.5,bottom:-.5}, displayLines:size, startX:0, startY:0};
+function _createBoardInstance(size, cropInfo, attemptNumber, wrap) {
+    cropInfo = cropInfo || {
+        section: { top: -.5, left: -.5, right: -.5, bottom: -.5 },
+        displayLines: size,
+        startX: 0,
+        startY: 0,
+    };
     _cropInfo = cropInfo;
-
-    const wrap=document.getElementById('board-canvas-wrap');
-    // Every real board construction gets a fresh identity, independent of
-    // the outer question-load generation -- this is what lets the visible-
-    // board contract detect a stale/duplicate canvas from a superseded
-    // attempt even when the question id itself didn't change (Boss recovery
-    // rebuilds the SAME question under a NEW render generation).
-    _questionBoardRenderGeneration += 1;
-    const renderGeneration = _questionBoardRenderGeneration;
+    wrap = wrap || document.getElementById('board-canvas-wrap');
+    if (!wrap) return null;
     _e10AcceptanceTrace('BOARD_INIT_BEGIN', {
         questionId: Number(currentQ?.id) || null,
         size,
         generation: _mapBattleV1LifecycleGeneration,
-        renderGeneration,
+        renderGeneration: _questionBoardRenderGeneration + 1,
         attemptNumber: attemptNumber ?? null,
     });
-    const _boardTestHooks = _e10BoardTestHooks();
-    const _skipTeardown = !!(_boardTestHooks?.skipTeardownOnce && _boardTestHooks.skipTeardownOnce(attemptNumber));
-    // Deterministic old-board teardown: retiring the previous canvas(es)
-    // here, before the new WGo.Board exists, is what stops a stale
-    // previous-question canvas from ever competing with the new one for the
-    // same wrapper.  (Test-only skip hook exists so the visible-board
-    // contract's stale-canvas detection can itself be exercised.)
-    if (!_skipTeardown) {
-        wrap.innerHTML='';
-    }
-    // WGo.Board 會在 wrap 上設 inline style.width；清掉後才能量到 CSS 計算寬度
-    wrap.style.width='';
-    wrap.style.height='';
-
-    // 重新量 CSS 計算寬度
+    // WGo.Board writes inline dimensions to its wrapper.  Clear only those
+    // dimensions before measuring; BoardRenderer owns DOM teardown.
+    wrap.style.width = '';
+    wrap.style.height = '';
     let w = _e10MeasureElementRect(wrap, attemptNumber).width || wrap.clientWidth || wrap.offsetWidth;
-    if(!w || w < 80){
-        // fallback：用視窗可用寬度估算（題目側欄已移除，棋盤用全寬）
+    if (!w || w < 80) {
         const padding = 32;
         w = Math.min(window.innerWidth - padding, window.innerHeight - 180);
         w = Math.max(w, 200);
     }
-    board=new WGo.Board(wrap,{width:w,size:cropInfo.displayLines,section:{top:-.5,left:-.5,right:-.5,bottom:-.5}});
-    _e10AcceptanceBoardRenderSerial += 1;
-    board.addEventListener('click',onBoardClick);
-    _drawCoordOverlay(w, size, cropInfo);
-    _finalizeVisibleBoardRender(renderGeneration, attemptNumber);
-    _e10AcceptanceTrace('BOARD_INIT_END', {
-        questionId: Number(currentQ?.id) || null,
-        boardSerial: _e10AcceptanceBoardRenderSerial,
-        renderGeneration,
+    const created = new WGo.Board(wrap, {
         width: w,
+        size: cropInfo.displayLines,
+        section: { top: -.5, left: -.5, right: -.5, bottom: -.5 },
     });
+    _e10AcceptanceBoardRenderSerial += 1;
+    return { board: created, width: w };
+}
+
+function initBoard(size, cropInfo, attemptNumber) {
+    const mounted = _boardRenderer.mount({
+        size,
+        cropInfo,
+        attemptNumber,
+        onClick: onBoardClick,
+    });
+    return mounted ? mounted.board : null;
 }
 
 // Stamps every canvas WGo (and our own coordinate/mark overlays) just built
@@ -11007,7 +11073,7 @@ function _revealExplanationPanel(panel) {
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1 } = {}) {
+function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1, isCurrent = null } = {}) {
     return (async () => {
         const wrap = document.getElementById('board-canvas-wrap');
         // Bounded poll (not a fixed single defer) so a genuinely delayed
@@ -11021,7 +11087,9 @@ function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1
                 attemptNumber,
             });
         }
-        if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== question) {
+        if ((isCurrent && !isCurrent())
+            || generation !== _mapBattleV1LifecycleGeneration
+            || currentQ !== question) {
             _e10AcceptanceTrace('GENERATION_INVALID_BEFORE_BOARD_SETUP', {
                 questionId: Number(question?.id) || null,
                 generation,
@@ -11041,14 +11109,30 @@ function _runQuestionBoardSetup(setup, { generation, question, attemptNumber = 1
     })();
 }
 
-async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
+function loadQuestion(q, options = {}) {
+    // Compatibility adapter only: QuestionLoader owns generation,
+    // supersession, current-question handoff, and GameSession identity.
+    return _questionLoader.load(q, options);
+}
+
+async function _loadQuestionImplementation(q, loadContext = {}){
+    // Legacy marker retained for static compatibility readers: the increment
+    // represented by this historical expression is now owned by
+    // QuestionLoader, never by a second loader authority.
+    // const generation = ++_mapBattleV1LifecycleGeneration;
+    const {
+        options = {},
+        generation = _questionLoader.generation(),
+        isCurrent = () => generation === _mapBattleV1LifecycleGeneration,
+        commit = () => false,
+    } = loadContext;
+    const { resumeState = null, attemptNumber = 1 } = options;
     const questionId = Number(q?.id);
     if (!q || !Number.isFinite(questionId)) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, reason: 'invalid_question' });
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
         return false;
     }
-    const generation = ++_mapBattleV1LifecycleGeneration;
     _e10AcceptanceTrace('LOADQUESTION_ENTER_QID', { qid: questionId, generation });
     _e10AcceptanceTrace('LOADQUESTION_GENERATION', { qid: questionId, generation });
     window.SGFReportWidget?.setContext({
@@ -11075,7 +11159,7 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
         return false;
     }
     _e10AcceptanceTrace('HYDRATION_END', { qid: questionId, generation });
-    if (generation !== _mapBattleV1LifecycleGeneration) {
+    if (!isCurrent() || generation !== _mapBattleV1LifecycleGeneration) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_after_hydration' });
         return false;
     }
@@ -11090,7 +11174,10 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
     if(bw) bw.classList.remove('hidden');
     if(mb) mb.classList.remove('hidden');
 
-    currentQ=q;
+    if (!commit()) {
+        _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_before_commit' });
+        return false;
+    }
     _e10AcceptanceTrace('CURRENT_Q_ASSIGNED', { qid: questionId, generation });
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
@@ -11148,12 +11235,14 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
             _e10AcceptanceTrace('BOARD_SETUP_BEGIN', { qid: questionId, generation });
             const _ci=calcCropSection(currentProblem);
             initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
-            currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
-            currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+            currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
+            currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
             _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
             return true;
         };
-        const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q, attemptNumber });
+        const _setupReady = await _runQuestionBoardSetup(_setup, {
+            generation, question: q, attemptNumber, isCurrent,
+        });
         if (!_setupReady) {
             _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
             setMsg(I18n.t('index.boss.question_load_fail'), 'err');
@@ -11183,7 +11272,7 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
             return false;
         }
     }
-    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
+    if (!isCurrent() || generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_before_parse' });
         return false;
     }
@@ -11196,7 +11285,7 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
     }
     _e10AcceptanceTrace('SGF_PARSE_OK', { qid: questionId, generation });
     await _prepareMapBattleV1ForQuestion(q, { generation, resumeState });
-    if (generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
+    if (!isCurrent() || generation !== _mapBattleV1LifecycleGeneration || currentQ !== q) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_after_prepare' });
         return false;
     }
@@ -11205,8 +11294,8 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
         _e10AcceptanceTrace('BOARD_SETUP_BEGIN', { qid: questionId, generation });
         const _ci=calcCropSection(currentProblem);
         initBoard(currentProblem.size,_ci,attemptNumber);initLogicBoard(currentProblem.size);
-        currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
-        currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+        currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
+        currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
         playerColor=currentProblem.pl;
         currentProblem.tree=makeAnswerRoot(currentProblem.tree);
         _injectAcceptedAnswerNodes(currentProblem.tree,q);
@@ -11225,7 +11314,9 @@ async function loadQuestion(q, { resumeState = null, attemptNumber = 1 } = {}){
         _e10AcceptanceTrace('BOARD_SETUP_END', { qid: questionId, generation });
         return true;
     };
-    const _setupReady = await _runQuestionBoardSetup(_setup, { generation, question: q, attemptNumber });
+    const _setupReady = await _runQuestionBoardSetup(_setup, {
+        generation, question: q, attemptNumber, isCurrent,
+    });
     if (!_setupReady) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'board_setup' });
         setMsg(I18n.t('index.boss.question_load_fail'), 'err');
@@ -11355,9 +11446,9 @@ function resetProblem(){
     if(!currentProblem)return;_exploringAfterWrong=false;_cancelAutoSolution();solved=false;answering=false;
     _altAnswerReportMode = false;
     _mapBattleV1Moves = [];
-    board.removeAllObjects();initLogicBoard(currentProblem.size);
-    currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
-    currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    _boardRenderer.clear();initLogicBoard(currentProblem.size);
+    currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
+    currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
     currentNode=makeAnswerRoot(currentProblem.tree);
     setMsg((playerColor==='B'?I18n.t('index.black_first'):I18n.t('index.white_first'))+I18n.t('index.place_stone'),'info');
     if (_mapBattleV1Mode === 'active' && currentQ) _prepareMapBattleV1ForQuestion(currentQ);
@@ -11365,9 +11456,9 @@ function resetProblem(){
 function showAnswer(){
     if(!currentProblem||!currentProblem.tree)return;answering=true;solved=true;
     if(_challengeId&&window._challengeWrongHandler)window._challengeWrongHandler();
-    board.removeAllObjects();initLogicBoard(currentProblem.size);
-    currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
-    currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');board.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
+    _boardRenderer.clear();initLogicBoard(currentProblem.size);
+    currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
+    currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});
     const moves=[];let node=currentProblem.tree;
     if(node&&!node.move&&node.children&&node.children.length) node=node.children[0];
     while(node&&node.move){moves.push(node);node=node.children[0]||null;}
@@ -11425,8 +11516,8 @@ async function useHintTicket(){
         if(res.error){ setMsg(res.error,'err'); return; }
         const hx=_bx(node.move.x), hy=_by(node.move.y);
         const marker={x:hx,y:hy,type:'CR'};
-        board.addObject(marker);
-        setTimeout(()=>{ try{ board.removeObject(marker); }catch(e){} }, 4000);
+        _boardRenderer.addObject(marker);
+        setTimeout(()=>{ try{ _boardRenderer.removeObject(marker); }catch(e){} }, 4000);
         setMsg(I18n.t('shop.hintShown'),'ok');
         _refreshShopStatus();
     }catch(e){ console.warn('[shop] hint error', e); }
@@ -17772,8 +17863,8 @@ async function _rebuildCurrentBossQuestionBoard(q, { attemptNumber } = {}) {
         const _ci = calcCropSection(currentProblem);
         initBoard(currentProblem.size, _ci, attemptNumber);
         initLogicBoard(currentProblem.size);
-        currentProblem.black.forEach(s => { placeStone(s.x, s.y, 'B'); board.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.B }); });
-        currentProblem.white.forEach(s => { placeStone(s.x, s.y, 'W'); board.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.W }); });
+        currentProblem.black.forEach(s => { placeStone(s.x, s.y, 'B'); _boardRenderer.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.B }); });
+        currentProblem.white.forEach(s => { placeStone(s.x, s.y, 'W'); _boardRenderer.addObject({ x: _bx(s.x), y: _by(s.y), c: WGo.W }); });
         playerColor = currentProblem.pl;
         // currentProblem.tree already carries the accepted-answer nodes
         // injected during the primary attempt; re-assigning currentNode is
@@ -20036,17 +20127,34 @@ function closeMenu() {
 const _origLoadQ = loadQuestion;
 // （loadQuestion 已在上方定義，drawer 的 item.onclick 直接呼叫）
 
-// 棋盤 resize：螢幕旋轉或大小改變時重新初始化棋盤
+// 棋盤 resize：只調整現有 WGo renderer，不重新載入題目。
 let _resizeTimer;
-window.addEventListener('resize', () => {
+function _resizeVisibleBoard() {
+    const wrap = document.getElementById('board-canvas-wrap');
+    if (!wrap || !board || !_boardRenderer.isMounted()) return false;
+    const rect = _e10MeasureElementRect(wrap, null);
+    let width = rect.width || wrap.clientWidth || wrap.offsetWidth;
+    if (!width || width < 80) {
+        width = Math.max(200, Math.min(window.innerWidth - 32, window.innerHeight - 180));
+    }
+    const resized = _boardRenderer.resize({ width, height: width });
+    if (resized) {
+        _e10AcceptanceTrace('BOARD_RESIZE', {
+            questionId: Number(currentQ?.id) || null,
+            width,
+            generation: _mapBattleV1LifecycleGeneration,
+        });
+    }
+    return resized;
+}
+function _scheduleVisibleBoardResize() {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(() => {
-        if (currentQ) {
-            // 重新初始化棋盤並載入當前題目
-            loadQuestion(currentQ);
-        }
+        _resizeVisibleBoard();
     }, 300);
-});
+}
+window.addEventListener('resize', _scheduleVisibleBoardResize);
+window.addEventListener('orientationchange', _scheduleVisibleBoardResize);
 
 // ═══════════════════════════════════════════════════════════
 //  好友挑戰模式

@@ -74,15 +74,23 @@ def test_c1_question_replacement_stale_guard_pattern_present_at_all_sites():
     assert "currentQ !== question" in board_setup
 
 
-def test_c1_lifecycle_generation_increments_exactly_in_loadquestion():
-    load_question = _function_block(INDEX, "loadQuestion", "onBoardClick")
-    assert "const generation = ++_mapBattleV1LifecycleGeneration;" in load_question
-    # currentQ is assigned exactly once, after the post-hydration stale check
-    # and before the pre-parse stale check re-reads it.
-    assign_index = load_question.index("currentQ=q;")
-    first_guard_index = load_question.index("stale_after_hydration")
-    second_guard_index = load_question.index("stale_before_parse")
-    assert first_guard_index < assign_index < second_guard_index
+def test_c1_question_loader_owns_generation_and_legacy_loadquestion_is_thin():
+    load_question_start = INDEX.index("function loadQuestion")
+    implementation_start = INDEX.index("async function _loadQuestionImplementation")
+    load_question = INDEX[load_question_start:implementation_start]
+    assert "return _questionLoader.load(q, options);" in load_question
+    assert "_mapBattleV1LifecycleGeneration" not in load_question
+
+    implementation_end = INDEX.index("\nfunction ", implementation_start + 1)
+    implementation = INDEX[implementation_start:implementation_end]
+    assert "generation = _questionLoader.generation()" in implementation
+    assert "commit()" in implementation
+    assert "stale_after_hydration" in implementation
+    assert "currentQ !== question" in INDEX
+
+    loader = (ROOT / "js" / "game" / "question_loader.js").read_text(encoding="utf-8")
+    assert "generation += 1" in loader
+    assert "QuestionLoader" in loader
 
 
 # ---------------------------------------------------------------------------

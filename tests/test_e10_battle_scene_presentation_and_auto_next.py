@@ -13,11 +13,11 @@ def _function_block(name: str, end_name: str | None = None) -> str:
 
 
 def test_e10_entry_hydrates_canonical_avatar_and_companion_before_question_render():
-    load_question = _function_block("loadQuestion", "onBoardClick")
+    load_question = _function_block("_loadQuestionImplementation", "onBoardClick")
     hydration = _function_block("_hydrateE10BattlePresentation", "updateQuizPetStatusBadge")
 
     assert "await _hydrateE10BattlePresentation();" in load_question
-    assert load_question.index("await _hydrateE10BattlePresentation();") < load_question.index("currentQ=q;")
+    assert load_question.index("await _hydrateE10BattlePresentation();") < load_question.index("commit()")
     assert "loadPlayerAvatar()" in hydration
     assert "loadQuizPet()" in hydration
     assert "window.__GO_E9_ACTIVE_SHELL__ === 'e9'" in INDEX
@@ -65,12 +65,15 @@ def test_v1_non_success_responses_do_not_schedule_auto_next():
 def test_damage_authority_and_srs_boundary_remain_unchanged():
     render = _function_block("_mapBattleV1RenderAuthoritative", "_prepareMapBattleV1ForQuestion")
     board_flow = _function_block("onBoardClick", "resetProblem")
+    submit = _function_block("submitSRS", "loadQuestion")
 
     assert "state.monsterHp" in render
     assert "state.playerHp" in render
     assert "response.damage_to_monster" in render
     assert "response.damage_to_player" in render
-    assert board_flow.index("_mapBattleV1IsActive()") < board_flow.index("/api/srs/review")
+    assert board_flow.index("_mapBattleV1IsActive()") < board_flow.index("submitSRS(0)")
+    assert "_submitMapBattleV1IfActive" in submit
+    assert "SRS.review(" in submit
     assert "no battle fallback was used" in board_flow
 
 
@@ -85,8 +88,8 @@ def test_v1_transition_is_generation_scoped_and_has_bounded_idempotent_fallback(
     assert "_mapBattleV1TransitionTimer = setTimeout(onAnimationComplete, fallbackMs);" in submit
     assert "_mapBattleV1Transition = null" in submit
     assert "_clearMapBattleV1Transition();" in load_question
-    assert "const generation = ++_mapBattleV1LifecycleGeneration;" in load_question
-    assert "currentQ !== q" in load_question
+    assert "return _questionLoader.load(q, options);" in load_question
+    assert "currentQ !== question" in INDEX
 
 
 def test_v1_resume_is_one_server_validated_session_record_and_excludes_completed_fallback():
