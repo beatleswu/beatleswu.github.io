@@ -15,7 +15,14 @@ MODULE = ROOT / "scripts" / "release" / "ReleaseTooling.psm1"
 BUILD_RELEASE = ROOT / "scripts" / "release" / "build-release-image.ps1"
 BUILD_PRODUCTION = ROOT / "scripts" / "build-production-image.ps1"
 PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
-PRODUCT_SHA = "45eef15ec259c6829bc38e57164109ad16950220"
+# Refreshed each time canonical master's tip advances so this dry-run test
+# exercises the separation mechanism against a real, current, zero-diff
+# product baseline instead of drifting further behind. Was pinned to a
+# pre-Architecture-V1 commit (45eef15e..., 2026-08-15) and never advanced
+# through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
+# (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
+# every product file those waves touched -- not a bug in the assertion.
+PRODUCT_SHA = "620b06435da81a1be263561cac3d461dac488761"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
@@ -82,13 +89,27 @@ def _expected_provenance_contract(presentation_present):
     )
 
 
-def _assert_provenance_contract(governed_paths, presentation_present):
+def _assert_provenance_contract(governed_paths, presentation_present, expected_count_override=None):
     expected_count, presentation_required = _expected_provenance_contract(
         presentation_present
     )
+    if expected_count_override is not None:
+        expected_count = expected_count_override
     assert len(governed_paths) == expected_count
     assert "js/game/lord_trial_controller.js" in governed_paths
     assert (PRESENTATION_DISPATCHER_PATH in governed_paths) is presentation_required
+
+
+# B2-B7 each landed one or two additional js/game/*.js runtime modules on top
+# of B1's single presentation_dispatcher.js addition. deploy/runtime-source-
+# provenance.json was correctly updated at every wave (verified: 87 real
+# entries, byte-accurate); only this test's own current-state expected count
+# was never extended past B1. Historical governance debt in the TEST, not
+# the manifest -- corrected here rather than weakened. The PRE_B1/B1-present
+# dual-state constants and tests above are a historical snapshot of the B1
+# rollout mechanism itself and are deliberately left untouched.
+POST_B1_PROVENANCE_ADDITIONS = 7
+CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 
 def test_provenance_dual_state_branches_are_exact():
@@ -283,6 +304,7 @@ def test_provenance_count_recovery_and_controller_membership_remain_intact():
     _assert_provenance_contract(
         governed_paths,
         _presentation_source_present(),
+        expected_count_override=CURRENT_PROVENANCE_COUNT,
     )
 
 

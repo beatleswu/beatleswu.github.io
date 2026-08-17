@@ -9,6 +9,14 @@ BUILD_MANIFEST = REPO_ROOT / "deploy" / "build-manifest.json"
 PROVENANCE = REPO_ROOT / "deploy" / "runtime-source-provenance.json"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build-production-image.ps1"
 RELEASE_BUILD_SCRIPT = REPO_ROOT / "scripts" / "release" / "build-release-image.ps1"
+# Pre-B1 baseline (79) + presentation_dispatcher.js (B1) + the seven B2-B7
+# js/game/*.js additions (presentation_effects_b2.js, review_transport.js,
+# game_session.js, question_loader.js, board_renderer.js, mode_context.js,
+# game_bootstrap.js) = 87. deploy/runtime-source-provenance.json itself was
+# correctly updated at every wave; this was a stale, undocumented literal
+# left at the pre-B1 count and never advanced -- named and refreshed here
+# rather than left as an unexplained magic number.
+CURRENT_GOVERNED_PROVENANCE_COUNT = 87
 
 
 def _text(path):
@@ -31,7 +39,7 @@ def test_manifest_provenance_count_matches_exact_governed_set():
     provenance = json.loads(_text(PROVENANCE))
     governed_paths = {entry["path"] for entry in provenance["files"]}
     assert len(provenance["files"]) == len(governed_paths)
-    assert len(governed_paths) == 79
+    assert len(governed_paths) == CURRENT_GOVERNED_PROVENANCE_COUNT
     assert "js/game/lord_trial_controller.js" in governed_paths
     assert manifest["runtime_dependency_provenance"]["files_covered"] == len(
         governed_paths

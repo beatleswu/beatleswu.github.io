@@ -71,6 +71,43 @@ def _expected_required_in_generation(presentation_present):
     return frozenset(expected)
 
 
+# B2-B7 each landed one or two additional js/game/*.js runtime modules on top
+# of B1's single presentation_dispatcher.js addition. deploy/live-static-
+# asset-inventory.json's required_in_generation.entries was correctly
+# updated at every wave (verified: 16 real entries, byte-accurate); only
+# this test's own current-state expected-set was never extended past B1.
+# This is historical governance debt in the TEST, not the manifest --
+# corrected here rather than weakened. The PRE_B1/B1-present dual-state
+# constants and tests above are a historical snapshot of the B1 rollout
+# mechanism itself and are deliberately left untouched.
+POST_B1_REQUIRED_IN_GENERATION = frozenset(
+    {
+        "js/game/presentation_effects_b2.js",
+        "js/game/review_transport.js",
+        "js/game/game_session.js",
+        "js/game/question_loader.js",
+        "js/game/board_renderer.js",
+        "js/game/mode_context.js",
+        "js/game/game_bootstrap.js",
+    }
+)
+STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)
+
+
+def _current_expected_required_in_generation(presentation_present):
+    return frozenset(
+        _expected_required_in_generation(presentation_present) | POST_B1_REQUIRED_IN_GENERATION
+    )
+
+
+def test_static_post_b1_expected_set_is_exact():
+    assert len(_current_expected_required_in_generation(True)) == STATIC_CURRENT_REQUIRED_COUNT
+    for path in POST_B1_REQUIRED_IN_GENERATION:
+        assert path not in _expected_required_in_generation(True), (
+            f"{path} is a post-B1 addition and must not be back-dated into the B1 baseline"
+        )
+
+
 def _assert_static_presentation_state(
     presentation_present,
     required_entries,
@@ -78,8 +115,9 @@ def _assert_static_presentation_state(
     app_content,
     dockerfile,
     html,
+    expected_override=None,
 ):
-    expected = _expected_required_in_generation(presentation_present)
+    expected = expected_override if expected_override is not None else _expected_required_in_generation(presentation_present)
     required = set(required_entries)
     eligible = set(eligible_entries)
     assert len(PRE_B1_REQUIRED_IN_GENERATION) == STATIC_PRE_B1_REQUIRED_COUNT
@@ -239,6 +277,7 @@ def test_inventory_explicit_subpath_asset_has_a_live_static_route():
         app_content,
         _read(DOCKERFILE),
         _read(INDEX_HTML),
+        expected_override=_current_expected_required_in_generation(_presentation_source_present()),
     )
     for asset_path in ("js/map_battle_v1_adapter.js", "js/e9/shell.js"):
         assert asset_path in inventory["eligible_files"]["entries"]
@@ -262,7 +301,7 @@ def test_inventory_required_in_generation_matches_confirmed_drift_scope():
     inventory = _load_inventory()
     entries = inventory["required_in_generation"]["entries"]
     assert entries.count("inventory.html") == 1
-    expected = _expected_required_in_generation(_presentation_source_present())
+    expected = _current_expected_required_in_generation(_presentation_source_present())
     assert set(entries) == expected
     assert len(entries) == len(expected)
 
@@ -335,6 +374,7 @@ def test_html_required_legacy_assets_have_image_and_static_contract_entries():
         _read(APP_PY),
         dockerfile,
         html,
+        expected_override=_current_expected_required_in_generation(_presentation_source_present()),
     )
     assert "/js/map_battle_v1_adapter.js" in html
     assert "/js/e9/shell.js" in html
