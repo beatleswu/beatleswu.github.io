@@ -312,7 +312,10 @@ def test_legacy_bridge_is_wired_without_e10_or_srs_damage_fallback(api_env):
     assert "response.player_heal_applied" in adapter
     assert "window.MapBattleV1.e10" not in adapter
     wrong_flow = html[html.index("function onBoardClick"):html.index("function resetProblem")]
-    assert wrong_flow.index("_mapBattleV1IsActive()") < wrong_flow.index("/api/srs/review")
+    review_route = "window.ReviewTransport.review(observerCommand)"
+    assert review_route in wrong_flow
+    assert "/api/srs/review" not in html
+    assert wrong_flow.index("_mapBattleV1IsActive()") < wrong_flow.index(review_route)
     assert "SRS.review(currentQ.id,grade" in html
 
 
