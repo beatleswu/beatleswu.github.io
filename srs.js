@@ -76,30 +76,17 @@ const SRS = (() => {
 
     const _presentationDispatcher =
         typeof window !== 'undefined' ? window.PresentationDispatcher : null;
+    const _reviewTransport =
+        typeof window !== 'undefined' ? window.ReviewTransport : null;
 
     // ── 送出評分 ──────────────────────────────────────────────
     async function review(qid, grade, unitName, unitDone, metadata = {}) {
-        const res = await fetch('/api/srs/review', {
-            credentials: 'include',
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                question_id: qid, grade,
-                unit_name: unitName || null,
-                unit_done: !!unitDone,
-                response_ms: metadata.response_ms ?? null,
-                source_context: metadata.source_context || 'practice',
-                training_set_id: metadata.training_set_id ?? null,
-                is_scaffolding: !!metadata.is_scaffolding
-            })
-        });
-        const data = await res.json();
-        if (!data || typeof data !== 'object') {
-            throw new Error('invalid_review_response');
+        if (!_reviewTransport || typeof _reviewTransport.legacyReview !== 'function') {
+            throw new Error('review_transport_unavailable');
         }
-        if (!res.ok && !['premium_required', 'daily_limit'].includes(data.error)) {
-            throw new Error(data.error || `HTTP ${res.status}`);
-        }
+        const data = await _reviewTransport.legacyReview(
+            qid, grade, unitName, unitDone, metadata
+        );
         if (data.ok) {
             _allCards[qid] = { ...(_allCards[qid]||{}), ...data, question_id: qid };
             if (grade >= 3 && _dueSet) _dueSet.delete(qid);

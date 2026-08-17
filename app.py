@@ -20679,6 +20679,12 @@ def serve_presentation_effects_b2_js():
         'presentation_effects_b2.js', 'js/game', 'js/game'
     )
 
+@app.route('/js/game/review_transport.js')
+def serve_review_transport_js():
+    return _serve_live_static_or_baked_subpath(
+        'review_transport.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

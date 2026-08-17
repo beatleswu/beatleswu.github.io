@@ -22,6 +22,7 @@ BASE_SHA = "f9554b871eec580746b840e5d9df4278a695b464"
 PRESENTATION_PATH = ROOT / "js" / "game" / "presentation_dispatcher.js"
 NODE_CONTRACT = ROOT / "tests" / "e2e" / "run_e10_presentation_dispatcher_contract.mjs"
 SRS_PATH = ROOT / "srs.js"
+REVIEW_TRANSPORT_PATH = ROOT / "js" / "game" / "review_transport.js"
 INDEX_PATH = ROOT / "index.html"
 LORD_CONTROLLER_PATH = ROOT / "js" / "game" / "lord_trial_controller.js"
 APP_PATH = ROOT / "app.py"
@@ -32,6 +33,7 @@ SW_PATH = ROOT / "sw.js"
 DISPATCHER_ASSET = "js/game/presentation_dispatcher.js"
 AUTHORIZED_DISPATCHER_SCRIPT_SRC = "/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"
 AUTHORIZED_EFFECTS_SCRIPT_SRC = "/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"
+AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC = "/js/game/review_transport.js?v=20260817e10v1bb3"
 BASE_SRS_SCRIPT_SRC = "/srs.js?v=20260622i18n1"
 B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
@@ -67,6 +69,37 @@ B2_INDEX_HELPER_FUNCTIONS = (
     "_createB2PresentationScope",
     "_createB2PresentationDependencies",
 )
+
+B3_SUBMIT_SRS_CHALLENGE_REJECTION = """\
+                // Challenge mode stays unlocked, but a rejected review never advances.
+                setMsg(I18n.t('index.srs.save_fail'), 'err');
+"""
+B3_BASE_SUBMIT_SRS_CHALLENGE_REJECTION = """\
+                // 挑戰模式：不鎖定，直接進下一題
+                if(grade>0){ srsDoneCount++; nextQuestion(); }
+"""
+B3_WRONG_ANSWER_REVIEW = """\
+        if(currentQ&&!_dailyLimitReached&&window.ReviewTransport&&typeof window.ReviewTransport.review==='function'){
+            const observerCommand={
+                question_id:currentQ.id,
+                grade:0,
+                unit_name:null,
+                unit_done:false,
+                ..._currentReviewMetadata()
+            };
+            window.ReviewTransport.review(observerCommand).then(({payload:d})=>{if(d.error==='daily_limit'){_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();return;}if(d.error)return;_syncGuildQuestProgress();if(d.monster&&!_isAdventureZonePractice()){updateMonsterUI(d.monster);if(!d.monster.defeated)monsterSpeakTaunt(d.monster.type||_lastMonsterType);}if(d.player)updatePlayerHPUI(d.player);if(d.quest_updates)updateQuestPanel(d.quest_updates);}).catch(error=>{if(error?.kind==='REJECTED'&&error.code==='daily_limit'){const d=error.payload||{};_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();}});
+        }
+"""
+B3_BASE_WRONG_ANSWER_REVIEW = """\
+        if(currentQ&&!_dailyLimitReached)fetch('/api/srs/review',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:currentQ.id,grade:0,unit_name:null,unit_done:false,..._currentReviewMetadata()})}).then(r=>r.json()).then(d=>{if(d.error==='daily_limit'){_dailyLimitMax=d.limit||_dailyLimitMax;_applyDailyLimit();return;}if(d.error)return;_syncGuildQuestProgress();if(d.monster&&!_isAdventureZonePractice()){updateMonsterUI(d.monster);if(!d.monster.defeated)monsterSpeakTaunt(d.monster.type||_lastMonsterType);}if(d.player)updatePlayerHPUI(d.player);if(d.quest_updates)updateQuestPanel(d.quest_updates);}).catch(()=>{});
+"""
+B3_INDEX_REPLACEMENTS = {
+    "submitSRS": (
+        B3_SUBMIT_SRS_CHALLENGE_REJECTION,
+        B3_BASE_SUBMIT_SRS_CHALLENGE_REJECTION,
+    ),
+    "onBoardClick": (B3_WRONG_ANSWER_REVIEW, B3_BASE_WRONG_ANSWER_REVIEW),
+}
 
 FROZEN_INDEX_FUNCTIONS = (
     "_dispatchCommittedReviewPresentation",
@@ -299,7 +332,11 @@ def test_node_contract_runner_reports_expected_base_state_or_validates_module():
 
 def test_srs_review_is_the_only_review_transport_and_private_state_stays_in_srs():
     source = _read(SRS_PATH)
-    assert source.count("/api/srs/review") == 1
+    transport_source = _read(REVIEW_TRANSPORT_PATH)
+    assert source.count("/api/srs/review") == 0
+    assert transport_source.count("/api/srs/review") == 2
+    assert "requester('/api/srs/review'" in transport_source
+    assert source.count("_reviewTransport.legacyReview(") == 1
     assert _read(INDEX_PATH).count("SRS.review(") == 1
     for private_name in (
         "_earned",
@@ -355,14 +392,25 @@ def test_index_html_effect_bodies_and_lord_controller_are_frozen():
     base_index = _git_show("index.html")
     for name in FROZEN_INDEX_FUNCTIONS:
         current_function = _extract_function(current_index, name)
+        base_function = _extract_function(base_index, name)
         b2_delta = B2_INDEX_FUNCTION_DELTAS.get(name)
         if b2_delta:
             assert current_function.count(b2_delta) == 1, (
                 f"HARNESS_FAILURE: expected one exact B2 delta in {name}"
             )
             current_function = current_function.replace(b2_delta, "", 1)
+        b3_replacement = B3_INDEX_REPLACEMENTS.get(name)
+        if b3_replacement:
+            b3_delta, base_b3_delta = b3_replacement
+            assert current_function.count(b3_delta) == 1, (
+                f"HARNESS_FAILURE: expected one exact B3 delta in {name}"
+            )
+            assert base_function.count(base_b3_delta) == 1, (
+                f"HARNESS_FAILURE: expected one exact B3 base delta in {name}"
+            )
+            current_function = current_function.replace(b3_delta, base_b3_delta, 1)
         assert _stable_js(current_function) == _stable_js(
-            _extract_function(base_index, name)
+            base_function
         ), f"B1 changed frozen index function body: {name}"
 
     assert _read(LORD_CONTROLLER_PATH) == _git_show("js/game/lord_trial_controller.js")
@@ -380,7 +428,12 @@ def test_b1_index_html_changes_are_script_loading_only():
     assert current_srcs.count(AUTHORIZED_DISPATCHER_SCRIPT_SRC) == 1
     assert AUTHORIZED_EFFECTS_SCRIPT_SRC not in base_srcs
     assert current_srcs.count(AUTHORIZED_EFFECTS_SCRIPT_SRC) == 1
-    assert len(current_srcs) == len(base_srcs) + 2
+    assert AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC not in base_srcs
+    assert current_srcs.count(AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC) == 1
+    assert current_srcs.index(AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC) < current_srcs.index(
+        B1_SRS_SCRIPT_SRC
+    )
+    assert len(current_srcs) == len(base_srcs) + 3
     assert base_srcs.count(BASE_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(B1_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(BASE_SRS_SCRIPT_SRC) == 0
@@ -388,7 +441,12 @@ def test_b1_index_html_changes_are_script_loading_only():
     current_without_dispatcher = [
         src
         for src in current_srcs
-        if src not in {AUTHORIZED_DISPATCHER_SCRIPT_SRC, AUTHORIZED_EFFECTS_SCRIPT_SRC}
+        if src
+        not in {
+            AUTHORIZED_DISPATCHER_SCRIPT_SRC,
+            AUTHORIZED_EFFECTS_SCRIPT_SRC,
+            AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC,
+        }
     ]
     normalized_current_srcs = [
         BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC else src
@@ -404,6 +462,14 @@ def test_b1_index_html_changes_are_script_loading_only():
         tag for tag, src in current_scripts if src == AUTHORIZED_EFFECTS_SCRIPT_SRC
     )
     current_remainder = _remove_external_script_tag(current_remainder, effects_tag)
+    review_transport_tag = next(
+        tag
+        for tag, src in current_scripts
+        if src == AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC
+    )
+    current_remainder = _remove_external_script_tag(
+        current_remainder, review_transport_tag
+    )
     current_srs_tag = next(tag for tag, src in current_scripts if src == B1_SRS_SCRIPT_SRC)
     base_srs_tag = next(tag for tag, src in base_scripts if src == BASE_SRS_SCRIPT_SRC)
     normalized_srs_tag = _replace_script_src(
@@ -422,6 +488,14 @@ def test_b1_index_html_changes_are_script_loading_only():
             "HARNESS_FAILURE: expected one exact B2 index delta"
         )
         current_remainder = current_remainder.replace(b2_delta, "", 1)
+    for name, (b3_delta, base_b3_delta) in B3_INDEX_REPLACEMENTS.items():
+        assert current_remainder.count(b3_delta) == 1, (
+            f"HARNESS_FAILURE: expected one exact B3 index delta in {name}"
+        )
+        assert base_index.count(base_b3_delta) == 1, (
+            f"HARNESS_FAILURE: expected one exact B3 base delta in {name}"
+        )
+        current_remainder = current_remainder.replace(b3_delta, base_b3_delta, 1)
     assert current_remainder == base_index
 
 

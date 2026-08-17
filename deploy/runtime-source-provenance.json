@@ -195,15 +195,15 @@
     },
     {
       "path": "index.html",
-      "source_commit": "76f014e9c3d7710f2490d81ba234ab9bf62d8625",
-      "source_branch_or_local_ref": "codex/e10-v1b-b1-product-integration-001",
-      "source_commit_subject": "refactor(frontend): integrate PresentationDispatcher B1",
-      "source_date": "2026-08-16",
-      "content_sha256": "23fed8b6b7e6a37d2995f3377122642839660f9c45cf83f11415f4a9c2682225",
+      "source_commit": "761372c10af981465f7222d4173f2eb58bd807e5",
+      "source_branch_or_local_ref": "codex/e10-v1b-b3-packaging-025-h2",
+      "source_commit_subject": "fix(e10): route wrong-answer reviews through ReviewTransport",
+      "source_date": "2026-08-17",
+      "content_sha256": "44e616cec2c50e9f5e414c235a102631610170eec2428a5d3e11b746023b04cd",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B3 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B3 Product integration commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -531,15 +531,15 @@
     },
     {
       "path": "srs.js",
-      "source_commit": "a4d5695621abe1f15c33407d5726bb77944f6fd7",
-      "source_branch_or_local_ref": "codex/e10-v1b-b1-final-closure-016",
-      "source_commit_subject": "fix: close B1 presentation dispatcher contract",
+      "source_commit": "7b2936c05752ee53999f365055561fa0e6adc3b9",
+      "source_branch_or_local_ref": "codex/e10-v1b-b3-packaging-025-h2",
+      "source_commit_subject": "fix(e10): delegate SRS reviews to ReviewTransport",
       "source_date": "2026-08-17",
-      "content_sha256": "f7e67fc0b59d504ca45c7660ca37b696a6ec91b438b96b1322ae64717018f560",
+      "content_sha256": "bbe3f8e1dbbf091f9d007628561235490a6acbad54d274ee20327bdbe6d8b477",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B3 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B3 Product integration commit and raw-byte-verified against current content"
     },
     {
       "path": "js/game/presentation_dispatcher.js",
@@ -577,6 +577,19 @@
       "runtime_role": "startup-required Lord Trial review authority browser module (governed static subpath asset)",
       "production_hash_status": "candidate on the Wave 1 integration branch; Production deployment status is governed separately and is not asserted by this record",
       "source_status": "feature-branch provenance -- recorded source_commit is the bounded Wave 1 integration candidate and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/game/review_transport.js",
+      "source_commit": "a259c255bd4796d084185f966f76ee63a39c82cf",
+      "source_branch_or_local_ref": "codex/e10-v1b-b3-packaging-025-h2",
+      "source_commit_subject": "feat(e10): add review transport module",
+      "source_date": "2026-08-17",
+      "content_sha256": "14b2d6044f7f1355bf380b91b9e997b858c85e8cdf3670c62f7c039745b42e9d",
+      "content_size_bytes": 6606,
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (ReviewTransport browser module; governed static subpath asset)",
+      "production_hash_status": "candidate on the V1B B3 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B3 Product integration commit and raw-byte-verified against current content"
     },
     {
       "path": "monster_trash.js",
