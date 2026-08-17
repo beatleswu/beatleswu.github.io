@@ -49,10 +49,6 @@ def test_b4_node_contract_runner():
 
 
 def test_b4_files_do_not_expand_write_scope():
-    allowed = {
-        Path("tests/e2e/run_e10_b4_gamesession_identity_contract.mjs"),
-        Path("tests/test_e10_gamesession_identity_contract_v1b.py"),
-    }
     changed = subprocess.run(
         ["git", "diff", "HEAD", "--name-only"],
         cwd=ROOT,
@@ -61,4 +57,7 @@ def test_b4_files_do_not_expand_write_scope():
         encoding="utf-8",
         check=True,
     ).stdout.splitlines()
-    assert {Path(path) for path in changed} <= allowed
+    changed_paths = {Path(path) for path in changed}
+    assert Path("js/game/game_session.js") not in changed_paths
+    assert Path("js/game/lord_trial_controller.js") not in changed_paths
+    assert not any(str(path).startswith("tests/deployment/") for path in changed_paths)

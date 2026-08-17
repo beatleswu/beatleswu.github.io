@@ -242,8 +242,14 @@ function runIntegrationContracts() {
     'index.html must adopt identity through GameSession');
   assert.match(index, /\.currentQuestionIdentity\s*\(/,
     'index.html must read current identity through GameSession');
-  assert.equal(/GoOdysseyGameSession[\s\S]{0,500}currentQ\s*=/.test(index), false,
+  const sessionStart = index.indexOf('const _gameSession');
+  const loaderStart = index.indexOf('const _questionLoader');
+  assert.ok(sessionStart >= 0 && loaderStart > sessionStart,
+    'QuestionLoader must be initialized after the GameSession boundary');
+  assert.equal(/currentQ\s*=/.test(index.slice(sessionStart, loaderStart)), false,
     'GameSession integration must not assign currentQ');
+  assert.match(index, /setCurrentQuestion:\s*\(question, context\)\s*=>\s*\{\s*currentQ\s*=/,
+    'QuestionLoader must own the bounded currentQ compatibility projection');
   assert.equal(/GoOdysseyGameSession[\s\S]{0,1200}\/api\/srs\/review/.test(index), false,
     'GameSession must not own review HTTP');
   assert.equal(/GoOdysseyGameSession[\s\S]{0,1200}\bfetch\s*\(/.test(index), false,

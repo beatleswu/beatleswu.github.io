@@ -20723,6 +20723,18 @@ def serve_game_session_js():
         'game_session.js', 'js/game', 'js/game'
     )
 
+@app.route('/js/game/question_loader.js')
+def serve_question_loader_js():
+    return _serve_live_static_or_baked_subpath(
+        'question_loader.js', 'js/game', 'js/game'
+    )
+
+@app.route('/js/game/board_renderer.js')
+def serve_board_renderer_js():
+    return _serve_live_static_or_baked_subpath(
+        'board_renderer.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

@@ -40,7 +40,7 @@ def test_explanation_action_reuses_canonical_explanation_path_without_settlement
 
 def test_return_invalidates_battle_page_callbacks_and_refreshes_map_without_abandoning_attempt():
     action = _function_block("returnToAdventureMapAfterEncounter", "renderAdventureZoneMonster")
-    assert "_mapBattleV1LifecycleGeneration += 1" in action
+    assert "_questionLoader.invalidate('navigation')" in action
     assert "_mapBattleV1PrepareSerial += 1" in action
     assert "_clearMapBattleV1Transition()" in action
     assert "invalidateE9AdventureStateCache()" in action

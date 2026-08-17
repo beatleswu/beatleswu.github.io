@@ -195,16 +195,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "82ee0b2fd9ecbdfcc52bda4f815d1f5791b14b03",
-      "source_branch_or_local_ref": "codex/e10-v1b-b4-final-candidate-030",
-      "source_commit_subject": "feat: integrate E10 B4 game session",
+      "source_commit": "c995c2ef48c87745c3e63ca33bf34ec1532ac4fe",
+      "source_branch_or_local_ref": "codex/e10-v1b-b5-product-041",
+      "source_commit_subject": "fix(e10): keep B5 resize on standard window event",
       "source_date": "2026-08-17",
-      "content_sha256": "0e3d9db3b2e97f1a42355f3995e56319600c7ed226968eb7b3ac6b56d2586ed4",
-      "content_size_bytes": 1003201,
+      "content_sha256": "bf518669ce9de93a1a2db5af38ae0dd0cee5efe458c58b50d62a9eafa3d46d1e",
+      "content_size_bytes": 1007550,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the V1B B3 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B3 Product integration commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -520,15 +520,16 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "76f014e9c3d7710f2490d81ba234ab9bf62d8625",
-      "source_branch_or_local_ref": "codex/e10-v1b-b1-product-integration-001",
-      "source_commit_subject": "refactor(frontend): integrate PresentationDispatcher B1",
-      "source_date": "2026-08-16",
-      "content_sha256": "86813ba842bc5470f7bbd23757a0dddefb128a977b789c427e8f93ff59da84a4",
+      "source_commit": "2feaa77df6b585448dfc174868d18ec0fa0a7d91",
+      "source_branch_or_local_ref": "codex/e10-v1b-b5-product-041",
+      "source_commit_subject": "feat(e10): extract B5 question loading and board rendering",
+      "source_date": "2026-08-17",
+      "content_sha256": "09e52dd6693363f3b22a9687196f043f3006717418a32ef5aa2f8c91e4046a32",
+      "content_size_bytes": 6153,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "candidate on the V1B B1 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B1 product integration commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",
@@ -604,6 +605,32 @@
       "runtime_role": "startup-required static page/script (GameSession browser module; governed static subpath asset)",
       "production_hash_status": "candidate on the V1B B4 final-candidate branch; Production deployment status is governed separately and is not asserted by this record",
       "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B4 final-candidate commit and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/game/question_loader.js",
+      "source_commit": "2feaa77df6b585448dfc174868d18ec0fa0a7d91",
+      "source_branch_or_local_ref": "codex/e10-v1b-b5-product-041",
+      "source_commit_subject": "feat(e10): extract B5 question loading and board rendering",
+      "source_date": "2026-08-17",
+      "content_sha256": "00dfa0f99548fde208ef8fc0a1186cfb74012e03a2d81c85f49d24bc3f69201b",
+      "content_size_bytes": 7061,
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (QuestionLoader question-load lifecycle and supersession boundary; governed static subpath asset)",
+      "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/game/board_renderer.js",
+      "source_commit": "2feaa77df6b585448dfc174868d18ec0fa0a7d91",
+      "source_branch_or_local_ref": "codex/e10-v1b-b5-product-041",
+      "source_commit_subject": "feat(e10): extract B5 question loading and board rendering",
+      "source_date": "2026-08-17",
+      "content_sha256": "0a5408f84036999afc7444ae07156df699eb989018064b9a63a39267e57908ff",
+      "content_size_bytes": 6689,
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (observer-only WGo board renderer lifecycle; governed static subpath asset)",
+      "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "monster_trash.js",
