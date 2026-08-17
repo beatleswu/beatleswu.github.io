@@ -85,7 +85,7 @@ def test_real_resize_handler_routes_to_renderer_and_never_reloads_question():
     assert "_boardRenderer.resize({ width, height: width })" in resize
     assert "loadQuestion(" not in resize
     assert "SRS.review" not in resize
-    assert "window.addEventListener('resize', _scheduleVisibleBoardResize);" in INDEX
+    assert "_gameBootstrap.registerListener(window, 'resize', _scheduleVisibleBoardResize);" in INDEX
 
 
 def test_question_loader_handoff_preserves_mapbattle_and_lord_boundaries():

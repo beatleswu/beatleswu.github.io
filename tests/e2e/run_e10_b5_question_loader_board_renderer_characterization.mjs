@@ -160,7 +160,7 @@ function runStaticIntegrationScenario() {
   assert.ok(boardScript < sessionScript);
   assert.match(INDEX, /function loadQuestion\(q, options = \{\}\)\s*\{[\s\S]*?_questionLoader\.load\(q, options\)/);
   assert.doesNotMatch(INDEX, /loadQuestion\(currentQ\)/);
-  assert.match(INDEX, /addEventListener\('resize', _scheduleVisibleBoardResize\)/);
+  assert.match(INDEX, /_gameBootstrap\.registerListener\(window, 'resize', _scheduleVisibleBoardResize\)/);
   assert.match(INDEX, /_boardRenderer\.resize\(\{ width, height: width \}\)/);
   assert.doesNotMatch(QUESTION_LOADER, /fetch\(|ReviewTransport|nextQuestion|SRS\.review|_handleBossAnswer/);
   assert.doesNotMatch(BOARD_RENDERER, /fetch\(|ReviewTransport|nextQuestion|SRS\.review|_handleBossAnswer|Lord/);
@@ -204,6 +204,10 @@ function runRegisteredResizeScenario() {
         return true;
       },
     },
+    _gameBootstrap: {
+      registerListener: (target, name, handler) => target.addEventListener(name, handler),
+      scheduleTimeout: (callback) => { callback(); return 1; },
+    },
     _e10MeasureElementRect: () => ({ width: 320, height: 320 }),
     _e10AcceptanceTrace: () => {},
     setTimeout: (callback) => { callback(); return 1; },
@@ -216,10 +220,10 @@ function runRegisteredResizeScenario() {
     lastResize: null,
   });
   const start = INDEX.indexOf('function _resizeVisibleBoard');
-  const registration = "window.addEventListener('resize', _scheduleVisibleBoardResize);";
+  const registration = "_gameBootstrap.registerListener(window, 'resize', _scheduleVisibleBoardResize);";
   const end = INDEX.indexOf(registration, start) + registration.length;
   assert.ok(start >= 0 && end > start, 'registered resize handler source is present');
-  vm.runInContext(`let _resizeTimer;\n${INDEX.slice(start, end)}`, context);
+  vm.runInContext(INDEX.slice(start, end), context);
   assert.equal(typeof window.handlers.get('resize'), 'function');
   const identityBefore = JSON.stringify(context.currentQ);
   window.handlers.get('resize')({ type: 'resize' });

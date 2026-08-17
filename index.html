@@ -29,6 +29,8 @@
     <script src="/js/game/question_loader.js?v=20260817e10v1bb5"></script>
     <script src="/js/game/board_renderer.js?v=20260817e10v1bb5"></script>
     <script src="/js/game/game_session.js"></script>
+    <script src="/js/game/mode_context.js?v=20260817e10v1bb6"></script>
+    <script src="/js/game/game_bootstrap.js?v=20260817e10v1bb6"></script>
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
@@ -8759,6 +8761,31 @@ let _mapBattleV1TransitionPending = false;
 // and existing acceptance diagnostics; it is never incremented by callers.
 let _mapBattleV1LifecycleGeneration = 0;
 let _questionLoadGeneration = 0;
+const _gameBootstrap = window.GoOdysseyGameBootstrap.create({
+    onError: (error, stage) => _e10AcceptanceTrace('GAME_BOOTSTRAP_ERROR', {
+        stage,
+        message: String(error),
+    }),
+    onDestroy: () => {
+        try { _questionLoader?.invalidate('navigation'); } catch (error) {}
+        try { _boardRenderer?.destroy(); } catch (error) {}
+    },
+});
+_gameBootstrap.init();
+const _modeContext = window.GoOdysseyModeContext.create({
+    getBossMode: () => _bossMode,
+    getMapBattleMode: () => _mapBattleV1Mode,
+    getMapBattleState: () => _mapBattleV1State,
+    getChallengeId: () => _challengeId,
+    getDailyMode: () => _dailyMode,
+    getAdventureMode: () => typeof _isAdventureZonePractice === 'function' && _isAdventureZonePractice(),
+    getAdventureQuestions: () => Array.isArray(_adventureActiveQuestions) && _adventureActiveQuestions.length > 0,
+    getBossAttemptId: () => _bossAttemptId,
+    getLordIndex: () => _bossIndex,
+    getLifecycleGeneration: () => _mapBattleV1LifecycleGeneration,
+});
+window.__GO_E10_MODE_CONTEXT__ = _modeContext;
+window.__GO_E10_GAME_BOOTSTRAP__ = _gameBootstrap;
 const _gameSession = window.GoOdysseyGameSession.create({
     getCurrentQuestion: () => currentQ,
     getLifecycleGeneration: () => _mapBattleV1LifecycleGeneration,
@@ -8770,23 +8797,12 @@ const _questionLoader = window.GoOdysseyQuestionLoader.create({
         _questionLoadGeneration = context.generation;
         _mapBattleV1LifecycleGeneration = context.generation;
     },
-    onGeneration: (generation) => {
+    onGeneration: (generation, reason) => {
         _questionLoadGeneration = generation;
         _mapBattleV1LifecycleGeneration = generation;
+        _gameBootstrap.invalidate(`question:${reason || 'load'}`);
     },
-    getIdentityOptions: () => ({
-        mode: _bossMode ? 'lord'
-            : (_mapBattleV1Mode === 'active' || _mapBattleV1Mode === 'pending') ? 'map_battle'
-                : _challengeId ? 'friend_challenge'
-                    : _dailyMode ? 'daily' : 'normal',
-        attemptId: _bossMode ? _bossAttemptId : (_mapBattleV1State?.attemptId || null),
-        lordIndex: _bossMode ? _bossIndex : null,
-        sourceContext: _bossMode
-            ? { surface: 'lord_trial', flow: 'lord_review', kind: 'question' }
-            : (_mapBattleV1Mode === 'active' || _mapBattleV1Mode === 'pending')
-                ? { surface: 'map_battle', flow: 'map_battle_load', kind: 'question' }
-                : { surface: 'practice', flow: 'question_load', kind: 'question' },
-    }),
+    getIdentityOptions: (question, options) => _modeContext.identityOptions(question, options),
     load: _loadQuestionImplementation,
     onInvalid: () => {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, reason: 'invalid_question' });
@@ -8827,6 +8843,9 @@ const _boardRenderer = window.GoOdysseyBoardRenderer.create({
         }
     },
 });
+// Page lifecycle is the outermost teardown boundary.  The bootstrap registry
+// removes this listener and all transient callbacks during destruction.
+_gameBootstrap.registerListener(window, 'pagehide', () => _gameBootstrap.destroy());
 // Board-construction-scoped identity, independent of the question-load
 // lifecycle generation above.  Bumped once per actual initBoard() call
 // (primary attempt, Boss recovery remount, or ordinary practice/premium
@@ -9050,7 +9069,8 @@ function _createB2PresentationScope(data, lordController = null) {
     const generation = _mapBattleV1LifecycleGeneration;
     const identity = _gameSession.currentQuestionIdentity();
     let active = true;
-    const mode = snapshot.mode || (lordController ? 'lord' : 'normal');
+    const mode = snapshot.mode || data?.presentation_mode || _modeContext.presentationMode()
+        || (lordController ? 'lord' : 'normal');
     return {
         mode,
         questionId: Number(snapshot.questionId || data?.question_id || data?.qid || question?.id) || null,
@@ -9222,9 +9242,7 @@ async function submitSRS(grade){
     }
     const reviewMetadata = _currentReviewMetadata();
     const identity = _gameSession.adoptQuestion(currentQ, {
-        mode: _bossMode ? 'lord' : 'normal',
-        attemptId: _bossMode ? _bossAttemptId : null,
-        index: _bossMode ? _bossIndex : null,
+        ..._modeContext.identityOptions(currentQ),
         lifecycleGeneration: _mapBattleV1LifecycleGeneration,
         reviewMetadata,
     });
@@ -9300,6 +9318,7 @@ async function submitSRS(grade){
         xp_gain: data.xp_gain,
         shield_used: data.shield_used,
         pet_xp_gained: data.pet_xp_gained,
+        presentation_mode: _modeContext.presentationMode(),
         presentation_context: _gameSession.presentationContext(identity),
     };
     if (_bossMode) {
@@ -10717,7 +10736,7 @@ function startQuestTimer() {
             I18n.t('index.quest.timer').replace('{t}', `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
     }
     tick();
-    setInterval(tick, 1000);
+    _gameBootstrap.scheduleInterval(tick, 1000, { key: 'quest-countdown' });
 }
 function updateSRSProgress(){
     document.getElementById('srs-progress').style.display='block';
@@ -11431,7 +11450,21 @@ function onBoardClick(bx,by){
     playStone(x,y,playerColor);currentNode=matched;
     if(currentNode.children.length===0){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
     answering=true;
-    setTimeout(()=>{
+    const computerReplyGuard = _gameBootstrap.capture({
+        question: currentQ,
+        problem: currentProblem,
+        node: currentNode,
+        identity: _gameSession.currentQuestionIdentity(),
+    });
+    _gameBootstrap.scheduleTimeout(()=>{
+        if (!_gameBootstrap.isCurrent(computerReplyGuard)
+            || currentQ !== computerReplyGuard.question
+            || currentProblem !== computerReplyGuard.problem
+            || currentNode !== computerReplyGuard.node
+            || !board) {
+            if (_gameBootstrap.isCurrent(computerReplyGuard)) answering = false;
+            return;
+        }
         answering=false;const reply=currentNode.children[0];
         if(!reply||!reply.move){solved=true;playCorrect();setMsg(I18n.t('index.correct'),'ok');showExplanation();submitSRS(3);if(_challengeId&&window._challengeCorrectHandler)window._challengeCorrectHandler();return;}
         const placed=playStone(reply.move.x,reply.move.y,reply.color,true);  // 電腦回應：skip rule re-check
@@ -11444,6 +11477,7 @@ function onBoardClick(bx,by){
 // ─── 重試 / 答案 / 上下題 ─────────────────────────────────────
 function resetProblem(){
     if(!currentProblem)return;_exploringAfterWrong=false;_cancelAutoSolution();solved=false;answering=false;
+    _gameBootstrap.invalidate('reset');
     _altAnswerReportMode = false;
     _mapBattleV1Moves = [];
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
@@ -11455,6 +11489,19 @@ function resetProblem(){
 }
 function showAnswer(){
     if(!currentProblem||!currentProblem.tree)return;answering=true;solved=true;
+    _gameBootstrap.invalidate('show_answer');
+    const replayGuard = _gameBootstrap.capture({
+        question: currentQ,
+        problem: currentProblem,
+        identity: _gameSession.currentQuestionIdentity(),
+    });
+    const replayIsCurrent = () => _gameBootstrap.isCurrent(replayGuard)
+        && currentQ === replayGuard.question
+        && currentProblem === replayGuard.problem
+        && (!replayGuard.identity || _gameSession.isCurrent(replayGuard.identity, {
+            question: replayGuard.question,
+            lifecycleGeneration: _mapBattleV1LifecycleGeneration,
+        }));
     if(_challengeId&&window._challengeWrongHandler)window._challengeWrongHandler();
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
@@ -11463,8 +11510,14 @@ function showAnswer(){
     if(node&&!node.move&&node.children&&node.children.length) node=node.children[0];
     while(node&&node.move){moves.push(node);node=node.children[0]||null;}
     let step=0;
-    function pn(){if(step>=moves.length){setMsg(I18n.t('index.answer_done'),'info');showExplanation(null, { reveal: true });return;}const n=moves[step++];playStone(n.move.x,n.move.y,n.color,true);setMsg(I18n.t('index.answer_step')+` ${step}${I18n.t('index.answer_of')}${moves.length} `+(n.color==='B'?'⚫':'⚪'),'info');setTimeout(pn,700);}
-    setMsg(I18n.t('index.answer_play'),'info');setTimeout(pn,300);
+    function pn(){
+        if (!replayIsCurrent()) { answering = false; return; }
+        if(step>=moves.length){setMsg(I18n.t('index.answer_done'),'info');showExplanation(null, { reveal: true });return;}
+        const n=moves[step++];playStone(n.move.x,n.move.y,n.color,true);setMsg(I18n.t('index.answer_step')+` ${step}${I18n.t('index.answer_of')}${moves.length} `+(n.color==='B'?'⚫':'⚪'),'info');
+        _gameBootstrap.scheduleTimeout(pn,700);
+    }
+    setMsg(I18n.t('index.answer_play'),'info');
+    _gameBootstrap.scheduleTimeout(pn,300);
 }
 // ─── 商城道具（提示券 / 護盾 / XP 藥水）────────────────────────
 let _shopStatus = null;
@@ -20128,7 +20181,6 @@ const _origLoadQ = loadQuestion;
 // （loadQuestion 已在上方定義，drawer 的 item.onclick 直接呼叫）
 
 // 棋盤 resize：只調整現有 WGo renderer，不重新載入題目。
-let _resizeTimer;
 function _resizeVisibleBoard() {
     const wrap = document.getElementById('board-canvas-wrap');
     if (!wrap || !board || !_boardRenderer.isMounted()) return false;
@@ -20148,12 +20200,11 @@ function _resizeVisibleBoard() {
     return resized;
 }
 function _scheduleVisibleBoardResize() {
-    clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(() => {
+    _gameBootstrap.scheduleTimeout(() => {
         _resizeVisibleBoard();
-    }, 300);
+    }, 300, { key: 'visible-board-resize' });
 }
-window.addEventListener('resize', _scheduleVisibleBoardResize);
+_gameBootstrap.registerListener(window, 'resize', _scheduleVisibleBoardResize);
 
 // ═══════════════════════════════════════════════════════════
 //  好友挑戰模式

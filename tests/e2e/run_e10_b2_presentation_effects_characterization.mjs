@@ -719,6 +719,10 @@ async function characterizeReviewCommitAndMapBattleAuthority() {
     _guildQuestMode: null,
     currentUnitName: () => null,
     _currentReviewMetadata: () => ({}),
+    _modeContext: {
+      identityOptions: () => ({ mode: 'normal', attemptId: null, lordIndex: null, sourceContext: null }),
+      presentationMode: () => 'normal',
+    },
     _gameSession,
     _e10AcceptanceTrace: (name) => events.push(name),
     updateTodayMini: () => events.push('today'),
