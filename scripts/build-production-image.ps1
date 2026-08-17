@@ -267,6 +267,52 @@ function Fail($msg) {
     exit 1
 }
 
+# RELEASE-TOOLING-HOTFIX-03: `docker buildx inspect` output is not a stable
+# contract. Under a transient Docker Desktop connectivity hiccup (observed
+# directly on this host: the daemon pipe timed out mid-ping) it emits an
+# `Error:` line and OMITS the `Nodes:`/`Platforms:` block entirely, while
+# still exiting 0. The original parser --
+#   (& docker buildx inspect 2>$null | Select-String -Pattern
+#     '^Platforms:\s*(.+)$').Matches | ForEach-Object { $_.Groups[1].Value }
+# -- crashed with "Cannot index into a null array" on that input: when
+# Select-String finds zero matches it emits nothing, so `(...).Matches` is
+# $null; piping $null into ForEach-Object is a well-known PowerShell
+# gotcha -- it invokes the script block ONCE with $_ = $null (unlike an
+# empty array, which invokes it zero times) -- so `$_.Groups[1]` becomes
+# `$null[1]`, which throws. This function never has that shape: it only
+# ever returns a non-empty platform array or throws a clear, diagnosable
+# message, so a parse failure fails closed through the existing capability
+# gate below instead of crashing before it.
+function Get-BuildxReportedPlatforms {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][AllowEmptyCollection()][object[]]$InspectOutput,
+        [Parameter(Mandatory = $true)][int]$InspectExitCode
+    )
+    if ($InspectExitCode -ne 0) {
+        $joined = if ($InspectOutput) { (@($InspectOutput) -join "`n") } else { '(no output)' }
+        throw "docker buildx inspect failed with exit code $InspectExitCode. Output: $joined"
+    }
+    if (-not $InspectOutput -or @($InspectOutput).Count -eq 0) {
+        throw "docker buildx inspect produced no output. Cannot confirm builder platform capability."
+    }
+    $platformsLine = $null
+    foreach ($line in @($InspectOutput)) {
+        if ($null -ne $line -and $line -match '^Platforms:\s*(.+?)\s*$') {
+            $platformsLine = $Matches[1]
+            break
+        }
+    }
+    if (-not $platformsLine) {
+        $joined = (@($InspectOutput) -join ' | ')
+        throw "docker buildx inspect output did not contain a recognizable 'Platforms:' line for the active builder (output: $joined). Cannot confirm platform capability -- refusing to assume support."
+    }
+    $platforms = @($platformsLine -split ',\s*' | Where-Object { $_ })
+    if ($platforms.Count -eq 0) {
+        throw "docker buildx inspect reported an empty Platforms list. Cannot confirm platform capability."
+    }
+    return $platforms
+}
+
 $validatedWorktreeRoot = Assert-GovernedBuildChildIdentity `
     -ExpectedCanonicalWorktreeRoot $bootstrapRoot `
     -ExpectedGitSha $ExpectedExactGitSha `
@@ -425,10 +471,16 @@ if (-not $docker) {
 if ($LASTEXITCODE -ne 0) {
     Fail "docker buildx is not available. This build requires buildx to target $Platform -- refusing to silently fall back to a plain `docker build` (which would target the local machine's native platform, not the production contract)."
 }
-$builderPlatforms = (& docker buildx inspect 2>$null | Select-String -Pattern '^Platforms:\s*(.+)$').Matches |
-    ForEach-Object { $_.Groups[1].Value } | Select-Object -First 1
-if (-not $builderPlatforms -or ($builderPlatforms -split ',\s*') -notcontains $Platform) {
-    Fail "The active buildx builder does not report support for $Platform (reported platforms: $builderPlatforms). Refusing to build -- this is a capability gap to fix (e.g. QEMU/binfmt setup), not something to silently downgrade past."
+$buildxInspectOutput = @(& docker buildx inspect 2>$null)
+$buildxInspectExitCode = $LASTEXITCODE
+try {
+    $reportedPlatforms = Get-BuildxReportedPlatforms -InspectOutput $buildxInspectOutput -InspectExitCode $buildxInspectExitCode
+}
+catch {
+    Fail "Unable to determine active buildx builder platform capability: $($_.Exception.Message) Refusing to build -- this is a capability gap to fix (e.g. QEMU/binfmt setup, or a Docker Desktop connectivity issue), not something to silently downgrade past."
+}
+if ($reportedPlatforms -notcontains $Platform) {
+    Fail "The active buildx builder does not report support for $Platform (reported platforms: $($reportedPlatforms -join ', ')). Refusing to build -- this is a capability gap to fix (e.g. QEMU/binfmt setup), not something to silently downgrade past."
 }
 
 # 9. Build with buildx, targeting the explicit platform contract, loaded
