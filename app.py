@@ -20685,6 +20685,14 @@ def serve_review_transport_js():
         'review_transport.js', 'js/game', 'js/game'
     )
 
+# B4 GameSession identity is an explicitly referenced browser module and must
+# remain a narrow static subpath route.
+@app.route('/js/game/game_session.js')
+def serve_game_session_js():
+    return _serve_live_static_or_baked_subpath(
+        'game_session.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

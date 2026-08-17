@@ -592,6 +592,19 @@
       "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B3 Product integration commit and raw-byte-verified against current content"
     },
     {
+      "path": "js/game/game_session.js",
+      "source_commit": "4bc6cffd82024364f84b0da1b7140a38384a20d4",
+      "source_branch_or_local_ref": "codex/e10-v1b-b4-final-candidate-030",
+      "source_commit_subject": "fix: expose GameSession identity normalizer",
+      "source_date": "2026-08-17",
+      "content_sha256": "02df8fca2698e50335a2c7abae848f609ba05222b2da173161d73b651249b02c",
+      "content_size_bytes": 10562,
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (GameSession browser module; governed static subpath asset)",
+      "production_hash_status": "candidate on the V1B B4 final-candidate branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B4 final-candidate commit and raw-byte-verified against current content"
+    },
+    {
       "path": "monster_trash.js",
       "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
       "source_branch_or_local_ref": "origin/master",
