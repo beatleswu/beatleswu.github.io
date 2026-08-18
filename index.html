@@ -10135,10 +10135,21 @@ function _syncE10BattleActions(active) {
         explain.tabIndex = revealVisible ? 0 : -1;
         explain.setAttribute('aria-disabled', revealVisible ? 'false' : 'true');
     }
-    if (back && battleVisible) {
-        back.textContent = '返回 E10 地圖';
-        back.style.display = 'inline-flex';
-    } else if (back && !isBeginnerVillageAdventureResult()) {
+    // UI-NAV-063: the E10 battle state used to render this shared slot as a
+    // SECOND map-return CTA ("返回 E10 地圖") sitting directly beside the
+    // always-present #btn-return-map. Both resolved to the same destination:
+    // #btn-return-map calls returnToAdventureMap(), which delegates to
+    // returnToAdventureMapAfterEncounter() -- exactly what this slot's own
+    // onclick invokes -- and both end at window.location.href='/?adventure=1'.
+    // The second control was therefore purely redundant and is no longer
+    // rendered in the battle state.
+    //
+    // The slot itself is deliberately NOT removed and its handler is NOT
+    // touched: Beginner Village still owns this element through
+    // _setBeginnerVillagePostAnswerControls(), which supplies its own label
+    // from adventure.newbie.return_map. The guard below leaves that ownership
+    // intact, exactly as the previous else-branch did.
+    if (back && !isBeginnerVillageAdventureResult()) {
         back.style.display = 'none';
     }
 }

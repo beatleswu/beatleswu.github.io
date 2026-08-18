@@ -40,7 +40,20 @@
     var list = root.querySelector('[data-e10-navigation-list]');
     registry.itemsFor('desktop-primary').forEach(function (item) { list.appendChild(renderItem(item, registry)); });
     registry.itemsFor('mobile-primary').forEach(function (item) {
-      if (!list.querySelector('[data-e10-nav-key="' + item.key + '"]')) list.appendChild(renderItem(item, registry));
+      // UI-NAV-063: this navigation only mounts inside the Adventure shell
+      // (#e9-left-nav-slot exists solely on the Adventure surface), where a
+      // slot that navigates back to Adventure does nothing for the player.
+      // That single slot is swapped for the existing Guild entry; every other
+      // item, its order and its target are untouched. The Guild item carries a
+      // target rather than a command, so it renders as a normal link and does
+      // NOT pick up the adventure-only active state in renderItem -- the
+      // player is still on Adventure until they actually tap it.
+      var rendered = item;
+      if (item.key === 'adventure') {
+        var guild = registry.get('guild');
+        if (guild) rendered = guild;
+      }
+      if (!list.querySelector('[data-e10-nav-key="' + rendered.key + '"]')) list.appendChild(renderItem(rendered, registry));
     });
     var adventure = list.querySelector('[data-e10-command="adventure"]');
     if (adventure) {
