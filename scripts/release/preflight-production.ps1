@@ -85,7 +85,16 @@ function Invoke-RemoteCommandResult {
     if ($PSBoundParameters.ContainsKey('Command')) { $params.Command = $Command }
     if ($PSBoundParameters.ContainsKey('ScriptText')) { $params.ScriptText = $ScriptText }
     if ($PSBoundParameters.ContainsKey('StdinText')) { $params.StdinText = $StdinText }
-    $result = Invoke-RemoteShellCommand @params
+    try {
+        $result = Invoke-RemoteShellCommand @params
+    }
+    catch {
+        # Preflight remote probes are read-only. Allow one bounded retry only
+        # when the SSH/process invocation throws before a result exists.
+        # A returned non-zero exit code remains a single, fail-closed result.
+        Start-Sleep -Milliseconds 250
+        $result = Invoke-RemoteShellCommand @params
+    }
     $result.mode = 'ssh'
     return $result
 }
