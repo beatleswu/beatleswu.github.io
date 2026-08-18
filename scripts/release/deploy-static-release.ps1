@@ -93,6 +93,23 @@ elseif ([string]::IsNullOrWhiteSpace($BundlePath) -or [string]::IsNullOrWhiteSpa
 if ($VerifyOnly -and $adoptionMode) {
     throw 'VerifyOnly is mutually exclusive with existing-generation adoption.'
 }
+
+# RELEASE-TOOLING-HOTFIX-06: exactly one of this script's three modes stages
+# and uploads a local archive/bundle.
+#
+#   NORMAL_ARCHIVE_DEPLOY        -> stages + uploads (all local archive gates apply)
+#   EXISTING_GENERATION_ADOPTION -> reuses an already-present remote generation
+#   VERIFY_ONLY                  -> read-only public verification; no local
+#                                   archive or bundle exists at all
+#
+# Every archive/bundle-only validation below is gated on this single
+# predicate rather than on `-not $adoptionMode`, because the latter is TRUE
+# in VerifyOnly mode and would otherwise reach Test-Path / Get-FileHash /
+# Get-Item / Resolve-GnuTarExecutable / Test-StaticArchiveEntrySafety
+# against a $null archive path. The NORMAL and ADOPTION gates themselves are
+# unchanged -- this only adds VerifyOnly to the set of modes that legitimately
+# have nothing local to stage.
+$archiveStagingRequired = (-not $adoptionMode) -and (-not $VerifyOnly)
 $manifestPath = Resolve-RepoPath $StaticManifest
 $manifest = Read-JsonFile -Path $manifestPath
 $bundlePath = if ($BundlePath) { Resolve-RepoPath $BundlePath } else { $null }
@@ -107,7 +124,7 @@ if ($manifest.archive_sha256 -ne $ExpectedArchiveSha256) { throw 'Static archive
 
 # Re-verify the staged bundle against the manifest -- defense against a
 # stale or tampered bundle directory reused from an earlier invocation.
-if (-not $adoptionMode -and -not $VerifyOnly) { foreach ($entry in $manifest.files) {
+if ($archiveStagingRequired) { foreach ($entry in $manifest.files) {
     $stagedFile = Join-Path $bundlePath $entry.path
     if (-not (Test-Path -LiteralPath $stagedFile -PathType Leaf)) {
         throw "Staged static release file missing: $($entry.path)"
@@ -125,28 +142,28 @@ if (-not $adoptionMode -and -not $VerifyOnly) { foreach ($entry in $manifest.fil
 # here, verified by SHA-256/size/entry-count against what the manifest
 # recorded at packaging time, not re-derived from whatever GNU tar (or
 # bsdtar) happens to be resolvable on this deploy workstation's PATH today.
-if (-not $adoptionMode -and -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+if ($archiveStagingRequired -and -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
     throw "Static release archive not found: $archivePath. Run package-static-release.ps1 first; this script never builds an archive itself."
 }
-if (-not $adoptionMode -and ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename))) {
+if ($archiveStagingRequired -and ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename))) {
     throw "Static release manifest does not record archive identity (archive_filename/archive_sha256) -- it was built before RELEASE-FIX-A3-STATIC-DEPLOY-FIX3 or is otherwise incompatible. Re-run package-static-release.ps1."
 }
 # Compatibility marker for the normal-mode archive identity gate:
 # $actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $actualArchiveHash = $null
-if (-not $adoptionMode) {
+if ($archiveStagingRequired) {
     $actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
 }
-if (-not $adoptionMode -and $actualArchiveHash -ne $manifest.archive_sha256) {
+if ($archiveStagingRequired -and $actualArchiveHash -ne $manifest.archive_sha256) {
     throw "Local archive SHA-256 ($actualArchiveHash) does not match the manifest's recorded archive_sha256 ($($manifest.archive_sha256)) -- refusing to upload a mismatched archive. Re-run package-static-release.ps1."
 }
-$actualArchiveSize = if (-not $adoptionMode) { (Get-Item -LiteralPath $archivePath).Length } else { 0 }
-if (-not $adoptionMode -and $manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
+$actualArchiveSize = if ($archiveStagingRequired) { (Get-Item -LiteralPath $archivePath).Length } else { 0 }
+if ($archiveStagingRequired -and $manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
     throw "Local archive byte size ($actualArchiveSize) does not match the manifest's recorded archive_size ($($manifest.archive_size))."
 }
 
 $gnuTar = $null
-if (-not $adoptionMode) {
+if ($archiveStagingRequired) {
     $gnuTar = Resolve-GnuTarExecutable -OverridePath $GnuTarPath
     Test-StaticArchiveEntrySafety -ArchivePath $archivePath -GnuTarExecutablePath $gnuTar.path
 }
