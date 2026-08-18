@@ -108,6 +108,7 @@ from sgf_admin_workbench import (
     WorkbenchRepository,
     workbench_constants,
 )
+from sgf_workbench_v2a_routes import create_sgf_workbench_v2a_blueprint
 
 _startup_diagnostics.mark('application_creation', 'start')
 app = Flask(__name__)
@@ -4127,6 +4128,21 @@ from sgf_answer_review_routes import (
 app.register_blueprint(create_sgf_answer_review_blueprint(
     admin_required=admin_required,
     get_db_provider=lambda: get_db(),
+))
+
+# V2-A is a read/review surface only.  The callbacks are lazy because the
+# question cache helpers are defined later in this module; this blueprint has
+# no repair, apply, or canonical-content write endpoint.
+app.register_blueprint(create_sgf_workbench_v2a_blueprint(
+    admin_required=admin_required,
+    get_db_provider=lambda: get_db(),
+    load_questions=lambda: _load_questions(),
+    questions_snapshot_sha=lambda: (
+        canonical_file_sha256(DATA_FILE) if os.path.exists(DATA_FILE) else None
+    ),
+    csrf_failure=_review_csrf_failure,
+    csrf_header=_REVIEW_CSRF_HEADER,
+    csrf_token=_review_csrf_token,
 ))
 
 

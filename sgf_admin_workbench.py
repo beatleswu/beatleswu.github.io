@@ -603,6 +603,22 @@ def ensure_sgf_workbench_tables(conn) -> None:
         created_at TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sgw_direct_versions_question ON sgf_workbench_direct_versions(question_id, record_index, id DESC)")
+    # V2-A human review is an independent, additive lifecycle.  SQLite test
+    # fixtures install it locally; PostgreSQL is created only by its governed
+    # migrations/sgf_human_review_v2a.py artifact (never at request time).
+    conn.execute("""CREATE TABLE IF NOT EXISTS sgf_human_review_state (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reviewer_id BIGINT NOT NULL,
+        record_index BIGINT NOT NULL,
+        legacy_question_id TEXT NOT NULL,
+        reviewed_record_sha256 TEXT NOT NULL,
+        classification TEXT NOT NULL CHECK (classification IN
+            ('CORRECT','WRONG_ROOT','MISSING_ANSWER','MISSING_VARIATION','SPECIAL','UNSURE')),
+        reviewed_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(reviewer_id, record_index, legacy_question_id, reviewed_record_sha256)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sgfh_current_locator ON sgf_human_review_state(reviewer_id, record_index, legacy_question_id, updated_at DESC)")
 
 
 def _normalize_move(move: Any) -> dict | None:
@@ -1531,4 +1547,9 @@ def workbench_constants() -> dict:
         "direct_apply_source": DIRECT_APPLY_SOURCE,
         "direct_apply_actions": list(DIRECT_APPLY_ACTIONS),
         "direct_apply_requires_acceptance_gate": True,
+        "human_review_classifications": [
+            "CORRECT", "WRONG_ROOT", "MISSING_ANSWER", "MISSING_VARIATION", "SPECIAL", "UNSURE",
+        ],
+        "human_review_identity": "VERSION_SCOPED_RECORD_LOCATOR",
+        "canonical_identity_decision": "DEFERRED",
     }
