@@ -508,3 +508,98 @@ def test_manifest_mime_matches_decoded_file_type():
         if detected != f["mime"]:
             mismatches.append(f"{f['path']}: manifest={f['mime']!r} detected={detected!r}")
     assert not mismatches, "\n".join(mismatches)
+
+
+# ---------------------------------------------------------------------------
+# UI-NAV-063A. Root-constant + dict-value icon references.
+#
+# The Phase 1 scan above only matches LITERAL quoted absolute paths
+# ("/assets/..."). js/e9/navigation_registry.js does not contain any: it builds
+# every nav icon URL as
+#
+#     ART_ICON_ROOT + ICON_ASSETS[resolved]
+#
+# where ART_ICON_ROOT is '/assets/e10/ui/icons/' and the dict values are bare
+# filenames like 'guild.webp'. A bare filename has no leading slash, so
+# IMAGE_EXT_PATTERN can never match it, and an icon added to that registry is
+# invisible to the scan.
+#
+# That is exactly how UI-NAV-063 shipped assets/e10/ui/icons/guild.webp into
+# Git and into the runtime while leaving it absent from
+# deploy/canonical-image-pack-manifest.json -- the manifest a required_subtrees
+# entry in deploy/live-static-asset-inventory.json declares as the ONLY source
+# of staged assets/** files ("Never stage a file under assets/ that is not in
+# this manifest, even if present on disk"). Git would have had the emblem;
+# Production static generation would not, and the Guild nav item would 404.
+#
+# These tests resolve that concatenation form and hold the whole class, not
+# just the one file that exposed it.
+# ---------------------------------------------------------------------------
+
+NAV_REGISTRY = REPO_ROOT / "js" / "e9" / "navigation_registry.js"
+
+
+def resolve_nav_icon_references():
+    """Resolve ART_ICON_ROOT + ICON_ASSETS[*] to absolute runtime paths."""
+    source = _read(NAV_REGISTRY)
+    root_match = re.search(r"ART_ICON_ROOT\s*=\s*'([^']+)'", source)
+    assert root_match, "ART_ICON_ROOT literal not found in navigation_registry.js"
+    root = root_match.group(1)
+    block = source[source.index("var ICON_ASSETS = {"):source.index("function exactContract")]
+    filenames = re.findall(r"^\s{4}[a-z_]+:\s*'([^']+\.webp)'", block, re.M)
+    assert filenames, "no ICON_ASSETS entries resolved"
+    return {root + name for name in filenames}
+
+
+def test_every_nav_icon_reference_is_governed_by_the_active_subtree_manifest():
+    governed = {"/" + f["path"] for f in _load_active_image_manifest()["files"]}
+    referenced = resolve_nav_icon_references()
+    unresolved = referenced - governed
+    assert not unresolved, (
+        f"{len(unresolved)} nav icon(s) are referenced by navigation_registry.js but are not "
+        f"in deploy/canonical-image-pack-manifest.json, so a static release would never stage "
+        f"them and they would 404 in Production: {sorted(unresolved)}"
+    )
+
+
+def test_nav_icon_manifest_records_match_the_real_files_byte_for_byte():
+    import hashlib
+
+    from PIL import Image
+
+    governed = {"/" + f["path"]: f for f in _load_active_image_manifest()["files"]}
+    for ref in sorted(resolve_nav_icon_references()):
+        entry = governed[ref]
+        path = REPO_ROOT / entry["path"]
+        assert path.is_file(), entry["path"]
+        raw = path.read_bytes()
+        assert entry["size"] == len(raw), entry["path"]
+        assert entry["sha256"] == hashlib.sha256(raw).hexdigest(), entry["path"]
+        assert entry["mime"] == "image/webp", entry["path"]
+        with Image.open(path) as image:
+            assert image.format == "WEBP", entry["path"]
+            assert [entry["width"], entry["height"]] == list(image.size), entry["path"]
+
+
+def test_guild_nav_icon_is_present_in_the_governed_staging_source():
+    """The Guild emblem specifically -- the asset that exposed this gap."""
+    governed = {f["path"] for f in _load_active_image_manifest()["files"]}
+    assert "assets/e10/ui/icons/guild.webp" in governed
+    assert "/assets/e10/ui/icons/guild.webp" in resolve_nav_icon_references()
+
+
+def test_nav_icon_scan_cannot_be_satisfied_by_an_unmanifested_file_on_disk():
+    """Presence on disk must never substitute for manifest membership.
+
+    required_subtrees is explicit that a file under assets/ which is not in the
+    manifest is never staged, so this test asserts the check is manifest-driven
+    rather than filesystem-driven.
+    """
+    governed = {"/" + f["path"] for f in _load_active_image_manifest()["files"]}
+    icons_dir = REPO_ROOT / "assets" / "e10" / "ui" / "icons"
+    on_disk = {"/assets/e10/ui/icons/" + p.name for p in icons_dir.glob("*.webp")}
+    ungoverned = on_disk - governed
+    assert not ungoverned, (
+        f"icon file(s) exist on disk but are not manifest-governed, so they would be "
+        f"silently dropped from every static release: {sorted(ungoverned)}"
+    )
