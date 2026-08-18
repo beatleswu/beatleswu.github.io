@@ -33,6 +33,7 @@ Import-Module '{MODULE.as_posix()}' -Force -DisableNameChecking
 
 $ExpectedSha = '{EXPECTED_SHA}'
 $script:currentAppSha = '{BASELINE_SHA}'
+$script:currentSchedulerSha = '{BASELINE_SHA}'
 $script:currentStaticSha = '{BASELINE_SHA}'
 $script:attemptCounts = @{{}}
 
@@ -42,20 +43,22 @@ function Get-AttemptCount([string]$key) {{
     return $script:attemptCounts[$key]
 }}
 
-$GetCurrentState = {{ [ordered]@{{ success = $true; app_sha = $script:currentAppSha; static_sha = $script:currentStaticSha }} }}
+# An app release switches BOTH the app and scheduler container images, so
+# the simulated state tracks all three governed identities independently.
+$GetCurrentState = {{ [ordered]@{{ success = $true; app_sha = $script:currentAppSha; scheduler_sha = $script:currentSchedulerSha; static_sha = $script:currentStaticSha }} }}
 $Precheck = {{ [ordered]@{{ success = $true }} }}
 $BuildApp = {{ [ordered]@{{ success = $true }} }}
 $PackageApp = {{ [ordered]@{{ success = $true }} }}
 $PackageStatic = {{ [ordered]@{{ success = $true }} }}
-$SnapshotBaseline = {{ [ordered]@{{ success = $true; app_sha = $script:currentAppSha; static_sha = $script:currentStaticSha }} }}
+$SnapshotBaseline = {{ [ordered]@{{ success = $true; app_sha = $script:currentAppSha; scheduler_sha = $script:currentSchedulerSha; static_sha = $script:currentStaticSha }} }}
 $VerifyRollbackReady = {{ param($baseline) [ordered]@{{ success = $true }} }}
 $PromoteStatic = {{ $script:currentStaticSha = $ExpectedSha; [ordered]@{{ success = $true; static_sha = $ExpectedSha }} }}
-$VerifyStatic = {{ param($promoted) [ordered]@{{ success = $true }} }}
-$PromoteApp = {{ $script:currentAppSha = $ExpectedSha; [ordered]@{{ success = $true; app_sha = $ExpectedSha }} }}
-$VerifyApp = {{ param($promoted) [ordered]@{{ success = $true }} }}
+$VerifyStatic = {{ param($promoted) [ordered]@{{ success = ($script:currentStaticSha -eq $ExpectedSha) }} }}
+$PromoteApp = {{ $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha; [ordered]@{{ success = $true; app_sha = $ExpectedSha }} }}
+$VerifyApp = {{ param($promoted) [ordered]@{{ success = (($script:currentAppSha -eq $ExpectedSha) -and ($script:currentSchedulerSha -eq $ExpectedSha)) }} }}
 $ProductionSmoke = {{ [ordered]@{{ success = $true }} }}
 $RollbackStatic = {{ param($baseline) $script:currentStaticSha = $baseline.static_sha; [ordered]@{{ success = $true }} }}
-$RollbackApp = {{ param($baseline) $script:currentAppSha = $baseline.app_sha; [ordered]@{{ success = $true }} }}
+$RollbackApp = {{ param($baseline) $script:currentAppSha = $baseline.app_sha; $script:currentSchedulerSha = $baseline.scheduler_sha; [ordered]@{{ success = $true }} }}
 """
 
 INVOKE_AND_EMIT = """
@@ -190,7 +193,8 @@ $__report = Invoke-CoordinatedReleaseStateMachine `
     recovery = report["recovery_log"]
     assert len(recovery) == 1
     assert recovery[0]["root_cause_class"] == "post_timeout_state_reconciliation"
-    assert recovery[0]["recovery_action"] == "RECONCILED_ALREADY_SUCCEEDED_NO_DUPLICATE_MUTATION"
+    assert recovery[0]["recovery_action"] == "RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION"
+    assert recovery[0]["postcondition_independently_verified"] is True
     # The definitive proof this test exists for: PromoteStatic's own action
     # scriptblock must only ever have been invoked ONCE -- the driver must
     # never blindly re-run a possibly-non-idempotent mutation after
@@ -208,7 +212,7 @@ def test_f3_static_success_app_premutation_fail_rolls_back_to_baseline():
 $PromoteApp = {
     $n = Get-AttemptCount 'promote_app'
     if ($n -eq 1) { [ordered]@{ success = $false; root_cause_class = 'app_premutation_failure'; detail = 'F3: app promotion failed before any app mutation occurred' } }
-    else { $script:currentAppSha = $ExpectedSha; [ordered]@{ success = $true; app_sha = $ExpectedSha } }
+    else { $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha; [ordered]@{ success = $true; app_sha = $ExpectedSha } }
 }
 """
     report = run_scenario(overrides)
@@ -483,10 +487,10 @@ $PromoteApp = {
         # Mutation genuinely happens, but this is a DEFINITE failure (no
         # possible_timeout) -- e.g. the underlying script's own post-switch
         # verification explicitly failed even though the switch landed.
-        $script:currentAppSha = $ExpectedSha
+        $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
         [ordered]@{ success = $false; possible_timeout = $false; root_cause_class = 'post_switch_verification_failed'; detail = 'definite failure: post-switch verification explicitly failed even though the switch itself landed' }
     } else {
-        $script:currentAppSha = $ExpectedSha
+        $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
         [ordered]@{ success = $true; app_sha = $ExpectedSha }
     }
 }
@@ -544,10 +548,10 @@ def test_reconciliation_sets_promoted_flag_from_observed_state_not_just_phase_bo
 $PromoteApp = {
     $n = Get-AttemptCount 'bare_throw_after_mutation'
     if ($n -eq 1) {
-        $script:currentAppSha = $ExpectedSha
+        $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
         throw 'completely bare exception, no structured fields at all'
     } else {
-        $script:currentAppSha = $ExpectedSha
+        $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
         [ordered]@{ success = $true; app_sha = $ExpectedSha }
     }
 }
@@ -617,3 +621,214 @@ def test_get_release_state_domain_reports_unverified_for_null_state():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.strip() == "MIXED_OR_UNVERIFIED"
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review #2: an app release switches TWO container images (app
+# AND scheduler). A candidate app running beside a baseline scheduler is a
+# real, reachable partial state that must never be accepted as a completed
+# PROMOTE_APP -- not even after an ambiguous timeout where the app's own
+# identity is observably on the candidate.
+# ---------------------------------------------------------------------------
+
+def test_a_partial_app_timeout_with_baseline_scheduler_never_advances_as_successful():
+    # static candidate + app switched to candidate + scheduler STILL baseline,
+    # and the PROMOTE_APP client times out. The candidate app identity IS
+    # observable -- the pre-fix logic would have advanced on that alone.
+    overrides = """
+$script:appPromoteCallCount = 0
+$PromoteApp = {
+    $script:appPromoteCallCount = $script:appPromoteCallCount + 1
+    if ($script:appPromoteCallCount -eq 1) {
+        # app switched, scheduler did NOT, then the local client lost the result
+        $script:currentAppSha = $ExpectedSha
+        [ordered]@{ success = $false; possible_timeout = $true; root_cause_class = 'ssh_timeout_mid_app_promotion'; detail = 'A: app switched, scheduler still baseline, client timed out' }
+    } else {
+        $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
+        [ordered]@{ success = $true; app_sha = $ExpectedSha }
+    }
+}
+"""
+    report = run_scenario(overrides)
+    recovery = report["recovery_log"]
+    # Must NOT have been accepted as an already-successful promotion.
+    advanced = [r for r in recovery if r.get("final_outcome") == "ADVANCED_WITHOUT_RETRY"]
+    assert advanced == [], (
+        "a candidate app beside a baseline scheduler must never be accepted "
+        "as a completed PROMOTE_APP"
+    )
+    assert recovery[0]["classification"] == "L2"
+    assert recovery[0]["recovery_action"] == "COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA"
+    assert report["app_rolled_back"] is True
+    # Recovered and retried the same SHA to a full, coherent success.
+    assert report["success"] is True
+    assert report["final_state_domain"] == "CANDIDATE_CANDIDATE"
+
+
+def test_b_full_candidate_identity_but_unproven_verification_after_timeout_does_not_advance():
+    # app + scheduler + static are ALL on the candidate after an ambiguous
+    # timeout, but the phase's own canonical verification does not pass --
+    # identity agreement alone must not be read as phase completion.
+    overrides = """
+$PromoteApp = {
+    $n = Get-AttemptCount 'promote_app_b'
+    $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
+    if ($n -eq 1) { [ordered]@{ success = $false; possible_timeout = $true; root_cause_class = 'timeout_verification_unproven'; detail = 'B: identities landed but verification unproven' } }
+    else { [ordered]@{ success = $true; app_sha = $ExpectedSha } }
+}
+$VerifyApp = {
+    param($promoted)
+    $n = Get-AttemptCount 'verify_app_b'
+    # The first (reconciliation) verification cannot prove the postcondition.
+    if ($n -eq 1) { [ordered]@{ success = $false; detail = 'B: canonical production verification did not pass' } }
+    else { [ordered]@{ success = (($script:currentAppSha -eq $ExpectedSha) -and ($script:currentSchedulerSha -eq $ExpectedSha)) } }
+}
+"""
+    report = run_scenario(overrides)
+    recovery = report["recovery_log"]
+    assert recovery[0]["root_cause_class"] == "post_timeout_postcondition_unproven"
+    assert recovery[0]["recovery_action"] == "CANDIDATE_IDENTITY_PRESENT_BUT_FULL_POSTCONDITION_UNPROVEN"
+    assert recovery[0]["postcondition_independently_verified"] is False
+    assert recovery[0]["final_outcome"] == "FALLING_THROUGH_TO_COORDINATED_ROLLBACK"
+    # ... and it really did fall through to a coordinated rollback, not advance.
+    assert report["app_rolled_back"] is True
+    assert any(r.get("recovery_action") == "COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA" for r in recovery)
+
+
+def test_c_full_postcondition_independently_proven_may_advance_without_duplicate_mutation():
+    # app + scheduler + static all candidate AND the canonical verification
+    # independently passes -> safe to advance without replaying a
+    # possibly-non-idempotent mutation.
+    overrides = """
+$script:appPromoteCallCount = 0
+$PromoteApp = {
+    $script:appPromoteCallCount = $script:appPromoteCallCount + 1
+    $script:currentAppSha = $ExpectedSha; $script:currentSchedulerSha = $ExpectedSha
+    [ordered]@{ success = $false; possible_timeout = $true; root_cause_class = 'timeout_after_full_completion'; detail = 'C: whole phase actually completed, client lost the result' }
+}
+"""
+    overrides_with_count = overrides + """
+$__report = Invoke-CoordinatedReleaseStateMachine `
+    -ExpectedGitSha $ExpectedSha `
+    -GetCurrentState $GetCurrentState `
+    -Precheck $Precheck `
+    -BuildApp $BuildApp `
+    -PackageApp $PackageApp `
+    -PackageStatic $PackageStatic `
+    -SnapshotBaseline $SnapshotBaseline `
+    -VerifyRollbackReady $VerifyRollbackReady `
+    -PromoteStatic $PromoteStatic `
+    -VerifyStatic $VerifyStatic `
+    -PromoteApp $PromoteApp `
+    -VerifyApp $VerifyApp `
+    -ProductionSmoke $ProductionSmoke `
+    -RollbackStatic $RollbackStatic `
+    -RollbackApp $RollbackApp
+[ordered]@{ result = $__report; promote_app_call_count = $script:appPromoteCallCount } | ConvertTo-Json -Depth 12 -Compress
+"""
+    script = COMMON_PREAMBLE + "\n" + overrides_with_count
+    proc = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=30, check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = proc.stdout.strip()
+    payload = json.loads(text[text.find("{"):])
+    report = payload["result"]
+    assert report["success"] is True
+    assert report["final_state_domain"] == "CANDIDATE_CANDIDATE"
+    recovery = report["recovery_log"]
+    assert len(recovery) == 1
+    assert recovery[0]["recovery_action"] == "RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION"
+    assert recovery[0]["postcondition_independently_verified"] is True
+    # The mutating action was never replayed.
+    assert payload["promote_app_call_count"] == 1
+    assert report["app_rolled_back"] is False
+
+
+def test_d_mixed_baseline_is_rejected_before_any_promotion():
+    # Production is ALREADY mixed before this run mutates anything: the
+    # scheduler is on some third identity. Refuse before promoting.
+    overrides = """
+$script:currentSchedulerSha = 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is False
+    assert report["final_state"] == "STOPPED_OWNER_DECISION_REQUIRED"
+    assert report["stop_reason"] == "baseline_not_coherent"
+    assert report["stop_phase"] == "SNAPSHOT_BASELINE"
+    # Nothing was promoted, and no rollback was needed because no mutation
+    # was ever attempted.
+    assert report["static_promoted"] is False
+    assert report["app_promoted"] is False
+    assert report["recovery_log"][0]["classification"] == "L3"
+    assert report["recovery_log"][0]["retry_count"] == 1
+
+
+def test_d_mixed_app_static_baseline_is_also_rejected_before_mutation():
+    overrides = """
+$script:currentStaticSha = 'ffffffffffffffffffffffffffffffffffffffff'
+"""
+    report = run_scenario(overrides)
+    assert report["success"] is False
+    assert report["stop_reason"] == "baseline_not_coherent"
+    assert report["static_promoted"] is False
+    assert report["app_promoted"] is False
+
+
+def test_get_release_state_domain_never_calls_a_mixed_baseline_baseline_baseline():
+    # Even when current state matches the captured baseline field-for-field,
+    # a MIXED baseline can never be reported as a safe BASELINE_BASELINE
+    # outcome -- restoring an already-incoherent state is not a safe end.
+    script = COMMON_PREAMBLE + """
+$mixedBaseline = [pscustomobject]@{ app_sha = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'; scheduler_sha = 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'; static_sha = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }
+Get-ReleaseStateDomain -State $mixedBaseline -ExpectedGitSha $ExpectedSha -Baseline $mixedBaseline
+"""
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "MIXED_OR_UNVERIFIED"
+
+
+def test_rollback_result_with_any_one_identity_mismatching_is_mixed_or_unverified():
+    coherent_baseline = (
+        "[pscustomobject]@{ app_sha = '" + BASELINE_SHA + "'; scheduler_sha = '" + BASELINE_SHA
+        + "'; static_sha = '" + BASELINE_SHA + "' }"
+    )
+    for mismatch_field in ("app_sha", "scheduler_sha", "static_sha"):
+        fields = {"app_sha": BASELINE_SHA, "scheduler_sha": BASELINE_SHA, "static_sha": BASELINE_SHA}
+        fields[mismatch_field] = "9" * 40
+        state_literal = (
+            "[pscustomobject]@{ app_sha = '" + fields["app_sha"] + "'; scheduler_sha = '"
+            + fields["scheduler_sha"] + "'; static_sha = '" + fields["static_sha"] + "' }"
+        )
+        script = COMMON_PREAMBLE + "\nGet-ReleaseStateDomain -State " + state_literal + " -ExpectedGitSha $ExpectedSha -Baseline " + coherent_baseline + "\n"
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+            cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout.strip() == "MIXED_OR_UNVERIFIED", (
+            "a rollback result with " + mismatch_field + " mismatching must not be called BASELINE_BASELINE"
+        )
+
+
+def test_candidate_success_requires_all_three_candidate_identities():
+    for missing_field in ("app_sha", "scheduler_sha", "static_sha"):
+        fields = {"app_sha": EXPECTED_SHA, "scheduler_sha": EXPECTED_SHA, "static_sha": EXPECTED_SHA}
+        fields[missing_field] = BASELINE_SHA
+        state_literal = (
+            "[pscustomobject]@{ app_sha = '" + fields["app_sha"] + "'; scheduler_sha = '"
+            + fields["scheduler_sha"] + "'; static_sha = '" + fields["static_sha"] + "' }"
+        )
+        script = COMMON_PREAMBLE + "\nGet-ReleaseStateDomain -State " + state_literal + " -ExpectedGitSha $ExpectedSha -Baseline $null\n"
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+            cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=15, check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout.strip() != "CANDIDATE_CANDIDATE", (
+            "CANDIDATE_CANDIDATE must require all three identities; " + missing_field + " was not on the candidate"
+        )

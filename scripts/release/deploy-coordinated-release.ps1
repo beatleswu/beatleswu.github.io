@@ -101,6 +101,7 @@ $deployStaticScript = Join-Path $PSScriptRoot 'deploy-static-release.ps1'
 $rollbackAppScript = Join-Path $PSScriptRoot 'rollback-release.ps1'
 $rollbackStaticScript = Join-Path $PSScriptRoot 'rollback-static-release.ps1'
 $preflightScript = Join-Path $PSScriptRoot 'preflight-production.ps1'
+$verifyProductionScript = Join-Path $PSScriptRoot 'verify-production-release.ps1'
 
 # Handoff artifact paths this run's PACKAGE_APP/PACKAGE_STATIC phases
 # produce and PROMOTE_APP/PROMOTE_STATIC consume -- matching the exact
@@ -203,9 +204,16 @@ $GetCurrentState = {
     }
     $preflight = $r.data
     $appImageId = [string]$preflight.current_app.image_id
+    $schedulerImageId = [string]$preflight.current_scheduler.image_id
     $staticGenerationPath = [string]$preflight.static_generation.current_target
     try {
+        # An Architecture V1 app release switches TWO container images
+        # (app AND scheduler) plus the static generation. All three source
+        # identities are established independently -- an app-only check
+        # would silently accept a candidate app running beside a baseline
+        # scheduler.
         $appSourceGitSha = Get-RemoteImageSourceGitSha -SshAlias $layout.ssh_alias -ImageId $appImageId -TimeoutSeconds 30
+        $schedulerSourceGitSha = Get-RemoteImageSourceGitSha -SshAlias $layout.ssh_alias -ImageId $schedulerImageId -TimeoutSeconds 30
         $staticSourceGitSha = Get-RemoteStaticGenerationSourceGitSha -SshAlias $layout.ssh_alias -GenerationPath $staticGenerationPath -TimeoutSeconds 30
     }
     catch {
@@ -214,9 +222,12 @@ $GetCurrentState = {
     [ordered]@{
         success = $true
         app_sha = $appSourceGitSha
+        scheduler_sha = $schedulerSourceGitSha
         static_sha = $staticSourceGitSha
         app_image_tag = [string]$preflight.current_app.image_ref
         app_image_id = $appImageId
+        scheduler_image_tag = [string]$preflight.current_scheduler.image_ref
+        scheduler_image_id = $schedulerImageId
         static_generation_path = $staticGenerationPath
     }
 }
@@ -273,8 +284,10 @@ $SnapshotBaseline = {
     [ordered]@{
         success = $true
         app_sha = $state.app_sha
+        scheduler_sha = $state.scheduler_sha
         static_sha = $state.static_sha
         app_image_id = $state.app_image_id
+        scheduler_image_id = $state.scheduler_image_id
         static_generation_path = $state.static_generation_path
     }
 }
@@ -283,9 +296,16 @@ $VerifyRollbackReady = {
     param($baseline)
     if (-not $baseline -or
         [string]::IsNullOrWhiteSpace([string]$baseline.app_sha) -or
+        [string]::IsNullOrWhiteSpace([string]$baseline.scheduler_sha) -or
         [string]::IsNullOrWhiteSpace([string]$baseline.static_sha) -or
         [string]::IsNullOrWhiteSpace([string]$baseline.static_generation_path)) {
         return [ordered]@{ success = $false; detail = 'baseline identity is incomplete; refusing to proceed without a usable rollback target' }
+    }
+    # Defence in depth: the state machine already refuses an incoherent
+    # baseline at SNAPSHOT_BASELINE (L3, before any mutation). Re-assert it
+    # here so this executor is independently safe if ever reused.
+    if (-not (Test-ReleaseIdentityCoherent -State $baseline)) {
+        return [ordered]@{ success = $false; baseline_incoherent = $true; detail = "baseline is not coherent: app_sha=$($baseline.app_sha) scheduler_sha=$($baseline.scheduler_sha) static_sha=$($baseline.static_sha)" }
     }
     [ordered]@{ success = $true }
 }
@@ -336,11 +356,33 @@ $PromoteApp = {
 
 $VerifyApp = {
     param($promoted)
+    # PROMOTE_APP's postcondition covers BOTH container images the canonical
+    # deploy switches (app and scheduler), not the app alone. This executor
+    # is also what the state machine re-runs to prove the full postcondition
+    # before ever advancing past an ambiguous PROMOTE_APP timeout, so an
+    # app-only check here would directly reintroduce the
+    # "candidate app + baseline scheduler silently accepted" defect.
     $state = & $GetCurrentState
     if (-not $state.success) {
-        return [ordered]@{ success = $false; detail = 'could not independently verify app identity post-promotion' }
+        return [ordered]@{ success = $false; detail = 'could not independently verify app/scheduler identity post-promotion' }
     }
-    [ordered]@{ success = ($state.app_sha -eq $ExpectedGitSha) }
+    if ([string]$state.app_sha -ne $ExpectedGitSha) {
+        return [ordered]@{ success = $false; detail = "app image is not on the candidate: app_sha=$($state.app_sha) expected=$ExpectedGitSha" }
+    }
+    if ([string]$state.scheduler_sha -ne $ExpectedGitSha) {
+        return [ordered]@{ success = $false; detail = "scheduler image is not on the candidate: scheduler_sha=$($state.scheduler_sha) expected=$ExpectedGitSha" }
+    }
+    # Independent canonical verification of the complete phase postcondition
+    # (app+scheduler runtime health, questions gate, nginx/public routes) via
+    # the existing governed verifier -- identity agreement alone is not proof
+    # the whole canonical deploy sequence completed.
+    $v = Invoke-GovernedScript -ScriptPath $verifyProductionScript `
+        -Arguments @('-ReleaseManifest', $script:appReleaseManifestPath, '-LayoutFile', $LayoutFile) `
+        -TimeoutSeconds 420 -OperationLabel 'coordinated-release: verify app postcondition'
+    if (-not $v.success) {
+        return [ordered]@{ success = $false; detail = "canonical production verification did not pass: $($v.output)" }
+    }
+    [ordered]@{ success = $true }
 }
 
 $ProductionSmoke = {

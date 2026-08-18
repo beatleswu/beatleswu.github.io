@@ -136,18 +136,62 @@ per root-cause key, not globally — an unrelated LOW/MEDIUM failure in a differ
 differently-classified failure in the same phase, gets its own independent budget and is not
 penalized by a prior, unrelated failure's exhausted retries.
 
-## Coordinated static+app transaction
+## Coordinated transaction: THREE governed identities
 
-Architecture V1 requires `STATIC_SOURCE_SHA == APP_SOURCE_SHA` at every observable point. The
-state machine enforces this directly, not merely by documentation: `JOINT_PROVENANCE`
-independently re-reads current state via `GetCurrentState` (never trusting a prior phase's
-self-reported identity) and fails — forcing the same L2 rollback path — if the two identities, or
-either against the authorized `-ExpectedGitSha`, disagree. The only two states this workflow can
-end a run in are `CANDIDATE/CANDIDATE` (both static and app match the authorized SHA) or
-`BASELINE/BASELINE` (both restored to the pre-run identity). A mixed state (one promoted, the
-other not) is structurally excluded: every L2/L3 recovery path rolls back whichever of
-static/app was actually promoted — never just one independently, and never proceeds to promote the
-other while the first remains unconfirmed.
+An Architecture V1 release is not two identities but three: `deploy-release-image.ps1` switches
+**two** container images within one operation (the app *and* the scheduler), alongside the static
+generation. So the coordinated contract is:
+
+```
+APP_SOURCE_GIT_SHA == SCHEDULER_SOURCE_GIT_SHA == STATIC_SOURCE_GIT_SHA
+```
+
+Each is established **independently**, in the SHA domain, from its own authoritative source —
+never inferred from one another and never conflated with the separate image-tag / image-id /
+generation-path identities that are tracked alongside them:
+
+| Identity | Source of truth |
+|---|---|
+| `APP_SOURCE_GIT_SHA` | `org.opencontainers.image.revision` OCI label on the running **app** image |
+| `SCHEDULER_SOURCE_GIT_SHA` | the same label on the running **scheduler** image (read separately) |
+| `STATIC_SOURCE_GIT_SHA` | `release_git_sha` in the active generation's own `manifest.json` |
+
+`JOINT_PROVENANCE` independently re-reads all three via `GetCurrentState` (never trusting a prior
+phase's self-reported identity) and fails — forcing the L2 rollback path — unless all three agree
+*and* match the authorized `-ExpectedGitSha`.
+
+The only two states this workflow can end a run in are `CANDIDATE_CANDIDATE` (all three on the
+authorized SHA) or `BASELINE_BASELINE` (all three restored to a *coherent* pre-run identity).
+Anything else — including a candidate app beside a baseline scheduler — is reported honestly as
+`MIXED_OR_UNVERIFIED` by `Get-ReleaseStateDomain`, never as a safe outcome.
+
+### Baseline coherence is a pre-mutation gate
+
+If the captured baseline is itself mixed (the three identities disagree *before* this run mutates
+anything), the run STOPS at `SNAPSHOT_BASELINE` with `stop_reason=baseline_not_coherent`, as an L3
+Owner boundary — promoting on top of an already-incoherent state would leave no coherent state to
+roll back to. `Get-ReleaseStateDomain` also refuses to call a mixed captured baseline
+`BASELINE_BASELINE` even when current state matches it field-for-field: restoring an incoherent
+state is not a safe end.
+
+### A timeout may skip replay only on a *fully proven* postcondition
+
+`PROMOTE_APP` is not complete merely because the app container switched — the canonical deploy
+performs app switch → app readiness → scheduler switch → scheduler identity → nginx refresh →
+production verification. So after an ambiguous timeout the state machine requires **both**:
+
+1. every identity the phase owns is observably on the candidate (for `PROMOTE_APP`: app **and**
+   scheduler), and
+2. the phase's own canonical verification independently passes (`VerifyApp` re-runs
+   `verify-production-release.ps1`; `VerifyStatic` re-checks the static postcondition).
+
+Only then does it advance without replaying a possibly-non-idempotent mutation
+(`RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION`). If identity landed but the full
+postcondition cannot be proven, it records
+`CANDIDATE_IDENTITY_PRESENT_BUT_FULL_POSTCONDITION_UNPROVEN` and falls through to the ordinary
+coordinated rollback → verify baseline → retry-same-SHA path. Rollback *scope* is likewise decided
+from observed per-identity state versus the baseline, never from a phase's own self-reported
+booleans.
 
 ## Fault injection
 

@@ -36,6 +36,7 @@ STATE_MACHINE_MODULE = REPO_ROOT / "scripts" / "release" / "CoordinatedReleaseSt
 EXPECTED_SHA = "c" * 40
 BASELINE_SHA = "d" * 40
 REALISTIC_APP_IMAGE_ID = "sha256:" + "1234567890abcdef" * 4
+REALISTIC_SCHEDULER_IMAGE_ID = "sha256:" + "fedcba0987654321" * 4
 REALISTIC_STATIC_GENERATION_PATH = "/opt/go-odyssey-static/releases/20260817-abcdef1"
 BASELINE_STATIC_GENERATION_PATH = "/opt/go-odyssey-static/releases/20260810-fedcba9"
 
@@ -94,11 +95,13 @@ $script:staticArchivePath = 'D:\\fake\\release-artifacts\\{EXPECTED_SHA[:8]}.sta
 # code" pattern (test_canary_readiness_json_channel.py's Invoke-BoundedSshCommand
 # override).
 $script:FakeCurrentAppSha = '{EXPECTED_SHA}'
+$script:FakeCurrentSchedulerSha = '{EXPECTED_SHA}'
 $script:FakeCurrentStaticSha = '{EXPECTED_SHA}'
 function Get-RemoteImageSourceGitSha {{
     param([string]$SshAlias, [string]$ImageId, [int]$TimeoutSeconds = 30)
-    if ($ImageId -ne '{REALISTIC_APP_IMAGE_ID}') {{ throw "unexpected image id passed: $ImageId" }}
-    return $script:FakeCurrentAppSha
+    if ($ImageId -eq '{REALISTIC_APP_IMAGE_ID}') {{ return $script:FakeCurrentAppSha }}
+    if ($ImageId -eq '{REALISTIC_SCHEDULER_IMAGE_ID}') {{ return $script:FakeCurrentSchedulerSha }}
+    throw "unexpected image id passed: $ImageId"
 }}
 function Get-RemoteStaticGenerationSourceGitSha {{
     param([string]$SshAlias, [string]$GenerationPath, [int]$TimeoutSeconds = 30)
@@ -122,6 +125,13 @@ def run_probe(*, dependency_overrides: str, extracted_blocks: str, invocation: s
 REALISTIC_PREFLIGHT_JSON = f"""{{
   "current_app": {{
     "image_id": "{REALISTIC_APP_IMAGE_ID}",
+    "image_ref": "go-odyssey-app:{EXPECTED_SHA[:8]}",
+    "status": "running",
+    "health": "healthy",
+    "restart_count": 0
+  }},
+  "current_scheduler": {{
+    "image_id": "{REALISTIC_SCHEDULER_IMAGE_ID}",
     "image_ref": "go-odyssey-app:{EXPECTED_SHA[:8]}",
     "status": "running",
     "health": "healthy",
@@ -158,13 +168,18 @@ function Invoke-GovernedScript {{
     # must be REAL Git SHAs (from the fake OCI-label/manifest reads), not
     # the raw image_ref/current_target values.
     assert result["app_sha"] == EXPECTED_SHA
+    assert result["scheduler_sha"] == EXPECTED_SHA
     assert result["static_sha"] == EXPECTED_SHA
     assert result["app_sha"] != f"go-odyssey-app:{EXPECTED_SHA[:8]}"
     assert result["static_sha"] != REALISTIC_STATIC_GENERATION_PATH
     # Non-SHA identity fields are preserved, separately, exactly as reported.
     assert result["app_image_tag"] == f"go-odyssey-app:{EXPECTED_SHA[:8]}"
     assert result["app_image_id"] == REALISTIC_APP_IMAGE_ID
+    assert result["scheduler_image_id"] == REALISTIC_SCHEDULER_IMAGE_ID
     assert result["static_generation_path"] == REALISTIC_STATIC_GENERATION_PATH
+    # The scheduler identity is read from the SCHEDULER's own image, never
+    # assumed to equal the app's.
+    assert result["scheduler_image_id"] != result["app_image_id"]
 
 
 def test_get_current_state_fails_closed_when_oci_label_read_fails():
@@ -205,9 +220,11 @@ function Invoke-GovernedScript {{
     result = run_probe(dependency_overrides=dependency_overrides, extracted_blocks=extracted, invocation=invocation)
     assert result["success"] is True
     assert result["app_sha"] == EXPECTED_SHA
+    assert result["scheduler_sha"] == EXPECTED_SHA
     assert result["static_sha"] == EXPECTED_SHA
     assert result["static_generation_path"] == REALISTIC_STATIC_GENERATION_PATH
     assert result["app_image_id"] == REALISTIC_APP_IMAGE_ID
+    assert result["scheduler_image_id"] == REALISTIC_SCHEDULER_IMAGE_ID
 
 
 # ---------------------------------------------------------------------------

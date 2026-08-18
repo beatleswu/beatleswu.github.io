@@ -63,6 +63,7 @@ function Get-OperationalFailureClassification {
         )][string]$Phase,
         [bool]$RequiresSourceChange = $false,
         [bool]$RequiresGateBypass = $false,
+        [bool]$BaselineIncoherent = $false,
         [bool]$RollbackTargetAvailable = $true,
         [string]$Detail = ''
     )
@@ -75,6 +76,18 @@ function Get-OperationalFailureClassification {
     if ($RequiresGateBypass) {
         return [ordered]@{
             level = 'L3'; reason = 'requires_gate_bypass'
+            retry_strategy = 'NOT_RETRYABLE_WITHOUT_OWNER'; detail = $Detail
+        }
+    }
+    if ($BaselineIncoherent) {
+        # Production's CURRENT state is already mixed (app/scheduler/static
+        # disagree) before this run has mutated anything. Retrying cannot
+        # fix that, and promoting on top of it would make an already-unclear
+        # state worse and leave no coherent rollback target -- the named
+        # "rollback identity cannot be established" Owner boundary. Always
+        # L3, regardless of which phase observed it.
+        return [ordered]@{
+            level = 'L3'; reason = 'baseline_not_coherent'
             retry_strategy = 'NOT_RETRYABLE_WITHOUT_OWNER'; detail = $Detail
         }
     }
@@ -133,6 +146,39 @@ function New-RootCauseKey {
     return "${Phase}::${normalizedClass}"
 }
 
+function Test-ReleaseIdentityCoherent {
+    <#
+    .SYNOPSIS
+    True only when all THREE governed runtime identities (app image,
+    scheduler image, static generation) report the same source Git SHA and
+    none is missing.
+    .DESCRIPTION
+    Coordinator-review fix: an Architecture V1 app release is not one
+    identity but two container images (app AND scheduler, both switched by
+    deploy-release-image.ps1 within the same operation) plus the static
+    generation. A state where the app is on the candidate but the
+    scheduler is still on the baseline is a real, reachable, and dangerous
+    partial state -- it must never be mistaken for either a completed
+    promotion or a coherent baseline.
+    #>
+    param($State)
+    if (-not $State) { return $false }
+    # Read via Get-PhaseResultProperty: state objects may be a Hashtable/
+    # OrderedDictionary or a PSCustomObject, and under this module's
+    # Set-StrictMode a direct .missing_field access THROWS rather than
+    # returning $null -- a missing identity must fail closed as "not
+    # coherent", never crash the driver.
+    $appSha = [string](Get-PhaseResultProperty -Object $State -Name 'app_sha' -Default '')
+    $schedulerSha = [string](Get-PhaseResultProperty -Object $State -Name 'scheduler_sha' -Default '')
+    $staticSha = [string](Get-PhaseResultProperty -Object $State -Name 'static_sha' -Default '')
+    if ([string]::IsNullOrWhiteSpace($appSha) -or
+        [string]::IsNullOrWhiteSpace($schedulerSha) -or
+        [string]::IsNullOrWhiteSpace($staticSha)) {
+        return $false
+    }
+    return ($appSha -eq $schedulerSha -and $appSha -eq $staticSha)
+}
+
 function Get-ReleaseStateDomain {
     <#
     .SYNOPSIS
@@ -144,17 +190,34 @@ function Get-ReleaseStateDomain {
     neither (including one that could not be independently observed at
     all) is always reported honestly as MIXED_OR_UNVERIFIED, never
     silently treated as one of the two safe outcomes.
+    .DESCRIPTION
+    All THREE identities (app, scheduler, static) must agree for either
+    safe domain. In particular a MIXED captured baseline can never yield
+    BASELINE_BASELINE: restoring Production to a state that was itself
+    incoherent is not a safe outcome, so such a result is reported as
+    MIXED_OR_UNVERIFIED even when current state matches that baseline
+    field-for-field.
     #>
     param($State, [string]$ExpectedGitSha, $Baseline)
     if (-not $State) {
         return 'MIXED_OR_UNVERIFIED'
     }
-    $appSha = [string]$State.app_sha
-    $staticSha = [string]$State.static_sha
-    if ($appSha -eq $ExpectedGitSha -and $staticSha -eq $ExpectedGitSha) {
+    $appSha = [string](Get-PhaseResultProperty -Object $State -Name 'app_sha' -Default '')
+    $schedulerSha = [string](Get-PhaseResultProperty -Object $State -Name 'scheduler_sha' -Default '')
+    $staticSha = [string](Get-PhaseResultProperty -Object $State -Name 'static_sha' -Default '')
+    if ([string]::IsNullOrWhiteSpace($appSha) -or
+        [string]::IsNullOrWhiteSpace($schedulerSha) -or
+        [string]::IsNullOrWhiteSpace($staticSha)) {
+        return 'MIXED_OR_UNVERIFIED'
+    }
+    if ($appSha -eq $ExpectedGitSha -and $schedulerSha -eq $ExpectedGitSha -and $staticSha -eq $ExpectedGitSha) {
         return 'CANDIDATE_CANDIDATE'
     }
-    if ($Baseline -and $appSha -eq [string]$Baseline.app_sha -and $staticSha -eq [string]$Baseline.static_sha) {
+    if ($Baseline -and
+        (Test-ReleaseIdentityCoherent -State $Baseline) -and
+        $appSha -eq [string](Get-PhaseResultProperty -Object $Baseline -Name 'app_sha' -Default '') -and
+        $schedulerSha -eq [string](Get-PhaseResultProperty -Object $Baseline -Name 'scheduler_sha' -Default '') -and
+        $staticSha -eq [string](Get-PhaseResultProperty -Object $Baseline -Name 'static_sha' -Default '')) {
         return 'BASELINE_BASELINE'
     }
     return 'MIXED_OR_UNVERIFIED'
@@ -213,6 +276,7 @@ function Invoke-ReleasePhase {
             success = $success
             requires_source_change = [bool](Get-PhaseResultProperty -Object $raw -Name 'requires_source_change' -Default $false)
             requires_gate_bypass = [bool](Get-PhaseResultProperty -Object $raw -Name 'requires_gate_bypass' -Default $false)
+            baseline_incoherent = [bool](Get-PhaseResultProperty -Object $raw -Name 'baseline_incoherent' -Default $false)
             possible_timeout = [bool](Get-PhaseResultProperty -Object $raw -Name 'possible_timeout' -Default $false)
             root_cause_class = [string](Get-PhaseResultProperty -Object $raw -Name 'root_cause_class' -Default '')
             detail = [string](Get-PhaseResultProperty -Object $raw -Name 'detail' -Default '')
@@ -231,6 +295,7 @@ function Invoke-ReleasePhase {
             success = $false
             requires_source_change = $false
             requires_gate_bypass = $false
+            baseline_incoherent = $false
             possible_timeout = $false
             root_cause_class = ''
             detail = [string]$_.Exception.Message
@@ -329,7 +394,35 @@ function Invoke-CoordinatedReleaseStateMachine {
             'BUILD_APP' { Invoke-ReleasePhase -Action $BuildApp }
             'PACKAGE_APP' { Invoke-ReleasePhase -Action $PackageApp }
             'PACKAGE_STATIC' { Invoke-ReleasePhase -Action $PackageStatic }
-            'SNAPSHOT_BASELINE' { Invoke-ReleasePhase -Action $SnapshotBaseline }
+            'SNAPSHOT_BASELINE' {
+                $snapshotResult = Invoke-ReleasePhase -Action $SnapshotBaseline
+                if (-not $snapshotResult.success) {
+                    $snapshotResult
+                }
+                elseif (-not (Test-ReleaseIdentityCoherent -State $snapshotResult.data)) {
+                    # Coordinator-review fix: Production's CURRENT state is
+                    # already mixed before this run mutates anything. Refuse
+                    # to promote on top of an incoherent baseline -- there
+                    # would be no coherent state to roll back to. L3, before
+                    # any mutation (see Get-OperationalFailureClassification's
+                    # BaselineIncoherent branch).
+                    $b = $snapshotResult.data
+                    [ordered]@{
+                        success = $false
+                        requires_source_change = $false
+                        requires_gate_bypass = $false
+                        baseline_incoherent = $true
+                        possible_timeout = $false
+                        root_cause_class = 'incoherent_baseline'
+                        detail = "captured baseline is not coherent: app_sha=$($b.app_sha) scheduler_sha=$($b.scheduler_sha) static_sha=$($b.static_sha)"
+                        data = $b
+                        threw = $false
+                    }
+                }
+                else {
+                    $snapshotResult
+                }
+            }
             'VERIFY_ROLLBACK_READY' { Invoke-ReleasePhase -Action $VerifyRollbackReady -ActionArgs @($baseline) }
             'PROMOTE_STATIC' { Invoke-ReleasePhase -Action $PromoteStatic }
             'VERIFY_STATIC' { Invoke-ReleasePhase -Action $VerifyStatic -ActionArgs @($lastPromoteStaticResult) }
@@ -342,16 +435,18 @@ function Invoke-CoordinatedReleaseStateMachine {
                 }
                 else {
                     $state = $stateResult.data
+                    # All THREE governed identities must be on the authorized
+                    # candidate -- app-only (or app+scheduler without static,
+                    # etc.) is a partial state, never a completed promotion.
                     $coherent = (
-                        [string]$state.app_sha -eq $ExpectedGitSha -and
-                        [string]$state.static_sha -eq $ExpectedGitSha -and
-                        [string]$state.app_sha -eq [string]$state.static_sha
+                        (Test-ReleaseIdentityCoherent -State $state) -and
+                        [string]$state.app_sha -eq $ExpectedGitSha
                     )
                     if ($coherent) {
-                        [ordered]@{ success = $true; requires_source_change = $false; requires_gate_bypass = $false; possible_timeout = $false; root_cause_class = ''; detail = ''; data = $state; threw = $false }
+                        [ordered]@{ success = $true; requires_source_change = $false; requires_gate_bypass = $false; baseline_incoherent = $false; possible_timeout = $false; root_cause_class = ''; detail = ''; data = $state; threw = $false }
                     }
                     else {
-                        [ordered]@{ success = $false; requires_source_change = $false; requires_gate_bypass = $false; possible_timeout = $false; root_cause_class = 'joint_provenance_incoherent'; detail = "app_sha=$($state.app_sha) static_sha=$($state.static_sha) expected=$ExpectedGitSha"; data = $state; threw = $false }
+                        [ordered]@{ success = $false; requires_source_change = $false; requires_gate_bypass = $false; baseline_incoherent = $false; possible_timeout = $false; root_cause_class = 'joint_provenance_incoherent'; detail = "app_sha=$($state.app_sha) scheduler_sha=$($state.scheduler_sha) static_sha=$($state.static_sha) expected=$ExpectedGitSha"; data = $state; threw = $false }
                     }
                 }
             }
@@ -397,35 +492,92 @@ function Invoke-CoordinatedReleaseStateMachine {
             $reconcile = Invoke-ReleasePhase -Action $GetCurrentState
             if ($reconcile.success) {
                 $state = $reconcile.data
-                $candidateLanded = if ($phase -eq 'PROMOTE_STATIC') { [string]$state.static_sha -eq $ExpectedGitSha } else { [string]$state.app_sha -eq $ExpectedGitSha }
 
-                if ($result.possible_timeout -and $candidateLanded) {
+                # Coordinator-review fix: "the candidate identity is
+                # observable" is NOT the phase's postcondition.
+                # deploy-release-image.ps1 performs app switch + app
+                # readiness + scheduler switch + scheduler identity + nginx
+                # refresh + production verification within one operation, so
+                # PROMOTE_APP requires the app AND the scheduler to be on
+                # the candidate -- a candidate app beside a baseline
+                # scheduler is a partial state that must never be accepted.
+                $observedAppSha = [string](Get-PhaseResultProperty -Object $state -Name 'app_sha' -Default '')
+                $observedSchedulerSha = [string](Get-PhaseResultProperty -Object $state -Name 'scheduler_sha' -Default '')
+                $observedStaticSha = [string](Get-PhaseResultProperty -Object $state -Name 'static_sha' -Default '')
+                $candidateIdentityLanded = if ($phase -eq 'PROMOTE_STATIC') {
+                    $observedStaticSha -eq $ExpectedGitSha
+                }
+                else {
+                    ($observedAppSha -eq $ExpectedGitSha) -and ($observedSchedulerSha -eq $ExpectedGitSha)
+                }
+
+                if ($result.possible_timeout -and $candidateIdentityLanded) {
+                    # Identity alone is still not proof the whole phase
+                    # finished. Independently re-run the phase's own
+                    # canonical verification (the same VerifyStatic/VerifyApp
+                    # executor the normal path uses, which is wired to the
+                    # existing canonical verification tooling) and advance
+                    # without replay ONLY if that full postcondition is
+                    # independently proven. Otherwise fall through to the
+                    # ordinary L2 rollback-and-retry path below.
+                    $postcondition = if ($phase -eq 'PROMOTE_STATIC') {
+                        Invoke-ReleasePhase -Action $VerifyStatic -ActionArgs @($null)
+                    }
+                    else {
+                        Invoke-ReleasePhase -Action $VerifyApp -ActionArgs @($null)
+                    }
+
+                    if ($postcondition.success) {
+                        $report.recovery_log += [ordered]@{
+                            recovery_id = ($recoveryId++)
+                            root_cause_class = 'post_timeout_state_reconciliation'
+                            failure_phase = $phase
+                            mutation_occurred = $true
+                            pre_recovery_state = $state
+                            recovery_action = 'RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION'
+                            postcondition_independently_verified = $true
+                            post_recovery_state = $state
+                            retry_count = 0
+                            retry_allowed = $true
+                            final_outcome = 'ADVANCED_WITHOUT_RETRY'
+                        }
+                        $report.phases_completed += $phase
+                        if ($phase -eq 'PROMOTE_STATIC') { $staticPromoted = $true; $report.static_promoted = $true }
+                        if ($phase -eq 'PROMOTE_APP') { $appPromoted = $true; $report.app_promoted = $true }
+                        $phaseIndex = $phaseIndex + 1
+                        continue
+                    }
+
                     $report.recovery_log += [ordered]@{
                         recovery_id = ($recoveryId++)
-                        root_cause_class = 'post_timeout_state_reconciliation'
+                        root_cause_class = 'post_timeout_postcondition_unproven'
                         failure_phase = $phase
                         mutation_occurred = $true
                         pre_recovery_state = $state
-                        recovery_action = 'RECONCILED_ALREADY_SUCCEEDED_NO_DUPLICATE_MUTATION'
+                        recovery_action = 'CANDIDATE_IDENTITY_PRESENT_BUT_FULL_POSTCONDITION_UNPROVEN'
+                        postcondition_independently_verified = $false
                         post_recovery_state = $state
                         retry_count = 0
                         retry_allowed = $true
-                        final_outcome = 'ADVANCED_WITHOUT_RETRY'
+                        final_outcome = 'FALLING_THROUGH_TO_COORDINATED_ROLLBACK'
                     }
-                    $report.phases_completed += $phase
-                    if ($phase -eq 'PROMOTE_STATIC') { $staticPromoted = $true; $report.static_promoted = $true }
-                    if ($phase -eq 'PROMOTE_APP') { $appPromoted = $true; $report.app_promoted = $true }
-                    $phaseIndex = $phaseIndex + 1
-                    continue
                 }
 
-                $differsFromBaseline = $false
+                # Rollback SCOPE is decided from OBSERVED state versus the
+                # captured baseline, per-identity -- never from the phase's
+                # own self-reported booleans. A PROMOTE_APP that switched the
+                # app but not the scheduler still counts as "app mutated".
                 if ($baselineCaptured) {
-                    if ($phase -eq 'PROMOTE_STATIC') { $differsFromBaseline = ([string]$state.static_sha -ne [string]$baseline.static_sha) }
-                    else { $differsFromBaseline = ([string]$state.app_sha -ne [string]$baseline.app_sha) }
+                    $baseAppSha = [string](Get-PhaseResultProperty -Object $baseline -Name 'app_sha' -Default '')
+                    $baseSchedulerSha = [string](Get-PhaseResultProperty -Object $baseline -Name 'scheduler_sha' -Default '')
+                    $baseStaticSha = [string](Get-PhaseResultProperty -Object $baseline -Name 'static_sha' -Default '')
+                    if ($observedStaticSha -ne $baseStaticSha) {
+                        $staticPromoted = $true; $report.static_promoted = $true
+                    }
+                    if (($observedAppSha -ne $baseAppSha) -or ($observedSchedulerSha -ne $baseSchedulerSha)) {
+                        $appPromoted = $true; $report.app_promoted = $true
+                    }
                 }
-                if ($phase -eq 'PROMOTE_STATIC' -and $differsFromBaseline) { $staticPromoted = $true; $report.static_promoted = $true }
-                if ($phase -eq 'PROMOTE_APP' -and $differsFromBaseline) { $appPromoted = $true; $report.app_promoted = $true }
             }
             # If reconciliation ITSELF fails, current Production state
             # cannot be independently established -- this is the named L3
@@ -442,6 +594,7 @@ function Invoke-CoordinatedReleaseStateMachine {
         $classification = Get-OperationalFailureClassification -Phase $phase `
             -RequiresSourceChange $result.requires_source_change `
             -RequiresGateBypass $result.requires_gate_bypass `
+            -BaselineIncoherent $result.baseline_incoherent `
             -RollbackTargetAvailable $baselineCaptured `
             -Detail $result.detail
 
@@ -520,10 +673,12 @@ function Invoke-CoordinatedReleaseStateMachine {
         }
         $verify = Invoke-ReleasePhase -Action $GetCurrentState
         $recoveryEntry.post_recovery_state = $verify.data
+        # All THREE identities must match the captured baseline before a
+        # same-SHA retry is permitted -- a restored app+static beside a
+        # still-candidate scheduler is not a restored baseline.
         $baselineRestored = (
             $rollbackOk -and $verify.success -and
-            [string]$verify.data.app_sha -eq [string]$baseline.app_sha -and
-            [string]$verify.data.static_sha -eq [string]$baseline.static_sha
+            (Get-ReleaseStateDomain -State $verify.data -ExpectedGitSha $ExpectedGitSha -Baseline $baseline) -eq 'BASELINE_BASELINE'
         )
 
         if (-not $baselineRestored) {
@@ -560,6 +715,7 @@ Export-ModuleMember -Function @(
     'New-RecoveryBudgetTracker',
     'Update-RecoveryBudget',
     'New-RootCauseKey',
+    'Test-ReleaseIdentityCoherent',
     'Get-ReleaseStateDomain',
     'Get-PhaseResultProperty',
     'Invoke-ReleasePhase',

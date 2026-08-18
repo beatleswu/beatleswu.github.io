@@ -136,14 +136,16 @@ def test_every_governed_script_invocation_is_bounded():
     assert "TimeoutSeconds" in invoke_body
     # One call site per phase that actually shells out to an existing
     # governed script: GetCurrentState, BuildApp, PackageApp, PackageStatic,
-    # PromoteStatic, PromoteApp, RollbackStatic, RollbackApp.
+    # PromoteStatic, PromoteApp, RollbackStatic, RollbackApp, plus
+    # VerifyApp's independent canonical production verification.
     call_sites = [line for line in content.splitlines() if "Invoke-GovernedScript -ScriptPath" in line]
-    assert len(call_sites) == 8
+    assert len(call_sites) == 9
     # Every one of those call sites supplies an explicit bound (plus one
     # more -TimeoutSeconds inside Invoke-GovernedScript's own definition,
-    # plus two more for GetCurrentState's Get-RemoteImageSourceGitSha /
-    # Get-RemoteStaticGenerationSourceGitSha SSH reads).
-    assert content.count("-TimeoutSeconds") == 11
+    # plus three more for GetCurrentState's two Get-RemoteImageSourceGitSha
+    # reads (app + scheduler) and its Get-RemoteStaticGenerationSourceGitSha
+    # read).
+    assert content.count("-TimeoutSeconds") == 13
 
 
 def test_does_not_duplicate_low_level_release_logic():
