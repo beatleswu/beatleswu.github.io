@@ -525,8 +525,62 @@ def test_sw_version_bumped_for_this_change():
     assert PREVIOUS_SW_VERSION not in SW
 
 
+B6_B7_FREEZE_BASE = "3e4a5503fd19bc38b9a51081df51c732683f2228"
+
+# Only these declarations may differ in sw.js. Everything else in the worker
+# is behaviour and must stay byte-identical to the frozen base.
+SW_MUTABLE_DECLARATIONS = ("const VERSION", "const ASSET_IDENTITY")
+
+
+def _sw_executable_lines(source: str) -> list:
+    """sw.js lines with comment-only lines removed.
+
+    The previous version of this guard counted the raw substring
+    "const VERSION", which also matched the historical
+    "// exact-b3cb superseded identity: const VERSION = ..." comment and made
+    the assertion permanently false. Comments are not declarations.
+    """
+    return [
+        line for line in source.splitlines()
+        if line.strip() and not line.strip().startswith("//")
+    ]
+
+
+def test_sw_has_exactly_one_executable_version_declaration():
+    declarations = [
+        line for line in _sw_executable_lines(SW)
+        if line.strip().startswith("const VERSION")
+    ]
+    assert len(declarations) == 1, declarations
+
+
 def test_sw_diff_is_version_line_only():
-    assert SW.count("const VERSION") == 1
+    """sw.js is no longer byte-frozen, so this is its replacement protection.
+
+    UI-NAV-063: test_e10_b6_b7_product_v1b.py released sw.js from its
+    indefinite byte-freeze because every static release must bump the cache
+    identity. This guard is what replaces it: sw.js may differ from the frozen
+    base ONLY in its cache-identity declarations. Any behavioural line that
+    moves fails here.
+    """
+    import subprocess
+    diff = subprocess.run(
+        ["git", "diff", "-U0", B6_B7_FREEZE_BASE, "--", "sw.js"],
+        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=False,
+    ).stdout
+    changed = [
+        line[1:] for line in diff.splitlines()
+        if (line.startswith("+") or line.startswith("-"))
+        and not line.startswith("+++") and not line.startswith("---")
+    ]
+    for line in changed:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("//"):
+            continue
+        assert stripped.startswith(SW_MUTABLE_DECLARATIONS), (
+            "sw.js may only differ from the frozen base in its cache-identity "
+            "declarations; this behavioural line changed: " + line
+        )
     assert "self.addEventListener('fetch'" in SW
     assert "self.addEventListener('install'" in SW
     assert "self.addEventListener('activate'" in SW

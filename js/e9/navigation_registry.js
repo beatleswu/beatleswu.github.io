@@ -5,6 +5,16 @@
   var CONTRACT = 'e10-vs1f-integrated-world-map';
   var ITEMS = [
     { key: 'adventure', command: 'adventure', labelKey: 'e9.left_nav.adventure', icon: 'compass', category: 'primary', placement: ['mobile-primary'], order: { 'mobile-primary': 1 } },
+    // UI-NAV-063: on the Adventure page itself, nav slot 1 ("冒險") is a no-op
+    // for the player, so that one slot is swapped for the Guild entry.
+    // /curriculum is the EXISTING canonical Guild page (HERO STATUS /
+    // 公會委託榜 / 公會聲望; it self-labels as 冒險者公會 at
+    // curriculum.html:2188). No new route was created. 'adventure-context' is
+    // a marker placement only -- no surface renders it directly, left_nav.js
+    // resolves it by key. Icon: guild.webp is the Owner-supplied Guild emblem,
+    // normalised to the same 256x256 transparent square the rest of this icon
+    // set uses (white plate removed, cropped to content, centred).
+    { key: 'guild', target: '/curriculum', labelKey: 'e10.nav.guild', icon: 'guild', category: 'primary', placement: ['adventure-context'] },
     { key: 'hero', target: '/hero?tab=hero', labelKey: 'e9.left_nav.hero', icon: 'hero', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 1, 'mobile-primary': 2 } },
     { key: 'equipment', target: '/hero?tab=equipment', labelKey: 'e9.left_nav.equipment', icon: 'equipment', category: 'primary', placement: ['desktop-primary', 'mobile-primary'], order: { 'desktop-primary': 2, 'mobile-primary': 3 } },
     // E10 owns a presentation-only route marker; the generic /inventory
@@ -62,6 +72,7 @@
     records: 'soul-records.webp',
     battle_log: 'battle-log.webp',
     tavern: 'tavern.webp',
+    guild: 'guild.webp',
     hall: 'heroes-hall.webp',
     star_chart: 'star-chart.webp',
     arena: 'arena.webp',

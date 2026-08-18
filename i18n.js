@@ -3111,6 +3111,10 @@ const I18n = (() => {
         'e9.left_nav.missions':         { en: 'Missions', zh: '任務' },
         'e9.left_nav.shop':             { en: 'Shop', zh: '商店' },
         'e10.nav.go_spirit':             { en: 'Go Spirit Companion', zh: '棋靈夥伴' },
+        // UI-NAV-063: Adventure-page nav slot 1 label. Deliberately the short
+        // form the Owner asked for; the existing nav.rpg.guild
+        // (Adventure Guild / 冒險公會) is left untouched for its own callers.
+        'e10.nav.guild':                 { en: 'Guild', zh: '公會' },
         'e10.nav.all_features':          { en: 'All Features', zh: '全部功能' },
         'e10.nav.close':                 { en: 'Close', zh: '關閉' },
         'e10.nav.language':              { en: 'Language', zh: '語言' },

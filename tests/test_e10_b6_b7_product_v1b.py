@@ -83,7 +83,16 @@ def test_index_uses_authoritative_mode_and_lifecycle_adapters():
 
 
 def test_protected_authority_files_are_unchanged_from_canonical_base():
-    for path in ("js/game/lord_trial_controller.js", "sw.js"):
+    # UI-NAV-063 (narrow, owner-authorised): sw.js was released from this
+    # byte-freeze and ONLY sw.js. Every static release the project performs
+    # must bump the canonical sw.js VERSION, so an indefinite byte-freeze on
+    # it would block any future release rather than protect an authority
+    # boundary. sw.js is now guarded by
+    # test_e9_multi_zone_adventure_cta.py::test_sw_diff_is_version_line_only,
+    # which proves the ONLY thing that may change in it is the cache-identity
+    # declaration line. BASE is unchanged and every Architecture authority
+    # file below stays frozen exactly as before.
+    for path in ("js/game/lord_trial_controller.js",):
         assert _git("diff", "--quiet", BASE, "--", path) == ""
 
 

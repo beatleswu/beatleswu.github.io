@@ -65,6 +65,11 @@ def test_icon_registry_uses_local_art_only_inside_exact_contract():
         "records", "battle_log", "tavern", "hall", "star_chart", "arena",
         "pass", "messages", "settings", "daily", "badge", "game_records",
         "coin", "all_features", "close", "lock",
+        # UI-NAV-063: the Adventure nav slot now offers the Guild entry, whose
+        # Owner-supplied emblem is checked in as a local art icon like every
+        # other entry here. Listed explicitly so this stays an exact set --
+        # a new icon must be a deliberate addition, never an accident.
+        "guild",
     }
     block = REGISTRY[REGISTRY.index("var ICON_ASSETS = {"):REGISTRY.index("function exactContract")]
     actual = set(re.findall(r"^\s{4}([a-z_]+): '[^']+\.webp'", block, re.M))

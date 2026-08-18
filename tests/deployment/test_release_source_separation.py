@@ -22,7 +22,21 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-PRODUCT_SHA = "620b06435da81a1be263561cac3d461dac488761"
+# UI-NAV-063: Owner-approved Product baseline. Two commits carry distinct
+# roles and neither is asked to do the other's job:
+#   b3a081d70 = CONTENT_PRODUCING_COMMIT. The provenance records for
+#               index.html / i18n.js / sw.js point at it, because that is
+#               where those bytes were produced. It stays immutable.
+#   ab89138bf = APPROVED_PRODUCT_BASELINE, used here. Its Task 063 runtime
+#               blobs were verified file-by-file to be IDENTICAL to
+#               b3a081d70's; it additionally carries the provenance metadata
+#               those bytes require. A manifest recording content hashes can
+#               only be written after the content commit, so the content
+#               commit can never contain its own provenance -- the complete,
+#               approved baseline is therefore the later commit.
+# The gate itself is unchanged: an unapproved Product byte change still fails
+# closed. This is the approval mechanism it is built to require.
+PRODUCT_SHA = "ab89138bf38e251c62cbeb8215b2d04ca6dff71f"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
