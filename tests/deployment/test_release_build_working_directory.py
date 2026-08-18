@@ -942,6 +942,14 @@ $records | ConvertTo-Json -Compress
         # local child process (verify-production-release.ps1) that itself
         # performs remote work internally.
         ("scripts/release/deploy-coordinated-release.ps1", "Invoke-GovernedScript"): (1, "explicit_local_context"),
+        # The simplified canonical deploy path (deploy-production.ps1) is now
+        # the recommended primary entrypoint. Invoke-ReleaseStep spawns each
+        # governed release script it sequences as its own bounded local child
+        # process, exactly as deploy-coordinated-release.ps1 above and as
+        # deploy-release-image.ps1's Invoke-ProductionVerificationSeries do.
+        # Classified here deliberately so this inventory keeps being a
+        # fail-closed review of every native-process boundary.
+        ("scripts/release/deploy-production.ps1", "Invoke-ReleaseStep"): (1, "explicit_local_context"),
     }
     actual = {}
     for record in records:
