@@ -203,7 +203,11 @@ exit 0
 if ($state.exits.package_app -ne 0) { exit $state.exits.package_app }
 New-Item -ItemType Directory -Force -Path $art | Out-Null
 Set-Content -LiteralPath (Join-Path $art ($base + '.tar')) -Value 'archive' -Encoding utf8
-[ordered]@{ git_sha = $state.package_app_sha } | ConvertTo-Json |
+[ordered]@{
+    release_git_sha = $state.package_app_sha
+    oci_revision = $state.package_app_oci_revision
+    image_id = $state.package_app_image_id
+} | ConvertTo-Json |
     Set-Content -LiteralPath (Join-Path $art ($base + '.release.json')) -Encoding utf8
 exit 0
 """,
@@ -310,6 +314,8 @@ def _build_sandbox(tmp_path: pathlib.Path, **overrides) -> dict:
         "docker_engine_ready": True,
         "local_image": None,
         "package_app_sha": head,
+        "package_app_oci_revision": head,
+        "package_app_image_id": "sha256:candidateimage",
         "package_static_sha": head,
         "static_promotes": True,
         "app_promotes_app": True,
@@ -457,6 +463,51 @@ def test_d_build_failure_stops_before_any_mutation(tmp_path):
     assert prod["static_sha"] == BASELINE_SHA
     assert prod["app_sha"] == BASELINE_SHA
     assert _phases(result.stdout) == ["PRECHECK", "BUILD"]
+
+
+def test_d2_app_manifest_identity_mismatch_stops_before_any_mutation(tmp_path):
+    """The packaged manifest must independently agree with the target SHA.
+
+    Regression for a real defect found by local validation: this check read a
+    field name (git_sha) that New-ReleaseManifestObject never writes, so it
+    compared against an empty value. The sandbox fake had encoded the same
+    wrong assumption, which is why the suite did not catch it.
+    """
+    _require_tools()
+    ctx = _build_sandbox(
+        tmp_path, package_app_sha="2222222222222222222222222222222222222222"
+    )
+    result = _run_deploy(ctx)
+    assert result.returncode != 0
+    assert "release_git_sha" in (result.stdout + result.stderr)
+    assert _phases(result.stdout) == ["PRECHECK", "BUILD", "PACKAGE"]
+    assert _prod(ctx)["production"]["static_sha"] == BASELINE_SHA
+
+
+def test_d3_app_manifest_image_id_mismatch_stops_before_any_mutation(tmp_path):
+    _require_tools()
+    ctx = _build_sandbox(tmp_path, package_app_image_id="sha256:someotherimage")
+    result = _run_deploy(ctx)
+    assert result.returncode != 0
+    assert "image_id" in (result.stdout + result.stderr)
+    assert _prod(ctx)["production"]["app_sha"] == BASELINE_SHA
+
+
+def test_d4_manifest_field_names_match_the_canonical_builder():
+    """Guard the exact defect class: the fields read here must be real.
+
+    New-ReleaseManifestObject is the single canonical writer of the app release
+    manifest. Every field deploy-production.ps1 reads off that manifest must
+    appear in it, so a renamed or invented field fails here rather than in a
+    live deploy.
+    """
+    tooling = TOOLING_MODULE.read_text(encoding="utf-8")
+    start = tooling.index("function New-ReleaseManifestObject {")
+    builder = tooling[start:start + 4000]
+    for field in ("release_git_sha", "oci_revision", "image_id"):
+        assert f"{field} = " in builder, f"{field} is not written by New-ReleaseManifestObject"
+    executable = _strip_powershell_comments(DEPLOY_PRODUCTION.read_text(encoding="utf-8"))
+    assert "$appManifest.git_sha" not in executable, "git_sha is not a real manifest field"
 
 
 # ======================================================================

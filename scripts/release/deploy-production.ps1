@@ -344,11 +344,22 @@ foreach ($required in @($appArchivePath, $appManifestPath)) {
         Fail-Deployment "PACKAGE (app) did not produce the expected artifact $required. Nothing has been changed in Production."
     }
 }
+# Field names here are the canonical ones New-ReleaseManifestObject actually
+# writes (ReleaseTooling.psm1) -- release_git_sha / oci_revision / image_id,
+# NOT a guessed "git_sha". image_id is cross-checked against the candidate
+# Docker itself proved in BUILD, so the packaged archive cannot silently
+# describe a different image than the one that was verified.
 $appManifest = Read-JsonFile -Path $appManifestPath
-if ([string]$appManifest.git_sha -ne $ExpectedGitSha) {
-    Fail-Deployment "App release manifest identity is $($appManifest.git_sha), expected $ExpectedGitSha. Nothing has been changed in Production."
+if ([string]$appManifest.release_git_sha -ne $ExpectedGitSha) {
+    Fail-Deployment "App release manifest release_git_sha is '$($appManifest.release_git_sha)', expected $ExpectedGitSha. Nothing has been changed in Production."
 }
-Write-Step "app artifacts verified (manifest git_sha == $ExpectedGitSha)"
+if ([string]$appManifest.oci_revision -ne $ExpectedGitSha) {
+    Fail-Deployment "App release manifest oci_revision is '$($appManifest.oci_revision)', expected $ExpectedGitSha. Nothing has been changed in Production."
+}
+if ([string]$appManifest.image_id -ne $candidateImageId) {
+    Fail-Deployment "App release manifest image_id is '$($appManifest.image_id)' but the verified candidate image is '$candidateImageId'. Nothing has been changed in Production."
+}
+Write-Step "app artifacts verified (release_git_sha, oci_revision, image_id all match the proven candidate)"
 
 $packageStatic = Invoke-ReleaseStep -ScriptPath $packageStaticScript `
     -Arguments @('-ExpectedGitSha', $ExpectedGitSha) `
