@@ -40,6 +40,10 @@ $composeFilePath = Resolve-RepoPath 'docker-compose.release.yml'
 $healthcheckOverridePath = Join-Path ([System.IO.Path]::GetTempPath()) ("docker-compose.release.healthcheck.{0}.yml" -f $artifactBaseName)
 $nginxConfigPath = Resolve-RepoPath 'nginx\default.conf'
 $deploymentRecordPath = Join-Path (Split-Path -Parent $manifestPath) ("{0}.deployment.json" -f $artifactBaseName)
+# RELEASE-TOOLING-HOTFIX-05: bound for the small config/manifest/record
+# uploads this script performs (the large image archive derives its own
+# size-based bound at its call site instead).
+$SmallFileUploadTimeoutSeconds = 120
 $canonicalAppHealthcheck = Get-CanonicalAppHealthcheckDefinition
 Set-Content -LiteralPath $healthcheckOverridePath -Value (New-CanonicalAppHealthcheckOverrideYaml) -Encoding UTF8
 
@@ -66,6 +70,47 @@ function Invoke-RemoteText {
         throw "Remote command failed with exit code $($result.exit_code)."
     }
     return $result.stdout
+}
+
+function Invoke-BoundedReleaseUpload {
+    <#
+    .SYNOPSIS
+    Single bounded upload path for every file this canonical app-deploy
+    transfers to the release host.
+    .DESCRIPTION
+    RELEASE-TOOLING-HOTFIX-05: this script previously used raw `& scp ...`
+    invocations checked only via $LASTEXITCODE. Those had no timeout of any
+    kind -- exactly the unbounded-transfer class of hang that
+    Invoke-BoundedNativeCommand (and RELEASE-FIX-A2-STATIC-DEPLOY-FIX1
+    before it) exists to prevent, and that deploy-static-release.ps1's own
+    uploads were already hardened against via Invoke-BoundedScpUpload.
+    A hung scp here would block the entire deployment indefinitely, with no
+    process-tree termination and no classified failure.
+
+    Delegates to ReleaseTooling.psm1's Invoke-BoundedScpUpload (hard
+    WaitForExit timeout + taskkill /F /T process-tree termination + async
+    stdout/stderr draining + exit-code capture), and converts a non-zero
+    exit into the same descriptive throw the raw call sites used, so
+    caller-visible failure behavior is unchanged apart from now being
+    bounded.
+
+    -TimeoutSeconds is required and operation-appropriate per call site
+    (small config/manifest files get a short bound; the multi-hundred-MB
+    image archive gets a size-derived bound via
+    Get-ArchiveTransferTimeoutSeconds) -- deliberately NOT relying on any
+    outer orchestration timeout to bound an individual transfer.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$LocalPath,
+        [Parameter(Mandatory = $true)][string]$RemotePath,
+        [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
+        [Parameter(Mandatory = $true)][string]$Description
+    )
+    $result = Invoke-BoundedScpUpload -LocalPath $LocalPath -SshAlias $layout.ssh_alias -RemotePath $RemotePath -TimeoutSeconds $TimeoutSeconds -OperationLabel "release upload: $Description"
+    if ($result.exit_code -ne 0) {
+        throw "scp failed while transferring $Description."
+    }
+    return $result
 }
 
 function Join-RemotePath {
@@ -1366,26 +1411,17 @@ try {
     $staleCandidateCleanup = Remove-RemoteStaleCandidateCanaries
     Invoke-RemoteText "mkdir -p $(Quote-PosixShellArgument $layout.remote_release_staging_directory) $(Quote-PosixShellArgument $layout.compose_directory) $(Quote-PosixShellArgument (Join-RemotePath $layout.compose_directory 'nginx'))"
 
-    & scp $composeFilePath "$($layout.ssh_alias):$remoteComposePath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while transferring docker-compose.release.yml."
-    }
-    & scp $healthcheckOverridePath "$($layout.ssh_alias):$remoteHealthcheckOverridePath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while transferring docker-compose.release.healthcheck.override.yml."
-    }
-    & scp $nginxConfigPath "$($layout.ssh_alias):$remoteNginxPath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while transferring nginx/default.conf."
-    }
-    & scp $manifestPath "$($layout.ssh_alias):$remoteManifestPath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while transferring the release manifest."
-    }
-    & scp $archivePath "$($layout.ssh_alias):$remoteArchivePath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while transferring the release archive."
-    }
+    # RELEASE-TOOLING-HOTFIX-05: all bounded (see Invoke-BoundedReleaseUpload).
+    # Small config/manifest files get a fixed short bound; the release
+    # archive is hundreds of MB, so its bound is derived from its actual
+    # size via the existing Get-ArchiveTransferTimeoutSeconds helper rather
+    # than a guessed constant.
+    Invoke-BoundedReleaseUpload -LocalPath $composeFilePath -RemotePath $remoteComposePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.yml' | Out-Null
+    Invoke-BoundedReleaseUpload -LocalPath $healthcheckOverridePath -RemotePath $remoteHealthcheckOverridePath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'docker-compose.release.healthcheck.override.yml' | Out-Null
+    Invoke-BoundedReleaseUpload -LocalPath $nginxConfigPath -RemotePath $remoteNginxPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'nginx/default.conf' | Out-Null
+    Invoke-BoundedReleaseUpload -LocalPath $manifestPath -RemotePath $remoteManifestPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the release manifest' | Out-Null
+    $archiveUploadTimeoutSeconds = Get-ArchiveTransferTimeoutSeconds -TotalBytes ((Get-Item -LiteralPath $archivePath).Length)
+    Invoke-BoundedReleaseUpload -LocalPath $archivePath -RemotePath $remoteArchivePath -TimeoutSeconds $archiveUploadTimeoutSeconds -Description 'the release archive' | Out-Null
 
     $remoteArchiveSha = (Invoke-RemoteText "sha256sum $(Quote-PosixShellArgument $remoteArchivePath)").Split(' ')[0].Trim().ToLowerInvariant()
     if ($remoteArchiveSha -ne $manifest.archive_sha256) {
@@ -1509,10 +1545,7 @@ try {
     $deploymentRecord['operation_id'] = $operationId
     $deploymentRecord['candidate_evidence_filename'] = [IO.Path]::GetFileName($candidateEvidencePath)
     Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
-    & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while transferring the deployment record."
-    }
+    Invoke-BoundedReleaseUpload -LocalPath $deploymentRecordPath -RemotePath $remoteDeploymentRecordPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the deployment record' | Out-Null
 
     $candidateCreationAttempted = $true
     $candidateCanary = Start-RemoteCandidateCanary -SourceContainerName $layout.app_service_name -CandidateContainerName $candidateContainerName -ImageTag $manifest.image_tag
@@ -1624,10 +1657,7 @@ try {
         $deploymentRecord['verification_result'] = 'production verified stable 3x'
     }
     Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
-    & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "scp failed while updating the remote deployment record."
-    }
+    Invoke-BoundedReleaseUpload -LocalPath $deploymentRecordPath -RemotePath $remoteDeploymentRecordPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the remote deployment record update' | Out-Null
     $null = Remove-RemoteCandidateCanary -CandidateContainerName $candidateContainerName -ComposeProjectName $candidateCanary.compose_project -ComposePath $candidateCanary.compose_path
 
     [ordered]@{
@@ -1724,10 +1754,7 @@ catch {
             Save-DeploymentRecord -Record $deploymentRecord -Path $deploymentRecordPath
             $recordSyncError = $null
             try {
-                & scp $deploymentRecordPath "$($layout.ssh_alias):$remoteDeploymentRecordPath" | Out-Host
-                if ($LASTEXITCODE -ne 0) {
-                    $recordSyncError = "scp failed while reconciling the remote deployment record."
-                }
+                Invoke-BoundedReleaseUpload -LocalPath $deploymentRecordPath -RemotePath $remoteDeploymentRecordPath -TimeoutSeconds $SmallFileUploadTimeoutSeconds -Description 'the remote deployment record reconciliation' | Out-Null
             }
             catch {
                 $recordSyncError = $_.Exception.Message

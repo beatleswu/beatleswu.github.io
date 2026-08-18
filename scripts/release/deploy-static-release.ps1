@@ -40,6 +40,15 @@ param(
     # [Parameter(Mandatory = $true)][string]$ArchivePath
     [string]$ArchivePath,
     [string]$ExistingGenerationPath,
+    # RELEASE-TOOLING-HOTFIX-06: read-only verification entrypoint. Runs ONLY
+    # the canonical public acceptance contract (PUBLIC_HASH / PUBLIC_SW /
+    # PUBLIC_INDEX_PROVENANCE) against whatever is publicly live right now,
+    # and mutates nothing -- no upload, no symlink switch, no restart, no
+    # remote write of any kind. Because it cannot mutate, it deliberately
+    # requires no -Execute and no Owner gate. Deployment Workflow V3's
+    # VerifyStatic uses this so it proves the same contract the normal
+    # success path does instead of a weaker identity-only approximation.
+    [switch]$VerifyOnly,
     [string]$ExpectedStaticVersion,
     [string]$ExpectedManifestSha256,
     [string]$ExpectedArchiveSha256,
@@ -72,9 +81,35 @@ if ($adoptionMode) {
     if ($normalizedExistingPath -eq $releasesRoot) { throw 'ExistingGenerationPath cannot be the releases root.' }
     $ExistingGenerationPath = $normalizedExistingPath
 }
+elseif ($VerifyOnly) {
+    # Read-only verification needs only the candidate identity contract --
+    # there is nothing to stage or upload.
+    if ([string]::IsNullOrWhiteSpace($StaticManifest)) { throw 'VerifyOnly requires StaticManifest as the identity contract.' }
+    if ($BundlePath -or $ArchivePath) { throw 'VerifyOnly is mutually exclusive with BundlePath/ArchivePath.' }
+}
 elseif ([string]::IsNullOrWhiteSpace($BundlePath) -or [string]::IsNullOrWhiteSpace($ArchivePath) -or [string]::IsNullOrWhiteSpace($StaticManifest)) {
     throw 'Normal static deployment requires StaticManifest, BundlePath, and ArchivePath.'
 }
+if ($VerifyOnly -and $adoptionMode) {
+    throw 'VerifyOnly is mutually exclusive with existing-generation adoption.'
+}
+
+# RELEASE-TOOLING-HOTFIX-06: exactly one of this script's three modes stages
+# and uploads a local archive/bundle.
+#
+#   NORMAL_ARCHIVE_DEPLOY        -> stages + uploads (all local archive gates apply)
+#   EXISTING_GENERATION_ADOPTION -> reuses an already-present remote generation
+#   VERIFY_ONLY                  -> read-only public verification; no local
+#                                   archive or bundle exists at all
+#
+# Every archive/bundle-only validation below is gated on this single
+# predicate rather than on `-not $adoptionMode`, because the latter is TRUE
+# in VerifyOnly mode and would otherwise reach Test-Path / Get-FileHash /
+# Get-Item / Resolve-GnuTarExecutable / Test-StaticArchiveEntrySafety
+# against a $null archive path. The NORMAL and ADOPTION gates themselves are
+# unchanged -- this only adds VerifyOnly to the set of modes that legitimately
+# have nothing local to stage.
+$archiveStagingRequired = (-not $adoptionMode) -and (-not $VerifyOnly)
 $manifestPath = Resolve-RepoPath $StaticManifest
 $manifest = Read-JsonFile -Path $manifestPath
 $bundlePath = if ($BundlePath) { Resolve-RepoPath $BundlePath } else { $null }
@@ -89,7 +124,7 @@ if ($manifest.archive_sha256 -ne $ExpectedArchiveSha256) { throw 'Static archive
 
 # Re-verify the staged bundle against the manifest -- defense against a
 # stale or tampered bundle directory reused from an earlier invocation.
-if (-not $adoptionMode) { foreach ($entry in $manifest.files) {
+if ($archiveStagingRequired) { foreach ($entry in $manifest.files) {
     $stagedFile = Join-Path $bundlePath $entry.path
     if (-not (Test-Path -LiteralPath $stagedFile -PathType Leaf)) {
         throw "Staged static release file missing: $($entry.path)"
@@ -107,28 +142,28 @@ if (-not $adoptionMode) { foreach ($entry in $manifest.files) {
 # here, verified by SHA-256/size/entry-count against what the manifest
 # recorded at packaging time, not re-derived from whatever GNU tar (or
 # bsdtar) happens to be resolvable on this deploy workstation's PATH today.
-if (-not $adoptionMode -and -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+if ($archiveStagingRequired -and -not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
     throw "Static release archive not found: $archivePath. Run package-static-release.ps1 first; this script never builds an archive itself."
 }
-if (-not $adoptionMode -and ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename))) {
+if ($archiveStagingRequired -and ([string]::IsNullOrWhiteSpace($manifest.archive_sha256) -or [string]::IsNullOrWhiteSpace($manifest.archive_filename))) {
     throw "Static release manifest does not record archive identity (archive_filename/archive_sha256) -- it was built before RELEASE-FIX-A3-STATIC-DEPLOY-FIX3 or is otherwise incompatible. Re-run package-static-release.ps1."
 }
 # Compatibility marker for the normal-mode archive identity gate:
 # $actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $actualArchiveHash = $null
-if (-not $adoptionMode) {
+if ($archiveStagingRequired) {
     $actualArchiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
 }
-if (-not $adoptionMode -and $actualArchiveHash -ne $manifest.archive_sha256) {
+if ($archiveStagingRequired -and $actualArchiveHash -ne $manifest.archive_sha256) {
     throw "Local archive SHA-256 ($actualArchiveHash) does not match the manifest's recorded archive_sha256 ($($manifest.archive_sha256)) -- refusing to upload a mismatched archive. Re-run package-static-release.ps1."
 }
-$actualArchiveSize = if (-not $adoptionMode) { (Get-Item -LiteralPath $archivePath).Length } else { 0 }
-if (-not $adoptionMode -and $manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
+$actualArchiveSize = if ($archiveStagingRequired) { (Get-Item -LiteralPath $archivePath).Length } else { 0 }
+if ($archiveStagingRequired -and $manifest.archive_size -and $actualArchiveSize -ne $manifest.archive_size) {
     throw "Local archive byte size ($actualArchiveSize) does not match the manifest's recorded archive_size ($($manifest.archive_size))."
 }
 
 $gnuTar = $null
-if (-not $adoptionMode) {
+if ($archiveStagingRequired) {
     $gnuTar = Resolve-GnuTarExecutable -OverridePath $GnuTarPath
     Test-StaticArchiveEntrySafety -ArchivePath $archivePath -GnuTarExecutablePath $gnuTar.path
 }
@@ -402,6 +437,127 @@ function Get-PublicStaticReleaseProvenance {
     catch { throw "Could not fetch static release provenance from $Url`: $($_.Exception.Message)" }
 }
 
+function Invoke-PublicStaticAcceptanceContract {
+    <#
+    .SYNOPSIS
+    The canonical, READ-ONLY public acceptance contract for a live static
+    release: PUBLIC_HASH -> PUBLIC_SW -> PUBLIC_INDEX_PROVENANCE.
+    .DESCRIPTION
+    RELEASE-TOOLING-HOTFIX-06. This is the single source of truth for "is the
+    publicly served static release actually the candidate?", used by BOTH:
+
+      - this script's normal post-switch success path, and
+      - this script's -VerifyOnly mode, which Deployment Workflow V3's
+        VerifyStatic invokes to prove the full static postcondition before
+        allowing an ambiguous PROMOTE_STATIC timeout to advance without
+        replaying the mutation.
+
+    Extracted verbatim from the normal success path (same checks, same
+    thresholds, same throw messages, same phase events) rather than
+    reimplemented, so the two callers can never drift apart. It performs no
+    mutation whatsoever: only HTTPS GETs against the public base plus the
+    already-computed local manifest -- which is what makes it safe to reuse
+    as a verifier without invoking a deploying operation.
+
+    Verifies:
+      1. public HTTPS served-byte SHA for every governed public file
+         (index.html excluded -- it is an authenticated/dynamic Flask shell
+         route, covered by the provenance endpoint instead),
+      2. authenticated-route contracts for files whose verification plan is
+         AUTHENTICATED_ROUTE,
+      3. public sw.js VERSION == candidate manifest service_worker_version,
+      4. /healthz/static-release provenance: generation == candidate
+         generation AND index_sha256 == candidate index SHA.
+    #>
+    Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
+    Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
+    # index.html is an authenticated/dynamic Flask shell route, not a public
+    # packaged-byte URL. Verify it through the narrow runtime provenance
+    # endpoint; all other governed files retain canonical body-hash checks.
+    $publicEntries = @($manifest.files | Where-Object { $_.path -ne 'index.html' })
+    $rawPublicEntries = @()
+    $authenticatedPublicEntries = @()
+    foreach ($entry in $publicEntries) {
+        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path)
+        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
+            $authenticatedPublicEntries += [pscustomobject]@{ entry = $entry; plan = $plan }
+        }
+        else {
+            $rawPublicEntries += $entry
+        }
+    }
+    $rawPublicResults = @(Invoke-BoundedPublicVerification -Entries $rawPublicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts)
+    $authenticatedPublicResults = @()
+    foreach ($protected in $authenticatedPublicEntries) {
+        $authUrl = "$publicBase$($protected.plan.route)"
+        $authenticatedPublicResults += @(Test-PublicAuthenticatedRoute -Url $authUrl -Path ([string]$protected.entry.path) -ExpectedRedirectStatus ([int]$protected.plan.expected_redirect_status) -ExpectedRedirectPath ([string]$protected.plan.expected_redirect_path) -TimeoutSeconds $PublicVerificationRequestTimeoutSeconds)
+    }
+    $publicResults = @($rawPublicResults) + @($authenticatedPublicResults)
+    $publicVerificationReport = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object {
+        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$_.path)
+        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
+            [ordered]@{
+                path = $_.path
+                url = "$publicBase$($plan.route)"
+                verification_mode = 'AUTHENTICATED_ROUTE'
+                authenticated_route_verified = $true
+                login_body_hashed = $false
+            }
+        }
+        else {
+            [ordered]@{
+                path = $_.path
+                url = "$publicBase$($plan.route)"
+                verification_mode = 'RAW_PUBLIC_BYTES'
+                sha256_match = $true
+            }
+        }
+    })
+    $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
+    if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $publicEntries.Count) {
+        $failureSummary = [ordered]@{
+            total = $publicEntries.Count
+            verified = @($publicResults | Where-Object { $_.status -eq 'passed' }).Count
+            http_non_200 = @($publicResults | Where-Object { $_.status -eq 'http_non_200' }).Count
+            hash_mismatch = @($publicResults | Where-Object { $_.status -eq 'sha_mismatch' }).Count
+            unexpected_auth_status = @($publicResults | Where-Object { $_.status -eq 'unexpected_auth_status' }).Count
+            unexpected_redirect = @($publicResults | Where-Object { $_.status -eq 'unexpected_redirect' }).Count
+            request_error = @($publicResults | Where-Object { $_.status -eq 'request_error' }).Count
+            request_timeout = @($publicResults | Where-Object { $_.status -eq 'request_timeout' }).Count
+            cancelled_deadline = @($publicResults | Where-Object { $_.status -eq 'cancelled_deadline' }).Count
+            unexpected_exception = @($publicResults | Where-Object { $_.status -eq 'unexpected_exception' -or $_.status -eq 'worker_exception' }).Count
+            remaining = [Math]::Max(0, $publicEntries.Count - $publicResults.Count)
+            concurrency = $PublicVerificationConcurrency
+            per_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
+            attempts = $PublicVerificationAttempts
+            computed_deadline_seconds = $PublicVerificationDeadlineSeconds
+            elapsed_seconds = [Math]::Round($phaseClock.Elapsed.TotalSeconds, 3)
+        }
+        $failureDetails = ($failureSummary | ConvertTo-Json -Compress -Depth 6)
+        throw "Public content verification failed: total=$($manifest.files.Count), completed=$($publicResults.Count), passed=$($publicVerificationReport.Count), failures=$($publicFailures.Count). Details: $failureDetails"
+    }
+    Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION COMPLETE'
+    End-StaticDeployPhase -Phase 'PUBLIC_HASH_COMPLETE'
+
+    Start-StaticDeployPhase -Phase 'PUBLIC_SW'
+    $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
+    if ($publicSwVersion -ne $manifest.service_worker_version) {
+        throw "Public sw.js VERSION mismatch after switch. Expected '$($manifest.service_worker_version)', observed '$publicSwVersion'."
+    }
+    Write-StaticDeployTiming 'PUBLIC SW VERSION COMPLETE'
+    End-StaticDeployPhase -Phase 'PUBLIC_SW'
+
+    Start-StaticDeployPhase -Phase 'PUBLIC_INDEX_PROVENANCE'
+    $provenance = Get-PublicStaticReleaseProvenance -Url "$publicBase/healthz/static-release"
+    $expectedIndexSha = ($manifest.files | Where-Object { $_.path -eq 'index.html' }).sha256
+    if (-not $provenance.ok -or $provenance.generation -ne $generationId -or $provenance.index_sha256 -ne $expectedIndexSha) {
+        throw "Public static provenance mismatch. Expected generation '$generationId' and index SHA '$expectedIndexSha', observed $($provenance | ConvertTo-Json -Compress)."
+    }
+    End-StaticDeployPhase -Phase 'PUBLIC_INDEX_PROVENANCE'
+
+    return $publicVerificationReport
+}
+
 function Get-StaticDeploymentReconciliation {
     <#
     Reconcile after a bounded local SSH/SCP timeout.  A killed local child is
@@ -457,6 +613,33 @@ $publicBase = "$($homepageUri.Scheme)://$($homepageUri.Host)"
 $shortSha = Get-ShortGitSha -GitSha $ExpectedGitSha
 Write-StaticDeployTiming "START generation=$generationId entries=$($manifest.files.Count)"
 Start-StaticDeployPhase -Phase 'PRECHECK'
+
+if ($VerifyOnly) {
+    # RELEASE-TOOLING-HOTFIX-06: read-only public acceptance verification of
+    # whatever is publicly live right now, against this candidate manifest.
+    # Nothing below mutates: no SSH write, no upload, no symlink switch, no
+    # container restart -- which is why this path requires no -Execute and no
+    # Owner gate. It runs the SAME Invoke-PublicStaticAcceptanceContract the
+    # normal success path runs, so the two can never drift.
+    End-StaticDeployPhase -Phase 'PRECHECK'
+    $verifyOnlyReport = Invoke-PublicStaticAcceptanceContract
+    [ordered]@{
+        verify_only = $true
+        execute_requested = $false
+        mutated = $false
+        owner_gate_validated = $false
+        release_git_sha = $ExpectedGitSha
+        static_generation_id = $generationId
+        service_worker_version = $manifest.service_worker_version
+        public_base = $publicBase
+        public_verification = $verifyOnlyReport
+        public_hash_verified = $true
+        public_sw_version_verified = $true
+        public_static_provenance_verified = $true
+        result = 'PUBLIC_STATIC_ACCEPTANCE_VERIFIED'
+    } | ConvertTo-Json -Depth 8 | Write-Output
+    return
+}
 
 if (-not $Execute) {
     End-StaticDeployPhase -Phase 'PRECHECK'
@@ -652,91 +835,13 @@ try {
         throw "Container-internal inventory.html hash still does not match the new release after restart. Expected '$expectedInventoryHash', observed '$containerInventoryHash'."
     }
 
-    Start-StaticDeployPhase -Phase 'PUBLIC_HASH_BEGIN'
-    Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION START'
-    # index.html is an authenticated/dynamic Flask shell route, not a public
-    # packaged-byte URL. Verify it through the narrow runtime provenance
-    # endpoint; all other governed files retain canonical body-hash checks.
-    $publicEntries = @($manifest.files | Where-Object { $_.path -ne 'index.html' })
-    $rawPublicEntries = @()
-    $authenticatedPublicEntries = @()
-    foreach ($entry in $publicEntries) {
-        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$entry.path)
-        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
-            $authenticatedPublicEntries += [pscustomobject]@{ entry = $entry; plan = $plan }
-        }
-        else {
-            $rawPublicEntries += $entry
-        }
-    }
-    $rawPublicResults = @(Invoke-BoundedPublicVerification -Entries $rawPublicEntries -PublicBase $publicBase -ShortSha $shortSha -DeadlineSeconds $PublicVerificationDeadlineSeconds -AttemptCount $PublicVerificationAttempts)
-    $authenticatedPublicResults = @()
-    foreach ($protected in $authenticatedPublicEntries) {
-        $authUrl = "$publicBase$($protected.plan.route)"
-        $authenticatedPublicResults += @(Test-PublicAuthenticatedRoute -Url $authUrl -Path ([string]$protected.entry.path) -ExpectedRedirectStatus ([int]$protected.plan.expected_redirect_status) -ExpectedRedirectPath ([string]$protected.plan.expected_redirect_path) -TimeoutSeconds $PublicVerificationRequestTimeoutSeconds)
-    }
-    $publicResults = @($rawPublicResults) + @($authenticatedPublicResults)
-    $publicVerification = @($publicResults | Where-Object { $_.status -eq 'passed' } | ForEach-Object {
-        $plan = Get-StaticPublicVerificationPlan -RelativePath ([string]$_.path)
-        if ($plan.verification_mode -eq 'AUTHENTICATED_ROUTE') {
-            [ordered]@{
-                path = $_.path
-                url = "$publicBase$($plan.route)"
-                verification_mode = 'AUTHENTICATED_ROUTE'
-                authenticated_route_verified = $true
-                login_body_hashed = $false
-            }
-        }
-        else {
-            [ordered]@{
-                path = $_.path
-                url = "$publicBase$($plan.route)"
-                verification_mode = 'RAW_PUBLIC_BYTES'
-                sha256_match = $true
-            }
-        }
-    })
-    $publicFailures = @($publicResults | Where-Object { $_.status -ne 'passed' })
-    if ($publicFailures.Count -gt 0 -or $publicResults.Count -ne $publicEntries.Count) {
-        $failureSummary = [ordered]@{
-            total = $publicEntries.Count
-            verified = @($publicResults | Where-Object { $_.status -eq 'passed' }).Count
-            http_non_200 = @($publicResults | Where-Object { $_.status -eq 'http_non_200' }).Count
-            hash_mismatch = @($publicResults | Where-Object { $_.status -eq 'sha_mismatch' }).Count
-            unexpected_auth_status = @($publicResults | Where-Object { $_.status -eq 'unexpected_auth_status' }).Count
-            unexpected_redirect = @($publicResults | Where-Object { $_.status -eq 'unexpected_redirect' }).Count
-            request_error = @($publicResults | Where-Object { $_.status -eq 'request_error' }).Count
-            request_timeout = @($publicResults | Where-Object { $_.status -eq 'request_timeout' }).Count
-            cancelled_deadline = @($publicResults | Where-Object { $_.status -eq 'cancelled_deadline' }).Count
-            unexpected_exception = @($publicResults | Where-Object { $_.status -eq 'unexpected_exception' -or $_.status -eq 'worker_exception' }).Count
-            remaining = [Math]::Max(0, $publicEntries.Count - $publicResults.Count)
-            concurrency = $PublicVerificationConcurrency
-            per_request_timeout_seconds = $PublicVerificationRequestTimeoutSeconds
-            attempts = $PublicVerificationAttempts
-            computed_deadline_seconds = $PublicVerificationDeadlineSeconds
-            elapsed_seconds = [Math]::Round($phaseClock.Elapsed.TotalSeconds, 3)
-        }
-        $failureDetails = ($failureSummary | ConvertTo-Json -Compress -Depth 6)
-        throw "Public content verification failed: total=$($manifest.files.Count), completed=$($publicResults.Count), passed=$($publicVerification.Count), failures=$($publicFailures.Count). Details: $failureDetails"
-    }
-    Write-StaticDeployTiming 'PUBLIC HASH VERIFICATION COMPLETE'
-    End-StaticDeployPhase -Phase 'PUBLIC_HASH_COMPLETE'
-
-    Start-StaticDeployPhase -Phase 'PUBLIC_SW'
-    $publicSwVersion = Get-SwVersionFromUrl -Url "$publicBase/sw.js"
-    if ($publicSwVersion -ne $manifest.service_worker_version) {
-        throw "Public sw.js VERSION mismatch after switch. Expected '$($manifest.service_worker_version)', observed '$publicSwVersion'."
-    }
-    Write-StaticDeployTiming 'PUBLIC SW VERSION COMPLETE'
-    End-StaticDeployPhase -Phase 'PUBLIC_SW'
-
-    Start-StaticDeployPhase -Phase 'PUBLIC_INDEX_PROVENANCE'
-    $provenance = Get-PublicStaticReleaseProvenance -Url "$publicBase/healthz/static-release"
-    $expectedIndexSha = ($manifest.files | Where-Object { $_.path -eq 'index.html' }).sha256
-    if (-not $provenance.ok -or $provenance.generation -ne $generationId -or $provenance.index_sha256 -ne $expectedIndexSha) {
-        throw "Public static provenance mismatch. Expected generation '$generationId' and index SHA '$expectedIndexSha', observed $($provenance | ConvertTo-Json -Compress)."
-    }
-    End-StaticDeployPhase -Phase 'PUBLIC_INDEX_PROVENANCE'
+    # RELEASE-TOOLING-HOTFIX-06: the canonical public acceptance contract
+    # (PUBLIC_HASH -> PUBLIC_SW -> PUBLIC_INDEX_PROVENANCE) now lives in one
+    # shared, read-only function so this normal success path and Deployment
+    # Workflow V3's VerifyStatic timeout reconciliation prove the SAME
+    # contract instead of two drifting copies. Behavior here is unchanged --
+    # identical checks, identical throws, identical phase events.
+    $publicVerification = Invoke-PublicStaticAcceptanceContract
 
     Start-StaticDeployPhase -Phase 'DEPLOYMENT_RECORD'
     End-StaticDeployPhase -Phase 'DEPLOYMENT_RECORD'
