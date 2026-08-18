@@ -79,6 +79,8 @@ $LayoutFile = 'deploy\\release-layout.example.json'
 $layout = [pscustomobject]@{{ ssh_alias = 'fake-host' }}
 $preflightScript = 'preflight-production.ps1'
 $deployAppScript = 'deploy-release-image.ps1'
+$deployStaticScript = 'deploy-static-release.ps1'
+$verifyProductionScript = 'verify-production-release.ps1'
 $rollbackAppScript = 'rollback-release.ps1'
 $rollbackStaticScript = 'rollback-static-release.ps1'
 $script:appReleaseManifestPath = 'D:\\fake\\release-artifacts\\{EXPECTED_SHA[:8]}.release.json'
@@ -420,6 +422,12 @@ def _run_verify_static(*, preflight_verification: str, current_static_sha: str |
 $script:PreflightCallCount = 0
 function Invoke-GovernedScript {{
     param([string]$ScriptPath, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$OperationLabel)
+    # The public acceptance stage is exercised separately by
+    # _run_verify_static_with_public; keep it clean here so these tests
+    # isolate the live-generation/health stage.
+    if ($ScriptPath -eq $deployStaticScript) {{
+        return [ordered]@{{ success = $true; data = [pscustomobject]@{{ result = 'PUBLIC_STATIC_ACCEPTANCE_VERIFIED' }} }}
+    }}
     if ($ScriptPath -ne $preflightScript) {{ throw "unexpected script invoked: $ScriptPath" }}
     $script:PreflightCallCount = $script:PreflightCallCount + 1
     if ($Arguments -contains '-StaticManifest') {{
@@ -586,3 +594,144 @@ def test_verify_static_source_is_not_an_identity_only_check():
     assert "Invoke-GovernedScript" in block, "VerifyStatic must run a canonical verification, not identity alone"
     assert "-StaticManifest" in block
     assert "drift_checked" in block
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review #4: preflight proves live-generation hashes and container
+# health, but NOT deploy-static-release.ps1's PUBLIC acceptance contract
+# (served-byte SHAs, authenticated-route contracts, public sw.js VERSION, and
+# /healthz/static-release generation + index_sha256 provenance). VerifyStatic
+# must prove that too, via the canonical read-only -VerifyOnly entrypoint.
+# ---------------------------------------------------------------------------
+
+CLEAN_PUBLIC_ACCEPTANCE = (
+    "[ordered]@{ success = $true; data = [pscustomobject]@{ "
+    "result = 'PUBLIC_STATIC_ACCEPTANCE_VERIFIED'; public_hash_verified = $true; "
+    "public_sw_version_verified = $true; public_static_provenance_verified = $true } }"
+)
+
+
+def _run_verify_static_with_public(*, public_acceptance: str, preflight_verification: str | None = None) -> dict:
+    """Runs the real $VerifyStatic with both canonical verifications faked.
+
+    The preflight (-StaticManifest) call defaults to clean, so these tests
+    isolate the PUBLIC acceptance stage specifically.
+    """
+    if preflight_verification is None:
+        preflight_verification = CLEAN_STATIC_VERIFICATION
+    dependency_overrides = f"""
+$script:CapturedVerifyOnlyArgs = $null
+$script:UsedExecute = $false
+function Invoke-GovernedScript {{
+    param([string]$ScriptPath, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$OperationLabel)
+    if ($ScriptPath -eq $deployStaticScript) {{
+        $script:CapturedVerifyOnlyArgs = $Arguments
+        if ($Arguments -contains '-Execute') {{ $script:UsedExecute = $true }}
+        return {public_acceptance}
+    }}
+    if ($ScriptPath -ne $preflightScript) {{ throw "unexpected script invoked: $ScriptPath" }}
+    if ($Arguments -contains '-StaticManifest') {{ return {preflight_verification} }}
+    return [ordered]@{{ success = $true; data = (@'
+{REALISTIC_PREFLIGHT_JSON}
+'@ | ConvertFrom-Json) }}
+}}
+"""
+    invocation = (
+        "$r = & $VerifyStatic $null\n"
+        "[ordered]@{ success = $r.success; detail = $r.detail; "
+        "verify_only_args = ($script:CapturedVerifyOnlyArgs -join ' '); "
+        "used_execute = $script:UsedExecute } | ConvertTo-Json -Compress\n"
+    )
+    extracted = _get_current_state_block() + "\n" + _verify_static_block()
+    return run_probe(
+        dependency_overrides=dependency_overrides,
+        extracted_blocks=extracted,
+        invocation=invocation,
+    )
+
+
+# --- A: live generation + containers healthy, but public bytes are wrong ---
+
+def test_a_static_public_wrong_bytes_must_not_advance():
+    result = _run_verify_static_with_public(
+        public_acceptance=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = 'Public content verification failed: total=16, completed=16, passed=15, failures=1. "
+            "Details: {\"hash_mismatch\":1}'; data = $null }"
+        )
+    )
+    assert result["success"] is False, (
+        "live-generation hashes + healthy containers must not be accepted while "
+        "the publicly served bytes are still the old release"
+    )
+    assert "canonical public static acceptance contract did not pass" in result["detail"]
+    assert "hash_mismatch" in result["detail"]
+
+
+# --- B: public bytes pass, but public sw.js VERSION is wrong ---------------
+
+def test_b_static_public_wrong_sw_version_must_not_advance():
+    result = _run_verify_static_with_public(
+        public_acceptance=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = \"Public sw.js VERSION mismatch after switch. Expected '20260818a', observed '20260810z'.\"; "
+            "data = $null }"
+        )
+    )
+    assert result["success"] is False
+    assert "sw.js VERSION mismatch" in result["detail"]
+
+
+# --- C: bytes + SW pass, but /healthz/static-release provenance is wrong ---
+
+def test_c_static_public_wrong_provenance_must_not_advance():
+    result = _run_verify_static_with_public(
+        public_acceptance=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = \"Public static provenance mismatch. Expected generation "
+            "'20260818-010203-abcdef12-cand' and index SHA 'aa11', observed \"; data = $null }"
+        )
+    )
+    assert result["success"] is False
+    assert "Public static provenance mismatch" in result["detail"]
+
+
+def test_c_static_public_acceptance_without_verified_result_marker_must_not_advance():
+    # Exit code 0 is not enough on its own -- the canonical verifier must
+    # positively report that it verified the acceptance contract.
+    result = _run_verify_static_with_public(
+        public_acceptance="[ordered]@{ success = $true; data = [pscustomobject]@{ result = 'DRY_RUN_COMPLETE' } }"
+    )
+    assert result["success"] is False
+    assert "did not report a verified result" in result["detail"]
+
+
+# --- D: everything passes -> may advance ----------------------------------
+
+def test_d_full_public_and_runtime_and_identity_postcondition_passes():
+    result = _run_verify_static_with_public(public_acceptance=CLEAN_PUBLIC_ACCEPTANCE)
+    assert result["success"] is True
+
+
+def test_d_public_acceptance_is_invoked_read_only_never_as_a_mutation():
+    result = _run_verify_static_with_public(public_acceptance=CLEAN_PUBLIC_ACCEPTANCE)
+    assert result["success"] is True
+    args = result["verify_only_args"]
+    assert "-VerifyOnly" in args, "must use the canonical read-only verification entrypoint"
+    assert "-StaticManifest" in args
+    assert result["used_execute"] is False, "verification must never invoke a mutating deploy"
+    assert "GO_DEPLOY" not in args
+
+
+def test_public_acceptance_is_skipped_when_the_earlier_live_generation_gate_already_failed():
+    # Ordering guard: if preflight's live-generation/health gate fails, that
+    # is already disqualifying -- report it rather than the public stage.
+    result = _run_verify_static_with_public(
+        public_acceptance=CLEAN_PUBLIC_ACCEPTANCE,
+        preflight_verification=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = 'Scheduler container is not running.'; data = $null }"
+        ),
+    )
+    assert result["success"] is False
+    assert "Scheduler container is not running" in result["detail"]

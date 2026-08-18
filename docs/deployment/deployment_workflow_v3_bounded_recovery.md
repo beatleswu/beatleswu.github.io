@@ -185,19 +185,35 @@ production verification. So after an ambiguous timeout the state machine require
 2. the phase's own canonical verification independently passes — reusing existing governed
    tooling rather than reimplementing it:
    - `VerifyApp` re-runs `verify-production-release.ps1` against the candidate release manifest.
-   - `VerifyStatic` re-runs `preflight-production.ps1` **with this run's candidate
-     `-StaticManifest`**, which resolves what `/current` actually points at now, verifies every
-     manifest file's `sha256` against the *live* generation in one remote batch and fails closed
-     on any drift (`STATIC GENERATION DRIFT: ...`), asserts app **and** scheduler **and** nginx
-     are running, not restarting and healthy (`Assert-ContainerSnapshotValid` — i.e. the
-     post-switch restart / mount refresh really completed), and asserts `/healthz` returns 200
-     with `ok=true`. Passing `-StaticManifest` is load-bearing: without it preflight sets
-     `drift_checked=$false` and that gate is a no-op, so `VerifyStatic` additionally asserts on
-     the returned `drift_checked`/`drift` payload rather than trusting the exit code alone.
+   - `VerifyStatic` proves the static postcondition in **two** canonical stages, because
+     `deploy-static-release.ps1`'s own success criteria span both:
+
+     1. **Live generation + runtime health** — re-runs `preflight-production.ps1` **with this
+        run's candidate `-StaticManifest`**, which resolves what `/current` actually points at
+        now, verifies every manifest file's `sha256` against the *live* generation in one remote
+        batch and fails closed on any drift (`STATIC GENERATION DRIFT: ...`), asserts app **and**
+        scheduler **and** nginx are running, not restarting and healthy
+        (`Assert-ContainerSnapshotValid` — i.e. the post-switch restart / mount refresh really
+        completed), and asserts `/healthz` returns 200 with `ok=true`. Passing `-StaticManifest`
+        is load-bearing: without it preflight sets `drift_checked=$false` and that gate is a
+        no-op, so `VerifyStatic` additionally asserts on the returned `drift_checked`/`drift`
+        payload rather than trusting the exit code alone.
+     2. **Public acceptance contract** — re-runs `deploy-static-release.ps1 -VerifyOnly`, the
+        canonical owner of that contract, in its read-only mode. That covers public HTTPS
+        served-byte SHAs for every governed public file, authenticated-route contracts where
+        applicable, public `sw.js` `VERSION` == the candidate manifest's
+        `service_worker_version`, and `/healthz/static-release` provenance
+        (`generation` == candidate generation **and** `index_sha256` == candidate index SHA).
 
    A switched symlink whose generation manifest merely *reports* the candidate SHA is therefore
-   never sufficient — the post-switch restart/refresh and byte-level verification must be proven
-   too.
+   never sufficient — the post-switch restart/refresh, the live byte-level verification, **and**
+   the public acceptance contract must all be proven.
+
+   `-VerifyOnly` performs no mutation of any kind (no upload, no symlink switch, no restart), so
+   it requires neither `-Execute` nor an Owner gate — verification never runs a deploying
+   operation. Both `deploy-static-release.ps1`'s normal success path and V3's `VerifyStatic` call
+   the *same* extracted `Invoke-PublicStaticAcceptanceContract` function, so the two can never
+   drift apart, and the normal deploy path's gates are unchanged.
 
 Only then does it advance without replaying a possibly-non-idempotent mutation
 (`RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION`). If identity landed but the full

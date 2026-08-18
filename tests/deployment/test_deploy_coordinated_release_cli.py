@@ -137,15 +137,34 @@ def test_every_governed_script_invocation_is_bounded():
     # One call site per phase that actually shells out to an existing
     # governed script: GetCurrentState, BuildApp, PackageApp, PackageStatic,
     # PromoteStatic, PromoteApp, RollbackStatic, RollbackApp, plus
-    # VerifyApp's and VerifyStatic's independent canonical verifications.
+    # VerifyApp's canonical production verification and VerifyStatic's TWO
+    # canonical verifications (preflight -StaticManifest for live-generation
+    # hashes/health, and deploy-static-release.ps1 -VerifyOnly for the public
+    # acceptance contract).
     call_sites = [line for line in content.splitlines() if "Invoke-GovernedScript -ScriptPath" in line]
-    assert len(call_sites) == 10
+    assert len(call_sites) == 11
     # Every one of those call sites supplies an explicit bound (plus one
     # more -TimeoutSeconds inside Invoke-GovernedScript's own definition,
     # plus three more for GetCurrentState's two Get-RemoteImageSourceGitSha
     # reads (app + scheduler) and its Get-RemoteStaticGenerationSourceGitSha
     # read).
-    assert content.count("-TimeoutSeconds") == 14
+    assert content.count("-TimeoutSeconds") == 15
+
+
+def test_static_public_acceptance_is_verified_through_the_canonical_read_only_entrypoint():
+    # VerifyStatic must prove the public acceptance contract by invoking the
+    # canonical owner of that contract in read-only mode -- never by
+    # reimplementing it, and never by running a mutating deploy.
+    content = SCRIPT.read_text(encoding="utf-8")
+    start = content.index("$VerifyStatic = {")
+    end = content.index("$PromoteApp = {", start)
+    block = content[start:end]
+    assert "-VerifyOnly" in block
+    assert "$deployStaticScript" in block
+    assert "PUBLIC_STATIC_ACCEPTANCE_VERIFIED" in block
+    # ... and never with -Execute / an owner gate (that would be a mutation).
+    assert "'-Execute'" not in block
+    assert "GO_DEPLOY" not in block
 
 
 def test_does_not_duplicate_low_level_release_logic():

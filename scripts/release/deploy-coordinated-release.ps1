@@ -382,6 +382,28 @@ $VerifyStatic = {
     if ($staticReport.PSObject.Properties['drift'] -and $staticReport.drift -eq $true) {
         return [ordered]@{ success = $false; detail = 'canonical static verification reported live-static drift against the candidate manifest' }
     }
+
+    # RELEASE-TOOLING-HOTFIX-06: preflight proves live-generation file hashes
+    # and container/runtime health, but NOT the public acceptance contract
+    # that canonical deploy-static-release.ps1 also requires before it will
+    # call a static deployment successful -- public HTTPS served-byte SHAs,
+    # authenticated-route contracts, public sw.js VERSION, and the
+    # /healthz/static-release generation + index_sha256 provenance. A timeout
+    # landing after the symlink switch and restart but before those finished
+    # would otherwise still be accepted here.
+    #
+    # Prove them by invoking the canonical owner of that contract in its
+    # read-only mode (-VerifyOnly): same code, same thresholds, same throws,
+    # no duplication -- and no mutation, no -Execute, no Owner gate.
+    $pub = Invoke-GovernedScript -ScriptPath $deployStaticScript `
+        -Arguments @('-VerifyOnly', '-ExpectedGitSha', $ExpectedGitSha, '-StaticManifest', $script:staticManifestPath, '-LayoutFile', $LayoutFile) `
+        -TimeoutSeconds 600 -OperationLabel 'coordinated-release: verify public static acceptance contract'
+    if (-not $pub.success) {
+        return [ordered]@{ success = $false; detail = "canonical public static acceptance contract did not pass: $($pub.output)" }
+    }
+    if (-not $pub.data -or -not $pub.data.PSObject.Properties['result'] -or [string]$pub.data.result -ne 'PUBLIC_STATIC_ACCEPTANCE_VERIFIED') {
+        return [ordered]@{ success = $false; detail = 'canonical public static acceptance contract did not report a verified result' }
+    }
     [ordered]@{ success = $true }
 }
 
