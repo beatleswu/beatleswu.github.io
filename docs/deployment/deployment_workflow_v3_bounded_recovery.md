@@ -182,8 +182,22 @@ production verification. So after an ambiguous timeout the state machine require
 
 1. every identity the phase owns is observably on the candidate (for `PROMOTE_APP`: app **and**
    scheduler), and
-2. the phase's own canonical verification independently passes (`VerifyApp` re-runs
-   `verify-production-release.ps1`; `VerifyStatic` re-checks the static postcondition).
+2. the phase's own canonical verification independently passes — reusing existing governed
+   tooling rather than reimplementing it:
+   - `VerifyApp` re-runs `verify-production-release.ps1` against the candidate release manifest.
+   - `VerifyStatic` re-runs `preflight-production.ps1` **with this run's candidate
+     `-StaticManifest`**, which resolves what `/current` actually points at now, verifies every
+     manifest file's `sha256` against the *live* generation in one remote batch and fails closed
+     on any drift (`STATIC GENERATION DRIFT: ...`), asserts app **and** scheduler **and** nginx
+     are running, not restarting and healthy (`Assert-ContainerSnapshotValid` — i.e. the
+     post-switch restart / mount refresh really completed), and asserts `/healthz` returns 200
+     with `ok=true`. Passing `-StaticManifest` is load-bearing: without it preflight sets
+     `drift_checked=$false` and that gate is a no-op, so `VerifyStatic` additionally asserts on
+     the returned `drift_checked`/`drift` payload rather than trusting the exit code alone.
+
+   A switched symlink whose generation manifest merely *reports* the candidate SHA is therefore
+   never sufficient — the post-switch restart/refresh and byte-level verification must be proven
+   too.
 
 Only then does it advance without replaying a possibly-non-idempotent mutation
 (`RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION`). If identity landed but the full

@@ -389,3 +389,200 @@ def test_invoke_governed_script_distinguishes_real_timeout_from_ordinary_failure
     assert payload["ordinary_success"] is False
     assert payload["ordinary_timed_out"] is False
     assert payload["ordinary_exit_code"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review #3: PROMOTE_STATIC's postcondition is not "the active
+# generation's manifest reports the candidate SHA". deploy-static-release.ps1
+# also performs the post-switch container restart / mount refresh and public
+# static-byte verification. These exercise the REAL $VerifyStatic executor
+# extracted from the orchestrator source, with only the external boundary
+# (Invoke-GovernedScript / the two remote SHA readers) faked.
+# ---------------------------------------------------------------------------
+
+def _verify_static_block() -> str:
+    return _extract_block("$VerifyStatic = {", "$PromoteApp = {")
+
+
+def _run_verify_static(*, preflight_verification: str, current_static_sha: str | None = None) -> dict:
+    """Runs the real $VerifyStatic with a faked canonical-verification result.
+
+    `preflight_verification` is the PowerShell expression Invoke-GovernedScript
+    returns for the -StaticManifest verification call (the second preflight
+    invocation); the first (identity) call always succeeds with the realistic
+    preflight shape.
+    """
+    static_sha_override = ""
+    if current_static_sha is not None:
+        static_sha_override = f"$script:FakeCurrentStaticSha = '{current_static_sha}'\n"
+    dependency_overrides = f"""
+{static_sha_override}$script:CapturedStaticManifestArg = $null
+$script:PreflightCallCount = 0
+function Invoke-GovernedScript {{
+    param([string]$ScriptPath, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$OperationLabel)
+    if ($ScriptPath -ne $preflightScript) {{ throw "unexpected script invoked: $ScriptPath" }}
+    $script:PreflightCallCount = $script:PreflightCallCount + 1
+    if ($Arguments -contains '-StaticManifest') {{
+        $idx = [array]::IndexOf($Arguments, '-StaticManifest')
+        $script:CapturedStaticManifestArg = $Arguments[$idx + 1]
+        return {preflight_verification}
+    }}
+    # identity read (GetCurrentState)
+    return [ordered]@{{ success = $true; data = (@'
+{REALISTIC_PREFLIGHT_JSON}
+'@ | ConvertFrom-Json) }}
+}}
+"""
+    invocation = (
+        "$r = & $VerifyStatic $null\n"
+        "[ordered]@{ success = $r.success; detail = $r.detail; "
+        "captured_static_manifest = $script:CapturedStaticManifestArg; "
+        "preflight_call_count = $script:PreflightCallCount } | ConvertTo-Json -Compress\n"
+    )
+    extracted = _get_current_state_block() + "\n" + _verify_static_block()
+    return run_probe(
+        dependency_overrides=dependency_overrides,
+        extracted_blocks=extracted,
+        invocation=invocation,
+    )
+
+
+CLEAN_STATIC_VERIFICATION = (
+    "[ordered]@{ success = $true; data = [pscustomobject]@{ "
+    "static_generation = [pscustomobject]@{ drift_checked = $true; drift = $false } } }"
+)
+
+
+# --- A: identity candidate, canonical static verification FAILS ------------
+
+def test_a_verify_static_rejects_identity_only_when_canonical_verification_fails():
+    result = _run_verify_static(
+        preflight_verification=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = 'STATIC GENERATION DRIFT: production live-static current does not match the declared static release manifest'; "
+            "data = $null }"
+        )
+    )
+    assert result["success"] is False, (
+        "candidate static identity alone must not satisfy the static postcondition"
+    )
+    assert "canonical static verification did not pass" in result["detail"]
+    assert "DRIFT" in result["detail"]
+
+
+def test_a_verify_static_rejects_reported_drift_even_when_verification_exits_zero():
+    # Defence in depth: even if the drift gate were ever downgraded from a
+    # throw to a soft report, a drift=true payload must still fail closed.
+    result = _run_verify_static(
+        preflight_verification=(
+            "[ordered]@{ success = $true; data = [pscustomobject]@{ "
+            "static_generation = [pscustomobject]@{ drift_checked = $true; drift = $true } } }"
+        )
+    )
+    assert result["success"] is False
+    assert "drift" in result["detail"].lower()
+
+
+def test_a_verify_static_rejects_when_drift_was_never_actually_checked():
+    # -StaticManifest is what arms preflight's drift gate; without it
+    # drift_checked is false and the gate is a no-op. That must never be
+    # accepted as a proven postcondition.
+    result = _run_verify_static(
+        preflight_verification=(
+            "[ordered]@{ success = $true; data = [pscustomobject]@{ "
+            "static_generation = [pscustomobject]@{ drift_checked = $false; drift = $null } } }"
+        )
+    )
+    assert result["success"] is False
+    assert "drift_checked" in result["detail"]
+
+
+# --- B: identity candidate, app/scheduler readiness NOT proven -------------
+
+def test_b_verify_static_rejects_when_app_scheduler_post_switch_readiness_is_not_proven():
+    # preflight's Assert-ContainerSnapshotValid throws when a container is not
+    # running / is restarting / is unhealthy -- i.e. the post-switch restart
+    # and mount refresh did not actually complete. That surfaces as a
+    # non-zero exit from the verification call.
+    result = _run_verify_static(
+        preflight_verification=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = 'Scheduler container is not running.'; data = $null }"
+        )
+    )
+    assert result["success"] is False
+    assert "canonical static verification did not pass" in result["detail"]
+    assert "Scheduler container is not running" in result["detail"]
+
+
+def test_b_verify_static_rejects_when_healthz_gate_fails_after_static_switch():
+    result = _run_verify_static(
+        preflight_verification=(
+            "[ordered]@{ success = $false; timed_out = $false; "
+            "output = '/healthz did not return 200.'; data = $null }"
+        )
+    )
+    assert result["success"] is False
+    assert "/healthz did not return 200" in result["detail"]
+
+
+# --- C: identity candidate AND full canonical verification passes ----------
+
+def test_c_verify_static_passes_only_when_full_canonical_verification_passes():
+    result = _run_verify_static(preflight_verification=CLEAN_STATIC_VERIFICATION)
+    assert result["success"] is True
+    # It really did run the canonical verification in addition to the
+    # identity read (two preflight invocations, not one).
+    assert result["preflight_call_count"] == 2
+
+
+def test_verify_static_passes_the_candidate_static_manifest_to_the_canonical_verifier():
+    # Load-bearing: without -StaticManifest, preflight's per-file sha256
+    # drift gate is a no-op, so this argument is what makes the check real.
+    result = _run_verify_static(preflight_verification=CLEAN_STATIC_VERIFICATION)
+    assert result["success"] is True
+    assert result["captured_static_manifest"], "-StaticManifest must be passed to the canonical verifier"
+    assert result["captured_static_manifest"].endswith(".static.json")
+
+
+def test_verify_static_rejects_a_non_candidate_static_identity_before_verifying():
+    # If the active generation is not even on the candidate SHA, fail on
+    # identity without spending a canonical verification round-trip.
+    result = _run_verify_static(
+        preflight_verification=CLEAN_STATIC_VERIFICATION,
+        current_static_sha=BASELINE_SHA,
+    )
+    assert result["success"] is False
+    assert "not on the candidate" in result["detail"]
+    assert result["preflight_call_count"] == 1
+
+
+def test_verify_static_fails_closed_when_no_candidate_static_manifest_is_known():
+    dependency_overrides = f"""
+$script:staticManifestPath = ''
+function Invoke-GovernedScript {{
+    param([string]$ScriptPath, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$OperationLabel)
+    if ($Arguments -contains '-StaticManifest') {{ throw 'must not attempt verification without a manifest' }}
+    return [ordered]@{{ success = $true; data = (@'
+{REALISTIC_PREFLIGHT_JSON}
+'@ | ConvertFrom-Json) }}
+}}
+"""
+    invocation = "(& $VerifyStatic $null) | ConvertTo-Json -Compress"
+    extracted = _get_current_state_block() + "\n" + _verify_static_block()
+    result = run_probe(
+        dependency_overrides=dependency_overrides,
+        extracted_blocks=extracted,
+        invocation=invocation,
+    )
+    assert result["success"] is False
+    assert "static manifest" in result["detail"]
+
+
+def test_verify_static_source_is_not_an_identity_only_check():
+    # Source-level regression guard against silently reverting to
+    # `success = ($state.static_sha -eq $ExpectedGitSha)`.
+    block = _verify_static_block()
+    assert "Invoke-GovernedScript" in block, "VerifyStatic must run a canonical verification, not identity alone"
+    assert "-StaticManifest" in block
+    assert "drift_checked" in block

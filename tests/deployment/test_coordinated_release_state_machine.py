@@ -832,3 +832,93 @@ def test_candidate_success_requires_all_three_candidate_identities():
         assert result.stdout.strip() != "CANDIDATE_CANDIDATE", (
             "CANDIDATE_CANDIDATE must require all three identities; " + missing_field + " was not on the candidate"
         )
+
+
+# ---------------------------------------------------------------------------
+# Coordinator review #3: the same full-postcondition rule PROMOTE_APP follows
+# must apply to PROMOTE_STATIC -- a switched symlink alone is not proof the
+# post-switch restart / mount refresh and public verification completed.
+# ---------------------------------------------------------------------------
+
+def test_static_timeout_with_identity_only_does_not_advance_and_rolls_back():
+    # The static generation really did switch to the candidate, but the
+    # canonical static verification cannot prove the rest of the phase.
+    overrides = """
+$script:staticPromoteCallCount = 0
+$PromoteStatic = {
+    $script:staticPromoteCallCount = $script:staticPromoteCallCount + 1
+    $script:currentStaticSha = $ExpectedSha
+    if ($script:staticPromoteCallCount -eq 1) {
+        [ordered]@{ success = $false; possible_timeout = $true; root_cause_class = 'static_timeout_postswitch'; detail = 'symlink switched, client lost the result before restart/verification finished' }
+    } else {
+        [ordered]@{ success = $true; static_sha = $ExpectedSha }
+    }
+}
+$VerifyStatic = {
+    param($promoted)
+    $n = Get-AttemptCount 'verify_static_postcondition'
+    # The reconciliation-time verification cannot prove the postcondition.
+    if ($n -eq 1) { [ordered]@{ success = $false; detail = 'canonical static verification did not pass: STATIC GENERATION DRIFT' } }
+    else { [ordered]@{ success = ($script:currentStaticSha -eq $ExpectedSha) } }
+}
+"""
+    report = run_scenario(overrides)
+    recovery = report["recovery_log"]
+    assert recovery[0]["root_cause_class"] == "post_timeout_postcondition_unproven"
+    assert recovery[0]["recovery_action"] == "CANDIDATE_IDENTITY_PRESENT_BUT_FULL_POSTCONDITION_UNPROVEN"
+    assert recovery[0]["postcondition_independently_verified"] is False
+    assert recovery[0]["final_outcome"] == "FALLING_THROUGH_TO_COORDINATED_ROLLBACK"
+    # It fell through to a real coordinated rollback back to a coherent
+    # baseline, then retried the same SHA.
+    assert report["static_rolled_back"] is True
+    assert any(r.get("recovery_action") == "COORDINATED_ROLLBACK_VERIFIED_BASELINE_RETRY_SAME_SHA" for r in recovery)
+    assert report["success"] is True
+    assert report["final_state_domain"] == "CANDIDATE_CANDIDATE"
+
+
+def test_static_timeout_with_full_postcondition_proven_advances_without_replay():
+    overrides = """
+$script:staticPromoteCallCount = 0
+$PromoteStatic = {
+    $script:staticPromoteCallCount = $script:staticPromoteCallCount + 1
+    $script:currentStaticSha = $ExpectedSha
+    [ordered]@{ success = $false; possible_timeout = $true; root_cause_class = 'static_timeout_after_full_completion'; detail = 'whole static phase completed, client lost the result' }
+}
+"""
+    overrides_with_count = overrides + """
+$__report = Invoke-CoordinatedReleaseStateMachine `
+    -ExpectedGitSha $ExpectedSha `
+    -GetCurrentState $GetCurrentState `
+    -Precheck $Precheck `
+    -BuildApp $BuildApp `
+    -PackageApp $PackageApp `
+    -PackageStatic $PackageStatic `
+    -SnapshotBaseline $SnapshotBaseline `
+    -VerifyRollbackReady $VerifyRollbackReady `
+    -PromoteStatic $PromoteStatic `
+    -VerifyStatic $VerifyStatic `
+    -PromoteApp $PromoteApp `
+    -VerifyApp $VerifyApp `
+    -ProductionSmoke $ProductionSmoke `
+    -RollbackStatic $RollbackStatic `
+    -RollbackApp $RollbackApp
+[ordered]@{ result = $__report; promote_static_call_count = $script:staticPromoteCallCount } | ConvertTo-Json -Depth 12 -Compress
+"""
+    script = COMMON_PREAMBLE + "\n" + overrides_with_count
+    proc = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", timeout=30, check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    text = proc.stdout.strip()
+    payload = json.loads(text[text.find("{"):])
+    report = payload["result"]
+    assert report["success"] is True
+    assert report["final_state_domain"] == "CANDIDATE_CANDIDATE"
+    recovery = report["recovery_log"]
+    assert len(recovery) == 1
+    assert recovery[0]["recovery_action"] == "RECONCILED_FULL_POSTCONDITION_PROVEN_NO_DUPLICATE_MUTATION"
+    assert recovery[0]["postcondition_independently_verified"] is True
+    # PROMOTE_STATIC's mutating action was never replayed.
+    assert payload["promote_static_call_count"] == 1
+    assert report["static_rolled_back"] is False

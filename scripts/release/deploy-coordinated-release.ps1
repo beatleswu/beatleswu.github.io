@@ -322,11 +322,67 @@ $PromoteStatic = {
 
 $VerifyStatic = {
     param($promoted)
+    # PROMOTE_STATIC's postcondition is NOT "the symlink points at a
+    # generation whose manifest reports the candidate SHA". The canonical
+    # deploy-static-release.ps1 also performs the post-switch container
+    # restart / mount refresh and public static-byte verification -- a
+    # timeout after the symlink switch but before those finish must not be
+    # accepted on identity alone. This executor is what the state machine
+    # re-runs to prove the full postcondition before advancing past an
+    # ambiguous PROMOTE_STATIC timeout, so an identity-only check here would
+    # directly reintroduce that defect.
     $state = & $GetCurrentState
     if (-not $state.success) {
         return [ordered]@{ success = $false; detail = 'could not independently verify static identity post-promotion' }
     }
-    [ordered]@{ success = ($state.static_sha -eq $ExpectedGitSha) }
+    if ([string]$state.static_sha -ne $ExpectedGitSha) {
+        return [ordered]@{ success = $false; detail = "active static generation is not on the candidate: static_sha=$($state.static_sha) expected=$ExpectedGitSha" }
+    }
+
+    # Independent canonical verification of the complete static postcondition,
+    # reusing the existing governed mechanism rather than duplicating it:
+    # preflight-production.ps1 with THIS run's candidate -StaticManifest
+    #   - resolves what /current actually points at now,
+    #   - verifies every manifest file's sha256 against the LIVE generation in
+    #     one remote batch and fails closed on any drift
+    #     ("STATIC GENERATION DRIFT: ..."), which is exactly the post-switch
+    #     byte-level check,
+    #   - asserts app AND scheduler AND nginx are running, not restarting and
+    #     healthy (Assert-ContainerSnapshotValid) -- i.e. the post-switch
+    #     restart / mount refresh really completed,
+    #   - asserts /healthz returns 200 with ok=true.
+    # Passing -StaticManifest is what arms the drift gate; without it
+    # preflight sets drift_checked=$false and that gate is a no-op, so the
+    # manifest argument below is load-bearing, not decorative.
+    if ([string]::IsNullOrWhiteSpace([string]$script:staticManifestPath)) {
+        return [ordered]@{ success = $false; detail = 'no candidate static manifest path is known; cannot verify the static postcondition' }
+    }
+    $v = Invoke-GovernedScript -ScriptPath $preflightScript `
+        -Arguments @('-LayoutFile', $LayoutFile, '-StaticManifest', $script:staticManifestPath) `
+        -TimeoutSeconds 300 -OperationLabel 'coordinated-release: verify static postcondition'
+    if (-not $v.success) {
+        return [ordered]@{ success = $false; detail = "canonical static verification did not pass: $($v.output)" }
+    }
+
+    # Defence in depth: preflight throws (non-zero exit) on drift, which the
+    # check above already catches. Also assert positively on the reported
+    # payload so a future change that downgraded that throw to a soft report,
+    # or an invocation that somehow lost -StaticManifest, cannot silently
+    # turn this into an identity-only check again.
+    $staticReport = $null
+    if ($v.data -and $v.data.PSObject.Properties['static_generation']) {
+        $staticReport = $v.data.static_generation
+    }
+    if (-not $staticReport) {
+        return [ordered]@{ success = $false; detail = 'canonical static verification returned no static_generation report' }
+    }
+    if (-not $staticReport.PSObject.Properties['drift_checked'] -or $staticReport.drift_checked -ne $true) {
+        return [ordered]@{ success = $false; detail = 'canonical static verification did not actually check for drift (drift_checked was not true)' }
+    }
+    if ($staticReport.PSObject.Properties['drift'] -and $staticReport.drift -eq $true) {
+        return [ordered]@{ success = $false; detail = 'canonical static verification reported live-static drift against the candidate manifest' }
+    }
+    [ordered]@{ success = $true }
 }
 
 $PromoteApp = {
