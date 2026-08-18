@@ -22,7 +22,13 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-PRODUCT_SHA = "620b06435da81a1be263561cac3d461dac488761"
+# UI-NAV-063: Owner-approved Product baseline advance. b3a081d70 is the
+# immutable content-producing commit for the two navigation fixes (it is
+# deliberately NOT the follow-on provenance commit ab89138bf). The gate
+# behaved correctly before this: a real Product byte change against a
+# stale baseline is exactly what UNAPPROVED_PRODUCT_DIFF_DETECTED exists
+# to catch, and clearing it is an Owner approval, not a test relaxation.
+PRODUCT_SHA = "b3a081d700396eb4322ab22ad2bf8eb39579ea31"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
