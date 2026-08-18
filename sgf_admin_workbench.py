@@ -619,6 +619,18 @@ def ensure_sgf_workbench_tables(conn) -> None:
         UNIQUE(reviewer_id, record_index, legacy_question_id, reviewed_record_sha256)
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sgfh_current_locator ON sgf_human_review_state(reviewer_id, record_index, legacy_question_id, updated_at DESC)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS sgf_human_review_progress (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reviewer_id BIGINT NOT NULL,
+        snapshot_sha256 TEXT NOT NULL,
+        record_index BIGINT NOT NULL,
+        legacy_question_id TEXT NOT NULL,
+        record_sha256 TEXT NOT NULL,
+        revision BIGINT NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        UNIQUE(reviewer_id, snapshot_sha256)
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sgfh_progress_locator ON sgf_human_review_progress(reviewer_id, record_index, updated_at DESC)")
 
 
 def _normalize_move(move: Any) -> dict | None:

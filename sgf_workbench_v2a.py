@@ -27,6 +27,7 @@ HUMAN_REVIEW_CLASSIFICATIONS = (
 )
 HUMAN_REVIEW_STATES = ("CURRENT", "CONTENT_CHANGED", "UNREVIEWED")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_GO_COLUMNS = "ABCDEFGHJKLMNOPQRST"
 
 
 def utc_now() -> str:
@@ -64,6 +65,14 @@ def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def go_coordinate(x: int, y: int, board_size: int = 19) -> str:
+    """Return a human Go coordinate (A..H,J..T; top row is board_size)."""
+    x, y, board_size = int(x), int(y), int(board_size)
+    if not (0 <= x < len(_GO_COLUMNS) and 0 <= y < board_size):
+        raise ValueError("board coordinate is outside the board")
+    return f"{_GO_COLUMNS[x]}{board_size - y}"
+
+
 def ensure_human_review_table(conn) -> None:
     """Install the local/isolated table; PostgreSQL is migration-governed."""
     if not _is_sqlite(conn):
@@ -90,6 +99,23 @@ def ensure_human_review_table(conn) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_sgfh_current_locator "
         "ON sgf_human_review_state(reviewer_id, record_index, legacy_question_id, updated_at DESC)"
+    )
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS sgf_human_review_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reviewer_id BIGINT NOT NULL,
+            snapshot_sha256 TEXT NOT NULL,
+            record_index BIGINT NOT NULL,
+            legacy_question_id TEXT NOT NULL,
+            record_sha256 TEXT NOT NULL,
+            revision BIGINT NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL,
+            UNIQUE(reviewer_id, snapshot_sha256)
+        )"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_sgfh_progress_locator "
+        "ON sgf_human_review_progress(reviewer_id, record_index, updated_at DESC)"
     )
 
 
@@ -154,9 +180,62 @@ def get_human_review_state(conn, *, reviewer_id: int, record_index: int,
     }
 
 
+def load_human_review_index(conn, reviewer_id: int, *, schema_ready: bool = False) -> dict[str, Any]:
+    """Load one reviewer's rows once so corpus scans never issue N+1 queries."""
+    if not schema_ready:
+        ensure_human_review_table(conn)
+    rows = conn.execute(
+        "SELECT * FROM sgf_human_review_state WHERE reviewer_id=?",
+        (int(reviewer_id),),
+    ).fetchall()
+    exact: dict[tuple[int, str, str], dict[str, Any]] = {}
+    by_locator: dict[tuple[int, str], list[dict[str, Any]]] = {}
+    for row in rows:
+        value = _row_dict(row)
+        if not value:
+            continue
+        key = (int(value.get("record_index")), str(value.get("legacy_question_id")),
+               str(value.get("reviewed_record_sha256")).lower())
+        exact[key] = value
+        locator = key[:2]
+        by_locator.setdefault(locator, []).append(value)
+    for values in by_locator.values():
+        values.sort(key=lambda item: (str(item.get("updated_at") or ""), int(item.get("id") or 0)), reverse=True)
+    return {"exact": exact, "by_locator": by_locator}
+
+
+def review_state_from_index(review_index: Mapping[str, Any], *, reviewer_id: int,
+                            record_index: int, legacy_question_id: Any,
+                            current_record_sha256: str) -> dict[str, Any]:
+    """Resolve a version-scoped review locator without a database round trip."""
+    _reviewer_id, index, legacy_id, current_hash = _validate_locator(
+        reviewer_id=reviewer_id, record_index=record_index,
+        legacy_question_id=legacy_question_id, reviewed_record_sha256=current_record_sha256,
+    )
+    exact = (review_index.get("exact") or {}).get((index, legacy_id, current_hash))
+    if exact:
+        result = dict(exact)
+        result["state"] = "CURRENT"
+        return result
+    prior_rows = (review_index.get("by_locator") or {}).get((index, legacy_id), [])
+    if prior_rows:
+        prior = prior_rows[0]
+        return {
+            "state": "CONTENT_CHANGED",
+            "classification": None,
+            "previous_classification": prior.get("classification"),
+            "previous_reviewed_record_sha256": prior.get("reviewed_record_sha256"),
+            "record_index": index,
+            "legacy_question_id": legacy_id,
+        }
+    return {"state": "UNREVIEWED", "classification": None,
+            "record_index": index, "legacy_question_id": legacy_id}
+
+
 def save_human_review_state(conn, *, reviewer_id: int, record_index: int,
                             legacy_question_id: Any, reviewed_record_sha256: str,
-                            classification: str, now: str | None = None) -> dict[str, Any]:
+                            classification: str, now: str | None = None,
+                            schema_ready: bool = False) -> dict[str, Any]:
     """Persist one lazy human classification and append a bounded audit row."""
     reviewer_id, record_index, legacy_id, digest = _validate_locator(
         reviewer_id=reviewer_id, record_index=record_index,
@@ -165,7 +244,8 @@ def save_human_review_state(conn, *, reviewer_id: int, record_index: int,
     classification = str(classification or "").upper()
     if classification not in HUMAN_REVIEW_CLASSIFICATIONS:
         raise ValueError("invalid human review classification")
-    ensure_human_review_table(conn)
+    if not schema_ready:
+        ensure_human_review_table(conn)
     timestamp = now or utc_now()
     conn.execute(
         """INSERT INTO sgf_human_review_state
@@ -194,10 +274,15 @@ def save_human_review_state(conn, *, reviewer_id: int, record_index: int,
         # Audit is required for a governed mutation.  Let the transaction
         # caller roll back rather than returning an apparently saved state.
         raise
-    result = get_human_review_state(
-        conn, reviewer_id=reviewer_id, record_index=record_index,
-        legacy_question_id=legacy_id, current_record_sha256=digest,
-    )
+    row = conn.execute(
+        """SELECT * FROM sgf_human_review_state
+           WHERE reviewer_id=? AND record_index=? AND legacy_question_id=?
+             AND reviewed_record_sha256=?""",
+        (reviewer_id, record_index, legacy_id, digest),
+    ).fetchone()
+    result = _row_dict(row) or {"record_index": record_index, "legacy_question_id": legacy_id,
+                                "reviewed_record_sha256": digest, "classification": classification}
+    result["state"] = "CURRENT"
     result["idempotent_replay"] = result.get("updated_at") == timestamp
     return result
 
@@ -242,7 +327,8 @@ def serialize_sgf_tree(sgf: str) -> dict[str, Any]:
                 else:
                     try:
                         x, y = sgf_to_xy(child.move.coord or "")
-                        move = {"color": child.move.color, "x": x, "y": y, "pass": False}
+                        move = {"color": child.move.color, "x": x, "y": y, "pass": False,
+                                "coordinate": go_coordinate(x, y, board_size)}
                     except (TypeError, ValueError):
                         move = {"color": child.move.color, "pass": False, "invalid": True}
             item = {"id": node_id, "parent_id": parent_id, "move": move, "children": []}
@@ -256,7 +342,7 @@ def serialize_sgf_tree(sgf: str) -> dict[str, Any]:
     if side not in ("B", "W"):
         first = next((node for node in nodes[1:] if node.get("move") and node["move"].get("color")), None)
         side = first["move"]["color"] if first else "B"
-    return {
+    tree = {
         "root_id": "0",
         "nodes": nodes,
         "board_size": board_size,
@@ -264,6 +350,13 @@ def serialize_sgf_tree(sgf: str) -> dict[str, Any]:
         "side_to_play": side,
         "errors": setup_errors,
     }
+    # Expose backend-authoritative board states so the browser does not carry
+    # a second, potentially divergent capture implementation.
+    tree["board_states"] = {
+        node["id"]: replay_sgf_tree(tree, node["id"]).get("stones", [])
+        for node in nodes
+    }
+    return tree
 
 
 serialize_answer_tree = serialize_sgf_tree
@@ -425,7 +518,8 @@ def build_question_context(record: Mapping[str, Any], *, record_index: int,
 
 __all__ = [
     "HUMAN_REVIEW_CLASSIFICATIONS", "HUMAN_REVIEW_STATES", "record_hash", "canonical_record_hash",
-    "ensure_human_review_table", "get_human_review_state", "save_human_review_state",
+    "ensure_human_review_table", "get_human_review_state", "load_human_review_index",
+    "review_state_from_index", "save_human_review_state", "go_coordinate",
     "serialize_sgf_tree", "serialize_answer_tree", "replay_sgf_tree", "replay_answer_tree",
     "compute_local_viewport", "build_question_context",
 ]

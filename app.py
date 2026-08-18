@@ -4123,6 +4123,7 @@ from sgf_answer_review_routes import (
     _REVIEW_CSRF_HEADER,
     _review_csrf_failure,
     _review_csrf_token,
+    _review_origin_failure,
 )
 
 app.register_blueprint(create_sgf_answer_review_blueprint(
@@ -4133,16 +4134,30 @@ app.register_blueprint(create_sgf_answer_review_blueprint(
 # V2-A is a read/review surface only.  The callbacks are lazy because the
 # question cache helpers are defined later in this module; this blueprint has
 # no repair, apply, or canonical-content write endpoint.
+_V2A_SNAPSHOT_CACHE = {"stamp": None, "sha256": None}
+
+
+def _v2a_questions_snapshot_sha():
+    try:
+        stat = os.stat(DATA_FILE)
+    except OSError:
+        return None
+    stamp = (stat.st_mtime_ns, stat.st_size)
+    if _V2A_SNAPSHOT_CACHE.get("stamp") != stamp:
+        _V2A_SNAPSHOT_CACHE["stamp"] = stamp
+        _V2A_SNAPSHOT_CACHE["sha256"] = canonical_file_sha256(DATA_FILE)
+    return _V2A_SNAPSHOT_CACHE["sha256"]
+
+
 app.register_blueprint(create_sgf_workbench_v2a_blueprint(
     admin_required=admin_required,
     get_db_provider=lambda: get_db(),
     load_questions=lambda: _load_questions(),
-    questions_snapshot_sha=lambda: (
-        canonical_file_sha256(DATA_FILE) if os.path.exists(DATA_FILE) else None
-    ),
+    questions_snapshot_sha=_v2a_questions_snapshot_sha,
     csrf_failure=_review_csrf_failure,
     csrf_header=_REVIEW_CSRF_HEADER,
     csrf_token=_review_csrf_token,
+    origin_failure=_review_origin_failure,
 ))
 
 
