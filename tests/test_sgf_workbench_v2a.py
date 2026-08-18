@@ -141,6 +141,31 @@ def test_v2a_admin_api_classifies_without_canonical_mutation(monkeypatch):
     assert records[0]["content"].startswith("(;GM")
 
 
+def test_v2a_resume_locator_drift_fails_closed(monkeypatch):
+    monkeypatch.setenv("SECRET_KEY", "sgf-v2a-resume-test")
+    import app as application
+
+    conn = _conn()
+    first = _record()
+    second = dict(_record(), id=432, content="(;GM[1]FF[4]SZ[19];B[cc])")
+    records = [first, second]
+    monkeypatch.setattr(application, "get_db", lambda: _ConnectionContext(conn))
+    monkeypatch.setattr(application, "_load_questions", lambda: records)
+    client = application.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = 7
+        session["is_admin"] = True
+    bootstrap = client.get("/api/admin/sgf-workbench-v2a/bootstrap")
+    headers = {bootstrap.get_json()["security"]["csrf_header"]: bootstrap.get_json()["security"]["csrf_token"]}
+    progress = client.post("/api/admin/sgf-workbench-v2a/progress", json={"record_index": 0}, headers=headers)
+    assert progress.status_code == 200
+    records[:] = [second, first]
+    reopened = client.get("/api/admin/sgf-workbench-v2a/bootstrap")
+    payload = reopened.get_json()
+    assert payload["resume_state"] == "RESUME_LOCATOR_STALE"
+    assert payload["current"]["record_index"] == 1
+
+
 class _ConnectionContext:
     def __init__(self, connection):
         self.connection = connection
