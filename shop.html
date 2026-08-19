@@ -603,7 +603,7 @@ h1 {
         <div class="section-sub">Catalog → Preview → Unlock → Ownership → Equip → Visible Result</div>
       </div>
       <p class="cosmetic-note">
-        外觀商品只改變英雄的視覺呈現，不增加攻擊、防禦或戰鬥權限。預覽是純 presentation；購買價格與 Premium entitlement 由 server authority 判定。
+        外觀商品的攻擊增量與防禦增量固定為 0，且沒有戰鬥權限；現有定義中的非戰鬥 XP／掉落效果仍可能保留。預覽是純 presentation；購買價格與 Premium entitlement 由 server authority 判定。
       </p>
       <div class="cosmetic-grid" id="cosmetic-commerce-grid">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -1774,4 +1774,3 @@ async function _nqCheckShopPurchase() {
 </div>
 </body>
 </html>
-

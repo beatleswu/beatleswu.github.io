@@ -88,6 +88,16 @@ def cosmetic_app(tmp_path, monkeypatch):
                 reason TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
+            CREATE TABLE gacha_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                pool TEXT NOT NULL,
+                result_key TEXT,
+                result_type TEXT NOT NULL,
+                rarity TEXT,
+                pity_count INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            );
             CREATE TABLE badges_earned (
                 user_id INTEGER NOT NULL,
                 badge_id TEXT NOT NULL,
@@ -120,6 +130,14 @@ def _scalar(path, sql, params=()):
 
 def _product(payload, product_id):
     return next(item for item in payload["products"] if item["product_id"] == product_id)
+
+
+def test_lane_c_copy_preserves_non_combat_effect_boundary():
+    copy = (REPO_ROOT / "shop.html").read_text(encoding="utf-8")
+    assert "攻擊增量與防禦增量固定為 0" in copy
+    assert "沒有戰鬥權限" in copy
+    assert "非戰鬥 XP／掉落效果仍可能保留" in copy
+    assert "只改變英雄的視覺呈現" not in copy
 
 
 def test_catalog_and_preview_are_canonically_mapped_and_read_only(cosmetic_app):
@@ -234,15 +252,64 @@ def test_premium_unlock_uses_durable_entitlement_not_client_flag(cosmetic_app):
     with sqlite3.connect(path) as conn:
         conn.execute("UPDATE users SET plan='premium' WHERE id=2")
 
+    equip_before_unlock = client.post(
+        "/api/cosmetic-commerce/equip", json={"product_id": premium}
+    )
+    assert equip_before_unlock.status_code == 403
+    assert equip_before_unlock.get_json()["error"] == "not_owned"
+    assert _scalar(
+        path, "SELECT COUNT(*) FROM player_wardrobe WHERE user_id=2"
+    ) == 0
+    assert _scalar(
+        path, "SELECT COUNT(*) FROM badges_earned WHERE user_id=2"
+    ) == 0
+    assert _scalar(
+        path, "SELECT COUNT(*) FROM player_appearance WHERE user_id=2"
+    ) == 0
+
     unlocked = client.post(
         "/api/cosmetic-commerce/purchase",
         json={"product_id": premium},
     )
     assert unlocked.status_code == 200
     assert unlocked.get_json()["status"] == "unlocked"
+    assert unlocked.get_json()["granted"] is True
     assert unlocked.get_json()["price_charged"] is None
     assert _scalar(path, "SELECT COUNT(*) FROM currency_log WHERE user_id=2") == 0
     assert _scalar(path, "SELECT COUNT(*) FROM player_wardrobe WHERE user_id=2 AND item_id='robe_premium'") == 1
+    assert _scalar(path, "SELECT COUNT(*) FROM player_wardrobe WHERE user_id=2") == 1
+    assert _scalar(path, "SELECT COUNT(*) FROM badges_earned WHERE user_id=2") == 0
+    assert _scalar(path, "SELECT COUNT(*) FROM player_appearance WHERE user_id=2") == 0
+
+    unrelated_premium_items = tuple(
+        item_id for item_id in app.PREMIUM_ITEMS if item_id != "robe_premium"
+    )
+    assert _scalar(
+        path,
+        "SELECT COUNT(*) FROM player_wardrobe "
+        "WHERE user_id=2 AND item_id IN (%s)"
+        % ",".join("?" for _ in unrelated_premium_items),
+        unrelated_premium_items,
+    ) == 0
+
+    duplicate = client.post(
+        "/api/cosmetic-commerce/purchase", json={"product_id": premium}
+    )
+    assert duplicate.status_code == 200
+    assert duplicate.get_json()["status"] == "already_owned"
+    assert duplicate.get_json()["granted"] is False
+    assert _scalar(path, "SELECT COUNT(*) FROM player_wardrobe WHERE user_id=2") == 1
+    assert _scalar(path, "SELECT COUNT(*) FROM badges_earned WHERE user_id=2") == 0
+    assert _scalar(path, "SELECT COUNT(*) FROM player_appearance WHERE user_id=2") == 0
+
+    equipped = client.post(
+        "/api/cosmetic-commerce/equip", json={"product_id": premium}
+    )
+    assert equipped.status_code == 200
+    assert equipped.get_json()["product"]["equipped_state"]["equipped"] is True
+    assert _scalar(path, "SELECT outfit_id FROM player_appearance WHERE user_id=2") == "robe_premium"
+    assert _scalar(path, "SELECT COUNT(*) FROM player_wardrobe WHERE user_id=2") == 1
+    assert _scalar(path, "SELECT COUNT(*) FROM badges_earned WHERE user_id=2") == 0
 
 
 def test_spend_coins_rejects_negative_amount(cosmetic_app):
@@ -251,3 +318,50 @@ def test_spend_coins_rejects_negative_amount(cosmetic_app):
         assert app._spend_coins(conn, 1, -1, "test:negative") is False
     assert _scalar(path, "SELECT coins FROM user_stats WHERE user_id=1") == 500
     assert _scalar(path, "SELECT COUNT(*) FROM currency_log WHERE user_id=1") == 0
+
+
+def test_existing_shop_and_gacha_endpoints_smoke_shared_spend(cosmetic_app, monkeypatch):
+    app, path = cosmetic_app
+    client = _client_for(app, 1)
+    item_key = next(iter(app.SHOP_ITEMS))
+    appearance = next(
+        item for item in app.APPEARANCE_DEFS
+        if item.get("rarity") in ("common", "uncommon")
+    )
+
+    with sqlite3.connect(path) as conn:
+        conn.execute("UPDATE user_stats SET coins=10000 WHERE user_id=1")
+
+    monkeypatch.setattr(app, "_daily_shop_slots", lambda conn: [])
+    monkeypatch.setattr(
+        app,
+        "_grant_shop_purchase",
+        lambda conn, uid, item, qty=1: ([{"item_key": item["key"], "qty": qty}], []),
+    )
+    shop_buy = client.post(
+        "/api/shop/buy", json={"item_key": item_key, "qty": 1}
+    )
+    assert shop_buy.status_code == 200
+
+    monkeypatch.setattr(
+        app,
+        "_daily_shop_slots",
+        lambda conn: [{
+            "type": "appearance",
+            "item_key": appearance["id"],
+            "price": 200,
+        }],
+    )
+    buy_appearance = client.post(
+        "/api/shop/buy_appearance", json={"item_id": appearance["id"]}
+    )
+    assert buy_appearance.status_code == 200
+
+    monkeypatch.setattr(app.random, "random", lambda: 0.0)
+    monkeypatch.setattr(app.random, "choice", lambda values: values[0])
+    gacha = client.post("/api/shop/gacha", json={})
+    assert gacha.status_code == 200
+    assert gacha.get_json()["ok"] is True
+    assert _scalar(path, "SELECT COUNT(*) FROM gacha_log WHERE user_id=1") == 1
+    assert _scalar(path, "SELECT COUNT(*) FROM currency_log WHERE user_id=1") == 3
+    assert _scalar(path, "SELECT coins FROM user_stats WHERE user_id=1") >= 0

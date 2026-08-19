@@ -18728,11 +18728,14 @@ def _purchase_cosmetic(conn, uid, product, *, price_override=None,
     if product['unlock_type'] == 'premium':
         if not premium_entitled:
             return {'status': 'premium_required', 'granted': False}
-        owned_before = _cosmetic_owned(conn, uid, product)
-        ensure_premium_rewards(uid, conn, equip_default=False)
+        inserted = conn.execute(
+            'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+            'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
+            (uid, item_id, _now_iso(), 'cosmetic_shop'))
+        granted = getattr(inserted, 'rowcount', 0) == 1
         return {
-            'status': 'already_owned' if owned_before else 'unlocked',
-            'granted': not owned_before,
+            'status': 'unlocked' if granted else 'already_owned',
+            'granted': granted,
             'price': None,
         }
 
@@ -18853,8 +18856,6 @@ def cosmetic_commerce_equip():
     with get_db() as conn:
         if product['unlock_type'] == 'premium' and not premium_entitled:
             return jsonify({'error': 'premium_required'}), 403
-        if product['unlock_type'] == 'premium':
-            ensure_premium_rewards(uid, conn, equip_default=False)
         if not _cosmetic_owned(conn, uid, product):
             return jsonify({'error': 'not_owned'}), 403
 
