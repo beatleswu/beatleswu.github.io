@@ -68,11 +68,14 @@ COPY sgf_answer_review_routes.py ./
 # SGF Admin Workbench is imported by app.py during process startup. Keep the
 # server-side module explicit so image builds cannot omit this runtime import.
 COPY sgf_admin_workbench.py ./
+COPY sgf_workbench_v2a.py ./
+COPY sgf_workbench_v2a_routes.py ./
 # The Workbench's PostgreSQL schema path lazily imports these two governed
 # migration helpers. Keep the package boundary explicit; do not copy the
 # migrations directory wholesale.
 COPY migrations/__init__.py ./migrations/__init__.py
 COPY migrations/sgf_admin_workbench_v1.py ./migrations/sgf_admin_workbench_v1.py
+COPY migrations/sgf_human_review_v2a.py ./migrations/sgf_human_review_v2a.py
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
 # absent from this explicit COPY list despite app.py already depending on
@@ -106,7 +109,7 @@ COPY login.html landing.html index.html terms.html manage.html admin.html \
 COPY i18n.js sw.js srs.js monster_trash.js sound.js mobile-nav.js \
      site-nav.js community_reward_notifications.js \
      community_reward_rules.js pwa.js sgf_answer_review.js \
-     sgf_admin_workbench_ux_v2.js ./
+     sgf_admin_workbench_ux_v2.js sgf_workbench_v2a.js ./
 COPY review_data/sgf_answer_review_queue_v1.json \
      ./review_data/sgf_answer_review_queue_v1.json
 # Legacy Map Battle V1 is an explicitly routed subpath asset. Keep the

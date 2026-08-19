@@ -22,21 +22,21 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-# UI-NAV-063A: Owner-approved Product baseline. 5b565a05d is both the
-# CONTENT_PRODUCING_COMMIT and the APPROVED_PRODUCT_BASELINE this time -- no
-# separate provenance commit is needed, because the file it changed
-# (deploy/canonical-image-pack-manifest.json) is not a
-# deploy/runtime-source-provenance.json runtime dependency record.
+# UI-NAV-063A: 5b565a05d was the prior Owner-approved Product baseline.
+# The Owner subsequently approved the integrated V2-A Product baseline at
+# f2650ee762482bf4bb315e55bd542d6841a0a03b. The governance commit that updates
+# this reference must not become the PRODUCT_SHA itself.
 #
-# Why the baseline had to move: UI-NAV-063 shipped
+# Why the prior baseline had to move: UI-NAV-063 shipped
 # assets/e10/ui/icons/guild.webp into Git and into the runtime, but not into
 # the canonical static asset closure, so it was never a complete releasable
-# Product. 5b565a05d closes that ownership gap. The gate firing beforehand was
-# correct, not a defect.
+# Product. 5b565a05d closed that ownership gap. The gate firing beforehand was
+# correct, not a defect; the current baseline additionally includes the
+# Owner-approved V2-A Product/runtime change set.
 #
 # The Task 063 provenance records for index.html / i18n.js / sw.js deliberately
 # still point at b3a081d70, the commit that produced those bytes.
-PRODUCT_SHA = "5b565a05d4e49fab0993e13b82842fe06a4fdc1d"
+PRODUCT_SHA = "f2650ee762482bf4bb315e55bd542d6841a0a03b"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80

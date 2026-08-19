@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, request, send_from_directory, session
+from flask import Blueprint, Response, jsonify, request, send_from_directory, session
 import os
 from pathlib import Path
 import secrets
@@ -130,12 +130,34 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     blueprint = Blueprint("sgf_answer_review_queue", __name__)
     root = Path(__file__).resolve().parent
 
+    def _legacy_page_response():
+        html = (root / "sgf_answer_review.html").read_text(encoding="utf-8")
+        html = html.replace(
+            '<script src=' + chr(34) + '/admin/sgf-answer-review-ux-v2.js?v=2' + chr(34) + '></script>',
+            "<script src='/admin/sgf-answer-review.js'></script>"
+            "<script src='/admin/sgf-answer-review-legacy-ux-v2.js?v=1'></script>",
+        )
+        response = Response(html, mimetype="text/html")
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
     @blueprint.route("/admin/sgf-answer-review")
     @admin_required
     def review_page():
-        response = send_from_directory(root, "sgf_answer_review.html")
+        if request.args.get("mode", "").lower() == "legacy":
+            return _legacy_page_response()
+        else:
+            response = send_from_directory(root, "sgf_answer_review.html")
         response.headers["Cache-Control"] = "private, no-store"
         return response
+
+    def review_legacy_page():
+        return _legacy_page_response()
+    blueprint.add_url_rule(
+        "/admin/sgf-answer-review/legacy",
+        endpoint="review_legacy_page_admin",
+        view_func=admin_required(review_legacy_page),
+    )
 
     @blueprint.route("/admin/sgf-answer-review.js")
     @admin_required
@@ -147,9 +169,19 @@ def create_sgf_answer_review_blueprint(*, admin_required, get_db_provider):
     @blueprint.route("/admin/sgf-answer-review-ux-v2.js")
     @admin_required
     def review_ux_v2_script():
+        response = send_from_directory(root, "sgf_workbench_v2a.js", mimetype="application/javascript")
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    def review_legacy_ux_v2_script():
         response = send_from_directory(root, "sgf_admin_workbench_ux_v2.js", mimetype="application/javascript")
         response.headers["Cache-Control"] = "private, no-store"
         return response
+    blueprint.add_url_rule(
+        "/admin/sgf-answer-review-legacy-ux-v2.js",
+        endpoint="review_legacy_ux_v2_script_admin",
+        view_func=admin_required(review_legacy_ux_v2_script),
+    )
 
     @blueprint.route("/api/admin/sgf-answer-review/bootstrap")
     @admin_required
