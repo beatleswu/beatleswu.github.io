@@ -511,7 +511,22 @@ def judge_map_battle_answer_v1(
     return JudgeOutcome("INCORRECT", 0, MAP_BATTLE_JUDGE_VERSION, "partial_answer_sequence")
 
 
-def calculate_damage(result: str, authoritative_grade: int | None, monster_hp_max: int, question: Mapping[str, Any] | None = None) -> tuple[int, int]:
+def _bounded_combat_modifier(value: Any, cap: float) -> float:
+    try:
+        return min(cap, max(0.0, float(value or 0.0)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def calculate_damage(
+    result: str,
+    authoritative_grade: int | None,
+    monster_hp_max: int,
+    question: Mapping[str, Any] | None = None,
+    *,
+    attack_bonus: float = 0.0,
+    damage_reduction: float = 0.0,
+) -> tuple[int, int]:
     """Return existing game-balance damage as (monster damage, player damage)."""
 
     if result == "INVALID":
@@ -525,7 +540,9 @@ def calculate_damage(result: str, authoritative_grade: int | None, monster_hp_ma
         # paths so Map Battle does not introduce a second balance calculation.
         import math
 
-        return max(5, math.ceil(monster_hp_max * percentage)), 0
+        attack_bonus = _bounded_combat_modifier(attack_bonus, 0.75)
+        damage = max(5, math.ceil(monster_hp_max * percentage * (1.0 + attack_bonus)))
+        return min(max(0, int(monster_hp_max)), damage), 0
     if result == "INCORRECT":
         monster_attack = 8
         if question is not None:
@@ -533,15 +550,29 @@ def calculate_damage(result: str, authoritative_grade: int | None, monster_hp_ma
                 monster_attack = max(0, int(question.get("monster_atk", 8)))
             except (TypeError, ValueError):
                 monster_attack = 8
-        return 0, max(1, round(monster_attack))
+        damage_reduction = _bounded_combat_modifier(damage_reduction, 0.99)
+        return 0, max(1, round(monster_attack * (1.0 - damage_reduction)))
     raise RequestRejected("unknown judge result")
 
 
-def calculate_combat_effects(result: str, authoritative_grade: int | None, monster_hp_max: int, question: Mapping[str, Any] | None = None) -> tuple[int, int, int]:
+def calculate_combat_effects(
+    result: str,
+    authoritative_grade: int | None,
+    monster_hp_max: int,
+    question: Mapping[str, Any] | None = None,
+    *,
+    attack_bonus: float = 0.0,
+    damage_reduction: float = 0.0,
+) -> tuple[int, int, int]:
     """Return authoritative damage and healing for one verdict settlement."""
 
     monster_damage, player_damage = calculate_damage(
-        result, authoritative_grade, monster_hp_max, question
+        result,
+        authoritative_grade,
+        monster_hp_max,
+        question,
+        attack_bonus=attack_bonus,
+        damage_reduction=damage_reduction,
     )
     return monster_damage, player_damage, 1 if result == "CORRECT" else 0
 
@@ -915,6 +946,7 @@ def settle_answer(
     mode_environ: Mapping[str, Any] | None = None,
     eligibility: Mapping[str, Any] | None = None,
     judge: Callable[[Mapping[str, Any], Mapping[str, Any], CanonicalAnswer], JudgeOutcome] | None = None,
+    combat_stats_resolver: Callable[[Any, int], Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
 
@@ -1023,11 +1055,14 @@ def settle_answer(
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")
+    combat_stats = combat_stats_resolver(conn, user_id) if combat_stats_resolver else {}
     damage_to_monster, damage_to_player, heal_to_player = calculate_combat_effects(
         outcome.result,
         outcome.authoritative_grade,
         int((load_authoritative_battle_state(conn, user_id=user_id, battle_id=str(attempt["battle_id"])) or {}).get("monster_hp_max") or 0),
         question,
+        attack_bonus=combat_stats.get('attack_bonus', 0.0),
+        damage_reduction=combat_stats.get('damage_reduction', 0.0),
     )
     try:
         settled = settle_map_battle_submission(
