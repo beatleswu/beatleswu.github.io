@@ -1,0 +1,17 @@
+[Unit]
+Description=Godokro daily backup
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+Environment=HOME=/home/ubuntu
+Environment=CLOUDSDK_CONFIG=/home/ubuntu/.config/gcloud
+EnvironmentFile=-/etc/godokro-backup.env
+WorkingDirectory=/opt/go-odyssey
+ExecStart=/opt/go-odyssey/ops/backup/linux/backup.sh daily
+
+[Install]
+WantedBy=multi-user.target

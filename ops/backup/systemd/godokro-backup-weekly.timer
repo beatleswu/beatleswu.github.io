@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Godokro weekly OCI snapshot every Sunday
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00
+Persistent=true
+Unit=godokro-backup-weekly.service
+
+[Install]
+WantedBy=timers.target
