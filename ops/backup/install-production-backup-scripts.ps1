@@ -16,6 +16,76 @@ $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot '..\..\scripts\release\ReleaseTooling.psm1') -Force -DisableNameChecking
 
+function ConvertTo-CanonicalModeString {
+    param([Parameter(Mandatory = $true)][string]$Mode)
+    $normalized = $Mode.TrimStart('0')
+    if ([string]::IsNullOrEmpty($normalized)) { $normalized = '0' }
+    return $normalized
+}
+
+function Assert-PreimageIdentityShape {
+    param(
+        [Parameter(Mandatory = $true)][object]$Identity,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+    if ([string]$Identity.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Production backup pre-image contract has an invalid SHA256 for $Label."
+    }
+    if ([string]$Identity.file_type -ne 'regular file') {
+        throw "Production backup pre-image contract must require regular files: $Label"
+    }
+    if ([string]$Identity.owner -notmatch '^[A-Za-z0-9_.-]+$' -or [string]$Identity.group -notmatch '^[A-Za-z0-9_.-]+$') {
+        throw "Production backup pre-image contract has an invalid owner/group for $Label."
+    }
+    if ([string]$Identity.mode -notmatch '^[0-7]{3,4}$') {
+        throw "Production backup pre-image contract has an invalid mode for $Label."
+    }
+}
+
+function Get-DeclaredPreviousCanonical {
+    param([Parameter(Mandatory = $true)][object]$Entry)
+    if ($null -eq $Entry.PSObject.Properties['accepted_previous_canonical']) { return @() }
+    if ($null -eq $Entry.accepted_previous_canonical) { return @() }
+    return @($Entry.accepted_previous_canonical)
+}
+
+function Get-GitBlobSha256 {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$CommitSha,
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+
+    $spec = '{0}:{1}' -f $CommitSha, $RelativePath
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = 'git'
+    $startInfo.Arguments = '-C "{0}" cat-file blob "{1}"' -f $RepoRoot, $spec
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    $buffer = New-Object System.IO.MemoryStream
+    try {
+        $process.StandardOutput.BaseStream.CopyTo($buffer)
+        $standardError = $process.StandardError.ReadToEnd()
+        $process.WaitForExit()
+        if ($process.ExitCode -ne 0) {
+            throw "Unable to read $spec from local Git history: $standardError"
+        }
+        $hasher = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            return ([BitConverter]::ToString($hasher.ComputeHash($buffer.ToArray())) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $hasher.Dispose()
+        }
+    } finally {
+        $buffer.Dispose()
+        $process.Dispose()
+    }
+}
+
 $repoRoot = Get-RepoRoot
 $layout = Get-ReleaseLayout -Path (Resolve-RepoPath $LayoutFile)
 $sourceSha = (git -C $repoRoot rev-parse --verify HEAD).Trim().ToLowerInvariant()
@@ -91,6 +161,10 @@ if (-not (Test-Path -LiteralPath $preimageContractPath -PathType Leaf)) {
     throw "Production backup pre-image contract is missing: $preimageContractPath"
 }
 $preimageContract = Get-Content -LiteralPath $preimageContractPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$preimageSchemaVersion = [int]$preimageContract.schema_version
+if ($preimageSchemaVersion -ne 1 -and $preimageSchemaVersion -ne 2) {
+    throw "Production backup pre-image contract has an unsupported schema_version: $preimageSchemaVersion."
+}
 $preimageEntries = @($preimageContract.targets)
 if ($preimageEntries.Count -ne $runtimeFiles.Count) {
     throw "Production backup pre-image contract must contain exactly $($runtimeFiles.Count) targets."
@@ -101,17 +175,26 @@ foreach ($entry in $preimageEntries) {
     if ([string]::IsNullOrWhiteSpace($remotePath) -or $preimageByRemotePath.ContainsKey($remotePath)) {
         throw "Production backup pre-image contract contains a missing or duplicate remote path."
     }
-    if ([string]$entry.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
-        throw "Production backup pre-image contract has an invalid SHA256 for $remotePath."
+    Assert-PreimageIdentityShape -Identity $entry -Label $remotePath
+    $declaredPrevious = Get-DeclaredPreviousCanonical -Entry $entry
+    if ($declaredPrevious.Count -gt 0 -and $preimageSchemaVersion -lt 2) {
+        throw "Production backup pre-image contract declares accepted_previous_canonical below schema_version 2: $remotePath"
     }
-    if ([string]$entry.file_type -ne 'regular file') {
-        throw "Production backup pre-image contract must require regular files: $remotePath"
-    }
-    if ([string]$entry.owner -notmatch '^[A-Za-z0-9_.-]+$' -or [string]$entry.group -notmatch '^[A-Za-z0-9_.-]+$') {
-        throw "Production backup pre-image contract has an invalid owner/group for $remotePath."
-    }
-    if ([string]$entry.mode -notmatch '^[0-7]{3,4}$') {
-        throw "Production backup pre-image contract has an invalid mode for $remotePath."
+    $seenPreviousIdentity = @{}
+    foreach ($previous in $declaredPrevious) {
+        $previousLabel = "$remotePath (accepted previous canonical)"
+        Assert-PreimageIdentityShape -Identity $previous -Label $previousLabel
+        if ([string]$previous.file_type -ne [string]$entry.file_type) {
+            throw "Production backup pre-image contract has a mismatched file type for $previousLabel."
+        }
+        if ([string]$previous.source_sha -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "Production backup pre-image contract must name an exact source commit for $previousLabel."
+        }
+        $identityKey = '{0}|{1}|{2}|{3}' -f ([string]$previous.sha256).ToLowerInvariant(), [string]$previous.owner, [string]$previous.group, (ConvertTo-CanonicalModeString ([string]$previous.mode))
+        if ($seenPreviousIdentity.ContainsKey($identityKey)) {
+            throw "Production backup pre-image contract has a duplicate accepted previous canonical identity for $remotePath."
+        }
+        $seenPreviousIdentity[$identityKey] = $true
     }
     $preimageByRemotePath[$remotePath] = $entry
 }
@@ -125,9 +208,25 @@ $records = foreach ($file in $runtimeFiles) {
         throw "Production backup pre-image contract does not cover $($file.RemotePath)"
     }
     $preimage = $preimageByRemotePath[$file.RemotePath]
-    $canonicalMode = $file.Mode.TrimStart('0')
-    if ([string]::IsNullOrEmpty($canonicalMode)) { $canonicalMode = '0' }
+    $canonicalMode = ConvertTo-CanonicalModeString $file.Mode
     $hash = (Get-FileHash -LiteralPath $localPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $acceptedPreviousCanonical = @(Get-DeclaredPreviousCanonical -Entry $preimage | ForEach-Object {
+        $declaredSha = ([string]$_.sha256).ToLowerInvariant()
+        $declaredSourceSha = ([string]$_.source_sha).ToLowerInvariant()
+        $historySha = Get-GitBlobSha256 -RepoRoot $repoRoot -CommitSha $declaredSourceSha -RelativePath $file.RelativePath
+        if ($historySha -ne $declaredSha) {
+            throw "Accepted previous canonical identity for $($file.RemotePath) does not match ${declaredSourceSha}:$($file.RelativePath) (declared $declaredSha, actual $historySha)."
+        }
+        [pscustomobject]@{
+            Sha256 = $declaredSha
+            Owner = [string]$_.owner
+            Group = [string]$_.group
+            Mode = ConvertTo-CanonicalModeString ([string]$_.mode)
+            FileType = [string]$_.file_type
+            SourceSha = $declaredSourceSha
+            Description = [string]$_.description
+        }
+    })
     [pscustomobject]@{
         RelativePath = $file.RelativePath
         LocalPath = $localPath
@@ -143,6 +242,7 @@ $records = foreach ($file in $runtimeFiles) {
         PreimageGroup = [string]$preimage.group
         PreimageMode = [string]$preimage.mode
         PreimageFileType = [string]$preimage.file_type
+        AcceptedPreviousCanonical = $acceptedPreviousCanonical
     }
 }
 
@@ -252,7 +352,24 @@ function New-RemotePropagationScript {
         $lines.Add('actual_owner=$(stat -c "%U" -- "$target")')
         $lines.Add('actual_group=$(stat -c "%G" -- "$target")')
         $lines.Add('actual_sha=$(sha256sum -- "$target" | awk ''{print $1}'')')
-        $lines.Add(('if [ "$actual_sha" = {0} ] && [ "$actual_owner" = {1} ] && [ "$actual_group" = {2} ] && [ "$actual_mode" = {3} ]; then :; elif [ "$actual_sha" = {4} ] && [ "$actual_owner" = {5} ] && [ "$actual_group" = {6} ] && [ "$actual_mode" = {7} ]; then :; else die "remote pre-image identity mismatch: $target"; fi' -f $preSha, $preOwner, $preGroup, $preMode, $canonicalSha, $canonicalOwner, $canonicalGroup, $canonicalMode))
+        # Accepted identities, in owner-reviewed order: the original legacy
+        # production pre-image, every explicitly declared previous canonical
+        # identity for this target, then the canonical identity being installed
+        # (which also makes an unchanged rerun idempotent). Anything else is
+        # unknown drift and fails closed before any activation.
+        $identityTest = 'if [ "$actual_sha" = {0} ] && [ "$actual_owner" = {1} ] && [ "$actual_group" = {2} ] && [ "$actual_mode" = {3} ]'
+        $acceptedIdentities = [System.Collections.Generic.List[string]]::new()
+        $acceptedIdentities.Add(($identityTest -f $preSha, $preOwner, $preGroup, $preMode))
+        foreach ($previous in $item.AcceptedPreviousCanonical) {
+            $acceptedIdentities.Add(($identityTest -f (ConvertTo-PosixQuoted $previous.Sha256), (ConvertTo-PosixQuoted $previous.Owner), (ConvertTo-PosixQuoted $previous.Group), (ConvertTo-PosixQuoted $previous.Mode)))
+        }
+        $acceptedIdentities.Add(($identityTest -f $canonicalSha, $canonicalOwner, $canonicalGroup, $canonicalMode))
+        $gate = $acceptedIdentities[0] + '; then :; '
+        for ($branch = 1; $branch -lt $acceptedIdentities.Count; $branch++) {
+            $gate += ($acceptedIdentities[$branch] -replace '^if ', 'elif ') + '; then :; '
+        }
+        $gate += 'else die "remote pre-image identity mismatch: $target"; fi'
+        $lines.Add($gate)
         $lines.Add(('if [ ! -f {0} ]; then die "staged backup file is missing: {0}"; fi' -f $stagePath))
         $lines.Add(("echo '{0}  {1}' | sha256sum --check --strict -" -f $item.Sha256, $stagePath.Trim("'")))
         if ($item.RelativePath.EndsWith('.sh')) {
@@ -317,6 +434,17 @@ $report = [ordered]@{
             canonical_owner = $_.Owner
             canonical_group = $_.Group
             canonical_mode = $_.CanonicalMode
+            accepted_previous_canonical = @($_.AcceptedPreviousCanonical | ForEach-Object {
+                [ordered]@{
+                    sha256 = $_.Sha256
+                    owner = $_.Owner
+                    group = $_.Group
+                    mode = $_.Mode
+                    file_type = $_.FileType
+                    source_sha = $_.SourceSha
+                    description = $_.Description
+                }
+            })
         }
     })
     remote_stage = $remoteStage
@@ -335,7 +463,7 @@ if ($RenderRemoteScriptPath) {
 
 if (-not $Execute) {
     $report.mode = 'plan'
-    $report | ConvertTo-Json -Depth 5
+    $report | ConvertTo-Json -Depth 8
     exit 0
 }
 
@@ -362,4 +490,4 @@ $result = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -ScriptText $remo
 if ($result.exit_code -ne 0) { throw "Backup propagation failed closed: $($result.stdout) $($result.stderr)" }
 $report.mode = 'executed'
 $report.remote_result = $result.stdout.Trim()
-$report | ConvertTo-Json -Depth 5
+$report | ConvertTo-Json -Depth 8
