@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "description": "Owner-reviewed read-only Production backup runtime identity before canonical propagation.",
+  "targets": [
+    {
+      "remote_path": "/opt/go-odyssey/ops/backup/linux/backup.sh",
+      "sha256": "a5f6d801b1e29d0c168e2563bc6ca758c4237af16ea4ff30587d3676d001cd06",
+      "owner": "ubuntu",
+      "group": "ubuntu",
+      "mode": "775",
+      "file_type": "regular file"
+    },
+    {
+      "remote_path": "/opt/go-odyssey/ops/backup/remote/make_db_dump.sh",
+      "sha256": "bf0cf31e03e45e2e8e49f8fba247e320e7cb4dfd454283dc67dd8803ee5d6ac5",
+      "owner": "ubuntu",
+      "group": "ubuntu",
+      "mode": "664",
+      "file_type": "regular file"
+    },
+    {
+      "remote_path": "/opt/go-odyssey/ops/backup/remote/make_site_archive.sh",
+      "sha256": "300df554470dcdd4f02af82b7a7da3b61545650c08bad7813bd56d46f0cd5cd6",
+      "owner": "ubuntu",
+      "group": "ubuntu",
+      "mode": "664",
+      "file_type": "regular file"
+    },
+    {
+      "remote_path": "/etc/systemd/system/godokro-backup-daily.service",
+      "sha256": "eec14b78f6c3ae6fd18e661e3bca71e8996dc7843dcd4d012142e9961d72386f",
+      "owner": "root",
+      "group": "root",
+      "mode": "644",
+      "file_type": "regular file"
+    },
+    {
+      "remote_path": "/etc/systemd/system/godokro-backup-daily.timer",
+      "sha256": "9ab538e8aef80e0724148d8996d04b23e58b6fe48994cddd42c02c999b503e04",
+      "owner": "root",
+      "group": "root",
+      "mode": "644",
+      "file_type": "regular file"
+    },
+    {
+      "remote_path": "/etc/systemd/system/godokro-backup-weekly.service",
+      "sha256": "5e36d91013a577308030ab81c6a44551b25df640128205a181229667577cc0ae",
+      "owner": "root",
+      "group": "root",
+      "mode": "644",
+      "file_type": "regular file"
+    },
+    {
+      "remote_path": "/etc/systemd/system/godokro-backup-weekly.timer",
+      "sha256": "9b9e438fc7848d5c96b9ca5548342f1764aad08deb344af397d87e5f7da893f8",
+      "owner": "root",
+      "group": "root",
+      "mode": "644",
+      "file_type": "regular file"
+    }
+  ]
+}

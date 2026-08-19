@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Godokro daily backup every day
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=godokro-backup-daily.service
+
+[Install]
+WantedBy=timers.target

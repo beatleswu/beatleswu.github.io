@@ -1,0 +1,7 @@
+{
+  "gcs_bucket": "<production-gcs-bucket>",
+  "oci_boot_volume_id": "<production-oci-boot-volume-id>",
+  "oci_compartment_id": "<production-oci-compartment-id>",
+  "oci_weekly_retention": 4,
+  "oci_backup_prefix": "godokro-weekly"
+}
