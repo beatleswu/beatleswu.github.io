@@ -22,21 +22,21 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-# UI-NAV-063: Owner-approved Product baseline. Two commits carry distinct
-# roles and neither is asked to do the other's job:
-#   b3a081d70 = CONTENT_PRODUCING_COMMIT. The provenance records for
-#               index.html / i18n.js / sw.js point at it, because that is
-#               where those bytes were produced. It stays immutable.
-#   ab89138bf = APPROVED_PRODUCT_BASELINE, used here. Its Task 063 runtime
-#               blobs were verified file-by-file to be IDENTICAL to
-#               b3a081d70's; it additionally carries the provenance metadata
-#               those bytes require. A manifest recording content hashes can
-#               only be written after the content commit, so the content
-#               commit can never contain its own provenance -- the complete,
-#               approved baseline is therefore the later commit.
-# The gate itself is unchanged: an unapproved Product byte change still fails
-# closed. This is the approval mechanism it is built to require.
-PRODUCT_SHA = "ab89138bf38e251c62cbeb8215b2d04ca6dff71f"
+# UI-NAV-063A: Owner-approved Product baseline. 5b565a05d is both the
+# CONTENT_PRODUCING_COMMIT and the APPROVED_PRODUCT_BASELINE this time -- no
+# separate provenance commit is needed, because the file it changed
+# (deploy/canonical-image-pack-manifest.json) is not a
+# deploy/runtime-source-provenance.json runtime dependency record.
+#
+# Why the baseline had to move: UI-NAV-063 shipped
+# assets/e10/ui/icons/guild.webp into Git and into the runtime, but not into
+# the canonical static asset closure, so it was never a complete releasable
+# Product. 5b565a05d closes that ownership gap. The gate firing beforehand was
+# correct, not a defect.
+#
+# The Task 063 provenance records for index.html / i18n.js / sw.js deliberately
+# still point at b3a081d70, the commit that produced those bytes.
+PRODUCT_SHA = "5b565a05d4e49fab0993e13b82842fe06a4fdc1d"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
