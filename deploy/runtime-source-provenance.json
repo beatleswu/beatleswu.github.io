@@ -195,16 +195,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "b3a081d700396eb4322ab22ad2bf8eb39579ea31",
-      "source_branch_or_local_ref": "claude/e10-ui-nav-fix-063",
-      "source_commit_subject": "fix(e10): one map-return CTA on the puzzle row, Guild in the Adventure nav slot",
-      "source_date": "2026-08-18",
-      "content_sha256": "880fe6c225de43febdcd1dd4f3cfc27207a8a8b60a004b1330772ff83460c977",
-      "content_size_bytes": 1009905,
+      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
+      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
+      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
+      "source_date": "2026-08-20",
+      "content_sha256": "b50632049aebb2cba0993e0348b59cd5084799908059d5630683aea41dc2dfbe",
+      "content_size_bytes": 1024046,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -508,15 +508,15 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "0a5270af7d7f5c67bae7a72a94b14d5a6e903c37",
-      "source_branch_or_local_ref": "codex/e10-lord-trial-owner-acceptance-hotfix-001",
-      "source_commit_subject": "fix(e10): restore Lord Trial answer and replay entry",
-      "source_date": "2026-08-14",
-      "content_sha256": "f705493b8eca22ff354ca6737db93115df836fd5da3a27fdfb1c314f4122d5c1",
+      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
+      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
+      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
+      "source_date": "2026-08-20",
+      "content_sha256": "8acb33c5f0d9caf55e2857d97a9e0c765fee808b7d44a51651fd9073cbfcffc3",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "candidate on the Owner acceptance hotfix branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- recorded source_commit is the bounded Owner acceptance hotfix commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "sw.js",
@@ -655,6 +655,18 @@
       "runtime_role": "startup-required static page/script (game lifecycle/bootstrap browser module; governed static subpath asset)",
       "production_hash_status": "candidate on the V1B B6/B7 product integration branch; Production deployment status is governed separately and is not asserted by this record",
       "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B6/B7 Product implementation commit and raw-byte-verified against current content"
+    },
+    {
+      "path": "js/game/cinematic_replay.js",
+      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
+      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
+      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
+      "source_date": "2026-08-20",
+      "content_sha256": "0daf2736a9140e79c4ec8bd3d308317fcc8bcb52120176f6fc677588734b4a16",
+      "line_ending_policy": "LF",
+      "runtime_role": "startup-required static page/script (zone-agnostic cinematic replay order/unlock browser module; governed static subpath asset)",
+      "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
     },
     {
       "path": "monster_trash.js",
