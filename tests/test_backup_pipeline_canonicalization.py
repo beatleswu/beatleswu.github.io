@@ -32,10 +32,8 @@ PROTECTED_EXCLUSIONS = (
     "'./.shadow-judging-backups'",
     "'./releases/.shadow-judging-audit'",
     "'./releases/e9-rollout-audit.jsonl'",
-    "'./reward-operations/w[0-9]*-*Z-*'",
-    "'./reward-operations/*/grant-result.json'",
-    "'./reward-operations/*/grant-execution-evidence.jsonl'",
-    "'./reward-operations/*/operation-manifest.json'",
+    "'./reward-operations/2026-W28/grant-result.json'",
+    "'./reward-operations/w29-c866f611-20260720T055453Z-c001bcd0'",
 )
 
 # Synthetic equivalents of every protected class observed in Production. The
@@ -307,6 +305,22 @@ def test_reward_operations_tree_is_not_excluded_wholesale() -> None:
     assert "\n  './reward-operations/'\n" not in source
     assert "\n  'reward-operations'\n" not in source
     assert "\n  './reward-operations/*'\n" not in source
+
+
+def test_reward_exclusions_are_literal_not_speculative() -> None:
+    """reward-operations entries must name observed artifacts, not predict names.
+
+    Operation directory names come from a per-wrapper ValidateSet literal, so no
+    pattern can safely anticipate them. A wildcard here would silently drop
+    reward content nobody has inspected; an unmatched protected artifact is
+    caught by the preflight instead, and added to the contract on review.
+    """
+
+    reward_entries = [entry for entry in PROTECTED_EXCLUSIONS if "reward-operations" in entry]
+    assert reward_entries, "the reward exclusion contract must not be empty"
+    for entry in reward_entries:
+        for wildcard in ("*", "?", "["):
+            assert wildcard not in entry, f"speculative wildcard {wildcard!r} in {entry}"
 
 
 _POSIX_IMAGE = "debian:bookworm-slim"

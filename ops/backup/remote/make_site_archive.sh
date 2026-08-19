@@ -22,6 +22,12 @@ root="${GO_ODYSSEY_BACKUP_ROOT:-/opt/go-odyssey}"
 # period-keyed directories (e.g. 2026-W28) also hold backup-user-readable
 # snapshot/preview evidence that must stay in the archive. Only the artifacts
 # written by the owner-gated root grant path are dropped.
+#
+# These entries are deliberately literal. Operation directory names come from a
+# per-wrapper ValidateSet literal, so there is no convention a pattern could
+# safely predict, and a speculative wildcard would silently drop reward content
+# nobody has inspected. A protected artifact that appears under a new name is
+# caught by the preflight below in seconds and added here on review.
 EXCLUDES=(
   '.git'
   '.venv'
@@ -44,10 +50,8 @@ EXCLUDES=(
   './.shadow-judging-backups'
   './releases/.shadow-judging-audit'
   './releases/e9-rollout-audit.jsonl'
-  './reward-operations/w[0-9]*-*Z-*'
-  './reward-operations/*/grant-result.json'
-  './reward-operations/*/grant-execution-evidence.jsonl'
-  './reward-operations/*/operation-manifest.json'
+  './reward-operations/2026-W28/grant-result.json'
+  './reward-operations/w29-c866f611-20260720T055453Z-c001bcd0'
 )
 
 cd "$root"

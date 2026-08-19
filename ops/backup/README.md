@@ -41,15 +41,21 @@ the database dump -- so `make_site_archive.sh` excludes them explicitly:
 | `./.shadow-judging-backups` | Shadow-judging rollback snapshots |
 | `./releases/.shadow-judging-audit` | `scripts/release/set-shadow-judging.ps1` |
 | `./releases/e9-rollout-audit.jsonl` | `scripts/release/set-e9-rollout.ps1` |
-| `./reward-operations/w[0-9]*-*Z-*` | owner-gated grant wrapper operation dirs |
-| `./reward-operations/*/grant-result.json` | root-run grant path |
-| `./reward-operations/*/grant-execution-evidence.jsonl` | root-run grant path |
-| `./reward-operations/*/operation-manifest.json` | root-run grant path |
+| `./reward-operations/2026-W28/grant-result.json` | root-run grant path |
+| `./reward-operations/w29-c866f611-20260720T055453Z-c001bcd0` | owner-gated grant wrapper operation dir |
 
 `reward-operations` is deliberately **not** excluded as a whole tree. Its
 period-keyed directories (e.g. `2026-W28`) also hold backup-user-readable
 snapshot and preview evidence that must stay in the archive; only the
 artifacts produced by the owner-gated root grant path are dropped.
+
+The reward entries are deliberately **literal, not patterned**. Operation
+directory names come from a per-wrapper `ValidateSet` literal, so there is no
+convention a wildcard could safely predict, and a speculative pattern would
+silently drop reward content nobody has inspected. When a future grant writes a
+new protected artifact, the preflight below names it within seconds and it is
+added to this contract on review -- an extra reviewed line is a smaller cost
+than an archive that quietly loses evidence.
 
 The pipeline stays fail-closed. `tar --ignore-failed-read` is not used, tar is
 not run as root, and protected artifact permissions are never changed -- a
