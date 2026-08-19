@@ -38,7 +38,7 @@ def _lord_result_block():
     return _block(
         INDEX,
         "function showZone1LordResultCard(result, zone) {",
-        "function _triggerZone2PostClearFromBossWin(zone)",
+        "function _triggerZone2PostClearFromBossWin(zone, options",
     )
 
 
@@ -69,9 +69,13 @@ def test_lord_success_is_the_sole_post_clear_trigger():
     result_card = _lord_result_block()
     success = result_card.split("    } else {", 1)[0]
 
+    # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001: a replay success now presents the
+    # post-victory story too, so the trigger is no longer suppressed on replay.
+    # It still fires from exactly one place, and the replay flag it carries is
+    # what keeps a replay from repeating progression.
     assert "if (result.passed)" in result_card
-    assert "_triggerZone1PostClearFromBossWin(zone)" in success
-    assert success.count("_triggerZone1PostClearFromBossWin(zone)") == 1
+    assert "_triggerZone1PostClearFromBossWin(zone, { replay: result.replay === true })" in success
+    assert success.count("_triggerZone1PostClearFromBossWin(zone") == 1
 
 
 def test_lord_failure_never_triggers_post_clear():
@@ -95,12 +99,19 @@ def test_server_boss_finish_feeds_authoritative_pass_into_zone_result_card():
 
 def test_real_lord_success_pending_recovery_is_idempotent():
     trigger = _function_block("_triggerZone1PostClearFromBossWin", "function showZone1LordResultCard")
+    # The one-time first-clear semantics moved into the generic trigger; the
+    # Zone 1 entry point keeps its zone guard and delegates.
+    generic = _function_block(
+        "_triggerZonePostClearFromBossWin",
+        "window.zoneHasReplayableStory = zoneHasReplayableStory;",
+    )
     recovery = _function_block("_resumeZone1PostClearIfPending", "function playZone1PostClearFilm")
 
     assert "zone.key !== 'k26_30'" in trigger
-    assert "adventurePostClearSeen(zone)" in trigger
-    assert "markAdventurePostClearPending(zone)" in trigger
-    assert "playZone1PostClearFilm(zone)" in trigger
+    assert "_triggerZonePostClearFromBossWin(zone, options)" in trigger
+    assert "adventurePostClearSeen(zone)" in generic
+    assert "markAdventurePostClearPending(zone)" in generic
+    assert "finishPostClearFilm(zone)" in generic
     assert "adventurePostClearSeen(zone)" in recovery
     assert "adventurePostClearPending(zone)" in recovery
     assert "_introFilmActiveOpts.phase === 'post_clear'" in recovery
@@ -123,7 +134,10 @@ def test_post_clear_completion_only_records_presentation_and_reads_server_unlock
 def test_replay_story_is_presentational_only():
     replay = _function_block("replayIntroFilm", "// opts.timeline / opts.onComplete")
 
-    assert "playZone1PostClearFilm(zone)" in replay
+    # Phase replay is now resolved generically from the zone's declared
+    # segments rather than a per-zone function, but it stays presentation only.
+    assert "_replayActiveCinematicPhase(zone, 'post_clear'" in replay
+    assert "playZoneStoryReplay(zone.key)" in replay
     assert "fetch(" not in replay
     assert "_triggerZone1PostClearFromBossWin" not in replay
     assert "markAdventurePostClearPending" not in replay
@@ -143,13 +157,13 @@ def test_zone1_post_clear_shots_remain_shot_9_then_shot_10():
 def test_no_ordinary_map_battle_post_clear_call_site_remains():
     submit = _submit_block()
     trigger_calls = re.findall(
-        r"(?<!function )_triggerZone1PostClearFromBossWin\s*\(zone\)",
+        r"(?<!function )_triggerZone1PostClearFromBossWin\s*\(zone[,)]",
         INDEX,
     )
 
     assert len(trigger_calls) == 1
     assert len(re.findall(
-        r"(?<!function )_triggerZone2PostClearFromBossWin\s*\(zone\)",
+        r"(?<!function )_triggerZone2PostClearFromBossWin\s*\(zone[,)]",
         INDEX,
     )) == 1
     assert "_triggerZone1PostClearFromBossWin" not in submit

@@ -89,6 +89,9 @@ POST_B1_REQUIRED_IN_GENERATION = frozenset(
         "js/game/board_renderer.js",
         "js/game/mode_context.js",
         "js/game/game_bootstrap.js",
+        # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds the zone-agnostic
+        # cinematic replay model as a governed static subpath asset.
+        "js/game/cinematic_replay.js",
     }
 )
 STATIC_CURRENT_REQUIRED_COUNT = STATIC_B1_REQUIRED_COUNT + len(POST_B1_REQUIRED_IN_GENERATION)

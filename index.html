@@ -31,6 +31,7 @@
     <script src="/js/game/game_session.js"></script>
     <script src="/js/game/mode_context.js?v=20260817e10v1bb6"></script>
     <script src="/js/game/game_bootstrap.js?v=20260817e10v1bb6"></script>
+    <script src="/js/game/cinematic_replay.js?v=20260819e10replay001"></script>
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
@@ -14203,6 +14204,11 @@ function _renderBossChallengeCard(zones = _adventureProgress) {
 
 async function startAdventureStage(zoneKey, options = {}) {
     window._nqMapActive = true;
+    // A genuine zone entry is never presentation-only. Clearing here means an
+    // abandoned replay (overlay closed by a route change rather than by its own
+    // terminator) can never leave the flag set and suppress a later first-entry
+    // "seen" write.
+    _zoneCinematicPresentationOnly = false;
     const zone = (_adventureProgress || []).find(z => z.key === zoneKey)
         || ADVENTURE_ZONES.find(z => z.key === zoneKey);
     const readErrorDegraded = options.readErrorDegraded === true
@@ -16356,6 +16362,7 @@ function speakIntroNarration(text, preferredLang = 'zh-TW', retrying = false) {
 }
 
 async function finishIntroFilm(zone) {
+    _zoneCinematicPresentationOnly = false;
     const mode = _introFilmActiveOpts.mode || 'legacy';
     const isZoneCardFlow = (zone?.key === 'k26_30' || zone?.key === 'k21_25')
         && (mode === 'first_entry' || mode === 'manual_replay');
@@ -16448,6 +16455,17 @@ function skipIntroFilm() {
     try {
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } catch (e) {}
+    // A presentation-only compilation (Replay Story, Lord replay success)
+    // owns skip entirely: skip the current SEGMENT and continue if a later one
+    // remains, otherwise end the replay. It must never fall through to the
+    // first-clear terminators below, which write seen/pending and re-run the
+    // next-zone unlock reveal -- skipping a replay is still a replay.
+    if (_zoneCinematicPresentationOnly) {
+        const advanced = typeof _zoneCinematicAdvanceSegment === 'function'
+            && _zoneCinematicAdvanceSegment() === true;
+        if (!advanced) _finishZoneCinematicReplay(zone);
+        return;
+    }
     // Skipping the POST_CLEAR follow-up (Zone 1 Shots 9-10) must finish that
     // phase, not silently reset back to the PRE_PLAY intro -- see
     // _introFilmActiveOpts.
@@ -16482,21 +16500,25 @@ async function replayIntroFilm() {
         overlay.setAttribute('aria-hidden', 'false');
         overlay.dataset.zoneKey = zone.key || '';
     }
+    // Replaying during a presentation-only compilation restarts that same
+    // compilation from its first unlocked segment. Zone-agnostic, and writes
+    // nothing.
+    if (_zoneCinematicPresentationOnly) {
+        if (playZoneStoryReplay(zone.key)) return;
+    }
     // Replaying while the POST_CLEAR follow-up is showing must replay THAT
     // phase (visual-only, no reward/settlement call of any kind), not reset
-    // to the PRE_PLAY intro -- see _introFilmActiveOpts.
+    // to the PRE_PLAY intro -- see _introFilmActiveOpts. Phase -> timeline is
+    // resolved generically from the zone's declared segments, so no zone
+    // branch is needed here or for any future zone.
     if (_introFilmActiveOpts.phase === 'post_clear') {
-        if (zone.key === 'k21_25') playZone2PostClearFilm(zone);
-        else playZone1PostClearFilm(zone);
-        return;
+        if (_replayActiveCinematicPhase(zone, 'post_clear', () => finishPostClearFilm(zone))) return;
     }
     // Same for BOSS_READY (Zone 1 Shots 7-8) -- an explicit replay while
     // that announcement is showing must replay Shots 7-8, not fall back to
     // ZONE_ENTRY's Shots 1-6.
     if (_introFilmActiveOpts.phase === 'boss_ready') {
-        if (zone.key === 'k21_25') playZone2BossReadyFilm(zone);
-        else playZone1BossReadyFilm(zone);
-        return;
+        if (_replayActiveCinematicPhase(zone, 'boss_ready', () => finishBossReadyFilm(zone))) return;
     }
     // Zone 1/2 replay is presentation-only.  Do not inherit a prior
     // first-entry mode from the completed run, or the replay button could
@@ -16901,6 +16923,7 @@ function playZone1BossReadyFilm(zone) {
 // to the map/quest-card view underneath (where the boss-ready CTA already
 // renders), and does not start a battle.
 function finishBossReadyFilm(zone) {
+    _zoneCinematicPresentationOnly = false;
     hideBossCinematic();
 }
 
@@ -17062,6 +17085,7 @@ function playZone2PostClearFilm(zone) {
 // seen/pending are always updated together, atomically from the caller's
 // point of view.
 function finishPostClearFilm(zone) {
+    _zoneCinematicPresentationOnly = false;
     markAdventurePostClearSeen(zone);
     clearAdventurePostClearPending(zone);
     hideBossCinematic();
@@ -17075,6 +17099,264 @@ function finishPostClearFilm(zone) {
     if (zone?.key === 'k21_25') showZone2UnlockReveal(zone);
     else showZone1UnlockReveal(zone);
 }
+
+// ---------------------------------------------------------------------------
+// Generic Zone 1-10 cinematic replay (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001)
+// ---------------------------------------------------------------------------
+//
+// Owner product rule superseding the previous "Lord replay must not re-show
+// POST_CLEAR" restriction:
+//
+//   CINEMATIC_REPLAY_ALLOWED   = YES
+//   PROGRESSION_REPLAY_ALLOWED = NO
+//   REWARD_REPLAY_ALLOWED      = NO
+//
+// The presentation may repeat; progression, reward, unlock and player position
+// may not. Everything below is presentation only -- no fetch, no POST, no
+// settlement, no storage write. Segment ORDER and segment UNLOCK are both
+// delegated to js/game/cinematic_replay.js, which is zone-agnostic; this layer
+// only supplies authoritative state and drives the existing sequencer.
+
+// Maps a zone's locale config onto the generic segment declaration shape. A
+// zone participates exactly to the extent it declares timelines: a zone with
+// no cinematic timelines yields {} and therefore an empty replay sequence, so
+// Zones 3-10 need no branch here. Adding a phase to a zone is adding a
+// timeline to its locale config, not editing this function.
+const ZONE_CINEMATIC_TIMELINE_KEYS = Object.freeze({
+    pre_play: 'timeline',
+    mid_play: 'midPlayTimeline',
+    boss_ready: 'bossReadyTimeline',
+    post_clear: 'postClearTimeline',
+    post_clear_hook: 'postClearHookTimeline',
+    ending: 'endingTimeline',
+});
+
+function _zoneCinematicSegmentDeclarations(zone) {
+    if (!zone?.key) return {};
+    let locale = null;
+    try {
+        locale = getIntroFilmLocaleConfig(zone);
+    } catch (error) {
+        return {};
+    }
+    if (!locale) return {};
+    const declared = {};
+    Object.keys(ZONE_CINEMATIC_TIMELINE_KEYS).forEach(phase => {
+        const value = locale[ZONE_CINEMATIC_TIMELINE_KEYS[phase]];
+        if (Array.isArray(value) && value.length) declared[phase] = value;
+    });
+    return declared;
+}
+
+// "Has the player already seen this phase?" Only ever widens what replay may
+// show; POST_CLEAR and later ignore it entirely (see the module's
+// defaultUnlock), so a stale marker can never unlock an unearned ending.
+function _zoneCinematicPhaseSeen(zone, phase) {
+    if (!zone?.key) return false;
+    if (phase === 'pre_play') return adventureIntroSeen(zone);
+    if (phase === 'boss_ready') return adventureBossReadyFilmSeen(zone);
+    if (phase === 'post_clear') return adventurePostClearSeen(zone);
+    return false;
+}
+
+let _cinematicReplayModel = null;
+function _cinematicReplay() {
+    if (_cinematicReplayModel) return _cinematicReplayModel;
+    const factory = window.GoOdysseyCinematicReplay;
+    if (!factory || typeof factory.create !== 'function') return null;
+    _cinematicReplayModel = factory.create({
+        getSegments: zone => _zoneCinematicSegmentDeclarations(zone),
+        // Authoritative reads only. zone.cleared and zone.boss come straight
+        // from the server's adventure progress payload; nothing here is
+        // client-declared and no client "replay=true" hint reaches this model.
+        isCleared: zone => zone?.cleared === true,
+        isBossReady: zone => _adventureBossReady(zone),
+        canEnter: zone => _adventureCanEnter(zone),
+        hasSeen: (zone, phase) => _zoneCinematicPhaseSeen(zone, phase),
+    });
+    return _cinematicReplayModel;
+}
+
+function _zoneForCinematic(zoneKey) {
+    if (!zoneKey) return null;
+    return (_adventureProgress || []).find(z => z.key === zoneKey)
+        || ADVENTURE_ZONES.find(z => z.key === zoneKey)
+        || null;
+}
+
+// Does this zone have anything a replay could legitimately show right now?
+// Drives the Zone Card's Replay Story affordance, so it must be false for a
+// zone with no cinematics and false for a player who has unlocked nothing.
+function zoneHasReplayableStory(zoneKey) {
+    const model = _cinematicReplay();
+    const zone = _zoneForCinematic(zoneKey);
+    if (!model || !zone) return false;
+    return model.hasReplayableStory(zone);
+}
+
+// Presentation-only playback of an ordered segment list. Each segment hands
+// off to the next through the sequencer's own onComplete, so skip/close during
+// any segment ends the whole compilation rather than stranding a later one
+// behind the closed overlay. Zone playback that needs an explicit audio
+// gesture (Safari/WebKit) still goes through the established gesture bridge.
+let _zoneCinematicSequenceRunId = 0;
+
+// True while a presentation-only run (Replay Story, or a Lord replay success)
+// owns the overlay. Read by the overlay's own skip/replay controls so they
+// terminate through _finishZoneCinematicReplay -- which writes nothing --
+// instead of finishPostClearFilm, which writes seen/pending and re-runs the
+// next-zone unlock reveal. Cleared by every terminator, including the
+// first-clear ones, so it can never leak into a genuine first-clear run.
+let _zoneCinematicPresentationOnly = false;
+
+// Continuation for the currently-playing segment of a replay compilation.
+// Returns true when it consumed the skip by advancing to a later segment,
+// false when this was the last segment and the caller should terminate.
+let _zoneCinematicAdvanceSegment = null;
+
+function _playZoneCinematicSequence(zone, segments, opts = {}) {
+    const overlay = document.getElementById('boss-cinematic');
+    const list = Array.isArray(segments) ? segments.filter(s => s && Array.isArray(s.timeline) && s.timeline.length) : [];
+    if (!overlay || !zone || !list.length) return false;
+    const onDone = typeof opts.onComplete === 'function' ? opts.onComplete : null;
+    _zoneCinematicPresentationOnly = opts.presentationOnly === true;
+    const runId = ++_zoneCinematicSequenceRunId;
+    const step = index => {
+        // A newer sequence (or a fresh first-entry cinematic) started while
+        // this one was mid-flight: abandon quietly rather than fighting it for
+        // the overlay.
+        if (runId !== _zoneCinematicSequenceRunId) return;
+        if (index >= list.length) {
+            if (onDone) onDone();
+            return;
+        }
+        const segment = list[index];
+        let advanced = false;
+        const advance = () => {
+            if (advanced) return;
+            advanced = true;
+            step(index + 1);
+        };
+        // Lets the overlay's skip control drop THIS segment and continue the
+        // compilation, rather than tearing the whole replay down.
+        _zoneCinematicAdvanceSegment = () => {
+            if (runId !== _zoneCinematicSequenceRunId) return false;
+            if (index + 1 >= list.length) return false;
+            advance();
+            return true;
+        };
+        _stopIntroFilm();
+        overlay.className = 'boss-cinematic show intro-film';
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.dataset.zoneKey = zone.key || '';
+        document.getElementById('intro-film-stage')?.classList.remove('show-title-card');
+        const btn = document.getElementById('boss-cinematic-btn');
+        if (btn) btn.disabled = true;
+        const started = _startZoneCinematicSegment(zone, segment, advance);
+        if (started === false) {
+            // The gesture bridge is now waiting on the player; it will resume
+            // this same chain from its own begin() via onComplete.
+            return;
+        }
+    };
+    step(0);
+    return true;
+}
+
+// Starts one segment. Returns false when playback is deferred behind an
+// explicit audio gesture, in which case the bridge owns the continuation.
+function _startZoneCinematicSegment(zone, segment, onComplete) {
+    const opts = {
+        timeline: segment.timeline,
+        phase: segment.phase,
+        onComplete,
+    };
+    if (zone.key === 'k21_25') {
+        return _startZone2CinematicWithGesture(zone, opts);
+    }
+    void playNewbieVillageIntroFilm(zone, opts);
+    return true;
+}
+
+// Replay Story. Plays every legitimately unlocked segment of the selected
+// zone in canonical lifecycle order.
+//
+// PRESENTATION_ONLY: no seen/pending marker is written, no unlock reveal is
+// re-run, no settlement call is made. In particular finishPostClearFilm is
+// deliberately NOT used as the terminator -- it writes POST_CLEAR seen/pending
+// and shows the next-zone unlock reveal, neither of which a replay may do.
+function playZoneStoryReplay(zoneKey) {
+    const model = _cinematicReplay();
+    const zone = _zoneForCinematic(zoneKey);
+    if (!model || !zone) return false;
+    const sequence = model.replaySequence(zone);
+    if (!sequence.length) return false;
+    return _playZoneCinematicSequence(zone, sequence, {
+        presentationOnly: true,
+        onComplete: () => _finishZoneCinematicReplay(zone),
+    });
+}
+
+// Terminator for every presentation-only replay: close the overlay and return
+// the player to the Zone Card they came from. Writes nothing.
+function _finishZoneCinematicReplay(zone) {
+    _zoneCinematicPresentationOnly = false;
+    hideBossCinematic();
+    if (zone?.key && window.E9 && typeof window.E9.showAdventureZoneCard === 'function') {
+        window.E9.showAdventureZoneCard(zone.key);
+    }
+}
+
+// Re-plays a single already-showing phase of the current zone, resolved from
+// the zone's declared segments rather than a per-zone function. Used by the
+// overlay's own replay control during a first-clear presentation, where the
+// established finisher for that phase must still run.
+function _replayActiveCinematicPhase(zone, phase, onComplete) {
+    const model = _cinematicReplay();
+    if (!model || !zone) return false;
+    const segment = model.segmentsForZone(zone).find(item => item.phase === phase);
+    if (!segment || !segment.timeline.length) return false;
+    return _playZoneCinematicSequence(zone, [segment], {
+        presentationOnly: false,
+        onComplete,
+    });
+}
+
+// Lord Trial success post-victory presentation, generic across zones.
+//
+// First clear keeps the established contract exactly: pending is marked before
+// playback, and finishPostClearFilm writes seen, clears pending and shows the
+// unlock reveal. A replay success shows the SAME segments and writes NOTHING --
+// same presentation, zero progression. The old behavior (replay suppressed the
+// post-victory cinematic entirely) is superseded by Owner rule.
+function _triggerZonePostClearFromBossWin(zone, options = {}) {
+    const model = _cinematicReplay();
+    if (!model || !zone) return false;
+    const replay = options.replay === true;
+    const sequence = model.postVictorySequence(zone);
+    if (!sequence.length) return false;
+    if (replay) {
+        return _playZoneCinematicSequence(zone, sequence, {
+            presentationOnly: true,
+            onComplete: () => _finishZoneCinematicReplay(zone),
+        });
+    }
+    // First clear: unchanged one-time semantics, including the reload-recovery
+    // pending marker and the seen guard that keeps it to a single showing.
+    if (adventurePostClearSeen(zone)) return false;
+    markAdventurePostClearPending(zone);
+    return _playZoneCinematicSequence(zone, sequence, {
+        presentationOnly: false,
+        onComplete: () => finishPostClearFilm(zone),
+    });
+}
+
+window.zoneHasReplayableStory = zoneHasReplayableStory;
+window.playZoneStoryReplay = playZoneStoryReplay;
+window.E10Cinematic = {
+    hasReplayableStory: zoneHasReplayableStory,
+    playStoryReplay: playZoneStoryReplay,
+};
 
 // Pending timers for the reveal's own route-fill -> chime beat. Separate
 // from _introFilmTimers (the film sequencer's clock) since the reveal isn't
@@ -18214,11 +18496,9 @@ async function _finishBossBattle() {
 // POST_CLEAR at most once (adventurePostClearSeen/markAdventurePostClearPending
 // are account-scoped presentation guards). This is the sole gameplay-success
 // trigger: ordinary Map Battle victories never reach this function.
-function _triggerZone1PostClearFromBossWin(zone) {
+function _triggerZone1PostClearFromBossWin(zone, options = {}) {
     if (!zone || zone.key !== 'k26_30') return;
-    if (adventurePostClearSeen(zone)) return;
-    markAdventurePostClearPending(zone);
-    playZone1PostClearFilm(zone);
+    _triggerZonePostClearFromBossWin(zone, options);
 }
 
 function showZone1LordResultCard(result, zone) {
@@ -18256,7 +18536,12 @@ function showZone1LordResultCard(result, zone) {
             // Brief settling moment before Shots 9-10 (section 43) --
             // the star VFX above already ran via the CSS reveal animation;
             // this is just pacing the hand-off, not gating on anything new.
-            if (!result.replay) setTimeout(() => _triggerZone1PostClearFromBossWin(zone), 400);
+            // Owner rule (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001): a replay
+            // success replays the post-victory story too. The old
+            // `if (!result.replay)` suppression is superseded -- what a replay
+            // must not repeat is progression/reward, which is enforced by
+            // passing the replay flag down, not by hiding the cinematic.
+            setTimeout(() => _triggerZone1PostClearFromBossWin(zone, { replay: result.replay === true }), 400);
         };
         _playIntroSfxAsset(ZONE1_LORD_SFX.trialSuccess, { volume: 0.85 });
     } else {
@@ -18293,11 +18578,9 @@ function showZone1LordResultCard(result, zone) {
     }
 }
 
-function _triggerZone2PostClearFromBossWin(zone) {
+function _triggerZone2PostClearFromBossWin(zone, options = {}) {
     if (!zone || zone.key !== 'k21_25' || !zone.cleared) return;
-    if (adventurePostClearSeen(zone)) return;
-    markAdventurePostClearPending(zone);
-    playZone2PostClearFilm(zone);
+    _triggerZonePostClearFromBossWin(zone, options);
 }
 
 function showZone2LordResultCard(result, zone) {
@@ -18343,7 +18626,9 @@ function showZone2LordResultCard(result, zone) {
         btn.textContent = _zone2I18n('e10.zone2.result.continue');
         btn.onclick = () => {
             hideBossCinematic();
-            if (!result.replay) setTimeout(() => _triggerZone2PostClearFromBossWin(zone), 400);
+            // Same Owner rule as Zone 1 above: replay success replays the
+            // post-victory story; only progression/reward stays suppressed.
+            setTimeout(() => _triggerZone2PostClearFromBossWin(zone, { replay: result.replay === true }), 400);
         };
         _playIntroSfxAsset(ZONE2_AUDIO.sfx.lordDefeat, { volume: 0.85 });
     } else {

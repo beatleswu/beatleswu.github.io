@@ -40,7 +40,13 @@ def test_zone2_first_entry_and_replay_use_server_cinematic_key():
     assert "cinematicSeen(state, cinematicKey)" in dispatch
     assert "mode: 'first_entry'" in dispatch
     replay = _block(WORLD, "function replayAdventureIntro(zoneKey)", "  function updateAdventureCinematicState")
-    assert "zoneKey !== ACTIVE_INTRO_ZONE_KEY && zoneKey !== 'k21_25'" in replay
+    # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 replaced the Zone 1/Zone 2 key
+    # allowlist with the zone-agnostic availability model. Zone 2 still reaches
+    # replay, now because it declares cinematic segments rather than because it
+    # is named here. The historical first-entry-only replay remains as the
+    # degraded fallback when the model has not loaded.
+    assert "zoneStoryReplayAvailable(zoneKey)" in replay
+    assert "playStoryReplay" in replay
     assert "mode: 'manual_replay'" in replay
 
 
@@ -134,10 +140,19 @@ def test_zone2_post_clear_is_gated_by_authoritative_pass_and_clear_state():
     assert "finishedZone?.key === 'k21_25'" in finish
     assert "showZone2LordResultCard" in finish
     trigger = _block(INDEX, "function _triggerZone2PostClearFromBossWin", "\nfunction showZone2LordResultCard")
+    # The authoritative gate stays on the Zone 2 entry point; the one-time
+    # first-clear write semantics now live in the shared generic trigger
+    # (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001).
     assert "zone.key !== 'k21_25' || !zone.cleared" in trigger
-    assert "adventurePostClearSeen(zone)" in trigger
-    assert "markAdventurePostClearPending(zone)" in trigger
-    assert "playZone2PostClearFilm(zone)" in trigger
+    assert "_triggerZonePostClearFromBossWin(zone, options)" in trigger
+    generic = _block(
+        INDEX,
+        "function _triggerZonePostClearFromBossWin(zone, options",
+        "\nwindow.zoneHasReplayableStory",
+    )
+    assert "adventurePostClearSeen(zone)" in generic
+    assert "markAdventurePostClearPending(zone)" in generic
+    assert "finishPostClearFilm(zone)" in generic
     ordinary = _block(INDEX, "async function _submitMapBattleV1IfActive(moves) {", "function isBeginnerVillageAdventureResult()")
     assert "_triggerZone2PostClearFromBossWin" not in ordinary
     assert "markAdventurePostClearPending" not in ordinary
@@ -146,7 +161,7 @@ def test_zone2_post_clear_is_gated_by_authoritative_pass_and_clear_state():
 def test_zone2_failure_has_no_post_clear_and_success_has_one_trigger():
     result = _block(INDEX, "function showZone2LordResultCard(result, zone)", "\nasync function showBossResultCinematic")
     success, failure = result.split("    } else {", 1)
-    assert "_triggerZone2PostClearFromBossWin(zone)" in success
+    assert "_triggerZone2PostClearFromBossWin(zone, { replay: result.replay === true })" in success
     assert "_triggerZone2PostClearFromBossWin" not in failure
     assert "firstQuestionHref(zone)" in failure
     assert "e10.zone2.result.fail.lock" in failure
