@@ -557,12 +557,15 @@ def test_b1_index_html_changes_are_script_loading_only():
         B1_SRS_SCRIPT_SRC
     )
     # B5 adds QuestionLoader/BoardRenderer and B6 adds ModeContext/GameBootstrap
-    # after the four already-governed B1-B4 modules.
-    assert len(current_srcs) == len(base_srcs) + 8
+    # after the four already-governed B1-B4 modules;
+    # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds the generic cinematic replay
+    # model as the ninth governed browser module.
+    assert len(current_srcs) == len(base_srcs) + 9
     assert any(src.startswith("/js/game/question_loader.js") for src in current_srcs)
     assert any(src.startswith("/js/game/board_renderer.js") for src in current_srcs)
     assert any(src.startswith("/js/game/mode_context.js") for src in current_srcs)
     assert any(src.startswith("/js/game/game_bootstrap.js") for src in current_srcs)
+    assert any(src.startswith("/js/game/cinematic_replay.js") for src in current_srcs)
     assert base_srcs.count(BASE_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(B1_SRS_SCRIPT_SRC) == 1
     assert current_srcs.count(BASE_SRS_SCRIPT_SRC) == 0
@@ -581,6 +584,7 @@ def test_b1_index_html_changes_are_script_loading_only():
         and not src.startswith("/js/game/board_renderer.js")
         and not src.startswith("/js/game/mode_context.js")
         and not src.startswith("/js/game/game_bootstrap.js")
+        and not src.startswith("/js/game/cinematic_replay.js")
     ]
     normalized_current_srcs = [
         BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC else src

@@ -20747,6 +20747,12 @@ def serve_game_bootstrap_js():
         'game_bootstrap.js', 'js/game', 'js/game'
     )
 
+@app.route('/js/game/cinematic_replay.js')
+def serve_cinematic_replay_js():
+    return _serve_live_static_or_baked_subpath(
+        'cinematic_replay.js', 'js/game', 'js/game'
+    )
+
 @app.route('/js/e9/<path:subpath>')
 def serve_e9_js(subpath):
     if not subpath.endswith('.js'):

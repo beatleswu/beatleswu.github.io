@@ -101,14 +101,19 @@ def test_b6_b7_packaging_closure_is_explicit():
     docker = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     build = json.loads((ROOT / "deploy" / "build-manifest.json").read_text(encoding="utf-8"))
     inventory = json.loads((ROOT / "deploy" / "live-static-asset-inventory.json").read_text(encoding="utf-8"))
-    for path in ("js/game/mode_context.js", "js/game/game_bootstrap.js"):
+    for path in (
+        "js/game/mode_context.js",
+        "js/game/game_bootstrap.js",
+        # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 joins the same packaging closure.
+        "js/game/cinematic_replay.js",
+    ):
         assert f"@app.route('/{path}')" in app
         assert f"COPY {path} ./{path}" in docker
         assert path in build["build_inputs"]["tracked_in_canonical_branch_this_sprint"]
         assert f"/app/{path}" in build["post_build_verification_files"]
         assert path in inventory["eligible_files"]["entries"]
         assert path in inventory["required_in_generation"]["entries"]
-    assert len(inventory["required_in_generation"]["entries"]) == 16
+    assert len(inventory["required_in_generation"]["entries"]) == 17
 
 
 def test_control_plane_and_product_scope_are_bounded():
