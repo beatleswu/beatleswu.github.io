@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
+import json
 import shutil
 import stat
 import subprocess
 import tarfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -16,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE_HELPER = ROOT / "ops" / "backup" / "remote" / "make_site_archive.sh"
 BACKUP_SCRIPT = ROOT / "ops" / "backup" / "linux" / "backup.sh"
 PROPAGATION_SCRIPT = ROOT / "ops" / "backup" / "install-production-backup-scripts.ps1"
+PREIMAGE_CONTRACT = ROOT / "ops" / "backup" / "production-preimage.json"
 
 
 def _git_bash() -> str | None:
@@ -69,6 +72,88 @@ def _run_archive(root: Path, output: Path) -> subprocess.CompletedProcess[str]:
 def _members(archive: Path) -> set[str]:
     with tarfile.open(archive, mode="r:gz") as handle:
         return {member.name.lstrip("./") for member in handle.getmembers()}
+
+
+def _powershell() -> str | None:
+    return shutil.which("pwsh") or shutil.which("powershell")
+
+
+def _git_status() -> str:
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def _current_head() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def _render_remote_script(tmp_path: Path) -> tuple[str, Path]:
+    pwsh = _powershell()
+    if pwsh is None:
+        pytest.skip("PowerShell is unavailable")
+    if _git_status():
+        pytest.skip("remote-script rendering requires a clean worktree")
+    rendered = tmp_path / "remote-propagation.sh"
+    result = subprocess.run(
+        [
+            pwsh,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(PROPAGATION_SCRIPT),
+            "-ExpectedSourceSha",
+            _current_head(),
+            "-RenderRemoteScriptPath",
+            str(rendered),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["mode"] == "plan"
+    assert report["rendered_remote_script"] == str(rendered)
+    return result.stdout, rendered
+
+
+@dataclass(frozen=True)
+class _RemoteIdentity:
+    sha256: str
+    owner: str
+    group: str
+    mode: str
+    file_type: str = "regular file"
+    is_symlink: bool = False
+
+
+def _preimage_accepts(
+    approved: _RemoteIdentity,
+    canonical: _RemoteIdentity,
+    actual: _RemoteIdentity,
+) -> bool:
+    """Mirror the explicit remote gate for deterministic contract tests."""
+
+    if actual.is_symlink or actual.file_type != "regular file":
+        return False
+    return actual == approved or actual == canonical
 
 
 def test_archive_excludes_protected_directories_and_preserves_site_content(tmp_path: Path) -> None:
@@ -140,6 +225,11 @@ def test_propagation_tool_is_sha_guarded_and_fail_closed() -> None:
         "GO_BACKUP_PROPAGATION",
         "Assert-CompleteWorktreeClean",
         "Get-FileHash",
+        "production-preimage.json",
+        "PreimageSha256",
+        "PreimageOwner",
+        "PreimageGroup",
+        "PreimageMode",
         "Invoke-BoundedScpUpload",
         "Invoke-BoundedSshCommand",
         'sha256sum -- "$target"',
@@ -150,10 +240,101 @@ def test_propagation_tool_is_sha_guarded_and_fail_closed() -> None:
         "remote staging path already exists",
         "systemctl daemon-reload",
         "trap fail_closed EXIT",
+        "REMOTE_PREIMAGE_MATCH=YES",
     ):
         assert required in source
+    assert "activated_paths=(" not in source
+    assert "[[" not in source
+    assert "for ((" not in source
     assert "git add ." not in source
     assert "git add -A" not in source
+
+
+def test_remote_preimage_contract_is_complete_and_secret_free() -> None:
+    contract = json.loads(PREIMAGE_CONTRACT.read_text(encoding="utf-8"))
+    targets = contract["targets"]
+    assert len(targets) == 7
+    assert {entry["file_type"] for entry in targets} == {"regular file"}
+    for entry in targets:
+        assert len(entry["sha256"]) == 64
+        assert entry["owner"] and entry["group"]
+        assert entry["mode"].isdigit()
+    raw = PREIMAGE_CONTRACT.read_text(encoding="utf-8").lower()
+    assert "password" not in raw
+    assert "token" not in raw
+    assert "private key" not in raw
+
+
+def test_remote_script_is_posix_sh_and_preimage_gate_precedes_activation(tmp_path: Path) -> None:
+    _, rendered = _render_remote_script(tmp_path)
+    source = rendered.read_text(encoding="utf-8")
+    shell = shutil.which("sh")
+    if shell is None:
+        bash = _git_bash()
+        if bash is None:
+            pytest.skip("POSIX sh is unavailable")
+        command = [bash, "--posix", "-n", str(rendered)]
+    else:
+        command = [shell, "-n", str(rendered)]
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "activated_paths=(" not in source
+    assert "[[" not in source
+    assert "for ((" not in source
+    assert source.index("REMOTE_PREIMAGE_MATCH=YES") < source.index("activated_1=1")
+    assert source.count("remote pre-image identity mismatch") == 7
+
+
+def test_remote_preimage_drift_contract_fails_closed() -> None:
+    approved = _RemoteIdentity("approved", "ubuntu", "ubuntu", "775")
+    canonical = _RemoteIdentity("canonical", "ubuntu", "ubuntu", "755")
+    assert _preimage_accepts(approved, canonical, approved)
+    assert _preimage_accepts(approved, canonical, canonical)
+
+    assert not _preimage_accepts(approved, canonical, _RemoteIdentity("wrong-script", "ubuntu", "ubuntu", "775"))
+    assert not _preimage_accepts(approved, canonical, _RemoteIdentity("wrong-unit", "root", "root", "644"))
+    assert not _preimage_accepts(approved, canonical, _RemoteIdentity("approved", "ubuntu", "ubuntu", "775", is_symlink=True))
+    assert not _preimage_accepts(approved, canonical, _RemoteIdentity("approved", "ubuntu", "ubuntu", "744"))
+    assert not _preimage_accepts(approved, canonical, _RemoteIdentity("approved", "root", "ubuntu", "775"))
+    assert not _preimage_accepts(approved, canonical, _RemoteIdentity("unknown", "nobody", "nogroup", "666"))
+
+
+def test_propagation_plan_mode_uses_exact_head_and_does_not_contact_remote() -> None:
+    pwsh = _powershell()
+    if pwsh is None:
+        pytest.skip("PowerShell is unavailable")
+    if _git_status():
+        pytest.skip("plan-mode execution requires a clean worktree")
+    result = subprocess.run(
+        [
+            pwsh,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(PROPAGATION_SCRIPT),
+            "-ExpectedSourceSha",
+            _current_head(),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = json.loads(result.stdout)
+    assert report["mode"] == "plan"
+    assert report["source_sha"] == _current_head()
+    assert report["remote_execution_shell"] == "sh -s"
+    assert len(report["files"]) == 7
+    for item in report["files"]:
+        local = ROOT / item["relative_path"]
+        expected = __import__("hashlib").sha256(local.read_bytes()).hexdigest()
+        assert item["sha256"] == expected
+    assert "ssh" not in result.stdout.lower()
+    assert "scp" not in result.stdout.lower()
 
 
 def test_propagation_wrong_source_sha_fails_before_remote_access() -> None:
@@ -184,7 +365,15 @@ def test_propagation_wrong_source_sha_fails_before_remote_access() -> None:
 
 def test_canonical_config_example_contains_no_runtime_credentials() -> None:
     example = (ROOT / "ops" / "backup" / "backup-config.example.json").read_text(encoding="utf-8")
-    assert "<provisioned-by-operator>" in example
+    parsed = json.loads(example)
+    assert set(parsed) == {
+        "gcs_bucket",
+        "oci_boot_volume_id",
+        "oci_compartment_id",
+        "oci_weekly_retention",
+        "oci_backup_prefix",
+    }
+    assert "gcs_retention_days" not in example
     assert "<production-oci-boot-volume-id>" in example
     assert "-----BEGIN" not in example
     assert "password" not in example.lower()

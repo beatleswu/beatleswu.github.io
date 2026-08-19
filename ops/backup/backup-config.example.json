@@ -1,15 +1,7 @@
 {
-  "remote_host": "production-host",
-  "remote_user": "ubuntu",
-  "ssh_key": "<provisioned-by-operator>",
-  "remote_root": "/opt/go-odyssey",
   "gcs_bucket": "<production-gcs-bucket>",
-  "gcs_daily_prefix": "daily",
-  "gcs_retention_days": 30,
-  "oci_instance_id": "<production-oci-instance-id>",
   "oci_boot_volume_id": "<production-oci-boot-volume-id>",
   "oci_compartment_id": "<production-oci-compartment-id>",
-  "oci_availability_domain": "<production-oci-availability-domain>",
   "oci_weekly_retention": 4,
   "oci_backup_prefix": "godokro-weekly"
 }

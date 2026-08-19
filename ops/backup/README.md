@@ -13,8 +13,9 @@ Production backup runtime:
 
 `backup-config.json` and `/etc/godokro-backup.env` remain host-provisioned.
 They contain environment-specific identifiers or credentials and are never
-committed. `backup-config.example.json` documents the required non-secret
-shape.
+committed. `backup-config.example.json` documents only the non-secret keys
+consumed by the current runtime. Daily GCS retention is not implemented by
+this source; there is no `gcs_retention_days` setting here.
 
 The production host must receive these files through
 `install-production-backup-scripts.ps1`. That tool requires an explicit source

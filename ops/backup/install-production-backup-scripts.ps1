@@ -7,7 +7,8 @@ param(
 
     [string]$LayoutFile = 'deploy\release-layout.production.json',
     [switch]$Execute,
-    [string]$OwnerGate
+    [string]$OwnerGate,
+    [string]$RenderRemoteScriptPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -85,11 +86,47 @@ $runtimeFiles = @(
     }
 )
 
+$preimageContractPath = Resolve-RepoPath 'ops/backup/production-preimage.json'
+if (-not (Test-Path -LiteralPath $preimageContractPath -PathType Leaf)) {
+    throw "Production backup pre-image contract is missing: $preimageContractPath"
+}
+$preimageContract = Get-Content -LiteralPath $preimageContractPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$preimageEntries = @($preimageContract.targets)
+if ($preimageEntries.Count -ne $runtimeFiles.Count) {
+    throw "Production backup pre-image contract must contain exactly $($runtimeFiles.Count) targets."
+}
+$preimageByRemotePath = @{}
+foreach ($entry in $preimageEntries) {
+    $remotePath = [string]$entry.remote_path
+    if ([string]::IsNullOrWhiteSpace($remotePath) -or $preimageByRemotePath.ContainsKey($remotePath)) {
+        throw "Production backup pre-image contract contains a missing or duplicate remote path."
+    }
+    if ([string]$entry.sha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Production backup pre-image contract has an invalid SHA256 for $remotePath."
+    }
+    if ([string]$entry.file_type -ne 'regular file') {
+        throw "Production backup pre-image contract must require regular files: $remotePath"
+    }
+    if ([string]$entry.owner -notmatch '^[A-Za-z0-9_.-]+$' -or [string]$entry.group -notmatch '^[A-Za-z0-9_.-]+$') {
+        throw "Production backup pre-image contract has an invalid owner/group for $remotePath."
+    }
+    if ([string]$entry.mode -notmatch '^[0-7]{3,4}$') {
+        throw "Production backup pre-image contract has an invalid mode for $remotePath."
+    }
+    $preimageByRemotePath[$remotePath] = $entry
+}
+
 $records = foreach ($file in $runtimeFiles) {
     $localPath = Resolve-RepoPath $file.RelativePath
     if (-not (Test-Path -LiteralPath $localPath -PathType Leaf)) {
         throw "Required backup runtime file is missing: $($file.RelativePath)"
     }
+    if (-not $preimageByRemotePath.ContainsKey($file.RemotePath)) {
+        throw "Production backup pre-image contract does not cover $($file.RemotePath)"
+    }
+    $preimage = $preimageByRemotePath[$file.RemotePath]
+    $canonicalMode = $file.Mode.TrimStart('0')
+    if ([string]::IsNullOrEmpty($canonicalMode)) { $canonicalMode = '0' }
     $hash = (Get-FileHash -LiteralPath $localPath -Algorithm SHA256).Hash.ToLowerInvariant()
     [pscustomobject]@{
         RelativePath = $file.RelativePath
@@ -100,6 +137,12 @@ $records = foreach ($file in $runtimeFiles) {
         Group = $file.Group
         RequiresSudo = $file.RequiresSudo
         Sha256 = $hash
+        CanonicalMode = $canonicalMode
+        PreimageSha256 = ([string]$preimage.sha256).ToLowerInvariant()
+        PreimageOwner = [string]$preimage.owner
+        PreimageGroup = [string]$preimage.group
+        PreimageMode = [string]$preimage.mode
+        PreimageFileType = [string]$preimage.file_type
     }
 }
 
@@ -116,7 +159,8 @@ function New-RemotePropagationScript {
     param(
         [Parameter(Mandatory = $true)][object[]]$Items,
         [Parameter(Mandatory = $true)][string]$Stage,
-        [Parameter(Mandatory = $true)][string]$Previous
+        [Parameter(Mandatory = $true)][string]$Previous,
+        [Parameter(Mandatory = $true)][string]$OperationId
     )
 
     $lines = [System.Collections.Generic.List[string]]::new()
@@ -124,24 +168,46 @@ function New-RemotePropagationScript {
     $lines.Add(('stage={0}' -f (ConvertTo-PosixQuoted $Stage)))
     $lines.Add(('previous={0}' -f (ConvertTo-PosixQuoted $Previous)))
     $lines.Add('rollback_needed=0')
-    $lines.Add('activated_paths=()')
+    for ($index = 1; $index -le $Items.Count; $index++) {
+        $lines.Add(("activated_{0}=0" -f $index))
+    }
+    $lines.Add('')
+    $lines.Add('die() {')
+    $lines.Add('  echo "$*" >&2')
+    $lines.Add('  exit 1')
+    $lines.Add('}')
+    $lines.Add('')
+    $lines.Add('restore_target() {')
+    $lines.Add('  target="$1"')
+    $lines.Add('  backup="$2"')
+    $lines.Add('  if [ -f "$backup" ]; then')
+    $lines.Add('    case "$target" in')
+    $lines.Add('      /etc/systemd/*) sudo -n cp -p -- "$backup" "$target" ;;')
+    $lines.Add('      *) cp -p -- "$backup" "$target" ;;')
+    $lines.Add('    esac')
+    $lines.Add('  else')
+    $lines.Add('    case "$target" in')
+    $lines.Add('      /etc/systemd/*) sudo -n rm -f -- "$target" ;;')
+    $lines.Add('      *) rm -f -- "$target" ;;')
+    $lines.Add('    esac')
+    $lines.Add('  fi')
+    $lines.Add('}')
     $lines.Add('')
     $lines.Add('fail_closed() {')
     $lines.Add('  rc=$?')
     $lines.Add('  set +e')
+    $lines.Add('  recovery_failed=0')
     $lines.Add('  if [ "$rollback_needed" -eq 1 ]; then')
-    $lines.Add('    for ((i=${#activated_paths[@]}-1; i>=0; i--)); do')
-    $lines.Add('      item="${activated_paths[$i]}"')
-    $lines.Add('      target="${item%%|*}"')
-    $lines.Add('      backup="${item#*|}"')
-    $lines.Add('      if [ -f "$backup" ]; then')
-    $lines.Add('        if [[ "$target" == /etc/systemd/* ]]; then sudo -n cp -p -- "$backup" "$target"; else cp -p -- "$backup" "$target"; fi')
-    $lines.Add('      else')
-    $lines.Add('        if [[ "$target" == /etc/systemd/* ]]; then sudo -n rm -f -- "$target"; else rm -f -- "$target"; fi')
-    $lines.Add('      fi')
-    $lines.Add('    done')
-    $lines.Add('    if [[ "${#activated_paths[@]}" -gt 0 ]]; then sudo -n systemctl daemon-reload >/dev/null 2>&1 || true; fi')
+    for ($index = $Items.Count; $index -ge 1; $index--) {
+        $item = $Items[$index - 1]
+        $target = ConvertTo-PosixQuoted $item.RemotePath
+        $backup = ConvertTo-PosixQuoted ("$Previous/" + [IO.Path]::GetFileName($item.RelativePath))
+        $lines.Add(('    if [ "$activated_{0}" -eq 1 ]; then restore_target {1} {2} || recovery_failed=1; fi' -f $index, $target, $backup))
+    }
+    $reloadCondition = (1..$Items.Count | ForEach-Object { '[ "$activated_{0}" -eq 1 ]' -f $_ }) -join ' || '
+    $lines.Add(('    if {0}; then sudo -n systemctl daemon-reload >/dev/null 2>&1 || recovery_failed=1; fi' -f $reloadCondition))
     $lines.Add('  fi')
+    $lines.Add('  if [ "$recovery_failed" -eq 1 ]; then echo "canonical backup propagation recovery failed" >&2; fi')
     $lines.Add('  rm -rf -- "$stage"')
     $lines.Add('  exit "$rc"')
     $lines.Add('}')
@@ -157,26 +223,70 @@ function New-RemotePropagationScript {
     $lines.Add('test ! -L "$stage"')
     $lines.Add('mkdir -p -- "$previous"')
     $lines.Add('test ! -L "$previous"')
-    $lines.Add('rollback_needed=1')
     $lines.Add('')
 
+    $index = 0
     foreach ($item in $Items) {
+        $index++
         $target = ConvertTo-PosixQuoted $item.RemotePath
         $stagePath = ConvertTo-PosixQuoted ("$Stage/" + [IO.Path]::GetFileName($item.RelativePath))
         $previousPath = ConvertTo-PosixQuoted ("$Previous/" + [IO.Path]::GetFileName($item.RelativePath))
-        $tmpPath = ConvertTo-PosixQuoted ("$($item.RemotePath).canonical.$operationId")
+        $tmpPath = ConvertTo-PosixQuoted ("$($item.RemotePath).canonical.$OperationId")
+        $preSha = ConvertTo-PosixQuoted $item.PreimageSha256
+        $preOwner = ConvertTo-PosixQuoted $item.PreimageOwner
+        $preGroup = ConvertTo-PosixQuoted $item.PreimageGroup
+        $preMode = $item.PreimageMode.TrimStart('0')
+        if ([string]::IsNullOrEmpty($preMode)) { $preMode = '0' }
+        $preMode = ConvertTo-PosixQuoted $preMode
+        $canonicalSha = ConvertTo-PosixQuoted $item.Sha256
+        $canonicalOwner = ConvertTo-PosixQuoted $item.Owner
+        $canonicalGroup = ConvertTo-PosixQuoted $item.Group
+        $canonicalMode = ConvertTo-PosixQuoted $item.CanonicalMode
         $lines.Add("target=$target")
-        $lines.Add('if [ -e "$target" ] || [ -L "$target" ]; then test -f "$target"; test ! -L "$target"; fi')
-        $lines.Add('if [ -f "$target" ]; then stat -c "%F|%a|%U|%G" "$target"; sha256sum -- "$target"; fi')
-        $lines.Add("test -f $stagePath")
+        $lines.Add('if [ ! -e "$target" ]; then die "remote target is missing: $target"; fi')
+        $lines.Add('if [ -L "$target" ]; then die "remote target is a symlink: $target"; fi')
+        $lines.Add('if [ ! -f "$target" ]; then die "remote target is not a regular file: $target"; fi')
+        $lines.Add('actual_type=$(stat -c "%F" -- "$target")')
+        $lines.Add(('if [ "$actual_type" != {0} ]; then die "remote file type mismatch: $target"; fi' -f (ConvertTo-PosixQuoted $item.PreimageFileType)))
+        $lines.Add('actual_mode=$(stat -c "%a" -- "$target")')
+        $lines.Add('actual_owner=$(stat -c "%U" -- "$target")')
+        $lines.Add('actual_group=$(stat -c "%G" -- "$target")')
+        $lines.Add('actual_sha=$(sha256sum -- "$target" | awk ''{print $1}'')')
+        $lines.Add(('if [ "$actual_sha" = {0} ] && [ "$actual_owner" = {1} ] && [ "$actual_group" = {2} ] && [ "$actual_mode" = {3} ]; then :; elif [ "$actual_sha" = {4} ] && [ "$actual_owner" = {5} ] && [ "$actual_group" = {6} ] && [ "$actual_mode" = {7} ]; then :; else die "remote pre-image identity mismatch: $target"; fi' -f $preSha, $preOwner, $preGroup, $preMode, $canonicalSha, $canonicalOwner, $canonicalGroup, $canonicalMode))
+        $lines.Add(('if [ ! -f {0} ]; then die "staged backup file is missing: {0}"; fi' -f $stagePath))
         $lines.Add(("echo '{0}  {1}' | sha256sum --check --strict -" -f $item.Sha256, $stagePath.Trim("'")))
         if ($item.RelativePath.EndsWith('.sh')) {
             $lines.Add(("bash -n {0}" -f $stagePath))
+        } else {
+            $lines.Add(("sudo -n systemd-analyze verify {0}" -f $stagePath))
         }
-        $lines.Add(('if [ -f "$target" ]; then if [[ "$target" == /etc/systemd/* ]]; then sudo -n cp -p -- "$target" {0}; else cp -p -- "$target" {0}; fi; fi' -f $previousPath))
-        $lines.Add(('if [[ "$target" == /etc/systemd/* ]]; then sudo -n install -o {0} -g {1} -m {2} {3} {4}; sudo -n mv -Tf {4} "$target"; else install -o {0} -g {1} -m {2} {3} {4}; mv -Tf {4} "$target"; fi' -f $item.Owner, $item.Group, $item.Mode, $stagePath, $tmpPath))
-        $activatedBackup = "$Previous/$([IO.Path]::GetFileName($item.RelativePath))"
-        $lines.Add(('activated_paths+=("{0}|{1}")' -f $item.RemotePath, $activatedBackup))
+        $lines.Add('')
+    }
+    $lines.Add('echo "REMOTE_PREIMAGE_MATCH=YES"')
+    $lines.Add('rollback_needed=1')
+    $lines.Add('')
+
+    $index = 0
+    foreach ($item in $Items) {
+        $index++
+        $target = ConvertTo-PosixQuoted $item.RemotePath
+        $stagePath = ConvertTo-PosixQuoted ("$Stage/" + [IO.Path]::GetFileName($item.RelativePath))
+        $previousPath = ConvertTo-PosixQuoted ("$Previous/" + [IO.Path]::GetFileName($item.RelativePath))
+        $tmpPath = ConvertTo-PosixQuoted ("$($item.RemotePath).canonical.$OperationId")
+        $lines.Add("target=$target")
+        $lines.Add("stage_file=$stagePath")
+        $lines.Add("previous_file=$previousPath")
+        $lines.Add('if [ -f "$target" ]; then')
+        $lines.Add('  case "$target" in')
+        $lines.Add('    /etc/systemd/*) sudo -n cp -p -- "$target" "$previous_file" ;;')
+        $lines.Add('    *) cp -p -- "$target" "$previous_file" ;;')
+        $lines.Add('  esac')
+        $lines.Add('fi')
+        $lines.Add('case "$target" in')
+        $lines.Add(('  /etc/systemd/*) sudo -n install -o {0} -g {1} -m {2} "$stage_file" {3}; sudo -n mv -Tf {3} "$target" ;;' -f $item.Owner, $item.Group, $item.Mode, $tmpPath))
+        $lines.Add(('  *) install -o {0} -g {1} -m {2} "$stage_file" {3}; mv -Tf {3} "$target" ;;' -f $item.Owner, $item.Group, $item.Mode, $tmpPath))
+        $lines.Add('esac')
+        $lines.Add(("activated_{0}=1" -f $index))
         $lines.Add(("echo '{0}  {1}' | sha256sum --check --strict -" -f $item.Sha256, $target.Trim("'")))
         $lines.Add('')
     }
@@ -193,11 +303,34 @@ $report = [ordered]@{
     source_sha = $sourceSha
     operation_id = $operationId
     execute = [bool]$Execute
+    remote_execution_shell = 'sh -s'
+    preimage_contract = 'ops/backup/production-preimage.json'
     files = @($records | ForEach-Object {
-        [ordered]@{ relative_path = $_.RelativePath; remote_path = $_.RemotePath; sha256 = $_.Sha256 }
+        [ordered]@{
+            relative_path = $_.RelativePath
+            remote_path = $_.RemotePath
+            sha256 = $_.Sha256
+            preimage_sha256 = $_.PreimageSha256
+            preimage_owner = $_.PreimageOwner
+            preimage_group = $_.PreimageGroup
+            preimage_mode = $_.PreimageMode
+            canonical_owner = $_.Owner
+            canonical_group = $_.Group
+            canonical_mode = $_.CanonicalMode
+        }
     })
     remote_stage = $remoteStage
     remote_previous = $remotePrevious
+}
+
+$remoteScript = New-RemotePropagationScript -Items $records -Stage $remoteStage -Previous $remotePrevious -OperationId $operationId
+if ($RenderRemoteScriptPath) {
+    if ($Execute) {
+        throw '-RenderRemoteScriptPath cannot be combined with -Execute.'
+    }
+    $renderPath = [IO.Path]::GetFullPath($RenderRemoteScriptPath)
+    [IO.File]::WriteAllText($renderPath, $remoteScript, (New-Object System.Text.UTF8Encoding($false)))
+    $report.rendered_remote_script = $renderPath
 }
 
 if (-not $Execute) {
@@ -225,7 +358,6 @@ foreach ($item in $records) {
     if ($upload.exit_code -ne 0) { throw "Upload failed for $($item.RelativePath): $($upload.stdout) $($upload.stderr)" }
 }
 
-$remoteScript = New-RemotePropagationScript -Items $records -Stage $remoteStage -Previous $remotePrevious
 $result = Invoke-BoundedSshCommand -SshAlias $layout.ssh_alias -ScriptText $remoteScript -TimeoutSeconds 180 -OperationLabel 'backup runtime atomic propagation'
 if ($result.exit_code -ne 0) { throw "Backup propagation failed closed: $($result.stdout) $($result.stderr)" }
 $report.mode = 'executed'
