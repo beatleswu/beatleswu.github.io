@@ -88,6 +88,9 @@ POST_B1_GOVERNED_RUNTIME_PATHS = frozenset(
         "js/game/board_renderer.js",
         "js/game/mode_context.js",
         "js/game/game_bootstrap.js",
+        # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds the zone-agnostic
+        # cinematic replay model as a governed runtime file.
+        "js/game/cinematic_replay.js",
     }
 )
 CURRENT_EXPECTED_COUNT = B1_PRESENT_EXPECTED_COUNT + len(POST_B1_GOVERNED_RUNTIME_PATHS)
