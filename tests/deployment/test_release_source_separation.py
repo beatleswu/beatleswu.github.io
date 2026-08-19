@@ -122,7 +122,9 @@ def _assert_provenance_contract(governed_paths, presentation_present, expected_c
 # the manifest -- corrected here rather than weakened. The PRE_B1/B1-present
 # dual-state constants and tests above are a historical snapshot of the B1
 # rollout mechanism itself and are deliberately left untouched.
-POST_B1_PROVENANCE_ADDITIONS = 7
+# E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 adds js/game/cinematic_replay.js as
+# the eighth post-B1 governed runtime module.
+POST_B1_PROVENANCE_ADDITIONS = 8
 CURRENT_PROVENANCE_COUNT = B1_PRESENT_PROVENANCE_COUNT + POST_B1_PROVENANCE_ADDITIONS
 
 
