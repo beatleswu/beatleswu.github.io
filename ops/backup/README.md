@@ -30,10 +30,10 @@ semantics. A service rerun remains a separate operational approval.
 
 The backup runs as the unprivileged `ubuntu` user. Several operational tools
 write root-owned artifacts under `/opt/go-odyssey` that this user cannot read,
-and GNU tar exits non-zero when it cannot open a member. Those artifacts are
-operational/audit evidence, not restorable application state -- the
-authoritative reward and rollout state lives in PostgreSQL and is captured by
-the database dump -- so `make_site_archive.sh` excludes them explicitly:
+and GNU tar exits non-zero when it cannot open a member. These excluded paths
+are explicitly classified as operational/audit artifacts and are not part of
+the canonical site-archive restore payload, so `make_site_archive.sh` excludes
+them explicitly:
 
 | Path | Written by |
 | --- | --- |

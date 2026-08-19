@@ -50,6 +50,18 @@ PROTECTED_FIXTURES = (
     f"reward-operations/{_OPERATION_DIR}",
 )
 
+# Future-looking readable reward content. Both names would have been swallowed
+# by the speculative wildcards this contract deliberately does not use:
+# `w[0-9]*-*Z-*` would have matched the operation directory, and
+# `*/grant-result.json` the period-keyed file. Under the literal policy they
+# must survive, which is what makes the policy observable in the archive rather
+# than only in the source text.
+_FUTURE_OPERATION_DIR = "w30-example-20260820T000000Z-example"
+FUTURE_READABLE_FIXTURES = (
+    f"reward-operations/{_FUTURE_OPERATION_DIR}/readable.json",
+    "reward-operations/2026-W30/grant-result.json",
+)
+
 # Negative controls: unrelated content the exclusion scope must never remove.
 PRESERVED_FIXTURES = (
     "normal-site.txt",
@@ -58,7 +70,7 @@ PRESERVED_FIXTURES = (
     "reward-operations/normal-readable-operation.json",
     "reward-operations/2026-W28/snapshot.json",
     "reward-operations/2026-W28/preview.json",
-)
+) + FUTURE_READABLE_FIXTURES
 
 
 def _git_bash() -> str | None:
@@ -233,6 +245,12 @@ def test_archive_excludes_protected_directories_and_preserves_site_content(tmp_p
     (period / "snapshot.json").write_text("snapshot", encoding="utf-8")
     (period / "preview.json").write_text("preview", encoding="utf-8")
     (tmp_path / "reward-operations" / "normal-readable-operation.json").write_text("{}", encoding="utf-8")
+    future_operation = tmp_path / "reward-operations" / _FUTURE_OPERATION_DIR
+    future_operation.mkdir(parents=True)
+    (future_operation / "readable.json").write_text("{}", encoding="utf-8")
+    future_period = tmp_path / "reward-operations" / "2026-W30"
+    future_period.mkdir(parents=True)
+    (future_period / "grant-result.json").write_text("{}", encoding="utf-8")
 
     archive = tmp_path.parent / "site.tar.gz"
 
@@ -323,6 +341,33 @@ def test_reward_exclusions_are_literal_not_speculative() -> None:
             assert wildcard not in entry, f"speculative wildcard {wildcard!r} in {entry}"
 
 
+def test_future_looking_readable_reward_content_is_preserved(tmp_path: Path) -> None:
+    """Prove the literal policy in the archive, not just in the source text.
+
+    Absence of wildcard characters is a source-level claim. This runs the real
+    archive helper over reward content named exactly the way the rejected
+    wildcards would have matched, and requires both files to come back out of
+    the tar.
+    """
+
+    operation = tmp_path / "reward-operations" / _FUTURE_OPERATION_DIR
+    operation.mkdir(parents=True)
+    (operation / "readable.json").write_text('{"future": true}', encoding="utf-8")
+    period = tmp_path / "reward-operations" / "2026-W30"
+    period.mkdir(parents=True)
+    (period / "grant-result.json").write_text('{"future": true}', encoding="utf-8")
+    (tmp_path / "questions.json").write_text("[]", encoding="utf-8")
+    archive = tmp_path.parent / "future-reward-site.tar.gz"
+
+    result = _run_archive(tmp_path, archive)
+
+    assert result.returncode == 0, result.stderr
+    names = _members(archive)
+    for preserved in FUTURE_READABLE_FIXTURES:
+        assert preserved in names, preserved
+        assert _member_bytes(archive, preserved) == b'{"future": true}'
+
+
 _POSIX_IMAGE = "debian:bookworm-slim"
 
 # Root-owned 700 directories / 600 files, exactly as Production presents them.
@@ -332,6 +377,8 @@ mkdir -p /site/.e9-rollout-backups/nested /site/.shadow-judging-backups/nested /
 mkdir -p /site/releases/.shadow-judging-audit
 mkdir -p /site/reward-operations/2026-W28
 mkdir -p /site/reward-operations/{_OPERATION_DIR}
+mkdir -p /site/reward-operations/{_FUTURE_OPERATION_DIR}
+mkdir -p /site/reward-operations/2026-W30
 printf protected > /site/.e9-rollout-backups/nested/private.json
 printf protected > /site/.shadow-judging-backups/nested/private.json
 printf ordinary > /site/ordinary/.e9-rollout-backups
@@ -343,6 +390,8 @@ printf evidence > /site/reward-operations/{_OPERATION_DIR}/grant-execution-evide
 printf manifest > /site/reward-operations/{_OPERATION_DIR}/operation-manifest.json
 printf release > /site/releases/normal-release-file.txt
 printf readable > /site/reward-operations/normal-readable-operation.json
+printf future > /site/reward-operations/{_FUTURE_OPERATION_DIR}/readable.json
+printf future > /site/reward-operations/2026-W30/grant-result.json
 printf snapshot > /site/reward-operations/2026-W28/snapshot.json
 printf preview > /site/reward-operations/2026-W28/preview.json
 printf normal > /site/normal-site.txt
@@ -358,6 +407,9 @@ chmod 700 /site/reward-operations/{_OPERATION_DIR}
 chmod 600 /site/releases/e9-rollout-audit.jsonl
 chmod 600 /site/reward-operations/2026-W28/grant-result.json
 chmod 755 /site /site/ordinary /site/releases /site/reward-operations /site/reward-operations/2026-W28
+chmod 755 /site/reward-operations/{_FUTURE_OPERATION_DIR} /site/reward-operations/2026-W30
+chmod 644 /site/reward-operations/{_FUTURE_OPERATION_DIR}/readable.json
+chmod 644 /site/reward-operations/2026-W30/grant-result.json
 chmod 644 /site/normal-site.txt /site/questions.json
 chmod 644 /site/ordinary/.e9-rollout-backups /site/ordinary/.shadow-judging-backups
 chmod 644 /site/releases/normal-release-file.txt

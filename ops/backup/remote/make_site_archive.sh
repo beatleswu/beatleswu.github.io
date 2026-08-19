@@ -14,9 +14,9 @@ root="${GO_ODYSSEY_BACKUP_ROOT:-/opt/go-odyssey}"
 # This single list drives both the unreadable-path preflight and tar itself so
 # the two can never drift apart. Entries below the weight-reduction block are
 # the protected-runtime contract: root-owned operational artifacts the backup
-# user deliberately cannot read. They are operational/audit evidence, not
-# restorable application state -- the authoritative reward and rollout state
-# lives in PostgreSQL and is captured by the database dump.
+# user deliberately cannot read. These excluded paths are explicitly classified
+# as operational/audit artifacts and are not part of the canonical site-archive
+# restore payload.
 #
 # reward-operations is excluded per-artifact rather than as a whole tree: the
 # period-keyed directories (e.g. 2026-W28) also hold backup-user-readable
