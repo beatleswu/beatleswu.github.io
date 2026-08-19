@@ -8573,6 +8573,10 @@ function showRankUpRitual(newLevel, detail) {
     const t = _rankupText();
     const xpGain = Number(detail && detail.xp_gain ? detail.xp_gain : 0);
     const unlocked = Array.isArray(detail && detail.new_appearance_items) ? detail.new_appearance_items : [];
+    const levelRewards = (detail && detail.level_up_rewards) || {};
+    const hpGain = Number(levelRewards.max_hp_gain || 0);
+    const skillUnlocks = Array.isArray(levelRewards.skill_unlocks) ? levelRewards.skill_unlocks : [];
+    const isEn = typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
 
     skipBtn.textContent = t.skip;
     continueBtn.textContent = t.continue;
@@ -8595,6 +8599,23 @@ function showRankUpRitual(newLevel, detail) {
         rewardRows.push({
             title: I18n.t('index.rankup.reward.xp_recorded.title'),
             text: I18n.t('index.rankup.reward.xp_recorded.body').replace('{xp}', xpGain),
+        });
+    }
+    if (hpGain > 0) {
+        rewardRows.push({
+            title: isEn ? 'Vitality increased' : '生命上限提升',
+            text: isEn
+                ? `Max HP +${hpGain} · now ${levelRewards.max_hp_after || '—'}`
+                : `最大生命 +${hpGain} · 現在 ${levelRewards.max_hp_after || '—'}`,
+        });
+    }
+    if (skillUnlocks.length) {
+        const skillNames = skillUnlocks.map(skill => isEn
+            ? (skill.name_en || skill.name || skill.id)
+            : (skill.name || skill.id)).join(isEn ? ', ' : '、');
+        rewardRows.push({
+            title: isEn ? 'New skill eligibility' : '新技能可學習',
+            text: skillNames,
         });
     }
     if (unlocked.length) {
