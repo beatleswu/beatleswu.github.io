@@ -28,6 +28,6 @@ tar -czf "$out" \
   --exclude='outputs' \
   --exclude='_backup_*' \
   --exclude='SGF題庫_backup_before_katago_sync_*' \
-  --exclude='./.e9-rollout-backups/***' \
-  --exclude='./.shadow-judging-backups/***' \
+  --exclude='./.e9-rollout-backups' \
+  --exclude='./.shadow-judging-backups' \
   .

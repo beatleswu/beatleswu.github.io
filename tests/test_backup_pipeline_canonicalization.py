@@ -8,6 +8,7 @@ import shutil
 import stat
 import subprocess
 import tarfile
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -71,7 +72,18 @@ def _run_archive(root: Path, output: Path) -> subprocess.CompletedProcess[str]:
 
 def _members(archive: Path) -> set[str]:
     with tarfile.open(archive, mode="r:gz") as handle:
-        return {member.name.lstrip("./") for member in handle.getmembers()}
+        return {member.name[2:] if member.name.startswith("./") else member.name for member in handle.getmembers()}
+
+
+def _member_bytes(archive: Path, wanted: str) -> bytes:
+    with tarfile.open(archive, mode="r:gz") as handle:
+        for member in handle.getmembers():
+            name = member.name[2:] if member.name.startswith("./") else member.name
+            if name == wanted:
+                extracted = handle.extractfile(member)
+                assert extracted is not None
+                return extracted.read()
+    raise AssertionError(f"archive member not found: {wanted}")
 
 
 def _powershell() -> str | None:
@@ -163,6 +175,7 @@ def test_archive_excludes_protected_directories_and_preserves_site_content(tmp_p
     (tmp_path / ".e9-rollout-backups" / "nested" / "private.json").write_text("private", encoding="utf-8")
     (tmp_path / ".shadow-judging-backups" / "nested" / "private.json").write_text("private", encoding="utf-8")
     (tmp_path / "ordinary" / ".e9-rollout-backups").write_text("ordinary", encoding="utf-8")
+    (tmp_path / "ordinary" / ".shadow-judging-backups").write_text("ordinary", encoding="utf-8")
     (tmp_path / "normal-site.txt").write_text("normal", encoding="utf-8")
     (tmp_path / "questions.json").write_text("[]", encoding="utf-8")
     archive = tmp_path.parent / "site.tar.gz"
@@ -174,8 +187,12 @@ def test_archive_excludes_protected_directories_and_preserves_site_content(tmp_p
     assert "normal-site.txt" in names
     assert "questions.json" in names
     assert "ordinary/.e9-rollout-backups" in names
+    assert "ordinary/.shadow-judging-backups" in names
+    assert ".e9-rollout-backups" not in names
+    assert ".shadow-judging-backups" not in names
     assert all(not name.startswith(".e9-rollout-backups/") for name in names)
     assert all(not name.startswith(".shadow-judging-backups/") for name in names)
+    assert _member_bytes(archive, "questions.json") == b"[]"
 
 
 @pytest.mark.skipif(os.name == "nt" or not hasattr(os, "geteuid"), reason="POSIX permission test only")
@@ -196,10 +213,86 @@ def test_unreadable_excluded_directory_does_not_fail_archive(tmp_path: Path) -> 
 
 def test_archive_exclusion_contract_is_directory_scoped() -> None:
     source = ARCHIVE_HELPER.read_text(encoding="utf-8")
-    assert "--exclude='./.e9-rollout-backups/***'" in source
-    assert "--exclude='./.shadow-judging-backups/***'" in source
+    assert "--exclude='./.e9-rollout-backups'" in source
+    assert "--exclude='./.shadow-judging-backups'" in source
+    assert "--exclude='./.e9-rollout-backups/***'" not in source
+    assert "--exclude='./.shadow-judging-backups/***'" not in source
     assert "--exclude=.e9-rollout-backups" not in source
     assert "--exclude=.shadow-judging-backups" not in source
+
+
+def test_unreadable_protected_directory_real_posix_test() -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        pytest.skip("Docker is unavailable for the isolated POSIX permission test")
+
+    image = "debian:bookworm-slim"
+    volume = f"backup-archive-posix-{uuid.uuid4().hex}"
+    mount = f"{volume}:/site"
+    try:
+        created = subprocess.run([docker, "volume", "create", volume], capture_output=True, text=True, check=False)
+        assert created.returncode == 0, created.stdout + created.stderr
+        setup = """
+set -eu
+mkdir -p /site/.e9-rollout-backups/nested /site/.shadow-judging-backups/nested /site/ordinary
+printf protected > /site/.e9-rollout-backups/nested/private.json
+printf protected > /site/.shadow-judging-backups/nested/private.json
+printf ordinary > /site/ordinary/.e9-rollout-backups
+printf ordinary > /site/ordinary/.shadow-judging-backups
+printf normal > /site/normal-site.txt
+printf '[]' > /site/questions.json
+chown -R root:root /site/.e9-rollout-backups /site/.shadow-judging-backups
+chmod 700 /site/.e9-rollout-backups /site/.shadow-judging-backups
+chmod 755 /site /site/ordinary
+chmod 644 /site/normal-site.txt /site/questions.json /site/ordinary/.e9-rollout-backups /site/ordinary/.shadow-judging-backups
+"""
+        setup_result = subprocess.run(
+            [docker, "run", "--rm", "--user", "0:0", "-v", mount, image, "sh", "-ceu", setup],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert setup_result.returncode == 0, setup_result.stdout + setup_result.stderr
+
+        repo_mount = f"{ROOT.as_posix()}:/repo:ro"
+        run = """
+set -eu
+export GO_ODYSSEY_BACKUP_ROOT=/site
+/repo/ops/backup/remote/make_site_archive.sh /tmp/site.tar.gz
+tar -tzf /tmp/site.tar.gz
+"""
+        result = subprocess.run(
+            [
+                docker,
+                "run",
+                "--rm",
+                "--user",
+                "65532:65532",
+                "-v",
+                mount,
+                "-v",
+                repo_mount,
+                image,
+                "sh",
+                "-ceu",
+                run,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        names = {line[2:] if line.startswith("./") else line for line in result.stdout.splitlines()}
+        assert ".e9-rollout-backups" not in names
+        assert ".shadow-judging-backups" not in names
+        assert not any(name.startswith(".e9-rollout-backups/") for name in names)
+        assert not any(name.startswith(".shadow-judging-backups/") for name in names)
+        assert "ordinary/.e9-rollout-backups" in names
+        assert "ordinary/.shadow-judging-backups" in names
+        assert "normal-site.txt" in names
+        assert "questions.json" in names
+    finally:
+        subprocess.run([docker, "volume", "rm", "-f", volume], capture_output=True, text=True, check=False)
 
 
 def test_existing_backup_flow_and_systemd_contract_are_preserved() -> None:
