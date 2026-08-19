@@ -846,12 +846,37 @@
     withCinematicHost(start, state);
   }
 
+  // Zone 1-10 generic (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001). "Does this zone
+  // have replayable story right now?" is answered by the cinematic model in
+  // index.html, which decides from the zone's declared segments and the
+  // player's authoritative unlock state -- never from a zone-key allowlist
+  // here. A zone with no cinematics, or a player who has unlocked nothing,
+  // yields false and the affordance stays hidden.
+  function zoneStoryReplayAvailable(zoneKey) {
+    if (!zoneKey) return false;
+    var api = window.E10Cinematic;
+    if (api && typeof api.hasReplayableStory === 'function') {
+      try {
+        return api.hasReplayableStory(zoneKey) === true;
+      } catch (error) {
+        return false;
+      }
+    }
+    // The model has not loaded yet (script order / degraded load). Fall back to
+    // the historical predicate so the affordance is never silently lost.
+    return !!introCinematicKeyForZone(zoneKey);
+  }
+
+  // Replays every legitimately unlocked segment of the zone, in canonical
+  // lifecycle order. Presentation only -- see playZoneStoryReplay. Falls back
+  // to the historical first-entry-only replay if the model is unavailable.
   function replayAdventureIntro(zoneKey) {
-    if (zoneKey !== ACTIVE_INTRO_ZONE_KEY && zoneKey !== 'k21_25') return false;
-    if (!introCinematicKeyForZone(zoneKey)) return false;
+    if (!zoneStoryReplayAvailable(zoneKey)) return false;
     var root = worldStageRoot();
     var state = root && root.__e9WorldStageState;
     withCinematicHost(function () {
+      var api = window.E10Cinematic;
+      if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey)) return;
       if (typeof window.startAdventureStage === 'function') {
         var options = { mode: 'manual_replay' };
         if (state && state.cinematicReadError) options.readErrorDegraded = true;
@@ -887,7 +912,7 @@
 
   function configureStoryReplayButton(button, zone) {
     if (!button || !zone) return;
-    var enabled = !!introCinematicKeyForZone(zone.key);
+    var enabled = zoneStoryReplayAvailable(zone.key);
     button.hidden = !enabled;
     button.disabled = !enabled;
     button.setAttribute('aria-hidden', enabled ? 'false' : 'true');

@@ -48,16 +48,24 @@ def test_zone1_node_entry_uses_server_state_and_canonical_host():
     assert 'localStorage' not in body
 
 
-def test_zone_card_replay_is_zone1_only_and_uses_same_host_in_manual_mode():
+def test_zone_card_replay_is_availability_gated_and_uses_same_host_in_manual_mode():
+    # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001 superseded the Zone 1-only rule:
+    # availability is now decided by the zone-agnostic cinematic model from the
+    # zone's declared segments and the player's authoritative unlock state, so a
+    # zone key no longer appears here at all. What this test still pins is that
+    # replay remains gated (never unconditional), still runs inside the same
+    # cinematic host, and keeps the historical manual_replay fallback.
     body = _block(
         WORLD_STAGE,
         'function replayAdventureIntro(zoneKey) {',
         '\n  function updateAdventureCinematicState(',
     )
-    assert "zoneKey !== ACTIVE_INTRO_ZONE_KEY" in body
+    assert "if (!zoneStoryReplayAvailable(zoneKey)) return false;" in body
+    assert "playStoryReplay" in body
     assert "mode: 'manual_replay'" in body
     assert 'window.startAdventureStage' in body
     assert "e10_zone2_intro_v1" not in body
+    assert "ACTIVE_INTRO_ZONE_KEY" not in body
     assert "data-e10-zone-replay" in RIGHT_CARDS_TEMPLATE
     assert "data-i18n=\"e10.world_stage.replay_story\"" in WORLD_STAGE_TEMPLATE
     assert "data-e10-zone-replay" in RIGHT_CARDS_TEMPLATE

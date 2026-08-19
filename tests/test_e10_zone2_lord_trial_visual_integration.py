@@ -105,7 +105,10 @@ def test_zone2_lord_trial_states_bind_assets_without_flattening_interaction():
     )
     for needle in required:
         assert needle in text, needle
-    assert "_triggerZone2PostClearFromBossWin(zone)" in text
+    # E10_ZONE_GENERIC_CINEMATIC_REPLAY_001: the trigger now carries the replay
+    # flag so a repeat Lord win still presents the post-victory story while
+    # repeating no progression.
+    assert "_triggerZone2PostClearFromBossWin(zone, { replay: result.replay === true })" in text
     assert "result-zone2-win" in text and "result-zone2-fail" in text
 
 

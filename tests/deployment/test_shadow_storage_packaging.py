@@ -16,7 +16,8 @@ RELEASE_BUILD_SCRIPT = REPO_ROOT / "scripts" / "release" / "build-release-image.
 # correctly updated at every wave; this was a stale, undocumented literal
 # left at the pre-B1 count and never advanced -- named and refreshed here
 # rather than left as an unexplained magic number.
-CURRENT_GOVERNED_PROVENANCE_COUNT = 87
+# +1 for js/game/cinematic_replay.js (E10_ZONE_GENERIC_CINEMATIC_REPLAY_001).
+CURRENT_GOVERNED_PROVENANCE_COUNT = 88
 
 
 def _text(path):

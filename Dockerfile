@@ -140,6 +140,9 @@ COPY js/game/board_renderer.js ./js/game/board_renderer.js
 # keep both explicit so the image cannot absorb unrelated game JavaScript.
 COPY js/game/mode_context.js ./js/game/mode_context.js
 COPY js/game/game_bootstrap.js ./js/game/game_bootstrap.js
+# Zone 1-10 generic cinematic replay is a narrow browser runtime module; keep
+# the copy explicit for the same reason as the modules above.
+COPY js/game/cinematic_replay.js ./js/game/cinematic_replay.js
 COPY manifest.json robots.txt sitemap.xml og-image.jpg icon-192.png icon-512.png ./
 COPY wgo ./wgo
 COPY blog ./blog
