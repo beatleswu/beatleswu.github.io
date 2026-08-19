@@ -360,8 +360,8 @@ function New-RemotePropagationScript {
         $identityTest = 'if [ "$actual_sha" = {0} ] && [ "$actual_owner" = {1} ] && [ "$actual_group" = {2} ] && [ "$actual_mode" = {3} ]'
         $acceptedIdentities = [System.Collections.Generic.List[string]]::new()
         $acceptedIdentities.Add(($identityTest -f $preSha, $preOwner, $preGroup, $preMode))
-        foreach ($previous in $item.AcceptedPreviousCanonical) {
-            $acceptedIdentities.Add(($identityTest -f (ConvertTo-PosixQuoted $previous.Sha256), (ConvertTo-PosixQuoted $previous.Owner), (ConvertTo-PosixQuoted $previous.Group), (ConvertTo-PosixQuoted $previous.Mode)))
+        foreach ($acceptedPrevious in $item.AcceptedPreviousCanonical) {
+            $acceptedIdentities.Add(($identityTest -f (ConvertTo-PosixQuoted $acceptedPrevious.Sha256), (ConvertTo-PosixQuoted $acceptedPrevious.Owner), (ConvertTo-PosixQuoted $acceptedPrevious.Group), (ConvertTo-PosixQuoted $acceptedPrevious.Mode)))
         }
         $acceptedIdentities.Add(($identityTest -f $canonicalSha, $canonicalOwner, $canonicalGroup, $canonicalMode))
         $gate = $acceptedIdentities[0] + '; then :; '
