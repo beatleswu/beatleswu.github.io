@@ -61,9 +61,23 @@ def test_level_hp_definition_progresses_through_wave_one_levels():
     assert all(current < following for current, following in zip(hp_values, hp_values[1:]))
 
 
-def test_level_hp_sync_is_post_commit_presentation_only_and_attribute_writer_is_not_called():
+def _function_source(name):
+    tree = ast.parse(APP_SOURCE)
+    node = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name == name
+    )
+    lines = APP_SOURCE.splitlines()
+    return "\n".join(lines[node.lineno - 1 : node.end_lineno])
+
+
+def test_level_hp_sync_is_atomic_and_attribute_writer_is_not_called():
     assert "_srs_review_operation_legacy" in APP_SOURCE
     assert "player_max_hp=GREATEST(COALESCE(player_max_hp,0),?)" in APP_SOURCE
+    assert "existing_player_max_hp = int(s['player_max_hp'] or 0)" in APP_SOURCE
+    assert "'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv))" in APP_SOURCE
     tree = ast.parse(APP_SOURCE)
     calls = [
         node
@@ -73,6 +87,50 @@ def test_level_hp_sync_is_post_commit_presentation_only_and_attribute_writer_is_
         and node.func.id == "grant_level_up_pts"
     ]
     assert calls == []
+
+
+def test_level_hp_writer_precedes_core_commit_and_optional_monster_work():
+    update_at = APP_SOURCE.index("'''UPDATE user_stats SET")
+    hp_at = APP_SOURCE.index(
+        "player_max_hp=GREATEST(COALESCE(player_max_hp,0),?)", update_at
+    )
+    commit_at = APP_SOURCE.index("        conn.commit()", hp_at)
+    optional_at = APP_SOURCE.index(
+        "monster_data = _update_monster_and_quests", commit_at
+    )
+    assert update_at < hp_at < commit_at < optional_at
+    assert "player_max_hp=GREATEST" not in _function_source(
+        "_lane_b_review_with_level_value"
+    )
+
+
+def test_level_wrapper_is_read_only_and_uses_committed_response_state():
+    wrapper = _function_source("_lane_b_review_with_level_value")
+    assert "_lane_b_level_snapshot(uid)" in wrapper
+    assert "stats.get('player_max_hp')" in wrapper
+    assert "actual_max_hp = int(persisted_max_hp or 0)" in wrapper
+    assert "build_level_up_rewards(" in wrapper
+    assert "UPDATE user_stats" not in wrapper
+    assert "level_conn.execute" not in wrapper
+    assert "level_conn.commit" not in wrapper
+
+
+def test_duplicate_reviews_and_skill_unlocks_stay_non_mutating_at_lane_boundary():
+    wrapper = _function_source("_lane_b_review_with_level_value")
+    skill_reader = _function_source("_lane_b_level_skill_unlocks")
+    assert "not payload.get('ranked_up')" in wrapper
+    assert "should_grant_review_progress" in APP_SOURCE
+    assert "progress_credited" in APP_SOURCE
+    assert "conn.execute" not in skill_reader
+    assert "conn.commit" not in skill_reader
+    assert "grant_level_up_pts" not in skill_reader
+
+
+def test_appearance_milestone_remains_in_canonical_review_flow():
+    review = _function_source("_srs_review_operation")
+    assert "if ranked_up:" in review
+    assert "give_rank_appearance(conn, uid, new_rank_level)" in review
+    assert "new_appearance_items" in review
 
 
 def test_retaliation_uses_authoritative_roster_and_ignores_claimed_attack():

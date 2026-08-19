@@ -11990,6 +11990,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
         conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
         s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
+        existing_player_max_hp = int(s['player_max_hp'] or 0)
         total        = s['total_correct']
         streak       = s['current_streak']
         mx           = s['max_streak']
@@ -12012,6 +12013,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         review_shadow_additive_bonuses = ()
         review_shadow_support_values = []
         new_rank_level = rank_level
+        new_lv = xp_to_lv(xp)
         # 裝備外觀加成
         _appear_fx = _get_appearance_effects(uid, conn)
         pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
@@ -12170,17 +12172,19 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             '''UPDATE user_stats SET
                total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
                xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
+               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
                updated_at=?
                WHERE user_id=?''',
             (total, streak, mx, mc,
              xp, combo_streak, max_combo, new_rank_level, rank_xp,
-             now, uid))
+             _lv_max_hp(new_lv), now, uid))
 
         stats = {
             'total_correct': total, 'current_streak': streak,
             'max_streak': mx, 'mistake_corrected': mc,
             'xp': xp, 'combo_streak': combo_streak,
             'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
+            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
         }
         new_badges = check_and_award(conn, uid, stats, unit if unit_done else None)
 
@@ -12374,9 +12378,9 @@ def _lane_b_review_with_level_value(uid, data, *, internal=False, submission_id=
     """Add a player-visible level reward summary around the durable writer.
 
     XP remains owned by the existing review operation.  This wrapper only
-    reads the pre-review baseline, synchronizes the already-derived HP cap,
-    and serializes eligibility/presentation metadata after the existing
-    operation has committed.
+    reads the pre-review baseline and serializes eligibility/presentation
+    metadata from the already-committed result.  The durable writer owns the
+    level-derived HP cap in the same user_stats transaction as XP/rank.
     """
 
     try:
@@ -12398,24 +12402,14 @@ def _lane_b_review_with_level_value(uid, data, *, internal=False, submission_id=
     if new_lv <= before['old_lv']:
         return response
 
-    expected_max_hp = _lv_max_hp(new_lv)
-    actual_max_hp = expected_max_hp
-    try:
-        with get_db() as level_conn:
-            level_conn.execute(
-                'UPDATE user_stats SET player_max_hp=GREATEST(COALESCE(player_max_hp,0),?) '
-                'WHERE user_id=?',
-                (expected_max_hp, uid),
-            )
-            current = level_conn.execute(
-                'SELECT player_max_hp FROM user_stats WHERE user_id=?', (uid,)
-            ).fetchone()
-            actual_max_hp = max(
-                expected_max_hp,
-                int(current['player_max_hp'] or 0) if current else 0,
-            )
-    except Exception:
-        app.logger.exception('Lane B level HP synchronization failed after review')
+    stats = payload.get('stats')
+    persisted_max_hp = (
+        stats.get('player_max_hp') if isinstance(stats, dict) else None
+    )
+    player = payload.get('player')
+    if persisted_max_hp is None and isinstance(player, dict):
+        persisted_max_hp = player.get('max_hp')
+    actual_max_hp = int(persisted_max_hp or 0)
 
     appearance_items = payload.get('new_appearance_items') or []
     level_rewards = build_level_up_rewards(
@@ -12427,10 +12421,8 @@ def _lane_b_review_with_level_value(uid, data, *, internal=False, submission_id=
         appearance_items=appearance_items,
     )
     payload['level_up_rewards'] = level_rewards
-    stats = payload.get('stats')
     if isinstance(stats, dict):
         stats['player_max_hp'] = actual_max_hp
-    player = payload.get('player')
     if isinstance(player, dict):
         player['max_hp'] = max(int(player.get('max_hp') or 0), actual_max_hp)
     return jsonify(payload)

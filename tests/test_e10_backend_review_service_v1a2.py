@@ -447,9 +447,10 @@ def test_no_other_route_writes_review_log_independently_of_the_named_exception()
 
 # ---------------------------------------------------------------------------
 # Tier 2b -- RUNTIME/TRANSACTION CHARACTERIZATION: _srs_review_operation's
-# own body is proven byte-identical to the pre-Wave2 base, i.e. this task
-# did not touch the durable operation, its transaction phases, or its
-# commit boundaries at all.
+# own body remains byte-identical to the pre-Wave2 base except for the
+# explicitly authorized Lane B atomic level-HP persistence delta. The
+# durable writer, transaction phases, and commit boundaries remain otherwise
+# characterized against the base.
 # ---------------------------------------------------------------------------
 
 def _git_show(path: str) -> str:
@@ -472,7 +473,7 @@ def base_app_source():
         pytest.skip(f"base commit {BASE_SHA} not available in this checkout")
 
 
-def test_srs_review_operation_body_unchanged_from_base(base_app_source):
+def test_srs_review_operation_body_only_adds_atomic_level_hp_delta(base_app_source):
     # Ends at the function's own closing `return jsonify({... **monster_data,
     # })` -- NOT at "def _run_map_battle_progression", which would also
     # sweep in this task's own newly-inserted ReviewService/handoff
@@ -485,7 +486,18 @@ def test_srs_review_operation_body_unchanged_from_base(base_app_source):
         end = source.index(end_marker, start) + len(end_marker)
         return source[start:end]
 
-    assert _extract(APP_SOURCE) == _extract(base_app_source)
+    current = _extract(APP_SOURCE)
+    allowed_delta = (
+        ("        existing_player_max_hp = int(s['player_max_hp'] or 0)\n", ""),
+        ("        new_lv = xp_to_lv(xp)\n", ""),
+        ("               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),\n", ""),
+        ("             _lv_max_hp(new_lv), now, uid))", "             now, uid))"),
+        ("            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),\n", ""),
+    )
+    for fragment, replacement in allowed_delta:
+        assert fragment in current
+        current = current.replace(fragment, replacement, 1)
+    assert current == _extract(base_app_source)
 
 
 def test_update_monster_and_quests_body_unchanged_from_base(base_app_source):
