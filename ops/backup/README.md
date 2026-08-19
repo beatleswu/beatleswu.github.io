@@ -26,6 +26,36 @@ deployments, the database, or backup data.
 This change does not alter backup retention, compression, upload, or OCI
 semantics. A service rerun remains a separate operational approval.
 
+## Accepted pre-image identities
+
+`production-preimage.json` records, per target, every remote identity the
+propagation tool may accept before it activates anything. A target is accepted
+only on an exact SHA256 + owner + group + mode + file-type match against one of:
+
+1. the original legacy Production pre-image -- the `sha256`, `owner`, `group`,
+   `mode`, and `file_type` fields on the target itself;
+2. an entry in the target's optional `accepted_previous_canonical` list; or
+3. the canonical identity being installed, which also makes an unchanged rerun
+   idempotent.
+
+Anything else is unknown drift and fails closed with `remote pre-image identity
+mismatch`, before any of the seven targets is activated.
+
+`accepted_previous_canonical` exists because canonical propagation is
+sequential. Once the first propagation has run, Production holds the *previous*
+canonical identity rather than the legacy pre-image, so a legitimate
+canonical-to-canonical transition would otherwise be rejected as drift. Each
+entry is an explicit, owner-reviewed identity that names the exact `source_sha`
+it came from, and the tool re-derives that commit's blob hash and refuses to
+propagate unless it matches the declared `sha256`. Reachable Git history is
+never trusted on its own: an older version that is not declared here is
+rejected exactly like any other unknown content.
+
+Only `make_site_archive.sh` currently declares an entry -- the helper installed
+by the first canonical propagation, before the protected-runtime exclusion
+contract below changed it. The other six targets already match the canonical
+identity and carry no entry.
+
 ## Protected-runtime exclusion contract
 
 The backup runs as the unprivileged `ubuntu` user. Several operational tools

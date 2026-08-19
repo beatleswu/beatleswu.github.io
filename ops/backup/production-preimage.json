@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "description": "Owner-reviewed read-only Production backup runtime identity before canonical propagation.",
+  "schema_version": 2,
+  "description": "Owner-reviewed read-only Production backup runtime identity accepted before canonical propagation. 'sha256'/'owner'/'group'/'mode'/'file_type' remain the original legacy production pre-image. 'accepted_previous_canonical' is an optional per-target list of additional owner-reviewed identities a previous canonical propagation is known to have installed; every entry names the exact source commit it came from and is verified against that commit before propagation. Nothing outside these explicit identities and the current canonical identity is accepted.",
   "targets": [
     {
       "remote_path": "/opt/go-odyssey/ops/backup/linux/backup.sh",
@@ -24,7 +24,18 @@
       "owner": "ubuntu",
       "group": "ubuntu",
       "mode": "664",
-      "file_type": "regular file"
+      "file_type": "regular file",
+      "accepted_previous_canonical": [
+        {
+          "sha256": "12b125f9dd9c6ea2f7601cc22fb84143ce0df1af84676fc3847c0c785276dc65",
+          "owner": "ubuntu",
+          "group": "ubuntu",
+          "mode": "644",
+          "file_type": "regular file",
+          "source_sha": "d5dce8bffbef966f2ea14e1d010c52a09f813e9c",
+          "description": "First canonical archive helper, installed by the first canonical propagation and superseded by the PR #378 protected-runtime exclusion contract."
+        }
+      ]
     },
     {
       "remote_path": "/etc/systemd/system/godokro-backup-daily.service",
