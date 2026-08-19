@@ -503,6 +503,27 @@ h1 {
 .purchase-confirmation strong { display:block; color:var(--gold); margin-bottom:4px; }
 .purchase-confirmation div div { color:var(--muted); font-size:12px; line-height:1.45; }
 .purchase-confirmation a { flex:0 0 auto; min-height:40px; display:inline-flex; align-items:center; padding:0 12px; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; text-decoration:none; }
+.cosmetic-commerce-panel { border-color: rgba(86,214,194,.42); }
+.cosmetic-note { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 690px; }
+.cosmetic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px; }
+.cosmetic-card { padding:14px; border:1px solid rgba(86,214,194,.28); border-radius:var(--radius); background:rgba(10,16,15,.7); }
+.cosmetic-card.is-equipped { border-color:var(--gold); box-shadow:0 0 0 1px rgba(240,191,87,.22); }
+.cosmetic-card-top { display:flex; gap:12px; align-items:center; }
+.cosmetic-art { width:64px; height:64px; display:grid; place-items:center; border-radius:12px; font-size:34px; border:1px solid rgba(255,255,255,.18); }
+.cosmetic-name { color:#fff7dd; font-weight:900; }
+.cosmetic-meta { margin-top:4px; color:var(--muted); font-size:11px; }
+.cosmetic-desc { min-height:42px; margin:12px 0; color:var(--muted); font-size:12px; line-height:1.55; }
+.cosmetic-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.cosmetic-actions .btn { flex:1 1 100px; }
+.cosmetic-actions .btn.secondary { background:rgba(255,255,255,.08); border-color:rgba(86,214,194,.35); }
+.cosmetic-visible { margin-top:10px; color:var(--teal); font-size:11px; }
+.cosmetic-modal { position:fixed; inset:0; z-index:1300; display:grid; place-items:center; padding:18px; background:rgba(0,0,0,.72); }
+.cosmetic-modal[hidden] { display:none; }
+.cosmetic-modal-card { width:min(420px,100%); padding:22px; border:1px solid rgba(240,191,87,.5); border-radius:var(--radius); background:var(--panel-strong); box-shadow:var(--shadow); }
+.cosmetic-modal-art { width:110px; height:110px; margin:0 auto 14px; display:grid; place-items:center; border-radius:20px; font-size:58px; }
+.cosmetic-modal-card h2 { margin:0; color:#fff7dd; text-align:center; }
+.cosmetic-modal-card p { margin:10px 0 16px; color:var(--muted); line-height:1.6; text-align:center; }
+.cosmetic-modal-close { display:block; margin:0 auto; }
 .skeleton {
   min-height: 210px;
   border-radius: var(--radius);
@@ -569,6 +590,24 @@ h1 {
         <span id="merchant-line">先看每日折扣，再決定要不要出手。</span>
       </div>
       <img class="merchant" id="merchant-img" src="/assets/shop/npc_merchant_idle.webp" alt="" loading="eager" decoding="async" fetchpriority="high">
+    </div>
+  </section>
+
+  <section class="section panel cosmetic-commerce-panel" aria-labelledby="cosmetic-commerce-title">
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">COSMETIC COMMERCE · WAVE 1</div>
+          <div class="section-title" id="cosmetic-commerce-title">Outfit Collection</div>
+        </div>
+        <div class="section-sub">Catalog → Preview → Unlock → Ownership → Equip → Visible Result</div>
+      </div>
+      <p class="cosmetic-note">
+        外觀商品只改變英雄的視覺呈現，不增加攻擊、防禦或戰鬥權限。預覽是純 presentation；購買價格與 Premium entitlement 由 server authority 判定。
+      </p>
+      <div class="cosmetic-grid" id="cosmetic-commerce-grid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
     </div>
   </section>
 
@@ -679,9 +718,18 @@ h1 {
   <div><strong id="purchase-confirmation-title"></strong><div id="purchase-confirmation-copy"></div></div>
   <a id="purchase-confirmation-backpack" href="/inventory" data-i18n="shop.purchase.goBackpack">前往背包</a>
 </aside>
+<aside class="cosmetic-modal" id="cosmetic-preview-modal" role="dialog" aria-modal="true" aria-labelledby="cosmetic-preview-title" hidden>
+  <div class="cosmetic-modal-card">
+    <div class="cosmetic-modal-art" id="cosmetic-preview-art"></div>
+    <h2 id="cosmetic-preview-title"></h2>
+    <p id="cosmetic-preview-copy"></p>
+    <button class="btn cosmetic-modal-close" id="cosmetic-preview-close" type="button">Close</button>
+  </div>
+</aside>
 
 <script>
 let catalog = null;
+let cosmeticCatalog = null;
 let toastTimer = null;
 
 const ASSET = {
@@ -1103,15 +1151,19 @@ function errorMessage(code, fallback) {
   const map = isEn() ? {
     insufficient_coins: `Not enough coins — earn more and come back.`,
     already_owned: "You already own this item.",
-    not_in_rotation: `This item isn't in today's rotation.`,
+    premium_required: "This cosmetic requires the server-confirmed Premium entitlement.",
     not_owned: "You don't have this item yet.",
+    unknown_product: "That cosmetic product is not available.",
+    not_in_rotation: `This item isn't in today's rotation.`,
     effect_active: "This effect is already active.",
     auto_use_only: "This tool can only be used automatically while solving."
   } : {
     insufficient_coins: "金幣不足，請先賺一些再回來。",
     already_owned: "你已經擁有這個項目了。",
-    not_in_rotation: "這個商品今天不在輪替清單中。",
+    premium_required: "此外觀需要 server 確認的 Premium 權限。",
     not_owned: "你還沒有這個物品。",
+    unknown_product: "這個外觀商品目前不存在。",
+    not_in_rotation: "這個商品今天不在輪替清單中。",
     effect_active: "這個效果已經在生效中。",
     auto_use_only: "這個道具只能在題目中自動使用。"
   };
@@ -1123,6 +1175,112 @@ async function api(path, options) {
   if (!res.ok && !data.error) data.error = `HTTP ${res.status}`;
   return data;
 }
+
+function cosmeticEsc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+function cosmeticPriceLabel(product) {
+  if (product.unlock_type === 'premium') return isEn() ? 'Premium unlock' : 'Premium 解鎖';
+  return `${money(product.price)} ${isEn() ? 'coins' : '金幣'}`;
+}
+function renderCosmeticCommerce(data) {
+  cosmeticCatalog = data;
+  const grid = document.getElementById('cosmetic-commerce-grid');
+  if (!grid) return;
+  const products = Array.isArray(data.products) ? data.products : [];
+  if (!products.length) {
+    grid.innerHTML = `<div class="empty">${isEn() ? 'No Wave 1 cosmetics are available.' : '目前沒有 Wave 1 外觀商品。'}</div>`;
+    return;
+  }
+  grid.innerHTML = products.map(product => {
+    const id = cosmeticEsc(product.product_id);
+    const asset = product.preview_asset || {};
+    const ownership = product.ownership || {};
+    const equipped = !!product.equipped_state?.equipped;
+    const owned = !!ownership.owned;
+    const action = equipped
+      ? `<button class="btn" type="button" disabled>${isEn() ? 'Equipped' : '已裝備'}</button>`
+      : owned
+        ? `<button class="btn" type="button" data-cosmetic-equip="${id}">${isEn() ? 'Equip' : '裝備'}</button>`
+        : `<button class="btn" type="button" data-cosmetic-purchase="${id}">${product.unlock_type === 'premium' ? (isEn() ? 'Unlock' : '解鎖') : (isEn() ? 'Buy' : '購買')}</button>`;
+    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}">
+      <div class="cosmetic-card-top">
+        <div class="cosmetic-art" style="background:${cosmeticEsc(asset.color || '#233')}">${cosmeticEsc(asset.emoji || '🎽')}</div>
+        <div><div class="cosmetic-name">${cosmeticEsc(isEn() ? (product.name_en || product.name) : product.name)}</div>
+          <div class="cosmetic-meta">${cosmeticEsc(product.category)} · ${cosmeticEsc(product.rarity)} · ${owned ? (isEn() ? 'Owned' : '已擁有') : (isEn() ? 'Not owned' : '未擁有')}</div></div>
+      </div>
+      <div class="cosmetic-desc">${cosmeticEsc(product.flavor || '')}</div>
+      <div class="card-foot"><div class="price">${cosmeticPriceLabel(product)}</div></div>
+      <div class="cosmetic-actions">
+        <button class="btn secondary" type="button" data-cosmetic-preview="${id}">${isEn() ? 'Preview' : '預覽'}</button>
+        ${action}
+      </div>
+      <div class="cosmetic-visible">${equipped ? (isEn() ? 'Visible on Hero now.' : '目前已在英雄外觀生效。') : (isEn() ? 'Visible result: Hero outfit.' : '裝備後會顯示在英雄外觀。')}</div>
+    </article>`;
+  }).join('');
+  grid.querySelectorAll('[data-cosmetic-preview]').forEach(button => {
+    button.addEventListener('click', () => previewCosmetic(button.dataset.cosmeticPreview));
+  });
+  grid.querySelectorAll('[data-cosmetic-purchase]').forEach(button => {
+    button.addEventListener('click', () => purchaseCosmetic(button.dataset.cosmeticPurchase));
+  });
+  grid.querySelectorAll('[data-cosmetic-equip]').forEach(button => {
+    button.addEventListener('click', () => equipCosmetic(button.dataset.cosmeticEquip));
+  });
+}
+async function loadCosmeticCommerce() {
+  const res = await api('/api/cosmetic-commerce/catalog');
+  if (res.error) {
+    showToast(errorMessage(res.error));
+    return;
+  }
+  renderCosmeticCommerce(res);
+}
+async function previewCosmetic(productId) {
+  const res = await api(`/api/cosmetic-commerce/preview/${encodeURIComponent(productId)}`);
+  if (res.error) { showToast(errorMessage(res.error)); return; }
+  const product = res.product || {};
+  const asset = product.preview_asset || {};
+  const art = document.getElementById('cosmetic-preview-art');
+  art.textContent = asset.emoji || '🎽';
+  art.style.background = asset.color || '#233';
+  document.getElementById('cosmetic-preview-title').textContent = isEn()
+    ? (product.name_en || product.name) : product.name;
+  document.getElementById('cosmetic-preview-copy').textContent = isEn()
+    ? `Preview only. No ownership, purchase, or equip mutation. Visible result: ${product.visible_result?.surface || 'Hero'}.`
+    : `純預覽，不會取得、扣款或裝備。可見結果：${product.visible_result?.surface || 'Hero'}。`;
+  document.getElementById('cosmetic-preview-modal').hidden = false;
+}
+async function purchaseCosmetic(productId) {
+  setMerchant('talk', 'talk');
+  const res = await api('/api/cosmetic-commerce/purchase', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ product_id: productId })
+  });
+  if (res.error) { setMerchant('idle', 'idle'); showToast(errorMessage(res.error)); return; }
+  setMerchant('happy', 'happy');
+  await loadCosmeticCommerce();
+  showToast(res.status === 'already_owned'
+    ? (isEn() ? 'Already in your wardrobe.' : '這件外觀已在衣櫃中。')
+    : (isEn() ? 'Cosmetic unlocked.' : '外觀已解鎖並收入衣櫃。'));
+}
+async function equipCosmetic(productId) {
+  const res = await api('/api/cosmetic-commerce/equip', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ product_id: productId })
+  });
+  if (res.error) { showToast(errorMessage(res.error)); return; }
+  await loadCosmeticCommerce();
+  showToast(isEn() ? 'Outfit equipped on your hero.' : '外觀已裝備到英雄。');
+}
+document.getElementById('cosmetic-preview-close').addEventListener('click', () => {
+  document.getElementById('cosmetic-preview-modal').hidden = true;
+});
+document.getElementById('cosmetic-preview-modal').addEventListener('click', event => {
+  if (event.target.id === 'cosmetic-preview-modal') event.currentTarget.hidden = true;
+});
 
 async function loadCatalog() {
   const res = await api("/api/shop/catalog");
@@ -1399,6 +1557,7 @@ function showGachaResult(res) {
 }
 document.getElementById("btn-gacha").addEventListener("click", doGacha);
 loadCatalog();
+loadCosmeticCommerce();
 </script>
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>
@@ -1615,10 +1774,4 @@ async function _nqCheckShopPurchase() {
 </div>
 </body>
 </html>
-
-
-
-
-
-
 
