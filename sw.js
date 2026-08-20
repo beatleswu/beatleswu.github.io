@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v235-e10-zone-generic-cinematic-replay';
+const VERSION     = 'v236-e10-replay-story-button-hotfix';
 // The static release packager replaces this deterministic source fallback with
 // a release-<full-git-sha> identity in the staged worker. Keeping a valid
 // source fallback makes the checked-in worker executable while ensuring that
