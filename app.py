@@ -40,6 +40,7 @@ from explain_overrides import get_override as _get_explain_override
 from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
+from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -5512,27 +5513,27 @@ def check_and_award_daily(conn, uid, correct, today_str):
 # 怪物序列：依等級從小到大，每隻打完才換下一隻
 # 每隻怪物有自己的 HP pool（比原本大很多），讓打敗感更有份量
 _BATTLEFIELD_ROSTER = [
-    # (type, name, max_hp, atk) -- 顯示名稱對齊新版 RPG 族群
-    ('caterpillar', 'LV1 史萊姆 / 哥布林',        80,  2),
-    ('caterpillar', 'LV1 提子訓練守衛',          100,  2),
-    ('bee',         'LV2 哥布林 / 洞窟蝙蝠',    130,  3),
-    ('bee',         'LV2 雙叫吃突襲隊',          160,  4),
-    ('turtle',      'LV3 獸人小兵',              200,  4),
-    ('turtle',      'LV3 做眼厚壁兵',            240,  5),
-    ('rabbit',      'LV4 森林精靈',              220,  5),
-    ('rabbit',      'LV4 霧林手筋師',            260,  6),
-    ('raccoon',     'LV5 部落獸人',              260,  6),
-    ('raccoon',     'LV5 銀牌懸賞首領',          290,  7),
-    ('wolf',        'LV6 飛龍 / 低階神靈',       520, 12),
-    ('dragon',      'LV6 龍谷計算者',            700, 14),
-    ('fox',         'LV7 賢者 / 魔法師 / 亡靈',  760, 16),
-    ('fox',         'LV7 高塔術師',              920, 18),
-    ('golem',       'LV8 騎士 / 混沌領主',      1100, 20),
-    ('golem',       'LV8 皇家騎士長',           1350, 22),
-    ('dragon',      'LV9 諸神',                 1700, 28),
-    ('dragon',      'LV9 命運試煉官',           2000, 32),
-    ('dragon',      'LV10 上古終焉神殿',        2400, 36),
-    ('dragon',      'LV10 終焉神',              2800, 40),
+    # (type, name, max_hp, atk, encounter_kind) -- server-owned RPG profile
+    ('caterpillar', 'LV1 史萊姆 / 哥布林',        80,  2, 'normal'),
+    ('caterpillar', 'LV1 提子訓練守衛',          100,  2, 'boss'),
+    ('bee',         'LV2 哥布林 / 洞窟蝙蝠',    130,  3, 'normal'),
+    ('bee',         'LV2 雙叫吃突襲隊',          160,  4, 'boss'),
+    ('turtle',      'LV3 獸人小兵',              200,  4, 'normal'),
+    ('turtle',      'LV3 做眼厚壁兵',            240,  5, 'boss'),
+    ('rabbit',      'LV4 森林精靈',              220,  5, 'normal'),
+    ('rabbit',      'LV4 霧林手筋師',            260,  6, 'boss'),
+    ('raccoon',     'LV5 部落獸人',              260,  6, 'normal'),
+    ('raccoon',     'LV5 銀牌懸賞首領',          290,  7, 'boss'),
+    ('wolf',        'LV6 飛龍 / 低階神靈',       520, 12, 'normal'),
+    ('dragon',      'LV6 龍谷計算者',            700, 14, 'boss'),
+    ('fox',         'LV7 賢者 / 魔法師 / 亡靈',  760, 16, 'normal'),
+    ('fox',         'LV7 高塔術師',              920, 18, 'boss'),
+    ('golem',       'LV8 騎士 / 混沌領主',      1100, 20, 'normal'),
+    ('golem',       'LV8 皇家騎士長',           1350, 22, 'boss'),
+    ('dragon',      'LV9 諸神',                 1700, 28, 'normal'),
+    ('dragon',      'LV9 命運試煉官',           2000, 32, 'boss'),
+    ('dragon',      'LV10 上古終焉神殿',        2400, 36, 'normal'),
+    ('dragon',      'LV10 終焉神',              2800, 40, 'boss'),
 ]
 
 _BATTLEFIELD_NAME_EN = {
@@ -5941,6 +5942,7 @@ def monster_status():
     today = datetime.date.today().isoformat()
     with get_db() as conn:
         bf = _get_or_create_battlefield(conn, uid, today)
+        bf_profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
         s  = conn.execute('SELECT player_hp, player_max_hp, rank_level, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         equipped_rows = conn.execute(
             'SELECT skill_id FROM player_skills WHERE user_id=? AND equipped=1', (uid,)
@@ -5987,6 +5989,12 @@ def monster_status():
                       else (bf.get('monster_avatar') or _battlefield_avatar(bf['monster_type'], bf['monster_name'])),
         'max_hp':     bf['max_hp'],
         'hp':         bf['current_hp'],
+        'stage':      bf_profile['stage'],
+        'encounter_kind': bf_profile['encounter_kind'],
+        'retaliation': {
+            'attack': bf_profile['attack'],
+            'encounter_kind': bf_profile['encounter_kind'],
+        },
         'kill_count': bf['kill_count'],
         'wave':       bf['kill_count'],
         'defeated':   bool(bf['defeated']),
@@ -5999,6 +6007,53 @@ def monster_status():
         'current_sp': current_sp,
         'max_sp':     max_sp,
     })
+
+
+def _lane_b_monster_update_with_authoritative_profile(
+    conn, uid, qid, grade, q_info, combo_streak, today_str,
+    should_grant_progress=True, shadow_events=None,
+):
+    """Route combat retaliation through the server-owned roster profile.
+
+    The legacy function remains byte-stable for the existing review-service
+    contract.  This wrapper supplies the authoritative attack value before
+    it runs, so a question/client payload cannot flatten every encounter to
+    one default attack value or submit a weaker monster outcome.
+    """
+
+    bf = _get_or_create_battlefield(conn, uid, today_str)
+    profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
+    server_q_info = dict(q_info or {})
+    server_q_info['monster_atk'] = profile['attack']
+    result = _update_monster_and_quests_legacy(
+        conn, uid, qid, grade, server_q_info, combo_streak, today_str,
+        should_grant_progress=should_grant_progress,
+        shadow_events=shadow_events,
+    )
+    if isinstance(result, dict) and isinstance(result.get('monster'), dict):
+        result['monster']['stage'] = profile['stage']
+        result['monster']['encounter_kind'] = profile['encounter_kind']
+        result['monster']['retaliation'] = {
+            'attack': profile['attack'],
+            'encounter_kind': profile['encounter_kind'],
+        }
+        next_monster = result['monster'].get('next_monster')
+        if isinstance(next_monster, dict):
+            next_index = result['monster'].get('kill_count', 0) % len(_BATTLEFIELD_ROSTER)
+            next_profile = battlefield_profile(_BATTLEFIELD_ROSTER, next_index)
+            next_monster['stage'] = next_profile['stage']
+            next_monster['encounter_kind'] = next_profile['encounter_kind']
+            next_monster['retaliation'] = {
+                'attack': next_profile['attack'],
+                'encounter_kind': next_profile['encounter_kind'],
+            }
+    return result
+
+
+# Keep the established function body as the legacy settlement implementation;
+# the late-bound review path uses this Lane B authority wrapper.
+_update_monster_and_quests_legacy = _update_monster_and_quests
+_update_monster_and_quests = _lane_b_monster_update_with_authoritative_profile
 
 
 def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
@@ -11954,6 +12009,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
         conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
         s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
+        existing_player_max_hp = int(s['player_max_hp'] or 0)
         total        = s['total_correct']
         streak       = s['current_streak']
         mx           = s['max_streak']
@@ -11976,6 +12032,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         review_shadow_additive_bonuses = ()
         review_shadow_support_values = []
         new_rank_level = rank_level
+        new_lv = xp_to_lv(xp)
         # 裝備外觀加成
         _appear_fx = _get_appearance_effects(uid, conn)
         pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
@@ -12134,17 +12191,19 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             '''UPDATE user_stats SET
                total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
                xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
+               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
                updated_at=?
                WHERE user_id=?''',
             (total, streak, mx, mc,
              xp, combo_streak, max_combo, new_rank_level, rank_xp,
-             now, uid))
+             _lv_max_hp(new_lv), now, uid))
 
         stats = {
             'total_correct': total, 'current_streak': streak,
             'max_streak': mx, 'mistake_corrected': mc,
             'xp': xp, 'combo_streak': combo_streak,
             'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
+            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
         }
         new_badges = check_and_award(conn, uid, stats, unit if unit_done else None)
 
@@ -12296,6 +12355,102 @@ def _dispatch_to_srs_review_operation(uid, data, *, internal=False, submission_i
 # tests/test_e10_backend_review_service_v1a2.py).
 _review_service = ReviewService(_dispatch_to_srs_review_operation)
 _map_battle_review_handoff = MapBattleReviewHandoff(_review_service)
+
+
+def _lane_b_level_skill_unlocks(old_lv, new_lv):
+    """Return skills that became eligible, without learning/equipping them."""
+
+    unlocked = []
+    for skill in SKILL_DEFS:
+        required_lv = _rank_to_lv(skill.get('unlock_rank', 'LV1'))
+        if old_lv < required_lv <= new_lv:
+            unlocked.append({
+                'id': skill['id'],
+                'name': skill.get('name', skill['id']),
+                'name_en': skill.get('name_en', skill.get('name', skill['id'])),
+                'unlock_rank': skill.get('unlock_rank', f'LV{required_lv}'),
+                'desc': skill.get('desc', ''),
+                'desc_en': skill.get('desc_en', skill.get('desc', '')),
+            })
+    return unlocked
+
+
+def _lane_b_level_snapshot(uid):
+    """Read the pre-review level/HP baseline for the presentation wrapper."""
+
+    with get_db() as level_conn:
+        row = level_conn.execute(
+            'SELECT xp, player_max_hp FROM user_stats WHERE user_id=?', (uid,)
+        ).fetchone()
+    if not row:
+        return None
+    old_xp = int(row['xp'] or 0)
+    old_lv = xp_to_lv(old_xp)
+    stored_max = int(row['player_max_hp'] or 0)
+    return {
+        'old_lv': old_lv,
+        'old_max_hp': max(stored_max, _lv_max_hp(old_lv)),
+    }
+
+
+def _lane_b_review_with_level_value(uid, data, *, internal=False, submission_id=None):
+    """Add a player-visible level reward summary around the durable writer.
+
+    XP remains owned by the existing review operation.  This wrapper only
+    reads the pre-review baseline and serializes eligibility/presentation
+    metadata from the already-committed result.  The durable writer owns the
+    level-derived HP cap in the same user_stats transaction as XP/rank.
+    """
+
+    try:
+        before = _lane_b_level_snapshot(uid)
+    except Exception:
+        app.logger.exception('Lane B level snapshot failed before review')
+        before = None
+
+    response = _srs_review_operation_legacy(
+        uid, data, internal=internal, submission_id=submission_id,
+    )
+    if before is None or getattr(response, 'status_code', 200) != 200:
+        return response
+
+    payload = response.get_json(silent=True) if hasattr(response, 'get_json') else None
+    if not isinstance(payload, dict) or not payload.get('ranked_up'):
+        return response
+    new_lv = _rank_to_lv(payload.get('new_rank_level'))
+    if new_lv <= before['old_lv']:
+        return response
+
+    stats = payload.get('stats')
+    persisted_max_hp = (
+        stats.get('player_max_hp') if isinstance(stats, dict) else None
+    )
+    player = payload.get('player')
+    if persisted_max_hp is None and isinstance(player, dict):
+        persisted_max_hp = player.get('max_hp')
+    actual_max_hp = int(persisted_max_hp or 0)
+
+    appearance_items = payload.get('new_appearance_items') or []
+    level_rewards = build_level_up_rewards(
+        before['old_lv'],
+        new_lv,
+        before['old_max_hp'],
+        actual_max_hp,
+        skill_unlocks=_lane_b_level_skill_unlocks(before['old_lv'], new_lv),
+        appearance_items=appearance_items,
+    )
+    payload['level_up_rewards'] = level_rewards
+    if isinstance(stats, dict):
+        stats['player_max_hp'] = actual_max_hp
+    if isinstance(player, dict):
+        player['max_hp'] = max(int(player.get('max_hp') or 0), actual_max_hp)
+    return jsonify(payload)
+
+
+# The review service dispatch is deliberately late-bound.  Preserve the
+# existing durable writer and wrap only its post-commit player-visible value.
+_srs_review_operation_legacy = _srs_review_operation
+_srs_review_operation = _lane_b_review_with_level_value
 
 
 def _run_map_battle_progression(user_id, settlement):
