@@ -556,6 +556,38 @@ def _prime_rank_threshold(app_module, uid):
     }
 
 
+def _prime_zone1_cleared_for_replay_story(app_module, uid, zone_key=LORD_TRIAL_ZONE_KEY):
+    """Give the account a real, authoritative Zone 1 clear.
+
+    E10_REPLAY_STORY_BUTTON_HOTFIX_001 exercises the *standalone* Replay
+    Story affordance, which only ever appears once a zone is cleared. This
+    writes the same shape adventure_boss_finish() itself would have written
+    on a real first-clear win (app.py's own is_first_clear branch) -- no
+    reward is granted here, matching this fixture's read-only purpose; the
+    reward path is exercised separately by test_adventure_first_clear_reward.py.
+    """
+    now = _now()
+    best_score = int(app_module.BOSS_EXAM_SIZE)
+    with app_module.get_db() as conn:
+        conn.execute(
+            'INSERT INTO adventure_boss_progress'
+            '(user_id,zone_key,cleared,stars,attempts,best_score,'
+            'cooldown_until_seen,last_attempt_at,cleared_at,updated_at) '
+            'VALUES(?,?,1,1,1,?,0,?,?,?) '
+            'ON CONFLICT(user_id,zone_key) DO UPDATE SET '
+            'cleared=1, stars=excluded.stars, cleared_at=excluded.cleared_at',
+            (uid, zone_key, best_score, now, now, now),
+        )
+        conn.commit()
+    return {'mechanism': 'adventure_boss_progress.cleared = 1', 'zone_key': zone_key}
+
+
+_E9_REPLAY_STORY_ROLLOUT_ENV = {
+    'E9_ROLLOUT_GLOBAL_ENABLED': '1',
+    'E9_ROLLOUT_SCOPE': 'authenticated',
+}
+
+
 class _ServerThread:
     """Real WSGI server for the real Flask app on an ephemeral local port."""
 
@@ -581,8 +613,17 @@ class _ServerThread:
 
 @contextlib.contextmanager
 def lord_trial_runtime(plan='premium', fixture=DEFAULT_FIXTURE, badge_priming=False,
-                       rank_priming=False):
-    """Yield a live, disposable, real-path Lord Trial runtime descriptor."""
+                       rank_priming=False, replay_story_e9=False):
+    """Yield a live, disposable, real-path Lord Trial runtime descriptor.
+
+    ``replay_story_e9`` is additive and off by default: existing callers
+    (Lord Trial's own WGo-board runners) get byte-identical behavior. When
+    set, it gives the seeded account a real Zone 1 clear and turns on the E9
+    Adventure Shell rollout (server-side, the same E9_ROLLOUT_* mechanism
+    Production uses) for E10_REPLAY_STORY_BUTTON_HOTFIX_001's runner, which
+    needs the real world_stage component -- not the Legacy Adventure Map --
+    mounted for its click to be real.
+    """
     if fixture not in QUESTIONS_FIXTURES:
         raise HarnessUnavailable(f'unknown fixture: {fixture}')
     questions_fixture = QUESTIONS_FIXTURES[fixture]
@@ -595,6 +636,8 @@ def lord_trial_runtime(plan='premium', fixture=DEFAULT_FIXTURE, badge_priming=Fa
         _configure_disposable_environment(
             postgres['database_url'], scratch_dir, questions_fixture
         )
+        if replay_story_e9:
+            os.environ.update(_E9_REPLAY_STORY_ROLLOUT_ENV)
         app_module, stubbed_modules = _import_real_app()
 
         # init_db() deliberately fails closed rather than creating the SGF
@@ -624,6 +667,10 @@ def lord_trial_runtime(plan='premium', fixture=DEFAULT_FIXTURE, badge_priming=Fa
         rank_priming_state = (
             _prime_rank_threshold(app_module, uid) if rank_priming else None
         )
+        replay_story_state = (
+            _prime_zone1_cleared_for_replay_story(app_module, uid)
+            if replay_story_e9 else None
+        )
 
         questions = json.loads(questions_fixture.read_text(encoding='utf-8'))
         server = _ServerThread(app_module.app)
@@ -636,6 +683,7 @@ def lord_trial_runtime(plan='premium', fixture=DEFAULT_FIXTURE, badge_priming=Fa
                 'questions_json_path': str(questions_fixture),
                 'badge_priming': badge_priming_state,
                 'rank_priming': rank_priming_state,
+                'replay_story_e9': replay_story_state,
                 'zone_key': LORD_TRIAL_ZONE_KEY,
                 'user_id': uid,
                 'username': username,
@@ -880,7 +928,7 @@ def _public_descriptor(runtime):
 def _cmd_serve(args):
     with lord_trial_runtime(
         plan=args.plan, fixture=args.fixture, badge_priming=args.badge_priming,
-        rank_priming=args.rank_priming,
+        rank_priming=args.rank_priming, replay_story_e9=args.replay_story_e9,
     ) as runtime:
         handshake = dict(_public_descriptor(runtime))
         handshake['ready'] = True
@@ -896,7 +944,7 @@ def _cmd_serve(args):
 def _cmd_selfcheck(args):
     with lord_trial_runtime(
         plan=args.plan, fixture=args.fixture, badge_priming=args.badge_priming,
-        rank_priming=args.rank_priming,
+        rank_priming=args.rank_priming, replay_story_e9=args.replay_story_e9,
     ) as runtime:
         report = run_foundation_validation(runtime)
         report['runtime'] = {
@@ -924,6 +972,10 @@ def main(argv=None):
     parser.add_argument(
         '--rank-priming', action='store_true',
         help='seed real user_stats one step below the LV1->LV2 promotion',
+    )
+    parser.add_argument(
+        '--replay-story-e9', action='store_true',
+        help='seed a real Zone 1 clear and turn on the E9 Adventure Shell rollout',
     )
     args = parser.parse_args(argv)
     try:
