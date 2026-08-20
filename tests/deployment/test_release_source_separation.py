@@ -24,20 +24,17 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # every product file those waves touched -- not a bug in the assertion.
 # E10_LORD_REPLAY_ISOLATED_RELEASE_001: Owner-approved Product baseline,
 # advanced for the isolated release branch (built from LIVE production
-# source 5b565a05d, not current master -- see RELEASE_SCOPE_DIFF). Same
-# two-commit-role pattern documented by the prior UI-NAV-063 baseline this
-# replaces:
-#   732d8384d = CONTENT_PRODUCING_COMMIT. RELEASE-CACHE-FIX-01: bumps sw.js
-#               VERSION and world_stage.js's cache-busting tag so the
-#               cherry-picked generic cinematic replay logic actually
-#               reaches already-cached clients. The runtime-source-
-#               provenance.json entry for sw.js points at it. It stays
-#               immutable.
-#   ab89138bf = prior APPROVED_PRODUCT_BASELINE (UI-NAV-063), inherited
-#               unchanged via the cherry-picked PR #380 commits and
-#               superseded here only because 732d8384d's own product bytes
-#               (sw.js) postdate it.
-PRODUCT_SHA = "732d8384db1895e4e766e38cb4d4bf5e9cdba557"
+# source 5b565a05d, not current master -- see RELEASE_SCOPE_DIFF). Points
+# at df7acb585, the last commit on this branch that changes ANY tracked
+# byte (product or provenance metadata): 732d8384d is
+# RELEASE-CACHE-FIX-01's content-producing commit (bumps sw.js VERSION and
+# world_stage.js's cache-busting tag so the cherry-picked generic
+# cinematic replay logic actually reaches already-cached clients);
+# df7acb585 records that commit's provenance (runtime-source-
+# provenance.json entries for sw.js and index.html) and carries no product
+# bytes of its own. Everything after df7acb585 on this branch is this one
+# governance-constant update, itself release-test code, not product.
+PRODUCT_SHA = "df7acb5856108099c3b9ce22961839d01e4998ed"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
