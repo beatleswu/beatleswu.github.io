@@ -500,13 +500,28 @@ def test_srs_review_operation_body_only_adds_atomic_level_hp_delta(base_app_sour
     assert current == _extract(base_app_source)
 
 
-def test_update_monster_and_quests_body_unchanged_from_base(base_app_source):
+def test_update_monster_and_quests_body_only_adds_retaliation_mitigation(base_app_source):
+    # RPG_WAVE1_CROSS_LANE_INTEGRATION_FIX_002, Blocker 1: naive
+    # round(monster_atk * (1 - dmg_reduce)) silently drops all armor
+    # mitigation at low integer authoritative attack values (Lane B's
+    # roster attack composed with Lane A's armor reduction), so this is the
+    # one deliberately authorized line inside this otherwise-frozen body.
     def _extract(source):
         start = source.index("def _update_monster_and_quests")
         end = source.index("@app.route('/api/monster/status'", start)
         return source[start:end]
 
-    assert _extract(APP_SOURCE) == _extract(base_app_source)
+    current = _extract(APP_SOURCE)
+    allowed_delta = (
+        (
+            "        player_dmg   = _mitigate_authoritative_retaliation(monster_atk, dmg_reduce)\n",
+            "        player_dmg   = max(1, round(monster_atk * (1.0 - dmg_reduce)))\n",
+        ),
+    )
+    for fragment, replacement in allowed_delta:
+        assert fragment in current
+        current = current.replace(fragment, replacement, 1)
+    assert current == _extract(base_app_source)
 
 
 def test_multi_phase_partial_commit_preserved_three_phase_boundaries():
