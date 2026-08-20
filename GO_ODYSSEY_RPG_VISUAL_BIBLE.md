@@ -1,9 +1,10 @@
 # Go Odyssey RPG Visual Bible
 
-## Item / Collection Section — Wave 2 Lane C Gate 1
+## Item / Collection Section — Wave 2 Lane C Gate 2 P1
 
-Status: art direction and presentation foundation only. Final artwork is not
-generated in this gate.
+Status: first vertical slice with eight dedicated live-item assets, six bundle
+presentation mappings, a read-only Item Journal, and ten badge family
+prototypes. Future Zone Materials remain contract-only.
 
 Canonical implementation data lives in rpg_item_registry.py. This document is
 the review-facing visual and product contract; it does not create ownership,
@@ -30,7 +31,7 @@ duplicated here.
 All approved item art must use:
 
 - 256×256 canvas.
-- RGBA PNG or WebP with transparent background.
+- Transparent SVG vector with a 256×256 render target, or RGBA PNG/WebP.
 - One canonical art key and one production asset path.
 - A silhouette readable at 32px on mobile.
 - A single dominant object, two-value contrast, and no microtext.
@@ -48,7 +49,20 @@ All approved item art must use:
 
 ## 3. Formal art production pack — eight live items
 
-No final art is included. These are production briefs.
+The following eight identities now have dedicated canonical SVG assets. The
+brief fields remain the source-of-truth for art review; the asset paths are
+the integrated P1 presentation assets.
+
+| ITEM_ID | CANONICAL_ART_KEY | ASSET_PATH | ART_STATUS |
+|---|---|---|---|
+| rare_appearance_fragment | item.material.appearance-fragment | /assets/items/rare_appearance_fragment.svg | dedicated transparent SVG |
+| pet_evolution_core | item.material.pet-evolution-core | /assets/items/pet_evolution_core.svg | dedicated transparent SVG |
+| ai_analysis_pack | item.bundle.ai-analysis-pack | /assets/items/ai_analysis_pack.svg | dedicated transparent SVG |
+| collector_archive_crate | item.bundle.collector-archive-crate | /assets/items/collector_archive_crate.svg | dedicated transparent SVG |
+| growth_vault | item.bundle.growth-vault | /assets/items/growth_vault.svg | dedicated transparent SVG |
+| go_spirit_candy | item.consumable.go-spirit-candy | /assets/items/go_spirit_candy.svg | dedicated transparent SVG |
+| starfruit | item.consumable.starfruit | /assets/items/starfruit.svg | dedicated transparent SVG |
+| moon_drop | item.consumable.moon-drop | /assets/items/moon_drop.svg | dedicated transparent SVG |
 
 ### rare_appearance_fragment
 
@@ -58,7 +72,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: shop_inventory.item_key; resulting cosmetic remains player_wardrobe.item_id
 - CURRENT_EFFECT: Consume one to unlock one missing common/uncommon appearance; no auto-equip
 - CURRENT_SOURCE: Weekly Shop; collector_archive_crate; growth_vault
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.material.appearance-fragment
 - ICON_CONCEPT: Faceted wardrobe-glass shard with a silhouette reflection
 - SILHOUETTE: Asymmetric shard with a clothing notch
@@ -75,7 +89,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: shop_inventory.item_key
 - CURRENT_EFFECT: Pet XP +35 and existing evolution progress
 - CURRENT_SOURCE: Weekly Shop; growth_vault
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.material.pet-evolution-core
 - ICON_CONCEPT: Living seed wrapped around a Go stone
 - SILHOUETTE: Round core with two leaf horns
@@ -92,7 +106,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: Product is not persisted; grants ai_explain_ticket ×5
 - CURRENT_EFFECT: Immediate grant; no persistent pack ownership
 - CURRENT_SOURCE: Weekly Shop
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.bundle.ai-analysis-pack
 - ICON_CONCEPT: Folded analysis folio with a glowing Go diagram
 - SILHOUETTE: Horizontal folio with bookmark tab
@@ -109,7 +123,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: Product is not persisted; grants fragments ×4 and AI tickets ×8
 - CURRENT_EFFECT: Immediate curated grant
 - CURRENT_SOURCE: Monthly Shop
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.bundle.collector-archive-crate
 - ICON_CONCEPT: Sealed archive crate with visible shard and folio corner
 - SILHOUETTE: Low box, diagonal seal, inset window
@@ -126,7 +140,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: Product is not persisted; grants cores ×6 and fragments ×2
 - CURRENT_EFFECT: Immediate curated grant
 - CURRENT_SOURCE: Monthly Shop
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.bundle.growth-vault
 - ICON_CONCEPT: Growth reliquary containing seed and wardrobe shard
 - SILHOUETTE: Tall reliquary with split leaf-and-shard window
@@ -143,7 +157,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: pet_inventory.item_key
 - CURRENT_EFFECT: Fullness +24, affection +4, pet XP +8
 - CURRENT_SOURCE: Daily quests; companion grants; pet_snack; Gacha
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.consumable.go-spirit-candy
 - ICON_CONCEPT: Black-and-white Go stone candy
 - SILHOUETTE: Round candy with stone swirl
@@ -160,7 +174,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: pet_inventory.item_key
 - CURRENT_EFFECT: Fullness +38, affection +7, pet XP +15
 - CURRENT_SOURCE: Daily completion; pet milestones; starfruit_basket; Gacha
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.consumable.starfruit
 - ICON_CONCEPT: Five-point fruit with constellation cut
 - SILHOUETTE: Star fruit with central seed window
@@ -177,7 +191,7 @@ No final art is included. These are production briefs.
 - CURRENT_OWNERSHIP: pet_inventory.item_key
 - CURRENT_EFFECT: Fullness +18, affection +10, pet XP +25
 - CURRENT_SOURCE: Friend challenge win/draw; moon_dew_vial; Gacha
-- CURRENT_ART: Emoji fallback only; no canonical raster asset
+- CURRENT_ART: Dedicated transparent 256×256 SVG asset
 - CANONICAL_ART_KEY: item.consumable.moon-drop
 - ICON_CONCEPT: Blue dew drop with crescent reflection
 - SILHOUETTE: Teardrop and crescent highlight
@@ -208,8 +222,8 @@ imply persistent ownership of the bundle itself.
 
 Required card fields:
 
-- category filter: Consumables, Materials, Quest, Treasure;
-- icon or honest ART SPEC state while art is pending;
+- category filter: Consumables, Materials, Quest, Treasure, Collectibles;
+- canonical icon; honest ART SPEC is retained only for future entries whose art is pending;
 - display name and stable item_id;
 - owned amount;
 - description;
@@ -232,7 +246,9 @@ Badges link to /badges and remain outside the Backpack item list.
 ## 6. Badge Visual System v1
 
 There are 84 static badges. They use family frames plus tier/symbol treatment,
-not 84 unrelated icons. Final art is not generated in this gate.
+not 84 unrelated icons. This P1 produces exactly one representative art
+prototype per family; the remaining badge IDs keep their existing metadata and
+legacy presentation until a later art gate.
 
 | Family | FRAME_LANGUAGE | CENTRAL_SYMBOL_LANGUAGE | TIER_TREATMENT | NUMBER_TREATMENT | COLOR_ROLE | MOBILE_READABILITY |
 |---|---|---|---|---|---|---|
@@ -247,12 +263,24 @@ not 84 unrelated icons. Final art is not generated in this gate.
 | Premium | Faceted jewel frame | Diamond, crown, founder seal | Both legendary; geometry differs | Member/founder ribbon | Violet/champagne gold | One jewel plus seal |
 | Community | Leaderboard podium plaque | Medal, podium, laurel | Placement is tier | Placement numeral central | Gold plus community blue | Medal plus large number |
 
-Prototype selection:
+Prototype selection (exactly 10, one per family):
 
-streak_3, streak_100, total_10, total_5000, combo_3, combo_50,
-mistake_1, mistake_100, daily_first, daily_365, rank_19k, rank_3d,
-xp_100, xp_25000, challenge_win_1, challenge_win_30,
-premium_member, premium_founder, badge_lb_weekly_1.
+| FAMILY | BADGE_ID | PROTOTYPE_ASSET |
+|---|---|---|
+| Streak | streak_3 | /assets/badges/prototypes/streak.svg |
+| Correct Answers | total_10 | /assets/badges/prototypes/correct-answers.svg |
+| Combo | combo_3 | /assets/badges/prototypes/combo.svg |
+| Mistake Correction | mistake_1 | /assets/badges/prototypes/mistake-correction.svg |
+| Daily | daily_first | /assets/badges/prototypes/daily.svg |
+| Rank | rank_19k | /assets/badges/prototypes/rank.svg |
+| XP | xp_100 | /assets/badges/prototypes/xp.svg |
+| Friend Challenge | challenge_win_1 | /assets/badges/prototypes/friend-challenge.svg |
+| Premium | premium_member | /assets/badges/prototypes/premium.svg |
+| Community | badge_lb_weekly_1 | /assets/badges/prototypes/community.svg |
+
+The Community badge definition remains unawarded unless the existing
+server-side award behavior is later authorized; this prototype does not
+activate it.
 
 ## 7. Zone Material Design Contract
 
@@ -303,11 +331,11 @@ SHOP_PRODUCT_GRANT_REGISTRY_21 in rpg_item_registry.py.
 | starfruit_basket | BUNDLE | starfruit ×3 | NO | Server | Daily; Gacha yes | star_fruit_basket.webp / dedicated |
 | moon_dew_vial | BUNDLE | moon_drop ×3 | NO | Server | Daily; Gacha yes | moon_dew_vial.webp / dedicated |
 | pet_feast_box | BUNDLE | candy ×3, starfruit ×2, moon drop ×1 | NO | Server | Daily; Gacha yes | pet_feast_box.webp / dedicated |
-| rare_appearance_fragment | ITEM | rare_appearance_fragment ×1 | YES | Server | Weekly; Gacha no | no asset / art spec |
-| pet_evolution_core | ITEM | pet_evolution_core ×1 | YES | Server | Weekly; Gacha no | no asset / art spec |
-| ai_analysis_pack | BUNDLE | ai_explain_ticket ×5 | NO | Server | Weekly; Gacha no | no asset / art spec |
-| collector_archive_crate | BUNDLE | fragment ×4, AI ticket ×8 | NO | Server | Monthly; Gacha no | no asset / art spec |
-| growth_vault | BUNDLE | core ×6, fragment ×2 | NO | Server | Monthly; Gacha no | no asset / art spec |
+| rare_appearance_fragment | ITEM | rare_appearance_fragment ×1 | YES | Server | Weekly; Gacha no | rare_appearance_fragment.svg / dedicated |
+| pet_evolution_core | ITEM | pet_evolution_core ×1 | YES | Server | Weekly; Gacha no | pet_evolution_core.svg / dedicated |
+| ai_analysis_pack | BUNDLE | ai_explain_ticket ×5 | NO | Server | Weekly; Gacha no | ai_analysis_pack.svg / dedicated |
+| collector_archive_crate | BUNDLE | fragment ×4, AI ticket ×8 | NO | Server | Monthly; Gacha no | collector_archive_crate.svg / dedicated |
+| growth_vault | BUNDLE | core ×6, fragment ×2 | NO | Server | Monthly; Gacha no | growth_vault.svg / dedicated |
 
 No price is copied into the registry as a second authority. Prices remain in
 SHOP_ITEMS and server-side daily rotation logic.

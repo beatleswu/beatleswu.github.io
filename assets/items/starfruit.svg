@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Starfruit">
+  <defs>
+    <linearGradient id="fruit" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff7a8"/>
+      <stop offset=".5" stop-color="#f4c84d"/>
+      <stop offset="1" stop-color="#c47a1a"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 28 153 91l67 4-52 42 18 66-58-36-58 36 18-66-52-42 67-4z" fill="url(#fruit)" stroke="#80531a" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M128 70v112M76 99l104 58M180 99 76 157" stroke="#fff8c5" stroke-width="6" opacity=".75"/>
+  <path d="M128 76c-14 19-14 42 0 61 14-19 14-42 0-61z" fill="#26364a" stroke="#fef3c7" stroke-width="5"/>
+  <path d="M128 28c-2-17 7-24 20-28" fill="none" stroke="#2f6e43" stroke-width="10" stroke-linecap="round"/>
+  <path d="M146 20c13-12 26-9 36 1-14 11-26 10-36-1z" fill="#65a85b" stroke="#2f6e43" stroke-width="6"/>
+</svg>

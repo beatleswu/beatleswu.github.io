@@ -31,7 +31,8 @@ ITEM_REGISTRY_V1 = {
     "version": ITEM_REGISTRY_VERSION,
     "taxonomy": ITEM_TAXONOMY,
     "ownership_model": "runtime projection over existing domain stores; no new ownership table",
-    "final_art_generated": False,
+    "final_art_generated": True,
+    "final_art_scope": "P1 dedicated assets for the eight live item identities only",
 }
 
 JOURNAL_SECTIONS = (
@@ -39,6 +40,7 @@ JOURNAL_SECTIONS = (
     {"key": "Material", "label": "素材", "label_en": "Materials"},
     {"key": "QuestItem", "label": "任務", "label_en": "Quest"},
     {"key": "TreasureBundle", "label": "寶物", "label_en": "Treasure"},
+    {"key": "Collectible", "label": "收藏", "label_en": "Collectibles"},
 )
 
 COLLECTION_SECTIONS = (
@@ -47,9 +49,20 @@ COLLECTION_SECTIONS = (
 )
 
 
-# The first eight items have no final raster art yet.  These are production
-# art briefs only; ``asset_path`` intentionally remains None until approved
-# artwork is delivered.
+# The first eight items are the only P1 item identities receiving dedicated
+# art in this slice.  The asset keys remain item-owned; Shop products may
+# point at the same files as a presentation mapping.
+LIVE_ITEM_ART_ASSETS = {
+    "rare_appearance_fragment": "/assets/items/rare_appearance_fragment.svg",
+    "pet_evolution_core": "/assets/items/pet_evolution_core.svg",
+    "ai_analysis_pack": "/assets/items/ai_analysis_pack.svg",
+    "collector_archive_crate": "/assets/items/collector_archive_crate.svg",
+    "growth_vault": "/assets/items/growth_vault.svg",
+    "go_spirit_candy": "/assets/items/go_spirit_candy.svg",
+    "starfruit": "/assets/items/starfruit.svg",
+    "moon_drop": "/assets/items/moon_drop.svg",
+}
+
 LIVE_ITEM_ART_PACK_8 = {
     "rare_appearance_fragment": {
         "item_id": "rare_appearance_fragment",
@@ -59,7 +72,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "shop_inventory.item_key quantity; resulting cosmetic remains player_wardrobe.item_id",
         "current_effect": "Consume one to unlock one missing common/uncommon appearance; no auto-equip",
         "current_source": "Weekly Shop; collector_archive_crate; growth_vault",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.material.appearance-fragment",
         "icon_concept": "A faceted shard of wardrobe glass with a small silhouette reflection",
@@ -81,7 +94,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "shop_inventory.item_key quantity",
         "current_effect": "Consume one for pet XP +35 and existing evolution progress",
         "current_source": "Weekly Shop; growth_vault",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.material.pet-evolution-core",
         "icon_concept": "A living seed wrapped around a small Go stone",
@@ -103,7 +116,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "Product is not persisted; grants ai_explain_ticket x5 into shop_inventory",
         "current_effect": "Immediate grant of five AI analysis tickets; no persistent pack ownership",
         "current_source": "Weekly Shop",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.bundle.ai-analysis-pack",
         "icon_concept": "A folded analysis folio with one glowing eye-shaped Go diagram",
@@ -125,7 +138,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "Product is not persisted; grants fragments x4 and AI tickets x8",
         "current_effect": "Immediate grant of four appearance fragments and eight AI analysis tickets",
         "current_source": "Monthly Shop",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.bundle.collector-archive-crate",
         "icon_concept": "A sealed archive crate with a visible shard and folio corner",
@@ -147,7 +160,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "Product is not persisted; grants pet cores x6 and fragments x2",
         "current_effect": "Immediate grant of six pet evolution cores and two appearance fragments",
         "current_source": "Monthly Shop",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.bundle.growth-vault",
         "icon_concept": "A compact growth reliquary containing a seed and wardrobe shard",
@@ -169,7 +182,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "pet_inventory.item_key quantity",
         "current_effect": "Feed companion: fullness +24, affection +4, pet XP +8",
         "current_source": "Daily quest completion; companion grants; pet_snack; Gacha",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.consumable.go-spirit-candy",
         "icon_concept": "A small black-and-white Go stone candy wrapped like a travel sweet",
@@ -191,7 +204,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "pet_inventory.item_key quantity",
         "current_effect": "Feed companion: fullness +38, affection +7, pet XP +15",
         "current_source": "Daily completion; pet milestones; starfruit_basket; Gacha",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.consumable.starfruit",
         "icon_concept": "A five-point fruit with a small constellation cut through its center",
@@ -213,7 +226,7 @@ LIVE_ITEM_ART_PACK_8 = {
         "current_ownership": "pet_inventory.item_key quantity",
         "current_effect": "Feed companion: fullness +18, affection +10, pet XP +25",
         "current_source": "Friend challenge win/draw; moon_dew_vial; Gacha",
-        "current_art": "Emoji fallback only; no canonical raster asset",
+        "current_art": "Dedicated transparent 256x256 SVG asset",
         "asset_path": None,
         "canonical_art_key": "item.consumable.moon-drop",
         "icon_concept": "A suspended blue dew drop holding a crescent reflection",
@@ -228,6 +241,11 @@ LIVE_ITEM_ART_PACK_8 = {
         "effect_use": "Use from the existing Spirit feeding contract; no combat effect",
     },
 }
+
+for _live_item_id, _live_item in LIVE_ITEM_ART_PACK_8.items():
+    _live_item["asset_path"] = LIVE_ITEM_ART_ASSETS[_live_item_id]
+    _live_item["current_art"] = "Dedicated transparent 256x256 SVG asset"
+    _live_item["art_status"] = "dedicated_asset"
 
 
 BUNDLE_POLISH_PACK_6 = {
@@ -301,6 +319,11 @@ BUNDLE_POLISH_PACK_6 = {
 # Existing Shop art is kept as a presentation mapping only.  It does not
 # become price or ownership authority.
 SHOP_PRODUCT_ART_ASSETS = {
+    "rare_appearance_fragment": "/assets/items/rare_appearance_fragment.svg",
+    "pet_evolution_core": "/assets/items/pet_evolution_core.svg",
+    "ai_analysis_pack": "/assets/items/ai_analysis_pack.svg",
+    "collector_archive_crate": "/assets/items/collector_archive_crate.svg",
+    "growth_vault": "/assets/items/growth_vault.svg",
     "hint_ticket": "/assets/shop/small_hint_scroll.webp",
     "premium_hint_bundle": "/assets/shop/premium_hint_bundle.webp",
     "ai_explain_ticket": "/assets/shop/icon_ai_ticket.webp",
@@ -465,7 +488,8 @@ def build_item_registry(shop_items, pet_food_catalog):
                 "stackable": stackable,
                 "source_tags": product_view["source_tags"],
                 "where_to_get_more": product_view["source_tags"],
-                "art_status": "spec_only_no_final_art",
+                "asset_path": art_pack["asset_path"],
+                "art_status": art_pack["art_status"],
                 "player_visible": True,
                 "journal_read_only": True,
             })
@@ -552,6 +576,8 @@ BADGE_FAMILY_BY_TYPE = {
 BADGE_VISUAL_SYSTEM_V1 = {
     "version": "badge-visual-system-v1",
     "final_art": False,
+    "prototype_art_count": 10,
+    "prototype_scope": "One representative prototype per family; existing badge IDs and earning rules remain unchanged",
     "shared_rule": "One family frame plus one central symbol language; threshold is carried by tier and number treatment, not 84 unrelated silhouettes.",
     "families": {
         "Streak": {
@@ -638,26 +664,30 @@ BADGE_VISUAL_SYSTEM_V1 = {
 }
 
 
+BADGE_PROTOTYPE_ASSETS = {
+    "Streak": "/assets/badges/prototypes/streak.svg",
+    "Correct Answers": "/assets/badges/prototypes/correct-answers.svg",
+    "Combo": "/assets/badges/prototypes/combo.svg",
+    "Mistake Correction": "/assets/badges/prototypes/mistake-correction.svg",
+    "Daily": "/assets/badges/prototypes/daily.svg",
+    "Rank": "/assets/badges/prototypes/rank.svg",
+    "XP": "/assets/badges/prototypes/xp.svg",
+    "Friend Challenge": "/assets/badges/prototypes/friend-challenge.svg",
+    "Premium": "/assets/badges/prototypes/premium.svg",
+    "Community": "/assets/badges/prototypes/community.svg",
+}
+
 BADGE_PROTOTYPE_SELECTION = (
-    {"badge_id": "streak_3", "family": "Streak", "role": "entry tier"},
-    {"badge_id": "streak_100", "family": "Streak", "role": "legendary tier"},
-    {"badge_id": "total_10", "family": "Correct Answers", "role": "entry tier"},
-    {"badge_id": "total_5000", "family": "Correct Answers", "role": "legendary tier"},
-    {"badge_id": "combo_3", "family": "Combo", "role": "entry tier"},
-    {"badge_id": "combo_50", "family": "Combo", "role": "legendary tier"},
-    {"badge_id": "mistake_1", "family": "Mistake Correction", "role": "entry tier"},
-    {"badge_id": "mistake_100", "family": "Mistake Correction", "role": "legendary tier"},
-    {"badge_id": "daily_first", "family": "Daily", "role": "entry state"},
-    {"badge_id": "daily_365", "family": "Daily", "role": "legendary tier"},
-    {"badge_id": "rank_19k", "family": "Rank", "role": "kyu entry"},
-    {"badge_id": "rank_3d", "family": "Rank", "role": "dan apex"},
-    {"badge_id": "xp_100", "family": "XP", "role": "entry tier"},
-    {"badge_id": "xp_25000", "family": "XP", "role": "legendary tier"},
-    {"badge_id": "challenge_win_1", "family": "Friend Challenge", "role": "entry tier"},
-    {"badge_id": "challenge_win_30", "family": "Friend Challenge", "role": "legendary tier"},
-    {"badge_id": "premium_member", "family": "Premium", "role": "member seal"},
-    {"badge_id": "premium_founder", "family": "Premium", "role": "founder seal"},
-    {"badge_id": "badge_lb_weekly_1", "family": "Community", "role": "placement prototype"},
+    {"badge_id": "streak_3", "family": "Streak", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Streak"]},
+    {"badge_id": "total_10", "family": "Correct Answers", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Correct Answers"]},
+    {"badge_id": "combo_3", "family": "Combo", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Combo"]},
+    {"badge_id": "mistake_1", "family": "Mistake Correction", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Mistake Correction"]},
+    {"badge_id": "daily_first", "family": "Daily", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Daily"]},
+    {"badge_id": "rank_19k", "family": "Rank", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Rank"]},
+    {"badge_id": "xp_100", "family": "XP", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["XP"]},
+    {"badge_id": "challenge_win_1", "family": "Friend Challenge", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Friend Challenge"]},
+    {"badge_id": "premium_member", "family": "Premium", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Premium"]},
+    {"badge_id": "badge_lb_weekly_1", "family": "Community", "role": "family prototype", "asset_path": BADGE_PROTOTYPE_ASSETS["Community"]},
 )
 
 
@@ -717,9 +747,10 @@ CROSS_DOMAIN_FRAGMENT_CONTRACT = {
 
 ITEM_ART_BIBLE_V1 = {
     "version": "item-art-bible-v1",
-    "final_art_generated": False,
+    "final_art_generated": True,
+    "final_art_scope": "Eight P1 live item identities; future zone materials remain contract-only",
     "canvas": "256x256",
-    "format": "RGBA PNG or WebP with transparent background",
+    "format": "Transparent SVG vector with a 256x256 render target, or RGBA PNG/WebP",
     "asset_key_rule": "one canonical asset key per item/product visual",
     "mobile_rule": "silhouette and primary contrast must survive 32px display",
     "families": {
@@ -734,7 +765,7 @@ ITEM_ART_BIBLE_V1 = {
         "No _ph_* placeholder as production art",
         "Chest art does not imply chest ownership",
         "No combat-power iconography for non-combat items",
-        "No live asset key before art review approves the specification",
+        "No production asset for an unapproved future item or material",
     ),
 }
 
@@ -746,9 +777,15 @@ def badge_visual_metadata(badge):
     family = BADGE_FAMILY_BY_TYPE.get(badge_type, "Correct Answers")
     family_spec = BADGE_VISUAL_SYSTEM_V1["families"][family]
     rarity = badge.get("rarity", "bronze")
+    prototype = next(
+        (entry for entry in BADGE_PROTOTYPE_SELECTION if entry["badge_id"] == badge.get("id")),
+        None,
+    )
     return {
         "visual_family": family,
-        "visual_art_status": "system_spec_only",
+        "visual_art_status": "prototype_asset" if prototype else "system_spec_only",
+        "prototype_asset": prototype["asset_path"] if prototype else None,
+        "prototype_role": prototype["role"] if prototype else None,
         "canonical_art_key": f"badge.family.{family.lower().replace(' ', '-')}.tier.{rarity}",
         "frame_language": family_spec["frame_language"],
         "central_symbol_language": family_spec["central_symbol_language"],

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Correct answers badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#113d43" stroke="#5eead4" stroke-width="12"/>
+  <path d="M128 64 151 91l35 3-18 31 7 34-35 2-12 31-12-31-35-2 7-34-18-31 35-3z" fill="#6ee7b7" stroke="#d1fae5" stroke-width="7" stroke-linejoin="round"/>
+  <path d="m91 128 24 24 50-55" fill="none" stroke="#104e4a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

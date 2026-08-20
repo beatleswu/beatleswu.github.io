@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Mistake correction badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#20234a" stroke="#818cf8" stroke-width="12"/>
+  <path d="M75 83h106v92H75z" fill="#e0e7ff" stroke="#312e81" stroke-width="8"/>
+  <path d="M95 111h50M95 133h31" stroke="#94a3b8" stroke-width="8" stroke-linecap="round"/>
+  <path d="m100 159 15 15 42-43" fill="none" stroke="#14b8a6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M78 87 62 71" stroke="#fca5a5" stroke-width="9" stroke-linecap="round"/>
+</svg>

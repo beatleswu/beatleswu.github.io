@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Rank badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#173b4f" stroke="#d6a85d" stroke-width="12"/>
+  <path d="M74 178 91 93l37-25 37 25 17 85z" fill="#66c7ba" stroke="#d6a85d" stroke-width="8" stroke-linejoin="round"/>
+  <path d="m128 91 12 25 28 3-21 19 7 28-26-14-26 14 7-28-21-19 28-3z" fill="#fef3c7" stroke="#9a6a32" stroke-width="6" stroke-linejoin="round"/>
+</svg>

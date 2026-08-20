@@ -106,7 +106,7 @@
     const itemName = item => document.documentElement.lang === 'en' ? (item.name_en || item.name || item.item_id) : (item.name || item.name_en || item.item_id);
     const labels = {
       all:'全部 / All', ConsumableEffect:'消耗品 / Consumables', Material:'素材 / Materials',
-      QuestItem:'任務 / Quest', TreasureBundle:'寶物 / Treasure'
+      QuestItem:'任務 / Quest', TreasureBundle:'寶物 / Treasure', Collectible:'收藏 / Collectibles'
     };
     function artHtml(item) {
       if (item.asset_path) return `<img src="${esc(item.asset_path)}" alt="">`;

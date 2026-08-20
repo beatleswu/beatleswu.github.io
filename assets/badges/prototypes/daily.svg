@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Daily badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#203356" stroke="#fbbf24" stroke-width="12"/>
+  <rect x="69" y="78" width="118" height="103" rx="12" fill="#f8fafc" stroke="#f59e0b" stroke-width="8"/>
+  <path d="M69 108h118M92 61v34M164 61v34" stroke="#f59e0b" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="128" cy="145" r="22" fill="#fbbf24"/>
+  <path d="m128 132v16l10 7" fill="none" stroke="#7c3f15" stroke-width="7" stroke-linecap="round"/>
+</svg>

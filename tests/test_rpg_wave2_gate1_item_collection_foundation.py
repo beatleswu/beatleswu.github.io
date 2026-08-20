@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from rpg_item_registry import (
+    BADGE_PROTOTYPE_ASSETS,
     BADGE_PROTOTYPE_SELECTION,
     BADGE_VISUAL_SYSTEM_V1,
     ITEM_ART_BIBLE_V1,
@@ -57,7 +58,7 @@ def _load_app(monkeypatch):
     return importlib.import_module("app")
 
 
-def test_first_eight_art_briefs_have_complete_non_final_visual_contract():
+def test_first_eight_art_pack_has_complete_integrated_visual_contract():
     assert set(LIVE_ITEM_ART_PACK_8) == {
         "rare_appearance_fragment",
         "pet_evolution_core",
@@ -77,7 +78,15 @@ def test_first_eight_art_briefs_have_complete_non_final_visual_contract():
     for item_id, item in LIVE_ITEM_ART_PACK_8.items():
         assert required <= set(item), item_id
         assert item["item_id"] == item_id
-        assert item["asset_path"] is None
+        assert item["asset_path"].startswith("/assets/items/")
+        assert item["asset_path"].endswith(".svg")
+        assert item["art_status"] == "dedicated_asset"
+        asset = ROOT.joinpath(*item["asset_path"].lstrip("/").split("/"))
+        assert asset.is_file(), item_id
+        asset_text = asset.read_text(encoding="utf-8")
+        assert "<svg" in asset_text
+        assert "_ph_" not in asset_text
+        assert "emoji" not in asset_text.lower()
         assert item["art_priority"] in {"P0", "P1"}
         assert item["canonical_art_key"].startswith("item.")
 
@@ -111,6 +120,66 @@ def test_shop_product_registry_preserves_all_current_products_and_server_price_a
     assert by_id["pet_snack"]["granted_ids"] == ["go_spirit_candy"]
     assert by_id["moon_dew_vial"]["granted_ids"] == ["moon_drop"]
     assert by_id["extra_questions"]["art_status"] == "shared_asset"
+    for product_id, entry in by_id.items():
+        product = app.SHOP_ITEMS[product_id]
+        expected = product.get("grants_items") or product.get("grants_food") or {product_id: 1}
+        assert entry["quantities"] == {key: int(value) for key, value in expected.items()}
+        assert entry["persistent_product_ownership"] == (not bool(
+            product.get("grants_items") or product.get("grants_food")
+        ))
+
+
+def test_shop_uses_server_price_and_grants_components_without_bundle_ownership(tmp_path, monkeypatch):
+    app = _load_app(monkeypatch)
+    path = tmp_path / "shop-authority.sqlite"
+    with sqlite3.connect(path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE user_stats (user_id INTEGER PRIMARY KEY, coins INTEGER NOT NULL);
+            CREATE TABLE shop_inventory (user_id INTEGER, item_key TEXT, qty INTEGER, UNIQUE(user_id,item_key));
+            CREATE TABLE currency_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, delta INTEGER, balance_after INTEGER, reason TEXT, created_at TEXT);
+            INSERT INTO user_stats VALUES (1, 500), (2, 0);
+            """
+        )
+    monkeypatch.setattr(app, "get_db", lambda: _DbContext(path))
+    monkeypatch.setattr(app, "_daily_shop_slots", lambda conn: [])
+    app.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
+
+    client = app.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"] = 1
+    purchased = client.post(
+        "/api/shop/buy",
+        json={"item_key": "premium_hint_bundle", "price": 1},
+    )
+    assert purchased.status_code == 200
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT coins FROM user_stats WHERE user_id=1").fetchone()[0] == 370
+        assert conn.execute(
+            "SELECT qty FROM shop_inventory WHERE user_id=1 AND item_key='hint_ticket'"
+        ).fetchone()[0] == 5
+        assert conn.execute(
+            "SELECT COUNT(*) FROM shop_inventory WHERE user_id=1 AND item_key='premium_hint_bundle'"
+        ).fetchone()[0] == 0
+        assert conn.execute(
+            "SELECT delta FROM currency_log WHERE user_id=1"
+        ).fetchone()[0] == -130
+
+    with client.session_transaction() as session:
+        session["user_id"] = 2
+    failed = client.post(
+        "/api/shop/buy",
+        json={"item_key": "hint_ticket", "price": -999},
+    )
+    assert failed.status_code == 400
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT coins FROM user_stats WHERE user_id=2").fetchone()[0] == 0
+        assert conn.execute(
+            "SELECT COUNT(*) FROM shop_inventory WHERE user_id=2"
+        ).fetchone()[0] == 0
+        assert conn.execute(
+            "SELECT COUNT(*) FROM currency_log WHERE user_id=2"
+        ).fetchone()[0] == 0
 
 
 def test_badge_visual_system_covers_existing_static_families(monkeypatch):
@@ -118,8 +187,38 @@ def test_badge_visual_system_covers_existing_static_families(monkeypatch):
     families = {badge_visual_metadata(badge)["visual_family"] for badge in app.BADGE_DEFS}
     assert families == set(BADGE_VISUAL_SYSTEM_V1["families"])
     badge_ids = {badge["id"] for badge in app.BADGE_DEFS}
+    assert len(BADGE_PROTOTYPE_SELECTION) == 10
+    assert {prototype["family"] for prototype in BADGE_PROTOTYPE_SELECTION} == set(BADGE_VISUAL_SYSTEM_V1["families"])
     assert {prototype["badge_id"] for prototype in BADGE_PROTOTYPE_SELECTION} <= badge_ids
-    assert all(badge_visual_metadata(badge)["visual_art_status"] == "system_spec_only" for badge in app.BADGE_DEFS)
+    assert {prototype["family"] for prototype in BADGE_PROTOTYPE_SELECTION} == set(BADGE_PROTOTYPE_ASSETS)
+    prototype_ids = {prototype["badge_id"] for prototype in BADGE_PROTOTYPE_SELECTION}
+    for badge in app.BADGE_DEFS:
+        metadata = badge_visual_metadata(badge)
+        expected = "prototype_asset" if badge["id"] in prototype_ids else "system_spec_only"
+        assert metadata["visual_art_status"] == expected
+        if badge["id"] in prototype_ids:
+            assert metadata["prototype_asset"].endswith(".svg")
+
+
+def test_badge_visual_metadata_does_not_activate_community_awards(monkeypatch):
+    app = _load_app(monkeypatch)
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute("CREATE TABLE badges_earned (user_id INTEGER, badge_id TEXT, earned_at TEXT, seen INTEGER DEFAULT 0)")
+    awarded = app.check_and_award(conn, 1, {
+        "rank_level": "LV50",
+        "total_correct": 99999,
+        "current_streak": 999,
+        "max_streak": 999,
+        "mistake_corrected": 999,
+        "xp": 99999,
+        "max_combo": 999,
+    })
+    assert "badge_lb_weekly_1" not in awarded
+    assert not conn.execute(
+        "SELECT 1 FROM badges_earned WHERE badge_id='badge_lb_weekly_1'"
+    ).fetchone()
+    conn.close()
 
 
 def test_zone_material_and_drop_contracts_keep_item_power_and_drop_authority_server_side():
@@ -135,9 +234,10 @@ def test_zone_material_and_drop_contracts_keep_item_power_and_drop_authority_ser
 
 
 def test_item_art_bible_forbids_emoji_and_placeholders_as_final_art():
-    assert ITEM_ART_BIBLE_V1["final_art_generated"] is False
+    assert ITEM_ART_BIBLE_V1["final_art_generated"] is True
+    assert "P1" in ITEM_ART_BIBLE_V1["final_art_scope"]
     assert ITEM_ART_BIBLE_V1["canvas"] == "256x256"
-    assert ITEM_ART_BIBLE_V1["format"] == "RGBA PNG or WebP with transparent background"
+    assert "SVG" in ITEM_ART_BIBLE_V1["format"]
     assert "No emoji as final art" in ITEM_ART_BIBLE_V1["prohibitions"]
     assert "No _ph_* placeholder as production art" in ITEM_ART_BIBLE_V1["prohibitions"]
     assert "Chest art does not imply chest ownership" in ITEM_ART_BIBLE_V1["prohibitions"]
@@ -155,6 +255,7 @@ def test_item_journal_api_is_read_only_and_projects_existing_stores(tmp_path, mo
             CREATE TABLE currency_log (id INTEGER PRIMARY KEY, user_id INTEGER, delta INTEGER, balance_after INTEGER, reason TEXT, created_at TEXT);
             CREATE TABLE gacha_log (id INTEGER PRIMARY KEY, user_id INTEGER, result_key TEXT, created_at TEXT);
             INSERT INTO shop_inventory VALUES (1, 'rare_appearance_fragment', 2);
+            INSERT INTO shop_inventory VALUES (1, 'unapproved_runtime_item', 99);
             INSERT INTO pet_inventory VALUES (1, 'starfruit', 3);
             INSERT INTO badges_earned VALUES (1, 'streak_3', '2026-08-20T00:00:00', 0);
             INSERT INTO currency_log VALUES (1, 1, -980, 20, 'buy:rare_appearance_fragmentx1', '2026-08-20T00:00:00');
@@ -180,9 +281,22 @@ def test_item_journal_api_is_read_only_and_projects_existing_stores(tmp_path, mo
     assert items["rare_appearance_fragment"]["owned_amount"] == 2
     assert items["starfruit"]["owned_amount"] == 3
     assert items["rare_appearance_fragment"]["recently_obtained"] is True
+    assert "unapproved_runtime_item" not in items
     assert body["badge_collection"]["is_backpack_item"] is False
     with sqlite3.connect(path) as conn:
         assert conn.execute("SELECT qty FROM shop_inventory WHERE item_key='rare_appearance_fragment'").fetchone()[0] == 2
+
+
+def test_item_journal_route_contains_no_mutation_operation():
+    source = (ROOT / "app.py").read_text(encoding="utf-8")
+    start = source.index("@app.route('/api/item-journal')")
+    end = source.index("# ── 商城 API", start)
+    route = source[start:end]
+    assert "SELECT " in route
+    assert "INSERT" not in route
+    assert "UPDATE" not in route
+    assert "DELETE" not in route
+    assert "commit(" not in route
 
 
 def test_item_journal_and_shop_presentation_contracts_are_present():

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Streak badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#241b2e" stroke="#f59e0b" stroke-width="12"/>
+  <circle cx="128" cy="128" r="77" fill="none" stroke="#fb923c" stroke-width="7" stroke-dasharray="28 13"/>
+  <path d="M128 190c-29-18-43-41-36-65 5-18 20-26 31-42 7-10 8-22 8-30 26 17 45 40 44 69-1 28-19 53-47 68z" fill="#fb923c" stroke="#fff3c4" stroke-width="7" stroke-linejoin="round"/>
+</svg>
