@@ -5696,6 +5696,25 @@ def _get_combined_effect(conn, uid, effect_key):
     """技能 + 裝備效果合計。"""
     return _get_equip_effect(conn, uid, effect_key) + _get_skill_effect(conn, uid, effect_key)
 
+
+def _mitigate_authoritative_retaliation(monster_atk, dmg_reduce):
+    """Apply armor mitigation to authoritative monster retaliation.
+
+    Naive ``round(monster_atk * (1 - dmg_reduce))`` silently loses all
+    mitigation at low integer attack values -- e.g. ``round(2 * 0.92) == 2``
+    -- so armor becomes invisible exactly where a new player first meets it.
+    Any positive armor reduction against retaliation greater than 1 must
+    remove at least one integer point; larger values keep the existing
+    percentage-reduction feel unchanged (``round(20 * 0.92) == 18`` already).
+    No armor (``dmg_reduce <= 0``) or a retaliation of 1 leaves the
+    authoritative value untouched, and the floor of 1 never lets a positive
+    retaliation collapse to zero.
+    """
+    if dmg_reduce > 0 and monster_atk > 1:
+        return max(1, min(monster_atk - 1, round(monster_atk * (1.0 - dmg_reduce))))
+    return max(1, round(monster_atk * (1.0 - dmg_reduce)))
+
+
 def _gain_sp(conn, uid, amount):
     """增加 SP，不超過日上限。"""
     today = datetime.date.today().isoformat()
@@ -5804,7 +5823,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     else:
         # 答錯：怪物反擊，扣玩家血量
         dmg_reduce   = _get_combined_effect(conn, uid, 'player_dmg_reduce')
-        player_dmg   = max(1, round(monster_atk * (1.0 - dmg_reduce)))
+        player_dmg   = _mitigate_authoritative_retaliation(monster_atk, dmg_reduce)
         player_hp    = player_hp - player_dmg
         player_hp_change = -player_dmg
         if player_hp <= 0:
