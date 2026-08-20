@@ -195,16 +195,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "732d8384db1895e4e766e38cb4d4bf5e9cdba557",
-      "source_branch_or_local_ref": "codex/e10-lord-replay-isolated-release-001",
-      "source_commit_subject": "fix(e10): bump sw.js VERSION and world_stage.js cache identity for replay release",
+      "source_commit": "7e744efde0198fce74e2a79d52d77dfedb00a678",
+      "source_branch_or_local_ref": "codex/e10-replay-story-button-hotfix-001",
+      "source_commit_subject": "chore(e10): bump sw.js VERSION and world_stage.js cache identity for the replay-story hotfix",
       "source_date": "2026-08-20",
-      "content_sha256": "a0fea68d16c7c439f72c663a06bada5eee14ad82416e062ed9f4a1272d81232d",
-      "content_size_bytes": 1024051,
+      "content_sha256": "bc409d8343e9dc60d343ecf4ce42ecc6589a1f22d5d902586e9d5f40e34895d3",
+      "content_size_bytes": 1024054,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the isolated E10 Lord rechallenge replay release branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the isolated E10 Lord rechallenge replay release's cache-identity fix commit (RELEASE-CACHE-FIX-01, bumps the world_stage.js script tag's cache-busting query string) and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the isolated E10_REPLAY_STORY_BUTTON_HOTFIX_001 branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is E10_REPLAY_STORY_BUTTON_HOTFIX_001's cache-identity fix commit (bumps the world_stage.js script tag's cache-busting query string for the Replay Story button fix) and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
@@ -508,28 +508,29 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
-      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
-      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
+      "source_commit": "cce3bb2dc85d4b37a5c6dd4df68582fda681707f",
+      "source_branch_or_local_ref": "codex/e10-replay-story-button-hotfix-001",
+      "source_commit_subject": "fix(e10): call playStoryReplay synchronously from the Replay Story click",
       "source_date": "2026-08-20",
-      "content_sha256": "8acb33c5f0d9caf55e2857d97a9e0c765fee808b7d44a51651fd9073cbfcffc3",
+      "content_sha256": "125793c49fcbe361403228e1d319aa72bb3947feb716c27c69ad94d12fe5a2fc",
+      "content_size_bytes": 78609,
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
-      "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the isolated E10_REPLAY_STORY_BUTTON_HOTFIX_001 branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is E10_REPLAY_STORY_BUTTON_HOTFIX_001's fix commit (calls the presentation-only replay entrypoint synchronously from the real click instead of behind an unnecessary Legacy Adventure Map readiness wait) and raw-byte-verified against current content"
     },
     {
       "path": "sw.js",
-      "source_commit": "732d8384db1895e4e766e38cb4d4bf5e9cdba557",
-      "source_branch_or_local_ref": "codex/e10-lord-replay-isolated-release-001",
-      "source_commit_subject": "fix(e10): bump sw.js VERSION and world_stage.js cache identity for replay release",
+      "source_commit": "7e744efde0198fce74e2a79d52d77dfedb00a678",
+      "source_branch_or_local_ref": "codex/e10-replay-story-button-hotfix-001",
+      "source_commit_subject": "chore(e10): bump sw.js VERSION and world_stage.js cache identity for the replay-story hotfix",
       "source_date": "2026-08-20",
-      "content_sha256": "a64825886d68a4249889f740d2b92c6e36c5a8c960196cd4f26ba1c0369ec9d9",
-      "content_size_bytes": 6145,
+      "content_sha256": "04a193abcc6a3f98c8b596390a4b4903a8b13afd24289cc25720da9e49be9437",
+      "content_size_bytes": 6142,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "candidate on the isolated E10 Lord rechallenge replay release branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the isolated E10 Lord rechallenge replay release's cache-identity fix commit (RELEASE-CACHE-FIX-01, bumps VERSION so world_stage.js's changed replay-eligibility logic actually reaches already-cached clients) and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the isolated E10_REPLAY_STORY_BUTTON_HOTFIX_001 branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is E10_REPLAY_STORY_BUTTON_HOTFIX_001's cache-identity fix commit (bumps VERSION so world_stage.js's fixed Replay Story click handler actually reaches already-cached clients) and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",

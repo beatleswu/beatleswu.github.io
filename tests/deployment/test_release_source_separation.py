@@ -22,22 +22,25 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-# E10_LORD_REPLAY_ISOLATED_RELEASE_001: Owner-approved Product baseline,
-# advanced for the isolated release branch (built from LIVE production
-# source 5b565a05d, not current master -- see RELEASE_SCOPE_DIFF). Same
-# two-commit-role pattern documented by the prior UI-NAV-063 baseline this
-# replaces:
-#   732d8384d = CONTENT_PRODUCING_COMMIT. RELEASE-CACHE-FIX-01: bumps sw.js
-#               VERSION and world_stage.js's cache-busting tag so the
-#               cherry-picked generic cinematic replay logic actually
-#               reaches already-cached clients. The runtime-source-
-#               provenance.json entry for sw.js points at it. It stays
-#               immutable.
-#   ab89138bf = prior APPROVED_PRODUCT_BASELINE (UI-NAV-063), inherited
-#               unchanged via the cherry-picked PR #380 commits and
-#               superseded here only because 732d8384d's own product bytes
-#               (sw.js) postdate it.
-PRODUCT_SHA = "732d8384db1895e4e766e38cb4d4bf5e9cdba557"
+# E10_REPLAY_STORY_BUTTON_HOTFIX_001: Owner-approved Product baseline,
+# advanced for the isolated hotfix branch (built from the exact deployed
+# Product source df7acb585, not current master -- see RELEASE_SCOPE_DIFF).
+# Same two-commit-role pattern documented by the prior E10_LORD_REPLAY_
+# ISOLATED_RELEASE_001 baseline this replaces:
+#   7e744efd = CONTENT_PRODUCING_COMMIT. Bumps sw.js VERSION and
+#               world_stage.js's cache-busting tag so the fixed Replay Story
+#               click handler (cce3bb2dc) actually reaches already-cached
+#               clients. The runtime-source-provenance.json entries for
+#               index.html and sw.js point at it. It stays immutable.
+#   cce3bb2d  = the fix itself: replayAdventureIntro calls
+#               E10Cinematic.playStoryReplay synchronously from the real
+#               click instead of behind an unnecessary Legacy Adventure Map
+#               readiness wait. The runtime-source-provenance.json entry for
+#               js/e9/world_stage.js points at it. It stays immutable.
+#   732d8384d = prior APPROVED_PRODUCT_BASELINE (E10_LORD_REPLAY_ISOLATED_
+#               RELEASE_001), inherited unchanged and superseded here only
+#               because 7e744efd/cce3bb2d's own product bytes postdate it.
+PRODUCT_SHA = "7e744efde0198fce74e2a79d52d77dfedb00a678"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
