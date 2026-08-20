@@ -195,16 +195,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
-      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
-      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
+      "source_commit": "732d8384db1895e4e766e38cb4d4bf5e9cdba557",
+      "source_branch_or_local_ref": "codex/e10-lord-replay-isolated-release-001",
+      "source_commit_subject": "fix(e10): bump sw.js VERSION and world_stage.js cache identity for replay release",
       "source_date": "2026-08-20",
-      "content_sha256": "b50632049aebb2cba0993e0348b59cd5084799908059d5630683aea41dc2dfbe",
-      "content_size_bytes": 1024046,
+      "content_sha256": "a0fea68d16c7c439f72c663a06bada5eee14ad82416e062ed9f4a1272d81232d",
+      "content_size_bytes": 1024051,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
-      "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the isolated E10 Lord rechallenge replay release branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the isolated E10 Lord rechallenge replay release's cache-identity fix commit (RELEASE-CACHE-FIX-01, bumps the world_stage.js script tag's cache-busting query string) and raw-byte-verified against current content"
     },
     {
       "path": "terms.html",
