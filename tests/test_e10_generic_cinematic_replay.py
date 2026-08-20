@@ -182,7 +182,13 @@ def test_replay_story_button_availability_is_model_driven_not_allowlisted():
     assert "k21_25" not in body, "replay is still gated on a zone-key allowlist"
     assert "playStoryReplay" in body
     configure = _function_body(WORLD_STAGE, "function configureStoryReplayButton(button, zone)")
-    assert "zoneStoryReplayAvailable(zone.key)" in configure
+    # E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002 added an optional second
+    # argument (the authoritative zone record the surface already holds), so
+    # match the call prefix rather than the exact arity. The property this test
+    # actually guards -- availability comes from the shared model-driven
+    # predicate and never from a zone-key allowlist -- is unchanged.
+    assert "zoneStoryReplayAvailable(zone.key" in configure
+    assert "k26_30" not in configure, "button visibility is still allowlisted"
 
 
 # --------------------------------------------------------------------------
