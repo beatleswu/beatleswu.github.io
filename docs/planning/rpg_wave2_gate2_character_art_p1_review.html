@@ -97,9 +97,10 @@
 </head>
 <body>
 <main>
-  <p class="eyebrow">Go Odyssey · Wave 2 · Lane A · Gate 2 · P1</p>
+  <p class="eyebrow">Go Odyssey · Wave 2 · Lane A · Gate 2 · P1 · Visual Revision 002</p>
   <h1>Character Collection — Production Art Review Prototype</h1>
-  <p class="intro">This is a review-only vertical slice for the six player-character P1 assets and two Zone 1 NPC assets. It demonstrates collection presentation without registering new ownership, calling the selection API, or writing any database state.</p>
+  <p class="intro">This is a review-only vertical slice for the six player-character P1 assets and two Zone 1 NPC assets. Revision 002 aligns Trail Apprentice, Night Runner, and Constellation Apprentice to the approved player-character visual family while preserving their identities. It demonstrates collection presentation without registering new ownership, calling the selection API, or writing any database state.</p>
+  <p class="small"><a href="rpg_wave2_gate2_character_art_p1_contact_sheet.png">Open the equal-scale and mobile-card contact sheet</a> · top row: six players · middle row: Village Elder and Messenger · bottom row: mobile-card comparison.</p>
   <div class="guard">
     <strong>Authority guard:</strong> appearance selection remains <code>player_appearance.character_key</code>; functional equipment remains <code>player_inventory</code>. Character art, decorative props, collection metadata, and locked preview cards have no combat authority. New candidate IDs are intentionally not added to the runtime roster in this artifact.
   </div>
@@ -143,8 +144,8 @@
     <article class="npc-card"><div class="npc-art"><img src="../../assets/world/characters/wave2_p1/world_messenger_p1.png" alt="Messenger full-body production art"></div><div class="npc-body"><div class="card-top"><div><h3>信使 / Messenger</h3><div class="meta">Zone 1 · Shot 10</div></div><span class="state npc-state">NPC</span></div><p>Zone 1 courier who delivers the missing-caravan story hook after the Elder trial. Satchel and scroll are story props, not functional equipment.</p><div class="pill-row"><span class="pill">dialogue-ready</span><span class="pill">story handoff</span></div></div></article>
   </section>
 
-  <h2>Visual QA — P1 Review Sheet</h2>
-  <div class="qa-note">The PNG masters are normalized to 1056×1408 RGBA with a shared foot baseline and 10% safe area. The older runtime source files are left untouched; the P1 derivatives use thresholded alpha and neutral RGB under fully transparent pixels to prevent green-key or matte carry-over.</div>
+  <h2>Visual QA — P1 Visual Revision 002</h2>
+  <div class="qa-note">The PNG masters are normalized to 1056×1408 RGBA with a shared foot baseline and 10% safe area. All six players use PLAYER_FRAME_A_STANDARD_CHIBI; Village Elder and Messenger remain in the broader NPC frame. The revised derivatives use deterministic border-checkerboard removal and neutral RGB under fully transparent pixels to prevent green-key or matte carry-over. The older runtime source files remain untouched.</div>
   <div class="qa-wrap">
     <table>
       <thead><tr><th>Asset</th><th>Silhouette / body scale</th><th>Face / outline</th><th>Lighting / shading</th><th>Alpha</th><th>Mobile card</th><th>Cross-character coherence</th></tr></thead>
@@ -152,11 +153,11 @@
         <tr><td>apprentice</td><td class="pass">PASS</td><td>PASS — simple novice face and warm contour</td><td>PASS — soft upper-left key</td><td class="pass">PASS — RGBA, no keyed backdrop</td><td>PASS — simple large costume blocks</td><td>PASS — baseline and palette anchor</td></tr>
         <tr><td>mage</td><td class="pass">PASS</td><td>PASS — lavender hair/navy robe remain dominant</td><td>PASS — restrained gold accents</td><td class="pass">PASS — RGBA, checkerboard removed</td><td>PASS — large robe masses survive reduction</td><td>PASS — detail-heavy family retained</td></tr>
         <tr><td>paladin</td><td class="pass">PASS</td><td>PASS — calm face and warm dark outline</td><td>PASS — white/gold highlight controlled</td><td class="pass">PASS — RGBA, clean export</td><td>PASS — white/blue silhouette reads first</td><td>PASS — armor-heavy identity retained</td></tr>
-        <tr><td>trail_apprentice</td><td class="pass">PASS</td><td>PASS — scarf and short-coat silhouette</td><td>PASS — upper-left key with broad fabric shading</td><td class="pass">PASS — RGBA, no backdrop</td><td>PASS — teal scarf/coat remain legible</td><td>PASS — approved beginner/adventurer family</td></tr>
-        <tr><td>night_runner</td><td class="pass">PASS</td><td>PASS — hood opening and diagonal hem</td><td>PASS — charcoal/violet/teal separation</td><td class="pass">PASS — RGBA, no backdrop</td><td>PASS — hood and diagonal line survive</td><td>PASS — darker rogue family without weapon</td></tr>
-        <tr><td>constellation_apprentice</td><td class="pass">PASS</td><td>PASS — tall hair/hood and open hands</td><td>PASS — navy/lavender/ivory balance</td><td class="pass">PASS — RGBA, no backdrop</td><td>PASS — constellation band remains a single motif</td><td>PASS — mage/scholar family without class authority</td></tr>
+        <tr><td>trail_apprentice</td><td class="pass">PASS</td><td>PASS — chibi head/body ratio with scarf and pack silhouette</td><td>PASS — soft upper-left key with simplified fabric shading</td><td class="pass">PASS — RGBA, checkerboard removed</td><td>PASS — teal scarf/coat remain legible</td><td>PASS — shares PLAYER_FRAME_A_STANDARD_CHIBI</td></tr>
+        <tr><td>night_runner</td><td class="pass">PASS</td><td>PASS — readable chibi face, hood opening, and asymmetric hem</td><td>PASS — simplified charcoal/violet/teal separation</td><td class="pass">PASS — RGBA, checkerboard removed</td><td>PASS — hood and diagonal line survive</td><td>PASS — rogue identity now shares player family without weapon</td></tr>
+        <tr><td>constellation_apprentice</td><td class="pass">PASS</td><td>PASS — readable face, asymmetric sleeves, and constellation motif</td><td>PASS — simplified navy/lavender/gold balance</td><td class="pass">PASS — RGBA, checkerboard removed</td><td>PASS — constellation line remains a single motif</td><td>PASS — mage/scholar identity now shares player family</td></tr>
         <tr><td>world.village_elder</td><td class="pass">PASS</td><td>PASS — canonical beard/topknot/robe identity</td><td>PASS — warmer NPC key, still soft upper-left</td><td class="pass">PASS — RGBA, reusable cutout</td><td>PASS — face and robe remain readable</td><td>PASS — NPC treatment distinct from player collection</td></tr>
-        <tr><td>world.messenger</td><td class="pass">PASS</td><td>PASS — sash and courier face read at card size</td><td>PASS — Zone 1 warm teal/clay palette</td><td class="pass">PASS — RGBA, reusable cutout</td><td>PASS — sash/satchel story silhouette</td><td>PASS — NPC role separated from playable IDs</td></tr>
+        <tr><td>world.messenger</td><td class="pass">PASS</td><td>PASS — polished sash and courier face read at card size</td><td>PASS — Zone 1 warm teal/clay palette</td><td class="pass">PASS — RGBA, checkerboard removed</td><td>PASS — sash/satchel story silhouette</td><td>PASS — NPC polish remains separate from playable IDs</td></tr>
       </tbody>
     </table>
   </div>

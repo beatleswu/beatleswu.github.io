@@ -9,6 +9,29 @@
     "runtime_roster_changed": false,
     "runtime_selection_api_changed": false
   },
+  "visual_revision": {
+    "revision_id": "RPG_WAVE2_GATE2_CHARACTER_ART_P1_VISUAL_REVISION_002",
+    "player_visual_family_coherence": "PASS — all six selectable P1 review characters use the shared stylized chibi/anime production family and target approximately 4.5–5.5 heads.",
+    "classifications": {
+      "trail_apprentice": "POLISH — identity, scarf, pack, travel silhouette, and teal/brown family preserved",
+      "night_runner": "REVISE — rogue hood, dark asymmetric silhouette, and teal/violet accents preserved while moving into the player proportion family",
+      "constellation_apprentice": "REVISE — mage/scholar identity, constellation motif, asymmetric layers, and navy/gold family preserved",
+      "world.village_elder": "KEEP — canonical E10 identity preserved",
+      "world.messenger": "POLISH — Zone 1 Shot 10 courier identity and story role preserved"
+    },
+    "player_body_frame_families": {
+      "PLAYER_FRAME_A_STANDARD_CHIBI": {
+        "members": ["apprentice", "mage", "paladin", "trail_apprentice", "night_runner", "constellation_apprentice"],
+        "shared_contract": "1056x1408 RGBA canvas, centered x=.20-.80 body frame, y=.975 foot baseline, frontal/near-frontal eye-level view, shared hand/head/back/accessory anchors, and minimum 10% mobile safe area"
+      },
+      "NPC_FRAME_B_WORLD_BROAD": {
+        "members": ["world.village_elder", "world.messenger"],
+        "shared_contract": "World-character frame may vary in age and body proportion while retaining the same alpha, camera, lighting, baseline, and world outline language"
+      }
+    },
+    "future_equipment_fitting_compatibility": "PASS — all six player characters share PLAYER_FRAME_A_STANDARD_CHIBI and the same normalized foot/head/hand/waist geometry. Future equipment projections can target shared anchors without changing base art or granting visual authority.",
+    "functional_weapon_policy": "No functional weapon is baked into any base character art; decorative props remain story/presentation-only."
+  },
   "art_contract": {
     "master_canvas": "1056x1408",
     "source_master": "PNG",
@@ -18,7 +41,7 @@
     "body_frame": "x=.20-.80,y=.02-.98; extremities remain within the 10% mobile safe area",
     "camera": "frontal or near-frontal, eye-level",
     "lighting": "consistent soft upper-left key",
-    "alpha": "true alpha; low-alpha exterior residue thresholded and fully transparent RGB neutralized",
+    "alpha": "true alpha; generated border checkerboard removed deterministically, exterior residue thresholded, and fully transparent RGB neutralized",
     "mobile_safe_area": "minimum 10%",
     "functional_weapon_baked_in_base_art": false
   },
@@ -100,7 +123,7 @@
       "unlock_source": "early story milestone (future candidate)",
       "unlock_requirement": "complete the first departure milestone",
       "player_lore": "You left the village before you felt ready, carrying curiosity rather than status.",
-      "polish_result": "NEW_PRODUCTION_ART",
+      "polish_result": "P1_VISUAL_REVISION_002 / POLISH — PLAYER_FRAME_A_STANDARD_CHIBI",
       "functional_weapon_baked_in": false
     },
     {
@@ -116,7 +139,7 @@
       "unlock_source": "Zone 3 story milestone (future candidate)",
       "unlock_requirement": "complete the Zone 3 courier story",
       "player_lore": "You carry messages through places where certainty is more dangerous than silence.",
-      "polish_result": "NEW_PRODUCTION_ART",
+      "polish_result": "P1_VISUAL_REVISION_002 / REVISE — PLAYER_FRAME_A_STANDARD_CHIBI",
       "functional_weapon_baked_in": false
     },
     {
@@ -132,7 +155,7 @@
       "unlock_source": "Sage Tower story milestone (future candidate)",
       "unlock_requirement": "reach the Sage Tower approach",
       "player_lore": "You know only a few stars, but you know which ones to keep looking for.",
-      "polish_result": "NEW_PRODUCTION_ART",
+      "polish_result": "P1_VISUAL_REVISION_002 / REVISE — PLAYER_FRAME_A_STANDARD_CHIBI",
       "functional_weapon_baked_in": false
     }
   ],
@@ -148,6 +171,7 @@
       "runtime_derivative": "assets/world/characters/wave2_p1/world_village_elder_p1.webp",
       "state_example": "unlocked_npc",
       "identity_policy": "reuse canonical E10 identity; reusable presentation only",
+      "visual_revision": "P1_VISUAL_REVISION_002 / KEEP — canonical identity preserved",
       "functional_weapon_baked_in": false
     },
     {
@@ -161,6 +185,7 @@
       "runtime_derivative": "assets/world/characters/wave2_p1/world_messenger_p1.webp",
       "state_example": "unlocked_npc",
       "identity_policy": "derive from canonical Shot 10 role; no story change",
+      "visual_revision": "P1_VISUAL_REVISION_002 / POLISH — NPC_FRAME_B_WORLD_BROAD",
       "functional_weapon_baked_in": false
     }
   ],
@@ -172,6 +197,11 @@
     "current_character_ids_preserved": true,
     "selection_authority_unchanged": true,
     "functional_equipment_authority_unchanged": true,
-    "character_combat_delta": 0
+    "character_combat_delta": 0,
+    "player_visual_family_coherence_verified": true,
+    "body_frame_family_membership_verified": true,
+    "mobile_contact_sheet_verified": true,
+    "village_elder_identity_preserved": true,
+    "messenger_polish_only": true
   }
 }

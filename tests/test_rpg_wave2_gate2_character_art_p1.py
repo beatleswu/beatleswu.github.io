@@ -10,6 +10,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "docs/planning/rpg_wave2_gate2_character_art_p1_manifest.json"
 REVIEW = ROOT / "docs/planning/rpg_wave2_gate2_character_art_p1_review.html"
+CONTACT_SHEET = ROOT / "docs/planning/rpg_wave2_gate2_character_art_p1_contact_sheet.png"
 APP = ROOT / "app.py"
 HERO = ROOT / "hero.html"
 
@@ -87,8 +88,34 @@ def test_p1_png_masters_and_webp_derivatives_meet_export_contract():
             assert image.mode in {"RGBA", "RGB"}, runtime
 
 
+def test_visual_revision_locks_shared_player_family_and_review_artifact():
+    manifest = _manifest()
+    revision = manifest["visual_revision"]
+    assert revision["revision_id"] == "RPG_WAVE2_GATE2_CHARACTER_ART_P1_VISUAL_REVISION_002"
+    assert revision["player_visual_family_coherence"].startswith("PASS")
+    assert revision["classifications"] == {
+        "trail_apprentice": "POLISH — identity, scarf, pack, travel silhouette, and teal/brown family preserved",
+        "night_runner": "REVISE — rogue hood, dark asymmetric silhouette, and teal/violet accents preserved while moving into the player proportion family",
+        "constellation_apprentice": "REVISE — mage/scholar identity, constellation motif, asymmetric layers, and navy/gold family preserved",
+        "world.village_elder": "KEEP — canonical E10 identity preserved",
+        "world.messenger": "POLISH — Zone 1 Shot 10 courier identity and story role preserved",
+    }
+    assert set(revision["player_body_frame_families"]["PLAYER_FRAME_A_STANDARD_CHIBI"]["members"]) == P1_PLAYER_IDS
+    assert revision["player_body_frame_families"]["NPC_FRAME_B_WORLD_BROAD"]["members"] == [
+        "world.village_elder",
+        "world.messenger",
+    ]
+    assert "no functional weapon" in revision["functional_weapon_policy"].lower()
+    assert CONTACT_SHEET.is_file()
+    with Image.open(CONTACT_SHEET) as sheet:
+        assert sheet.width >= 1500
+        assert sheet.height >= 1200
+
+
 def test_collection_review_prototype_is_review_only_and_contains_required_states():
     html = REVIEW.read_text(encoding="utf-8")
+    assert "P1 Visual Revision 002" in html
+    assert "rpg_wave2_gate2_character_art_p1_contact_sheet.png" in html
     assert "10 / 20" in html
     assert "player_appearance.character_key" in html
     assert "player_inventory" in html
