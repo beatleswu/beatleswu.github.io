@@ -37,6 +37,14 @@ AUTHORIZED_REVIEW_TRANSPORT_SCRIPT_SRC = "/js/game/review_transport.js?v=2026081
 AUTHORIZED_GAME_SESSION_SCRIPT_SRC = "/js/game/game_session.js"
 BASE_SRS_SCRIPT_SRC = "/srs.js?v=20260622i18n1"
 B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
+# E10_LORD_REPLAY_ISOLATED_RELEASE_001: world_stage.js's own content changed
+# (generic replay eligibility, see js/e9/world_stage.js), and its stale
+# 20260801 cache-busting tag was left unbumped -- a returning user's cached
+# copy would never receive the new logic. This release corrects it to the
+# same release tag as the new cinematic_replay.js module it now cooperates
+# with (RELEASE-CACHE-FIX-01).
+BASE_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260801e10art1"
+RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260819e10replay001"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
 B2_DISPATCH_INSERTION = """\
     const b2Dispatcher = window.PresentationDispatcher;
@@ -586,8 +594,12 @@ def test_b1_index_html_changes_are_script_loading_only():
         and not src.startswith("/js/game/game_bootstrap.js")
         and not src.startswith("/js/game/cinematic_replay.js")
     ]
+    assert RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC in current_srcs
+    assert BASE_WORLD_STAGE_SCRIPT_SRC not in current_srcs
     normalized_current_srcs = [
-        BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC else src
+        BASE_SRS_SCRIPT_SRC if src == B1_SRS_SCRIPT_SRC
+        else BASE_WORLD_STAGE_SCRIPT_SRC if src == RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC
+        else src
         for src in current_without_dispatcher
     ]
     assert normalized_current_srcs == base_srcs
