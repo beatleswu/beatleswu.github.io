@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go Odyssey Wave 2 — Gate 2 Character Art P1 Review</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #223047;
+      --muted: #66758b;
+      --line: #d7e0ea;
+      --paper: #f5f8fb;
+      --panel: #ffffff;
+      --accent: #1d7180;
+      --accent-soft: #e3f2f3;
+      --locked: #7b6b8d;
+      --locked-soft: #f1edf5;
+      --npc: #8d5b32;
+      --npc-soft: #fbf0e4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1480px; margin: 0 auto; padding: 32px 22px 72px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(1.65rem, 3vw, 2.5rem); line-height: 1.1; margin-bottom: 10px; }
+    h2 { margin: 42px 0 14px; font-size: 1.35rem; }
+    h3 { font-size: 1.05rem; margin-bottom: 6px; }
+    .eyebrow { color: var(--accent); font-weight: 750; letter-spacing: .08em; text-transform: uppercase; font-size: .76rem; }
+    .intro { max-width: 850px; color: var(--muted); }
+    .guard, .qa-note { background: var(--accent-soft); border: 1px solid #b9dfe2; border-radius: 14px; padding: 14px 16px; }
+    .guard strong { color: #155461; }
+    .progress-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 22px 0 18px; }
+    .progress { min-width: 250px; }
+    .progress-label { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 6px; }
+    .progress-track { height: 12px; border-radius: 99px; background: #dfe7ef; overflow: hidden; }
+    .progress-fill { width: 50%; height: 100%; background: linear-gradient(90deg, #1d7180, #63a8a2); }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter { border: 1px solid var(--line); border-radius: 99px; padding: 6px 11px; background: #fff; color: var(--muted); }
+    .filter.active { border-color: var(--accent); color: #155461; background: var(--accent-soft); font-weight: 700; }
+    .collection-shell { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.65fr); gap: 18px; align-items: start; }
+    .preview, .card, .npc-card, .qa-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 8px 24px rgba(44, 66, 90, .07); }
+    .preview { padding: 18px; position: sticky; top: 16px; }
+    .preview-art { height: min(62vh, 620px); min-height: 380px; display: grid; place-items: end center; background: radial-gradient(circle at 50% 30%, #e6f2f2, #f9fbfd 67%); border-radius: 14px; overflow: hidden; }
+    .preview-art img { height: 100%; width: 100%; object-fit: contain; }
+    .preview-copy { padding: 16px 2px 0; }
+    .meta { color: var(--muted); font-size: .87rem; }
+    .collection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .card { overflow: hidden; }
+    .card-art, .npc-art { height: 300px; display: grid; place-items: end center; background: radial-gradient(circle at 50% 30%, #eef3f7, #fff 70%); }
+    .card-art img, .npc-art img { width: 100%; height: 100%; object-fit: contain; }
+    .card-body, .npc-body { padding: 12px 13px 14px; }
+    .card-top { display: flex; justify-content: space-between; gap: 8px; align-items: start; }
+    .state { border-radius: 99px; padding: 3px 8px; font-size: .72rem; white-space: nowrap; font-weight: 750; }
+    .selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29, 113, 128, .12), 0 8px 24px rgba(44, 66, 90, .07); }
+    .selected .state, .unlocked .state { color: #155461; background: var(--accent-soft); }
+    .locked { border-color: #d6cce0; }
+    .locked .state { color: #604d70; background: var(--locked-soft); }
+    .locked .card-art img { filter: grayscale(.85) brightness(.76); opacity: .7; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 7px 0; }
+    .pill { border-radius: 6px; padding: 3px 7px; background: #eef2f6; color: #56677c; font-size: .75rem; }
+    .locked .pill { background: var(--locked-soft); color: #604d70; }
+    .npc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .npc-card { border-color: #e8d6c3; }
+    .npc-art { background: radial-gradient(circle at 50% 30%, #fbf0e4, #fff 70%); }
+    .npc-state { color: #704522; background: var(--npc-soft); }
+    .qa-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    th { background: #f7fafc; font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    td:first-child { font-weight: 700; white-space: nowrap; }
+    .pass { color: #17635e; font-weight: 750; }
+    .small { font-size: .82rem; color: var(--muted); }
+    code { font: .86em ui-monospace, SFMono-Regular, Consolas, monospace; }
+    @media (max-width: 980px) {
+      main { padding: 24px 14px 56px; }
+      .collection-shell { grid-template-columns: 1fr; }
+      .preview { position: static; }
+      .preview-art { min-height: 330px; height: 52vh; }
+      .collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      body { font-size: 14px; }
+      .collection-grid, .npc-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .card-art, .npc-art { height: 230px; }
+      .card-body, .npc-body { padding: 9px 10px 11px; }
+      .card-body p, .npc-body p { font-size: .82rem; }
+      .state { font-size: .65rem; padding: 2px 6px; }
+      .preview-art { min-height: 280px; height: 48vh; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Go Odyssey · Wave 2 · Lane A · Gate 2 · P1</p>
+  <h1>Character Collection — Production Art Review Prototype</h1>
+  <p class="intro">This is a review-only vertical slice for the six player-character P1 assets and two Zone 1 NPC assets. It demonstrates collection presentation without registering new ownership, calling the selection API, or writing any database state.</p>
+  <div class="guard">
+    <strong>Authority guard:</strong> appearance selection remains <code>player_appearance.character_key</code>; functional equipment remains <code>player_inventory</code>. Character art, decorative props, collection metadata, and locked preview cards have no combat authority. New candidate IDs are intentionally not added to the runtime roster in this artifact.
+  </div>
+
+  <h2>Player Character Collection</h2>
+  <div class="progress-row">
+    <div class="progress" aria-label="Collection progress 10 out of 20">
+      <div class="progress-label"><span>Collection progress</span><span>10 / 20</span></div>
+      <div class="progress-track"><div class="progress-fill"></div></div>
+    </div>
+    <div class="filters" aria-label="Collection filters">
+      <span class="filter active">All</span><span class="filter">Beginner</span><span class="filter">Warrior</span><span class="filter">Knight</span><span class="filter">Ranger</span><span class="filter">Rogue</span><span class="filter">Mage</span><span class="filter">Scholar</span>
+    </div>
+  </div>
+
+  <section class="collection-shell" aria-label="Character collection preview">
+    <article class="preview selected">
+      <div class="preview-art"><img src="../../assets/hero/characters/wave2_p1/apprentice_p1.png" alt="Apprentice full-body production art"></div>
+      <div class="preview-copy">
+        <div class="card-top"><div><h3>見習生 / Apprentice</h3><div class="meta">Beginner · Newbie Village</div></div><span class="state selected">SELECTED</span></div>
+        <p>A simple beginning, open to every path beyond the village.</p>
+        <div class="pill-row"><span class="pill">Starter appearance</span><span class="pill">Available</span></div>
+        <p class="small">The preview is intentionally visual and lore-led. No Attack, Defense, Power, or rarity fields are shown.</p>
+      </div>
+    </article>
+
+    <div class="collection-grid">
+      <article class="card selected"><div class="card-art"><img src="../../assets/hero/characters/wave2_p1/apprentice_p1.png" alt="Apprentice"></div><div class="card-body"><div class="card-top"><h3>Apprentice</h3><span class="state">SELECTED</span></div><div class="meta">Beginner · Newbie Village</div><p>Starter appearance.</p></div></article>
+      <article class="card unlocked"><div class="card-art"><img src="../../assets/hero/characters/wave2_p1/mage_p1.png" alt="Mage"></div><div class="card-body"><div class="card-top"><h3>Mage</h3><span class="state">UNLOCKED</span></div><div class="meta">Mage · Sage Tower</div><p>Existing roster appearance.</p></div></article>
+      <article class="card unlocked"><div class="card-art"><img src="../../assets/hero/characters/wave2_p1/paladin_p1.png" alt="Paladin"></div><div class="card-body"><div class="card-top"><h3>Paladin</h3><span class="state">UNLOCKED</span></div><div class="meta">Knight · Village collection</div><p>Existing roster appearance.</p></div></article>
+      <article class="card locked"><div class="card-art"><img src="../../assets/hero/characters/wave2_p1/trail_apprentice_p1.png" alt="Trail Apprentice"></div><div class="card-body"><div class="card-top"><h3>Trail Apprentice</h3><span class="state">LOCKED</span></div><div class="meta">Beginner / Adventurer · Departure road</div><p>Unlock: first departure milestone.</p></div></article>
+      <article class="card locked"><div class="card-art"><img src="../../assets/hero/characters/wave2_p1/night_runner_p1.png" alt="Night Runner"></div><div class="card-body"><div class="card-top"><h3>Night Runner</h3><span class="state">LOCKED</span></div><div class="meta">Rogue / Adventurer · Forest edge</div><p>Unlock: Zone 3 courier story.</p></div></article>
+      <article class="card locked"><div class="card-art"><img src="../../assets/hero/characters/wave2_p1/constellation_apprentice_p1.png" alt="Constellation Apprentice"></div><div class="card-body"><div class="card-top"><h3>Constellation Apprentice</h3><span class="state">LOCKED</span></div><div class="meta">Mage / Scholar · Sage Tower approach</div><p>Unlock: Sage Tower approach.</p></div></article>
+    </div>
+  </section>
+
+  <h2>World Character Production Presentation</h2>
+  <p class="intro">NPCs are shown separately from the player collection. They are story/presentation entities and are not selectable appearances.</p>
+  <section class="npc-grid" aria-label="World NPC production art">
+    <article class="npc-card"><div class="npc-art"><img src="../../assets/world/characters/wave2_p1/world_village_elder_p1.png" alt="Village Elder full-body production art"></div><div class="npc-body"><div class="card-top"><div><h3>村長 / Village Elder</h3><div class="meta">Zone 1 Newbie Village</div></div><span class="state npc-state">NPC</span></div><p>Canonical teacher and keeper of the first Go trial. Reuses the established E10 identity in a reusable full-body presentation.</p><div class="pill-row"><span class="pill">portrait-ready</span><span class="pill">story guide</span></div></div></article>
+    <article class="npc-card"><div class="npc-art"><img src="../../assets/world/characters/wave2_p1/world_messenger_p1.png" alt="Messenger full-body production art"></div><div class="npc-body"><div class="card-top"><div><h3>信使 / Messenger</h3><div class="meta">Zone 1 · Shot 10</div></div><span class="state npc-state">NPC</span></div><p>Zone 1 courier who delivers the missing-caravan story hook after the Elder trial. Satchel and scroll are story props, not functional equipment.</p><div class="pill-row"><span class="pill">dialogue-ready</span><span class="pill">story handoff</span></div></div></article>
+  </section>
+
+  <h2>Visual QA — P1 Review Sheet</h2>
+  <div class="qa-note">The PNG masters are normalized to 1056×1408 RGBA with a shared foot baseline and 10% safe area. The older runtime source files are left untouched; the P1 derivatives use thresholded alpha and neutral RGB under fully transparent pixels to prevent green-key or matte carry-over.</div>
+  <div class="qa-wrap">
+    <table>
+      <thead><tr><th>Asset</th><th>Silhouette / body scale</th><th>Face / outline</th><th>Lighting / shading</th><th>Alpha</th><th>Mobile card</th><th>Cross-character coherence</th></tr></thead>
+      <tbody>
+        <tr><td>apprentice</td><td class="pass">PASS</td><td>PASS — simple novice face and warm contour</td><td>PASS — soft upper-left key</td><td class="pass">PASS — RGBA, no keyed backdrop</td><td>PASS — simple large costume blocks</td><td>PASS — baseline and palette anchor</td></tr>
+        <tr><td>mage</td><td class="pass">PASS</td><td>PASS — lavender hair/navy robe remain dominant</td><td>PASS — restrained gold accents</td><td class="pass">PASS — RGBA, checkerboard removed</td><td>PASS — large robe masses survive reduction</td><td>PASS — detail-heavy family retained</td></tr>
+        <tr><td>paladin</td><td class="pass">PASS</td><td>PASS — calm face and warm dark outline</td><td>PASS — white/gold highlight controlled</td><td class="pass">PASS — RGBA, clean export</td><td>PASS — white/blue silhouette reads first</td><td>PASS — armor-heavy identity retained</td></tr>
+        <tr><td>trail_apprentice</td><td class="pass">PASS</td><td>PASS — scarf and short-coat silhouette</td><td>PASS — upper-left key with broad fabric shading</td><td class="pass">PASS — RGBA, no backdrop</td><td>PASS — teal scarf/coat remain legible</td><td>PASS — approved beginner/adventurer family</td></tr>
+        <tr><td>night_runner</td><td class="pass">PASS</td><td>PASS — hood opening and diagonal hem</td><td>PASS — charcoal/violet/teal separation</td><td class="pass">PASS — RGBA, no backdrop</td><td>PASS — hood and diagonal line survive</td><td>PASS — darker rogue family without weapon</td></tr>
+        <tr><td>constellation_apprentice</td><td class="pass">PASS</td><td>PASS — tall hair/hood and open hands</td><td>PASS — navy/lavender/ivory balance</td><td class="pass">PASS — RGBA, no backdrop</td><td>PASS — constellation band remains a single motif</td><td>PASS — mage/scholar family without class authority</td></tr>
+        <tr><td>world.village_elder</td><td class="pass">PASS</td><td>PASS — canonical beard/topknot/robe identity</td><td>PASS — warmer NPC key, still soft upper-left</td><td class="pass">PASS — RGBA, reusable cutout</td><td>PASS — face and robe remain readable</td><td>PASS — NPC treatment distinct from player collection</td></tr>
+        <tr><td>world.messenger</td><td class="pass">PASS</td><td>PASS — sash and courier face read at card size</td><td>PASS — Zone 1 warm teal/clay palette</td><td class="pass">PASS — RGBA, reusable cutout</td><td>PASS — sash/satchel story silhouette</td><td>PASS — NPC role separated from playable IDs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small" style="margin-top:14px">Owner review focus: identity preservation, mobile silhouette, and whether the generated P1 finish is acceptable as the shared production bar before any runtime registration or broader art batch.</p>
+</main>
+</body>
+</html>
