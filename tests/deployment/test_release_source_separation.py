@@ -22,21 +22,22 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-# UI-NAV-063: Owner-approved Product baseline. Two commits carry distinct
-# roles and neither is asked to do the other's job:
-#   b3a081d70 = CONTENT_PRODUCING_COMMIT. The provenance records for
-#               index.html / i18n.js / sw.js point at it, because that is
-#               where those bytes were produced. It stays immutable.
-#   ab89138bf = APPROVED_PRODUCT_BASELINE, used here. Its Task 063 runtime
-#               blobs were verified file-by-file to be IDENTICAL to
-#               b3a081d70's; it additionally carries the provenance metadata
-#               those bytes require. A manifest recording content hashes can
-#               only be written after the content commit, so the content
-#               commit can never contain its own provenance -- the complete,
-#               approved baseline is therefore the later commit.
-# The gate itself is unchanged: an unapproved Product byte change still fails
-# closed. This is the approval mechanism it is built to require.
-PRODUCT_SHA = "ab89138bf38e251c62cbeb8215b2d04ca6dff71f"
+# E10_LORD_REPLAY_ISOLATED_RELEASE_001: Owner-approved Product baseline,
+# advanced for the isolated release branch (built from LIVE production
+# source 5b565a05d, not current master -- see RELEASE_SCOPE_DIFF). Same
+# two-commit-role pattern documented by the prior UI-NAV-063 baseline this
+# replaces:
+#   732d8384d = CONTENT_PRODUCING_COMMIT. RELEASE-CACHE-FIX-01: bumps sw.js
+#               VERSION and world_stage.js's cache-busting tag so the
+#               cherry-picked generic cinematic replay logic actually
+#               reaches already-cached clients. The runtime-source-
+#               provenance.json entry for sw.js points at it. It stays
+#               immutable.
+#   ab89138bf = prior APPROVED_PRODUCT_BASELINE (UI-NAV-063), inherited
+#               unchanged via the cherry-picked PR #380 commits and
+#               superseded here only because 732d8384d's own product bytes
+#               (sw.js) postdate it.
+PRODUCT_SHA = "732d8384db1895e4e766e38cb4d4bf5e9cdba557"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80

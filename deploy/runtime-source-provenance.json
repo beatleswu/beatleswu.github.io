@@ -520,16 +520,16 @@
     },
     {
       "path": "sw.js",
-      "source_commit": "b3a081d700396eb4322ab22ad2bf8eb39579ea31",
-      "source_branch_or_local_ref": "claude/e10-ui-nav-fix-063",
-      "source_commit_subject": "fix(e10): one map-return CTA on the puzzle row, Guild in the Adventure nav slot",
-      "source_date": "2026-08-18",
-      "content_sha256": "dd322f6155be7275cce72b36e99905fcb7b95aa04b5b90eb2bc1b160aafb6cc9",
-      "content_size_bytes": 6153,
+      "source_commit": "732d8384db1895e4e766e38cb4d4bf5e9cdba557",
+      "source_branch_or_local_ref": "codex/e10-lord-replay-isolated-release-001",
+      "source_commit_subject": "fix(e10): bump sw.js VERSION and world_stage.js cache identity for replay release",
+      "source_date": "2026-08-20",
+      "content_sha256": "a64825886d68a4249889f740d2b92c6e36c5a8c960196cd4f26ba1c0369ec9d9",
+      "content_size_bytes": 6145,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
-      "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
+      "production_hash_status": "candidate on the isolated E10 Lord rechallenge replay release branch; Production deployment status is governed separately and is not asserted by this record",
+      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the isolated E10 Lord rechallenge replay release's cache-identity fix commit (RELEASE-CACHE-FIX-01, bumps VERSION so world_stage.js's changed replay-eligibility logic actually reaches already-cached clients) and raw-byte-verified against current content"
     },
     {
       "path": "srs.js",
