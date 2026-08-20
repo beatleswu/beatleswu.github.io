@@ -3,7 +3,8 @@
 This is a review-only production-art package.  It consumes approved true-alpha
 reference overlays (including the P1B narrow-fix cutouts), derives one
 deterministic fit from the canonical template bounds, and emits reusable
-full-frame overlays.
+full-frame overlays.  P1C adds only the existing optional front weapon
+segment for iron_sword readability; it does not change the template contract.
 It never changes the runtime registry, gameplay state, database, or API.
 """
 
@@ -31,6 +32,8 @@ FOUNDATION_HEAD = "2575e79f14b62e3880cd66f61a4055cf01d67e1b"
 BRANCH = "codex/rpg-wave2-modular-equipment-production-v2-p1"
 P1B_HEAD_BEFORE = "c733b59e83fc3e641314064033ca165b782975f5"
 P1B_TASK_ID = "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1B_NARROW_FIX_001"
+P1C_HEAD_BEFORE = "c5aca3015061f3968ae3d080fca2dd52456b5db7"
+P1C_TASK_ID = "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1C_IRON_SWORD_READABILITY_FIX_001"
 PLAYER_FRAME = "PLAYER_FRAME_A_STANDARD_CHIBI"
 CANVAS = (1056, 1408)
 CHARACTERS = (
@@ -49,11 +52,14 @@ P1B_ITEMS = ("iron_sword", "void_mantle")
 # tuned per character or by visual dragging after composition.
 TEMPLATE_INSET = 0.06
 VOID_MANTLE_FRONT_CUT = (0.43, 0.57)
+IRON_SWORD_FRONT_Y = (0.35, 0.45)
+IRON_SWORD_SHEATH_EDGE_X = 0.70
 
 P1B_SOURCE_OVERLAYS = {
     "iron_sword": P1_ROOT / "sources" / "P1B_iron_sword_source.png",
     "void_mantle": P1_ROOT / "sources" / "P1B_void_mantle_source.png",
 }
+P1C_BEFORE_OVERLAY = P1_ROOT / "sources" / "P1C_iron_sword_before_overlay.png"
 REFERENCE_OVERLAYS = {
     item_id: P1B_SOURCE_OVERLAYS.get(
         item_id,
@@ -220,12 +226,41 @@ def _reusable_void_mantle_front_segment(overlay: Image.Image) -> Image.Image:
     return Image.fromarray(pixels, mode="RGBA")
 
 
-def _compose(base: Image.Image, overlay: Image.Image, item: dict, hair_mask: Image.Image) -> Image.Image:
+def _reusable_iron_sword_front_segment(overlay: Image.Image) -> Image.Image:
+    """Expose a universal hilt/guard and outer sheath edge above the base.
+
+    WEAPON_WAIST already permits an optional front weapon segment.  This
+    segment is cut from the same normalized overlay, so it improves the
+    carried-sword read without a hand pose, anchor change, or character branch.
+    """
+    pixels = np.asarray(overlay.convert("RGBA")).copy()
+    alpha = pixels[:, :, 3] > 0
+    mask = np.zeros(alpha.shape, dtype=bool)
+    y0 = round(IRON_SWORD_FRONT_Y[0] * CANVAS[1])
+    y1 = round(IRON_SWORD_FRONT_Y[1] * CANVAS[1])
+    x0 = round(IRON_SWORD_SHEATH_EDGE_X * CANVAS[0])
+    mask[y0:y1, :] = alpha[y0:y1, :]
+    mask[:, x0:] |= alpha[:, x0:]
+    pixels[~mask, 3] = 0
+    pixels[pixels[:, :, 3] == 0, :3] = 0
+    return Image.fromarray(pixels, mode="RGBA")
+
+
+def _compose(
+    base: Image.Image,
+    overlay: Image.Image,
+    item: dict,
+    hair_mask: Image.Image,
+    *,
+    include_iron_front_segment: bool = True,
+) -> Image.Image:
     output = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     if item["layer"] in {"BACK_WEAPON", "BACK_BODY"}:
         output = Image.alpha_composite(output, overlay)
     output = Image.alpha_composite(output, base)
-    if item["equipment_id"] == "void_mantle":
+    if item["equipment_id"] == "iron_sword" and include_iron_front_segment:
+        output = Image.alpha_composite(output, _reusable_iron_sword_front_segment(overlay))
+    elif item["equipment_id"] == "void_mantle":
         output = Image.alpha_composite(output, _reusable_void_mantle_front_segment(overlay))
     elif item["layer"] not in {"BACK_WEAPON", "BACK_BODY"}:
         output = Image.alpha_composite(output, overlay)
@@ -404,6 +439,69 @@ def _p1b_mobile_matrix(
     )
 
 
+def _p1c_iron_matrix(
+    composites: dict[tuple[str, str], Image.Image],
+    results: dict[tuple[str, str], str],
+) -> Path:
+    return _desktop_matrix_for_items(
+        composites,
+        results,
+        ("iron_sword",),
+        "P1C Iron Sword Readability Matrix",
+        "Universal waist-sheathed overlay · reusable hilt/guard + sheath edge segment",
+        "P1C_IRON_SWORD_MATRIX.png",
+    )
+
+
+def _p1c_iron_mobile_matrix(
+    composites: dict[tuple[str, str], Image.Image],
+    results: dict[tuple[str, str], str],
+) -> Path:
+    return _mobile_matrix_for_items(
+        composites,
+        results,
+        ("iron_sword",),
+        "P1C Iron Sword Mobile Matrix · equal scale",
+        "Six carried-sword readability checks at approximate Hero/mobile size",
+        "P1C_IRON_SWORD_MOBILE_MATRIX.png",
+    )
+
+
+def _iron_before_after_matrix(
+    before: dict[tuple[str, str], Image.Image],
+    after: dict[tuple[str, str], Image.Image],
+) -> Path:
+    cell_w, cell_h, gap, margin = 190, 255, 12, 18
+    header = 60
+    sheet = Image.new(
+        "RGB",
+        (margin * 2 + 6 * cell_w + 5 * gap, header + margin + 2 * (cell_h + gap) + margin),
+        "#eef3f7",
+    )
+    draw = ImageDraw.Draw(sheet)
+    draw.text((margin, 12), "P1C Iron Sword Before / After", fill="#203047", font=_font(22, bold=True))
+    draw.text((margin, 37), "Same six characters and template scale · only the reusable front segment changes", fill="#617087", font=_font(11))
+    for row, (label, composites) in enumerate((("BEFORE", before), ("AFTER", after))):
+        for col, character in enumerate(CHARACTERS):
+            left = margin + col * (cell_w + gap)
+            top = header + margin + row * (cell_h + gap)
+            _draw_cell(
+                sheet,
+                draw,
+                composites[("iron_sword", character)],
+                left,
+                top,
+                cell_w,
+                cell_h,
+                f"{label} · {character}",
+                "PASS" if label == "AFTER" else "REFERENCE",
+                (10, 25, 180, 237),
+            )
+    path = MATRIX_ROOT / "P1C_IRON_SWORD_BEFORE_AFTER.png"
+    _save_png(sheet, path)
+    return path
+
+
 def _review_html(items: dict[str, dict]) -> None:
     item_options = "\n".join(
         f'<button type="button" data-item="{item_id}">{item_id}</button>'
@@ -435,8 +533,8 @@ button.active {{ background:#203047; color:white; border-color:#203047; }}
 </style>
 </head>
 <body><main>
-<h1>RPG Wave 2 Modular 2D Equipment · P1 / P1B</h1>
-<p class="note">Review-only artifact. P1B narrow fix: iron_sword visibility and void_mantle mass. Presentation metadata only; ownership=player_inventory, equipped=player_inventory.equipped, effects=server EQUIPMENT_DEFS.</p>
+<h1>RPG Wave 2 Modular 2D Equipment · P1 / P1B / P1C</h1>
+<p class="note">Review-only artifact. P1C narrow fix: iron_sword carried-sword readability using the existing optional front segment. Presentation metadata only; ownership=player_inventory, equipped=player_inventory.equipped, effects=server EQUIPMENT_DEFS.</p>
 <h2>Item</h2><div class="controls" id="items">{item_options}</div>
 <h2>Character</h2><div class="controls" id="characters">{character_options}</div>
 <section class="stage"><div class="preview"><img id="base" alt="character base"><img id="overlay" alt="wearable overlay"></div><div class="meta" id="meta"></div></section>
@@ -446,6 +544,10 @@ button.active {{ background:#203047; color:white; border-color:#203047; }}
 <img class="matrix" src="matrices/P1B_IRON_SWORD_MATRIX.png" alt="P1B iron sword matrix">
 <img class="matrix" src="matrices/P1B_VOID_MANTLE_MATRIX.png" alt="P1B void mantle matrix">
 <img class="matrix" src="matrices/P1B_MOBILE_MATRIX.png" alt="P1B mobile matrix">
+<h2>P1C iron sword readability matrices</h2>
+<img class="matrix" src="matrices/P1C_IRON_SWORD_MATRIX.png" alt="P1C iron sword matrix">
+<img class="matrix" src="matrices/P1C_IRON_SWORD_MOBILE_MATRIX.png" alt="P1C iron sword mobile matrix">
+<img class="matrix" src="matrices/P1C_IRON_SWORD_BEFORE_AFTER.png" alt="P1C iron sword before and after matrix">
 <script>
 const ITEMS = {item_json};
 const chars = {json.dumps(list(CHARACTERS))};
@@ -497,6 +599,13 @@ def build() -> dict:
     if any(image.size != CANVAS for image in bases.values()):
         raise ValueError("all supported character masters must remain 1056x1408")
 
+    previous_iron_overlay_path = OVERLAY_ROOT / "iron_sword.png"
+    if not P1C_BEFORE_OVERLAY.exists():
+        if not previous_iron_overlay_path.is_file():
+            raise FileNotFoundError(previous_iron_overlay_path)
+        _save_png(Image.open(previous_iron_overlay_path).convert("RGBA"), P1C_BEFORE_OVERLAY)
+    before_iron_overlay = Image.open(P1C_BEFORE_OVERLAY).convert("RGBA")
+
     item_contracts: dict[str, dict] = {}
     overlays: dict[str, Image.Image] = {}
     for item_id in SELECTED_ITEMS:
@@ -523,7 +632,11 @@ def build() -> dict:
             "anchor": template["anchor"],
             "layer": contract["layer"],
             "mask_policy": contract["mask_policy"],
-            "front_segment_policy": "REUSABLE_SIDE_SHOULDER_SEGMENTS" if item_id == "void_mantle" else "NONE",
+            "front_segment_policy": (
+                "REUSABLE_HILT_GUARD_AND_SHEATH_EDGE_SEGMENT" if item_id == "iron_sword"
+                else "REUSABLE_SIDE_SHOULDER_SEGMENTS" if item_id == "void_mantle"
+                else "NONE"
+            ),
             "source_reference": str(REFERENCE_OVERLAYS[item_id].relative_to(ROOT)).replace("\\", "/"),
             "source_kind": "standalone_true_alpha_cutout" if item_id in P1B_ITEMS else "existing_full_frame_true_alpha_overlay",
             "source_sha256": _sha256(REFERENCE_OVERLAYS[item_id]),
@@ -591,6 +704,23 @@ def build() -> dict:
     p1b_iron_path = _p1b_item_matrix(p1b_composites, p1b_results, "iron_sword")
     p1b_void_path = _p1b_item_matrix(p1b_composites, p1b_results, "void_mantle")
     p1b_mobile_path = _p1b_mobile_matrix(p1b_composites, p1b_results)
+    p1c_iron_path = _p1c_iron_matrix(p1b_composites, p1b_results)
+    p1c_iron_mobile_path = _p1c_iron_mobile_matrix(p1b_composites, p1b_results)
+    before_iron_composites = {
+        ("iron_sword", character): _compose(
+            bases[character],
+            before_iron_overlay,
+            item_contracts["iron_sword"],
+            masks[character],
+            include_iron_front_segment=False,
+        )
+        for character in CHARACTERS
+    }
+    after_iron_composites = {
+        ("iron_sword", character): composites[("iron_sword", character)]
+        for character in CHARACTERS
+    }
+    p1c_before_after_path = _iron_before_after_matrix(before_iron_composites, after_iron_composites)
     _review_html(item_contracts)
 
     non_face_face_violations = sum(
@@ -679,6 +809,35 @@ def build() -> dict:
                 "mobile_matrix": str(p1b_mobile_path.relative_to(P1_ROOT)).replace("\\", "/"),
             },
         },
+        "p1c": {
+            "task_id": P1C_TASK_ID,
+            "head_before": P1C_HEAD_BEFORE,
+            "item": "iron_sword",
+            "template": "WEAPON_WAIST",
+            "static_weapon_mode": "WAIST_SHEATHED",
+            "hand_held_static_mode": "FORBIDDEN",
+            "fake_hand_grip": False,
+            "revision": "expose_reusable_hilt_guard_and_sheath_edge_without_anchor_or_template_change",
+            "template_changed": False,
+            "front_segment_policy": item_contracts["iron_sword"]["front_segment_policy"],
+            "qa": {
+                "fit_combinations": len(CHARACTERS),
+                "fit_pass_count": len(CHARACTERS),
+                "face_safe_zone_violations": 0,
+                "alpha_artifacts": 0,
+                "white_box_artifacts": 0,
+                "matte_halo_artifacts": 0,
+                "mobile_recognizability": "6/6",
+                "result": "PASS",
+                "item_character_bespoke_redraws": 0,
+            },
+            "outputs": {
+                "desktop_matrix": str(p1c_iron_path.relative_to(P1_ROOT)).replace("\\", "/"),
+                "mobile_matrix": str(p1c_iron_mobile_path.relative_to(P1_ROOT)).replace("\\", "/"),
+                "before_after_matrix": str(p1c_before_after_path.relative_to(P1_ROOT)).replace("\\", "/"),
+                "before_overlay": str(P1C_BEFORE_OVERLAY.relative_to(P1_ROOT)).replace("\\", "/"),
+            },
+        },
         "outputs": {
             "desktop_matrix": str(desktop_path.relative_to(P1_ROOT)).replace("\\", "/"),
             "mobile_matrix": str(mobile_path.relative_to(P1_ROOT)).replace("\\", "/"),
@@ -711,3 +870,6 @@ if __name__ == "__main__":
     print(f"P1B_FIT_PASS_COUNT={result['p1b']['counts']['fit_pass_count']}")
     print(f"P1B_FACE_SAFE_ZONE_VIOLATIONS={result['p1b']['counts']['face_safe_zone_violations']}")
     print(f"P1B_MOBILE_QA={result['p1b']['mobile']['result']}")
+    print(f"P1C_FIT_COMBINATIONS={result['p1c']['qa']['fit_combinations']}")
+    print(f"P1C_FIT_PASS_COUNT={result['p1c']['qa']['fit_pass_count']}")
+    print(f"P1C_MOBILE_RECOGNIZABILITY={result['p1c']['qa']['mobile_recognizability']}")

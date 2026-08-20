@@ -189,3 +189,43 @@ def test_p1b_sources_are_true_alpha_and_matrices_exist():
         with Image.open(path) as image:
             assert image.mode == "RGB"
             assert image.width in {430, 1236}
+
+
+def test_p1c_iron_sword_readability_fix_is_narrow_and_reusable():
+    report = _manifest()
+    p1c = report["p1c"]
+    assert p1c["task_id"] == "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1C_IRON_SWORD_READABILITY_FIX_001"
+    assert p1c["head_before"] == "c5aca3015061f3968ae3d080fca2dd52456b5db7"
+    assert p1c["item"] == "iron_sword"
+    assert p1c["template"] == "WEAPON_WAIST"
+    assert p1c["static_weapon_mode"] == "WAIST_SHEATHED"
+    assert p1c["hand_held_static_mode"] == "FORBIDDEN"
+    assert p1c["fake_hand_grip"] is False
+    assert p1c["template_changed"] is False
+    assert p1c["front_segment_policy"] == "REUSABLE_HILT_GUARD_AND_SHEATH_EDGE_SEGMENT"
+    assert p1c["qa"] == {
+        "fit_combinations": 6,
+        "fit_pass_count": 6,
+        "face_safe_zone_violations": 0,
+        "alpha_artifacts": 0,
+        "white_box_artifacts": 0,
+        "matte_halo_artifacts": 0,
+        "mobile_recognizability": "6/6",
+        "result": "PASS",
+        "item_character_bespoke_redraws": 0,
+    }
+    for output in p1c["outputs"].values():
+        path = P1_ROOT / output
+        assert path.is_file(), output
+        if path.suffix.lower() == ".png":
+            with Image.open(path) as image:
+                assert image.mode in {"RGB", "RGBA"}
+                if "overlay" not in path.name:
+                    assert image.width in {430, 1236}
+
+    assert report["equipment"]["iron_sword"]["front_segment_policy"] == (
+        "REUSABLE_HILT_GUARD_AND_SHEATH_EDGE_SEGMENT"
+    )
+    assert report["equipment"]["dragon_scale"]["front_segment_policy"] == "NONE"
+    assert report["equipment"]["fox_mask"]["front_segment_policy"] == "NONE"
+    assert report["equipment"]["void_mantle"]["front_segment_policy"] == "REUSABLE_SIDE_SHOULDER_SEGMENTS"

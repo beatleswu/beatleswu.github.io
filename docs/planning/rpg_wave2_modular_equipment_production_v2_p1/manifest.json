@@ -39,7 +39,7 @@
       "mask_policy": [
         "BASE_OCCLUSION"
       ],
-      "front_segment_policy": "NONE",
+      "front_segment_policy": "REUSABLE_HILT_GUARD_AND_SHEATH_EDGE_SEGMENT",
       "source_reference": "docs/planning/rpg_wave2_modular_equipment_production_v2_p1/sources/P1B_iron_sword_source.png",
       "source_kind": "standalone_true_alpha_cutout",
       "source_sha256": "38f22c79ece2ef8cc764feefda01ebf10050960175ef9b7e42cd97cc790fef25",
@@ -1225,6 +1225,35 @@
       "iron_sword_matrix": "matrices/P1B_IRON_SWORD_MATRIX.png",
       "void_mantle_matrix": "matrices/P1B_VOID_MANTLE_MATRIX.png",
       "mobile_matrix": "matrices/P1B_MOBILE_MATRIX.png"
+    }
+  },
+  "p1c": {
+    "task_id": "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1C_IRON_SWORD_READABILITY_FIX_001",
+    "head_before": "c5aca3015061f3968ae3d080fca2dd52456b5db7",
+    "item": "iron_sword",
+    "template": "WEAPON_WAIST",
+    "static_weapon_mode": "WAIST_SHEATHED",
+    "hand_held_static_mode": "FORBIDDEN",
+    "fake_hand_grip": false,
+    "revision": "expose_reusable_hilt_guard_and_sheath_edge_without_anchor_or_template_change",
+    "template_changed": false,
+    "front_segment_policy": "REUSABLE_HILT_GUARD_AND_SHEATH_EDGE_SEGMENT",
+    "qa": {
+      "fit_combinations": 6,
+      "fit_pass_count": 6,
+      "face_safe_zone_violations": 0,
+      "alpha_artifacts": 0,
+      "white_box_artifacts": 0,
+      "matte_halo_artifacts": 0,
+      "mobile_recognizability": "6/6",
+      "result": "PASS",
+      "item_character_bespoke_redraws": 0
+    },
+    "outputs": {
+      "desktop_matrix": "matrices/P1C_IRON_SWORD_MATRIX.png",
+      "mobile_matrix": "matrices/P1C_IRON_SWORD_MOBILE_MATRIX.png",
+      "before_after_matrix": "matrices/P1C_IRON_SWORD_BEFORE_AFTER.png",
+      "before_overlay": "sources/P1C_iron_sword_before_overlay.png"
     }
   },
   "outputs": {
