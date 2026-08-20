@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Handheld Sword Pose Prototype</title>
+<style>
+:root { font-family: Segoe UI, Arial, sans-serif; color:#203047; background:#eef3f7; } body { margin:0; padding:18px; } main { max-width:1100px; margin:auto; }
+.controls { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; } button { border:1px solid #b8c7d7; background:white; border-radius:999px; padding:8px 12px; cursor:pointer; } button.active { color:white; background:#203047; }
+.stage { max-width:520px; background:white; border:1px solid #c8d3df; border-radius:14px; padding:14px; } .preview { position:relative; width:100%; aspect-ratio:1056 / 1408; background:#f6f9fc; overflow:hidden; } .preview img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.note { background:#fff9e8; border:1px solid #e6d18c; border-radius:10px; padding:10px 12px; } .matrix { max-width:100%; height:auto; margin-top:16px; border:1px solid #c8d3df; border-radius:10px; }
+</style></head><body><main>
+<h1>Reusable Handheld Sword Pose Prototype</h1>
+<p class="note">Review-only. Owner references are visual direction only. The renderer composes one universal <code>iron_sword</code> with a reusable character grip/forearm pose; equipped state remains <code>player_inventory.equipped</code>, effects remain <code>server EQUIPMENT_DEFS</code>, and missing poses fall back to <code>WAIST_SHEATHED</code>.</p>
+<div class="controls" id="characters"><button data-character="apprentice">Apprentice</button><button data-character="mage">Mage</button><button data-character="paladin">Paladin</button><button data-character="trail_apprentice">Trail Apprentice</button><button data-character="night_runner">Night Runner</button><button data-character="constellation_apprentice">Constellation Apprentice</button></div>
+<div class="controls" id="modes"><button data-mode="waist">Waist fallback</button><button data-mode="handheld">Handheld prototype</button></div>
+<section class="stage"><div class="preview"><img id="preview" alt="review preview"></div><p id="meta"></p></section>
+<h2>Static matrices</h2><img class="matrix" src="matrices/HANDHELD_SWORD_6_CHARACTER_MATRIX.png" alt="six character handheld sword matrix">
+<img class="matrix" src="matrices/HANDHELD_SWORD_MOBILE_MATRIX.png" alt="mobile handheld sword matrix">
+<img class="matrix" src="matrices/HANDHELD_VS_WAIST_COMPARISON.png" alt="handheld versus waist comparison">
+<script>
+const images = {"apprentice": {"handheld": "composites/handheld/apprentice.png", "waist": "composites/waist/apprentice.png"}, "mage": {"handheld": "composites/handheld/mage.png", "waist": "composites/waist/mage.png"}, "paladin": {"handheld": "composites/handheld/paladin.png", "waist": "composites/waist/paladin.png"}, "trail_apprentice": {"handheld": "composites/handheld/trail_apprentice.png", "waist": "composites/waist/trail_apprentice.png"}, "night_runner": {"handheld": "composites/handheld/night_runner.png", "waist": "composites/waist/night_runner.png"}, "constellation_apprentice": {"handheld": "composites/handheld/constellation_apprentice.png", "waist": "composites/waist/constellation_apprentice.png"}};
+let character = "apprentice"; let mode = "handheld";
+function render() { document.querySelector('#preview').src = images[character][mode]; document.querySelector('#meta').textContent = `${character} · ${mode} · PLAYER_FRAME_A_STANDARD_CHIBI`; }
+document.querySelectorAll('[data-character]').forEach(button => button.addEventListener('click', () => { character = button.dataset.character; render(); }));
+document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { mode = button.dataset.mode; render(); })); render();
+</script></main></body></html>
