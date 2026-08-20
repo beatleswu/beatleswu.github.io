@@ -1421,6 +1421,34 @@ def _functional_equipped_by_slot(conn, uid):
             result[equip['slot']] = equip
     return result
 
+
+def _functional_equipment_presentation_projection(conn, uid):
+    """Return the read-only equipped projection consumed by wearable UI.
+
+    ``player_inventory`` remains the only ownership/equipped authority.  This
+    deliberately returns ids and slots only; effects, rarity, and gameplay
+    values stay in the existing server-side equipment definitions.
+    """
+    rows = conn.execute(
+        'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1 ORDER BY id',
+        (uid,),
+    ).fetchall()
+    projection = []
+    seen_slots = set()
+    for row in rows:
+        equip = _EQUIP_MAP.get(row['equip_id'])
+        slot = equip.get('slot') if equip else None
+        if not equip or not slot or slot in seen_slots:
+            continue
+        seen_slots.add(slot)
+        projection.append({
+            'equipment_id': equip['id'],
+            'slot': slot,
+            'equipped': True,
+            'presentation_only': True,
+        })
+    return projection
+
 # ── 掉落機率基礎值（依怪物種類）─────────────────────────────
 BASE_LOOT_CHANCE = {
     'caterpillar': 0.08,
@@ -15069,6 +15097,8 @@ def skills_profile():
         _eq_title_en = _i18n_title_en(_title_id) if _title_id else None
         equipped_title_en = _eq_title_en[0] if _eq_title_en else equipped_title
         combat_stats = _get_authoritative_combat_stats(conn, uid)
+        functional_equipment = _functional_equipment_presentation_projection(conn, uid)
+        character_key = (eq_row['character_key'] if eq_row and 'character_key' in eq_cols else None) or None
 
     # ── active_effects & equipped_visuals ───────────────────────
     with get_db() as _conn2:
@@ -15107,6 +15137,8 @@ def skills_profile():
         'auto_title_en':   auto_title_en(auto_title),  # 英文版（前端 i18n）
         'equipped_title':  equipped_title,   # 副稱號（玩家自選可收集稱號）
         'equipped_title_en': equipped_title_en,  # 副稱號英文（前端 i18n）
+        'character_key':    character_key,
+        'functional_equipment': functional_equipment,
         'stone_skin':      (eq_row['stone_skin'] if eq_row and 'stone_skin' in eq_cols else None) or '',
         'board_skin':      (eq_row['board_skin'] if eq_row and 'board_skin' in eq_cols else None) or '',
         # 純外觀里程碑解鎖用的累積數據
@@ -15740,6 +15772,7 @@ def public_profile(username):
         eq_row = conn.execute(
             'SELECT character_key FROM player_appearance WHERE user_id=?', (uid,)
         ).fetchone()
+        functional_equipment = _functional_equipment_presentation_projection(conn, uid)
 
         # ── 加入天數 ──
         join_date = (user['created_at'] or '')[:10]
@@ -15795,6 +15828,7 @@ def public_profile(username):
         'badge_count':    len(badges),
         'badge_total':    len(BADGE_DEFS),
         'character_key':  (eq_row['character_key'] if eq_row else None) or None,
+        'functional_equipment': functional_equipment,
     })
 
 

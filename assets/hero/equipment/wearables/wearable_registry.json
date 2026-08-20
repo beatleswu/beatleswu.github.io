@@ -1,0 +1,352 @@
+{
+  "schema": "go-odyssey.functional-equipment-wearables.v1",
+  "provenance": {
+    "master_base_sha": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+    "p2b_parent_sha": "91202655dd5ce5c3d61c2fe20e21b517c29fdfba",
+    "static_sword_mode": "WAIST_SHEATHED",
+    "hand_held_static_mode": "FORBIDDEN"
+  },
+  "player_frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [
+      1056,
+      1408
+    ],
+    "body_frame_variants": 1
+  },
+  "authority": {
+    "ownership": "player_inventory",
+    "equipped": "player_inventory.equipped",
+    "effects": "server EQUIPMENT_DEFS",
+    "character": "player_appearance.character_key",
+    "presentation_only": true,
+    "client_combat_authority": false,
+    "visual_wearable_gameplay_authority": false
+  },
+  "layer_order": [
+    "BACK_WEAPON",
+    "BACK_BODY",
+    "CHARACTER_BASE",
+    "TORSO_ARMOR",
+    "FRONT_BODY",
+    "FRONT_ACCESSORY",
+    "HEAD_FACE",
+    "HAIR_FRONT_MASK"
+  ],
+  "characters": {
+    "apprentice": {
+      "character_key": "apprentice",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "hair_front_mask": "/assets/hero/equipment/wearables/masks/apprentice_hair_front.png"
+    },
+    "mage": {
+      "character_key": "mage",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/wave2_p1/mage_p1.png",
+      "hair_front_mask": "/assets/hero/equipment/wearables/masks/mage_hair_front.png"
+    },
+    "paladin": {
+      "character_key": "paladin",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/wave2_p1/paladin_p1.png",
+      "hair_front_mask": "/assets/hero/equipment/wearables/masks/paladin_hair_front.png"
+    },
+    "trail_apprentice": {
+      "character_key": "trail_apprentice",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/wave2_p1/trail_apprentice_p1.png",
+      "hair_front_mask": "/assets/hero/equipment/wearables/masks/trail_apprentice_hair_front.png"
+    },
+    "night_runner": {
+      "character_key": "night_runner",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/wave2_p1/night_runner_p1.png",
+      "hair_front_mask": "/assets/hero/equipment/wearables/masks/night_runner_hair_front.png"
+    },
+    "constellation_apprentice": {
+      "character_key": "constellation_apprentice",
+      "wearable_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "base": "/assets/hero/characters/wave2_p1/constellation_apprentice_p1.png",
+      "hair_front_mask": "/assets/hero/equipment/wearables/masks/constellation_apprentice_hair_front.png"
+    }
+  },
+  "equipment": {
+    "wooden_sword": {
+      "slot": "weapon",
+      "canonical_identity": "slim warm-tan wooden sword with brown grip",
+      "wearable_class": "WEAPON_WAIST",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/wooden_sword.png",
+      "canonical_icon": "assets/hero/equipment/functional/wooden_sword.svg",
+      "id": "wooden_sword",
+      "asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "iron_sword": {
+      "slot": "weapon",
+      "canonical_identity": "steel sword with brown handle and leather sheath",
+      "wearable_class": "WEAPON_WAIST",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/iron_sword.png",
+      "canonical_icon": "assets/hero/equipment/functional/iron_sword.svg",
+      "id": "iron_sword",
+      "asset": "/assets/hero/equipment/wearables/overlays/iron_sword.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "fox_fang": {
+      "slot": "weapon",
+      "canonical_identity": "curved ivory fox fang with orange-brown guard",
+      "wearable_class": "WEAPON_WAIST",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/fox_fang.png",
+      "canonical_icon": "assets/hero/equipment/functional/fox_fang.svg",
+      "id": "fox_fang",
+      "asset": "/assets/hero/equipment/wearables/overlays/fox_fang.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "dragon_claw": {
+      "slot": "weapon",
+      "canonical_identity": "three-pronged dark slate dragon claw with orange tips",
+      "wearable_class": "FOREARM_OR_HAND_GEAR",
+      "anchor": "forearm",
+      "layer": "FRONT_BODY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/dragon_claw.png",
+      "canonical_icon": "assets/hero/equipment/functional/dragon_claw.svg",
+      "id": "dragon_claw",
+      "asset": "/assets/hero/equipment/wearables/overlays/dragon_claw.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "celestial_blade": {
+      "slot": "weapon",
+      "canonical_identity": "long blue-white blade with gold star motif",
+      "wearable_class": "WEAPON_BACK",
+      "anchor": "back_hilt",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/celestial_blade.png",
+      "canonical_icon": "assets/hero/equipment/functional/celestial_blade.svg",
+      "id": "celestial_blade",
+      "asset": "/assets/hero/equipment/wearables/overlays/celestial_blade.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "cloth_robe": {
+      "slot": "armor",
+      "canonical_identity": "teal and seafoam cloth robe with dark teal seams",
+      "wearable_class": "ROBE_OR_BODY_OVERLAY",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/cloth_robe.png",
+      "canonical_icon": "assets/hero/equipment/functional/cloth_robe.svg",
+      "id": "cloth_robe",
+      "asset": "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "leather_armor": {
+      "slot": "armor",
+      "canonical_identity": "brown leather cuirass with straps and gold rivets",
+      "wearable_class": "TORSO_ARMOR",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/leather_armor.png",
+      "canonical_icon": "assets/hero/equipment/functional/leather_armor.svg",
+      "id": "leather_armor",
+      "asset": "/assets/hero/equipment/wearables/overlays/leather_armor.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "fox_pelt": {
+      "slot": "armor",
+      "canonical_identity": "orange-brown fox-fur shoulder mantle",
+      "wearable_class": "ROBE_OR_BODY_OVERLAY",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/fox_pelt.png",
+      "canonical_icon": "assets/hero/equipment/functional/fox_pelt.svg",
+      "id": "fox_pelt",
+      "asset": "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "dragon_scale": {
+      "slot": "armor",
+      "canonical_identity": "blue and gold layered dragon-scale torso armor",
+      "wearable_class": "TORSO_ARMOR",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/dragon_scale.png",
+      "canonical_icon": "assets/hero/equipment/functional/dragon_scale.svg",
+      "id": "dragon_scale",
+      "asset": "/assets/hero/equipment/wearables/overlays/dragon_scale.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "void_mantle": {
+      "slot": "armor",
+      "canonical_identity": "deep indigo-violet mantle with gold hem",
+      "wearable_class": "ROBE_OR_BODY_OVERLAY",
+      "anchor": "torso",
+      "layer": "BACK_BODY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/void_mantle.png",
+      "canonical_icon": "assets/hero/equipment/functional/void_mantle.svg",
+      "id": "void_mantle",
+      "asset": "/assets/hero/equipment/wearables/overlays/void_mantle.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "lucky_stone": {
+      "slot": "accessory",
+      "canonical_identity": "faceted green jade luck stone",
+      "wearable_class": "NECK_CHEST",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/lucky_stone.png",
+      "canonical_icon": "assets/hero/equipment/functional/lucky_stone.svg",
+      "id": "lucky_stone",
+      "asset": "/assets/hero/equipment/wearables/overlays/lucky_stone.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "xp_amulet": {
+      "slot": "accessory",
+      "canonical_identity": "silver chain with amber diamond pendant",
+      "wearable_class": "NECK_CHEST",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/xp_amulet.png",
+      "canonical_icon": "assets/hero/equipment/functional/xp_amulet.svg",
+      "id": "xp_amulet",
+      "asset": "/assets/hero/equipment/wearables/overlays/xp_amulet.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "fox_mask": {
+      "slot": "accessory",
+      "canonical_identity": "white and red fox face mask with ears",
+      "wearable_class": "HEAD_FACE",
+      "anchor": "face",
+      "layer": "HEAD_FACE",
+      "mask_requirements": [
+        "HAIR_FRONT_MASK"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/fox_mask.png",
+      "canonical_icon": "assets/hero/equipment/functional/fox_mask.svg",
+      "id": "fox_mask",
+      "asset": "/assets/hero/equipment/wearables/overlays/fox_mask.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "dragon_eye": {
+      "slot": "accessory",
+      "canonical_identity": "orange-gold dragon eye brooch with slit pupil",
+      "wearable_class": "BODY_ACCESSORY",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/dragon_eye.png",
+      "canonical_icon": "assets/hero/equipment/functional/dragon_eye.svg",
+      "id": "dragon_eye",
+      "asset": "/assets/hero/equipment/wearables/overlays/dragon_eye.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    },
+    "go_stone_black": {
+      "slot": "accessory",
+      "canonical_identity": "glossy black Go stone with gold ring motif",
+      "wearable_class": "WAIST_CHARM",
+      "anchor": "waist_left",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "mobile_visibility": "VISIBLE_AT_HERO_MOBILE_SIZE",
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "source": "docs/planning/rpg_wave2_gate2_p3_wearable_sources/go_stone_black.png",
+      "canonical_icon": "assets/hero/equipment/functional/go_stone_black.svg",
+      "id": "go_stone_black",
+      "asset": "/assets/hero/equipment/wearables/overlays/go_stone_black.png",
+      "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "presentation_only": true
+    }
+  },
+  "scalability": {
+    "universal_runtime_overlays": 15,
+    "body_frame_variants": 1,
+    "character_reusable_masks": 6,
+    "item_character_bespoke_redraws": 0
+  }
+}

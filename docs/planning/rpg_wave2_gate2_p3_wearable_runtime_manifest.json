@@ -1,0 +1,217 @@
+{
+  "task_id": "RPG_WAVE2_GATE2_P3_WEARABLE_PRODUCTION_RUNTIME_001",
+  "master_base_sha": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "p2b_parent_sha": "91202655dd5ce5c3d61c2fe20e21b517c29fdfba",
+  "player_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+  "characters": [
+    "apprentice",
+    "mage",
+    "paladin",
+    "trail_apprentice",
+    "night_runner",
+    "constellation_apprentice"
+  ],
+  "equipment": {
+    "wooden_sword": {
+      "slot": "weapon",
+      "wearable_class": "WEAPON_WAIST",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "iron_sword": {
+      "slot": "weapon",
+      "wearable_class": "WEAPON_WAIST",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "fox_fang": {
+      "slot": "weapon",
+      "wearable_class": "WEAPON_WAIST",
+      "anchor": "waist_right",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "dragon_claw": {
+      "slot": "weapon",
+      "wearable_class": "FOREARM_OR_HAND_GEAR",
+      "anchor": "forearm",
+      "layer": "FRONT_BODY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "celestial_blade": {
+      "slot": "weapon",
+      "wearable_class": "WEAPON_BACK",
+      "anchor": "back_hilt",
+      "layer": "BACK_WEAPON",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "cloth_robe": {
+      "slot": "armor",
+      "wearable_class": "ROBE_OR_BODY_OVERLAY",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "leather_armor": {
+      "slot": "armor",
+      "wearable_class": "TORSO_ARMOR",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "fox_pelt": {
+      "slot": "armor",
+      "wearable_class": "ROBE_OR_BODY_OVERLAY",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "dragon_scale": {
+      "slot": "armor",
+      "wearable_class": "TORSO_ARMOR",
+      "anchor": "torso",
+      "layer": "TORSO_ARMOR",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "void_mantle": {
+      "slot": "armor",
+      "wearable_class": "ROBE_OR_BODY_OVERLAY",
+      "anchor": "torso",
+      "layer": "BACK_BODY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "lucky_stone": {
+      "slot": "accessory",
+      "wearable_class": "NECK_CHEST",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "xp_amulet": {
+      "slot": "accessory",
+      "wearable_class": "NECK_CHEST",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "fox_mask": {
+      "slot": "accessory",
+      "wearable_class": "HEAD_FACE",
+      "anchor": "face",
+      "layer": "HEAD_FACE",
+      "mask_requirements": [
+        "HAIR_FRONT_MASK"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "dragon_eye": {
+      "slot": "accessory",
+      "wearable_class": "BODY_ACCESSORY",
+      "anchor": "chest",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    },
+    "go_stone_black": {
+      "slot": "accessory",
+      "wearable_class": "WAIST_CHARM",
+      "anchor": "waist_left",
+      "layer": "FRONT_ACCESSORY",
+      "mask_requirements": [
+        "BASE_OCCLUSION"
+      ],
+      "production_status": "READY_WITH_REUSABLE_MASK",
+      "qa": "PASS_WITH_REUSABLE_MASK"
+    }
+  },
+  "counts": {
+    "functional_equipment_total": 15,
+    "wearable_ready": 0,
+    "wearable_ready_with_mask": 15,
+    "wearable_blocked": 0,
+    "universal_runtime_overlays": 15,
+    "body_frame_variants": 1,
+    "character_reusable_masks": 6,
+    "item_character_bespoke_redraws": 0
+  },
+  "authority": {
+    "ownership": "player_inventory",
+    "equipped": "player_inventory.equipped",
+    "effects": "server EQUIPMENT_DEFS",
+    "character": "player_appearance.character_key",
+    "presentation_only": true,
+    "client_combat_authority": false,
+    "visual_wearable_gameplay_authority": false
+  },
+  "layer_order": [
+    "BACK_WEAPON",
+    "BACK_BODY",
+    "CHARACTER_BASE",
+    "TORSO_ARMOR",
+    "FRONT_BODY",
+    "FRONT_ACCESSORY",
+    "HEAD_FACE",
+    "HAIR_FRONT_MASK"
+  ],
+  "outputs": {
+    "registry": "assets/hero/equipment/wearables/wearable_registry.json",
+    "weapon_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_WEAPON_FIT_MATRIX.png",
+    "armor_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ARMOR_FIT_MATRIX.png",
+    "accessory_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ACCESSORY_FIT_MATRIX.png",
+    "full_loadout": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_FULL_LOADOUT_QA.png"
+  }
+}
