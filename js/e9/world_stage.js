@@ -857,29 +857,32 @@
   // player's authoritative unlock state -- never from a zone-key allowlist
   // here. A zone with no cinematics, or a player who has unlocked nothing,
   // yields false and the affordance stays hidden.
-  // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: this is the SINGLE
-  // presentation predicate for the Replay Story affordance, on every surface.
-  // It answers from the two authorities the product contract names and nothing
-  // else -- never from a zone-key allowlist:
+  // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002 / 002A: this is the SINGLE
+  // presentation predicate for the Replay Story affordance, on every surface
+  // (portrait Zone card and landscape drawer alike). It answers from the
+  // Owner's product rule and nothing else -- never from a zone-key allowlist,
+  // and never from a per-surface variant. All four conditions are required:
   //
-  //   1. authoritative unlock state  -- the zone must not be locked, read from
-  //      the same server-authoritative record this component already renders;
-  //   2. canonical replayable segments -- E10Cinematic decides whether the
-  //      player has legitimately unlocked anything worth replaying.
+  //   1. an AUTHORITATIVE zone record is available;
+  //   2. the zone is not locked;
+  //   3. the zone is cleared -- Replay Story is a reward for finishing a zone,
+  //      so an unlocked-but-unfinished zone offers nothing, even though its
+  //      intro is technically "unlocked" in the cinematic model's sense;
+  //   4. the canonical model reports at least one replayable unlocked segment.
   //
-  // A zone that declares no cinematics, or a player who has unlocked nothing,
-  // yields false and the affordance stays hidden, so no surface can render a
-  // dead button. Zones 3-10 need no change here when they gain cinematics.
+  // Every failure path returns false, including "I could not tell". Failing
+  // closed is deliberate: the entire defect class this hotfix exists to remove
+  // is a button that renders without the authority to act, so an unanswerable
+  // question must hide the affordance rather than show a hopeful one.
   function zoneStoryReplayAvailable(zoneKey, zoneRecord) {
     if (!zoneKey) return false;
-    // Authoritative unlock gate. Only consulted when the caller actually has
-    // the record; a caller without one (degraded/early render) still gets the
-    // canonical segment answer rather than a silently-lost affordance.
+
+    // (1) Authoritative record. A caller that holds one passes it; otherwise
+    // resolve from this component's own server-authoritative snapshot. Kept
+    // free of hard references so the predicate stays independently evaluable
+    // (the Zone 1 entry/replay routing contract exercises it in isolation).
     var zone = zoneRecord;
     if (!zone) {
-      // Best-effort resolution for callers that hold no record. Kept free of
-      // hard references so this predicate stays independently evaluable (the
-      // Zone 1 entry/replay routing contract exercises it in isolation).
       try {
         var fallbackState = typeof worldStageState === 'function' ? worldStageState() : null;
         var fallbackZones = (fallbackState && fallbackState.zones) || [];
@@ -888,18 +891,21 @@
         }
       } catch (error) { zone = null; }
     }
-    if (zone && zone.locked === true) return false;
+    if (!zone) return false;
+
+    // (2) + (3) Authoritative unlock and clear state.
+    if (zone.locked === true) return false;
+    if (zone.cleared !== true) return false;
+
+    // (4) Canonical replayable segments. No model loaded means the question is
+    // unanswerable, which fails closed rather than guessing from zone identity.
     var api = window.E10Cinematic;
-    if (api && typeof api.hasReplayableStory === 'function') {
-      try {
-        return api.hasReplayableStory(zoneKey) === true;
-      } catch (error) {
-        return false;
-      }
+    if (!api || typeof api.hasReplayableStory !== 'function') return false;
+    try {
+      return api.hasReplayableStory(zoneKey) === true;
+    } catch (error) {
+      return false;
     }
-    // The model has not loaded yet (script order / degraded load). Fall back to
-    // the historical predicate so the affordance is never silently lost.
-    return !!introCinematicKeyForZone(zoneKey);
   }
 
   // Replays every legitimately unlocked segment of the zone, in canonical
@@ -1136,6 +1142,13 @@
       seen: zone.seen || 0,
       total: zone.total || 0,
       locked: !!zone.locked,
+      // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002A: the authoritative
+      // clear flag travels with the selection so every surface can satisfy the
+      // shared availability predicate from the same record. Without it the
+      // landscape drawer only had `status`, and deriving "cleared" from a
+      // display string is exactly the kind of second authority this hotfix
+      // exists to remove.
+      cleared: zone.cleared === true,
       ctaEnabled: contract.enabled,
       ctaLabel: contract.label,
       secondaryCtaKind: secondary && secondary.kind || null,

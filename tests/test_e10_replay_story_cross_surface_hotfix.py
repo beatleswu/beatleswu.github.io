@@ -29,11 +29,16 @@ Every test here fails against the exact Production v236 bytes.
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+AVAILABILITY_RUNNER = (
+    ROOT / "tests" / "e2e" / "run_e10_replay_story_availability_contract.mjs"
+)
 INDEX = (ROOT / "index.html").read_text(encoding="utf-8")
 WORLD_STAGE = (ROOT / "js" / "e9" / "world_stage.js").read_text(encoding="utf-8")
 RIGHT_CARDS = (ROOT / "js" / "e9" / "right_cards.js").read_text(encoding="utf-8")
@@ -191,14 +196,57 @@ def test_registration_is_read_only_and_never_writes_progression():
         assert forbidden not in body, f"registration must not {forbidden}"
 
 
-def test_availability_respects_authoritative_lock_state():
+def test_availability_requires_all_four_authoritative_conditions():
+    """The Owner's product rule (002A), pinned as source structure.
+
+    The executable proof is test_availability_contract_runner_is_green below;
+    this keeps the four conditions individually greppable so a future edit that
+    silently drops one is visible in review.
+    """
     body = _function_body(
         WORLD_STAGE, "function zoneStoryReplayAvailable(zoneKey, zoneRecord)"
     )
-    assert "locked === true" in body, (
-        "a zone the map presents as locked must not offer Replay Story"
+    # (1) authoritative record required -- fail closed without one
+    assert "if (!zone) return false;" in body
+    # (2) not locked
+    assert "zone.locked === true" in body
+    # (3) cleared REQUIRED
+    assert "zone.cleared !== true" in body, (
+        "Replay Story must require an authoritative clear"
     )
+    # (4) canonical replayable segments, and no identity-based guessing when
+    # the model is absent
     assert "hasReplayableStory" in body
+    assert "introCinematicKeyForZone" not in body, (
+        "a missing model must fail closed, never fall back to zone identity"
+    )
+
+
+def test_availability_contract_runner_is_green():
+    """Executes the real predicate against synthetic authoritative records."""
+    result = subprocess.run(
+        ["node", str(AVAILABILITY_RUNNER)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    output = f"stdout={result.stdout}\nstderr={result.stderr}"
+    assert result.returncode == 0, output
+    report = json.loads(result.stdout)
+    assert report["status"] == "PASS", output
+    assert report["failures"] == 0, output
+    assert report["checks"] >= 14, output
+
+
+def test_selection_detail_carries_the_authoritative_clear_flag():
+    """The landscape drawer consumes `detail`, so the clear flag must travel
+    with it -- otherwise that surface cannot satisfy condition 3 without
+    inventing a second authority (e.g. parsing a display status string)."""
+    body = _function_body(WORLD_STAGE, "function zoneSelectionDetail(zone, state)")
+    assert "cleared: zone.cleared === true," in body
+    assert "locked: !!zone.locked," in body
 
 
 # --------------------------------------------------------------------------

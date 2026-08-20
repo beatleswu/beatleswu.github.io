@@ -307,6 +307,16 @@ const sandbox = {
   window: {
     ensureLegacyAdventureMapReady() { calls.push('ensure'); return Promise.resolve(); },
     startAdventureStage(zoneKey, options) { calls.push(['cinematic', zoneKey, options.mode]); },
+    // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002A: Replay Story now
+    // requires an authoritative cleared zone AND a canonical replayable
+    // segment, and fails closed when either is unanswerable. This stub keeps
+    // this harness exercising the *routing* it exists to pin -- the legacy
+    // manual_replay fallback -- by reporting a replayable story while
+    // declining to host playback itself.
+    E10Cinematic: {
+      hasReplayableStory() { return true; },
+      playStoryReplay() { return false; },
+    },
   },
 };
 vm.createContext(sandbox);
@@ -314,13 +324,18 @@ new vm.Script("const ACTIVE_INTRO_ZONE_KEY = 'k26_30'; const ACTIVE_INTRO_CINEMA
 new vm.Script(logic).runInContext(sandbox);
 
 const zone = { key: 'k26_30', locked: false };
-const unseen = { cinematics: { e10_zone1_intro_v1: { seen: false } } };
-const seen = { cinematics: { e10_zone1_intro_v1: { seen: true } } };
-const readError = { cinematicReadError: true, cinematics: { e10_zone1_intro_v1: { seen: true } } };
+// Replay Story reads the authoritative zone record out of world-stage state,
+// and requires an actual clear (002A). A replay of Zone 1's story is only
+// offered to a player who finished Zone 1.
+const clearedZones = [{ key: 'k26_30', locked: false, cleared: true }];
+const unseen = { zones: clearedZones, cinematics: { e10_zone1_intro_v1: { seen: false } } };
+const seen = { zones: clearedZones, cinematics: { e10_zone1_intro_v1: { seen: true } } };
+const readError = { zones: clearedZones, cinematicReadError: true, cinematics: { e10_zone1_intro_v1: { seen: true } } };
 sandbox.dispatchZone1Entry({}, zone, unseen);
 sandbox.dispatchZone1Entry({}, zone, seen);
 unseen.zone1EntryInFlight = true;
 sandbox.dispatchZone1Entry({}, zone, unseen);
+e10Root.__e9WorldStageState = unseen;
 sandbox.replayAdventureIntro('k26_30');
 e10Root.__e9WorldStageState = readError;
 sandbox.dispatchZone1Entry({}, zone, readError);
