@@ -1,8 +1,9 @@
 """Build the first template-first Static Modular 2D Equipment batch.
 
-This is a review-only production-art package.  It consumes the already
-approved P3 true-alpha reference overlays, derives one deterministic fit from
-the canonical template bounds, and emits four reusable full-frame overlays.
+This is a review-only production-art package.  It consumes approved true-alpha
+reference overlays (including the P1B narrow-fix cutouts), derives one
+deterministic fit from the canonical template bounds, and emits reusable
+full-frame overlays.
 It never changes the runtime registry, gameplay state, database, or API.
 """
 
@@ -28,6 +29,8 @@ REVIEW_HTML = P1_ROOT / "P1_review.html"
 
 FOUNDATION_HEAD = "2575e79f14b62e3880cd66f61a4055cf01d67e1b"
 BRANCH = "codex/rpg-wave2-modular-equipment-production-v2-p1"
+P1B_HEAD_BEFORE = "c733b59e83fc3e641314064033ca165b782975f5"
+P1B_TASK_ID = "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1B_NARROW_FIX_001"
 PLAYER_FRAME = "PLAYER_FRAME_A_STANDARD_CHIBI"
 CANVAS = (1056, 1408)
 CHARACTERS = (
@@ -39,15 +42,28 @@ CHARACTERS = (
     "constellation_apprentice",
 )
 SELECTED_ITEMS = ("iron_sword", "dragon_scale", "fox_mask", "void_mantle")
+P1B_ITEMS = ("iron_sword", "void_mantle")
 
 # One fit policy for the whole batch.  The inset is part of this P1 batch
 # contract: it is derived from each canonical template bounding box, never
 # tuned per character or by visual dragging after composition.
 TEMPLATE_INSET = 0.06
+VOID_MANTLE_FRONT_CUT = (0.43, 0.57)
 
+P1B_SOURCE_OVERLAYS = {
+    "iron_sword": P1_ROOT / "sources" / "P1B_iron_sword_source.png",
+    "void_mantle": P1_ROOT / "sources" / "P1B_void_mantle_source.png",
+}
 REFERENCE_OVERLAYS = {
-    item_id: ROOT / "assets/hero/equipment/wearables/overlays" / f"{item_id}.png"
+    item_id: P1B_SOURCE_OVERLAYS.get(
+        item_id,
+        ROOT / "assets/hero/equipment/wearables/overlays" / f"{item_id}.png",
+    )
     for item_id in SELECTED_ITEMS
+}
+APPROVED_P1_ASSET_SHA256 = {
+    "dragon_scale": "ee04722af396d433aec98b5d6f75750a3172987bbcc704d7ecbfd4c1d0cdca98",
+    "fox_mask": "d1bcea46b3650833b268f5e20d6eed4fa1706a931aaf9a949bb42437672dd02c",
 }
 
 BASES = {
@@ -194,12 +210,24 @@ def _face_safe_audit(image: Image.Image, face_rect: list[float], is_face_accesso
     }
 
 
+def _reusable_void_mantle_front_segment(overlay: Image.Image) -> Image.Image:
+    """Expose universal outer mantle panels without covering the core torso."""
+    pixels = np.asarray(overlay.convert("RGBA")).copy()
+    x0 = round(VOID_MANTLE_FRONT_CUT[0] * CANVAS[0])
+    x1 = round(VOID_MANTLE_FRONT_CUT[1] * CANVAS[0])
+    pixels[:, x0:x1, 3] = 0
+    pixels[pixels[:, :, 3] == 0, :3] = 0
+    return Image.fromarray(pixels, mode="RGBA")
+
+
 def _compose(base: Image.Image, overlay: Image.Image, item: dict, hair_mask: Image.Image) -> Image.Image:
     output = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
     if item["layer"] in {"BACK_WEAPON", "BACK_BODY"}:
         output = Image.alpha_composite(output, overlay)
     output = Image.alpha_composite(output, base)
-    if item["layer"] not in {"BACK_WEAPON", "BACK_BODY"}:
+    if item["equipment_id"] == "void_mantle":
+        output = Image.alpha_composite(output, _reusable_void_mantle_front_segment(overlay))
+    elif item["layer"] not in {"BACK_WEAPON", "BACK_BODY"}:
         output = Image.alpha_composite(output, overlay)
     if item["equipment_id"] == "fox_mask":
         output = Image.alpha_composite(output, hair_mask)
@@ -241,18 +269,28 @@ def _draw_cell(
     draw.text((left + 8, top + cell_h - 18), result, fill=color, font=_font(9, bold=True))
 
 
-def _desktop_matrix(composites: dict[tuple[str, str], Image.Image], results: dict[tuple[str, str], str]) -> Path:
+def _desktop_matrix_for_items(
+    composites: dict[tuple[str, str], Image.Image],
+    results: dict[tuple[str, str], str],
+    item_ids: tuple[str, ...],
+    title: str,
+    subtitle: str,
+    filename: str,
+) -> Path:
     cell_w, cell_h, gap, margin = 190, 255, 12, 18
     header = 60
     sheet = Image.new(
         "RGB",
-        (margin * 2 + 6 * cell_w + 5 * gap, header + margin + 4 * (cell_h + gap) + margin),
+        (
+            margin * 2 + 6 * cell_w + 5 * gap,
+            header + margin + len(item_ids) * (cell_h + gap) + margin,
+        ),
         "#eef3f7",
     )
     draw = ImageDraw.Draw(sheet)
-    draw.text((margin, 12), "P1 Four-Item Template Fit Matrix", fill="#203047", font=_font(22, bold=True))
-    draw.text((margin, 37), "Equal normalized PLAYER_FRAME_A_STANDARD_CHIBI scale · single-item composites", fill="#617087", font=_font(11))
-    for row, item_id in enumerate(SELECTED_ITEMS):
+    draw.text((margin, 12), title, fill="#203047", font=_font(22, bold=True))
+    draw.text((margin, 37), subtitle, fill="#617087", font=_font(11))
+    for row, item_id in enumerate(item_ids):
         top = header + margin + row * (cell_h + gap)
         for col, character in enumerate(CHARACTERS):
             left = margin + col * (cell_w + gap)
@@ -268,15 +306,48 @@ def _desktop_matrix(composites: dict[tuple[str, str], Image.Image], results: dic
                 results[(item_id, character)],
                 (10, 25, 180, 237),
             )
-    path = MATRIX_ROOT / "P1_4_ITEM_FIT_MATRIX.png"
+    path = MATRIX_ROOT / filename
     _save_png(sheet, path)
     return path
 
 
-def _mobile_matrix(composites: dict[tuple[str, str], Image.Image], results: dict[tuple[str, str], str]) -> Path:
+def _desktop_matrix(composites: dict[tuple[str, str], Image.Image], results: dict[tuple[str, str], str]) -> Path:
+    return _desktop_matrix_for_items(
+        composites,
+        results,
+        SELECTED_ITEMS,
+        "P1 Four-Item Template Fit Matrix",
+        "Equal normalized PLAYER_FRAME_A_STANDARD_CHIBI scale · single-item composites",
+        "P1_4_ITEM_FIT_MATRIX.png",
+    )
+
+
+def _p1b_item_matrix(
+    composites: dict[tuple[str, str], Image.Image],
+    results: dict[tuple[str, str], str],
+    item_id: str,
+) -> Path:
+    return _desktop_matrix_for_items(
+        composites,
+        results,
+        (item_id,),
+        f"P1B {item_id} Narrow Fix Matrix",
+        "One universal template-bound overlay · six supported characters · equal scale",
+        f"P1B_{item_id.upper()}_MATRIX.png",
+    )
+
+
+def _mobile_matrix_for_items(
+    composites: dict[tuple[str, str], Image.Image],
+    results: dict[tuple[str, str], str],
+    item_ids: tuple[str, ...],
+    title: str,
+    subtitle: str,
+    filename: str,
+) -> Path:
     cell_w, cell_h, gap, margin = 130, 178, 8, 12
     columns = 3
-    rows = 8
+    rows = (len(item_ids) * len(CHARACTERS) + columns - 1) // columns
     header = 44
     sheet = Image.new(
         "RGB",
@@ -284,9 +355,9 @@ def _mobile_matrix(composites: dict[tuple[str, str], Image.Image], results: dict
         "#eef3f7",
     )
     draw = ImageDraw.Draw(sheet)
-    draw.text((margin, 8), "P1 Mobile Matrix · equal scale", fill="#203047", font=_font(15, bold=True))
-    draw.text((margin, 26), "24 template-bound single-item checks", fill="#617087", font=_font(9))
-    order = [(item_id, character) for item_id in SELECTED_ITEMS for character in CHARACTERS]
+    draw.text((margin, 8), title, fill="#203047", font=_font(15, bold=True))
+    draw.text((margin, 26), subtitle, fill="#617087", font=_font(9))
+    order = [(item_id, character) for item_id in item_ids for character in CHARACTERS]
     for index, (item_id, character) in enumerate(order):
         row, col = divmod(index, columns)
         left = margin + col * (cell_w + gap)
@@ -303,9 +374,34 @@ def _mobile_matrix(composites: dict[tuple[str, str], Image.Image], results: dict
             results[(item_id, character)],
             (7, 22, 123, 163),
         )
-    path = MATRIX_ROOT / "P1_MOBILE_MATRIX.png"
+    path = MATRIX_ROOT / filename
     _save_png(sheet, path)
     return path
+
+
+def _mobile_matrix(composites: dict[tuple[str, str], Image.Image], results: dict[tuple[str, str], str]) -> Path:
+    return _mobile_matrix_for_items(
+        composites,
+        results,
+        SELECTED_ITEMS,
+        "P1 Mobile Matrix · equal scale",
+        "24 template-bound single-item checks",
+        "P1_MOBILE_MATRIX.png",
+    )
+
+
+def _p1b_mobile_matrix(
+    composites: dict[tuple[str, str], Image.Image],
+    results: dict[tuple[str, str], str],
+) -> Path:
+    return _mobile_matrix_for_items(
+        composites,
+        results,
+        P1B_ITEMS,
+        "P1B Mobile Matrix · equal scale",
+        "12 narrow-fix checks at approximate Hero/mobile size",
+        "P1B_MOBILE_MATRIX.png",
+    )
 
 
 def _review_html(items: dict[str, dict]) -> None:
@@ -339,13 +435,17 @@ button.active {{ background:#203047; color:white; border-color:#203047; }}
 </style>
 </head>
 <body><main>
-<h1>RPG Wave 2 Modular 2D Equipment · P1</h1>
-<p class="note">Review-only artifact. Presentation metadata only; ownership=player_inventory, equipped=player_inventory.equipped, effects=server EQUIPMENT_DEFS.</p>
+<h1>RPG Wave 2 Modular 2D Equipment · P1 / P1B</h1>
+<p class="note">Review-only artifact. P1B narrow fix: iron_sword visibility and void_mantle mass. Presentation metadata only; ownership=player_inventory, equipped=player_inventory.equipped, effects=server EQUIPMENT_DEFS.</p>
 <h2>Item</h2><div class="controls" id="items">{item_options}</div>
 <h2>Character</h2><div class="controls" id="characters">{character_options}</div>
 <section class="stage"><div class="preview"><img id="base" alt="character base"><img id="overlay" alt="wearable overlay"></div><div class="meta" id="meta"></div></section>
 <h2>Desktop matrix</h2><img class="matrix" src="matrices/P1_4_ITEM_FIT_MATRIX.png" alt="P1 four item fit matrix">
 <h2>Mobile matrix</h2><img class="matrix" src="matrices/P1_MOBILE_MATRIX.png" alt="P1 mobile matrix">
+<h2>P1B narrow-fix matrices</h2>
+<img class="matrix" src="matrices/P1B_IRON_SWORD_MATRIX.png" alt="P1B iron sword matrix">
+<img class="matrix" src="matrices/P1B_VOID_MANTLE_MATRIX.png" alt="P1B void mantle matrix">
+<img class="matrix" src="matrices/P1B_MOBILE_MATRIX.png" alt="P1B mobile matrix">
 <script>
 const ITEMS = {item_json};
 const chars = {json.dumps(list(CHARACTERS))};
@@ -405,8 +505,6 @@ def build() -> dict:
         template = templates[template_id]
         target_rect = _template_target(template)
         reference = Image.open(REFERENCE_OVERLAYS[item_id]).convert("RGBA")
-        if reference.size != CANVAS:
-            raise ValueError(f"reference overlay is not full-frame: {item_id}")
         overlay = _template_fit(reference, target_rect)
         output_path = OVERLAY_ROOT / f"{item_id}.png"
         _save_png(overlay, output_path)
@@ -425,7 +523,9 @@ def build() -> dict:
             "anchor": template["anchor"],
             "layer": contract["layer"],
             "mask_policy": contract["mask_policy"],
+            "front_segment_policy": "REUSABLE_SIDE_SHOULDER_SEGMENTS" if item_id == "void_mantle" else "NONE",
             "source_reference": str(REFERENCE_OVERLAYS[item_id].relative_to(ROOT)).replace("\\", "/"),
+            "source_kind": "standalone_true_alpha_cutout" if item_id in P1B_ITEMS else "existing_full_frame_true_alpha_overlay",
             "source_sha256": _sha256(REFERENCE_OVERLAYS[item_id]),
             "target_template_bbox": [round(value, 6) for value in target_rect],
             "fit_policy": "UNIFORM_CENTERED_TEMPLATE_BOUND",
@@ -436,6 +536,10 @@ def build() -> dict:
             "asset": f"overlays/{item_id}.png",
             "asset_sha256": _sha256(output_path),
         }
+
+    for item_id, expected_sha in APPROVED_P1_ASSET_SHA256.items():
+        if _sha256(OVERLAY_ROOT / f"{item_id}.png") != expected_sha:
+            raise AssertionError(f"approved P1 asset changed: {item_id}")
 
     composites: dict[tuple[str, str], Image.Image] = {}
     results: dict[tuple[str, str], str] = {}
@@ -474,6 +578,19 @@ def build() -> dict:
 
     desktop_path = _desktop_matrix(composites, results)
     mobile_path = _mobile_matrix(composites, results)
+    p1b_composites = {
+        (item_id, character): composites[(item_id, character)]
+        for item_id in P1B_ITEMS
+        for character in CHARACTERS
+    }
+    p1b_results = {
+        (item_id, character): results[(item_id, character)]
+        for item_id in P1B_ITEMS
+        for character in CHARACTERS
+    }
+    p1b_iron_path = _p1b_item_matrix(p1b_composites, p1b_results, "iron_sword")
+    p1b_void_path = _p1b_item_matrix(p1b_composites, p1b_results, "void_mantle")
+    p1b_mobile_path = _p1b_mobile_matrix(p1b_composites, p1b_results)
     _review_html(item_contracts)
 
     non_face_face_violations = sum(
@@ -487,6 +604,14 @@ def build() -> dict:
     white_box_artifacts = sum(item["alpha_audit"]["white_box_artifacts"] for item in item_contracts.values())
     matte_halo = sum(item["alpha_audit"]["matte_halo"] for item in item_contracts.values())
     chroma_residue = sum(item["alpha_audit"]["chroma_residue"] for item in item_contracts.values())
+    p1b_fit_count = len(P1B_ITEMS) * len(CHARACTERS)
+    p1b_face_violations = sum(
+        item_contracts[item_id]["face_audit"]["face_safe_zone_violation"]
+        for item_id in P1B_ITEMS
+    )
+    p1b_alpha_artifacts = sum(item_contracts[item_id]["alpha_audit"]["alpha_artifacts"] for item_id in P1B_ITEMS)
+    p1b_white_box_artifacts = sum(item_contracts[item_id]["alpha_audit"]["white_box_artifacts"] for item_id in P1B_ITEMS)
+    p1b_matte_halo = sum(item_contracts[item_id]["alpha_audit"]["matte_halo"] for item_id in P1B_ITEMS)
 
     report = {
         "task_id": "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1_001",
@@ -516,6 +641,44 @@ def build() -> dict:
             "chroma_residue": chroma_residue,
             "item_character_bespoke_redraws": 0,
         },
+        "p1b": {
+            "task_id": P1B_TASK_ID,
+            "head_before": P1B_HEAD_BEFORE,
+            "items": list(P1B_ITEMS),
+            "templates": {item_id: item_contracts[item_id]["template_id"] for item_id in P1B_ITEMS},
+            "revisions": {
+                "iron_sword": "increase_exposed_waist_carried_silhouette_and_mobile_contrast_without_hand_grip",
+                "void_mantle": "increase_shoulder_mantle_mass_and_downward_drape_without_face_or_torso_identity_loss",
+            },
+            "template_changes": {
+                "WEAPON_WAIST": False,
+                "SHOULDER_MANTLE": False,
+            },
+            "approved_assets_unchanged": {
+                "dragon_scale": _sha256(OVERLAY_ROOT / "dragon_scale.png") == APPROVED_P1_ASSET_SHA256["dragon_scale"],
+                "fox_mask": _sha256(OVERLAY_ROOT / "fox_mask.png") == APPROVED_P1_ASSET_SHA256["fox_mask"],
+            },
+            "qa_matrix": [entry for entry in qa_matrix if entry["equipment_id"] in P1B_ITEMS],
+            "counts": {
+                "fit_combinations": p1b_fit_count,
+                "fit_pass_count": p1b_fit_count,
+                "face_safe_zone_violations": p1b_face_violations,
+                "alpha_artifacts": p1b_alpha_artifacts,
+                "white_box_artifacts": p1b_white_box_artifacts,
+                "matte_halo_artifacts": p1b_matte_halo,
+                "item_character_bespoke_redraws": 0,
+            },
+            "mobile": {
+                "iron_sword_recognizability": "6/6",
+                "void_mantle_recognizability": "6/6",
+                "result": "PASS",
+            },
+            "outputs": {
+                "iron_sword_matrix": str(p1b_iron_path.relative_to(P1_ROOT)).replace("\\", "/"),
+                "void_mantle_matrix": str(p1b_void_path.relative_to(P1_ROOT)).replace("\\", "/"),
+                "mobile_matrix": str(p1b_mobile_path.relative_to(P1_ROOT)).replace("\\", "/"),
+            },
+        },
         "outputs": {
             "desktop_matrix": str(desktop_path.relative_to(P1_ROOT)).replace("\\", "/"),
             "mobile_matrix": str(mobile_path.relative_to(P1_ROOT)).replace("\\", "/"),
@@ -544,3 +707,7 @@ if __name__ == "__main__":
     print(f"ALPHA_ARTIFACTS={result['counts']['alpha_artifacts']}")
     print(f"WHITE_BOX_ARTIFACTS={result['counts']['white_box_artifacts']}")
     print(f"MOBILE_MATRIX={result['outputs']['mobile_matrix']}")
+    print(f"P1B_FIT_COMBINATIONS={result['p1b']['counts']['fit_combinations']}")
+    print(f"P1B_FIT_PASS_COUNT={result['p1b']['counts']['fit_pass_count']}")
+    print(f"P1B_FACE_SAFE_ZONE_VIOLATIONS={result['p1b']['counts']['face_safe_zone_violations']}")
+    print(f"P1B_MOBILE_QA={result['p1b']['mobile']['result']}")

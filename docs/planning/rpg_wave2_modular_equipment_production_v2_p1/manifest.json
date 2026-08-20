@@ -39,8 +39,10 @@
       "mask_policy": [
         "BASE_OCCLUSION"
       ],
-      "source_reference": "assets/hero/equipment/wearables/overlays/iron_sword.png",
-      "source_sha256": "86f111d82da02e85d6dbd5341b9e0f94140123e2b68ca572b246f011e4dcfc45",
+      "front_segment_policy": "NONE",
+      "source_reference": "docs/planning/rpg_wave2_modular_equipment_production_v2_p1/sources/P1B_iron_sword_source.png",
+      "source_kind": "standalone_true_alpha_cutout",
+      "source_sha256": "38f22c79ece2ef8cc764feefda01ebf10050960175ef9b7e42cd97cc790fef25",
       "target_template_bbox": [
         0.5592,
         0.3586,
@@ -51,15 +53,15 @@
       "template_inset": 0.06,
       "alpha_audit": {
         "bbox_px": [
-          682,
+          645,
           505,
-          797,
+          834,
           889
         ],
         "bbox_normalized": [
-          0.645833,
+          0.610795,
           0.358665,
-          0.754735,
+          0.789773,
           0.631392
         ],
         "expected_template_bbox": [
@@ -108,7 +110,7 @@
       },
       "production_status": "READY_WITH_REUSABLE_MASK",
       "asset": "overlays/iron_sword.png",
-      "asset_sha256": "edcefecc8d77d4cc4891083e9bdc7b5635abb289cba5c4c5ce0073e1f6ab91cf"
+      "asset_sha256": "21875940498b02c4349c569a4b1f0dd11c2cbd60505429a5d0baf8be5dbd090d"
     },
     "dragon_scale": {
       "equipment_id": "dragon_scale",
@@ -123,7 +125,9 @@
         "FACE_SAFE_ZONE_CLEARANCE",
         "BASE_OCCLUSION"
       ],
+      "front_segment_policy": "NONE",
       "source_reference": "assets/hero/equipment/wearables/overlays/dragon_scale.png",
+      "source_kind": "existing_full_frame_true_alpha_overlay",
       "source_sha256": "3a2a84a421b7b80039dc38b43b9447e7b1997f2f04aab826c35b6d6f5a5526c1",
       "target_template_bbox": [
         0.3064,
@@ -206,7 +210,9 @@
       "mask_policy": [
         "HAIR_FRONT_MASK"
       ],
+      "front_segment_policy": "NONE",
       "source_reference": "assets/hero/equipment/wearables/overlays/fox_mask.png",
+      "source_kind": "existing_full_frame_true_alpha_overlay",
       "source_sha256": "39984bcd9d0c93a51b9786e3bdeb9bb748b2076afec851cf48a7305911bbd77d",
       "target_template_bbox": [
         0.3592,
@@ -290,8 +296,10 @@
         "FACE_SAFE_ZONE_CLEARANCE",
         "BASE_OCCLUSION"
       ],
-      "source_reference": "assets/hero/equipment/wearables/overlays/void_mantle.png",
-      "source_sha256": "d640e419700607f09c6ba250833398ca189b6d65536a95160567ff336bfe00b9",
+      "front_segment_policy": "REUSABLE_SIDE_SHOULDER_SEGMENTS",
+      "source_reference": "docs/planning/rpg_wave2_modular_equipment_production_v2_p1/sources/P1B_void_mantle_source.png",
+      "source_kind": "standalone_true_alpha_cutout",
+      "source_sha256": "d4edbb522ab99c85a6fd9f3cab8c15eb1587c4bc17137f35c2ce13cb0d99f0cc",
       "target_template_bbox": [
         0.2008,
         0.238,
@@ -302,15 +310,15 @@
       "template_inset": 0.06,
       "alpha_audit": {
         "bbox_px": [
-          284,
+          307,
           335,
-          771,
+          748,
           707
         ],
         "bbox_normalized": [
-          0.268939,
+          0.29072,
           0.237926,
-          0.730114,
+          0.708333,
           0.502131
         ],
         "expected_template_bbox": [
@@ -359,7 +367,7 @@
       },
       "production_status": "READY_WITH_REUSABLE_MASK",
       "asset": "overlays/void_mantle.png",
-      "asset_sha256": "8682a4aa0f8d62dcc51cdc99914311e926bd0e9b1a8e675cdc21e9dc9a2ef1d5"
+      "asset_sha256": "7340366bad0d0a5d4f34c6b1f219d9b33876c7c690a2acafcee144f2a6c190a2"
     }
   },
   "characters": [
@@ -909,6 +917,315 @@
     "matte_halo": 0,
     "chroma_residue": 0,
     "item_character_bespoke_redraws": 0
+  },
+  "p1b": {
+    "task_id": "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1B_NARROW_FIX_001",
+    "head_before": "c733b59e83fc3e641314064033ca165b782975f5",
+    "items": [
+      "iron_sword",
+      "void_mantle"
+    ],
+    "templates": {
+      "iron_sword": "WEAPON_WAIST",
+      "void_mantle": "SHOULDER_MANTLE"
+    },
+    "revisions": {
+      "iron_sword": "increase_exposed_waist_carried_silhouette_and_mobile_contrast_without_hand_grip",
+      "void_mantle": "increase_shoulder_mantle_mass_and_downward_drape_without_face_or_torso_identity_loss"
+    },
+    "template_changes": {
+      "WEAPON_WAIST": false,
+      "SHOULDER_MANTLE": false
+    },
+    "approved_assets_unchanged": {
+      "dragon_scale": true,
+      "fox_mask": true
+    },
+    "qa_matrix": [
+      {
+        "equipment_id": "iron_sword",
+        "character_key": "apprentice",
+        "template_id": "WEAPON_WAIST",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/iron_sword.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "iron_sword",
+        "character_key": "mage",
+        "template_id": "WEAPON_WAIST",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/iron_sword.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "iron_sword",
+        "character_key": "paladin",
+        "template_id": "WEAPON_WAIST",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/iron_sword.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "iron_sword",
+        "character_key": "trail_apprentice",
+        "template_id": "WEAPON_WAIST",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/iron_sword.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "iron_sword",
+        "character_key": "night_runner",
+        "template_id": "WEAPON_WAIST",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/iron_sword.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "iron_sword",
+        "character_key": "constellation_apprentice",
+        "template_id": "WEAPON_WAIST",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/iron_sword.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "void_mantle",
+        "character_key": "apprentice",
+        "template_id": "SHOULDER_MANTLE",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/void_mantle.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "void_mantle",
+        "character_key": "mage",
+        "template_id": "SHOULDER_MANTLE",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/void_mantle.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "void_mantle",
+        "character_key": "paladin",
+        "template_id": "SHOULDER_MANTLE",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/void_mantle.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "void_mantle",
+        "character_key": "trail_apprentice",
+        "template_id": "SHOULDER_MANTLE",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/void_mantle.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "void_mantle",
+        "character_key": "night_runner",
+        "template_id": "SHOULDER_MANTLE",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/void_mantle.png",
+        "bespoke_redraw": false
+      },
+      {
+        "equipment_id": "void_mantle",
+        "character_key": "constellation_apprentice",
+        "template_id": "SHOULDER_MANTLE",
+        "result": "PASS",
+        "metrics": {
+          "FACE_CLEARANCE": "PASS",
+          "HEAD_CLEARANCE": "PASS",
+          "SHOULDER_FIT": "PASS",
+          "TORSO_FIT": "PASS",
+          "WAIST_FIT": "PASS",
+          "HAIR_COLLISION": "PASS",
+          "ROBE_COLLISION": "PASS",
+          "ARMOR_COLLISION": "PASS",
+          "DEPTH_ORDER": "PASS",
+          "MOBILE_READABILITY": "PASS",
+          "ITEM_RECOGNIZABILITY": "PASS",
+          "CHARACTER_IDENTITY_PRESERVATION": "PASS"
+        },
+        "overlay_asset": "overlays/void_mantle.png",
+        "bespoke_redraw": false
+      }
+    ],
+    "counts": {
+      "fit_combinations": 12,
+      "fit_pass_count": 12,
+      "face_safe_zone_violations": 0,
+      "alpha_artifacts": 0,
+      "white_box_artifacts": 0,
+      "matte_halo_artifacts": 0,
+      "item_character_bespoke_redraws": 0
+    },
+    "mobile": {
+      "iron_sword_recognizability": "6/6",
+      "void_mantle_recognizability": "6/6",
+      "result": "PASS"
+    },
+    "outputs": {
+      "iron_sword_matrix": "matrices/P1B_IRON_SWORD_MATRIX.png",
+      "void_mantle_matrix": "matrices/P1B_VOID_MANTLE_MATRIX.png",
+      "mobile_matrix": "matrices/P1B_MOBILE_MATRIX.png"
+    }
   },
   "outputs": {
     "desktop_matrix": "matrices/P1_4_ITEM_FIT_MATRIX.png",

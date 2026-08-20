@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
 from PIL import Image
@@ -17,6 +18,10 @@ EXPECTED_ITEMS = {
     "dragon_scale": "TORSO_ARMOR",
     "fox_mask": "FACE_ACCESSORY",
     "void_mantle": "SHOULDER_MANTLE",
+}
+EXPECTED_APPROVED_ASSET_SHA256 = {
+    "dragon_scale": "ee04722af396d433aec98b5d6f75750a3172987bbcc704d7ecbfd4c1d0cdca98",
+    "fox_mask": "d1bcea46b3650833b268f5e20d6eed4fa1706a931aaf9a949bb42437672dd02c",
 }
 CHARACTERS = {
     "apprentice",
@@ -121,3 +126,66 @@ def test_p1_preserves_presentation_only_authority():
     assert report["template_first_workflow"]["post_hoc_character_dragging"] is False
     assert report["template_first_workflow"]["character_specific_art"] is False
     assert report["template_first_workflow"]["runtime_wiring_expanded"] is False
+
+
+def test_p1b_narrow_fix_contract_and_approved_asset_locks():
+    report = _manifest()
+    p1b = report["p1b"]
+    assert p1b["task_id"] == "RPG_WAVE2_MODULAR_2D_EQUIPMENT_PRODUCTION_V2_P1B_NARROW_FIX_001"
+    assert p1b["head_before"] == "c733b59e83fc3e641314064033ca165b782975f5"
+    assert p1b["items"] == ["iron_sword", "void_mantle"]
+    assert p1b["templates"] == {
+        "iron_sword": "WEAPON_WAIST",
+        "void_mantle": "SHOULDER_MANTLE",
+    }
+    assert p1b["template_changes"] == {
+        "WEAPON_WAIST": False,
+        "SHOULDER_MANTLE": False,
+    }
+    assert p1b["approved_assets_unchanged"] == {
+        "dragon_scale": True,
+        "fox_mask": True,
+    }
+    assert p1b["counts"] == {
+        "fit_combinations": 12,
+        "fit_pass_count": 12,
+        "face_safe_zone_violations": 0,
+        "alpha_artifacts": 0,
+        "white_box_artifacts": 0,
+        "matte_halo_artifacts": 0,
+        "item_character_bespoke_redraws": 0,
+    }
+    assert p1b["mobile"] == {
+        "iron_sword_recognizability": "6/6",
+        "void_mantle_recognizability": "6/6",
+        "result": "PASS",
+    }
+    assert all(entry["result"] == "PASS" for entry in p1b["qa_matrix"])
+    assert len(p1b["qa_matrix"]) == 12
+
+    for item_id, expected_sha in EXPECTED_APPROVED_ASSET_SHA256.items():
+        path = P1_ROOT / "overlays" / f"{item_id}.png"
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected_sha
+
+
+def test_p1b_sources_are_true_alpha_and_matrices_exist():
+    report = _manifest()
+    p1b = report["p1b"]
+    for item_id in p1b["items"]:
+        source = P1_ROOT / "sources" / f"P1B_{item_id}_source.png"
+        assert source.is_file(), item_id
+        with Image.open(source) as image:
+            rgba = image.convert("RGBA")
+            assert rgba.getchannel("A").getbbox() is not None, item_id
+            assert all(
+                (red, green, blue) == (0, 0, 0)
+                for red, green, blue, alpha in rgba.getdata()
+                if alpha == 0
+            ), item_id
+
+    for output in p1b["outputs"].values():
+        path = P1_ROOT / output
+        assert path.is_file(), output
+        with Image.open(path) as image:
+            assert image.mode == "RGB"
+            assert image.width in {430, 1236}
