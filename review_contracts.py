@@ -57,6 +57,19 @@ INTERNAL_DUPLICATE_4_FIELDS: tuple[str, ...] = (
     "question_id",
 )
 
+# RPG Wave 1: the only two result keys allowed to ride alongside a legacy
+# shape without tripping the exact-shape compatibility check. Both are
+# presentation/read projections composed by domain authorities named in
+# their own (not-yet-landed) modules -- this tuple carries no authority
+# itself and must never grow to accept an XP, HP, combat, or equipment
+# writer's result shape. Current master does not yet produce either key;
+# that is expected -- this seam is a prerequisite, landed ahead of the Wave
+# 1 lanes that will actually populate it.
+APPROVED_PRESENTATION_EXTENSION_FIELDS: tuple[str, ...] = (
+    "combat_stats",
+    "level_up_rewards",
+)
+
 
 class ReviewOutcomeKind(str, Enum):
     """The legacy-compatible result shape represented by an outcome."""
@@ -95,6 +108,11 @@ class ReviewOutcome:
 
     kind: ReviewOutcomeKind
     payload: Mapping[str, Any] = field(default_factory=dict)
+    # Approved presentation-only additions (see
+    # APPROVED_PRESENTATION_EXTENSION_FIELDS) that were present on the
+    # source legacy result. Never participates in the legacy shape check;
+    # never contains an XP/HP/combat/equipment authority write.
+    presentation_extensions: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         # Snapshot the top-level mapping so a caller cannot mutate the outcome
@@ -102,18 +120,25 @@ class ReviewOutcome:
         # are intentionally left untouched: serialization preserves their
         # existing types and missing-vs-null semantics exactly.
         object.__setattr__(self, "payload", dict(self.payload))
+        object.__setattr__(self, "presentation_extensions", dict(self.presentation_extensions))
 
     @classmethod
-    def public_full(cls, payload: Mapping[str, Any]) -> "ReviewOutcome":
-        return cls(ReviewOutcomeKind.PUBLIC_FULL, payload)
+    def public_full(
+        cls, payload: Mapping[str, Any], *, presentation_extensions: Mapping[str, Any] | None = None
+    ) -> "ReviewOutcome":
+        return cls(ReviewOutcomeKind.PUBLIC_FULL, payload, presentation_extensions or {})
 
     @classmethod
-    def public_core(cls, payload: Mapping[str, Any]) -> "ReviewOutcome":
-        return cls(ReviewOutcomeKind.PUBLIC_CORE, payload)
+    def public_core(
+        cls, payload: Mapping[str, Any], *, presentation_extensions: Mapping[str, Any] | None = None
+    ) -> "ReviewOutcome":
+        return cls(ReviewOutcomeKind.PUBLIC_CORE, payload, presentation_extensions or {})
 
     @classmethod
-    def internal_duplicate(cls, payload: Mapping[str, Any]) -> "ReviewOutcome":
-        return cls(ReviewOutcomeKind.INTERNAL_DUPLICATE, payload)
+    def internal_duplicate(
+        cls, payload: Mapping[str, Any], *, presentation_extensions: Mapping[str, Any] | None = None
+    ) -> "ReviewOutcome":
+        return cls(ReviewOutcomeKind.INTERNAL_DUPLICATE, payload, presentation_extensions or {})
 
 
 __all__ = [
@@ -121,6 +146,7 @@ __all__ = [
     "T2_OPTIONAL_FIELDS",
     "FULL_26_FIELDS",
     "INTERNAL_DUPLICATE_4_FIELDS",
+    "APPROVED_PRESENTATION_EXTENSION_FIELDS",
     "ReviewCommand",
     "ReviewOutcome",
     "ReviewOutcomeKind",
