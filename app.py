@@ -1751,6 +1751,87 @@ _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
 APPEARANCE_SLOT_KEYS = ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura')
 APPEARANCE_EQUIP_COLUMNS = tuple(f'{slot}_id' for slot in APPEARANCE_SLOT_KEYS)
 
+# ── Lane C cosmetic commerce foundation ─────────────────────────────────────
+# Wave 1 deliberately exposes one mature category only.  These products reuse
+# the existing appearance definition, wardrobe ownership row, and hero
+# renderer instead of creating a second cosmetic identity system.
+COSMETIC_COMMERCE_PRODUCTS = (
+    {
+        'product_id': 'cosmetic.outfit.robe_plain',
+        'cosmetic_id': 'robe_plain',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 200,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.robe_bamboo',
+        'cosmetic_id': 'robe_bamboo',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 450,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.robe_premium',
+        'cosmetic_id': 'robe_premium',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'premium',
+        'price': None,
+        'currency': None,
+    },
+)
+_COSMETIC_PRODUCT_BY_ID = {
+    product['product_id']: product for product in COSMETIC_COMMERCE_PRODUCTS
+}
+_COSMETIC_PRODUCT_BY_COSMETIC_ID = {
+    product['cosmetic_id']: product for product in COSMETIC_COMMERCE_PRODUCTS
+}
+
+
+def _cosmetic_product_payload(product, *, owned, equipped):
+    """Return the canonical product -> appearance -> renderer projection."""
+    appearance = _APPEAR_MAP[product['cosmetic_id']]
+    slot = appearance['slot']
+    return {
+        **product,
+        'name': appearance.get('name', product['cosmetic_id']),
+        'name_en': appearance.get('name_en', appearance.get('name', product['cosmetic_id'])),
+        'rarity': appearance.get('rarity', 'common'),
+        'flavor': appearance.get('flavor', ''),
+        'preview_asset': {
+            'kind': 'appearance_definition',
+            'asset_key': appearance['id'],
+            'emoji': appearance.get('emoji', ''),
+            'color': appearance.get('color', ''),
+        },
+        'ownership': {
+            'owned': bool(owned),
+            'source': product['ownership_source'],
+        },
+        'equipped_state': {
+            'equipped': bool(equipped),
+            'slot': slot,
+            'state_field': f'{slot}_id',
+            'cosmetic_id': appearance['id'] if equipped else None,
+        },
+        'visible_result': {
+            'surface': 'hero',
+            'renderer': 'hero.html#applyEquippedVisuals',
+            'slot': slot,
+            'state_field': f'{slot}_id',
+            'asset_key': appearance['id'],
+        },
+        'combat_power': {
+            'attack_delta': 0,
+            'defense_delta': 0,
+            'combat_authority': 'NO',
+        },
+    }
+
 # ── 外觀效果：item_id → 遊戲加成 ─────────────────────────────────────────────
 APPEARANCE_EFFECTS = {
     # 光環（aura）→ XP 加成
@@ -18766,13 +18847,18 @@ def _grant_coins(conn, uid, amount, reason, bypass_daily_cap=False) -> int:
     return granted_amount
 
 def _spend_coins(conn, uid, amount, reason) -> bool:
-    """扣金幣；餘額不足回 False（不寫入）。"""
-    bal = _coin_balance(conn, uid)
-    if bal < amount:
+    """扣金幣；只接受正整數且以 server-side balance 原子扣款。"""
+    if isinstance(amount, bool) or not isinstance(amount, int) or amount <= 0:
         return False
-    conn.execute('UPDATE user_stats SET coins=coins-? WHERE user_id=?', (amount, uid))
+    updated = conn.execute(
+        'UPDATE user_stats SET coins=COALESCE(coins,0)-? '
+        'WHERE user_id=? AND COALESCE(coins,0)>=?',
+        (amount, uid, amount))
+    if getattr(updated, 'rowcount', 0) != 1:
+        return False
+    bal = _coin_balance(conn, uid)
     conn.execute('INSERT INTO currency_log(user_id,delta,balance_after,reason,created_at) '
-                 'VALUES(?,?,?,?,?)', (uid, -amount, bal - amount, reason, _now_iso()))
+                 'VALUES(?,?,?,?,?)', (uid, -amount, bal, reason, _now_iso()))
     return True
 
 def _inv_add(conn, uid, item_key, qty=1):
@@ -18897,6 +18983,173 @@ def _gacha_collection_progress(conn, uid):
         'rarity_owned': rarity_owned,
         'missing': missing,
     }
+
+
+def _cosmetic_owned(conn, uid, product):
+    return conn.execute(
+        'SELECT 1 FROM player_wardrobe WHERE user_id=? AND item_id=?',
+        (uid, product['cosmetic_id'])).fetchone() is not None
+
+
+def _cosmetic_equipped(conn, uid, product):
+    row = conn.execute(
+        'SELECT outfit_id FROM player_appearance WHERE user_id=?', (uid,)).fetchone()
+    return bool(row and row['outfit_id'] == product['cosmetic_id'])
+
+
+def _purchase_cosmetic(conn, uid, product, *, price_override=None,
+                       premium_entitled=False):
+    """Purchase/unlock one mapped cosmetic exactly once.
+
+    The caller supplies only a product mapping and, for the legacy daily
+    rotation adapter, a server-computed price override.  Client prices never
+    enter this function.  Ownership is inserted before spending so the
+    UNIQUE(user_id, item_id) constraint is the idempotency gate; an
+    insufficient balance removes that provisional row in the same transaction.
+    """
+    item_id = product['cosmetic_id']
+    if product['unlock_type'] == 'premium':
+        if not premium_entitled:
+            return {'status': 'premium_required', 'granted': False}
+        inserted = conn.execute(
+            'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+            'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
+            (uid, item_id, _now_iso(), 'cosmetic_shop'))
+        granted = getattr(inserted, 'rowcount', 0) == 1
+        return {
+            'status': 'unlocked' if granted else 'already_owned',
+            'granted': granted,
+            'price': None,
+        }
+
+    price = product['price'] if price_override is None else price_override
+    if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
+        raise ValueError('cosmetic price must be a positive server-side integer')
+
+    inserted = conn.execute(
+        'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+        'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
+        (uid, item_id, _now_iso(), 'cosmetic_shop'))
+    if getattr(inserted, 'rowcount', 0) != 1:
+        return {'status': 'already_owned', 'granted': False, 'price': price}
+
+    if not _spend_coins(conn, uid, price, f'cosmetic_purchase:{product["product_id"]}'):
+        conn.execute(
+            'DELETE FROM player_wardrobe WHERE user_id=? AND item_id=?',
+            (uid, item_id))
+        return {'status': 'insufficient_coins', 'granted': False, 'price': price}
+    return {'status': 'purchased', 'granted': True, 'price': price}
+
+
+def _cosmetic_payload_for_user(conn, uid, product):
+    return _cosmetic_product_payload(
+        product,
+        owned=_cosmetic_owned(conn, uid, product),
+        equipped=_cosmetic_equipped(conn, uid, product),
+    )
+
+
+@app.route('/api/cosmetic-commerce/catalog')
+@login_required
+def cosmetic_commerce_catalog():
+    """Canonical Lane C catalog for the Wave 1 outfit slice."""
+    uid = session['user_id']
+    premium_entitled = is_premium(uid)
+    with get_db() as conn:
+        products = [
+            _cosmetic_payload_for_user(conn, uid, product)
+            for product in COSMETIC_COMMERCE_PRODUCTS
+        ]
+    return jsonify({
+        'categories': ['outfit'],
+        'products': products,
+        'premium_entitled': premium_entitled,
+        'product_id_authority': 'COSMETIC_COMMERCE_PRODUCTS.product_id',
+        'cosmetic_id_authority': 'APPEARANCE_DEFS.id',
+        'ownership_authority': 'player_wardrobe(user_id,item_id)',
+        'equipped_state_authority': 'player_appearance.outfit_id',
+    })
+
+
+@app.route('/api/cosmetic-commerce/preview/<product_id>')
+@login_required
+def cosmetic_commerce_preview(product_id):
+    """Read-only presentation projection; it cannot grant, spend, or equip."""
+    product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
+    if not product:
+        return jsonify({'error': 'unknown_product'}), 404
+    uid = session['user_id']
+    with get_db() as conn:
+        payload = _cosmetic_payload_for_user(conn, uid, product)
+    return jsonify({
+        'ok': True,
+        'preview_only': True,
+        'ownership_mutation': 0,
+        'purchase_mutation': 0,
+        'equip_mutation': 0,
+        'product': payload,
+    })
+
+
+@app.route('/api/cosmetic-commerce/purchase', methods=['POST'])
+@login_required
+def cosmetic_commerce_purchase():
+    """Purchase a Coins product or unlock an existing Premium entitlement."""
+    body = request.get_json(silent=True) or {}
+    product_id = str(body.get('product_id') or '').strip()
+    product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
+    if not product:
+        return jsonify({'error': 'unknown_product'}), 400
+
+    uid = session['user_id']
+    premium_entitled = is_premium(uid)
+    with get_db() as conn:
+        result = _purchase_cosmetic(
+            conn, uid, product, premium_entitled=premium_entitled)
+        if result['status'] == 'premium_required':
+            return jsonify({'error': 'premium_required'}), 403
+        if result['status'] == 'insufficient_coins':
+            return jsonify({
+                'error': 'insufficient_coins',
+                'coins': _coin_balance(conn, uid),
+            }), 400
+        payload = _cosmetic_payload_for_user(conn, uid, product)
+        return jsonify({
+            'ok': True,
+            'status': result['status'],
+            'granted': result['granted'],
+            'price_charged': result['price'],
+            'coins': _coin_balance(conn, uid),
+            'product': payload,
+        })
+
+
+@app.route('/api/cosmetic-commerce/equip', methods=['POST'])
+@login_required
+def cosmetic_commerce_equip():
+    """Equip an owned mapped outfit and persist the visible hero state."""
+    body = request.get_json(silent=True) or {}
+    product_id = str(body.get('product_id') or '').strip()
+    product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
+    if not product:
+        return jsonify({'error': 'unknown_product'}), 400
+
+    uid = session['user_id']
+    premium_entitled = is_premium(uid) if product['unlock_type'] == 'premium' else False
+    with get_db() as conn:
+        if product['unlock_type'] == 'premium' and not premium_entitled:
+            return jsonify({'error': 'premium_required'}), 403
+        if not _cosmetic_owned(conn, uid, product):
+            return jsonify({'error': 'not_owned'}), 403
+
+        now = _now_iso()
+        conn.execute(
+            'INSERT INTO player_appearance(user_id,outfit_id,updated_at) '
+            'VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET '
+            'outfit_id=excluded.outfit_id, updated_at=excluded.updated_at',
+            (uid, product['cosmetic_id'], now))
+        payload = _cosmetic_payload_for_user(conn, uid, product)
+    return jsonify({'ok': True, 'product': payload})
 
 # ── 商城 API ─────────────────────────────────────────────────
 
@@ -19096,7 +19349,10 @@ def _daily_shop_slots(conn):
     if pool:
         for a in rng.sample(pool, min(2, len(pool))):
             price = 200 if a['rarity'] == 'common' else 450
+            product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(a['id'])
             slots.append({'type': 'appearance', 'item_key': a['id'],
+                          'product_id': product['product_id'] if product else None,
+                          'cosmetic_id': a['id'],
                           'icon': a.get('emoji', '🎽'), 'name': a['name'],
                           'name_en': a.get('name_en', a['name']),
                           'rarity': a['rarity'], 'price': price})
@@ -19119,6 +19375,23 @@ def shop_buy_appearance():
                      if s['type'] == 'appearance' and s['item_key'] == item_id), None)
         if not slot:
             return jsonify({'error': 'not_in_rotation'}), 400
+        # Lane C products use the canonical product mapping even when reached
+        # through the existing daily-rotation compatibility route.
+        product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(item_id)
+        if product:
+            result = _purchase_cosmetic(
+                conn, uid, product, price_override=slot['price'])
+            if result['status'] == 'insufficient_coins':
+                return jsonify({'error': 'insufficient_coins',
+                                'coins': _coin_balance(conn, uid)}), 400
+            payload = _cosmetic_payload_for_user(conn, uid, product)
+            return jsonify({'ok': True, 'status': result['status'],
+                            'granted': result['granted'],
+                            'price_charged': result['price'],
+                            'coins': _coin_balance(conn, uid),
+                            'product_id': product['product_id'],
+                            'cosmetic_id': product['cosmetic_id'],
+                            'product': payload})
         owned = conn.execute('SELECT id FROM player_wardrobe WHERE user_id=? AND item_id=?',
                              (uid, item_id)).fetchone()
         if owned:
