@@ -42,6 +42,18 @@ from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
 from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
+from rpg_item_registry import (
+    BADGE_PROTOTYPE_SELECTION,
+    BADGE_VISUAL_SYSTEM_V1,
+    COLLECTION_SECTIONS,
+    CROSS_DOMAIN_FRAGMENT_CONTRACT,
+    ITEM_TAXONOMY,
+    ITEM_REGISTRY_VERSION,
+    JOURNAL_SECTIONS,
+    build_item_registry,
+    build_shop_product_grant_registry,
+    badge_visual_metadata,
+)
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -13803,13 +13815,16 @@ def badge_definitions():
         if en:
             d['name_en'] = en[0]
             d['desc_en'] = en[1]
+        d.update(badge_visual_metadata(d))
         defs.append(d)
     qs   = _load_questions()
     for u in {group_label(q) for q in qs}:
         u_en = _i18n_topic_en(u) or _i18n_level_en(u) or u
-        defs.append({'id':'unit_'+u.replace(' ','_'),'name':f'完成《{u}》','name_en':f'Complete "{u_en}"',
-                     'icon':'📖','desc':f'完成單元「{u}」的所有題目','desc_en':f'Complete all problems in "{u_en}"',
-                     'type':'unit_complete','value':u})
+        dynamic = {'id':'unit_'+u.replace(' ','_'),'name':f'完成《{u}》','name_en':f'Complete "{u_en}"',
+                   'icon':'📖','desc':f'完成單元「{u}」的所有題目','desc_en':f'Complete all problems in "{u_en}"',
+                   'type':'unit_complete','value':u}
+        dynamic.update(badge_visual_metadata(dynamic))
+        defs.append(dynamic)
     return jsonify(defs)
 
 @app.route('/api/badges/earned')
@@ -18626,6 +18641,10 @@ def badges_page(): return redirect('/hero?tab=badges')
 @login_required
 def inventory_page(): return _serve_live_static_or_baked('inventory.html')
 
+@app.route('/item-journal')
+@login_required
+def item_journal_page(): return _serve_live_static_or_baked('item_journal.html')
+
 # ══════════════════════════════════════════════════════════════
 # 商城系統（金幣經濟：賺取上限 / 道具 / 每日輪換 / 扭蛋）
 # 設計原則：學習道具優先、零 P2W（不賣分數/段位/Elo）
@@ -19151,6 +19170,137 @@ def cosmetic_commerce_equip():
         payload = _cosmetic_payload_for_user(conn, uid, product)
     return jsonify({'ok': True, 'product': payload})
 
+# ── Item Journal read-only projection ────────────────────────
+
+def _journal_recent_item_ids(conn, uid, product_registry, item_ids):
+    """Best-effort recent-source projection; never writes or mutates ownership.
+
+    ``shop_inventory`` and ``pet_inventory`` pre-date an obtained-at column.
+    Where the existing currency/gacha logs provide a timestamp, expose a
+    small recently-obtained hint.  Missing/legacy log tables fail closed to an
+    empty hint rather than changing the ownership contract.
+    """
+    recent = {}
+    products = {entry['product_id']: entry for entry in product_registry}
+
+    def mark_item(item_id, created_at):
+        if item_id in item_ids and item_id not in recent:
+            recent[item_id] = (created_at or '')
+
+    def mark_product(product_id, created_at):
+        product = products.get(product_id)
+        if not product:
+            mark_item(product_id, created_at)
+            return
+        for grant in product.get('grants', []):
+            mark_item(grant.get('item_id'), created_at)
+
+    try:
+        rows = conn.execute(
+            'SELECT reason, created_at FROM currency_log '
+            'WHERE user_id=? AND reason LIKE ? ORDER BY id DESC LIMIT 40',
+            (uid, 'buy:%')).fetchall()
+        for row in rows:
+            reason = str(row['reason'] or '')
+            match = re.match(r'^buy:([^x]+)x\d+$', reason)
+            if match:
+                mark_product(match.group(1), row['created_at'])
+    except Exception:
+        pass
+
+    try:
+        rows = conn.execute(
+            'SELECT result_key, created_at FROM gacha_log '
+            'WHERE user_id=? ORDER BY id DESC LIMIT 40', (uid,)).fetchall()
+        for row in rows:
+            mark_product(str(row['result_key'] or ''), row['created_at'])
+    except Exception:
+        pass
+    return recent
+
+
+@app.route('/api/item-journal')
+@login_required
+def item_journal():
+    """Return a read-only projection for non-equipment item presentation."""
+    uid = session['user_id']
+    product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
+    item_registry = build_item_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
+    item_ids = {item['item_id'] for item in item_registry}
+
+    with get_db() as conn:
+        shop_rows = conn.execute(
+            'SELECT item_key, qty FROM shop_inventory WHERE user_id=? AND qty>0',
+            (uid,)).fetchall()
+        pet_rows = conn.execute(
+            'SELECT item_key, qty FROM pet_inventory WHERE user_id=? AND qty>0',
+            (uid,)).fetchall()
+        try:
+            badge_owned = conn.execute(
+                'SELECT COUNT(*) AS n FROM badges_earned WHERE user_id=?', (uid,)
+            ).fetchone()['n']
+        except Exception:
+            badge_owned = 0
+        recent = _journal_recent_item_ids(conn, uid, product_registry, item_ids)
+
+    shop_owned = {row['item_key']: int(row['qty'] or 0) for row in shop_rows}
+    pet_owned = {row['item_key']: int(row['qty'] or 0) for row in pet_rows}
+    section_by_category = {
+        'ConsumableEffect': 'ConsumableEffect',
+        'Material': 'Material',
+        'QuestItem': 'QuestItem',
+        'TreasureBundle': 'TreasureBundle',
+        'Collectible': 'Collectible',
+    }
+    projected = []
+    for raw in item_registry:
+        item = dict(raw)
+        authority = str(item.get('ownership_authority') or item.get('current_ownership') or '')
+        if 'pet_inventory' in authority:
+            quantity = pet_owned.get(item['item_id'], 0)
+        elif 'shop_inventory' in authority:
+            quantity = shop_owned.get(item['item_id'], 0)
+        else:
+            # Bundle products intentionally have no persistent product row.
+            quantity = 0
+        item['owned_amount'] = quantity
+        item['discovered'] = bool(quantity or item.get('product_id') or item.get('source_tags'))
+        item['recently_obtained'] = item['item_id'] in recent
+        item['recent_source_at'] = recent.get(item['item_id'])
+        item['journal_section'] = section_by_category.get(item.get('category'), 'Material')
+        item['source'] = item.get('source_tags', [])
+        item['where_to_get_more'] = item.get('where_to_get_more', item.get('source_tags', []))
+        projected.append(item)
+
+    return jsonify({
+        'version': ITEM_REGISTRY_VERSION,
+        'taxonomy': list(ITEM_TAXONOMY),
+        'journal_sections': list(JOURNAL_SECTIONS),
+        'collection_sections': list(COLLECTION_SECTIONS),
+        'item_registry': {'version': ITEM_REGISTRY_VERSION, 'items': projected},
+        'items': projected,
+        'shop_product_grant_registry': product_registry,
+        'badge_collection': {
+            'static_total': len(BADGE_DEFS),
+            'owned': int(badge_owned or 0),
+            'is_backpack_item': False,
+            'href': '/badges',
+            'visual_system': BADGE_VISUAL_SYSTEM_V1,
+            'prototype_selection': list(BADGE_PROTOTYPE_SELECTION),
+        },
+        'cross_domain_fragment': CROSS_DOMAIN_FRAGMENT_CONTRACT,
+        'excluded_domains': {
+            'functional_equipment': {'authority': 'player_inventory', 'href': '/inventory'},
+            'cosmetic_appearance': {'authority': 'player_wardrobe', 'href': '/hero?tab=appearance'},
+        },
+        'mutation_boundary': {
+            'ownership_mutation': 0,
+            'purchase_mutation': 0,
+            'equip_mutation': 0,
+            'journal_write': 0,
+        },
+    })
+
 # ── 商城 API ─────────────────────────────────────────────────
 
 @app.route('/api/shop/catalog')
@@ -19165,6 +19315,7 @@ def shop_catalog():
         slots = _daily_shop_slots(conn)
         pity = _gacha_pity_count(conn, uid)
         collection = _gacha_collection_progress(conn, uid)
+    product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
     return jsonify({
         'coins': bal,
         'earned_today': earned,
@@ -19179,6 +19330,8 @@ def shop_catalog():
         'gacha': {'cost': _GACHA_COST, 'pity': _GACHA_PITY, 'pity_count': pity,
                   'rates': {'item': 0.60, 'pet_food': 0.25, 'common': 0.12, 'uncommon': 0.03}},
         'gacha_collection': collection,
+        'item_registry_version': ITEM_REGISTRY_VERSION,
+        'shop_product_grant_registry': product_registry,
     })
 
 @app.route('/api/shop/buy', methods=['POST'])
@@ -21062,7 +21215,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     'community.html', 'messages.html', 'share_view.html',
     'mistakes.html', 'curriculum.html', 'hero.html', 'rating_test.html',
     'shop.html', 'profile.html', 'premium_weekly.html', 'stats.html',
-    'upgrade.html', 'play.html', 'inventory.html', 'badges.html',
+    'upgrade.html', 'play.html', 'inventory.html', 'item_journal.html', 'badges.html',
     'games.html',
 })
 

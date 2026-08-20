@@ -60,6 +60,9 @@ header {
   border-bottom: 1px solid var(--border);
 }
 header .logo { color: var(--text); text-decoration: none; font-weight: 900; }
+.header-links { display: flex; gap: 8px; overflow-x: auto; }
+.header-links a { color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 800; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; }
+.header-links a:hover { color: var(--gold); border-color: var(--border); background: rgba(240, 191, 87, .08); }
 .page {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -273,6 +276,14 @@ h1 {
   font-size: 35px;
   line-height: 1;
 }
+.art-spec-fallback {
+  color: var(--faint);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-align: center;
+}
 .item-name {
   color: #fff7dd;
   font-size: 15px;
@@ -291,6 +302,19 @@ h1 {
   font-size: 12.5px;
   line-height: 1.62;
 }
+.item-contains {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid rgba(240, 191, 87, .22);
+  border-radius: 8px;
+  background: rgba(240, 191, 87, .08);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.item-contains strong { color: var(--gold); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
 .card-foot {
   position: relative;
   display: flex;
@@ -556,6 +580,10 @@ h1 {
 <body>
 <header>
   <a href="/" class="logo">Go Odyssey</a>
+  <nav class="header-links" aria-label="Shop navigation">
+    <a href="/item-journal">Item Journal</a>
+    <a href="/inventory">Backpack</a>
+  </nav>
 </header>
 
 <main class="page">
@@ -1135,17 +1163,27 @@ function setMerchant(mood, lineGroup = mood) {
   setMerchantLine(lineGroup);
 }
 function itemImage(key) {
-  return ASSET[key] || "";
+  const registry = (catalog?.shop_product_grant_registry || []).find(item => item.product_id === key);
+  return ASSET[key] || registry?.current_asset || "";
 }
 function artHtml(key, icon) {
   const src = itemImage(key);
   if (src) return `<img src="${src}" alt="">`;
+  const registry = (catalog?.shop_product_grant_registry || []).find(item => item.product_id === key);
+  if (registry?.art_status === 'emoji_fallback_no_canonical_asset') {
+    return `<span class="emoji-fallback art-spec-fallback" title="Formal art specification pending">ART<br>SPEC</span>`;
+  }
   return `<span class="emoji-fallback">${icon || "?"}</span>`;
 }
 function resultArt(key, icon) {
   const src = itemImage(key);
   const box = document.getElementById("gr-art");
-  box.innerHTML = src ? `<img src="${src}" alt="">` : `<span class="emoji-fallback">${icon || "?"}</span>`;
+  const registry = (catalog?.shop_product_grant_registry || []).find(item => item.product_id === key);
+  box.innerHTML = src
+    ? `<img src="${src}" alt="">`
+    : registry?.art_status === 'emoji_fallback_no_canonical_asset'
+      ? `<span class="emoji-fallback art-spec-fallback">ART<br>SPEC</span>`
+      : `<span class="emoji-fallback">${icon || "?"}</span>`;
 }
 function errorMessage(code, fallback) {
   const map = isEn() ? {
@@ -1368,6 +1406,20 @@ function renderCatalogSection(gridId, items, emptyMessage, badgeText) {
   });
 }
 
+function productRegistryEntry(key) {
+  return (catalog?.shop_product_grant_registry || []).find(item => item.product_id === key) || null;
+}
+
+function containsCopy(item) {
+  const registry = productRegistryEntry(item.key || item.item_key);
+  if (!registry || registry.grant_type !== 'BUNDLE') return '';
+  const names = isEn() ? (registry.granted_display_names_en || {}) : (registry.granted_display_names || {});
+  const parts = (registry.grants || []).map(grant =>
+    `${names[grant.item_id] || grant.item_id} ×${Number(grant.quantity || 0)}`
+  );
+  return `<div class="item-contains"><strong>${isEn() ? 'Contains' : '立即獲得'}</strong><span>${parts.join(isEn() ? ' · ' : '、')}</span></div>`;
+}
+
 function itemCard(item, saleOrOptions = false) {
   const card = document.createElement("article");
   card.className = "item-card";
@@ -1387,6 +1439,7 @@ function itemCard(item, saleOrOptions = false) {
       </div>
     </div>
     <div class="item-desc">${descOf({ ...item, key }) || (isEn() ? "A purchasable tool from the shop." : "這是一個可在商店購買的道具。")}</div>
+    ${containsCopy({ ...item, key })}
     <div class="card-foot">
       <div class="price">${sale && item.orig_price ? `<small>${money(item.orig_price)}</small>` : ""}${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
       <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
@@ -1454,7 +1507,10 @@ async function showPurchaseConfirmation(res, purchasedKey) {
   const grants = await resolvePurchaseGrants(res, purchasedKey);
   title.textContent = isEn() ? 'Purchase successful' : '購買成功';
   const quantities = grants.map(grant => `${grant.name}: ${grant.quantity}`).join(isEn() ? '; ' : '；');
-  copy.textContent = isEn() ? `Added to Backpack · Owned: ${quantities}` : `已加入背包 · 目前持有：${quantities}`;
+  const registry = productRegistryEntry(purchasedKey);
+  copy.textContent = registry?.grant_type === 'BUNDLE'
+    ? (isEn() ? `Contains: ${quantities}. Added to existing item quantities.` : `立即獲得：${quantities}；已加入既有物品數量。`)
+    : (isEn() ? `Added to Backpack · Owned: ${quantities}` : `已加入背包 · 目前持有：${quantities}`);
   destination.href = grants.length === 1 ? `/inventory?focus=${encodeURIComponent(grants[0].key)}` : '/inventory';
   destination.textContent = isEn() ? 'Go to Backpack' : '前往背包';
   panel.hidden = false;

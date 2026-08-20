@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Item Journal — Go Odyssey</title>
+  <style>
+    :root {
+      --paper:#faf7f2; --panel:#fff; --ink:#21180d; --muted:#725f48;
+      --line:#e5ddd0; --teal:#0d9488; --teal-bg:#f0fdfa;
+      --amber:#b45309; --amber-bg:#fffbeb; --violet:#6d28d9;
+      --shadow:0 4px 18px rgba(33,24,13,.07);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+    body{margin:0;min-height:100vh;background:
+      linear-gradient(rgba(229,221,208,.32) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(229,221,208,.32) 1px,transparent 1px),var(--paper);
+      background-size:44px 44px}
+    a{color:inherit}
+    header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 22px;background:rgba(250,247,242,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    .brand{font-weight:800;text-decoration:none;letter-spacing:.04em}
+    nav{display:flex;gap:8px;overflow:auto;white-space:nowrap}
+    nav a{padding:9px 12px;border-radius:9px;text-decoration:none;color:var(--muted);font-size:13px;font-weight:700}
+    nav a:hover,nav a[aria-current="page"]{background:var(--teal-bg);color:var(--teal)}
+    main{max-width:1120px;margin:0 auto;padding:42px 22px 72px}
+    .kicker{margin:0 0 8px;color:var(--amber);font-size:11px;font-weight:900;letter-spacing:.2em;text-transform:uppercase}
+    h1{margin:0;font-family:Georgia,serif;font-size:clamp(32px,5vw,58px);line-height:1.04}
+    .lede{max-width:760px;margin:12px 0 0;color:var(--muted);line-height:1.7}
+    .boundary{margin:20px 0 30px;padding:14px 16px;border:1px solid #a7e3dc;border-radius:12px;background:var(--teal-bg);color:#115e59;font-size:13px;line-height:1.6}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0 30px}
+    .summary-card{padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow)}
+    .summary-card strong{display:block;font:700 28px Georgia,serif;color:var(--teal)}
+    .summary-card span{display:block;margin-top:4px;color:var(--muted);font-size:12px}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:30px 0 14px}
+    .toolbar h2{margin:0;font:700 25px Georgia,serif}
+    .filters{display:flex;gap:8px;overflow:auto;padding:2px 0 14px}
+    .filter{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 13px;color:var(--muted);font-weight:800;cursor:pointer}
+    .filter[aria-selected="true"]{border-color:var(--teal);background:var(--teal-bg);color:var(--teal)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+    .card{display:flex;flex-direction:column;gap:12px;min-width:0;padding:16px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:var(--shadow)}
+    .card-head{display:flex;gap:12px;align-items:center}
+    .art{width:68px;height:68px;display:grid;place-items:center;flex:0 0 auto;border-radius:16px;background:linear-gradient(135deg,#f2eadb,#fff);border:1px solid var(--line);overflow:hidden}
+    .art img{width:100%;height:100%;object-fit:contain}
+    .art-pending{font-size:9px;line-height:1.15;text-align:center;font-weight:900;letter-spacing:.08em;color:var(--muted)}
+    .name{font-weight:900;overflow-wrap:anywhere}
+    .id{margin-top:3px;color:var(--muted);font:11px ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+    .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+    .pill{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;background:#f6f1ea;color:var(--muted);font-size:10px;font-weight:800}
+    .pill.owned{background:var(--teal-bg);color:var(--teal)}
+    .pill.new{background:var(--amber-bg);color:var(--amber)}
+    .desc{color:var(--muted);font-size:13px;line-height:1.55;min-height:40px}
+    .detail{display:grid;gap:7px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;line-height:1.45}
+    .detail b{color:var(--ink)}
+    .detail span{color:var(--muted)}
+    .source-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+    .source{padding:3px 7px;border-radius:7px;background:#f6f1ea;color:var(--muted);font-size:10px}
+    .links{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:38px}
+    .link-card{display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff;text-decoration:none}
+    .link-card:hover{border-color:var(--teal)}
+    .link-card strong{font-size:14px}.link-card span{color:var(--muted);font-size:12px;line-height:1.5}
+    .empty{grid-column:1/-1;padding:38px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px;background:rgba(255,255,255,.6)}
+    @media(max-width:700px){header{align-items:flex-start;flex-direction:column;padding:12px 16px}main{padding:30px 16px 62px}.summary{grid-template-columns:1fr 1fr}.summary-card:last-child{grid-column:1/-1}.links{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.toolbar{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">弈境奇兵 · Go Odyssey</a>
+    <nav aria-label="Item Journal navigation">
+      <a href="/item-journal" aria-current="page">Item Journal</a>
+      <a href="/shop">Shop</a>
+      <a href="/inventory">Backpack</a>
+      <a href="/hero?tab=appearance">Appearance</a>
+      <a href="/badges">Badges</a>
+    </nav>
+  </header>
+
+  <main>
+    <p class="kicker">Wave 2 · Lane C</p>
+    <h1>Item Journal</h1>
+    <p class="lede">查看非裝備物品的正式定義、持有數量、用途與取得來源。這裡是 read-only projection；徽章、功能裝備與外觀 ownership 仍由各自 domain 管理。</p>
+    <div class="boundary" role="status">本頁不購買、不使用、不裝備、不改變 ownership。Bundle 會顯示 <strong>立即獲得 / Contains</strong>，不會暗示玩家持有一個未被保存的箱子。</div>
+
+    <section class="summary" aria-label="Journal summary">
+      <div class="summary-card"><strong id="summary-kinds">—</strong><span>已知 item definitions</span></div>
+      <div class="summary-card"><strong id="summary-owned">—</strong><span>目前持有數量總和</span></div>
+      <div class="summary-card"><strong id="summary-badges">—</strong><span>徽章收藏（獨立於 Backpack）</span></div>
+    </section>
+
+    <section aria-labelledby="items-title">
+      <div class="toolbar"><h2 id="items-title">Inventory</h2><span id="journal-status" class="pill">Loading…</span></div>
+      <div class="filters" id="journal-filters" role="tablist" aria-label="Item categories"></div>
+      <div class="grid" id="journal-grid" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="collections-title">
+      <div class="toolbar"><h2 id="collections-title">Collections</h2></div>
+      <div class="links" id="collection-links"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = { data:null, filter:'all' };
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const list = value => Array.isArray(value) ? value : [];
+    const itemName = item => document.documentElement.lang === 'en' ? (item.name_en || item.name || item.item_id) : (item.name || item.name_en || item.item_id);
+    const labels = {
+      all:'全部 / All', ConsumableEffect:'消耗品 / Consumables', Material:'素材 / Materials',
+      QuestItem:'任務 / Quest', TreasureBundle:'寶物 / Treasure'
+    };
+    function artHtml(item) {
+      if (item.asset_path) return `<img src="${esc(item.asset_path)}" alt="">`;
+      return '<span class="art-pending">ART<br>SPEC</span>';
+    }
+    function containsHtml(item) {
+      const grants = list(item.product?.grants);
+      if (!grants.length || item.product?.grant_type !== 'BUNDLE') return '';
+      const copy = grants.map(grant => `${esc(grant.item_id)} ×${Number(grant.quantity || 0)}`).join(' · ');
+      return `<div><b>立即獲得 / Contains</b><br><span>${copy}</span></div>`;
+    }
+    function sourceHtml(items) {
+      return `<div class="source-list">${list(items).map(value => `<span class="source">${esc(value)}</span>`).join('') || '<span class="source">Source pending</span>'}</div>`;
+    }
+    function renderFilters() {
+      const root = document.getElementById('journal-filters');
+      const counts = { all:state.data.items.length };
+      state.data.items.forEach(item => { counts[item.category] = (counts[item.category] || 0) + 1; });
+      root.innerHTML = Object.entries(labels).map(([key,label]) =>
+        `<button type="button" class="filter" role="tab" aria-selected="${state.filter === key}" data-filter="${key}">${label} ${counts[key] || 0}</button>`
+      ).join('');
+      root.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+        state.filter = button.dataset.filter;
+        renderFilters(); renderItems();
+      }));
+    }
+    function renderItems() {
+      const root = document.getElementById('journal-grid');
+      const items = state.data.items.filter(item => state.filter === 'all' || item.category === state.filter);
+      if (!items.length) { root.innerHTML = '<div class="empty">此分類目前沒有可展示的 item definition。</div>'; return; }
+      root.innerHTML = items.map(item => {
+        const owned = Number(item.owned_amount || 0);
+        const status = item.discovered ? '已發現 / Discovered' : '尚未發現 / Undiscovered';
+        const recent = item.recently_obtained ? '<span class="pill new">Recently obtained</span>' : '';
+        const ownershipNote = item.ownership_authority === 'grant_components_only'
+          ? 'Product ownership: NO · grants only'
+          : `Owned: ${owned}`;
+        return `<article class="card">
+          <div class="card-head"><div class="art">${artHtml(item)}</div><div><div class="name">${esc(itemName(item))}</div><div class="id">${esc(item.item_id)}</div><div class="meta"><span class="pill owned">${esc(ownershipNote)}</span><span class="pill">${esc(item.category)}</span>${recent}</div></div></div>
+          <p class="desc">${esc(item.description || item.current_effect || item.effect_use || 'Item definition')}</p>
+          <div class="detail">
+            <div><b>State</b><br><span>${esc(status)}</span></div>
+            ${containsHtml(item)}
+            <div><b>Effect / Use</b><br><span>${esc(item.effect_use || 'No direct use defined')}</span></div>
+            <div><b>Source</b>${sourceHtml(item.source)}</div>
+            <div><b>Where to get more</b>${sourceHtml(item.where_to_get_more)}</div>
+          </div>
+        </article>`;
+      }).join('');
+    }
+    function renderCollections() {
+      const badge = state.data.badge_collection || {};
+      const links = [
+        { href:'/item-journal?category=Material', title:'Relics / Zone', copy:'Zone Material contract is ready; dedicated quest/drop items remain server-authorized future content.' },
+        { href:'/badges', title:'Achievements / Badges', copy:`${badge.owned || 0} / ${badge.static_total || 0} static badges · Badge is not a Backpack Item.` },
+        { href:'/hero?tab=appearance', title:'Appearance Collection', copy:'Cosmetic rewards remain in player_wardrobe and the existing Cosmetic authority.' },
+        { href:'/inventory', title:'Functional Equipment → Backpack', copy:'Equipment remains outside this Lane C item journal and keeps its existing authority.' },
+      ];
+      document.getElementById('collection-links').innerHTML = links.map(link => `<a class="link-card" href="${link.href}"><strong>${link.title}</strong><span>${link.copy}</span></a>`).join('');
+    }
+    async function loadJournal() {
+      try {
+        const response = await fetch('/api/item-journal', { credentials:'include', cache:'no-store' });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || `HTTP ${response.status}`);
+        state.data = data;
+        const requested = new URLSearchParams(location.search).get('category');
+        state.filter = requested && Object.prototype.hasOwnProperty.call(labels, requested) ? requested : 'all';
+        document.getElementById('summary-kinds').textContent = data.items.length;
+        document.getElementById('summary-owned').textContent = data.items.reduce((sum,item) => sum + Number(item.owned_amount || 0), 0).toLocaleString();
+        document.getElementById('summary-badges').textContent = `${data.badge_collection?.owned || 0}/${data.badge_collection?.static_total || 0}`;
+        document.getElementById('journal-status').textContent = 'Read-only projection';
+        renderFilters(); renderItems(); renderCollections();
+      } catch (error) {
+        document.getElementById('journal-status').textContent = 'Load failed';
+        document.getElementById('journal-grid').innerHTML = `<div class="empty">Item Journal 載入失敗：${esc(error.message)}</div>`;
+      }
+    }
+    loadJournal();
+  </script>
+</body>
+</html>
