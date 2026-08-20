@@ -40,7 +40,10 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 #   732d8384d = prior APPROVED_PRODUCT_BASELINE (E10_LORD_REPLAY_ISOLATED_
 #               RELEASE_001), inherited unchanged and superseded here only
 #               because 7e744efd/cce3bb2d's own product bytes postdate it.
-PRODUCT_SHA = "7e744efde0198fce74e2a79d52d77dfedb00a678"
+# 8d1c1f893 advances this constant to itself (a governance-only commit that
+# records the above provenance and carries no further product bytes), so
+# the chain is self-terminating: no tracked file changes after this SHA.
+PRODUCT_SHA = "8d1c1f893da602c27213b84aac8da42c4661eadf"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
