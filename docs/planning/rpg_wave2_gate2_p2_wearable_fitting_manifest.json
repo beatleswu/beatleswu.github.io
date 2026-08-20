@@ -1,0 +1,161 @@
+{
+  "task_id": "RPG_WAVE2_GATE2_P2_WEARABLE_FITTING_PROTOTYPE_001",
+  "status": "owner_review_candidate",
+  "base_sha": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "review_only": true,
+  "runtime_wiring": false,
+  "player_frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [1056, 1408],
+    "color_mode": "RGBA",
+    "foot_baseline": 0.975,
+    "body_frame_variants": 1
+  },
+  "authority": {
+    "player_appearance": "player_appearance.character_key",
+    "functional_equipment_ownership": "player_inventory",
+    "functional_equipment_equipped": "player_inventory.equipped",
+    "functional_effects": "server EQUIPMENT_DEFS",
+    "character_combat_authority": false,
+    "client_combat_authority": false,
+    "combat_delta_from_wearable_rendering": 0,
+    "writes_api": false,
+    "writes_db": false
+  },
+  "characters": {
+    "apprentice": {
+      "base": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "anchors": {
+        "face": [528, 235],
+        "viewer_right_hand": [760, 735],
+        "torso": [528, 515]
+      },
+      "wearable_scale": {
+        "iron_sword": 1.0,
+        "dragon_scale": 1.0,
+        "fox_mask": 1.0
+      }
+    },
+    "mage": {
+      "base": "assets/hero/characters/wave2_p1/mage_p1.png",
+      "anchors": {
+        "face": [528, 230],
+        "viewer_right_hand": [735, 670],
+        "torso": [528, 500]
+      },
+      "wearable_scale": {
+        "iron_sword": 0.97,
+        "dragon_scale": 0.96,
+        "fox_mask": 0.91
+      }
+    },
+    "paladin": {
+      "base": "assets/hero/characters/wave2_p1/paladin_p1.png",
+      "anchors": {
+        "face": [528, 232],
+        "viewer_right_hand": [775, 730],
+        "torso": [528, 512]
+      },
+      "wearable_scale": {
+        "iron_sword": 1.0,
+        "dragon_scale": 1.035,
+        "fox_mask": 0.94
+      }
+    }
+  },
+  "equipment": {
+    "iron_sword": {
+      "slot": "weapon",
+      "inventory_icon": "assets/hero/equipment/functional/iron_sword.svg",
+      "generated_source": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/sources/iron_sword_imagegen_source.png",
+      "normalized_cutout": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/cutouts/iron_sword_wearable_cutout.png",
+      "canonical_overlay": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/overlays/iron_sword_player_frame_a.png",
+      "render_layer": "BEHIND_CHARACTER_BASE",
+      "target_height": 720,
+      "source_anchor": [0.70, 0.13],
+      "mirror_for_viewer_right_hand": true,
+      "item_presentation_art_reused_as_wearable": false
+    },
+    "dragon_scale": {
+      "slot": "armor",
+      "inventory_icon": "assets/hero/equipment/functional/dragon_scale.svg",
+      "generated_source": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/sources/dragon_scale_imagegen_source.png",
+      "normalized_cutout": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/cutouts/dragon_scale_wearable_cutout.png",
+      "canonical_overlay": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/overlays/dragon_scale_player_frame_a.png",
+      "render_layer": "IN_FRONT_OF_CHARACTER_BASE",
+      "target_width": 430,
+      "source_anchor": [0.5, 0.5],
+      "item_presentation_art_reused_as_wearable": false
+    },
+    "fox_mask": {
+      "slot": "accessory",
+      "inventory_icon": "assets/hero/equipment/functional/fox_mask.svg",
+      "generated_source": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/sources/fox_mask_imagegen_source.png",
+      "normalized_cutout": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/cutouts/fox_mask_wearable_cutout.png",
+      "canonical_overlay": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/overlays/fox_mask_player_frame_a.png",
+      "render_layer": "IN_FRONT_OF_CHARACTER_BASE",
+      "target_width": 210,
+      "source_anchor": [0.5, 0.5],
+      "item_presentation_art_reused_as_wearable": false
+    }
+  },
+  "occlusion": {
+    "model": "BASE_AND_REUSABLE_CHARACTER_MASKS",
+    "character_reusable_masks": 3,
+    "masks": {
+      "apprentice": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/masks/apprentice_hair_front_mask.png",
+      "mage": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/masks/mage_hair_front_mask.png",
+      "paladin": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/masks/paladin_hair_front_mask.png"
+    },
+    "front_hand_mask_required": false,
+    "front_hand_strategy": "weapon renders behind the unchanged character base",
+    "paladin_armor_strategy": "A_REUSABLE_OVERLAY_OVER_EXISTING_CLOTHING_NO_SUPPRESSION",
+    "mage_occlusion_strategy": "ANCHOR_OFFSET_PLUS_REUSABLE_HAIR_FRONT_MASK",
+    "item_character_bespoke_redraws": 0
+  },
+  "scalability": {
+    "can_one_body_frame_support_reusable_wearables": "PASS_WITH_REUSABLE_CHARACTER_MASKS",
+    "universal_overlays": 3,
+    "body_frame_variants": 1,
+    "character_reusable_masks": 3,
+    "item_character_bespoke_redraws": 0,
+    "future_15_equipment_scalability": "PASS_PROTOTYPE_ARCHITECTURE"
+  },
+  "qa_matrix": [
+    {"character": "apprentice", "loadout": "iron_sword", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "apprentice", "loadout": "dragon_scale", "result": "PASS"},
+    {"character": "apprentice", "loadout": "fox_mask", "result": "PASS"},
+    {"character": "mage", "loadout": "iron_sword", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "mage", "loadout": "dragon_scale", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "mage", "loadout": "fox_mask", "result": "PASS"},
+    {"character": "paladin", "loadout": "iron_sword", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "paladin", "loadout": "dragon_scale", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "paladin", "loadout": "fox_mask", "result": "PASS"},
+    {"character": "apprentice", "loadout": "full", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "mage", "loadout": "full", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "paladin", "loadout": "full", "result": "PASS_WITH_MINOR_OFFSET"}
+  ],
+  "aggregate_qa": {
+    "iron_sword_fit": "PASS_WITH_MINOR_OFFSET",
+    "dragon_scale_fit": "PASS_WITH_MINOR_OFFSET",
+    "fox_mask_fit": "PASS",
+    "hand_grip_alignment": "PASS_WITH_MINOR_OFFSET",
+    "head_alignment": "PASS",
+    "torso_alignment": "PASS_WITH_MINOR_OFFSET",
+    "shoulder_alignment": "PASS_WITH_MINOR_OFFSET",
+    "depth_order": "PASS",
+    "hair_occlusion": "PASS_WITH_REUSABLE_CHARACTER_MASKS",
+    "hand_occlusion": "PASS",
+    "clothing_collision": "PASS_WITH_MINOR_OFFSET",
+    "armor_floating": "PASS",
+    "mobile_readability": "PASS",
+    "identity_preservation": "PASS"
+  },
+  "outputs": {
+    "review_html": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_review.html",
+    "contact_sheet": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_contact_sheet.png",
+    "single_item_composites": 9,
+    "full_loadout_composites": 3,
+    "total_required_composites": 12
+  }
+}
