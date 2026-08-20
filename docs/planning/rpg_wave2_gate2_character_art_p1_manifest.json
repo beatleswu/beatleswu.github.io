@@ -1,0 +1,207 @@
+{
+  "manifest_id": "rpg_wave2_gate2_character_art_p1",
+  "status": "owner_review_candidate",
+  "base_sha": "a82b0d99e0b413d9cd55dac4e86ef5c5140351e6",
+  "scope": {
+    "existing_character_polish_count": 3,
+    "new_character_count": 3,
+    "world_npc_count": 2,
+    "runtime_roster_changed": false,
+    "runtime_selection_api_changed": false
+  },
+  "visual_revision": {
+    "revision_id": "RPG_WAVE2_GATE2_CHARACTER_ART_P1_VISUAL_REVISION_002",
+    "player_visual_family_coherence": "PASS — all six selectable P1 review characters use the shared stylized chibi/anime production family and target approximately 4.5–5.5 heads.",
+    "classifications": {
+      "trail_apprentice": "POLISH — identity, scarf, pack, travel silhouette, and teal/brown family preserved",
+      "night_runner": "REVISE — rogue hood, dark asymmetric silhouette, and teal/violet accents preserved while moving into the player proportion family",
+      "constellation_apprentice": "REVISE — mage/scholar identity, constellation motif, asymmetric layers, and navy/gold family preserved",
+      "world.village_elder": "KEEP — canonical E10 identity preserved",
+      "world.messenger": "POLISH — Zone 1 Shot 10 courier identity and story role preserved"
+    },
+    "player_body_frame_families": {
+      "PLAYER_FRAME_A_STANDARD_CHIBI": {
+        "members": ["apprentice", "mage", "paladin", "trail_apprentice", "night_runner", "constellation_apprentice"],
+        "shared_contract": "1056x1408 RGBA canvas, centered x=.20-.80 body frame, y=.975 foot baseline, frontal/near-frontal eye-level view, shared hand/head/back/accessory anchors, and minimum 10% mobile safe area"
+      },
+      "NPC_FRAME_B_WORLD_BROAD": {
+        "members": ["world.village_elder", "world.messenger"],
+        "shared_contract": "World-character frame may vary in age and body proportion while retaining the same alpha, camera, lighting, baseline, and world outline language"
+      }
+    },
+    "future_equipment_fitting_compatibility": "PASS — all six player characters share PLAYER_FRAME_A_STANDARD_CHIBI and the same normalized foot/head/hand/waist geometry. Future equipment projections can target shared anchors without changing base art or granting visual authority.",
+    "functional_weapon_policy": "No functional weapon is baked into any base character art; decorative props remain story/presentation-only."
+  },
+  "art_contract": {
+    "master_canvas": "1056x1408",
+    "source_master": "PNG",
+    "runtime_derivative": "WebP",
+    "color_mode": "RGBA",
+    "foot_baseline": "y=.975",
+    "body_frame": "x=.20-.80,y=.02-.98; extremities remain within the 10% mobile safe area",
+    "camera": "frontal or near-frontal, eye-level",
+    "lighting": "consistent soft upper-left key",
+    "alpha": "true alpha; generated border checkerboard removed deterministically, exterior residue thresholded, and fully transparent RGB neutralized",
+    "mobile_safe_area": "minimum 10%",
+    "functional_weapon_baked_in_base_art": false
+  },
+  "authority": {
+    "player_character_appearance": "player_appearance.character_key",
+    "functional_equipment": "player_inventory",
+    "character_combat_authority": false,
+    "collection_prototype_writes_api": false,
+    "collection_prototype_writes_db": false,
+    "new_candidate_ids_registered_in_runtime": false
+  },
+  "collection_prototype": {
+    "review_artifact": "docs/planning/rpg_wave2_gate2_character_art_p1_review.html",
+    "progress_display": "10 / 20",
+    "progress_semantics": "The ten existing roster IDs remain the active collection baseline; P1 new candidates are preview-only locked cards.",
+    "demonstrated_states": ["selected", "unlocked", "locked"],
+    "display_fields": ["name", "family", "lore", "zone_association", "acquisition_source", "unlock_requirement"],
+    "excluded_fields": ["Attack", "Defense", "Power", "rarity"]
+  },
+  "player_assets": [
+    {
+      "character_id": "apprentice",
+      "display_name": "見習生 / Apprentice",
+      "kind": "existing_polish",
+      "family": "Beginner",
+      "zone_association": "Newbie Village",
+      "current_source": "assets/hero/characters/chibi_apprentice_normalized.webp",
+      "master": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "runtime_derivative": "assets/hero/characters/wave2_p1/apprentice_p1.webp",
+      "state_example": "selected",
+      "unlock_source": "starter appearance",
+      "unlock_requirement": "available at first selection",
+      "player_lore": "A simple beginning, open to every path beyond the village.",
+      "polish_result": "KEEP_CONCEPT / LIGHT_POLISH",
+      "functional_weapon_baked_in": false
+    },
+    {
+      "character_id": "mage",
+      "display_name": "法師 / Mage",
+      "kind": "existing_polish",
+      "family": "Mage",
+      "zone_association": "Sage Tower approach",
+      "current_source": "assets/hero/characters/chibi_mage_normalized.webp",
+      "master": "assets/hero/characters/wave2_p1/mage_p1.png",
+      "runtime_derivative": "assets/hero/characters/wave2_p1/mage_p1.webp",
+      "state_example": "unlocked",
+      "unlock_source": "existing appearance roster",
+      "unlock_requirement": "existing server-derived appearance predicate",
+      "player_lore": "A patient reader of sky, stone, and the patterns between them.",
+      "polish_result": "KEEP_CONCEPT / HEAVY_POLISH",
+      "functional_weapon_baked_in": false
+    },
+    {
+      "character_id": "paladin",
+      "display_name": "聖騎 / Paladin",
+      "kind": "existing_polish",
+      "family": "Knight",
+      "zone_association": "Newbie Village collection",
+      "current_source": "assets/hero/characters/chibi_paladin_normalized.webp",
+      "master": "assets/hero/characters/wave2_p1/paladin_p1.png",
+      "runtime_derivative": "assets/hero/characters/wave2_p1/paladin_p1.webp",
+      "state_example": "unlocked",
+      "unlock_source": "existing appearance roster",
+      "unlock_requirement": "existing server-derived appearance predicate",
+      "player_lore": "A calm, bright silhouette that makes room for others to stand beside it.",
+      "polish_result": "KEEP_CONCEPT / MEDIUM_POLISH",
+      "functional_weapon_baked_in": false
+    },
+    {
+      "character_id": "trail_apprentice",
+      "display_name": "Trail Apprentice",
+      "kind": "new_candidate",
+      "family": "Beginner / Adventurer",
+      "zone_association": "Newbie Village departure road",
+      "current_source": "Gate 1 approved concept: trail_apprentice",
+      "master": "assets/hero/characters/wave2_p1/trail_apprentice_p1.png",
+      "runtime_derivative": "assets/hero/characters/wave2_p1/trail_apprentice_p1.webp",
+      "state_example": "locked",
+      "unlock_source": "early story milestone (future candidate)",
+      "unlock_requirement": "complete the first departure milestone",
+      "player_lore": "You left the village before you felt ready, carrying curiosity rather than status.",
+      "polish_result": "P1_VISUAL_REVISION_002 / POLISH — PLAYER_FRAME_A_STANDARD_CHIBI",
+      "functional_weapon_baked_in": false
+    },
+    {
+      "character_id": "night_runner",
+      "display_name": "Night Runner",
+      "kind": "new_candidate",
+      "family": "Rogue / Adventurer",
+      "zone_association": "Goblin Cave and forest edge",
+      "current_source": "Gate 1 approved concept: night_runner",
+      "master": "assets/hero/characters/wave2_p1/night_runner_p1.png",
+      "runtime_derivative": "assets/hero/characters/wave2_p1/night_runner_p1.webp",
+      "state_example": "locked",
+      "unlock_source": "Zone 3 story milestone (future candidate)",
+      "unlock_requirement": "complete the Zone 3 courier story",
+      "player_lore": "You carry messages through places where certainty is more dangerous than silence.",
+      "polish_result": "P1_VISUAL_REVISION_002 / REVISE — PLAYER_FRAME_A_STANDARD_CHIBI",
+      "functional_weapon_baked_in": false
+    },
+    {
+      "character_id": "constellation_apprentice",
+      "display_name": "Constellation Apprentice",
+      "kind": "new_candidate",
+      "family": "Mage / Scholar",
+      "zone_association": "Sage Tower approach",
+      "current_source": "Gate 1 approved concept: constellation_apprentice",
+      "master": "assets/hero/characters/wave2_p1/constellation_apprentice_p1.png",
+      "runtime_derivative": "assets/hero/characters/wave2_p1/constellation_apprentice_p1.webp",
+      "state_example": "locked",
+      "unlock_source": "Sage Tower story milestone (future candidate)",
+      "unlock_requirement": "reach the Sage Tower approach",
+      "player_lore": "You know only a few stars, but you know which ones to keep looking for.",
+      "polish_result": "P1_VISUAL_REVISION_002 / REVISE — PLAYER_FRAME_A_STANDARD_CHIBI",
+      "functional_weapon_baked_in": false
+    }
+  ],
+  "world_npc_assets": [
+    {
+      "canonical_id": "world.village_elder",
+      "display_name": "村長 / Village Elder",
+      "kind": "world_npc",
+      "zone": "Zone 1 Newbie Village",
+      "story_role": "Living teacher and keeper of the first Go trial",
+      "current_source": "assets/e10/art/zone1/lord_trial/zone1_village_elder_reference.webp",
+      "master": "assets/world/characters/wave2_p1/world_village_elder_p1.png",
+      "runtime_derivative": "assets/world/characters/wave2_p1/world_village_elder_p1.webp",
+      "state_example": "unlocked_npc",
+      "identity_policy": "reuse canonical E10 identity; reusable presentation only",
+      "visual_revision": "P1_VISUAL_REVISION_002 / KEEP — canonical identity preserved",
+      "functional_weapon_baked_in": false
+    },
+    {
+      "canonical_id": "world.messenger",
+      "display_name": "信使 / Messenger",
+      "kind": "world_npc",
+      "zone": "Zone 1, Shot 10",
+      "story_role": "Delivers the missing-caravan hook after the Elder trial",
+      "current_source": "Zone 1 Shot 10 role; no standalone production asset found",
+      "master": "assets/world/characters/wave2_p1/world_messenger_p1.png",
+      "runtime_derivative": "assets/world/characters/wave2_p1/world_messenger_p1.webp",
+      "state_example": "unlocked_npc",
+      "identity_policy": "derive from canonical Shot 10 role; no story change",
+      "visual_revision": "P1_VISUAL_REVISION_002 / POLISH — NPC_FRAME_B_WORLD_BROAD",
+      "functional_weapon_baked_in": false
+    }
+  ],
+  "qa": {
+    "master_dimensions_verified": true,
+    "runtime_derivatives_created": true,
+    "alpha_extrema_verified": "0..255 for every P1 master",
+    "transparent_rgb_neutralized": true,
+    "current_character_ids_preserved": true,
+    "selection_authority_unchanged": true,
+    "functional_equipment_authority_unchanged": true,
+    "character_combat_delta": 0,
+    "player_visual_family_coherence_verified": true,
+    "body_frame_family_membership_verified": true,
+    "mobile_contact_sheet_verified": true,
+    "village_elder_identity_preserved": true,
+    "messenger_polish_only": true
+  }
+}
