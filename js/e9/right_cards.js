@@ -138,7 +138,16 @@
       secondaryCta.removeAttribute('data-i18n');
     }
     if (replay) {
-      var replayEnabled = detail.zoneKey === 'k26_30';
+      // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: ask the one shared
+      // availability authority (world_stage.js), never a zone-key allowlist.
+      // This used to read `detail.zoneKey === 'k26_30'`, which both showed a
+      // button the dispatcher would refuse (Zone 1, dead tap on iPad
+      // landscape) and hid a legitimate one (Zone 2, which declares
+      // replayable segments). Visibility and dispatch now answer to the same
+      // predicate, so this surface cannot render a dead button again.
+      var replayEnabled = !!(window.E9
+        && typeof window.E9.zoneReplayStoryAvailable === 'function'
+        && window.E9.zoneReplayStoryAvailable(detail.zoneKey, detail));
       replay.hidden = !replayEnabled;
       replay.disabled = !replayEnabled;
       replay.setAttribute('aria-hidden', replayEnabled ? 'false' : 'true');

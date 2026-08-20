@@ -819,6 +819,11 @@
       || document.querySelector('#adventure-stage');
   }
 
+  function worldStageState() {
+    var root = worldStageRoot();
+    return (root && root.__e9WorldStageState) || null;
+  }
+
   function dispatchZone1Entry(root, zone, state) {
     var cinematicKey = introCinematicKeyForZone(zone && zone.key);
     if (!zone || !cinematicKey || zone.locked) return;
@@ -852,8 +857,38 @@
   // player's authoritative unlock state -- never from a zone-key allowlist
   // here. A zone with no cinematics, or a player who has unlocked nothing,
   // yields false and the affordance stays hidden.
-  function zoneStoryReplayAvailable(zoneKey) {
+  // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: this is the SINGLE
+  // presentation predicate for the Replay Story affordance, on every surface.
+  // It answers from the two authorities the product contract names and nothing
+  // else -- never from a zone-key allowlist:
+  //
+  //   1. authoritative unlock state  -- the zone must not be locked, read from
+  //      the same server-authoritative record this component already renders;
+  //   2. canonical replayable segments -- E10Cinematic decides whether the
+  //      player has legitimately unlocked anything worth replaying.
+  //
+  // A zone that declares no cinematics, or a player who has unlocked nothing,
+  // yields false and the affordance stays hidden, so no surface can render a
+  // dead button. Zones 3-10 need no change here when they gain cinematics.
+  function zoneStoryReplayAvailable(zoneKey, zoneRecord) {
     if (!zoneKey) return false;
+    // Authoritative unlock gate. Only consulted when the caller actually has
+    // the record; a caller without one (degraded/early render) still gets the
+    // canonical segment answer rather than a silently-lost affordance.
+    var zone = zoneRecord;
+    if (!zone) {
+      // Best-effort resolution for callers that hold no record. Kept free of
+      // hard references so this predicate stays independently evaluable (the
+      // Zone 1 entry/replay routing contract exercises it in isolation).
+      try {
+        var fallbackState = typeof worldStageState === 'function' ? worldStageState() : null;
+        var fallbackZones = (fallbackState && fallbackState.zones) || [];
+        for (var i = 0; i < fallbackZones.length; i += 1) {
+          if (fallbackZones[i] && fallbackZones[i].key === zoneKey) { zone = fallbackZones[i]; break; }
+        }
+      } catch (error) { zone = null; }
+    }
+    if (zone && zone.locked === true) return false;
     var api = window.E10Cinematic;
     if (api && typeof api.hasReplayableStory === 'function') {
       try {
@@ -933,16 +968,24 @@
 
   function configureStoryReplayButton(button, zone) {
     if (!button || !zone) return;
-    var enabled = zoneStoryReplayAvailable(zone.key);
+    // Pass the authoritative record this surface already holds so the shared
+    // predicate never has to re-resolve it.
+    var enabled = zoneStoryReplayAvailable(zone.key, zone);
     button.hidden = !enabled;
     button.disabled = !enabled;
     button.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+    // Detach before the eligibility bail-out, not after it. Returning early
+    // used to leave the *previous* zone's handler bound to a now-ineligible
+    // button, so the element still carried a live dispatch for a zone it no
+    // longer represents. hidden+disabled keeps that unreachable for a real
+    // user, but an unreachable stale dispatch is still a stale dispatch.
+    if (button.__e9StoryReplayHandler) {
+      button.removeEventListener('click', button.__e9StoryReplayHandler);
+      button.__e9StoryReplayHandler = null;
+    }
     if (!enabled) return;
     button.textContent = t('e10.world_stage.replay_story', 'Replay Story');
     button.removeAttribute('data-i18n');
-    if (button.__e9StoryReplayHandler) {
-      button.removeEventListener('click', button.__e9StoryReplayHandler);
-    }
     button.__e9StoryReplayHandler = function (event) {
       if (event) event.stopPropagation();
       replayAdventureIntro(zone.key);
@@ -1291,6 +1334,16 @@
       ? authority.secondaryAction
       : state.secondaryAction;
     state.zones = zones;
+    // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: hand the cinematic model
+    // the authoritative snapshot this component just rendered. Same endpoint,
+    // same records -- it simply had no way to see them on the E9 shell, which
+    // left every Replay Story affordance answering from stateless static zone
+    // data. Read-only registration; nothing here mutates progression.
+    if (window.E10Cinematic && typeof window.E10Cinematic.setAuthoritativeZones === 'function') {
+      try {
+        window.E10Cinematic.setAuthoritativeZones(zones);
+      } catch (error) { /* presentation-only registration, never fatal */ }
+    }
     state.secondaryAction = secondaryAction || null;
     if (Object.prototype.hasOwnProperty.call(authority, 'cinematics')) {
       state.cinematics = authority.cinematics || {};
@@ -1690,6 +1743,15 @@
   // CTA_ACTION_ROUTING_DEFECT regression reached a third surface unnoticed.
   window.E9 = window.E9 || {};
   window.E9.dispatchAdventureAction = dispatchAdventureAction;
+  // E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002: the Replay Story
+  // affordance now has exactly one availability authority and exactly one
+  // dispatch authority, both owned here and shared with every other surface
+  // (right_cards.js's landscape drawer card). right_cards.js previously
+  // decided visibility from its own hardcoded `zoneKey === 'k26_30'`
+  // allowlist while dispatching through the predicate below -- so Zone 1
+  // rendered a visible button the dispatcher then refused, and Zone 2 got no
+  // button at all despite declaring replayable segments.
+  window.E9.zoneReplayStoryAvailable = zoneStoryReplayAvailable;
   window.E9.replayAdventureIntro = replayAdventureIntro;
   window.E9.showAdventureZoneCard = showAdventureZoneCard;
   window.E9.updateAdventureCinematicState = updateAdventureCinematicState;

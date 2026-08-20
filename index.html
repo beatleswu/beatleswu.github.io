@@ -17227,9 +17227,33 @@ function _cinematicReplay() {
     return _cinematicReplayModel;
 }
 
+// E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002.
+//
+// The zone record this model reads has to carry authoritative cleared/unlock
+// state, or every unlock question below silently answers "no". _adventureProgress
+// carries it, but that global is only ever populated by the Legacy Adventure
+// Map's own bootstrap (loadMapProgressStatus). The E9 Adventure Shell never runs
+// that bootstrap, so on the E9 surfaces this resolver fell through to the static
+// ADVENTURE_ZONES literal -- which declares geometry and labels and no player
+// state at all. Result: hasReplayableStory() answered false for a genuinely
+// cleared zone, which is what made the Owner's iPad Replay Story button dead in
+// landscape and absent in portrait.
+//
+// The E9 shell fetches the *same* GET /api/adventure/bootstrap zones[] payload,
+// so it publishes its snapshot here rather than this file acquiring a second
+// fetch or a dependency on legacy UI readiness. _adventureProgress still wins
+// whenever it is populated, so the legacy shell's behaviour is byte-for-byte
+// unchanged. This is a read path only -- registering zones never writes
+// progression, reward, or unlock state.
+let _e9AuthoritativeZones = [];
+function setCinematicAuthoritativeZones(zones) {
+    _e9AuthoritativeZones = Array.isArray(zones) ? zones : [];
+}
+
 function _zoneForCinematic(zoneKey) {
     if (!zoneKey) return null;
     return (_adventureProgress || []).find(z => z.key === zoneKey)
+        || _e9AuthoritativeZones.find(z => z.key === zoneKey)
         || ADVENTURE_ZONES.find(z => z.key === zoneKey)
         || null;
 }
@@ -17406,6 +17430,9 @@ window.playZoneStoryReplay = playZoneStoryReplay;
 window.E10Cinematic = {
     hasReplayableStory: zoneHasReplayableStory,
     playStoryReplay: playZoneStoryReplay,
+    // Read-only registration hook for shells that already hold the
+    // authoritative bootstrap snapshot (E9). See _zoneForCinematic.
+    setAuthoritativeZones: setCinematicAuthoritativeZones,
 };
 
 // Pending timers for the reveal's own route-fill -> chime beat. Separate
@@ -21386,9 +21413,9 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/quest_board.js?v=20260719e9q1"></script>
 <script src="/js/e9/top_hud.js?v=20260801e10art1"></script>
 <script src="/js/e9/left_nav.js?v=20260801e10art1"></script>
-<script src="/js/e9/right_cards.js?v=20260801e10art1"></script>
+<script src="/js/e9/right_cards.js?v=20260821e10xsurface002"></script>
 <script src="/js/e9/bottom_dock.js?v=20260801e10art1"></script>
-<script src="/js/e9/world_stage.js?v=20260820e10replaybtn001"></script>
+<script src="/js/e9/world_stage.js?v=20260821e10xsurface002"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
 <script src="/sgf_report_widget.js" defer></script>
 </body>

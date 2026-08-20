@@ -556,8 +556,8 @@ def _prime_rank_threshold(app_module, uid):
     }
 
 
-def _prime_zone1_cleared_for_replay_story(app_module, uid, zone_key=LORD_TRIAL_ZONE_KEY):
-    """Give the account a real, authoritative Zone 1 clear.
+def _prime_zone_cleared_for_replay_story(app_module, uid, zone_key=LORD_TRIAL_ZONE_KEY):
+    """Give the account a real, authoritative clear for ``zone_key``.
 
     E10_REPLAY_STORY_BUTTON_HOTFIX_001 exercises the *standalone* Replay
     Story affordance, which only ever appears once a zone is cleared. This
@@ -580,6 +580,20 @@ def _prime_zone1_cleared_for_replay_story(app_module, uid, zone_key=LORD_TRIAL_Z
         )
         conn.commit()
     return {'mechanism': 'adventure_boss_progress.cleared = 1', 'zone_key': zone_key}
+
+
+# E10_REPLAY_STORY_CROSS_SURFACE_IPAD_HOTFIX_002 audits the Replay Story
+# affordance across zones, not just Zone 1, so the fixture clears both zones
+# that currently declare cinematic segments. Zone 2 is the load-bearing case:
+# it is the zone the Owner reported as having no button at all.
+REPLAY_STORY_ZONE_KEYS = (LORD_TRIAL_ZONE_KEY, 'k21_25')
+
+
+def _prime_zones_cleared_for_replay_story(app_module, uid, zone_keys=REPLAY_STORY_ZONE_KEYS):
+    return [
+        _prime_zone_cleared_for_replay_story(app_module, uid, zone_key)
+        for zone_key in zone_keys
+    ]
 
 
 _E9_REPLAY_STORY_ROLLOUT_ENV = {
@@ -668,7 +682,7 @@ def lord_trial_runtime(plan='premium', fixture=DEFAULT_FIXTURE, badge_priming=Fa
             _prime_rank_threshold(app_module, uid) if rank_priming else None
         )
         replay_story_state = (
-            _prime_zone1_cleared_for_replay_story(app_module, uid)
+            _prime_zones_cleared_for_replay_story(app_module, uid)
             if replay_story_e9 else None
         )
 
