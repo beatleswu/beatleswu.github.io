@@ -278,7 +278,13 @@ def test_item_journal_api_is_read_only_and_projects_existing_stores(tmp_path, mo
         "journal_write": 0,
     }
     items = {item["item_id"]: item for item in body["items"]}
+    assert body["discovery_semantics"] == "NOT_TRACKED"
+    assert all("discovered" not in item for item in items.values())
+    assert items["rare_appearance_fragment"]["catalog_visible"] is True
+    assert items["rare_appearance_fragment"]["owned"] is True
     assert items["rare_appearance_fragment"]["owned_amount"] == 2
+    assert items["ai_analysis_pack"]["catalog_visible"] is True
+    assert items["ai_analysis_pack"]["owned"] is False
     assert items["starfruit"]["owned_amount"] == 3
     assert items["rare_appearance_fragment"]["recently_obtained"] is True
     assert "unapproved_runtime_item" not in items
@@ -297,6 +303,7 @@ def test_item_journal_route_contains_no_mutation_operation():
     assert "UPDATE" not in route
     assert "DELETE" not in route
     assert "commit(" not in route
+    assert "discovered" not in route
 
 
 def test_item_journal_and_shop_presentation_contracts_are_present():
@@ -306,11 +313,12 @@ def test_item_journal_and_shop_presentation_contracts_are_present():
     app_source = (ROOT / "app.py").read_text(encoding="utf-8")
     journal_lower = journal.lower()
     for token in (
-        "Item categories", "owned_amount", "Effect / Use", "where to get more",
+        "Item categories", "owned_amount", "catalog_visible", "Effect / Use", "where to get more",
         "recently_obtained", "Read-only projection", "/api/item-journal",
         "/inventory", "/hero?tab=appearance", "/badges",
     ):
         assert token.lower() in journal_lower
+    assert "discovered" not in journal_lower
     assert "立即獲得" in shop
     assert "Contains" in shop
     assert "productRegistryEntry" in shop

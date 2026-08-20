@@ -19263,8 +19263,12 @@ def item_journal():
         else:
             # Bundle products intentionally have no persistent product row.
             quantity = 0
+        # Catalog metadata is not player discovery history.  P1 deliberately
+        # keeps discovery untracked; ownership is projected only from the
+        # existing authoritative item store, while recentness is log-derived.
+        item['catalog_visible'] = True
         item['owned_amount'] = quantity
-        item['discovered'] = bool(quantity or item.get('product_id') or item.get('source_tags'))
+        item['owned'] = quantity > 0
         item['recently_obtained'] = item['item_id'] in recent
         item['recent_source_at'] = recent.get(item['item_id'])
         item['journal_section'] = section_by_category.get(item.get('category'), 'Material')
@@ -19274,6 +19278,7 @@ def item_journal():
 
     return jsonify({
         'version': ITEM_REGISTRY_VERSION,
+        'discovery_semantics': 'NOT_TRACKED',
         'taxonomy': list(ITEM_TAXONOMY),
         'journal_sections': list(JOURNAL_SECTIONS),
         'collection_sections': list(COLLECTION_SECTIONS),

@@ -230,8 +230,12 @@ Required card fields:
 - effect/use;
 - source tags;
 - where to get more;
-- discovered state;
+- catalog-visible definition state;
+- owned state and amount from the authoritative item store;
 - recently-obtained hint where existing logs provide a timestamp.
+
+P1 does not expose or persist player discovery history. Catalog visibility is
+metadata truth only; `discovery_semantics=NOT_TRACKED`.
 
 Mutation boundary:
 

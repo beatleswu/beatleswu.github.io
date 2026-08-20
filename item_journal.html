@@ -79,7 +79,7 @@
     <p class="kicker">Wave 2 · Lane C</p>
     <h1>Item Journal</h1>
     <p class="lede">查看非裝備物品的正式定義、持有數量、用途與取得來源。這裡是 read-only projection；徽章、功能裝備與外觀 ownership 仍由各自 domain 管理。</p>
-    <div class="boundary" role="status">本頁不購買、不使用、不裝備、不改變 ownership。Bundle 會顯示 <strong>立即獲得 / Contains</strong>，不會暗示玩家持有一個未被保存的箱子。</div>
+    <div class="boundary" role="status">本頁不購買、不使用、不裝備、不改變 ownership。Catalog visibility 只代表已知定義；P1 不追蹤 durable discovery history。Bundle 會顯示 <strong>立即獲得 / Contains</strong>，不會暗示玩家持有一個未被保存的箱子。</div>
 
     <section class="summary" aria-label="Journal summary">
       <div class="summary-card"><strong id="summary-kinds">—</strong><span>已知 item definitions</span></div>
@@ -139,16 +139,17 @@
       if (!items.length) { root.innerHTML = '<div class="empty">此分類目前沒有可展示的 item definition。</div>'; return; }
       root.innerHTML = items.map(item => {
         const owned = Number(item.owned_amount || 0);
-        const status = item.discovered ? '已發現 / Discovered' : '尚未發現 / Undiscovered';
+        const catalogStatus = item.catalog_visible ? 'Catalog definition / 已知定義' : 'Not catalog-visible';
+        const ownedStatus = item.owned ? 'Owned / 已擁有' : 'Not owned / 未擁有';
         const recent = item.recently_obtained ? '<span class="pill new">Recently obtained</span>' : '';
         const ownershipNote = item.ownership_authority === 'grant_components_only'
           ? 'Product ownership: NO · grants only'
-          : `Owned: ${owned}`;
+          : item.owned ? `Owned: ${owned}` : 'Not owned';
         return `<article class="card">
           <div class="card-head"><div class="art">${artHtml(item)}</div><div><div class="name">${esc(itemName(item))}</div><div class="id">${esc(item.item_id)}</div><div class="meta"><span class="pill owned">${esc(ownershipNote)}</span><span class="pill">${esc(item.category)}</span>${recent}</div></div></div>
           <p class="desc">${esc(item.description || item.current_effect || item.effect_use || 'Item definition')}</p>
           <div class="detail">
-            <div><b>State</b><br><span>${esc(status)}</span></div>
+            <div><b>Catalog / Ownership</b><br><span>${esc(catalogStatus)} · ${esc(ownedStatus)}</span></div>
             ${containsHtml(item)}
             <div><b>Effect / Use</b><br><span>${esc(item.effect_use || 'No direct use defined')}</span></div>
             <div><b>Source</b>${sourceHtml(item.source)}</div>
