@@ -15,6 +15,7 @@ from functools import wraps
 from collections import Counter
 import psycopg2
 import json, os, subprocess, threading, queue, uuid, time, sqlite3, datetime, secrets, bisect
+from contextvars import ContextVar
 from decimal import Decimal
 import csv, io
 import math, re
@@ -40,6 +41,7 @@ from explain_overrides import get_override as _get_explain_override
 from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
+from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -1748,6 +1750,87 @@ APPEARANCE_DEFS = [
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
 APPEARANCE_SLOT_KEYS = ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura')
 APPEARANCE_EQUIP_COLUMNS = tuple(f'{slot}_id' for slot in APPEARANCE_SLOT_KEYS)
+
+# ── Lane C cosmetic commerce foundation ─────────────────────────────────────
+# Wave 1 deliberately exposes one mature category only.  These products reuse
+# the existing appearance definition, wardrobe ownership row, and hero
+# renderer instead of creating a second cosmetic identity system.
+COSMETIC_COMMERCE_PRODUCTS = (
+    {
+        'product_id': 'cosmetic.outfit.robe_plain',
+        'cosmetic_id': 'robe_plain',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 200,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.robe_bamboo',
+        'cosmetic_id': 'robe_bamboo',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'coins',
+        'price': 450,
+        'currency': 'coins',
+    },
+    {
+        'product_id': 'cosmetic.outfit.robe_premium',
+        'cosmetic_id': 'robe_premium',
+        'category': 'outfit',
+        'ownership_source': 'player_wardrobe.item_id',
+        'unlock_type': 'premium',
+        'price': None,
+        'currency': None,
+    },
+)
+_COSMETIC_PRODUCT_BY_ID = {
+    product['product_id']: product for product in COSMETIC_COMMERCE_PRODUCTS
+}
+_COSMETIC_PRODUCT_BY_COSMETIC_ID = {
+    product['cosmetic_id']: product for product in COSMETIC_COMMERCE_PRODUCTS
+}
+
+
+def _cosmetic_product_payload(product, *, owned, equipped):
+    """Return the canonical product -> appearance -> renderer projection."""
+    appearance = _APPEAR_MAP[product['cosmetic_id']]
+    slot = appearance['slot']
+    return {
+        **product,
+        'name': appearance.get('name', product['cosmetic_id']),
+        'name_en': appearance.get('name_en', appearance.get('name', product['cosmetic_id'])),
+        'rarity': appearance.get('rarity', 'common'),
+        'flavor': appearance.get('flavor', ''),
+        'preview_asset': {
+            'kind': 'appearance_definition',
+            'asset_key': appearance['id'],
+            'emoji': appearance.get('emoji', ''),
+            'color': appearance.get('color', ''),
+        },
+        'ownership': {
+            'owned': bool(owned),
+            'source': product['ownership_source'],
+        },
+        'equipped_state': {
+            'equipped': bool(equipped),
+            'slot': slot,
+            'state_field': f'{slot}_id',
+            'cosmetic_id': appearance['id'] if equipped else None,
+        },
+        'visible_result': {
+            'surface': 'hero',
+            'renderer': 'hero.html#applyEquippedVisuals',
+            'slot': slot,
+            'state_field': f'{slot}_id',
+            'asset_key': appearance['id'],
+        },
+        'combat_power': {
+            'attack_delta': 0,
+            'defense_delta': 0,
+            'combat_authority': 'NO',
+        },
+    }
 
 # ── 外觀效果：item_id → 遊戲加成 ─────────────────────────────────────────────
 APPEARANCE_EFFECTS = {
@@ -5512,27 +5595,27 @@ def check_and_award_daily(conn, uid, correct, today_str):
 # 怪物序列：依等級從小到大，每隻打完才換下一隻
 # 每隻怪物有自己的 HP pool（比原本大很多），讓打敗感更有份量
 _BATTLEFIELD_ROSTER = [
-    # (type, name, max_hp, atk) -- 顯示名稱對齊新版 RPG 族群
-    ('caterpillar', 'LV1 史萊姆 / 哥布林',        80,  2),
-    ('caterpillar', 'LV1 提子訓練守衛',          100,  2),
-    ('bee',         'LV2 哥布林 / 洞窟蝙蝠',    130,  3),
-    ('bee',         'LV2 雙叫吃突襲隊',          160,  4),
-    ('turtle',      'LV3 獸人小兵',              200,  4),
-    ('turtle',      'LV3 做眼厚壁兵',            240,  5),
-    ('rabbit',      'LV4 森林精靈',              220,  5),
-    ('rabbit',      'LV4 霧林手筋師',            260,  6),
-    ('raccoon',     'LV5 部落獸人',              260,  6),
-    ('raccoon',     'LV5 銀牌懸賞首領',          290,  7),
-    ('wolf',        'LV6 飛龍 / 低階神靈',       520, 12),
-    ('dragon',      'LV6 龍谷計算者',            700, 14),
-    ('fox',         'LV7 賢者 / 魔法師 / 亡靈',  760, 16),
-    ('fox',         'LV7 高塔術師',              920, 18),
-    ('golem',       'LV8 騎士 / 混沌領主',      1100, 20),
-    ('golem',       'LV8 皇家騎士長',           1350, 22),
-    ('dragon',      'LV9 諸神',                 1700, 28),
-    ('dragon',      'LV9 命運試煉官',           2000, 32),
-    ('dragon',      'LV10 上古終焉神殿',        2400, 36),
-    ('dragon',      'LV10 終焉神',              2800, 40),
+    # (type, name, max_hp, atk, encounter_kind) -- server-owned RPG profile
+    ('caterpillar', 'LV1 史萊姆 / 哥布林',        80,  2, 'normal'),
+    ('caterpillar', 'LV1 提子訓練守衛',          100,  2, 'boss'),
+    ('bee',         'LV2 哥布林 / 洞窟蝙蝠',    130,  3, 'normal'),
+    ('bee',         'LV2 雙叫吃突襲隊',          160,  4, 'boss'),
+    ('turtle',      'LV3 獸人小兵',              200,  4, 'normal'),
+    ('turtle',      'LV3 做眼厚壁兵',            240,  5, 'boss'),
+    ('rabbit',      'LV4 森林精靈',              220,  5, 'normal'),
+    ('rabbit',      'LV4 霧林手筋師',            260,  6, 'boss'),
+    ('raccoon',     'LV5 部落獸人',              260,  6, 'normal'),
+    ('raccoon',     'LV5 銀牌懸賞首領',          290,  7, 'boss'),
+    ('wolf',        'LV6 飛龍 / 低階神靈',       520, 12, 'normal'),
+    ('dragon',      'LV6 龍谷計算者',            700, 14, 'boss'),
+    ('fox',         'LV7 賢者 / 魔法師 / 亡靈',  760, 16, 'normal'),
+    ('fox',         'LV7 高塔術師',              920, 18, 'boss'),
+    ('golem',       'LV8 騎士 / 混沌領主',      1100, 20, 'normal'),
+    ('golem',       'LV8 皇家騎士長',           1350, 22, 'boss'),
+    ('dragon',      'LV9 諸神',                 1700, 28, 'normal'),
+    ('dragon',      'LV9 命運試煉官',           2000, 32, 'boss'),
+    ('dragon',      'LV10 上古終焉神殿',        2400, 36, 'normal'),
+    ('dragon',      'LV10 終焉神',              2800, 40, 'boss'),
 ]
 
 _BATTLEFIELD_NAME_EN = {
@@ -5657,7 +5740,74 @@ def _get_or_create_battlefield(conn, uid, today_str):
         'max_hp': m[2], 'current_hp': m[2], 'defeated': 0, 'kill_count': 0,
     }
 
-def _calc_damage(grade, max_hp):
+_COMBAT_ATTACK_BONUS_CAP = 0.75
+_COMBAT_DAMAGE_REDUCTION_CAP = 0.99
+_COMBAT_STATS_CONTEXT = ContextVar('combat_stats_context', default=None)
+
+
+def _nonnegative_effect(value):
+    """Normalize a server-defined effect without trusting client values."""
+    try:
+        return max(0.0, float(value or 0.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _missing_equipment_table(error):
+    """Recognize pre-equipment legacy fixtures without hiding other DB errors."""
+    if isinstance(error, sqlite3.OperationalError):
+        return 'no such table' in str(error).lower()
+    return isinstance(error, getattr(psycopg2.errors, 'UndefinedTable', ()))
+
+
+def _safe_equipment_effect(conn, uid, effect_key):
+    try:
+        return _get_equip_effect(conn, uid, effect_key)
+    except Exception as error:
+        if _missing_equipment_table(error):
+            return 0.0
+        raise
+
+
+def _safe_skill_effect(conn, uid, effect_key):
+    try:
+        return _get_skill_effect(conn, uid, effect_key)
+    except Exception as error:
+        if _missing_equipment_table(error):
+            return 0.0
+        raise
+
+
+def _get_authoritative_combat_stats(conn, uid, monster_type=None):
+    """Derive functional combat stats from owned, equipped equipment only.
+
+    ``player_inventory`` is the functional ownership/equipped-state authority.
+    ``player_appearance.combat_*`` is deliberately not consulted here: those
+    fields are a client-facing visual projection and must never grant combat
+    power. Equipment definitions and effects come from server-side
+    ``EQUIPMENT_DEFS`` only.
+    """
+    attack_bonus = _nonnegative_effect(_safe_equipment_effect(conn, uid, 'dmg_bonus'))
+    if monster_type:
+        attack_bonus += _nonnegative_effect(
+            _safe_equipment_effect(conn, uid, f'{monster_type}_dmg_bonus')
+        )
+    damage_reduction = _nonnegative_effect(
+        _safe_equipment_effect(conn, uid, 'player_dmg_reduce')
+    ) + _nonnegative_effect(
+        _safe_skill_effect(conn, uid, 'player_dmg_reduce')
+    )
+    attack_bonus = min(_COMBAT_ATTACK_BONUS_CAP, attack_bonus)
+    damage_reduction = min(_COMBAT_DAMAGE_REDUCTION_CAP, damage_reduction)
+    return {
+        'attack_bonus': round(attack_bonus, 4),
+        'attack_bonus_pct': round(attack_bonus * 100, 1),
+        'damage_reduction': round(damage_reduction, 4),
+        'damage_reduction_pct': round(damage_reduction * 100, 1),
+    }
+
+
+def _calc_damage(grade, max_hp, attack_bonus=0.0):
     """
     傷害計算：每擊約扣 4~8%，讓每場戰鬥持續 15~25 題。
     連擊加成在 srs_review 傳入 combo_streak 後由呼叫端加乘。
@@ -5667,7 +5817,12 @@ def _calc_damage(grade, max_hp):
     if grade < 3:
         return 0
     pct = {3: 0.04, 4: 0.06, 5: 0.08}.get(grade, 0.04)
-    return max(5, math.ceil(max_hp * pct))
+    if attack_bonus == 0.0:
+        scoped_stats = _COMBAT_STATS_CONTEXT.get()
+        if scoped_stats:
+            attack_bonus = scoped_stats.get('attack_bonus', 0.0)
+    attack_bonus = min(_COMBAT_ATTACK_BONUS_CAP, _nonnegative_effect(attack_bonus))
+    return min(max(0, int(max_hp)), max(5, math.ceil(max_hp * pct * (1.0 + attack_bonus))))
 
 def _get_equip_effect(conn, uid, effect_key):
     """加總玩家所有已裝備物品對某效果的貢獻（數值加法）。"""
@@ -5696,6 +5851,25 @@ def _get_combined_effect(conn, uid, effect_key):
     """技能 + 裝備效果合計。"""
     return _get_equip_effect(conn, uid, effect_key) + _get_skill_effect(conn, uid, effect_key)
 
+
+def _mitigate_authoritative_retaliation(monster_atk, dmg_reduce):
+    """Apply armor mitigation to Lane B's authoritative monster retaliation.
+
+    Naive ``round(monster_atk * (1 - dmg_reduce))`` silently loses all
+    mitigation at low integer attack values -- e.g. ``round(2 * 0.92) == 2``
+    -- so armor becomes invisible exactly where a new player first meets it.
+    Any positive armor reduction against retaliation greater than 1 must
+    remove at least one integer point; larger values keep the existing
+    percentage-reduction feel unchanged (``round(20 * 0.92) == 18`` already).
+    No armor (``dmg_reduce <= 0``) or a retaliation of 1 leaves the
+    authoritative value untouched, and the floor of 1 never lets a positive
+    retaliation collapse to zero.
+    """
+    if dmg_reduce > 0 and monster_atk > 1:
+        return max(1, min(monster_atk - 1, round(monster_atk * (1.0 - dmg_reduce))))
+    return max(1, round(monster_atk * (1.0 - dmg_reduce)))
+
+
 def _gain_sp(conn, uid, amount):
     """增加 SP，不超過日上限。"""
     today = datetime.date.today().isoformat()
@@ -5714,6 +5888,37 @@ def _gain_sp(conn, uid, amount):
     conn.execute('UPDATE player_sp SET current_sp=? WHERE user_id=?', (new_sp, uid))
     return new_sp
 
+
+def _equipment_aware_legacy_combat(operation):
+    """Apply Lane A stats around the characterized legacy operation body."""
+    from functools import wraps
+
+    @wraps(operation)
+    def wrapped(conn, uid, qid, grade, q_info, combo_streak, today_str,
+                should_grant_progress=True, shadow_events=None):
+        row = conn.execute(
+            'SELECT monster_type FROM battlefield_monster WHERE user_id=? AND bf_date=?',
+            (uid, today_str),
+        ).fetchone()
+        monster_type = row['monster_type'] if row else _BATTLEFIELD_ROSTER[0][0]
+        combat_stats = _get_authoritative_combat_stats(conn, uid, monster_type)
+        token = _COMBAT_STATS_CONTEXT.set(combat_stats)
+        try:
+            result = operation(
+                conn, uid, qid, grade, q_info, combo_streak, today_str,
+                should_grant_progress=should_grant_progress,
+                shadow_events=shadow_events,
+            )
+            if isinstance(result, dict):
+                result['combat_stats'] = combat_stats
+            return result
+        finally:
+            _COMBAT_STATS_CONTEXT.reset(token)
+
+    return wrapped
+
+
+@_equipment_aware_legacy_combat
 def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                                today_str, should_grant_progress=True,
                                shadow_events=None):
@@ -5804,7 +6009,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     else:
         # 答錯：怪物反擊，扣玩家血量
         dmg_reduce   = _get_combined_effect(conn, uid, 'player_dmg_reduce')
-        player_dmg   = max(1, round(monster_atk * (1.0 - dmg_reduce)))
+        player_dmg   = _mitigate_authoritative_retaliation(monster_atk, dmg_reduce)
         player_hp    = player_hp - player_dmg
         player_hp_change = -player_dmg
         if player_hp <= 0:
@@ -5922,12 +6127,14 @@ def monster_status():
     today = datetime.date.today().isoformat()
     with get_db() as conn:
         bf = _get_or_create_battlefield(conn, uid, today)
+        bf_profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
         s  = conn.execute('SELECT player_hp, player_max_hp, rank_level, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         equipped_rows = conn.execute(
             'SELECT skill_id FROM player_skills WHERE user_id=? AND equipped=1', (uid,)
         ).fetchall()
         sp_row = conn.execute('SELECT current_sp FROM player_sp WHERE user_id=?', (uid,)).fetchone()
         equip_bonus = _get_equip_effect(conn, uid, 'sp_bonus')   # 必須在 conn 關閉前呼叫
+        combat_stats = _get_authoritative_combat_stats(conn, uid, bf['monster_type'])
         conn.commit()
 
     _bf_xp        = (s['xp'] or 0) if s else 0
@@ -5968,6 +6175,12 @@ def monster_status():
                       else (bf.get('monster_avatar') or _battlefield_avatar(bf['monster_type'], bf['monster_name'])),
         'max_hp':     bf['max_hp'],
         'hp':         bf['current_hp'],
+        'stage':      bf_profile['stage'],
+        'encounter_kind': bf_profile['encounter_kind'],
+        'retaliation': {
+            'attack': bf_profile['attack'],
+            'encounter_kind': bf_profile['encounter_kind'],
+        },
         'kill_count': bf['kill_count'],
         'wave':       bf['kill_count'],
         'defeated':   bool(bf['defeated']),
@@ -5979,7 +6192,55 @@ def monster_status():
         'skills':     skills_info,
         'current_sp': current_sp,
         'max_sp':     max_sp,
+        'combat_stats': combat_stats,
     })
+
+
+def _lane_b_monster_update_with_authoritative_profile(
+    conn, uid, qid, grade, q_info, combo_streak, today_str,
+    should_grant_progress=True, shadow_events=None,
+):
+    """Route combat retaliation through the server-owned roster profile.
+
+    The legacy function remains byte-stable for the existing review-service
+    contract.  This wrapper supplies the authoritative attack value before
+    it runs, so a question/client payload cannot flatten every encounter to
+    one default attack value or submit a weaker monster outcome.
+    """
+
+    bf = _get_or_create_battlefield(conn, uid, today_str)
+    profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
+    server_q_info = dict(q_info or {})
+    server_q_info['monster_atk'] = profile['attack']
+    result = _update_monster_and_quests_legacy(
+        conn, uid, qid, grade, server_q_info, combo_streak, today_str,
+        should_grant_progress=should_grant_progress,
+        shadow_events=shadow_events,
+    )
+    if isinstance(result, dict) and isinstance(result.get('monster'), dict):
+        result['monster']['stage'] = profile['stage']
+        result['monster']['encounter_kind'] = profile['encounter_kind']
+        result['monster']['retaliation'] = {
+            'attack': profile['attack'],
+            'encounter_kind': profile['encounter_kind'],
+        }
+        next_monster = result['monster'].get('next_monster')
+        if isinstance(next_monster, dict):
+            next_index = result['monster'].get('kill_count', 0) % len(_BATTLEFIELD_ROSTER)
+            next_profile = battlefield_profile(_BATTLEFIELD_ROSTER, next_index)
+            next_monster['stage'] = next_profile['stage']
+            next_monster['encounter_kind'] = next_profile['encounter_kind']
+            next_monster['retaliation'] = {
+                'attack': next_profile['attack'],
+                'encounter_kind': next_profile['encounter_kind'],
+            }
+    return result
+
+
+# Keep the established function body as the legacy settlement implementation;
+# the late-bound review path uses this Lane B authority wrapper.
+_update_monster_and_quests_legacy = _update_monster_and_quests
+_update_monster_and_quests = _lane_b_monster_update_with_authoritative_profile
 
 
 def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
@@ -11601,6 +11862,7 @@ def map_battle_v1_answers():
                 question_loader=_map_battle_question_by_id,
                 mode_environ=os.environ,
                 eligibility=eligibility,
+                combat_stats_resolver=_get_authoritative_combat_stats,
             )
     except MapBattleRuntimeError as error:
         body = {
@@ -11935,6 +12197,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
 
         conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)',(uid,))
         s = conn.execute('SELECT * FROM user_stats WHERE user_id=?',(uid,)).fetchone()
+        existing_player_max_hp = int(s['player_max_hp'] or 0)
         total        = s['total_correct']
         streak       = s['current_streak']
         mx           = s['max_streak']
@@ -11957,6 +12220,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         review_shadow_additive_bonuses = ()
         review_shadow_support_values = []
         new_rank_level = rank_level
+        new_lv = xp_to_lv(xp)
         # 裝備外觀加成
         _appear_fx = _get_appearance_effects(uid, conn)
         pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
@@ -12115,17 +12379,19 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             '''UPDATE user_stats SET
                total_correct=?, current_streak=?, max_streak=?, mistake_corrected=?,
                xp=?, combo_streak=?, max_combo=?, rank_level=?, rank_xp=?,
+               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),
                updated_at=?
                WHERE user_id=?''',
             (total, streak, mx, mc,
              xp, combo_streak, max_combo, new_rank_level, rank_xp,
-             now, uid))
+             _lv_max_hp(new_lv), now, uid))
 
         stats = {
             'total_correct': total, 'current_streak': streak,
             'max_streak': mx, 'mistake_corrected': mc,
             'xp': xp, 'combo_streak': combo_streak,
             'max_combo': max_combo, 'rank_level': new_rank_level, 'rank_xp': rank_xp,
+            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),
         }
         new_badges = check_and_award(conn, uid, stats, unit if unit_done else None)
 
@@ -12277,6 +12543,102 @@ def _dispatch_to_srs_review_operation(uid, data, *, internal=False, submission_i
 # tests/test_e10_backend_review_service_v1a2.py).
 _review_service = ReviewService(_dispatch_to_srs_review_operation)
 _map_battle_review_handoff = MapBattleReviewHandoff(_review_service)
+
+
+def _lane_b_level_skill_unlocks(old_lv, new_lv):
+    """Return skills that became eligible, without learning/equipping them."""
+
+    unlocked = []
+    for skill in SKILL_DEFS:
+        required_lv = _rank_to_lv(skill.get('unlock_rank', 'LV1'))
+        if old_lv < required_lv <= new_lv:
+            unlocked.append({
+                'id': skill['id'],
+                'name': skill.get('name', skill['id']),
+                'name_en': skill.get('name_en', skill.get('name', skill['id'])),
+                'unlock_rank': skill.get('unlock_rank', f'LV{required_lv}'),
+                'desc': skill.get('desc', ''),
+                'desc_en': skill.get('desc_en', skill.get('desc', '')),
+            })
+    return unlocked
+
+
+def _lane_b_level_snapshot(uid):
+    """Read the pre-review level/HP baseline for the presentation wrapper."""
+
+    with get_db() as level_conn:
+        row = level_conn.execute(
+            'SELECT xp, player_max_hp FROM user_stats WHERE user_id=?', (uid,)
+        ).fetchone()
+    if not row:
+        return None
+    old_xp = int(row['xp'] or 0)
+    old_lv = xp_to_lv(old_xp)
+    stored_max = int(row['player_max_hp'] or 0)
+    return {
+        'old_lv': old_lv,
+        'old_max_hp': max(stored_max, _lv_max_hp(old_lv)),
+    }
+
+
+def _lane_b_review_with_level_value(uid, data, *, internal=False, submission_id=None):
+    """Add a player-visible level reward summary around the durable writer.
+
+    XP remains owned by the existing review operation.  This wrapper only
+    reads the pre-review baseline and serializes eligibility/presentation
+    metadata from the already-committed result.  The durable writer owns the
+    level-derived HP cap in the same user_stats transaction as XP/rank.
+    """
+
+    try:
+        before = _lane_b_level_snapshot(uid)
+    except Exception:
+        app.logger.exception('Lane B level snapshot failed before review')
+        before = None
+
+    response = _srs_review_operation_legacy(
+        uid, data, internal=internal, submission_id=submission_id,
+    )
+    if before is None or getattr(response, 'status_code', 200) != 200:
+        return response
+
+    payload = response.get_json(silent=True) if hasattr(response, 'get_json') else None
+    if not isinstance(payload, dict) or not payload.get('ranked_up'):
+        return response
+    new_lv = _rank_to_lv(payload.get('new_rank_level'))
+    if new_lv <= before['old_lv']:
+        return response
+
+    stats = payload.get('stats')
+    persisted_max_hp = (
+        stats.get('player_max_hp') if isinstance(stats, dict) else None
+    )
+    player = payload.get('player')
+    if persisted_max_hp is None and isinstance(player, dict):
+        persisted_max_hp = player.get('max_hp')
+    actual_max_hp = int(persisted_max_hp or 0)
+
+    appearance_items = payload.get('new_appearance_items') or []
+    level_rewards = build_level_up_rewards(
+        before['old_lv'],
+        new_lv,
+        before['old_max_hp'],
+        actual_max_hp,
+        skill_unlocks=_lane_b_level_skill_unlocks(before['old_lv'], new_lv),
+        appearance_items=appearance_items,
+    )
+    payload['level_up_rewards'] = level_rewards
+    if isinstance(stats, dict):
+        stats['player_max_hp'] = actual_max_hp
+    if isinstance(player, dict):
+        player['max_hp'] = max(int(player.get('max_hp') or 0), actual_max_hp)
+    return jsonify(payload)
+
+
+# The review service dispatch is deliberately late-bound.  Preserve the
+# existing durable writer and wrap only its post-commit player-visible value.
+_srs_review_operation_legacy = _srs_review_operation
+_srs_review_operation = _lane_b_review_with_level_value
 
 
 def _run_map_battle_progression(user_id, settlement):
@@ -14334,6 +14696,7 @@ def skills_profile():
                           if _title_id and _title_id in _APPEAR_MAP else None)
         _eq_title_en = _i18n_title_en(_title_id) if _title_id else None
         equipped_title_en = _eq_title_en[0] if _eq_title_en else equipped_title
+        combat_stats = _get_authoritative_combat_stats(conn, uid)
 
     # ── active_effects & equipped_visuals ───────────────────────
     with get_db() as _conn2:
@@ -14391,6 +14754,7 @@ def skills_profile():
         },
         'wardrobe':          wardrobe,
         'active_effects':    appear_fx,
+        'combat_stats':      combat_stats,
         'equipped_visuals':  equipped_visuals,
         'new_unlock':        new_unlock,
         'is_premium':        is_premium(uid),
@@ -18483,13 +18847,18 @@ def _grant_coins(conn, uid, amount, reason, bypass_daily_cap=False) -> int:
     return granted_amount
 
 def _spend_coins(conn, uid, amount, reason) -> bool:
-    """扣金幣；餘額不足回 False（不寫入）。"""
-    bal = _coin_balance(conn, uid)
-    if bal < amount:
+    """扣金幣；只接受正整數且以 server-side balance 原子扣款。"""
+    if isinstance(amount, bool) or not isinstance(amount, int) or amount <= 0:
         return False
-    conn.execute('UPDATE user_stats SET coins=coins-? WHERE user_id=?', (amount, uid))
+    updated = conn.execute(
+        'UPDATE user_stats SET coins=COALESCE(coins,0)-? '
+        'WHERE user_id=? AND COALESCE(coins,0)>=?',
+        (amount, uid, amount))
+    if getattr(updated, 'rowcount', 0) != 1:
+        return False
+    bal = _coin_balance(conn, uid)
     conn.execute('INSERT INTO currency_log(user_id,delta,balance_after,reason,created_at) '
-                 'VALUES(?,?,?,?,?)', (uid, -amount, bal - amount, reason, _now_iso()))
+                 'VALUES(?,?,?,?,?)', (uid, -amount, bal, reason, _now_iso()))
     return True
 
 def _inv_add(conn, uid, item_key, qty=1):
@@ -18614,6 +18983,173 @@ def _gacha_collection_progress(conn, uid):
         'rarity_owned': rarity_owned,
         'missing': missing,
     }
+
+
+def _cosmetic_owned(conn, uid, product):
+    return conn.execute(
+        'SELECT 1 FROM player_wardrobe WHERE user_id=? AND item_id=?',
+        (uid, product['cosmetic_id'])).fetchone() is not None
+
+
+def _cosmetic_equipped(conn, uid, product):
+    row = conn.execute(
+        'SELECT outfit_id FROM player_appearance WHERE user_id=?', (uid,)).fetchone()
+    return bool(row and row['outfit_id'] == product['cosmetic_id'])
+
+
+def _purchase_cosmetic(conn, uid, product, *, price_override=None,
+                       premium_entitled=False):
+    """Purchase/unlock one mapped cosmetic exactly once.
+
+    The caller supplies only a product mapping and, for the legacy daily
+    rotation adapter, a server-computed price override.  Client prices never
+    enter this function.  Ownership is inserted before spending so the
+    UNIQUE(user_id, item_id) constraint is the idempotency gate; an
+    insufficient balance removes that provisional row in the same transaction.
+    """
+    item_id = product['cosmetic_id']
+    if product['unlock_type'] == 'premium':
+        if not premium_entitled:
+            return {'status': 'premium_required', 'granted': False}
+        inserted = conn.execute(
+            'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+            'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
+            (uid, item_id, _now_iso(), 'cosmetic_shop'))
+        granted = getattr(inserted, 'rowcount', 0) == 1
+        return {
+            'status': 'unlocked' if granted else 'already_owned',
+            'granted': granted,
+            'price': None,
+        }
+
+    price = product['price'] if price_override is None else price_override
+    if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
+        raise ValueError('cosmetic price must be a positive server-side integer')
+
+    inserted = conn.execute(
+        'INSERT INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+        'VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO NOTHING',
+        (uid, item_id, _now_iso(), 'cosmetic_shop'))
+    if getattr(inserted, 'rowcount', 0) != 1:
+        return {'status': 'already_owned', 'granted': False, 'price': price}
+
+    if not _spend_coins(conn, uid, price, f'cosmetic_purchase:{product["product_id"]}'):
+        conn.execute(
+            'DELETE FROM player_wardrobe WHERE user_id=? AND item_id=?',
+            (uid, item_id))
+        return {'status': 'insufficient_coins', 'granted': False, 'price': price}
+    return {'status': 'purchased', 'granted': True, 'price': price}
+
+
+def _cosmetic_payload_for_user(conn, uid, product):
+    return _cosmetic_product_payload(
+        product,
+        owned=_cosmetic_owned(conn, uid, product),
+        equipped=_cosmetic_equipped(conn, uid, product),
+    )
+
+
+@app.route('/api/cosmetic-commerce/catalog')
+@login_required
+def cosmetic_commerce_catalog():
+    """Canonical Lane C catalog for the Wave 1 outfit slice."""
+    uid = session['user_id']
+    premium_entitled = is_premium(uid)
+    with get_db() as conn:
+        products = [
+            _cosmetic_payload_for_user(conn, uid, product)
+            for product in COSMETIC_COMMERCE_PRODUCTS
+        ]
+    return jsonify({
+        'categories': ['outfit'],
+        'products': products,
+        'premium_entitled': premium_entitled,
+        'product_id_authority': 'COSMETIC_COMMERCE_PRODUCTS.product_id',
+        'cosmetic_id_authority': 'APPEARANCE_DEFS.id',
+        'ownership_authority': 'player_wardrobe(user_id,item_id)',
+        'equipped_state_authority': 'player_appearance.outfit_id',
+    })
+
+
+@app.route('/api/cosmetic-commerce/preview/<product_id>')
+@login_required
+def cosmetic_commerce_preview(product_id):
+    """Read-only presentation projection; it cannot grant, spend, or equip."""
+    product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
+    if not product:
+        return jsonify({'error': 'unknown_product'}), 404
+    uid = session['user_id']
+    with get_db() as conn:
+        payload = _cosmetic_payload_for_user(conn, uid, product)
+    return jsonify({
+        'ok': True,
+        'preview_only': True,
+        'ownership_mutation': 0,
+        'purchase_mutation': 0,
+        'equip_mutation': 0,
+        'product': payload,
+    })
+
+
+@app.route('/api/cosmetic-commerce/purchase', methods=['POST'])
+@login_required
+def cosmetic_commerce_purchase():
+    """Purchase a Coins product or unlock an existing Premium entitlement."""
+    body = request.get_json(silent=True) or {}
+    product_id = str(body.get('product_id') or '').strip()
+    product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
+    if not product:
+        return jsonify({'error': 'unknown_product'}), 400
+
+    uid = session['user_id']
+    premium_entitled = is_premium(uid)
+    with get_db() as conn:
+        result = _purchase_cosmetic(
+            conn, uid, product, premium_entitled=premium_entitled)
+        if result['status'] == 'premium_required':
+            return jsonify({'error': 'premium_required'}), 403
+        if result['status'] == 'insufficient_coins':
+            return jsonify({
+                'error': 'insufficient_coins',
+                'coins': _coin_balance(conn, uid),
+            }), 400
+        payload = _cosmetic_payload_for_user(conn, uid, product)
+        return jsonify({
+            'ok': True,
+            'status': result['status'],
+            'granted': result['granted'],
+            'price_charged': result['price'],
+            'coins': _coin_balance(conn, uid),
+            'product': payload,
+        })
+
+
+@app.route('/api/cosmetic-commerce/equip', methods=['POST'])
+@login_required
+def cosmetic_commerce_equip():
+    """Equip an owned mapped outfit and persist the visible hero state."""
+    body = request.get_json(silent=True) or {}
+    product_id = str(body.get('product_id') or '').strip()
+    product = _COSMETIC_PRODUCT_BY_ID.get(product_id)
+    if not product:
+        return jsonify({'error': 'unknown_product'}), 400
+
+    uid = session['user_id']
+    premium_entitled = is_premium(uid) if product['unlock_type'] == 'premium' else False
+    with get_db() as conn:
+        if product['unlock_type'] == 'premium' and not premium_entitled:
+            return jsonify({'error': 'premium_required'}), 403
+        if not _cosmetic_owned(conn, uid, product):
+            return jsonify({'error': 'not_owned'}), 403
+
+        now = _now_iso()
+        conn.execute(
+            'INSERT INTO player_appearance(user_id,outfit_id,updated_at) '
+            'VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET '
+            'outfit_id=excluded.outfit_id, updated_at=excluded.updated_at',
+            (uid, product['cosmetic_id'], now))
+        payload = _cosmetic_payload_for_user(conn, uid, product)
+    return jsonify({'ok': True, 'product': payload})
 
 # ── 商城 API ─────────────────────────────────────────────────
 
@@ -18813,7 +19349,10 @@ def _daily_shop_slots(conn):
     if pool:
         for a in rng.sample(pool, min(2, len(pool))):
             price = 200 if a['rarity'] == 'common' else 450
+            product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(a['id'])
             slots.append({'type': 'appearance', 'item_key': a['id'],
+                          'product_id': product['product_id'] if product else None,
+                          'cosmetic_id': a['id'],
                           'icon': a.get('emoji', '🎽'), 'name': a['name'],
                           'name_en': a.get('name_en', a['name']),
                           'rarity': a['rarity'], 'price': price})
@@ -18836,6 +19375,23 @@ def shop_buy_appearance():
                      if s['type'] == 'appearance' and s['item_key'] == item_id), None)
         if not slot:
             return jsonify({'error': 'not_in_rotation'}), 400
+        # Lane C products use the canonical product mapping even when reached
+        # through the existing daily-rotation compatibility route.
+        product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(item_id)
+        if product:
+            result = _purchase_cosmetic(
+                conn, uid, product, price_override=slot['price'])
+            if result['status'] == 'insufficient_coins':
+                return jsonify({'error': 'insufficient_coins',
+                                'coins': _coin_balance(conn, uid)}), 400
+            payload = _cosmetic_payload_for_user(conn, uid, product)
+            return jsonify({'ok': True, 'status': result['status'],
+                            'granted': result['granted'],
+                            'price_charged': result['price'],
+                            'coins': _coin_balance(conn, uid),
+                            'product_id': product['product_id'],
+                            'cosmetic_id': product['cosmetic_id'],
+                            'product': payload})
         owned = conn.execute('SELECT id FROM player_wardrobe WHERE user_id=? AND item_id=?',
                              (uid, item_id)).fetchone()
         if owned:

@@ -46,7 +46,13 @@ class LegacyReviewSerializer:
                 f"missing={missing!r}, unexpected={unexpected!r}"
             )
 
-        return {field: outcome.payload[field] for field in expected}
+        serialized = {field: outcome.payload[field] for field in expected}
+        # Approved presentation extensions (review_compatibility.py) are
+        # appended only after the legacy shape above is proven exact -- they
+        # never participate in the shape check itself and never shadow a
+        # legacy field name (the two allowlists are disjoint by construction).
+        serialized.update(outcome.presentation_extensions)
+        return serialized
 
 
 def serialize_legacy_review(outcome: ReviewOutcome) -> dict[str, Any]:
