@@ -36,3 +36,17 @@ cutouts. The generated RGB sources are retained beside the normalized outputs fo
 Shared constraints for all three prompts: polished chibi/anime RPG production art compatible with
 the supplied P1 masters, clean single-object silhouette, controlled cel-soft shading, genuine
 transparent-background intent, no watermark, and no character-specific identity cues.
+
+## P2B `iron_sword` carry source
+
+Use case: precise-object-edit. The existing `iron_sword` source was supplied as a style and
+canonical-item reference only. Create one standalone carried presentation of the same sword,
+fully sheathed in a simple dark brown leather and deep navy scabbard with matching silver fittings;
+leave the recognizable silver guard and brown pommel/hilt visibly exposed. Preserve the original
+blade identity, restrained blue-brown outline, materials, palette, and cel-soft lighting. Add only
+a small reusable belt loop/strap near the sheath mouth so the object can sit at a character waist
+or across a character back. Front/orthographic three-quarter product view, one complete centered
+object, fully visible and uncropped, transparent background. This is one universal equipment asset
+for `PLAYER_FRAME_A_STANDARD_CHIBI`, never character-specific. Avoid characters, bodies, hands,
+faces, hair, armor, robes, mannequins, second weapons, UI, text, logos, glow, particles, rarity
+effects, watermarks, and separate character variants.

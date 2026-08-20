@@ -98,6 +98,7 @@
     td:first-child, td:nth-child(2) { font-weight: 760; }
     .pass { color: var(--teal); font-weight: 850; }
     .minor { color: var(--warn); font-weight: 850; }
+    .fail { color: #a52828; font-weight: 850; }
     .sheet-wrap { padding: 14px; }
     .sheet-wrap img { display: block; width: 100%; height: auto; border-radius: 12px; }
     .fine { color: var(--muted); font-size: .83rem; }
@@ -138,11 +139,18 @@
       <div class="control-block">
         <div class="control-label">Equipment projection</div>
         <div class="button-row" id="loadout-controls">
-          <button type="button" data-loadout="none" aria-pressed="false">None</button>
-          <button type="button" data-loadout="iron_sword" aria-pressed="false">Weapon</button>
           <button type="button" data-loadout="dragon_scale" aria-pressed="false">Armor</button>
           <button type="button" data-loadout="fox_mask" aria-pressed="false">Accessory</button>
           <button type="button" data-loadout="full" aria-pressed="true">Full loadout</button>
+        </div>
+      </div>
+      <div class="control-block">
+        <div class="control-label">Weapon presentation</div>
+        <div class="button-row" id="weapon-controls">
+          <button type="button" data-loadout="none" aria-pressed="false">No weapon</button>
+          <button type="button" data-loadout="iron_sword" aria-pressed="false">Current Held</button>
+          <button type="button" data-loadout="iron_sword_waist" aria-pressed="false">Waist</button>
+          <button type="button" data-loadout="iron_sword_back" aria-pressed="false">Back</button>
         </div>
       </div>
       <div class="summary">
@@ -185,13 +193,13 @@
     <table>
       <thead><tr><th>Character</th><th>Equipment</th><th>Result</th><th>Alignment</th><th>Depth / occlusion</th><th>Collision / floating</th><th>Mobile</th><th>Identity</th></tr></thead>
       <tbody>
-        <tr><td>Apprentice</td><td>iron_sword</td><td class="minor">PASS_WITH_MINOR_OFFSET</td><td>Grip follows open-palm anchor</td><td>Base hand in front</td><td>No body collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>Apprentice</td><td>iron_sword</td><td class="fail">FAIL</td><td>Open hand; no grip formed</td><td>Base hand in front</td><td>No body collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Apprentice</td><td>dragon_scale</td><td class="pass">PASS</td><td>Torso / shoulders aligned</td><td>Front cuirass</td><td>No floating</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Apprentice</td><td>fox_mask</td><td class="pass">PASS</td><td>Face / eye openings aligned</td><td>Hair-front mask</td><td>No hair clipping</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>Mage</td><td>iron_sword</td><td class="minor">PASS_WITH_MINOR_OFFSET</td><td>Higher hand anchor</td><td>Behind sleeve and body</td><td>No robe collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>Mage</td><td>iron_sword</td><td class="fail">FAIL</td><td>Open hand; no grip formed</td><td>Behind sleeve and body</td><td>No robe collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Mage</td><td>dragon_scale</td><td class="minor">PASS_WITH_MINOR_OFFSET</td><td>−4% common-overlay scale</td><td>Reusable side-hair mask</td><td>Robe remains readable</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Mage</td><td>fox_mask</td><td class="pass">PASS</td><td>−9% common-overlay scale</td><td>Reusable fringe/side-hair mask</td><td>No separate mask art</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
-        <tr><td>Paladin</td><td>iron_sword</td><td class="minor">PASS_WITH_MINOR_OFFSET</td><td>Open-palm anchor</td><td>Base hand in front</td><td>No armor collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
+        <tr><td>Paladin</td><td>iron_sword</td><td class="fail">FAIL</td><td>Open hand; no grip formed</td><td>Base hand in front</td><td>No armor collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Paladin</td><td>dragon_scale</td><td class="minor">PASS_WITH_MINOR_OFFSET</td><td>+3.5% common-overlay scale</td><td>Chest harness over base clothing</td><td>No suppression required</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Paladin</td><td>fox_mask</td><td class="pass">PASS</td><td>−6% common-overlay scale</td><td>Reusable hair-front mask</td><td>No helmet collision</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
         <tr><td>Apprentice</td><td>full loadout</td><td class="minor">PASS_WITH_MINOR_OFFSET</td><td>All anchors close</td><td>Layer stack coherent</td><td>No floating</td><td class="pass">PASS</td><td class="pass">PASS</td></tr>
@@ -204,12 +212,15 @@
   <h2>Equal-scale contact sheet</h2>
   <p class="fine">Every cell renders the same 1056×1408 master into the same 300×400 review box. Character size is never changed to hide clipping.</p>
   <div class="sheet-wrap"><a href="rpg_wave2_gate2_p2_wearable_fitting_contact_sheet.png"><img src="rpg_wave2_gate2_p2_wearable_fitting_contact_sheet.png" alt="Five-row by three-column wearable fitting contact sheet"></a></div>
+  <h2>Weapon carry resolution</h2>
+  <p class="fine">The hand-held row is a failure reference; the waist and back rows use one universal sheathed iron_sword overlay at equal scale.</p>
+  <div class="sheet-wrap"><a href="rpg_wave2_gate2_p2b_weapon_carry_contact_sheet.png"><img src="rpg_wave2_gate2_p2b_weapon_carry_contact_sheet.png" alt="Three-row by three-column weapon carry fitting contact sheet"></a></div>
 </main>
 <script>
 (() => {
   'use strict';
   const characters = ['apprentice', 'mage', 'paladin'];
-  const loadouts = ['none', 'iron_sword', 'dragon_scale', 'fox_mask', 'full'];
+  const loadouts = ['none', 'iron_sword', 'iron_sword_waist', 'iron_sword_back', 'dragon_scale', 'fox_mask', 'full'];
   const basePaths = {
     apprentice: '../../assets/hero/characters/wave2_p1/apprentice_p1.png',
     mage: '../../assets/hero/characters/wave2_p1/mage_p1.png',
@@ -217,15 +228,30 @@
   };
   const display = {
     none: 'No equipment',
-    iron_sword: 'iron_sword',
+    iron_sword: 'Current Held',
+    iron_sword_waist: 'Waist-sheathed',
+    iron_sword_back: 'Back-mounted',
     dragon_scale: 'dragon_scale',
     fox_mask: 'fox_mask',
     full: 'Full loadout'
   };
   const fittingResults = {
-    apprentice: { iron_sword: 'PASS_WITH_MINOR_OFFSET', dragon_scale: 'PASS', fox_mask: 'PASS', full: 'PASS_WITH_MINOR_OFFSET' },
-    mage: { iron_sword: 'PASS_WITH_MINOR_OFFSET', dragon_scale: 'PASS_WITH_MINOR_OFFSET', fox_mask: 'PASS', full: 'PASS_WITH_MINOR_OFFSET' },
-    paladin: { iron_sword: 'PASS_WITH_MINOR_OFFSET', dragon_scale: 'PASS_WITH_MINOR_OFFSET', fox_mask: 'PASS', full: 'PASS_WITH_MINOR_OFFSET' }
+    none: 'PASS',
+    iron_sword: 'FAIL_AS_CANONICAL_STATIC_MODE',
+    iron_sword_waist: 'PASS',
+    iron_sword_back: 'PASS_WITH_MINOR_OFFSET',
+    dragon_scale: 'PASS',
+    fox_mask: 'PASS',
+    full: 'PASS_WITH_MINOR_OFFSET'
+  };
+  const fittingNotes = {
+    none: 'Approved base and normalized anchor contract.',
+    iron_sword: 'Reference only: open hand does not form a grip around the handle.',
+    iron_sword_waist: 'One universal sheathed overlay at the side waist; base body supplies occlusion.',
+    iron_sword_back: 'One universal sheathed overlay behind the body; hilt remains visible over the shoulder.',
+    dragon_scale: 'Universal overlay with one reusable hair-front mask.',
+    fox_mask: 'Universal overlay with one reusable hair-front mask.',
+    full: 'Universal overlays with one reusable character hair-front mask.'
   };
   let currentCharacter = 'apprentice';
   let currentLoadout = 'full';
@@ -236,6 +262,9 @@
 
   function compositePath(character, loadout) {
     if (loadout === 'none') return basePaths[character];
+    if (loadout === 'iron_sword') return `rpg_wave2_gate2_p2_wearable_fitting_assets/composites/${character}_iron_sword.png`;
+    if (loadout === 'iron_sword_waist') return `rpg_wave2_gate2_p2_wearable_fitting_assets/p2b_weapon_carry/composites/${character}_waist_sheathed.png`;
+    if (loadout === 'iron_sword_back') return `rpg_wave2_gate2_p2_wearable_fitting_assets/p2b_weapon_carry/composites/${character}_back_mounted.png`;
     return `rpg_wave2_gate2_p2_wearable_fitting_assets/composites/${character}_${loadout}.png`;
   }
 
@@ -243,13 +272,8 @@
     preview.src = compositePath(currentCharacter, currentLoadout);
     preview.alt = `${currentCharacter} wearable review: ${display[currentLoadout]}`;
     title.textContent = `${currentCharacter[0].toUpperCase()}${currentCharacter.slice(1)} · ${display[currentLoadout]}`;
-    const maskText = currentLoadout === 'none' || currentLoadout === 'iron_sword'
-      ? 'Approved base and normalized anchor contract.'
-      : `Universal overlay with one reusable ${currentCharacter} hair-front mask.`;
-    note.textContent = maskText;
-    result.textContent = currentLoadout === 'none'
-      ? 'PASS'
-      : fittingResults[currentCharacter][currentLoadout];
+    note.textContent = fittingNotes[currentLoadout];
+    result.textContent = fittingResults[currentLoadout];
     document.querySelectorAll('[data-character]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.character === currentCharacter));
     });
@@ -265,6 +289,12 @@
     update();
   });
   document.getElementById('loadout-controls').addEventListener('click', event => {
+    const button = event.target.closest('[data-loadout]');
+    if (!button || !loadouts.includes(button.dataset.loadout)) return;
+    currentLoadout = button.dataset.loadout;
+    update();
+  });
+  document.getElementById('weapon-controls').addEventListener('click', event => {
     const button = event.target.closest('[data-loadout]');
     if (!button || !loadouts.includes(button.dataset.loadout)) return;
     currentLoadout = button.dataset.loadout;

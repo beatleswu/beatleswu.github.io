@@ -122,13 +122,13 @@
     "future_15_equipment_scalability": "PASS_PROTOTYPE_ARCHITECTURE"
   },
   "qa_matrix": [
-    {"character": "apprentice", "loadout": "iron_sword", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "apprentice", "loadout": "iron_sword", "result": "FAIL"},
     {"character": "apprentice", "loadout": "dragon_scale", "result": "PASS"},
     {"character": "apprentice", "loadout": "fox_mask", "result": "PASS"},
-    {"character": "mage", "loadout": "iron_sword", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "mage", "loadout": "iron_sword", "result": "FAIL"},
     {"character": "mage", "loadout": "dragon_scale", "result": "PASS_WITH_MINOR_OFFSET"},
     {"character": "mage", "loadout": "fox_mask", "result": "PASS"},
-    {"character": "paladin", "loadout": "iron_sword", "result": "PASS_WITH_MINOR_OFFSET"},
+    {"character": "paladin", "loadout": "iron_sword", "result": "FAIL"},
     {"character": "paladin", "loadout": "dragon_scale", "result": "PASS_WITH_MINOR_OFFSET"},
     {"character": "paladin", "loadout": "fox_mask", "result": "PASS"},
     {"character": "apprentice", "loadout": "full", "result": "PASS_WITH_MINOR_OFFSET"},
@@ -136,10 +136,11 @@
     {"character": "paladin", "loadout": "full", "result": "PASS_WITH_MINOR_OFFSET"}
   ],
   "aggregate_qa": {
-    "iron_sword_fit": "PASS_WITH_MINOR_OFFSET",
+    "iron_sword_fit": "FAIL",
     "dragon_scale_fit": "PASS_WITH_MINOR_OFFSET",
     "fox_mask_fit": "PASS",
-    "hand_grip_alignment": "PASS_WITH_MINOR_OFFSET",
+    "hand_grip_alignment": "FAIL",
+    "held_weapon_visual": "FAIL",
     "head_alignment": "PASS",
     "torso_alignment": "PASS_WITH_MINOR_OFFSET",
     "shoulder_alignment": "PASS_WITH_MINOR_OFFSET",
