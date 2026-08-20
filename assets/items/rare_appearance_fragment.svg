@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Rare appearance fragment">
+  <defs>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9ff5e7"/>
+      <stop offset=".52" stop-color="#6c7ff5"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#eafffb"/>
+      <stop offset="1" stop-color="#c4b5fd"/>
+    </linearGradient>
+  </defs>
+  <path d="M55 185 101 39l100 49-45 139z" fill="url(#glass)" stroke="#30266d" stroke-width="9" stroke-linejoin="round"/>
+  <path d="m101 39 26 92-72 54M127 131l74-43-45 139" fill="none" stroke="url(#edge)" stroke-width="7" stroke-linejoin="round"/>
+  <path d="m126 132 29 4-12 43-24-22z" fill="#fef3c7" opacity=".9"/>
+  <path d="m87 91 18-21 14 46" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+</svg>

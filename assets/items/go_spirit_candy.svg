@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Go spirit candy">
+  <defs>
+    <linearGradient id="wrap" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <path d="m62 91-28-18M62 165l-28 18M194 91l28-18M194 165l28 18" stroke="#0f766e" stroke-width="13" stroke-linecap="round"/>
+  <path d="M62 67h132v122H62z" rx="48" fill="url(#wrap)" stroke="#27364a" stroke-width="9"/>
+  <circle cx="128" cy="128" r="46" fill="#202936" stroke="#f8fafc" stroke-width="8"/>
+  <path d="M96 124c19-18 40-23 64-12M99 145c18 9 36 7 55-5" fill="none" stroke="#f8fafc" stroke-width="7" stroke-linecap="round"/>
+  <path d="M75 82h106" stroke="#5eead4" stroke-width="8" stroke-linecap="round"/>
+</svg>

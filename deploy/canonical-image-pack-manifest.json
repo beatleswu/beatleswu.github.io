@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1369,
-  "total_bytes": 763507144,
+  "total_files": 1384,
+  "total_bytes": 763517074,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 71
+    "owner-approved-project-created": 86
   },
   "files": [
     {
@@ -4241,6 +4241,156 @@
       "height": 1321,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/hero/equipment/functional/celestial_blade.svg",
+      "size": 776,
+      "sha256": "7014f765c98d9bc08005345fc896b56398dde894e9e68b950037b53d1576909b",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/cloth_robe.svg",
+      "size": 507,
+      "sha256": "737dce53673e828f13553d8e4cc32973d58887a20394e138bbc6f4c04a8af778",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/dragon_claw.svg",
+      "size": 744,
+      "sha256": "641b2670172a972f0234ae35217f18be2283f5d1edab26bafd49126c8d545de3",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/dragon_eye.svg",
+      "size": 767,
+      "sha256": "43267a2518d59719651ec61c09030f617210cb3db7026ca54bef968512f2bd0f",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/dragon_scale.svg",
+      "size": 975,
+      "sha256": "3ba1304fdc184d5340ec1d4630e198ede27d4543ee513d82e212349ab5da5bd0",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/fox_fang.svg",
+      "size": 731,
+      "sha256": "8f8c5f1ba90c202e5b40a9a16818e4c1e13eee8fa3abd4d0357f4b91b8beee2f",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/fox_mask.svg",
+      "size": 643,
+      "sha256": "56fe5229008d268f186cbd5af3ace4eaa6539e132bbe8455cb321901b7f96db7",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/fox_pelt.svg",
+      "size": 542,
+      "sha256": "0138d6448e9472a425a232e0700a370d85e34ace9f64046b12704882b935e874",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/go_stone_black.svg",
+      "size": 530,
+      "sha256": "f73db08f3ee83f21fdc32446ec749d8a1d26b1d7aba1b789d865f3c73fe4304f",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/iron_sword.svg",
+      "size": 647,
+      "sha256": "3d841c73071d1f39530a7c7b87f717ed8b3b86a681f483e31884659c44a7a152",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/leather_armor.svg",
+      "size": 647,
+      "sha256": "860de0c910771fba5adcdaa777977f7ae58afb5c3ec7089a60ea9a73f4da3369",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/lucky_stone.svg",
+      "size": 528,
+      "sha256": "db43b0729f6cb19ed0d9f495f44f1afc74f69073056c442d7ae1579e82bb9d35",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/void_mantle.svg",
+      "size": 767,
+      "sha256": "22b0cd87002b27b6614e64e6bda7c6acf144d4f45f25c79470361c10f2184fbe",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/wooden_sword.svg",
+      "size": 598,
+      "sha256": "af7e74502b29936c55bc73b57a51641c41f1b0cae640264387fb3e180053ed80",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
+    },
+    {
+      "path": "assets/hero/equipment/functional/xp_amulet.svg",
+      "size": 528,
+      "sha256": "7f3d1600b962624c075be354cb8a266c1c9fb39fb42211f6445e1624c373fff7",
+      "mime": "image/svg+xml",
+      "width": 256,
+      "height": 256,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B Gate 2 P1 dedicated transparent functional equipment icon; committed with the product source."
     },
     {
       "path": "assets/hero/gear/gear_armor_t1.webp",

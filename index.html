@@ -5571,6 +5571,7 @@
     /* 兩者不會同時出現，共用同一個位置 */
 
     .item-toast .t-icon  { font-size: 28px; flex-shrink: 0; }
+    .item-toast .t-icon img { width: 42px; height: 42px; object-fit: contain; display: block; }
     .item-toast .t-label {
         font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
         font-family: 'DM Mono', monospace; margin-bottom: 2px;
@@ -5583,6 +5584,8 @@
     #loot-toast   .t-label { color: var(--teal); }
     #appear-toast .t-label { color: var(--amber); }
     #pet-toast    .t-label { color: var(--amber); }
+    .loot-toast-backpack { display: none; pointer-events: auto; align-self: flex-end; color: var(--teal); font-size: 10px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+    .loot-toast-backpack:hover { text-decoration: underline; }
     .t-rarity.common    { color: #6b5740; }
     .t-rarity.uncommon  { color: #0d9488; }
     .t-rarity.rare      { color: #1d4ed8; }
@@ -7832,6 +7835,7 @@
         <div class="t-name"   id="loot-toast-name"></div>
         <div class="t-rarity" id="loot-toast-rarity"></div>
     </div>
+    <a class="loot-toast-backpack" id="loot-toast-backpack" href="/inventory">查看背包 / Open Backpack</a>
 </div>
 
 <!-- 外觀 Toast -->
@@ -8206,12 +8210,27 @@ function showItemToast(toastId, icon, name, rarity) {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
+    const backpackLink = document.getElementById('loot-toast-backpack');
+    if (backpackLink) backpackLink.style.display = 'none';
     clearTimeout(_toastTimer);
 
     const toast    = document.getElementById(toastId);
     if (!toast) return;
     const iconSfx  = toastId;
-    document.getElementById(iconSfx + '-icon').textContent   = icon || '🎁';
+    const iconEl = document.getElementById(iconSfx + '-icon');
+    if (iconEl) {
+        if (typeof icon === 'string' && icon.startsWith('/assets/')) {
+            iconEl.textContent = '';
+            const image = document.createElement('img');
+            image.src = icon;
+            image.alt = '';
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            iconEl.appendChild(image);
+        } else {
+            iconEl.textContent = icon || '🎁';
+        }
+    }
     document.getElementById(iconSfx + '-name').textContent   = name || '';
     const rarityEl = document.getElementById(iconSfx + '-rarity');
     rarityEl.textContent = toastId === 'pet-toast'
@@ -8226,6 +8245,16 @@ function showItemToast(toastId, icon, name, rarity) {
 function showLootToast(loot) {
     if (!loot) return;
     showItemToast('loot-toast', loot.icon, loot.name, loot.rarity);
+    const backpackLink = document.getElementById('loot-toast-backpack');
+    if (backpackLink && loot.inv_id != null) {
+        backpackLink.href = '/inventory?equipment=' + encodeURIComponent(String(loot.inv_id));
+        backpackLink.style.display = 'inline-flex';
+        try {
+            const ids = new Set(JSON.parse(sessionStorage.getItem('functional_equipment_new_ids') || '[]').map(String));
+            ids.add(String(loot.inv_id));
+            sessionStorage.setItem('functional_equipment_new_ids', JSON.stringify([...ids].slice(-50)));
+        } catch (_) {}
+    }
 }
 
 function showAppearToast(item) {

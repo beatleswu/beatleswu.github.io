@@ -42,6 +42,18 @@ from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
 from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
+from rpg_item_registry import (
+    BADGE_PROTOTYPE_SELECTION,
+    BADGE_VISUAL_SYSTEM_V1,
+    COLLECTION_SECTIONS,
+    CROSS_DOMAIN_FRAGMENT_CONTRACT,
+    ITEM_TAXONOMY,
+    ITEM_REGISTRY_VERSION,
+    JOURNAL_SECTIONS,
+    build_item_registry,
+    build_shop_product_grant_registry,
+    badge_visual_metadata,
+)
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -1101,6 +1113,313 @@ EQUIPMENT_DEFS = [
 # 建立快查字典
 _SKILL_MAP = {s['id']: s for s in SKILL_DEFS}
 _EQUIP_MAP = {e['id']: e for e in EQUIPMENT_DEFS}
+
+# Gate 2 functional equipment presentation.  These keys are presentation
+# metadata only; ownership, equipped state, and effects remain authoritative
+# in player_inventory / EQUIPMENT_DEFS.
+FUNCTIONAL_EQUIPMENT_ART = {
+    'wooden_sword': {
+        'name_en': 'Wooden Sword',
+        'desc_en': 'A reliable training blade for a new adventurer.',
+        'icon_key': 'rpg.equipment.functional.wooden_sword.icon',
+        'icon_path': '/assets/hero/equipment/functional/wooden_sword.svg',
+    },
+    'iron_sword': {
+        'name_en': 'Iron Sword',
+        'desc_en': 'A forged sword for the road beyond the training grounds.',
+        'icon_key': 'rpg.equipment.functional.iron_sword.icon',
+        'icon_path': '/assets/hero/equipment/functional/iron_sword.svg',
+    },
+    'fox_fang': {
+        'name_en': 'Fox Fang',
+        'desc_en': 'A regional trophy that bites deeper against fox-kind.',
+        'icon_key': 'rpg.equipment.functional.fox_fang.icon',
+        'icon_path': '/assets/hero/equipment/functional/fox_fang.svg',
+    },
+    'dragon_claw': {
+        'name_en': 'Dragon Claw',
+        'desc_en': 'A boss trophy with an edge honed against dragons.',
+        'icon_key': 'rpg.equipment.functional.dragon_claw.icon',
+        'icon_path': '/assets/hero/equipment/functional/dragon_claw.svg',
+    },
+    'celestial_blade': {
+        'name_en': 'Celestial Blade',
+        'desc_en': 'A legendary blade from the highest battlefield tier.',
+        'icon_key': 'rpg.equipment.functional.celestial_blade.icon',
+        'icon_path': '/assets/hero/equipment/functional/celestial_blade.svg',
+    },
+    'cloth_robe': {
+        'name_en': 'Cloth Robe',
+        'desc_en': 'A simple robe that softens the first blows of battle.',
+        'icon_key': 'rpg.equipment.functional.cloth_robe.icon',
+        'icon_path': '/assets/hero/equipment/functional/cloth_robe.svg',
+    },
+    'leather_armor': {
+        'name_en': 'Leather Armor',
+        'desc_en': 'Practical leather protection for the early road.',
+        'icon_key': 'rpg.equipment.functional.leather_armor.icon',
+        'icon_path': '/assets/hero/equipment/functional/leather_armor.svg',
+    },
+    'fox_pelt': {
+        'name_en': 'Fox Pelt',
+        'desc_en': 'A warm regional mantle cut from fox hide.',
+        'icon_key': 'rpg.equipment.functional.fox_pelt.icon',
+        'icon_path': '/assets/hero/equipment/functional/fox_pelt.svg',
+    },
+    'dragon_scale': {
+        'name_en': 'Dragon Scale',
+        'desc_en': 'Dense dragon scales that reinforce the whole torso.',
+        'icon_key': 'rpg.equipment.functional.dragon_scale.icon',
+        'icon_path': '/assets/hero/equipment/functional/dragon_scale.svg',
+    },
+    'void_mantle': {
+        'name_en': 'Void Mantle',
+        'desc_en': 'A legendary mantle woven from midnight and starlight.',
+        'icon_key': 'rpg.equipment.functional.void_mantle.icon',
+        'icon_path': '/assets/hero/equipment/functional/void_mantle.svg',
+    },
+    'lucky_stone': {
+        'name_en': 'Lucky Stone',
+        'desc_en': 'A polished stone carried by adventurers who trust preparation.',
+        'icon_key': 'rpg.equipment.functional.lucky_stone.icon',
+        'icon_path': '/assets/hero/equipment/functional/lucky_stone.svg',
+    },
+    'xp_amulet': {
+        'name_en': 'XP Amulet',
+        'desc_en': 'An amulet inscribed with lessons from the fox domain.',
+        'icon_key': 'rpg.equipment.functional.xp_amulet.icon',
+        'icon_path': '/assets/hero/equipment/functional/xp_amulet.svg',
+    },
+    'fox_mask': {
+        'name_en': 'Fox Mask',
+        'desc_en': 'A lacquered mask from the regional fox tradition.',
+        'icon_key': 'rpg.equipment.functional.fox_mask.icon',
+        'icon_path': '/assets/hero/equipment/functional/fox_mask.svg',
+    },
+    'dragon_eye': {
+        'name_en': 'Dragon Eye',
+        'desc_en': 'A focused dragon gem that watches every line of play.',
+        'icon_key': 'rpg.equipment.functional.dragon_eye.icon',
+        'icon_path': '/assets/hero/equipment/functional/dragon_eye.svg',
+    },
+    'go_stone_black': {
+        'name_en': 'First-Move Black Stone',
+        'desc_en': 'A legendary black stone kept for a decisive first move.',
+        'icon_key': 'rpg.equipment.functional.go_stone_black.icon',
+        'icon_path': '/assets/hero/equipment/functional/go_stone_black.svg',
+    },
+}
+
+# Only effects with a current server consumer are exposed as active in the
+# Backpack.  Defined-only fields remain visible as explicitly unavailable.
+_FUNCTIONAL_EFFECT_ACTIVE_KEYS = {
+    'wooden_sword': {'dmg_bonus'},
+    'iron_sword': {'dmg_bonus'},
+    'fox_fang': {'dmg_bonus', 'fox_dmg_bonus'},
+    'dragon_claw': {'dmg_bonus', 'dragon_dmg_bonus'},
+    'celestial_blade': {'dmg_bonus'},
+    'cloth_robe': {'player_dmg_reduce'},
+    'leather_armor': {'player_dmg_reduce'},
+    'fox_pelt': {'player_dmg_reduce'},
+    'dragon_scale': {'player_dmg_reduce', 'sp_bonus'},
+    'void_mantle': {'player_dmg_reduce'},
+    'lucky_stone': {'loot_bonus'},
+    'xp_amulet': set(),
+    'fox_mask': set(),
+    'dragon_eye': set(),
+    'go_stone_black': set(),
+}
+
+_FUNCTIONAL_EFFECT_LABELS = {
+    'dmg_bonus': ('傷害加成', 'Damage modifier'),
+    'fox_dmg_bonus': ('對狐族傷害', 'Damage vs Fox'),
+    'dragon_dmg_bonus': ('對龍族傷害', 'Damage vs Dragon'),
+    'player_dmg_reduce': ('受傷減免', 'Damage reduction'),
+    'loot_bonus': ('掉寶加成', 'Loot bonus'),
+    'sp_bonus': ('SP 每日上限加成', 'SP daily-cap utility'),
+    'xp_bonus': ('XP 加成', 'XP bonus'),
+    'quest_xp_bonus': ('任務 XP 加成', 'Quest XP bonus'),
+    'combo_multiplier_double': ('連擊加成翻倍', 'Combo multiplier'),
+    'negate_counter': ('抵銷反擊', 'Counter negation'),
+    'crit_multiplier': ('暴擊倍率', 'Critical multiplier'),
+    'first_question_ace': ('第一題保證高分', 'First-question guarantee'),
+}
+
+_FUNCTIONAL_MONSTER_LABELS = {
+    'goblin': ('哥布林', 'Goblin'),
+    'fox': ('狐族', 'Fox'),
+    'dragon': ('龍族', 'Dragon'),
+}
+
+
+def _functional_effect_value_label(effect_key, value):
+    if isinstance(value, bool):
+        return '啟用' if value else '停用', 'Enabled' if value else 'Disabled'
+    try:
+        if effect_key == 'sp_bonus':
+            amount = int(value)
+            label = f'{amount:+d}' if amount else '0'
+            return label, label
+        if effect_key == 'crit_multiplier':
+            return f'×{value:g}', f'×{value:g}'
+        if effect_key.endswith('_bonus') or effect_key == 'player_dmg_reduce':
+            pct = float(value) * 100
+            label = f'{pct:+g}%' if pct else '0%'
+            return label, label
+    except (TypeError, ValueError):
+        pass
+    return str(value), str(value)
+
+
+def _functional_effect_info(equip):
+    defined = dict(equip.get('effects') or {})
+    active_keys = _FUNCTIONAL_EFFECT_ACTIVE_KEYS.get(equip.get('id'), set())
+    active = {key: value for key, value in defined.items() if key in active_keys}
+    unsupported = []
+    for key, value in defined.items():
+        if key in active_keys:
+            continue
+        label_zh, label_en = _FUNCTIONAL_EFFECT_LABELS.get(key, (key, key))
+        value_zh, value_en = _functional_effect_value_label(key, value)
+        unsupported.append({
+            'key': key,
+            'label': label_zh,
+            'label_en': label_en,
+            'declared_value': value,
+            'declared_value_label': value_zh,
+            'declared_value_label_en': value_en,
+            'status': 'NOT_CURRENTLY_EFFECTIVE',
+        })
+    if unsupported and active:
+        status = 'PARTIAL'
+    elif unsupported:
+        status = 'DEFINED_ONLY'
+    else:
+        status = 'SERVER_EFFECTIVE'
+    active_details = []
+    for key, value in active.items():
+        label_zh, label_en = _FUNCTIONAL_EFFECT_LABELS.get(key, (key, key))
+        value_zh, value_en = _functional_effect_value_label(key, value)
+        active_details.append({
+            'key': key,
+            'label': label_zh,
+            'label_en': label_en,
+            'value': value,
+            'value_label': value_zh,
+            'value_label_en': value_en,
+            'status': 'SERVER_EFFECTIVE',
+        })
+    return {
+        'defined_effects': defined,
+        'active_effects': active,
+        'active_effect_details': active_details,
+        'unsupported_effects': unsupported,
+        'effect_status': status,
+    }
+
+
+def _functional_source_labels(equip):
+    sources = equip.get('drop_from') or []
+    zh = [_FUNCTIONAL_MONSTER_LABELS.get(source, (source, source))[0] for source in sources]
+    en = [_FUNCTIONAL_MONSTER_LABELS.get(source, (source, source))[1] for source in sources]
+    return {
+        'drop_source': list(sources),
+        'where_to_obtain': f"怪物掉落：{'、'.join(zh)}" if zh else '目前沒有設定掉落來源',
+        'where_to_obtain_en': f"Monster drops: {', '.join(en)}" if en else 'No drop source configured',
+    }
+
+
+def _functional_equipment_payload(equip, *, inv_id=None, equipped=False,
+                                  obtained_at=None, source=None,
+                                  owned_quantity=None, comparison_summary=None):
+    art = FUNCTIONAL_EQUIPMENT_ART.get(equip.get('id'), {})
+    effect_info = _functional_effect_info(equip)
+    source_info = _functional_source_labels(equip)
+    payload = {
+        'item_id': equip.get('id'),
+        'id': equip.get('id'),
+        'display_name': equip.get('name'),
+        'display_name_en': art.get('name_en', equip.get('id')),
+        'name': equip.get('name'),
+        'name_en': art.get('name_en', equip.get('id')),
+        'slot': equip.get('slot'),
+        'rarity': equip.get('rarity'),
+        'icon': art.get('icon_path'),
+        'icon_key': art.get('icon_key'),
+        'icon_alt': equip.get('name'),
+        'legacy_icon': equip.get('icon'),
+        'desc': equip.get('desc', ''),
+        'desc_en': art.get('desc_en', ''),
+        **effect_info,
+        **source_info,
+        'equipped': bool(equipped),
+        'currently_equipped': bool(equipped),
+        'functional_equipment': True,
+        'style_equipment': False,
+    }
+    if inv_id is not None:
+        payload['inv_id'] = inv_id
+        payload['inventory_id'] = inv_id
+    if obtained_at is not None:
+        payload['obtained_at'] = obtained_at
+    if source is not None:
+        payload['source'] = source
+    if owned_quantity is not None:
+        payload['owned_quantity'] = int(owned_quantity)
+    if comparison_summary is not None:
+        payload['comparison_summary'] = comparison_summary
+    return payload
+
+
+def _functional_comparison_summary(candidate, current):
+    candidate_info = _functional_effect_info(candidate)
+    current_info = _functional_effect_info(current) if current else {
+        'active_effects': {}, 'unsupported_effects': [], 'effect_status': 'SERVER_EFFECTIVE'
+    }
+    candidate_active = candidate_info['active_effects']
+    current_active = current_info['active_effects']
+    deltas = []
+    for key in sorted(set(candidate_active) | set(current_active)):
+        candidate_value = candidate_active.get(key, 0)
+        current_value = current_active.get(key, 0)
+        try:
+            delta = round(float(candidate_value) - float(current_value), 4)
+        except (TypeError, ValueError):
+            continue
+        label_zh, label_en = _FUNCTIONAL_EFFECT_LABELS.get(key, (key, key))
+        value_zh, value_en = _functional_effect_value_label(key, delta)
+        deltas.append({
+            'key': key,
+            'label': label_zh,
+            'label_en': label_en,
+            'delta': delta,
+            'delta_label': value_zh,
+            'delta_label_en': value_en,
+            'status': 'SERVER_EFFECTIVE',
+        })
+    return {
+        'same_slot_item_id': current.get('id') if current else None,
+        'same_slot_display_name': current.get('name') if current else None,
+        'same_slot_display_name_en': (
+            FUNCTIONAL_EQUIPMENT_ART.get(current.get('id'), {}).get('name_en')
+            if current else None
+        ),
+        'state': 'CURRENTLY_EQUIPPED' if current and current.get('id') == candidate.get('id') else 'COMPARE',
+        'deltas': deltas,
+        'unsupported_effects': candidate_info['unsupported_effects'],
+    }
+
+
+def _functional_equipped_by_slot(conn, uid):
+    rows = conn.execute(
+        'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
+    ).fetchall()
+    result = {}
+    for row in rows:
+        equip = _EQUIP_MAP.get(row['equip_id'])
+        if equip and equip.get('slot'):
+            result[equip['slot']] = equip
+    return result
 
 # ── 掉落機率基礎值（依怪物種類）─────────────────────────────
 BASE_LOOT_CHANCE = {
@@ -6058,11 +6377,37 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         loot_bonus = _get_combined_effect(conn, uid, 'loot_bonus')
         loot_id    = _roll_loot(monster_type, loot_bonus)
         if loot_id:
+            existing_row = conn.execute(
+                'SELECT COUNT(*) AS item_count FROM player_inventory '
+                'WHERE user_id=? AND equip_id=?', (uid, loot_id)
+            ).fetchone()
+            existing_count = int(existing_row['item_count'] or 0) if existing_row else 0
+            obtained_at = datetime.datetime.now().isoformat()
             conn.execute(
                 'INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) VALUES(?,?,0,?,?)',
-                (uid, loot_id, datetime.datetime.now().isoformat(), 'drop')
+                (uid, loot_id, obtained_at, 'drop')
             )
-            loot_result = _EQUIP_MAP.get(loot_id)
+            inserted_row = conn.execute(
+                'SELECT id FROM player_inventory WHERE user_id=? AND equip_id=? '
+                'AND obtained_at=? ORDER BY id DESC LIMIT 1',
+                (uid, loot_id, obtained_at),
+            ).fetchone()
+            equip = _EQUIP_MAP.get(loot_id)
+            if equip:
+                equipped_by_slot = _functional_equipped_by_slot(conn, uid)
+                loot_result = _functional_equipment_payload(
+                    equip,
+                    inv_id=inserted_row['id'] if inserted_row else None,
+                    equipped=False,
+                    obtained_at=obtained_at,
+                    source='drop',
+                    owned_quantity=existing_count + 1,
+                    comparison_summary=_functional_comparison_summary(
+                        equip, equipped_by_slot.get(equip.get('slot'))
+                    ),
+                )
+                loot_result['new'] = existing_count == 0
+                loot_result['duplicate'] = existing_count > 0
 
         # 外觀掉落（獨立判定，與裝備互不干擾）
         appear_item = _roll_appearance_loot(monster_type)
@@ -13803,13 +14148,16 @@ def badge_definitions():
         if en:
             d['name_en'] = en[0]
             d['desc_en'] = en[1]
+        d.update(badge_visual_metadata(d))
         defs.append(d)
     qs   = _load_questions()
     for u in {group_label(q) for q in qs}:
         u_en = _i18n_topic_en(u) or _i18n_level_en(u) or u
-        defs.append({'id':'unit_'+u.replace(' ','_'),'name':f'完成《{u}》','name_en':f'Complete "{u_en}"',
-                     'icon':'📖','desc':f'完成單元「{u}」的所有題目','desc_en':f'Complete all problems in "{u_en}"',
-                     'type':'unit_complete','value':u})
+        dynamic = {'id':'unit_'+u.replace(' ','_'),'name':f'完成《{u}》','name_en':f'Complete "{u_en}"',
+                   'icon':'📖','desc':f'完成單元「{u}」的所有題目','desc_en':f'Complete all problems in "{u_en}"',
+                   'type':'unit_complete','value':u}
+        dynamic.update(badge_visual_metadata(dynamic))
+        defs.append(dynamic)
     return jsonify(defs)
 
 @app.route('/api/badges/earned')
@@ -14222,11 +14570,26 @@ def get_inventory():
             'SELECT * FROM player_inventory WHERE user_id=? ORDER BY obtained_at DESC',
             (uid,)
         ).fetchall()
+        equipped_by_slot = _functional_equipped_by_slot(conn, uid)
+        owned_counts = {}
+        for row in rows:
+            owned_counts[row['equip_id']] = owned_counts.get(row['equip_id'], 0) + 1
     result = []
     for r in rows:
         eq = _EQUIP_MAP.get(r['equip_id'], {})
-        result.append({**eq, 'inv_id': r['id'], 'equipped': bool(r['equipped']),
-                        'obtained_at': r['obtained_at'], 'source': r['source']})
+        if not eq:
+            continue
+        result.append(_functional_equipment_payload(
+            eq,
+            inv_id=r['id'],
+            equipped=bool(r['equipped']),
+            obtained_at=r['obtained_at'],
+            source=r['source'],
+            owned_quantity=owned_counts.get(r['equip_id'], 1),
+            comparison_summary=_functional_comparison_summary(
+                eq, equipped_by_slot.get(eq.get('slot'))
+            ),
+        ))
     return jsonify(result)
 
 
@@ -14234,9 +14597,11 @@ def get_inventory():
 @login_required
 def equip_item():
     uid  = session['user_id']
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     inv_id = data.get('inv_id')
     act    = data.get('action', 'equip')  # 'equip' | 'unequip'
+    if act not in ('equip', 'unequip'):
+        return jsonify({'error': '不支援的裝備操作'}), 400
     with get_db() as conn:
         row = conn.execute('SELECT * FROM player_inventory WHERE id=? AND user_id=?',
                            (inv_id, uid)).fetchone()
@@ -14244,7 +14609,9 @@ def equip_item():
             return jsonify({'error': '找不到物品'}), 404
         equip = _EQUIP_MAP.get(row['equip_id'], {})
         slot  = equip.get('slot')
-        if act == 'equip' and slot:
+        if not slot:
+            return jsonify({'error': '無效的功能裝備'}), 400
+        if act == 'equip':
             # 卸下同 slot 其他裝備
             slot_ids = [e['id'] for e in EQUIPMENT_DEFS if e['slot'] == slot]
             if slot_ids:
@@ -14257,7 +14624,12 @@ def equip_item():
         else:
             conn.execute('UPDATE player_inventory SET equipped=0 WHERE id=?', (inv_id,))
         conn.commit()
-    return jsonify({'ok': True})
+    return jsonify({
+        'ok': True,
+        'item_id': row['equip_id'],
+        'inv_id': row['id'],
+        'equipped': act == 'equip',
+    })
 
 
 # ══════════════════════════════════════════════════════════════
@@ -18626,6 +18998,10 @@ def badges_page(): return redirect('/hero?tab=badges')
 @login_required
 def inventory_page(): return _serve_live_static_or_baked('inventory.html')
 
+@app.route('/item-journal')
+@login_required
+def item_journal_page(): return _serve_live_static_or_baked('item_journal.html')
+
 # ══════════════════════════════════════════════════════════════
 # 商城系統（金幣經濟：賺取上限 / 道具 / 每日輪換 / 扭蛋）
 # 設計原則：學習道具優先、零 P2W（不賣分數/段位/Elo）
@@ -19151,6 +19527,142 @@ def cosmetic_commerce_equip():
         payload = _cosmetic_payload_for_user(conn, uid, product)
     return jsonify({'ok': True, 'product': payload})
 
+# ── Item Journal read-only projection ────────────────────────
+
+def _journal_recent_item_ids(conn, uid, product_registry, item_ids):
+    """Best-effort recent-source projection; never writes or mutates ownership.
+
+    ``shop_inventory`` and ``pet_inventory`` pre-date an obtained-at column.
+    Where the existing currency/gacha logs provide a timestamp, expose a
+    small recently-obtained hint.  Missing/legacy log tables fail closed to an
+    empty hint rather than changing the ownership contract.
+    """
+    recent = {}
+    products = {entry['product_id']: entry for entry in product_registry}
+
+    def mark_item(item_id, created_at):
+        if item_id in item_ids and item_id not in recent:
+            recent[item_id] = (created_at or '')
+
+    def mark_product(product_id, created_at):
+        product = products.get(product_id)
+        if not product:
+            mark_item(product_id, created_at)
+            return
+        for grant in product.get('grants', []):
+            mark_item(grant.get('item_id'), created_at)
+
+    try:
+        rows = conn.execute(
+            'SELECT reason, created_at FROM currency_log '
+            'WHERE user_id=? AND reason LIKE ? ORDER BY id DESC LIMIT 40',
+            (uid, 'buy:%')).fetchall()
+        for row in rows:
+            reason = str(row['reason'] or '')
+            match = re.match(r'^buy:([^x]+)x\d+$', reason)
+            if match:
+                mark_product(match.group(1), row['created_at'])
+    except Exception:
+        pass
+
+    try:
+        rows = conn.execute(
+            'SELECT result_key, created_at FROM gacha_log '
+            'WHERE user_id=? ORDER BY id DESC LIMIT 40', (uid,)).fetchall()
+        for row in rows:
+            mark_product(str(row['result_key'] or ''), row['created_at'])
+    except Exception:
+        pass
+    return recent
+
+
+@app.route('/api/item-journal')
+@login_required
+def item_journal():
+    """Return a read-only projection for non-equipment item presentation."""
+    uid = session['user_id']
+    product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
+    item_registry = build_item_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
+    item_ids = {item['item_id'] for item in item_registry}
+
+    with get_db() as conn:
+        shop_rows = conn.execute(
+            'SELECT item_key, qty FROM shop_inventory WHERE user_id=? AND qty>0',
+            (uid,)).fetchall()
+        pet_rows = conn.execute(
+            'SELECT item_key, qty FROM pet_inventory WHERE user_id=? AND qty>0',
+            (uid,)).fetchall()
+        try:
+            badge_owned = conn.execute(
+                'SELECT COUNT(*) AS n FROM badges_earned WHERE user_id=?', (uid,)
+            ).fetchone()['n']
+        except Exception:
+            badge_owned = 0
+        recent = _journal_recent_item_ids(conn, uid, product_registry, item_ids)
+
+    shop_owned = {row['item_key']: int(row['qty'] or 0) for row in shop_rows}
+    pet_owned = {row['item_key']: int(row['qty'] or 0) for row in pet_rows}
+    section_by_category = {
+        'ConsumableEffect': 'ConsumableEffect',
+        'Material': 'Material',
+        'QuestItem': 'QuestItem',
+        'TreasureBundle': 'TreasureBundle',
+        'Collectible': 'Collectible',
+    }
+    projected = []
+    for raw in item_registry:
+        item = dict(raw)
+        authority = str(item.get('ownership_authority') or item.get('current_ownership') or '')
+        if 'pet_inventory' in authority:
+            quantity = pet_owned.get(item['item_id'], 0)
+        elif 'shop_inventory' in authority:
+            quantity = shop_owned.get(item['item_id'], 0)
+        else:
+            # Bundle products intentionally have no persistent product row.
+            quantity = 0
+        # Catalog metadata is not player discovery history.  P1 deliberately
+        # keeps discovery untracked; ownership is projected only from the
+        # existing authoritative item store, while recentness is log-derived.
+        item['catalog_visible'] = True
+        item['owned_amount'] = quantity
+        item['owned'] = quantity > 0
+        item['recently_obtained'] = item['item_id'] in recent
+        item['recent_source_at'] = recent.get(item['item_id'])
+        item['journal_section'] = section_by_category.get(item.get('category'), 'Material')
+        item['source'] = item.get('source_tags', [])
+        item['where_to_get_more'] = item.get('where_to_get_more', item.get('source_tags', []))
+        projected.append(item)
+
+    return jsonify({
+        'version': ITEM_REGISTRY_VERSION,
+        'discovery_semantics': 'NOT_TRACKED',
+        'taxonomy': list(ITEM_TAXONOMY),
+        'journal_sections': list(JOURNAL_SECTIONS),
+        'collection_sections': list(COLLECTION_SECTIONS),
+        'item_registry': {'version': ITEM_REGISTRY_VERSION, 'items': projected},
+        'items': projected,
+        'shop_product_grant_registry': product_registry,
+        'badge_collection': {
+            'static_total': len(BADGE_DEFS),
+            'owned': int(badge_owned or 0),
+            'is_backpack_item': False,
+            'href': '/badges',
+            'visual_system': BADGE_VISUAL_SYSTEM_V1,
+            'prototype_selection': list(BADGE_PROTOTYPE_SELECTION),
+        },
+        'cross_domain_fragment': CROSS_DOMAIN_FRAGMENT_CONTRACT,
+        'excluded_domains': {
+            'functional_equipment': {'authority': 'player_inventory', 'href': '/inventory'},
+            'cosmetic_appearance': {'authority': 'player_wardrobe', 'href': '/hero?tab=appearance'},
+        },
+        'mutation_boundary': {
+            'ownership_mutation': 0,
+            'purchase_mutation': 0,
+            'equip_mutation': 0,
+            'journal_write': 0,
+        },
+    })
+
 # ── 商城 API ─────────────────────────────────────────────────
 
 @app.route('/api/shop/catalog')
@@ -19165,6 +19677,7 @@ def shop_catalog():
         slots = _daily_shop_slots(conn)
         pity = _gacha_pity_count(conn, uid)
         collection = _gacha_collection_progress(conn, uid)
+    product_registry = build_shop_product_grant_registry(SHOP_ITEMS, PET_FOOD_CATALOG)
     return jsonify({
         'coins': bal,
         'earned_today': earned,
@@ -19179,6 +19692,8 @@ def shop_catalog():
         'gacha': {'cost': _GACHA_COST, 'pity': _GACHA_PITY, 'pity_count': pity,
                   'rates': {'item': 0.60, 'pet_food': 0.25, 'common': 0.12, 'uncommon': 0.03}},
         'gacha_collection': collection,
+        'item_registry_version': ITEM_REGISTRY_VERSION,
+        'shop_product_grant_registry': product_registry,
     })
 
 @app.route('/api/shop/buy', methods=['POST'])
@@ -21062,7 +21577,7 @@ _LIVE_STATIC_ELIGIBLE_FILES = frozenset({
     'community.html', 'messages.html', 'share_view.html',
     'mistakes.html', 'curriculum.html', 'hero.html', 'rating_test.html',
     'shop.html', 'profile.html', 'premium_weekly.html', 'stats.html',
-    'upgrade.html', 'play.html', 'inventory.html', 'badges.html',
+    'upgrade.html', 'play.html', 'inventory.html', 'item_journal.html', 'badges.html',
     'games.html',
 })
 

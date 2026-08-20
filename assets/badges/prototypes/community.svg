@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Community badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#173c56" stroke="#f4c95d" stroke-width="12"/>
+  <path d="M128 61 146 86l31-5-2 31 25 18-25 18 2 31-31-5-18 25-18-25-31 5 2-31-25-18 25-18-2-31 31 5z" fill="#2f95a9" stroke="#dff7f3" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M128 91v74M91 128h74" stroke="#fef3c7" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="128" cy="128" r="19" fill="#f4c95d" stroke="#80531a" stroke-width="6"/>
+</svg>

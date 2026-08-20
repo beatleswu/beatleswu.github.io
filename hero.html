@@ -3383,13 +3383,16 @@ async function loadBadgesTab() {
         const earned = earnedSet.has(b.id);
         const color  = BADGE_RARITY_COLOR[rar(b)] || '#b45309';
         const label  = (BADGE_RARITY_LK[rar(b)] && typeof I18n!=='undefined') ? I18n.t(BADGE_RARITY_LK[rar(b)]) : (BADGE_RARITY_LABEL[rar(b)] || rar(b));
+        const badgeArt = b.prototype_asset
+          ? `<img src="${b.prototype_asset}" alt="" loading="lazy" decoding="async" style="width:42px;height:42px;object-fit:contain;">`
+          : (b.icon || '🏅');
         return `<div style="
           background:${earned ? '#fff' : 'var(--cream2)'};
           border:1.5px solid ${earned ? color : 'var(--border)'};
           border-radius:14px; padding:14px 10px; text-align:center;
           opacity:${earned ? 1 : 0.55}; transition:.2s;
         ">
-          <div style="font-size:36px;line-height:1.2;margin-bottom:6px;">${b.icon || '🏅'}</div>
+          <div style="font-size:36px;line-height:1.2;margin-bottom:6px;">${badgeArt}</div>
           <div style="font-size:12px;font-weight:700;color:${earned ? color : 'var(--ink3)'};margin-bottom:3px;">${I18n.localized(b,'name') || ''}</div>
           <div style="font-size:10px;color:var(--ink4);line-height:1.4;">${I18n.localized(b,'desc') || b.description || ''}</div>
           ${earned ? `<div style="margin-top:6px;font-size:10px;font-weight:600;color:${color};">✓ ${label}</div>` : ''}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs><linearGradient id="steel" x1="90" y1="205" x2="166" y2="38" gradientUnits="userSpaceOnUse"><stop stop-color="#475569"/><stop offset=".55" stop-color="#dbeafe"/><stop offset="1" stop-color="#f8fafc"/></linearGradient></defs>
+  <g stroke="#1e293b" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M114 38h28l13 122-27 29-27-29 13-122Z" fill="url(#steel)"/>
+    <path d="M79 159h98" stroke="#94a3b8"/>
+    <path d="M116 189h24v40h-24z" fill="#5b3b2a"/>
+    <path d="M110 229h36" stroke="#cbd5e1"/>
+  </g>
+</svg>
