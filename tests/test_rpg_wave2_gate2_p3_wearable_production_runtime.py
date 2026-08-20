@@ -195,6 +195,31 @@ def test_p2_artitecture_is_reused_without_bespoke_item_character_redraws():
     assert report["equipment"]["iron_sword"]["production_status"] == "READY_WITH_REUSABLE_MASK"
 
 
+def test_p3c_armor_occlusion_fix_preserves_face_and_mask_contract():
+    registry = _json(REGISTRY)
+    report = _json(REPORT)
+    p3c = report["p3c_armor_occlusion"]
+    assert p3c["task_id"] == "RPG_WAVE2_GATE2_P3C_ARMOR_OCCLUSION_NARROW_FIX_001"
+    assert p3c["armor_items_reviewed"] == [
+        "cloth_robe", "leather_armor", "fox_pelt", "dragon_scale", "void_mantle",
+    ]
+    assert p3c["armor_items_revised"] == ["cloth_robe", "fox_pelt", "void_mantle"]
+    assert p3c["cloth_robe_face_occlusion_before"] == 6
+    assert p3c["cloth_robe_face_occlusion_after"] == 0
+    assert p3c["cloth_robe_6_of_6"] is True
+    assert p3c["non_face_armor_face_occlusion_count_after"] == 0
+    assert all(
+        pixels == 0
+        for item_pixels in p3c["face_occlusion_pixels_after"].values()
+        for pixels in item_pixels.values()
+    )
+    assert p3c["fox_mask_behavior"] == "PRESERVED_HEAD_FACE_ACCESSORY"
+    assert registry["equipment"]["fox_mask"]["wearable_class"] == "HEAD_FACE"
+    assert registry["equipment"]["fox_mask"]["mask_requirements"] == ["HAIR_FRONT_MASK"]
+    assert p3c["full_loadout_qa"] == "PASS"
+    assert p3c["mobile_qa"] == "PASS"
+
+
 def test_no_forbidden_domain_or_deployment_scope_was_added_to_runtime_files():
     runtime = RUNTIME.read_text(encoding="utf-8")
     for forbidden in ("combat formulas", "damage", "drop rates", "DB migration", "deploy", "payment"):

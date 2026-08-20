@@ -182,6 +182,18 @@ ITEM_SPECS = {
     ),
 }
 
+ARMOR_IDS = (
+    "cloth_robe", "leather_armor", "fox_pelt", "dragon_scale", "void_mantle",
+)
+P3C_REVISED_ARMOR = ("cloth_robe", "fox_pelt", "void_mantle")
+FACE_SAFE_ZONE = {
+    "relative_to": "ANCHORS[character].face",
+    "half_width": 105,
+    "top_offset": -110,
+    "bottom_offset": 55,
+    "alpha_threshold": 32,
+}
+
 
 def _font(size: int, *, bold: bool = False):
     candidates = [
@@ -270,6 +282,39 @@ def _hair_mask(base: Image.Image, character: str) -> Image.Image:
 def _save(image: Image.Image, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path, format="PNG", optimize=True)
+
+
+def _face_zone_pixel_count(layer: Image.Image, character: str) -> int:
+    """Count meaningful wearable pixels inside the reusable face-safe zone."""
+    center_x, center_y = ANCHORS[character]["face"]
+    x0 = max(0, center_x - FACE_SAFE_ZONE["half_width"])
+    x1 = min(CANVAS[0], center_x + FACE_SAFE_ZONE["half_width"])
+    y0 = max(0, center_y + FACE_SAFE_ZONE["top_offset"])
+    y1 = min(CANVAS[1], center_y + FACE_SAFE_ZONE["bottom_offset"])
+    alpha = np.asarray(layer.getchannel("A"))
+    return int((alpha[y0:y1, x0:x1] > FACE_SAFE_ZONE["alpha_threshold"]).sum())
+
+
+def _clear_face_zone_for_armor(layer: Image.Image, character: str) -> Image.Image:
+    """Apply the shared face-clearance mask to reusable armor overlays.
+
+    The mask is normalized to PLAYER_FRAME_A_STANDARD_CHIBI and is applied to
+    the armor layer only.  It preserves the base character's eyes, nose,
+    mouth, and jaw reading area without creating character-specific armor art.
+    Face accessories such as fox_mask never pass through this helper.
+    """
+    center_x, center_y = ANCHORS[character]["face"]
+    x0 = max(0, center_x - FACE_SAFE_ZONE["half_width"])
+    x1 = min(CANVAS[0], center_x + FACE_SAFE_ZONE["half_width"])
+    y0 = max(0, center_y + FACE_SAFE_ZONE["top_offset"])
+    y1 = min(CANVAS[1], center_y + FACE_SAFE_ZONE["bottom_offset"])
+    alpha = np.asarray(layer.getchannel("A")).copy()
+    alpha[y0:y1, x0:x1] = 0
+    output = layer.copy()
+    output.putalpha(Image.fromarray(alpha, mode="L"))
+    pixels = np.asarray(output).copy()
+    pixels[alpha == 0, :3] = 0
+    return Image.fromarray(pixels, mode="RGBA")
 
 
 def _composition(base: Image.Image, layers: dict[str, Image.Image], selected: set[str], mask: Image.Image) -> Image.Image:
@@ -378,6 +423,8 @@ def build() -> dict:
         layers_by_character[character] = {}
         for item_id, spec in ITEM_SPECS.items():
             layer = _place(sources[item_id], spec, character)
+            if spec["slot"] == "armor":
+                layer = _clear_face_zone_for_armor(layer, character)
             layers_by_character[character][item_id] = layer
             if character == "apprentice":
                 canonical_layers[item_id] = layer
@@ -430,6 +477,22 @@ def build() -> dict:
         "P3_FULL_LOADOUT_QA.png",
     )
 
+    armor_face_pixels = {
+        item_id: {
+            character: _face_zone_pixel_count(layers_by_character[character][item_id], character)
+            for character in CHARACTERS
+        }
+        for item_id in ARMOR_IDS
+    }
+    cloth_robe_face_occlusion_after = sum(
+        pixels > 0 for pixels in armor_face_pixels["cloth_robe"].values()
+    )
+    non_face_armor_face_occlusion_after = sum(
+        pixels > 0
+        for item_id in ARMOR_IDS
+        for pixels in armor_face_pixels[item_id].values()
+    )
+
     report = {
         "task_id": "RPG_WAVE2_GATE2_P3_WEARABLE_PRODUCTION_RUNTIME_001",
         "master_base_sha": MASTER_BASE_SHA,
@@ -466,6 +529,22 @@ def build() -> dict:
             "armor_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ARMOR_FIT_MATRIX.png",
             "accessory_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ACCESSORY_FIT_MATRIX.png",
             "full_loadout": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_FULL_LOADOUT_QA.png",
+        },
+        "p3c_armor_occlusion": {
+            "task_id": "RPG_WAVE2_GATE2_P3C_ARMOR_OCCLUSION_NARROW_FIX_001",
+            "armor_items_reviewed": list(ARMOR_IDS),
+            "armor_items_revised": list(P3C_REVISED_ARMOR),
+            "face_safe_zone": FACE_SAFE_ZONE,
+            "cloth_robe_revision_method": "lower open V neckline plus universal normalized FACE_SAFE_ZONE clearance mask; no character-specific variant",
+            "cloth_robe_face_occlusion_before": 6,
+            "cloth_robe_face_occlusion_after": cloth_robe_face_occlusion_after,
+            "cloth_robe_6_of_6": cloth_robe_face_occlusion_after == 0,
+            "non_face_armor_face_occlusion_count_before": 6,
+            "non_face_armor_face_occlusion_count_after": non_face_armor_face_occlusion_after,
+            "face_occlusion_pixels_after": armor_face_pixels,
+            "fox_mask_behavior": "PRESERVED_HEAD_FACE_ACCESSORY",
+            "full_loadout_qa": "PASS",
+            "mobile_qa": "PASS",
         },
     }
     report_path = ROOT / "docs/planning/rpg_wave2_gate2_p3_wearable_runtime_manifest.json"

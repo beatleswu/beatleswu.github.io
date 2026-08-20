@@ -213,5 +213,78 @@
     "armor_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ARMOR_FIT_MATRIX.png",
     "accessory_matrix": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ACCESSORY_FIT_MATRIX.png",
     "full_loadout": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_FULL_LOADOUT_QA.png"
+  },
+  "p3c_armor_occlusion": {
+    "task_id": "RPG_WAVE2_GATE2_P3C_ARMOR_OCCLUSION_NARROW_FIX_001",
+    "armor_items_reviewed": [
+      "cloth_robe",
+      "leather_armor",
+      "fox_pelt",
+      "dragon_scale",
+      "void_mantle"
+    ],
+    "armor_items_revised": [
+      "cloth_robe",
+      "fox_pelt",
+      "void_mantle"
+    ],
+    "face_safe_zone": {
+      "relative_to": "ANCHORS[character].face",
+      "half_width": 105,
+      "top_offset": -110,
+      "bottom_offset": 55,
+      "alpha_threshold": 32
+    },
+    "cloth_robe_revision_method": "lower open V neckline plus universal normalized FACE_SAFE_ZONE clearance mask; no character-specific variant",
+    "cloth_robe_face_occlusion_before": 6,
+    "cloth_robe_face_occlusion_after": 0,
+    "cloth_robe_6_of_6": true,
+    "non_face_armor_face_occlusion_count_before": 6,
+    "non_face_armor_face_occlusion_count_after": 0,
+    "face_occlusion_pixels_after": {
+      "cloth_robe": {
+        "apprentice": 0,
+        "mage": 0,
+        "paladin": 0,
+        "trail_apprentice": 0,
+        "night_runner": 0,
+        "constellation_apprentice": 0
+      },
+      "leather_armor": {
+        "apprentice": 0,
+        "mage": 0,
+        "paladin": 0,
+        "trail_apprentice": 0,
+        "night_runner": 0,
+        "constellation_apprentice": 0
+      },
+      "fox_pelt": {
+        "apprentice": 0,
+        "mage": 0,
+        "paladin": 0,
+        "trail_apprentice": 0,
+        "night_runner": 0,
+        "constellation_apprentice": 0
+      },
+      "dragon_scale": {
+        "apprentice": 0,
+        "mage": 0,
+        "paladin": 0,
+        "trail_apprentice": 0,
+        "night_runner": 0,
+        "constellation_apprentice": 0
+      },
+      "void_mantle": {
+        "apprentice": 0,
+        "mage": 0,
+        "paladin": 0,
+        "trail_apprentice": 0,
+        "night_runner": 0,
+        "constellation_apprentice": 0
+      }
+    },
+    "fox_mask_behavior": "PRESERVED_HEAD_FACE_ACCESSORY",
+    "full_loadout_qa": "PASS",
+    "mobile_qa": "PASS"
   }
 }

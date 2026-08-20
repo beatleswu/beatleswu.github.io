@@ -38,7 +38,10 @@
     const LOADOUTS = {
       none: [],
       weapon: [{ equipment_id:'iron_sword', equipped:true }],
+      cloth_robe: [{ equipment_id:'cloth_robe', equipped:true }],
+      fox_pelt: [{ equipment_id:'fox_pelt', equipped:true }],
       armor: [{ equipment_id:'dragon_scale', equipped:true }],
+      void_mantle: [{ equipment_id:'void_mantle', equipped:true }],
       accessory: [{ equipment_id:'fox_mask', equipped:true }],
       full: [
         { equipment_id:'iron_sword', equipped:true },
@@ -47,7 +50,7 @@
       ],
     };
     let activeLoadout = 'full';
-    const labels = { none:'No Weapon / Base', weapon:'Waist Sword', armor:'Dragon Scale', accessory:'Fox Mask', full:'Full Loadout' };
+    const labels = { none:'No Weapon / Base', weapon:'Waist Sword', cloth_robe:'Cloth Robe', fox_pelt:'Fox Pelt', armor:'Dragon Scale', void_mantle:'Void Mantle', accessory:'Fox Mask', full:'Full Loadout' };
     const controlRoot = document.getElementById('loadout-controls');
     const grid = document.getElementById('character-grid');
     Object.keys(LOADOUTS).forEach(key => {
