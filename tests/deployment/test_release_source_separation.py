@@ -22,25 +22,33 @@ PACKAGE_STATIC = ROOT / "scripts" / "release" / "package-static-release.ps1"
 # through B1-B7 or the backend V1A2/V1A3 waves, so the mechanism correctly
 # (by design) fail-closed with UNAPPROVED_PRODUCT_DIFF_DETECTED against
 # every product file those waves touched -- not a bug in the assertion.
-# E10_REPLAY_STORY_BUTTON_HOTFIX_001: Owner-approved Product baseline,
-# advanced for the isolated hotfix branch (built from the exact deployed
-# Product source df7acb585, not current master -- see RELEASE_SCOPE_DIFF).
-# Same two-commit-role pattern documented by the prior E10_LORD_REPLAY_
-# ISOLATED_RELEASE_001 baseline this replaces:
-#   7e744efd = CONTENT_PRODUCING_COMMIT. Bumps sw.js VERSION and
-#               world_stage.js's cache-busting tag so the fixed Replay Story
-#               click handler (cce3bb2dc) actually reaches already-cached
-#               clients. The runtime-source-provenance.json entries for
-#               index.html and sw.js point at it. It stays immutable.
-#   cce3bb2d  = the fix itself: replayAdventureIntro calls
-#               E10Cinematic.playStoryReplay synchronously from the real
-#               click instead of behind an unnecessary Legacy Adventure Map
-#               readiness wait. The runtime-source-provenance.json entry for
-#               js/e9/world_stage.js points at it. It stays immutable.
-#   732d8384d = prior APPROVED_PRODUCT_BASELINE (E10_LORD_REPLAY_ISOLATED_
-#               RELEASE_001), inherited unchanged and superseded here only
-#               because 7e744efd/cce3bb2d's own product bytes postdate it.
-PRODUCT_SHA = "7e744efde0198fce74e2a79d52d77dfedb00a678"
+# E10_REPLAY_STORY_CROSS_SURFACE_V237_ISOLATED_RELEASE_001: Owner-approved
+# Product baseline, advanced for the isolated cross-surface hotfix branch
+# (built from the exact deployed Product source 8d1c1f893, not current
+# master -- see RELEASE_SCOPE_DIFF). Same two-commit-role pattern the prior
+# E10_REPLAY_STORY_BUTTON_HOTFIX_001 baseline used, and which it replaces:
+#   5126dd3bb = CONTENT_PRODUCING_COMMIT and the Product source this release
+#               builds. Records runtime provenance for the three governed
+#               files the hotfix changed (index.html, sw.js,
+#               js/e9/world_stage.js). It stays immutable.
+#   240801f32 = the cross-surface fix: one shared availability authority
+#               replaces right_cards.js's hardcoded 'k26_30' allowlist, and
+#               the E9 shell publishes its authoritative bootstrap snapshot
+#               to the cinematic model. Bumps sw.js VERSION to the v237
+#               family and both changed modules' cache tags. The provenance
+#               entries for index.html and sw.js point at it. Immutable.
+#   95cb44570 = 002A's final predicate: Replay Story requires an
+#               authoritative record, not locked, cleared, and canonical
+#               replayable segments, failing closed on every other path.
+#               The provenance entry for js/e9/world_stage.js points at it.
+#               Immutable.
+#   7e744efde = prior APPROVED_PRODUCT_BASELINE (E10_REPLAY_STORY_BUTTON_
+#               HOTFIX_001), inherited unchanged and superseded here only
+#               because this hotfix's own product bytes postdate it.
+# The commit that advances this constant to 5126dd3bb touches only this
+# gate-scope file, so it is self-terminating: no tracked product file
+# changes after that SHA, which is what lets the Gate checkout validate it.
+PRODUCT_SHA = "5126dd3bbf2a93228c81f1aefd66de3a17c77426"
 PRESENTATION_DISPATCHER_PATH = "js/game/presentation_dispatcher.js"
 PRE_B1_PROVENANCE_COUNT = 79
 B1_PRESENT_PROVENANCE_COUNT = 80
