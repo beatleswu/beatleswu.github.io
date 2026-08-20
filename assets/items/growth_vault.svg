@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Growth vault">
+  <defs>
+    <linearGradient id="vault" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#b9f6cf"/>
+      <stop offset=".55" stop-color="#3b9d82"/>
+      <stop offset="1" stop-color="#1e5b53"/>
+    </linearGradient>
+  </defs>
+  <path d="M77 42h102l18 30v126c0 13-10 24-23 24H82c-13 0-23-11-23-24V72z" fill="url(#vault)" stroke="#184e4a" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M77 42h102l18 30H59z" fill="#d5f5c8" stroke="#184e4a" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M128 92v81" stroke="#eaffd3" stroke-width="7" opacity=".9"/>
+  <path d="M128 105c-19-24-42-20-54-6 8 25 28 36 54 29M128 105c19-24 42-20 54-6-8 25-28 36-54 29" fill="#8ee6a6" stroke="#205d4b" stroke-width="7" stroke-linejoin="round"/>
+  <path d="m128 130 26 23-26 36-26-36z" fill="#7dd3fc" stroke="#e0f2fe" stroke-width="6"/>
+  <circle cx="128" cy="72" r="11" fill="#fef3c7" stroke="#8a5a26" stroke-width="6"/>
+</svg>

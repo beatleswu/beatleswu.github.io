@@ -522,7 +522,10 @@ main {
         <h1 id="backpack-title" data-i18n="backpack.title">我的背包</h1>
         <p data-i18n="backpack.subtitle">查看真實持有量、分類與可用狀態；商品價格與購買行為只在商店顯示。</p>
       </div>
-      <a class="backpack-shop-link" href="/shop" data-i18n="backpack.goShop">前往商店</a>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
+        <a class="backpack-shop-link" href="/item-journal">物品圖鑑 / Item Journal</a>
+        <a class="backpack-shop-link" href="/shop" data-i18n="backpack.goShop">前往商店</a>
+      </div>
     </div>
     <div id="backpack-status" class="backpack-status" role="status" aria-live="polite" data-state="loading" data-i18n="backpack.loading">正在載入背包…</div>
     <div class="backpack-filters" id="backpack-filters" role="tablist" aria-label="背包分類" data-i18n-aria-label="backpack.categories"></div>

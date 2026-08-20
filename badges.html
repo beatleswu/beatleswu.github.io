@@ -328,6 +328,7 @@ main {
 .badge-card:not(.earned) .badge-medallion-lg:hover { transform:none; }
 
 .badge-icon-lg { font-size: 32px; line-height: 1; position: relative; z-index: 1; }
+.badge-prototype-art { width: 58px; height: 58px; object-fit: contain; position: relative; z-index: 1; }
 
 /* ── 稀有度標籤 ── */
 .rarity-pill {
@@ -701,12 +702,15 @@ function renderBadges() {
 
             const lockHint = premBadge && !earnedInfo
                 ? `<div class="prem-lock-hint" onclick="location.href='/upgrade'">${I18n.t('bdg.prem_lock_hint')}</div>` : '';
+            const badgeArt = def.prototype_asset
+                ? `<img class="badge-prototype-art" src="${def.prototype_asset}" alt="" loading="lazy" decoding="async">`
+                : `<span class="badge-icon-lg">${def.icon}</span>`;
 
             card.innerHTML = `
                 ${isNew ? '<div class="new-pill">NEW</div>' : ''}
                 ${premBadge && earnedInfo ? '<div class="prem-shine"></div>' : ''}
                 <div class="badge-medallion-lg" data-rarity="${rarity}">
-                    <span class="badge-icon-lg">${def.icon}</span>
+                    ${badgeArt}
                 </div>
                 <div class="badge-name">${I18n.localized(def, 'name')}</div>
                 <div class="badge-desc">${I18n.localized(def, 'desc')}</div>

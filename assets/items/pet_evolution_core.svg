@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Pet evolution core">
+  <defs>
+    <radialGradient id="core" cx="35%" cy="25%">
+      <stop stop-color="#fff7c2"/>
+      <stop offset=".42" stop-color="#9be7b0"/>
+      <stop offset="1" stop-color="#178f7d"/>
+    </radialGradient>
+    <linearGradient id="leaf" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#176b56"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 73c-18-30-52-34-71-16 4 28 22 48 56 51" fill="url(#leaf)" stroke="#164e43" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M128 73c18-30 52-34 71-16-4 28-22 48-56 51" fill="url(#leaf)" stroke="#164e43" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M128 70c-45 0-75 31-75 71 0 44 31 74 75 74s75-30 75-74c0-40-30-71-75-71z" fill="url(#core)" stroke="#164e43" stroke-width="10"/>
+  <path d="M92 130c12-19 29-28 49-28 18 0 32 7 43 21" fill="none" stroke="#fff9d6" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+  <circle cx="128" cy="157" r="23" fill="#1f2937" stroke="#f8fafc" stroke-width="7"/>
+  <path d="M111 158c11-11 23-13 35-5" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
+</svg>

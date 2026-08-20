@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="XP badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#241d48" stroke="#a78bfa" stroke-width="12"/>
+  <path d="M128 55 174 82v92l-46 27-46-27V82z" fill="#6d5bd0" stroke="#ddd6fe" stroke-width="8" stroke-linejoin="round"/>
+  <path d="m128 84 18 44-18 43-18-43z" fill="#67e8f9" stroke="#e0f2fe" stroke-width="6"/>
+  <circle cx="128" cy="128" r="9" fill="#fff7c2"/>
+</svg>

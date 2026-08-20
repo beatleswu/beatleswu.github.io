@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Premium badge prototype">
+  <circle cx="128" cy="128" r="96" fill="#2a1d4a" stroke="#f4d27a" stroke-width="12"/>
+  <path d="m72 99 25 46 31-70 31 70 25-46 9 73H63z" fill="#f4d27a" stroke="#fff4c2" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M82 181h92" stroke="#c084fc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="128" cy="75" r="8" fill="#fff"/>
+</svg>

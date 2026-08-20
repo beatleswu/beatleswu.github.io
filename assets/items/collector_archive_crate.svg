@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Collector archive crate">
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#b87844"/>
+      <stop offset="1" stop-color="#704026"/>
+    </linearGradient>
+  </defs>
+  <path d="M42 76 128 43l86 33v112l-86 27-86-27z" fill="url(#wood)" stroke="#3f291e" stroke-width="10" stroke-linejoin="round"/>
+  <path d="m42 76 86 31 86-31M128 107v108" fill="none" stroke="#4d2d1f" stroke-width="9"/>
+  <path d="M77 63 128 43l51 20-51 21z" fill="#d9a15b" stroke="#3f291e" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M107 119h42v52h-42z" fill="#312e81" stroke="#e7c17a" stroke-width="8"/>
+  <path d="m128 127 13 21-13 21-13-21z" fill="#7dd3fc" stroke="#f5d58c" stroke-width="5"/>
+  <path d="M67 101v67M189 101v67" stroke="#e7b56f" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+</svg>
