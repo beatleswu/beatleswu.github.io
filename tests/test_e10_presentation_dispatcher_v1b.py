@@ -44,7 +44,7 @@ B1_SRS_SCRIPT_SRC = "/srs.js?v=20260816e10v1bb1"
 # same release tag as the new cinematic_replay.js module it now cooperates
 # with (RELEASE-CACHE-FIX-01).
 BASE_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260801e10art1"
-RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260819e10replay001"
+RELEASE_CACHE_FIX_01_WORLD_STAGE_SCRIPT_SRC = "/js/e9/world_stage.js?v=20260820e10replaybtn001"
 SYNTHETIC_SECRET = "e10-v1b-b1b-contract-test-secret"
 B2_DISPATCH_INSERTION = """\
     const b2Dispatcher = window.PresentationDispatcher;
