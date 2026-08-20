@@ -868,15 +868,36 @@
   }
 
   // Replays every legitimately unlocked segment of the zone, in canonical
-  // lifecycle order. Presentation only -- see playZoneStoryReplay. Falls back
-  // to the historical first-entry-only replay if the model is unavailable.
+  // lifecycle order. Presentation only -- see playZoneStoryReplay.
+  //
+  // E10_REPLAY_STORY_BUTTON_HOTFIX_001: playStoryReplay is fully self-hosted
+  // by the current shell -- it resolves the zone and its unlocked segments
+  // from server-authoritative state already loaded by this component, and
+  // needs nothing the Legacy Adventure Map provides. It is therefore called
+  // synchronously, directly from the click, instead of behind
+  // withCinematicHost's wait for ensureLegacyAdventureMapReady. That wait
+  // bought this button an unnecessary dependency on a UI surface it doesn't
+  // use, and (being asynchronous) could cross a task boundary before the
+  // cinematic's own audio priming ran, spending the click's user activation
+  // for nothing. Priming here, still inside the real click, keeps that
+  // activation available to the cinematic regardless of how long any of
+  // this component's own async work takes.
   function replayAdventureIntro(zoneKey) {
     if (!zoneStoryReplayAvailable(zoneKey)) return false;
+    if (typeof window._unlockIntroAudioFromGesture === 'function') {
+      try { window._unlockIntroAudioFromGesture(); } catch (error) { /* best-effort priming only */ }
+    }
+    var api = window.E10Cinematic;
+    if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey)) {
+      return true;
+    }
+    // Narrow fail-safe: only reached when the E10Cinematic model itself is
+    // unavailable (degraded load). That fallback genuinely runs through the
+    // legacy-adjacent startAdventureStage entry point, so it keeps waiting
+    // on Legacy Adventure Map readiness -- unlike the primary path above.
     var root = worldStageRoot();
     var state = root && root.__e9WorldStageState;
     withCinematicHost(function () {
-      var api = window.E10Cinematic;
-      if (api && typeof api.playStoryReplay === 'function' && api.playStoryReplay(zoneKey)) return;
       if (typeof window.startAdventureStage === 'function') {
         var options = { mode: 'manual_replay' };
         if (state && state.cinematicReadError) options.readErrorDegraded = true;
