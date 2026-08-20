@@ -15,6 +15,7 @@ from functools import wraps
 from collections import Counter
 import psycopg2
 import json, os, subprocess, threading, queue, uuid, time, sqlite3, datetime, secrets, bisect
+from contextvars import ContextVar
 from decimal import Decimal
 import csv, io
 import math, re
@@ -5658,7 +5659,74 @@ def _get_or_create_battlefield(conn, uid, today_str):
         'max_hp': m[2], 'current_hp': m[2], 'defeated': 0, 'kill_count': 0,
     }
 
-def _calc_damage(grade, max_hp):
+_COMBAT_ATTACK_BONUS_CAP = 0.75
+_COMBAT_DAMAGE_REDUCTION_CAP = 0.99
+_COMBAT_STATS_CONTEXT = ContextVar('combat_stats_context', default=None)
+
+
+def _nonnegative_effect(value):
+    """Normalize a server-defined effect without trusting client values."""
+    try:
+        return max(0.0, float(value or 0.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _missing_equipment_table(error):
+    """Recognize pre-equipment legacy fixtures without hiding other DB errors."""
+    if isinstance(error, sqlite3.OperationalError):
+        return 'no such table' in str(error).lower()
+    return isinstance(error, getattr(psycopg2.errors, 'UndefinedTable', ()))
+
+
+def _safe_equipment_effect(conn, uid, effect_key):
+    try:
+        return _get_equip_effect(conn, uid, effect_key)
+    except Exception as error:
+        if _missing_equipment_table(error):
+            return 0.0
+        raise
+
+
+def _safe_skill_effect(conn, uid, effect_key):
+    try:
+        return _get_skill_effect(conn, uid, effect_key)
+    except Exception as error:
+        if _missing_equipment_table(error):
+            return 0.0
+        raise
+
+
+def _get_authoritative_combat_stats(conn, uid, monster_type=None):
+    """Derive functional combat stats from owned, equipped equipment only.
+
+    ``player_inventory`` is the functional ownership/equipped-state authority.
+    ``player_appearance.combat_*`` is deliberately not consulted here: those
+    fields are a client-facing visual projection and must never grant combat
+    power. Equipment definitions and effects come from server-side
+    ``EQUIPMENT_DEFS`` only.
+    """
+    attack_bonus = _nonnegative_effect(_safe_equipment_effect(conn, uid, 'dmg_bonus'))
+    if monster_type:
+        attack_bonus += _nonnegative_effect(
+            _safe_equipment_effect(conn, uid, f'{monster_type}_dmg_bonus')
+        )
+    damage_reduction = _nonnegative_effect(
+        _safe_equipment_effect(conn, uid, 'player_dmg_reduce')
+    ) + _nonnegative_effect(
+        _safe_skill_effect(conn, uid, 'player_dmg_reduce')
+    )
+    attack_bonus = min(_COMBAT_ATTACK_BONUS_CAP, attack_bonus)
+    damage_reduction = min(_COMBAT_DAMAGE_REDUCTION_CAP, damage_reduction)
+    return {
+        'attack_bonus': round(attack_bonus, 4),
+        'attack_bonus_pct': round(attack_bonus * 100, 1),
+        'damage_reduction': round(damage_reduction, 4),
+        'damage_reduction_pct': round(damage_reduction * 100, 1),
+    }
+
+
+def _calc_damage(grade, max_hp, attack_bonus=0.0):
     """
     傷害計算：每擊約扣 4~8%，讓每場戰鬥持續 15~25 題。
     連擊加成在 srs_review 傳入 combo_streak 後由呼叫端加乘。
@@ -5668,7 +5736,12 @@ def _calc_damage(grade, max_hp):
     if grade < 3:
         return 0
     pct = {3: 0.04, 4: 0.06, 5: 0.08}.get(grade, 0.04)
-    return max(5, math.ceil(max_hp * pct))
+    if attack_bonus == 0.0:
+        scoped_stats = _COMBAT_STATS_CONTEXT.get()
+        if scoped_stats:
+            attack_bonus = scoped_stats.get('attack_bonus', 0.0)
+    attack_bonus = min(_COMBAT_ATTACK_BONUS_CAP, _nonnegative_effect(attack_bonus))
+    return min(max(0, int(max_hp)), max(5, math.ceil(max_hp * pct * (1.0 + attack_bonus))))
 
 def _get_equip_effect(conn, uid, effect_key):
     """加總玩家所有已裝備物品對某效果的貢獻（數值加法）。"""
@@ -5734,6 +5807,37 @@ def _gain_sp(conn, uid, amount):
     conn.execute('UPDATE player_sp SET current_sp=? WHERE user_id=?', (new_sp, uid))
     return new_sp
 
+
+def _equipment_aware_legacy_combat(operation):
+    """Apply Lane A stats around the characterized legacy operation body."""
+    from functools import wraps
+
+    @wraps(operation)
+    def wrapped(conn, uid, qid, grade, q_info, combo_streak, today_str,
+                should_grant_progress=True, shadow_events=None):
+        row = conn.execute(
+            'SELECT monster_type FROM battlefield_monster WHERE user_id=? AND bf_date=?',
+            (uid, today_str),
+        ).fetchone()
+        monster_type = row['monster_type'] if row else _BATTLEFIELD_ROSTER[0][0]
+        combat_stats = _get_authoritative_combat_stats(conn, uid, monster_type)
+        token = _COMBAT_STATS_CONTEXT.set(combat_stats)
+        try:
+            result = operation(
+                conn, uid, qid, grade, q_info, combo_streak, today_str,
+                should_grant_progress=should_grant_progress,
+                shadow_events=shadow_events,
+            )
+            if isinstance(result, dict):
+                result['combat_stats'] = combat_stats
+            return result
+        finally:
+            _COMBAT_STATS_CONTEXT.reset(token)
+
+    return wrapped
+
+
+@_equipment_aware_legacy_combat
 def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                                today_str, should_grant_progress=True,
                                shadow_events=None):
@@ -5949,6 +6053,7 @@ def monster_status():
         ).fetchall()
         sp_row = conn.execute('SELECT current_sp FROM player_sp WHERE user_id=?', (uid,)).fetchone()
         equip_bonus = _get_equip_effect(conn, uid, 'sp_bonus')   # 必須在 conn 關閉前呼叫
+        combat_stats = _get_authoritative_combat_stats(conn, uid, bf['monster_type'])
         conn.commit()
 
     _bf_xp        = (s['xp'] or 0) if s else 0
@@ -6006,6 +6111,7 @@ def monster_status():
         'skills':     skills_info,
         'current_sp': current_sp,
         'max_sp':     max_sp,
+        'combat_stats': combat_stats,
     })
 
 
@@ -11675,6 +11781,7 @@ def map_battle_v1_answers():
                 question_loader=_map_battle_question_by_id,
                 mode_environ=os.environ,
                 eligibility=eligibility,
+                combat_stats_resolver=_get_authoritative_combat_stats,
             )
     except MapBattleRuntimeError as error:
         body = {
@@ -14508,6 +14615,7 @@ def skills_profile():
                           if _title_id and _title_id in _APPEAR_MAP else None)
         _eq_title_en = _i18n_title_en(_title_id) if _title_id else None
         equipped_title_en = _eq_title_en[0] if _eq_title_en else equipped_title
+        combat_stats = _get_authoritative_combat_stats(conn, uid)
 
     # ── active_effects & equipped_visuals ───────────────────────
     with get_db() as _conn2:
@@ -14565,6 +14673,7 @@ def skills_profile():
         },
         'wardrobe':          wardrobe,
         'active_effects':    appear_fx,
+        'combat_stats':      combat_stats,
         'equipped_visuals':  equipped_visuals,
         'new_unlock':        new_unlock,
         'is_premium':        is_premium(uid),
