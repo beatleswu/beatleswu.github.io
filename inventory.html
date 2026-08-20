@@ -349,6 +349,70 @@ main {
 .backpack-empty { grid-column:1/-1; padding:36px 18px; border:1px dashed var(--border2); border-radius:14px; text-align:center; color:var(--ink3); background:var(--surface2); }
 .backpack-toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); z-index:1000; transform:translate(-50%,16px); opacity:0; pointer-events:none; transition:.18s; border-radius:10px; background:var(--ink); color:#fff; padding:10px 14px; }
 .backpack-toast.show { opacity:1; transform:translate(-50%,0); }
+.functional-equipment-shell { border-top:3px solid var(--teal); padding-top:24px; }
+.functional-equipment-kicker { margin:0 0 4px !important; color:var(--teal) !important; font:700 10px/1.2 var(--mono); letter-spacing:.16em; }
+.functional-equipment-note { max-width:720px; }
+.functional-equipment-link { flex:0 0 auto; min-height:44px; display:inline-flex; align-items:center; padding:0 16px; border-radius:10px; border:1px solid var(--border2); background:var(--cream2); color:var(--ink2); font-weight:700; text-decoration:none; }
+.functional-equipment-status { border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:12px; color:var(--ink3); background:var(--surface2); }
+.functional-equipment-status[data-state="ready"] { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); padding:0; border:0; }
+.functional-equipment-status[data-state="error"] { color:var(--red); background:var(--red-bg); }
+.functional-equipment-filters { display:flex; gap:8px; overflow-x:auto; padding:4px 0 14px; }
+.functional-equipment-filter { flex:0 0 auto; min-height:40px; padding:0 14px; border:1px solid var(--border); border-radius:999px; background:#fff; color:var(--ink3); font-weight:700; cursor:pointer; }
+.functional-equipment-filter[aria-selected="true"] { border-color:var(--teal); background:var(--teal-bg); color:var(--teal); }
+.functional-equipment-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,330px); gap:16px; align-items:start; }
+.functional-equipment-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; min-height:120px; }
+.functional-equipment-card { position:relative; min-width:0; border:1.5px solid var(--border); border-radius:14px; background:#fff; padding:13px; text-align:left; cursor:pointer; transition:transform .15s,border-color .15s,box-shadow .15s; }
+.functional-equipment-card[data-rarity="uncommon"] { border-color:#0d9488; }
+.functional-equipment-card[data-rarity="rare"] { border-color:#2563eb; }
+.functional-equipment-card[data-rarity="epic"] { border-color:#7c3aed; }
+.functional-equipment-card[data-rarity="legendary"] { border-color:#d97706; box-shadow:0 4px 18px rgba(217,119,6,.12); }
+.functional-equipment-card:hover,.functional-equipment-card:focus-visible { transform:translateY(-2px); border-color:var(--teal); box-shadow:0 7px 20px rgba(13,148,136,.14); outline:none; }
+.functional-equipment-card[data-selected="true"] { border-color:var(--teal); box-shadow:0 0 0 3px rgba(13,148,136,.12); background:var(--teal-bg); }
+.functional-equipment-card[data-equipped="true"]::after { content:'✓'; position:absolute; top:9px; right:10px; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; background:var(--teal); color:#fff; font-size:12px; font-weight:900; }
+.functional-equipment-card-head { display:flex; gap:10px; align-items:center; min-width:0; }
+.functional-equipment-icon { width:64px; height:64px; flex:0 0 auto; border-radius:12px; background:var(--cream2); display:grid; place-items:center; overflow:hidden; }
+.functional-equipment-icon img { width:100%; height:100%; object-fit:contain; display:block; }
+.functional-equipment-card-name { min-width:0; color:var(--ink); font-size:14px; font-weight:800; overflow-wrap:anywhere; }
+.functional-equipment-card-meta { margin-top:4px; color:var(--ink3); font:500 10px/1.4 var(--mono); }
+.functional-equipment-badge { display:inline-flex; margin-top:10px; padding:3px 7px; border-radius:999px; background:var(--teal-bg); color:var(--teal-dark); border:1px solid var(--teal-mid); font:700 9px/1.2 var(--mono); }
+.functional-equipment-card-effects { margin-top:10px; display:grid; gap:4px; }
+.functional-effect-line { display:flex; justify-content:space-between; gap:8px; color:var(--ink2); font-size:11px; line-height:1.4; }
+.functional-effect-value { color:var(--teal-dark); font-family:var(--mono); font-weight:800; white-space:nowrap; }
+.functional-effect-disabled { color:var(--ink4); text-decoration:line-through; }
+.functional-effect-disabled .functional-effect-value { color:var(--ink4); }
+.functional-equipment-empty { grid-column:1/-1; padding:36px 18px; border:1px dashed var(--border2); border-radius:14px; text-align:center; color:var(--ink3); background:var(--surface2); }
+.functional-equipment-detail { position:sticky; top:76px; border:1px solid var(--border); border-radius:16px; background:#fff; padding:18px; box-shadow:var(--shadow); }
+.functional-equipment-detail[data-empty="true"] { color:var(--ink3); min-height:260px; display:grid; place-items:center; text-align:center; line-height:1.6; }
+.functional-detail-identity { display:flex; align-items:center; gap:12px; }
+.functional-detail-icon { width:88px; height:88px; flex:0 0 auto; border-radius:16px; background:var(--cream2); display:grid; place-items:center; overflow:hidden; }
+.functional-detail-icon img { width:100%; height:100%; object-fit:contain; display:block; }
+.functional-detail-name { font-size:20px; font-weight:900; color:var(--ink); overflow-wrap:anywhere; }
+.functional-detail-meta { margin-top:5px; color:var(--ink3); font:500 10px/1.5 var(--mono); }
+.functional-detail-badge { display:inline-flex; margin-top:8px; padding:4px 8px; border-radius:999px; background:var(--teal-bg); color:var(--teal-dark); border:1px solid var(--teal-mid); font:700 9px/1.2 var(--mono); }
+.functional-detail-section { margin-top:16px; padding-top:13px; border-top:1px solid var(--border); }
+.functional-detail-section h3 { color:var(--ink2); font-size:11px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+.functional-detail-list { display:grid; gap:6px; }
+.functional-detail-row { display:flex; justify-content:space-between; gap:12px; color:var(--ink2); font-size:12px; line-height:1.45; }
+.functional-detail-row strong { color:var(--teal-dark); font-family:var(--mono); text-align:right; }
+.functional-detail-row.muted,.functional-detail-row.muted strong { color:var(--ink4); }
+.functional-compare-row { display:flex; justify-content:space-between; gap:10px; font-size:12px; line-height:1.5; }
+.functional-compare-row strong { font-family:var(--mono); }
+.functional-compare-row.positive strong { color:var(--green); }
+.functional-compare-row.negative strong { color:var(--red); }
+.functional-compare-row.neutral strong { color:var(--ink3); }
+.functional-detail-actions { display:flex; gap:8px; margin-top:16px; }
+.functional-detail-action { flex:1; min-height:42px; border:0; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; cursor:pointer; }
+.functional-detail-action.secondary { background:var(--cream2); color:var(--ink2); border:1px solid var(--border2); }
+.functional-detail-action:disabled { opacity:.55; cursor:wait; }
+.functional-detail-source { color:var(--ink3); font-size:12px; line-height:1.55; }
+@media (max-width:700px) {
+  .functional-equipment-layout { grid-template-columns:1fr; }
+  .functional-equipment-detail { position:static; }
+  .functional-equipment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:430px) {
+  .functional-equipment-grid { grid-template-columns:1fr; }
+}
 @media (max-width:700px) {
   .backpack-heading { flex-direction:column; }
   .backpack-shop-link { width:100%; justify-content:center; }
@@ -395,6 +459,62 @@ main {
 
 <main>
 
+  <section class="section-wrap functional-equipment-shell" data-functional-equipment-backpack aria-labelledby="functional-equipment-title">
+    <div class="backpack-heading">
+      <div>
+        <p class="functional-equipment-kicker">FUNCTIONAL EQUIPMENT</p>
+        <h1 id="functional-equipment-title">戰鬥裝備 / Functional Equipment</h1>
+        <p class="functional-equipment-note">由伺服器保存的戰鬥裝備背包。這裡的裝備會影響已支援的遊戲效果；外觀裝備請到 Hero Style Gear 管理。</p>
+      </div>
+      <a class="functional-equipment-link" href="/hero?tab=equipment">外觀裝備 / Hero Style Gear</a>
+    </div>
+    <div id="functional-equipment-status" class="functional-equipment-status" role="status" aria-live="polite" data-state="loading">正在載入戰鬥裝備…</div>
+    <div class="functional-equipment-filters" id="functional-equipment-filters" role="tablist" aria-label="戰鬥裝備分類">
+      <button type="button" class="functional-equipment-filter" data-functional-filter="all" aria-selected="true">全部 / All</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="weapon" aria-selected="false">武器 / Weapon</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="armor" aria-selected="false">防具 / Armor</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="accessory" aria-selected="false">飾品 / Accessory</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="equipped" aria-selected="false">已裝備 / Equipped</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="new" aria-selected="false">新取得 / New</button>
+    </div>
+    <div class="functional-equipment-layout">
+      <div class="functional-equipment-grid" id="functional-equipment-grid" data-functional-equipment-grid aria-live="polite"></div>
+      <aside class="functional-equipment-detail" id="functional-equipment-detail" data-empty="true" aria-live="polite">
+        <div id="functional-equipment-detail-empty">選取一件戰鬥裝備以查看效果、來源與同槽比較。<br>Select an item to compare and equip.</div>
+        <div id="functional-equipment-detail-content" hidden>
+          <div class="functional-detail-identity">
+            <div class="functional-detail-icon"><img id="functional-detail-icon" alt=""></div>
+            <div>
+              <div class="functional-detail-name" id="functional-detail-name"></div>
+              <div class="functional-detail-meta" id="functional-detail-meta"></div>
+              <div class="functional-detail-badge">戰鬥裝備 / Functional Equipment</div>
+            </div>
+          </div>
+          <div class="functional-detail-section">
+            <h3>持有狀態 / Ownership</h3>
+            <div class="functional-detail-list" id="functional-detail-ownership"></div>
+          </div>
+          <div class="functional-detail-section">
+            <h3>效果 / Effects</h3>
+            <div class="functional-detail-list" id="functional-detail-effects"></div>
+          </div>
+          <div class="functional-detail-section">
+            <h3>比較 / Compare</h3>
+            <div class="functional-detail-list" id="functional-detail-comparison"></div>
+          </div>
+          <div class="functional-detail-section">
+            <h3>來源 / Source</h3>
+            <div class="functional-detail-source" id="functional-detail-source"></div>
+          </div>
+          <div class="functional-detail-actions">
+            <button type="button" class="functional-detail-action" id="functional-detail-action"></button>
+            <button type="button" class="functional-detail-action secondary" id="functional-detail-refresh">重新整理 / Refresh</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
   <section class="section-wrap backpack-shell" data-backpack-destination aria-labelledby="backpack-title">
     <div class="backpack-heading">
       <div>
@@ -439,6 +559,242 @@ main {
 </div>
 
 <script>
+const FUNCTIONAL_EQUIPMENT_FILTERS = [
+  { key:'all', label:'全部 / All' },
+  { key:'weapon', label:'武器 / Weapon' },
+  { key:'armor', label:'防具 / Armor' },
+  { key:'accessory', label:'飾品 / Accessory' },
+  { key:'equipped', label:'已裝備 / Equipped' },
+  { key:'new', label:'新取得 / New' },
+];
+const FUNCTIONAL_RARITY_LABELS = {
+  common:'普通 / Common', uncommon:'非凡 / Uncommon', rare:'稀有 / Rare',
+  epic:'史詩 / Epic', legendary:'傳說 / Legendary',
+};
+const FUNCTIONAL_SLOT_LABELS = {
+  weapon:'武器 / Weapon', armor:'防具 / Armor', accessory:'飾品 / Accessory',
+};
+let functionalEquipmentItems = [];
+let activeFunctionalEquipmentFilter = 'all';
+let selectedFunctionalInventoryId = null;
+let functionalEquipmentLoadToken = 0;
+
+function functionalEquipmentEscape(value) {
+  return String(value ?? '').replace(/[&<>"']/g, character => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
+  }[character]));
+}
+function functionalEquipmentIsEn() {
+  return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
+}
+function functionalEquipmentName(item) {
+  return functionalEquipmentIsEn()
+    ? (item.display_name_en || item.name_en || item.name || item.item_id)
+    : (item.display_name || item.name || item.name_en || item.item_id);
+}
+function functionalEquipmentRarity(item) {
+  return FUNCTIONAL_RARITY_LABELS[item.rarity] || item.rarity || 'Common';
+}
+function functionalEquipmentSlot(item) {
+  return FUNCTIONAL_SLOT_LABELS[item.slot] || item.slot || 'Equipment';
+}
+function functionalEquipmentStatusMessage(state, message) {
+  const status = document.getElementById('functional-equipment-status');
+  if (!status) return;
+  status.dataset.state = state;
+  status.textContent = message;
+}
+function functionalEquipmentRememberNew(invId) {
+  if (invId == null) return;
+  try {
+    const ids = new Set(JSON.parse(sessionStorage.getItem('functional_equipment_new_ids') || '[]').map(String));
+    ids.add(String(invId));
+    sessionStorage.setItem('functional_equipment_new_ids', JSON.stringify([...ids].slice(-50)));
+  } catch (_) {}
+}
+function functionalEquipmentNewIds() {
+  try { return new Set(JSON.parse(sessionStorage.getItem('functional_equipment_new_ids') || '[]').map(String)); }
+  catch (_) { return new Set(); }
+}
+function functionalEquipmentFilterMatch(item) {
+  if (activeFunctionalEquipmentFilter === 'all') return true;
+  if (activeFunctionalEquipmentFilter === 'equipped') return !!item.equipped;
+  if (activeFunctionalEquipmentFilter === 'new') return !!item.is_new;
+  return item.slot === activeFunctionalEquipmentFilter;
+}
+function functionalEffectDetails(item) {
+  return Array.isArray(item.active_effect_details) ? item.active_effect_details : [];
+}
+function functionalUnsupportedEffects(item) {
+  return Array.isArray(item.unsupported_effects) ? item.unsupported_effects : [];
+}
+function functionalEffectLabel(detail) {
+  return functionalEquipmentIsEn() ? (detail.label_en || detail.label || detail.key) : (detail.label || detail.label_en || detail.key);
+}
+function functionalEffectValue(detail) {
+  return functionalEquipmentIsEn() ? (detail.value_label_en || detail.value_label || detail.value) : (detail.value_label || detail.value_label_en || detail.value);
+}
+function functionalDeltaLabel(delta) {
+  return functionalEquipmentIsEn() ? (delta.delta_label_en || delta.delta_label || delta.delta) : (delta.delta_label || delta.delta_label_en || delta.delta);
+}
+function functionalEquipmentCardHTML(item) {
+  const selected = String(item.inv_id) === String(selectedFunctionalInventoryId);
+  const active = functionalEffectDetails(item);
+  const unsupported = functionalUnsupportedEffects(item);
+  const effectRows = active.map(effect => `
+    <div class="functional-effect-line"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><span class="functional-effect-value">${functionalEquipmentEscape(functionalEffectValue(effect))}</span></div>`).join('');
+  const unsupportedRows = unsupported.map(effect => `
+    <div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><span class="functional-effect-value">${functionalEquipmentIsEn() ? 'Not currently effective' : '尚未啟用'}</span></div>`).join('');
+  const effects = effectRows + unsupportedRows || `<div class="functional-effect-line functional-effect-disabled"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><span class="functional-effect-value">—</span></div>`;
+  return `<button type="button" class="functional-equipment-card" data-functional-inv-id="${functionalEquipmentEscape(item.inv_id)}" data-rarity="${functionalEquipmentEscape(item.rarity || 'common')}" data-selected="${selected}" data-equipped="${!!item.equipped}" aria-pressed="${selected}">
+    <div class="functional-equipment-card-head">
+      <div class="functional-equipment-icon"><img src="${functionalEquipmentEscape(item.icon)}" alt="${functionalEquipmentEscape(item.icon_alt || functionalEquipmentName(item))}" loading="lazy" decoding="async"></div>
+      <div><div class="functional-equipment-card-name">${functionalEquipmentEscape(functionalEquipmentName(item))}</div><div class="functional-equipment-card-meta">${functionalEquipmentEscape(functionalEquipmentRarity(item))} · ${functionalEquipmentEscape(functionalEquipmentSlot(item))}</div></div>
+    </div>
+    <span class="functional-equipment-badge">戰鬥裝備 / Functional</span>
+    <div class="functional-equipment-card-effects">${effects}</div>
+  </button>`;
+}
+function functionalEquipmentVisibleItems() {
+  return functionalEquipmentItems.filter(functionalEquipmentFilterMatch);
+}
+function renderFunctionalEquipmentFilters() {
+  const root = document.getElementById('functional-equipment-filters');
+  if (!root) return;
+  root.querySelectorAll('[data-functional-filter]').forEach(button => {
+    const key = button.dataset.functionalFilter;
+    const count = functionalEquipmentItems.filter(item => {
+      if (key === 'all') return true;
+      if (key === 'equipped') return !!item.equipped;
+      if (key === 'new') return !!item.is_new;
+      return item.slot === key;
+    }).length;
+    button.setAttribute('aria-selected', String(key === activeFunctionalEquipmentFilter));
+    button.textContent = `${FUNCTIONAL_EQUIPMENT_FILTERS.find(filter => filter.key === key)?.label || key} ${count}`;
+  });
+}
+function renderFunctionalEquipmentGrid() {
+  const grid = document.getElementById('functional-equipment-grid');
+  if (!grid) return;
+  const visible = functionalEquipmentVisibleItems();
+  if (!visible.length) {
+    grid.innerHTML = `<div class="functional-equipment-empty">${functionalEquipmentIsEn() ? 'No functional equipment in this filter.' : '此分類目前沒有戰鬥裝備。'}</div>`;
+    renderFunctionalEquipmentDetail(null);
+    return;
+  }
+  grid.innerHTML = visible.map(functionalEquipmentCardHTML).join('');
+  grid.querySelectorAll('[data-functional-inv-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      selectedFunctionalInventoryId = card.dataset.functionalInvId;
+      renderFunctionalEquipmentGrid();
+      renderFunctionalEquipmentDetail(functionalEquipmentItems.find(item => String(item.inv_id) === String(selectedFunctionalInventoryId)));
+    });
+  });
+  const selected = functionalEquipmentItems.find(item => String(item.inv_id) === String(selectedFunctionalInventoryId));
+  if (selected && !visible.some(item => String(item.inv_id) === String(selectedFunctionalInventoryId))) {
+    selectedFunctionalInventoryId = String(visible[0].inv_id);
+  }
+  const focus = new URLSearchParams(location.search).get('equipment');
+  const focusItem = visible.find(item => String(item.inv_id) === String(focus));
+  if (focusItem) selectedFunctionalInventoryId = String(focusItem.inv_id);
+  const selectedItem = functionalEquipmentItems.find(item => String(item.inv_id) === String(selectedFunctionalInventoryId));
+  renderFunctionalEquipmentDetail(selectedItem || visible[0]);
+  const selectedCard = Array.from(grid.querySelectorAll('[data-functional-inv-id]')).find(card => String(card.dataset.functionalInvId) === String(selectedFunctionalInventoryId));
+  selectedCard?.scrollIntoView({ block:'nearest' });
+}
+function renderFunctionalEquipmentDetail(item) {
+  const detail = document.getElementById('functional-equipment-detail');
+  const empty = document.getElementById('functional-equipment-detail-empty');
+  const content = document.getElementById('functional-equipment-detail-content');
+  if (!detail || !empty || !content) return;
+  if (!item) {
+    detail.dataset.empty = 'true'; empty.hidden = false; content.hidden = true; return;
+  }
+  detail.dataset.empty = 'false'; empty.hidden = true; content.hidden = false;
+  const name = functionalEquipmentName(item);
+  const icon = document.getElementById('functional-detail-icon');
+  icon.src = item.icon || '';
+  icon.alt = item.icon_alt || name;
+  document.getElementById('functional-detail-name').textContent = name;
+  document.getElementById('functional-detail-meta').textContent = `${functionalEquipmentRarity(item)} · ${functionalEquipmentSlot(item)} · ${item.item_id}`;
+  const ownership = document.getElementById('functional-detail-ownership');
+  ownership.innerHTML = `
+    <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Owned quantity' : '持有數量'}</span><strong>×${Number(item.owned_quantity || 1)}</strong></div>
+    <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'State' : '狀態'}</span><strong>${item.equipped ? (functionalEquipmentIsEn() ? 'Equipped' : '已裝備') : (functionalEquipmentIsEn() ? 'Owned' : '已持有')}</strong></div>`;
+  const effects = document.getElementById('functional-detail-effects');
+  const active = functionalEffectDetails(item).map(effect => `<div class="functional-detail-row"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><strong>${functionalEquipmentEscape(functionalEffectValue(effect))}</strong></div>`).join('');
+  const unsupported = functionalUnsupportedEffects(item).map(effect => `<div class="functional-detail-row muted"><span>${functionalEquipmentEscape(functionalEffectLabel(effect))}</span><strong>${functionalEquipmentIsEn() ? 'Not currently effective' : '尚未啟用'}</strong></div>`).join('');
+  effects.innerHTML = active + unsupported || `<div class="functional-detail-row muted"><span>${functionalEquipmentIsEn() ? 'No active effect' : '目前沒有啟用效果'}</span><strong>—</strong></div>`;
+  const comparison = document.getElementById('functional-detail-comparison');
+  const summary = item.comparison_summary || {};
+  let comparisonHTML = '';
+  if (summary.state === 'CURRENTLY_EQUIPPED') {
+    comparisonHTML = `<div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Current slot' : '目前同槽裝備'}</span><strong>${functionalEquipmentIsEn() ? 'This item' : '目前就是這件'}</strong></div>`;
+  } else if (!summary.same_slot_item_id) {
+    comparisonHTML = `<div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Current slot' : '目前同槽裝備'}</span><strong>${functionalEquipmentIsEn() ? 'Baseline' : '基準值'}</strong></div>`;
+  } else {
+    comparisonHTML = `<div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Compared with' : '比較對象'}</span><strong>${functionalEquipmentEscape(functionalEquipmentIsEn() ? (summary.same_slot_display_name_en || summary.same_slot_display_name) : summary.same_slot_display_name)}</strong></div>`;
+    comparisonHTML += (summary.deltas || []).map(delta => {
+      const value = Number(delta.delta || 0);
+      const cls = value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral';
+      return `<div class="functional-compare-row ${cls}"><span>${functionalEquipmentEscape(functionalEquipmentIsEn() ? (delta.label_en || delta.label) : delta.label)}</span><strong>${functionalEquipmentEscape(functionalDeltaLabel(delta))}</strong></div>`;
+    }).join('');
+  }
+  comparison.innerHTML = comparisonHTML || `<div class="functional-detail-row muted"><span>—</span><strong>—</strong></div>`;
+  document.getElementById('functional-detail-source').textContent = `${functionalEquipmentIsEn() ? (item.where_to_obtain_en || 'Monster drop') : (item.where_to_obtain || '怪物掉落')} · ${functionalEquipmentIsEn() ? 'Source' : '來源'}: ${item.source || 'drop'}`;
+  const action = document.getElementById('functional-detail-action');
+  action.textContent = item.equipped ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下') : (functionalEquipmentIsEn() ? 'Equip' : '裝備');
+  action.disabled = false;
+  action.onclick = () => performFunctionalEquipmentAction(item, item.equipped ? 'unequip' : 'equip', action);
+}
+async function performFunctionalEquipmentAction(item, action, button) {
+  if (!item || item.inv_id == null) return;
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/player/inventory/equip', {
+      method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ inv_id:item.inv_id, action }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.error) throw new Error(result.error || `HTTP ${response.status}`);
+    await loadFunctionalEquipment(item.inv_id);
+    showBackpackToast(action === 'equip' ? (functionalEquipmentIsEn() ? 'Equipment equipped.' : '裝備已裝備。') : (functionalEquipmentIsEn() ? 'Equipment unequipped.' : '裝備已卸下。'));
+  } catch (error) {
+    button.disabled = false;
+    showBackpackToast(error.message || (functionalEquipmentIsEn() ? 'Equipment action failed.' : '裝備操作失敗。'));
+  }
+}
+async function loadFunctionalEquipment(focusId = selectedFunctionalInventoryId) {
+  const token = ++functionalEquipmentLoadToken;
+  functionalEquipmentStatusMessage('loading', functionalEquipmentIsEn() ? 'Loading functional equipment…' : '正在載入戰鬥裝備…');
+  try {
+    const response = await fetch('/api/player/inventory', { credentials:'include', cache:'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (token !== functionalEquipmentLoadToken) return;
+    const newIds = functionalEquipmentNewIds();
+    functionalEquipmentItems = (Array.isArray(data) ? data : []).map(item => ({ ...item, is_new:newIds.has(String(item.inv_id)) }));
+    if (focusId != null && functionalEquipmentItems.some(item => String(item.inv_id) === String(focusId))) selectedFunctionalInventoryId = String(focusId);
+    else if (!functionalEquipmentItems.some(item => String(item.inv_id) === String(selectedFunctionalInventoryId))) selectedFunctionalInventoryId = functionalEquipmentItems[0]?.inv_id ?? null;
+    functionalEquipmentStatusMessage('ready', functionalEquipmentIsEn() ? 'Functional equipment loaded.' : '戰鬥裝備已載入。');
+    renderFunctionalEquipmentFilters();
+    renderFunctionalEquipmentGrid();
+  } catch (error) {
+    functionalEquipmentItems = [];
+    functionalEquipmentStatusMessage('error', `${functionalEquipmentIsEn() ? 'Functional equipment failed to load: ' : '戰鬥裝備載入失敗：'}${error.message}`);
+    renderFunctionalEquipmentFilters();
+    renderFunctionalEquipmentGrid();
+  }
+}
+document.querySelectorAll('[data-functional-filter]').forEach(button => {
+  button.addEventListener('click', () => {
+    activeFunctionalEquipmentFilter = button.dataset.functionalFilter || 'all';
+    renderFunctionalEquipmentFilters();
+    renderFunctionalEquipmentGrid();
+  });
+});
+document.getElementById('functional-detail-refresh')?.addEventListener('click', () => loadFunctionalEquipment());
+
 async function doLogout() {
   await fetch('/api/auth/logout', { method:'POST', credentials:'include' });
   window.location.href = '/login';
@@ -757,9 +1113,16 @@ window.addEventListener('popstate', () => {
   renderBackpackFilters();
   renderBackpackGrid();
 });
-window.onLangChange = () => { if (typeof I18n !== 'undefined') I18n.apply(); renderBackpackFilters(); renderBackpackGrid(); };
+window.onLangChange = () => {
+  if (typeof I18n !== 'undefined') I18n.apply();
+  renderBackpackFilters();
+  renderBackpackGrid();
+  renderFunctionalEquipmentFilters();
+  renderFunctionalEquipmentGrid();
+};
 initE10BackpackShell();
 if (typeof I18n !== 'undefined') I18n.apply();
+loadFunctionalEquipment(new URLSearchParams(location.search).get('equipment'));
 loadBackpack();
 </script>
 <script>

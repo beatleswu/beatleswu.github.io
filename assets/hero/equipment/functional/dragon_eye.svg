@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs><radialGradient id="eye" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 128) rotate(90) scale(67)"><stop stop-color="#fde68a"/><stop offset=".55" stop-color="#f59e0b"/><stop offset="1" stop-color="#7c2d12"/></radialGradient></defs>
+  <path d="M40 128c25-43 59-65 88-65s63 22 88 65c-25 43-59 65-88 65s-63-22-88-65Z" fill="#fbbf24" stroke="#7c2d12" stroke-width="9" stroke-linejoin="round"/>
+  <ellipse cx="128" cy="128" rx="60" ry="50" fill="url(#eye)" stroke="#451a03" stroke-width="7"/>
+  <ellipse cx="128" cy="128" rx="13" ry="42" fill="#1c1917"/>
+  <circle cx="106" cy="105" r="10" fill="#fff7ed" opacity=".9"/>
+</svg>

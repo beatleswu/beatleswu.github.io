@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs><linearGradient id="celestial" x1="79" y1="211" x2="180" y2="38" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset=".5" stop-color="#e0f2fe"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+  <g stroke="#172554" stroke-width="8" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M113 38h30l18 117-33 47-33-47 18-117Z" fill="url(#celestial)"/>
+    <path d="M78 155h100" stroke="#f59e0b"/>
+    <path d="M115 202h26v27h-26z" fill="#1e3a8a"/>
+    <path d="M107 229h42" stroke="#fbbf24"/>
+  </g>
+  <path d="m128 39 7 16 17 2-13 11 4 17-15-9-15 9 4-17-13-11 17-2 7-16Z" fill="#fef08a" stroke="#92400e" stroke-width="5"/>
+</svg>
