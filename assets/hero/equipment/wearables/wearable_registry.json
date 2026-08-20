@@ -6,6 +6,11 @@
     "static_sword_mode": "WAIST_SHEATHED",
     "hand_held_static_mode": "FORBIDDEN"
   },
+  "modular_contract": {
+    "schema": "go-odyssey.static-modular-2d-equipment.visibility-matrix.v1",
+    "templates": "/docs/planning/rpg_modular_2d_equipment/templates.json",
+    "visibility_matrix": "/docs/planning/rpg_modular_2d_equipment/visibility_matrix.json"
+  },
   "player_frame": {
     "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
     "canvas": [
@@ -88,6 +93,11 @@
       "id": "wooden_sword",
       "asset": "/assets/hero/equipment/wearables/overlays/wooden_sword.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "WEAPON_WAIST",
+      "mask_policy": [
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "iron_sword": {
@@ -106,6 +116,11 @@
       "id": "iron_sword",
       "asset": "/assets/hero/equipment/wearables/overlays/iron_sword.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_WEARABLE",
+      "template_id": "WEAPON_WAIST",
+      "mask_policy": [
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "fox_fang": {
@@ -124,6 +139,11 @@
       "id": "fox_fang",
       "asset": "/assets/hero/equipment/wearables/overlays/fox_fang.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "WEAPON_WAIST",
+      "mask_policy": [
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "dragon_claw": {
@@ -142,6 +162,12 @@
       "id": "dragon_claw",
       "asset": "/assets/hero/equipment/wearables/overlays/dragon_claw.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "FOREARM_GEAR",
+      "mask_policy": [
+        "BASE_OCCLUSION",
+        "HAND_ZONE_CLEARANCE"
+      ],
       "presentation_only": true
     },
     "celestial_blade": {
@@ -160,6 +186,12 @@
       "id": "celestial_blade",
       "asset": "/assets/hero/equipment/wearables/overlays/celestial_blade.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "WEAPON_BACK",
+      "mask_policy": [
+        "BASE_OCCLUSION",
+        "HAIR_ZONE_CLEARANCE"
+      ],
       "presentation_only": true
     },
     "cloth_robe": {
@@ -178,6 +210,12 @@
       "id": "cloth_robe",
       "asset": "/assets/hero/equipment/wearables/overlays/cloth_robe.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_WEARABLE",
+      "template_id": "ROBE_OVERLAY",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "leather_armor": {
@@ -196,6 +234,12 @@
       "id": "leather_armor",
       "asset": "/assets/hero/equipment/wearables/overlays/leather_armor.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "TORSO_ARMOR",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "fox_pelt": {
@@ -214,6 +258,12 @@
       "id": "fox_pelt",
       "asset": "/assets/hero/equipment/wearables/overlays/fox_pelt.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "SHOULDER_MANTLE",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "dragon_scale": {
@@ -232,6 +282,12 @@
       "id": "dragon_scale",
       "asset": "/assets/hero/equipment/wearables/overlays/dragon_scale.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_WEARABLE",
+      "template_id": "TORSO_ARMOR",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "void_mantle": {
@@ -250,6 +306,12 @@
       "id": "void_mantle",
       "asset": "/assets/hero/equipment/wearables/overlays/void_mantle.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "SHOULDER_MANTLE",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "lucky_stone": {
@@ -268,6 +330,12 @@
       "id": "lucky_stone",
       "asset": "/assets/hero/equipment/wearables/overlays/lucky_stone.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "NECK_CHEST_ACCESSORY",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "xp_amulet": {
@@ -286,6 +354,12 @@
       "id": "xp_amulet",
       "asset": "/assets/hero/equipment/wearables/overlays/xp_amulet.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "NECK_CHEST_ACCESSORY",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "fox_mask": {
@@ -304,6 +378,11 @@
       "id": "fox_mask",
       "asset": "/assets/hero/equipment/wearables/overlays/fox_mask.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_WEARABLE",
+      "template_id": "FACE_ACCESSORY",
+      "mask_policy": [
+        "HAIR_FRONT_MASK"
+      ],
       "presentation_only": true
     },
     "dragon_eye": {
@@ -322,6 +401,12 @@
       "id": "dragon_eye",
       "asset": "/assets/hero/equipment/wearables/overlays/dragon_eye.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "VISIBLE_IF_SUPPORTED",
+      "template_id": "NECK_CHEST_ACCESSORY",
+      "mask_policy": [
+        "FACE_SAFE_ZONE_CLEARANCE",
+        "BASE_OCCLUSION"
+      ],
       "presentation_only": true
     },
     "go_stone_black": {
@@ -340,6 +425,9 @@
       "id": "go_stone_black",
       "asset": "/assets/hero/equipment/wearables/overlays/go_stone_black.png",
       "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+      "wearable_visibility": "INVENTORY_ONLY",
+      "template_id": null,
+      "mask_policy": "NO_RUNTIME_OVERLAY",
       "presentation_only": true
     }
   },

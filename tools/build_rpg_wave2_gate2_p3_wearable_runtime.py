@@ -21,6 +21,7 @@ SOURCE_ROOT = ROOT / "docs/planning/rpg_wave2_gate2_p3_wearable_sources"
 RUNTIME_ROOT = ROOT / "assets/hero/equipment/wearables"
 REGISTRY_PATH = RUNTIME_ROOT / "wearable_registry.json"
 MATRIX_ROOT = ROOT / "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices"
+MODULAR_VISIBILITY_PATH = ROOT / "docs/planning/rpg_modular_2d_equipment/visibility_matrix.json"
 
 CANVAS = (1056, 1408)
 PLAYER_FRAME = "PLAYER_FRAME_A_STANDARD_CHIBI"
@@ -358,13 +359,21 @@ def _matrix_sheet(title: str, rows: list[str], composites: dict[tuple[str, str],
 
 
 def _build_registry(mask_paths: dict[str, str]) -> dict:
+    modular_visibility = json.loads(MODULAR_VISIBILITY_PATH.read_text(encoding="utf-8"))
+    modular_by_id = {
+        item["equipment_id"]: item for item in modular_visibility["items"]
+    }
     equipment = {}
     for item_id, raw in ITEM_SPECS.items():
         entry = {key: value for key, value in raw.items() if key not in {"target", "source_anchor", "rotation_degrees"}}
+        contract = modular_by_id[item_id]
         entry.update({
             "id": item_id,
             "asset": f"/assets/hero/equipment/wearables/overlays/{item_id}.png",
             "frame": PLAYER_FRAME,
+            "wearable_visibility": contract["wearable_visibility"],
+            "template_id": contract["template_id"],
+            "mask_policy": contract["mask_policy"],
             "presentation_only": True,
         })
         equipment[item_id] = entry
@@ -375,6 +384,11 @@ def _build_registry(mask_paths: dict[str, str]) -> dict:
             "p2b_parent_sha": P2B_PARENT_SHA,
             "static_sword_mode": "WAIST_SHEATHED",
             "hand_held_static_mode": "FORBIDDEN",
+        },
+        "modular_contract": {
+            "schema": "go-odyssey.static-modular-2d-equipment.visibility-matrix.v1",
+            "templates": "/docs/planning/rpg_modular_2d_equipment/templates.json",
+            "visibility_matrix": "/docs/planning/rpg_modular_2d_equipment/visibility_matrix.json",
         },
         "player_frame": {"id": PLAYER_FRAME, "canvas": list(CANVAS), "body_frame_variants": 1},
         "authority": {

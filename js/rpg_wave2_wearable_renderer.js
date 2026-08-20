@@ -57,7 +57,8 @@
     (Array.isArray(equipped) ? equipped : []).forEach(value => {
       const id = equipmentId(value);
       const item = registry.equipment?.[id];
-      if (!item || bySlot.has(item.slot)) return;
+      if (!item || item.wearable_visibility === 'INVENTORY_ONLY' || !item.asset) return;
+      if (bySlot.has(item.slot)) return;
       bySlot.set(item.slot, id);
     });
     return [...bySlot.values()];

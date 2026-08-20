@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 2200" role="img" aria-labelledby="title desc">
+  <title id="title">Go Odyssey Static Modular 2D Equipment Templates</title>
+  <desc id="desc">Ten normalized wearable template bounds on the PLAYER_FRAME_A_STANDARD_CHIBI reference frame.</desc>
+  <style>
+    .card { fill:#ffffff; stroke:#cbd5e1; stroke-width:2; }
+    .title { fill:#1e293b; font:700 22px system-ui, sans-serif; }
+    .note { fill:#64748b; font:14px system-ui, sans-serif; }
+    .frame { fill:#eef2f7; stroke:#94a3b8; stroke-width:2; }
+    .head { fill:#f6c99f; stroke:#8b5e3c; stroke-width:2; }
+    .body { fill:#dbeafe; stroke:#64748b; stroke-width:2; }
+    .zone { fill:#fb7185; fill-opacity:.22; stroke:#e11d48; stroke-width:3; stroke-dasharray:7 5; }
+    .zone-safe { fill:#22c55e; fill-opacity:.18; stroke:#15803d; stroke-width:3; stroke-dasharray:7 5; }
+    .zone-back { fill:#8b5cf6; fill-opacity:.18; stroke:#6d28d9; stroke-width:3; stroke-dasharray:7 5; }
+    .badge { fill:#0f766e; font:700 13px system-ui, sans-serif; }
+    .small { fill:#334155; font:12px system-ui, sans-serif; }
+  </style>
+  <rect width="1600" height="2200" fill="#f8fafc"/>
+  <text x="70" y="70" class="title" style="font-size:34px">Static Modular 2D Equipment · Canonical Templates</text>
+  <text x="70" y="105" class="note">PLAYER_FRAME_A_STANDARD_CHIBI · normalized 1056×1408 · JSON contract is authoritative</text>
+
+  <defs>
+    <g id="mini-frame">
+      <rect x="290" y="38" width="180" height="315" rx="14" class="frame"/>
+      <circle cx="380" cy="88" r="38" class="head"/>
+      <path d="M342 125 Q380 112 418 125 L443 250 L317 250 Z" class="body"/>
+      <path d="M345 240 L330 338 M415 240 L430 338 M320 160 L280 250 M440 160 L480 250" fill="none" stroke="#64748b" stroke-width="16" stroke-linecap="round"/>
+    </g>
+  </defs>
+
+  <g transform="translate(50 140)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">WEAPON_WAIST</text><text x="24" y="64" class="note">waist_right · BACK_WEAPON · no fake grip</text>
+    <use href="#mini-frame"/><rect x="405" y="168" width="120" height="112" class="zone-safe"/><text x="535" y="210" class="small">WAIST_ZONE</text><text x="535" y="232" class="small">sheath behind base</text>
+  </g>
+  <g transform="translate(810 140)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">WEAPON_BACK</text><text x="24" y="64" class="note">back_hilt · BACK_WEAPON · blade behind body</text>
+    <use href="#mini-frame"/><rect x="392" y="75" width="110" height="205" class="zone-back"/><text x="520" y="130" class="small">BACK_ZONE</text><text x="520" y="152" class="small">hilt may peek</text>
+  </g>
+  <g transform="translate(50 550)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">FOREARM_GEAR</text><text x="24" y="64" class="note">forearm · FRONT_BODY · open hand preserved</text>
+    <use href="#mini-frame"/><rect x="425" y="175" width="110" height="90" class="zone"/><text x="540" y="210" class="small">HAND_ZONE</text><text x="540" y="232" class="small">no finger grip</text>
+  </g>
+  <g transform="translate(810 550)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">TORSO_ARMOR</text><text x="24" y="64" class="note">torso · TORSO_ARMOR · face clearance</text>
+    <use href="#mini-frame"/><rect x="335" y="145" width="90" height="55" class="zone-safe"/><rect x="310" y="150" width="140" height="115" class="zone"/><text x="505" y="190" class="small">FACE_SAFE_ZONE</text><text x="505" y="212" class="small">must remain clear</text>
+  </g>
+  <g transform="translate(50 960)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">ROBE_OVERLAY</text><text x="24" y="64" class="note">torso · low/open collar · reusable clearance</text>
+    <use href="#mini-frame"/><path d="M340 150 L380 205 L420 150" fill="none" stroke="#16a34a" stroke-width="14" stroke-linecap="round"/><rect x="310" y="120" width="140" height="90" class="zone-safe"/><text x="505" y="190" class="small">open V neckline</text><text x="505" y="212" class="small">jaw stays readable</text>
+  </g>
+  <g transform="translate(810 960)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">SHOULDER_MANTLE</text><text x="24" y="64" class="note">shoulder/back · BACK_BODY · central neck opening</text>
+    <use href="#mini-frame"/><path d="M300 160 Q380 125 460 160 L490 235 Q380 270 270 235 Z" class="zone-back"/><text x="505" y="190" class="small">SHOULDER_ZONE</text><text x="505" y="212" class="small">side volume only</text>
+  </g>
+  <g transform="translate(50 1370)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">FACE_ACCESSORY</text><text x="24" y="64" class="note">face · HEAD_FACE · intentional face intersection</text>
+    <use href="#mini-frame"/><rect x="335" y="50" width="90" height="82" class="zone"/><text x="505" y="100" class="small">face may be covered</text><text x="505" y="122" class="small">hair mask required</text>
+  </g>
+  <g transform="translate(810 1370)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">NECK_CHEST_ACCESSORY</text><text x="24" y="64" class="note">chest · FRONT_ACCESSORY · below face zone</text>
+    <use href="#mini-frame"/><circle cx="395" cy="172" r="28" class="zone-safe"/><text x="505" y="185" class="small">NECK_ZONE</text><text x="505" y="207" class="small">lower neck only</text>
+  </g>
+  <g transform="translate(50 1780)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">WAIST_ACCESSORY</text><text x="24" y="64" class="note">waist · FRONT_ACCESSORY · small charm only</text>
+    <use href="#mini-frame"/><circle cx="335" cy="225" r="20" class="zone-safe"/><text x="505" y="210" class="small">WAIST_ZONE</text><text x="505" y="232" class="small">hands stay clear</text>
+  </g>
+  <g transform="translate(810 1780)">
+    <rect width="740" height="380" rx="18" class="card"/><text x="24" y="38" class="title">BACK_ACCESSORY</text><text x="24" y="64" class="note">back · BACK_BODY · behind base character</text>
+    <use href="#mini-frame"/><rect x="330" y="120" width="100" height="150" class="zone-back"/><text x="505" y="190" class="small">BACK_ZONE</text><text x="505" y="212" class="small">reusable mask only</text>
+  </g>
+</svg>
