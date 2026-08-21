@@ -1,0 +1,177 @@
+{
+  "task": "RPG_WAVE2_CHARACTER_20_PRODUCTION_PLAN_001",
+  "batch_shape": "6+4+5+5",
+  "shape_reconciliation": "The current six contains 3 existing canonicals and 3 candidates. To keep the requested batch sizes without duplicating or omitting any of the 20 target IDs, Batch 3 is mixed.",
+  "mass_production_gate": {
+    "defined": true,
+    "prerequisites": [
+      "CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS",
+      "WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE"
+    ],
+    "after_gate": "Proceed through batches without reopening architecture for each character; stop only for a real identity, art, or compatibility blocker.",
+    "candidate_guard": "Gate 1 canonical decisions remain required for candidate IDs; the mass gate does not register candidates or grant runtime authority."
+  },
+  "locked_contract": {
+    "default_pose": "One full-body, empty/open-hand default pose per intended character.",
+    "weapon_pose_families": ["ONE_HAND_SWORD_POSE"],
+    "future_pose_families": ["STAFF_POSE", "BOW_POSE", "HEAVY_WEAPON_POSE"],
+    "future_pose_status": "NOT_AUTHORIZED_BY_THIS_PLAN",
+    "sword_multiplication_rule": "One pose per CHARACTER x WEAPON_FAMILY; wooden_sword, iron_sword, and fox_fang reuse the family and do not create per-item art."
+  },
+  "batches": [
+    {
+      "batch_id": "BATCH_1",
+      "label": "Current six proof set",
+      "characters": [
+        "apprentice",
+        "mage",
+        "paladin",
+        "trail_apprentice",
+        "night_runner",
+        "constellation_apprentice"
+      ],
+      "dependencies": [
+        "Current six one-hand sword pose Owner Pass",
+        "Weapon-pose/armor Owner Pass or accepted architecture",
+        "Owner Gate 1 decisions for trail_apprentice, night_runner, and constellation_apprentice before canonical inclusion"
+      ],
+      "identity_reference_readiness": "6 reviewable P1 identities; 3 existing canonical and 3 candidate Gate 1 pending",
+      "expected_full_body_redraws": {
+        "planned_after_proof_acceptance": 0,
+        "owner_feedback_rework_reserve": 6
+      },
+      "expected_sword_pose_redraws": {
+        "planned_after_proof_acceptance": 0,
+        "owner_feedback_rework_reserve": 6
+      },
+      "armor_compatibility_risk": "STANDARD_OVERLAY candidate only for PLAYER_FRAME_A; universal fit is not proven",
+      "qa_requirements": [
+        "Identity continuity and same-character checks",
+        "PNG master/WebP derivative provenance",
+        "RGBA alpha, chroma residue, matte halo, and white-box checks",
+        "Shared frame, footline, face clearance, and mobile readability",
+        "Empty/open-hand base and no authoritative weapon check",
+        "One-hand grip, sleeve/hood clearance, and universal-weapon-layer review",
+        "Torso armor, face accessory, and shoulder mantle projection checks",
+        "Existing P1 focused static-contract tests and proof matrices"
+      ],
+      "owner_visual_gate": "CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS AND WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE"
+    },
+    {
+      "batch_id": "BATCH_2",
+      "label": "Remaining existing canonicals, first four",
+      "characters": [
+        "apprentice_girl",
+        "swordsman",
+        "rogue",
+        "ranger"
+      ],
+      "dependencies": [
+        "Batch 1 gate remains satisfied",
+        "Current identity assets and role briefs are preserved",
+        "Body frame and face anchors measured before redraw"
+      ],
+      "identity_reference_readiness": "Current canonical art exists; age/body measurements require explicit production review",
+      "expected_full_body_redraws": {
+        "planned": 4,
+        "conditional_rework": 0
+      },
+      "expected_sword_pose_redraws": {
+        "planned": 4,
+        "conditional_rework": 0
+      },
+      "armor_compatibility_risk": "BODY_FRAME_SUBCLASS for narrow, hooded, and travel silhouettes; no universal overlay claim",
+      "qa_requirements": [
+        "Identity anchor sheet against current canonical art",
+        "Full-body frame, footline, alpha, and mobile crop checks",
+        "One-hand pose grip, face, sleeve, and body collision checks",
+        "Torso armor, face accessory, and shoulder/back clearance checks",
+        "Per-character review matrix and Owner visual review"
+      ],
+      "owner_visual_gate": "BATCH_2_DEFAULT_AND_ONE_HAND_SWORD_VISUAL_PASS"
+    },
+    {
+      "batch_id": "BATCH_3",
+      "label": "Three existing canonicals plus two reserved candidates",
+      "characters": [
+        "berserker",
+        "guardian",
+        "sage",
+        "river_wayfinder",
+        "stone_caretaker"
+      ],
+      "dependencies": [
+        "Batch 1 gate remains satisfied",
+        "Existing identity continuity for berserker, guardian, and sage",
+        "Owner Gate 1 decisions for river_wayfinder and stone_caretaker",
+        "Approved face, hair, age, body proportion, palette, clothing, silhouette, and role anchors for both candidates"
+      ],
+      "identity_reference_readiness": "3 existing identities referenced; 2 candidates text-only and BLOCKED_FOR_ART until reference lock",
+      "expected_full_body_redraws": {
+        "planned": 5,
+        "conditional_rework": 0
+      },
+      "expected_sword_pose_redraws": {
+        "planned": 5,
+        "conditional_rework": 0
+      },
+      "armor_compatibility_risk": "BODY_FRAME_SUBCLASS with broad-body, mantle, robe, and age-diverse risk; special review mandatory",
+      "qa_requirements": [
+        "Candidate identity reference approval before art production",
+        "Broad shoulder, robe, sleeve, and age/body frame review",
+        "Face-mask occlusion and accessory anchor review",
+        "Default full-body and one-hand pose matrix at desktop/tablet/mobile",
+        "No runtime registry or equipment authority changes"
+      ],
+      "owner_visual_gate": "CANDIDATE_GATE1_PLUS_CHARACTER_SPECIFIC_VISUAL_PASS_FOR_EACH_NEWLY_UNBLOCKED_ID"
+    },
+    {
+      "batch_id": "BATCH_4",
+      "label": "Five reserved candidates",
+      "characters": [
+        "duelist_scout",
+        "bastion_warden",
+        "forest_pathfinder",
+        "archive_scholar",
+        "worldkeeper"
+      ],
+      "dependencies": [
+        "Batch 1 gate remains satisfied",
+        "Five independent Owner Gate 1 canonical decisions",
+        "Approved display names and identity reference sheets",
+        "No candidate proceeds from text brief directly to mass art production"
+      ],
+      "identity_reference_readiness": "All five are text-only and BLOCKED_FOR_ART at plan creation",
+      "expected_full_body_redraws": {
+        "planned": 5,
+        "conditional_rework": 0
+      },
+      "expected_sword_pose_redraws": {
+        "planned": 5,
+        "conditional_rework": 0
+      },
+      "armor_compatibility_risk": "Highest uncertainty; narrow, broad, hooded, layered, and civic-mantle silhouettes require subclass/mask/special review",
+      "qa_requirements": [
+        "Identity reference lock across face, hair, age, body, palette, clothing, silhouette, and role",
+        "Full-body alpha/frame/footline and 72–96px mobile silhouette checks",
+        "Torso armor, face accessory, shoulder mantle, and pose-specific overlay review",
+        "One-hand sword family review only after default identity acceptance",
+        "Owner visual gate per character"
+      ],
+      "owner_visual_gate": "CANDIDATE_GATE1_PLUS_IDENTITY_REFERENCE_APPROVAL_PLUS_CHARACTER_SPECIFIC_VISUAL_PASS"
+    }
+  ],
+  "throughput_totals": {
+    "default_full_body_art_required": 20,
+    "one_hand_sword_pose_art_required": 20,
+    "total_full_body_character_art_required": 40,
+    "remaining_after_current_six_acceptance": {
+      "default_full_body": 14,
+      "one_hand_sword_pose": 14,
+      "logical_presentations": 28
+    },
+    "review_matrix_count": 24,
+    "mobile_qa_matrix_count": 24,
+    "mobile_viewport_checks": 60
+  }
+}
