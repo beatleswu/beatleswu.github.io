@@ -6,6 +6,7 @@
 <title data-i18n="hero.title">英雄 — 弈境奇兵 (Go Odyssey)</title>
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=20260820p3"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -528,6 +529,46 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   position: relative; width: 132px; height: 176px;
   margin: -4px auto 8px;
 }
+.hero-functional-projection {
+  width: min(100%, 360px); margin: 10px auto 0; padding: 9px 10px;
+  border: 1px solid rgba(255,225,150,.3); border-radius: 12px;
+  background: rgba(28,20,9,.24); color: rgba(255,255,255,.86);
+}
+.hero-functional-projection-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font: 700 9px/1.3 'DM Mono', monospace; letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.hero-functional-projection-note { color: rgba(255,255,255,.58); font-size: 9px; letter-spacing: 0; text-transform: none; }
+.hero-functional-projection-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.hero-functional-projection-item {
+  display: inline-flex; align-items: center; gap: 5px; min-width: 0;
+  max-width: 100%; padding: 4px 7px 4px 4px; border-radius: 9px;
+  border: 1px solid rgba(255,225,150,.26); background: rgba(255,255,255,.1);
+  color: #fff; font-size: 10px; line-height: 1.25;
+}
+.hero-functional-projection-item a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.hero-functional-projection-item a:hover { text-decoration: underline; }
+.hero-functional-projection-icon {
+  width: 28px; height: 28px; flex: 0 0 auto; border-radius: 7px;
+  background: rgba(255,255,255,.14); display: grid; place-items: center; overflow: hidden;
+  color: #f6d98a; font: 800 11px/1 'DM Mono', monospace;
+}
+.hero-functional-projection-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.hero-functional-projection-copy { min-width: 0; overflow: hidden; }
+.hero-functional-projection-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-functional-projection-effect { display: block; color: #f6d98a; font: 700 8px/1.35 'DM Mono', monospace; }
+.hero-functional-projection-status { color: rgba(255,255,255,.62); font-size: 10px; line-height: 1.4; }
+.hero-functional-projection[data-state="unavailable"] { border-color: rgba(252,165,165,.5); }
+.hero-style-projection {
+  width: min(100%, 360px); margin: 8px auto 0; padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.2); border-radius: 12px;
+  background: rgba(255,255,255,.08); color: rgba(255,255,255,.82);
+}
+.hero-style-projection .hero-functional-projection-head { color: rgba(255,255,255,.82); }
+.hero-style-projection .hero-functional-projection-item { border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.08); }
+.hero-style-projection .hero-functional-projection-effect { color: rgba(255,255,255,.56); }
+.hero-style-projection .hero-functional-projection-icon { color: #b7e3dc; }
 .char-avatar-ring {
   position: absolute; inset: 6px 12px 0; border-radius: 20px;
   border: 2px solid rgba(255,255,255,.5);
@@ -671,6 +712,9 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   overflow: visible; box-shadow: inset 0 -24px 28px rgba(6,78,72,.22);
   position: relative;
 }
+.rpg-wearable-stage {
+  z-index: 8;
+}
 .char-avatar svg {
   width: 100%; height: 100%;
   display: block;
@@ -705,6 +749,27 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
 .combat-gear-layer.weapon  { z-index: 5; }
 .combat-gear-layer.hat     { z-index: 7; }
 .combat-gear-layer.pet     { z-index: 7; }
+/* Lane B functional equipment: server-owned equipped items only.  The
+   approved 1056x1408 overlays stay in the same normalized frame as the base
+   character; missing/failed overlays are hidden and leave the icon fallback. */
+.functional-wearable-stack {
+  position: absolute; inset: 0; display: none; pointer-events: none;
+  overflow: visible;
+}
+.functional-wearable-stack.has-items { display: block; }
+.functional-wearable-stack.back { z-index: 1; }
+.functional-wearable-stack.front { z-index: 6; }
+.functional-wearable-layer {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; display: block; pointer-events: none;
+  image-rendering: pixelated; filter: drop-shadow(0 7px 8px rgba(4,47,46,.2));
+}
+.functional-wearable-layer[data-layer="TORSO_ARMOR"] { z-index: 2; filter: none; }
+.functional-wearable-layer[data-layer="FRONT_BODY"] { z-index: 3; }
+.functional-wearable-layer[data-layer="FRONT_ACCESSORY"] { z-index: 4; }
+.functional-wearable-layer[data-layer="HEAD_FACE"] { z-index: 5; }
+.functional-wearable-layer[data-layer="HAIR_FRONT_MASK"] { z-index: 6; }
+.pv-functional-wearable-layer { filter: drop-shadow(0 6px 7px rgba(28,20,9,.16)); }
 /* Premium 裝備光效：已裝備的裝備/配件鍍金脈動光暈（純視覺） */
 @keyframes premGearPulse {
   0%, 100% { filter: drop-shadow(0 0 3px rgba(245,158,11,.55)) drop-shadow(0 0 7px rgba(245,158,11,.28)); }
@@ -1562,7 +1627,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   background: var(--cream2); border: 2px solid var(--border);
   display: flex; align-items: center; justify-content: center;
   font-size: 44px; transition: background .3s;
-  overflow: hidden;
+  overflow: hidden; position: relative;
 }
 .pv-avatar-base svg {
   width: 100%; height: 100%;
@@ -1628,6 +1693,21 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   background: var(--cream2); border: 1px solid var(--border);
   border-radius: 8px; padding: 3px 9px; color: var(--ink3);
 }
+.pv-functional-projection {
+  margin: 14px 0 4px; padding: 10px; text-align: left;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--cream2);
+}
+.pv-functional-projection .hero-functional-projection-head { color: var(--ink3); }
+.pv-functional-projection .hero-functional-projection-note { color: var(--ink4); }
+.pv-functional-projection .hero-functional-projection-item { border-color: var(--border2); background: #fff; color: var(--ink2); }
+.pv-functional-projection .hero-functional-projection-icon { background: var(--cream2); color: var(--teal-dark); }
+.pv-functional-projection .hero-functional-projection-effect { color: var(--teal-dark); }
+.pv-functional-projection .hero-functional-projection-status { color: var(--ink3); }
+.pv-style-projection { margin-top: 8px; background: #fff; }
+.pv-style-projection .hero-functional-projection-head { color: var(--ink3); }
+.pv-style-projection .hero-functional-projection-item { border-color: var(--border); background: var(--cream2); color: var(--ink2); }
+.pv-style-projection .hero-functional-projection-icon { background: #fff; color: var(--teal-dark); }
+.pv-style-projection .hero-functional-projection-effect { color: var(--ink3); }
 
 /* ── MOBILE NAV (由 mobile-nav.js 注入) ── */
 
@@ -1650,6 +1730,14 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
   #tab-equipment .slot-emoji,
   #tab-appearance .slot-emoji,
   #tab-pet .slot-emoji { font-size: 36px; }
+}
+@media (min-width: 701px) and (max-width: 1180px) {
+  .hero-functional-projection { width: min(100%, 320px); }
+  .hero-functional-projection-list { max-height: 116px; overflow: auto; }
+}
+@media (min-width: 701px) and (max-width: 1024px) and (orientation: portrait) {
+  .hero-functional-projection { width: min(100%, 520px); }
+  .hero-functional-projection-list { justify-content: center; max-height: none; overflow: visible; }
 }
 @media (max-width: 400px) {
   #tab-equipment .slot-grid,
@@ -1755,18 +1843,41 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           <div class="char-aura-ring" id="char-aura-ring"></div>
           <div class="char-avatar-ring" id="char-avatar-ring"></div>
           <div class="char-avatar" id="char-avatar" data-av-type="fullbody">
+            <div class="functional-wearable-stack back" id="char-functional-wearable-back" aria-hidden="true"></div>
             <img class="combat-gear-layer aura" id="char-aura-layer" alt="">
             <img class="combat-gear-layer cape" id="char-cape-layer" alt="">
             <img class="fullbody-generated-avatar" id="char-fullbody-avatar-img" src="/assets/hero/characters/chibi_reference_normalized.webp" alt="全身英雄角色" data-i18n-alt="common.hero.full_alt">
+            <div class="functional-wearable-stack front" id="char-functional-wearable-front" aria-hidden="true"></div>
             <img class="combat-gear-layer armor" id="char-armor-layer" alt="">
             <img class="combat-gear-layer offhand" id="char-offhand-layer" alt="">
             <img class="combat-gear-layer weapon" id="char-weapon-layer" alt="">
             <img class="combat-gear-layer hat" id="char-hat-layer" alt="">
             <img class="combat-gear-layer pet" id="char-pet-layer" alt="">
+            <div class="rpg-wearable-stage" id="char-functional-wearable-stage" hidden aria-hidden="true"></div>
           </div>
           <div class="char-hat" id="char-hat"></div>
           <div class="char-pet-badge" id="char-pet-badge"></div>
         </div>
+        <section class="hero-functional-projection" id="hero-functional-projection"
+                 data-state="loading" aria-live="polite" aria-label="戰鬥裝備 / Functional Equipment">
+          <div class="hero-functional-projection-head">
+            <span>戰鬥裝備 / Functional Equipment</span>
+            <span class="hero-functional-projection-note">server state · icon + full-body projection</span>
+          </div>
+          <div class="hero-functional-projection-list" id="hero-functional-projection-list">
+            <span class="hero-functional-projection-status">載入已裝備戰鬥裝備…</span>
+          </div>
+        </section>
+        <section class="hero-style-projection" id="hero-style-projection"
+                 data-state="loading" aria-live="polite" aria-label="外觀裝備 / Hero Style Gear">
+          <div class="hero-functional-projection-head">
+            <span>外觀裝備 / Hero Style Gear</span>
+            <span class="hero-functional-projection-note">visual only · no combat authority</span>
+          </div>
+          <div class="hero-functional-projection-list" id="hero-style-projection-list">
+            <span class="hero-functional-projection-status">載入外觀狀態…</span>
+          </div>
+        </section>
         <div class="char-hero-name" id="char-name">—</div>
         <div class="char-title-block" id="char-title-block">
           <span class="char-auto-title" id="char-auto-title"></span>
@@ -2171,9 +2282,12 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
     <div style="text-align:center;margin-bottom:20px;">
       <div class="pv-avatar-wrap" style="display:inline-block;margin-bottom:10px;">
         <div class="pv-frame-ring" id="pv-frame-ring"></div>
+        <div class="functional-wearable-stack back" id="pv-functional-wearable-back" aria-hidden="true"></div>
         <div class="pv-avatar-base" id="pv-avatar-base">
           <img class="fullbody-generated-avatar" id="pv-fullbody-avatar-img" src="/assets/hero/characters/chibi_reference_normalized.webp" alt="全身英雄角色" data-i18n-alt="common.hero.full_alt">
+          <div class="rpg-wearable-stage" id="pv-functional-wearable-stage" hidden aria-hidden="true"></div>
         </div>
+        <div class="functional-wearable-stack front" id="pv-functional-wearable-front" aria-hidden="true"></div>
         <img class="pv-combat-gear-layer aura" id="pv-aura-layer" alt="">
         <img class="pv-combat-gear-layer cape" id="pv-cape-layer" alt="">
         <img class="pv-combat-gear-layer armor" id="pv-armor-layer" alt="">
@@ -2187,6 +2301,26 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       <div id="pv-username" style="font-size:17px;font-weight:700;margin-bottom:4px;"></div>
       <div class="pv-title-tag" id="pv-title-tag"></div>
     </div>
+    <section class="pv-functional-projection" id="pv-functional-projection"
+             data-state="loading" aria-live="polite" aria-label="戰鬥裝備 / Functional Equipment">
+      <div class="hero-functional-projection-head">
+        <span>戰鬥裝備 / Functional Equipment</span>
+        <span class="hero-functional-projection-note">server state · icon + full-body projection</span>
+      </div>
+      <div class="hero-functional-projection-list" id="pv-functional-projection-list">
+        <span class="hero-functional-projection-status">載入已裝備戰鬥裝備…</span>
+      </div>
+    </section>
+    <section class="pv-functional-projection pv-style-projection" id="pv-style-projection"
+             data-state="loading" aria-live="polite" aria-label="外觀裝備 / Hero Style Gear">
+      <div class="hero-functional-projection-head">
+        <span>外觀裝備 / Hero Style Gear</span>
+        <span class="hero-functional-projection-note">visual only · no combat authority</span>
+      </div>
+      <div class="hero-functional-projection-list" id="pv-style-projection-list">
+        <span class="hero-functional-projection-status">載入外觀狀態…</span>
+      </div>
+    </section>
     <div style="display:flex;flex-direction:column;gap:6px;" id="pv-rows"></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;" id="pv-chips"></div>
   </div>
@@ -3418,6 +3552,12 @@ async function loadBadgesTab() {
 const HERO_ITEM_ROOT = '/assets/hero/items/';
 function heroItemArtSrc(item) {
   if (!item || !item.id) return HERO_ITEM_ROOT + 'unknown.svg';
+  const presentationAsset = item.presentation && item.presentation.pure_presentation === true
+    ? item.presentation.asset
+    : '';
+  if (typeof presentationAsset === 'string' && presentationAsset.startsWith('/assets/hero/items/')) {
+    return presentationAsset;
+  }
   return item.art || `${HERO_ITEM_ROOT}${item.id}.svg`;
 }
 function heroItemArtHTML(item, cls='slot-art') {
@@ -3624,6 +3764,13 @@ let _combatGear = (() => {
   g.pet = 'none';
   return g;
 })();
+// Selection and functional equipment are hydrated from server-owned state
+// before they are allowed to drive Hero/preview presentation. localStorage is
+// retained only as a legacy style-control cache, never as character authority.
+let _characterAuthorityState = 'pending';
+let _characterAuthorityKey = null;
+let _functionalEquipmentState = 'pending';
+let _functionalEquipmentItems = [];
 // 段位 → 解鎖階（LV1=30k–25k … LV10=7d+）
 function rankToTier(goRank) {
   const s = String(goRank || '').trim().toLowerCase();
@@ -3658,7 +3805,11 @@ function gearUnlockState(item) {
 function syncFullBodyAvatar(wardrobeItems = _wardrobeItems) {
   const charImg = document.getElementById('char-fullbody-avatar-img');
   const pvImg = document.getElementById('pv-fullbody-avatar-img');
-  const avatarSrc = combatGearAssetSrc('character', _combatGear.character) || CUSTOM_FULLBODY_AVATAR_SRC;
+  const hydratedCharacter = _characterAuthorityState === 'ready'
+    && CHARACTER_KEYS.includes(_characterAuthorityKey);
+  const avatarSrc = hydratedCharacter
+    ? (combatGearAssetSrc('character', _characterAuthorityKey) || CHARACTER_FALLBACK_ART)
+    : CHARACTER_FALLBACK_ART;
   const setAvatar = (el) => { if (!el) return; el.onerror = () => { el.onerror = null; el.src = CHARACTER_FALLBACK_ART; }; el.src = avatarSrc; };
   setAvatar(charImg);
   setAvatar(pvImg);
@@ -3670,7 +3821,7 @@ function syncFullBodyAvatar(wardrobeItems = _wardrobeItems) {
     navBase.classList.add('fullbody-mini');
     navBase.innerHTML = `<img src="${avatarSrc}" alt="">`;
   }
-
+  renderFunctionalWearableProjection();
 }
 
 function combatGearAssetSrc(slot, key, characterKey = _combatGear.character) {
@@ -3724,10 +3875,33 @@ function setGearLayer(layerId, slot, key) {
   positionGearLayer(layer, slot, src);
 }
 
+function renderFunctionalWearableProjection(profile = _profileData) {
+  const renderer = window.GoOdysseyWearableRenderer;
+  if (!renderer || !profile) return;
+  const characterKey = profile.character_key || _combatGear.character;
+  const equipped = Array.isArray(profile.functional_equipment)
+    ? profile.functional_equipment
+    : [];
+  const charStage = document.getElementById('char-functional-wearable-stage');
+  const charFallback = document.getElementById('char-fullbody-avatar-img');
+  renderer.renderSafe(charStage, characterKey, equipped, { fallbackElement: charFallback })
+    .then(result => {
+      if (charStage) charStage.setAttribute('aria-hidden', result.supported ? 'false' : 'true');
+    });
+  const previewStage = document.getElementById('pv-functional-wearable-stage');
+  const previewFallback = document.getElementById('pv-fullbody-avatar-img');
+  renderer.renderSafe(previewStage, characterKey, equipped, { fallbackElement: previewFallback })
+    .then(result => {
+      if (previewStage) previewStage.setAttribute('aria-hidden', result.supported ? 'false' : 'true');
+    });
+}
+
 function applyCombatGearVisuals() {
   syncFullBodyAvatar(_wardrobeItems);
   document.getElementById('char-avatar')?.setAttribute('data-character', _combatGear.character);
+  document.getElementById('char-avatar')?.setAttribute('data-character-authority', _characterAuthorityState);
   document.querySelector('.pv-avatar-wrap')?.setAttribute('data-character', _combatGear.character);
+  document.querySelector('.pv-avatar-wrap')?.setAttribute('data-character-authority', _characterAuthorityState);
   setGearLayer('char-aura-layer', 'aura', _combatGear.aura);
   setGearLayer('char-cape-layer', 'cape', _combatGear.cape);
   setGearLayer('char-armor-layer', 'armor', _combatGear.armor);
@@ -3742,6 +3916,192 @@ function applyCombatGearVisuals() {
   setGearLayer('pv-offhand-layer', 'offhand', _combatGear.offhand);
   setGearLayer('pv-hat-layer', 'hat', _combatGear.hat);
   setGearLayer('pv-pet-layer', 'pet', 'none');
+  renderFunctionalWearableProjection();
+}
+
+// Functional equipment presentation is a read-only projection of the
+// server's player_inventory.equipped payload.  This allowlist is deliberately
+// presentation-only: it cannot grant ownership, effects, or combat power.
+const FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS = new Set([
+  'wooden_sword', 'iron_sword', 'fox_fang', 'dragon_claw', 'celestial_blade',
+  'cloth_robe', 'leather_armor', 'fox_pelt', 'dragon_scale', 'void_mantle',
+  'lucky_stone', 'xp_amulet', 'fox_mask', 'dragon_eye',
+]);
+const FUNCTIONAL_WEARABLE_ASSET_ROOT = '/assets/hero/equipment/wearables/overlays/';
+const FUNCTIONAL_WEARABLE_MASK_ROOT = '/assets/hero/equipment/wearables/masks/';
+const FUNCTIONAL_WEARABLE_BACK_LAYERS = new Set(['BACK_WEAPON', 'BACK_BODY']);
+const FUNCTIONAL_WEARABLE_VISIBLE_LAYERS = new Set([
+  'TORSO_ARMOR', 'FRONT_BODY', 'FRONT_ACCESSORY', 'HEAD_FACE', 'HAIR_FRONT_MASK',
+]);
+const FUNCTIONAL_WEARABLE_MASKS_BY_CHARACTER = {
+  apprentice: `${FUNCTIONAL_WEARABLE_MASK_ROOT}apprentice_hair_front.png`,
+  mage: `${FUNCTIONAL_WEARABLE_MASK_ROOT}mage_hair_front.png`,
+  paladin: `${FUNCTIONAL_WEARABLE_MASK_ROOT}paladin_hair_front.png`,
+  trail_apprentice: `${FUNCTIONAL_WEARABLE_MASK_ROOT}trail_apprentice_hair_front.png`,
+  night_runner: `${FUNCTIONAL_WEARABLE_MASK_ROOT}night_runner_hair_front.png`,
+  constellation_apprentice: `${FUNCTIONAL_WEARABLE_MASK_ROOT}constellation_apprentice_hair_front.png`,
+};
+
+function functionalWearableDescriptor(item) {
+  if (!item || item.functional_equipment !== true || item.equipped !== true) return null;
+  const itemId = String(item.item_id || item.id || '');
+  const presentation = item.presentation || {};
+  if (!FUNCTIONAL_FULL_BODY_EQUIPMENT_IDS.has(itemId)) return null;
+  if (presentation.mode !== 'FULL_BODY_OVERLAY' || presentation.full_body_required !== true) return null;
+  const expectedAsset = `${FUNCTIONAL_WEARABLE_ASSET_ROOT}${itemId}.png`;
+  if (presentation.asset !== expectedAsset) return null;
+  const layer = String(presentation.layer || '');
+  if (!FUNCTIONAL_WEARABLE_BACK_LAYERS.has(layer) && !FUNCTIONAL_WEARABLE_VISIBLE_LAYERS.has(layer)) return null;
+  return {
+    itemId,
+    asset: expectedAsset,
+    layer,
+    maskRequirement: presentation.mask_requirement || '',
+  };
+}
+
+function functionalWearableLayerHTML(descriptor, target, extra = {}) {
+  const className = target === 'preview'
+    ? 'functional-wearable-layer pv-functional-wearable-layer'
+    : 'functional-wearable-layer';
+  const maskFor = extra.maskFor ? ` data-functional-mask-for="${escapeHTML(extra.maskFor)}"` : '';
+  const presentationKind = extra.maskFor ? 'mask' : 'overlay';
+  return `<img class="${className}" src="${escapeHTML(extra.asset || descriptor.asset)}" alt="" aria-hidden="true" data-functional-item-id="${escapeHTML(descriptor.itemId)}" data-functional-layer="${escapeHTML(extra.layer || descriptor.layer)}" data-functional-kind="${presentationKind}"${maskFor} onerror="this.onerror=null;this.hidden=true;this.dataset.presentationState='fallback';">`;
+}
+
+function renderFunctionalWearableTarget(backStack, frontStack, target) {
+  if (!backStack && !frontStack) return;
+  const canProject = _characterAuthorityState === 'ready' && _functionalEquipmentState === 'ready';
+  const descriptors = canProject
+    ? (_functionalEquipmentItems || []).map(functionalWearableDescriptor).filter(Boolean)
+    : [];
+  const renderStack = (stack, descriptorsForStack) => {
+    if (!stack) return;
+    stack.innerHTML = descriptorsForStack.map(descriptor => {
+      const overlay = functionalWearableLayerHTML(descriptor, target);
+      const maskPath = descriptor.maskRequirement === 'HAIR_FRONT_MASK'
+        ? FUNCTIONAL_WEARABLE_MASKS_BY_CHARACTER[_characterAuthorityKey]
+        : '';
+      const mask = maskPath
+        ? functionalWearableLayerHTML(descriptor, target, {
+            asset: maskPath,
+            layer: 'HAIR_FRONT_MASK',
+            maskFor: descriptor.itemId,
+          })
+        : '';
+      return overlay + mask;
+    }).join('');
+    stack.classList.toggle('has-items', descriptorsForStack.length > 0);
+    stack.dataset.presentationState = canProject ? 'ready' : 'fallback';
+  };
+  renderStack(backStack, descriptors.filter(item => FUNCTIONAL_WEARABLE_BACK_LAYERS.has(item.layer)));
+  renderStack(frontStack, descriptors.filter(item => FUNCTIONAL_WEARABLE_VISIBLE_LAYERS.has(item.layer)));
+}
+
+function renderFunctionalWearableProjection() {
+  renderFunctionalWearableTarget(
+    document.getElementById('char-functional-wearable-back'),
+    document.getElementById('char-functional-wearable-front'),
+    'hero',
+  );
+  renderFunctionalWearableTarget(
+    document.getElementById('pv-functional-wearable-back'),
+    document.getElementById('pv-functional-wearable-front'),
+    'preview',
+  );
+}
+
+const FUNCTIONAL_SLOT_LABELS = {
+  weapon: { zh: '武器', en: 'Weapon' },
+  armor: { zh: '防具', en: 'Armor' },
+  accessory: { zh: '飾品', en: 'Accessory' },
+};
+function functionalProjectionName(item) {
+  return isEn()
+    ? (item.display_name_en || item.name_en || item.display_name || item.item_id)
+    : (item.display_name || item.name || item.display_name_en || item.item_id);
+}
+function functionalProjectionIconHTML(item) {
+  const name = escapeHTML(functionalProjectionName(item));
+  const raw = String(item.icon || '');
+  const safe = raw.startsWith('/assets/hero/equipment/functional/') ? raw : '';
+  const fallback = escapeHTML(name.slice(0, 1) || '?');
+  return safe
+    ? `<img src="${escapeHTML(safe)}" alt="${name}" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>${fallback}</span>`
+    : `<span>${fallback}</span>`;
+}
+function functionalProjectionEffectText(item) {
+  const active = Array.isArray(item.active_effect_details) ? item.active_effect_details : [];
+  if (active.length) {
+    return active.slice(0, 2).map(effect => {
+      const label = isEn() ? (effect.label_en || effect.label || effect.key) : (effect.label || effect.label_en || effect.key);
+      const value = isEn() ? (effect.value_label_en || effect.value_label || effect.value) : (effect.value_label || effect.value_label_en || effect.value);
+      return `${label} ${value}`;
+    }).join(' · ');
+  }
+  const unsupported = Array.isArray(item.unsupported_effects) ? item.unsupported_effects : [];
+  return unsupported.length ? (isEn() ? 'Not currently effective' : '尚未啟用') : (isEn() ? 'No active effect' : '目前沒有啟用效果');
+}
+function functionalProjectionItemHTML(item) {
+  const slot = FUNCTIONAL_SLOT_LABELS[item.slot] || { zh: '裝備', en: 'Equipment' };
+  const slotLabel = isEn() ? slot.en : slot.zh;
+  const name = escapeHTML(functionalProjectionName(item));
+  const effect = escapeHTML(functionalProjectionEffectText(item));
+  const icon = functionalProjectionIconHTML(item);
+  return `<div class="hero-functional-projection-item" data-functional-item-id="${escapeHTML(item.item_id || item.id || '')}" data-presentation-mode="${escapeHTML(item.presentation?.mode || 'ICON_ONLY')}">
+    <a href="/inventory?equipment=${encodeURIComponent(item.inv_id ?? '')}" aria-label="${name} · ${escapeHTML(slotLabel)}">
+      <span class="hero-functional-projection-icon">${icon}</span>
+      <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${escapeHTML(slotLabel)}</span><span class="hero-functional-projection-effect">${effect}</span></span>
+    </a>
+  </div>`;
+}
+function renderFunctionalEquipmentProjection() {
+  const items = (_functionalEquipmentItems || []).filter(item => item && (item.equipped || item.currently_equipped));
+  const targets = [
+    [document.getElementById('hero-functional-projection'), document.getElementById('hero-functional-projection-list')],
+    [document.getElementById('pv-functional-projection'), document.getElementById('pv-functional-projection-list')],
+  ];
+  targets.forEach(([shell, list]) => {
+    if (!shell || !list) return;
+    shell.dataset.state = _functionalEquipmentState;
+    if (_functionalEquipmentState === 'pending') {
+      list.innerHTML = `<span class="hero-functional-projection-status">${isEn() ? 'Loading equipped functional equipment…' : '載入已裝備戰鬥裝備…'}</span>`;
+    } else if (_functionalEquipmentState === 'unavailable') {
+      list.innerHTML = `<span class="hero-functional-projection-status">${isEn() ? 'Functional equipment presentation unavailable.' : '戰鬥裝備展示暫不可用。'}</span>`;
+    } else if (!items.length) {
+      list.innerHTML = `<span class="hero-functional-projection-status">${isEn() ? 'No functional equipment equipped.' : '尚未裝備功能裝備。'}</span>`;
+    } else {
+      list.innerHTML = items.map(functionalProjectionItemHTML).join('');
+    }
+  });
+}
+function renderCosmeticProjection() {
+  const items = (_wardrobeItems || []).filter(item => (
+    item && item.owned === true && item.equipped === true && !wardrobeHasGameplayEffect(item)
+  ));
+  const targets = [
+    [document.getElementById('hero-style-projection'), document.getElementById('hero-style-projection-list')],
+    [document.getElementById('pv-style-projection'), document.getElementById('pv-style-projection-list')],
+  ];
+  targets.forEach(([shell, list]) => {
+    if (!shell || !list) return;
+    shell.dataset.state = 'ready';
+    if (!items.length) {
+      list.innerHTML = `<span class="hero-functional-projection-status">${isEn() ? 'No pure style gear selected.' : '尚未選擇純外觀裝備。'}</span>`;
+      return;
+    }
+    list.innerHTML = items.map(item => {
+      const name = escapeHTML(dispName(item));
+      const slot = escapeHTML(item.type || 'appearance');
+      const presentation = item.presentation || {};
+      const presentationMode = escapeHTML(presentation.mode || 'CATALOG_ICON');
+      const presentationAsset = escapeHTML(presentation.asset || heroItemArtSrc(item));
+      return `<div class="hero-functional-projection-item" data-item-domain="style" data-item-id="${escapeHTML(item.id || '')}" data-presentation-mode="${presentationMode}" data-presentation-asset="${presentationAsset}" data-owned="true" data-selected="true" data-visible="true">
+        <span class="hero-functional-projection-icon">${heroItemArtHTML(item, 'hero-functional-projection-art')}</span>
+        <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${slot}</span><span class="hero-functional-projection-effect">${isEn() ? 'Visual only · no combat authority' : '純外觀 · 不提供戰鬥權限'}</span></span>
+      </div>`;
+    }).join('');
+  });
 }
 
 function combatGearButtonHTML(slot, item) {
@@ -3750,7 +4110,12 @@ function combatGearButtonHTML(slot, item) {
   let locked, lockHint;
   if (slot === 'character') {
     const u = cosmeticUnlocked('character', item.key);
-    locked = !u.unlocked; lockHint = u.label;
+    locked = !u.unlocked || _characterAuthorityState !== 'ready';
+    lockHint = _characterAuthorityState === 'pending'
+      ? (isEn() ? 'Syncing character selection…' : '正在同步角色選擇…')
+      : _characterAuthorityState === 'unavailable'
+        ? (isEn() ? 'Character selection unavailable' : '角色選擇暫不可用')
+        : u.label;
   } else {
     const g = gearUnlockState(item);
     locked = g.locked; lockHint = g.hint;
@@ -3876,6 +4241,11 @@ function selectBoardSkin(key) {
 
 function selectCombatGear(slot, key) {
   const isEquipment = slot !== 'character';
+  if (slot === 'character' && _characterAuthorityState !== 'ready') {
+    showToast(isEn() ? 'Character selection is unavailable.' : '角色選擇暫不可用。');
+    return;
+  }
+  const previousKey = _combatGear[slot];
   const nextKey = isEquipment && _combatGear[slot] === key && key !== COMBAT_GEAR[slot][0].key
     ? COMBAT_GEAR[slot][0].key
     : key;
@@ -3889,7 +4259,7 @@ function selectCombatGear(slot, key) {
     if (g.locked) { showToast('🔒 ' + g.hint); return; }
   }
   _combatGear[slot] = nextKey;
-  localStorage.setItem(COMBAT_STORAGE_KEY, JSON.stringify(_combatGear));
+  if (slot !== 'character') localStorage.setItem(COMBAT_STORAGE_KEY, JSON.stringify(_combatGear));
   applyCombatGearVisuals();
   renderCombatGearControls();
   const picked = COMBAT_GEAR[slot].find(i => i.key === nextKey);
@@ -3897,13 +4267,28 @@ function selectCombatGear(slot, key) {
     ? (isEn() ? 'Unequipped' : '已卸下')
     : I18n.t('hero.toast.equipped');
   showToast(actionLabel + ' ' + (dispName(picked) || I18n.t('hero.toast.gear')));
-  saveLoadoutToServer();
+  const save = saveLoadoutToServer();
+  if (slot === 'character') {
+    save.then(result => {
+      if (!result || (Array.isArray(result.rejected) && result.rejected.includes('character'))) {
+        _combatGear.character = previousKey;
+        _characterAuthorityKey = previousKey;
+        applyCombatGearVisuals();
+        renderCombatGearControls();
+        showToast(isEn() ? 'Character selection was rejected by the server.' : '伺服器未接受此角色選擇。');
+        return;
+      }
+      _characterAuthorityKey = nextKey;
+      localStorage.setItem(COMBAT_STORAGE_KEY, JSON.stringify(_combatGear));
+      renderCombatGearControls();
+    });
+  }
   renderHeroOverview();
 }
 
 // 換任何一件都把整套 loadout 存後端（角色給排行榜用；四件裝備給效果引擎用）
 function saveLoadoutToServer() {
-  fetch('/api/skills/character', {
+  return fetch('/api/skills/character', {
     method: 'POST', credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -3917,7 +4302,10 @@ function saveLoadoutToServer() {
       combat_aura:    _combatGear.aura,
       combat_acc:     _combatGear.acc,
     }),
-  }).catch(() => {});
+  }).then(async response => {
+    const result = await response.json().catch(() => ({}));
+    return response.ok ? result : { ...result, rejected: ['request'] };
+  }).catch(() => null);
 }
 
 
@@ -4428,10 +4816,58 @@ function renderHeroOverview() {
   set('hero-overview-xp', `${Number(res.xp ?? res.lv_xp ?? 0).toLocaleString()} / ${Number(res.xp_next ?? res.lv_xp_next ?? 0).toLocaleString()} XP`);
   set('hero-overview-bonus', bonusLabels.length ? bonusLabels.join(' · ') : (isEn() ? 'No active bonus' : '目前沒有加成'));
 }
+async function hydrateAuthoritativeHeroPresentation() {
+  _characterAuthorityState = 'pending';
+  _characterAuthorityKey = null;
+  _functionalEquipmentState = 'pending';
+  _functionalEquipmentItems = [];
+  renderFunctionalWearableProjection();
+  renderFunctionalEquipmentProjection();
+  try {
+    const [appearanceResponse, inventoryResponse] = await Promise.all([
+      fetch('/api/player/appearance', { credentials: 'include', cache: 'no-store' }),
+      fetch('/api/player/inventory', { credentials: 'include', cache: 'no-store' }),
+    ]);
+    if (!appearanceResponse.ok) throw new Error(`appearance HTTP ${appearanceResponse.status}`);
+    const appearance = await appearanceResponse.json();
+    const serverCharacter = appearance && appearance.character_key;
+    if (!CHARACTER_KEYS.includes(serverCharacter)) {
+      throw new Error('server character presentation key is unavailable');
+    }
+    _characterAuthorityKey = serverCharacter;
+    _characterAuthorityState = 'ready';
+    _combatGear.character = serverCharacter;
+    if (inventoryResponse.ok) {
+      const inventory = await inventoryResponse.json();
+      _functionalEquipmentItems = Array.isArray(inventory)
+        ? inventory.filter(item => item && item.functional_equipment === true && item.item_id)
+        : [];
+      _functionalEquipmentState = 'ready';
+    } else {
+      _functionalEquipmentState = 'unavailable';
+    }
+  } catch (error) {
+    // Never promote browser-local state to character authority. Keep a
+    // neutral base-art fallback and disable the character selector instead.
+    _characterAuthorityState = 'unavailable';
+    _characterAuthorityKey = null;
+    _combatGear.character = 'apprentice';
+    _functionalEquipmentState = 'unavailable';
+    _functionalEquipmentItems = [];
+    console.warn('authoritative hero presentation unavailable', error);
+  }
+  renderFunctionalWearableProjection();
+  renderFunctionalEquipmentProjection();
+  renderCombatGearControls();
+}
+
 async function initPage() {
   try {
-    const res = await fetch('/api/skills/profile').then(r => r.json());
+    const profileResponse = await fetch('/api/skills/profile', { credentials: 'include', cache: 'no-store' });
+    if (!profileResponse.ok) throw new Error(`profile HTTP ${profileResponse.status}`);
+    const res = await profileResponse.json();
     _profileData = res;
+    await hydrateAuthoritativeHeroPresentation();
 
     const displayName = res.display_name ?? res.username ?? '—';
     document.getElementById('char-name').textContent = displayName;
@@ -4510,17 +4946,10 @@ async function initPage() {
     // 依段位推算裝備/配件解鎖階
     _unlockTier = rankToTier(res.go_rank ?? res.rank ?? '');
     applyEquippedVisuals(_wardrobeItems);
+    renderCosmeticProjection();
     applyCombatGearVisuals();
+    renderFunctionalEquipmentProjection();
     renderCombatGearControls();
-    // 一次性把目前（localStorage）角色基座同步到後端，讓排行榜能顯示
-    if (!sessionStorage.getItem('charKeySynced') && _combatGear.character) {
-      sessionStorage.setItem('charKeySynced', '1');
-      fetch('/api/skills/character', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ character_key: _combatGear.character }),
-      }).catch(() => {});
-    }
     initInvFilterTabs();
     renderWardrobeSlots('all');
     renderHeroOverview();
@@ -4601,10 +5030,12 @@ function openPreview() {
   avatarBase.style.backgroundImage = '';
   avatarBase.style.background = 'var(--cream2)';
   if (!avatarBase.querySelector('#pv-fullbody-avatar-img')) {
-    avatarBase.innerHTML = `<img class="fullbody-generated-avatar" id="pv-fullbody-avatar-img" src="${CUSTOM_FULLBODY_AVATAR_SRC}" alt="${I18n.t('common.hero.full_alt')}">`;
+    avatarBase.innerHTML = `<img class="fullbody-generated-avatar" id="pv-fullbody-avatar-img" src="${CUSTOM_FULLBODY_AVATAR_SRC}" alt="${I18n.t('common.hero.full_alt')}"><div class="rpg-wearable-stage" id="pv-functional-wearable-stage" hidden aria-hidden="true"></div>`;
   }
   syncFullBodyAvatar(_wardrobeItems);
   applyCombatGearVisuals();
+  renderFunctionalEquipmentProjection();
+  renderCosmeticProjection();
 
   hatEl.innerHTML = hat ? heroItemArtHTML(hat) : '';
   hatEl.style.opacity = hat ? '1' : '0';
@@ -4654,7 +5085,7 @@ window.onLangChange = () => {
   if (typeof I18n !== 'undefined') I18n.apply();
   // 重繪 JS 動態內容（裝備/皮膚名稱、里程碑提示、稱號、徽章、屬性等隨語言切換）
   [renderCombatGearControls, () => renderWardrobeSlots('all'),
-   () => renderHeroOverview(),
+   () => renderHeroOverview(), renderFunctionalEquipmentProjection, renderCosmeticProjection,
    () => loadClassProfile(), () => { if (_petState) renderPetCompanion(); }, () => loadBadgesTab && loadBadgesTab()]
     .forEach(fn => { try { fn(); } catch (e) {} });
   // 角色面板的副稱號等由 initPage 設定，重新套用

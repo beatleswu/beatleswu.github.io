@@ -1,0 +1,327 @@
+{
+  "task_id": "RPG_WAVE2_MODULAR_2D_HANDHELD_SWORD_PROTOTYPE_001",
+  "foundation_head": "2575e79f14b62e3880cd66f61a4055cf01d67e1b",
+  "head_before": "336f0ba1b93923384d329449556de2b53db2e739",
+  "branch": "codex/rpg-wave2-modular-equipment-production-v2-p1",
+  "review_only": true,
+  "owner_references": {
+    "reference_a_used": true,
+    "reference_b_used": true,
+    "usage": "VISUAL_DIRECTION_ONLY",
+    "pixels_reused": false
+  },
+  "player_frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [
+      1056,
+      1408
+    ],
+    "body_frame_variants": 1
+  },
+  "weapon": {
+    "id": "iron_sword",
+    "family": "HANDHELD_SWORD",
+    "universal_asset": "sources/iron_sword_handheld_universal.png",
+    "source_kind": "canonical_existing_true_alpha_cutout",
+    "source_anchor": [
+      0.5,
+      0.235
+    ],
+    "rotation_degrees": -8,
+    "target_height": 475
+  },
+  "architecture": {
+    "character_grip_pose_asset_count": 6,
+    "universal_weapon_asset_count": 1,
+    "mask_asset_count": 6,
+    "item_character_bespoke_redraws": 0,
+    "weapon_art_is_universal": true,
+    "pose_assets_are_reusable_character_assets": true
+  },
+  "pose_assets": [
+    {
+      "character_key": "apprentice",
+      "asset": "pose_layers/apprentice_grip_forearm.png",
+      "mask": "masks/apprentice_open_hand_suppression.png",
+      "mirror_applied": false,
+      "target_grip": [
+        800,
+        800
+      ],
+      "grip_ratio": [
+        0.8,
+        0.58
+      ]
+    },
+    {
+      "character_key": "mage",
+      "asset": "pose_layers/mage_grip_forearm.png",
+      "mask": "masks/mage_open_hand_suppression.png",
+      "mirror_applied": false,
+      "target_grip": [
+        790,
+        780
+      ],
+      "grip_ratio": [
+        0.79,
+        0.54
+      ]
+    },
+    {
+      "character_key": "paladin",
+      "asset": "pose_layers/paladin_grip_forearm.png",
+      "mask": "masks/paladin_open_hand_suppression.png",
+      "mirror_applied": false,
+      "target_grip": [
+        805,
+        800
+      ],
+      "grip_ratio": [
+        0.79,
+        0.5
+      ]
+    },
+    {
+      "character_key": "trail_apprentice",
+      "asset": "pose_layers/trail_apprentice_grip_forearm.png",
+      "mask": "masks/trail_apprentice_open_hand_suppression.png",
+      "mirror_applied": true,
+      "target_grip": [
+        800,
+        830
+      ],
+      "grip_ratio": [
+        0.78,
+        0.63
+      ]
+    },
+    {
+      "character_key": "night_runner",
+      "asset": "pose_layers/night_runner_grip_forearm.png",
+      "mask": "masks/night_runner_open_hand_suppression.png",
+      "mirror_applied": true,
+      "target_grip": [
+        795,
+        820
+      ],
+      "grip_ratio": [
+        0.77,
+        0.56
+      ]
+    },
+    {
+      "character_key": "constellation_apprentice",
+      "asset": "pose_layers/constellation_apprentice_grip_forearm.png",
+      "mask": "masks/constellation_apprentice_open_hand_suppression.png",
+      "mirror_applied": false,
+      "target_grip": [
+        805,
+        820
+      ],
+      "grip_ratio": [
+        0.79,
+        0.56
+      ]
+    }
+  ],
+  "layer_contract": [
+    "canonical character base",
+    "local open-hand/forearm suppression mask",
+    "universal iron_sword behind grip",
+    "reusable character grip/forearm front segment",
+    "existing canonical front layers"
+  ],
+  "fallback": {
+    "missing_grip_pose": "WAIST_SHEATHED",
+    "presentation_only": true,
+    "unequip": false,
+    "database_write": false
+  },
+  "security_checks": {
+    "unowned_visual_forgery": "FAIL_CLOSED_NO_RUNTIME_STATE_INPUT",
+    "authoritative_equipped_state": "UNCHANGED",
+    "missing_grip_pose_fallback": "WAIST_SHEATHED"
+  },
+  "qa": [
+    {
+      "character_key": "apprentice",
+      "grip_result": "PASS",
+      "sleeve_result": "PASS",
+      "weapon_collision_result": "PASS",
+      "metrics": {
+        "HAND_ANCHOR": "PASS",
+        "GRIP_ROTATION": "PASS",
+        "FOREARM_ALIGNMENT": "PASS",
+        "WRIST_ALIGNMENT": "PASS",
+        "SLEEVE_OCCLUSION": "PASS",
+        "WEAPON_LAYER": "PASS",
+        "HAND_FRONT_LAYER": "PASS",
+        "FACE_CLEARANCE": "PASS",
+        "BODY_COLLISION": "PASS",
+        "ROBE_COLLISION": "PASS",
+        "MOBILE_READABILITY": "PASS",
+        "CHARACTER_IDENTITY_PRESERVED": "PASS"
+      },
+      "fake_open_hand_grip": 0,
+      "bespoke_redraw": false
+    },
+    {
+      "character_key": "mage",
+      "grip_result": "PASS",
+      "sleeve_result": "PASS",
+      "weapon_collision_result": "PASS",
+      "metrics": {
+        "HAND_ANCHOR": "PASS",
+        "GRIP_ROTATION": "PASS",
+        "FOREARM_ALIGNMENT": "PASS",
+        "WRIST_ALIGNMENT": "PASS",
+        "SLEEVE_OCCLUSION": "PASS",
+        "WEAPON_LAYER": "PASS",
+        "HAND_FRONT_LAYER": "PASS",
+        "FACE_CLEARANCE": "PASS",
+        "BODY_COLLISION": "PASS",
+        "ROBE_COLLISION": "PASS",
+        "MOBILE_READABILITY": "PASS",
+        "CHARACTER_IDENTITY_PRESERVED": "PASS"
+      },
+      "fake_open_hand_grip": 0,
+      "bespoke_redraw": false
+    },
+    {
+      "character_key": "paladin",
+      "grip_result": "PASS",
+      "sleeve_result": "PASS",
+      "weapon_collision_result": "PASS",
+      "metrics": {
+        "HAND_ANCHOR": "PASS",
+        "GRIP_ROTATION": "PASS",
+        "FOREARM_ALIGNMENT": "PASS",
+        "WRIST_ALIGNMENT": "PASS",
+        "SLEEVE_OCCLUSION": "PASS",
+        "WEAPON_LAYER": "PASS",
+        "HAND_FRONT_LAYER": "PASS",
+        "FACE_CLEARANCE": "PASS",
+        "BODY_COLLISION": "PASS",
+        "ROBE_COLLISION": "PASS",
+        "MOBILE_READABILITY": "PASS",
+        "CHARACTER_IDENTITY_PRESERVED": "PASS"
+      },
+      "fake_open_hand_grip": 0,
+      "bespoke_redraw": false
+    },
+    {
+      "character_key": "trail_apprentice",
+      "grip_result": "PASS",
+      "sleeve_result": "PASS",
+      "weapon_collision_result": "PASS",
+      "metrics": {
+        "HAND_ANCHOR": "PASS",
+        "GRIP_ROTATION": "PASS",
+        "FOREARM_ALIGNMENT": "PASS",
+        "WRIST_ALIGNMENT": "PASS",
+        "SLEEVE_OCCLUSION": "PASS",
+        "WEAPON_LAYER": "PASS",
+        "HAND_FRONT_LAYER": "PASS",
+        "FACE_CLEARANCE": "PASS",
+        "BODY_COLLISION": "PASS",
+        "ROBE_COLLISION": "PASS",
+        "MOBILE_READABILITY": "PASS",
+        "CHARACTER_IDENTITY_PRESERVED": "PASS"
+      },
+      "fake_open_hand_grip": 0,
+      "bespoke_redraw": false
+    },
+    {
+      "character_key": "night_runner",
+      "grip_result": "PASS",
+      "sleeve_result": "PASS",
+      "weapon_collision_result": "PASS",
+      "metrics": {
+        "HAND_ANCHOR": "PASS",
+        "GRIP_ROTATION": "PASS",
+        "FOREARM_ALIGNMENT": "PASS",
+        "WRIST_ALIGNMENT": "PASS",
+        "SLEEVE_OCCLUSION": "PASS",
+        "WEAPON_LAYER": "PASS",
+        "HAND_FRONT_LAYER": "PASS",
+        "FACE_CLEARANCE": "PASS",
+        "BODY_COLLISION": "PASS",
+        "ROBE_COLLISION": "PASS",
+        "MOBILE_READABILITY": "PASS",
+        "CHARACTER_IDENTITY_PRESERVED": "PASS"
+      },
+      "fake_open_hand_grip": 0,
+      "bespoke_redraw": false
+    },
+    {
+      "character_key": "constellation_apprentice",
+      "grip_result": "PASS",
+      "sleeve_result": "PASS",
+      "weapon_collision_result": "PASS",
+      "metrics": {
+        "HAND_ANCHOR": "PASS",
+        "GRIP_ROTATION": "PASS",
+        "FOREARM_ALIGNMENT": "PASS",
+        "WRIST_ALIGNMENT": "PASS",
+        "SLEEVE_OCCLUSION": "PASS",
+        "WEAPON_LAYER": "PASS",
+        "HAND_FRONT_LAYER": "PASS",
+        "FACE_CLEARANCE": "PASS",
+        "BODY_COLLISION": "PASS",
+        "ROBE_COLLISION": "PASS",
+        "MOBILE_READABILITY": "PASS",
+        "CHARACTER_IDENTITY_PRESERVED": "PASS"
+      },
+      "fake_open_hand_grip": 0,
+      "bespoke_redraw": false
+    }
+  ],
+  "aggregate_qa": {
+    "hand_grip_believability": "6/6",
+    "sword_recognizability": "6/6",
+    "mobile_readability": "6/6",
+    "face_clearance": "6/6",
+    "character_identity_preserved": "6/6",
+    "fake_open_hand_grip": 0,
+    "alpha_artifacts": 0,
+    "white_box_artifacts": 0,
+    "matte_halo_artifacts": 0,
+    "chroma_residue": 0,
+    "fit_combinations": 6,
+    "fit_pass_count": 6
+  },
+  "authority": {
+    "functional_equipment_ownership": "player_inventory",
+    "functional_equipment_equipped": "player_inventory.equipped",
+    "functional_effects": "server EQUIPMENT_DEFS",
+    "renderer": "PRESENTATION_ONLY",
+    "client_combat_authority": "NO",
+    "combat_delta_from_rendering": 0
+  },
+  "preserved": {
+    "dragon_scale_changed": "NO",
+    "fox_mask_changed": "NO",
+    "void_mantle_changed": "NO",
+    "go_stone_black_render": "NONE",
+    "waist_sheathed_fallback": "PASS"
+  },
+  "outputs": {
+    "handheld_matrix": "matrices/HANDHELD_SWORD_6_CHARACTER_MATRIX.png",
+    "handheld_mobile_matrix": "matrices/HANDHELD_SWORD_MOBILE_MATRIX.png",
+    "handheld_vs_waist_matrix": "matrices/HANDHELD_VS_WAIST_COMPARISON.png",
+    "review_html": "handheld_sword_review.html",
+    "handheld_composites": 6,
+    "waist_composites": 6
+  },
+  "source_sha256": {
+    "universal_weapon": "78ac35076b26687e13c4724c9b2910992de3e037fd0bb26e47c4f8da4f75180f",
+    "pose_assets": {
+      "apprentice": "0ab25e45530ac3478c80c5861860c4efa36d9c871e429dff639bae36a12d15fe",
+      "mage": "deb82f64e04600bc25bd34c0d85e2047574a111eff1addbd4793f539b6222d08",
+      "paladin": "dad880d4b6875c258f459d71e22fc56ed46791f3f4db2ea94c8ead53326433c7",
+      "trail_apprentice": "a67a0ef5814f26061cef15d65ea822c5594c7f296560ef73c46e83b22ff5864e",
+      "night_runner": "65092b37eefe6966fd4f698b13fda156b26e53976251fa048e25cefa6e7d2f8b",
+      "constellation_apprentice": "d9fa616d23f17f098b07b29188071e82958ff67f3221e7b638b20140199170d4"
+    }
+  }
+}

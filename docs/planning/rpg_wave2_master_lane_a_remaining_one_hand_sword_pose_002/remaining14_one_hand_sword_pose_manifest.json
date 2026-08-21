@@ -1,0 +1,574 @@
+{
+  "task": "GO_ODYSSEY_MASTER_LANE_A_REMAINING_ONE_HAND_SWORD_POSE_002",
+  "production_base": "c36ce33763c80de7313922ad4096331ded540c18",
+  "production_base_branch": "codex/rpg-wave2-one-hand-sword-pose-batch2-001",
+  "dependency_head_final7": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+  "dependency_head_armor": "1be5d9523ffd9cc874081d343efc0e4bfa69fa1d",
+  "pose_family": "ONE_HAND_SWORD_POSE",
+  "method": "FULL_BODY_REDRAW",
+  "new_candidate_count": 14,
+  "owner_pass_count_before_review": 6,
+  "owner_pass_denominator": 20,
+  "owner_status": "PRODUCTION_CANDIDATE_OWNER_REVIEW_REQUIRED",
+  "player_visual_family_drift_count_self_qa": 0,
+  "armor_architecture_regression_count_self_qa": 0,
+  "functional_equipment_authority": "player_inventory + server EQUIPMENT_DEFS",
+  "character_combat_authority": "NO",
+  "client_combat_authority": "NO",
+  "local_hand_patch_used": false,
+  "local_forearm_patch_used": false,
+  "runtime_implementation": false,
+  "records": [
+    {
+      "character_id": "apprentice_girl",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/apprentice_girl_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/apprentice_girl_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/apprentice_girl_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch2-001",
+        "head": "69d3d27d48faab78c6e185b0dc35edfd239774df",
+        "path": "assets/hero/characters/wave2_batch2_default_pose_v1/apprentice_girl_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "f19f20455952c8ec89e5318789db82d7e8f3f8c00994c8297fc77e73bf378667",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        136,
+        84,
+        843,
+        1311
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "6349ddb511f99509952f6094558de3d99c464bb05f7cff6d5a53a45050b1a706"
+    },
+    {
+      "character_id": "swordsman",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/swordsman_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/swordsman_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/swordsman_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch2-001",
+        "head": "69d3d27d48faab78c6e185b0dc35edfd239774df",
+        "path": "assets/hero/characters/wave2_batch2_default_pose_v1/swordsman_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "07d4fac5eab5bc957f1b23410028dd74fabe987926fd9efe4b8d1aab49f7d8ad",
+      "source_dimensions": [
+        1070,
+        1470
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        47,
+        31,
+        872,
+        1411
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "26dd36d21ed3cb9e558616086f81169021e1b041ec8931b182585b13f175f356"
+    },
+    {
+      "character_id": "rogue",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/rogue_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/rogue_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/rogue_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch2-001",
+        "head": "69d3d27d48faab78c6e185b0dc35edfd239774df",
+        "path": "assets/hero/characters/wave2_batch2_default_pose_v1/rogue_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "ff27de89de30a9db90a091e1c101fdee362ebe8da2b65b2bc28475c1f5d59a45",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        115,
+        65,
+        795,
+        1249
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "e64be54a1c12de17946fc7feb782316bf6d8e7ab670d942c5eaf4967e0a55f60"
+    },
+    {
+      "character_id": "ranger",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/ranger_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/ranger_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/ranger_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch2-001",
+        "head": "69d3d27d48faab78c6e185b0dc35edfd239774df",
+        "path": "assets/hero/characters/wave2_batch2_default_pose_v1/ranger_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "e521108cf5cfab871acd02a45a8e76e1484fd9353cb266f2153e25c208e1b32c",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        115,
+        68,
+        859,
+        1400
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "10d4b3cc7cf6577df57baead19da5714e06fad4908ca4f0cf42fff9c8889cd15"
+    },
+    {
+      "character_id": "berserker",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/berserker_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/berserker_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/berserker_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch3a-002",
+        "head": "e1d9d50cb7e9e05ddb4fbfc1eb087b5aa92a94e6",
+        "path": "assets/hero/characters/wave2_batch3a_default_pose_v2/berserker_default_pose_v2.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "cdb25447ea1238db7faffb0bcbdda237b4b7d75884430ace7e4bbbca526b75a8",
+      "source_dimensions": [
+        1070,
+        1470
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        35,
+        46,
+        876,
+        1416
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "7990016f4017c6cf25a35e81094e0bfa0885361ab2902d7a1672dbfd25fe66fe"
+    },
+    {
+      "character_id": "guardian",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/guardian_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/guardian_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/guardian_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch3a-002",
+        "head": "e1d9d50cb7e9e05ddb4fbfc1eb087b5aa92a94e6",
+        "path": "assets/hero/characters/wave2_batch3a_default_pose_v2/guardian_default_pose_v2.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "50119444c65eb9abbde7c42965f009d5671035a12955db13f8d781ac6fb489b1",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        116,
+        33,
+        820,
+        1369
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "f05d4df9b43bc6b4fd771dc5861dc30e4e9d22e33488644f42c865fd9f7b1b10"
+    },
+    {
+      "character_id": "sage",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/sage_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/sage_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/sage_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/rpg-wave2-default-pose-batch3a-002",
+        "head": "e1d9d50cb7e9e05ddb4fbfc1eb087b5aa92a94e6",
+        "path": "assets/hero/characters/wave2_batch3a_default_pose_v2/sage_default_pose_v2.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "297e4cf83c85abead1a7a68df4f5e490709d52615494c8c7a90dcc413faf57aa",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        27,
+        47,
+        1041,
+        1397
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "defd6f83ecc4365743e8200832452e43df5df426381be86205cfd2c16407e62d"
+    },
+    {
+      "character_id": "river_wayfinder",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/river_wayfinder_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/river_wayfinder_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/river_wayfinder_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/river_wayfinder_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "7e1d98e57625e2adfe94c2150defe1370fc1b5efcede8f421fac36a96de11433",
+      "source_dimensions": [
+        1085,
+        1450
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        27,
+        42,
+        1008,
+        1366
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "312bbca4f5095e7015a5b1aa85d2067f9a8a104153c58b9e8c5b4c58cdfbe657"
+    },
+    {
+      "character_id": "stone_caretaker",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/stone_caretaker_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/stone_caretaker_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/stone_caretaker_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/stone_caretaker_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "3566594e25d9ba7670248e8974e7d4dbf781affe33c533851875a5bb95b035d6",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        67,
+        52,
+        821,
+        1397
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "69fdbec85665784d38db7d351a08b3ca27f0a51293ca7c1a7b68624701b7683d"
+    },
+    {
+      "character_id": "duelist_scout",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/duelist_scout_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/duelist_scout_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/duelist_scout_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/duelist_scout_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "74e99c33ed4e34171c593546922c92b29a2840c7396c70962afdab56c2ca8c90",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        116,
+        22,
+        836,
+        1342
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "7baafaf70882afab1baccac2adc889127b4f4a2e4c26a3b1a40fc9f32656f082"
+    },
+    {
+      "character_id": "bastion_warden",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/bastion_warden_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/bastion_warden_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/bastion_warden_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/bastion_warden_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "41ca3eaaf53db4c72bc8386a0daca911d471a907789331ddf835625f4207f770",
+      "source_dimensions": [
+        1070,
+        1470
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        96,
+        63,
+        880,
+        1364
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "f0012f2c5374b36743839ef9f9d3401cbf92d5de6b0fa854308cdaac07075cfd"
+    },
+    {
+      "character_id": "forest_pathfinder",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/forest_pathfinder_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/forest_pathfinder_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/forest_pathfinder_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/forest_pathfinder_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "6a24a699f6d99590c8290eff021d4b635b4d164d4b08f0c25e2a9e48d8f69232",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        67,
+        47,
+        949,
+        1387
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "da02c1a433742562f975342fd7cdbfca9a776661d941169d9e041c9c40798942"
+    },
+    {
+      "character_id": "archive_scholar",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/archive_scholar_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/archive_scholar_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/archive_scholar_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/archive_scholar_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "235907a5bdcda8e02d2832c01bc9d8075d8f1761a98883c01f117ae3387bcdef",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        0,
+        0,
+        1086,
+        1384
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "9431306cd0301f77b4c1e3380ee86fc19ae0b58bfcbad99bbd4adf2d9d706b9d"
+    },
+    {
+      "character_id": "worldkeeper",
+      "pose_family": "ONE_HAND_SWORD_POSE",
+      "method": "FULL_BODY_REDRAW",
+      "source": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/sources/generated_raw/worldkeeper_one_hand_sword_pose_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/worldkeeper_one_hand_sword_pose_v1.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/masters/worldkeeper_one_hand_sword_pose_v1.webp",
+      "identity_source": {
+        "branch": "codex/master-lane-a-final7-default-pose-001",
+        "head": "546fce85e27f1a6dbbdbf983e6374950f8df44a6",
+        "path": "assets/hero/characters/wave2_final7_default_pose_v1/worldkeeper_default_pose_v1.png"
+      },
+      "presentation_only": true,
+      "functional_weapon_baked_in": false,
+      "local_hand_patch_used": false,
+      "local_forearm_patch_used": false,
+      "source_sha256": "204d72cdd0e294140af6b19e96916e4a829baad76c1e9c18975df45b34946d03",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "source_mode": "RGB",
+      "foreground_bbox_before_normalization": [
+        96,
+        0,
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_extrema": [
+        0,
+        255
+      ],
+      "master_sha256": "29dd79f2f1ccbb1f2ede225175fd8003391cd97b5dde8769db74556df395676f"
+    }
+  ],
+  "review_artifacts": {
+    "desktop_matrix": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/matrices/REMAINING14_ONE_HAND_SWORD_POSE_MATRIX.png",
+    "mobile_matrix": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/matrices/REMAINING14_ONE_HAND_SWORD_POSE_MOBILE_MATRIX.png",
+    "all20_scale_lineup": "docs/planning/rpg_wave2_master_lane_a_remaining_one_hand_sword_pose_002/matrices/ALL20_ONE_HAND_SWORD_POSE_SCALE_LINEUP.png"
+  }
+}

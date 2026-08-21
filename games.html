@@ -412,10 +412,16 @@ function ensureWgo(){
     const s1=document.createElement('script');
     s1.src='/wgo/wgo.min.js?v=20260514k';
     s1.onload=()=>{
-      const s2=document.createElement('script');
-      s2.src='/wgo/wgo.player.min.js?v=1';
-      s2.onload=resolve;s2.onerror=reject;
-      document.head.appendChild(s2);
+      const skin=document.createElement('script');
+      skin.src='/wgo/stone_skin.js?v=4';
+      skin.onload=()=>{
+        const s2=document.createElement('script');
+        s2.src='/wgo/wgo.player.min.js?v=1';
+        s2.onload=resolve;s2.onerror=reject;
+        document.head.appendChild(s2);
+      };
+      skin.onerror=reject;
+      document.head.appendChild(skin);
     };
     s1.onerror=reject;
     document.head.appendChild(s1);

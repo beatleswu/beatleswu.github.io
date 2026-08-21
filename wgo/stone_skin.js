@@ -84,7 +84,11 @@
     if (_OrigBoard && !_OrigBoard.__skinWrapped) {
       var Patched = function () {
         var inst = new (Function.prototype.bind.apply(_OrigBoard, [null].concat([].slice.call(arguments))))();
-        try { window.__skinBoardRef = inst; if (window.applyBoardSkin) window.applyBoardSkin(); } catch (e) {}
+        try {
+          window.__skinBoardRef = inst;
+          window.__stoneSkinRedraw = function () { try { inst.redraw(); } catch (e) {} };
+          if (window.applyBoardSkin) window.applyBoardSkin();
+        } catch (e) {}
         return inst;
       };
       Patched.prototype = _OrigBoard.prototype;
@@ -94,15 +98,30 @@
     }
   } catch (e) {}
 
-  // 自動從外觀讀取已裝備皮膚（棋子 + 棋盤）
+  function applySelection(selection) {
+    if (!selection) return;
+    if (selection.stone_skin) window.applyStoneSkin(selection.stone_skin);
+    if (selection.board_skin) {
+      window.__BOARD_SKIN.set = selection.board_skin;
+      window.applyBoardSkin();
+    }
+  }
+  // Replay/profile routes may supply the record owner's presentation state.
+  // Only the explicit selection is used there; no viewer cosmetic state leaks
+  // onto somebody else's replay. Private gameplay pages keep the existing
+  // server-owned viewer lookup.
+  window.configureStoneBoardSelection = function (selection) {
+    window.__GO_STONE_BOARD_SELECTION__ = selection || null;
+    applySelection(window.__GO_STONE_BOARD_SELECTION__);
+  };
   try {
-    fetch('/api/player/appearance', { credentials: 'include' })
-      .then(function (r) { return r.json(); })
-      .then(function (a) {
-        if (!a) return;
-        if (a.stone_skin) window.applyStoneSkin(a.stone_skin);
-        if (a.board_skin) { window.__BOARD_SKIN.set = a.board_skin; window.applyBoardSkin(); }
-      })
-      .catch(function () {});
+    if (window.__GO_STONE_BOARD_SELECTION__) {
+      applySelection(window.__GO_STONE_BOARD_SELECTION__);
+    } else {
+      fetch('/api/player/appearance', { credentials: 'include' })
+        .then(function (r) { return r.json(); })
+        .then(function (a) { applySelection(a); })
+        .catch(function () {});
+    }
   } catch (e) {}
 })();

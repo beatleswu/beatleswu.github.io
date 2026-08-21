@@ -56,6 +56,10 @@ COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./
 COPY backend_i18n.py ./
 COPY community_leaderboard_rewards.py ./
+COPY rpg_item_registry.py ./
+COPY rpg_wave1_lane_b.py ./
+COPY rpg_world_npc_registry.py ./
+COPY docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json ./docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json
 # Map Battle V1 is application runtime, not external static content. Keep the
 # shared runtime modules explicit so app.py can import the authoritative
 # settlement service from the built image.
@@ -116,6 +120,7 @@ COPY review_data/sgf_answer_review_queue_v1.json \
 # repository-relative path so /js/map_battle_v1_adapter.js resolves in the
 # built image exactly as it does from the source tree.
 COPY js/map_battle_v1_adapter.js ./js/map_battle_v1_adapter.js
+COPY js/rpg_wave2_wearable_renderer.js ./js/rpg_wave2_wearable_renderer.js
 # Lord Trial review authority is an explicitly referenced browser module.
 # Keep the repository-relative path so the built image retains the same
 # /js/game/lord_trial_controller.js identity as the source checkout.

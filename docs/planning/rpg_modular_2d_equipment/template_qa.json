@@ -1,0 +1,102 @@
+{
+  "schema": "go-odyssey.static-modular-2d-equipment.template-qa.v1",
+  "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+  "characters": [
+    "apprentice",
+    "mage",
+    "paladin",
+    "trail_apprentice",
+    "night_runner",
+    "constellation_apprentice"
+  ],
+  "reference_items": {
+    "iron_sword": {
+      "template_id": "WEAPON_WAIST",
+      "presentation_mode": "WAIST_SHEATHED",
+      "face_safe_zone": "PASS",
+      "alpha_artifact": "PASS",
+      "fake_hand_grip": "PASS_NOT_APPLICABLE_CARRIED_PRESENTATION",
+      "mobile_readability": "PASS",
+      "item_character_bespoke_redraws": 0,
+      "per_character": {
+        "apprentice": "PASS",
+        "mage": "PASS",
+        "paladin": "PASS",
+        "trail_apprentice": "PASS",
+        "night_runner": "PASS",
+        "constellation_apprentice": "PASS"
+      },
+      "evidence": "docs/planning/rpg_wave2_gate2_p2b_weapon_carry_manifest.json"
+    },
+    "dragon_scale": {
+      "template_id": "TORSO_ARMOR",
+      "presentation_mode": "UNIVERSAL_TORSO_OVERLAY",
+      "face_safe_zone": "PASS",
+      "alpha_artifact": "PASS",
+      "fake_hand_grip": "PASS_NOT_APPLICABLE",
+      "mobile_readability": "PASS",
+      "item_character_bespoke_redraws": 0,
+      "per_character": {
+        "apprentice": "PASS",
+        "mage": "PASS",
+        "paladin": "PASS",
+        "trail_apprentice": "PASS",
+        "night_runner": "PASS",
+        "constellation_apprentice": "PASS"
+      },
+      "evidence": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ARMOR_FIT_MATRIX.png"
+    },
+    "fox_mask": {
+      "template_id": "FACE_ACCESSORY",
+      "presentation_mode": "INTENTIONAL_FACE_ACCESSORY",
+      "face_safe_zone": "INTENTIONAL_FACE_INTERSECTION_ALLOWED",
+      "alpha_artifact": "PASS",
+      "fake_hand_grip": "PASS_NOT_APPLICABLE",
+      "mobile_readability": "PASS",
+      "item_character_bespoke_redraws": 0,
+      "per_character": {
+        "apprentice": "PASS",
+        "mage": "PASS",
+        "paladin": "PASS",
+        "trail_apprentice": "PASS",
+        "night_runner": "PASS",
+        "constellation_apprentice": "PASS"
+      },
+      "evidence": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_ACCESSORY_FIT_MATRIX.png"
+    },
+    "cloth_robe": {
+      "template_id": "ROBE_OVERLAY",
+      "presentation_mode": "UNIVERSAL_OPEN_NECK_ROBE",
+      "face_safe_zone": "PASS",
+      "alpha_artifact": "PASS",
+      "fake_hand_grip": "PASS_NOT_APPLICABLE",
+      "mobile_readability": "PASS",
+      "item_character_bespoke_redraws": 0,
+      "per_character": {
+        "apprentice": "PASS",
+        "mage": "PASS",
+        "paladin": "PASS",
+        "trail_apprentice": "PASS",
+        "night_runner": "PASS",
+        "constellation_apprentice": "PASS"
+      },
+      "evidence": "docs/planning/rpg_wave2_gate2_p3_wearable_runtime_manifest.json#p3c_armor_occlusion"
+    }
+  },
+  "aggregate": {
+    "template_cells": 24,
+    "passed_cells": 24,
+    "face_occlusion_violations": 0,
+    "alpha_artifact_failures": 0,
+    "fake_hand_grip_failures": 0,
+    "mobile_readability_failures": 0,
+    "item_character_bespoke_redraws": 0,
+    "result": "PASS_WITH_FACE_ACCESSORY_EXCEPTION"
+  },
+  "full_loadout": {
+    "characters": 6,
+    "result": "PASS",
+    "fox_mask_face_coverage": "INTENTIONAL",
+    "evidence": "docs/planning/rpg_wave2_gate2_p3_wearable_fit_matrices/P3_FULL_LOADOUT_QA.png"
+  }
+}

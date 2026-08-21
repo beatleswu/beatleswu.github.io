@@ -1,0 +1,221 @@
+{
+  "contract_version": "rpg-wave2-collection-contract-v2",
+  "audit_base": "efc0510b9160dae33a50a94754f1e1d78372f651",
+  "collection_family_count": 7,
+  "canonical_item_registry_record_count": 24,
+  "legacy_item_candidate_count": 0,
+  "source_truth": {
+    "item_journal": {
+      "present": true,
+      "route": "/api/item-journal",
+      "surface": "/item-journal",
+      "semantics": "READ_ONLY_PROJECTION",
+      "discovery_semantics": "NOT_TRACKED",
+      "ownership_sources": [
+        "shop_inventory.item_key",
+        "pet_inventory.item_key"
+      ],
+      "recentness_sources": [
+        "currency_log",
+        "gacha_log"
+      ],
+      "mutation_on_get": false
+    },
+    "journal_sections": [
+      {
+        "key": "ConsumableEffect",
+        "label": "消耗品",
+        "label_en": "Consumables"
+      },
+      {
+        "key": "Material",
+        "label": "素材",
+        "label_en": "Materials"
+      },
+      {
+        "key": "QuestItem",
+        "label": "任務",
+        "label_en": "Quest"
+      },
+      {
+        "key": "TreasureBundle",
+        "label": "寶物",
+        "label_en": "Treasure"
+      },
+      {
+        "key": "Collectible",
+        "label": "收藏",
+        "label_en": "Collectibles"
+      }
+    ],
+    "current_collection_sections": [
+      {
+        "key": "RelicsZone",
+        "label": "遺物／區域",
+        "label_en": "Relics / Zone"
+      },
+      {
+        "key": "AchievementsBadges",
+        "label": "成就／徽章",
+        "label_en": "Achievements / Badges"
+      }
+    ],
+    "equipment": {
+      "present": true,
+      "records": 15,
+      "authority": "EQUIPMENT_DEFS + player_inventory",
+      "surface": "/inventory",
+      "generic_item_journal_inclusion": false
+    },
+    "cosmetics": {
+      "present": true,
+      "records": 64,
+      "authority": "APPEARANCE_DEFS + player_wardrobe + player_appearance slot state",
+      "surface": "/hero?tab=appearance",
+      "second_ownership_table": false
+    },
+    "character_appearances": {
+      "present": true,
+      "active_records": 10,
+      "authority": "player_appearance.character_key",
+      "surface": "/hero?tab=appearance",
+      "collection_table": false
+    },
+    "companions": {
+      "present": true,
+      "catalog_records": 3,
+      "ownership_state": "pet_collection",
+      "surface": "/hero?tab=pet",
+      "note": "Domain-specific collection; not generic Item."
+    },
+    "badges": {
+      "present": true,
+      "definitions": 84,
+      "ownership_state": "badges_earned",
+      "surface": "/badges",
+      "note": "Badge collection is separate from Backpack and Item Journal."
+    },
+    "durable_discovery_state": {
+      "present": false,
+      "evidence": "No generic discovery table/column is used by /api/item-journal.",
+      "current_semantics": "catalog_visible + owned_amount + log-derived recently_obtained"
+    },
+    "boss_entries": {
+      "present": false,
+      "note": "Boss/chapter progress exists in gameplay progress, not a generic collection registry."
+    },
+    "zone_entries": {
+      "present": false,
+      "note": "Zone identity is a future content contract; no generic Zone collection ownership is active."
+    },
+    "npc_entries": {
+      "present": false,
+      "note": "No generic NPC collection registry or ownership is active."
+    }
+  },
+  "families": [
+    {
+      "family_id": "ITEM_JOURNAL",
+      "status": "ACTIVE",
+      "authority": "shop_inventory/pet_inventory projection",
+      "surface": "/item-journal",
+      "discovery": "NOT_TRACKED"
+    },
+    {
+      "family_id": "EQUIPMENT_COLLECTION",
+      "status": "ACTIVE_PROJECTION",
+      "authority": "EQUIPMENT_DEFS + player_inventory",
+      "surface": "/inventory",
+      "discovery": "Owned/equipped rows only; never generic Item rows"
+    },
+    {
+      "family_id": "COSMETIC_COLLECTION",
+      "status": "ACTIVE_PROJECTION",
+      "authority": "APPEARANCE_DEFS + player_wardrobe + player_appearance",
+      "surface": "/hero?tab=appearance",
+      "discovery": "Existing ownership/equipped projection"
+    },
+    {
+      "family_id": "CHARACTER_COLLECTION",
+      "status": "ACTIVE_PRESENTATION",
+      "authority": "player_appearance.character_key + server unlock predicates",
+      "surface": "/hero?tab=appearance",
+      "discovery": "Selection/unlock predicate; no generic table"
+    },
+    {
+      "family_id": "COMPANION_COLLECTION",
+      "status": "ACTIVE_DOMAIN_COLLECTION",
+      "authority": "PET_CATALOG + pet_collection",
+      "surface": "/hero?tab=pet",
+      "discovery": "Existing pet ownership/progression"
+    },
+    {
+      "family_id": "ACHIEVEMENT_BADGE_COLLECTION",
+      "status": "ACTIVE_DOMAIN_COLLECTION",
+      "authority": "BADGE_DEFS + badges_earned",
+      "surface": "/badges",
+      "discovery": "Earned badge rows"
+    },
+    {
+      "family_id": "WORLD_DISCOVERY",
+      "status": "CONTRACT_ONLY",
+      "authority": "WAVE3_DEFERRED",
+      "surface": "Future World/Journal surfaces",
+      "discovery": "WAVE3_DEFERRED",
+      "subfamilies": [
+        "ZONE_COLLECTION",
+        "BOSS_COLLECTION",
+        "NPC_LORE"
+      ]
+    }
+  ],
+  "identity_contract": {
+    "required_fields": [
+      "ITEM_ID",
+      "DISPLAY_NAME",
+      "ZONE_ID",
+      "BOSS_ID",
+      "MONSTER_FAMILY",
+      "SOURCE_TYPE",
+      "QUEST_ROLE",
+      "COLLECTION_ROLE",
+      "SHOP_ALLOWED",
+      "COMBAT_POWER",
+      "ASSET_KEY"
+    ],
+    "zone_5_example": {
+      "zone_id": "zone_05",
+      "item_rule": "Explicit zone_05 plus canonical source family/tag, Zone 5 material palette/set key, and asset key; name/rarity alone is insufficient.",
+      "combat_power": "NONE",
+      "shop_allowed_default": "NO",
+      "drop_authority": "server settlement only",
+      "client_role": "render server-returned item_id and quantity; no client grant"
+    }
+  },
+  "exclusions": [
+    "No generic durable discovery table.",
+    "No auto-collecting every monster/NPC/boss/zone.",
+    "No functional equipment duplication as generic Items.",
+    "No catalog-metadata discovery inference.",
+    "No journal GET ownership writes.",
+    "Collection runtime implementation, discovery DB, and collection writer are Wave 3 deferred."
+  ],
+  "legacy_reference_audit": "docs/planning/go_odyssey_wave2_legacy_reference_audit.json",
+  "collection_runtime_implementation": "NO",
+  "collection_discovery_db": "NO",
+  "collection_writer": "NO",
+  "collection_authority": "WAVE3_DEFERRED",
+  "collection_runtime_scope": "WAVE2 generic collection runtime only",
+  "existing_domain_collections_unchanged": [
+    "pet_collection",
+    "badges_earned"
+  ],
+  "authority_invariants": {
+    "item_journal_get_mutation": false,
+    "catalog_metadata_is_discovery": false,
+    "generic_discovery_writer": false,
+    "functional_equipment_generic_item_overlap": false,
+    "cosmetic_combat_authority": "NO",
+    "existing_domain_local_writers_unchanged": true
+  }
+}

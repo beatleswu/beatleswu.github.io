@@ -54,6 +54,7 @@ from rpg_item_registry import (
     build_shop_product_grant_registry,
     badge_visual_metadata,
 )
+from rpg_world_npc_registry import world_npc_registry_payload
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -1210,6 +1211,176 @@ FUNCTIONAL_EQUIPMENT_ART = {
     },
 }
 
+# Lane B runtime presentation metadata only.  These records deliberately do
+# not carry ownership, equipped state, rarity authority, or combat values.
+# The approved wearable pack is a visual projection contract; the server still
+# owns player_inventory.equipped and all effects remain in EQUIPMENT_DEFS.
+FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY = {
+    'wooden_sword': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ONE_HAND_SWORD',
+        'weapon_family': 'ONE_HAND_SWORD',
+        'presentation_anchor': 'waist_right',
+        'presentation_layer': 'BACK_WEAPON',
+        'wearable_class': 'WEAPON_WAIST',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/wooden_sword.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'iron_sword': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ONE_HAND_SWORD',
+        'weapon_family': 'ONE_HAND_SWORD',
+        'presentation_anchor': 'waist_right',
+        'presentation_layer': 'BACK_WEAPON',
+        'wearable_class': 'WEAPON_WAIST',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/iron_sword.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'fox_fang': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ONE_HAND_SWORD',
+        'weapon_family': 'ONE_HAND_SWORD',
+        'presentation_anchor': 'waist_right',
+        'presentation_layer': 'BACK_WEAPON',
+        'wearable_class': 'WEAPON_WAIST',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/fox_fang.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'dragon_claw': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ONE_HAND_SWORD',
+        'weapon_family': 'ONE_HAND_SWORD',
+        'presentation_anchor': 'forearm',
+        'presentation_layer': 'FRONT_BODY',
+        'wearable_class': 'FOREARM_OR_HAND_GEAR',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/dragon_claw.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'celestial_blade': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ONE_HAND_SWORD',
+        'weapon_family': 'ONE_HAND_SWORD',
+        'presentation_anchor': 'back_hilt',
+        'presentation_layer': 'BACK_WEAPON',
+        'wearable_class': 'WEAPON_BACK',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/celestial_blade.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'cloth_robe': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ARMOR_OVERLAY',
+        'presentation_anchor': 'torso',
+        'presentation_layer': 'TORSO_ARMOR',
+        'wearable_class': 'ROBE_OR_BODY_OVERLAY',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/cloth_robe.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'leather_armor': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ARMOR_OVERLAY',
+        'presentation_anchor': 'torso',
+        'presentation_layer': 'TORSO_ARMOR',
+        'wearable_class': 'TORSO_ARMOR',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/leather_armor.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'fox_pelt': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ARMOR_OVERLAY',
+        'presentation_anchor': 'torso',
+        'presentation_layer': 'TORSO_ARMOR',
+        'wearable_class': 'ROBE_OR_BODY_OVERLAY',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/fox_pelt.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'dragon_scale': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ARMOR_OVERLAY',
+        'presentation_anchor': 'torso',
+        'presentation_layer': 'TORSO_ARMOR',
+        'wearable_class': 'TORSO_ARMOR',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/dragon_scale.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'void_mantle': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ARMOR_OVERLAY',
+        'presentation_anchor': 'torso',
+        'presentation_layer': 'BACK_BODY',
+        'wearable_class': 'ROBE_OR_BODY_OVERLAY',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/void_mantle.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'lucky_stone': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ACCESSORY_OVERLAY',
+        'presentation_anchor': 'chest',
+        'presentation_layer': 'FRONT_ACCESSORY',
+        'wearable_class': 'NECK_CHEST',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/lucky_stone.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'xp_amulet': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ACCESSORY_OVERLAY',
+        'presentation_anchor': 'chest',
+        'presentation_layer': 'FRONT_ACCESSORY',
+        'wearable_class': 'NECK_CHEST',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/xp_amulet.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'fox_mask': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ACCESSORY_OVERLAY',
+        'presentation_anchor': 'face',
+        'presentation_layer': 'HEAD_FACE',
+        'wearable_class': 'HEAD_FACE',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/fox_mask.png',
+        'mask_requirement': 'HAIR_FRONT_MASK',
+        'full_body_required': True,
+    },
+    'dragon_eye': {
+        'presentation_mode': 'FULL_BODY_OVERLAY',
+        'presentation_family': 'ACCESSORY_OVERLAY',
+        'presentation_anchor': 'chest',
+        'presentation_layer': 'FRONT_ACCESSORY',
+        'wearable_class': 'BODY_ACCESSORY',
+        'asset_path': '/assets/hero/equipment/wearables/overlays/dragon_eye.png',
+        'mask_requirement': 'BASE_OCCLUSION',
+        'full_body_required': True,
+    },
+    'go_stone_black': {
+        'presentation_mode': 'ICON_ONLY',
+        'presentation_family': 'INVENTORY_ONLY',
+        'presentation_anchor': 'ACCESSORY_ANCHOR',
+        'presentation_layer': None,
+        'wearable_class': 'WAIST_CHARM',
+        'asset_path': None,
+        'mask_requirement': None,
+        'full_body_required': False,
+    },
+}
+
+for _functional_id, _functional_art in FUNCTIONAL_EQUIPMENT_ART.items():
+    _presentation = FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY[_functional_id]
+    _functional_art.update({
+        **_presentation,
+        'fallback': 'NEUTRAL_FUNCTIONAL_ICON',
+        'presentation_only': True,
+    })
+
 # Only effects with a current server consumer are exposed as active in the
 # Backpack.  Defined-only fields remain visible as explicitly unavailable.
 _FUNCTIONAL_EFFECT_ACTIVE_KEYS = {
@@ -1348,6 +1519,19 @@ def _functional_equipment_payload(equip, *, inv_id=None, equipped=False,
         'icon_key': art.get('icon_key'),
         'icon_alt': equip.get('name'),
         'legacy_icon': equip.get('icon'),
+        'presentation': {
+            'mode': art.get('presentation_mode', 'ICON_ONLY'),
+            'anchor': art.get('presentation_anchor', 'BODY_FRAME'),
+            'fallback': art.get('fallback', 'NEUTRAL_FUNCTIONAL_ICON'),
+            'family': art.get('presentation_family', 'FUNCTIONAL_ICON'),
+            'weapon_family': art.get('weapon_family'),
+            'layer': art.get('presentation_layer'),
+            'wearable_class': art.get('wearable_class'),
+            'asset': art.get('asset_path'),
+            'mask_requirement': art.get('mask_requirement'),
+            'full_body_required': bool(art.get('full_body_required')),
+            'presentation_only': True,
+        },
         'desc': equip.get('desc', ''),
         'desc_en': art.get('desc_en', ''),
         **effect_info,
@@ -1420,6 +1604,34 @@ def _functional_equipped_by_slot(conn, uid):
         if equip and equip.get('slot'):
             result[equip['slot']] = equip
     return result
+
+
+def _functional_equipment_presentation_projection(conn, uid):
+    """Return the read-only equipped projection consumed by wearable UI.
+
+    ``player_inventory`` remains the only ownership/equipped authority.  This
+    deliberately returns ids and slots only; effects, rarity, and gameplay
+    values stay in the existing server-side equipment definitions.
+    """
+    rows = conn.execute(
+        'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1 ORDER BY id',
+        (uid,),
+    ).fetchall()
+    projection = []
+    seen_slots = set()
+    for row in rows:
+        equip = _EQUIP_MAP.get(row['equip_id'])
+        slot = equip.get('slot') if equip else None
+        if not equip or not slot or slot in seen_slots:
+            continue
+        seen_slots.add(slot)
+        projection.append({
+            'equipment_id': equip['id'],
+            'slot': slot,
+            'equipped': True,
+            'presentation_only': True,
+        })
+    return projection
 
 # ── 掉落機率基礎值（依怪物種類）─────────────────────────────
 BASE_LOOT_CHANCE = {
@@ -2064,6 +2276,52 @@ APPEARANCE_DEFS = [
         'source_hint': 'premium', 'premium_only': True,
     },
 ]
+
+# Pure presentation catalog.  These IDs remain appearance/wardrobe records;
+# this registry only tells the existing Hero/Preview renderer which approved
+# asset to consume.  Ownership and selected state still come from the server
+# wardrobe and player_appearance rows below.
+PURE_COSMETIC_EXISTING_23 = (
+    'hat_cloth', 'hat_bamboo', 'hat_student', 'hat_feather', 'hat_scholar',
+    'hat_foxmask', 'hat_onihorns', 'hat_dragon_horn', 'hat_celestial_crown',
+    'hat_premium', 'title_beginner', 'title_scholar', 'title_wanderer',
+    'title_streak', 'title_foxwit', 'title_master', 'title_dragonslayer',
+    'title_godshand', 'title_celestial', 'title_eternity',
+    'title_newbie_voyage', 'title_claire_recruit', 'title_premium',
+)
+PURE_COSMETIC_NEW_21 = (
+    'robe_plain', 'robe_student', 'robe_bamboo', 'robe_crane', 'robe_fox',
+    'robe_snow', 'robe_dragon', 'back_pack', 'back_flag', 'back_lantern',
+    'back_wings', 'back_scroll', 'back_foxtail', 'back_cloak',
+    'back_dragon_wings', 'acc_bracelet', 'acc_fan', 'acc_goboard_bag',
+    'acc_jade_ring', 'acc_goban_seal', 'acc_dragon_pendant',
+)
+PURE_COSMETIC_PRESENTATION_REGISTRY = {
+    **{
+        item_id: {
+            'asset': f'/assets/hero/items/{item_id}.svg',
+            'asset_id': item_id,
+            'asset_format': 'SVG',
+            'mode': 'CATALOG_ICON',
+            'pure_presentation': True,
+            'functional_effect_count': 0,
+            'combat_authority': 'NO',
+        }
+        for item_id in PURE_COSMETIC_EXISTING_23
+    },
+    **{
+        item_id: {
+            'asset': f'/assets/hero/items/fullbody/{item_id}.webp',
+            'asset_id': item_id,
+            'asset_format': 'WEBP',
+            'mode': 'FULL_BODY_COSMETIC_REFERENCE',
+            'pure_presentation': True,
+            'functional_effect_count': 0,
+            'combat_authority': 'NO',
+        }
+        for item_id in PURE_COSMETIC_NEW_21
+    },
+}
 
 # 快查字典
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
@@ -14676,10 +14934,18 @@ def get_appearance():
         wardrobe.append(w)
 
     _ekeys = eq_row.keys() if eq_row else []
+    stored_character_key = (
+        eq_row['character_key'] if eq_row and 'character_key' in _ekeys else None
+    )
     return jsonify({
         'equipped': equipped,
         'wardrobe': wardrobe,
-        'character_key': (eq_row['character_key'] if eq_row and 'character_key' in _ekeys else None),
+        'character_key': _presentation_character_key(stored_character_key),
+        'character_key_source': (
+            'player_appearance.character_key'
+            if stored_character_key == _presentation_character_key(stored_character_key)
+            else 'server_default'
+        ),
         'combat_armor':   (eq_row['combat_armor']   if eq_row and 'combat_armor'   in _ekeys else None) or '',
         'combat_cape':    (eq_row['combat_cape']    if eq_row and 'combat_cape'    in _ekeys else None) or '',
         'combat_weapon':  (eq_row['combat_weapon']  if eq_row and 'combat_weapon'  in _ekeys else None) or '',
@@ -14999,6 +15265,11 @@ def skills_profile():
         eq_row = conn.execute(
             'SELECT * FROM player_appearance WHERE user_id=?', (uid,)
         ).fetchone()
+        eq_cols = eq_row.keys() if eq_row else []
+        stored_character_key = (
+            eq_row['character_key'] if eq_row and 'character_key' in eq_cols else None
+        )
+        character_key = _presentation_character_key(stored_character_key)
         wardrobe_rows = conn.execute(
             'SELECT item_id FROM player_wardrobe WHERE user_id=?', (uid,)
         ).fetchall()
@@ -15030,6 +15301,7 @@ def skills_profile():
         # ── wardrobe：全物品（含 owned 旗標），供外觀頁用 ──────────
         wardrobe = []
         for item in APPEARANCE_DEFS:
+            pure_presentation = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item['id'])
             wardrobe_item = {
                 'id':       item['id'],
                 'name':     item.get('name', item['id']),
@@ -15044,6 +15316,18 @@ def skills_profile():
                 'owned':    item['id'] in owned_ids,
                 'equipped': item['id'] in equipped_ids,
             }
+            if pure_presentation:
+                # Presentation metadata is deliberately read-only.  The
+                # renderer consumes the server-projected owned/equipped
+                # fields; it never uses this registry as an ownership or
+                # combat source of truth.
+                wardrobe_item['art'] = pure_presentation['asset']
+                wardrobe_item['presentation'] = {
+                    **pure_presentation,
+                    'owned': item['id'] in owned_ids,
+                    'selected': item['id'] in equipped_ids,
+                    'visible': item['id'] in equipped_ids,
+                }
             if item.get('slot') == 'title':
                 title_en = _i18n_title_en(item['id'])
                 if title_en:
@@ -15069,6 +15353,8 @@ def skills_profile():
         _eq_title_en = _i18n_title_en(_title_id) if _title_id else None
         equipped_title_en = _eq_title_en[0] if _eq_title_en else equipped_title
         combat_stats = _get_authoritative_combat_stats(conn, uid)
+        functional_equipment = _functional_equipment_presentation_projection(conn, uid)
+        character_key = (eq_row['character_key'] if eq_row and 'character_key' in eq_cols else None) or None
 
     # ── active_effects & equipped_visuals ───────────────────────
     with get_db() as _conn2:
@@ -15102,11 +15388,19 @@ def skills_profile():
         'xp':             lv_xp,
         'xp_next':        lv_xp_next,
         'total_xp':       total_xp,
+        'character_key':  character_key,
+        'character_key_source': (
+            'player_appearance.character_key'
+            if stored_character_key == character_key
+            else 'server_default'
+        ),
         'equipped_labels': equipped_labels,
         'auto_title':      auto_title,       # 主稱號（依四屬性動態）
         'auto_title_en':   auto_title_en(auto_title),  # 英文版（前端 i18n）
         'equipped_title':  equipped_title,   # 副稱號（玩家自選可收集稱號）
         'equipped_title_en': equipped_title_en,  # 副稱號英文（前端 i18n）
+        'character_key':    character_key,
+        'functional_equipment': functional_equipment,
         'stone_skin':      (eq_row['stone_skin'] if eq_row and 'stone_skin' in eq_cols else None) or '',
         'board_skin':      (eq_row['board_skin'] if eq_row and 'board_skin' in eq_cols else None) or '',
         # 純外觀里程碑解鎖用的累積數據
@@ -15142,6 +15436,22 @@ VALID_CHARACTER_KEYS = {
     # 舊 key 相容
     'hero_male', 'woman', 'boy_child', 'girl_child', 'elder_master', 'elder_woman',
 }
+
+ACTIVE_CHARACTER_KEYS = frozenset({
+    'apprentice', 'apprentice_girl', 'swordsman', 'rogue', 'ranger', 'berserker',
+    'guardian', 'paladin', 'mage', 'sage',
+})
+
+
+def _presentation_character_key(value):
+    """Return only a current character presentation key.
+
+    Legacy aliases remain accepted by the existing selection endpoint for
+    compatibility, but they are not allowed to become a new Hero renderer
+    authority.  Invalid or absent persisted values fail closed to the
+    server-owned default presentation without writing a migration.
+    """
+    return value if value in ACTIVE_CHARACTER_KEYS else 'apprentice'
 
 @app.route('/api/skills/character', methods=['POST'])
 @login_required
@@ -15738,8 +16048,10 @@ def public_profile(username):
 
         # ── 角色外觀 ──
         eq_row = conn.execute(
-            'SELECT character_key FROM player_appearance WHERE user_id=?', (uid,)
+            'SELECT * FROM player_appearance WHERE user_id=?',
+            (uid,)
         ).fetchone()
+        functional_equipment = _functional_equipment_presentation_projection(conn, uid)
 
         # ── 加入天數 ──
         join_date = (user['created_at'] or '')[:10]
@@ -15794,7 +16106,16 @@ def public_profile(username):
         'badges':         badges,
         'badge_count':    len(badges),
         'badge_total':    len(BADGE_DEFS),
-        'character_key':  (eq_row['character_key'] if eq_row else None) or None,
+        'character_key':  _presentation_character_key(
+            eq_row['character_key'] if eq_row and 'character_key' in eq_row.keys() else None
+        ),
+        'functional_equipment': functional_equipment,
+        'stone_skin':     (
+            eq_row['stone_skin'] if eq_row and 'stone_skin' in eq_row.keys() else None
+        ) or '',
+        'board_skin':     (
+            eq_row['board_skin'] if eq_row and 'board_skin' in eq_row.keys() else None
+        ) or '',
     })
 
 
@@ -19663,6 +19984,17 @@ def item_journal():
         },
     })
 
+
+@app.route('/api/world-npcs')
+def world_npc_catalog():
+    """Return the canonical World NPC presentation projection.
+
+    This is deliberately a public, read-only presentation surface.  It does
+    not inspect or mutate player ownership, inventory, equipment, combat, or
+    database state.
+    """
+    return jsonify(world_npc_registry_payload())
+
 # ── 商城 API ─────────────────────────────────────────────────
 
 @app.route('/api/shop/catalog')
@@ -21791,6 +22123,12 @@ def serve_icons(filename): return _serve_live_static_or_baked_subpath(filename, 
 def serve_map_battle_v1_adapter():
     return _serve_live_static_or_baked_subpath(
         'map_battle_v1_adapter.js', 'js', 'js'
+    )
+
+@app.route('/js/rpg_wave2_wearable_renderer.js')
+def serve_rpg_wave2_wearable_renderer_js():
+    return _serve_live_static_or_baked_subpath(
+        'rpg_wave2_wearable_renderer.js', 'js', 'js'
     )
 
 @app.route('/js/game/lord_trial_controller.js')

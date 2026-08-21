@@ -1,0 +1,88 @@
+{
+  "manifest_version": "rpg-wave2-legacy-reference-audit-v1",
+  "audit_base": "efc0510b9160dae33a50a94754f1e1d78372f651",
+  "legacy_key": "appearance_fragment",
+  "canonical_wave2": false,
+  "status": "LEGACY_REJECTED",
+  "fail_closed": true,
+  "baseline_exact_token_hit_count": 18,
+  "baseline_hit_file_count": 6,
+  "references": [
+    {
+      "path": "app.py",
+      "line_numbers": [
+        19135,
+        19752,
+        19766,
+        19775
+      ],
+      "kind": "LEGACY_RUNTIME_REFERENCE",
+      "action": "preserve; do not delete in this canonicalization task"
+    },
+    {
+      "path": "community_leaderboard_rewards.py",
+      "line_numbers": [
+        88,
+        93,
+        2089,
+        2114
+      ],
+      "kind": "LEGACY_RUNTIME_REFERENCE",
+      "action": "preserve; do not delete in this canonicalization task"
+    },
+    {
+      "path": "tools/community_leaderboard_rewards_manual.py",
+      "line_numbers": [
+        53,
+        702,
+        838,
+        1227
+      ],
+      "kind": "LEGACY_REFERENCE_ONLY",
+      "action": "manual guard/help text only; no canonical authority"
+    }
+  ],
+  "legacy_runtime_reference_count": 8,
+  "post_freeze_planning_reference_count": 0,
+  "canonical_references_after_freeze": 0,
+  "removed_pre_freeze_planning_references": [
+    {
+      "path": "docs/planning/go_odyssey_wave2_item_inventory.json",
+      "baseline_line_count": 2
+    },
+    {
+      "path": "docs/planning/GO_ODYSSEY_WAVE2_ITEMS_COSMETICS_COLLECTIONS_SPEC.md",
+      "baseline_line_count": 1
+    },
+    {
+      "path": "docs/planning/go_odyssey_wave2_content_production_batches.md",
+      "baseline_line_count": 3
+    }
+  ],
+  "forbidden_new_surfaces": [
+    {
+      "path": "docs/planning/go_odyssey_wave2_item_inventory.json",
+      "role": "canonical Wave2 item manifest"
+    },
+    {
+      "path": "docs/planning/go_odyssey_wave2_cosmetic_inventory.json",
+      "role": "new cosmetic manifest"
+    },
+    {
+      "path": "docs/planning/go_odyssey_wave2_content_production_batches.md",
+      "role": "new production batch plan"
+    },
+    {
+      "path": "docs/planning/go_odyssey_wave2_collection_contract.json",
+      "role": "collection/reward projection contract"
+    },
+    {
+      "path": "docs/planning/GO_ODYSSEY_WAVE2_ITEMS_COSMETICS_COLLECTIONS_SPEC.md",
+      "role": "canonical reconciliation specification"
+    }
+  ],
+  "new_reward_contract": "NONE_CREATED",
+  "new_monetization_catalog": "NONE_CREATED",
+  "runtime_disposition": "Existing rejected reward/effect references remain fail-closed legacy runtime references. They are not promoted to canonical Item or Cosmetic authority.",
+  "legacy_reference_only_count": 4
+}

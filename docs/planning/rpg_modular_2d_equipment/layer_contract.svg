@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Go Odyssey wearable deterministic layer contract</title>
+  <desc id="desc">The static wearable composition order from back assets to reusable hair masks.</desc>
+  <style>
+    .title { fill:#172033; font:700 30px system-ui, sans-serif; }
+    .note { fill:#64748b; font:15px system-ui, sans-serif; }
+    .box { stroke:#334155; stroke-width:2; rx:14; }
+    .label { fill:#ffffff; font:700 18px system-ui, sans-serif; }
+    .sub { fill:#e2e8f0; font:13px system-ui, sans-serif; }
+    .arrow { stroke:#64748b; stroke-width:4; marker-end:url(#arrow); }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0 L9 3 L0 6 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect width="1200" height="900" fill="#f8fafc"/>
+  <text x="70" y="68" class="title">Deterministic Wearable Layer Contract</text>
+  <text x="70" y="100" class="note">Static presentation only · no layer may establish gameplay authority</text>
+  <g transform="translate(120 150)">
+    <rect width="960" height="82" class="box" fill="#4338ca"/><text x="28" y="36" class="label">1 · BACK_WEAPON / BACK_BODY</text><text x="28" y="61" class="sub">sheaths, back blades, mantles, back accessories behind the base</text>
+    <line x1="480" y1="85" x2="480" y2="120" class="arrow"/>
+    <rect y="130" width="960" height="82" class="box" fill="#475569"/><text x="28" y="166" class="label">2 · CHARACTER_BASE</text><text x="28" y="191" class="sub">approved PLAYER_FRAME_A_STANDARD_CHIBI character identity</text>
+    <line x1="480" y1="215" x2="480" y2="250" class="arrow"/>
+    <rect y="260" width="960" height="82" class="box" fill="#1d4ed8"/><text x="28" y="296" class="label">3 · TORSO_ARMOR / ROBE_OVERLAY</text><text x="28" y="321" class="sub">face-safe clearance, open neck, reusable body-frame geometry</text>
+    <line x1="480" y1="345" x2="480" y2="380" class="arrow"/>
+    <rect y="390" width="960" height="82" class="box" fill="#0f766e"/><text x="28" y="426" class="label">4 · FRONT_BODY / FRONT_ACCESSORY</text><text x="28" y="451" class="sub">forearm gear, chest items, waist charms, optional small foreground segments</text>
+    <line x1="480" y1="475" x2="480" y2="510" class="arrow"/>
+    <rect y="520" width="960" height="82" class="box" fill="#be123c"/><text x="28" y="556" class="label">5 · HEAD_FACE</text><text x="28" y="581" class="sub">FACE_ACCESSORY only; intentional face coverage is declared here</text>
+    <line x1="480" y1="605" x2="480" y2="640" class="arrow"/>
+    <rect y="650" width="960" height="82" class="box" fill="#7e22ce"/><text x="28" y="686" class="label">6 · HAIR_FRONT_MASK</text><text x="28" y="711" class="sub">reusable hair/hood restoration mask; never an item×character redraw</text>
+  </g>
+</svg>

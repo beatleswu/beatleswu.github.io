@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1384,
-  "total_bytes": 763517074,
+  "total_files": 1439,
+  "total_bytes": 788196262,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 86
+    "owner-approved-project-created": 141
   },
   "files": [
     {
@@ -13703,6 +13703,76 @@
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
     },
     {
+      "path": "assets/world/characters/wave2_p1/world_messenger_p1.webp",
+      "size": 530942,
+      "sha256": "3e499c058c640efc55f02a751bd44d9ed30e54d5ecfe9784eb8f7f1f1de918b9",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P1 master from 2e117fe11cd1a29a88adf55dd337d6e55d26c9ac; runtime WebP deterministically re-derived from the approved RGBA PNG to restore true alpha."
+    },
+    {
+      "path": "assets/world/characters/wave2_p1/world_village_elder_p1.webp",
+      "size": 295458,
+      "sha256": "592c725115af428deed8771543a2d972a4b3e9dd709e8fa5155706118d190d44",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P1 runtime derivative from 2e117fe11cd1a29a88adf55dd337d6e55d26c9ac; master and derivative are retained without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p2/world_archmage_p2.webp",
+      "size": 870382,
+      "sha256": "658d139b743eebfa97a2d0c385cc082c93e0106dbbff0efbb532d89bfc7bb2eb",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P2 runtime derivative from 73ed39ecfe7029050628c414eb6d8a371237e78e; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p2/world_serel_p2.webp",
+      "size": 845778,
+      "sha256": "444d3fc6529b1738a9764acd56f9a1133b43336535221316a6683cf38782d0a1",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P2 runtime derivative from 73ed39ecfe7029050628c414eb6d8a371237e78e; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p2/world_smith_elder_p2.webp",
+      "size": 809774,
+      "sha256": "39c942350d26a5c4da5909e6cd8c3fe98094a438eb97e61a01ef08d49daa1f72",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P2 runtime derivative from 73ed39ecfe7029050628c414eb6d8a371237e78e; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p3/world_eastern_guardian_p3.webp",
+      "size": 1001230,
+      "sha256": "309c83e5a0f36a23c3aa719e572ee8e6b0977232f0fdf4f55ea2956413b588a0",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P3 runtime derivative from 53bd2c9db7e1618d5230515080654fc25330bab9; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p3/world_herder_p3.webp",
+      "size": 883100,
+      "sha256": "1629ded2e34c71602556deda4886dfb634802c00e1eb8f48bdd1d3f2c3abaa20",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P3 runtime derivative from 53bd2c9db7e1618d5230515080654fc25330bab9; derived from the frozen master without redraw."
+    },
+    {
       "path": "assets/weapon_t1.png",
       "size": 466585,
       "sha256": "a8af21f3fa67a0cee28e5d58c6e802c9791ca18a955a2baa48bbb89e5670aa15",
@@ -13851,6 +13921,486 @@
       "height": 1408,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/archive_scholar_default_pose_v1.webp",
+      "size": 698880,
+      "sha256": "1db286d1370620de8a776f23e18d3ec1f1043df62ca92a68a4e0fb3c0d3e24e6",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/bastion_warden_default_pose_v1.webp",
+      "size": 596374,
+      "sha256": "551d5d73c52b0deaab5cdd6db0b8286d063304f4fdc2158b748b4144628c2334",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/duelist_scout_default_pose_v1.webp",
+      "size": 468824,
+      "sha256": "195b3c3b29b9a2ec1dd3c626e4a0e4a1186f3935137d883e18c7153aff8977c5",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/forest_pathfinder_default_pose_v1.webp",
+      "size": 802272,
+      "sha256": "a65cc6acd93b8417352526ae345b97c976bdcae6ff18e1d5447a3ca6e01c9143",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/river_wayfinder_default_pose_v1.webp",
+      "size": 656046,
+      "sha256": "c603f0f6dfb734446ebabc274259e444efb94a297fa94111c8e3669ee034f3de",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/stone_caretaker_default_pose_v1.webp",
+      "size": 526320,
+      "sha256": "2797850fc8c6a28a5de3186344611f38bd0da0567fabeeb660c8e6aefb101cbb",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/characters/wave2_final7_default_pose_v1/worldkeeper_default_pose_v1.webp",
+      "size": 694720,
+      "sha256": "5aa8fd04f0fb6f6015cb9b0f26f18f39c906cfe47646d746d1f6865315b3ec03",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane A Final7 owner-approved runtime WebP derivative; source/master PNG retained in the Final7 planning manifest; candidate source head 546fce85e27f1a6dbbdbf983e6374950f8df44a6."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/masks/apprentice_hair_front.png",
+      "size": 217417,
+      "sha256": "65306dbc0b9d7feaac2b9225f0b7752f7505dbb0b298262995b123865a45f133",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved reusable hair-mask runtime asset; canonical character mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/masks/constellation_apprentice_hair_front.png",
+      "size": 315160,
+      "sha256": "6de05c9a4c3b52a884efbc867f2f8958f8f173c9c0a368efae1ab2530fd2731e",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved reusable hair-mask runtime asset; canonical character mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/masks/mage_hair_front.png",
+      "size": 335861,
+      "sha256": "758fc9654f90717966727f64b7a8d64cdc12966addcae7ac6d700db6fe3b8fba",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved reusable hair-mask runtime asset; canonical character mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/masks/night_runner_hair_front.png",
+      "size": 349718,
+      "sha256": "b4f3fedc309a13fc82b82370d27f9e7bbd269563e777a7ed7ddffb6128cb7546",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved reusable hair-mask runtime asset; canonical character mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/masks/paladin_hair_front.png",
+      "size": 238735,
+      "sha256": "f132b270268dd8ab1abebce991c5ee7b722d32ea690db4ef1f908d02e57701c2",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved reusable hair-mask runtime asset; canonical character mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/masks/trail_apprentice_hair_front.png",
+      "size": 321797,
+      "sha256": "b8c4c877fc223fa69b8ee4fe5334b4450d760a6bdc0109917cccbc600f72ac6d",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved reusable hair-mask runtime asset; canonical character mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/celestial_blade.png",
+      "size": 183801,
+      "sha256": "5dce0245ea5295a44affc56cc8426e1a66f8bab1aa519500c63ac80de0229103",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/cloth_robe.png",
+      "size": 380233,
+      "sha256": "70703032e2ddbc47514be5726c22772a25e6ccf1cbd3cd45a1b8b48bb84e1f5c",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/dragon_claw.png",
+      "size": 79842,
+      "sha256": "5e876569c8c20e817504a50edc3801b1afa663be8b86ce4b7a8b907b3d71f47f",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/dragon_eye.png",
+      "size": 35391,
+      "sha256": "838fdfaec4859ed01cf5fa8193f995f12bfa2d2be3c2a4943a616d37d15b47c8",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/dragon_scale.png",
+      "size": 292706,
+      "sha256": "3a2a84a421b7b80039dc38b43b9447e7b1997f2f04aab826c35b6d6f5a5526c1",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/fox_fang.png",
+      "size": 112459,
+      "sha256": "5c3d3a50f64405b2e8756f1bd36fae0a1a75401c772150ceecc0d1ad23ad3ccd",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/fox_mask.png",
+      "size": 61614,
+      "sha256": "39984bcd9d0c93a51b9786e3bdeb9bb748b2076afec851cf48a7305911bbd77d",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/fox_pelt.png",
+      "size": 387214,
+      "sha256": "21c927183062f8204153de9ac47f93645bb1f28652a94524d264edc23b74f9f1",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/iron_sword.png",
+      "size": 60403,
+      "sha256": "86f111d82da02e85d6dbd5341b9e0f94140123e2b68ca572b246f011e4dcfc45",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/leather_armor.png",
+      "size": 244527,
+      "sha256": "597b6146aa317be88bb2ec03b19b1eb766550d95295deb6d93c12b76ff5a0595",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/lucky_stone.png",
+      "size": 24117,
+      "sha256": "ffb107dcad7fe35706f0de870063a9fd87b48b97db4a6f4013343c2709870ebf",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/void_mantle.png",
+      "size": 223000,
+      "sha256": "d640e419700607f09c6ba250833398ca189b6d65536a95160567ff336bfe00b9",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/wooden_sword.png",
+      "size": 72321,
+      "sha256": "12b4bbe4150d05bca39b507787c250f1418c2ad154fafb8d8e2df557186e4523",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/equipment/wearables/overlays/xp_amulet.png",
+      "size": 33876,
+      "sha256": "91462f1983ccadbda43966fc8415a9f355db00e68db1f3e1a83a590851f3e15f",
+      "mime": "image/png",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved functional wearable runtime overlay; canonical equipment mapping is in assets/hero/equipment/wearables/wearable_registry.json; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/acc_bracelet.webp",
+      "size": 489982,
+      "sha256": "733fadc95cd55ecf829acb0cfb574478f7a18681bee8a5c56a0cf978d05f093c",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/acc_dragon_pendant.webp",
+      "size": 475956,
+      "sha256": "a8441ea82d53006c50c1f16c0c166c54a2440577f3b61cca84733d118a4e0959",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/acc_fan.webp",
+      "size": 476932,
+      "sha256": "e65b2a2f4a530f8cf939960d53681f18ac3727d75f53d8405d90075b0b11c8df",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/acc_goban_seal.webp",
+      "size": 506006,
+      "sha256": "1e360b8a90f8fe9906afb9a47f00e21de0fa2a0fb4dc836193044e94d797be2f",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/acc_goboard_bag.webp",
+      "size": 484114,
+      "sha256": "a90ae96e8677320b2d8b92c1fc77bd0c20b8b6e10f559f007f77eeb71ad1c8ff",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/acc_jade_ring.webp",
+      "size": 483438,
+      "sha256": "d5a5aa2a82a7c6b7d7765f6638b78dc7a17f3e5a2d84d4301d58e645dd50f25f",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_cloak.webp",
+      "size": 521182,
+      "sha256": "50271f082f232467049d4291d4dfb523573def946ec165c545aff60eaee742e8",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_dragon_wings.webp",
+      "size": 562856,
+      "sha256": "1c5e6a249aec21a9b5c962fa7bafbb894c496698aa7a07f92d6f44db07eeb2f9",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_flag.webp",
+      "size": 538968,
+      "sha256": "40fbbe8f4e7a99c89526a6690274ab8fb1e242b427dbecaa761cce704816a304",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_foxtail.webp",
+      "size": 519588,
+      "sha256": "6024ca718f8bcd1cda250a2a1da45d8ac78a1413fa041717da3ec71abbba4f7e",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_lantern.webp",
+      "size": 506660,
+      "sha256": "a4b8e2a56955eb5f401187699bffc7cd5c6ea0e53082e9c5bb47ef3214905c70",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_pack.webp",
+      "size": 495282,
+      "sha256": "9626691195d9f63eab267a6f8a772177fe08385604c2bf0037237221cd2a1357",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_scroll.webp",
+      "size": 493870,
+      "sha256": "a40ff7f212b225b8c90042466f5fafd5a7e3b0ebd10cb2409694665722df750a",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/back_wings.webp",
+      "size": 507202,
+      "sha256": "e884953b139e13bc4ec825ea410e452c27b2065c5732be96d69dbae58c22b409",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_bamboo.webp",
+      "size": 634190,
+      "sha256": "51d83d6f831d073b890b5a1d610907f3540ca212604c26753e194d2d4e77b0b8",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_crane.webp",
+      "size": 558566,
+      "sha256": "fd14f1d17b915752e1d903594337481d0a0bde6bd135a945717cd228bfb6c7cb",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_dragon.webp",
+      "size": 638518,
+      "sha256": "15eadea73a6f9a4d5d5a0cabba22d3d745fc0b128ca2b4177ff580519ee79a79",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_fox.webp",
+      "size": 634424,
+      "sha256": "2e058251942dfd9a5c498f6db3978f10f4ccf0e363b5793912faf2a9145a8f7c",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_plain.webp",
+      "size": 468298,
+      "sha256": "3a476c5cf9eaae706394e237723f38e3ad7421509e7786a2c7a0eb5b42f17208",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_snow.webp",
+      "size": 551974,
+      "sha256": "f503bd8bdca56b41814ec669891d826f39d39f5c5dee785b1b4c706c7fdee929",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
+    },
+    {
+      "path": "assets/hero/items/fullbody/robe_student.webp",
+      "size": 480890,
+      "sha256": "3cdf2868cdebfa304e83ceef839973067495305d6a55f059923335c5d3265026",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Wave 2 Lane B owner-approved pure-cosmetic full-body runtime derivative; presentation-only renderer projection; candidate source head 7aa370228370629dbec2fc3ee91e05d6b161934c."
     }
   ]
 }

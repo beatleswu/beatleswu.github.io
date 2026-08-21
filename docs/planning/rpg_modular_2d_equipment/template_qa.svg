@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1650 900" role="img" aria-labelledby="title desc">
+  <title id="title">Go Odyssey six-character modular wearable template QA</title>
+  <desc id="desc">Twenty-four reference template cells across six standardized player characters.</desc>
+  <style>
+    .title { fill:#172033; font:700 28px system-ui, sans-serif; }
+    .note { fill:#64748b; font:14px system-ui, sans-serif; }
+    .head { fill:#1e293b; font:700 13px system-ui, sans-serif; }
+    .cell { fill:#ffffff; stroke:#cbd5e1; stroke-width:2; }
+    .pass { fill:#dcfce7; stroke:#16a34a; stroke-width:2; }
+    .face { fill:#fef3c7; stroke:#d97706; stroke-width:2; }
+    .small { fill:#334155; font:12px system-ui, sans-serif; }
+    .status { fill:#166534; font:700 13px system-ui, sans-serif; }
+  </style>
+  <rect width="1600" height="900" fill="#f8fafc"/>
+  <text x="42" y="48" class="title">Six-Character Template QA · 24 Reference Cells</text>
+  <text x="42" y="75" class="note">Non-face templates: FACE_SAFE_ZONE clear · fox_mask: intentional FACE_ACCESSORY exception · bespoke redraws: 0</text>
+  <g transform="translate(42 110)">
+    <text x="195" y="20" class="head">apprentice</text><text x="445" y="20" class="head">mage</text><text x="695" y="20" class="head">paladin</text><text x="945" y="20" class="head">trail_apprentice</text><text x="1195" y="20" class="head">night_runner</text><text x="1445" y="20" class="head">constellation_apprentice</text>
+    <text x="0" y="88" class="head">iron_sword</text><text x="0" y="268" class="head">dragon_scale</text><text x="0" y="448" class="head">fox_mask</text><text x="0" y="628" class="head">cloth_robe</text>
+    <g transform="translate(150 35)">
+      <g transform="translate(0 0)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">WAIST_SHEATHED</text><text x="18" y="80" class="small">no fake grip</text><text x="18" y="102" class="small">mobile readable</text></g>
+      <g transform="translate(250 0)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">WAIST_SHEATHED</text><text x="18" y="80" class="small">no fake grip</text><text x="18" y="102" class="small">mobile readable</text></g>
+      <g transform="translate(500 0)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">WAIST_SHEATHED</text><text x="18" y="80" class="small">no fake grip</text><text x="18" y="102" class="small">mobile readable</text></g>
+      <g transform="translate(750 0)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">WAIST_SHEATHED</text><text x="18" y="80" class="small">no fake grip</text><text x="18" y="102" class="small">mobile readable</text></g>
+      <g transform="translate(1000 0)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">WAIST_SHEATHED</text><text x="18" y="80" class="small">no fake grip</text><text x="18" y="102" class="small">mobile readable</text></g>
+      <g transform="translate(1250 0)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">WAIST_SHEATHED</text><text x="18" y="80" class="small">no fake grip</text><text x="18" y="102" class="small">mobile readable</text></g>
+      <g transform="translate(0 180)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">torso aligned</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(250 180)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">torso aligned</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(500 180)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">torso aligned</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(750 180)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">torso aligned</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(1000 180)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">torso aligned</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(1250 180)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">torso aligned</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(0 360)"><rect width="210" height="135" rx="12" class="face"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face allowed</text><text x="18" y="80" class="small">hair mask</text><text x="18" y="102" class="small">intentional mask</text></g>
+      <g transform="translate(250 360)"><rect width="210" height="135" rx="12" class="face"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face allowed</text><text x="18" y="80" class="small">hair mask</text><text x="18" y="102" class="small">intentional mask</text></g>
+      <g transform="translate(500 360)"><rect width="210" height="135" rx="12" class="face"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face allowed</text><text x="18" y="80" class="small">hair mask</text><text x="18" y="102" class="small">intentional mask</text></g>
+      <g transform="translate(750 360)"><rect width="210" height="135" rx="12" class="face"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face allowed</text><text x="18" y="80" class="small">hair mask</text><text x="18" y="102" class="small">intentional mask</text></g>
+      <g transform="translate(1000 360)"><rect width="210" height="135" rx="12" class="face"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face allowed</text><text x="18" y="80" class="small">hair mask</text><text x="18" y="102" class="small">intentional mask</text></g>
+      <g transform="translate(1250 360)"><rect width="210" height="135" rx="12" class="face"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face allowed</text><text x="18" y="80" class="small">hair mask</text><text x="18" y="102" class="small">intentional mask</text></g>
+      <g transform="translate(0 540)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">open neckline</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(250 540)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">open neckline</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(500 540)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">open neckline</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(750 540)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">open neckline</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(1000 540)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">open neckline</text><text x="18" y="102" class="small">alpha clean</text></g>
+      <g transform="translate(1250 540)"><rect width="210" height="135" rx="12" class="pass"/><text x="18" y="32" class="status">PASS</text><text x="18" y="58" class="small">face clear</text><text x="18" y="80" class="small">open neckline</text><text x="18" y="102" class="small">alpha clean</text></g>
+    </g>
+  </g>
+</svg>

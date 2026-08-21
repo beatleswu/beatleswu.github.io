@@ -1,0 +1,315 @@
+{
+  "manifest_version": "rpg-wave2-effect-bearing-appearance-quarantine-v1",
+  "audit_base": "efc0510b9160dae33a50a94754f1e1d78372f651",
+  "effect_bearing_appearance_count": 20,
+  "monetizable_effect_bearing_count": 0,
+  "rules": [
+    "Do not remove current effects in this task.",
+    "FUNCTIONAL_POWER=NO for the presentation record.",
+    "MONETIZATION_ALLOWED=NO for every quarantined record.",
+    "SEPARATION_REQUIRED=YES before any future effect/presentation redesign.",
+    "Existing XP/drop effects remain legacy runtime behavior, not approved commerce power."
+  ],
+  "records": [
+    {
+      "appearance_id": "robe_celestial",
+      "presentation_asset": "/assets/hero/items/robe_celestial.svg",
+      "slot": "outfit",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "robe_rank_1d",
+      "presentation_asset": "/assets/hero/items/robe_rank_1d.svg",
+      "slot": "outfit",
+      "current_legacy_effect": {
+        "xp_bonus": 0.03
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "robe_rank_3d",
+      "presentation_asset": "/assets/hero/items/robe_rank_3d.svg",
+      "slot": "outfit",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "robe_rank_5d",
+      "presentation_asset": "/assets/hero/items/robe_rank_5d.svg",
+      "slot": "outfit",
+      "current_legacy_effect": {
+        "xp_bonus": 0.08
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "acc_golden_bell",
+      "presentation_asset": "/assets/hero/items/acc_golden_bell.svg",
+      "slot": "accessory",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_cat",
+      "presentation_asset": "/assets/hero/items/pet_cat.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_turtle",
+      "presentation_asset": "/assets/hero/items/pet_turtle.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_rabbit",
+      "presentation_asset": "/assets/hero/items/pet_rabbit.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.08
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_fox",
+      "presentation_asset": "/assets/hero/items/pet_fox.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.12
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_wolf",
+      "presentation_asset": "/assets/hero/items/pet_wolf.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.15
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_dragon",
+      "presentation_asset": "/assets/hero/items/pet_dragon.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.25
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "aura_green",
+      "presentation_asset": "/assets/hero/items/aura_green.svg",
+      "slot": "aura",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "aura_blue",
+      "presentation_asset": "/assets/hero/items/aura_blue.svg",
+      "slot": "aura",
+      "current_legacy_effect": {
+        "xp_bonus": 0.1
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "aura_flame",
+      "presentation_asset": "/assets/hero/items/aura_flame.svg",
+      "slot": "aura",
+      "current_legacy_effect": {
+        "xp_bonus": 0.15
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "aura_moon",
+      "presentation_asset": "/assets/hero/items/aura_moon.svg",
+      "slot": "aura",
+      "current_legacy_effect": {
+        "xp_bonus": 0.12
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "aura_celestial",
+      "presentation_asset": "/assets/hero/items/aura_celestial.svg",
+      "slot": "aura",
+      "current_legacy_effect": {
+        "xp_bonus": 0.25
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "robe_premium",
+      "presentation_asset": "/assets/hero/items/robe_premium.svg",
+      "slot": "outfit",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": true,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "aura_premium",
+      "presentation_asset": "/assets/hero/items/aura_premium.svg",
+      "slot": "aura",
+      "current_legacy_effect": {
+        "xp_bonus": 0.2
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "pet_premium",
+      "presentation_asset": "/assets/hero/items/pet_premium.svg",
+      "slot": "pet",
+      "current_legacy_effect": {
+        "drop_bonus": 0.25
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    },
+    {
+      "appearance_id": "acc_premium",
+      "presentation_asset": "/assets/hero/items/acc_premium.svg",
+      "slot": "accessory",
+      "current_legacy_effect": {
+        "xp_bonus": 0.08
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "functional_power": "NO",
+      "cosmetic_monetization": "NO",
+      "monetization_allowed": "NO",
+      "separation_required": true,
+      "current_commerce_product": false,
+      "status": "QUARANTINED_EXISTING_EFFECT"
+    }
+  ]
+}
