@@ -293,8 +293,11 @@ def test_packaging_closure_is_exact_and_superseded_eastern_guardian_shield_is_no
         "bytes_added": 5236664,
         "owner_approved_project_created_entries_added": 7,
     }
-    assert manifest["total_files"] == 1391
-    assert manifest["total_bytes"] == 768753738
+    # The canonical image pack now includes the separately closed Wave2
+    # runtime assets.  The World NPC delta above remains scoped to this
+    # registry; these totals assert the current combined release inventory.
+    assert manifest["total_files"] == 1439
+    assert manifest["total_bytes"] == 788196262
     for path in runtime_paths:
         entry = manifest_by_path[path]
         raw = (ROOT / path).read_bytes()
