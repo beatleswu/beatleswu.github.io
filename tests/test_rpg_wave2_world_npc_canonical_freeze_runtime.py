@@ -15,6 +15,8 @@ sys.path.insert(0, str(ROOT))
 
 from rpg_world_npc_registry import (
     CANONICAL_WORLD_NPC_IDS,
+    CANONICAL_WORLD_NPC_REGISTRY_COUNT,
+    WORLD_NPC_IDENTITY_REGISTRY_RELATIVE_PATH,
     WORLD_NPC_REGISTRY_VERSION,
     world_npc_registry_payload,
 )
@@ -23,6 +25,7 @@ from rpg_world_npc_registry import (
 REGISTRY_PATH = ROOT / "docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"
 SPEC_PATH = ROOT / "docs/planning/GO_ODYSSEY_WORLD_NPC_CANONICAL_SPEC.md"
 APP_PATH = ROOT / "app.py"
+IMAGE_PACK_MANIFEST_PATH = ROOT / "deploy/canonical-image-pack-manifest.json"
 
 EXPECTED_MASTER_SHA256 = {
     "world.village_elder": "b68ce8dfe2088fef035a168d5f1caa528483659918ffcc271e72656e55528b9c",
@@ -164,6 +167,141 @@ def test_registry_loader_fails_closed_shape_and_exposes_zero_mutation_projection
     )
 
 
+def test_single_canonical_registry_authority_and_no_competing_npc_registries():
+    candidates = []
+    for path in (ROOT / "docs" / "planning").glob("*.json"):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if "world_npc_presentation_registry" in payload or "world_npcs" in payload:
+            candidates.append(path)
+
+    assert candidates == [REGISTRY_PATH]
+    authority = _registry()["world_npc_presentation_registry"]["authority_model"]
+    assert CANONICAL_WORLD_NPC_REGISTRY_COUNT == 1
+    assert authority["canonical_registry_count"] == 1
+    assert authority["canonical_registry_file"] == WORLD_NPC_IDENTITY_REGISTRY_RELATIVE_PATH
+    assert authority["is_existing_shared_registry"] is True
+    assert authority["is_world_npc_canonical_authority"] is True
+    assert authority["filename_is_historical"] is True
+    assert authority["competing_npc_registries"] == []
+    assert authority["projection_loaders_are_not_registries"] is True
+
+
+def test_runtime_surface_table_is_complete_and_unambiguous():
+    surfaces = _registry()["world_npc_presentation_registry"]["runtime_surfaces"]
+    assert len(surfaces) == 8
+    assert {surface["surface_id"] for surface in surfaces} == {
+        "canonical_registry_api",
+        "static_asset_serving",
+        "story_cinematic",
+        "zone_details",
+        "npc_cards",
+        "dialogue_surfaces",
+        "world_map_zone_ui",
+        "journal_lore",
+    }
+    statuses = {status: sum(surface["status"] == status for surface in surfaces) for status in {
+        "INTEGRATED",
+        "MISSING_REQUIRED",
+        "LEGACY_NONBLOCKING",
+        "NOT_REQUIRED",
+        "DEFERRED",
+    }}
+    assert statuses == {
+        "INTEGRATED": 2,
+        "MISSING_REQUIRED": 0,
+        "LEGACY_NONBLOCKING": 2,
+        "NOT_REQUIRED": 2,
+        "DEFERRED": 2,
+    }
+    assert all(surface["status"] != "MISSING_REQUIRED" for surface in surfaces)
+    for surface in surfaces:
+        assert surface["current_consumer"]
+        assert surface["evidence"]
+        assert surface["responsive_validation"]
+
+    static_surface = next(item for item in surfaces if item["surface_id"] == "static_asset_serving")
+    assert static_surface["wave2_required"] is True
+    assert "desktop" in static_surface["responsive_validation"]
+    assert "iPad landscape" in static_surface["responsive_validation"]
+    assert "iPad portrait" in static_surface["responsive_validation"]
+    assert "mobile" in static_surface["responsive_validation"]
+
+
+def test_legacy_reference_table_is_explained_and_nonblocking():
+    references = _registry()["world_npc_presentation_registry"]["legacy_references"]
+    assert len(references) == 2
+    assert {reference["classification"] for reference in references} == {"LEGACY_NONBLOCKING"}
+    assert {reference["live_or_dead"] for reference in references} == {"LIVE"}
+    assert all(reference["safe_to_remove"] is False for reference in references)
+    assert all(reference["file"] and reference["reference"] and reference["resolution"] for reference in references)
+    for reference in references:
+        for file_name in reference["file"].split("; "):
+            assert (ROOT / file_name).is_file(), file_name
+    assert "Runner/messenger" in (ROOT / "docs/planning/e10_final_screenplay_v1.md").read_text(encoding="utf-8")
+    voice_bible = (ROOT / "docs/planning/e10_voice_cast_bible_v1.md").read_text(encoding="utf-8")
+    dialogue_assets = (ROOT / "assets/e10/audio/zone2/zone2-dialogue-assets.json").read_text(encoding="utf-8")
+    assert "e10.messenger" in voice_bible
+    assert "e10.zone2.herder" in voice_bible
+    assert '"speaker": "herder"' in dialogue_assets
+
+
+def test_world_npc_api_projects_canonical_registry_read_only_and_serves_exact_assets():
+    import app
+
+    client = app.app.test_client()
+    response = client.get("/api/world-npcs")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["canonical_count"] == 7
+    assert tuple(payload["canonical_ids"]) == CANONICAL_WORLD_NPC_IDS
+    assert payload["registry_authority"]["canonical_registry_count"] == 1
+    assert payload["mutation_boundary"]["database_mutation"] == 0
+    assert payload["mutation_boundary"]["ownership_mutation"] == 0
+
+    for record in payload["world_npcs"]:
+        asset_response = client.get("/" + record["runtime_asset"])
+        assert asset_response.status_code == 200, record["canonical_id"]
+        assert asset_response.mimetype == "image/webp"
+        assert asset_response.data == (ROOT / record["runtime_asset"]).read_bytes()
+
+
+def test_packaging_closure_is_exact_and_superseded_eastern_guardian_shield_is_not_canonical():
+    registry = _registry()["world_npc_presentation_registry"]
+    records = _records()
+    manifest = json.loads(IMAGE_PACK_MANIFEST_PATH.read_text(encoding="utf-8"))
+    manifest_by_path = {entry["path"]: entry for entry in manifest["files"]}
+    runtime_paths = {record["runtime_asset"] for record in records}
+    master_paths = {record["art_master"] for record in records}
+    mobile_paths = {record["mobile_asset"] for record in records}
+
+    assert len(master_paths) == len(runtime_paths) == len(mobile_paths) == 7
+    assert runtime_paths <= set(manifest_by_path)
+    assert mobile_paths == runtime_paths
+    assert not (master_paths & set(manifest_by_path)), "PNG masters are source-only, not release payload"
+    assert all("shield" not in path.lower() for path in runtime_paths | master_paths | mobile_paths)
+    assert not any(
+        "eastern" in path.lower() and "shield" in path.lower()
+        for path in manifest_by_path
+    )
+    assert registry["packaging"]["superseded_eastern_guardian_shield_asset_canonical"] is False
+    assert registry["packaging"]["master_png_release_policy"] == "SOURCE_ONLY_NOT_DEPLOYED"
+    assert registry["packaging"]["release_inventory_delta_from_previous_freeze"] == {
+        "files_added": 7,
+        "bytes_added": 5236664,
+        "owner_approved_project_created_entries_added": 7,
+    }
+    assert manifest["total_files"] == 1391
+    assert manifest["total_bytes"] == 768753738
+    for path in runtime_paths:
+        entry = manifest_by_path[path]
+        raw = (ROOT / path).read_bytes()
+        assert entry["size"] == len(raw)
+        assert entry["sha256"] == hashlib.sha256(raw).hexdigest()
+
+
 def test_runtime_api_is_single_read_only_presentation_route():
     source = APP_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -202,6 +340,14 @@ def test_spec_and_surface_audit_are_present_and_consistent():
     assert "Zone 10 Ancient Doom Temple" in spec
     statuses = _registry()["world_npc_presentation_registry"]["runtime_surfaces"]
     counts = {status: sum(item["status"] == status for item in statuses) for status in {
-        "INTEGRATED", "MISSING", "LEGACY", "NOT_REQUIRED"
+        "INTEGRATED", "MISSING_REQUIRED", "LEGACY_NONBLOCKING", "NOT_REQUIRED", "DEFERRED"
     }}
-    assert counts == {"INTEGRATED": 2, "MISSING": 2, "LEGACY": 2, "NOT_REQUIRED": 2}
+    assert counts == {
+        "INTEGRATED": 2,
+        "MISSING_REQUIRED": 0,
+        "LEGACY_NONBLOCKING": 2,
+        "NOT_REQUIRED": 2,
+        "DEFERRED": 2,
+    }
+    assert "UNCLASSIFIED_MISSING_SURFACE_COUNT=0" in spec
+    assert "UNEXPLAINED_LEGACY_REFERENCE_COUNT=0" in spec

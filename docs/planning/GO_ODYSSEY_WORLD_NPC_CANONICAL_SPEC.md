@@ -21,6 +21,13 @@ NPC presentation registry. `canonical_id` is the machine identity field
 (`NPC_ID`); `asset_key` is the canonical art identity. P1/P2/P3 review
 manifests remain provenance, not competing registries.
 
+The filename `rpg_wave2_lane_a_character_identity_registry_v1.json` is
+historical: it was created as the shared Wave 2 character identity registry
+before the World NPC freeze. It remains the existing shared registry and its
+`world_npc_presentation_registry.world_npcs` section is now the sole World NPC
+canonical authority. `rpg_world_npc_registry.py` is only a fail-closed runtime
+projection loader, not a second registry.
+
 ## Frozen NPC set
 
 | NPC_ID | DISPLAY_NAME | ZONE | ROLE | ART_MASTER | RUNTIME_ASSET | MOBILE_ASSET |
@@ -93,20 +100,67 @@ dialogue-package files. `BROKEN_STORY_REFERENCE_COUNT` must remain zero.
 
 ## Runtime surface audit
 
-| Surface | Status | Boundary |
-|---|---|---|
-| Canonical registry API | `INTEGRATED` | `GET /api/world-npcs`, read-only metadata and asset paths |
-| Static asset serving | `INTEGRATED` | Existing `/assets/<path>` route |
-| Story / cinematic | `LEGACY` | Existing storyboards and cinematic timing remain authoritative |
-| Zone details | `MISSING` | No current player-facing NPC-art slot found |
-| NPC cards | `MISSING` | P1/P2/P3 HTML is review provenance only |
-| Dialogue surfaces | `LEGACY` | Existing aliases and audio keys remain unchanged |
-| World map / Zone UI | `NOT_REQUIRED` | No NPC ownership or art binding exists there |
-| Journal / lore | `NOT_REQUIRED` | NPCs are not Item Journal or player-owned collection entries |
+| SURFACE_ID | USER_VISIBLE_OR_INTERNAL | CURRENT_CONSUMER | CURRENT_NPC_SOURCE | STATUS |
+|---|---|---|---|---|
+| `canonical_registry_api` | `INTERNAL_API` | API clients requesting the presentation projection | `world_npc_presentation_registry.world_npcs` via loader | `INTEGRATED` |
+| `static_asset_serving` | `USER_VISIBLE` | Existing Flask `/assets/<path>` browser requests | `record.runtime_asset` | `INTEGRATED` |
+| `story_cinematic` | `USER_VISIBLE` | E10 screenplay/storyboard timing and cinematic presentation | Existing screenplay names, aliases, and cinematic assets | `LEGACY_NONBLOCKING` |
+| `zone_details` | `USER_VISIBLE` | No current Zone detail NPC-art component | None | `DEFERRED` |
+| `npc_cards` | `USER_VISIBLE` | No current NPC card component; review HTML is provenance only | None | `DEFERRED` |
+| `dialogue_surfaces` | `USER_VISIBLE` | Existing E10 dialogue/audio lookup and playback | Existing voice IDs, speaker keys, and aliases | `LEGACY_NONBLOCKING` |
+| `world_map_zone_ui` | `USER_VISIBLE` | Existing world map and Zone UI | Zone map presentation only; no NPC binding | `NOT_REQUIRED` |
+| `journal_lore` | `USER_VISIBLE` | Item Journal and player-owned collections | None; World NPCs are not owned items | `NOT_REQUIRED` |
+
+`MISSING_REQUIRED=0`.
+`UNCLASSIFIED_MISSING_SURFACE_COUNT=0`.
+`INTEGRATED_SURFACE_COUNT=2`.
+`MISSING_REQUIRED_SURFACE_COUNT=0`.
+`DEFERRED_SURFACE_COUNT=2`.
+`LEGACY_NONBLOCKING_SURFACE_COUNT=2`.
+`NOT_REQUIRED_SURFACE_COUNT=2`.
+Zone details and NPC cards are explicitly deferred
+because no current runtime consumer exists; adding either would be new UI
+scope rather than closure of the frozen presentation registry.
+
+Responsive validation for the integrated static asset surface uses the same
+alpha-clean runtime WebP at desktop, iPad landscape, iPad portrait, and mobile
+card sizes. No player-character fallback or viewport-specific NPC identity is
+introduced. The API surface is metadata-only.
 
 The API is intentionally not login-gated because it contains public static
 world presentation metadata. It performs no database read or write and has no
 mutation method.
+
+## Legacy references
+
+Exactly two live legacy reference groups remain, both
+`LEGACY_NONBLOCKING`; neither is safe to remove during this freeze:
+
+| FILE | REFERENCE | CURRENT_BEHAVIOR | LIVE_OR_DEAD | SAFE_TO_REMOVE |
+|---|---|---|---|---|
+| `docs/planning/e10_final_screenplay_v1.md` | Zone 1 Shot 10 `Runner/messenger`, plus existing forms such as `Elder` and `Smith-elder` | Live cinematic/story content resolves display names and does not consume the full-body World NPC runtime asset registry | `LIVE` | `NO` |
+| `docs/planning/e10_voice_cast_bible_v1.md`; `assets/e10/audio/zone2/zone2-dialogue-assets.json` | `e10.village_elder`, `e10.messenger`, `e10.zone2.herder`, and `speaker=herder` | Live voice/audio lookup keys drive dialogue playback and remain separate from World NPC art identity | `LIVE` | `NO` |
+
+`UNEXPLAINED_LEGACY_REFERENCE_COUNT=0`. Compatibility aliases remain intact;
+they are not alternate NPC registries or ownership authorities.
+
+## Packaging closure
+
+The source closure contains seven approved PNG masters. The production static
+release manifest contains exactly the seven WebP runtime assets; mobile assets
+are aliases of those same seven runtime paths. PNG masters are deliberately
+`SOURCE_ONLY_NOT_DEPLOYED`, so the release does not expose source masters as a
+second presentation payload. The previous freeze inventory impact is:
+
+```text
+FILES_ADDED=7
+BYTES_ADDED=5236664
+OWNER_APPROVED_PROJECT_CREATED_ENTRIES_ADDED=7
+```
+
+The packaging contract is deterministic and explicitly rejects any
+superseded Eastern Guardian shield asset as canonical. No Eastern Guardian
+runtime or master path contains a shield variant.
 
 ## Mapping discrepancies retained explicitly
 

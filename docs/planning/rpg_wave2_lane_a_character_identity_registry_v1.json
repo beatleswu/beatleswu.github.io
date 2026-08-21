@@ -33,6 +33,17 @@
       "mobile_policy": "runtime_asset is the alpha-clean responsive source; no identity-specific redraw or crop is required",
       "duplicate_identity_hashes_forbidden": true
     },
+    "authority_model": {
+      "canonical_registry_file": "docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json",
+      "canonical_registry_count": 1,
+      "is_existing_shared_registry": true,
+      "is_world_npc_canonical_authority": true,
+      "filename_is_historical": true,
+      "filename_rationale": "This file predates the World NPC freeze as the shared Wave 2 character identity registry; its world_npcs presentation section is now the single World NPC authority.",
+      "competing_npc_registries": [],
+      "projection_loaders": ["rpg_world_npc_registry.py"],
+      "projection_loaders_are_not_registries": true
+    },
     "authority": {
       "world_npc": "presentation_story_entity",
       "player_selectable": false,
@@ -44,46 +55,124 @@
     },
     "runtime_surfaces": [
       {
-        "surface": "canonical_registry_api",
+        "surface_id": "canonical_registry_api",
+        "user_visible_or_internal": "INTERNAL_API",
+        "current_consumer": "API clients requesting the public World NPC presentation projection",
+        "current_npc_source": "world_npc_presentation_registry.world_npcs via rpg_world_npc_registry.py",
         "status": "INTEGRATED",
-        "evidence": "GET /api/world-npcs returns this read-only projection"
+        "wave2_required": true,
+        "evidence": "GET /api/world-npcs returns this read-only projection",
+        "responsive_validation": "metadata-only; no viewport-specific identity or fallback"
       },
       {
-        "surface": "static_asset_serving",
+        "surface_id": "static_asset_serving",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Existing Flask /assets/<path> browser image requests",
+        "current_npc_source": "record.runtime_asset from world_npc_presentation_registry.world_npcs",
         "status": "INTEGRATED",
-        "evidence": "existing GET /assets/<path> serves the frozen runtime assets"
+        "wave2_required": true,
+        "evidence": "Existing GET /assets/<path> serves the seven frozen WebP runtime assets",
+        "responsive_validation": "same alpha-clean runtime WebP for desktop, iPad landscape, iPad portrait, and mobile"
       },
       {
-        "surface": "story_cinematic",
-        "status": "LEGACY",
-        "evidence": "existing E10 storyboards and cinematic timing remain authoritative; this task does not substitute full-body NPC art"
+        "surface_id": "story_cinematic",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "E10 screenplay/storyboard timing and cinematic presentation",
+        "current_npc_source": "existing screenplay display names, aliases, and cinematic assets; not the full-body runtime registry",
+        "status": "LEGACY_NONBLOCKING",
+        "wave2_required": false,
+        "evidence": "Existing E10 storyboards and cinematic timing remain authoritative; this task does not substitute full-body NPC art",
+        "responsive_validation": "not applicable to the legacy cinematic consumer"
       },
       {
-        "surface": "zone_details",
-        "status": "MISSING",
-        "evidence": "no current player-facing Zone detail NPC-art slot was found"
+        "surface_id": "zone_details",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "No current player-facing Zone detail NPC-art component found",
+        "current_npc_source": "none",
+        "status": "DEFERRED",
+        "wave2_required": false,
+        "evidence": "Repository audit found map/zone presentation but no Zone detail NPC-art slot; adding one would be new UI scope",
+        "responsive_validation": "deferred with the future Zone detail component"
       },
       {
-        "surface": "npc_cards",
-        "status": "MISSING",
-        "evidence": "P1/P2/P3 review HTML is provenance only; no player-facing NPC card is introduced here"
+        "surface_id": "npc_cards",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "No current player-facing NPC card component; P1/P2/P3 HTML is review provenance only",
+        "current_npc_source": "none",
+        "status": "DEFERRED",
+        "wave2_required": false,
+        "evidence": "No runtime NPC-card consumer exists in the current product; introducing one would be new UI scope",
+        "responsive_validation": "deferred with the future NPC card component"
       },
       {
-        "surface": "dialogue_surfaces",
-        "status": "LEGACY",
-        "evidence": "existing story/audio keys and aliases remain unchanged, including Messenger/runner and Herder speaker references"
+        "surface_id": "dialogue_surfaces",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Existing E10 dialogue/audio lookup and playback surfaces",
+        "current_npc_source": "existing voice IDs, dialogue speaker keys, and compatibility aliases; not ownership or NPC art authority",
+        "status": "LEGACY_NONBLOCKING",
+        "wave2_required": false,
+        "evidence": "Existing story/audio keys and aliases remain unchanged, including Messenger/runner and Herder speaker references",
+        "responsive_validation": "not applicable to the legacy audio/dialogue consumer"
       },
       {
-        "surface": "world_map_zone_ui",
+        "surface_id": "world_map_zone_ui",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Existing world map and Zone UI",
+        "current_npc_source": "zone map presentation only; no NPC art binding",
         "status": "NOT_REQUIRED",
-        "evidence": "the current map is a zone presentation surface and has no NPC ownership or art binding"
+        "wave2_required": false,
+        "evidence": "The current map is a zone presentation surface and has no NPC ownership or art binding",
+        "responsive_validation": "existing map responsiveness is outside the World NPC art contract"
       },
       {
-        "surface": "journal_lore",
+        "surface_id": "journal_lore",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Item Journal and player-owned collection surfaces",
+        "current_npc_source": "none; World NPCs are not Item Journal entries or player-owned collection items",
         "status": "NOT_REQUIRED",
-        "evidence": "World NPCs are not Item Journal entries or player-owned collection items"
+        "wave2_required": false,
+        "evidence": "World NPCs are not Item Journal entries or player-owned collection items",
+        "responsive_validation": "not applicable; no World NPC ownership projection exists"
       }
     ],
+    "legacy_references": [
+      {
+        "reference_id": "story_display_aliases",
+        "file": "docs/planning/e10_final_screenplay_v1.md",
+        "reference": "Zone 1 Shot 10 uses Runner/messenger; other beats use existing display-name forms such as Elder and Smith-elder",
+        "current_behavior": "Live cinematic/story content resolves these legacy display names and does not consume the World NPC runtime asset registry",
+        "live_or_dead": "LIVE",
+        "safe_to_remove": false,
+        "classification": "LEGACY_NONBLOCKING",
+        "resolution": "Preserve story wording and expose compatibility aliases in the canonical registry; do not rename story keys"
+      },
+      {
+        "reference_id": "dialogue_speaker_keys",
+        "file": "docs/planning/e10_voice_cast_bible_v1.md; assets/e10/audio/zone2/zone2-dialogue-assets.json",
+        "reference": "e10.village_elder, e10.messenger, e10.zone2.herder, and speaker=herder",
+        "current_behavior": "Live voice/audio lookup keys drive dialogue playback and remain separate from World NPC art identity",
+        "live_or_dead": "LIVE",
+        "safe_to_remove": false,
+        "classification": "LEGACY_NONBLOCKING",
+        "resolution": "Preserve the existing audio/dialogue keys; canonical registry maps the aliases without becoming their authority"
+      }
+    ],
+    "packaging": {
+      "release_manifest": "deploy/canonical-image-pack-manifest.json",
+      "source_master_count": 7,
+      "release_runtime_count": 7,
+      "mobile_projection_count": 7,
+      "mobile_assets_are_runtime_aliases": true,
+      "master_png_release_policy": "SOURCE_ONLY_NOT_DEPLOYED",
+      "release_runtime_paths_are_exact": true,
+      "release_inventory_delta_from_previous_freeze": {
+        "files_added": 7,
+        "bytes_added": 5236664,
+        "owner_approved_project_created_entries_added": 7
+      },
+      "deterministic": true,
+      "superseded_eastern_guardian_shield_asset_canonical": false
+    },
     "zone_mapping_discrepancies": [
       {
         "scope": "world.messenger",
