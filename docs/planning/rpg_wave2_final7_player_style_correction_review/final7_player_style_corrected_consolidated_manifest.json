@@ -1,0 +1,128 @@
+{
+  "approved_player_family_sources": [
+    {
+      "character_id": "apprentice",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\assets\\hero\\characters\\wave2_p1\\apprentice_p1.png",
+      "source_sha256": "0b03cbc512186fabd49678fd4c0e66e3603176f63b7f948be83493fcd0b288a7"
+    },
+    {
+      "character_id": "mage",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\assets\\hero\\characters\\wave2_p1\\mage_p1.png",
+      "source_sha256": "039515ea834b4aff8abbe02633e836eaf39da40193a75b0dad8caeb6ea84d079"
+    },
+    {
+      "character_id": "paladin",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\assets\\hero\\characters\\wave2_p1\\paladin_p1.png",
+      "source_sha256": "2b98c88adfa66967d2ed48b76a7ed21e81a3fbbcf8d2d0c8ceb3baf31c547b52"
+    },
+    {
+      "character_id": "trail_apprentice",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\assets\\hero\\characters\\wave2_p1\\trail_apprentice_p1.png",
+      "source_sha256": "69b9cd3fe1ce48e977cc480f59a13747a1b2a51561b8917f4ffdb43a952f6d5f"
+    },
+    {
+      "character_id": "night_runner",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\assets\\hero\\characters\\wave2_p1\\night_runner_p1.png",
+      "source_sha256": "bdf1edfa53dbe7a0faaa15123409fdc2bf3878bb09a6384ca77875febf94519e"
+    },
+    {
+      "character_id": "constellation_apprentice",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\assets\\hero\\characters\\wave2_p1\\constellation_apprentice_p1.png",
+      "source_sha256": "a1010878737fae9f5d3173b2f9d743691e5be3dd7b4649ad9b86b48b0424faee"
+    }
+  ],
+  "artifacts": {
+    "landscape": "D:\\go-website-rpg-wave2-final7-style-correction-compositor\\docs\\planning\\rpg_wave2_final7_player_style_correction_review\\FINAL7_PLAYER_STYLE_CORRECTED_MATRIX.png",
+    "mobile": "D:\\go-website-rpg-wave2-final7-style-correction-compositor\\docs\\planning\\rpg_wave2_final7_player_style_correction_review\\FINAL7_PLAYER_STYLE_CORRECTED_MOBILE_MATRIX.png"
+  },
+  "base_head": "fa11e085604b103bc59b90a3e648a620d13a032d",
+  "branch": "codex/rpg-wave2-final7-style-correction-compositor",
+  "corrected_identity_sources": [
+    {
+      "character_id": "river_wayfinder",
+      "display_name": "River Wayfinder",
+      "owner_direction": "OPTION B",
+      "review_status": "review_only",
+      "selection": "center_third_only",
+      "source_path": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\docs\\planning\\rpg_wave2_final7_identity_review\\river_wayfinder_identity_concept_sheet.png",
+      "source_sha256": "ab2067f09d3260a3c5b048351a18f4f9107d094b7d390b89a9690e5e8007f08e"
+    },
+    {
+      "character_id": "stone_caretaker",
+      "display_name": "Stone Caretaker",
+      "owner_direction": "OPTION A",
+      "review_status": "review_only",
+      "selection": "full_corrected_asset",
+      "source_path": "D:\\go-website-rpg-wave2-final7-player-style-correction-stone-bastion\\assets\\hero\\characters\\wave2_final7_player_style_corrected_v1\\stone_caretaker\\stone_caretaker_player_style_corrected_v1.png",
+      "source_sha256": "037d108402ad57f2ca18ea93db9f96f02b07dd6eb5aaba64c594d57297b37f07"
+    },
+    {
+      "character_id": "duelist_scout",
+      "display_name": "Duelist Scout",
+      "owner_direction": "OPTION B",
+      "review_status": "review_only",
+      "selection": "full_corrected_asset",
+      "source_path": "D:\\go-website-rpg-wave2-final7-style-correction-duelist-forest\\assets\\hero\\characters\\wave2_final7_player_style_corrected_v1\\duelist_scout\\duelist_scout_player_style_corrected_v1.png",
+      "source_sha256": "2efcdaba57b54944b6b34c34ad138b0a18f30ea9e8f7d1ce14d0f3f10a1e6962"
+    },
+    {
+      "character_id": "bastion_warden",
+      "display_name": "Bastion Warden",
+      "owner_direction": "OPTION A",
+      "review_status": "review_only",
+      "selection": "full_corrected_asset",
+      "source_path": "D:\\go-website-rpg-wave2-final7-player-style-correction-stone-bastion\\assets\\hero\\characters\\wave2_final7_player_style_corrected_v1\\bastion_warden\\bastion_warden_player_style_corrected_v1.png",
+      "source_sha256": "a0dd3052d0c3a20da2cd1b0b334ed7ef771fc0eec4847abf7d45f58f067a9e22"
+    },
+    {
+      "character_id": "forest_pathfinder",
+      "display_name": "Forest Pathfinder",
+      "owner_direction": "OPTION B",
+      "review_status": "review_only",
+      "selection": "full_corrected_asset",
+      "source_path": "D:\\go-website-rpg-wave2-final7-style-correction-duelist-forest\\assets\\hero\\characters\\wave2_final7_player_style_corrected_v1\\forest_pathfinder\\forest_pathfinder_player_style_corrected_v1.png",
+      "source_sha256": "3f12e3326d26359816628ab108bc9e77b1f4e466381253c88c5de7c265ff179e"
+    },
+    {
+      "character_id": "archive_scholar",
+      "display_name": "Archive Scholar",
+      "owner_direction": "OPTION A",
+      "review_status": "review_only",
+      "selection": "full_corrected_asset",
+      "source_path": "D:\\go-website-rpg-wave2-final7-style-correction-archive-worldkeeper-001\\assets\\hero\\characters\\wave2_final7_player_style_corrected_v1\\archive_scholar\\archive_scholar_player_style_corrected_v1.png",
+      "source_sha256": "143cbd9d8252ed3f2c25baf039c1796c6033379b1c62759fbcb67311d905e4a9"
+    },
+    {
+      "character_id": "worldkeeper",
+      "display_name": "Worldkeeper",
+      "owner_direction": "OPTION A",
+      "review_status": "review_only",
+      "selection": "full_corrected_asset",
+      "source_path": "D:\\go-website-rpg-wave2-final7-style-correction-archive-worldkeeper-001\\assets\\hero\\characters\\wave2_final7_player_style_corrected_v1\\worldkeeper\\worldkeeper_player_style_corrected_v1.png",
+      "source_sha256": "7c8d10b60a2b602be2e17c40b4f78c8d996686ab7b049fee7969a0c96d43527b"
+    }
+  ],
+  "identity_direction_policy": "use locked Owner selections; do not generate new A/B/C directions",
+  "production_boundaries": {
+    "armor_modified": false,
+    "database_modified": false,
+    "deploy": false,
+    "gameplay_modified": false,
+    "merge": false,
+    "runtime_modified": false,
+    "sword_poses_created": 0
+  },
+  "review_only": true,
+  "river_wayfinder": {
+    "owner_direction": "B",
+    "selection": "center third crop only; A and C excluded",
+    "source_sheet": "D:\\go-website-rpg-wave2-character-identity-unblock-final7b\\docs\\planning\\rpg_wave2_final7_identity_review\\river_wayfinder_identity_concept_sheet.png"
+  },
+  "task": "RPG_WAVE2_CHARACTER_IDENTITY_FINAL7_STYLE_CORRECTION_001",
+  "visual_review_metrics": {
+    "MOBILE_READABILITY": "7/7",
+    "NPC_STYLE_DRIFT": "0/7",
+    "PLAYER_SELECTABILITY_READABILITY": "7/7",
+    "PLAYER_VISUAL_FAMILY_MATCH": "7/7"
+  }
+}
