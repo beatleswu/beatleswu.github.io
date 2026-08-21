@@ -417,6 +417,16 @@ main {
   .functional-equipment-detail { position:static; }
   .functional-equipment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+@media (min-width:701px) and (max-width:1180px) {
+  .functional-equipment-layout { grid-template-columns:minmax(0,1fr) 280px; }
+  .functional-equipment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .functional-equipment-detail { top:62px; }
+}
+@media (min-width:701px) and (max-width:1024px) and (orientation:portrait) {
+  .functional-equipment-layout { grid-template-columns:1fr; }
+  .functional-equipment-detail { position:static; }
+  .functional-equipment-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
 @media (max-width:430px) {
   .functional-equipment-grid { grid-template-columns:1fr; }
 }
