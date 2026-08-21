@@ -54,6 +54,7 @@ from rpg_item_registry import (
     build_shop_product_grant_registry,
     badge_visual_metadata,
 )
+from rpg_world_npc_registry import world_npc_registry_payload
 from chapter_i18n import localize_topic as _i18n_topic_en, localize_level as _i18n_level_en
 from backend_i18n import badge_en as _i18n_badge_en, skill_node_en as _i18n_skill_node_en, title_en as _i18n_title_en
 from sgf_engine.parser.sgf_parser import parse_sgf
@@ -19662,6 +19663,17 @@ def item_journal():
             'journal_write': 0,
         },
     })
+
+
+@app.route('/api/world-npcs')
+def world_npc_catalog():
+    """Return the canonical World NPC presentation projection.
+
+    This is deliberately a public, read-only presentation surface.  It does
+    not inspect or mutate player ownership, inventory, equipment, combat, or
+    database state.
+    """
+    return jsonify(world_npc_registry_payload())
 
 # ── 商城 API ─────────────────────────────────────────────────
 

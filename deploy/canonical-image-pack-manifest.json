@@ -3,13 +3,13 @@
   "manifest_version": "1.0.0",
   "generated_for_incident": "RELEASE-FIX-A3 / canonical-full-image-pack",
   "historical_source_generation": "20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser",
-  "total_files": 1384,
-  "total_bytes": 763517074,
+  "total_files": 1391,
+  "total_bytes": 768753738,
   "provenance_summary": {
     "historical-git-and-production-identical": 1148,
     "historical-production-only": 150,
     "candidate-mismatch-needs-review": 0,
-    "owner-approved-project-created": 86
+    "owner-approved-project-created": 93
   },
   "files": [
     {
@@ -13701,6 +13701,76 @@
       "height": 900,
       "provenance": "historical-git-and-production-identical",
       "source_evidence": "Byte-identical (SHA-256 + size verified) to C:\\go-website (git-tracked in that repository's current checkout) and to the production host historical generation /opt/go-odyssey-static/releases/20260710-163737-0d8407496-v177-sgf-fe-hotfix1a-node-parser/assets/."
+    },
+    {
+      "path": "assets/world/characters/wave2_p1/world_messenger_p1.webp",
+      "size": 530942,
+      "sha256": "3e499c058c640efc55f02a751bd44d9ed30e54d5ecfe9784eb8f7f1f1de918b9",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P1 master from 2e117fe11cd1a29a88adf55dd337d6e55d26c9ac; runtime WebP deterministically re-derived from the approved RGBA PNG to restore true alpha."
+    },
+    {
+      "path": "assets/world/characters/wave2_p1/world_village_elder_p1.webp",
+      "size": 295458,
+      "sha256": "592c725115af428deed8771543a2d972a4b3e9dd709e8fa5155706118d190d44",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P1 runtime derivative from 2e117fe11cd1a29a88adf55dd337d6e55d26c9ac; master and derivative are retained without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p2/world_archmage_p2.webp",
+      "size": 870382,
+      "sha256": "658d139b743eebfa97a2d0c385cc082c93e0106dbbff0efbb532d89bfc7bb2eb",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P2 runtime derivative from 73ed39ecfe7029050628c414eb6d8a371237e78e; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p2/world_serel_p2.webp",
+      "size": 845778,
+      "sha256": "444d3fc6529b1738a9764acd56f9a1133b43336535221316a6683cf38782d0a1",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P2 runtime derivative from 73ed39ecfe7029050628c414eb6d8a371237e78e; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p2/world_smith_elder_p2.webp",
+      "size": 809774,
+      "sha256": "39c942350d26a5c4da5909e6cd8c3fe98094a438eb97e61a01ef08d49daa1f72",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P2 runtime derivative from 73ed39ecfe7029050628c414eb6d8a371237e78e; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p3/world_eastern_guardian_p3.webp",
+      "size": 1001230,
+      "sha256": "309c83e5a0f36a23c3aa719e572ee8e6b0977232f0fdf4f55ea2956413b588a0",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P3 runtime derivative from 53bd2c9db7e1618d5230515080654fc25330bab9; derived from the frozen master without redraw."
+    },
+    {
+      "path": "assets/world/characters/wave2_p3/world_herder_p3.webp",
+      "size": 883100,
+      "sha256": "1629ded2e34c71602556deda4886dfb634802c00e1eb8f48bdd1d3f2c3abaa20",
+      "mime": "image/webp",
+      "width": 1056,
+      "height": 1408,
+      "provenance": "owner-approved-project-created",
+      "source_evidence": "Owner-approved P3 runtime derivative from 53bd2c9db7e1618d5230515080654fc25330bab9; derived from the frozen master without redraw."
     },
     {
       "path": "assets/weapon_t1.png",
