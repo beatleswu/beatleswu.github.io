@@ -6,6 +6,193 @@
   "lane": "wave2_lane_a",
   "character_combat_authority": "NO",
   "functional_weapon_baked_in_base_art": "NO",
+  "world_npc_presentation_registry": {
+    "registry_version": "go-odyssey.world-npc-presentation.v1",
+    "status": "CANONICAL_FREEZE_REVIEW",
+    "canonical_count": 7,
+    "canonical_ids": [
+      "world.village_elder",
+      "world.messenger",
+      "world.smith_elder",
+      "world.archmage",
+      "world.serel",
+      "world.herder",
+      "world.eastern_guardian"
+    ],
+    "art_approval_sources": {
+      "P1": "2e117fe11cd1a29a88adf55dd337d6e55d26c9ac",
+      "P2": "73ed39ecfe7029050628c414eb6d8a371237e78e",
+      "P3": "53bd2c9db7e1618d5230515080654fc25330bab9"
+    },
+    "art_contract": {
+      "master_format": "PNG",
+      "runtime_format": "WebP",
+      "master_canvas": "1056x1408",
+      "color_mode": "RGBA",
+      "true_alpha_required": true,
+      "mobile_policy": "runtime_asset is the alpha-clean responsive source; no identity-specific redraw or crop is required",
+      "duplicate_identity_hashes_forbidden": true
+    },
+    "authority_model": {
+      "canonical_registry_file": "docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json",
+      "canonical_registry_count": 1,
+      "is_existing_shared_registry": true,
+      "is_world_npc_canonical_authority": true,
+      "filename_is_historical": true,
+      "filename_rationale": "This file predates the World NPC freeze as the shared Wave 2 character identity registry; its world_npcs presentation section is now the single World NPC authority.",
+      "competing_npc_registries": [],
+      "projection_loaders": ["rpg_world_npc_registry.py"],
+      "projection_loaders_are_not_registries": true
+    },
+    "authority": {
+      "world_npc": "presentation_story_entity",
+      "player_selectable": false,
+      "player_inventory_authority": false,
+      "combat_authority": false,
+      "equipment_authority": false,
+      "shop_authority": false,
+      "ownership_mutation": false
+    },
+    "runtime_surfaces": [
+      {
+        "surface_id": "canonical_registry_api",
+        "user_visible_or_internal": "INTERNAL_API",
+        "current_consumer": "API clients requesting the public World NPC presentation projection",
+        "current_npc_source": "world_npc_presentation_registry.world_npcs via rpg_world_npc_registry.py",
+        "status": "INTEGRATED",
+        "wave2_required": true,
+        "evidence": "GET /api/world-npcs returns this read-only projection",
+        "responsive_validation": "metadata-only; no viewport-specific identity or fallback"
+      },
+      {
+        "surface_id": "static_asset_serving",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Existing Flask /assets/<path> browser image requests",
+        "current_npc_source": "record.runtime_asset from world_npc_presentation_registry.world_npcs",
+        "status": "INTEGRATED",
+        "wave2_required": true,
+        "evidence": "Existing GET /assets/<path> serves the seven frozen WebP runtime assets",
+        "responsive_validation": "same alpha-clean runtime WebP for desktop, iPad landscape, iPad portrait, and mobile"
+      },
+      {
+        "surface_id": "story_cinematic",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "E10 screenplay/storyboard timing and cinematic presentation",
+        "current_npc_source": "existing screenplay display names, aliases, and cinematic assets; not the full-body runtime registry",
+        "status": "LEGACY_NONBLOCKING",
+        "wave2_required": false,
+        "evidence": "Existing E10 storyboards and cinematic timing remain authoritative; this task does not substitute full-body NPC art",
+        "responsive_validation": "not applicable to the legacy cinematic consumer"
+      },
+      {
+        "surface_id": "zone_details",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "No current player-facing Zone detail NPC-art component found",
+        "current_npc_source": "none",
+        "status": "DEFERRED",
+        "wave2_required": false,
+        "evidence": "Repository audit found map/zone presentation but no Zone detail NPC-art slot; adding one would be new UI scope",
+        "responsive_validation": "deferred with the future Zone detail component"
+      },
+      {
+        "surface_id": "npc_cards",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "No current player-facing NPC card component; P1/P2/P3 HTML is review provenance only",
+        "current_npc_source": "none",
+        "status": "DEFERRED",
+        "wave2_required": false,
+        "evidence": "No runtime NPC-card consumer exists in the current product; introducing one would be new UI scope",
+        "responsive_validation": "deferred with the future NPC card component"
+      },
+      {
+        "surface_id": "dialogue_surfaces",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Existing E10 dialogue/audio lookup and playback surfaces",
+        "current_npc_source": "existing voice IDs, dialogue speaker keys, and compatibility aliases; not ownership or NPC art authority",
+        "status": "LEGACY_NONBLOCKING",
+        "wave2_required": false,
+        "evidence": "Existing story/audio keys and aliases remain unchanged, including Messenger/runner and Herder speaker references",
+        "responsive_validation": "not applicable to the legacy audio/dialogue consumer"
+      },
+      {
+        "surface_id": "world_map_zone_ui",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Existing world map and Zone UI",
+        "current_npc_source": "zone map presentation only; no NPC art binding",
+        "status": "NOT_REQUIRED",
+        "wave2_required": false,
+        "evidence": "The current map is a zone presentation surface and has no NPC ownership or art binding",
+        "responsive_validation": "existing map responsiveness is outside the World NPC art contract"
+      },
+      {
+        "surface_id": "journal_lore",
+        "user_visible_or_internal": "USER_VISIBLE",
+        "current_consumer": "Item Journal and player-owned collection surfaces",
+        "current_npc_source": "none; World NPCs are not Item Journal entries or player-owned collection items",
+        "status": "NOT_REQUIRED",
+        "wave2_required": false,
+        "evidence": "World NPCs are not Item Journal entries or player-owned collection items",
+        "responsive_validation": "not applicable; no World NPC ownership projection exists"
+      }
+    ],
+    "legacy_references": [
+      {
+        "reference_id": "story_display_aliases",
+        "file": "docs/planning/e10_final_screenplay_v1.md",
+        "reference": "Zone 1 Shot 10 uses Runner/messenger; other beats use existing display-name forms such as Elder and Smith-elder",
+        "current_behavior": "Live cinematic/story content resolves these legacy display names and does not consume the World NPC runtime asset registry",
+        "live_or_dead": "LIVE",
+        "safe_to_remove": false,
+        "classification": "LEGACY_NONBLOCKING",
+        "resolution": "Preserve story wording and expose compatibility aliases in the canonical registry; do not rename story keys"
+      },
+      {
+        "reference_id": "dialogue_speaker_keys",
+        "file": "docs/planning/e10_voice_cast_bible_v1.md; assets/e10/audio/zone2/zone2-dialogue-assets.json",
+        "reference": "e10.village_elder, e10.messenger, e10.zone2.herder, and speaker=herder",
+        "current_behavior": "Live voice/audio lookup keys drive dialogue playback and remain separate from World NPC art identity",
+        "live_or_dead": "LIVE",
+        "safe_to_remove": false,
+        "classification": "LEGACY_NONBLOCKING",
+        "resolution": "Preserve the existing audio/dialogue keys; canonical registry maps the aliases without becoming their authority"
+      }
+    ],
+    "packaging": {
+      "release_manifest": "deploy/canonical-image-pack-manifest.json",
+      "source_master_count": 7,
+      "release_runtime_count": 7,
+      "mobile_projection_count": 7,
+      "mobile_assets_are_runtime_aliases": true,
+      "master_png_release_policy": "SOURCE_ONLY_NOT_DEPLOYED",
+      "release_runtime_paths_are_exact": true,
+      "release_inventory_delta_from_previous_freeze": {
+        "files_added": 7,
+        "bytes_added": 5236664,
+        "owner_approved_project_created_entries_added": 7
+      },
+      "deterministic": true,
+      "superseded_eastern_guardian_shield_asset_canonical": false
+    },
+    "zone_mapping_discrepancies": [
+      {
+        "scope": "world.messenger",
+        "discrepancy": "story evidence identifies a transition scene (Zone 1 Shot 10), not a standalone zone label",
+        "resolution": "zone_id=1 and the transition locator remain explicit; no story key was renamed"
+      },
+      {
+        "scope": "Zone 5 map filename",
+        "discrepancy": "assets/maps/e10-vs1f-landmarks/zone-05-sky-tower.webp uses a legacy display label while the identity registry and screenplay place Smith Elder in Zone 5 Orc Tribe",
+        "resolution": "the existing map asset is preserved; the canonical NPC registry follows the identity registry and screenplay"
+      },
+      {
+        "scope": "world.smith_elder legacy art",
+        "discrepancy": "assets/hero/npc_blacksmith_tall.webp and npc_blacksmith_full.webp are generic blacksmith assets, not the Smith Elder identity",
+        "resolution": "they remain legacy_art references only and are not used as runtime_asset"
+      }
+    ],
+    "registry_source_of_truth": "world_npcs",
+    "legacy_identity_registry_role": "identity and story compatibility only; presentation fields in world_npcs are canonical"
+  },
   "master_canvas": "1056x1408",
   "source_format": "PNG",
   "runtime_format": "WebP",
@@ -296,77 +483,209 @@
   "world_npcs": [
     {
       "canonical_id": "world.village_elder",
-      "display_name_candidate": "村長 / Village Elder",
+      "display_name": "村長 / Village Elder",
+      "zone_id": 1,
       "zone": "Zone 1 Newbie Village",
-      "story_role": "living teacher and keeper of the first Go trial",
-      "current_art": [
+      "role": "Living teacher and keeper of the first Go trial",
+      "asset_key": "npc_world_village_elder",
+      "approval_pack": "P1",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p1/world_village_elder_p1.png",
+      "runtime_asset": "assets/world/characters/wave2_p1/world_village_elder_p1.webp",
+      "mobile_asset": "assets/world/characters/wave2_p1/world_village_elder_p1.webp",
+      "legacy_art": [
         "assets/e10/art/zone1/lord_trial/zone1_village_elder_reference.png",
         "assets/e10/art/zone1/lord_trial/zone1_village_elder_reference.webp"
       ],
-      "future_asset_key": "npc_world_village_elder",
+      "story_references": [
+        {
+          "source": "docs/planning/e10_voice_cast_bible_v1.md",
+          "locator": "e10.village_elder",
+          "required_text": "e10.village_elder"
+        },
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 1 Elder beats",
+          "required_text": "Elder"
+        }
+      ],
+      "story_aliases": ["Elder", "村長"],
       "player_selectable": false,
-      "combat_authority": "none"
+      "combat_authority": "none",
+      "equipment_authority": "none"
     },
     {
       "canonical_id": "world.messenger",
-      "display_name_candidate": "信使 / Messenger",
-      "zone": "Zone 1 Shot 10",
-      "story_role": "brings the missing-caravan hook after the Elder trial",
-      "current_art": [],
-      "future_asset_key": "npc_world_messenger",
+      "display_name": "信使 / Messenger",
+      "zone_id": 1,
+      "zone": "Zone 1 Newbie Village / Shot 10 transition",
+      "role": "Courier who delivers the missing-caravan hook after the Elder trial",
+      "asset_key": "npc_world_messenger",
+      "approval_pack": "P1",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p1/world_messenger_p1.png",
+      "runtime_asset": "assets/world/characters/wave2_p1/world_messenger_p1.webp",
+      "mobile_asset": "assets/world/characters/wave2_p1/world_messenger_p1.webp",
+      "legacy_art": [],
+      "story_references": [
+        {
+          "source": "docs/planning/e10_voice_cast_bible_v1.md",
+          "locator": "e10.messenger",
+          "required_text": "e10.messenger"
+        },
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 1 Shot 10 Runner/messenger",
+          "required_text": "Runner/messenger"
+        }
+      ],
+      "story_aliases": ["Messenger", "Runner", "runner", "信使"],
       "player_selectable": false,
-      "combat_authority": "none"
-    },
-    {
-      "canonical_id": "world.herder",
-      "display_name_candidate": "牧人 / Herder",
-      "zone": "Zone 2 Slime Plains",
-      "story_role": "witness to the slimes' suffering and corrupted hive",
-      "current_art": [],
-      "future_asset_key": "npc_world_herder",
-      "player_selectable": false,
-      "combat_authority": "none"
+      "combat_authority": "none",
+      "equipment_authority": "none"
     },
     {
       "canonical_id": "world.smith_elder",
-      "display_name_candidate": "鐵匠長老 / Smith-Elder",
+      "display_name": "鐵匠長老 / Smith Elder",
+      "zone_id": 5,
       "zone": "Zone 5 Orc Tribe",
-      "story_role": "explains the corrupted ore and Chieftain's axe history",
-      "current_art": [],
-      "related_noncanonical_asset": "assets/hero/npc_blacksmith_tall.webp",
-      "future_asset_key": "npc_world_smith_elder",
+      "role": "Elderly smith and craftsman authority who explains the corrupted ore and Chieftain's axe history",
+      "asset_key": "npc_world_smith_elder",
+      "approval_pack": "P2",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p2/world_smith_elder_p2.png",
+      "runtime_asset": "assets/world/characters/wave2_p2/world_smith_elder_p2.webp",
+      "mobile_asset": "assets/world/characters/wave2_p2/world_smith_elder_p2.webp",
+      "legacy_art": [
+        "assets/hero/npc_blacksmith_tall.webp",
+        "assets/hero/npc_blacksmith_full.webp"
+      ],
+      "story_references": [
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 5 Smith-elder beats",
+          "required_text": "Smith-elder"
+        }
+      ],
+      "story_aliases": ["Smith-elder", "鐵匠長老"],
       "player_selectable": false,
-      "combat_authority": "none"
+      "combat_authority": "none",
+      "equipment_authority": "none"
     },
     {
       "canonical_id": "world.archmage",
-      "display_name_candidate": "大法師 / Archmage",
+      "display_name": "大法師 / Archmage",
+      "zone_id": 7,
       "zone": "Zone 7 Sage Tower",
-      "story_role": "mentor who reframes the Hero's search for a correct answer",
-      "current_art": [],
-      "future_asset_key": "npc_world_archmage",
+      "role": "High-level mentor who reframes the Hero's search for a correct answer",
+      "asset_key": "npc_world_archmage",
+      "approval_pack": "P2",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p2/world_archmage_p2.png",
+      "runtime_asset": "assets/world/characters/wave2_p2/world_archmage_p2.webp",
+      "mobile_asset": "assets/world/characters/wave2_p2/world_archmage_p2.webp",
+      "legacy_art": [],
+      "story_references": [
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 7 Archmage beats",
+          "required_text": "Archmage"
+        }
+      ],
+      "story_aliases": ["Archmage", "大法師"],
       "player_selectable": false,
-      "combat_authority": "none"
+      "combat_authority": "none",
+      "equipment_authority": "none"
     },
     {
       "canonical_id": "world.serel",
-      "display_name_candidate": "Serel / 瑟瑞爾",
+      "display_name": "Serel / 瑟瑞爾",
+      "zone_id": 8,
       "zone": "Zone 8 Demon Castle Front",
-      "story_role": "working frontline officer responsible for real soldiers",
-      "current_art": [],
-      "future_asset_key": "npc_world_serel",
+      "role": "Working frontline officer responsible for real soldiers",
+      "asset_key": "npc_world_serel",
+      "approval_pack": "P2",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p2/world_serel_p2.png",
+      "runtime_asset": "assets/world/characters/wave2_p2/world_serel_p2.webp",
+      "mobile_asset": "assets/world/characters/wave2_p2/world_serel_p2.webp",
+      "legacy_art": [],
+      "story_references": [
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 8 Serel beats",
+          "required_text": "Serel"
+        }
+      ],
+      "story_aliases": ["Serel", "瑟瑞爾"],
       "player_selectable": false,
-      "combat_authority": "none"
+      "combat_authority": "none",
+      "equipment_authority": "none"
+    },
+    {
+      "canonical_id": "world.herder",
+      "display_name": "牧人 / Herder",
+      "zone_id": 2,
+      "zone": "Zone 2 Slime Plains",
+      "role": "Field caretaker and civilian witness to the slimes' suffering and corrupted hive",
+      "asset_key": "npc_world_herder",
+      "approval_pack": "P3",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p3/world_herder_p3.png",
+      "runtime_asset": "assets/world/characters/wave2_p3/world_herder_p3.webp",
+      "mobile_asset": "assets/world/characters/wave2_p3/world_herder_p3.webp",
+      "legacy_art": [],
+      "story_references": [
+        {
+          "source": "docs/planning/e10_voice_cast_bible_v1.md",
+          "locator": "e10.zone2.herder",
+          "required_text": "e10.zone2.herder"
+        },
+        {
+          "source": "assets/e10/audio/zone2/zone2-dialogue-assets.json",
+          "locator": "speaker=herder",
+          "required_text": "\"speaker\": \"herder\""
+        },
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 2 Herder testimony",
+          "required_text": "Herder testimony"
+        }
+      ],
+      "story_aliases": ["Herder", "牧人", "牧者", "herder"],
+      "player_selectable": false,
+      "combat_authority": "none",
+      "equipment_authority": "none"
     },
     {
       "canonical_id": "world.eastern_guardian",
-      "display_name_candidate": "東方守護者 / Eastern Guardian",
+      "display_name": "東方守護者 / Eastern Guardian",
+      "zone_id": 10,
       "zone": "Zone 10 Ancient Doom Temple",
-      "story_role": "silent guardian who communicates by look and gesture",
-      "current_art": [],
-      "future_asset_key": "npc_world_eastern_guardian",
+      "role": "Silent regional guardian who communicates by look and gesture",
+      "asset_key": "npc_world_eastern_guardian",
+      "approval_pack": "P3",
+      "art_status": "OWNER_APPROVED_FROZEN",
+      "art_master": "assets/world/characters/wave2_p3/world_eastern_guardian_p3.png",
+      "runtime_asset": "assets/world/characters/wave2_p3/world_eastern_guardian_p3.webp",
+      "mobile_asset": "assets/world/characters/wave2_p3/world_eastern_guardian_p3.webp",
+      "legacy_art": [],
+      "story_references": [
+        {
+          "source": "docs/planning/e10_final_screenplay_v1.md",
+          "locator": "Zone 10 Eastern Guardian contract",
+          "required_text": "Eastern Guardian"
+        },
+        {
+          "source": "docs/planning/e10_final_screenplay_integration_contract_v1.md",
+          "locator": "Source / Eastern Guardian silence",
+          "required_text": "Eastern Guardian"
+        }
+      ],
+      "story_aliases": ["Eastern Guardian", "Eastern guardian", "東方守護者"],
       "player_selectable": false,
-      "combat_authority": "none"
+      "combat_authority": "none",
+      "equipment_authority": "none"
     }
   ],
   "identity_aliases": [

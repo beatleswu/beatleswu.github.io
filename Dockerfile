@@ -56,6 +56,10 @@ COPY monster_taxonomy.py ./
 COPY chapter_i18n.py ./
 COPY backend_i18n.py ./
 COPY community_leaderboard_rewards.py ./
+COPY rpg_item_registry.py ./
+COPY rpg_wave1_lane_b.py ./
+COPY rpg_world_npc_registry.py ./
+COPY docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json ./docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json
 # Map Battle V1 is application runtime, not external static content. Keep the
 # shared runtime modules explicit so app.py can import the authoritative
 # settlement service from the built image.
