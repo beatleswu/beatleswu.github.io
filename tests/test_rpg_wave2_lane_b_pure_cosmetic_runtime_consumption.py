@@ -110,7 +110,7 @@ def test_pure_cosmetics_have_no_functional_effect_projection():
 def test_server_wardrobe_payload_and_client_consumer_keep_state_domains_separate():
     assert "player_wardrobe" in APP
     assert "player_appearance" in APP
-    assert "pure_presentation = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item['id'])" in APP
+    assert "presentation_metadata = _appearance_presentation_metadata(item)" in APP
     assert "wardrobe_item['presentation']" in APP
     assert "'owned': item['id'] in owned_ids" in APP
     assert "'equipped': item['id'] in equipped_ids" in APP

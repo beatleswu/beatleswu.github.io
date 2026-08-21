@@ -70,6 +70,7 @@ header:not(.cg-nav) {
 .profile-wearable-host { position:relative; width:100%; height:100%; }
 .profile-wearable-host > img { position:relative; z-index:1; }
 .profile-wearable-host > .rpg-wearable-stage { z-index:2; }
+.profile-cosmetic-reference { max-width:100%; margin:8px auto 0; color:var(--ink3); }
 .hero-name {
   font-family: 'Cormorant Garamond', serif;
   font-size: clamp(26px, 4vw, 36px); font-weight: 700; margin-bottom: 6px;
@@ -354,7 +355,7 @@ function renderProfile(d) {
     mage:'chibi_mage_transparent_cropped.webp', sage:'chibi_sage_transparent_cropped.webp',
   };
   const _cart = (d.character_key && CHAR_ART[d.character_key]) || CHAR_ART.apprentice;
-  const avatarContent = `<div class="profile-wearable-host"><img id="profile-wearable-fallback" src="/assets/hero/characters/${_cart}" alt="avatar"><div class="rpg-wearable-stage" id="profile-wearable-stage" hidden aria-hidden="true"></div></div>`;
+  const avatarContent = `<div class="profile-wearable-host"><img id="profile-wearable-fallback" src="/assets/hero/characters/${_cart}" alt="avatar"><div class="rpg-wearable-stage" id="profile-wearable-stage" hidden aria-hidden="true"></div></div><div class="profile-cosmetic-reference" id="profile-cosmetic-reference" hidden aria-label="equipped style reference"></div>`;
 
   // 已獲得徽章 ID set
   const earnedIds = new Set(d.badges.map(b => b.id));
@@ -463,6 +464,10 @@ function renderProfile(d) {
       d.character_key,
       d.functional_equipment || [],
       { fallbackElement: document.getElementById('profile-wearable-fallback') },
+    );
+    wearableRenderer.renderCosmeticSafe(
+      document.getElementById('profile-cosmetic-reference'),
+      d.equipped_wardrobe || [],
     );
   }
   window.__GO_STONE_BOARD_SELECTION__ = {
