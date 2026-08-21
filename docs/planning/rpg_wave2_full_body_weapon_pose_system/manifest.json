@@ -1,0 +1,137 @@
+{
+  "task_id": "RPG_WAVE2_FULL_BODY_WEAPON_POSE_SYSTEM_PROTOTYPE_001",
+  "foundation_head": "2575e79f14b62e3880cd66f61a4055cf01d67e1b",
+  "requested_current_head": "336f0ba1b93923384d329449556de2b53db2e739",
+  "effective_current_head": "4d279bae10e4697668b3eefed8a330ebb959bb22",
+  "branch": "codex/rpg-wave2-modular-equipment-production-v2-p1",
+  "review_only": true,
+  "pose_family": "ONE_HAND_SWORD_POSE",
+  "player_frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [
+      1056,
+      1408
+    ],
+    "body_frame_variants": 1
+  },
+  "characters": [
+    "apprentice",
+    "mage",
+    "paladin"
+  ],
+  "weapon": {
+    "test_weapon": "iron_sword",
+    "universal_weapon_asset_count": 1,
+    "universal_asset": "../rpg_wave2_modular_2d_handheld_sword_prototype/sources/iron_sword_handheld_universal.png",
+    "static_direction": "downward_slight_outward_diagonal",
+    "future_compatible_family": [
+      "wooden_sword",
+      "iron_sword",
+      "fox_fang"
+    ],
+    "runtime_asset_status": "NOT_CREATED_REVIEW_ONLY"
+  },
+  "architecture": {
+    "local_hand_patch_used": false,
+    "local_forearm_patch_used": false,
+    "oversized_grip_hand": false,
+    "full_body_pose_variant_count": 3,
+    "universal_weapon_asset_count": 1,
+    "item_character_bespoke_redraws": 0,
+    "review_composites_include_weapon_pixels": true,
+    "runtime_composition_still_requires_universal_weapon_layer": true
+  },
+  "qa": [
+    {
+      "character_key": "apprentice",
+      "same_character_identity": "PASS_REVIEW_READY",
+      "full_body_anatomy_coherence": "PASS_REVIEW_READY",
+      "hand_grip_believability": "PASS_REVIEW_READY",
+      "sword_recognizability": "PASS_REVIEW_READY",
+      "sleeve_cuff_continuity": "PASS_REVIEW_READY",
+      "face_clearance": "PASS",
+      "body_collision": "PASS",
+      "mobile_readability": "PASS_REVIEW_READY",
+      "pasted_limb_appearance": 0
+    },
+    {
+      "character_key": "mage",
+      "same_character_identity": "PASS_REVIEW_READY",
+      "full_body_anatomy_coherence": "PASS_REVIEW_READY",
+      "hand_grip_believability": "PASS_REVIEW_READY",
+      "sword_recognizability": "PASS_REVIEW_READY",
+      "sleeve_cuff_continuity": "PASS_REVIEW_READY",
+      "face_clearance": "PASS",
+      "body_collision": "PASS",
+      "mobile_readability": "PASS_REVIEW_READY",
+      "pasted_limb_appearance": 0
+    },
+    {
+      "character_key": "paladin",
+      "same_character_identity": "PASS_REVIEW_READY",
+      "full_body_anatomy_coherence": "PASS_REVIEW_READY",
+      "hand_grip_believability": "PASS_REVIEW_READY",
+      "sword_recognizability": "PASS_REVIEW_READY",
+      "sleeve_cuff_continuity": "PASS_REVIEW_READY",
+      "face_clearance": "PASS",
+      "body_collision": "PASS",
+      "mobile_readability": "PASS_REVIEW_READY",
+      "pasted_limb_appearance": 0
+    }
+  ],
+  "aggregate_qa": {
+    "same_character_identity": "3/3_REVIEW_READY",
+    "full_body_anatomy_coherence": "3/3_REVIEW_READY",
+    "hand_grip_believability": "3/3_REVIEW_READY",
+    "sword_recognizability": "3/3_REVIEW_READY",
+    "sleeve_cuff_continuity": "3/3_REVIEW_READY",
+    "mobile_readability": "3/3_REVIEW_READY",
+    "pasted_limb_appearance_count": 0,
+    "alpha_artifacts": 0,
+    "white_box_artifacts": 0,
+    "matte_halo_artifacts": 0,
+    "chroma_residue": 0
+  },
+  "modular_armor_compatibility": "REQUIRES_NEW_POSE_OVERLAY_VARIANT",
+  "fallback": {
+    "unsupported_pose": "WAIST_SHEATHED",
+    "presentation_only": true
+  },
+  "authority": {
+    "functional_equipment_ownership": "player_inventory",
+    "functional_effects": "server EQUIPMENT_DEFS",
+    "pose_selection": "PRESENTATION_ONLY",
+    "client_combat_authority": "NO",
+    "combat_delta": 0
+  },
+  "outputs": {
+    "matrix": "matrices/ONE_HAND_SWORD_POSE_3_CHARACTER_MATRIX.png",
+    "mobile_matrix": "matrices/ONE_HAND_SWORD_POSE_MOBILE_MATRIX.png",
+    "comparison": "matrices/DEFAULT_VS_SWORD_POSE_COMPARISON.png",
+    "review_html": "one_hand_sword_pose_review.html",
+    "variants": {
+      "apprentice": "variants/apprentice_one_hand_sword_pose.png",
+      "mage": "variants/mage_one_hand_sword_pose.png",
+      "paladin": "variants/paladin_one_hand_sword_pose.png"
+    }
+  },
+  "source_provenance": {
+    "owner_references": "VISUAL_DIRECTION_ONLY",
+    "owner_reference_pixels_reused": false,
+    "generated_raw_sources": {
+      "apprentice": "sources/generated_raw/apprentice_one_hand_sword_pose.png",
+      "mage": "sources/generated_raw/mage_one_hand_sword_pose.png",
+      "paladin": "sources/generated_raw/paladin_one_hand_sword_pose.png"
+    },
+    "canonical_character_sources": {
+      "apprentice": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+      "mage": "assets/hero/characters/wave2_p1/mage_p1.png",
+      "paladin": "assets/hero/characters/wave2_p1/paladin_p1.png"
+    }
+  },
+  "source_sha256": {
+    "apprentice": "d7c1b2d631da009640972d41d9c9818ac983dd7a3beaf4e51d43249d9d7b3956",
+    "mage": "f12c9ea4fa362390f319d1fd46a34d6c06fa53aa6e5a2a8aa75b11e5662d260f",
+    "paladin": "5d2ed28399d5ceb41655eea98f271e281e201f71b4e3c4db81522045c5a6f291"
+  }
+}

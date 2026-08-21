@@ -6,6 +6,7 @@
 <title data-i18n="pf.title">Profile — 弈境奇兵 (Go Odyssey)</title>
 <style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
 <script src="/i18n.js?v=20260710a"></script>
+<script src="/js/rpg_wave2_wearable_renderer.js?v=20260820p3"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -66,6 +67,9 @@ header:not(.cg-nav) {
 .hero-avatar img {
   width: 100%; height: 100%; object-fit: contain; object-position: center bottom; border-radius: 50%;
 }
+.profile-wearable-host { position:relative; width:100%; height:100%; }
+.profile-wearable-host > img { position:relative; z-index:1; }
+.profile-wearable-host > .rpg-wearable-stage { z-index:2; }
 .hero-name {
   font-family: 'Cormorant Garamond', serif;
   font-size: clamp(26px, 4vw, 36px); font-weight: 700; margin-bottom: 6px;
@@ -350,7 +354,7 @@ function renderProfile(d) {
     mage:'chibi_mage_transparent_cropped.webp', sage:'chibi_sage_transparent_cropped.webp',
   };
   const _cart = (d.character_key && CHAR_ART[d.character_key]) || CHAR_ART.apprentice;
-  const avatarContent = `<img src="/assets/hero/characters/${_cart}" alt="avatar">`;
+  const avatarContent = `<div class="profile-wearable-host"><img id="profile-wearable-fallback" src="/assets/hero/characters/${_cart}" alt="avatar"><div class="rpg-wearable-stage" id="profile-wearable-stage" hidden aria-hidden="true"></div></div>`;
 
   // 已獲得徽章 ID set
   const earnedIds = new Set(d.badges.map(b => b.id));
@@ -452,6 +456,15 @@ function renderProfile(d) {
       <div id="games-list"><div class="badge-empty">${_gt('載入中…', 'Loading…')}</div></div>
     </div>
   `;
+  const wearableRenderer = window.GoOdysseyWearableRenderer;
+  if (wearableRenderer) {
+    wearableRenderer.renderSafe(
+      document.getElementById('profile-wearable-stage'),
+      d.character_key,
+      d.functional_equipment || [],
+      { fallbackElement: document.getElementById('profile-wearable-fallback') },
+    );
+  }
   loadGames(d.username);
 }
 

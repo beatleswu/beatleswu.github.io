@@ -1,0 +1,185 @@
+{
+  "schema": "go-odyssey.static-modular-2d-equipment.templates.v1",
+  "contract_name": "Static Modular 2D Equipment",
+  "status": "OWNER_REVIEW_CONTRACT",
+  "coordinate_system": {
+    "canvas": [1056, 1408],
+    "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "origin": "top_left",
+    "units": "normalized_0_to_1",
+    "rounding": "deterministic_renderer_round_half_up"
+  },
+  "zones": {
+    "FACE_SAFE_ZONE": {
+      "rect": [0.40, 0.085, 0.60, 0.205],
+      "meaning": "eyes_nose_mouth_core_face_reading_area",
+      "non_face_equipment": "MUST_NOT_INTERSECT",
+      "face_accessory": "MAY_INTERSECT_ONLY_BY_DESIGN"
+    },
+    "HAIR_ZONE": {
+      "rect": [0.32, 0.035, 0.68, 0.29],
+      "meaning": "hair_bangs_hood_and_head_silhouette",
+      "default_rule": "preserve_base_hair_unless_reusable_mask_is_declared"
+    },
+    "NECK_ZONE": {
+      "rect": [0.43, 0.205, 0.57, 0.29],
+      "meaning": "jaw_neck_and_collar_transition",
+      "default_rule": "keep_open_for_torso_and_robe_templates"
+    },
+    "TORSO_ZONE": {
+      "rect": [0.31, 0.25, 0.69, 0.58],
+      "meaning": "primary_body_overlay_region"
+    },
+    "SHOULDER_ZONE": {
+      "rect": [0.18, 0.25, 0.82, 0.43],
+      "meaning": "shoulder_mantle_and_armor_volume_region"
+    },
+    "WAIST_ZONE": {
+      "rect": [0.28, 0.43, 0.72, 0.62],
+      "meaning": "belt_sheath_and_waist_charm_region"
+    },
+    "HAND_ZONE": {
+      "rects": [[0.12, 0.43, 0.30, 0.60], [0.70, 0.43, 0.88, 0.60]],
+      "meaning": "open_hand_and_forearm_reading_region",
+      "default_rule": "never_fake_a_grip; use_carry_or_forearm_presentation"
+    },
+    "BACK_ZONE": {
+      "rect": [0.30, 0.16, 0.70, 0.58],
+      "meaning": "back_mounted_and_back_body_region",
+      "default_rule": "behind_character_base_with_reusable_hair_or_body_occlusion"
+    }
+  },
+  "templates": {
+    "WEAPON_WAIST": {
+      "anchor": "waist_right_or_waist_left",
+      "anchor_point": [0.72, 0.46],
+      "bounding_box": [0.54, 0.34, 0.86, 0.65],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "MUST_REMAIN_BELOW_NECK_ZONE",
+      "shoulder_limit": "MUST_NOT_REQUIRE_SHOULDER_REDESIGN",
+      "waist_limit": "MUST_CONNECT_TO_WAIST_OR_SHEATH_REGION",
+      "front_back_layer": ["BACK_WEAPON", "OPTIONAL_FRONT_WEAPON_SEGMENT"],
+      "occlusion_rule": "sheath_or_lower_weapon_behind_body; handle_visible; no_hand_grip_pose",
+      "mobile_visibility_rule": "silhouette_and_handle_must_read_at_hero_mobile_size"
+    },
+    "WEAPON_BACK": {
+      "anchor": "back_hilt",
+      "anchor_point": [0.62, 0.22],
+      "bounding_box": [0.38, 0.12, 0.78, 0.60],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "may_approach_neck_but_must_not_cover_face_or_jaw",
+      "shoulder_limit": "may_cross_shoulder_with_partial_hilt_visibility",
+      "waist_limit": "MUST_NOT_INTERSECT_LEGS_UNNATURALLY",
+      "front_back_layer": ["BACK_WEAPON", "OPTIONAL_FRONT_HILT_SEGMENT"],
+      "occlusion_rule": "blade_behind_body; reusable_hair_or_body_mask_only; no_character_redraw",
+      "mobile_visibility_rule": "hilt_or_upper_blade_must_remain_recognizable_without_overpowering_character"
+    },
+    "FOREARM_GEAR": {
+      "anchor": "forearm",
+      "anchor_point": [0.69, 0.48],
+      "bounding_box": [0.60, 0.40, 0.90, 0.62],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "MUST_NOT_ENTER_NECK_OR_FACE_ZONE",
+      "shoulder_limit": "must_follow_forearm_volume_without_expanding_shoulder",
+      "waist_limit": "NOT_APPLICABLE",
+      "front_back_layer": ["FRONT_BODY"],
+      "occlusion_rule": "forearm_or_gauntlet_presentation; hand_remains_open; no_fake_finger_grip",
+      "mobile_visibility_rule": "must_read_as_forearm_gear_without_covering_hand_identity"
+    },
+    "TORSO_ARMOR": {
+      "anchor": "torso",
+      "anchor_point": [0.50, 0.36],
+      "bounding_box": [0.28, 0.25, 0.72, 0.60],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "collar_may_touch_lower_neck_boundary_but_must_leave_jaw_readable",
+      "shoulder_limit": "shoulder_volume_must_remain_inside_shoulder_zone",
+      "waist_limit": "lower_edge_must_not_float_above_waist_or_cover_hands",
+      "front_back_layer": ["TORSO_ARMOR", "OPTIONAL_FRONT_BODY_MASK"],
+      "occlusion_rule": "universal_body_overlay; shared_face_clearance_mask; no_character_specific_armor",
+      "mobile_visibility_rule": "armor_material_and_equipped_state_must_read_without_face_or_identity_loss"
+    },
+    "ROBE_OVERLAY": {
+      "anchor": "torso",
+      "anchor_point": [0.50, 0.35],
+      "bounding_box": [0.24, 0.22, 0.76, 0.69],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "open_v_or_low_collar; never_cover_eyes_nose_mouth",
+      "shoulder_limit": "sleeves_and_collar_must_follow_shared_frame_shoulders",
+      "waist_limit": "hem_must_preserve_leg_and_hand_readability",
+      "front_back_layer": ["TORSO_ARMOR", "OPTIONAL_BACK_BODY"],
+      "occlusion_rule": "shared_face_safe_clearance; open_neck_geometry; reusable_clothing_mask_only",
+      "mobile_visibility_rule": "robe_palette_and_open_neckline_must_survive_mobile_downscale"
+    },
+    "SHOULDER_MANTLE": {
+      "anchor": "shoulder_or_torso",
+      "anchor_point": [0.50, 0.31],
+      "bounding_box": [0.16, 0.22, 0.84, 0.52],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "central_neck_opening_required; side volume_only",
+      "shoulder_limit": "may_fill_shoulder_zone_but_must_preserve_head_silhouette",
+      "waist_limit": "must_not_become_full_body_redraw_or_leg_overlay",
+      "front_back_layer": ["BACK_BODY", "OPTIONAL_FRONT_BODY"],
+      "occlusion_rule": "back_mantle_behind_base_with_small_reusable_shoulder_foreground_segments",
+      "mobile_visibility_rule": "outer_mantle_silhouette_and_material_must_read_at_mobile_size"
+    },
+    "FACE_ACCESSORY": {
+      "anchor": "face",
+      "anchor_point": [0.50, 0.15],
+      "bounding_box": [0.34, 0.045, 0.66, 0.25],
+      "face_safe_zone": "MAY_INTENTIONALLY_INTERSECT_BY_DESIGN",
+      "neck_limit": "must_not_extend_into_torso_without_explicit_identity",
+      "shoulder_limit": "MUST_NOT_REQUIRE_SHOULDER_REDESIGN",
+      "waist_limit": "NOT_APPLICABLE",
+      "front_back_layer": ["HEAD_FACE", "HAIR_FRONT_MASK"],
+      "occlusion_rule": "face_accessory_may_cover_face; preserve hair with reusable mask; never grant gameplay effects",
+      "mobile_visibility_rule": "face_accessory_must_remain_intentionally_recognizable; face coverage_is_allowed"
+    },
+    "NECK_CHEST_ACCESSORY": {
+      "anchor": "chest",
+      "anchor_point": [0.54, 0.30],
+      "bounding_box": [0.37, 0.18, 0.63, 0.40],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "may_enter_lower_neck_zone_but_must_not_touch_face_safe_zone",
+      "shoulder_limit": "must_remain_inside_torso_and_shoulder_transition",
+      "waist_limit": "MUST_NOT_DRIFT_TO_WAIST",
+      "front_back_layer": ["FRONT_ACCESSORY"],
+      "occlusion_rule": "small_chest_or_pendant_overlay; base clothing remains visible",
+      "mobile_visibility_rule": "pendant_or_brooch_must_read_without_becoming_a_torso_overlay"
+    },
+    "WAIST_ACCESSORY": {
+      "anchor": "waist_left_or_waist_right",
+      "anchor_point": [0.38, 0.47],
+      "bounding_box": [0.24, 0.39, 0.76, 0.64],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "NOT_APPLICABLE",
+      "shoulder_limit": "NOT_APPLICABLE",
+      "waist_limit": "must_attach_to_belt_or_waist_silhouette_without_covering_hands",
+      "front_back_layer": ["FRONT_ACCESSORY", "OPTIONAL_BACK_BODY"],
+      "occlusion_rule": "small_charm_or_belt_item; no inventory or economy authority",
+      "mobile_visibility_rule": "must remain a small readable accent and not distort body proportions"
+    },
+    "BACK_ACCESSORY": {
+      "anchor": "back",
+      "anchor_point": [0.50, 0.30],
+      "bounding_box": [0.26, 0.15, 0.74, 0.60],
+      "face_safe_zone": "MUST_NOT_INTERSECT",
+      "neck_limit": "must preserve head_and_jaw_silhouette",
+      "shoulder_limit": "may use shoulder zone with reusable mask",
+      "waist_limit": "lower edge must not collide with legs_or_backpack",
+      "front_back_layer": ["BACK_BODY", "OPTIONAL_FRONT_BODY"],
+      "occlusion_rule": "behind-character accessory; use reusable hair/body/backpack masks where declared",
+      "mobile_visibility_rule": "outer silhouette must identify accessory without hiding character identity"
+    }
+  },
+  "production_invariants": {
+    "item_character_bespoke_redraws": 0,
+    "body_frame_variants": 1,
+    "gameplay_authority": "NONE",
+    "ownership_authority": "player_inventory",
+    "equipped_authority": "player_inventory.equipped",
+    "effect_authority": "server EQUIPMENT_DEFS",
+    "static_sword_mode": "WAIST_SHEATHED",
+    "back_mounted_fallback": "BACK_MOUNTED",
+    "client_combat_authority": false
+  }
+}

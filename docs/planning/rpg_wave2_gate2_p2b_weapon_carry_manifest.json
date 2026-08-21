@@ -1,0 +1,126 @@
+{
+  "task_id": "RPG_WAVE2_GATE2_P2B_WEAPON_CARRY_FITTING_001",
+  "status": "owner_review_candidate",
+  "base_sha": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "continues_head": "17a258725844984a9f0573ac28c0d2cb69236042",
+  "review_only": true,
+  "runtime_wiring": false,
+  "characters": {
+    "apprentice": "assets/hero/characters/wave2_p1/apprentice_p1.png",
+    "mage": "assets/hero/characters/wave2_p1/mage_p1.png",
+    "paladin": "assets/hero/characters/wave2_p1/paladin_p1.png"
+  },
+  "player_frame": {
+    "id": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [1056, 1408],
+    "body_frame_variants": 1
+  },
+  "weapon": {
+    "id": "iron_sword",
+    "inventory_icon": "assets/hero/equipment/functional/iron_sword.svg",
+    "held_reference": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/composites/{character}_iron_sword.png",
+    "carry_source": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/sources/iron_sword_carry_imagegen_source.png",
+    "carry_cutout": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_assets/p2b_weapon_carry/cutouts/iron_sword_carry_cutout.png",
+    "presentation_is_one_universal_overlay": true,
+    "item_character_bespoke_redraws": 0
+  },
+  "modes": {
+    "current_held": {
+      "result": "FAIL_AS_CANONICAL_STATIC_MODE",
+      "hand_grip_alignment": "FAIL",
+      "held_weapon_visual": "FAIL",
+      "root_cause": "base character hands are open and do not form a grip around the sword handle",
+      "composites": "reference existing P2 hand-held outputs"
+    },
+    "waist_sheathed": {
+      "presentation": "sheathed at viewer-right waist behind the unchanged character base",
+      "render_layer": "BEHIND_CHARACTER_BASE",
+      "target_height": 500,
+      "rotation_degrees": 24,
+      "source_hilt_anchor_ratio": [0.50, 0.08],
+      "hilt_anchor_positions": {
+        "apprentice": [760, 640],
+        "mage": [742, 625],
+        "paladin": [772, 665]
+      },
+      "result": "PASS"
+    },
+    "back_mounted": {
+      "presentation": "sheathed diagonally behind the body with hilt visible over the viewer-right shoulder",
+      "render_layer": "BEHIND_CHARACTER_BASE",
+      "target_height": 680,
+      "rotation_degrees": 22,
+      "source_hilt_anchor_ratio": [0.50, 0.08],
+      "hilt_anchor_positions": {
+        "apprentice": [655, 312],
+        "mage": [632, 300],
+        "paladin": [665, 350]
+      },
+      "result": "PASS_WITH_MINOR_OFFSET"
+    }
+  },
+  "authority": {
+    "functional_equipment_ownership": "player_inventory",
+    "functional_equipped": "player_inventory.equipped",
+    "functional_effects": "server EQUIPMENT_DEFS",
+    "gameplay_authority": false,
+    "combat_delta_from_rendering": 0,
+    "writes_api": false,
+    "writes_db": false
+  },
+  "occlusion": {
+    "body_occlusion_strategy": "unchanged character base renders over the carried weapon",
+    "hair_occlusion_strategy": "base hair naturally occludes the back-mounted hilt where it overlaps",
+    "additional_character_masks": 0,
+    "existing_p2_hair_masks_preserved": true,
+    "mask_complexity": "LOW_REUSABLE_BASE_OCCLUSION"
+  },
+  "scalability": {
+    "universal_weapon_carry_proven": "YES",
+    "universal_overlays": 1,
+    "body_frame_variants": 1,
+    "character_reusable_masks": 3,
+    "item_character_bespoke_redraws": 0,
+    "future_weapon_classes_supported_by_current_model": [
+      "Sword",
+      "Staff",
+      "Short blade",
+      "Large blade"
+    ],
+    "future_weapon_classes_not_proven": ["Bow", "highly unusual silhouettes"]
+  },
+  "qa": {
+    "apprentice_waist_result": "PASS",
+    "mage_waist_result": "PASS",
+    "paladin_waist_result": "PASS",
+    "apprentice_back_result": "PASS_WITH_MINOR_OFFSET",
+    "mage_back_result": "PASS_WITH_MINOR_OFFSET",
+    "paladin_back_result": "PASS_WITH_MINOR_OFFSET",
+    "waist_sheathed_result": "PASS",
+    "back_mounted_result": "PASS_WITH_MINOR_OFFSET",
+    "static_weapon_mode": "WAIST_SHEATHED",
+    "silhouette": "PASS",
+    "body_collision": "PASS",
+    "robe_collision": "PASS_WITH_MINOR_OFFSET",
+    "armor_collision": "PASS_WITH_MINOR_OFFSET",
+    "hair_collision": "PASS_WITH_REUSABLE_BASE_OCCLUSION",
+    "mobile_readability": "PASS",
+    "weapon_recognizability": "PASS",
+    "character_identity_preservation": "PASS",
+    "reusability": "PASS",
+    "mask_complexity": "LOW"
+  },
+  "preserved_p2_architecture": {
+    "dragon_scale_reusable_fitting": "PASS_UNCHANGED",
+    "fox_mask_reusable_fitting": "PASS_UNCHANGED",
+    "hair_front_mask_architecture": "PASS_UNCHANGED"
+  },
+  "outputs": {
+    "contact_sheet": "docs/planning/rpg_wave2_gate2_p2b_weapon_carry_contact_sheet.png",
+    "review_html": "docs/planning/rpg_wave2_gate2_p2_wearable_fitting_review.html",
+    "review_composites": 9,
+    "current_held": 3,
+    "waist_sheathed": 3,
+    "back_mounted": 3
+  }
+}

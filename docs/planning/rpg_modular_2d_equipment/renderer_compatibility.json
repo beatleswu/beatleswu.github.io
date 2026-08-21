@@ -1,0 +1,65 @@
+{
+  "schema": "go-odyssey.static-modular-2d-equipment.renderer-compatibility.v1",
+  "renderer": "js/rpg_wave2_wearable_renderer.js",
+  "runtime_registry": "assets/hero/equipment/wearables/wearable_registry.json",
+  "contract_templates": "docs/planning/rpg_modular_2d_equipment/templates.json",
+  "visibility_matrix": "docs/planning/rpg_modular_2d_equipment/visibility_matrix.json",
+  "compatibility_result": "PASS_WITH_NARROW_PRESENTATION_GUARD",
+  "runtime_code_change_required": true,
+  "runtime_code_change_scope": "skip INVENTORY_ONLY registry entries; no gameplay or authority path changes",
+  "supported_contract": {
+    "frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+    "canvas": [1056, 1408],
+    "layer_order": [
+      "BACK_WEAPON",
+      "BACK_BODY",
+      "CHARACTER_BASE",
+      "TORSO_ARMOR",
+      "FRONT_BODY",
+      "FRONT_ACCESSORY",
+      "HEAD_FACE",
+      "HAIR_FRONT_MASK"
+    ],
+    "supported_surfaces": ["Hero", "Profile", "Backpack"],
+    "unsupported_character_behavior": "hide_wearable_stage_and_show_base_fallback",
+    "asset_error_behavior": "hide_failed_layer_and_mark_stage_asset_error",
+    "unknown_equipment_behavior": "ignore_unknown_registry_item",
+    "inventory_only_behavior": "ignore_registry_item_and_leave_base_character_visible",
+    "duplicate_slot_behavior": "first_server_projection_entry_per_slot_wins"
+  },
+  "registry_field_mapping": {
+    "equipment_id": "registry equipment object key / id",
+    "wearable_visibility": "presentation contract metadata; never gameplay authority",
+    "wearable_class": "registry wearable_class",
+    "body_frame": "registry frame",
+    "anchor": "registry anchor",
+    "layer": "registry layer",
+    "asset": "registry asset",
+    "mask_policy": "registry mask_requirements"
+  },
+  "authority_checks": {
+    "ownership": "player_inventory",
+    "equipped": "player_inventory.equipped",
+    "effects": "server EQUIPMENT_DEFS",
+    "renderer_writes_api": false,
+    "renderer_writes_db": false,
+    "client_combat_authority": false,
+    "wearable_rendering_combat_delta": 0,
+    "runtime_registry_duplicates_ownership": false,
+    "runtime_registry_duplicates_effects": false,
+    "runtime_registry_duplicates_prices": false,
+    "runtime_registry_duplicates_drop_authority": false
+  },
+  "static_weapon_contract": {
+    "primary": "WAIST_SHEATHED",
+    "fallback": "BACK_MOUNTED",
+    "hand_held_static_mode": "FORBIDDEN",
+    "fake_hand_grip": "FORBIDDEN"
+  },
+  "evidence": {
+    "p3_runtime_tests": "tests/test_rpg_wave2_gate2_p3_wearable_production_runtime.py",
+    "p2b_weapon_tests": "tests/test_rpg_wave2_gate2_p2b_weapon_carry_fitting.py",
+    "renderer_source_audit": "js/rpg_wave2_wearable_renderer.js",
+    "six_character_template_qa": "docs/planning/rpg_modular_2d_equipment/template_qa.json"
+  }
+}

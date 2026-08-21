@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Go Odyssey normalized wearable safe zones</title>
+  <desc id="desc">Normalized safe-zone contract for face, hair, neck, torso, shoulder, waist, hand, and back regions.</desc>
+  <style>
+    .title { fill:#172033; font:700 30px system-ui, sans-serif; }
+    .note { fill:#64748b; font:15px system-ui, sans-serif; }
+    .label { fill:#1e293b; font:700 14px system-ui, sans-serif; }
+    .small { fill:#475569; font:12px system-ui, sans-serif; }
+    .base { fill:#eef2f7; stroke:#64748b; stroke-width:3; }
+    .face { fill:#ef4444; fill-opacity:.30; stroke:#b91c1c; stroke-width:3; stroke-dasharray:8 6; }
+    .hair { fill:#a855f7; fill-opacity:.20; stroke:#7e22ce; stroke-width:3; stroke-dasharray:8 6; }
+    .neck { fill:#f59e0b; fill-opacity:.25; stroke:#b45309; stroke-width:3; stroke-dasharray:8 6; }
+    .torso { fill:#2563eb; fill-opacity:.18; stroke:#1d4ed8; stroke-width:3; stroke-dasharray:8 6; }
+    .shoulder { fill:#14b8a6; fill-opacity:.18; stroke:#0f766e; stroke-width:3; stroke-dasharray:8 6; }
+    .waist { fill:#84cc16; fill-opacity:.23; stroke:#3f6212; stroke-width:3; stroke-dasharray:8 6; }
+    .hand { fill:#f97316; fill-opacity:.22; stroke:#c2410c; stroke-width:3; stroke-dasharray:8 6; }
+    .back { fill:#6366f1; fill-opacity:.13; stroke:#4338ca; stroke-width:3; stroke-dasharray:8 6; }
+  </style>
+  <rect width="1200" height="1000" fill="#f8fafc"/>
+  <text x="60" y="65" class="title">Normalized Safe-Zone Contract</text>
+  <text x="60" y="96" class="note">PLAYER_FRAME_A_STANDARD_CHIBI · face-safe rule is mandatory for non-face equipment</text>
+  <g transform="translate(90 145)">
+    <rect x="250" y="0" width="420" height="760" rx="24" class="base"/>
+    <ellipse cx="460" cy="135" rx="95" ry="115" class="hair"/>
+    <ellipse cx="460" cy="150" rx="62" ry="72" class="face"/>
+    <rect x="420" y="220" width="80" height="90" rx="18" class="neck"/>
+    <path d="M350 270 Q460 225 570 270 L635 560 L285 560 Z" class="torso"/>
+    <path d="M285 275 Q460 225 635 275 L670 390 Q460 445 250 390 Z" class="shoulder"/>
+    <rect x="300" y="430" width="320" height="150" rx="35" class="waist"/>
+    <rect x="190" y="350" width="100" height="205" rx="40" class="hand"/>
+    <rect x="630" y="350" width="100" height="205" rx="40" class="hand"/>
+    <path d="M315 240 Q460 180 605 240 L620 575 L300 575 Z" class="back"/>
+    <text x="740" y="70" class="label">HAIR_ZONE</text><text x="740" y="90" class="small">preserve base hair</text>
+    <text x="740" y="150" class="label">FACE_SAFE_ZONE</text><text x="740" y="170" class="small">eyes/nose/mouth: clear</text>
+    <text x="740" y="255" class="label">NECK_ZONE</text><text x="740" y="275" class="small">jaw/collar transition</text>
+    <text x="740" y="365" class="label">SHOULDER_ZONE</text><text x="740" y="385" class="small">mantle/armor volume</text>
+    <text x="740" y="490" class="label">WAIST_ZONE</text><text x="740" y="510" class="small">sheath/charm attachment</text>
+    <text x="40" y="390" class="label">HAND_ZONE</text><text x="40" y="410" class="small">no fake grip</text>
+    <text x="40" y="540" class="label">BACK_ZONE</text><text x="40" y="560" class="small">behind base layer</text>
+  </g>
+  <g transform="translate(70 930)">
+    <text x="0" y="0" class="note">RED = forbidden for non-face overlays · PURPLE = reusable hair/back mask region · GREEN = permitted attachment area</text>
+  </g>
+</svg>

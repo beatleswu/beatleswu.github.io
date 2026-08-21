@@ -1,0 +1,172 @@
+{
+  "task_id": "RPG_WAVE2_WEAPON_POSE_ARMOR_COMPATIBILITY_PROTOTYPE_001",
+  "head_before": "bac3cce880ec90539aa068760798120a834ed15d",
+  "branch": "codex/rpg-wave2-modular-equipment-production-v2-p1",
+  "test_pose": "ONE_HAND_SWORD_POSE",
+  "test_weapon": "iron_sword",
+  "test_armor": "dragon_scale",
+  "player_frame": "PLAYER_FRAME_A_STANDARD_CHIBI",
+  "characters": [
+    "apprentice",
+    "mage",
+    "paladin"
+  ],
+  "pose_specific_armor_overlay_count": 1,
+  "character_specific_armor_asset_count": 0,
+  "item_character_bespoke_redraws": 0,
+  "default_dragon_scale_changed": "NO",
+  "modular_armor_on_weapon_pose": "PASS",
+  "reason": "One canonical dragon_scale overlay plus one universal weapon-side clearance mask supports all three tested pose variants.",
+  "mask_contract": {
+    "id": "ONE_HAND_SWORD_POSE_WEAPON_SIDE_ARM_CLEARANCE",
+    "polygon": [
+      [
+        330,
+        432
+      ],
+      [
+        392,
+        428
+      ],
+      [
+        432,
+        482
+      ],
+      [
+        444,
+        575
+      ],
+      [
+        437,
+        678
+      ],
+      [
+        371,
+        670
+      ],
+      [
+        334,
+        582
+      ]
+    ],
+    "scope": "pose-family universal",
+    "character_specific": false
+  },
+  "safe_zones": {
+    "face_safe_zone": [
+      360,
+      70,
+      696,
+      302
+    ],
+    "face_safe_zone_violations": 0,
+    "hand_zone_preserved": true
+  },
+  "qa": [
+    {
+      "character_key": "apprentice",
+      "armor_fit": "PASS_REVIEW_READY",
+      "weapon_grip": "PASS_REVIEW_READY",
+      "shoulder_clearance": "PASS_REVIEW_READY",
+      "arm_clearance": "PASS_REVIEW_READY",
+      "face_clearance": "PASS",
+      "sword_visibility": "PASS_REVIEW_READY",
+      "character_identity": "PASS_REVIEW_READY",
+      "mobile_readability": "PASS_REVIEW_READY",
+      "armor_covers_sword_hand": false,
+      "armor_clips_weapon": false,
+      "sleeve_discontinuity": false,
+      "giant_overlay": false
+    },
+    {
+      "character_key": "mage",
+      "armor_fit": "PASS_REVIEW_READY",
+      "weapon_grip": "PASS_REVIEW_READY",
+      "shoulder_clearance": "PASS_REVIEW_READY",
+      "arm_clearance": "PASS_REVIEW_READY",
+      "face_clearance": "PASS",
+      "sword_visibility": "PASS_REVIEW_READY",
+      "character_identity": "PASS_REVIEW_READY",
+      "mobile_readability": "PASS_REVIEW_READY",
+      "armor_covers_sword_hand": false,
+      "armor_clips_weapon": false,
+      "sleeve_discontinuity": false,
+      "giant_overlay": false
+    },
+    {
+      "character_key": "paladin",
+      "armor_fit": "PASS_REVIEW_READY",
+      "weapon_grip": "PASS_REVIEW_READY",
+      "shoulder_clearance": "PASS_REVIEW_READY",
+      "arm_clearance": "PASS_REVIEW_READY",
+      "face_clearance": "PASS",
+      "sword_visibility": "PASS_REVIEW_READY",
+      "character_identity": "PASS_REVIEW_READY",
+      "mobile_readability": "PASS_REVIEW_READY",
+      "armor_covers_sword_hand": false,
+      "armor_clips_weapon": false,
+      "sleeve_discontinuity": false,
+      "giant_overlay": false
+    }
+  ],
+  "aggregate_qa": {
+    "armor_fit": "3/3_REVIEW_READY",
+    "weapon_grip": "3/3_REVIEW_READY",
+    "shoulder_clearance": "3/3_REVIEW_READY",
+    "arm_clearance": "3/3_REVIEW_READY",
+    "face_clearance": "3/3",
+    "sword_visibility": "3/3_REVIEW_READY",
+    "character_identity": "3/3_REVIEW_READY",
+    "mobile_readability": "3/3_REVIEW_READY",
+    "white_box": 0,
+    "matte_halo": 0,
+    "alpha_artifacts": 0
+  },
+  "authority": {
+    "functional_equipment": "player_inventory",
+    "weapon_effects": "server EQUIPMENT_DEFS",
+    "armor_effects": "server EQUIPMENT_DEFS",
+    "pose_and_overlay": "PRESENTATION_ONLY",
+    "client_combat_authority": "NO",
+    "combat_delta_from_rendering": 0
+  },
+  "preserved": {
+    "local_hand_patch_system": "REJECTED_NOT_USED",
+    "dragon_scale_default_asset": "UNCHANGED",
+    "fox_mask": "UNCHANGED",
+    "void_mantle": "UNCHANGED",
+    "other_characters": "NOT_TESTED",
+    "other_weapons": "NOT_TESTED"
+  },
+  "outputs": {
+    "matrix": "matrices/SWORD_POSE_DRAGON_SCALE_3_CHARACTER_MATRIX.png",
+    "mobile_matrix": "matrices/SWORD_POSE_DRAGON_SCALE_MOBILE_MATRIX.png",
+    "comparison_matrix": "matrices/DEFAULT_VS_SWORD_POSE_ARMOR_COMPARISON.png",
+    "review_html": "weapon_pose_armor_review.html",
+    "pose_aware_overlay": "overlays/dragon_scale_one_hand_sword_pose.png",
+    "composites": {
+      "apprentice": "composites/apprentice_one_hand_sword_dragon_scale.png",
+      "mage": "composites/mage_one_hand_sword_dragon_scale.png",
+      "paladin": "composites/paladin_one_hand_sword_dragon_scale.png"
+    }
+  },
+  "provenance": {
+    "canonical_default_overlay": "assets/hero/equipment/wearables/overlays/dragon_scale.png",
+    "generated_edit_reference": "sources/generated_raw/dragon_scale_one_hand_sword_pose.png",
+    "generated_edit_used_as_final": false,
+    "default_composite_hashes": {
+      "apprentice": "aaaea2de3f24788ee4302df89531588f5775dfbbf99c4840bd7bed128fc53930",
+      "mage": "0b2242bc379814d1edc1d679af25fda448dde14318d8565b40fe4ee1277f4674",
+      "paladin": "f40924cbb7a50e5cddecd89ba0581f422d879d264df383cc12e96daf32c223ab"
+    }
+  },
+  "source_sha256": {
+    "pose_aware_overlay": "ee83cee972d5c0b12fe7712a1016762452b778b9c6f89e6d40902704fb84b233",
+    "pose_composites": {
+      "apprentice": "4263d1956823e0fc4a94fe0795def215b18c8308af416541485c54840002592b",
+      "mage": "5da4eef8e68224fa8f91bc33352d088ae449e441a340d4d17bbcac89f3e57f7c",
+      "paladin": "3187484fc1ca34537cebcaa34e37ab70241e6942ad48a6c8bc0affedb0778757"
+    },
+    "default_canonical_overlay": "3a2a84a421b7b80039dc38b43b9447e7b1997f2f04aab826c35b6d6f5a5526c1"
+  }
+}
