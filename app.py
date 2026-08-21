@@ -22125,6 +22125,12 @@ def serve_map_battle_v1_adapter():
         'map_battle_v1_adapter.js', 'js', 'js'
     )
 
+@app.route('/js/rpg_wave2_wearable_renderer.js')
+def serve_rpg_wave2_wearable_renderer_js():
+    return _serve_live_static_or_baked_subpath(
+        'rpg_wave2_wearable_renderer.js', 'js', 'js'
+    )
+
 @app.route('/js/game/lord_trial_controller.js')
 def serve_lord_trial_controller_js():
     return _serve_live_static_or_baked_subpath(
