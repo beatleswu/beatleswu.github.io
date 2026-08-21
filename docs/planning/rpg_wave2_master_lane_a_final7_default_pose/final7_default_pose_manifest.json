@@ -1,0 +1,173 @@
+{
+  "package": "GO_ODYSSEY_MASTER_LANE_A_FINAL7_DEFAULT_POSE_V1",
+  "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW",
+  "characters": [
+    {
+      "character_id": "river_wayfinder",
+      "display_name": "River Wayfinder",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/river_wayfinder_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/river_wayfinder_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/river_wayfinder_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        161,
+        49,
+        895,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    },
+    {
+      "character_id": "stone_caretaker",
+      "display_name": "Stone Caretaker",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/stone_caretaker_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/stone_caretaker_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/stone_caretaker_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        254,
+        49,
+        801,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    },
+    {
+      "character_id": "duelist_scout",
+      "display_name": "Duelist Scout",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/duelist_scout_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/duelist_scout_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/duelist_scout_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        272,
+        49,
+        783,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    },
+    {
+      "character_id": "bastion_warden",
+      "display_name": "Bastion Warden",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/bastion_warden_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/bastion_warden_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/bastion_warden_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        222,
+        49,
+        833,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    },
+    {
+      "character_id": "forest_pathfinder",
+      "display_name": "Forest Pathfinder",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/forest_pathfinder_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/forest_pathfinder_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/forest_pathfinder_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        158,
+        49,
+        897,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    },
+    {
+      "character_id": "archive_scholar",
+      "display_name": "Archive Scholar",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/archive_scholar_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/archive_scholar_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/archive_scholar_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        212,
+        49,
+        844,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    },
+    {
+      "character_id": "worldkeeper",
+      "display_name": "Worldkeeper",
+      "source": "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/sources/generated_raw/worldkeeper_generated_raw.png",
+      "png": "assets/hero/characters/wave2_final7_default_pose_v1/worldkeeper_default_pose_v1.png",
+      "webp": "assets/hero/characters/wave2_final7_default_pose_v1/worldkeeper_default_pose_v1.webp",
+      "canvas": {
+        "width": 1056,
+        "height": 1408,
+        "format": "RGBA"
+      },
+      "visible_bbox": [
+        205,
+        49,
+        850,
+        1373
+      ],
+      "foot_baseline_y": 1373,
+      "functional_weapon_baked_in": false,
+      "authority": "presentation_only",
+      "status": "PRODUCTION_CANDIDATE_OWNER_REVIEW"
+    }
+  ],
+  "master_canvas": "1056x1408 RGBA",
+  "source_master": "PNG",
+  "runtime_derivative": "WebP",
+  "foot_baseline": "y=.975",
+  "functional_weapon_baked_in_base_art": false,
+  "character_combat_authority": "NO",
+  "runtime_registration": "NOT_CHANGED",
+  "owner_gate": "PENDING_OWNER_VISUAL_REVIEW",
+  "review_artifacts": [
+    "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/built/FINAL7_DEFAULT_POSE_MATRIX.png",
+    "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/built/FINAL7_DEFAULT_POSE_MOBILE_MATRIX.png",
+    "docs/planning/rpg_wave2_master_lane_a_final7_default_pose/built/FINAL7_DEFAULT_POSE_SCALE_LINEUP.png"
+  ]
+}
