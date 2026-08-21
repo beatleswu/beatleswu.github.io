@@ -1,12 +1,13 @@
 {
-  "manifest_version": "rpg-wave2-items-cosmetics-reconciliation-v1",
-  "audit_base": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "manifest_version": "rpg-wave2-canonical-item-freeze-v1",
+  "audit_base": "efc0510b9160dae33a50a94754f1e1d78372f651",
   "source_truth": [
     "rpg_item_registry.py:20-48, 62-330, 462-560",
     "app.py:2604-2624",
     "app.py:19010-19307",
     "app.py:19579-19697",
-    "community_leaderboard_rewards.py:2087-2115"
+    "community_leaderboard_rewards.py:2087-2115",
+    "docs/planning/go_odyssey_wave2_legacy_reference_audit.json"
   ],
   "scope": "non-equipment Items; functional equipment remains player_inventory + server EQUIPMENT_DEFS",
   "canonical_registry_record_count": 24,
@@ -16,7 +17,7 @@
     "evidence": "docs/planning/e10_final_screenplay_integration_contract_v1.md",
     "note": "Narrative labels have no canonical Item ID, ownership authority, asset, or persistence and are not promoted to Items by this audit."
   },
-  "record_count": 25,
+  "record_count": 24,
   "controlled_taxonomy": {
     "MATERIAL": "Stackable non-combat component with an existing item store.",
     "QUEST_ITEM": "Reserved; no current canonical record.",
@@ -28,8 +29,7 @@
   },
   "taxonomy_counts": {
     "CONSUMABLE": 22,
-    "MATERIAL": 2,
-    "LEGACY_OR_UNKNOWN": 1
+    "MATERIAL": 2
   },
   "records": [
     {
@@ -623,40 +623,12 @@
       "stackable": true,
       "product_id": null,
       "status": "READY"
-    },
-    {
-      "item_id": "appearance_fragment",
-      "display_name": "Appearance Fragment (legacy key)",
-      "display_name_en": "Appearance Fragment (legacy key)",
-      "category": "LEGACY_OR_UNKNOWN",
-      "repo_category": "legacy_rejected_reward_key",
-      "ownership_authority": "NONE_REJECTED",
-      "current_asset": null,
-      "asset_format": null,
-      "current_runtime_usage": "community_leaderboard_rewards.py explicitly rejects the key; no SHOP_ITEMS backend",
-      "acquisition_source": [
-        "Deferred monthly-board reward (historical)"
-      ],
-      "consumed_or_persistent": "UNKNOWN_NOT_ACTIVE",
-      "zone_identity": "NONE_CURRENT",
-      "boss_identity": "NONE_CURRENT",
-      "current_effect": {},
-      "effect_use": "No current supported grant",
-      "stackable": null,
-      "product_id": null,
-      "status": "LEGACY_CLEANUP"
     }
   ],
-  "legacy_or_unknown_candidates": [
-    {
-      "item_id": "appearance_fragment",
-      "evidence": "community_leaderboard_rewards.py:2087-2115",
-      "disposition": "Rejected by weekly-safe allowlist; keep out of SHOP_ITEMS, inventory, and journal."
-    }
-  ],
+  "legacy_or_unknown_candidates": [],
   "excluded_runtime_keys": [
-    "unapproved_runtime_item (test fixture only; not in current registry)",
-    "functional equipment IDs (separate authority)"
+    "Legacy rejected reward keys are tracked only in the separate legacy reference audit.",
+    "Functional equipment IDs remain a separate authority."
   ],
   "authority_rules": [
     "No new item ownership table.",
@@ -664,5 +636,27 @@
     "Bundles do not create persistent bundle ownership.",
     "GET /api/item-journal is read-only; discovery_semantics=NOT_TRACKED.",
     "Future drop rates and settlement remain server-side and out of this branch."
-  ]
+  ],
+  "unknown_canonical_item_ids": [],
+  "item_asset_closure": {
+    "expected": 24,
+    "present": 24,
+    "status": "24_OF_24"
+  },
+  "canonicalization": {
+    "canonical_item_count": 24,
+    "unknown_canonical_item_ids": [],
+    "legacy_reference_audit": "docs/planning/go_odyssey_wave2_legacy_reference_audit.json",
+    "generic_item_authority": "shop_inventory.item_key + pet_inventory.item_key",
+    "functional_equipment_authority": "player_inventory + server EQUIPMENT_DEFS",
+    "client_combat_authority": "NO",
+    "new_acquisition_behavior": "NONE"
+  },
+  "authority_invariants": {
+    "functional_equipment_taxonomy_conflicts": 0,
+    "generic_item_does_not_replace_equipment": true,
+    "non_equipment_combat_power": "NONE",
+    "journal_get_mutation": false,
+    "collection_discovery_authority": "WAVE3_DEFERRED"
+  }
 }

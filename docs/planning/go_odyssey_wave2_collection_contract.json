@@ -1,9 +1,9 @@
 {
-  "contract_version": "rpg-wave2-collection-contract-v1",
-  "audit_base": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "contract_version": "rpg-wave2-collection-contract-v2",
+  "audit_base": "efc0510b9160dae33a50a94754f1e1d78372f651",
   "collection_family_count": 7,
   "canonical_item_registry_record_count": 24,
-  "legacy_item_candidate_count": 1,
+  "legacy_item_candidate_count": 0,
   "source_truth": {
     "item_journal": {
       "present": true,
@@ -159,9 +159,9 @@
     {
       "family_id": "WORLD_DISCOVERY",
       "status": "CONTRACT_ONLY",
-      "authority": "Future server-returned identities; no durable discovery write",
+      "authority": "WAVE3_DEFERRED",
       "surface": "Future World/Journal surfaces",
-      "discovery": "DEFERRED",
+      "discovery": "WAVE3_DEFERRED",
       "subfamilies": [
         "ZONE_COLLECTION",
         "BOSS_COLLECTION",
@@ -197,6 +197,25 @@
     "No auto-collecting every monster/NPC/boss/zone.",
     "No functional equipment duplication as generic Items.",
     "No catalog-metadata discovery inference.",
-    "No journal GET ownership writes."
-  ]
+    "No journal GET ownership writes.",
+    "Collection runtime implementation, discovery DB, and collection writer are Wave 3 deferred."
+  ],
+  "legacy_reference_audit": "docs/planning/go_odyssey_wave2_legacy_reference_audit.json",
+  "collection_runtime_implementation": "NO",
+  "collection_discovery_db": "NO",
+  "collection_writer": "NO",
+  "collection_authority": "WAVE3_DEFERRED",
+  "collection_runtime_scope": "WAVE2 generic collection runtime only",
+  "existing_domain_collections_unchanged": [
+    "pet_collection",
+    "badges_earned"
+  ],
+  "authority_invariants": {
+    "item_journal_get_mutation": false,
+    "catalog_metadata_is_discovery": false,
+    "generic_discovery_writer": false,
+    "functional_equipment_generic_item_overlap": false,
+    "cosmetic_combat_authority": "NO",
+    "existing_domain_local_writers_unchanged": true
+  }
 }

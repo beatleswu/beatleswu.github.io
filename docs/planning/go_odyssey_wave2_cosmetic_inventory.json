@@ -1,6 +1,6 @@
 {
-  "manifest_version": "rpg-wave2-items-cosmetics-reconciliation-v1",
-  "audit_base": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "manifest_version": "rpg-wave2-canonical-cosmetic-freeze-v1",
+  "audit_base": "efc0510b9160dae33a50a94754f1e1d78372f651",
   "source_truth": [
     "app.py:1460-2068 (APPEARANCE_DEFS)",
     "app.py:2070-2208 (appearance authority, commerce, APPEARANCE_EFFECTS)",
@@ -20,24 +20,53 @@
     "PROFILE_COSMETIC": 13
   },
   "readiness_counts": {
-    "ready": 44,
+    "ready": 54,
+    "quarantined_existing_effect": 20,
     "needs_art": 0,
     "needs_runtime": 0,
-    "needs_authority_or_product_decision": 30
+    "needs_authority_or_product_decision": 0
   },
   "monetization": {
-    "approved_or_existing_cosmetic_only_candidates": 4,
-    "current_premium_only_records": 6,
-    "pay_to_win_product_count": 0,
-    "rule": "No approved sale may grant XP, drop rate, attack, defense, Go rank, or guaranteed victory.",
-    "existing_effect_risk_records": 4,
-    "disposition": "Owner decision required before treating effect-bearing premium records as monetizable cosmetics."
+    "current_commerce_product_count": 3,
+    "current_commerce_products": [
+      {
+        "product_id": "cosmetic.outfit.robe_plain",
+        "cosmetic_id": "robe_plain",
+        "current_commerce_product": "YES",
+        "monetization_eligible_in_principle": "YES",
+        "monetization_allowed": "YES"
+      },
+      {
+        "product_id": "cosmetic.outfit.robe_bamboo",
+        "cosmetic_id": "robe_bamboo",
+        "current_commerce_product": "YES",
+        "monetization_eligible_in_principle": "YES",
+        "monetization_allowed": "YES"
+      },
+      {
+        "product_id": "cosmetic.outfit.robe_premium",
+        "cosmetic_id": "robe_premium",
+        "current_commerce_product": "YES",
+        "monetization_eligible_in_principle": "NO",
+        "monetization_allowed": "NO",
+        "reason": "Existing effect-bearing appearance remains quarantined; no new commerce approval."
+      }
+    ],
+    "monetization_eligible_in_principle_count": 54,
+    "monetizable_effect_bearing_count": 0,
+    "current_commerce_effect_bearing_legacy_count": 1,
+    "no_launch_pricing_hardcoded": true,
+    "rule": "Only pure presentation may be monetization-eligible in principle; current commerce is not approval. No sale may grant XP, drop rate, Go rank, boss strength, combat stats, reward multiplier, or guaranteed victory.",
+    "pay_to_win_product_count": 0
   },
   "direct_combat_power_audit": {
     "cosmetics_grant_combat_power": "NO",
     "direct_attack_or_defense_effect_records": 0,
-    "existing_non_combat_gameplay_effect_records": 20,
-    "note": "Current APPEARANCE_EFFECTS grant XP/drop effects, not direct attack/defense; they still require an authority/product decision under the cosmetic-only contract."
+    "effect_bearing_appearance_count": 20,
+    "existing_effects_are_quarantined": true,
+    "current_effects_are_not_approved_commerce_power": true,
+    "functional_equipment_authority": "player_inventory + server EQUIPMENT_DEFS",
+    "client_combat_authority": "NO"
   },
   "player_character_appearance_excluded_from_count": {
     "active_ids": [
@@ -90,7 +119,12 @@
         "raccoon",
         "goblin"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_student",
@@ -112,7 +146,12 @@
         "bee",
         "rabbit"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_bamboo",
@@ -133,7 +172,12 @@
         "raccoon",
         "wolf"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_crane",
@@ -154,7 +198,12 @@
         "wolf",
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_fox",
@@ -174,7 +223,12 @@
       "drop_from": [
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_snow",
@@ -192,7 +246,12 @@
       "unlock_source": "daily",
       "unlock_hint": "每日連續簽到 14 天解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_dragon",
@@ -213,7 +272,12 @@
         "golem",
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_celestial",
@@ -235,7 +299,16 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "robe_rank_1d",
@@ -255,7 +328,16 @@
       "unlock_source": "rank",
       "unlock_hint": "段位達到 1d 解鎖",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.03
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "robe_rank_3d",
@@ -275,7 +357,16 @@
       "unlock_source": "rank",
       "unlock_hint": "段位達到 3d 解鎖",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "robe_rank_5d",
@@ -295,7 +386,16 @@
       "unlock_source": "rank",
       "unlock_hint": "段位達到 5d 解鎖",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.08
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "hat_cloth",
@@ -320,7 +420,12 @@
         "raccoon",
         "goblin"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_bamboo",
@@ -341,7 +446,12 @@
         "goblin",
         "wolf"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_student",
@@ -362,7 +472,12 @@
         "caterpillar",
         "bee"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_feather",
@@ -383,7 +498,12 @@
         "wolf",
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_scholar",
@@ -401,7 +521,12 @@
       "unlock_source": "daily",
       "unlock_hint": "完成 20 次每日懸賞令解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_foxmask",
@@ -421,7 +546,12 @@
       "drop_from": [
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_onihorns",
@@ -441,7 +571,12 @@
       "drop_from": [
         "golem"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_dragon_horn",
@@ -461,7 +596,12 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "hat_celestial_crown",
@@ -481,7 +621,12 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_pack",
@@ -506,7 +651,12 @@
         "raccoon",
         "goblin"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_flag",
@@ -527,7 +677,12 @@
         "goblin",
         "wolf"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_lantern",
@@ -545,7 +700,12 @@
       "unlock_source": "daily",
       "unlock_hint": "連續登入 7 天解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_wings",
@@ -566,7 +726,12 @@
         "wolf",
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_scroll",
@@ -584,7 +749,12 @@
       "unlock_source": "daily",
       "unlock_hint": "錯題本複習達 100 題解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_foxtail",
@@ -604,7 +774,12 @@
       "drop_from": [
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_cloak",
@@ -625,7 +800,12 @@
         "golem",
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "back_dragon_wings",
@@ -645,7 +825,12 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_bracelet",
@@ -666,7 +851,12 @@
         "turtle",
         "rabbit"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_fan",
@@ -687,7 +877,12 @@
         "wolf",
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_goboard_bag",
@@ -709,7 +904,12 @@
         "bee",
         "goblin"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_jade_ring",
@@ -730,7 +930,12 @@
         "turtle",
         "rabbit"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_goban_seal",
@@ -748,7 +953,12 @@
       "unlock_source": "daily",
       "unlock_hint": "連續簽到 21 天解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_dragon_pendant",
@@ -768,7 +978,12 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_golden_bell",
@@ -788,7 +1003,16 @@
       "unlock_source": "daily",
       "unlock_hint": "答題精準率達 95% 並達 500 題",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_cat",
@@ -813,7 +1037,16 @@
         "turtle",
         "rabbit"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_turtle",
@@ -835,7 +1068,16 @@
       "drop_from": [
         "turtle"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_rabbit",
@@ -857,7 +1099,16 @@
       "drop_from": [
         "rabbit"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.08
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_fox",
@@ -879,7 +1130,16 @@
       "drop_from": [
         "fox"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.12
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_wolf",
@@ -901,7 +1161,16 @@
       "drop_from": [
         "wolf"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.15
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_dragon",
@@ -923,7 +1192,16 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.25
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "aura_green",
@@ -943,7 +1221,16 @@
       "unlock_source": "daily",
       "unlock_hint": "連續登入 14 天解鎖",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "aura_blue",
@@ -966,7 +1253,16 @@
         "wolf",
         "fox"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.1
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "aura_flame",
@@ -989,7 +1285,16 @@
         "golem",
         "dragon"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.15
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "aura_moon",
@@ -1009,7 +1314,16 @@
       "unlock_source": "rank",
       "unlock_hint": "段位達到 2d 解鎖",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.12
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "aura_celestial",
@@ -1031,7 +1345,16 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.25
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "title_beginner",
@@ -1056,7 +1379,12 @@
         "raccoon",
         "goblin"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_scholar",
@@ -1074,7 +1402,12 @@
       "unlock_source": "daily",
       "unlock_hint": "錯題本複習達 50 題解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_wanderer",
@@ -1092,7 +1425,12 @@
       "unlock_source": "daily",
       "unlock_hint": "連續簽到 7 天解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_streak",
@@ -1110,7 +1448,12 @@
       "unlock_source": "daily",
       "unlock_hint": "連勝 15 場解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_foxwit",
@@ -1130,7 +1473,12 @@
       "drop_from": [
         "fox"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_master",
@@ -1148,7 +1496,12 @@
       "unlock_source": "daily",
       "unlock_hint": "答題達 1000 題解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_dragonslayer",
@@ -1168,7 +1521,12 @@
       "drop_from": [
         "dragon"
       ],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_godshand",
@@ -1186,7 +1544,12 @@
       "unlock_source": "daily",
       "unlock_hint": "答題精準率達 90% 且達 300 題",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_celestial",
@@ -1204,7 +1567,12 @@
       "unlock_source": "rank",
       "unlock_hint": "段位達到 5d 解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_eternity",
@@ -1222,7 +1590,12 @@
       "unlock_source": "rank",
       "unlock_hint": "累計答題達 5000 題解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_newbie_voyage",
@@ -1240,7 +1613,12 @@
       "unlock_source": null,
       "unlock_hint": "完成新手任務 Stage 3 解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "title_claire_recruit",
@@ -1258,7 +1636,12 @@
       "unlock_source": null,
       "unlock_hint": "完成新手任務全部 7 個 Stage 解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "robe_premium",
@@ -1278,7 +1661,16 @@
       "unlock_source": "premium",
       "unlock_hint": "💎 Premium 會員專屬，訂閱即解鎖",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.05
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "hat_premium",
@@ -1296,7 +1688,12 @@
       "unlock_source": "premium",
       "unlock_hint": "💎 Premium 會員專屬，訂閱即解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "aura_premium",
@@ -1316,7 +1713,16 @@
       "unlock_source": "premium",
       "unlock_hint": "💎 Premium 會員專屬 · XP +20%",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.2
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "pet_premium",
@@ -1336,7 +1742,16 @@
       "unlock_source": "premium",
       "unlock_hint": "💎 Premium 會員專屬 · 掉落率 +25%",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "drop_bonus": 0.25
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "title_premium",
@@ -1354,7 +1769,12 @@
       "unlock_source": "premium",
       "unlock_hint": "💎 Premium 會員專屬，訂閱即解鎖",
       "drop_from": [],
-      "status": "READY"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_category": "PURE_PRESENTATION",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "selection_authority": "presentation-only",
+      "separation_required": false
     },
     {
       "cosmetic_id": "acc_premium",
@@ -1374,14 +1794,23 @@
       "unlock_source": "premium",
       "unlock_hint": "💎 Premium 會員專屬 · XP +8%",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "QUARANTINED_EXISTING_EFFECT",
+      "canonical_category": "EFFECT_BEARING_APPEARANCE_QUARANTINED",
+      "current_legacy_effect": {
+        "xp_bonus": 0.08
+      },
+      "current_effect_authority": "app.py:2155 APPEARANCE_EFFECTS -> app.py:2183 _get_appearance_effects -> existing XP/drop consumers",
+      "monetization_eligible_in_principle": "NO",
+      "monetization_allowed": "NO",
+      "selection_authority": "presentation-only",
+      "separation_required": true
     },
     {
       "cosmetic_id": "stone.classic",
       "display_name": "經典",
       "type": "WORLD_COSMETIC",
       "slot": "stone",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(stone) + selected state player_appearance.stone_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(stone)",
       "equip_or_activate_model": "POST /api/skills/stone_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1391,14 +1820,26 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "stone.classic",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.stone_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/stones/stone_classic_black.webp",
+        "/assets/stones/stone_classic_white.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "stone.jade",
       "display_name": "翡翠",
       "type": "WORLD_COSMETIC",
       "slot": "stone",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(stone) + selected state player_appearance.stone_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(stone)",
       "equip_or_activate_model": "POST /api/skills/stone_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1408,14 +1849,26 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "stone.jade",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.stone_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/stones/stone_jade_black.webp",
+        "/assets/stones/stone_jade_white.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "stone.marble",
       "display_name": "大理石",
       "type": "WORLD_COSMETIC",
       "slot": "stone",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(stone) + selected state player_appearance.stone_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(stone)",
       "equip_or_activate_model": "POST /api/skills/stone_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1425,14 +1878,26 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "stone.marble",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.stone_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/stones/stone_marble_black.webp",
+        "/assets/stones/stone_marble_white.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "stone.cosmic",
       "display_name": "星空",
       "type": "WORLD_COSMETIC",
       "slot": "stone",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(stone) + selected state player_appearance.stone_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(stone)",
       "equip_or_activate_model": "POST /api/skills/stone_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1442,14 +1907,26 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "stone.cosmic",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.stone_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/stones/stone_cosmic_black.webp",
+        "/assets/stones/stone_cosmic_white.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "stone.radiant",
       "display_name": "神聖",
       "type": "WORLD_COSMETIC",
       "slot": "stone",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(stone) + selected state player_appearance.stone_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(stone)",
       "equip_or_activate_model": "POST /api/skills/stone_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1459,14 +1936,26 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "stone.radiant",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.stone_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/stones/stone_radiant_black.webp",
+        "/assets/stones/stone_radiant_white.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "board.classic",
       "display_name": "經典",
       "type": "WORLD_COSMETIC",
       "slot": "board",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(board) + selected state player_appearance.board_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(board)",
       "equip_or_activate_model": "POST /api/skills/board_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1476,14 +1965,25 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "board.classic",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.board_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/boards/board_classic.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "board.jade",
       "display_name": "翡翠",
       "type": "WORLD_COSMETIC",
       "slot": "board",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(board) + selected state player_appearance.board_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(board)",
       "equip_or_activate_model": "POST /api/skills/board_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1493,14 +1993,25 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "board.jade",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.board_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/boards/board_jade.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "board.marble",
       "display_name": "大理石",
       "type": "WORLD_COSMETIC",
       "slot": "board",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(board) + selected state player_appearance.board_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(board)",
       "equip_or_activate_model": "POST /api/skills/board_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1510,14 +2021,25 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "board.marble",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.board_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/boards/board_marble.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "board.cosmic",
       "display_name": "星空",
       "type": "WORLD_COSMETIC",
       "slot": "board",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(board) + selected state player_appearance.board_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(board)",
       "equip_or_activate_model": "POST /api/skills/board_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1527,14 +2049,25 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "board.cosmic",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.board_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/boards/board_cosmic.webp"
+      ],
+      "asset_closure": "COMPLETE"
     },
     {
       "cosmetic_id": "board.radiant",
       "display_name": "神聖",
       "type": "WORLD_COSMETIC",
       "slot": "board",
-      "ownership_authority": "server unlock predicate _cosmetic_unlocked(board) + selected state player_appearance.board_skin; no durable ownership row",
+      "ownership_authority": "server-authoritative cosmetic ownership contract; current unlock predicate _cosmetic_unlocked(board)",
       "equip_or_activate_model": "POST /api/skills/board_skin",
       "functional_power": "NO",
       "non_combat_effects": {},
@@ -1544,13 +2077,41 @@
       "monetization_eligible": "NO",
       "unlock_source": "milestone/premium predicate",
       "drop_from": [],
-      "status": "NEEDS_AUTHORITY_DECISION"
+      "status": "CANONICAL_PURE_PRESENTATION",
+      "canonical_id": "board.radiant",
+      "canonical_category": "PURE_PRESENTATION",
+      "current_ownership_state": "selected state only in player_appearance.board_skin; no durable ownership row; no automatic grant",
+      "selection_authority": "presentation-only",
+      "monetization_eligible_in_principle": "YES",
+      "monetization_allowed": "YES",
+      "separation_required": false,
+      "asset_paths": [
+        "/assets/boards/board_radiant.webp"
+      ],
+      "asset_closure": "COMPLETE"
     }
   ],
   "authority_rules": [
-    "Wardrobe ownership is player_wardrobe.item_id; equipped wardrobe state is player_appearance slot_id.",
-    "Stone/board skins currently persist selected state in player_appearance but have no durable ownership row; do not infer ownership from selection.",
-    "Hero combat_* is a separate legacy/stat-gear namespace and is not generic Cosmetic authority.",
+    "Wardrobe ownership remains player_wardrobe.item_id; equipped wardrobe state remains player_appearance slot_id.",
+    "Stone/board skins use a server-authoritative ownership contract and presentation-only selected state; no automatic grant is added.",
+    "Existing effect-bearing appearance effects are preserved but quarantined; they are not monetization-eligible and are not approved cosmetic power.",
+    "Cosmetic presentation must not become combat authority; functional equipment remains player_inventory + server EQUIPMENT_DEFS.",
     "No weapon cosmetic record may be reconciled with functional equipment by display name, art, or slot."
-  ]
+  ],
+  "appearance_record_count": 64,
+  "pure_presentation_cosmetic_count": 44,
+  "effect_bearing_appearance_count": 20,
+  "stone_board_skin_count": 10,
+  "stone_board_functional_effect_count": 0,
+  "pure_presentation_total_including_stone_board": 54,
+  "effect_bearing_quarantine_manifest": "docs/planning/go_odyssey_wave2_effect_bearing_appearance_quarantine.json",
+  "stone_board_contract": {
+    "count": 10,
+    "category": "PURE_PRESENTATION",
+    "functional_power": "NO",
+    "ownership": "server-authoritative cosmetic ownership",
+    "selection": "presentation-only",
+    "automatic_grant": "NO",
+    "asset_closure": "15/15 runtime WebP assets present"
+  }
 }

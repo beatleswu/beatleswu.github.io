@@ -1,84 +1,93 @@
-# Go Odyssey Wave 2 Items / Cosmetics / Collections Reconciliation Specification
+# Go Odyssey Wave 2 Items / Cosmetics / Collections Canonical Freeze
 
 ## Audit identity
 
-- `ORIGIN_MASTER=ac182ed173620a11e66bebeb6003c121b9ceee95`
-- Branch: `codex/rpg-wave2-items-cosmetics-collections-reconcile`
-- Worktree: `D:\\go-website-rpg-wave2-items-cosmetics-collections-reconcile`
-- Mode: read-only swarm audit; planning/manifest files only.
-- No runtime, DB, Production, drop-rate, price, payment, XP, or combat change.
+- ORIGIN_MASTER=`ac182ed173620a11e66bebeb6003c121b9ceee95`
+- BASE_HEAD=`efc0510b9160dae33a50a94754f1e1d78372f651`
+- Branch: `codex/rpg-wave2-content-canonical-freeze-001`
+- Worktree: `D:\\go-website-rpg-wave2-content-canonical-freeze-001`
+- Mode: narrow canonicalization; manifests, quarantine contract, and deterministic tests only.
+- No Collection runtime, economy, payment, drop, XP, combat, DB, Production, merge, or deploy change.
 
-## Frozen inventory counts
+## Frozen Wave 2 counts
 
-| Domain | Count | Authority |
-| --- | ---: | --- |
-| Canonical non-equipment Item Journal records | 24 | `shop_inventory` / `pet_inventory` |
-| Item audit candidates including rejected legacy key | 25 | 24 active + 1 `LEGACY_CLEANUP` |
-| Wardrobe appearance records | 64 | `APPEARANCE_DEFS` + `player_wardrobe` |
-| Stone + board skins | 10 | `player_appearance` selected state + server predicates |
-| Active player character appearance IDs | 10 | `player_appearance.character_key` |
-| Functional equipment | 15 | `EQUIPMENT_DEFS` + `player_inventory` |
-| Companion catalog | 3 | `PET_CATALOG` + `pet_collection` |
-| Static badge definitions | 84 | `BADGE_DEFS` + `badges_earned` |
+| Domain | Count | Frozen status | Authority |
+| --- | ---: | --- | --- |
+| Canonical non-equipment Items | 24 | canonical | `shop_inventory.item_key` / `pet_inventory.item_key` |
+| Item asset closure | 24 / 24 | complete | current registry asset paths |
+| Wardrobe appearance records | 64 | 44 pure + 20 effect quarantine | `APPEARANCE_DEFS` + `player_wardrobe` |
+| Pure-presentation appearance records | 44 | canonical | `player_wardrobe` ownership; presentation slot state |
+| Effect-bearing appearance records | 20 | quarantined existing effects | existing `APPEARANCE_EFFECTS` path; no commerce approval |
+| Stone + board skins | 10 | pure presentation | server unlock predicate + selected `player_appearance` state |
+| Functional equipment | 15 | separate domain | server `EQUIPMENT_DEFS` + `player_inventory` |
+| Current cosmetic commerce products | 3 | existing runtime only | existing server catalog; no new pricing |
+| Monetization eligible in principle | 54 | pure presentation only | classification, not a launch catalog |
+
+The rejected legacy reward key is not a canonical Item, Cosmetic, production-batch record, reward contract record, or monetization catalog entry. Existing references are recorded in `go_odyssey_wave2_legacy_reference_audit.json` and remain fail-closed.
 
 ## Item contract
 
-Controlled categories:
+The canonical Item registry contains exactly 22 `CONSUMABLE` records and 2 `MATERIAL` records. All 24 have closed current assets and stable IDs. Existing direct-use, immediate-grant bundle, shop inventory, and pet inventory semantics are preserved; no acquisition behavior is invented.
 
-- `MATERIAL`: 2 — `rare_appearance_fragment`, `pet_evolution_core`.
-- `CONSUMABLE`: 22 — 13 direct consumables + 9 repo `TreasureBundle` products that immediately grant components.
-- `QUEST_ITEM`, `LORE_ITEM`, `COLLECTION_ITEM`, `CURRENCY_LIKE`: no current canonical Item Journal records.
-- `LEGACY_OR_UNKNOWN`: 1 — `appearance_fragment`, explicitly rejected by `community_leaderboard_rewards.py:2087-2115`; do not create an authority for it.
+Rules:
 
-Item rules: `COMBAT_POWER=NONE`; no new ownership table; bundles are not owned products; journal GET stays read-only; `catalog_visible` is not discovery; quantities are read from existing stores; recentness is log-derived only.
+- Generic Item authority remains `shop_inventory.item_key` and `pet_inventory.item_key`.
+- Bundle products grant existing components and do not create persistent bundle ownership.
+- `GET /api/item-journal` remains a read-only projection with `discovery_semantics=NOT_TRACKED`.
+- Non-equipment `COMBAT_POWER=NONE`; future Zone/Boss item identity remains a contract-only concern.
+- Functional equipment is never represented as a generic Item row.
 
-## Equipment boundary
+## Functional equipment boundary
 
-`FUNCTIONAL_EQUIPMENT_TAXONOMY_CONFLICTS=0` for canonical generic Item/Cosmetic IDs and ownership stores. The 15 functional definitions remain solely in `EQUIPMENT_DEFS` + `player_inventory`.
+`FUNCTIONAL_EQUIPMENT_TAXONOMY_CONFLICTS=0`. The 15 functional definitions remain solely in server `EQUIPMENT_DEFS` plus `player_inventory`. The legacy Hero `combat_*` keyspace is not merged with Items or Cosmetics by display name, slot, or art. Cosmetic presentation has no combat authority.
 
-The Hero `COMBAT_GEAR` / `player_appearance.combat_*` keyspace is quarantined legacy/stat gear. It must not be merged with generic Items or Cosmetics by display name, slot, or art; for example, Hero `weapon_t3` and functional `iron_sword` are separate authorities.
+## Cosmetic contract
 
-## Cosmetic boundary
+The 64 wardrobe appearance records are split into:
 
-Generic Cosmetic records = 74:
+- 44 `PURE_PRESENTATION`: functional power `NO`, selection `presentation-only`, eligible for monetization in principle only as a future Owner decision.
+- 20 `EFFECT_BEARING_APPEARANCE_QUARANTINED`: existing XP/drop effects are preserved, but the records are not monetization-eligible. The explicit quarantine manifest records presentation asset, current legacy effect, current effect authority, and required separation.
+- No cosmetic record grants direct attack or defense authority.
+- Current commerce is reported separately from principle eligibility. No launch pricing is hardcoded, and the existing effect-bearing commerce record is not approved by this freeze.
 
-- 64 wardrobe definitions mapped as outfit→`ARMOR_COSMETIC`, hat/back/accessory→`ACCESSORY_COSMETIC`, pet→`COMPANION_COSMETIC`, aura→`WORLD_COSMETIC`, title→`PROFILE_COSMETIC`.
-- 5 stone + 5 board world skins.
-- No current `WEAPON_COSMETIC` record.
-- Player character bodies are excluded from generic Cosmetic count and remain the 10 active `character_key` IDs.
+The 10 stone/board skins use stable `stone.<key>` and `board.<key>` IDs, category `PURE_PRESENTATION`, functional effect count zero, server-authoritative ownership contract, and presentation-only selection. This task does not add automatic grants or a durable ownership table.
 
-`COSMETICS_GRANT_COMBAT_POWER=NO` means no direct attack/defense authority. The audit found 20 existing `APPEARANCE_EFFECTS` XP/drop records; these are a product/authority decision gate, especially for premium IDs, not an approved new cosmetic power model. `PAY_TO_WIN_PRODUCT_COUNT=0`.
+## Collection contract
 
-## Collection boundary
+Seven collection families remain projections or contracts only:
 
-Seven families are frozen:
-
-1. `ITEM_JOURNAL` — current read-only projection, `NOT_TRACKED`.
-2. `EQUIPMENT_COLLECTION` — inventory projection, not generic Item rows.
-3. `COSMETIC_COLLECTION` — wardrobe projection.
-4. `CHARACTER_COLLECTION` — current ten-character presentation and unlock predicates.
+1. `ITEM_JOURNAL` — active read-only projection, `NOT_TRACKED`.
+2. `EQUIPMENT_COLLECTION` — existing inventory projection, never generic Item rows.
+3. `COSMETIC_COLLECTION` — existing wardrobe projection.
+4. `CHARACTER_COLLECTION` — existing appearance selection/unlock projection.
 5. `COMPANION_COLLECTION` — existing pet domain.
 6. `ACHIEVEMENT_BADGE_COLLECTION` — existing badge domain.
-7. `WORLD_DISCOVERY` — contract-only umbrella for future Zone/Boss/NPC lore entries.
+7. `WORLD_DISCOVERY` — future Zone/Boss/NPC contract, `WAVE3_DEFERRED`.
 
-Current repo has no durable generic discovery state, no generic NPC collection registry, and no generic Boss/Zone collection writer. Existing `RelicsZone` and `AchievementsBadges` are sections/contracts, not proof of active collection records.
+For this freeze:
 
-## Zone/Boss identity
+- COLLECTION_RUNTIME_IMPLEMENTATION=NO
+- COLLECTION_DISCOVERY_DB=NO
+- COLLECTION_WRITER=NO
+- COLLECTION_AUTHORITY=WAVE3_DEFERRED
+- These flags cover new generic Wave 2 collection runtime only; existing domain-local companion/badge collections remain unchanged.
+- Catalog visibility is not durable discovery.
+- A GET must not create discovery history or ownership.
+- No generic collection authority is introduced.
 
-A future Zone 5 item must carry `ZONE_ID=zone_05`, canonical source family/tag, Zone 5 material palette/set key, and an asset key. The production contract also requires `ITEM_ID`, `DISPLAY_NAME`, `BOSS_ID`, `MONSTER_FAMILY`, `SOURCE_TYPE`, `QUEST_ROLE`, `COLLECTION_ROLE`, `SHOP_ALLOWED`, `COMBAT_POWER`, and `ASSET_KEY`. Non-equipment `COMBAT_POWER=NONE`; `SHOP_ALLOWED=NO` by default; server settlement owns grants; client only renders returned IDs/quantities.
+## Zone / Boss identity contract
 
-No Zone/Boss drop or collection behavior is activated here.
+A future Zone 5 Item must carry explicit `ZONE_ID=zone_05`, source family/tag, Zone 5 palette/set key, and asset key. The production identity fields remain `ITEM_ID`, `DISPLAY_NAME`, `ZONE_ID`, `BOSS_ID`, `MONSTER_FAMILY`, `SOURCE_TYPE`, `QUEST_ROLE`, `COLLECTION_ROLE`, `SHOP_ALLOWED`, `COMBAT_POWER`, and `ASSET_KEY`. No Zone/Boss drop or collection behavior is activated here.
 
-## Production gates
+## Freeze outputs
 
-- `ITEM_BATCH_1`: freeze 24 canonical Item records.
-- `ITEM_BATCH_2`: keep the rejected legacy key out of active registries, then contract future Zone/Boss items.
-- `COSMETIC_BATCH_1`: freeze 44 pure presentation appearance records.
-- `COSMETIC_BATCH_2`: Owner decision for 20 effect-bearing records and 10 world-skin ownership semantics.
-- `COLLECTION_RUNTIME_BATCH_1`: later projection-only implementation with authority/non-mutation tests.
-
-Wave 2 must-have, Wave 3 deferrals, and Wave 4 monetization deferrals are bounded in `go_odyssey_wave2_content_production_batches.md`.
+- `go_odyssey_wave2_item_inventory.json`: exactly 24 canonical Item records.
+- `go_odyssey_wave2_cosmetic_inventory.json`: 74 generic records with explicit pure/quarantine/skin classifications.
+- `go_odyssey_wave2_effect_bearing_appearance_quarantine.json`: exactly 20 fail-closed effect records.
+- `go_odyssey_wave2_legacy_reference_audit.json`: existing legacy references and forbidden new surfaces.
+- `go_odyssey_wave2_collection_contract.json`: taxonomy/projection only; runtime deferred.
+- `test_rpg_wave2_content_canonical_freeze.py`: deterministic invariant coverage.
 
 ## Non-actions
 
-`DB_MIGRATION=NO`; `XP_CHANGED=NO`; `SHOP_CHANGED=NO`; `COSMETIC_RUNTIME_CHANGED=NO`; `COMBAT_CHANGED=NO`; `MERGE=NO`; `DEPLOY=NO`; `PRODUCTION_MUTATION=NO`.
+DB_MIGRATION=NO; XP_CHANGED=NO; DROP_CHANGED=NO; SHOP_BEHAVIOR_CHANGED=NO; PAYMENT_CHANGED=NO; COMBAT_CHANGED=NO; COLLECTION_RUNTIME_CHANGED=NO; MERGE=NO; DEPLOY=NO; PRODUCTION_MUTATION=NO.
