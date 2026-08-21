@@ -14643,8 +14643,10 @@ def dc_today():
 def dc_submit():
     uid     = session['user_id']
     today   = datetime.date.today().isoformat()
-    data    = request.get_json()
-    correct = 1 if data.get('correct') else 0
+    data    = request.get_json(silent=True) or {}
+    if not isinstance(data, dict) or type(data.get('correct')) is not bool:
+        return jsonify({'error': 'invalid_result'}), 400
+    correct = 1 if data['correct'] else 0
 
     dc = get_or_create_daily_challenge(today)
     if not dc:
@@ -14653,6 +14655,10 @@ def dc_submit():
     now = datetime.datetime.now().isoformat()
     xp_shadow_input = None
     with get_db() as conn:
+        # The unique daily marker remains the replay authority; the user-row
+        # lock makes the check/insert deterministic for concurrent requests
+        # from the same authenticated player.
+        conn.execute('UPDATE users SET id=id WHERE id=?', (uid,))
         existing = conn.execute(
             'SELECT id FROM daily_challenge_log '
             'WHERE user_id=? AND challenge_date=?',
@@ -18489,15 +18495,21 @@ def _award_challenge_reward(conn, uid, my_correct, num_questions, both_done,
 def friend_challenge_answer(cid):
     """提交一道挑戰題的作答結果。"""
     uid  = session['user_id']
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict) or type(data.get('correct')) is not bool:
+        return jsonify({'error': 'invalid_result'}), 400
     qid  = data.get('question_id')
-    correct = 1 if data.get('correct') else 0
+    correct = 1 if data['correct'] else 0
     friend_shadow_input = None
 
     if qid is None:
         return jsonify({'error': '缺少 question_id'}), 400
 
     with get_db() as conn:
+        # The answer primary key is the replay authority.  Serialize same
+        # user submissions so a concurrent duplicate observes the existing
+        # answer instead of racing the pre-insert read.
+        conn.execute('UPDATE users SET id=id WHERE id=?', (uid,))
         ch = conn.execute('SELECT * FROM friend_challenges WHERE id=?', (cid,)).fetchone()
         if not ch or (ch['from_user'] != uid and ch['to_user'] != uid):
             return jsonify({'error': '找不到此挑戰'}), 404
