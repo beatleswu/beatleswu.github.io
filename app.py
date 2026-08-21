@@ -1210,6 +1210,24 @@ FUNCTIONAL_EQUIPMENT_ART = {
     },
 }
 
+# Lane B runtime presentation metadata only.  These records deliberately do
+# not carry ownership, equipped state, rarity authority, or combat values.
+# The wearable art/pose lane has not approved universal body overlays yet, so
+# the current safe projection contract is an icon in the Hero/preview UI.
+_FUNCTIONAL_PRESENTATION_ANCHORS = {
+    'weapon': 'HAND_ANCHOR',
+    'armor': 'BODY_FRAME',
+    'accessory': 'ACCESSORY_ANCHOR',
+}
+for _functional_id, _functional_art in FUNCTIONAL_EQUIPMENT_ART.items():
+    _functional_art.update({
+        'presentation_mode': 'ICON_ONLY',
+        'presentation_anchor': _FUNCTIONAL_PRESENTATION_ANCHORS.get(
+            _EQUIP_MAP.get(_functional_id, {}).get('slot'), 'BODY_FRAME'
+        ),
+        'fallback': 'NEUTRAL_FUNCTIONAL_ICON',
+    })
+
 # Only effects with a current server consumer are exposed as active in the
 # Backpack.  Defined-only fields remain visible as explicitly unavailable.
 _FUNCTIONAL_EFFECT_ACTIVE_KEYS = {
@@ -1348,6 +1366,11 @@ def _functional_equipment_payload(equip, *, inv_id=None, equipped=False,
         'icon_key': art.get('icon_key'),
         'icon_alt': equip.get('name'),
         'legacy_icon': equip.get('icon'),
+        'presentation': {
+            'mode': art.get('presentation_mode', 'ICON_ONLY'),
+            'anchor': art.get('presentation_anchor', 'BODY_FRAME'),
+            'fallback': art.get('fallback', 'NEUTRAL_FUNCTIONAL_ICON'),
+        },
         'desc': equip.get('desc', ''),
         'desc_en': art.get('desc_en', ''),
         **effect_info,
@@ -14676,10 +14699,18 @@ def get_appearance():
         wardrobe.append(w)
 
     _ekeys = eq_row.keys() if eq_row else []
+    stored_character_key = (
+        eq_row['character_key'] if eq_row and 'character_key' in _ekeys else None
+    )
     return jsonify({
         'equipped': equipped,
         'wardrobe': wardrobe,
-        'character_key': (eq_row['character_key'] if eq_row and 'character_key' in _ekeys else None),
+        'character_key': _presentation_character_key(stored_character_key),
+        'character_key_source': (
+            'player_appearance.character_key'
+            if stored_character_key == _presentation_character_key(stored_character_key)
+            else 'server_default'
+        ),
         'combat_armor':   (eq_row['combat_armor']   if eq_row and 'combat_armor'   in _ekeys else None) or '',
         'combat_cape':    (eq_row['combat_cape']    if eq_row and 'combat_cape'    in _ekeys else None) or '',
         'combat_weapon':  (eq_row['combat_weapon']  if eq_row and 'combat_weapon'  in _ekeys else None) or '',
@@ -14999,6 +15030,11 @@ def skills_profile():
         eq_row = conn.execute(
             'SELECT * FROM player_appearance WHERE user_id=?', (uid,)
         ).fetchone()
+        eq_cols = eq_row.keys() if eq_row else []
+        stored_character_key = (
+            eq_row['character_key'] if eq_row and 'character_key' in eq_cols else None
+        )
+        character_key = _presentation_character_key(stored_character_key)
         wardrobe_rows = conn.execute(
             'SELECT item_id FROM player_wardrobe WHERE user_id=?', (uid,)
         ).fetchall()
@@ -15102,6 +15138,12 @@ def skills_profile():
         'xp':             lv_xp,
         'xp_next':        lv_xp_next,
         'total_xp':       total_xp,
+        'character_key':  character_key,
+        'character_key_source': (
+            'player_appearance.character_key'
+            if stored_character_key == character_key
+            else 'server_default'
+        ),
         'equipped_labels': equipped_labels,
         'auto_title':      auto_title,       # 主稱號（依四屬性動態）
         'auto_title_en':   auto_title_en(auto_title),  # 英文版（前端 i18n）
@@ -15142,6 +15184,22 @@ VALID_CHARACTER_KEYS = {
     # 舊 key 相容
     'hero_male', 'woman', 'boy_child', 'girl_child', 'elder_master', 'elder_woman',
 }
+
+ACTIVE_CHARACTER_KEYS = frozenset({
+    'apprentice', 'apprentice_girl', 'swordsman', 'rogue', 'ranger', 'berserker',
+    'guardian', 'paladin', 'mage', 'sage',
+})
+
+
+def _presentation_character_key(value):
+    """Return only a current character presentation key.
+
+    Legacy aliases remain accepted by the existing selection endpoint for
+    compatibility, but they are not allowed to become a new Hero renderer
+    authority.  Invalid or absent persisted values fail closed to the
+    server-owned default presentation without writing a migration.
+    """
+    return value if value in ACTIVE_CHARACTER_KEYS else 'apprentice'
 
 @app.route('/api/skills/character', methods=['POST'])
 @login_required
@@ -15738,7 +15796,8 @@ def public_profile(username):
 
         # ── 角色外觀 ──
         eq_row = conn.execute(
-            'SELECT character_key FROM player_appearance WHERE user_id=?', (uid,)
+            'SELECT * FROM player_appearance WHERE user_id=?',
+            (uid,)
         ).fetchone()
 
         # ── 加入天數 ──
@@ -15794,7 +15853,15 @@ def public_profile(username):
         'badges':         badges,
         'badge_count':    len(badges),
         'badge_total':    len(BADGE_DEFS),
-        'character_key':  (eq_row['character_key'] if eq_row else None) or None,
+        'character_key':  _presentation_character_key(
+            eq_row['character_key'] if eq_row and 'character_key' in eq_row.keys() else None
+        ),
+        'stone_skin':     (
+            eq_row['stone_skin'] if eq_row and 'stone_skin' in eq_row.keys() else None
+        ) or '',
+        'board_skin':     (
+            eq_row['board_skin'] if eq_row and 'board_skin' in eq_row.keys() else None
+        ) or '',
     })
 
 
