@@ -2330,6 +2330,9 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
         for item_id in PURE_COSMETIC_NEW_21
     },
 }
+_COSMETIC_REFERENCE_EXCLUDED_IDS = frozenset({
+    'robe_snow', 'back_scroll', 'acc_goban_seal', 'acc_golden_bell',
+})
 
 # 快查字典
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
@@ -2348,7 +2351,9 @@ def _appearance_presentation_metadata(item):
     item_id = item.get('id') if isinstance(item, dict) else None
     pure = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item_id)
     if pure:
-        return dict(pure)
+        metadata = dict(pure)
+        metadata['hero_projection_allowed'] = item_id not in _COSMETIC_REFERENCE_EXCLUDED_IDS
+        return metadata
     return {
         'asset': f'/assets/hero/items/{item_id}.svg',
         'asset_id': item_id,
@@ -2361,6 +2366,7 @@ def _appearance_presentation_metadata(item):
         'combat_authority': 'NO',
         'effect_authority': 'server APPEARANCE_EFFECTS',
         'visual_generation': 'LEGACY_ICON',
+        'hero_projection_allowed': item_id not in _COSMETIC_REFERENCE_EXCLUDED_IDS,
     }
 
 

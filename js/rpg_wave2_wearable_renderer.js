@@ -95,6 +95,7 @@
       const id = value.id || value.item_id || '';
       const asset = presentation.asset || '';
       if (!id || presentation.selected !== true || presentation.visible !== true) return;
+      if (presentation.hero_projection_allowed === false) return;
       if (presentation.asset_id !== id || presentation.combat_authority !== 'NO') return;
       if (!asset.startsWith('/assets/hero/items/') || asset.includes('..')) return;
       result.push({ item: value, id, presentation });

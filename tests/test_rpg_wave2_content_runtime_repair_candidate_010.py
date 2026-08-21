@@ -207,6 +207,7 @@ def test_presentation_repair_scope_reconciles_28_to_24_without_reviving_hidden_c
         metadata = app_module._appearance_presentation_metadata(app_module._APPEAR_MAP[item_id])
         assert metadata["asset_id"] == item_id
         assert metadata["asset"].startswith("/assets/hero/items/")
+        assert metadata["hero_projection_allowed"] is True
         assert (ROOT / metadata["asset"].lstrip("/")).is_file(), item_id
 
     # These four records remain outside the released/repairable set.  This
@@ -214,6 +215,10 @@ def test_presentation_repair_scope_reconciles_28_to_24_without_reviving_hidden_c
     # an acquisition path.
     assert {"robe_snow", "back_scroll", "acc_goban_seal"} <= NON_REPAIRABLE_AUDIT_BUCKET
     assert "acc_golden_bell" in NON_REPAIRABLE_AUDIT_BUCKET
+    for item_id in NON_REPAIRABLE_AUDIT_BUCKET:
+        assert app_module._appearance_presentation_metadata(
+            app_module._APPEAR_MAP[item_id]
+        )["hero_projection_allowed"] is False
 
 
 def test_cosmetic_renderer_consumes_server_projection_only():
@@ -222,6 +227,7 @@ def test_cosmetic_renderer_consumes_server_projection_only():
     assert "value.owned !== true || value.equipped !== true" in source
     assert "presentation.selected !== true" in source
     assert "presentation.visible !== true" in source
+    assert "presentation.hero_projection_allowed === false" in source
     assert "gameplayAuthority = 'none'" in source
     assert "player_inventory" not in source
 
