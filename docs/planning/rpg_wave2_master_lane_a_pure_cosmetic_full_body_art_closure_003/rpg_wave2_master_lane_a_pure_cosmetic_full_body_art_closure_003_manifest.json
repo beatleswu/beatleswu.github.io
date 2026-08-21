@@ -1064,7 +1064,7 @@
       "anchor": "hand_layer",
       "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
       "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
-      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_jade_ring_generated.png",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/revisions/acc_jade_ring_visual_readability_fix_004/sources/acc_jade_ring_generated.png",
       "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_jade_ring.png",
       "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_jade_ring.webp",
       "pure_presentation": true,
@@ -1083,12 +1083,12 @@
         "cape_mantle_interaction": "PASS",
         "mobile_readability": "PASS"
       },
-      "source_sha256": "a9093b4aeece920968f1eceac44f1f784a7d4d59a010495d02132e9491160c37",
-      "master_sha256": "8309eff71b0b45c2e7bb4ac191c6addcf746fe41afa43600b1e8f5b02e0e0d76",
-      "webp_sha256": "3d24937b346fdb164d8e8c2cf674a1e0bd70985cabdd46bedafdec0dbb9ee786",
+      "source_sha256": "1f93497e8c6c146f69a611b3025600018846552bb0071d637f6c1a5d8495da2c",
+      "master_sha256": "b21ec3b20c1452042d775369d5ab311475a7e04df8e78839bdc388a346e88cf7",
+      "webp_sha256": "d5a5aa2a82a7c6b7d7765f6638b78dc7a17f3e5a2d84d4301d58e645dd50f25f",
       "source_dimensions": [
-        1085,
-        1449
+        1086,
+        1448
       ],
       "master_dimensions": [
         1056,
@@ -1106,7 +1106,15 @@
       "webp_dimensions": [
         1056,
         1408
-      ]
+      ],
+      "readability_revision": {
+        "task": "GO_ODYSSEY_MASTER_LANE_A_ACC_JADE_RING_VISUAL_READABILITY_FIX_004",
+        "desktop_readability": "PASS_CANDIDATE",
+        "mobile_readability": "PASS_CANDIDATE",
+        "design_change": "slightly larger polished jade signet setting, stronger jade-green contrast, clearer finger ring signature",
+        "other_cosmetic_ids_changed": 0,
+        "functional_effect_count": 0
+      }
     },
     {
       "cosmetic_id": "acc_goban_seal",
@@ -1224,7 +1232,13 @@
     "desktop_matrix": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/matrices/PURE_COSMETIC_21_DESKTOP_MATRIX.png",
     "mobile_matrix": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/matrices/PURE_COSMETIC_21_MOBILE_MATRIX.png",
     "full_44_lineup": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/matrices/PURE_COSMETIC_44_FULL_LINEUP.png",
-    "owner_status": "REVIEW_REQUIRED"
+    "owner_status": "REVIEW_REQUIRED",
+    "acc_jade_ring_revision": {
+      "desktop_after": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/revisions/acc_jade_ring_visual_readability_fix_004/ACC_JADE_RING_DESKTOP_AFTER.png",
+      "mobile_after": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/revisions/acc_jade_ring_visual_readability_fix_004/ACC_JADE_RING_MOBILE_AFTER.png",
+      "before_after": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/revisions/acc_jade_ring_visual_readability_fix_004/ACC_JADE_RING_BEFORE_AFTER.png",
+      "owner_status": "REVIEW_REQUIRED"
+    }
   },
   "authority": {
     "functional_equipment_authority": "player_inventory + server EQUIPMENT_DEFS",
