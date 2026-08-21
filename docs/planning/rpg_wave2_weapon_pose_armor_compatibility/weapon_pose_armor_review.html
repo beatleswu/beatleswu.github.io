@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sword Pose Armor Compatibility</title>
+<style>
+  :root { color-scheme: light; font-family: Segoe UI, Arial, sans-serif; }
+  body { margin: 0; padding: 24px; color: #18304e; background: #f2f6fb; }
+  header { max-width: 1180px; margin: 0 auto 22px; }
+  h1 { margin: 0 0 6px; font-size: 29px; }
+  .note { color: #52677f; margin: 0; line-height: 1.5; }
+  .grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .card { background: white; border: 1px solid #b7c7d8; border-radius: 14px; padding: 12px; box-shadow: 0 3px 12px #18304e12; }
+  h2 { font-size: 20px; margin: 0 0 10px; }
+  .toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+  button { border: 1px solid #9db1c8; border-radius: 8px; padding: 7px 10px; background: #f2f6fb; color: #294666; cursor: pointer; }
+  button.active { color: white; background: #2a6f75; border-color: #2a6f75; }
+  .preview { min-height: 410px; display: grid; place-items: center; background: #f8fafc; border-radius: 10px; overflow: hidden; }
+  .preview img { display: block; width: 100%; height: 410px; object-fit: contain; }
+  .hidden { display: none !important; }
+  .card p { margin: 10px 0 0; color: #2a6f75; font-size: 13px; }
+  @media (max-width: 760px) { body { padding: 12px; } .grid { grid-template-columns: 1fr; } .preview, .preview img { min-height: 360px; height: 360px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>ONE_HAND_SWORD_POSE + DRAGON_SCALE</h1>
+  <p class="note">Compatibility review only. Default dragon_scale remains unchanged. The new armor asset is one universal pose-family overlay with a weapon-side clearance mask; ownership remains <code>player_inventory</code>, effects remain <code>server EQUIPMENT_DEFS</code>, and the visual layer is presentation-only.</p>
+</header>
+<main class="grid"><article class="card" data-character="apprentice">
+  <h2>Apprentice</h2>
+  <div class="toggle" role="group" aria-label="Apprentice armor pose comparison">
+    <button class="active" data-mode="default">Default + Armor</button>
+    <button data-mode="sword">Sword Pose + Armor</button>
+  </div>
+  <div class="preview">
+    <img class="default-image" src="../../../assets/hero/characters/wave2_p1/apprentice_p1.png" alt="Apprentice default character with dragon scale">
+    <img class="sword-image hidden" src="composites/apprentice_one_hand_sword_dragon_scale.png" alt="Apprentice sword pose with dragon scale">
+  </div>
+  <p>Review-only · presentation layer · no gameplay authority</p>
+</article><article class="card" data-character="mage">
+  <h2>Mage</h2>
+  <div class="toggle" role="group" aria-label="Mage armor pose comparison">
+    <button class="active" data-mode="default">Default + Armor</button>
+    <button data-mode="sword">Sword Pose + Armor</button>
+  </div>
+  <div class="preview">
+    <img class="default-image" src="../../../assets/hero/characters/wave2_p1/mage_p1.png" alt="Mage default character with dragon scale">
+    <img class="sword-image hidden" src="composites/mage_one_hand_sword_dragon_scale.png" alt="Mage sword pose with dragon scale">
+  </div>
+  <p>Review-only · presentation layer · no gameplay authority</p>
+</article><article class="card" data-character="paladin">
+  <h2>Paladin</h2>
+  <div class="toggle" role="group" aria-label="Paladin armor pose comparison">
+    <button class="active" data-mode="default">Default + Armor</button>
+    <button data-mode="sword">Sword Pose + Armor</button>
+  </div>
+  <div class="preview">
+    <img class="default-image" src="../../../assets/hero/characters/wave2_p1/paladin_p1.png" alt="Paladin default character with dragon scale">
+    <img class="sword-image hidden" src="composites/paladin_one_hand_sword_dragon_scale.png" alt="Paladin sword pose with dragon scale">
+  </div>
+  <p>Review-only · presentation layer · no gameplay authority</p>
+</article></main>
+<script>
+document.querySelectorAll('.card').forEach((card) => {
+  const defaultImage = card.querySelector('.default-image');
+  const swordImage = card.querySelector('.sword-image');
+  card.querySelectorAll('button').forEach((button) => {
+    button.addEventListener('click', () => {
+      const sword = button.dataset.mode === 'sword';
+      defaultImage.classList.toggle('hidden', sword);
+      swordImage.classList.toggle('hidden', !sword);
+      card.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
+    });
+  });
+});
+</script>
+</body>
+</html>
