@@ -19703,13 +19703,17 @@ def _inv_add(conn, uid, item_key, qty=1):
         (uid, item_key, qty, qty))
 
 def _inv_consume(conn, uid, item_key, qty=1) -> bool:
-    row = conn.execute('SELECT qty FROM shop_inventory WHERE user_id=? AND item_key=?',
-                       (uid, item_key)).fetchone()
-    if not row or (row['qty'] or 0) < qty:
+    # Keep the ownership check and decrement in one conditional UPDATE.  A
+    # read-then-update sequence lets concurrent requests both observe the
+    # same quantity under PostgreSQL's normal READ COMMITTED isolation.
+    if isinstance(qty, bool) or not isinstance(qty, int) or qty <= 0:
         return False
-    conn.execute('UPDATE shop_inventory SET qty=qty-? WHERE user_id=? AND item_key=?',
-                 (qty, uid, item_key))
-    return True
+    updated = conn.execute(
+        'UPDATE shop_inventory SET qty=qty-? '
+        'WHERE user_id=? AND item_key=? AND COALESCE(qty,0)>=?',
+        (qty, uid, item_key, qty),
+    )
+    return getattr(updated, 'rowcount', 0) == 1
 
 def _grant_shop_purchase(conn, uid, item, qty=1):
     """Grant direct bundles immediately; otherwise add the shop item itself."""
@@ -19753,6 +19757,7 @@ def _effect_get(conn, uid, effect_key):
         'AND (effect_date IS NULL OR effect_date = ?) '
         'ORDER BY id DESC LIMIT 1',
         (uid, effect_key, now, today)).fetchone()
+
 
 def _effect_remove(conn, uid, effect_id):
     conn.execute('DELETE FROM active_effects WHERE id=? AND user_id=?', (effect_id, uid))
@@ -20202,13 +20207,19 @@ def shop_use():
     item = SHOP_ITEMS.get(item_key)
     if not item:
         return jsonify({'error': 'unknown_item'}), 400
-    now = datetime.datetime.now()
     usable = item.get('usable')
     effect = item.get('effect') or {}
     with get_db() as conn:
         if usable in ('instant', 'auto'):
             return jsonify({'error': 'auto_use_only',
                             'message': '這個道具不需要手動使用'}), 400
+        if effect.get('key') == 'xp_potion':
+            # All three potion IDs share the single server effect key.  Lock
+            # the user's existing row so two different potion requests cannot
+            # both pass the active-effect check before either one commits.
+            # This is deliberately a no-op data update: it needs no schema
+            # change and is portable across SQLite and PostgreSQL.
+            conn.execute('UPDATE users SET id=id WHERE id=?', (uid,))
         if effect.get('key') == 'xp_potion' and _effect_get(conn, uid, 'xp_potion'):
             return jsonify({'error': 'effect_active', 'message': '已有生效中的 XP 藥水'}), 400
         if effect.get('key') == 'streak_shield' and _effect_get(conn, uid, 'streak_shield'):
@@ -20271,6 +20282,10 @@ def shop_use():
         elif effect.get('key') == 'xp_potion':
             value = float(effect.get('value') or 1.5)
             minutes = int(effect.get('minutes') or 30)
+            # Start the duration at the effect creation point, after the
+            # server has accepted ownership and decremented the item in this
+            # transaction—not when the request was first parsed.
+            now = datetime.datetime.now()
             exp = (now + datetime.timedelta(minutes=minutes)).isoformat(timespec='seconds')
             conn.execute('INSERT INTO active_effects(user_id,effect_key,value,expires_at,created_at) '
                          'VALUES(?,?,?,?,?)', (uid, 'xp_potion', value, exp, _now_iso()))
