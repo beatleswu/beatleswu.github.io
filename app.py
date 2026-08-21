@@ -2248,6 +2248,52 @@ APPEARANCE_DEFS = [
     },
 ]
 
+# Pure presentation catalog.  These IDs remain appearance/wardrobe records;
+# this registry only tells the existing Hero/Preview renderer which approved
+# asset to consume.  Ownership and selected state still come from the server
+# wardrobe and player_appearance rows below.
+PURE_COSMETIC_EXISTING_23 = (
+    'hat_cloth', 'hat_bamboo', 'hat_student', 'hat_feather', 'hat_scholar',
+    'hat_foxmask', 'hat_onihorns', 'hat_dragon_horn', 'hat_celestial_crown',
+    'hat_premium', 'title_beginner', 'title_scholar', 'title_wanderer',
+    'title_streak', 'title_foxwit', 'title_master', 'title_dragonslayer',
+    'title_godshand', 'title_celestial', 'title_eternity',
+    'title_newbie_voyage', 'title_claire_recruit', 'title_premium',
+)
+PURE_COSMETIC_NEW_21 = (
+    'robe_plain', 'robe_student', 'robe_bamboo', 'robe_crane', 'robe_fox',
+    'robe_snow', 'robe_dragon', 'back_pack', 'back_flag', 'back_lantern',
+    'back_wings', 'back_scroll', 'back_foxtail', 'back_cloak',
+    'back_dragon_wings', 'acc_bracelet', 'acc_fan', 'acc_goboard_bag',
+    'acc_jade_ring', 'acc_goban_seal', 'acc_dragon_pendant',
+)
+PURE_COSMETIC_PRESENTATION_REGISTRY = {
+    **{
+        item_id: {
+            'asset': f'/assets/hero/items/{item_id}.svg',
+            'asset_id': item_id,
+            'asset_format': 'SVG',
+            'mode': 'CATALOG_ICON',
+            'pure_presentation': True,
+            'functional_effect_count': 0,
+            'combat_authority': 'NO',
+        }
+        for item_id in PURE_COSMETIC_EXISTING_23
+    },
+    **{
+        item_id: {
+            'asset': f'/assets/hero/items/fullbody/{item_id}.webp',
+            'asset_id': item_id,
+            'asset_format': 'WEBP',
+            'mode': 'FULL_BODY_COSMETIC_REFERENCE',
+            'pure_presentation': True,
+            'functional_effect_count': 0,
+            'combat_authority': 'NO',
+        }
+        for item_id in PURE_COSMETIC_NEW_21
+    },
+}
+
 # 快查字典
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
 APPEARANCE_SLOT_KEYS = ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura')
@@ -15226,6 +15272,7 @@ def skills_profile():
         # ── wardrobe：全物品（含 owned 旗標），供外觀頁用 ──────────
         wardrobe = []
         for item in APPEARANCE_DEFS:
+            pure_presentation = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item['id'])
             wardrobe_item = {
                 'id':       item['id'],
                 'name':     item.get('name', item['id']),
@@ -15240,6 +15287,18 @@ def skills_profile():
                 'owned':    item['id'] in owned_ids,
                 'equipped': item['id'] in equipped_ids,
             }
+            if pure_presentation:
+                # Presentation metadata is deliberately read-only.  The
+                # renderer consumes the server-projected owned/equipped
+                # fields; it never uses this registry as an ownership or
+                # combat source of truth.
+                wardrobe_item['art'] = pure_presentation['asset']
+                wardrobe_item['presentation'] = {
+                    **pure_presentation,
+                    'owned': item['id'] in owned_ids,
+                    'selected': item['id'] in equipped_ids,
+                    'visible': item['id'] in equipped_ids,
+                }
             if item.get('slot') == 'title':
                 title_en = _i18n_title_en(item['id'])
                 if title_en:

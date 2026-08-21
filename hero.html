@@ -3546,6 +3546,12 @@ async function loadBadgesTab() {
 const HERO_ITEM_ROOT = '/assets/hero/items/';
 function heroItemArtSrc(item) {
   if (!item || !item.id) return HERO_ITEM_ROOT + 'unknown.svg';
+  const presentationAsset = item.presentation && item.presentation.pure_presentation === true
+    ? item.presentation.asset
+    : '';
+  if (typeof presentationAsset === 'string' && presentationAsset.startsWith('/assets/hero/items/')) {
+    return presentationAsset;
+  }
   return item.art || `${HERO_ITEM_ROOT}${item.id}.svg`;
 }
 function heroItemArtHTML(item, cls='slot-art') {
@@ -4059,7 +4065,10 @@ function renderCosmeticProjection() {
     list.innerHTML = items.map(item => {
       const name = escapeHTML(dispName(item));
       const slot = escapeHTML(item.type || 'appearance');
-      return `<div class="hero-functional-projection-item" data-item-domain="style" data-item-id="${escapeHTML(item.id || '')}" data-owned="true" data-selected="true" data-visible="true">
+      const presentation = item.presentation || {};
+      const presentationMode = escapeHTML(presentation.mode || 'CATALOG_ICON');
+      const presentationAsset = escapeHTML(presentation.asset || heroItemArtSrc(item));
+      return `<div class="hero-functional-projection-item" data-item-domain="style" data-item-id="${escapeHTML(item.id || '')}" data-presentation-mode="${presentationMode}" data-presentation-asset="${presentationAsset}" data-owned="true" data-selected="true" data-visible="true">
         <span class="hero-functional-projection-icon">${heroItemArtHTML(item, 'hero-functional-projection-art')}</span>
         <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${slot}</span><span class="hero-functional-projection-effect">${isEn() ? 'Visual only · no combat authority' : '純外觀 · 不提供戰鬥權限'}</span></span>
       </div>`;
