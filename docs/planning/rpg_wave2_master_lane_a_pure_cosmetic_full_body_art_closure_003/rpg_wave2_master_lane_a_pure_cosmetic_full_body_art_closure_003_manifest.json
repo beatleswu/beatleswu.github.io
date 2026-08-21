@@ -1,0 +1,1236 @@
+{
+  "task": "GO_ODYSSEY_MASTER_LANE_A_PURE_COSMETIC_FULL_BODY_ART_CLOSURE_003",
+  "master_lane": "A",
+  "base": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "production_contract": {
+    "master_canvas": "1056x1408 RGBA",
+    "source_master": "PNG",
+    "runtime_derivative": "WebP",
+    "foot_baseline": "y=.975",
+    "body_frame": "x=.20-.80,y=.02-.98",
+    "true_alpha": true,
+    "mobile_safe_area": "10%",
+    "functional_weapon_baked_in_base_art": false,
+    "layer_contract": "Base Character -> Outfit Cosmetic -> Functional Equipment projection if supported -> Cosmetic Style Gear -> Aura/FX"
+  },
+  "source_reference": {
+    "path": "D:\\go-website-master-lane-a-remaining-one-hand-sword-pose-002\\docs\\planning\\rpg_wave2_full_body_weapon_pose_system\\variants\\apprentice_one_hand_sword_pose.png",
+    "sha256": "d7c1b2d631da009640972d41d9c9818ac983dd7a3beaf4e51d43249d9d7b3956"
+  },
+  "existing_approved_23": [
+    {
+      "cosmetic_id": "hat_cloth",
+      "asset_path": "assets/hero/items/hat_cloth.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_bamboo",
+      "asset_path": "assets/hero/items/hat_bamboo.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_student",
+      "asset_path": "assets/hero/items/hat_student.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_feather",
+      "asset_path": "assets/hero/items/hat_feather.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_scholar",
+      "asset_path": "assets/hero/items/hat_scholar.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_foxmask",
+      "asset_path": "assets/hero/items/hat_foxmask.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_onihorns",
+      "asset_path": "assets/hero/items/hat_onihorns.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_dragon_horn",
+      "asset_path": "assets/hero/items/hat_dragon_horn.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_celestial_crown",
+      "asset_path": "assets/hero/items/hat_celestial_crown.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "hat_premium",
+      "asset_path": "assets/hero/items/hat_premium.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_beginner",
+      "asset_path": "assets/hero/items/title_beginner.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_scholar",
+      "asset_path": "assets/hero/items/title_scholar.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_wanderer",
+      "asset_path": "assets/hero/items/title_wanderer.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_streak",
+      "asset_path": "assets/hero/items/title_streak.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_foxwit",
+      "asset_path": "assets/hero/items/title_foxwit.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_master",
+      "asset_path": "assets/hero/items/title_master.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_dragonslayer",
+      "asset_path": "assets/hero/items/title_dragonslayer.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_godshand",
+      "asset_path": "assets/hero/items/title_godshand.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_celestial",
+      "asset_path": "assets/hero/items/title_celestial.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_eternity",
+      "asset_path": "assets/hero/items/title_eternity.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_newbie_voyage",
+      "asset_path": "assets/hero/items/title_newbie_voyage.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_claire_recruit",
+      "asset_path": "assets/hero/items/title_claire_recruit.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    },
+    {
+      "cosmetic_id": "title_premium",
+      "asset_path": "assets/hero/items/title_premium.svg",
+      "status": "EXISTING_APPROVED_PURE_PRESENTATION_REFERENCE",
+      "changed": false
+    }
+  ],
+  "new_candidates": [
+    {
+      "cosmetic_id": "robe_plain",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_plain_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_plain.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_plain.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "73df9a0b71d87962945319f5b5fcded72d1092e5943e3c289b78ebc87f87c0d1",
+      "master_sha256": "2243dc6997d17667936426afff6db839c09ecc28a1e9c8aefb2e7e85e31c6a06",
+      "webp_sha256": "3a476c5cf9eaae706394e237723f38e3ad7421509e7786a2c7a0eb5b42f17208",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        298,
+        48,
+        758,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "robe_student",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_student_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_student.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_student.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "66a08dcb01137156f727fea31d18b8ce7a99c47361cfbdd99b50fcfb9a3e26a8",
+      "master_sha256": "4a8d92e7bf5f545020e7619128a1a6005aa35b976cf38115bb904ea6b2fc1d32",
+      "webp_sha256": "3cdf2868cdebfa304e83ceef839973067495305d6a55f059923335c5d3265026",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        293,
+        48,
+        762,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "robe_bamboo",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_bamboo_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_bamboo.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_bamboo.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "335868da10b9df345f9b85689cfedff6d1c26d61bb81896dcbe783d760c6e03d",
+      "master_sha256": "57e0d7af0f0af5fdd84e1647f3c426cd195e9694c8a53b043b30b13523973a56",
+      "webp_sha256": "51d83d6f831d073b890b5a1d610907f3540ca212604c26753e194d2d4e77b0b8",
+      "source_dimensions": [
+        1070,
+        1470
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        277,
+        48,
+        779,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "robe_crane",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_crane_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_crane.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_crane.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "78450a78f8335fd0d6e336ff1e6518277385f5f524e8542a2fb64b73bc4446fc",
+      "master_sha256": "20f25c3bbfe2f0ff0f0885028aeb0dd46cd940a2d0a95e677ba75c318a2cbbb6",
+      "webp_sha256": "fd14f1d17b915752e1d903594337481d0a0bde6bd135a945717cd228bfb6c7cb",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        275,
+        48,
+        780,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "robe_fox",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_fox_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_fox.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_fox.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "ddd37e9364259b4c6aba3985620b7ce866451c1dcb84f3c51572a7c3f5eb2936",
+      "master_sha256": "6ee5995300ab7afd0708bfdaa4c7dda64d52eb25202770a028877f9de7bf6310",
+      "webp_sha256": "2e058251942dfd9a5c498f6db3978f10f4ccf0e363b5793912faf2a9145a8f7c",
+      "source_dimensions": [
+        1086,
+        1449
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        274,
+        48,
+        781,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "robe_snow",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_snow_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_snow.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_snow.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "65bfd4f41e984f4bfe6d3e0b0a92cef71af026bce730b3b2ca0c0528fc4edb28",
+      "master_sha256": "ebf72dfdceaa478a58ca5b8ea9a99ab84d8e3ef14afd7787bd79083cbb6c32b4",
+      "webp_sha256": "f503bd8bdca56b41814ec669891d826f39d39f5c5dee785b1b4c706c7fdee929",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        298,
+        48,
+        758,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "robe_dragon",
+      "slot_family": "OUTFIT_STYLE",
+      "anchor": "torso_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/robe_dragon_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_dragon.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/robe_dragon.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "PASS",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "3386e1b575f2a79e9c8a689cafc0bcc2211c798616d51e2967a8b144ec55c424",
+      "master_sha256": "493b54713635d8f4eaf8fec4848ee1666a2c87ed0ec06d410c693fe330a8f205",
+      "webp_sha256": "15eadea73a6f9a4d5d5a0cabba22d3d745fc0b128ca2b4177ff580519ee79a79",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        293,
+        48,
+        762,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_pack",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_pack_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_pack.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_pack.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "2a8c70f4aadfd91d75b923abe97ce8a2914e6f544a8470ec0e90a10253dedbd5",
+      "master_sha256": "9cbad2195d3675273d44cc9a81fea05d3ea16347a92e62b0ccb986938360037a",
+      "webp_sha256": "9626691195d9f63eab267a6f8a772177fe08385604c2bf0037237221cd2a1357",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        319,
+        48,
+        737,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_flag",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_flag_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_flag.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_flag.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "ac254cef1f51f21c17740d766eea693b189fec52bf94e8edbf3d0206bc4fae52",
+      "master_sha256": "90c8fe0d6ae259e4038d6ae09fb68a96cf5a72123405139afe240a9010c988fe",
+      "webp_sha256": "40fbbe8f4e7a99c89526a6690274ab8fb1e242b427dbecaa761cce704816a304",
+      "source_dimensions": [
+        1084,
+        1451
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        245,
+        48,
+        811,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_lantern",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_lantern_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_lantern.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_lantern.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "daf68a4c37418c88cf49e4bc90c72d534545784ec7ec3f50f4e43ec93ecd7d39",
+      "master_sha256": "81c46a1b3a79a327066a58cca0fac8d32428b6604d3cb1fb01d3bec2c61fdcfd",
+      "webp_sha256": "a4b8e2a56955eb5f401187699bffc7cd5c6ea0e53082e9c5bb47ef3214905c70",
+      "source_dimensions": [
+        1090,
+        1443
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        306,
+        48,
+        749,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_wings",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_wings_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_wings.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_wings.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "1196e9ed5c4a85ef78cad7c0061958639daf77e82907e49ecd5cfc8762eaae34",
+      "master_sha256": "0e3b84e77b0a70e5c7a2c1e3dc18f17020305c3c9b1131db9ff3e8abd86cddfb",
+      "webp_sha256": "e884953b139e13bc4ec825ea410e452c27b2065c5732be96d69dbae58c22b409",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        304,
+        48,
+        751,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_scroll",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_scroll_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_scroll.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_scroll.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "7fed9ed48733622422edcd9609ff6d95bb201e060f82bd0085d67485a7f90254",
+      "master_sha256": "3241547f07c62895d9bb53fed382348e31479cca43ebe1f9cd53896183c2502f",
+      "webp_sha256": "a40ff7f212b225b8c90042466f5fafd5a7e3b0ebd10cb2409694665722df750a",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        317,
+        48,
+        738,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_foxtail",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_foxtail_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_foxtail.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_foxtail.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "ee3897bb9d8e83945fdbb0140690ac5bbb87350f216ff2889c33000497d2ae10",
+      "master_sha256": "b100fca5a84f963823c0a4f383bfa11344aff2e6e54077447118b7c1c6b452e8",
+      "webp_sha256": "6024ca718f8bcd1cda250a2a1da45d8ac78a1413fa041717da3ec71abbba4f7e",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        240,
+        48,
+        816,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_cloak",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_cloak_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_cloak.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_cloak.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "5dad86e53d98c7b177892f95c7ea0ceb306141d08eb43ff97f8b9d369361ab1e",
+      "master_sha256": "524ecb2eae5ea66cb29baad30b3b2f0c78fb8395cfb8cb10d73ee59f3cb18a7c",
+      "webp_sha256": "50271f082f232467049d4291d4dfb523573def946ec165c545aff60eaee742e8",
+      "source_dimensions": [
+        1086,
+        1449
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        271,
+        48,
+        784,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "back_dragon_wings",
+      "slot_family": "BACK_STYLE",
+      "anchor": "back_shoulder_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/back_dragon_wings_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_dragon_wings.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/back_dragon_wings.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "PASS",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "ac685e09724523fd91bb1b552633c38cb352871d799f4f2de28e17e098e56ceb",
+      "master_sha256": "4b6cf392909cfee4130b138a81e4bc4ab3761aab303ddb87feec9c7f18ba4647",
+      "webp_sha256": "1c5e6a249aec21a9b5c962fa7bafbb894c496698aa7a07f92d6f44db07eeb2f9",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        174,
+        48,
+        881,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "acc_bracelet",
+      "slot_family": "ACCESSORY_STYLE",
+      "anchor": "wrist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_bracelet_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_bracelet.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_bracelet.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "502df5a0430be3dc6a283c7a42c0c9952fe23fe38a94d79305dde7936d345dde",
+      "master_sha256": "ae176d797bc17d6f605e5627052e4620da8df7470c61ca761a96c158c5fa105b",
+      "webp_sha256": "733fadc95cd55ecf829acb0cfb574478f7a18681bee8a5c56a0cf978d05f093c",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        309,
+        48,
+        747,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "acc_fan",
+      "slot_family": "ACCESSORY_STYLE",
+      "anchor": "hand_or_waist_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_fan_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_fan.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_fan.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "73651118080b9401eca99e14abf054b9c0c52064425c911990aa141d23b3809e",
+      "master_sha256": "62b4b6a86643576c60568903e48b0c99911b6ac693238a4e02aa7bd7fe896527",
+      "webp_sha256": "e65b2a2f4a530f8cf939960d53681f18ac3727d75f53d8405d90075b0b11c8df",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        315,
+        48,
+        740,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "acc_goboard_bag",
+      "slot_family": "ACCESSORY_STYLE",
+      "anchor": "hip_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_goboard_bag_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_goboard_bag.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_goboard_bag.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "4b1d4cfa652d9382d9819c35a76ec234b784d1f5e3c89ab7f333cf263b95baa1",
+      "master_sha256": "7f7abdb9f8c91671d0c9d776fc8565b880174b67490b241cdaa83323ab834fea",
+      "webp_sha256": "a90ae96e8677320b2d8b92c1fc77bd0c20b8b6e10f559f007f77eeb71ad1c8ff",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        303,
+        48,
+        752,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "acc_jade_ring",
+      "slot_family": "ACCESSORY_STYLE",
+      "anchor": "hand_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_jade_ring_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_jade_ring.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_jade_ring.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "a9093b4aeece920968f1eceac44f1f784a7d4d59a010495d02132e9491160c37",
+      "master_sha256": "8309eff71b0b45c2e7bb4ac191c6addcf746fe41afa43600b1e8f5b02e0e0d76",
+      "webp_sha256": "3d24937b346fdb164d8e8c2cf674a1e0bd70985cabdd46bedafdec0dbb9ee786",
+      "source_dimensions": [
+        1085,
+        1449
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        309,
+        48,
+        747,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "acc_goban_seal",
+      "slot_family": "ACCESSORY_STYLE",
+      "anchor": "waist_or_chest_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_goban_seal_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_goban_seal.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_goban_seal.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "2cd33fa55ab9d060dcbd1b7ba0208750954d486fce9a90b857b494ee892e16dd",
+      "master_sha256": "8df19a3145be8f174eee8b3b69d5cbda7218c523d049b736b9923ceec6afd301",
+      "webp_sha256": "1e360b8a90f8fe9906afb9a47f00e21de0fa2a0fb4dc836193044e94d797be2f",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        308,
+        48,
+        748,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    },
+    {
+      "cosmetic_id": "acc_dragon_pendant",
+      "slot_family": "ACCESSORY_STYLE",
+      "anchor": "chest_layer",
+      "presentation_strategy": "reusable_full_body_candidate_one_per_cosmetic",
+      "source_master": "generated_high_resolution_candidate_reviewed_against_approved_apprentice_pose",
+      "raw_source": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/sources/generated_raw/acc_dragon_pendant_generated.png",
+      "master_png": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_dragon_pendant.png",
+      "runtime_derivative_webp": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/masters/acc_dragon_pendant.webp",
+      "pure_presentation": true,
+      "functional_effect_count": 0,
+      "combat_authority": "NO",
+      "progression_authority": "NO",
+      "ownership_authority": "NO",
+      "compatibility_screen": {
+        "torso_compatibility": "NOT_APPLICABLE",
+        "shoulder_compatibility": "PASS",
+        "arm_occlusion": "PASS",
+        "waist_layering": "PASS",
+        "back_layering": "NOT_APPLICABLE",
+        "hair_collision": "PASS",
+        "weapon_clearance": "PASS",
+        "cape_mantle_interaction": "PASS",
+        "mobile_readability": "PASS"
+      },
+      "source_sha256": "456809b2950da719f4e85c3ca9e3a1b7302f067f996b3556b3718795e1e68a9b",
+      "master_sha256": "15e242b0fb122f62a7d0157ddfcb75fc0247a0c43077049e7e98cf7ee6821174",
+      "webp_sha256": "a8441ea82d53006c50c1f16c0c166c54a2440577f3b61cca84733d118a4e0959",
+      "source_dimensions": [
+        1086,
+        1448
+      ],
+      "master_dimensions": [
+        1056,
+        1408
+      ],
+      "master_mode": "RGBA",
+      "master_alpha_bbox": [
+        326,
+        48,
+        730,
+        1372
+      ],
+      "master_alpha_min": 0,
+      "master_alpha_max": 255,
+      "webp_dimensions": [
+        1056,
+        1408
+      ]
+    }
+  ],
+  "counts": {
+    "existing_approved_pure_presentation": 23,
+    "new_pure_cosmetic_art_candidates": 21,
+    "pure_cosmetic_full_body_art": 44,
+    "remaining_art_gap": 0,
+    "pure_presentation": 44,
+    "functional_effect_introduced": 0,
+    "player_visual_family_drift": 0,
+    "layer_collision": 0,
+    "mobile_readability_failure": 0
+  },
+  "review_artifacts": {
+    "desktop_matrix": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/matrices/PURE_COSMETIC_21_DESKTOP_MATRIX.png",
+    "mobile_matrix": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/matrices/PURE_COSMETIC_21_MOBILE_MATRIX.png",
+    "full_44_lineup": "docs/planning/rpg_wave2_master_lane_a_pure_cosmetic_full_body_art_closure_003/matrices/PURE_COSMETIC_44_FULL_LINEUP.png",
+    "owner_status": "REVIEW_REQUIRED"
+  },
+  "authority": {
+    "functional_equipment_authority": "player_inventory + server EQUIPMENT_DEFS",
+    "functional_equipment_authority_changed": "NO",
+    "character_combat_authority": "NO",
+    "client_combat_authority": "NO",
+    "ownership_authority_changed": "NO"
+  }
+}
