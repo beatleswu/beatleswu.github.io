@@ -1,12 +1,12 @@
 # Go Odyssey Wave 2 — Character 20 Production Plan
 
-**Task:** `RPG_WAVE2_CHARACTER_20_PRODUCTION_PLAN_001`
-**Mode:** swarm audit + production planning
-**Scope:** planning only; no art generation, runtime change, database change, merge, deploy, or Production mutation
+**Task:** `RPG_WAVE2_CHARACTER_20_CANONICALIZATION_PRODUCTION_READY_001`
+**Mode:** Owner precheck correction + parallel production-lane dispatch
+**Scope:** canonical roster correction and production readiness; no runtime authority, database, merge, deploy, or Production mutation
 
 ## Decision summary
 
-The canonical player target is **20 player appearances**: 10 runtime-registered IDs, three newly Owner-canonical IDs, and seven remaining candidate slots. The three newly canonical IDs are canonical for this production plan but remain intentionally absent from runtime registries until a separate runtime-authority decision. The current six-character proof set is now Owner-passed for this lane.
+The canonical player target is **20/20 locked canonical characters**: 10 runtime-registered IDs, three previously promoted Batch 1 IDs, and seven newly promoted final-roster IDs. Canonical roster status is no longer an Owner-decision blocker. The seven final-roster IDs remain blocked only by art/reference/runtime conditions, and the current six-character proof set is Owner-passed for this lane.
 
 The current six is:
 
@@ -20,7 +20,7 @@ The long-term production unit is one logical asset per `CHARACTER × WEAPON_FAMI
 
 - Canonical base for this plan: `origin/master` at `ac182ed173620a11e66bebeb6003c121b9ceee95`.
 - The canonical runtime registry contains exactly 10 current player IDs in `hero.html`, `js/e9/adapters/player_state.js`, and `app.py`.
-- The historical Wave 2 identity registry is `PROPOSAL_FOR_OWNER_GATE1`; the latest Owner decision supersedes that status for `trail_apprentice`, `night_runner`, and `constellation_apprentice` in this plan. Those three remain absent from runtime registries.
+- The historical Wave 2 identity registry is `PROPOSAL_FOR_OWNER_GATE1`; this Owner precheck supersedes that planning status for all ten Wave 2 additions. The final seven are canonical in this plan but remain absent from runtime registries until a separate runtime-authority change.
 - The P1 visual package covers three existing players and three candidate players, plus two NPCs. NPC assets are excluded from this player plan.
 - The six-character pose package uses `PLAYER_FRAME_A_STANDARD_CHIBI`, a 1056×1408 RGBA production frame, and a review-only universal `iron_sword` presentation. It does not change `player_inventory`, combat, selection APIs, the database, or runtime equipment authority.
 - The repository has a distinct 20-entry battlefield monster roster. It is not part of this 20-player target.
@@ -36,21 +36,24 @@ Supporting source files include:
 
 ## Readiness counts
 
-`READY` below means final Wave 2 production-ready: default body, required pose family, identity review, compatibility review, and Owner visual gate. `READY_FOR_FULL_BODY_PRODUCTION` is a separate pre-production class: the identity source is sufficient to start a redraw, but the new full-body output does not yet exist.
+`READY` below means final Wave 2 production-ready: default body, required pose family, identity review, compatibility review, and Owner visual gate. `READY_FOR_DEFAULT_ART_PRODUCTION` is independent of the Sword Pose × Armor gate. `READY_FOR_SWORD_POSE_MASS_PRODUCTION` remains zero until the compatibility gate passes.
 
 | Measure | Count | Meaning |
 |---|---:|---|
-| Target player appearances | 20 | 10 runtime IDs + 3 Owner-canonical non-runtime IDs + 7 candidate slots |
-| Canonical character IDs | 13 | 10 runtime IDs plus the three Owner-canonical Batch 1 additions |
-| Owner-decision-required IDs | 7 | The seven remaining candidate concepts |
+| Target player appearances | 20 | Locked final roster |
+| Canonical character IDs | 20 | 10 runtime IDs + 10 promoted Wave 2 IDs |
+| Owner-decision-required IDs | 0 | Canonical roster decision is complete |
 | READY | 0 | No character has cleared the final plan gates |
 | NEEDS_STANDARDIZATION | 6 | All six Batch 1 identities have accepted proof packages and require production standardization only |
-| NEEDS_REDRAW | 7 | Existing IDs with current chibi art but no P1 full-body production package |
-| NEEDS_CANONICAL_DECISION | 0 | The three formerly preview-only Batch 1 IDs are now Owner-canonical |
-| RESERVED_ONLY | 7 | Candidate IDs with text identity briefs but no tracked character master |
-| BLOCKED_FOR_ART | 7 | The seven reserved-only candidates lack sufficient visual identity references |
+| NEEDS_REDRAW | 14 | Seven existing canonical IDs plus the seven promoted final-roster IDs still need default art |
+| NEEDS_CANONICAL_DECISION | 0 | No canonical decision remains open |
+| RESERVED_ONLY | 0 | No target character remains reserved-only |
+| BLOCKED_FOR_ART | 7 | Final-roster IDs require art/identity references; runtime registration remains separate |
+| OWNER_APPROVED_CURRENT_6 | 6 | Current six one-hand sword proof identities are Owner-passed |
+| READY_FOR_DEFAULT_ART_PRODUCTION | 7 | Batch 2 (4) + Batch 3A (3); no Sword Pose × Armor dependency |
+| READY_FOR_SWORD_POSE_MASS_PRODUCTION | 0 | Armor compatibility gate is pending |
 
-The status categories are intentionally conservative. The ten runtime characters are current-runtime-ready, while the three new canonical IDs are plan-canonical but not runtime-registered. The seven `BLOCKED_FOR_ART` entries are a readiness flag over the `RESERVED_ONLY` records, not a new runtime category. The text registry resolves role, palette, costume, and silhouette gaps; it does not silently resolve face, hair, body-proportion, or runtime identity gaps.
+The status categories separate roster canon from production readiness. All 20 IDs are canonical. The seven `BLOCKED_FOR_ART` entries are canonical characters that still need approved art/identity references; they are not reserved-only and do not require another canonical decision. Runtime registration remains an independent authority change.
 
 ## Current six proof status
 
@@ -84,7 +87,7 @@ Review planning counts:
 
 ## Batching plan
 
-The requested 6/4/5/5 shape is retained, but the actual proof set contains three existing IDs and three candidate IDs. Therefore Batch 3 is mixed; it is not truthful to call all five Batch 3 entries “new.”
+The requested 6/4/5/5 shape is retained, but the actual proof set contains three existing IDs and three promoted Batch 1 IDs. Therefore Batch 3 is mixed; it is not truthful to call all five Batch 3 entries “new.”
 
 ### Batch 1 — current six proof set
 
@@ -102,44 +105,44 @@ The requested 6/4/5/5 shape is retained, but the actual proof set contains three
 
 **Characters:** `apprentice_girl`, `swordsman`, `rogue`, `ranger`
 
-- Dependencies: Batch 1 gate; preserve each current identity; use the current canonical asset as the face/hair identity source and measure the shared body frame during production.
+- Dependencies: Current six proof remains Owner-passed; default-pose production is independent of Sword Pose × Armor compatibility.
 - Identity-reference readiness: existing canonical art and role briefs are sufficient to start the full-body redraw; new full-body art is still required.
 - Expected full-body redraws: 4.
 - Expected sword-pose redraws: 4, one per character family variant after default-body acceptance.
 - Armor compatibility risk: body-frame subclass review for narrow/hooded/travel silhouettes; do not assume the six-body overlay proof generalizes.
 - QA: full identity anchor sheet, frame/alpha, mobile crop, one-hand grip, torso armor, face accessory, and shoulder/back clearance.
-- Readiness: `BATCH_2_READY_COUNT=4`, `BATCH_2_BLOCKED_COUNT=0`; these four can enter the art queue immediately after the armor gate.
-- Owner visual gate: batch-specific visual approval after the mass-production gate; no new canonical decision is required.
+- Readiness: `BATCH_2_READY_COUNT=4`, `BATCH_2_BLOCKED_COUNT=0`; these four can enter the default-art queue immediately, without waiting for the armor gate.
+- Owner visual gate: batch-specific default-pose visual approval; Sword Pose work remains behind the armor gate.
 
-### Batch 3 — three existing plus two reserved candidates
+### Batch 3 — three existing plus two canonical final-roster identities
 
 **Characters:** `berserker`, `guardian`, `sage`, `river_wayfinder`, `stone_caretaker`
 
-- Dependencies: Batch 1 gate; existing identity preservation; Owner decisions and approved face/hair/body references for the two candidates.
-- Identity-reference readiness: the three existing identities are ready for full-body production; both candidates remain `ART_REFERENCE_REQUIRED` and `OWNER_DECISION_REQUIRED`.
+- Dependencies: Current six proof remains Owner-passed; three existing identities are ready for default-pose production; two canonical final-roster identities require reference lock.
+- Identity-reference readiness: the three existing identities are ready for full-body production; both final-roster IDs remain `ART_REFERENCE_REQUIRED` and `IDENTITY_REFERENCE_REQUIRED`.
 - Expected full-body redraws: 5 conditional assets.
 - Expected sword-pose redraws: 5 conditional family variants.
 - Armor compatibility risk: broad-body, mantle, robe, and age-diverse body-frame subclass risk; special review is mandatory.
 - QA: all Batch 2 checks plus broad-shoulder, robe/arm clearance, face-mask occlusion, and silhouette continuity review.
 - Readiness: `BATCH_3_READY_COUNT=3`, `BATCH_3_BLOCKED_COUNT=2`.
-- Owner visual gate: candidate Gate 1 plus character-specific visual approval for each newly unblocked candidate.
+- Owner visual gate: identity-reference approval plus character-specific visual approval; canonical roster status is already locked.
 
-### Batch 4 — five reserved candidates
+### Batch 4 — five canonical final-roster identities
 
 **Characters:** `duelist_scout`, `bastion_warden`, `forest_pathfinder`, `archive_scholar`, `worldkeeper`
 
-- Dependencies: Batch 1 gate; five separate Gate 1 canonical decisions; face/hair/age/body references; display-name approval.
-- Identity-reference readiness: text identity briefs resolve role, palette, costume, and silhouette only; all five remain `ART_REFERENCE_REQUIRED` and `OWNER_DECISION_REQUIRED` for face/hair/age/body references.
+- Dependencies: Current six proof remains Owner-passed; canonical IDs are locked; face/hair/age/body references remain required.
+- Identity-reference readiness: text identity briefs resolve role, palette, costume, and silhouette only; all five remain `ART_REFERENCE_REQUIRED` and `IDENTITY_REFERENCE_REQUIRED`.
 - Expected full-body redraws: 5 conditional assets.
 - Expected sword-pose redraws: 5 conditional family variants.
 - Armor compatibility risk: highest uncertainty; narrow, broad, hooded, layered, and civic-mantle silhouettes require subclass/mask/special review decisions before production.
 - QA: full identity reference lock, alpha/frame/footline, mobile silhouette, overlay/mask/shoulder review, then one-hand sword family review.
 - Readiness: `BATCH_4_READY_COUNT=0`, `BATCH_4_BLOCKED_COUNT=5`.
-- Owner visual gate: canonical decision, identity-reference approval, and character-specific visual pass.
+- Owner visual gate: identity-reference approval and character-specific visual pass; no canonical decision is pending.
 
 ## Identity lock sheets for Batches 2–4
 
-These are production guidance contracts, not finished art and not silent visual canon. For existing IDs, the current canonical asset is the identity reference. For candidate IDs, fields marked `NOT_CANONICALLY_SPECIFIED` remain Owner/reference blockers.
+These are production guidance contracts, not finished art and not silent visual canon. For existing IDs, the current canonical asset is the identity reference. For the final seven, fields marked `NOT_CANONICALLY_SPECIFIED` remain art/identity-reference blockers, not canonical-decision blockers.
 
 ### Batch 2
 
@@ -157,34 +160,34 @@ These are production guidance contracts, not finished art and not silent visual 
 | `berserker` | Warrior, Orc Tribe/arena | Existing age read only; not text-locked | Current face enlarged within common face grid | Preserve current red hair and spike cue | Broad body at shared frame maximum | Ox-blood red, charcoal, leather brown, brass | Fur/leather grouped into three readable masses | Broad shoulders plus red hair spikes | Preserve broad identity, red-hair cue, fur/leather read, footline, and weapon-free base | `READY_FOR_FULL_BODY_PRODUCTION` |
 | `guardian` | Knight, village defense/Demon Castle Front | Existing age read only; not text-locked | Current grounded expression in common face grid | Current canonical hair silhouette | Broad protective shoulder/torso blocks | Blue-charcoal, iron grey, brown, muted brass | Dark armor blocks, shoulder/torso block, mantle | Sturdy broad-shouldered protective silhouette | Preserve broad shoulders, torso block, grounded expression; do not assume universal armor fit | `READY_FOR_FULL_BODY_PRODUCTION` |
 | `sage` | Scholar/Sage, Sage Tower/ancient records | Older upright read; exact age not text-locked | Beard and glasses inside common facial landmarks | Current canonical hair/face silhouette | Older upright body; do not make youthful | Earth brown, slate, ivory, muted brass | Scholar robe with beard/glasses hierarchy | Older upright scholar with readable robe and face | Preserve age, beard, glasses, robe, and face; remove tiny trim before changing identity | `READY_FOR_FULL_BODY_PRODUCTION` |
-| `river_wayfinder` | Adventurer, field guide and route reader | Young adult; broad presentation options | `NOT_CANONICALLY_SPECIFIED`; Owner face reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair reference required | Broad options; no measured body lock | Water blue, reed green, warm grey, brass | Hooded rain cape, tall boots, side satchel, rolled-map utility | Asymmetric water-ripple hem with cape/satchel profile | Do not canonize face, hair, or body from text; preserve route-reader, rain-cape, satchel, and ripple hem | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
-| `stone_caretaker` | Scholar/Village, keeper of local practice and memory | Adult or older adult; age-diverse | `NOT_CANONICALLY_SPECIFIED`; Owner face reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair reference required | Broad/grounded older-body direction; no measured lock | Stone grey, cedar brown, ivory, muted gold | Broad sash, layered short robe, dojo workwear/apron, counting cord | Grounded broad/older stance with sash and short-robe mass | Do not canonize age, face, hair, or width from text; preserve grounded stance, sash, robe, and cord | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
+| `river_wayfinder` | Adventurer, field guide and route reader | Young adult; broad presentation options | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Broad options; no measured body lock | Water blue, reed green, warm grey, brass | Hooded rain cape, tall boots, side satchel, rolled-map utility | Asymmetric water-ripple hem with cape/satchel profile | Do not invent face, hair, or body from text; preserve route-reader, rain-cape, satchel, and ripple hem | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
+| `stone_caretaker` | Scholar/Village, keeper of local practice and memory | Adult or older adult; age-diverse | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Broad/grounded older-body direction; no measured lock | Stone grey, cedar brown, ivory, muted gold | Broad sash, layered short robe, dojo workwear/apron, counting cord | Grounded broad/older stance with sash and short-robe mass | Do not invent age, face, hair, or width from text; preserve grounded stance, sash, robe, and cord | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
 
 ### Batch 4
 
 | Character | Role | Age band | Face anchor | Hair anchor | Body proportion | Palette | Signature costume | Silhouette | Do-not-drift rules | Readiness |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `duelist_scout` | Warrior, frontier roads/training grounds | Teen or young adult; any presentation | `NOT_CANONICALLY_SPECIFIED`; Owner face reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair reference required | Narrow shoulders; no measured lock | Slate blue, rust red, ivory, leather brown | Light travel cloth, reinforced cuffs, split shoulder panel | Narrow asymmetric coat and long leg line | Do not canonize face, hair, or body; preserve observation role, narrow coat, cuffs, and split panel | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
-| `bastion_warden` | Knight/Guardian, village defense/Demon Castle Front | Adult; varied body widths | `NOT_CANONICALLY_SPECIFIED`; Owner face reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair reference required | Broad mantle and stable vertical torso; no measured lock | Blue-charcoal, stone grey, muted gold, brown | Layered guard cloth and padded mantle | Rounded shoulder mantle and strong shoulder arc | Do not canonize broad body or face; preserve calm defender role, mantle, and shoulder arc | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
-| `forest_pathfinder` | Ranger, Misty Forest | Teen or adult; neutral/androgynous options | `NOT_CANONICALLY_SPECIFIED`; Owner face/hood reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair/hood reference required | Neutral body options; no measured lock | Forest green, mist violet, bark brown, ivory | Weathered cloak, layered travel cloth, tall boots | Leaf-like mantle and long hood profile | Do not canonize face, hair, or body; preserve patient-guide role, leaf hood, cloak, and back arc | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
-| `archive_scholar` | Scholar/Sage, Sage Tower/ancient records | Adult or older adult; age-diverse | `NOT_CANONICALLY_SPECIFIED`; Owner face reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair reference required | Broad age-diverse options; no measured lock | Warm umber, slate, parchment ivory, muted teal | Tall collar, archive layers, cloth tabs, practical sleeves, satchel | Straight robe line with tall collar and folio clasp | Do not canonize age, face, hair, or width; preserve researcher role, archive layers, and readable folio cue | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
-| `worldkeeper` | Sage/Guardian, endgame world stage | Broad age/body presentation; no fixed gender cue | `NOT_CANONICALLY_SPECIFIED`; Owner face reference required | `NOT_CANONICALLY_SPECIFIED`; Owner hair reference required | Broad presentation; no measured lock | Deep indigo, ivory, cedar brown, restrained gold | Civic mantle over practical travel base | Long stable mantle and strong vertical center | Do not canonize face, hair, age, or body; preserve quiet steward role, civic mantle, and paired waystone motif | `OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED` |
+| `duelist_scout` | Warrior, frontier roads/training grounds | Teen or young adult; any presentation | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Narrow shoulders; no measured lock | Slate blue, rust red, ivory, leather brown | Light travel cloth, reinforced cuffs, split shoulder panel | Narrow asymmetric coat and long leg line | Do not invent face, hair, or body from text; preserve observation role, narrow coat, cuffs, and split panel | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
+| `bastion_warden` | Knight/Guardian, village defense/Demon Castle Front | Adult; varied body widths | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Broad mantle and stable vertical torso; no measured lock | Blue-charcoal, stone grey, muted gold, brown | Layered guard cloth and padded mantle | Rounded shoulder mantle and strong shoulder arc | Do not invent broad body or face from text; preserve calm defender role, mantle, and shoulder arc | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
+| `forest_pathfinder` | Ranger, Misty Forest | Teen or adult; neutral/androgynous options | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Neutral body options; no measured lock | Forest green, mist violet, bark brown, ivory | Weathered cloak, layered travel cloth, tall boots | Leaf-like mantle and long hood profile | Do not invent face, hair, or body from text; preserve patient-guide role, leaf hood, cloak, and back arc | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
+| `archive_scholar` | Scholar/Sage, Sage Tower/ancient records | Adult or older adult; age-diverse | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Broad age-diverse options; no measured lock | Warm umber, slate, parchment ivory, muted teal | Tall collar, archive layers, cloth tabs, practical sleeves, satchel | Straight robe line with tall collar and folio clasp | Do not invent age, face, hair, or width from text; preserve researcher role, archive layers, and readable folio cue | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
+| `worldkeeper` | Sage/Guardian, endgame world stage | Broad age/body presentation; no fixed gender cue | `NOT_CANONICALLY_SPECIFIED`; identity reference required | `NOT_CANONICALLY_SPECIFIED`; identity reference required | Broad presentation; no measured lock | Deep indigo, ivory, cedar brown, restrained gold | Civic mantle over practical travel base | Long stable mantle and strong vertical center | Do not invent face, hair, age, or body from text; preserve quiet steward role, civic mantle, and paired waystone motif | `ART_REFERENCE_REQUIRED + IDENTITY_REFERENCE_REQUIRED` |
 
-### Candidate decision cards
+### Final 7 canonical identity-reference cards
 
-The seven remaining candidates share the following required decision: approve the canonical ID/display name, exact face and hair reference, age/body reference, and runtime-registration policy. Until then, their text contracts safely lock role, palette, costume language, and silhouette direction only. `MISSING_RUNTIME_ID` is a deliberate canonicalization boundary, not permission to edit runtime registries in this task.
+The seven final-roster characters are canonical. No canonical decision is pending. Their remaining work is to approve exact face/hair/body identity references and to produce default art; runtime registration remains a separate authority change. `RUNTIME_NOT_REGISTERED` is a tracked boundary, not permission to edit runtime registries in this task.
 
-- `ODC-B3-river_wayfinder`: approve face/hair/body reference; then review rain-cape, satchel, and water-ripple hem.
-- `ODC-B3-stone_caretaker`: approve age/face/hair/body reference; then review broad grounded robe/sash fit.
-- `ODC-B4-duelist_scout`: approve face/hair/body reference; then review narrow coat, cuffs, and hand clearance.
-- `ODC-B4-bastion_warden`: approve face/hair/body reference; then review broad mantle and shoulder arc.
-- `ODC-B4-forest_pathfinder`: approve face/hood/hair/body reference; then review mask, cloak, and back arc.
-- `ODC-B4-archive_scholar`: approve age/face/hair/body reference; then review robe, satchel, and face accessory.
-- `ODC-B4-worldkeeper`: approve face/hair/age/body reference; then review civic mantle and subclass fit.
+- `IDENTITY-F7-river_wayfinder`: lock face/hair/body reference; then review rain-cape, satchel, and water-ripple hem.
+- `IDENTITY-F7-stone_caretaker`: lock age/face/hair/body reference; then review broad grounded robe/sash fit.
+- `IDENTITY-F7-duelist_scout`: lock face/hair/body reference; then review narrow coat, cuffs, and hand clearance.
+- `IDENTITY-F7-bastion_warden`: lock face/hair/body reference; then review broad mantle and shoulder arc.
+- `IDENTITY-F7-forest_pathfinder`: lock face/hood/hair/body reference; then review mask, cloak, and back arc.
+- `IDENTITY-F7-archive_scholar`: lock age/face/hair/body reference; then review robe, satchel, and face accessory.
+- `IDENTITY-F7-worldkeeper`: lock face/hair/age/body reference; then review civic mantle and subclass fit.
 
 ## Equipment compatibility risk posture
 
-The equipment layer is a presentation projection over server-owned functional equipment. The current evidence proves a Frame-A candidate for six P1 bodies, not a universal overlay system. Risk counts in the matrix are flags and are not mutually exclusive:
+The equipment layer is a presentation projection over server-owned functional equipment. The current evidence proves a Frame-A candidate for six P1 bodies, not a universal overlay system. Risk counts in the matrix are flags and are not mutually exclusive. Default-pose production may proceed while the Sword Pose × Armor gate is pending:
 
 - `STANDARD_OVERLAY_COUNT=6`: current six Frame-A bodies only.
 - `BODY_FRAME_SUBCLASS_COUNT=14`: every other intended character requires body-frame review before universal overlay claims.
@@ -200,7 +203,15 @@ No staff, bow, heavy-weapon, or other weapon pose family is authorized by this p
 1. `CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS`
 2. `WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE`
 
-`CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS` is now satisfied. `WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE` remains pending. Once Part 2 passes, Batch 2 is the first immediate production start; the seven candidate cards still require their own canonical/identity decisions and the gate does not silently register candidates.
+`CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS` is now satisfied. `WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE` remains pending. Batch 2 and Batch 3A default-pose production can start immediately; Sword Pose mass production remains blocked until Part 2 passes. The final seven require identity references, not canonical decisions, and no lane silently registers runtime IDs.
+
+## Parallel work dispatched
+
+- `RPG_WAVE2_CHARACTER_DEFAULT_POSE_BATCH2_001`: `apprentice_girl`, `swordsman`, `rogue`, `ranger`; complete DEFAULT_POSE only, with no Sword Pose or armor changes.
+- `RPG_WAVE2_CHARACTER_DEFAULT_POSE_BATCH3A_001`: `berserker`, `guardian`, `sage`; complete DEFAULT_POSE only, with Smith Elder / Eastern Guardian / Archmage confusion gates.
+- `RPG_WAVE2_CHARACTER_IDENTITY_UNBLOCK_FINAL7_001`: the seven canonical final-roster IDs; produce identity contracts and Owner-review reference sheets, not final runtime art or runtime registration.
+
+The first two lanes are independent of Sword Pose × Armor compatibility. Their asset edits and review sheets are isolated by lane; the Final 7 lane owns only identity-reference evidence.
 
 ## Authority and exclusions
 
@@ -211,23 +222,24 @@ No staff, bow, heavy-weapon, or other weapon pose family is authorized by this p
 
 ## Swarm reconciliation
 
-- `SWARM_F1`: reconciled 13 plan-canonical IDs, 7 Owner-decision-required IDs, six standardization records, and zero stale Batch 1 canonical-decision records.
-- `SWARM_F2`: confirmed Batch 2 has four runtime-canonical identity sources and no runtime blocker; each is ready to enter full-body production after the mass gate.
-- `SWARM_F3`: confirmed three existing Batch 3 identities are production-ready and two candidates remain blocked on face/hair/body references and Owner decisions.
-- `SWARM_F4`: confirmed all five Batch 4 candidates remain blocked; text briefs lock role/palette/costume/silhouette but not visual identity or runtime registration.
-- `SWARM_F5`: recalculated six complete default packages, 14 remaining defaults, six complete sword poses, 14 remaining sword poses, and 28 remaining logical presentations; risk totals remain 6/14/7/10.
+- `SWARM_F1`: reconciled the product decision to a locked 20/20 canonical roster; seven final-roster IDs remain art/identity/runtime blocked only.
+- `SWARM_F2`: confirmed Batch 2 has four identity-ready canonical characters and dispatched independent DEFAULT_POSE production.
+- `SWARM_F3`: confirmed Batch 3A has three identity-ready canonical characters and dispatched independent DEFAULT_POSE production.
+- `SWARM_F4`: converted the former Batch 3/4 reserved concepts into canonical final-seven identity-reference work; no canonical decision remains.
+- `SWARM_F5`: split readiness into `READY_FOR_DEFAULT_ART_PRODUCTION=7` and `READY_FOR_SWORD_POSE_MASS_PRODUCTION=0` pending armor compatibility; dispatched Final 7 identity unblock.
 
 ## Return values
 
 ```text
 TASK=RPG_WAVE2_CHARACTER_20_CANONICALIZATION_PRODUCTION_READY_001
-BASE_HEAD=140d9ef20897d125fbaa1a46886554b7d1a2d753
-BRANCH=codex/rpg-wave2-character-20-canonicalization-production-ready-001
+OWNER_PRECHECK=PASS_WITH_GOVERNANCE_CORRECTION
+BASE_HEAD=12f5b7f08cba4958d4f40f537acef18438166319
+BRANCH=codex/rpg-wave2-character-governance-correction-001
 HEAD_AFTER=CONTINUATION_BRANCH_HEAD_REPORTED_IN_TASK_RETURN
 TARGET_CHARACTER_COUNT=20
-CANONICAL_CHARACTER_COUNT=13
-OWNER_DECISION_REQUIRED_COUNT=7
-BLOCKED_FOR_ART_COUNT=7
+CANONICAL_CHARACTER_COUNT=20
+OWNER_DECISION_REQUIRED_COUNT=0
+ART_REFERENCE_BLOCKED_COUNT=7
 CURRENT_6_STATUS=OWNER_PASS_6_OF_6
 END_STATE_DEFAULT_ART_COUNT=20
 END_STATE_ONE_HAND_SWORD_POSE_COUNT=20
@@ -237,6 +249,9 @@ DEFAULT_ART_REMAINING=14
 SWORD_POSE_ALREADY_COMPLETE=6
 SWORD_POSE_REMAINING=14
 TOTAL_NEW_FULL_BODY_ART_REMAINING=28
+OWNER_APPROVED_CURRENT_6=6
+READY_FOR_DEFAULT_ART_PRODUCTION=7
+READY_FOR_SWORD_POSE_MASS_PRODUCTION=0
 BATCH_2_READY_COUNT=4
 BATCH_2_BLOCKED_COUNT=0
 BATCH_3_READY_COUNT=3
@@ -245,20 +260,19 @@ BATCH_4_READY_COUNT=0
 BATCH_4_BLOCKED_COUNT=5
 MASS_PRODUCTION_GATE_PART_1=PASS
 MASS_PRODUCTION_GATE_PART_2=PENDING_ARMOR_COMPATIBILITY
-READY_CHARACTER_COUNT=0
 NEEDS_STANDARDIZATION_COUNT=6
-NEEDS_REDRAW_COUNT=7
+NEEDS_REDRAW_COUNT=14
 NEEDS_CANONICAL_DECISION_COUNT=0
 STANDARD_OVERLAY_COUNT=6
 BODY_FRAME_SUBCLASS_COUNT=14
 CHARACTER_MASK_RISK_COUNT=7
 SPECIAL_REVIEW_COUNT=10
 FILES_CHANGED=4
-TESTS=JSON validation and inventory/batch coverage checks
+TESTS=JSON validation, roster/batch coverage checks, dispatch scope checks
 TASK_INTRODUCED_FAILURES=NONE_OBSERVED
 DB_MIGRATION=NO
 MERGE=NO
 DEPLOY=NO
 PRODUCTION_MUTATION=NO
-FINAL_STATUS=READY_FOR_OWNER_CHARACTER_MASS_PRODUCTION_PRECHECK
+FINAL_STATUS=OWNER_ACCEPTED_CHARACTER_MASS_PRODUCTION_PRECHECK
 ```
