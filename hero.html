@@ -1877,6 +1877,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
           <div class="hero-functional-projection-list" id="hero-style-projection-list">
             <span class="hero-functional-projection-status">載入外觀狀態…</span>
           </div>
+          <div class="rpg-cosmetic-reference" id="hero-cosmetic-reference" hidden aria-label="目前選取的外觀視覺參考"></div>
         </section>
         <div class="char-hero-name" id="char-name">—</div>
         <div class="char-title-block" id="char-title-block">
@@ -2320,6 +2321,7 @@ body:not([data-hero-tab="equipment"]) .content-layout { grid-template-columns: m
       <div class="hero-functional-projection-list" id="pv-style-projection-list">
         <span class="hero-functional-projection-status">載入外觀狀態…</span>
       </div>
+      <div class="rpg-cosmetic-reference" id="pv-cosmetic-reference" hidden aria-label="目前選取的外觀視覺參考"></div>
     </section>
     <div style="display:flex;flex-direction:column;gap:6px;" id="pv-rows"></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;" id="pv-chips"></div>
@@ -4075,9 +4077,32 @@ function renderFunctionalEquipmentProjection() {
     }
   });
 }
+function renderCosmeticReferenceProjection(wardrobeItems = _wardrobeItems) {
+  const renderer = window.GoOdysseyWearableRenderer;
+  const selected = (wardrobeItems || []).filter(item => (
+    item && item.owned === true && item.equipped === true
+    && item.presentation && item.presentation.selected === true
+    && item.presentation.visible === true
+  ));
+  const targets = [
+    document.getElementById('hero-cosmetic-reference'),
+    document.getElementById('pv-cosmetic-reference'),
+  ];
+  targets.forEach(stage => {
+    if (!stage) return;
+    if (!renderer || typeof renderer.renderCosmeticSafe !== 'function') {
+      stage.hidden = true;
+      stage.dataset.supported = 'false';
+      return;
+    }
+    renderer.renderCosmeticSafe(stage, selected).then(result => {
+      stage.setAttribute('aria-hidden', result.supported ? 'false' : 'true');
+    });
+  });
+}
 function renderCosmeticProjection() {
   const items = (_wardrobeItems || []).filter(item => (
-    item && item.owned === true && item.equipped === true && !wardrobeHasGameplayEffect(item)
+    item && item.owned === true && item.equipped === true
   ));
   const targets = [
     [document.getElementById('hero-style-projection'), document.getElementById('hero-style-projection-list')],
@@ -4096,9 +4121,13 @@ function renderCosmeticProjection() {
       const presentation = item.presentation || {};
       const presentationMode = escapeHTML(presentation.mode || 'CATALOG_ICON');
       const presentationAsset = escapeHTML(presentation.asset || heroItemArtSrc(item));
+      const hasServerEffect = wardrobeHasGameplayEffect(item);
+      const effectText = hasServerEffect
+        ? (isEn() ? `Server effect active · ${wardrobeEffectLabel(item) || 'visual reference'}` : `伺服器效果有效 · ${wardrobeEffectLabel(item) || '視覺參考'}`)
+        : (isEn() ? 'Visual only · no combat authority' : '純外觀 · 不提供戰鬥權限');
       return `<div class="hero-functional-projection-item" data-item-domain="style" data-item-id="${escapeHTML(item.id || '')}" data-presentation-mode="${presentationMode}" data-presentation-asset="${presentationAsset}" data-owned="true" data-selected="true" data-visible="true">
         <span class="hero-functional-projection-icon">${heroItemArtHTML(item, 'hero-functional-projection-art')}</span>
-        <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${slot}</span><span class="hero-functional-projection-effect">${isEn() ? 'Visual only · no combat authority' : '純外觀 · 不提供戰鬥權限'}</span></span>
+        <span class="hero-functional-projection-copy"><span class="hero-functional-projection-name">${name} · ${slot}</span><span class="hero-functional-projection-effect">${escapeHTML(effectText)}</span></span>
       </div>`;
     }).join('');
   });
@@ -4334,6 +4363,31 @@ function wardrobeEffectLabel(item) {
     .join(' · ');
 }
 
+function refreshAuthoritativeWardrobeProjection() {
+  return fetch('/api/player/appearance', { credentials: 'include', cache: 'no-store' })
+    .then(response => {
+      if (!response.ok) throw new Error(`appearance HTTP ${response.status}`);
+      return response.json();
+    })
+    .then(appearance => {
+      const equipped = appearance && appearance.equipped ? appearance.equipped : {};
+      (_wardrobeItems || []).forEach(item => {
+        const selected = equipped[`${item.type}_id`] === item.id;
+        item.equipped = selected;
+        if (item.presentation) {
+          item.presentation.selected = selected;
+          item.presentation.visible = selected;
+        }
+      });
+      applyEquippedVisuals(_wardrobeItems);
+      renderEquippedChipsFromWardrobe(_wardrobeItems);
+      renderCosmeticProjection();
+      renderCosmeticReferenceProjection(_wardrobeItems);
+      renderHeroOverview();
+      return appearance;
+    });
+}
+
 // ── 裝備視覺 & 加成效果 ─────────────────────────────────────────────────────────
 function applyEquippedVisuals(wardrobeItems) {
   const equipped = (wardrobeItems || []).filter(i => i.equipped);
@@ -4567,7 +4621,9 @@ function handleInvClick(slotType, itemId) {
     renderEquippedChipsFromWardrobe(_wardrobeItems);
     if (_subEl) _subEl.textContent = '';
     showToast(I18n.t('hero.toast.subtitleCleared'));
-    fetch('/api/player/appearance/unequip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slot:'title'}) }).catch(() => {});
+    fetch('/api/player/appearance/unequip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slot:'title'}) })
+      .then(response => { if (!response.ok) throw new Error(`unequip HTTP ${response.status}`); return refreshAuthoritativeWardrobeProjection(); })
+      .catch(() => refreshAuthoritativeWardrobeProjection().catch(() => {}));
     renderHeroOverview();
     return;
   }
@@ -4578,7 +4634,8 @@ function handleInvClick(slotType, itemId) {
     renderEquippedChipsFromWardrobe(_wardrobeItems);
     fetch('/api/player/appearance/unequip', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slot:slotType})
-    }).catch(() => {});
+    }).then(response => { if (!response.ok) throw new Error(`unequip HTTP ${response.status}`); return refreshAuthoritativeWardrobeProjection(); })
+      .catch(() => refreshAuthoritativeWardrobeProjection().catch(() => {}));
     showToast((isEn() ? 'Unequipped ' : '已卸下 ') + dispName(item));
     renderHeroOverview();
     return;
@@ -4590,7 +4647,9 @@ function handleInvClick(slotType, itemId) {
   renderEquippedChipsFromWardrobe(_wardrobeItems);
   showToast(t('sk_toast_equipped') + ' ' + dispName(item));
   if (slotType === 'title' && _subEl) _subEl.textContent = '「' + dispName(item) + '」';
-  fetch('/api/skills/equip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:itemId}) }).catch(() => {});
+  fetch('/api/skills/equip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:itemId}) })
+    .then(response => { if (!response.ok) throw new Error(`equip HTTP ${response.status}`); return refreshAuthoritativeWardrobeProjection(); })
+    .catch(() => refreshAuthoritativeWardrobeProjection().catch(() => {}));
   renderHeroOverview();
 }
 
@@ -4606,6 +4665,7 @@ function initInvFilterTabs() {
       });
     });
   });
+  renderCosmeticReferenceProjection(_wardrobeItems);
 }
 
 

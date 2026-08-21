@@ -144,7 +144,7 @@ def test_retaliation_uses_authoritative_roster_and_ignores_claimed_attack():
 
 
 def test_monster_hp_progression_and_reward_drop_paths_remain_server_side():
-    assert "_calc_damage(grade, max_hp)" in APP_SOURCE
+    assert "dmg_dealt = _calc_damage(grade, max_hp" in APP_SOURCE
     assert "UPDATE battlefield_monster SET current_hp=?" in APP_SOURCE
     assert "_roll_loot(monster_type, loot_bonus)" in APP_SOURCE
     assert "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source)" in APP_SOURCE

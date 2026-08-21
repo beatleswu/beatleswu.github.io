@@ -702,7 +702,8 @@ _RANK_BADGE_MIN_LV = {
 # LV → 觸發段位外觀解鎖的對照
 _LV_APPEARANCE_TRIGGER = {33: '1d', 39: '3d', 44: '5d'}
 
-def calc_xp_gain(diff, combo_streak, is_first_correct, is_mistake_correction):
+def calc_xp_gain(diff, combo_streak, is_first_correct, is_mistake_correction,
+                 *, combo_multiplier_double=False):
     base  = XP_BY_DIFF.get(diff, 10)
     bonus = (XP_FIRST_CORRECT if is_first_correct else 0) + \
             (XP_MISTAKE_CORRECT if is_mistake_correction else 0)
@@ -711,6 +712,11 @@ def calc_xp_gain(diff, combo_streak, is_first_correct, is_mistake_correction):
         if combo_streak >= threshold:
             mult = m
             break
+    # Celestial Blade doubles only the earned combo bonus.  A player with no
+    # combo keeps the neutral 1.0 multiplier; the item never turns a plain
+    # correct answer into a combo by itself.
+    if combo_multiplier_double and mult > 1.0:
+        mult = 1.0 + ((mult - 1.0) * 2.0)
     return int(round((base + bonus) * mult)), mult
 
 BADGE_DEFS = [
@@ -1388,16 +1394,16 @@ _FUNCTIONAL_EFFECT_ACTIVE_KEYS = {
     'iron_sword': {'dmg_bonus'},
     'fox_fang': {'dmg_bonus', 'fox_dmg_bonus'},
     'dragon_claw': {'dmg_bonus', 'dragon_dmg_bonus'},
-    'celestial_blade': {'dmg_bonus'},
+    'celestial_blade': {'dmg_bonus', 'combo_multiplier_double'},
     'cloth_robe': {'player_dmg_reduce'},
     'leather_armor': {'player_dmg_reduce'},
-    'fox_pelt': {'player_dmg_reduce'},
+    'fox_pelt': {'player_dmg_reduce', 'xp_bonus'},
     'dragon_scale': {'player_dmg_reduce', 'sp_bonus'},
-    'void_mantle': {'player_dmg_reduce'},
+    'void_mantle': {'player_dmg_reduce', 'negate_counter'},
     'lucky_stone': {'loot_bonus'},
     'xp_amulet': set(),
-    'fox_mask': set(),
-    'dragon_eye': set(),
+    'fox_mask': {'quest_xp_bonus'},
+    'dragon_eye': {'crit_multiplier'},
     'go_stone_black': set(),
 }
 
@@ -2306,6 +2312,7 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
             'pure_presentation': True,
             'functional_effect_count': 0,
             'combat_authority': 'NO',
+            'visual_generation': 'LEGACY_ICON',
         }
         for item_id in PURE_COSMETIC_EXISTING_23
     },
@@ -2318,6 +2325,7 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
             'pure_presentation': True,
             'functional_effect_count': 0,
             'combat_authority': 'NO',
+            'visual_generation': 'WAVE2_FULL_BODY_REFERENCE',
         }
         for item_id in PURE_COSMETIC_NEW_21
     },
@@ -2327,6 +2335,66 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
 APPEARANCE_SLOT_KEYS = ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura')
 APPEARANCE_EQUIP_COLUMNS = tuple(f'{slot}_id' for slot in APPEARANCE_SLOT_KEYS)
+
+
+def _appearance_presentation_metadata(item):
+    """Return read-only visual metadata for one server-selected appearance.
+
+    Pure cosmetics use the canonical Wave 2 registry.  Older/effect-bearing
+    appearances intentionally retain their existing SVG icon as a
+    ``CATALOG_ICON`` reference until Lane A supplies a later visual revision;
+    that is not a runtime failure and never becomes combat authority.
+    """
+    item_id = item.get('id') if isinstance(item, dict) else None
+    pure = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item_id)
+    if pure:
+        return dict(pure)
+    return {
+        'asset': f'/assets/hero/items/{item_id}.svg',
+        'asset_id': item_id,
+        'asset_format': 'SVG',
+        'mode': 'CATALOG_ICON',
+        'pure_presentation': False,
+        'functional_effect_count': len(
+            [key for key in (APPEARANCE_EFFECTS.get(item_id, {}) or {}) if key != 'label']
+        ),
+        'combat_authority': 'NO',
+        'effect_authority': 'server APPEARANCE_EFFECTS',
+        'visual_generation': 'LEGACY_ICON',
+    }
+
+
+def _equipped_appearance_presentation(eq_row):
+    """Project only server-selected wardrobe items for public presentation."""
+    if not eq_row:
+        return []
+    columns = eq_row.keys() if hasattr(eq_row, 'keys') else ()
+    projected = []
+    for slot in APPEARANCE_SLOT_KEYS:
+        column = f'{slot}_id'
+        if column not in columns or not eq_row[column]:
+            continue
+        item = _APPEAR_MAP.get(eq_row[column])
+        if not item:
+            continue
+        metadata = _appearance_presentation_metadata(item)
+        projected.append({
+            'id': item['id'],
+            'name': item.get('name', item['id']),
+            'icon': item.get('emoji', item.get('icon', '')),
+            'type': item.get('slot', slot),
+            'rarity': item.get('rarity', 'common'),
+            'effects': APPEARANCE_EFFECTS.get(item['id'], {}),
+            'owned': True,
+            'equipped': True,
+            'presentation': {
+                **metadata,
+                'owned': True,
+                'selected': True,
+                'visible': True,
+            },
+        })
+    return projected
 
 # ── Lane C cosmetic commerce foundation ─────────────────────────────────────
 # Wave 1 deliberately exposes one mature category only.  These products reuse
@@ -6384,7 +6452,7 @@ def _get_authoritative_combat_stats(conn, uid, monster_type=None):
     }
 
 
-def _calc_damage(grade, max_hp, attack_bonus=0.0):
+def _calc_damage(grade, max_hp, attack_bonus=0.0, crit_multiplier=1.0):
     """
     傷害計算：每擊約扣 4~8%，讓每場戰鬥持續 15~25 題。
     連擊加成在 srs_review 傳入 combo_streak 後由呼叫端加乘。
@@ -6399,7 +6467,13 @@ def _calc_damage(grade, max_hp, attack_bonus=0.0):
         if scoped_stats:
             attack_bonus = scoped_stats.get('attack_bonus', 0.0)
     attack_bonus = min(_COMBAT_ATTACK_BONUS_CAP, _nonnegative_effect(attack_bonus))
-    return min(max(0, int(max_hp)), max(5, math.ceil(max_hp * pct * (1.0 + attack_bonus))))
+    damage = max_hp * pct * (1.0 + attack_bonus)
+    # Dragon Eye's declared effect is a grade-5 critical multiplier.  The
+    # caller supplies this only from the server-owned equipped definition;
+    # the default keeps every existing caller and grade unchanged.
+    if grade == 5:
+        damage *= max(1.0, _nonnegative_effect(crit_multiplier))
+    return min(max(0, int(max_hp)), max(5, math.ceil(damage)))
 
 def _get_equip_effect(conn, uid, effect_key):
     """加總玩家所有已裝備物品對某效果的貢獻（數值加法）。"""
@@ -6411,6 +6485,36 @@ def _get_equip_effect(conn, uid, effect_key):
         eq = _EQUIP_MAP.get(r['equip_id'], {})
         total += eq.get('effects', {}).get(effect_key, 0)
     return total
+
+
+def _get_active_equip_effect(conn, uid, effect_key):
+    """Read only effects with an explicit server consumer.
+
+    ``EQUIPMENT_DEFS`` is the definition authority, but a declared effect is
+    not automatically active.  This allow-list prevents HOLD/unsupported
+    effects such as ``xp_amulet`` and ``go_stone_black`` from becoming active
+    merely because a generic definition contains the same key.
+    """
+    rows = conn.execute(
+        'SELECT equip_id FROM player_inventory WHERE user_id=? AND equipped=1', (uid,)
+    ).fetchall()
+    total = 0.0
+    for row in rows:
+        equip_id = row['equip_id']
+        if effect_key not in _FUNCTIONAL_EFFECT_ACTIVE_KEYS.get(equip_id, set()):
+            continue
+        equip = _EQUIP_MAP.get(equip_id, {})
+        total += equip.get('effects', {}).get(effect_key, 0)
+    return total
+
+
+def _safe_active_equipment_effect(conn, uid, effect_key):
+    try:
+        return _get_active_equip_effect(conn, uid, effect_key)
+    except Exception as error:
+        if _missing_equipment_table(error):
+            return 0.0
+        raise
 
 def _get_skill_effect(conn, uid, effect_key):
     """加總玩家所有已裝備技能對某效果的貢獻。"""
@@ -6530,7 +6634,8 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     player_hp_change = 0   # 正=回血, 負=受傷
 
     if grade >= 3 and should_grant_progress:
-        dmg_dealt = _calc_damage(grade, max_hp)
+        crit_multiplier = _safe_active_equipment_effect(conn, uid, 'crit_multiplier')
+        dmg_dealt = _calc_damage(grade, max_hp, crit_multiplier=crit_multiplier)
         new_hp    = max(0, current_hp - dmg_dealt)
         if new_hp == 0:
             monster_defeated = True
@@ -6585,14 +6690,16 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         pass
     else:
         # 答錯：怪物反擊，扣玩家血量
-        dmg_reduce   = _get_combined_effect(conn, uid, 'player_dmg_reduce')
-        player_dmg   = _mitigate_authoritative_retaliation(monster_atk, dmg_reduce)
-        player_hp    = player_hp - player_dmg
-        player_hp_change = -player_dmg
-        if player_hp <= 0:
-            player_ko = True
-            player_hp = max(1, round(stored_max * 0.5))   # KO 後回復 50%
-            player_hp_change = -player_dmg  # 還是顯示受到的傷害
+        negate_counter = _safe_active_equipment_effect(conn, uid, 'negate_counter') > 0
+        if not negate_counter:
+            dmg_reduce   = _get_combined_effect(conn, uid, 'player_dmg_reduce')
+            player_dmg   = _mitigate_authoritative_retaliation(monster_atk, dmg_reduce)
+            player_hp    = player_hp - player_dmg
+            player_hp_change = -player_dmg
+            if player_hp <= 0:
+                player_ko = True
+                player_hp = max(1, round(stored_max * 0.5))   # KO 後回復 50%
+                player_hp_change = -player_dmg  # 還是顯示受到的傷害
 
     # 寫回玩家 HP
     conn.execute(
@@ -6851,6 +6958,8 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                          shadow_events=None):
     results          = []
     non_bonus_done   = 0
+    quest_xp_bonus   = _safe_active_equipment_effect(conn, uid, 'quest_xp_bonus')
+    quest_xp_factor   = Decimal('1') + Decimal(str(quest_xp_bonus))
 
     for q in DAILY_QUEST_DEFS:
         key    = q['key']
@@ -6897,13 +7006,14 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
             just_completed = (prog >= target)
             xp_awarded = 0
             if just_completed and not completed:
+                quest_xp = int(q['xp'] * (1 + quest_xp_bonus))
                 conn.execute(
                     'UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+? WHERE user_id=?',
-                    (q['xp'], q['xp'], uid)
+                    (quest_xp, quest_xp, uid)
                 )
                 _grant_pet_food(conn, uid, 'go_spirit_candy', 1)
                 pet_reward = _pet_food_reward('go_spirit_candy', 1)
-                xp_awarded = q['xp']
+                xp_awarded = quest_xp
                 _grant_coins(conn, uid, _COIN_PER_DAILY_QUEST, f'daily_quest:{key}')
             conn.execute(
                 'UPDATE daily_quests SET progress=?, completed=?, xp_awarded=? '
@@ -6921,8 +7031,12 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                     ),
                     'idempotency_key': f'xp-shadow:daily-quest:{int(uid)}:{today_str}:{key}',
                     'legacy_xp': int(xp_awarded),
-                    'base_xp': int(xp_awarded),
+                    'base_xp': int(q['xp']),
                     'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                    'support_factors_ppm': (
+                        (factor_value_to_ppm(quest_xp_factor, 'support_factor'),)
+                        if quest_xp_bonus > 0 else ()
+                    ),
                 })
 
         if not q.get('bonus') and completed:
@@ -6936,7 +7050,7 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
             'progress':  prog,
             'target':    target,
             'completed': completed,
-            'xp':        q['xp'],
+            'xp':        int(q['xp'] * (1 + quest_xp_bonus)),
             'coins':     _COIN_ALL_QUESTS_BONUS if q.get('bonus') else _COIN_PER_DAILY_QUEST,
             'bonus':     q.get('bonus', False),
             'pet_reward': pet_reward,
@@ -6948,7 +7062,8 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
         bonus['progress'] = non_bonus_done
         if non_bonus_done >= 3:
             bonus['completed'] = True
-            bxp = next(d['xp'] for d in DAILY_QUEST_DEFS if d['key'] == 'all_complete')
+            base_bxp = next(d['xp'] for d in DAILY_QUEST_DEFS if d['key'] == 'all_complete')
+            bxp = int(base_bxp * (1 + quest_xp_bonus))
             conn.execute(
                 'UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+? WHERE user_id=?',
                 (bxp, bxp, uid)
@@ -6974,8 +7089,12 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                         f'xp-shadow:daily-quest-all-complete:{int(uid)}:{today_str}'
                     ),
                     'legacy_xp': int(bxp),
-                    'base_xp': int(bxp),
+                    'base_xp': int(base_bxp),
                     'premium_eligibility': 'PREMIUM_INELIGIBLE',
+                    'support_factors_ppm': (
+                        (factor_value_to_ppm(quest_xp_factor, 'support_factor'),)
+                        if quest_xp_bonus > 0 else ()
+                    ),
                 })
 
     return results
@@ -12847,12 +12966,23 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                         (XP_MISTAKE_CORRECT, is_mc),
                     ) if enabled
                 )
-                xp_gain, combo_mult = calc_xp_gain(diff, combo_streak, is_new, is_mc)
+                combo_multiplier_double = (
+                    _safe_active_equipment_effect(conn, uid, 'combo_multiplier_double') > 0
+                )
+                xp_gain, combo_mult = calc_xp_gain(
+                    diff,
+                    combo_streak,
+                    is_new,
+                    is_mc,
+                    combo_multiplier_double=combo_multiplier_double,
+                )
                 # 套用外觀 XP 加成（光環 / 袍服 / 配飾）
-                if _appear_fx.get('xp_bonus', 0) > 0:
-                    xp_gain = int(xp_gain * (1 + _appear_fx['xp_bonus']))
+                equipment_xp_bonus = _safe_active_equipment_effect(conn, uid, 'xp_bonus')
+                total_xp_bonus = _appear_fx.get('xp_bonus', 0) + equipment_xp_bonus
+                if total_xp_bonus > 0:
+                    xp_gain = int(xp_gain * (1 + total_xp_bonus))
                     review_shadow_support_values.append(
-                        Decimal('1') + Decimal(str(_appear_fx['xp_bonus']))
+                        Decimal('1') + Decimal(str(total_xp_bonus))
                     )
                 # 棋靈夥伴 XP 加成（陪練）
                 _pet_xp_b = _pet_player_xp_bonus(conn, uid, {'combo': combo_streak, 'is_mc': is_mc})
@@ -15301,7 +15431,7 @@ def skills_profile():
         # ── wardrobe：全物品（含 owned 旗標），供外觀頁用 ──────────
         wardrobe = []
         for item in APPEARANCE_DEFS:
-            pure_presentation = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item['id'])
+            presentation_metadata = _appearance_presentation_metadata(item)
             wardrobe_item = {
                 'id':       item['id'],
                 'name':     item.get('name', item['id']),
@@ -15316,18 +15446,18 @@ def skills_profile():
                 'owned':    item['id'] in owned_ids,
                 'equipped': item['id'] in equipped_ids,
             }
-            if pure_presentation:
-                # Presentation metadata is deliberately read-only.  The
-                # renderer consumes the server-projected owned/equipped
-                # fields; it never uses this registry as an ownership or
-                # combat source of truth.
-                wardrobe_item['art'] = pure_presentation['asset']
-                wardrobe_item['presentation'] = {
-                    **pure_presentation,
-                    'owned': item['id'] in owned_ids,
-                    'selected': item['id'] in equipped_ids,
-                    'visible': item['id'] in equipped_ids,
-                }
+            # Presentation metadata is deliberately read-only.  The
+            # renderer consumes the server-projected owned/equipped fields;
+            # it never uses this registry as an ownership or combat source of
+            # truth.  Legacy SVG records remain icon references, not failed
+            # full-body renders.
+            wardrobe_item['art'] = presentation_metadata['asset']
+            wardrobe_item['presentation'] = {
+                **presentation_metadata,
+                'owned': item['id'] in owned_ids,
+                'selected': item['id'] in equipped_ids,
+                'visible': item['id'] in equipped_ids,
+            }
             if item.get('slot') == 'title':
                 title_en = _i18n_title_en(item['id'])
                 if title_en:
@@ -16052,6 +16182,7 @@ def public_profile(username):
             (uid,)
         ).fetchone()
         functional_equipment = _functional_equipment_presentation_projection(conn, uid)
+        equipped_wardrobe = _equipped_appearance_presentation(eq_row)
 
         # ── 加入天數 ──
         join_date = (user['created_at'] or '')[:10]
@@ -16110,6 +16241,7 @@ def public_profile(username):
             eq_row['character_key'] if eq_row and 'character_key' in eq_row.keys() else None
         ),
         'functional_equipment': functional_equipment,
+        'equipped_wardrobe': equipped_wardrobe,
         'stone_skin':     (
             eq_row['stone_skin'] if eq_row and 'stone_skin' in eq_row.keys() else None
         ) or '',

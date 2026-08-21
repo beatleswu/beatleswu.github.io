@@ -231,8 +231,9 @@ def test_backpack_payload_matches_db_and_only_advertises_server_effects(tmp_path
     )
 
     assert by_id[1]["effect_status"] == "SERVER_EFFECTIVE"
-    assert by_id[4]["effect_status"] == "PARTIAL"
-    assert {item["key"] for item in by_id[4]["unsupported_effects"]} == {"xp_bonus"}
+    assert by_id[4]["effect_status"] == "SERVER_EFFECTIVE"
+    assert by_id[4]["active_effects"]["xp_bonus"] == pytest.approx(0.10)
+    assert by_id[4]["unsupported_effects"] == []
     assert by_id[5]["effect_status"] == "DEFINED_ONLY"
     assert {item["key"] for item in by_id[5]["unsupported_effects"]} == {"xp_bonus"}
     assert all(item["icon"].startswith("/assets/hero/equipment/functional/") for item in items)
