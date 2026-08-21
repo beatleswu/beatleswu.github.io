@@ -195,16 +195,16 @@
     },
     {
       "path": "index.html",
-      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
-      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
-      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
-      "source_date": "2026-08-20",
-      "content_sha256": "b50632049aebb2cba0993e0348b59cd5084799908059d5630683aea41dc2dfbe",
-      "content_size_bytes": 1024046,
+      "source_commit": "e97c4c2c22d0cb5fd09771fcb5407e0148954cf0",
+      "source_branch_or_local_ref": "codex/go-odyssey-wave2-release-recon-006",
+      "source_commit_subject": "fix(e10): give Replay Story one availability authority across surfaces",
+      "source_date": "2026-08-21",
+      "content_sha256": "243b069477afb436aab34f3470c6bf7fcf80c379af9c1f4e7c7d0af14a5713a6",
+      "content_size_bytes": 1028229,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
+      "source_status": "candidate integration provenance -- source_commit is byte-identical to current release-reconciliation content; Owner merge remains separately gated"
     },
     {
       "path": "terms.html",
@@ -220,15 +220,15 @@
     },
     {
       "path": "manage.html",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
+      "source_commit": "8e416eb3e9821c95c352be45cc87ae86dee32a2f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "9c8ad231f49ae6ed18fe24763174877116e4f67e3716c77d4e8306b924f6fc93",
+      "source_commit_subject": "Close Wave 2 Lane B runtime presentation gaps",
+      "source_date": "2026-08-21",
+      "content_sha256": "5c1d4abf5865d8ecc5e6b33d3f94ae9bb903cdd65091e270a5de4954931f1a6c",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "admin.html",
@@ -328,15 +328,15 @@
     },
     {
       "path": "hero.html",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
+      "source_commit": "e7b6dcb7674c171efe0854eeb72d1d569f3559fc",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "9fd7af5ed6ad8e8dc3efd1c12ebad9cddeb873ac56937ffa0d7e737267e15930",
+      "source_commit_subject": "Merge commit '7aa370228370629dbec2fc3ee91e05d6b161934c' into codex/go-odyssey-wave2-integration-candidate-002",
+      "source_date": "2026-08-21",
+      "content_sha256": "bdf8a6e30d379cf163458ebfab1227d4693dcb050da36eaafbdb42da6476b285",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "rating_test.html",
@@ -352,27 +352,27 @@
     },
     {
       "path": "shop.html",
-      "source_commit": "f5ddf8ad16b0b477e6d135beaa81361416f3951a",
+      "source_commit": "47ae46a5763e49dd72a4f139cb6a9c5e1c3c7c45",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "Merge pull request #240 from beatleswu/codex/e10-ipad-adventure-interaction-recovery",
-      "source_date": "2026-08-02",
-      "content_sha256": "c4c4d1221cb1771fb253ce15836372903c6677e80698ebd8690958f23602e3ff",
+      "source_commit_subject": "feat(rpg): add item collection foundation",
+      "source_date": "2026-08-20",
+      "content_sha256": "7a456805de34764265728140d233cf706e677a93462dfa8aba9bdd9099d4b067",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "merged to origin/master at merge f5ddf8ad16b0b477e6d135beaa81361416f3951a; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "profile.html",
-      "source_commit": "c6521c2163eda4ddd4bee5ee0231865229fe4f9a",
+      "source_commit": "e7b6dcb7674c171efe0854eeb72d1d569f3559fc",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: unify Daily Bounty player-facing naming",
-      "source_date": "2026-07-16",
-      "content_sha256": "65c0639c65ae1aefa26c716e6e50005fd7db13d39e126642880c63bd66a45551",
+      "source_commit_subject": "Merge commit '7aa370228370629dbec2fc3ee91e05d6b161934c' into codex/go-odyssey-wave2-integration-candidate-002",
+      "source_date": "2026-08-21",
+      "content_sha256": "8188b0c0f41277fde92553792783dd234cc40565d2bf6bf7c4b5f1a5443c4635",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "premium_weekly.html",
@@ -424,39 +424,39 @@
     },
     {
       "path": "inventory.html",
-      "source_commit": "9923358124feff8edff73d2702b54988e334ab7a",
+      "source_commit": "e7b6dcb7674c171efe0854eeb72d1d569f3559fc",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix(e10): restore shell context across reload and navigation",
-      "source_date": "2026-08-06",
-      "content_sha256": "bcb2e9381dfac234fd8aeea757d23313afac046ca01f3e8ef6ea020db26ca860",
+      "source_commit_subject": "Merge commit '7aa370228370629dbec2fc3ee91e05d6b161934c' into codex/go-odyssey-wave2-integration-candidate-002",
+      "source_date": "2026-08-21",
+      "content_sha256": "ec5586739cc3d6f1932b12999702355b42aa555a97e39adda9c8e47e2e1c125b",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "merged to origin/master at merge 5d79c272e2797db5d3f6c00838c4422b161c1580; deployment status is governed separately and is not asserted by this provenance refresh",
-      "source_status": "origin/master provenance -- recorded source_commit is an origin/master ancestor and raw-byte-verified against current content"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "badges.html",
-      "source_commit": "c6521c2163eda4ddd4bee5ee0231865229fe4f9a",
+      "source_commit": "4f4858e79bb77713be7d766e21ed3f8f88212761",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "fix: unify Daily Bounty player-facing naming",
-      "source_date": "2026-07-16",
-      "content_sha256": "ab06d0894d859de1d7f61b957bc6b7a504f14bd4a4c6886aed0d1580e8b05dea",
+      "source_commit_subject": "feat(rpg): deliver item journal collection P1",
+      "source_date": "2026-08-20",
+      "content_sha256": "4e00cdf3e118602a70a54115057971caa77a85ccc989811c4bfb6e7e51312da5",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "games.html",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
+      "source_commit": "8e416eb3e9821c95c352be45cc87ae86dee32a2f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "f1b1d15a719ca8ef2cc2762aa924f5149e187cec3237c9db1502da26a59165a9",
+      "source_commit_subject": "Close Wave 2 Lane B runtime presentation gaps",
+      "source_date": "2026-08-21",
+      "content_sha256": "c87ec2da2cfaaa3d12ffb8d8028448aac90bcc281b28e78639b7fc1768112370",
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script (served by app.py routes)",
       "production_hash_status": "does NOT byte-match current Production (version-bump/content drift) -- latest known Git commit used per Part 5 (real commit required, not raw Production copy)",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "i18n.js",
@@ -508,28 +508,28 @@
     },
     {
       "path": "js/e9/world_stage.js",
-      "source_commit": "18f8af38a6177837e33b3cdb79ff6334762db3f0",
-      "source_branch_or_local_ref": "claude/e10-zone-generic-cinematic-replay-001",
-      "source_commit_subject": "feat(e10): generic Zone 1-10 cinematic replay",
-      "source_date": "2026-08-20",
-      "content_sha256": "8acb33c5f0d9caf55e2857d97a9e0c765fee808b7d44a51651fd9073cbfcffc3",
+      "source_commit": "f37185e1a22cab8f2280380b62a61efcf2bd5bc5",
+      "source_branch_or_local_ref": "codex/go-odyssey-wave2-release-recon-006",
+      "source_commit_subject": "fix(e10): require an authoritative clear for Replay Story",
+      "source_date": "2026-08-21",
+      "content_sha256": "79071cc5c8dc4bcb60bcdc43b156bd0f64fe5d915428ee24431491d390e6cd64",
       "line_ending_policy": "LF",
       "runtime_role": "E9 World Stage runtime renderer; reads canonical adventure adapter data",
       "production_hash_status": "candidate on the E10 generic cinematic replay branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded E10 generic cinematic replay implementation commit and raw-byte-verified against current content"
+      "source_status": "candidate integration provenance -- source_commit is byte-identical to current release-reconciliation content; Owner merge remains separately gated"
     },
     {
       "path": "sw.js",
-      "source_commit": "b3a081d700396eb4322ab22ad2bf8eb39579ea31",
-      "source_branch_or_local_ref": "claude/e10-ui-nav-fix-063",
-      "source_commit_subject": "fix(e10): one map-return CTA on the puzzle row, Guild in the Adventure nav slot",
-      "source_date": "2026-08-18",
-      "content_sha256": "dd322f6155be7275cce72b36e99905fcb7b95aa04b5b90eb2bc1b160aafb6cc9",
-      "content_size_bytes": 6153,
+      "source_commit": "e97c4c2c22d0cb5fd09771fcb5407e0148954cf0",
+      "source_branch_or_local_ref": "codex/go-odyssey-wave2-release-recon-006",
+      "source_commit_subject": "fix(e10): give Replay Story one availability authority across surfaces",
+      "source_date": "2026-08-21",
+      "content_sha256": "a148dc036ae4f92fded070039556c074761f03a4626765bec0eccfa4cd6353a5",
+      "content_size_bytes": 6149,
       "line_ending_policy": "LF",
       "runtime_role": "startup-required static page/script; cache identity for E9 runtime assets",
       "production_hash_status": "candidate on the V1B B5 product integration branch; Production deployment status is governed separately and is not asserted by this record",
-      "source_status": "feature-branch provenance -- not previously pushed to canonical origin; recorded source_commit is the bounded V1B B5 Product implementation commit and raw-byte-verified against current content"
+      "source_status": "candidate integration provenance -- source_commit is byte-identical to current release-reconciliation content; Owner merge remains separately gated"
     },
     {
       "path": "srs.js",
@@ -826,15 +826,15 @@
     },
     {
       "path": "wgo/stone_skin.js",
-      "source_commit": "103f9d1e9d313b84cdb66efe288219ea9b088258",
+      "source_commit": "8e416eb3e9821c95c352be45cc87ae86dee32a2f",
       "source_branch_or_local_ref": "origin/master",
-      "source_commit_subject": "build: complete canonical image source closure",
-      "source_date": "2026-07-11",
-      "content_sha256": "b94287d6140a824f0748e7ff1bcf51d34ed9cc5811a34b572dd3467dccb364b0",
+      "source_commit_subject": "Close Wave 2 Lane B runtime presentation gaps",
+      "source_date": "2026-08-21",
+      "content_sha256": "cb837b7eb493a1f0836fd477d327eb9bfb310b28ca5c02dbf0309879e582405c",
       "line_ending_policy": "LF",
       "runtime_role": "feature-critical static content (SGF board viewer / blog route)",
       "production_hash_status": "verified byte-identical (LF-normalized) to Production",
-      "source_status": "local Git provenance -- not previously pushed to canonical origin; recorded source_commit is currently reachable in repository history and byte-verified against this file"
+      "source_status": "canonical origin/master provenance -- source_commit is reachable from origin/master and raw-byte-verified against current candidate content"
     },
     {
       "path": "wgo/wgo.min.js",
