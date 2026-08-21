@@ -1,25 +1,31 @@
 {
-  "task": "RPG_WAVE2_CHARACTER_20_PRODUCTION_PLAN_001",
+  "task": "RPG_WAVE2_CHARACTER_20_CANONICALIZATION_PRODUCTION_READY_001",
   "base_head": "ac182ed173620a11e66bebeb6003c121b9ceee95",
   "target_player_character_count": 20,
   "status_definition": {
     "ready": "Final Wave 2 production-ready, including required default art, pose family, identity review, compatibility review, and Owner visual gate.",
-    "needs_standardization": "Existing canonical identity with current P1 proof art, but final acceptance and shared production standard are pending.",
+    "needs_standardization": "Owner-canonical identity with an accepted Batch 1 package that still belongs to the shared production-standard workload.",
     "needs_redraw": "Existing canonical identity has current chibi art but no P1 full-body production package.",
-    "needs_canonical_decision": "Candidate has reviewable art evidence but remains proposal-only pending Owner Gate 1.",
+    "needs_canonical_decision": "No Batch 1 record remains in this state; the seven remaining candidates are tracked as owner_decision_required and reserved_only.",
     "reserved_only": "Candidate has an identity brief but no runtime registration and no accepted character master.",
-    "blocked_for_art": "Orthogonal flag for a reserved-only candidate lacking sufficient face, hair, age, body, and silhouette references."
+    "blocked_for_art": "Orthogonal flag for a reserved-only candidate lacking approved face, hair, and measured body references; role, palette, costume language, and silhouette are resolved from the text registry."
   },
   "counts": {
-    "existing_canonical": 10,
-    "new_or_reserved": 10,
+    "canonical_character_count": 13,
+    "runtime_registered": 10,
+    "owner_decision_required": 7,
     "ready": 0,
-    "needs_standardization": 3,
+    "needs_standardization": 6,
     "needs_redraw": 7,
-    "needs_canonical_decision": 3,
+    "needs_canonical_decision": 0,
     "reserved_only": 7,
     "blocked_for_art": 7,
-    "current_runtime_ready": 10
+    "current_runtime_ready": 10,
+    "default_art_already_complete": 6,
+    "default_art_remaining": 14,
+    "sword_pose_already_complete": 6,
+    "sword_pose_remaining": 14,
+    "total_new_full_body_art_remaining": 28
   },
   "current_six": {
     "ids": [
@@ -30,10 +36,44 @@
       "night_runner",
       "constellation_apprentice"
     ],
-    "default_pose_status": "OWNER_REVIEW_CANDIDATE",
-    "one_hand_sword_pose_status": "6_OF_6_REVIEW_READY_OWNER_PASS_PENDING",
-    "identity_reference_status": "6_OF_6_REVIEWABLE; 3 EXISTING_CANONICAL + 3 CANDIDATE_GATE1_PENDING",
-    "runtime_registry_status": "3_CANONICAL + 3_NOT_REGISTERED_PREVIEW_ONLY"
+    "default_pose_status": "OWNER_PASS_6_OF_6",
+    "one_hand_sword_pose_status": "OWNER_PASS_6_OF_6",
+    "identity_reference_status": "OWNER_CANONICAL_6_OF_6",
+    "runtime_registry_status": "3_RUNTIME_CANONICAL + 3_PLAN_CANONICAL_NOT_REGISTERED"
+  },
+  "batch_readiness": {
+    "BATCH_2": {
+      "ready_for_full_body_production_count": 4,
+      "blocked_for_art_count": 0,
+      "characters": {
+        "apprentice_girl": "READY_FOR_FULL_BODY_PRODUCTION",
+        "swordsman": "READY_FOR_FULL_BODY_PRODUCTION",
+        "rogue": "READY_FOR_FULL_BODY_PRODUCTION",
+        "ranger": "READY_FOR_FULL_BODY_PRODUCTION"
+      }
+    },
+    "BATCH_3": {
+      "ready_for_full_body_production_count": 3,
+      "blocked_for_art_count": 2,
+      "characters": {
+        "berserker": "READY_FOR_FULL_BODY_PRODUCTION",
+        "guardian": "READY_FOR_FULL_BODY_PRODUCTION",
+        "sage": "READY_FOR_FULL_BODY_PRODUCTION",
+        "river_wayfinder": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "stone_caretaker": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED"
+      }
+    },
+    "BATCH_4": {
+      "ready_for_full_body_production_count": 0,
+      "blocked_for_art_count": 5,
+      "characters": {
+        "duelist_scout": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "bastion_warden": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "forest_pathfinder": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "archive_scholar": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "worldkeeper": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED"
+      }
+    }
   },
   "records": [
     {
@@ -41,16 +81,16 @@
       "display_name": "Apprentice",
       "current_status": "NEEDS_STANDARDIZATION",
       "existing_or_new": "EXISTING_CANONICAL",
-      "default_art_status": "P1_OWNER_REVIEW_CANDIDATE",
-      "canonical_identity_status": "CANONICAL_IDENTITY_REFERENCED_AND_P1_REVIEWABLE",
+      "default_art_status": "COMPLETE_OWNER_CANONICAL_BATCH_1",
+      "canonical_identity_status": "OWNER_CANONICAL_BATCH_1",
       "runtime_status": "CANONICAL_TIER_0_DEFAULT",
       "one_hand_sword_eligibility": "TARGET_END_STATE; CHARACTER_SPECIFIC_POLICY_NOT_EXPLICIT",
-      "one_hand_sword_pose_status": "REVIEW_READY_REFERENCE_OWNER_PASS_PENDING",
+      "one_hand_sword_pose_status": "OWNER_PASS_BATCH_1",
       "armor_compatibility_class": "STANDARD_OVERLAY",
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "LOW",
-      "required_art_work": "Accept P1 default body; retain identity lock; accept one-hand sword family variant after current-six gate.",
-      "blockers": ["Owner visual gate", "Weapon-pose/armor architecture gate"],
+      "required_art_work": "Retain accepted Batch 1 default and sword pose; preserve identity; complete future compatibility QA only.",
+      "blockers": ["Pending weapon-pose/armor compatibility gate"],
       "evidence": ["assets/hero/characters/chibi_apprentice_normalized.webp", "docs/planning/rpg_wave2_gate2_character_art_p1_manifest.json"]
     },
     {
@@ -67,7 +107,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "MEDIUM",
       "required_art_work": "Full-body default redraw to shared frame; lock age/body anchors; produce one-hand sword family variant.",
-      "blockers": ["Current-six Owner gate", "Age/body reference measurement"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Age/body reference measurement"],
       "evidence": ["assets/hero/characters/chibi_apprentice_girl_normalized.webp", "hero.html"]
     },
     {
@@ -84,7 +124,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "LOW",
       "required_art_work": "Full-body default redraw preserving headband/chest-trim silhouette; produce one-hand sword family variant.",
-      "blockers": ["Current-six Owner gate", "Body-frame measurement"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Body-frame measurement"],
       "evidence": ["assets/hero/characters/chibi_swordsman_normalized.webp", "hero.html"]
     },
     {
@@ -101,7 +141,7 @@
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "MEDIUM",
       "required_art_work": "Full-body default redraw preserving hood and narrow charcoal/violet silhouette; face-mask review; produce sword family variant.",
-      "blockers": ["Current-six Owner gate", "Hood/face anchor review"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Hood/face anchor review"],
       "evidence": ["assets/hero/characters/chibi_rogue_normalized.webp", "hero.html"]
     },
     {
@@ -118,7 +158,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
       "required_art_work": "Full-body default redraw preserving mantle/satchel/travel silhouette; shoulder/back review; produce sword family variant.",
-      "blockers": ["Current-six Owner gate", "Mantle/back-arc review"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Mantle/back-arc review"],
       "evidence": ["assets/hero/characters/chibi_ranger_normalized.webp", "hero.html"]
     },
     {
@@ -135,7 +175,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
       "required_art_work": "Full-body default redraw preserving broad warrior silhouette and hair/fur/leather cues; produce sword family variant.",
-      "blockers": ["Current-six Owner gate", "Broad-body frame review"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Broad-body frame review"],
       "evidence": ["assets/hero/characters/chibi_berserker_normalized.webp", "hero.html"]
     },
     {
@@ -152,7 +192,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
       "required_art_work": "Full-body default redraw preserving protective shoulder/torso blocks; armor and mantle special review; produce sword family variant.",
-      "blockers": ["Current-six Owner gate", "Broad-shoulder and mantle review"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Broad-shoulder and mantle review"],
       "evidence": ["assets/hero/characters/chibi_guardian_normalized.webp", "hero.html"]
     },
     {
@@ -160,16 +200,16 @@
       "display_name": "Paladin",
       "current_status": "NEEDS_STANDARDIZATION",
       "existing_or_new": "EXISTING_CANONICAL",
-      "default_art_status": "P1_OWNER_REVIEW_CANDIDATE",
-      "canonical_identity_status": "CANONICAL_IDENTITY_REFERENCED_AND_P1_REVIEWABLE",
+      "default_art_status": "COMPLETE_OWNER_CANONICAL_BATCH_1",
+      "canonical_identity_status": "OWNER_CANONICAL_BATCH_1",
       "runtime_status": "CANONICAL_TIER_6_UNLOCKED_BY_STRENGTH",
       "one_hand_sword_eligibility": "TARGET_END_STATE; CHARACTER_SPECIFIC_POLICY_NOT_EXPLICIT",
-      "one_hand_sword_pose_status": "REVIEW_READY_REFERENCE_OWNER_PASS_PENDING",
+      "one_hand_sword_pose_status": "OWNER_PASS_BATCH_1",
       "armor_compatibility_class": "STANDARD_OVERLAY",
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "MEDIUM",
-      "required_art_work": "Accept P1 default body and reference sword pose; preserve ivory/navy/gold silhouette; clear compatibility gate.",
-      "blockers": ["Owner visual gate", "Weapon-pose/armor architecture gate"],
+      "required_art_work": "Retain accepted Batch 1 default and sword pose; preserve ivory/navy/gold silhouette; complete compatibility QA only.",
+      "blockers": ["Pending weapon-pose/armor compatibility gate"],
       "evidence": ["assets/hero/characters/wave2_p1/paladin_p1.webp", "docs/planning/rpg_wave2_gate2_character_art_p1_manifest.json"]
     },
     {
@@ -177,16 +217,16 @@
       "display_name": "Mage",
       "current_status": "NEEDS_STANDARDIZATION",
       "existing_or_new": "EXISTING_CANONICAL",
-      "default_art_status": "P1_OWNER_REVIEW_CANDIDATE",
-      "canonical_identity_status": "CANONICAL_IDENTITY_REFERENCED_AND_P1_REVIEWABLE",
+      "default_art_status": "COMPLETE_OWNER_CANONICAL_BATCH_1",
+      "canonical_identity_status": "OWNER_CANONICAL_BATCH_1",
       "runtime_status": "CANONICAL_TIER_7_UNLOCKED_BY_STRENGTH",
       "one_hand_sword_eligibility": "TARGET_END_STATE; CHARACTER_SPECIFIC_POLICY_NOT_EXPLICIT",
-      "one_hand_sword_pose_status": "REVIEW_READY_REFERENCE_OWNER_PASS_PENDING",
+      "one_hand_sword_pose_status": "OWNER_PASS_BATCH_1",
       "armor_compatibility_class": "STANDARD_OVERLAY",
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
-      "required_art_work": "Accept P1 robe-frame body and reference sword pose; preserve hair/robe identity; clear compatibility gate.",
-      "blockers": ["Owner visual gate", "Robe and weapon-pose compatibility gate"],
+      "required_art_work": "Retain accepted Batch 1 robe-frame default and sword pose; preserve hair/robe identity; complete compatibility QA only.",
+      "blockers": ["Pending weapon-pose/armor compatibility gate"],
       "evidence": ["assets/hero/characters/wave2_p1/mage_p1.webp", "docs/planning/rpg_wave2_gate2_character_art_p1_manifest.json"]
     },
     {
@@ -203,24 +243,24 @@
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "HIGH",
       "required_art_work": "Full-body default redraw preserving scholar robe/beard/glasses identity; face-mask review; produce sword family variant.",
-      "blockers": ["Current-six Owner gate", "Beard/glasses face clearance"],
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "Beard/glasses face clearance"],
       "evidence": ["assets/hero/characters/chibi_sage_normalized.webp", "hero.html"]
     },
     {
       "character_id": "trail_apprentice",
       "display_name": "Trail Apprentice",
-      "current_status": "NEEDS_CANONICAL_DECISION",
-      "existing_or_new": "NEW_CANDIDATE",
-      "default_art_status": "P1_OWNER_REVIEW_CANDIDATE",
-      "canonical_identity_status": "CANDIDATE_IDENTITY_ART_REVIEWABLE_GATE1_PENDING",
+      "current_status": "NEEDS_STANDARDIZATION",
+      "existing_or_new": "OWNER_CANONICAL_BATCH_1",
+      "default_art_status": "COMPLETE_OWNER_CANONICAL_BATCH_1",
+      "canonical_identity_status": "OWNER_CANONICAL_LATEST_DECISION",
       "runtime_status": "NOT_REGISTERED_PREVIEW_ONLY",
-      "one_hand_sword_eligibility": "CONDITIONAL_ON_CANONICAL_DECISION",
-      "one_hand_sword_pose_status": "REVIEW_READY_BATCH2_OWNER_PASS_PENDING",
+      "one_hand_sword_eligibility": "OWNER_CANONICAL_TARGET_END_STATE",
+      "one_hand_sword_pose_status": "OWNER_PASS_BATCH_1",
       "armor_compatibility_class": "STANDARD_OVERLAY",
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "MEDIUM",
-      "required_art_work": "Owner Gate 1 decision; accept or revise P1 default and Batch 2 sword pose; preserve scarf/pack/travel identity.",
-      "blockers": ["Owner Gate 1", "Current-six Owner visual gate"],
+      "required_art_work": "Retain accepted Batch 1 default and sword pose; preserve scarf/pack/travel identity; complete future compatibility QA only.",
+      "blockers": ["Pending weapon-pose/armor compatibility gate"],
       "evidence": ["assets/hero/characters/wave2_p1/trail_apprentice_p1.webp", "docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
@@ -237,7 +277,7 @@
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "HIGH",
       "required_art_work": "Approve face/hair/age/body anchors; create default full-body master and derived runtime art; then sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference", "Water-cape and satchel compatibility review"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID", "Water-cape and satchel compatibility review"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
@@ -254,7 +294,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
       "required_art_work": "Approve age/body width and grounded robe/sash identity; create default full-body master and sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference", "Broad/age-diverse body review"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID", "Broad/age-diverse body review"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
@@ -271,7 +311,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "MEDIUM",
       "required_art_work": "Approve face/hair/age/body anchors; create narrow scout default and sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
@@ -288,7 +328,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
       "required_art_work": "Approve broad shoulder/mantle identity; create default full-body master and sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference", "Broad mantle compatibility review"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID", "Broad mantle compatibility review"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
@@ -305,41 +345,41 @@
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "HIGH",
       "required_art_work": "Approve face/hair/age/body and hood/cloak anchors; create default full-body master and sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference", "Hood/cloak/back-arc review"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID", "Hood/cloak/back-arc review"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
       "character_id": "night_runner",
       "display_name": "Night Runner",
-      "current_status": "NEEDS_CANONICAL_DECISION",
-      "existing_or_new": "NEW_CANDIDATE",
+      "current_status": "NEEDS_STANDARDIZATION",
+      "existing_or_new": "OWNER_CANONICAL_BATCH_1",
       "default_art_status": "P1_OWNER_REVIEW_CANDIDATE_REVISE",
-      "canonical_identity_status": "CANDIDATE_IDENTITY_ART_REVIEWABLE_GATE1_PENDING",
+      "canonical_identity_status": "OWNER_CANONICAL_LATEST_DECISION",
       "runtime_status": "NOT_REGISTERED_PREVIEW_ONLY",
-      "one_hand_sword_eligibility": "CONDITIONAL_ON_CANONICAL_DECISION",
-      "one_hand_sword_pose_status": "REVIEW_READY_BATCH2_OWNER_PASS_PENDING",
+      "one_hand_sword_eligibility": "OWNER_CANONICAL_TARGET_END_STATE",
+      "one_hand_sword_pose_status": "OWNER_PASS_BATCH_1",
       "armor_compatibility_class": "STANDARD_OVERLAY",
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "HIGH",
-      "required_art_work": "Owner Gate 1 decision; resolve P1 revision notes; accept or revise Batch 2 sword pose with hood/face clearance.",
-      "blockers": ["Owner Gate 1", "P1 REVISE state", "Current-six Owner visual gate"],
+      "required_art_work": "Retain accepted Batch 1 default and sword pose; preserve hood/face opening and diagonal silhouette; complete future compatibility QA only.",
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "P1 REVISE note remains a visual QA watch item"],
       "evidence": ["assets/hero/characters/wave2_p1/night_runner_p1.webp", "docs/planning/rpg_wave2_gate2_character_art_p1_manifest.json"]
     },
     {
       "character_id": "constellation_apprentice",
       "display_name": "Constellation Apprentice",
-      "current_status": "NEEDS_CANONICAL_DECISION",
-      "existing_or_new": "NEW_CANDIDATE",
+      "current_status": "NEEDS_STANDARDIZATION",
+      "existing_or_new": "OWNER_CANONICAL_BATCH_1",
       "default_art_status": "P1_OWNER_REVIEW_CANDIDATE_REVISE",
-      "canonical_identity_status": "CANDIDATE_IDENTITY_ART_REVIEWABLE_GATE1_PENDING",
+      "canonical_identity_status": "OWNER_CANONICAL_LATEST_DECISION",
       "runtime_status": "NOT_REGISTERED_PREVIEW_ONLY",
-      "one_hand_sword_eligibility": "CONDITIONAL_ON_CANONICAL_DECISION",
-      "one_hand_sword_pose_status": "REVIEW_READY_BATCH2_OWNER_PASS_PENDING",
+      "one_hand_sword_eligibility": "OWNER_CANONICAL_TARGET_END_STATE",
+      "one_hand_sword_pose_status": "OWNER_PASS_BATCH_1",
       "armor_compatibility_class": "STANDARD_OVERLAY",
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "HIGH",
-      "required_art_work": "Owner Gate 1 decision; resolve P1 revision notes; accept or revise Batch 2 sword pose with sleeve/hood clearance.",
-      "blockers": ["Owner Gate 1", "P1 REVISE state", "Current-six Owner visual gate"],
+      "required_art_work": "Retain accepted Batch 1 default and sword pose; preserve sleeve/hood constellation identity; complete future compatibility QA only.",
+      "blockers": ["Pending weapon-pose/armor compatibility gate", "P1 REVISE note remains a visual QA watch item"],
       "evidence": ["assets/hero/characters/wave2_p1/constellation_apprentice_p1.webp", "docs/planning/rpg_wave2_gate2_character_art_p1_manifest.json"]
     },
     {
@@ -356,7 +396,7 @@
       "accessory_compatibility_class": "CHARACTER_MASK_RISK",
       "visual_complexity": "MEDIUM",
       "required_art_work": "Approve age/body/face/hair anchors; create archive-layer default full body and sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference", "Layered robe/satchel and face accessory review"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID", "Layered robe/satchel and face accessory review"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     },
     {
@@ -373,7 +413,7 @@
       "accessory_compatibility_class": "STANDARD_ACCESSORY_ANCHOR",
       "visual_complexity": "HIGH",
       "required_art_work": "Approve broad age/body/gender-neutral identity and civic mantle; create default full body and sword family variant.",
-      "blockers": ["Owner Gate 1", "Insufficient visual identity reference", "Civic mantle/back-arc special review"],
+      "blockers": ["OWNER_DECISION_REQUIRED", "MISSING_CANONICAL_FACE", "MISSING_HAIR_IDENTITY", "MISSING_BODY_PROPORTION", "MISSING_RUNTIME_ID", "Civic mantle/back-arc special review"],
       "evidence": ["docs/planning/rpg_wave2_lane_a_character_identity_registry_v1.json"]
     }
   ]

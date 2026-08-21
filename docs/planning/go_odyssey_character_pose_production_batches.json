@@ -1,15 +1,26 @@
 {
-  "task": "RPG_WAVE2_CHARACTER_20_PRODUCTION_PLAN_001",
+  "task": "RPG_WAVE2_CHARACTER_20_CANONICALIZATION_PRODUCTION_READY_001",
   "batch_shape": "6+4+5+5",
   "shape_reconciliation": "The current six contains 3 existing canonicals and 3 candidates. To keep the requested batch sizes without duplicating or omitting any of the 20 target IDs, Batch 3 is mixed.",
+  "canonicalization": {
+    "canonical_character_count": 13,
+    "owner_decision_required_count": 7,
+    "blocked_for_art_count": 7,
+    "current_six_status": "OWNER_PASS_6_OF_6",
+    "newly_canonical_ids": ["trail_apprentice", "night_runner", "constellation_apprentice"],
+    "newly_canonical_runtime_status": "NOT_REGISTERED; no runtime authority mutation in this task",
+    "identity_lock_sheet_source": "GO_ODYSSEY_CHARACTER_20_PRODUCTION_PLAN.md#identity-lock-sheets-for-batches-2-4"
+  },
   "mass_production_gate": {
     "defined": true,
+    "part_1": "PASS",
+    "part_2": "PENDING_ARMOR_COMPATIBILITY",
     "prerequisites": [
       "CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS",
       "WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE"
     ],
     "after_gate": "Proceed through batches without reopening architecture for each character; stop only for a real identity, art, or compatibility blocker.",
-    "candidate_guard": "Gate 1 canonical decisions remain required for candidate IDs; the mass gate does not register candidates or grant runtime authority."
+    "candidate_guard": "The seven remaining candidate decisions remain required; the mass gate does not register candidates or grant runtime authority."
   },
   "locked_contract": {
     "default_pose": "One full-body, empty/open-hand default pose per intended character.",
@@ -32,10 +43,11 @@
       ],
       "dependencies": [
         "Current six one-hand sword pose Owner Pass",
-        "Weapon-pose/armor Owner Pass or accepted architecture",
-        "Owner Gate 1 decisions for trail_apprentice, night_runner, and constellation_apprentice before canonical inclusion"
+        "Weapon-pose/armor Owner Pass or accepted architecture"
       ],
-      "identity_reference_readiness": "6 reviewable P1 identities; 3 existing canonical and 3 candidate Gate 1 pending",
+      "identity_reference_readiness": "6 Owner-canonical Batch 1 identities with six accepted default packages",
+      "ready_for_full_body_production_count": 0,
+      "blocked_for_art_count": 0,
       "expected_full_body_redraws": {
         "planned_after_proof_acceptance": 0,
         "owner_feedback_rework_reserve": 6
@@ -55,7 +67,7 @@
         "Torso armor, face accessory, and shoulder mantle projection checks",
         "Existing P1 focused static-contract tests and proof matrices"
       ],
-      "owner_visual_gate": "CURRENT_6_CHARACTER_ONE_HAND_SWORD=OWNER_PASS AND WEAPON_POSE_ARMOR_COMPATIBILITY=OWNER_PASS_OR_ACCEPTED_ARCHITECTURE"
+      "owner_visual_gate": "CURRENT_6_STATUS=OWNER_PASS_6_OF_6; WEAPON_POSE_ARMOR_COMPATIBILITY=PENDING"
     },
     {
       "batch_id": "BATCH_2",
@@ -71,7 +83,16 @@
         "Current identity assets and role briefs are preserved",
         "Body frame and face anchors measured before redraw"
       ],
-      "identity_reference_readiness": "Current canonical art exists; age/body measurements require explicit production review",
+      "identity_reference_readiness": "Existing canonical art is the identity source; current art plus the identity lock sheet is sufficient to start the redraw",
+      "readiness_class": "READY_FOR_FULL_BODY_PRODUCTION",
+      "ready_for_full_body_production_count": 4,
+      "blocked_for_art_count": 0,
+      "character_readiness": {
+        "apprentice_girl": "READY_FOR_FULL_BODY_PRODUCTION",
+        "swordsman": "READY_FOR_FULL_BODY_PRODUCTION",
+        "rogue": "READY_FOR_FULL_BODY_PRODUCTION",
+        "ranger": "READY_FOR_FULL_BODY_PRODUCTION"
+      },
       "expected_full_body_redraws": {
         "planned": 4,
         "conditional_rework": 0
@@ -88,7 +109,7 @@
         "Torso armor, face accessory, and shoulder/back clearance checks",
         "Per-character review matrix and Owner visual review"
       ],
-      "owner_visual_gate": "BATCH_2_DEFAULT_AND_ONE_HAND_SWORD_VISUAL_PASS"
+      "owner_visual_gate": "BATCH_2_DEFAULT_AND_ONE_HAND_SWORD_VISUAL_PASS_AFTER_ARMOR_GATE"
     },
     {
       "batch_id": "BATCH_3",
@@ -106,7 +127,16 @@
         "Owner Gate 1 decisions for river_wayfinder and stone_caretaker",
         "Approved face, hair, age, body proportion, palette, clothing, silhouette, and role anchors for both candidates"
       ],
-      "identity_reference_readiness": "3 existing identities referenced; 2 candidates text-only and BLOCKED_FOR_ART until reference lock",
+      "identity_reference_readiness": "3 existing identities ready for production; 2 candidates require Owner decisions plus face/hair/body reference lock",
+      "ready_for_full_body_production_count": 3,
+      "blocked_for_art_count": 2,
+      "character_readiness": {
+        "berserker": "READY_FOR_FULL_BODY_PRODUCTION",
+        "guardian": "READY_FOR_FULL_BODY_PRODUCTION",
+        "sage": "READY_FOR_FULL_BODY_PRODUCTION",
+        "river_wayfinder": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "stone_caretaker": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED"
+      },
       "expected_full_body_redraws": {
         "planned": 5,
         "conditional_rework": 0
@@ -141,7 +171,16 @@
         "Approved display names and identity reference sheets",
         "No candidate proceeds from text brief directly to mass art production"
       ],
-      "identity_reference_readiness": "All five are text-only and BLOCKED_FOR_ART at plan creation",
+      "identity_reference_readiness": "Text briefs lock role, palette, costume, and silhouette; all five require Owner decision plus approved face/hair/age/body references",
+      "ready_for_full_body_production_count": 0,
+      "blocked_for_art_count": 5,
+      "character_readiness": {
+        "duelist_scout": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "bastion_warden": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "forest_pathfinder": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "archive_scholar": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED",
+        "worldkeeper": "OWNER_DECISION_REQUIRED + ART_REFERENCE_REQUIRED"
+      },
       "expected_full_body_redraws": {
         "planned": 5,
         "conditional_rework": 0
@@ -165,6 +204,11 @@
     "default_full_body_art_required": 20,
     "one_hand_sword_pose_art_required": 20,
     "total_full_body_character_art_required": 40,
+    "default_art_already_complete": 6,
+    "default_art_remaining": 14,
+    "sword_pose_already_complete": 6,
+    "sword_pose_remaining": 14,
+    "total_new_full_body_art_remaining": 28,
     "remaining_after_current_six_acceptance": {
       "default_full_body": 14,
       "one_hand_sword_pose": 14,

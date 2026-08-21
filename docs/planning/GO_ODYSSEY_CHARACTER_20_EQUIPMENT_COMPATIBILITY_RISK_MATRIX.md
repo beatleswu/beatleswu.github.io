@@ -22,34 +22,52 @@ These are risk flags, not mutually exclusive work queues.
 | `CHARACTER_MASK` risk | 7 | Face-occluding accessory could erase identity anchors |
 | `SPECIAL_REVIEW` | 10 | Broad shoulders, hoods, capes, robes, back arcs, or age/body exceptions |
 
+Batch readiness after the six-character Owner Pass:
+
+| Batch | Ready for full-body production | Blocked | Primary blocker |
+|---|---:|---:|---|
+| Batch 2 | 4 | 0 | No identity or runtime blocker; subclass QA remains |
+| Batch 3 | 3 | 2 | `river_wayfinder` and `stone_caretaker`: Owner decision plus face/hair/body reference |
+| Batch 4 | 0 | 5 | Owner decision plus approved face/hair/age/body reference for every candidate |
+
+For Batches 2–4, the risk split is `STANDARD_OVERLAY=0`, `BODY_FRAME_SUBCLASS=14`, `CHARACTER_MASK_RISK=5`, and `SPECIAL_REVIEW=7`. The six Batch 1 bodies retain the six standard-overlay candidate flags, two mask risks, and three special-review flags, producing the program totals above.
+
 ## Matrix
 
 | Character ID | Torso armor | Face accessory | Shoulder mantle | Weapon pose | Risk flags | Production implication |
 |---|---|---|---|---|---|---|
-| `apprentice` | `STANDARD_OVERLAY` candidate | Standard anchor check | Standard anchor check | Six-proof review-ready | — | Use current-six gate; preserve beginner face and open-hand base |
-| `apprentice_girl` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Standard anchor check | Not started | — | Measure body/age before full-body redraw |
-| `swordsman` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Standard anchor check | Not started | — | Preserve headband/chest trim; verify hand and torso clearance |
+| `apprentice` | `STANDARD_OVERLAY` candidate | Standard anchor check | Standard anchor check | Six-proof `OWNER_PASS` | — | Use current-six gate; preserve beginner face and open-hand base |
+| `apprentice_girl` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Standard anchor check | Not started | — | Ready for full-body production; measure body during redraw |
+| `swordsman` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Standard anchor check | Not started | — | Ready for full-body production; preserve headband/chest trim and verify hands |
 | `rogue` | `BODY_FRAME_SUBCLASS` | `CHARACTER_MASK` | Standard anchor check | Not started | `CHARACTER_MASK` | Hood and face opening must not erase identity |
 | `ranger` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Subclass review | Not started | `SPECIAL_REVIEW` | Mantle/satchel/back arc can exceed standard overlay safe area |
 | `berserker` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Subclass review | Not started | `SPECIAL_REVIEW` | Broad body and strong shoulder silhouette need measured frame |
 | `guardian` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Subclass review | Not started | `SPECIAL_REVIEW` | Broad shoulders are an explicit universal-fit risk |
-| `paladin` | `STANDARD_OVERLAY` candidate | Standard anchor check | Standard anchor check | Six-proof review-ready | — | Revalidate armor projection at current-six gate |
-| `mage` | `STANDARD_OVERLAY` candidate | Standard anchor check | Standard anchor check | Six-proof review-ready | — | Robe and sleeve clearance must remain readable |
+| `paladin` | `STANDARD_OVERLAY` candidate | Standard anchor check | Standard anchor check | Six-proof `OWNER_PASS` | — | Revalidate armor projection only at the pending compatibility gate |
+| `mage` | `STANDARD_OVERLAY` candidate | Standard anchor check | Standard anchor check | Six-proof `OWNER_PASS` | — | Robe and sleeve clearance must remain readable |
 | `sage` | `BODY_FRAME_SUBCLASS` | `CHARACTER_MASK` | Standard anchor check | Not started | `CHARACTER_MASK` | Beard/glasses and robe layers require face clearance |
-| `trail_apprentice` | `STANDARD_OVERLAY` candidate | Standard anchor check | Subclass review | Six-proof review-ready | `SPECIAL_REVIEW` | Pack/scarf and travel silhouette need back/neck checks |
+| `trail_apprentice` | `STANDARD_OVERLAY` candidate | Standard anchor check | Subclass review | Six-proof `OWNER_PASS` | `SPECIAL_REVIEW` | Pack/scarf and travel silhouette need back/neck checks |
 | `river_wayfinder` | `BODY_FRAME_SUBCLASS` | `CHARACTER_MASK` | Subclass review | Not started | `CHARACTER_MASK` | Candidate is text-only; rain cape/satchel anchors must be approved first |
 | `stone_caretaker` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Subclass review | Not started | `SPECIAL_REVIEW` | Grounded broad/older body is not covered by Frame-A proof |
 | `duelist_scout` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Standard anchor check | Not started | — | Candidate is text-only; narrow coat/cuff hand clearance required |
 | `bastion_warden` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Subclass review | Not started | `SPECIAL_REVIEW` | Broad mantle/shoulder silhouette requires special fit review |
 | `forest_pathfinder` | `BODY_FRAME_SUBCLASS` | `CHARACTER_MASK` | Subclass review | Not started | `CHARACTER_MASK`, `SPECIAL_REVIEW` | Hood/cloak/back arc and face opening need identity review |
-| `night_runner` | `STANDARD_OVERLAY` candidate | `CHARACTER_MASK` | Subclass review | Six-proof review-ready | `CHARACTER_MASK`, `SPECIAL_REVIEW` | P1 hood/face opening and diagonal silhouette are review-sensitive |
-| `constellation_apprentice` | `STANDARD_OVERLAY` candidate | `CHARACTER_MASK` | Subclass review | Six-proof review-ready | `CHARACTER_MASK`, `SPECIAL_REVIEW` | Asymmetric sleeve/hood lines need pose and overlay clearance |
+| `night_runner` | `STANDARD_OVERLAY` candidate | `CHARACTER_MASK` | Subclass review | Six-proof `OWNER_PASS` | `CHARACTER_MASK`, `SPECIAL_REVIEW` | P1 hood/face opening and diagonal silhouette are review-sensitive |
+| `constellation_apprentice` | `STANDARD_OVERLAY` candidate | `CHARACTER_MASK` | Subclass review | Six-proof `OWNER_PASS` | `CHARACTER_MASK`, `SPECIAL_REVIEW` | Asymmetric sleeve/hood lines need pose and overlay clearance |
 | `archive_scholar` | `BODY_FRAME_SUBCLASS` | `CHARACTER_MASK` | Standard anchor check | Not started | `CHARACTER_MASK` | Layered robe/satchel and face accessory need identity review |
 | `worldkeeper` | `BODY_FRAME_SUBCLASS` | Standard anchor check | Subclass review | Not started | `SPECIAL_REVIEW` | Civic mantle and broad age/body presentation require special review |
 
 ## Gate interpretation
 
 `STANDARD_OVERLAY` is a candidate classification, not permission to implement a universal renderer. `BODY_FRAME_SUBCLASS` means the character must receive measured body-frame evidence before an overlay can be reused. `CHARACTER_MASK` means a face accessory must be checked against face, hair, age, and silhouette anchors. `SPECIAL_REVIEW` means the character needs an explicit review sheet before approval.
+
+The seven remaining candidate blockers are now narrowed to explicit codes:
+
+- `MISSING_CANONICAL_FACE`: all seven lack an approved face reference.
+- `MISSING_HAIR_IDENTITY`: all seven lack an approved hair or hood/face identity reference.
+- `MISSING_BODY_PROPORTION`: all seven lack measured body geometry; the text briefs provide direction only.
+- `MISSING_RUNTIME_ID`: all seven are intentionally absent from the runtime registry pending Owner canonicalization; this task does not register them.
+- `MISSING_ROLE_DEFINITION`, `MISSING_COSTUME_IDENTITY`, and `MISSING_PALETTE`: resolved for all seven from the canonical text identity registry and carried into the lock sheets.
 
 The only current family-level weapon decision is `ONE_HAND_SWORD_POSE`. The current six pose package uses a review-only universal `iron_sword` presentation and reports runtime composition still requires the universal weapon layer. No item-specific character redraws are planned.
 
