@@ -54,26 +54,45 @@ def test_character_presentation_fails_closed_to_server_default():
     assert "charKeySynced" not in HERO
 
 
-def test_functional_registry_has_safe_icon_only_hero_contract():
+def test_functional_registry_has_fourteen_full_body_items_and_inventory_only_stone():
     assert set(app_module.FUNCTIONAL_EQUIPMENT_ART) == FUNCTIONAL_IDS
     assert len(app_module.FUNCTIONAL_EQUIPMENT_ART) == 15
+    assert set(app_module.FUNCTIONAL_EQUIPMENT_PRESENTATION_REGISTRY) == FUNCTIONAL_IDS
+
+    full_body_ids = FUNCTIONAL_IDS - {"go_stone_black"}
+    assert len(full_body_ids) == 14
 
     for item_id in FUNCTIONAL_IDS:
         equip = app_module._EQUIP_MAP[item_id]
         art = app_module.FUNCTIONAL_EQUIPMENT_ART[item_id]
         payload = app_module._functional_equipment_payload(equip)
-        assert art["presentation_mode"] == "ICON_ONLY"
-        assert payload["presentation"] == {
-            "mode": "ICON_ONLY",
-            "anchor": art["presentation_anchor"],
-            "fallback": "NEUTRAL_FUNCTIONAL_ICON",
-        }
+        presentation = payload["presentation"]
+        assert presentation["fallback"] == "NEUTRAL_FUNCTIONAL_ICON"
+        assert presentation["presentation_only"] is True
+        assert art["presentation_only"] is True
+        if item_id in full_body_ids:
+            assert art["presentation_mode"] == "FULL_BODY_OVERLAY"
+            assert art["full_body_required"] is True
+            assert presentation["mode"] == "FULL_BODY_OVERLAY"
+            assert presentation["full_body_required"] is True
+            assert presentation["asset"] == (
+                f"/assets/hero/equipment/wearables/overlays/{item_id}.png"
+            )
+            assert presentation["layer"]
+        else:
+            assert item_id == "go_stone_black"
+            assert art["presentation_mode"] == "ICON_ONLY"
+            assert art["full_body_required"] is False
+            assert presentation["mode"] == "ICON_ONLY"
+            assert presentation["full_body_required"] is False
+            assert presentation["family"] == "INVENTORY_ONLY"
+            assert presentation["asset"] is None
         assert payload["functional_equipment"] is True
         assert payload["style_equipment"] is False
 
     assert "fetch('/api/player/inventory'" in HERO
     assert "item.functional_equipment === true" in HERO
-    assert "server state · icon projection" in HERO
+    assert "server state · icon + full-body projection" in HERO
     assert "data-presentation-mode" in HERO
     assert "damage" not in HERO[HERO.index("function functionalProjectionItemHTML"):HERO.index("function combatGearButtonHTML")]
 
