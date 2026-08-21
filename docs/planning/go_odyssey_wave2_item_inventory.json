@@ -1,0 +1,668 @@
+{
+  "manifest_version": "rpg-wave2-items-cosmetics-reconciliation-v1",
+  "audit_base": "ac182ed173620a11e66bebeb6003c121b9ceee95",
+  "source_truth": [
+    "rpg_item_registry.py:20-48, 62-330, 462-560",
+    "app.py:2604-2624",
+    "app.py:19010-19307",
+    "app.py:19579-19697",
+    "community_leaderboard_rewards.py:2087-2115"
+  ],
+  "scope": "non-equipment Items; functional equipment remains player_inventory + server EQUIPMENT_DEFS",
+  "canonical_registry_record_count": 24,
+  "narrative_only_unregistered_labels": {
+    "count": 5,
+    "status": "DEFER",
+    "evidence": "docs/planning/e10_final_screenplay_integration_contract_v1.md",
+    "note": "Narrative labels have no canonical Item ID, ownership authority, asset, or persistence and are not promoted to Items by this audit."
+  },
+  "record_count": 25,
+  "controlled_taxonomy": {
+    "MATERIAL": "Stackable non-combat component with an existing item store.",
+    "QUEST_ITEM": "Reserved; no current canonical record.",
+    "LORE_ITEM": "Reserved; no current canonical record.",
+    "CONSUMABLE": "Direct-use item or immediate-grant product; TreasureBundle is a repo presentation subtype.",
+    "COLLECTION_ITEM": "Reserved; no current persistent Item Journal record.",
+    "CURRENCY_LIKE": "Coins and premium entitlements are separate domains.",
+    "LEGACY_OR_UNKNOWN": "Rejected or unresolved keys are listed for cleanup and are not active ownership."
+  },
+  "taxonomy_counts": {
+    "CONSUMABLE": 22,
+    "MATERIAL": 2,
+    "LEGACY_OR_UNKNOWN": 1
+  },
+  "records": [
+    {
+      "item_id": "hint_ticket",
+      "display_name": "小提示卷",
+      "display_name_en": "Hint Ticket",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/small_hint_scroll.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 2"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "作答時顯示下一手正解位置",
+      "stackable": true,
+      "product_id": "hint_ticket",
+      "status": "READY"
+    },
+    {
+      "item_id": "premium_hint_bundle",
+      "display_name": "高級提示包",
+      "display_name_en": "Premium Hint Bundle",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/shop/premium_hint_bundle.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "購買即獲得小提示卷 ×5",
+      "stackable": false,
+      "product_id": "premium_hint_bundle",
+      "status": "READY"
+    },
+    {
+      "item_id": "ai_explain_ticket",
+      "display_name": "AI 解說券",
+      "display_name_en": "AI Analysis Ticket",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/icon_ai_ticket.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 4"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "免費玩家也能看一次 KataGo AI 解析（答題後自動使用）",
+      "stackable": true,
+      "product_id": "ai_explain_ticket",
+      "status": "READY"
+    },
+    {
+      "item_id": "ai_explain_ticket_bundle",
+      "display_name": "AI 解說券包",
+      "display_name_en": "AI Analysis Bundle",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/shop/ai_explain_ticket_bundle.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "購買即獲得 AI 解說券 ×3",
+      "stackable": false,
+      "product_id": "ai_explain_ticket_bundle",
+      "status": "READY"
+    },
+    {
+      "item_id": "extra_questions_small",
+      "display_name": "小型修行令",
+      "display_name_en": "Small Training Pass",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/small_training_pass.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 6"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "extra_questions",
+        "value": 5,
+        "scope": "today"
+      },
+      "effect_use": "使用後今日免費題數上限 +5",
+      "stackable": true,
+      "product_id": "extra_questions_small",
+      "status": "READY"
+    },
+    {
+      "item_id": "extra_questions",
+      "display_name": "加題券",
+      "display_name_en": "Extra Questions Ticket",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/small_training_pass.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 7"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "extra_questions",
+        "value": 10,
+        "scope": "today"
+      },
+      "effect_use": "使用後今日免費題數上限 +10",
+      "stackable": true,
+      "product_id": "extra_questions",
+      "status": "READY"
+    },
+    {
+      "item_id": "grand_training_pass",
+      "display_name": "大型修行令",
+      "display_name_en": "Grand Training Pass",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/grand_training_pass.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "extra_questions",
+        "value": 20,
+        "scope": "today"
+      },
+      "effect_use": "使用後今日免費題數上限 +20",
+      "stackable": true,
+      "product_id": "grand_training_pass",
+      "status": "READY"
+    },
+    {
+      "item_id": "small_xp_potion",
+      "display_name": "小 XP 藥水",
+      "display_name_en": "Small XP Potion",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/small_xp_potion.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 5"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "xp_potion",
+        "value": 1.25,
+        "minutes": 20
+      },
+      "effect_use": "啟用後 20 分鐘內答題 XP ×1.25",
+      "stackable": true,
+      "product_id": "small_xp_potion",
+      "status": "READY"
+    },
+    {
+      "item_id": "xp_potion",
+      "display_name": "XP 藥水",
+      "display_name_en": "XP Potion",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/icon_xp_potion.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 7"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "xp_potion",
+        "value": 1.5,
+        "minutes": 30
+      },
+      "effect_use": "啟用後 30 分鐘內答題 XP ×1.5",
+      "stackable": true,
+      "product_id": "xp_potion",
+      "status": "READY"
+    },
+    {
+      "item_id": "grand_xp_potion",
+      "display_name": "大型 XP 藥水",
+      "display_name_en": "Grand XP Potion",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/grand_xp_potion.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "xp_potion",
+        "value": 1.5,
+        "minutes": 60
+      },
+      "effect_use": "啟用後 60 分鐘內答題 XP ×1.5",
+      "stackable": true,
+      "product_id": "grand_xp_potion",
+      "status": "READY"
+    },
+    {
+      "item_id": "streak_shield",
+      "display_name": "連勝護盾",
+      "display_name_en": "Streak Shield",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/icon_shield.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 3"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "streak_shield",
+        "value": 1
+      },
+      "effect_use": "啟用後，下一次答錯不中斷連擊（combo）",
+      "stackable": true,
+      "product_id": "streak_shield",
+      "status": "READY"
+    },
+    {
+      "item_id": "double_streak_shield",
+      "display_name": "雙層護盾",
+      "display_name_en": "Double Streak Shield",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/shop/double_streak_shield.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 7"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {
+        "key": "streak_shield",
+        "value": 2
+      },
+      "effect_use": "啟用後，接下來兩次答錯不中斷連擊",
+      "stackable": true,
+      "product_id": "double_streak_shield",
+      "status": "READY"
+    },
+    {
+      "item_id": "pet_snack",
+      "display_name": "寵物糖果包",
+      "display_name_en": "Pet Candy Pouch",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/shop/pet_candy_pouch.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 1"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "購買即獲得棋魂糖 ×3（到寵物頁餵食）",
+      "stackable": false,
+      "product_id": "pet_snack",
+      "status": "READY"
+    },
+    {
+      "item_id": "starfruit_basket",
+      "display_name": "星果籃",
+      "display_name_en": "Star Fruit Basket",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/shop/star_fruit_basket.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha",
+        "Newbie stage 7"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "購買即獲得星果 ×3（到寵物頁餵食）",
+      "stackable": false,
+      "product_id": "starfruit_basket",
+      "status": "READY"
+    },
+    {
+      "item_id": "moon_dew_vial",
+      "display_name": "月露瓶",
+      "display_name_en": "Moon Dew Vial",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/shop/moon_dew_vial.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "購買即獲得月露 ×3（到寵物頁餵食）",
+      "stackable": false,
+      "product_id": "moon_dew_vial",
+      "status": "READY"
+    },
+    {
+      "item_id": "pet_feast_box",
+      "display_name": "寵物豪華餐盒",
+      "display_name_en": "Pet Feast Box",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/shop/pet_feast_box.webp",
+      "asset_format": "WEBP",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:daily",
+        "Gacha"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "購買即獲得棋魂糖 ×3、星果 ×2、月露 ×1",
+      "stackable": false,
+      "product_id": "pet_feast_box",
+      "status": "READY"
+    },
+    {
+      "item_id": "rare_appearance_fragment",
+      "display_name": "稀有外觀碎片",
+      "display_name_en": "Rare Appearance Fragment",
+      "category": "MATERIAL",
+      "repo_category": "Material",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/items/rare_appearance_fragment.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:weekly"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Consume one to unlock one missing common/uncommon appearance; no auto-equip",
+      "effect_use": "Appearance unlock intent is server-side; resulting cosmetic uses existing Cosmetic authority",
+      "stackable": true,
+      "product_id": "rare_appearance_fragment",
+      "status": "READY"
+    },
+    {
+      "item_id": "pet_evolution_core",
+      "display_name": "寵物進化素材",
+      "display_name_en": "Pet Evolution Core",
+      "category": "MATERIAL",
+      "repo_category": "Material",
+      "ownership_authority": "shop_inventory.item_key",
+      "current_asset": "/assets/items/pet_evolution_core.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "SHOP_ITEMS + /api/shop/use or existing training consumer",
+      "acquisition_source": [
+        "Shop:weekly"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_SHOP_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Consume one for pet XP +35 and existing evolution progress",
+      "effect_use": "Pet-growth intent is server-side and remains outside combat power",
+      "stackable": true,
+      "product_id": "pet_evolution_core",
+      "status": "READY"
+    },
+    {
+      "item_id": "ai_analysis_pack",
+      "display_name": "AI 解析包",
+      "display_name_en": "AI Analysis Pack",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/items/ai_analysis_pack.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:weekly"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Immediate grant of five AI analysis tickets; no persistent pack ownership",
+      "effect_use": "Show Contains: AI Analysis Ticket ×5, then navigate to Backpack",
+      "stackable": false,
+      "product_id": "ai_analysis_pack",
+      "status": "READY"
+    },
+    {
+      "item_id": "collector_archive_crate",
+      "display_name": "收藏典藏箱",
+      "display_name_en": "Collector Archive Crate",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/items/collector_archive_crate.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:monthly"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Immediate grant of four appearance fragments and eight AI analysis tickets",
+      "effect_use": "Show Contains: Appearance Fragment ×4; AI Analysis Ticket ×8",
+      "stackable": false,
+      "product_id": "collector_archive_crate",
+      "status": "READY"
+    },
+    {
+      "item_id": "growth_vault",
+      "display_name": "成長寶庫",
+      "display_name_en": "Growth Vault",
+      "category": "CONSUMABLE",
+      "repo_category": "TreasureBundle",
+      "ownership_authority": "grant_components_only",
+      "current_asset": "/assets/items/growth_vault.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "SHOP_ITEMS server grant components; no persistent bundle row",
+      "acquisition_source": [
+        "Shop:monthly"
+      ],
+      "consumed_or_persistent": "IMMEDIATE_GRANT_COMPONENTS_ONLY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Immediate grant of six pet evolution cores and two appearance fragments",
+      "effect_use": "Show Contains: Pet Evolution Core ×6; Appearance Fragment ×2",
+      "stackable": false,
+      "product_id": "growth_vault",
+      "status": "READY"
+    },
+    {
+      "item_id": "go_spirit_candy",
+      "display_name": "棋魂糖",
+      "display_name_en": "Go Spirit Candy",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "pet_inventory.item_key",
+      "current_asset": "/assets/items/go_spirit_candy.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "PET_FOOD_CATALOG /api/pet/feed",
+      "acquisition_source": [
+        "Daily quest",
+        "Companion grant",
+        "Shop:daily",
+        "Gacha:pet_food"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_PET_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Feed companion: fullness +24, affection +4, pet XP +8",
+      "effect_use": "Use from the existing Spirit feeding contract; no combat effect",
+      "stackable": true,
+      "product_id": null,
+      "status": "READY"
+    },
+    {
+      "item_id": "starfruit",
+      "display_name": "星果",
+      "display_name_en": "Starfruit",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "pet_inventory.item_key",
+      "current_asset": "/assets/items/starfruit.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "PET_FOOD_CATALOG /api/pet/feed",
+      "acquisition_source": [
+        "Daily quest",
+        "Pet milestone",
+        "Shop:daily",
+        "Gacha:pet_food"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_PET_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Feed companion: fullness +38, affection +7, pet XP +15",
+      "effect_use": "Use from the existing Spirit feeding contract; no combat effect",
+      "stackable": true,
+      "product_id": null,
+      "status": "READY"
+    },
+    {
+      "item_id": "moon_drop",
+      "display_name": "月露",
+      "display_name_en": "Moon Drop",
+      "category": "CONSUMABLE",
+      "repo_category": "ConsumableEffect",
+      "ownership_authority": "pet_inventory.item_key",
+      "current_asset": "/assets/items/moon_drop.svg",
+      "asset_format": "SVG",
+      "current_runtime_usage": "PET_FOOD_CATALOG /api/pet/feed",
+      "acquisition_source": [
+        "Friend challenge",
+        "Shop:daily",
+        "Gacha:pet_food"
+      ],
+      "consumed_or_persistent": "PERSISTENT_STACK_PET_INVENTORY",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": "Feed companion: fullness +18, affection +10, pet XP +25",
+      "effect_use": "Use from the existing Spirit feeding contract; no combat effect",
+      "stackable": true,
+      "product_id": null,
+      "status": "READY"
+    },
+    {
+      "item_id": "appearance_fragment",
+      "display_name": "Appearance Fragment (legacy key)",
+      "display_name_en": "Appearance Fragment (legacy key)",
+      "category": "LEGACY_OR_UNKNOWN",
+      "repo_category": "legacy_rejected_reward_key",
+      "ownership_authority": "NONE_REJECTED",
+      "current_asset": null,
+      "asset_format": null,
+      "current_runtime_usage": "community_leaderboard_rewards.py explicitly rejects the key; no SHOP_ITEMS backend",
+      "acquisition_source": [
+        "Deferred monthly-board reward (historical)"
+      ],
+      "consumed_or_persistent": "UNKNOWN_NOT_ACTIVE",
+      "zone_identity": "NONE_CURRENT",
+      "boss_identity": "NONE_CURRENT",
+      "current_effect": {},
+      "effect_use": "No current supported grant",
+      "stackable": null,
+      "product_id": null,
+      "status": "LEGACY_CLEANUP"
+    }
+  ],
+  "legacy_or_unknown_candidates": [
+    {
+      "item_id": "appearance_fragment",
+      "evidence": "community_leaderboard_rewards.py:2087-2115",
+      "disposition": "Rejected by weekly-safe allowlist; keep out of SHOP_ITEMS, inventory, and journal."
+    }
+  ],
+  "excluded_runtime_keys": [
+    "unapproved_runtime_item (test fixture only; not in current registry)",
+    "functional equipment IDs (separate authority)"
+  ],
+  "authority_rules": [
+    "No new item ownership table.",
+    "shop_inventory.item_key and pet_inventory.item_key remain authoritative.",
+    "Bundles do not create persistent bundle ownership.",
+    "GET /api/item-journal is read-only; discovery_semantics=NOT_TRACKED.",
+    "Future drop rates and settlement remain server-side and out of this branch."
+  ]
+}
