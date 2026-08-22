@@ -529,6 +529,16 @@ h1 {
 .purchase-confirmation a { flex:0 0 auto; min-height:40px; display:inline-flex; align-items:center; padding:0 12px; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; text-decoration:none; }
 .cosmetic-commerce-panel { border-color: rgba(86,214,194,.42); }
 .cosmetic-note { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 690px; }
+.premium-v1-panel { border-color: rgba(240,191,87,.48); }
+.premium-v1-copy { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 760px; }
+.premium-v1-benefits { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:14px; }
+.premium-v1-benefit { padding:12px; border:1px solid rgba(240,191,87,.26); border-radius:12px; background:rgba(22,19,12,.72); }
+.premium-v1-benefit strong { display:block; color:var(--gold); margin-bottom:4px; }
+.premium-v1-benefit span { color:var(--muted); font-size:12px; line-height:1.45; }
+.premium-v1-pool { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:14px; }
+.premium-v1-reward { display:grid; gap:8px; padding:10px; border:1px solid rgba(86,214,194,.28); border-radius:12px; background:rgba(10,16,15,.68); }
+.premium-v1-reward img { width:100%; height:150px; object-fit:contain; object-position:center bottom; border-radius:9px; background:rgba(5,10,12,.7); }
+.premium-v1-reward button[disabled] { opacity:.55; cursor:not-allowed; }
 .cosmetic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px; }
 .cosmetic-card { padding:14px; border:1px solid rgba(86,214,194,.28); border-radius:var(--radius); background:rgba(10,16,15,.7); display:grid; grid-template-rows:auto 1fr auto; gap:12px; }
 .cosmetic-card.is-equipped { border-color:var(--gold); box-shadow:0 0 0 1px rgba(240,191,87,.22); }
@@ -689,6 +699,28 @@ h1 {
       <div class="cosmetic-grid" id="cosmetic-commerce-grid">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
+    </div>
+  </section>
+
+  <section class="section panel premium-v1-panel" id="premium-v1-panel" aria-labelledby="premium-v1-title" hidden>
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">PREMIUM · REVENUE V1 CANDIDATE</div>
+          <div class="section-title" id="premium-v1-title">Premium deterministic benefits</div>
+        </div>
+        <div class="section-sub" id="premium-v1-plan-label"></div>
+      </div>
+      <p class="premium-v1-copy" id="premium-v1-copy"></p>
+      <div class="premium-v1-benefits" id="premium-v1-benefits"></div>
+      <div class="section-head" style="margin-top:18px">
+        <div>
+          <div class="section-kicker">MONTHLY COLLECTION CREDIT</div>
+          <div class="section-title" id="premium-v1-pool-title">Choose one released cosmetic</div>
+        </div>
+        <div class="section-sub" id="premium-v1-grace-label"></div>
+      </div>
+      <div class="premium-v1-pool" id="premium-v1-pool"></div>
     </div>
   </section>
 
@@ -1428,6 +1460,82 @@ async function loadCosmeticCommerce() {
   }
   renderCosmeticCommerce(res);
 }
+function renderPremiumV1(data) {
+  const panel = document.getElementById('premium-v1-panel');
+  if (!panel || !data?.enabled) return;
+  panel.hidden = false;
+  const monthly = data.prices?.newebpay?.monthly || {currency:'TWD', amount:299};
+  const annual = data.prices?.newebpay?.annual || {currency:'TWD', amount:2490};
+  document.getElementById('premium-v1-plan-label').textContent = isEn()
+    ? `Monthly ${monthly.currency} ${monthly.amount} · Annual ${annual.currency} ${annual.amount}`
+    : `月繳 ${monthly.currency} ${monthly.amount} · 年繳 ${annual.currency} ${annual.amount}`;
+  document.getElementById('premium-v1-copy').textContent = data.premium_entitled
+    ? (isEn()
+      ? 'Your Premium status includes one deterministic +5 question-capacity credit and one disclosed pure-cosmetic collection credit per eligible month. Annual credits vest monthly; earned credits have a 90-day grace window.'
+      : '目前 Premium 方案每個符合資格月份提供一次 +5 題數上限額度與一次明確揭露的純外觀收藏額度。年繳按月解鎖，已賺取額度提供 90 天寬限。')
+    : (isEn() ? 'A verified Premium entitlement is required to claim these benefits.' : '需由 server 驗證有效 Premium entitlement 才能領取。');
+  const benefitText = isEn()
+    ? [
+        ['+5 question capacity', 'One per eligible month; applied by the D5B authority.'],
+        ['Cosmetic collection credit', 'Choose one released item from the disclosed five-item pool.'],
+        ['Premium identity', 'Existing Premium status and identity presentation remain active.']
+      ]
+    : [
+        ['+5 題數上限', '每個符合資格月份一次，由 D5B authority 套用。'],
+        ['外觀收藏額度', '從揭露的五件已發售外觀中選一件。'],
+        ['Premium 身份', '沿用既有 Premium 狀態與身份呈現。']
+      ];
+  document.getElementById('premium-v1-benefits').innerHTML = benefitText.map(([title, copy]) =>
+    `<div class="premium-v1-benefit"><strong>${cosmeticEsc(title)}</strong><span>${cosmeticEsc(copy)}</span></div>`
+  ).join('');
+  document.getElementById('premium-v1-grace-label').textContent = isEn()
+    ? `Annual vesting · ${data.annual_policy?.grace_days_for_earned_credits || 90}-day grace`
+    : `年繳按月解鎖 · 已賺取額度 ${data.annual_policy?.grace_days_for_earned_credits || 90} 天寬限`;
+  const pool = document.getElementById('premium-v1-pool');
+  const rewards = Array.isArray(data.cosmetic_pool) ? data.cosmetic_pool : [];
+  const available = rewards.filter(reward => !reward.owned);
+  if (!available.length) {
+    pool.innerHTML = `<div class="empty">${isEn() ? 'No unowned C013 cosmetic is available. The credit is not converted.' : '五件 C013 外觀皆已擁有；額度不會轉換成其他獎勵。'}</div>`;
+    return;
+  }
+  pool.innerHTML = rewards.map(reward => {
+    const asset = reward.preview_asset || {};
+    const owned = !!reward.owned;
+    const disabled = owned || !data.premium_entitled;
+    const name = isEn() ? (reward.display_name_en || reward.display_name) : reward.display_name;
+    return `<article class="premium-v1-reward" data-premium-v1-reward="${cosmeticEsc(reward.item_id)}">
+      ${asset.asset ? `<img src="${cosmeticEsc(asset.asset)}" alt="${cosmeticEsc(name)}" loading="lazy" decoding="async">` : ''}
+      <strong>${cosmeticEsc(name)}</strong>
+      <span class="tile-sub">${owned ? (isEn() ? 'Owned permanently' : '已永久擁有') : (isEn() ? 'Pure cosmetic · no combat authority' : '純外觀 · 無戰鬥權限')}</span>
+      <button class="btn secondary" type="button" data-premium-v1-claim="${cosmeticEsc(reward.item_id)}" ${disabled ? 'disabled' : ''}>${owned ? (isEn() ? 'Owned' : '已擁有') : (isEn() ? 'Choose and claim' : '選擇並領取')}</button>
+    </article>`;
+  }).join('');
+  pool.querySelectorAll('[data-premium-v1-claim]').forEach(button => {
+    button.addEventListener('click', () => claimPremiumV1(button.dataset.premiumV1Claim));
+  });
+}
+async function loadPremiumV1Offer() {
+  const res = await api('/api/premium/v1/offer');
+  if (res.error || !res.enabled) return;
+  renderPremiumV1(res);
+}
+async function claimPremiumV1(cosmeticId) {
+  const operationId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+    ? window.crypto.randomUUID()
+    : `c013-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const res = await api('/api/premium/v1/claim', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ cosmetic_id: cosmeticId, operation_id: operationId })
+  });
+  if (res.error) {
+    showToast(res.reason === 'NO_AVAILABLE_REWARD'
+      ? (isEn() ? 'No unowned cosmetic is available; the credit was not consumed.' : '沒有可領取的未擁有外觀，額度未消耗。')
+      : errorMessage(res.error));
+    return;
+  }
+  showToast(isEn() ? 'Premium benefits claimed.' : 'Premium 本月福利已領取。');
+  await loadPremiumV1Offer();
+}
 async function previewCosmetic(productId) {
   const res = await api(`/api/cosmetic-commerce/preview/${encodeURIComponent(productId)}`);
   if (res.error) { showToast(errorMessage(res.error)); return; }
@@ -1767,6 +1875,7 @@ function showGachaResult(res) {
 document.getElementById("btn-gacha").addEventListener("click", doGacha);
 loadCatalog();
 loadCosmeticCommerce();
+loadPremiumV1Offer();
 </script>
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>

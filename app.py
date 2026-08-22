@@ -124,6 +124,19 @@ from item_use_operations import (
     operation_result,
     reserve_item_use_operation,
 )
+from premium_v1_revenue import (
+    C013_HIDDEN_IDS,
+    C013_LAUNCH_COSMETIC_IDS,
+    C013_REWARD_CATALOG_KEY,
+    build_c013_catalog_resolver,
+    build_c013_offer_projection,
+    c013_claim_route_enabled,
+    c013_result_payload,
+    read_c013_claim_evidence,
+    select_server_claim_period,
+)
+from premium_reward_bundle_runtime import PremiumRewardBundleClaimService
+from premium_reward_claim_runtime import PremiumRewardClaimError
 from sgf_admin_workbench import (
     WORKBENCH_ACTIONS,
     WORKBENCH_REPORT_REASONS,
@@ -2622,6 +2635,25 @@ APPEARANCE_EFFECTS = {
     'robe_premium':    {'xp_bonus': 0.05,  'label': 'XP +5%'},
     'acc_premium':     {'xp_bonus': 0.08,  'label': 'XP +8%'},
 }
+
+
+def _c013_catalog_resolver(owned_ids=()):
+    """Build the C013 resolver from canonical appearance registries only."""
+    return build_c013_catalog_resolver(
+        appearance_defs=APPEARANCE_DEFS,
+        presentation_registry=PURE_COSMETIC_PRESENTATION_REGISTRY,
+        hidden_ids=C013_HIDDEN_IDS,
+        appearance_effects=APPEARANCE_EFFECTS,
+        owned_ids=owned_ids,
+    )
+
+
+def _c013_owned_cosmetic_ids(conn, uid):
+    rows = conn.execute(
+        'SELECT item_id FROM player_wardrobe WHERE user_id=?', (uid,)
+    ).fetchall()
+    return [str(row['item_id']) for row in rows]
+
 
 def _get_appearance_effects(uid, conn):
     """取得玩家已裝備外觀的所有加成，回傳 {xp_bonus, drop_bonus}。
@@ -20237,6 +20269,91 @@ def cosmetic_commerce_equip():
             (uid, product['cosmetic_id'], now))
         payload = _cosmetic_payload_for_user(conn, uid, product)
     return jsonify({'ok': True, 'product': payload})
+
+
+@app.route('/api/premium/v1/offer')
+@login_required
+def premium_v1_offer():
+    """Read-only Revenue V1 offer projection; candidate visibility is off by default."""
+    uid = session['user_id']
+    enabled = c013_claim_route_enabled()
+    with get_db() as conn:
+        owned_ids = _c013_owned_cosmetic_ids(conn, uid)
+    return jsonify(build_c013_offer_projection(
+        enabled=enabled,
+        premium_entitled=is_premium(uid),
+        catalog_resolver=_c013_catalog_resolver(),
+        owned_ids=owned_ids,
+    ))
+
+
+@app.route('/api/premium/v1/claim', methods=['POST'])
+@login_required
+def premium_v1_claim():
+    """Default-off deterministic Premium bundle claim candidate.
+
+    The client supplies only a cosmetic choice and request identity.  The
+    server chooses the reward period and D5E/F re-checks entitlement,
+    provenance, period, and pure-cosmetic eligibility before mutation.
+    """
+    if not c013_claim_route_enabled():
+        return jsonify({'error': 'premium_v1_disabled', 'default_off': True}), 404
+    body = request.get_json(silent=True) or {}
+    requested_cosmetic_id = str(body.get('cosmetic_id') or '').strip()
+    if requested_cosmetic_id not in C013_LAUNCH_COSMETIC_IDS:
+        return jsonify({'error': 'cosmetic_not_in_launch_pool'}), 400
+    operation_id = body.get('operation_id') or request.headers.get('Idempotency-Key')
+    if not str(operation_id or '').strip():
+        return jsonify({'error': 'operation_id_required'}), 400
+    uid = session['user_id']
+    with get_db() as conn:
+        resolver = _c013_catalog_resolver(_c013_owned_cosmetic_ids(conn, uid))
+        service = PremiumRewardBundleClaimService(conn, catalog_resolver=resolver)
+        if not service._schema_available():
+            return jsonify({'error': 'premium_v1_schema_unavailable'}), 503
+        period_key = select_server_claim_period(
+            service,
+            user_id=uid,
+            operation_id=operation_id,
+        )
+        if not period_key:
+            return jsonify({'error': 'no_eligible_reward_period'}), 409
+        try:
+            result = service.claim_period_bundle(
+                uid,
+                period_key,
+                operation_id=operation_id,
+                include_cosmetic=True,
+                requested_cosmetic_id=requested_cosmetic_id,
+            )
+        except PremiumRewardClaimError:
+            conn.rollback()
+            return jsonify({'error': 'premium_v1_claim_unavailable'}), 503
+        payload = c013_result_payload(result)
+    status_code = 200 if result.status == 'GRANTED' else 409
+    return jsonify(payload), status_code
+
+
+@app.route('/api/admin/premium/v1/claim-evidence/<operation_id>')
+@admin_required
+def premium_v1_claim_evidence(operation_id):
+    """Read-only support reconstruction for one C013 claim operation."""
+    if not c013_claim_route_enabled():
+        return jsonify({'error': 'premium_v1_disabled', 'default_off': True}), 404
+    try:
+        evidence_user_id = int(request.args.get('user_id') or 0)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'user_id_required'}), 400
+    if evidence_user_id <= 0:
+        return jsonify({'error': 'user_id_required'}), 400
+    with get_db() as conn:
+        evidence = read_c013_claim_evidence(
+            conn,
+            user_id=evidence_user_id,
+            operation_id=operation_id,
+        )
+    return jsonify(evidence)
+
 
 # ── Item Journal read-only projection ────────────────────────
 

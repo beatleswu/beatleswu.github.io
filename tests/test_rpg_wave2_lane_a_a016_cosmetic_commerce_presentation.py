@@ -87,4 +87,3 @@ def test_functional_or_legacy_premium_appearances_stay_out_of_pure_pool():
     assert not app_module.APPEARANCE_EFFECTS.get("acc_dragon_pendant", {})
     assert app_module.APPEARANCE_EFFECTS.get("robe_premium")
     assert app_module.APPEARANCE_EFFECTS.get("acc_premium")
-
