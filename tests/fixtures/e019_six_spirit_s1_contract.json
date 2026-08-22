@@ -1,0 +1,343 @@
+{
+  "contract_id": "GO_ODYSSEY_E019_SIX_SPIRIT_S1",
+  "status_vocabulary": [
+    "PASS_CURRENT_RUNTIME",
+    "PASS_FIXTURE_CONTRACT",
+    "PENDING_RUNTIME",
+    "BLOCKED"
+  ],
+  "canonical_existing_spirit_ids": [
+    "ink_drop_kelpie",
+    "whispering_void_kit",
+    "star_shell_hatchling"
+  ],
+  "six_slots": [
+    {
+      "slot": 1,
+      "spirit_id": "ink_drop_kelpie",
+      "role": "TRAINING",
+      "identity_source": "canonical_catalog",
+      "canonical_name": null
+    },
+    {
+      "slot": 2,
+      "spirit_id": "whispering_void_kit",
+      "role": "REVIEW",
+      "identity_source": "canonical_catalog",
+      "canonical_name": null
+    },
+    {
+      "slot": 3,
+      "spirit_id": "star_shell_hatchling",
+      "role": "CHALLENGE",
+      "identity_source": "canonical_catalog",
+      "canonical_name": null
+    },
+    {
+      "slot": 4,
+      "spirit_id": null,
+      "role": "EXPLORATION",
+      "identity_source": "future_catalog",
+      "canonical_name": null
+    },
+    {
+      "slot": 5,
+      "spirit_id": null,
+      "role": "PRECISION",
+      "identity_source": "future_catalog",
+      "canonical_name": null
+    },
+    {
+      "slot": 6,
+      "spirit_id": null,
+      "role": "SUPPORT",
+      "identity_source": "future_catalog",
+      "canonical_name": null
+    }
+  ],
+  "legacy_pet_ids": [
+    "pet_cat",
+    "pet_turtle",
+    "pet_rabbit",
+    "pet_fox",
+    "pet_wolf",
+    "pet_dragon",
+    "pet_premium"
+  ],
+  "state_fixtures": {
+    "owned_starter_only": {
+      "owned": ["ink_drop_kelpie"],
+      "active": "ink_drop_kelpie",
+      "levels": {"ink_drop_kelpie": 1},
+      "locked": ["whispering_void_kit", "star_shell_hatchling"]
+    },
+    "owned_first_second": {
+      "owned": ["ink_drop_kelpie", "whispering_void_kit"],
+      "active": "ink_drop_kelpie",
+      "levels": {"ink_drop_kelpie": 11, "whispering_void_kit": 1},
+      "locked": ["star_shell_hatchling"]
+    },
+    "owned_all_current_three": {
+      "owned": [
+        "ink_drop_kelpie",
+        "whispering_void_kit",
+        "star_shell_hatchling"
+      ],
+      "active": "star_shell_hatchling",
+      "levels": {
+        "ink_drop_kelpie": 25,
+        "whispering_void_kit": 16,
+        "star_shell_hatchling": 25
+      },
+      "locked": []
+    },
+    "active_first": {
+      "owned": [
+        "ink_drop_kelpie",
+        "whispering_void_kit",
+        "star_shell_hatchling"
+      ],
+      "active": "ink_drop_kelpie",
+      "levels": {
+        "ink_drop_kelpie": 9,
+        "whispering_void_kit": 10,
+        "star_shell_hatchling": 25
+      },
+      "locked": []
+    },
+    "active_second": {
+      "owned": [
+        "ink_drop_kelpie",
+        "whispering_void_kit",
+        "star_shell_hatchling"
+      ],
+      "active": "whispering_void_kit",
+      "levels": {
+        "ink_drop_kelpie": 9,
+        "whispering_void_kit": 24,
+        "star_shell_hatchling": 25
+      },
+      "locked": []
+    },
+    "active_third": {
+      "owned": [
+        "ink_drop_kelpie",
+        "whispering_void_kit",
+        "star_shell_hatchling"
+      ],
+      "active": "star_shell_hatchling",
+      "levels": {
+        "ink_drop_kelpie": 9,
+        "whispering_void_kit": 24,
+        "star_shell_hatchling": 25
+      },
+      "locked": []
+    },
+    "locked_second": {
+      "owned": ["ink_drop_kelpie"],
+      "active": "ink_drop_kelpie",
+      "levels": {"ink_drop_kelpie": 10},
+      "locked": ["whispering_void_kit", "star_shell_hatchling"]
+    },
+    "locked_third": {
+      "owned": ["ink_drop_kelpie", "whispering_void_kit"],
+      "active": "whispering_void_kit",
+      "levels": {"ink_drop_kelpie": 16, "whispering_void_kit": 1},
+      "locked": ["star_shell_hatchling"]
+    }
+  },
+  "current_runtime_contracts": {
+    "existing_three_catalog_and_ownership": {
+      "status": "PASS_CURRENT_RUNTIME",
+      "evidence": [
+        "app.py PET_CATALOG",
+        "app.py PET_UNLOCK_ORDER",
+        "app.py user_pets and pet_collection"
+      ]
+    },
+    "hero_world_backpack_pet_status_source": {
+      "status": "PASS_CURRENT_RUNTIME",
+      "evidence": [
+        "hero.html /api/pet/status",
+        "index.html /api/pet/status",
+        "inventory.html /api/pet/status"
+      ]
+    }
+  },
+  "evolution": {
+    "stage_thresholds": {
+      "I": {"minimum_level": 1, "maximum_level": 9},
+      "II": {"minimum_level": 10, "maximum_level": 24},
+      "III": {"minimum_level": 25, "maximum_level": null}
+    },
+    "boundary_cases": [
+      {"level": 9, "stage": "I"},
+      {"level": 10, "stage": "II"},
+      {"level": 24, "stage": "II"},
+      {"level": 25, "stage": "III"}
+    ],
+    "authority": "server_or_catalog_metadata",
+    "client_can_select_stage": false
+  },
+  "hero_companion_ui": {
+    "grid_by_view": {
+      "desktop": {"columns": 3, "rows": 2},
+      "tablet_landscape": {"columns": 3, "rows": 2},
+      "tablet_portrait": {"columns": 2, "rows": 3},
+      "mobile": {"columns": 2, "rows": 3}
+    },
+    "states": [
+      "owned",
+      "locked",
+      "active",
+      "available_to_unlock",
+      "evolution_ready"
+    ],
+    "selected_detail_fields": [
+      "portrait",
+      "name",
+      "role",
+      "level",
+      "xp",
+      "evolution",
+      "effect_or_passive",
+      "relic",
+      "appearance",
+      "set_active"
+    ],
+    "runtime_status": "PENDING_RUNTIME"
+  },
+  "world_map_follower_interface": {
+    "adapter_fields": [
+      "spirit_id",
+      "evolution_stage",
+      "art_manifest",
+      "animation_manifest",
+      "presentation_state"
+    ],
+    "authority": "presentation_only",
+    "forbidden_mutations": [
+      "change_active_spirit",
+      "unlock_spirit",
+      "grant_reward",
+      "change_zone_progress"
+    ],
+    "runtime_status": "PENDING_RUNTIME"
+  },
+  "battle_interface": {
+    "sequence": [
+      "server_go_judge",
+      "authoritative_battle_settlement",
+      "hero_equipment_effect",
+      "spirit_effect_adapter",
+      "result",
+      "presentation"
+    ],
+    "forbidden_boundaries": [
+      "spirit_effect_before_judge",
+      "second_combat_engine",
+      "client_spirit_damage_authority"
+    ],
+    "runtime_status": "PASS_FIXTURE_CONTRACT"
+  },
+  "scene_override": {
+    "case": "zone_1_narrative_requests_ink_drop_kelpie",
+    "presentation_override_id": "ink_drop_kelpie",
+    "required_invariants": [
+      "active_ownership_unchanged",
+      "active_selection_unchanged",
+      "spirit_xp_delta_zero",
+      "unlock_delta_zero",
+      "functional_item_delta_zero"
+    ],
+    "runtime_status": "PASS_FIXTURE_CONTRACT"
+  },
+  "replay": {
+    "cases": ["story_replay", "boss_replay", "cinematic_replay"],
+    "settlement_deltas": {
+      "spirit_xp": 0,
+      "spirit_items": 0,
+      "spirit_unlock_progress": 0,
+      "evolution_reward": 0
+    },
+    "allowed_presentation": ["spirit_model", "reaction", "cinematic_cue"],
+    "runtime_status": "PASS_FIXTURE_CONTRACT"
+  },
+  "single_active_source": {
+    "source": "SERVER_ACTIVE_SPIRIT",
+    "consumers": ["Hero", "World", "Backpack"],
+    "multiple_client_active_authorities": false,
+    "runtime_status": "PASS_FIXTURE_CONTRACT"
+  },
+  "unlock_ui_generic_contract": {
+    "states": ["LOCKED", "AVAILABLE", "OWNED"],
+    "requires_spirit_id_branch": false,
+    "future_slot_identity_source": "catalog_data",
+    "runtime_status": "PENDING_RUNTIME"
+  },
+  "asset_failure_contract": {
+    "failure_inputs": [
+      "missing_portrait",
+      "missing_follower_frame",
+      "missing_stage_ii_manifest",
+      "missing_stage_iii_manifest",
+      "unknown_presentation_key"
+    ],
+    "required_behavior": [
+      "NO_BROKEN_IMAGE_LOOP",
+      "NO_INFINITE_ANIMATION_RETRY",
+      "FALLBACK_DOES_NOT_CHANGE_AUTHORITY"
+    ],
+    "runtime_status": "PENDING_RUNTIME"
+  },
+  "responsive_acceptance_matrix": [
+    {
+      "device": "desktop",
+      "viewport": {"width": 1440, "height": 900},
+      "grid": {"columns": 3, "rows": 2}
+    },
+    {
+      "device": "ipad_landscape",
+      "viewport": {"width": 1194, "height": 834},
+      "grid": {"columns": 3, "rows": 2}
+    },
+    {
+      "device": "ipad_portrait",
+      "viewport": {"width": 834, "height": 1194},
+      "grid": {"columns": 2, "rows": 3}
+    },
+    {
+      "device": "mobile_portrait",
+      "viewport": {"width": 390, "height": 844},
+      "grid": {"columns": 2, "rows": 3}
+    },
+    {
+      "device": "narrow_portrait",
+      "viewport": {"width": 430, "height": 932},
+      "grid": {"columns": 2, "rows": 3}
+    }
+  ],
+  "responsive_assertions": [
+    "no_horizontal_overflow",
+    "no_hidden_action_button",
+    "no_clipped_portrait",
+    "selected_details_readable",
+    "owned_locked_active_visually_distinct",
+    "touch_target_usable",
+    "scroll_behavior_intentional"
+  ],
+  "owner_visual_evidence": {
+    "required_surfaces": [
+      "desktop_six_roster",
+      "ipad_landscape",
+      "ipad_portrait",
+      "mobile",
+      "world_map_follower",
+      "hero_selected_spirit",
+      "battle_cue",
+      "scene_override"
+    ],
+    "screenshots_required_now": false,
+    "runtime_status": "PENDING_RUNTIME"
+  }
+}
