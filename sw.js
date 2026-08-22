@@ -6,12 +6,13 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v237-e10-replay-story-cross-surface-hotfix';
+const VERSION     = 'v238-incident-017-review-response-contract-fix';
 // The static release packager replaces this deterministic source fallback with
 // a release-<full-git-sha> identity in the staged worker. Keeping a valid
 // source fallback makes the checked-in worker executable while ensuring that
 // every generated release gets a distinct cache namespace automatically.
 const ASSET_IDENTITY = 'source-v233-e10-question-loader-board-renderer-v1b-b5';
+// incident-017 superseded identity: const VERSION = 'v237-e10-replay-story-cross-surface-hotfix';
 // exact-b3cb superseded identity: const VERSION     = 'v230-e10-lord-trial-safari-recovery';
 // exact-b3cb asset identity: const ASSET_IDENTITY = 'source-v230-e10-lord-trial-safari-recovery';
 const SHELL_CACHE = `cg-shell-${VERSION}-${ASSET_IDENTITY}`;
