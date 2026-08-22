@@ -1,0 +1,111 @@
+{
+  "audit_id": "E9-PREFLIGHT-01",
+  "repository": "D:\\go-website",
+  "base_branch": "master",
+  "audit_branch": "audit/e9-existing-system-inventory",
+  "base_head_sha": "a7e56324306070686dcf91e378c7fbc525641740",
+  "methodology": "Read-only grep/read audit via 5 parallel research passes over app.py (~21,290 lines), db-embedded schema, monster_taxonomy.py, community_leaderboard_rewards.py, and root-level .html templates. No runtime code executed against production; no DB mutation performed.",
+  "economy": {
+    "real_currencies": [
+      {"name": "coins", "storage": "user_stats.coins + currency_log ledger", "status": "ACTIVE_RUNTIME"},
+      {"name": "shop_inventory item quantities (consumable stock)", "storage": "shop_inventory table", "status": "ACTIVE_RUNTIME"}
+    ],
+    "currency_count_real": 2,
+    "currency_count_note": "SP (player_sp table) exists as schema but earn/spend routes not confirmed in this pass - DATA_ONLY pending follow-up",
+    "non_currency_resources_real": [
+      "xp/rank_level (LV1-LV50)", "rank_xp (legacy, still written)", "go_rank (online kyu/dan)",
+      "elo_rating/elo_provisional", "current_streak/max_streak", "combo_streak/max_combo",
+      "total_correct", "mistake_corrected", "player_hp/player_max_hp",
+      "adventure_boss_progress (cleared/stars/attempts/best_score/cooldown)",
+      "adventure_zone_unlocks", "node_mastery (purity/attempt_count/contaminated)",
+      "attr_atk/def/vis/prec + free_pts"
+    ],
+    "non_currency_resource_count": 13,
+    "concept_only_not_existing": ["gold (only a rarity-string collision)", "gems", "diamonds", "energy", "stamina", "scrolls", "tokens (as a currency)", "guild currency", "event currency", "premium credit", "reward points"],
+    "premium": {
+      "exists": true,
+      "fields": ["users.plan", "users.premium_until"],
+      "providers": ["NewebPay (TWD, local)", "PayPal (USD, overseas)"],
+      "separate_from_virtual_economy": true,
+      "premium_only_cosmetics_with_stat_bonus": 6
+    }
+  },
+  "avatar_hero": {
+    "base_character_count": 10,
+    "renderer": "Layered static <img> CSS z-index stacking onto a fixed 1056x1408 mannequin (not Canvas/SVG/sprite-sheet); positioning lookup tables computed but unused (dead code)",
+    "customizable_slots": ["character", "armor", "cape", "weapon", "offhand", "hat", "aura", "accessory"],
+    "slots_not_present": ["body_type", "gender_presentation", "skin_tone", "face", "eyes", "mouth", "brows", "hair", "hair_color"],
+    "pet_slot_status": "declared but hard-disabled, forced to 'none'",
+    "ownership_storage": "player_wardrobe (Postgres, insert-only, no trade/sell)",
+    "equipped_state_storage": "player_appearance (one scalar column per slot, no multi-item stacking)",
+    "divergent_avatar_generations_found": 3,
+    "hero_vs_adventure_map_shared_renderer": false,
+    "adventure_map_shows_avatar": false
+  },
+  "equipment": {
+    "total_distinct_catalog_items_excl_consumables": 261,
+    "total_distinct_catalog_items_incl_consumables": 282,
+    "currently_rendered": 251,
+    "legacy_dead_backend_only": 25,
+    "by_source_catalog": {
+      "APPEARANCE_DEFS": 64,
+      "BADGE_DEFS": 84,
+      "COMBAT_GEAR_tiers_and_characters": 78,
+      "STONE_SKINS": 5,
+      "BOARD_SKINS": 5,
+      "EQUIPMENT_DEFS_dead": 15,
+      "SKILL_DEFS_dead": 10,
+      "SHOP_CONSUMABLES": 21
+    },
+    "asset_exists_true": 0,
+    "asset_exists_na_emoji_or_css": 148,
+    "asset_exists_false_or_unknown": 99,
+    "assets_directory_git_tracked": false,
+    "premium_only_items": 14,
+    "items_with_real_stat_effect": "~148 (24 appearance effect entries + 78 combat gear tiers + 15 dead EQUIPMENT_DEFS + 10 dead SKILL_DEFS + 21 consumables)",
+    "known_defects": [
+      "aura_moon and aura_celestial declare rank unlocks that RANK_APPEARANCE_UNLOCKS never grants (unobtainable)",
+      "combat_pet field always hardcoded 'none', no catalog entries",
+      "frame/stone-as-item/board-as-item slots reserved in API but zero catalog items use them",
+      "rarity vocabulary inconsistent: common/uncommon/rare/epic/legendary vs badge bronze/silver/gold/legendary"
+    ]
+  },
+  "monster_boss_zones": {
+    "battlefield_monster_count": 20,
+    "adventure_boss_count": 10,
+    "flavor_text_name_pool_count": 61,
+    "zones_with_real_monster_mapping": 10,
+    "zones_with_real_monster_mapping_total": 10,
+    "zones_with_real_boss_mapping": 10,
+    "zones_with_real_boss_mapping_total": 10,
+    "kill_logs_are_real_persisted_data": true,
+    "boss_defeat_direct_reward_confirmed": false,
+    "asset_existence": "UNKNOWN - assets/monsters not present in working tree and assets/ directory is entirely untracked by git"
+  },
+  "quests_rewards_shop_community": {
+    "daily_challenge": "ACTIVE_RUNTIME",
+    "daily_quests": "ACTIVE_RUNTIME",
+    "weekly_quests": "DOES_NOT_EXIST",
+    "login_streak": "DOES_NOT_EXIST (daily-challenge submit streak exists instead)",
+    "adventure_missions": "ACTIVE_RUNTIME",
+    "boss_rewards": "PARTIAL (progress/star tracking only, no confirmed coin/xp payout)",
+    "achievements": "ACTIVE_RUNTIME",
+    "shop": "ACTIVE_RUNTIME",
+    "inventory_backpack": "DATA_ONLY (real backend, but mounted UI is a static COMING SOON stub)",
+    "leaderboard": "ACTIVE_RUNTIME",
+    "guild": "DOES_NOT_EXIST (cosmetic naming only)",
+    "community_rewards": "ACTIVE_RUNTIME read-side; grant pipeline manual-only (CLI tools), scheduler exists only on unmerged branches",
+    "battle_log": "ACTIVE_RUNTIME under different name (game_records)",
+    "soul_or_question_records": "DOES_NOT_EXIST as user feature (admin-only internal helpers only)",
+    "srs": "ACTIVE_RUNTIME",
+    "mistakes_weakness": "ACTIVE_RUNTIME"
+  },
+  "tests_run": [
+    "tests/test_premium_weekly_compat.py",
+    "tests/test_premium_weekly_scheduler_default_safety.py",
+    "tests/test_index_xp_hud_guard.py"
+  ],
+  "tests_result": "6 passed, 0 failed",
+  "tests_note": "No dedicated Hero/Avatar/Equipment/Inventory/Adventure/Monster/Boss test files exist in tests/ at time of audit - these systems currently have no direct automated coverage in this repo.",
+  "status": "E9-PREFLIGHT-01: READY FOR OWNER REVIEW"
+}
