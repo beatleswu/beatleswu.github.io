@@ -526,6 +526,8 @@ def calculate_damage(
     *,
     attack_bonus: float = 0.0,
     damage_reduction: float = 0.0,
+    crit_multiplier: float = 1.0,
+    counter_negated: bool = False,
 ) -> tuple[int, int]:
     """Return existing game-balance damage as (monster damage, player damage)."""
 
@@ -541,9 +543,14 @@ def calculate_damage(
         import math
 
         attack_bonus = _bounded_combat_modifier(attack_bonus, 0.75)
-        damage = max(5, math.ceil(monster_hp_max * percentage * (1.0 + attack_bonus)))
+        damage = monster_hp_max * percentage * (1.0 + attack_bonus)
+        if grade == 5:
+            damage *= max(1.0, _bounded_combat_modifier(crit_multiplier, 3.0))
+        damage = max(5, math.ceil(damage))
         return min(max(0, int(monster_hp_max)), damage), 0
     if result == "INCORRECT":
+        if counter_negated:
+            return 0, 0
         monster_attack = 8
         if question is not None:
             try:
@@ -563,6 +570,8 @@ def calculate_combat_effects(
     *,
     attack_bonus: float = 0.0,
     damage_reduction: float = 0.0,
+    crit_multiplier: float = 1.0,
+    counter_negated: bool = False,
 ) -> tuple[int, int, int]:
     """Return authoritative damage and healing for one verdict settlement."""
 
@@ -573,6 +582,8 @@ def calculate_combat_effects(
         question,
         attack_bonus=attack_bonus,
         damage_reduction=damage_reduction,
+        crit_multiplier=crit_multiplier,
+        counter_negated=counter_negated,
     )
     return monster_damage, player_damage, 1 if result == "CORRECT" else 0
 
@@ -946,7 +957,7 @@ def settle_answer(
     mode_environ: Mapping[str, Any] | None = None,
     eligibility: Mapping[str, Any] | None = None,
     judge: Callable[[Mapping[str, Any], Mapping[str, Any], CanonicalAnswer], JudgeOutcome] | None = None,
-    combat_stats_resolver: Callable[[Any, int], Mapping[str, Any]] | None = None,
+    combat_stats_resolver: Callable[[Any, int, str | None], Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
 
@@ -1055,7 +1066,14 @@ def settle_answer(
     outcome = (judge or judge_map_battle_answer_v1)(question, attempt, canonical)
     if outcome.judge_version != MAP_BATTLE_JUDGE_VERSION:
         raise JudgeUnavailable("judge adapter version mismatch")
-    combat_stats = combat_stats_resolver(conn, user_id) if combat_stats_resolver else {}
+    combat_stats = (
+        combat_stats_resolver(
+            conn,
+            user_id,
+            question.get("monster_type") if isinstance(question, Mapping) else None,
+        )
+        if combat_stats_resolver else {}
+    )
     damage_to_monster, damage_to_player, heal_to_player = calculate_combat_effects(
         outcome.result,
         outcome.authoritative_grade,
@@ -1063,6 +1081,8 @@ def settle_answer(
         question,
         attack_bonus=combat_stats.get('attack_bonus', 0.0),
         damage_reduction=combat_stats.get('damage_reduction', 0.0),
+        crit_multiplier=combat_stats.get('crit_multiplier', 1.0),
+        counter_negated=bool(combat_stats.get('counter_negated', False)),
     )
     try:
         settled = settle_map_battle_submission(
