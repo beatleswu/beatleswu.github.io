@@ -1,0 +1,1119 @@
+{
+  "asset_hash_manifest": [
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 431040,
+      "dimensions": [
+        1920,
+        1920
+      ],
+      "filename": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "36303787e9e44781add5150f1ea353db3b61625780b1fa9f7bcfce8373febe5c"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 209348,
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "filename": "assets/pets/horse_anim_lv2/01_idle.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "ca321e67b853dd98947f794ce00f89d74d79ee606c7e36dee2b5a61b2850b74d"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 540822,
+      "dimensions": [
+        1920,
+        1920
+      ],
+      "filename": "assets/pets/horse_anim_lv3/01_idle.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "c312cdeb46450f0fed4dd6bfd8debaf2217a6af1245b0ffc70e1dcb44ad49d00"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 610786,
+      "dimensions": [
+        1920,
+        1920
+      ],
+      "filename": "assets/pets/pet_whispering_void_kit_lv1.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "fda3bc7348e52dd8e447b79af6671b940cdb95dcb89885f34387b05c35f3d290"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 251284,
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "filename": "assets/pets/cat_anim_lv2/01_idle.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "a30947176fd9a9af822b487c39b482bd22224d7db95072891bf5147fa1e58329"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 314292,
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "filename": "assets/pets/cat_anim_lv3/01_idle.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "5fe1168960b895fc7ff4a2b727787845a68465096fcd3f52e7cb4b35fc2b400b"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 430492,
+      "dimensions": [
+        1920,
+        1920
+      ],
+      "filename": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "0aeb1bbea8a17d8c5893734d963f6766cd49e868ed3570978547327ee2c0365b"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 246290,
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "filename": "assets/pets/dragon_anim_lv2/01_idle.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "85801c68fa841ec06ec8f71239eadf3f12bb320f70aa6ba7609a3a04654503e4"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 270364,
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "filename": "assets/pets/dragon_anim_lv3/01_idle.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "70580af6136778a30cecf514c1b9700b292a7c266de8158815d6b46497bf1677"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 69146,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_starpath_antlerling_stage1.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "b72be1db87ac10a8bcb74af7e5819897d306f08c539b9470722520388a48f567"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 98056,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_starpath_antlerling_stage2.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "28fa44f01862e5d6cfc15e55ca79bfdc2f4981f7b944b8f0f69ce5999047ae57"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 142146,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_starpath_antlerling_stage3.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "f654daad9a4e59631912f10d95020e3363bbffe47ca7ed793ea07d10ae9496d8"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 49662,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_fatty_stage1.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "f22462766c7e93ac67b7bf34c83878d5d5dd49528b43fca23ca2909e40984b6a"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 80200,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_fatty_stage2.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "7212e64ebba9aa4b870eb656a025e6dcbeedf0775066a39e4fe4657fb6993657"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 111046,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_fatty_stage3.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "733f91d26cb2c69d726cce5439bd80f8a77e75b848dc194ad18720931714d67b"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 61900,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_obsidian_bastion_stage1.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "d577d9476f6e7af20abd83279def13820b20fed819b39a96ad5260f9f33f7dde"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 113758,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_obsidian_bastion_stage2.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "8437174a0bfb6c3156b7b15701f42802c74b8fa5ef44ae25b2beb54fb090428e"
+    },
+    {
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_valid": true,
+      "byte_size": 169738,
+      "dimensions": [
+        512,
+        512
+      ],
+      "filename": "assets/pets/pet_obsidian_bastion_stage3.webp",
+      "format": "WEBP",
+      "mode": "RGBA",
+      "sha256": "99299ed2bee9551dac40c5f56ae89c1694d92a93d28765aae6c817979f979c15"
+    }
+  ],
+  "base_sha": "2fa78d0d8be90da3c5a01571f8d455c2d2780635",
+  "counts": {
+    "canonical_spirit_count": 6,
+    "existing_spirit_count": 3,
+    "new_runtime_form_count": 9,
+    "new_spirit_count": 3,
+    "runtime_stage_record_count": 18
+  },
+  "hard_boundaries": {
+    "app_py_changed": false,
+    "combat_runtime_changed": false,
+    "db_migration": false,
+    "monster_files_changed": 0,
+    "production_mutation": false,
+    "route_changed": false,
+    "runtime_catalog_changed": false,
+    "second_combat_engine_created": false,
+    "spirit_state_authority_changed": false
+  },
+  "machine_id_policy": {
+    "collision_policy": "stop if D008 later establishes conflicting IDs",
+    "d008_id_authority_observed_at_start": false,
+    "new_ids": [
+      "starpath_antlerling",
+      "fatty",
+      "obsidian_bastion"
+    ],
+    "ownership_authority_created": false,
+    "stable": true
+  },
+  "missing_asset_contract": {
+    "changes_spirit_authority": false,
+    "consumer_owns_retry_and_empty_state": true,
+    "fallback_identity_policy": "same Spirit Stage I only; never another Spirit",
+    "infinite_retry": false
+  },
+  "presentation_manifest_is_ownership_authority": false,
+  "rejected_a020_identity_runtime_reference_count": 0,
+  "review_evidence": [
+    {
+      "path": "docs/review/a021a/A021A_NINE_FORM_VISUAL_QA.png",
+      "purpose": "all nine normalized forms and Stage I to III progression"
+    },
+    {
+      "path": "docs/review/a021a/A021A_SIX_SPIRIT_FOLLOWER_SCALE_QA.png",
+      "purpose": "six Spirit follower-scale silhouette and relative-scale study"
+    }
+  ],
+  "runtime_asset_directory": "assets/pets",
+  "runtime_dimension_policy": {
+    "baseline_y": 496,
+    "canvas": [
+      512,
+      512
+    ],
+    "compression": "lossless",
+    "content_box": [
+      480,
+      480
+    ],
+    "format": "WEBP",
+    "mode": "RGBA",
+    "purpose": "shared Hero portrait and World Map follower presentation source"
+  },
+  "schema": "go_odyssey.six_spirit_runtime_presentation_assets",
+  "schema_version": "a021a.v1",
+  "source_authority": {
+    "new_forms": "A020-R2 approved clean forms",
+    "pixel_content_redesign": false,
+    "redesign": false,
+    "review_screenshots_are_runtime_dependencies": false,
+    "source_directory": "docs/review/a020r2/clean_forms"
+  },
+  "spirits": [
+    {
+      "animation_manifest": {
+        "kind": "existing_runtime_frame_sets",
+        "source": "hero.html PET_FRAME_SETS",
+        "stage_1": "ink_drop_kelpie_lv1",
+        "stage_2": "horse_anim_lv2",
+        "stage_3": "horse_anim_lv3"
+      },
+      "display_name": {
+        "en": "Ink-Drop Kelpie",
+        "zh": "墨滴水靈馬"
+      },
+      "duplicated": false,
+      "fallback": {
+        "asset": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+        "changes_ownership_or_stage_authority": false,
+        "changes_spirit_identity": false,
+        "consumer_action": "fail_closed_safe_empty_or_stage_unavailable_state",
+        "infinite_retry": false,
+        "policy": "STAGE_I_SAME_SPIRIT_ONLY",
+        "when": "missing Stage II or Stage III presentation asset"
+      },
+      "identity_status": "EXISTING_CANONICAL",
+      "role": "TRAINING",
+      "slot": 1,
+      "spirit_id": "ink_drop_kelpie",
+      "stage_count": 3,
+      "stages": {
+        "I": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "ink_drop_kelpie_lv1",
+            "stage_2": "horse_anim_lv2",
+            "stage_3": "horse_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 431040,
+            "dimensions": [
+              1920,
+              1920
+            ],
+            "filename": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "36303787e9e44781add5150f1ea353db3b61625780b1fa9f7bcfce8373febe5c"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/pet_ink_drop_kelpie_lv1.webp"
+        },
+        "II": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "ink_drop_kelpie_lv1",
+            "stage_2": "horse_anim_lv2",
+            "stage_3": "horse_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 209348,
+            "dimensions": [
+              1254,
+              1254
+            ],
+            "filename": "assets/pets/horse_anim_lv2/01_idle.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "ca321e67b853dd98947f794ce00f89d74d79ee606c7e36dee2b5a61b2850b74d"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/horse_anim_lv2/01_idle.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/horse_anim_lv2/01_idle.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/horse_anim_lv2/01_idle.webp"
+        },
+        "III": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "ink_drop_kelpie_lv1",
+            "stage_2": "horse_anim_lv2",
+            "stage_3": "horse_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 540822,
+            "dimensions": [
+              1920,
+              1920
+            ],
+            "filename": "assets/pets/horse_anim_lv3/01_idle.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "c312cdeb46450f0fed4dd6bfd8debaf2217a6af1245b0ffc70e1dcb44ad49d00"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/horse_anim_lv3/01_idle.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/horse_anim_lv3/01_idle.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/horse_anim_lv3/01_idle.webp"
+        }
+      },
+      "status": "EXISTING_ASSET_AUTHORITY_REUSED"
+    },
+    {
+      "animation_manifest": {
+        "kind": "existing_runtime_frame_sets",
+        "source": "hero.html PET_FRAME_SETS",
+        "stage_1": "whispering_void_kit_lv1",
+        "stage_2": "cat_anim_lv2",
+        "stage_3": "cat_anim_lv3"
+      },
+      "display_name": {
+        "en": "Whispering Void Kit",
+        "zh": "低語虛空貓"
+      },
+      "duplicated": false,
+      "fallback": {
+        "asset": "assets/pets/pet_whispering_void_kit_lv1.webp",
+        "changes_ownership_or_stage_authority": false,
+        "changes_spirit_identity": false,
+        "consumer_action": "fail_closed_safe_empty_or_stage_unavailable_state",
+        "infinite_retry": false,
+        "policy": "STAGE_I_SAME_SPIRIT_ONLY",
+        "when": "missing Stage II or Stage III presentation asset"
+      },
+      "identity_status": "EXISTING_CANONICAL",
+      "role": "REVIEW",
+      "slot": 2,
+      "spirit_id": "whispering_void_kit",
+      "stage_count": 3,
+      "stages": {
+        "I": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "whispering_void_kit_lv1",
+            "stage_2": "cat_anim_lv2",
+            "stage_3": "cat_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 610786,
+            "dimensions": [
+              1920,
+              1920
+            ],
+            "filename": "assets/pets/pet_whispering_void_kit_lv1.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "fda3bc7348e52dd8e447b79af6671b940cdb95dcb89885f34387b05c35f3d290"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_whispering_void_kit_lv1.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_whispering_void_kit_lv1.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/pet_whispering_void_kit_lv1.webp"
+        },
+        "II": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "whispering_void_kit_lv1",
+            "stage_2": "cat_anim_lv2",
+            "stage_3": "cat_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 251284,
+            "dimensions": [
+              1254,
+              1254
+            ],
+            "filename": "assets/pets/cat_anim_lv2/01_idle.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "a30947176fd9a9af822b487c39b482bd22224d7db95072891bf5147fa1e58329"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/cat_anim_lv2/01_idle.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/cat_anim_lv2/01_idle.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/cat_anim_lv2/01_idle.webp"
+        },
+        "III": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "whispering_void_kit_lv1",
+            "stage_2": "cat_anim_lv2",
+            "stage_3": "cat_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 314292,
+            "dimensions": [
+              1254,
+              1254
+            ],
+            "filename": "assets/pets/cat_anim_lv3/01_idle.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "5fe1168960b895fc7ff4a2b727787845a68465096fcd3f52e7cb4b35fc2b400b"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/cat_anim_lv3/01_idle.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/cat_anim_lv3/01_idle.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/cat_anim_lv3/01_idle.webp"
+        }
+      },
+      "status": "EXISTING_ASSET_AUTHORITY_REUSED"
+    },
+    {
+      "animation_manifest": {
+        "kind": "existing_runtime_frame_sets",
+        "source": "hero.html PET_FRAME_SETS",
+        "stage_1": "star_shell_hatchling_lv1",
+        "stage_2": "dragon_anim_lv2",
+        "stage_3": "dragon_anim_lv3"
+      },
+      "display_name": {
+        "en": "Star-Shell Hatchling",
+        "zh": "星殼棋罐龍"
+      },
+      "duplicated": false,
+      "fallback": {
+        "asset": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+        "changes_ownership_or_stage_authority": false,
+        "changes_spirit_identity": false,
+        "consumer_action": "fail_closed_safe_empty_or_stage_unavailable_state",
+        "infinite_retry": false,
+        "policy": "STAGE_I_SAME_SPIRIT_ONLY",
+        "when": "missing Stage II or Stage III presentation asset"
+      },
+      "identity_status": "EXISTING_CANONICAL",
+      "role": "CHALLENGE",
+      "slot": 3,
+      "spirit_id": "star_shell_hatchling",
+      "stage_count": 3,
+      "stages": {
+        "I": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "star_shell_hatchling_lv1",
+            "stage_2": "dragon_anim_lv2",
+            "stage_3": "dragon_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 430492,
+            "dimensions": [
+              1920,
+              1920
+            ],
+            "filename": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "0aeb1bbea8a17d8c5893734d963f6766cd49e868ed3570978547327ee2c0365b"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/pet_star_shell_hatchling_lv1.webp"
+        },
+        "II": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "star_shell_hatchling_lv1",
+            "stage_2": "dragon_anim_lv2",
+            "stage_3": "dragon_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 246290,
+            "dimensions": [
+              1254,
+              1254
+            ],
+            "filename": "assets/pets/dragon_anim_lv2/01_idle.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "85801c68fa841ec06ec8f71239eadf3f12bb320f70aa6ba7609a3a04654503e4"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/dragon_anim_lv2/01_idle.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/dragon_anim_lv2/01_idle.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/dragon_anim_lv2/01_idle.webp"
+        },
+        "III": {
+          "animation_manifest": {
+            "kind": "existing_runtime_frame_sets",
+            "source": "hero.html PET_FRAME_SETS",
+            "stage_1": "star_shell_hatchling_lv1",
+            "stage_2": "dragon_anim_lv2",
+            "stage_3": "dragon_anim_lv3"
+          },
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 270364,
+            "dimensions": [
+              1254,
+              1254
+            ],
+            "filename": "assets/pets/dragon_anim_lv3/01_idle.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "70580af6136778a30cecf514c1b9700b292a7c266de8158815d6b46497bf1677"
+          },
+          "dimensions": null,
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/dragon_anim_lv3/01_idle.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/dragon_anim_lv3/01_idle.webp",
+          "source_kind": "EXISTING_CANONICAL_RUNTIME_ASSET",
+          "world_map_follower_asset": "assets/pets/dragon_anim_lv3/01_idle.webp"
+        }
+      },
+      "status": "EXISTING_ASSET_AUTHORITY_REUSED"
+    },
+    {
+      "animation_manifest": null,
+      "display_name": {
+        "en": "Starpath Antlerling",
+        "zh": null
+      },
+      "fallback": {
+        "asset": "assets/pets/pet_starpath_antlerling_stage1.webp",
+        "changes_ownership_or_stage_authority": false,
+        "changes_spirit_identity": false,
+        "consumer_action": "fail_closed_safe_empty_or_stage_unavailable_state",
+        "infinite_retry": false,
+        "policy": "STAGE_I_SAME_SPIRIT_ONLY",
+        "when": "missing Stage II or Stage III presentation asset"
+      },
+      "identity_status": "OWNER_SELECTED",
+      "role": "EXPLORATION",
+      "slot": 4,
+      "spirit_id": "starpath_antlerling",
+      "stage_count": 3,
+      "stages": {
+        "I": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 69146,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_starpath_antlerling_stage1.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "b72be1db87ac10a8bcb74af7e5819897d306f08c539b9470722520388a48f567"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_starpath_antlerling_stage1.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_starpath_antlerling_stage1.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT4_STAGE1_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_starpath_antlerling_stage1.webp"
+        },
+        "II": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 98056,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_starpath_antlerling_stage2.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "28fa44f01862e5d6cfc15e55ca79bfdc2f4981f7b944b8f0f69ce5999047ae57"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_starpath_antlerling_stage2.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_starpath_antlerling_stage2.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT4_STAGE2_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_starpath_antlerling_stage2.webp"
+        },
+        "III": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 142146,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_starpath_antlerling_stage3.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "f654daad9a4e59631912f10d95020e3363bbffe47ca7ed793ea07d10ae9496d8"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_starpath_antlerling_stage3.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_starpath_antlerling_stage3.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT4_STAGE3_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_starpath_antlerling_stage3.webp"
+        }
+      },
+      "status": "RUNTIME_PRESENTATION_PACKAGE_READY"
+    },
+    {
+      "animation_manifest": null,
+      "display_name": {
+        "en": "Fatty",
+        "zh": "阿肥"
+      },
+      "fallback": {
+        "asset": "assets/pets/pet_fatty_stage1.webp",
+        "changes_ownership_or_stage_authority": false,
+        "changes_spirit_identity": false,
+        "consumer_action": "fail_closed_safe_empty_or_stage_unavailable_state",
+        "infinite_retry": false,
+        "policy": "STAGE_I_SAME_SPIRIT_ONLY",
+        "when": "missing Stage II or Stage III presentation asset"
+      },
+      "identity_status": "OWNER_SELECTED",
+      "role": "PRECISION",
+      "slot": 5,
+      "spirit_id": "fatty",
+      "stage_count": 3,
+      "stages": {
+        "I": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 49662,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_fatty_stage1.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "f22462766c7e93ac67b7bf34c83878d5d5dd49528b43fca23ca2909e40984b6a"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_fatty_stage1.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_fatty_stage1.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT5_STAGE1_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_fatty_stage1.webp"
+        },
+        "II": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 80200,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_fatty_stage2.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "7212e64ebba9aa4b870eb656a025e6dcbeedf0775066a39e4fe4657fb6993657"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_fatty_stage2.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_fatty_stage2.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT5_STAGE2_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_fatty_stage2.webp"
+        },
+        "III": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 111046,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_fatty_stage3.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "733f91d26cb2c69d726cce5439bd80f8a77e75b848dc194ad18720931714d67b"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_fatty_stage3.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_fatty_stage3.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT5_STAGE3_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_fatty_stage3.webp"
+        }
+      },
+      "status": "RUNTIME_PRESENTATION_PACKAGE_READY"
+    },
+    {
+      "animation_manifest": null,
+      "display_name": {
+        "en": "Obsidian Bastion",
+        "zh": null
+      },
+      "fallback": {
+        "asset": "assets/pets/pet_obsidian_bastion_stage1.webp",
+        "changes_ownership_or_stage_authority": false,
+        "changes_spirit_identity": false,
+        "consumer_action": "fail_closed_safe_empty_or_stage_unavailable_state",
+        "infinite_retry": false,
+        "policy": "STAGE_I_SAME_SPIRIT_ONLY",
+        "when": "missing Stage II or Stage III presentation asset"
+      },
+      "identity_status": "OWNER_SELECTED",
+      "role": "SUPPORT",
+      "slot": 6,
+      "spirit_id": "obsidian_bastion",
+      "stage_count": 3,
+      "stages": {
+        "I": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 61900,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_obsidian_bastion_stage1.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "d577d9476f6e7af20abd83279def13820b20fed819b39a96ad5260f9f33f7dde"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_obsidian_bastion_stage1.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_obsidian_bastion_stage1.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT6_STAGE1_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_obsidian_bastion_stage1.webp"
+        },
+        "II": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 113758,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_obsidian_bastion_stage2.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "8437174a0bfb6c3156b7b15701f42802c74b8fa5ef44ae25b2beb54fb090428e"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_obsidian_bastion_stage2.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_obsidian_bastion_stage2.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT6_STAGE2_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_obsidian_bastion_stage2.webp"
+        },
+        "III": {
+          "asset_integrity": {
+            "alpha_extrema": [
+              0,
+              255
+            ],
+            "alpha_valid": true,
+            "byte_size": 169738,
+            "dimensions": [
+              512,
+              512
+            ],
+            "filename": "assets/pets/pet_obsidian_bastion_stage3.webp",
+            "format": "WEBP",
+            "mode": "RGBA",
+            "sha256": "99299ed2bee9551dac40c5f56ae89c1694d92a93d28765aae6c817979f979c15"
+          },
+          "dimensions": [
+            512,
+            512
+          ],
+          "format": "WEBP",
+          "hero_portrait_asset": "assets/pets/pet_obsidian_bastion_stage3.webp",
+          "presentation_only": true,
+          "runtime_asset": "assets/pets/pet_obsidian_bastion_stage3.webp",
+          "source_art": {
+            "authority": "A020-R2_OWNER_APPROVED_CLEAN_FORM",
+            "path": "docs/review/a020r2/clean_forms/A020R2_SPIRIT6_STAGE3_CLEAN.png",
+            "redrawn": false
+          },
+          "source_kind": "A020_R2_APPROVED_FORM_NORMALIZED",
+          "world_map_follower_asset": "assets/pets/pet_obsidian_bastion_stage3.webp"
+        }
+      },
+      "status": "RUNTIME_PRESENTATION_PACKAGE_READY"
+    }
+  ],
+  "status": "READY_FOR_OWNER_A021A_SIX_SPIRIT_RUNTIME_ASSET_REVIEW",
+  "task": "A021A"
+}
