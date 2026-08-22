@@ -64,4 +64,3 @@ def test_reference_crops_are_in_bounds_and_no_runtime_authority_changed():
     assert invariants["app_py_changed"] is False
     assert invariants["route_changed"] is False
     assert invariants["stage_iii_unauthorized_exaggeration_count"] == 0
-
