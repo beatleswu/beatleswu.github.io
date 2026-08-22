@@ -1249,6 +1249,69 @@ function uiFormat(key, english, chinese, values = {}) {
     uiText(key, english, chinese),
   );
 }
+const REVENUE_COSMETIC_COPY_KEYS = Object.freeze({
+  robe_plain: { name: 'shop.cosmetic.item.robe_plain.name', flavor: 'shop.cosmetic.item.robe_plain.flavor' },
+  robe_bamboo: { name: 'shop.cosmetic.item.robe_bamboo.name', flavor: 'shop.cosmetic.item.robe_bamboo.flavor' },
+  robe_fox: { name: 'shop.cosmetic.item.robe_fox.name', flavor: 'shop.cosmetic.item.robe_fox.flavor' },
+  back_pack: { name: 'shop.cosmetic.item.back_pack.name', flavor: 'shop.cosmetic.item.back_pack.flavor' },
+  acc_dragon_pendant: { name: 'shop.cosmetic.item.acc_dragon_pendant.name', flavor: 'shop.cosmetic.item.acc_dragon_pendant.flavor' },
+});
+const COSMETIC_CATEGORY_COPY_KEYS = Object.freeze({
+  outfit: 'shop.cosmetic.category.outfit',
+  back: 'shop.cosmetic.category.back',
+  accessory: 'shop.cosmetic.category.accessory',
+});
+const COSMETIC_RARITY_COPY_KEYS = Object.freeze({
+  common: 'shop.cosmetic.rarity.common',
+  uncommon: 'shop.cosmetic.rarity.uncommon',
+  rare: 'shop.cosmetic.rarity.rare',
+  epic: 'shop.cosmetic.rarity.epic',
+  legendary: 'shop.cosmetic.rarity.legendary',
+});
+function cosmeticRecordId(record) {
+  const direct = record?.cosmetic_id || record?.item_id || record?.id;
+  if (direct) return String(direct);
+  const productId = String(record?.product_id || '');
+  return productId ? productId.split('.').pop() : '';
+}
+function cosmeticDisplayName(record) {
+  const id = cosmeticRecordId(record);
+  const key = REVENUE_COSMETIC_COPY_KEYS[id]?.name;
+  const fallbackEn = record?.name_en || record?.display_name_en || record?.name || record?.display_name || id;
+  const fallbackZh = record?.name || record?.display_name || id;
+  return key ? uiText(key, fallbackEn, fallbackZh) : (isEn() ? fallbackEn : fallbackZh);
+}
+function cosmeticFlavor(record) {
+  const id = cosmeticRecordId(record);
+  const key = REVENUE_COSMETIC_COPY_KEYS[id]?.flavor;
+  const fallbackEn = record?.flavor_en || record?.description_en || record?.flavor || '';
+  const fallbackZh = record?.flavor || record?.description || '';
+  return key ? uiText(key, fallbackEn, fallbackZh) : (isEn() ? fallbackEn : fallbackZh);
+}
+function cosmeticCategoryLabel(record) {
+  const category = String(record?.category || record?.slot || 'appearance').toLowerCase();
+  const key = COSMETIC_CATEGORY_COPY_KEYS[category];
+  const fallback = {
+    outfit: isEn() ? 'Outfit' : '服裝',
+    back: isEn() ? 'Back item' : '背飾',
+    accessory: isEn() ? 'Accessory' : '配飾',
+    appearance: isEn() ? 'Appearance' : '外觀',
+  }[category] || category;
+  return key ? uiText(key, fallback, fallback) : fallback;
+}
+function cosmeticRarityLabel(record) {
+  const rarity = String(record?.rarity || 'common').toLowerCase();
+  const key = COSMETIC_RARITY_COPY_KEYS[rarity];
+  const labels = {
+    common: isEn() ? 'Common' : '普通',
+    uncommon: isEn() ? 'Uncommon' : '不凡',
+    rare: isEn() ? 'Rare' : '稀有',
+    epic: isEn() ? 'Epic' : '史詩',
+    legendary: isEn() ? 'Legendary' : '傳說',
+  };
+  const fallback = labels[rarity] || rarity;
+  return key ? uiText(key, fallback, fallback) : fallback;
+}
 function money(n) {
   return Number(n || 0).toLocaleString();
 }
@@ -1408,7 +1471,7 @@ function bindCanonicalCosmeticArt(root) {
 function renderVisualReviewCandidate(candidate) {
   const asset = candidate.preview_asset || {};
   const id = cosmeticEsc(candidate.cosmetic_id || '');
-  const displayName = isEn() ? (candidate.name_en || candidate.name) : candidate.name;
+  const displayName = cosmeticDisplayName(candidate);
   const previewLabel = uiText('shop.cosmetic.preview', 'Preview', '預覽');
   const artClass = asset.mode === 'FULL_BODY_COSMETIC_REFERENCE'
     ? 'cosmetic-art cosmetic-art--fullbody'
@@ -1419,11 +1482,11 @@ function renderVisualReviewCandidate(candidate) {
       <div>
         <span class="cosmetic-candidate-badge">${uiText('shop.cosmetic.candidate', 'V1 collection candidate', 'V1 收藏候選')}</span>
         <div class="cosmetic-name">${cosmeticEsc(displayName)}</div>
-        <div class="cosmetic-meta">${cosmeticEsc(candidate.category)} · ${cosmeticEsc(candidate.rarity)}</div>
+        <div class="cosmetic-meta">${cosmeticEsc(cosmeticCategoryLabel(candidate))} · ${cosmeticEsc(cosmeticRarityLabel(candidate))}</div>
         <span class="cosmetic-state cosmetic-state--review">${uiText('shop.cosmetic.state.review', 'Presentation review', '呈現審查')}</span>
       </div>
     </div>
-    <div class="cosmetic-desc">${cosmeticEsc(candidate.flavor || '')}</div>
+    <div class="cosmetic-desc">${cosmeticEsc(cosmeticFlavor(candidate))}</div>
     <div class="card-foot"><div class="price">${uiText('shop.cosmetic.previewOnly', 'Preview only · no shop price', '僅供預覽 · 商城不定價')}</div></div>
     <div class="cosmetic-actions">
       <button class="btn secondary" type="button" data-cosmetic-visual-preview="${id}" aria-label="${cosmeticEsc(uiFormat('shop.cosmetic.previewFor', 'Preview {name}', '預覽{name}', {name: displayName}))}">${previewLabel}</button>
@@ -1436,8 +1499,7 @@ function showCosmeticPreview(product) {
   const art = document.getElementById('cosmetic-preview-art');
   art.innerHTML = cosmeticPresentationArtHTML(asset, 'cosmetic-modal-art-frame');
   bindCanonicalCosmeticArt(art);
-  document.getElementById('cosmetic-preview-title').textContent = isEn()
-    ? (product.name_en || product.name) : product.name;
+  document.getElementById('cosmetic-preview-title').textContent = cosmeticDisplayName(product);
   document.getElementById('cosmetic-preview-copy').textContent = product.preview_only
     ? (isEn()
       ? 'Visual review only. No purchase, ownership, equip, or payment mutation.'
@@ -1467,7 +1529,7 @@ function renderCosmeticCommerce(data) {
     const owned = !!ownership.owned;
     const unavailable = !owned && product.unlock_type === 'premium' && !data.premium_entitled;
     const stateClass = equipped ? 'selected' : unavailable ? 'unavailable' : owned ? 'owned' : 'available';
-    const displayName = isEn() ? (product.name_en || product.name) : product.name;
+    const displayName = cosmeticDisplayName(product);
     const stateLabel = equipped
       ? uiText('shop.cosmetic.state.selected', 'Selected', '已選用')
       : unavailable
@@ -1489,10 +1551,10 @@ function renderCosmeticCommerce(data) {
       <div class="cosmetic-card-top">
         ${cosmeticPresentationArtHTML(asset, artClass)}
         <div><div class="cosmetic-name">${cosmeticEsc(displayName)}</div>
-          <div class="cosmetic-meta">${cosmeticEsc(product.category)} · ${cosmeticEsc(product.rarity)}</div>
+          <div class="cosmetic-meta">${cosmeticEsc(cosmeticCategoryLabel(product))} · ${cosmeticEsc(cosmeticRarityLabel(product))}</div>
           <span class="cosmetic-state cosmetic-state--${stateClass}">${stateLabel}</span></div>
       </div>
-      <div class="cosmetic-desc">${cosmeticEsc(product.flavor || '')}</div>
+      <div class="cosmetic-desc">${cosmeticEsc(cosmeticFlavor(product))}</div>
       <div class="card-foot"><div class="price">${cosmeticPriceLabel(product)}</div></div>
       <div class="cosmetic-actions">
         <button class="btn secondary" type="button" data-cosmetic-preview="${id}" aria-label="${cosmeticEsc(uiFormat('shop.cosmetic.previewFor', 'Preview {name}', '預覽{name}', {name: displayName}))}">${uiText('shop.cosmetic.preview', 'Preview', '預覽')}</button>
@@ -1551,7 +1613,7 @@ function updatePremiumV1Selection(data) {
   }
   if (!status) return;
   if (selected && !selected.owned) {
-    const name = isEn() ? (selected.display_name_en || selected.display_name) : selected.display_name;
+    const name = cosmeticDisplayName(selected);
     status.textContent = uiFormat('shop.premium.selection.selected', 'Selected: {name}', '已選擇：{name}', {name});
   } else if (!data?.premium_entitled) {
     status.textContent = uiText('shop.premium.selection.unavailable', 'Selection is unavailable until Premium is verified.', '需先由 server 驗證 Premium，才能選擇與領取。');
@@ -1616,7 +1678,7 @@ function renderPremiumV1(data) {
     const owned = !!reward.owned;
     const unavailable = !owned && !data.premium_entitled;
     const selected = reward.item_id === premiumV1SelectedCosmeticId;
-    const name = isEn() ? (reward.display_name_en || reward.display_name) : reward.display_name;
+    const name = cosmeticDisplayName(reward);
     const stateClass = owned ? 'is-owned' : unavailable ? 'is-unavailable' : selected ? 'is-selected' : '';
     const stateLabel = owned
       ? uiText('shop.premium.state.owned', 'Owned permanently', '已永久擁有')

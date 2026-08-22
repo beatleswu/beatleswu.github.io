@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 os.environ.setdefault("SECRET_KEY", "rpg-wave2-lane-a-a019-test-secret")
@@ -86,6 +87,42 @@ def test_shop_has_loading_error_empty_and_bilingual_revenue_copy():
     assert "transform:scale(3); transform-origin:82% 38%;" in SHOP
     assert "assets/hero/items/back_pack.svg" not in SHOP
     assert "assets/hero/items/acc_dragon_pendant.svg" not in SHOP
+
+
+def test_a019r1_locked_five_item_copy_is_bilingual_and_rendered_by_locale():
+    expected = {
+        "robe_plain": ("Plain Cloth Robe", "素布道袍"),
+        "robe_bamboo": ("Bamboo Grove Robe", "竹林道袍"),
+        "robe_fox": ("Foxwoven Robe", "妖狐錦袍"),
+        "back_pack": ("Go Kit Pack", "棋具布包"),
+        "acc_dragon_pendant": ("Jade Dragon Pendant", "龍形玉佩"),
+    }
+    for item_id, (english_name, chinese_name) in expected.items():
+        for field in ("name", "flavor"):
+            key = f"shop.cosmetic.item.{item_id}.{field}"
+            line = next(line for line in I18N.splitlines() if f"'{key}'" in line)
+            match = re.search(r"en: '([^']*)'.*zh: '([^']*)'", line)
+            assert match, key
+            assert not re.search(r"[\u3400-\u9fff]", match.group(1)), key
+            assert re.search(r"[\u3400-\u9fff]", match.group(2)), key
+        assert english_name in I18N
+        assert chinese_name in I18N
+
+    for marker in (
+        "REVENUE_COSMETIC_COPY_KEYS",
+        "cosmeticDisplayName(candidate)",
+        "cosmeticCategoryLabel(candidate)",
+        "cosmeticRarityLabel(candidate)",
+        "cosmeticFlavor(candidate)",
+        "cosmeticDisplayName(product)",
+        "cosmeticFlavor(product)",
+        "cosmeticDisplayName(selected)",
+        "cosmeticDisplayName(reward)",
+    ):
+        assert marker in SHOP
+
+    assert "${cosmeticEsc(product.flavor || '')}" not in SHOP
+    assert "candidate.category)} · ${cosmeticEsc(candidate.rarity)" not in SHOP
 
 
 def test_upgrade_copy_and_controls_are_localized_and_keyboard_visible():
