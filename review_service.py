@@ -171,6 +171,21 @@ class ReviewService:
                 retryable=False,
             )
 
+        # D5B public retry acknowledgement.  This is a committed review
+        # result, not the internal MapBattle DUP4 handoff and not a second
+        # durable write.  Keep it outside the legacy FULL26/CORE20 adapter.
+        if (
+            not command.internal
+            and payload.get("ok") is True
+            and payload.get("submission_duplicate") is True
+        ):
+            return ReviewServiceOutcome(
+                status=ReviewServiceStatus.SUCCESS,
+                shape="PUBLIC_SUBMISSION_DUPLICATE",
+                payload=payload,
+                http_status=200,
+            )
+
         outcome = adapt_legacy_review_result(payload, internal=command.internal)
         serialized = LegacyReviewSerializer.serialize(outcome)
         return ReviewServiceOutcome(

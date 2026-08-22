@@ -48,6 +48,13 @@
     // rejected as invalid_review_response even though it was already durably
     // committed server-side.
     const APPROVED_PRESENTATION_EXTENSION_FIELDS = ['combat_stats', 'level_up_rewards'];
+    const PUBLIC_SUBMISSION_DUPLICATE = [
+        'ok',
+        'submission_duplicate',
+        'submission_id',
+        'question_id',
+        'grade'
+    ];
 
     class ReviewRejected extends Error {
         constructor(payload, status) {
@@ -123,6 +130,12 @@
         request.source_context = value.source_context || 'practice';
         request.training_set_id = value.training_set_id == null ? null : value.training_set_id;
         request.is_scaffolding = !!value.is_scaffolding;
+        // A public caller may reuse a server-validated retry identity.  Do
+        // not serialize internal MapBattle identities through this client
+        // transport; those calls use the server-side handoff directly.
+        if (value.internal !== true && typeof value.submission_id === 'string' && value.submission_id) {
+            request.submission_id = value.submission_id;
+        }
         return request;
     }
 
@@ -131,6 +144,10 @@
 
         const internal = !!(options && options.internal === true);
         const core = withoutApprovedExtensions(payload);
+        if (hasExactKeys(core, PUBLIC_SUBMISSION_DUPLICATE)) {
+            if (internal || payload.ok !== true) throw invalidResponse();
+            return { kind: 'PUBLIC_SUBMISSION_DUPLICATE', payload: snapshot(payload) };
+        }
         if (hasExactKeys(core, DUP4)) {
             if (!internal || payload.ok !== true) throw invalidResponse();
             return { kind: 'INTERNAL_DUPLICATE', payload: snapshot(payload) };
@@ -203,7 +220,8 @@
             response_ms: value.response_ms,
             source_context: value.source_context,
             training_set_id: value.training_set_id,
-            is_scaffolding: value.is_scaffolding
+            is_scaffolding: value.is_scaffolding,
+            submission_id: value.submission_id
         };
 
         try {

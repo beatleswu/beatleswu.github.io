@@ -23,6 +23,9 @@ from map_battle_runtime import (
     issue_submission_nonce_for_attempt,
     settle_answer,
 )
+from migrations.review_log_submission_idempotency_v1 import (
+    upgrade as upgrade_review_log_submission_schema,
+)
 
 
 # The app import below is deliberately process-scoped to a synthetic key.  It
@@ -202,6 +205,9 @@ def api_env(app_module, monkeypatch):
              training_set_id INTEGER
         )"""
     )
+    # D5B's additive identity candidate is part of the disposable fixture
+    # whenever the canonical review operation is exercised.
+    upgrade_review_log_submission_schema(conn)
     conn.execute(
         """CREATE TABLE mistake_log (
              user_id INTEGER NOT NULL,
@@ -1011,6 +1017,7 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
                  training_set_id INTEGER
             )"""
         )
+        upgrade_review_log_submission_schema(seed)
         seed.execute(
             """CREATE TABLE mistake_log (
                  user_id INTEGER NOT NULL,
