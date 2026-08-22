@@ -1,0 +1,711 @@
+{
+  "task": "E020-PREP",
+  "project": "GO_ODYSSEY",
+  "base_sha": "8d3c7508d5f91d7ceb41cab5b2137cb9039c18d7",
+  "scope": "read_only_acceptance_architecture",
+  "implementation": false,
+  "status_semantics": {
+    "PASS_RUNTIME": "verified in the current runtime on the relevant path",
+    "PASS_CONTRACT": "acceptance contract is explicit and executable but the target runtime is not yet present",
+    "PASS_FIXTURE": "fixture or harness proves the contract without claiming target runtime behavior",
+    "PENDING_RUNTIME": "requires a future lane runtime/interface and is not a current pass",
+    "BLOCKER": "known integration or release condition that must be resolved before runtime acceptance",
+    "BLOCKED_INFRA": "cannot be evaluated because the required environment or service is unavailable",
+    "FAIL": "the required invariant is violated",
+    "mandatory_rule": "PENDING_RUNTIME must never be reported as runtime PASS"
+  },
+  "source_inputs": {
+    "E019": {
+      "present": true,
+      "status": "PASS_FIXTURE",
+      "evidence": [
+        "tests/e019_six_spirit_s1_harness.py",
+        "tests/e2e/run_e019_six_spirit_s1_acceptance_contract.mjs",
+        "tests/fixtures/e019_six_spirit_s1_contract.json",
+        "tests/test_e019_six_spirit_s1_integration_harness.py"
+      ],
+      "current_runtime_passes": 2,
+      "pending_runtime": [
+        "Hero six-slot UI",
+        "World Map follower runtime",
+        "generic unlock UI",
+        "asset-failure runtime",
+        "Owner visual acceptance"
+      ]
+    },
+    "D007": {
+      "present": true,
+      "status": "PASS_CONTRACT",
+      "evidence": [
+        "docs/planning/e10_six_spirit_s1_lineage_contract_v1.md",
+        "tests/test_d007_six_spirit_s1_lineage.py",
+        "tests/test_d007_six_spirit_s1_postgres.py"
+      ],
+      "authority_summary": {
+        "functional_ownership": "pet_collection",
+        "active_projection": "user_pets",
+        "legacy_resource_surface": "pet_inventory",
+        "cosmetic_ownership": "player_wardrobe",
+        "legacy_cosmetic_quarantine": "player_appearance.pet_id and player_appearance.combat_pet",
+        "lineage_evidence": "D5A domain_event_outbox",
+        "item_use_correctness": "D5C item-use operation record",
+        "analytics_authority": "none"
+      }
+    },
+    "B021": {
+      "present": true,
+      "status": "PASS_RUNTIME",
+      "evidence": [
+        "tests/test_rpg_b021_equipment_combat_loop.py",
+        "tests/test_rpg_b021_equipment_combat_postgres.py",
+        "server equipment/inventory authority reaches battle settlement"
+      ],
+      "authority_summary": {
+        "equipment_state": "server inventory and server-defined equipment data",
+        "client_effect_payload": "ignored",
+        "combat_settlement": "existing canonical battle authority",
+        "go_stone_black": "inventory-only"
+      }
+    },
+    "A020": {
+      "present": true,
+      "status": "PASS_FIXTURE",
+      "evidence": [
+        "docs/planning/e10_six_spirit_new_identity_design_a020.md",
+        "docs/planning/e10_six_spirit_new_identity_design_a020.json",
+        "docs/planning/e10_six_spirit_clean_visual_asset_review_a020_r2.md",
+        "docs/review/a020r1/A020R1_OWNER_REFERENCE_PRIMARY.jpg"
+      ],
+      "display_identities": [
+        {
+          "slot": 4,
+          "display_name": "Starpath Antlerling",
+          "role": "EXPLORATION",
+          "canonical_machine_id": "starpath_antlerling"
+        },
+        {
+          "slot": 5,
+          "display_name": "Fatty",
+          "role": "PRECISION",
+          "canonical_machine_id": "fatty"
+        },
+        {
+          "slot": 6,
+          "display_name": "Obsidian Bastion",
+          "role": "SUPPORT",
+          "canonical_machine_id": "obsidian_bastion"
+        }
+      ],
+      "runtime_identity_lock": "A020 did not create IDs; canonical A021A asset IDs require D008/B023 server authority confirmation"
+    },
+    "A021A": {
+      "present": true,
+      "canonical": true,
+      "status": "PASS_FIXTURE",
+      "evidence": [
+        "docs/planning/e10_six_spirit_canonical_runtime_asset_manifest_a021a.json",
+        "docs/planning/e10_six_spirit_canonical_runtime_asset_package_a021a.md",
+        "assets/pets/pet_starpath_antlerling_stage1.webp through stage3",
+        "assets/pets/pet_fatty_stage1.webp through stage3",
+        "assets/pets/pet_obsidian_bastion_stage1.webp through stage3"
+      ],
+      "canonical_machine_ids": ["starpath_antlerling", "fatty", "obsidian_bastion"],
+      "runtime_authority": "asset manifest and delivery only; not ownership/catalog authority",
+      "status_note": "D008/B023 must confirm exact server IDs before runtime integration"
+    },
+    "B022": {
+      "present": true,
+      "canonical": true,
+      "status": "PASS_CONTRACT",
+      "evidence": ["docs/planning/e10_six_spirit_b022_combat_adapter_spec.md"],
+      "contract": {
+        "order": ["server judge", "B021 equipment", "Spirit adapter", "Monster/Boss settlement"],
+        "pre_judge_spirit_effect": "FORBIDDEN",
+        "second_combat_engine": "FORBIDDEN",
+        "lord_trial": "excluded and preserved separately",
+        "replay_spirit_effects": 0,
+        "scene_override": "presentation-only",
+        "lineage_handoff": ["D5A reward lineage", "D5C functional item-use lineage"]
+      },
+      "runtime_hook_present": false
+    },
+    "F001": {
+      "present": true,
+      "owner_pass": true,
+      "status": "BLOCKER",
+      "system_state": "FUNCTIONAL_BUT_FRAGMENTED",
+      "findings_consumed": true,
+      "runtime_interface": "no unified Monster interface"
+    },
+    "E014": {
+      "present": true,
+      "status": "PASS_RUNTIME",
+      "evidence": [
+        "tests/e2e/run_e014_login_first_paint_browser_journey.mjs",
+        "neutral pending presentation before E10"
+      ]
+    },
+    "Incident017": {
+      "present": true,
+      "status": "PASS_RUNTIME",
+      "evidence": [
+        "sw.js incident-017 cache invalidation lineage",
+        "review-response compatibility tests and release contract"
+      ]
+    }
+  },
+  "future_lane_inputs": {
+    "A021A": {
+      "output_available": true,
+      "canonical_status": "MERGED",
+      "branch_status": "canonical asset package present on origin/master",
+      "acceptance_inputs_required": [
+        "D008/B023 confirmation that manifest IDs are server catalog IDs",
+        "Stage I/II/III asset identity, hashes, dimensions, and delivery routes",
+        "missing/404/decode failure behavior and non-retrying fallback contract",
+        "release inventory and runtime provenance for every required asset",
+        "responsive evidence for desktop, tablet, iPad portrait, mobile, and 430x932"
+      ]
+    },
+    "D008": {
+      "output_available": false,
+      "status": "BLOCKED_SCHEMA_DECISION",
+      "branch_status": "no committed runtime output; blocked until B023 foundation exists",
+      "acceptance_inputs_required": [
+        "canonical roster and machine IDs for all six Spirits",
+        "ownership, active projection, unlock, feed, train, and evolution API contracts",
+        "server transaction and operation identity rules",
+        "PostgreSQL concurrency evidence",
+        "stage metadata and server-derived evolution thresholds",
+        "backward-compatible migration/startup behavior with no automatic Production migration"
+      ]
+    },
+    "B022": {
+      "output_available": true,
+      "canonical_status": "MERGED",
+      "branch_status": "canonical specification present on origin/master",
+      "acceptance_inputs_required": [
+        "runtime hook implementation after the canonical specification",
+        "PostgreSQL settlement/concurrency evidence",
+        "Monster-side settlement interface from F001/B023"
+      ]
+    },
+    "F001": {
+      "output_available": true,
+      "owner_pass": true,
+      "status": "BLOCKER",
+      "system_state": "FUNCTIONAL_BUT_FRAGMENTED",
+      "branch_status": "Owner-PASS findings consumed; no unified runtime interface",
+      "acceptance_inputs_required": [
+        "resolve two real Monster combat paths",
+        "unify monster_id/catalog and Map Battle field naming",
+        "Monster reward D5A integration",
+        "Monster item D5C integration",
+        "Monster replay contract",
+        "equipment-drop source versus reachable-roster reconciliation",
+        "post-settlement/pre-reward Spirit adapter boundary"
+      ]
+    },
+    "B023": {
+      "output_available": false,
+      "status": "PENDING_NO_COMMITTED_OUTPUT",
+      "acceptance_inputs_required": ["schema foundation required by D008"]
+    }
+  },
+  "target_journey": [
+    {"step": 1, "name": "LOGIN", "authority": "existing auth", "status": "PASS_RUNTIME"},
+    {"step": 2, "name": "E10", "authority": "E014 shell handoff", "status": "PASS_RUNTIME"},
+    {"step": 3, "name": "server Spirit roster", "authority": "D008", "status": "PENDING_RUNTIME"},
+    {"step": 4, "name": "Hero six-slot view", "authority": "D008 projection plus A021A presentation", "status": "PENDING_RUNTIME"},
+    {"step": 5, "name": "owned/locked/active state", "authority": "D008", "status": "PENDING_RUNTIME"},
+    {"step": 6, "name": "select active Spirit", "authority": "D008 server mutation", "status": "PENDING_RUNTIME"},
+    {"step": 7, "name": "persist/reload", "authority": "D008 plus existing session hydration", "status": "PENDING_RUNTIME"},
+    {"step": 8, "name": "feed/train", "authority": "D008 with D5C where item use applies", "status": "PENDING_RUNTIME"},
+    {"step": 9, "name": "Spirit progression", "authority": "D008", "status": "PENDING_RUNTIME"},
+    {"step": 10, "name": "evolution", "authority": "D008 server threshold and transition", "status": "PENDING_RUNTIME"},
+    {"step": 11, "name": "Hero refresh", "authority": "D008 projection", "status": "PENDING_RUNTIME"},
+    {"step": 12, "name": "World Map follower", "authority": "presentation adapter only", "status": "PENDING_RUNTIME"},
+    {"step": 13, "name": "encounter/question", "authority": "existing SGF/Map Battle authority", "status": "PASS_CONTRACT"},
+    {"step": 14, "name": "server judge", "authority": "existing SGF/Map Battle authority", "status": "PASS_RUNTIME"},
+    {"step": 15, "name": "B021 combat", "authority": "B021 canonical battle settlement", "status": "PASS_RUNTIME"},
+    {"step": 16, "name": "approved Spirit effect", "authority": "canonical B022 adapter contract after settlement", "status": "PASS_CONTRACT"},
+    {"step": 17, "name": "Monster PvE settlement", "authority": "F001 fragmented runtime; unified interface required", "status": "BLOCKER"},
+    {"step": 18, "name": "reward/lineage", "authority": "D5A/D5C", "status": "PASS_CONTRACT"},
+    {"step": 19, "name": "Backpack/Spirit refresh", "authority": "D008 plus shared projection", "status": "PENDING_RUNTIME"},
+    {"step": 20, "name": "repeat", "authority": "composed server authorities", "status": "PENDING_RUNTIME"}
+  ],
+  "authority_matrix": [
+    {"domain": "Spirit catalog", "owner": "D008", "readers": ["Hero", "World Map", "Backpack", "B022 adapter"], "writers": ["server catalog/release data"], "forbidden_authorities": ["client", "asset manifest", "presentation"], "status": "PENDING_RUNTIME"},
+    {"domain": "Spirit ownership", "owner": "D007/D008 pet_collection", "readers": ["Hero", "World Map", "battle adapter"], "writers": ["server unlock/reward transaction"], "forbidden_authorities": ["user_pets", "localStorage", "client owned flag"], "status": "PASS_CONTRACT"},
+    {"domain": "active Spirit", "owner": "D007/D008 user_pets projection", "readers": ["Hero", "World Map", "question/battle", "Backpack"], "writers": ["server switch mutation for owned target"], "forbidden_authorities": ["follower", "presentation", "client local state"], "status": "PASS_CONTRACT"},
+    {"domain": "unlock", "owner": "D008 server eligibility and ownership transaction", "readers": ["Hero unlock UI"], "writers": ["server unlock endpoint/settlement"], "forbidden_authorities": ["catalog visibility", "client claim", "follower"], "status": "PENDING_RUNTIME"},
+    {"domain": "feed/train/evolution", "owner": "D008", "readers": ["Hero", "Backpack"], "writers": ["server validated mutations"], "forbidden_authorities": ["client progress/stage", "scene override", "replay"], "status": "PENDING_RUNTIME"},
+    {"domain": "Spirit visual asset", "owner": "A021A asset manifest plus release provenance", "readers": ["Hero", "World Map", "cinematic"], "writers": ["release/package pipeline"], "forbidden_authorities": ["asset existence creating ownership"], "status": "PASS_CONTRACT"},
+    {"domain": "World Map follower", "owner": "presentation adapter", "readers": ["World Map"], "writers": ["none; consumes authoritative active projection"], "forbidden_authorities": ["DB writes", "switch", "unlock", "reward"], "status": "PENDING_RUNTIME"},
+    {"domain": "Go correctness", "owner": "existing SGF judge", "readers": ["battle/question settlement"], "writers": ["server judge"], "forbidden_authorities": ["Spirit", "client", "Monster"], "status": "PASS_RUNTIME"},
+    {"domain": "Hero equipment", "owner": "B021 inventory/equipment authority", "readers": ["battle settlement", "Hero"], "writers": ["existing equipment mutation authority"], "forbidden_authorities": ["Spirit presentation"], "status": "PASS_RUNTIME"},
+    {"domain": "combat stats/damage/mitigation", "owner": "B021 and existing battle authority", "readers": ["settlement/presentation"], "writers": ["server battle settlement"], "forbidden_authorities": ["client", "second combat engine", "Spirit pre-judge"], "status": "PASS_CONTRACT"},
+    {"domain": "Spirit PvE effect", "owner": "B022 adapter after judge/B021 state", "readers": ["authoritative settlement"], "writers": ["server effect adapter"], "forbidden_authorities": ["client magnitude", "pre-judge effect", "follower"], "status": "PASS_CONTRACT"},
+    {"domain": "Monster identity/stats/drop", "owner": "F001 fragmented runtime; no unified catalog", "readers": ["battle/settlement"], "writers": ["server-owned HP/ATK in existing paths"], "forbidden_authorities": ["client", "Spirit adapter", "presentation"], "status": "BLOCKER"},
+    {"domain": "reward lineage", "owner": "D5A", "readers": ["audit/support/analytics"], "writers": ["server settlement with lineage"], "forbidden_authorities": ["analytics", "client", "presentation"], "status": "PASS_CONTRACT"},
+    {"domain": "functional item use lineage", "owner": "D5C", "readers": ["server operation/audit"], "writers": ["server item-use operation"], "forbidden_authorities": ["cosmetic state", "client"], "status": "PASS_CONTRACT"},
+    {"domain": "presentation", "owner": "A021A plus adapters", "readers": ["Hero", "World Map", "cinematic"], "writers": ["none; render-only"], "forbidden_authorities": ["ownership", "active switch", "unlock", "reward", "combat"], "status": "PASS_CONTRACT"}
+  ],
+  "authority_invariants": {
+    "SINGLE_SPIRIT_OWNERSHIP_AUTHORITY": true,
+    "SINGLE_ACTIVE_SPIRIT_AUTHORITY": true,
+    "SINGLE_COMBAT_AUTHORITY": true,
+    "SINGLE_MONSTER_IDENTITY_AUTHORITY_TARGET": true,
+    "PRESENTATION_IS_AUTHORITY": false,
+    "CLIENT_GAMEPLAY_AUTHORITY": false,
+    "CLIENT_REWARD_AUTHORITY": false,
+    "CLIENT_ECONOMY_AUTHORITY": false,
+    "CLIENT_PREMIUM_AUTHORITY": false
+  },
+  "roster_acceptance": {
+    "target_canonical_spirit_count": 6,
+    "existing_canonical_ids": [
+      "ink_drop_kelpie",
+      "whispering_void_kit",
+      "star_shell_hatchling"
+    ],
+    "future_display_identities": [
+      {"slot": 4, "display_name": "Starpath Antlerling", "role": "EXPLORATION", "canonical_id": "starpath_antlerling"},
+      {"slot": 5, "display_name": "Fatty", "role": "PRECISION", "canonical_id": "fatty"},
+      {"slot": 6, "display_name": "Obsidian Bastion", "role": "SUPPORT", "canonical_id": "obsidian_bastion"}
+    ],
+    "new_spirit_canonical_names_in_test_fixtures": 0,
+    "required_checks": [
+      "count equals six",
+      "no duplicate machine IDs",
+      "localized names are catalog data",
+      "roles are catalog data",
+      "Stage I/II/III derive from server/catalog metadata",
+      "owned/locked/available/active states are separate from presentation",
+      "no hard-coded #4-#6 identity branch"
+    ],
+    "status": "PASS_CONTRACT",
+    "server_authority_confirmation": "PENDING_D008_B023"
+  },
+  "identity_consistency": {
+    "required_equality": [
+      "server Spirit ID == asset manifest Spirit ID",
+      "server Spirit ID == Hero projection Spirit ID",
+      "server Spirit ID == World Map follower Spirit ID",
+      "server Spirit ID == B022 combat adapter Spirit ID"
+    ],
+    "mismatch_action": "block integration",
+    "CROSS_LANE_SPIRIT_IDENTITY_MATCH": "PASS_REQUIRED",
+    "status": "PENDING_RUNTIME"
+  },
+  "ownership_presentation_boundary": {
+    "checks": [
+      {"actor": "asset existence", "may_create_ownership": false},
+      {"actor": "Hero card", "may_create_ownership": false},
+      {"actor": "World Map follower", "may_create_ownership": false},
+      {"actor": "cinematic", "may_create_ownership": false},
+      {"actor": "localStorage", "may_create_ownership": false}
+    ],
+    "status": "PASS_FIXTURE"
+  },
+  "active_spirit_acceptance": {
+    "ONE_ACTIVE_SPIRIT": true,
+    "ACTIVE_MUST_BE_OWNED": true,
+    "cases": [
+      "Hero, World Map, question/battle, and Backpack read the same server projection",
+      "switching to an unowned Spirit is rejected",
+      "refresh preserves the authoritative active Spirit",
+      "navigation and deep link do not revert the active Spirit",
+      "device-size change does not create a second active state",
+      "concurrent switch has one deterministic authoritative winner or explicit conflict"
+    ],
+    "status": "PASS_CONTRACT"
+  },
+  "legacy_pet_quarantine": {
+    "legacy_ids": ["pet_cat", "pet_turtle", "pet_rabbit", "pet_fox", "pet_wolf", "pet_dragon", "pet_premium"],
+    "functional_roster_inclusion": false,
+    "functional_ownership": false,
+    "effect_registry_membership": false,
+    "legacy_behavior_removed": false,
+    "status": "PASS_FIXTURE"
+  },
+  "unlock_acceptance": {
+    "cases": [
+      "valid server-derived unlock",
+      "locked Spirit remains locked in presentation",
+      "claimable state is distinct from owned state",
+      "duplicate unlock is an idempotent no-op",
+      "concurrent unlock creates one ownership record",
+      "reload after unlock shows one ownership record and no duplicate reward"
+    ],
+    "UNLOCK_DUPLICATE_OWNERSHIP": 0,
+    "UNLOCK_DUPLICATE_REWARD": 0,
+    "unlock_source": "PENDING_D008; do not invent milestone source",
+    "status": "PENDING_RUNTIME"
+  },
+  "feed_acceptance": {
+    "cases": [
+      "owned Spirit with sufficient resource succeeds once",
+      "insufficient resource is rejected without progress mutation",
+      "double-click creates one consume and one progress increment",
+      "response-loss retry replays the same server operation",
+      "concurrent feed cannot double-consume or double-progress",
+      "reload reflects authoritative progress"
+    ],
+    "FEED_DUPLICATE_CONSUME": 0,
+    "FEED_DUPLICATE_PROGRESS": 0,
+    "operation_identity": "server-validated or server-generated identity bound to user, operation, target, and request fingerprint",
+    "status": "PENDING_RUNTIME"
+  },
+  "train_acceptance": {
+    "cases": [
+      "train success",
+      "cooldown rejection",
+      "daily-cap boundary",
+      "duplicate submit",
+      "response-loss retry",
+      "cross-device refresh"
+    ],
+    "TRAIN_DUPLICATE_PROGRESS": 0,
+    "status": "PENDING_RUNTIME"
+  },
+  "evolution_acceptance": {
+    "stage_thresholds": {"stage_1": "Lv1-9", "stage_2": "Lv10-24", "stage_3": "Lv25+"},
+    "cases": [
+      "Lv9 remains Stage I",
+      "Lv10 transitions once to Stage II",
+      "Lv24 remains Stage II",
+      "Lv25 transitions once to Stage III",
+      "server threshold and transaction commit precede UI refresh",
+      "one evolution event per threshold transition",
+      "asset presentation failure does not roll back or duplicate the committed evolution",
+      "reload shows server-derived stage"
+    ],
+    "CLIENT_CAN_FORCE_EVOLUTION": false,
+    "DUPLICATE_EVOLUTION_EVENT": 0,
+    "PRESENTATION_FAILURE_ROLLS_BACK_EVOLUTION": false,
+    "status": "PASS_CONTRACT"
+  },
+  "asset_failure_acceptance": {
+    "failure_cases": [
+      "missing Stage asset",
+      "404 asset",
+      "image decode failure",
+      "wrong manifest ID",
+      "wrong stage asset",
+      "transparent or empty image"
+    ],
+    "required_behavior": [
+      "fail closed to a neutral presentation placeholder",
+      "do not mutate ownership",
+      "do not mutate active Spirit",
+      "do not retry forever",
+      "do not substitute another Spirit identity",
+      "record observable failure without making telemetry authoritative"
+    ],
+    "ASSET_FAILURE_FAILS_CLOSED": true,
+    "status": "PASS_CONTRACT"
+  },
+  "hero_responsive_acceptance": {
+    "layouts": [
+      {"device": "desktop", "target": "3x2"},
+      {"device": "tablet landscape", "target": "3x2"},
+      {"device": "iPad portrait", "target": "2x3 or validated equivalent"},
+      {"device": "mobile portrait", "target": "2x3"},
+      {"device": "430x932 narrow portrait", "target": "2x3 with intentional scroll if required"}
+    ],
+    "checks": [
+      "no horizontal overflow",
+      "no CTA collision",
+      "no portrait clipping",
+      "stage labels readable",
+      "locked state accessible",
+      "keyboard and touch operation works",
+      "selected detail remains readable"
+    ],
+    "status": "PASS_CONTRACT"
+  },
+  "world_map_follower_acceptance": {
+    "flow": "server active Spirit -> presentation adapter -> follower",
+    "required_fields": ["spirit_id", "evolution_stage", "art_manifest", "animation_manifest", "presentation_state"],
+    "FOLLOWER_WRITES_DB": false,
+    "FOLLOWER_CHANGES_ACTIVE_SPIRIT": false,
+    "FOLLOWER_UNLOCKS_SPIRIT": false,
+    "FOLLOWER_GRANTS_REWARD": false,
+    "cases": [
+      "active Spirit drives follower",
+      "follower updates after authoritative switch",
+      "reload keeps follower consistent",
+      "zone transition does not reset active Spirit",
+      "small-screen position does not occlude zone nodes",
+      "Hero priority and follower layering remain readable"
+    ],
+    "status": "PENDING_RUNTIME"
+  },
+  "combat_integration": {
+    "canonical_order": [
+      "SERVER_JUDGE",
+      "B021_AUTHORITATIVE_BATTLE_STATE",
+      "EQUIPMENT_EFFECT",
+      "APPROVED_SPIRIT_EFFECT_ADAPTER",
+      "AUTHORITATIVE_SETTLEMENT",
+      "PRESENTATION"
+    ],
+    "SPIRIT_EFFECT_BEFORE_JUDGE": "FORBIDDEN",
+    "SECOND_COMBAT_ENGINE": "FORBIDDEN",
+    "CLIENT_EFFECT_MAGNITUDE_AUTHORITY": false,
+    "status": "PASS_CONTRACT"
+  },
+  "equipment_spirit_composition": {
+    "cases": [
+      "weapon only",
+      "Spirit only",
+      "weapon plus Spirit",
+      "armor only",
+      "Spirit mitigation only",
+      "armor plus Spirit mitigation",
+      "unequip",
+      "Spirit switch",
+      "reload"
+    ],
+    "composition_owner": "B021 canonical order plus B022 adapter after settlement",
+    "balance_values": "not specified in E020-PREP",
+    "status": "PENDING_RUNTIME"
+  },
+  "monster_integration": {
+    "MONSTER_ACCEPTANCE_PENDING_F001": false,
+    "F001_ACTUAL_FINDINGS_CONSUMED": true,
+    "MONSTER_SYSTEM_STATE": "FUNCTIONAL_BUT_FRAGMENTED",
+    "known_blockers": [
+      "MONSTER_IDENTITY_SPLIT_BLOCKER",
+      "MAP_BATTLE_MONSTER_TYPE_FIELD_MISMATCH",
+      "MONSTER_REWARD_D5A_GAP",
+      "MONSTER_D5C_GAP",
+      "MONSTER_REPLAY_CONTRACT_GAP",
+      "DROP_ROSTER_REACHABILITY_GAP",
+      "LORD_TRIAL_SEPARATE_AUTHORITY"
+    ],
+    "actual_findings": [
+      "two real Monster combat paths",
+      "no unified monster_id/catalog",
+      "server-owned HP/ATK",
+      "battle_monster_type versus monster_type mismatch",
+      "no Elite runtime",
+      "Lord Trial separate runtime",
+      "no Monster skill/AI",
+      "no multi-Monster runtime",
+      "Monster reward D5A integration missing",
+      "Monster item D5C integration partial/missing",
+      "replay contract fragmented",
+      "equipment-drop source versus reachable-roster mismatch",
+      "future Spirit/Monster adapter is post-settlement and pre-reward/audit"
+    ],
+    "reserved_cases": [
+      "normal Monster",
+      "Elite marked unavailable by F001",
+      "Boss",
+      "Lord boundary",
+      "Monster roster",
+      "server stats",
+      "reward/drop settlement"
+    ],
+    "no_invented_v2_tests": true,
+    "status": "BLOCKER"
+  },
+  "lord_trial": {
+    "LORD_TRIAL_AUTHORITY_PRESERVED": "PASS_REQUIRED",
+    "cases": [
+      "existing answer/review authority remains canonical",
+      "no fake Monster HP is introduced",
+      "Spirit effect cannot override Lord result",
+      "equipment/Spirit behavior is applied only where explicitly supported"
+    ],
+    "status": "PASS_CONTRACT"
+  },
+  "replay": {
+    "cases": ["story replay", "Boss replay", "cinematic replay"],
+    "REPLAY_SPIRIT_XP": 0,
+    "REPLAY_SPIRIT_ITEM": 0,
+    "REPLAY_SPIRIT_UNLOCK": 0,
+    "REPLAY_SPIRIT_EVOLUTION": 0,
+    "REPLAY_MONSTER_DROP": 0,
+    "REPLAY_ZONE_PROGRESS": 0,
+    "visual_only_allowed": true,
+    "status": "PASS_CONTRACT"
+  },
+  "scene_override": {
+    "SCENE_OVERRIDE_PRESENTATION_ONLY": true,
+    "cases": [
+      "scene-specific Spirit may be shown",
+      "active ownership remains unchanged",
+      "active selection remains unchanged",
+      "no Spirit XP/unlock/evolution/item mutation",
+      "no combat effect is changed by scene presentation"
+    ],
+    "status": "PASS_FIXTURE"
+  },
+  "lineage": {
+    "D5A": {
+      "required_cases": [
+        "unlock reward",
+        "Spirit XP reward where supported",
+        "evolution reward where supported",
+        "Monster/Boss reward where supported",
+        "Quest reward where supported"
+      ],
+      "REWARD_WITHOUT_REQUIRED_LINEAGE": "FAIL_TEST",
+      "status": "PASS_CONTRACT"
+    },
+    "D5C": {
+      "required_cases": [
+        "functional consume exactly once",
+        "operation persists",
+        "effect applies exactly once",
+        "response-loss retry",
+        "changed-payload conflict"
+      ],
+      "FUNCTIONAL_ITEM_USE_WITHOUT_D5C": "FAIL_TEST",
+      "cosmetic_scope": "do not apply D5C to purely cosmetic state unless required by the final architecture",
+      "status": "PASS_CONTRACT"
+    }
+  },
+  "postgres_required_tests": [
+    "concurrent unlock",
+    "concurrent feed",
+    "concurrent train",
+    "concurrent active-Spirit switch",
+    "operation identity replay/conflict",
+    "D5A lineage transaction",
+    "D5C item-use transaction",
+    "B021 plus B022 combat settlement when DB-sensitive",
+    "Monster reward settlement when F001 marks it DB-sensitive"
+  ],
+  "forgery_matrix": [
+    {"field": "owned", "client_input": "owned=true", "classification": "SERVER_OWNED"},
+    {"field": "active Spirit", "client_input": "arbitrary active ID", "classification": "SERVER_VERIFIED"},
+    {"field": "stage", "client_input": "forced stage", "classification": "SERVER_OWNED"},
+    {"field": "progress", "client_input": "arbitrary XP/progress", "classification": "SERVER_OWNED"},
+    {"field": "unlock", "client_input": "unlock without eligibility", "classification": "SERVER_VERIFIED"},
+    {"field": "feed quantity", "client_input": "arbitrary quantity", "classification": "SERVER_VERIFIED"},
+    {"field": "effect ID", "client_input": "arbitrary effect", "classification": "SERVER_VERIFIED"},
+    {"field": "effect magnitude", "client_input": "arbitrary magnitude", "classification": "SERVER_OWNED"},
+    {"field": "Monster stats", "client_input": "client stats", "classification": "SERVER_OWNED"},
+    {"field": "damage", "client_input": "client damage", "classification": "SERVER_OWNED"},
+    {"field": "mitigation", "client_input": "client mitigation", "classification": "SERVER_OWNED"},
+    {"field": "reward result", "client_input": "client reward", "classification": "SERVER_OWNED"}
+  ],
+  "browser_journeys": [
+    "fresh login",
+    "existing player",
+    "existing-three owner",
+    "new six-slot player",
+    "active Spirit switch",
+    "feed",
+    "train",
+    "evolution",
+    "reload after mutation",
+    "World Map follower",
+    "battle",
+    "deep link",
+    "logout and re-login",
+    "asset failure",
+    "story/Boss replay"
+  ],
+  "device_matrix": [
+    {"device": "desktop", "surfaces": ["Hero", "World Map", "roster", "details", "battle cue", "asset fallback"]},
+    {"device": "iPad landscape", "surfaces": ["Hero", "World Map", "roster", "details", "battle cue", "asset fallback"]},
+    {"device": "iPad portrait", "surfaces": ["Hero", "World Map", "roster", "details", "battle cue", "asset fallback"]},
+    {"device": "mobile portrait", "surfaces": ["Hero", "World Map", "roster", "details", "battle cue", "asset fallback"]},
+    {"device": "430x932 narrow portrait", "surfaces": ["Hero", "World Map", "roster", "details", "battle cue", "asset fallback"]}
+  ],
+  "accessibility": {
+    "checks": [
+      "keyboard focus reaches every roster/action control",
+      "touch targets are usable on iPad and mobile",
+      "screen-reader labels identify Spirit, role, stage, and state where relevant",
+      "active/locked/owned state is not color-only",
+      "modal focus is trapped and restored",
+      "Escape closes dismissible overlays where current architecture supports it",
+      "reduced-motion preference is respected where supported"
+    ],
+    "status": "PASS_CONTRACT"
+  },
+  "observability": {
+    "signals": [
+      "Spirit hydration failure",
+      "asset failure",
+      "active-state mismatch across surfaces",
+      "effect evaluation failure",
+      "lineage failure",
+      "duplicate operation conflict",
+      "replay mutation attempt",
+      "client-forgery rejection"
+    ],
+    "OBSERVABILITY_IS_AUTHORITY": false,
+    "status": "PASS_CONTRACT"
+  },
+  "regression_matrix": [
+    {"suite": "E019 six-Spirit S1 harness", "status": "PASS_FIXTURE"},
+    {"suite": "D007 lineage and PostgreSQL contracts", "status": "PASS_CONTRACT"},
+    {"suite": "B021 equipment combat loop", "status": "PASS_RUNTIME"},
+    {"suite": "A020/A021 visual and identity evidence", "status": "PASS_FIXTURE"},
+    {"suite": "D008 server Spirit runtime", "status": "PENDING_RUNTIME"},
+    {"suite": "B022 canonical Spirit effect adapter contract", "status": "PASS_CONTRACT"},
+    {"suite": "F001 fragmented Monster findings", "status": "BLOCKER"},
+    {"suite": "Incident017 response compatibility", "status": "PASS_RUNTIME"},
+    {"suite": "E014 first paint", "status": "PASS_RUNTIME"},
+    {"suite": "Boss/Lord compatibility", "status": "PASS_CONTRACT"},
+    {"suite": "Map Battle", "status": "PASS_RUNTIME"},
+    {"suite": "Revenue default-off when shared app.py changes occur", "status": "PASS_CONTRACT"}
+  ],
+  "release_blockers": [
+    "duplicate authority or a second ownership/active/combat/Monster source",
+    "client forgery accepted for ownership, progress, effect, damage, mitigation, stats, or rewards",
+    "duplicate unlock/feed/train/evolution/item-use/reward operation",
+    "missing D5A reward lineage or D5C functional item-use identity",
+    "Spirit effect evaluated before the Go judge or a second combat engine",
+    "active Spirit diverges after reload, navigation, deep link, or device change",
+    "replay changes Spirit/Monster/zone progression",
+    "six-slot overflow, duplicate IDs, or canonical ID mismatch",
+    "missing or incorrectly mapped canonical asset",
+    "browser console error affecting the journey",
+    "PostgreSQL concurrency failure",
+    "MONSTER_IDENTITY_SPLIT_BLOCKER",
+    "MAP_BATTLE_MONSTER_TYPE_FIELD_MISMATCH",
+    "MONSTER_REWARD_D5A_GAP",
+    "MONSTER_D5C_GAP",
+    "MONSTER_REPLAY_CONTRACT_GAP",
+    "DROP_ROSTER_REACHABILITY_GAP",
+    "LORD_TRIAL_SEPARATE_AUTHORITY"
+  ],
+  "extension_plan": {
+    "E019_REUSED": true,
+    "PARALLEL_ACCEPTANCE_HARNESS_CREATED": false,
+    "steps": [
+      "retain E019 fixtures and status semantics",
+      "add D008 server snapshots and operation-identity fixtures after B023 schema foundation",
+      "bind canonical A021A manifest IDs/stages to D008 catalog IDs",
+      "consume B022 post-settlement contract and add runtime probes without changing B021",
+      "keep F001 fragmentation blockers as failing gates until a unified Monster interface exists",
+      "extend browser journeys from current-three to six-slot runtime",
+      "run PostgreSQL concurrency gates before any runtime release gate",
+      "keep Owner visual acceptance separate from automated fixture passes"
+    ],
+    "required_non_regression": [
+      "existing three Spirits remain functional",
+      "legacy cosmetic pets remain quarantined",
+      "E014 neutral-to-E10 first paint remains intact",
+      "Incident017 response compatibility remains intact",
+      "B021 equipment authority remains canonical"
+    ]
+  },
+  "outputs": {
+    "plan_file": "docs/planning/e020_six_spirit_s1_runtime_acceptance_plan.md",
+    "matrix_file": "docs/planning/e020_six_spirit_s1_runtime_acceptance_matrix.json",
+    "runtime_files_changed": 0,
+    "db_migration": false,
+    "production_mutation": false,
+    "merge": false,
+    "deploy": false
+  }
+}
