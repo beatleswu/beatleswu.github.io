@@ -40,6 +40,14 @@
         'progression_duplicate',
         'question_id'
     ];
+    // Must mirror review_contracts.py's APPROVED_PRESENTATION_EXTENSION_FIELDS
+    // exactly. The server (review_compatibility.py) already sets these aside
+    // before classifying the legacy shape and re-attaches them afterward
+    // (legacy_review_serializer.py); this client must do the same or any
+    // response carrying one -- e.g. a review that triggers a level-up -- gets
+    // rejected as invalid_review_response even though it was already durably
+    // committed server-side.
+    const APPROVED_PRESENTATION_EXTENSION_FIELDS = ['combat_stats', 'level_up_rewards'];
 
     class ReviewRejected extends Error {
         constructor(payload, status) {
@@ -96,6 +104,14 @@
         );
     }
 
+    function withoutApprovedExtensions(payload) {
+        const core = snapshot(payload);
+        for (let index = 0; index < APPROVED_PRESENTATION_EXTENSION_FIELDS.length; index += 1) {
+            delete core[APPROVED_PRESENTATION_EXTENSION_FIELDS[index]];
+        }
+        return core;
+    }
+
     function buildRequest(command) {
         const value = command || {};
         const request = new Object();
@@ -114,16 +130,17 @@
         if (!isObjectPayload(payload)) throw invalidResponse();
 
         const internal = !!(options && options.internal === true);
-        if (hasExactKeys(payload, DUP4)) {
+        const core = withoutApprovedExtensions(payload);
+        if (hasExactKeys(core, DUP4)) {
             if (!internal || payload.ok !== true) throw invalidResponse();
             return { kind: 'INTERNAL_DUPLICATE', payload: snapshot(payload) };
         }
 
         if (payload.ok !== true) throw invalidResponse();
-        if (hasExactKeys(payload, FULL26)) {
+        if (hasExactKeys(core, FULL26)) {
             return { kind: 'PUBLIC_FULL', payload: snapshot(payload) };
         }
-        if (hasExactKeys(payload, CORE20)) {
+        if (hasExactKeys(core, CORE20)) {
             return { kind: 'PUBLIC_CORE', payload: snapshot(payload) };
         }
         throw invalidResponse();

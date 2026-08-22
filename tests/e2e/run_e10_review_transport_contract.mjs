@@ -276,6 +276,64 @@ async function runContract() {
   core.xp_gain = 999;
   assert.equal(coreOutcome.payload.xp_gain, 10, 'outcome is a top-level snapshot');
 
+  // Incident 017 response matrix: a review response gets an approved
+  // presentation extension appended by the server (review_compatibility.py,
+  // APPROVED_PRESENTATION_EXTENSION_FIELDS) whenever it ranks the player up
+  // (level_up_rewards) and/or the battlefield/equipment path runs
+  // (combat_stats). CORE20-only and FULL26-only are already covered above;
+  // this exercises the remaining approved combinations. Every case must
+  // preserve the extension value(s) on the returned payload -- the shape
+  // check strips them only for the exact-key comparison, not from the
+  // result callers actually receive.
+  const levelUpReward = { rewards: ['skill:atk1'] };
+  const combatStats = { attack_bonus: 0.08 };
+
+  const coreWithCombatStats = { ...corePayload(), combat_stats: combatStats };
+  const coreWithCombatStatsOutcome = transport.mapOutcome(coreWithCombatStats);
+  assert.equal(coreWithCombatStatsOutcome.kind, 'PUBLIC_CORE');
+  assert.deepEqual(coreWithCombatStatsOutcome.payload, coreWithCombatStats);
+
+  const coreWithLevelUp = { ...corePayload(), level_up_rewards: levelUpReward };
+  const coreWithLevelUpOutcome = transport.mapOutcome(coreWithLevelUp);
+  assert.equal(coreWithLevelUpOutcome.kind, 'PUBLIC_CORE');
+  assert.deepEqual(coreWithLevelUpOutcome.payload, coreWithLevelUp);
+
+  const coreWithBothExtensions = {
+    ...corePayload(),
+    combat_stats: combatStats,
+    level_up_rewards: levelUpReward,
+  };
+  const coreWithBothOutcome = transport.mapOutcome(coreWithBothExtensions);
+  assert.equal(coreWithBothOutcome.kind, 'PUBLIC_CORE');
+  assert.deepEqual(coreWithBothOutcome.payload, coreWithBothExtensions);
+
+  const fullWithCombatStats = { ...fullPayload(), combat_stats: combatStats };
+  const fullWithCombatStatsOutcome = transport.mapOutcome(fullWithCombatStats);
+  assert.equal(fullWithCombatStatsOutcome.kind, 'PUBLIC_FULL');
+  assert.deepEqual(fullWithCombatStatsOutcome.payload, fullWithCombatStats);
+
+  const fullWithLevelUp = { ...fullPayload(), level_up_rewards: levelUpReward };
+  const fullWithLevelUpOutcome = transport.mapOutcome(fullWithLevelUp);
+  assert.equal(fullWithLevelUpOutcome.kind, 'PUBLIC_FULL');
+  assert.deepEqual(fullWithLevelUpOutcome.payload, fullWithLevelUp);
+
+  const fullWithBothExtensions = {
+    ...fullPayload(),
+    combat_stats: combatStats,
+    level_up_rewards: levelUpReward,
+  };
+  const fullWithBothOutcome = transport.mapOutcome(fullWithBothExtensions);
+  assert.equal(fullWithBothOutcome.kind, 'PUBLIC_FULL');
+  assert.deepEqual(fullWithBothOutcome.payload, fullWithBothExtensions);
+
+  // The allowlist is exact, not a general "ignore anything extra" relaxation:
+  // a genuinely unrecognized key must still be rejected even alongside an
+  // approved one.
+  assert.throws(
+    () => transport.mapOutcome({ ...corePayload(), level_up_rewards: {}, unexpected: true }),
+    (error) => error.code === 'invalid_review_response',
+  );
+
   const coreFetcher = fetcherFor(response(corePayload()));
   const legacyCore = await transport.legacyReview(
     7001,
@@ -418,6 +476,7 @@ async function runContract() {
       'command_serialization',
       'identity_and_defaults',
       'public_full_and_core_mapping',
+      'approved_presentation_extension_fields_survive_exact_shape_check',
       'internal_duplicate_boundary',
       'legacy_passthrough',
       'rejected_review',

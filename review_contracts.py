@@ -60,11 +60,13 @@ INTERNAL_DUPLICATE_4_FIELDS: tuple[str, ...] = (
 # RPG Wave 1: the only two result keys allowed to ride alongside a legacy
 # shape without tripping the exact-shape compatibility check. Both are
 # presentation/read projections composed by domain authorities named in
-# their own (not-yet-landed) modules -- this tuple carries no authority
-# itself and must never grow to accept an XP, HP, combat, or equipment
-# writer's result shape. Current master does not yet produce either key;
-# that is expected -- this seam is a prerequisite, landed ahead of the Wave
-# 1 lanes that will actually populate it.
+# their own modules -- this tuple carries no authority itself and must never
+# grow to accept an XP, HP, combat, or equipment writer's result shape.
+# level_up_rewards is produced today by _lane_b_review_with_level_value
+# (app.py) on every review that ranks the player up; js/game/review_transport.js
+# MUST mirror this exact tuple (APPROVED_PRESENTATION_EXTENSION_FIELDS there)
+# or the client rejects an otherwise-successful, already-committed review as
+# invalid_review_response (see incident 017).
 APPROVED_PRESENTATION_EXTENSION_FIELDS: tuple[str, ...] = (
     "combat_stats",
     "level_up_rewards",
