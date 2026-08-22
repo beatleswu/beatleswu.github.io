@@ -254,7 +254,7 @@ def _ddl(dialect: str) -> list[str]:
             source_class_snapshot TEXT NOT NULL CHECK (source_class_snapshot IN ('VERIFIED_PAID','ADMIN_GRANTED','PERMANENT_COMP','TRIAL','LEGACY','UNKNOWN')),
             reward_id TEXT NOT NULL,
             reward_type TEXT NOT NULL,
-            ownership_authority TEXT NOT NULL CHECK (ownership_authority = 'player_wardrobe'),
+            ownership_authority TEXT NOT NULL CHECK (ownership_authority IN ('player_wardrobe','premium_bundle')),
             ownership_reference TEXT,
             claim_idempotency_key TEXT NOT NULL UNIQUE,
             claim_status TEXT NOT NULL CHECK (claim_status IN ('GRANTED','DENIED')),

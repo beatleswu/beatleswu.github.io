@@ -108,6 +108,13 @@ from question_idempotency import (
     insert_review_log_with_identity,
     normalize_identity,
 )
+from question_capacity_authority import (
+    QuestionCapacityConflict,
+    QuestionCapacityError,
+    QuestionCapacityLineageUnavailable,
+    QuestionCapacityNotOwned,
+    apply_question_capacity_in_transaction,
+)
 from item_use_operations import (
     ItemUseOperationConflict,
     ItemUseOperationInProgress,
@@ -20310,6 +20317,50 @@ def shop_use():
             return jsonify({'error': 'invalid_operation_identity'}), 400
 
     with get_db() as conn:
+        if capacity_delta is not None:
+            try:
+                capacity_result = apply_question_capacity_in_transaction(
+                    conn,
+                    user_id=uid,
+                    item_id=item_key,
+                    operation_id=operation_id,
+                    source='SHOP_USE',
+                    consume_inventory=True,
+                    now=now,
+                    event_writer=append_event,
+                )
+            except QuestionCapacityNotOwned:
+                return jsonify({'error': 'not_owned'}), 400
+            except QuestionCapacityConflict:
+                return jsonify({
+                    'error': 'idempotency_conflict',
+                    'code': 'idempotency_conflict',
+                    'operation_id': operation_id,
+                }), 409
+            except QuestionCapacityLineageUnavailable:
+                return jsonify({
+                    'error': 'capacity_lineage_unverified',
+                    'code': 'capacity_lineage_unverified',
+                    'operation_id': operation_id,
+                }), 500
+            except QuestionCapacityError:
+                return jsonify({'error': 'capacity_use_failed'}), 400
+            result = {
+                'ok': True,
+                'item_key': capacity_result.item_id,
+                'effect': 'extra_questions',
+                'value': capacity_result.capacity_delta,
+                'extra_today': capacity_result.effective_capacity_after - FREE_DAILY_LIMIT,
+                'base_capacity': FREE_DAILY_LIMIT,
+                'effective_capacity_after': capacity_result.effective_capacity_after,
+                'business_date': capacity_result.business_date,
+                'operation_id': capacity_result.operation_id,
+                'capacity_event_id': capacity_result.event_id,
+                'capacity_duplicate': capacity_result.duplicate,
+                'remaining': capacity_result.resulting_quantity,
+            }
+            conn.commit()
+            return jsonify(result)
         if usable in ('instant', 'auto'):
             return jsonify({'error': 'auto_use_only',
                             'message': '這個道具不需要手動使用'}), 400
