@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" data-world-presentation-state="pending">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,66 @@
     <meta property="og:title" content="弈境奇兵 (Go Odyssey) — 圍棋 RPG 修煉平台">
     <meta property="og:description" content="把圍棋練習變成 RPG 冒險：41,000+ 題庫、AI 魔物對弈、SRS 智慧複習、棋力鑑定。">
     <meta name="twitter:card" content="summary_large_image">
-<style>/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}@keyframes cgNavReveal{to{visibility:visible}}</style>
+<style>
+/* anti-FOUC: site-nav.js will replace this header with .cg-nav; reveal after 3s if it never loads */
+header:not(.cg-nav):not(.hero){visibility:hidden;animation:cgNavReveal 0s 3s forwards}
+@keyframes cgNavReveal{to{visibility:visible}}
+
+/* E014: do not expose either world until the authenticated route/rollout
+   decision is authoritative.  The document starts in this state before any
+   deferred script or DOM-ready handler can choose the legacy shell. */
+html[data-world-presentation-state="pending"] #welcome-state,
+html[data-world-presentation-state="pending"] #e9-adventure-shell {
+    visibility: hidden !important;
+}
+html[data-world-presentation-state="pending"],
+html[data-world-presentation-state="pending"] body {
+    background: #102d2d;
+}
+#world-presentation-pending {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #f1e4c1;
+    background:
+        radial-gradient(circle at 50% 36%, rgba(33, 99, 93, .34), transparent 42%),
+        linear-gradient(145deg, #102d2d, #16100a 72%);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    text-align: center;
+}
+html:not([data-world-presentation-state="pending"]) #world-presentation-pending {
+    display: none;
+}
+.world-presentation-pending__card {
+    width: min(360px, 100%);
+    padding: 24px 22px;
+    border: 1px solid rgba(241, 228, 193, .22);
+    border-radius: 18px;
+    background: rgba(18, 35, 32, .74);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .28);
+}
+.world-presentation-pending__mark {
+    width: 42px;
+    height: 42px;
+    margin: 0 auto 12px;
+    border: 2px solid #e6c979;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: worldPresentationPendingSpin .9s linear infinite;
+}
+.world-presentation-pending__label {
+    font-size: 14px;
+    letter-spacing: .04em;
+}
+@keyframes worldPresentationPendingSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .world-presentation-pending__mark { animation: none; }
+}
+</style>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#16100a">
     <meta name="mobile-web-app-capable" content="yes">
@@ -7078,6 +7137,12 @@
     <link rel="stylesheet" href="/css/e9/art_directed_runtime.css?v=20260801e10art1">
 </head>
 <body data-sgf-report-surface="main_practice">
+<div id="world-presentation-pending" role="status" aria-live="polite">
+    <div class="world-presentation-pending__card">
+        <div class="world-presentation-pending__mark" aria-hidden="true"></div>
+        <div class="world-presentation-pending__label">Entering your world…</div>
+    </div>
+</div>
 
 <!-- ══ 命名儀式 Modal ══════════════════════════════════════════ -->
 <div id="naming-modal" role="dialog" aria-modal="true"
@@ -11254,6 +11319,9 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     if(ws) ws.classList.add('hidden');
     if(bw) bw.classList.remove('hidden');
     if(mb) mb.classList.remove('hidden');
+    if (document.documentElement?.getAttribute('data-world-presentation-state') === 'pending') {
+        revealLegacyPracticePresentation();
+    }
 
     if (!commit()) {
         _e10AcceptanceTrace('LOADQUESTION_RETURN_VALUE', { ok: false, qid: questionId, reason: 'stale_before_commit' });
@@ -19989,6 +20057,33 @@ function isE9InlineDebugEnvironment() {
 }
 const E10_MAP_SHELL_OWNER = 'e10-map';
 const E10_BATTLE_SHELL_OWNER = 'e10-battle';
+const WORLD_PRESENTATION_PENDING = 'pending';
+const WORLD_PRESENTATION_E10 = 'e10';
+const WORLD_PRESENTATION_LEGACY = 'legacy';
+
+function setWorldPresentationState(nextState) {
+    const state = [WORLD_PRESENTATION_PENDING, WORLD_PRESENTATION_E10, WORLD_PRESENTATION_LEGACY].includes(nextState)
+        ? nextState
+        : WORLD_PRESENTATION_PENDING;
+    document.documentElement?.setAttribute('data-world-presentation-state', state);
+    window.__GO_WORLD_PRESENTATION_STATE__ = state;
+    const pending = document.getElementById('world-presentation-pending');
+    if (pending) {
+        pending.setAttribute('aria-hidden', state === WORLD_PRESENTATION_PENDING ? 'false' : 'true');
+    }
+    if (document.body) document.body.setAttribute('data-world-presentation-state', state);
+    return state;
+}
+
+function revealLegacyPracticePresentation() {
+    setWorldPresentationState(WORLD_PRESENTATION_LEGACY);
+    if (window.E9 && typeof window.E9.applyShellState === 'function') {
+        window.E9.applyShellState('legacy');
+    }
+}
+
+window.setWorldPresentationState = setWorldPresentationState;
+window.revealLegacyPracticePresentation = revealLegacyPracticePresentation;
 function publishAdventureShellOwner(owner) {
     const nextOwner = owner === E10_MAP_SHELL_OWNER || owner === E10_BATTLE_SHELL_OWNER
         ? owner
@@ -20096,6 +20191,11 @@ function primeInitialE9ShellOwnership() {
     publishAdventureShellOwner(e10ShellOwner);
     window.__GO_E9_ACTIVE_SHELL__ = legacyWelcomeShellActive ? 'legacy' : 'e9';
     window.__GO_E9_LEGACY_HOME_INIT_SKIPPED__ = !legacyWelcomeShellActive;
+    setWorldPresentationState(
+        needsImmediatePracticeState
+            ? WORLD_PRESENTATION_PENDING
+            : (e9ShellRequested ? WORLD_PRESENTATION_E10 : WORLD_PRESENTATION_LEGACY)
+    );
     syncE10BackpackEntryLinks();
     window.__GO_E9_OWNERSHIP_INITIALIZED__ = true;
 }
@@ -20287,6 +20387,7 @@ initNewbieQuest(me);
         if (_ws) _ws.classList.add('hidden');
         if (_bw) _bw.classList.remove('hidden');
         if (_mb) _mb.classList.remove('hidden');
+        revealLegacyPracticePresentation();
 
         if (grimQs.length) {
             renderList(grimQs);
@@ -20315,6 +20416,7 @@ initNewbieQuest(me);
         if (_wsA) _wsA.classList.add('hidden');
         if (_bwA) _bwA.classList.remove('hidden');
         if (_mbA) _mbA.classList.remove('hidden');
+        revealLegacyPracticePresentation();
 
         // 只練該關綁定的書（topic）
         const _zone = ADVENTURE_ZONES.find(z => z.key === zoneParam);
@@ -20346,6 +20448,7 @@ initNewbieQuest(me);
         if (_ws2) _ws2.classList.add('hidden');
         if (_bw2) _bw2.classList.remove('hidden');
         if (_mb2) _mb2.classList.remove('hidden');
+        revealLegacyPracticePresentation();
 
         // stageParam 有值 → 限定某本書；無值 → 練習該學科全部題目
         const matched = allQuestions.filter(q => {
@@ -20600,6 +20703,9 @@ async function initChallengeMode(cid) {
         // 隱藏一般 UI（hidden class 同步加上：CSS 以 :has(#welcome-state.hidden) 控制做題區顯示）
         const ws = document.getElementById('welcome-state');
         if (ws) { ws.style.display = 'none'; ws.classList.add('hidden'); }
+        if (document.documentElement?.getAttribute('data-world-presentation-state') === 'pending') {
+            revealLegacyPracticePresentation();
+        }
         const srsP = document.getElementById('srs-progress');
         if (srsP) srsP.style.display = 'none';
 

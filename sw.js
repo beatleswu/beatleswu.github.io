@@ -6,7 +6,7 @@
  *   - 圖片 → Cache First（長效）
  */
 
-const VERSION     = 'v238-incident-017-review-response-contract-fix';
+const VERSION     = 'v239-e014-login-first-paint';
 // The static release packager replaces this deterministic source fallback with
 // a release-<full-git-sha> identity in the staged worker. Keeping a valid
 // source fallback makes the checked-in worker executable while ensuring that

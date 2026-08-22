@@ -188,10 +188,28 @@
     return global.__GO_E9_ACTIVE_SHELL__ === 'e9' ? 'e9' : 'legacy';
   }
 
+  function worldPresentationPending() {
+    return !!(document.documentElement
+      && document.documentElement.getAttribute('data-world-presentation-state') === 'pending');
+  }
+
   function applyShellState(nextState) {
     var mode = nextState === 'e9' ? 'e9' : 'legacy';
     var legacyRoots = legacyEls();
     var e9Root = shellEl();
+    if (worldPresentationPending()) {
+      legacyRoots.forEach(function (root) { setRootState(root, false); });
+      setRootState(e9Root, false);
+      global.__GO_E9_ACTIVE_SHELL__ = 'pending';
+      if (document.body) document.body.setAttribute('data-adventure-shell-active', 'pending');
+      activeShellState = 'pending';
+      if (typeof document.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+        document.dispatchEvent(new CustomEvent('e9:shell-state-changed', {
+          detail: { activeShell: 'pending' }
+        }));
+      }
+      return 'pending';
+    }
     var currentActive = document.activeElement;
     var hidingRoots = mode === 'e9' ? legacyRoots : (e9Root ? [e9Root] : []);
     var focusNeedsMove = rootsContainNode(hidingRoots, currentActive);
@@ -228,6 +246,9 @@
   function recoverToLegacy(err) {
     console.error('[E9] critical failure -- recovering to legacy Adventure:', err);
     global.__GO_E9_ACTIVE_SHELL__ = 'legacy';
+    if (typeof global.setWorldPresentationState === 'function') {
+      global.setWorldPresentationState('legacy');
+    }
     try {
       var statusEl = document.querySelector('#e9-world-stage-slot');
       if (statusEl && global.E9 && global.E9.I18nFallback && typeof global.E9.I18nFallback.t === 'function') {
