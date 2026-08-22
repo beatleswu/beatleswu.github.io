@@ -367,6 +367,12 @@ h1 {
 }
 .btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
 .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(86,214,194,.95);
+  outline-offset: 3px;
+}
 .btn.secondary {
   background: rgba(86, 214, 194, .12);
   color: #bafff3;
@@ -536,12 +542,22 @@ h1 {
 .premium-v1-benefit strong { display:block; color:var(--gold); margin-bottom:4px; }
 .premium-v1-benefit span { color:var(--muted); font-size:12px; line-height:1.45; }
 .premium-v1-pool { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:14px; }
+.premium-v1-selection-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; padding:10px 12px; border:1px solid rgba(240,191,87,.24); border-radius:10px; background:rgba(22,19,12,.58); color:var(--muted); font-size:12px; }
+.premium-v1-selection-bar strong { color:var(--gold); }
+.premium-v1-claim { flex:0 0 auto; }
 .premium-v1-reward { display:grid; gap:8px; padding:10px; border:1px solid rgba(86,214,194,.28); border-radius:12px; background:rgba(10,16,15,.68); }
+.premium-v1-reward.is-selected { border-color:var(--gold); box-shadow:0 0 0 2px rgba(240,191,87,.22), 0 10px 24px rgba(0,0,0,.24); }
+.premium-v1-reward.is-owned { border-color:rgba(255,255,255,.22); }
+.premium-v1-reward.is-unavailable { opacity:.72; }
 .premium-v1-reward img { width:100%; height:150px; object-fit:contain; object-position:center bottom; border-radius:9px; background:rgba(5,10,12,.7); }
 .premium-v1-reward button[disabled] { opacity:.55; cursor:not-allowed; }
+.premium-v1-reward-state { display:inline-flex; width:max-content; padding:3px 7px; border:1px solid rgba(240,191,87,.36); border-radius:999px; color:#ffe29a; font-size:10px; font-weight:900; }
+.premium-v1-reward-state.is-owned { color:#d7d7d7; border-color:rgba(255,255,255,.25); }
+.premium-v1-reward-state.is-unavailable { color:#ffcfb9; border-color:rgba(214,91,75,.45); }
 .cosmetic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px; }
 .cosmetic-card { padding:14px; border:1px solid rgba(86,214,194,.28); border-radius:var(--radius); background:rgba(10,16,15,.7); display:grid; grid-template-rows:auto 1fr auto; gap:12px; }
 .cosmetic-card.is-equipped { border-color:var(--gold); box-shadow:0 0 0 1px rgba(240,191,87,.22); }
+.cosmetic-card.is-unavailable { border-color:rgba(214,91,75,.44); }
 .cosmetic-card-top { display:grid; grid-template-columns:minmax(132px, 42%) minmax(0, 1fr); gap:14px; align-items:stretch; }
 .cosmetic-art { position:relative; width:100%; min-height:214px; display:grid; place-items:center; overflow:hidden; border-radius:12px; font-size:34px; border:1px solid rgba(240,191,87,.34); background:radial-gradient(circle at 50% 24%, rgba(86,214,194,.2), rgba(5,10,12,.76) 74%); }
 .cosmetic-art--fullbody { aspect-ratio:3 / 4; }
@@ -594,6 +610,11 @@ h1 {
 .item-card--cosmetic .cosmetic-art--focus-dragon-pendant .cosmetic-art-focus-detail img { transform:scale(3.15); }
 .cosmetic-name { color:#fff7dd; font-weight:900; }
 .cosmetic-meta { margin-top:4px; color:var(--muted); font-size:11px; }
+.cosmetic-state { display:inline-flex; width:max-content; margin-top:8px; padding:3px 7px; border:1px solid rgba(86,214,194,.35); border-radius:999px; color:#bafff3; font-size:10px; font-weight:900; }
+.cosmetic-state--selected { color:#ffe29a; border-color:rgba(240,191,87,.55); }
+.cosmetic-state--owned { color:#e5e5e5; border-color:rgba(255,255,255,.28); }
+.cosmetic-state--unavailable { color:#ffcfb9; border-color:rgba(214,91,75,.5); }
+.cosmetic-state--review { color:#ffe29a; border-color:rgba(240,191,87,.4); }
 .cosmetic-desc { min-height:42px; margin:12px 0; color:var(--muted); font-size:12px; line-height:1.55; }
 .cosmetic-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .cosmetic-actions .btn { flex:1 1 100px; }
@@ -607,6 +628,8 @@ h1 {
 .cosmetic-modal-card h2 { margin:0; color:#fff7dd; text-align:center; }
 .cosmetic-modal-card p { margin:10px 0 16px; color:var(--muted); line-height:1.6; text-align:center; }
 .cosmetic-modal-close { display:block; margin:0 auto; }
+.load-state { min-height:118px; display:grid; place-items:center; align-content:center; gap:7px; padding:18px; border:1px dashed rgba(240,191,87,.35); border-radius:12px; color:var(--muted); text-align:center; }
+.load-state strong { color:var(--gold); }
 .skeleton {
   min-height: 210px;
   border-radius: var(--radius);
@@ -619,6 +642,7 @@ h1 {
   .hero, .quick-board { grid-template-columns: 1fr; }
   .hero { min-height: auto; padding-top: 12px; }
   .merchant-stage { min-height: 520px; }
+  .cosmetic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .page { width: min(100% - 22px, 1180px); padding-top: 12px; }
@@ -633,19 +657,25 @@ h1 {
   .grid { grid-template-columns: 1fr; }
   .cosmetic-card-top { grid-template-columns:minmax(112px, 42%) minmax(0, 1fr); gap:10px; }
   .cosmetic-art { min-height:176px; }
+  .premium-v1-selection-bar { align-items:stretch; flex-direction:column; }
+  .premium-v1-claim { width:100%; }
+  .cosmetic-grid { grid-template-columns: 1fr; }
   .item-card--cosmetic .item-top--cosmetic { grid-template-columns:minmax(104px, 38%) minmax(0, 1fr); }
   .item-card--cosmetic .item-art--fullbody { height:132px; }
   .section-head { display: block; }
   .section-sub { margin-top: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
 </style>
 </head>
 <body>
 <header>
   <a href="/" class="logo">Go Odyssey</a>
-  <nav class="header-links" aria-label="Shop navigation">
-    <a href="/item-journal">Item Journal</a>
-    <a href="/inventory">Backpack</a>
+  <nav class="header-links" aria-label="Shop navigation" data-i18n-aria-label="shop.nav.label">
+    <a href="/item-journal" data-i18n="shop.nav.journal">物品圖鑑</a>
+    <a href="/inventory" data-i18n="shop.nav.backpack">背包</a>
   </nav>
 </header>
 
@@ -688,13 +718,13 @@ h1 {
     <div class="panel-pad">
       <div class="section-head">
         <div>
-          <div class="section-kicker">COSMETIC COMMERCE · WAVE 1</div>
-          <div class="section-title" id="cosmetic-commerce-title">Outfit Collection</div>
+          <div class="section-kicker" data-i18n="shop.cosmetic.kicker">外觀商店 · REVENUE V1</div>
+          <div class="section-title" id="cosmetic-commerce-title" data-i18n="shop.cosmetic.title">五件外觀收藏池</div>
         </div>
-        <div class="section-sub">Catalog → Preview → Unlock → Ownership → Equip → Visible Result</div>
+        <div class="section-sub" data-i18n="shop.cosmetic.sub">目錄 → 預覽 → 解鎖 → 擁有 → 裝備 → 看見結果</div>
       </div>
-      <p class="cosmetic-note">
-        外觀商品的攻擊增量與防禦增量固定為 0，且沒有戰鬥權限；現有定義中的非戰鬥 XP／掉落效果仍可能保留。預覽是純 presentation；購買價格與 Premium entitlement 由 server authority 判定。
+      <p class="cosmetic-note" data-i18n="shop.cosmetic.note">
+        外觀商品的攻擊增量與防禦增量固定為 0，且沒有戰鬥權限；現有定義中的非戰鬥 XP／掉落效果仍可能保留。五件 Revenue V1 外觀都是純呈現；購買、擁有與裝備狀態仍由既有 server authority 判定。
       </p>
       <div class="cosmetic-grid" id="cosmetic-commerce-grid">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -706,8 +736,8 @@ h1 {
     <div class="panel-pad">
       <div class="section-head">
         <div>
-          <div class="section-kicker">PREMIUM · REVENUE V1 CANDIDATE</div>
-          <div class="section-title" id="premium-v1-title">Premium deterministic benefits</div>
+          <div class="section-kicker" data-i18n="shop.premium.kicker">PREMIUM · REVENUE V1</div>
+          <div class="section-title" id="premium-v1-title" data-i18n="shop.premium.title">Premium 每月固定福利</div>
         </div>
         <div class="section-sub" id="premium-v1-plan-label"></div>
       </div>
@@ -715,12 +745,16 @@ h1 {
       <div class="premium-v1-benefits" id="premium-v1-benefits"></div>
       <div class="section-head" style="margin-top:18px">
         <div>
-          <div class="section-kicker">MONTHLY COLLECTION CREDIT</div>
-          <div class="section-title" id="premium-v1-pool-title">Choose one released cosmetic</div>
+          <div class="section-kicker" data-i18n="shop.premium.collection.kicker">MONTHLY COLLECTION CREDIT</div>
+          <div class="section-title" id="premium-v1-pool-title" data-i18n="shop.premium.collection.title">選一件已發售外觀</div>
         </div>
         <div class="section-sub" id="premium-v1-grace-label"></div>
       </div>
-      <div class="premium-v1-pool" id="premium-v1-pool"></div>
+      <div class="premium-v1-selection-bar" role="status" aria-live="polite">
+        <span id="premium-v1-selection-status" data-i18n="shop.premium.selection.none">尚未選擇外觀</span>
+        <button class="btn premium-v1-claim" id="premium-v1-claim-selected" type="button" disabled data-i18n="shop.premium.claim">領取已選外觀</button>
+      </div>
+      <div class="premium-v1-pool" id="premium-v1-pool" aria-live="polite"></div>
     </div>
   </section>
 
@@ -831,18 +865,21 @@ h1 {
   <div><strong id="purchase-confirmation-title"></strong><div id="purchase-confirmation-copy"></div></div>
   <a id="purchase-confirmation-backpack" href="/inventory" data-i18n="shop.purchase.goBackpack">前往背包</a>
 </aside>
-<aside class="cosmetic-modal" id="cosmetic-preview-modal" role="dialog" aria-modal="true" aria-labelledby="cosmetic-preview-title" hidden>
+<aside class="cosmetic-modal" id="cosmetic-preview-modal" role="dialog" aria-modal="true" aria-labelledby="cosmetic-preview-title" aria-describedby="cosmetic-preview-copy" hidden>
   <div class="cosmetic-modal-card">
     <div class="cosmetic-modal-art" id="cosmetic-preview-art"></div>
     <h2 id="cosmetic-preview-title"></h2>
     <p id="cosmetic-preview-copy"></p>
-    <button class="btn cosmetic-modal-close" id="cosmetic-preview-close" type="button">Close</button>
+    <button class="btn cosmetic-modal-close" id="cosmetic-preview-close" type="button" data-i18n="shop.modal.close" data-i18n-aria-label="shop.modal.close">關閉</button>
   </div>
 </aside>
 
 <script>
 let catalog = null;
 let cosmeticCatalog = null;
+let premiumV1Offer = null;
+let premiumV1SelectedCosmeticId = null;
+let cosmeticModalReturnFocus = null;
 let toastTimer = null;
 
 const ASSET = {
@@ -1199,6 +1236,19 @@ function englishKeyName(key) {
 function isEn() {
   try { return window.I18n && I18n.getLang && I18n.getLang() === "en"; } catch (_) { return false; }
 }
+function uiText(key, english, chinese) {
+  try {
+    const translated = window.I18n && I18n.t ? I18n.t(key) : '';
+    if (translated && translated !== key) return translated;
+  } catch (_) {}
+  return isEn() ? english : chinese;
+}
+function uiFormat(key, english, chinese, values = {}) {
+  return Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+    uiText(key, english, chinese),
+  );
+}
 function money(n) {
   return Number(n || 0).toLocaleString();
 }
@@ -1358,6 +1408,8 @@ function bindCanonicalCosmeticArt(root) {
 function renderVisualReviewCandidate(candidate) {
   const asset = candidate.preview_asset || {};
   const id = cosmeticEsc(candidate.cosmetic_id || '');
+  const displayName = isEn() ? (candidate.name_en || candidate.name) : candidate.name;
+  const previewLabel = uiText('shop.cosmetic.preview', 'Preview', '預覽');
   const artClass = asset.mode === 'FULL_BODY_COSMETIC_REFERENCE'
     ? 'cosmetic-art cosmetic-art--fullbody'
     : 'cosmetic-art';
@@ -1365,17 +1417,18 @@ function renderVisualReviewCandidate(candidate) {
     <div class="cosmetic-card-top">
       ${cosmeticPresentationArtHTML(asset, artClass)}
       <div>
-        <span class="cosmetic-candidate-badge">${isEn() ? 'V1 visual shortlist' : 'V1 視覺候選'}</span>
-        <div class="cosmetic-name">${cosmeticEsc(isEn() ? (candidate.name_en || candidate.name) : candidate.name)}</div>
-        <div class="cosmetic-meta">${cosmeticEsc(candidate.category)} · ${cosmeticEsc(candidate.rarity)} · ${isEn() ? 'Preview only' : '僅供預覽'}</div>
+        <span class="cosmetic-candidate-badge">${uiText('shop.cosmetic.candidate', 'V1 collection candidate', 'V1 收藏候選')}</span>
+        <div class="cosmetic-name">${cosmeticEsc(displayName)}</div>
+        <div class="cosmetic-meta">${cosmeticEsc(candidate.category)} · ${cosmeticEsc(candidate.rarity)}</div>
+        <span class="cosmetic-state cosmetic-state--review">${uiText('shop.cosmetic.state.review', 'Presentation review', '呈現審查')}</span>
       </div>
     </div>
     <div class="cosmetic-desc">${cosmeticEsc(candidate.flavor || '')}</div>
-    <div class="card-foot"><div class="price">${isEn() ? 'Preview only' : '預覽，不定價'}</div></div>
+    <div class="card-foot"><div class="price">${uiText('shop.cosmetic.previewOnly', 'Preview only · no shop price', '僅供預覽 · 商城不定價')}</div></div>
     <div class="cosmetic-actions">
-      <button class="btn secondary" type="button" data-cosmetic-visual-preview="${id}">${isEn() ? 'Preview' : '預覽'}</button>
+      <button class="btn secondary" type="button" data-cosmetic-visual-preview="${id}" aria-label="${cosmeticEsc(uiFormat('shop.cosmetic.previewFor', 'Preview {name}', '預覽{name}', {name: displayName}))}">${previewLabel}</button>
     </div>
-    <div class="cosmetic-visible">${isEn() ? 'No purchase or equip mutation in this visual review candidate.' : '本視覺候選不會購買、扣款或改變裝備狀態。'}</div>
+    <div class="cosmetic-visible">${uiText('shop.cosmetic.candidateNote', 'Preview only here; Premium collection eligibility is shown in the Revenue V1 panel.', '此處僅供預覽；Revenue V1 的 Premium 收藏資格會在下方福利面板顯示。')}</div>
   </article>`;
 }
 function showCosmeticPreview(product) {
@@ -1392,7 +1445,10 @@ function showCosmeticPreview(product) {
     : (isEn()
       ? `Preview only. No ownership, purchase, or equip mutation. Visible result: ${product.visible_result?.surface || 'Hero'}.`
       : `純預覽，不會取得、扣款或裝備。可見結果：${product.visible_result?.surface || 'Hero'}。`);
-  document.getElementById('cosmetic-preview-modal').hidden = false;
+  const modal = document.getElementById('cosmetic-preview-modal');
+  cosmeticModalReturnFocus = document.activeElement;
+  modal.hidden = false;
+  requestAnimationFrame(() => document.getElementById('cosmetic-preview-close')?.focus());
 }
 function renderCosmeticCommerce(data) {
   cosmeticCatalog = data;
@@ -1400,7 +1456,7 @@ function renderCosmeticCommerce(data) {
   if (!grid) return;
   const products = Array.isArray(data.products) ? data.products : [];
   if (!products.length) {
-    grid.innerHTML = `<div class="empty">${isEn() ? 'No Wave 1 cosmetics are available.' : '目前沒有 Wave 1 外觀商品。'}</div>`;
+    grid.innerHTML = `<div class="load-state" role="status"><strong>${uiText('shop.cosmetic.emptyTitle', 'No cosmetics available', '目前沒有可顯示的外觀')}</strong><span>${uiText('shop.cosmetic.emptyCopy', 'Check back after the next release.', '請於下一次內容發布後再回來查看。')}</span></div>`;
     return;
   }
   const productCards = products.map(product => {
@@ -1409,33 +1465,46 @@ function renderCosmeticCommerce(data) {
     const ownership = product.ownership || {};
     const equipped = !!product.equipped_state?.equipped;
     const owned = !!ownership.owned;
+    const unavailable = !owned && product.unlock_type === 'premium' && !data.premium_entitled;
+    const stateClass = equipped ? 'selected' : unavailable ? 'unavailable' : owned ? 'owned' : 'available';
+    const displayName = isEn() ? (product.name_en || product.name) : product.name;
+    const stateLabel = equipped
+      ? uiText('shop.cosmetic.state.selected', 'Selected', '已選用')
+      : unavailable
+        ? uiText('shop.cosmetic.state.unavailable', 'Unavailable · Premium required', '目前不可用 · 需要 Premium')
+        : owned
+          ? uiText('shop.cosmetic.state.owned', 'Owned', '已擁有')
+          : uiText('shop.cosmetic.state.available', 'Available', '可取得');
     const action = equipped
-      ? `<button class="btn" type="button" disabled>${isEn() ? 'Equipped' : '已裝備'}</button>`
+      ? `<button class="btn" type="button" disabled aria-pressed="true">${uiText('shop.cosmetic.equipped', 'Selected', '已選用')}</button>`
+      : unavailable
+        ? `<button class="btn" type="button" disabled aria-disabled="true">${uiText('shop.cosmetic.unavailable', 'Unavailable', '目前不可用')}</button>`
       : owned
-        ? `<button class="btn" type="button" data-cosmetic-equip="${id}">${isEn() ? 'Equip' : '裝備'}</button>`
-        : `<button class="btn" type="button" data-cosmetic-purchase="${id}">${product.unlock_type === 'premium' ? (isEn() ? 'Unlock' : '解鎖') : (isEn() ? 'Buy' : '購買')}</button>`;
+        ? `<button class="btn" type="button" data-cosmetic-equip="${id}" aria-label="${cosmeticEsc(uiFormat('shop.cosmetic.equipFor', 'Select {name}', '選用{name}', {name: displayName}))}">${uiText('shop.cosmetic.select', 'Select', '選用')}</button>`
+        : `<button class="btn" type="button" data-cosmetic-purchase="${id}" aria-label="${cosmeticEsc(uiFormat(product.unlock_type === 'premium' ? 'shop.cosmetic.unlockFor' : 'shop.cosmetic.buyFor', product.unlock_type === 'premium' ? 'Unlock {name}' : 'Buy {name}', product.unlock_type === 'premium' ? '解鎖{name}' : '購買{name}', {name: displayName}))}">${product.unlock_type === 'premium' ? uiText('shop.cosmetic.unlock', 'Unlock', '解鎖') : uiText('shop.cosmetic.buy', 'Buy', '購買')}</button>`;
     const artClass = asset.mode === 'FULL_BODY_COSMETIC_REFERENCE'
       ? 'cosmetic-art cosmetic-art--fullbody'
       : 'cosmetic-art';
-    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}" data-cosmetic-product="${id}">
+    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}${unavailable ? ' is-unavailable' : ''}" data-cosmetic-product="${id}" data-cosmetic-state="${stateClass}" aria-label="${cosmeticEsc(displayName)}">
       <div class="cosmetic-card-top">
         ${cosmeticPresentationArtHTML(asset, artClass)}
-        <div><div class="cosmetic-name">${cosmeticEsc(isEn() ? (product.name_en || product.name) : product.name)}</div>
-          <div class="cosmetic-meta">${cosmeticEsc(product.category)} · ${cosmeticEsc(product.rarity)} · ${owned ? (isEn() ? 'Owned' : '已擁有') : (isEn() ? 'Not owned' : '未擁有')}</div></div>
+        <div><div class="cosmetic-name">${cosmeticEsc(displayName)}</div>
+          <div class="cosmetic-meta">${cosmeticEsc(product.category)} · ${cosmeticEsc(product.rarity)}</div>
+          <span class="cosmetic-state cosmetic-state--${stateClass}">${stateLabel}</span></div>
       </div>
       <div class="cosmetic-desc">${cosmeticEsc(product.flavor || '')}</div>
       <div class="card-foot"><div class="price">${cosmeticPriceLabel(product)}</div></div>
       <div class="cosmetic-actions">
-        <button class="btn secondary" type="button" data-cosmetic-preview="${id}">${isEn() ? 'Preview' : '預覽'}</button>
+        <button class="btn secondary" type="button" data-cosmetic-preview="${id}" aria-label="${cosmeticEsc(uiFormat('shop.cosmetic.previewFor', 'Preview {name}', '預覽{name}', {name: displayName}))}">${uiText('shop.cosmetic.preview', 'Preview', '預覽')}</button>
         ${action}
       </div>
-      <div class="cosmetic-visible">${equipped ? (isEn() ? 'Visible on Hero now.' : '目前已在英雄外觀生效。') : (isEn() ? 'Visible result: Hero outfit.' : '裝備後會顯示在英雄外觀。')}</div>
+      <div class="cosmetic-visible">${equipped ? uiText('shop.cosmetic.visibleSelected', 'Selected and visible on Hero.', '已選用，現在會顯示在英雄外觀。') : uiText('shop.cosmetic.visibleResult', 'Selecting this will show it on your Hero.', '選用後會顯示在英雄外觀。')}</div>
     </article>`;
   }).join('');
   const visualCandidates = Array.isArray(data.presentation_candidates)
     ? data.presentation_candidates : [];
   const candidateCards = visualCandidates.length
-    ? `<div class="cosmetic-candidate-heading">${isEn() ? 'NEXT V1 VISUAL REVIEW' : '下一階段 V1 視覺審查'}</div>${visualCandidates.map(renderVisualReviewCandidate).join('')}`
+    ? `<div class="cosmetic-candidate-heading">${uiText('shop.cosmetic.nextReview', 'NEXT V1 VISUAL REVIEW', '下一階段 V1 視覺審查')}</div>${visualCandidates.map(renderVisualReviewCandidate).join('')}`
     : '';
   grid.innerHTML = productCards + candidateCards;
   bindCanonicalCosmeticArt(grid);
@@ -1452,74 +1521,157 @@ function renderCosmeticCommerce(data) {
     button.addEventListener('click', () => previewVisualCandidate(button.dataset.cosmeticVisualPreview));
   });
 }
+function renderCosmeticCommerceError(message) {
+  const grid = document.getElementById('cosmetic-commerce-grid');
+  if (!grid) return;
+  grid.innerHTML = `<div class="load-state" role="alert"><strong>${uiText('shop.state.errorTitle', 'Cosmetic catalogue unavailable', '外觀目錄暫時無法載入')}</strong><span>${uiText('shop.state.errorCopy', 'Try again without changing ownership or payment state.', '請重試；這不會改變擁有、付款或裝備狀態。')}</span><button class="btn secondary" type="button" id="cosmetic-commerce-retry">${uiText('shop.state.retry', 'Retry', '重試')}</button></div>`;
+  document.getElementById('cosmetic-commerce-retry')?.addEventListener('click', loadCosmeticCommerce, { once: true });
+  if (message) showToast(message);
+}
 async function loadCosmeticCommerce() {
-  const res = await api('/api/cosmetic-commerce/catalog');
-  if (res.error) {
-    showToast(errorMessage(res.error));
-    return;
+  try {
+    const res = await api('/api/cosmetic-commerce/catalog');
+    if (res.error) {
+      renderCosmeticCommerceError(errorMessage(res.error));
+      return;
+    }
+    renderCosmeticCommerce(res);
+  } catch (_) {
+    renderCosmeticCommerceError(uiText('shop.state.networkError', 'Network error. Please retry.', '網路連線異常，請重試。'));
   }
-  renderCosmeticCommerce(res);
+}
+function updatePremiumV1Selection(data) {
+  const status = document.getElementById('premium-v1-selection-status');
+  const claim = document.getElementById('premium-v1-claim-selected');
+  const selected = (data?.cosmetic_pool || []).find(reward => reward.item_id === premiumV1SelectedCosmeticId);
+  const canClaim = !!(data?.premium_entitled && selected && !selected.owned);
+  if (claim) {
+    claim.disabled = !canClaim;
+    claim.setAttribute('aria-disabled', canClaim ? 'false' : 'true');
+  }
+  if (!status) return;
+  if (selected && !selected.owned) {
+    const name = isEn() ? (selected.display_name_en || selected.display_name) : selected.display_name;
+    status.textContent = uiFormat('shop.premium.selection.selected', 'Selected: {name}', '已選擇：{name}', {name});
+  } else if (!data?.premium_entitled) {
+    status.textContent = uiText('shop.premium.selection.unavailable', 'Selection is unavailable until Premium is verified.', '需先由 server 驗證 Premium，才能選擇與領取。');
+  } else {
+    status.textContent = uiText('shop.premium.selection.none', 'No cosmetic selected yet.', '尚未選擇外觀。');
+  }
 }
 function renderPremiumV1(data) {
+  premiumV1Offer = data;
   const panel = document.getElementById('premium-v1-panel');
-  if (!panel || !data?.enabled) return;
-  panel.hidden = false;
+  if (!panel) return;
+  panel.hidden = !data?.enabled;
+  if (!data?.enabled) return;
   const monthly = data.prices?.newebpay?.monthly || {currency:'TWD', amount:299};
   const annual = data.prices?.newebpay?.annual || {currency:'TWD', amount:2490};
+  const graceDays = Number(data.annual_policy?.grace_days_for_earned_credits || 90);
   document.getElementById('premium-v1-plan-label').textContent = isEn()
     ? `Monthly ${monthly.currency} ${monthly.amount} · Annual ${annual.currency} ${annual.amount}`
     : `月繳 ${monthly.currency} ${monthly.amount} · 年繳 ${annual.currency} ${annual.amount}`;
   document.getElementById('premium-v1-copy').textContent = data.premium_entitled
-    ? (isEn()
-      ? 'Your Premium status includes one deterministic +5 question-capacity credit and one disclosed pure-cosmetic collection credit per eligible month. Annual credits vest monthly; earned credits have a 90-day grace window.'
-      : '目前 Premium 方案每個符合資格月份提供一次 +5 題數上限額度與一次明確揭露的純外觀收藏額度。年繳按月解鎖，已賺取額度提供 90 天寬限。')
-    : (isEn() ? 'A verified Premium entitlement is required to claim these benefits.' : '需由 server 驗證有效 Premium entitlement 才能領取。');
-  const benefitText = isEn()
-    ? [
-        ['+5 question capacity', 'One per eligible month; applied by the D5B authority.'],
-        ['Cosmetic collection credit', 'Choose one released item from the disclosed five-item pool.'],
-        ['Premium identity', 'Existing Premium status and identity presentation remain active.']
-      ]
-    : [
-        ['+5 題數上限', '每個符合資格月份一次，由 D5B authority 套用。'],
-        ['外觀收藏額度', '從揭露的五件已發售外觀中選一件。'],
-        ['Premium 身份', '沿用既有 Premium 狀態與身份呈現。']
-      ];
+    ? uiText('shop.premium.copy.active',
+      'Each eligible month provides one +5 question-capacity credit and one disclosed pure-cosmetic collection credit. Annual credits vest monthly; earned credits remain claimable for {days} days after eligible access ends, while future months are not backfilled.',
+      '每個符合資格月份提供一次 +5 題數上限額度與一次揭露的純外觀收藏額度。年繳按月入帳；資格結束後，已產生的額度仍可在 {days} 天內領取，未產生的未來月份不會補發。').replace('{days}', String(graceDays))
+    : uiText('shop.premium.copy.inactive', 'A verified Premium entitlement is required to claim these benefits.', '需由 server 驗證有效 Premium entitlement，才能領取這些福利。');
+  const benefitText = [
+    [
+      uiText('shop.premium.benefit.questions.title', '+5 question capacity', '+5 題數上限'),
+      uiText('shop.premium.benefit.questions.copy', 'One per eligible month; applied by the D5B authority. It raises the current day\'s capacity only and does not change puzzle judgment.', '每個符合資格月份一次，由 D5B authority 套用；只增加當日題數上限，不改變題目判定。'),
+    ],
+    [
+      uiText('shop.premium.benefit.cosmetic.title', 'Pure-cosmetic collection credit', '純外觀收藏額度'),
+      uiText('shop.premium.benefit.cosmetic.copy', 'Choose one of the disclosed five pure cosmetics. Ownership is recorded by the existing wardrobe authority; no combat power is added.', '從揭露的五件純外觀中選一件；擁有狀態仍由既有衣櫃 authority 記錄，不增加戰鬥能力。'),
+    ],
+    [
+      uiText('shop.premium.benefit.vesting.title', 'Monthly vesting', '按月入帳'),
+      uiText('shop.premium.benefit.vesting.copy', 'Annual plans create one monthly credit at a time, not twelve credits upfront.', '年繳方案一次只產生當月額度，不會在開通時一次發放十二份。'),
+    ],
+  ];
   document.getElementById('premium-v1-benefits').innerHTML = benefitText.map(([title, copy]) =>
     `<div class="premium-v1-benefit"><strong>${cosmeticEsc(title)}</strong><span>${cosmeticEsc(copy)}</span></div>`
   ).join('');
-  document.getElementById('premium-v1-grace-label').textContent = isEn()
-    ? `Annual vesting · ${data.annual_policy?.grace_days_for_earned_credits || 90}-day grace`
-    : `年繳按月解鎖 · 已賺取額度 ${data.annual_policy?.grace_days_for_earned_credits || 90} 天寬限`;
+  document.getElementById('premium-v1-grace-label').textContent = uiFormat(
+    'shop.premium.grace',
+    'Annual credits vest monthly · earned credits: {days}-day claim window',
+    '年繳按月入帳 · 已產生額度：{days} 天領取期限',
+    {days: graceDays},
+  );
   const pool = document.getElementById('premium-v1-pool');
   const rewards = Array.isArray(data.cosmetic_pool) ? data.cosmetic_pool : [];
   const available = rewards.filter(reward => !reward.owned);
   if (!available.length) {
-    pool.innerHTML = `<div class="empty">${isEn() ? 'No unowned C013 cosmetic is available. The credit is not converted.' : '五件 C013 外觀皆已擁有；額度不會轉換成其他獎勵。'}</div>`;
+    premiumV1SelectedCosmeticId = null;
+    pool.innerHTML = `<div class="load-state" role="status"><strong>${uiText('shop.premium.emptyTitle', 'All five cosmetics are owned', '五件外觀皆已擁有')}</strong><span>${uiText('shop.premium.emptyCopy', 'The monthly credit is not converted into another reward.', '本月額度不會轉換成其他獎勵。')}</span></div>`;
+    updatePremiumV1Selection(data);
     return;
+  }
+  if (!data.premium_entitled || !available.some(reward => reward.item_id === premiumV1SelectedCosmeticId)) {
+    premiumV1SelectedCosmeticId = null;
   }
   pool.innerHTML = rewards.map(reward => {
     const asset = reward.preview_asset || {};
     const owned = !!reward.owned;
-    const disabled = owned || !data.premium_entitled;
+    const unavailable = !owned && !data.premium_entitled;
+    const selected = reward.item_id === premiumV1SelectedCosmeticId;
     const name = isEn() ? (reward.display_name_en || reward.display_name) : reward.display_name;
-    return `<article class="premium-v1-reward" data-premium-v1-reward="${cosmeticEsc(reward.item_id)}">
+    const stateClass = owned ? 'is-owned' : unavailable ? 'is-unavailable' : selected ? 'is-selected' : '';
+    const stateLabel = owned
+      ? uiText('shop.premium.state.owned', 'Owned permanently', '已永久擁有')
+      : unavailable
+        ? uiText('shop.premium.state.unavailable', 'Unavailable · Premium required', '目前不可用 · 需要 Premium')
+        : selected
+          ? uiText('shop.premium.state.selected', 'Selected', '已選擇')
+          : uiText('shop.premium.state.available', 'Available to select', '可選擇');
+    const buttonLabel = owned
+      ? uiText('shop.premium.owned', 'Owned', '已擁有')
+      : unavailable
+        ? uiText('shop.premium.unavailable', 'Unavailable', '目前不可用')
+        : selected
+          ? uiText('shop.premium.selected', 'Selected', '已選擇')
+          : uiText('shop.premium.select', 'Select', '選擇');
+    return `<article class="premium-v1-reward ${stateClass}" data-premium-v1-reward="${cosmeticEsc(reward.item_id)}" data-premium-v1-state="${owned ? 'owned' : unavailable ? 'unavailable' : selected ? 'selected' : 'available'}">
       ${asset.asset ? `<img src="${cosmeticEsc(asset.asset)}" alt="${cosmeticEsc(name)}" loading="lazy" decoding="async">` : ''}
+      <span class="premium-v1-reward-state ${stateClass}">${stateLabel}</span>
       <strong>${cosmeticEsc(name)}</strong>
-      <span class="tile-sub">${owned ? (isEn() ? 'Owned permanently' : '已永久擁有') : (isEn() ? 'Pure cosmetic · no combat authority' : '純外觀 · 無戰鬥權限')}</span>
-      <button class="btn secondary" type="button" data-premium-v1-claim="${cosmeticEsc(reward.item_id)}" ${disabled ? 'disabled' : ''}>${owned ? (isEn() ? 'Owned' : '已擁有') : (isEn() ? 'Choose and claim' : '選擇並領取')}</button>
+      <span class="tile-sub">${uiText('shop.premium.pureCosmetic', 'Pure cosmetic · no combat authority', '純外觀 · 無戰鬥權限')}</span>
+      <button class="btn secondary" type="button" data-premium-v1-select="${cosmeticEsc(reward.item_id)}" aria-pressed="${selected ? 'true' : 'false'}" ${owned || unavailable ? 'disabled aria-disabled="true"' : ''}>${buttonLabel}</button>
     </article>`;
   }).join('');
-  pool.querySelectorAll('[data-premium-v1-claim]').forEach(button => {
-    button.addEventListener('click', () => claimPremiumV1(button.dataset.premiumV1Claim));
+  pool.querySelectorAll('[data-premium-v1-select]').forEach(button => {
+    button.addEventListener('click', () => {
+      premiumV1SelectedCosmeticId = button.dataset.premiumV1Select;
+      renderPremiumV1(premiumV1Offer);
+    });
   });
+  updatePremiumV1Selection(data);
+}
+function renderPremiumV1Error(message) {
+  const panel = document.getElementById('premium-v1-panel');
+  const pool = document.getElementById('premium-v1-pool');
+  if (!panel || !pool) return;
+  panel.hidden = false;
+  pool.innerHTML = `<div class="load-state" role="alert"><strong>${uiText('shop.premium.errorTitle', 'Premium benefits unavailable', 'Premium 福利暫時無法載入')}</strong><span>${uiText('shop.premium.errorCopy', 'No claim or payment action was performed. Please retry later.', '未執行領取或付款動作，請稍後再試。')}</span></div>`;
+  updatePremiumV1Selection({premium_entitled: false, cosmetic_pool: []});
+  if (message) showToast(message);
 }
 async function loadPremiumV1Offer() {
-  const res = await api('/api/premium/v1/offer');
-  if (res.error || !res.enabled) return;
-  renderPremiumV1(res);
+  try {
+    const res = await api('/api/premium/v1/offer');
+    premiumV1Offer = res;
+    if (res.error) {
+      renderPremiumV1Error(errorMessage(res.error));
+      return;
+    }
+    renderPremiumV1(res);
+  } catch (_) {
+    renderPremiumV1Error(uiText('shop.state.networkError', 'Network error. Please retry.', '網路連線異常，請重試。'));
+  }
 }
 async function claimPremiumV1(cosmeticId) {
+  if (!cosmeticId) return;
   const operationId = (window.crypto && typeof window.crypto.randomUUID === 'function')
     ? window.crypto.randomUUID()
     : `c013-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -1536,6 +1688,9 @@ async function claimPremiumV1(cosmeticId) {
   showToast(isEn() ? 'Premium benefits claimed.' : 'Premium 本月福利已領取。');
   await loadPremiumV1Offer();
 }
+document.getElementById('premium-v1-claim-selected')?.addEventListener('click', () => {
+  claimPremiumV1(premiumV1SelectedCosmeticId);
+});
 async function previewCosmetic(productId) {
   const res = await api(`/api/cosmetic-commerce/preview/${encodeURIComponent(productId)}`);
   if (res.error) { showToast(errorMessage(res.error)); return; }
@@ -1569,20 +1724,59 @@ async function equipCosmetic(productId) {
   await loadCosmeticCommerce();
   showToast(isEn() ? 'Outfit equipped on your hero.' : '外觀已裝備到英雄。');
 }
-document.getElementById('cosmetic-preview-close').addEventListener('click', () => {
-  document.getElementById('cosmetic-preview-modal').hidden = true;
-});
+function closeCosmeticPreview() {
+  const modal = document.getElementById('cosmetic-preview-modal');
+  if (!modal || modal.hidden) return;
+  modal.hidden = true;
+  const returnTarget = cosmeticModalReturnFocus;
+  cosmeticModalReturnFocus = null;
+  if (returnTarget && typeof returnTarget.focus === 'function') returnTarget.focus();
+}
+document.getElementById('cosmetic-preview-close').addEventListener('click', closeCosmeticPreview);
 document.getElementById('cosmetic-preview-modal').addEventListener('click', event => {
-  if (event.target.id === 'cosmetic-preview-modal') event.currentTarget.hidden = true;
+  if (event.target.id === 'cosmetic-preview-modal') closeCosmeticPreview();
 });
-
-async function loadCatalog() {
-  const res = await api("/api/shop/catalog");
-  catalog = res;
-  if (res.error) {
-    showToast(errorMessage(res.error));
+document.addEventListener('keydown', event => {
+  const modal = document.getElementById('cosmetic-preview-modal');
+  if (!modal || modal.hidden) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeCosmeticPreview();
     return;
   }
+  if (event.key !== 'Tab') return;
+  const focusable = [...modal.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')];
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
+
+function renderShopLoadError(message) {
+  ['daily-grid', 'weekly-grid', 'monthly-grid', 'items-grid'].forEach(id => {
+    const grid = document.getElementById(id);
+    if (!grid) return;
+    grid.innerHTML = `<div class="load-state" role="alert"><strong>${uiText('shop.state.errorTitle', 'Shop data unavailable', '商城資料暫時無法載入')}</strong><span>${uiText('shop.state.errorCopy', 'No purchase or inventory action was performed.', '未執行購買或背包變更。')}</span><button class="btn secondary" type="button" data-shop-retry="1">${uiText('shop.state.retry', 'Retry', '重試')}</button></div>`;
+  });
+  document.querySelectorAll('[data-shop-retry]').forEach(button => {
+    button.addEventListener('click', loadCatalog, { once: true });
+  });
+  if (message) showToast(message);
+}
+async function loadCatalog() {
+  try {
+    const res = await api("/api/shop/catalog");
+    catalog = res;
+    if (res.error) {
+      renderShopLoadError(errorMessage(res.error));
+      return;
+    }
   document.getElementById("coin-bal").textContent = money(res.coins);
   document.getElementById("earned-today").textContent = money(res.earned_today);
   document.getElementById("daily-cap").textContent = money(res.daily_cap || 500);
@@ -1618,7 +1812,11 @@ async function loadCatalog() {
   renderDaily(res);
   renderWeekly(res);
   renderMonthly(res);
-  renderItems(res);
+    renderItems(res);
+  } catch (_) {
+    catalog = {error: 'network_error'};
+    renderShopLoadError(uiText('shop.state.networkError', 'Network error. Please retry.', '網路連線異常，請重試。'));
+  }
 }
 function renderDaily(res) {
   const grid = document.getElementById("daily-grid");
@@ -1873,6 +2071,18 @@ function showGachaResult(res) {
   box.classList.add("show");
 }
 document.getElementById("btn-gacha").addEventListener("click", doGacha);
+window.onLangChange = () => {
+  if (catalog && !catalog.error) {
+    renderDaily(catalog);
+    renderWeekly(catalog);
+    renderMonthly(catalog);
+    renderItems(catalog);
+    setMerchantLine('idle');
+  }
+  if (cosmeticCatalog && !cosmeticCatalog.error) renderCosmeticCommerce(cosmeticCatalog);
+  if (premiumV1Offer?.error) renderPremiumV1Error();
+  else if (premiumV1Offer) renderPremiumV1(premiumV1Offer);
+};
 loadCatalog();
 loadCosmeticCommerce();
 loadPremiumV1Offer();

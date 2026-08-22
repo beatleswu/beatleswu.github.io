@@ -25,7 +25,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
 .hero{position:relative;z-index:1;min-height:calc(100vh - 70px);display:grid;align-items:center;padding:72px clamp(18px,5vw,76px);overflow:hidden}.hero-bg{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(13,8,4,.95),rgba(18,10,5,.7) 43%,rgba(16,10,6,.22) 72%),url('/assets/upgrade_page_assets/upgrade_hero_premium_hall.webp') center/cover no-repeat}.hero::after{content:'';position:absolute;inset:auto 0 0;height:190px;background:linear-gradient(transparent,var(--bg));z-index:-1}
 .hero-grid{display:grid;grid-template-columns:minmax(0,760px) minmax(320px,460px);gap:28px;align-items:center;max-width:1240px;margin:0 auto;width:100%}.eyebrow{display:inline-flex;width:max-content;border:1px solid var(--line);border-radius:999px;background:rgba(18,11,6,.68);padding:8px 13px;color:var(--gold);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.7px;text-transform:uppercase}
 .hero h1{margin-top:18px;font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:clamp(44px,6vw,82px);line-height:1.03;font-weight:900;text-shadow:0 12px 34px rgba(0,0,0,.58)}.hero h1 em{display:block;font-style:normal;color:var(--gold)}.hero-copy{max-width:640px;margin-top:22px;color:rgba(255,244,220,.82);font-size:18px;line-height:1.8}
-.hero-actions{display:flex;flex-wrap:wrap;gap:13px;margin-top:30px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;border:1px solid var(--line);padding:13px 18px;font-weight:900;cursor:pointer;transition:transform .16s,filter .16s}.btn:hover{transform:translateY(-1px)}.btn.primary{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007;box-shadow:0 10px 26px rgba(242,200,109,.25)}.btn.ghost{background:rgba(255,255,255,.055);color:#f8e8c4}
+.hero-actions{display:flex;flex-wrap:wrap;gap:13px;margin-top:30px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;border:1px solid var(--line);padding:13px 18px;font-weight:900;cursor:pointer;transition:transform .16s,filter .16s}.btn:hover{transform:translateY(-1px)}.btn:focus-visible,.btog-btn:focus-visible,.faq-q:focus-visible,.modal-close:focus-visible{outline:3px solid rgba(62,214,200,.95);outline-offset:3px}.btn.primary{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007;box-shadow:0 10px 26px rgba(242,200,109,.25)}.btn.ghost{background:rgba(255,255,255,.055);color:#f8e8c4}
 .premium-art{position:relative;min-height:520px;display:grid;place-items:center}.pass-card{width:min(92%,380px);filter:drop-shadow(0 28px 34px rgba(0,0,0,.48));animation:float 4s ease-in-out infinite}.npc{position:absolute;right:-4px;bottom:0;width:min(66%,300px);max-height:430px;object-fit:contain;filter:drop-shadow(0 22px 26px rgba(0,0,0,.45))}.speech{position:absolute;left:0;bottom:28px;max-width:260px;border:1px solid rgba(62,214,200,.38);border-radius:16px;background:rgba(12,21,20,.76);padding:15px 16px;box-shadow:var(--shadow)}.speech b{display:block;color:var(--teal);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:6px}.speech p{font-size:13px;line-height:1.65;color:#eefaf6}
 @keyframes float{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-12px) rotate(1deg)}}
 .page{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:24px clamp(18px,5vw,48px) 80px}
@@ -33,6 +33,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
 .section-head{margin:64px 0 24px;max-width:760px}.tag{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:9px}.section-head h2{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:clamp(34px,4.4vw,56px);line-height:1.08}.section-head p{margin-top:12px;color:rgba(255,244,220,.72);line-height:1.8}
 .billing-toggle{display:flex;width:max-content;margin:0 auto 22px;padding:5px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.28)}.btog-btn{border:0;border-radius:11px;background:transparent;color:rgba(255,244,220,.65);padding:10px 22px;cursor:pointer;font-weight:900}.btog-btn.active{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007}.save-badge{display:inline-flex;margin-left:6px;border-radius:999px;background:rgba(62,214,200,.18);color:#9efff7;padding:2px 7px;font-family:'DM Mono',monospace;font-size:10px}
 .plans{display:grid;grid-template-columns:1fr 1fr;gap:20px}.plan-card{border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));padding:26px;box-shadow:var(--shadow)}.plan-card.premium{border-color:rgba(242,200,109,.75);background:linear-gradient(180deg,rgba(85,54,24,.92),rgba(31,20,12,.94));position:relative;overflow:hidden}.plan-card.premium::after{content:'';position:absolute;right:-80px;top:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(242,200,109,.22),transparent 66%)}
+.revenue-v1-note{margin:20px 0 0;border:1px solid rgba(62,214,200,.3);border-radius:16px;background:rgba(9,72,68,.16);padding:16px 18px;color:rgba(255,244,220,.78);line-height:1.7}.revenue-v1-note strong{display:block;color:#9efff7;margin-bottom:4px}.revenue-v1-note p{font-size:13px}.revenue-v1-note a{display:inline-flex;margin-top:8px;color:#9efff7;font-weight:900;text-decoration:underline;text-underline-offset:3px}
 .plan-badge{display:inline-flex;border-radius:999px;padding:6px 11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:16px}.free-b{border:1px solid rgba(255,244,220,.22);color:#d8c5a4;background:rgba(255,255,255,.05)}.pro-b{background:var(--gold);color:#1b1007}.plan-price{font-family:'Cormorant Garamond','Noto Serif TC',serif;font-size:52px;line-height:1;font-weight:900;color:#fff0c8}.plan-price .cur{font-size:24px;vertical-align:super;color:#d8c5a4}.plan-price .orig{font-family:'DM Sans',sans-serif;font-size:17px;color:rgba(255,244,220,.38);text-decoration:line-through;margin-left:8px}.plan-period{margin:8px 0 22px;color:rgba(255,244,220,.62);font-family:'DM Mono',monospace;font-size:12px}.plan-features{list-style:none;display:grid;gap:11px;margin-bottom:24px}.plan-features li{display:flex;gap:9px;color:rgba(255,244,220,.78);line-height:1.55;font-size:14px}.fi{width:22px;flex-shrink:0}.plan-cta{width:100%;border:1px solid var(--line);border-radius:13px;padding:14px 18px;cursor:pointer;font-weight:900;transition:transform .16s,filter .16s}.plan-cta:hover{transform:translateY(-1px);filter:brightness(1.06)}.cta-free{background:rgba(255,255,255,.06);color:#f4dfb8}.cta-pro{background:linear-gradient(135deg,#f7d17d,#b87924);color:#1b1007;box-shadow:0 12px 24px rgba(242,200,109,.22)}.cta-pro:disabled{background:linear-gradient(135deg,#3ed6c8,#1b8f86);color:#061412;box-shadow:none}
 .unlock-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.unlock-card{border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.055);padding:18px;min-height:210px}.unlock-card img{width:86px;height:86px;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(0,0,0,.36));margin-bottom:14px}.unlock-card h3{font-family:'Noto Serif TC',serif;color:#fff0c8;font-size:19px;margin-bottom:8px}.unlock-card p{color:rgba(255,244,220,.68);line-height:1.65;font-size:13px}
 .compare-wrap{border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.055);overflow:hidden;box-shadow:var(--shadow)}.compare-table{width:100%;border-collapse:collapse}.compare-table th,.compare-table td{padding:15px 18px;text-align:center;border-bottom:1px solid rgba(242,200,109,.13);font-size:14px}.compare-table th{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;background:rgba(0,0,0,.22);color:#e7cfaa}.compare-table th:first-child,.compare-table td:first-child{text-align:left;color:#f4dfb8}.compare-table th.pro,.compare-table td.pro{background:rgba(242,200,109,.08);color:#fff0c8}.compare-table tr:last-child td{border-bottom:0}.ck{color:var(--teal);font-weight:900}.cx{color:rgba(255,244,220,.36)}
@@ -85,7 +86,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
   <div class="hero-bg"></div>
   <div class="hero-grid">
     <div>
-      <div class="eyebrow">Premium Guild Pass</div>
+      <div class="eyebrow" data-i18n="up.hero.eyebrow">Premium 公會通行證</div>
       <h1 data-i18n-html="up.h1">弈境奇兵公會通行證<em>解鎖高階修行卷宗。</em></h1>
       <p class="hero-copy" data-i18n="up.heroCopy">金徽通行證會開啟全題庫、無限修行、KataGo 星盤解析與 Premium 專屬獎勵。讓每天練棋不只是刷題，而是一段可持續推進的遠征。</p>
       <div class="hero-actions">
@@ -96,7 +97,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
     <div class="premium-art">
       <img class="pass-card" src="/assets/upgrade_page_assets/premium_pass_card.webp" data-i18n-alt="up.passCardAlt" alt="金徽通行證">
       <img class="npc" src="/assets/upgrade_page_assets/npc_pass_keeper.webp" data-i18n-alt="up.npcAlt" alt="通行證管理官 莉雅">
-      <div class="speech"><b>Pass Keeper Lia</b><p data-i18n="up.speech">升級後，我會替你打開高階卷宗與星盤解析。別急，真正有用的路線會一頁頁亮起來。</p></div>
+      <div class="speech"><b data-i18n="up.speech.label">Pass Keeper Lia</b><p data-i18n="up.speech">升級後，我會替你打開高階卷宗與星盤解析。別急，真正有用的路線會一頁頁亮起來。</p></div>
     </div>
   </div>
 </header>
@@ -110,14 +111,14 @@ a{color:inherit;text-decoration:none}button{font:inherit}
 
   <section id="plans">
     <div class="section-head">
-      <div class="tag">Choose Your Pass</div>
+      <div class="tag" data-i18n="up.tag.choose">Choose Your Pass</div>
       <h2 data-i18n="up.plans.h2">選擇你的公會權限</h2>
       <p data-i18n="up.plans.p">免費版適合穩定起步；金徽通行證則適合想把題庫、AI 解析與成長紀錄全部串起來的棋士。</p>
     </div>
 
-    <div class="billing-toggle">
-      <button class="btog-btn active" id="btn-monthly" onclick="setBilling('monthly')" data-i18n="up.monthly">按月</button>
-      <button class="btog-btn" id="btn-annual" onclick="setBilling('annual')"><span data-i18n="up.annual">按年</span> <span class="save-badge" id="save-label">省 NT$1,098</span></button>
+    <div class="billing-toggle" role="group" aria-label="Billing period">
+      <button class="btog-btn active" id="btn-monthly" onclick="setBilling('monthly')" aria-pressed="true" data-i18n="up.monthly">按月</button>
+      <button class="btog-btn" id="btn-annual" onclick="setBilling('annual')" aria-pressed="false"><span data-i18n="up.annual">按年</span> <span class="save-badge" id="save-label">省 NT$1,098</span></button>
     </div>
 
     <div class="plans">
@@ -150,11 +151,16 @@ a{color:inherit;text-decoration:none}button{font:inherit}
         <div id="already-premium" hidden aria-live="polite"></div>
       </article>
     </div>
+    <div class="revenue-v1-note" aria-labelledby="revenue-v1-note-title">
+      <strong id="revenue-v1-note-title" data-i18n="up.revenue.note.title">Revenue V1 每月福利（啟用後）</strong>
+      <p data-i18n="up.revenue.note.copy">每個符合資格月份：+5 題數上限額度一次，以及從五件揭露純外觀中選一件的收藏額度一次。年繳按月入帳，不會一次預發十二份；已產生額度在資格結束後仍可於 90 天內領取，未來月份不補發。</p>
+      <a href="/shop" data-i18n="up.revenue.note.link">前往外觀收藏與 Premium 福利說明</a>
+    </div>
   </section>
 
   <section id="unlock">
     <div class="section-head">
-      <div class="tag">Unlocked Rewards</div>
+      <div class="tag" data-i18n="up.tag.unlock">Unlocked Rewards</div>
       <h2 data-i18n="up.unlock.h2">升級後立即解鎖</h2>
       <p data-i18n="up.unlock.p">這些不是裝飾性權益，而是會直接影響每日修行效率的公會權限。</p>
     </div>
@@ -168,7 +174,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
 
   <section class="compare">
     <div class="section-head">
-      <div class="tag">Permission Scroll</div>
+      <div class="tag" data-i18n="up.tag.permission">Permission Scroll</div>
       <h2 data-i18n="up.cmp.h2">權限對照卷軸</h2>
     </div>
     <div class="compare-wrap">
@@ -189,7 +195,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
 
   <section class="faq">
     <div class="section-head">
-      <div class="tag">FAQ</div>
+      <div class="tag" data-i18n="up.tag.faq">FAQ</div>
       <h2 data-i18n="up.faq.h2">通行證常見問題</h2>
     </div>
     <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)"><span data-i18n="up.faq1.q">如何開通金徽通行證？</span><span class="faq-arrow">▶</span></button><div class="faq-body"><div class="faq-body-inner" data-i18n="up.faq1.a">目前採人工開通。按下申請後寄送開通卷軸，管理員確認付款後會將 Premium 綁定到你的帳號。</div></div></div>
@@ -207,7 +213,7 @@ a{color:inherit;text-decoration:none}button{font:inherit}
 
 <div id="pay-modal" onclick="if(event.target===this)closeModal()">
   <div class="modal-box modal-shell modal-system-card">
-    <button class="modal-close" onclick="closeModal()">x</button>
+    <button class="modal-close" type="button" onclick="closeModal()" aria-label="關閉" data-i18n-aria-label="up.modal.close">×</button>
     <div class="modal-hero">
       <div class="modal-icon"><img src="/assets/upgrade_page_assets/premium_treasure_chest.webp" alt=""></div>
       <div class="modal-copy">
@@ -287,6 +293,8 @@ function setBilling(mode){
   _billing=mode;
   document.getElementById('btn-monthly').classList.toggle('active',mode==='monthly');
   document.getElementById('btn-annual').classList.toggle('active',mode==='annual');
+  document.getElementById('btn-monthly').setAttribute('aria-pressed',mode==='monthly'?'true':'false');
+  document.getElementById('btn-annual').setAttribute('aria-pressed',mode==='annual'?'true':'false');
   updatePrice();
 }
 function updatePrice(){
