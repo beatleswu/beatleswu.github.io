@@ -1,8 +1,8 @@
 """Pure test-only fixtures and projections for E019 Six-Spirit S1.
 
-This module deliberately does not import or modify app.py.  It models the
-accepted boundary between authoritative Spirit state and future presentation
-surfaces so S1 tests can run before the six-Spirit runtime exists.
+This module deliberately does not import or modify app.py. It models the
+accepted boundary between authoritative Spirit state and presentation
+surfaces after the six-Spirit catalog is server-registered.
 """
 
 from __future__ import annotations
@@ -70,17 +70,17 @@ def roster_projection(state: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def future_slot_projection(role: str, state: str) -> dict[str, Any]:
-    """Represent a future catalog slot without inventing an ID or name."""
+    """Keep the legacy helper name while projecting a registered slot."""
 
-    allowed_roles = {slot["role"] for slot in load_contract()["six_slots"][3:]}
-    if role not in allowed_roles:
-        raise ValueError(f"unknown future slot role: {role}")
+    slot = next((item for item in load_contract()["six_slots"] if item["role"] == role), None)
+    if slot is None:
+        raise ValueError(f"unknown catalog role: {role}")
     if state not in {"LOCKED", "AVAILABLE", "OWNED"}:
         raise ValueError(f"unknown generic unlock state: {state}")
     return {
         "role": role,
-        "spirit_id": None,
-        "canonical_name": None,
+        "spirit_id": slot["spirit_id"],
+        "canonical_name": slot["canonical_name"],
         "unlock_state": state,
     }
 

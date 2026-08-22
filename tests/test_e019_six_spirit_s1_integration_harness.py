@@ -1,7 +1,7 @@
-"""E019 executable S1 contracts for the future Six-Spirit Companion.
+"""E019 executable S1 contracts for the canonical Six-Spirit Companion.
 
-The file intentionally tests fixtures and static current-runtime boundaries;
-it does not implement or claim the future six-Spirit runtime.
+The fixture remains a presentation-boundary harness; D008 supplies the
+server-owned catalog and state projection consumed by these contracts.
 """
 
 from __future__ import annotations
@@ -29,12 +29,15 @@ ROOT = Path(__file__).resolve().parents[1]
 APP_SOURCE = (ROOT / "app.py").read_text(encoding="utf-8")
 
 
-def test_contract_fixture_is_valid_and_declares_only_three_existing_ids():
+def test_contract_fixture_is_valid_and_declares_the_canonical_six_ids():
     contract = load_contract()
     assert contract["canonical_existing_spirit_ids"] == [
         "ink_drop_kelpie",
         "whispering_void_kit",
         "star_shell_hatchling",
+        "starpath_antlerling",
+        "fatty",
+        "obsidian_bastion",
     ]
     assert len(contract["six_slots"]) == 6
     assert contract["status_vocabulary"] == [
@@ -48,13 +51,19 @@ def test_contract_fixture_is_valid_and_declares_only_three_existing_ids():
     } == {"PASS_CURRENT_RUNTIME"}
 
 
-def test_existing_three_fixture_is_grounded_in_current_runtime():
+def test_canonical_spirit_fixture_is_grounded_in_current_runtime():
     contract = load_contract()
     for spirit_id in contract["canonical_existing_spirit_ids"]:
         assert f"'{spirit_id}'" in APP_SOURCE
     assert "PET_STARTER_KEY = 'ink_drop_kelpie'" in APP_SOURCE
-    assert "PET_UNLOCK_ORDER = [" in APP_SOURCE
-    assert "PET_UNLOCK_THRESHOLDS = [1, 11, 16]" in APP_SOURCE
+    assert "PET_UNLOCK_ORDER = list(CANONICAL_SPIRIT_IDS)" in APP_SOURCE
+    assert "PET_UNLOCK_THRESHOLDS = list(SPIRIT_UNLOCK_LEVELS)" in APP_SOURCE
+    assert "SPIRIT_UNLOCK_LEVEL_THRESHOLDS = (None, 11, 16, None, None, None)" in (
+        ROOT / "spirit_lineage.py"
+    ).read_text(encoding="utf-8")
+    assert "SPIRIT_UNLOCK_LEVELS = tuple(" in (
+        ROOT / "spirit_runtime.py"
+    ).read_text(encoding="utf-8")
     assert "def _pet_stage(level):" in APP_SOURCE
 
 
@@ -77,13 +86,12 @@ def test_existing_three_state_fixtures_project_without_invalid_active_state(fixt
     projection = roster_projection(state)
     assert len(projection) == 6
     assert sum(slot["state"] == "active" for slot in projection) == 1
-    assert {slot["spirit_id"] for slot in projection[:3]} == set(
-        load_contract()["canonical_existing_spirit_ids"]
-    )
-    assert all(slot["spirit_id"] is None for slot in projection[3:])
+    assert [slot["spirit_id"] for slot in projection] == load_contract()[
+        "canonical_existing_spirit_ids"
+    ]
 
 
-def test_six_slot_contract_uses_roles_only_for_future_slots():
+def test_six_slot_contract_uses_registered_catalog_identity_for_all_slots():
     slots = load_contract()["six_slots"]
     assert [slot["slot"] for slot in slots] == [1, 2, 3, 4, 5, 6]
     assert [slot["role"] for slot in slots[3:]] == [
@@ -91,15 +99,17 @@ def test_six_slot_contract_uses_roles_only_for_future_slots():
         "PRECISION",
         "SUPPORT",
     ]
-    assert all(slot["spirit_id"] is None for slot in slots[3:])
-    assert all(slot["canonical_name"] is None for slot in slots[3:])
+    assert [slot["spirit_id"] for slot in slots] == load_contract()[
+        "canonical_existing_spirit_ids"
+    ]
+    assert all(slot["identity_source"] == "canonical_catalog" for slot in slots)
 
 
-def test_generic_future_unlock_state_has_no_identity_branch():
+def test_generic_unlock_state_uses_catalog_identity_without_id_branch():
     for state in ("LOCKED", "AVAILABLE", "OWNED"):
         projection = future_slot_projection("EXPLORATION", state)
-        assert projection["spirit_id"] is None
-        assert projection["canonical_name"] is None
+        assert projection["spirit_id"] == "starpath_antlerling"
+        assert projection["canonical_name"] == "Starpath Antlerling"
         assert projection["unlock_state"] == state
     assert load_contract()["unlock_ui_generic_contract"]["requires_spirit_id_branch"] is False
 
@@ -120,9 +130,10 @@ def test_legacy_pets_are_quarantined_from_functional_six_spirit_roster():
     functional = set(contract["canonical_existing_spirit_ids"])
     assert legacy.isdisjoint(functional)
     assert contract["world_map_follower_interface"]["authority"] == "presentation_only"
-    assert all(future_slot_projection("SUPPORT", state)["spirit_id"] is None for state in (
-        "LOCKED", "AVAILABLE", "OWNED"
-    ))
+    assert all(
+        future_slot_projection("SUPPORT", state)["spirit_id"] == "obsidian_bastion"
+        for state in ("LOCKED", "AVAILABLE", "OWNED")
+    )
 
 
 def test_follower_adapter_is_presentation_only():

@@ -9,7 +9,10 @@
   "canonical_existing_spirit_ids": [
     "ink_drop_kelpie",
     "whispering_void_kit",
-    "star_shell_hatchling"
+    "star_shell_hatchling",
+    "starpath_antlerling",
+    "fatty",
+    "obsidian_bastion"
   ],
   "six_slots": [
     {
@@ -35,24 +38,24 @@
     },
     {
       "slot": 4,
-      "spirit_id": null,
+      "spirit_id": "starpath_antlerling",
       "role": "EXPLORATION",
-      "identity_source": "future_catalog",
-      "canonical_name": null
+      "identity_source": "canonical_catalog",
+      "canonical_name": "Starpath Antlerling"
     },
     {
       "slot": 5,
-      "spirit_id": null,
+      "spirit_id": "fatty",
       "role": "PRECISION",
-      "identity_source": "future_catalog",
-      "canonical_name": null
+      "identity_source": "canonical_catalog",
+      "canonical_name": "Fatty"
     },
     {
       "slot": 6,
-      "spirit_id": null,
+      "spirit_id": "obsidian_bastion",
       "role": "SUPPORT",
-      "identity_source": "future_catalog",
-      "canonical_name": null
+      "identity_source": "canonical_catalog",
+      "canonical_name": "Obsidian Bastion"
     }
   ],
   "legacy_pet_ids": [
@@ -69,13 +72,13 @@
       "owned": ["ink_drop_kelpie"],
       "active": "ink_drop_kelpie",
       "levels": {"ink_drop_kelpie": 1},
-      "locked": ["whispering_void_kit", "star_shell_hatchling"]
+      "locked": ["whispering_void_kit", "star_shell_hatchling", "starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "owned_first_second": {
       "owned": ["ink_drop_kelpie", "whispering_void_kit"],
       "active": "ink_drop_kelpie",
       "levels": {"ink_drop_kelpie": 11, "whispering_void_kit": 1},
-      "locked": ["star_shell_hatchling"]
+      "locked": ["star_shell_hatchling", "starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "owned_all_current_three": {
       "owned": [
@@ -89,7 +92,7 @@
         "whispering_void_kit": 16,
         "star_shell_hatchling": 25
       },
-      "locked": []
+      "locked": ["starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "active_first": {
       "owned": [
@@ -103,7 +106,7 @@
         "whispering_void_kit": 10,
         "star_shell_hatchling": 25
       },
-      "locked": []
+      "locked": ["starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "active_second": {
       "owned": [
@@ -117,7 +120,7 @@
         "whispering_void_kit": 24,
         "star_shell_hatchling": 25
       },
-      "locked": []
+      "locked": ["starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "active_third": {
       "owned": [
@@ -131,19 +134,19 @@
         "whispering_void_kit": 24,
         "star_shell_hatchling": 25
       },
-      "locked": []
+      "locked": ["starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "locked_second": {
       "owned": ["ink_drop_kelpie"],
       "active": "ink_drop_kelpie",
       "levels": {"ink_drop_kelpie": 10},
-      "locked": ["whispering_void_kit", "star_shell_hatchling"]
+      "locked": ["whispering_void_kit", "star_shell_hatchling", "starpath_antlerling", "fatty", "obsidian_bastion"]
     },
     "locked_third": {
       "owned": ["ink_drop_kelpie", "whispering_void_kit"],
       "active": "whispering_void_kit",
       "levels": {"ink_drop_kelpie": 16, "whispering_void_kit": 1},
-      "locked": ["star_shell_hatchling"]
+      "locked": ["star_shell_hatchling", "starpath_antlerling", "fatty", "obsidian_bastion"]
     }
   },
   "current_runtime_contracts": {

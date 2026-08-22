@@ -11,6 +11,9 @@ assert.deepEqual(contract.canonical_existing_spirit_ids, [
   'ink_drop_kelpie',
   'whispering_void_kit',
   'star_shell_hatchling',
+  'starpath_antlerling',
+  'fatty',
+  'obsidian_bastion',
 ]);
 assert.equal(contract.six_slots.length, 6);
 assert.deepEqual(contract.six_slots.slice(3).map((slot) => slot.role), [
@@ -18,8 +21,8 @@ assert.deepEqual(contract.six_slots.slice(3).map((slot) => slot.role), [
   'PRECISION',
   'SUPPORT',
 ]);
-assert(contract.six_slots.slice(3).every((slot) => slot.spirit_id === null));
-assert(contract.six_slots.slice(3).every((slot) => slot.canonical_name === null));
+assert.deepEqual(contract.six_slots.map((slot) => slot.spirit_id), contract.canonical_existing_spirit_ids);
+assert(contract.six_slots.every((slot) => slot.identity_source === 'canonical_catalog'));
 
 const expectedDevices = new Map([
   ['desktop', [3, 2]],

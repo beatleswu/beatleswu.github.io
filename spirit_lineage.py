@@ -27,14 +27,21 @@ from event_outbox import append_event
 
 KNOWN_SPIRIT_IDS = (
     "ink_drop_kelpie",
-    "star_shell_hatchling",
     "whispering_void_kit",
+    "star_shell_hatchling",
+    "starpath_antlerling",
+    "fatty",
+    "obsidian_bastion",
 )
 
-# Data, not control flow: the current three catalog entries remain valid and
-# future entries can be added by catalog governance without new ID branches.
+# Data, not control flow: all six canonical catalog entries are validated by
+# the same lineage contract; future entries can be added by catalog
+# governance without new per-ID behavior branches.
 SPIRIT_SLOT_ORDER = KNOWN_SPIRIT_IDS
-SPIRIT_UNLOCK_LEVEL_THRESHOLDS = (None, 11, 16)
+# The first three are the existing level-gated unlocks.  Slots 4-6 remain
+# catalog-registered but deliberately have no invented level gate until an
+# authoritative Adventure/Boss/Quest settlement is approved.
+SPIRIT_UNLOCK_LEVEL_THRESHOLDS = (None, 11, 16, None, None, None)
 
 LEGACY_COSMETIC_PET_IDS = frozenset(
     {
@@ -186,6 +193,8 @@ def validate_functional_spirit_id(spirit_id: Any) -> str:
     value = _require_text(spirit_id, "spirit_id")
     if is_legacy_cosmetic_pet(value):
         raise SpiritContractError("legacy cosmetic Pet is not a functional Spirit")
+    if value not in KNOWN_SPIRIT_IDS:
+        raise SpiritContractError("unknown functional Spirit ID")
     return value
 
 

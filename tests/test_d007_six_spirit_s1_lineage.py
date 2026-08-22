@@ -167,12 +167,18 @@ def _failed_invariant(snapshot, name):
 
 
 def test_contract_keeps_current_three_and_no_legacy_functional_ids():
-    assert KNOWN_SPIRIT_IDS == (
+    existing_ids = (
         "ink_drop_kelpie",
-        "star_shell_hatchling",
         "whispering_void_kit",
+        "star_shell_hatchling",
     )
-    assert len(KNOWN_SPIRIT_IDS) == 3
+    assert tuple(KNOWN_SPIRIT_IDS[:3]) == existing_ids
+    assert tuple(KNOWN_SPIRIT_IDS[3:]) == (
+        "starpath_antlerling",
+        "fatty",
+        "obsidian_bastion",
+    )
+    assert len(KNOWN_SPIRIT_IDS) == 6
     assert not LEGACY_COSMETIC_PET_IDS.intersection(KNOWN_SPIRIT_IDS)
     assert all(legacy_pet_can_create_functional_state(item) is False for item in LEGACY_COSMETIC_PET_IDS)
 
