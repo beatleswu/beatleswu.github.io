@@ -1,0 +1,312 @@
+{
+  "task": "GO_ODYSSEY_MASTER_LANE_A_E10_SIX_SPIRIT_NEW_IDENTITY_OWNER_VISUAL_OVERRIDE",
+  "task_code": "A020-R1",
+  "master_lane": "A",
+  "status": "READY_FOR_OWNER_A020_R1_FINAL_THREE_STAGE_VISUAL_REVIEW",
+  "identity_status": "OWNER_SELECTED",
+  "provenance": {
+    "requested_base_sha": "88fb1f83e3d35324d874496fb8447bf88f3b0da8",
+    "actual_base_sha": "e03752cae1f6c7c3eae9c1221fc35f4aba995c26",
+    "expected_origin_master": "88fb1f83e3d35324d874496fb8447bf88f3b0da8",
+    "origin_master_at_start": "e03752cae1f6c7c3eae9c1221fc35f4aba995c26",
+    "origin_master_advanced": true,
+    "origin_master_delta": [
+      "tests/e019_six_spirit_s1_harness.py",
+      "tests/e2e/run_e019_six_spirit_s1_acceptance_contract.mjs",
+      "tests/fixtures/e019_six_spirit_s1_contract.json",
+      "tests/test_e019_six_spirit_s1_integration_harness.py"
+    ],
+    "branch": "codex/master-lane-a-e10-six-spirit-new-identity-design-a020-r1",
+    "worktree": "D:/go-website-worktrees/e10-six-spirit-new-identity-design-a020-r1",
+    "owner_reference_used": true,
+    "generative_reinterpretation_used": false,
+    "runtime_assets_added": 0,
+    "runtime_catalog_changed": false,
+    "app_py_changed": false,
+    "route_changed": false
+  },
+  "owner_reference": {
+    "path": "docs/review/a020r1/A020R1_OWNER_REFERENCE_PRIMARY.jpg",
+    "authority": "PRIMARY",
+    "status": "OWNER_APPROVED_VISUAL_DIRECTION",
+    "source_usage": "Exact deterministic crops and presentation composition only",
+    "stage_iii_escalation": false
+  },
+  "superseded_previous_a020": [
+    {
+      "previous_name": "Trailglow Fawn",
+      "previous_name_zh": "星徑小鹿",
+      "status": "REJECTED_BY_OWNER",
+      "active_candidate": false
+    },
+    {
+      "previous_name": "Gridpoint Hedgehog",
+      "previous_name_zh": "格點小刺蝟",
+      "status": "REJECTED_BY_OWNER",
+      "active_candidate": false
+    },
+    {
+      "previous_name": "Weaveleaf Tortoise",
+      "previous_name_zh": "織葉小龜",
+      "status": "REJECTED_BY_OWNER",
+      "active_candidate": false
+    }
+  ],
+  "existing_roster": [
+    {
+      "slot": 1,
+      "id": "ink_drop_kelpie",
+      "role": "TRAINING",
+      "reference_asset": "assets/pets/pet_ink_drop_kelpie_lv1.webp",
+      "changed": false
+    },
+    {
+      "slot": 2,
+      "id": "whispering_void_kit",
+      "role": "REVIEW",
+      "reference_asset": "assets/pets/pet_whispering_void_kit_lv1.webp",
+      "changed": false
+    },
+    {
+      "slot": 3,
+      "id": "star_shell_hatchling",
+      "role": "CHALLENGE",
+      "reference_asset": "assets/pets/pet_star_shell_hatchling_lv1.webp",
+      "changed": false
+    }
+  ],
+  "current_spirits": [
+    {
+      "slot": 4,
+      "name": "Starpath Antlerling",
+      "name_zh": null,
+      "role": "EXPLORATION",
+      "identity_status": "OWNER_SELECTED",
+      "species": "celestial deer",
+      "silhouette": "elegant blue celestial deer, luminous branching antlers, constellation markings, flowing star-path ribbon",
+      "stages": [
+        {
+          "stage": "I",
+          "maturity": "newborn / newly awakened",
+          "source_crop": [18, 78, 448, 340],
+          "requirements": [
+            "very small juvenile body",
+            "resting/newborn presentation",
+            "short sparse antlers",
+            "early constellation lights",
+            "large curious eyes",
+            "minimal star-path energy"
+          ]
+        },
+        {
+          "stage": "II",
+          "maturity": "juvenile / growing",
+          "source_crop": [18, 342, 448, 562],
+          "requirements": [
+            "taller but still juvenile",
+            "antlers beginning to branch",
+            "clearer constellation pattern",
+            "stronger star trail",
+            "more confident posture",
+            "clearly younger than Stage III"
+          ]
+        },
+        {
+          "stage": "III",
+          "maturity": "mature final identity",
+          "source_crop": [18, 564, 448, 840],
+          "requirements": [
+            "Owner reference preserved",
+            "friendly youthful Go Odyssey identity",
+            "no giant divine stag or Titan escalation",
+            "no armor or war-deer redesign"
+          ]
+        }
+      ],
+      "follower_language": "light movement, constellation blink after confirmed discovery, short star-ribbon zone cue",
+      "hero_portrait": "three-quarter face and antlers with constellation markings",
+      "battle_cue": "short star-path shimmer after server settlement only; no answer implication"
+    },
+    {
+      "slot": 5,
+      "name": "Fatty",
+      "name_zh": "阿肥",
+      "role": "PRECISION",
+      "identity_status": "OWNER_SELECTED",
+      "species": "Owner real-dog-inspired scruffy companion",
+      "silhouette": "compact black/charcoal dog, scruffy muzzle, pale chest and paws, floppy/semi-floppy ears",
+      "stages": [
+        {
+          "stage": "I",
+          "maturity": "newborn puppy",
+          "source_crop": [463, 78, 856, 340],
+          "requirements": [
+            "extremely young puppy proportions",
+            "very small compact body",
+            "very short legs",
+            "sleepy/newborn expression",
+            "minimal muzzle/beard",
+            "minimal ornamentation"
+          ]
+        },
+        {
+          "stage": "II",
+          "maturity": "young puppy, approximately 3-4 months",
+          "source_crop": [463, 342, 856, 562],
+          "requirements": [
+            "smaller than Stage III",
+            "shorter legs and rounder proportions",
+            "younger face and less developed muzzle/beard",
+            "playful juvenile expression",
+            "simpler celestial harness",
+            "fewer Go-stone effects",
+            "must not be too similar to Stage III"
+          ]
+        },
+        {
+          "stage": "III",
+          "maturity": "adult Fatty / mature final identity",
+          "source_crop": [463, 564, 856, 840],
+          "requirements": [
+            "Owner reference preserved",
+            "real-dog-inspired face and scruffy coat",
+            "pale chest and paw details",
+            "happy open-mouth expression",
+            "restrained precision harness and black/white Go stones",
+            "no wolf, fox, husky, guardian beast, or monster evolution"
+          ]
+        }
+      ],
+      "follower_language": "compact playful trot, attentive head turn, restrained Go-stone glint after confirmed precision moment",
+      "hero_portrait": "recognizable muzzle, scruffy coat, pale chest, floppy ears, harness secondary",
+      "battle_cue": "restrained black/white Go-stone orbit pulse after server settlement only; never a best-move signal"
+    },
+    {
+      "slot": 6,
+      "name": "Obsidian Bastion",
+      "name_zh": null,
+      "role": "SUPPORT",
+      "identity_status": "OWNER_SELECTED",
+      "species": "black/gold celestial guardian mech",
+      "silhouette": "controlled humanoid mech, obsidian armor, ivory/gold trim, blue cores, shoulder structure, large Go-grid shield",
+      "stages": [
+        {
+          "stage": "I",
+          "maturity": "newly awakened guardian core",
+          "source_crop": [868, 78, 1265, 340],
+          "requirements": [
+            "very small rounded robot",
+            "compact limbs",
+            "friendly blue eyes",
+            "simplified armor",
+            "small defensive shield",
+            "subtle Go-stone motif"
+          ]
+        },
+        {
+          "stage": "II",
+          "maturity": "growing guardian mech",
+          "source_crop": [868, 342, 1265, 562],
+          "requirements": [
+            "larger than Stage I",
+            "more articulated limbs",
+            "emerging humanoid mech structure",
+            "stronger armor",
+            "recognizable Go-grid shield",
+            "still simpler and smaller than Stage III"
+          ]
+        },
+        {
+          "stage": "III",
+          "maturity": "final guardian form",
+          "source_crop": [868, 564, 1265, 840],
+          "requirements": [
+            "Owner reference preserved",
+            "controlled humanoid mech silhouette",
+            "obsidian/ivory/gold structure and blue cores",
+            "large Go-grid shield with black/white stones",
+            "no wings, cannons, Titanization, or extra transformation mode"
+          ]
+        }
+      ],
+      "follower_language": "compact servo step, blue eye pulse, single shield-grid shimmer after settled support moment",
+      "hero_portrait": "front three-quarter mech bust with blue eyes, gold trim, and cropped Go-grid shield",
+      "battle_cue": "brief blue defensive-grid pulse after server settlement only; no result promise"
+    }
+  ],
+  "review_images": [
+    {
+      "id": "three_stage_master_sheet",
+      "path": "docs/review/a020r1/A020R1_THREE_STAGE_MASTER_SHEET.png",
+      "purpose": "3 columns (#4/#5/#6) by 3 rows (Stage I/II/III)"
+    },
+    {
+      "id": "starpath_evolution_strip",
+      "path": "docs/review/a020r1/A020R1_STARPATH_EVOLUTION_STRIP.png",
+      "purpose": "Starpath Antlerling Stage I to Stage III"
+    },
+    {
+      "id": "fatty_evolution_strip",
+      "path": "docs/review/a020r1/A020R1_FATTY_EVOLUTION_STRIP.png",
+      "purpose": "Fatty Stage I to Stage III"
+    },
+    {
+      "id": "obsidian_evolution_strip",
+      "path": "docs/review/a020r1/A020R1_OBSIDIAN_EVOLUTION_STRIP.png",
+      "purpose": "Obsidian Bastion Stage I to Stage III"
+    },
+    {
+      "id": "stage_iii_final_trio",
+      "path": "docs/review/a020r1/A020R1_STAGE_III_FINAL_TRIO.png",
+      "purpose": "Three Owner-selected mature final forms together"
+    },
+    {
+      "id": "six_spirit_follower_scale",
+      "path": "docs/review/a020r1/A020R1_SIX_SPIRIT_FOLLOWER_SCALE.png",
+      "purpose": "Existing three plus new final trio at approximate follower scale"
+    }
+  ],
+  "invariants": {
+    "previous_a020_owner_rejected": true,
+    "old_trailglow_fawn_active_reference_count": 0,
+    "old_gridpoint_hedgehog_active_reference_count": 0,
+    "old_weaveleaf_tortoise_active_reference_count": 0,
+    "new_spirit_count": 3,
+    "stages_per_spirit": 3,
+    "new_form_count": 9,
+    "starpath_stage_i_clearly_newborn": true,
+    "starpath_stage_ii_clearly_juvenile": true,
+    "starpath_stage_iii_owner_reference_preserved": true,
+    "fatty_stage_i_clearly_newborn": true,
+    "fatty_stage_ii_clearly_younger_than_stage_iii": true,
+    "fatty_stage_iii_owner_reference_preserved": true,
+    "fatty_real_dog_identity_preserved": true,
+    "obsidian_stage_i_small_core_form": true,
+    "obsidian_stage_ii_intermediate_form": true,
+    "obsidian_stage_iii_owner_reference_preserved": true,
+    "stage_iii_unauthorized_exaggeration_count": 0,
+    "silhouette_differentiation": "PASS",
+    "world_map_readability": "PASS",
+    "hero_portrait_readability": "PASS",
+    "existing_three_continuity": "PASS",
+    "runtime_assets_added": 0,
+    "runtime_catalog_changed": false,
+    "app_py_changed": false,
+    "route_changed": false,
+    "db_migration": false,
+    "production_mutation": false,
+    "payment_changed": false,
+    "pricing_changed": false,
+    "revenue_changed": false,
+    "merge": false,
+    "deploy": false
+  },
+  "owner_review": {
+    "reference_authority": "PRIMARY",
+    "identity_status": "OWNER_SELECTED",
+    "review_images_generated": 6,
+    "review_images_visible": true,
+    "final_runtime_name_lock": false,
+    "status": "READY_FOR_OWNER_A020_R1_FINAL_THREE_STAGE_VISUAL_REVIEW"
+  }
+}
