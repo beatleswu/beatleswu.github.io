@@ -2330,6 +2330,29 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
     },
 }
 
+# A016 established the canonical full-body renderer.  These two records need
+# one additional presentation cue because their identity is concentrated in a
+# small upper-body area.  This is still the same canonical asset and remains
+# presentation-only; it is not a new item art or ownership system.
+_COSMETIC_FOCAL_DETAILS = {
+    'back_pack': {
+        'variant': 'back-pack',
+        'label': '背飾特寫',
+        'label_en': 'Back detail',
+        'region': 'upper_back',
+        'note': '放大肩帶、捲毯與布包輪廓，讓背飾在卡片尺寸仍可辨識。',
+        'note_en': 'A focused upper-back detail keeps the straps, roll, and bag silhouette legible.',
+    },
+    'acc_dragon_pendant': {
+        'variant': 'dragon-pendant',
+        'label': '配飾特寫',
+        'label_en': 'Accessory detail',
+        'region': 'upper_torso',
+        'note': '放大胸前玉佩與龍形吊墜，仍保留角色全身作為上下文。',
+        'note_en': 'A focused upper-torso detail makes the jade dragon pendant identifiable while keeping the full-body context.',
+    },
+}
+
 # 快查字典
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
 APPEARANCE_SLOT_KEYS = ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura')
@@ -2348,12 +2371,16 @@ def _cosmetic_presentation_metadata(item_id):
     if not registry:
         return None
     appearance = _APPEAR_MAP.get(item_id, {})
-    return {
+    metadata = {
         **registry,
         'fallback_emoji': appearance.get('emoji', '🎽'),
         'fallback_color': appearance.get('color', '#233'),
         'renderer_contract': 'canonical_asset_first_with_emoji_fallback',
     }
+    focal_detail = _COSMETIC_FOCAL_DETAILS.get(item_id)
+    if focal_detail:
+        metadata['focal_detail'] = dict(focal_detail)
+    return metadata
 
 
 def _decorate_daily_shop_slots(slots):
@@ -2412,6 +2439,57 @@ _COSMETIC_PRODUCT_BY_ID = {
 _COSMETIC_PRODUCT_BY_COSMETIC_ID = {
     product['cosmetic_id']: product for product in COSMETIC_COMMERCE_PRODUCTS
 }
+
+# Read-only visual candidates for the next Revenue V1 review gate.  They are
+# deliberately not COSMETIC_COMMERCE_PRODUCTS: no price, purchase route, or
+# equip route is introduced by A017.  The existing drop/wardrobe authorities
+# remain the only source of acquisition and ownership truth.
+COSMETIC_VISUAL_REVIEW_CANDIDATE_IDS = (
+    'back_pack', 'acc_dragon_pendant',
+)
+
+
+def _cosmetic_visual_review_candidate(item_id):
+    item_id = str(item_id or '')
+    appearance = _APPEAR_MAP.get(item_id)
+    presentation = _cosmetic_presentation_metadata(item_id)
+    if not appearance or not presentation or _is_hidden_unreleased_appearance(item_id):
+        return None
+    return {
+        'cosmetic_id': item_id,
+        'preview_id': f'visual.cosmetic.{item_id}',
+        'name': appearance.get('name', item_id),
+        'name_en': appearance.get('name_en', appearance.get('name', item_id)),
+        'category': appearance.get('slot', 'appearance'),
+        'rarity': appearance.get('rarity', 'common'),
+        'flavor': appearance.get('flavor', ''),
+        'preview_asset': presentation,
+        'preview_only': True,
+        'purchase_available': False,
+        'equip_available': False,
+        'ownership_authority': 'player_wardrobe.item_id',
+        'visible_result': {
+            'surface': 'hero',
+            'renderer': 'hero.html#applyEquippedVisuals',
+            'slot': appearance.get('slot', 'appearance'),
+            'state_field': f"{appearance.get('slot', 'appearance')}_id",
+            'asset_key': item_id,
+        },
+        'combat_power': {
+            'attack_delta': 0,
+            'defense_delta': 0,
+            'combat_authority': 'NO',
+        },
+    }
+
+
+def _cosmetic_visual_review_candidates():
+    return [
+        candidate
+        for item_id in COSMETIC_VISUAL_REVIEW_CANDIDATE_IDS
+        for candidate in [_cosmetic_visual_review_candidate(item_id)]
+        if candidate
+    ]
 
 
 def _cosmetic_product_payload(product, *, owned, equipped):
@@ -19833,6 +19911,9 @@ def cosmetic_commerce_catalog():
     return jsonify({
         'categories': ['outfit'],
         'products': products,
+        # A017 visual candidates are read-only presentation records.  They do
+        # not become purchasable products or a second ownership authority.
+        'presentation_candidates': _cosmetic_visual_review_candidates(),
         'premium_entitled': premium_entitled,
         'product_id_authority': 'COSMETIC_COMMERCE_PRODUCTS.product_id',
         'cosmetic_id_authority': 'APPEARANCE_DEFS.id',
