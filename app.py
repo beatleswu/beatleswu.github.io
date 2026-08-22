@@ -2336,6 +2336,13 @@ PURE_COSMETIC_NEW_21 = (
     'back_dragon_wings', 'acc_bracelet', 'acc_fan', 'acc_goboard_bag',
     'acc_jade_ring', 'acc_goban_seal', 'acc_dragon_pendant',
 )
+# These records remain in the canonical art registry for asset closure, but
+# are not a player-visible release pool until a server-verifiable route exists.
+# Keeping this separate from ownership/equipped state prevents a hidden record
+# from becoming visible merely because it has an APPEARANCE_DEFS row.
+HIDDEN_UNRELEASED_APPEARANCE_IDS = frozenset({
+    'robe_snow', 'hat_scholar', 'back_lantern', 'back_scroll', 'acc_goban_seal',
+})
 PURE_COSMETIC_PRESENTATION_REGISTRY = {
     **{
         item_id: {
@@ -2363,10 +2370,82 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
     },
 }
 
+# A016 established the canonical full-body renderer.  These two records need
+# one additional presentation cue because their identity is concentrated in a
+# small upper-body area.  This is still the same canonical asset and remains
+# presentation-only; it is not a new item art or ownership system.
+_COSMETIC_FOCAL_DETAILS = {
+    'back_pack': {
+        'variant': 'back-pack',
+        'label': '背包特寫',
+        'label_en': 'Pack detail',
+        'region': 'side_back_pack',
+        'projection': 'canonical_fullbody_side_rear_pixels',
+        'source_region': {
+            'x': 0.54,
+            'y': 0.14,
+            'width': 0.34,
+            'height': 0.42,
+        },
+        'note': '取自 canonical 全身圖右側真實背包、肩帶與捲毯像素，不使用前胸裁切冒充背面。',
+        'note_en': 'Uses the real side/back pack, straps, and roll pixels from the canonical full-body art; no front-torso crop is relabeled as a rear view.',
+    },
+    'acc_dragon_pendant': {
+        'variant': 'dragon-pendant',
+        'label': '配飾特寫',
+        'label_en': 'Accessory detail',
+        'region': 'upper_torso',
+        'note': '放大胸前玉佩與龍形吊墜，仍保留角色全身作為上下文。',
+        'note_en': 'A focused upper-torso detail makes the jade dragon pendant identifiable while keeping the full-body context.',
+    },
+}
+
 # 快查字典
 _APPEAR_MAP = {a['id']: a for a in APPEARANCE_DEFS}
 APPEARANCE_SLOT_KEYS = ('outfit', 'hat', 'back', 'title', 'accessory', 'pet', 'aura')
 APPEARANCE_EQUIP_COLUMNS = tuple(f'{slot}_id' for slot in APPEARANCE_SLOT_KEYS)
+
+
+def _is_hidden_unreleased_appearance(item_id):
+    """Return whether a player-facing projection must omit this appearance."""
+    return str(item_id or '') in HIDDEN_UNRELEASED_APPEARANCE_IDS
+
+
+def _cosmetic_presentation_metadata(item_id):
+    """Resolve the shared canonical art contract without changing authority."""
+    item_id = str(item_id or '')
+    registry = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item_id)
+    if not registry:
+        return None
+    appearance = _APPEAR_MAP.get(item_id, {})
+    metadata = {
+        **registry,
+        'fallback_emoji': appearance.get('emoji', '🎽'),
+        'fallback_color': appearance.get('color', '#233'),
+        'renderer_contract': 'canonical_asset_first_with_emoji_fallback',
+    }
+    focal_detail = _COSMETIC_FOCAL_DETAILS.get(item_id)
+    if focal_detail:
+        metadata['focal_detail'] = dict(focal_detail)
+    return metadata
+
+
+def _decorate_daily_shop_slots(slots):
+    """Attach presentation-only metadata to existing daily shop records."""
+    decorated = []
+    for slot in slots or []:
+        if slot.get('type') != 'appearance':
+            decorated.append(slot)
+            continue
+        item_id = slot.get('item_key') or slot.get('cosmetic_id')
+        if _is_hidden_unreleased_appearance(item_id):
+            continue
+        presentation = _cosmetic_presentation_metadata(item_id)
+        if presentation:
+            decorated.append({**slot, 'presentation': presentation})
+        else:
+            decorated.append(slot)
+    return decorated
 
 # ── Lane C cosmetic commerce foundation ─────────────────────────────────────
 # Wave 1 deliberately exposes one mature category only.  These products reuse
@@ -2408,23 +2487,89 @@ _COSMETIC_PRODUCT_BY_COSMETIC_ID = {
     product['cosmetic_id']: product for product in COSMETIC_COMMERCE_PRODUCTS
 }
 
+# Read-only visual candidates for the next Revenue V1 review gate.  They are
+# deliberately not COSMETIC_COMMERCE_PRODUCTS: no price, purchase route, or
+# equip route is introduced by A017.  The existing drop/wardrobe authorities
+# remain the only source of acquisition and ownership truth.
+COSMETIC_VISUAL_REVIEW_CANDIDATE_IDS = (
+    'back_pack', 'acc_dragon_pendant',
+)
+
+
+def _cosmetic_visual_review_candidate(item_id):
+    item_id = str(item_id or '')
+    appearance = _APPEAR_MAP.get(item_id)
+    presentation = _cosmetic_presentation_metadata(item_id)
+    if not appearance or not presentation or _is_hidden_unreleased_appearance(item_id):
+        return None
+    return {
+        'cosmetic_id': item_id,
+        'preview_id': f'visual.cosmetic.{item_id}',
+        'name': appearance.get('name', item_id),
+        'name_en': appearance.get('name_en', appearance.get('name', item_id)),
+        'category': appearance.get('slot', 'appearance'),
+        'rarity': appearance.get('rarity', 'common'),
+        'flavor': appearance.get('flavor', ''),
+        'preview_asset': presentation,
+        'preview_only': True,
+        'purchase_available': False,
+        'equip_available': False,
+        'ownership_authority': 'player_wardrobe.item_id',
+        'visible_result': {
+            'surface': 'hero',
+            'renderer': 'hero.html#applyEquippedVisuals',
+            'slot': appearance.get('slot', 'appearance'),
+            'state_field': f"{appearance.get('slot', 'appearance')}_id",
+            'asset_key': item_id,
+        },
+        'combat_power': {
+            'attack_delta': 0,
+            'defense_delta': 0,
+            'combat_authority': 'NO',
+        },
+    }
+
+
+def _cosmetic_visual_review_candidates():
+    return [
+        candidate
+        for item_id in COSMETIC_VISUAL_REVIEW_CANDIDATE_IDS
+        for candidate in [_cosmetic_visual_review_candidate(item_id)]
+        if candidate
+    ]
+
 
 def _cosmetic_product_payload(product, *, owned, equipped):
     """Return the canonical product -> appearance -> renderer projection."""
     appearance = _APPEAR_MAP[product['cosmetic_id']]
     slot = appearance['slot']
+    presentation = _cosmetic_presentation_metadata(appearance['id'])
+    preview_asset = {
+        'kind': 'appearance_definition',
+        'asset_key': appearance['id'],
+        'emoji': appearance.get('emoji', ''),
+        'color': appearance.get('color', ''),
+    }
+    if presentation:
+        # Keep legacy fields for older consumers, while making the approved
+        # canonical asset the primary commerce renderer input.
+        preview_asset.update({
+            'asset': presentation['asset'],
+            'asset_id': presentation['asset_id'],
+            'asset_format': presentation['asset_format'],
+            'mode': presentation['mode'],
+            'canonical_art_available': True,
+            'fallback_emoji': presentation['fallback_emoji'],
+            'fallback_color': presentation['fallback_color'],
+            'renderer_contract': presentation['renderer_contract'],
+        })
     return {
         **product,
         'name': appearance.get('name', product['cosmetic_id']),
         'name_en': appearance.get('name_en', appearance.get('name', product['cosmetic_id'])),
         'rarity': appearance.get('rarity', 'common'),
         'flavor': appearance.get('flavor', ''),
-        'preview_asset': {
-            'kind': 'appearance_definition',
-            'asset_key': appearance['id'],
-            'emoji': appearance.get('emoji', ''),
-            'color': appearance.get('color', ''),
-        },
+        'preview_asset': preview_asset,
         'ownership': {
             'owned': bool(owned),
             'source': product['ownership_source'],
@@ -2569,6 +2714,7 @@ def _roll_appearance_loot(monster_type):
         if a['rarity'] in allowed_rarities
         and monster_type in a['drop_from']
         and a['drop_weight'] > 0
+        and not _is_hidden_unreleased_appearance(a['id'])
     ]
     if not pool:
         return None
@@ -15178,10 +15324,12 @@ def get_wardrobe():
                 equipped_ids.add(eq_row[col])
 
     by_slot = {slot: [] for slot in APPEARANCE_SLOT_KEYS}
+    visible_rows = []
     for r in rows:
         item = _APPEAR_MAP.get(r['item_id'])
-        if not item:
+        if not item or _is_hidden_unreleased_appearance(r['item_id']):
             continue
+        visible_rows.append(r)
         by_slot.setdefault(item['slot'], []).append({
             **item,
             'obtained_at': r['obtained_at'],
@@ -15189,7 +15337,7 @@ def get_wardrobe():
             'is_equipped': r['item_id'] in equipped_ids,
         })
 
-    return jsonify({'by_slot': by_slot, 'total': len(rows)})
+    return jsonify({'by_slot': by_slot, 'total': len(visible_rows)})
 
 
 @app.route('/api/player/appearance/all-items')
@@ -15214,6 +15362,8 @@ def all_appearance_items():
 
     result = []
     for item in APPEARANCE_DEFS:
+        if _is_hidden_unreleased_appearance(item['id']):
+            continue
         public_item = {
             **item,
             'owned':       item['id'] in owned,
@@ -15442,6 +15592,8 @@ def skills_profile():
         # ── wardrobe：全物品（含 owned 旗標），供外觀頁用 ──────────
         wardrobe = []
         for item in APPEARANCE_DEFS:
+            if _is_hidden_unreleased_appearance(item['id']):
+                continue
             pure_presentation = PURE_COSMETIC_PRESENTATION_REGISTRY.get(item['id'])
             wardrobe_item = {
                 'id':       item['id'],
@@ -15479,7 +15631,7 @@ def skills_profile():
         equipped_labels = [
             _APPEAR_MAP[eid].get('name', eid)
             for eid in equipped_ids
-            if eid in _APPEAR_MAP
+            if eid in _APPEAR_MAP and not _is_hidden_unreleased_appearance(eid)
         ]
 
         # ── 稱號：自動稱號(主) + 可收集稱號(副，玩家自選) ──────────
@@ -15502,6 +15654,8 @@ def skills_profile():
         appear_fx = _get_appearance_effects(uid, _conn2)
     equipped_visuals = {}
     for iid in equipped_ids:
+        if _is_hidden_unreleased_appearance(iid):
+            continue
         item = _APPEAR_MAP.get(iid)
         if item:
             equipped_visuals[item['slot']] = {
@@ -19835,7 +19989,11 @@ def _gacha_collection_progress(conn, uid):
             'SELECT item_id FROM player_wardrobe WHERE user_id=?', (uid,)
         ).fetchall()
     }
-    pool = [a for a in APPEARANCE_DEFS if a.get('rarity') in ('common', 'uncommon')]
+    pool = [
+        a for a in APPEARANCE_DEFS
+        if a.get('rarity') in ('common', 'uncommon')
+        and not _is_hidden_unreleased_appearance(a['id'])
+    ]
     rarity_totals = {'common': 0, 'uncommon': 0}
     rarity_owned = {'common': 0, 'uncommon': 0}
     missing = []
@@ -19984,6 +20142,9 @@ def cosmetic_commerce_catalog():
     return jsonify({
         'categories': ['outfit'],
         'products': products,
+        # A017 visual candidates are read-only presentation records.  They do
+        # not become purchasable products or a second ownership authority.
+        'presentation_candidates': _cosmetic_visual_review_candidates(),
         'premium_entitled': premium_entitled,
         'product_id_authority': 'COSMETIC_COMMERCE_PRODUCTS.product_id',
         'cosmetic_id_authority': 'APPEARANCE_DEFS.id',
@@ -20500,7 +20661,11 @@ def shop_use():
             if usable == 'in_question':
                 result['effect'] = 'hint'          # 前端據此顯示正解
             elif effect.get('key') == 'appearance_fragment':
-                rarity_pool = [a for a in APPEARANCE_DEFS if a.get('rarity') in ('common', 'uncommon')]
+                rarity_pool = [
+                    a for a in APPEARANCE_DEFS
+                    if a.get('rarity') in ('common', 'uncommon')
+                    and not _is_hidden_unreleased_appearance(a['id'])
+                ]
                 owned = {
                     r['item_id'] for r in conn.execute(
                         'SELECT item_id FROM player_wardrobe WHERE user_id=?', (uid,)
@@ -20759,7 +20924,7 @@ def _daily_shop_slots(conn):
     row = conn.execute('SELECT slots FROM daily_shop WHERE shop_date=?', (today,)).fetchone()
     if row:
         try:
-            return json.loads(row['slots'])
+            return _decorate_daily_shop_slots(json.loads(row['slots']))
         except Exception:
             pass
     rng = random.Random(today)            # 以日期為種子 → 全服同步、可重現
@@ -20771,17 +20936,23 @@ def _daily_shop_slots(conn):
         slots.append({'type': 'item', 'item_key': k, 'icon': it['icon'],
                       'name': it['name'], 'name_en': it['name_en'],
                       'orig_price': it['price'], 'price': int(it['price'] * 0.8)})
-    pool = [a for a in APPEARANCE_DEFS if a.get('rarity') in ('common', 'uncommon')]
+    pool = [
+        a for a in APPEARANCE_DEFS
+        if a.get('rarity') in ('common', 'uncommon')
+        and not _is_hidden_unreleased_appearance(a['id'])
+    ]
     if pool:
         for a in rng.sample(pool, min(2, len(pool))):
             price = 200 if a['rarity'] == 'common' else 450
             product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(a['id'])
-            slots.append({'type': 'appearance', 'item_key': a['id'],
-                          'product_id': product['product_id'] if product else None,
-                          'cosmetic_id': a['id'],
-                          'icon': a.get('emoji', '🎽'), 'name': a['name'],
-                          'name_en': a.get('name_en', a['name']),
-                          'rarity': a['rarity'], 'price': price})
+            slots.append(_decorate_daily_shop_slots([{
+                'type': 'appearance', 'item_key': a['id'],
+                'product_id': product['product_id'] if product else None,
+                'cosmetic_id': a['id'],
+                'icon': a.get('emoji', '🎽'), 'name': a['name'],
+                'name_en': a.get('name_en', a['name']),
+                'rarity': a['rarity'], 'price': price,
+            }])[0])
     try:
         conn.execute('INSERT INTO daily_shop(shop_date,slots) VALUES(?,?) '
                      'ON CONFLICT(shop_date) DO NOTHING', (today, json.dumps(slots, ensure_ascii=False)))
@@ -20898,7 +21069,11 @@ def shop_gacha():
                            'name': f.get('name'), 'name_en': f.get('name_en')})
         else:
             rarity = bucket
-            pool = [a for a in APPEARANCE_DEFS if a.get('rarity') == rarity]
+            pool = [
+                a for a in APPEARANCE_DEFS
+                if a.get('rarity') == rarity
+                and not _is_hidden_unreleased_appearance(a['id'])
+            ]
             pick = random.choice(pool) if pool else None
             if pick is None:
                 _grant_coins(conn, uid, 100, 'gacha:fallback')
