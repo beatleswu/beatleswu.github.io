@@ -1011,6 +1011,8 @@ let answering    = false;
 let solved       = false;
 let gaveUp       = false;
 let submitted    = false;
+let submittedMoves = [];
+let submissionId  = null;
 let todayData    = null;     // /api/daily-challenge/today response
 let isPremium    = false;
 let dailyXpReward = 50;
@@ -1112,6 +1114,18 @@ async function loadToday() {
     }
 
     todayData = data;
+    if (!data.user_submitted) {
+      const storageKey = `go-odyssey:daily-d5b:${data.date}:${data.question_id}`;
+      try {
+        submissionId = sessionStorage.getItem(storageKey);
+        if (!submissionId) {
+          submissionId = `daily-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
+          sessionStorage.setItem(storageKey, submissionId);
+        }
+      } catch (_storageError) {
+        submissionId = `daily-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+    }
     dailyXpReward = data.xp_reward || dailyXpReward;
     const rewardEl = document.getElementById('bounty-reward-xp');
     if (rewardEl) rewardEl.textContent = dailyXpReward;
@@ -1195,7 +1209,7 @@ async function loadStreak() {
 
     if (res.status === 403) {
       // 非 Premium：無法取得歷史，僅根據今日是否已提交顯示 0 或 1
-      const streak = todayData?.user_submitted ? 1 : 0;
+      const streak = todayData?.user_correct === true ? 1 : 0;
       document.getElementById('streak-val').textContent      = streak;
       document.getElementById('streak-best-val').textContent = streak;
       document.getElementById('hdr-streak').textContent      = streak;
@@ -1204,7 +1218,7 @@ async function loadStreak() {
 
     const data    = await res.json();
     const history = data.history || [];
-    const dates   = new Set(history.filter(h => h.user_correct !== null).map(h => h.date));
+    const dates   = new Set(history.filter(h => h.user_correct === true).map(h => h.date));
 
     // 連擊：從昨天往前數連續有紀錄的天數
     let streak = 0;
@@ -1214,7 +1228,7 @@ async function loadStreak() {
       if (dates.has(ds)) { streak++; d.setDate(d.getDate() - 1); }
       else break;
     }
-    if (todayData?.user_submitted) streak++; // 今天已提交也算入
+    if (todayData?.user_correct === true) streak++; // 今日 server-verified correct
 
     // 最佳連擊：掃描完整歷史計算
     let best = streak, cur = 0, prev = null;
@@ -1307,6 +1321,7 @@ function parseSGF(sgf) {
 function initBoard(sgfContent) {
   const container = document.getElementById('board-container');
   container.innerHTML = '';
+  submittedMoves = [];
 
   try {
     currentProblem = parseSGF(sgfContent);
@@ -1483,6 +1498,10 @@ function onBoardClick(x, y) {
   if (played === 'ko') { setMsg(I18n.t('dc.msg.ko'), 'warn'); return; }
   if (!played) return;
 
+  // The server judges this actual player move sequence.  The legacy
+  // `correct` flag remains a display/diagnostic hint only.
+  submittedMoves.push({x, y});
+
   // Find matching child in currentNode
   const match = (currentNode.children || []).find(c => c.move && c.move.x === x && c.move.y === y);
 
@@ -1543,6 +1562,7 @@ function resetProblem() {
   // Rebuild tree from original SGF using parseSGF
   currentProblem = parseSGF(todayData.content);
   currentNode = makeAnswerRoot(currentProblem.tree);
+  submittedMoves = [];
   initLogicBoard();
   renderInitialStones();
   answering = false; solved = false; gaveUp = false;
@@ -1608,7 +1628,12 @@ async function submitResult() {
     const res  = await fetch('/api/daily-challenge/submit', {
       method: 'POST', credentials: 'include',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({correct: !!correct})
+      body: JSON.stringify({
+        submission_id: submissionId,
+        attempt_token: todayData?.attempt_token,
+        moves: submittedMoves,
+        correct: !!correct
+      })
     });
     const data = await res.json();
 
@@ -1623,8 +1648,10 @@ async function submitResult() {
     submitted = true;
     document.getElementById('submit-panel').classList.remove('show');
 
+    const serverCorrect = data.server_correct === true;
+
     // Show result msg
-    if (correct) setMsg(I18n.t('daily.msg.submit_ok_correct'), 'ok');
+    if (serverCorrect) setMsg(I18n.t('daily.msg.submit_ok_correct'), 'ok');
     else         setMsg(I18n.t('daily.msg.submit_ok_wrong'),   'err');
 
     const xpAwarded = data.xp_awarded || 0;
@@ -1632,10 +1659,10 @@ async function submitResult() {
 
     // Show global stats
     showGlobalStats(data.stats);
-    showStatusArea(!!correct, data.stats?.rank);
+    showStatusArea(serverCorrect, data.stats?.rank);
 
     // Show result panel
-    showResultPanel(!!correct, data.stats, data.new_badges || [], xpAwarded);
+    showResultPanel(serverCorrect, data.stats, data.new_badges || [], xpAwarded);
 
     // Reload streak
     loadStreak();

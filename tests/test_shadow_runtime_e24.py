@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -11,8 +12,9 @@ DOC_PATH = Path(__file__).resolve().parents[1] / "docs" / "planning" / "shadow_r
 
 
 class _FakeResult:
-    def __init__(self, row=None):
+    def __init__(self, row=None, rowcount=0):
         self._row = row
+        self.rowcount = rowcount
 
     def fetchone(self):
         return self._row
@@ -30,6 +32,12 @@ class _FakeConn:
 
     def execute(self, sql, params=None):
         self.executed.append((sql, params))
+        if (
+            "INSERT INTO review_log" in sql
+            or "UPDATE review_log" in sql
+            or "INSERT INTO daily_challenge_log" in sql
+        ):
+            return _FakeResult(rowcount=1)
         for needle, result in self.query_map.items():
             if needle in sql:
                 return _FakeResult(result)
@@ -301,10 +309,19 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(cli
     )
     monkeypatch.setattr(app_module, "get_db", lambda: _FakeConnCtx(conn))
     monkeypatch.setattr(app_module, "get_or_create_daily_challenge", lambda today: {"question_id": 301})
-    monkeypatch.setattr(app_module, "_load_questions", lambda: [{"id": 301, "content": "(;SZ[19];B[aa])", "katago_best_move": "A19"}])
+    question = {"id": 301, "content": "(;SZ[19];B[aa])", "katago_best_move": "A19"}
+    monkeypatch.setattr(app_module, "_load_questions", lambda: [question])
     monkeypatch.setattr(app_module, "check_and_award_daily", lambda *args, **kwargs: [])
     monkeypatch.setattr(app_module, "get_daily_submit_streak", lambda *args, **kwargs: 0)
     monkeypatch.setattr(app_module, "give_daily_appearance", lambda *args, **kwargs: [])
+
+    attempt_token = app_module.issue_daily_attempt(
+        app_module.app.secret_key,
+        user_id=7,
+        challenge_date=date.today().isoformat(),
+        question=question,
+        question_context=app_module._map_battle_question_context(question),
+    )
 
     with client.session_transaction() as sess:
         sess["user_id"] = 7
@@ -312,12 +329,18 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(cli
     off_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: False)
     monkeypatch.setattr(shadow_judging, "observe_answer_route", lambda **kwargs: off_calls.append(kwargs))
-    off_response = client.post("/api/daily-challenge/submit", json={"correct": False})
+    off_response = client.post(
+        "/api/daily-challenge/submit",
+        json={"submission_id": "shadow-daily-runtime", "attempt_token": attempt_token, "moves": [{"x": 1, "y": 1}], "correct": False},
+    )
 
     on_calls = []
     monkeypatch.setattr(shadow_judging, "is_enabled", lambda: True)
     monkeypatch.setattr(shadow_judging, "observe_answer_route", lambda **kwargs: on_calls.append(kwargs))
-    on_response = client.post("/api/daily-challenge/submit", json={"correct": False})
+    on_response = client.post(
+        "/api/daily-challenge/submit",
+        json={"submission_id": "shadow-daily-runtime-2", "attempt_token": attempt_token, "moves": [{"x": 1, "y": 1}], "correct": False},
+    )
 
     assert off_response.status_code == 200
     assert on_response.status_code == 200

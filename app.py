@@ -75,6 +75,23 @@ from map_battle_runtime import (
     settle_answer,
     validate_resumable_attempt,
 )
+from daily_challenge_authority import (
+    DailyAttemptError,
+    canonicalize_daily_answer,
+    issue_daily_attempt,
+    judge_daily_answer,
+    verify_daily_attempt,
+)
+from daily_challenge_d5b import (
+    DAILY_D5B_SOURCE_PREFIX,
+    DailyReplayUnavailable,
+    DailySubmissionConflict,
+    daily_submission_payload_hash,
+    load_daily_replay,
+    normalize_daily_submission_id,
+    persist_daily_result,
+    reserve_daily_submission,
+)
 from map_battle_persistence import (
     create_map_battle,
     get_map_battle_v1_mode,
@@ -6279,8 +6296,9 @@ def get_today_free_count(uid):
     with get_db() as conn:
         row = conn.execute(
             "SELECT COUNT(*) as cnt FROM review_log "
-            "WHERE user_id=? AND DATE(reviewed_at)=?",
-            (uid, today)
+            "WHERE user_id=? AND DATE(reviewed_at)=? "
+            "AND (source_context IS NULL OR source_context NOT LIKE ?)",
+            (uid, today, DAILY_D5B_SOURCE_PREFIX + '%')
         ).fetchone()
     return row['cnt'] if row else 0
 
@@ -6354,14 +6372,24 @@ def get_or_create_daily_challenge(date_str):
     return {'challenge_date': date_str, 'question_id': q['id'], 'set_by': 'auto', 'note': None}
 
 
-def get_daily_submit_streak(uid, today_str):
-    """回傳連續提交每日挑戰的天數（含今天，若今天已提交）。"""
-    with get_db() as conn:
-        rows = conn.execute(
+def get_daily_submit_streak(uid, today_str, conn=None):
+    """回傳連續答對每日挑戰的天數（含今天，若本交易已寫入）。
+
+    A reward transaction passes its caller-owned connection so the current
+    submission is visible to streak and threshold calculations before commit.
+    """
+    def _read_streak_rows(read_conn):
+        return read_conn.execute(
             'SELECT challenge_date FROM daily_challenge_log '
-            'WHERE user_id=? ORDER BY challenge_date DESC',
-            (uid,)
+            'WHERE user_id=? AND correct=1 ORDER BY challenge_date DESC',
+            (uid,),
         ).fetchall()
+
+    if conn is not None:
+        rows = _read_streak_rows(conn)
+    else:
+        with get_db() as read_conn:
+            rows = _read_streak_rows(read_conn)
     dates = {r['challenge_date'] for r in rows}
     streak = 0
     d = datetime.date.fromisoformat(today_str)
@@ -6389,7 +6417,7 @@ def check_and_award_daily(conn, uid, correct, today_str):
     award('daily_first')
     if correct:
         award('daily_ace')
-    streak = get_daily_submit_streak(uid, today_str)
+    streak = get_daily_submit_streak(uid, today_str, conn=conn)
     for days in [3, 7, 14, 30, 60, 100, 200, 365]:
         if streak >= days:
             award(f'daily_{days}')
@@ -14796,6 +14824,21 @@ def dc_today():
             (today,)
         ).fetchone()
 
+    attempt_token = None
+    if log is None:
+        try:
+            question_context = _map_battle_question_context(q)
+            attempt_token = issue_daily_attempt(
+                app.secret_key,
+                user_id=uid,
+                challenge_date=today,
+                question=q,
+                question_context=question_context,
+            )
+        except (DailyAttemptError, MapBattleRuntimeError) as error:
+            app.logger.warning('[daily] unable to issue authoritative attempt: %s', error)
+            return jsonify({'error': 'daily_challenge_unverifiable'}), 503
+
     total_p   = stats_row['total'] or 0
     correct_p = stats_row['cnt']   or 0
 
@@ -14811,6 +14854,7 @@ def dc_today():
         'rank':           q.get('rank', ''),
         'note':           dc.get('note'),
         'xp_reward':      DAILY_CHALLENGE_XP_REWARD,
+        'attempt_token':  attempt_token,
         'user_submitted': log is not None,
         'user_correct':   bool(log['correct']) if log else None,
         'stats': {
@@ -14824,34 +14868,137 @@ def dc_today():
 @app.route('/api/daily-challenge/submit', methods=['POST'])
 @login_required
 def dc_submit():
-    uid     = session['user_id']
-    today   = datetime.date.today().isoformat()
-    data    = request.get_json()
-    correct = 1 if data.get('correct') else 0
+    uid = session['user_id']
+    today = datetime.date.today().isoformat()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'ok': False, 'error': 'daily_answer_json_required'}), 400
+
+    try:
+        submission_id, _generated_submission_id = normalize_daily_submission_id(
+            data.get('submission_id') or request.headers.get('Idempotency-Key')
+        )
+        submission_payload_hash = daily_submission_payload_hash(data)
+    except (IdempotencyIdentityError, TypeError, ValueError):
+        return jsonify({'ok': False, 'error': 'invalid_submission_identity'}), 400
+
+    # D5B replay is checked before current attempt expiry/availability.  Once
+    # the original transaction committed, the stored canonical result is the
+    # authority for a response-loss retry; a changed payload is a conflict.
+    with get_db() as conn:
+        try:
+            replay = load_daily_replay(
+                conn,
+                user_id=uid,
+                submission_id=submission_id,
+                payload_hash=submission_payload_hash,
+            )
+        except DailySubmissionConflict:
+            return jsonify({
+                'error': 'idempotency_conflict',
+                'code': 'idempotency_conflict',
+                'submission_id': submission_id,
+                'retryable': False,
+            }), 409
+        except DailyReplayUnavailable:
+            return jsonify({
+                'error': 'daily_result_unavailable',
+                'code': 'daily_result_unavailable',
+                'submission_id': submission_id,
+                'retryable': True,
+            }), 409
+    if replay is not None:
+        return jsonify(replay)
 
     dc = get_or_create_daily_challenge(today)
     if not dc:
         return jsonify({'error': '題庫為空'}), 503
 
+    qs_map = {q['id']: q for q in _load_questions()}
+    question = qs_map.get(dc['question_id'])
+    if not question:
+        return jsonify({'ok': False, 'error': '題目不存在'}), 404
+
+    try:
+        question_context = _map_battle_question_context(question)
+        attempt = verify_daily_attempt(
+            app.secret_key,
+            data.get('attempt_token'),
+            user_id=uid,
+            challenge_date=today,
+            question_id=dc['question_id'],
+            question_revision=question_context['question_revision'],
+            question_content_sha256=question_context['initial_position_identity'],
+        )
+        answer = canonicalize_daily_answer(data, attempt)
+        judge = judge_daily_answer(question, attempt, answer)
+    except (DailyAttemptError, MapBattleRuntimeError) as error:
+        app.logger.info('[daily] authoritative submission rejected: %s', error)
+        status = int(getattr(error, 'status', 409) or 409)
+        return jsonify({
+            'ok': False,
+            'error': getattr(error, 'code', 'daily_answer_rejected'),
+            'submission_id': submission_id,
+        }), status
+
+    # The legacy client boolean is diagnostic only.  Reward/progression uses
+    # the canonical SGF result returned by the server judge below.
+    server_correct = judge.result == 'CORRECT'
+    client_correct = data.get('correct') if isinstance(data.get('correct'), bool) else None
     now = datetime.datetime.now().isoformat()
     xp_shadow_input = None
+    result_payload = None
+
     with get_db() as conn:
+        try:
+            reservation = reserve_daily_submission(
+                conn,
+                user_id=uid,
+                question_id=dc['question_id'],
+                question_revision=attempt['question_revision'],
+                server_correct=server_correct,
+                reviewed_at=now,
+                submission_id=submission_id,
+                payload_hash=submission_payload_hash,
+            )
+        except DailySubmissionConflict:
+            return jsonify({
+                'error': 'idempotency_conflict',
+                'code': 'idempotency_conflict',
+                'submission_id': submission_id,
+                'retryable': False,
+            }), 409
+        except DailyReplayUnavailable:
+            return jsonify({
+                'error': 'daily_result_unavailable',
+                'code': 'daily_result_unavailable',
+                'submission_id': submission_id,
+                'retryable': True,
+            }), 409
+
+        if not reservation['inserted']:
+            return jsonify(reservation['result'])
+
         existing = conn.execute(
             'SELECT id FROM daily_challenge_log '
             'WHERE user_id=? AND challenge_date=?',
             (uid, today)
         ).fetchone()
         if existing:
+            conn.rollback()
             return jsonify({'error': 'already_submitted'}), 409
 
-        conn.execute(
+        insert_result = conn.execute(
             'INSERT INTO daily_challenge_log'
             '(user_id,challenge_date,question_id,correct,submitted_at) '
-            'VALUES(?,?,?,?,?)',
-            (uid, today, dc['question_id'], correct, now)
+            'VALUES(?,?,?,?,?) ON CONFLICT(user_id,challenge_date) DO NOTHING',
+            (uid, today, dc['question_id'], int(server_correct), now)
         )
+        if getattr(insert_result, 'rowcount', 1) == 0:
+            conn.rollback()
+            return jsonify({'error': 'already_submitted'}), 409
 
-        xp_awarded = DAILY_CHALLENGE_XP_REWARD if correct else 0
+        xp_awarded = DAILY_CHALLENGE_XP_REWARD if server_correct else 0
         if xp_awarded:
             xp_shadow_input = {
                 'source_type': 'DAILY_CHALLENGE',
@@ -14863,8 +15010,7 @@ def dc_submit():
                 'legacy_premium_already_applied': False,
             }
             row = conn.execute(
-                'SELECT xp FROM user_stats WHERE user_id=?',
-                (uid,)
+                'SELECT xp FROM user_stats WHERE user_id=?', (uid,)
             ).fetchone()
             total_xp = ((row['xp'] or 0) if row else 0) + xp_awarded
             new_rank_level = f'LV{xp_to_lv(total_xp)}'
@@ -14873,10 +15019,7 @@ def dc_submit():
                 '''INSERT INTO user_stats(user_id,xp,rank_xp,rank_level,updated_at)
                    VALUES(?,?,?,?,?)
                    ON CONFLICT(user_id) DO UPDATE SET
-                     xp=?,
-                     rank_xp=?,
-                     rank_level=?,
-                     updated_at=?''',
+                     xp=?, rank_xp=?, rank_level=?, updated_at=?''',
                 (uid, total_xp, rank_xp, new_rank_level, now,
                  total_xp, rank_xp, new_rank_level, now)
             )
@@ -14886,11 +15029,11 @@ def dc_submit():
             'FROM daily_challenge_log WHERE challenge_date=?',
             (today,)
         ).fetchone()
-        total_p   = stats_row['total'] or 0
-        correct_p = stats_row['cnt']   or 0
+        total_p = stats_row['total'] or 0
+        correct_p = stats_row['cnt'] or 0
 
         rank = None
-        if correct:
+        if server_correct:
             rank_row = conn.execute(
                 'SELECT COUNT(*) as r FROM daily_challenge_log '
                 'WHERE challenge_date=? AND correct=1 AND submitted_at<=?',
@@ -14898,10 +15041,43 @@ def dc_submit():
             ).fetchone()
             rank = rank_row['r'] if rank_row else None
 
-        new_badge_ids = check_and_award_daily(conn, uid, bool(correct), today)
-        streak = get_daily_submit_streak(uid, today)
+        new_badge_ids = check_and_award_daily(conn, uid, server_correct, today)
+        streak = get_daily_submit_streak(uid, today, conn=conn)
         new_appear_ids = give_daily_appearance(conn, uid, streak)
-        conn.commit()
+
+        defs_map = {b['id']: b for b in BADGE_DEFS}
+        new_badges = []
+        for bid in new_badge_ids:
+            if bid not in defs_map:
+                continue
+            badge = dict(defs_map[bid])
+            badge_en = _i18n_badge_en(bid)
+            if badge_en:
+                badge['name_en'], badge['desc_en'] = badge_en
+            new_badges.append(badge)
+        new_appear_items = [_APPEAR_MAP[i] for i in new_appear_ids if i in _APPEAR_MAP]
+
+        result_payload = {
+            'ok': True,
+            'stats': {
+                'total': total_p,
+                'correct': correct_p,
+                'accuracy': round(correct_p / (total_p or 1) * 100),
+                'rank': rank,
+            },
+            'xp_awarded': xp_awarded,
+            'new_badges': new_badges,
+            'new_appearance_items': new_appear_items,
+            'server_correct': server_correct,
+            'reward_eligible': server_correct,
+            'judge_reason': judge.reason_code,
+        }
+        persist_daily_result(
+            conn,
+            user_id=uid,
+            submission_id=submission_id,
+            result=result_payload,
+        )
 
     if xp_shadow_input:
         _observe_xp_shadow(user_id=uid, **xp_shadow_input)
@@ -14909,47 +15085,22 @@ def dc_submit():
     try:
         import shadow_judging
         if shadow_judging.is_enabled():
-            qs_map = {q['id']: q for q in _load_questions()}
-            shadow_q = qs_map.get(dc['question_id'], {})
             shadow_judging.observe_answer_route(
                 entry_point='daily_challenge',
                 question_id=dc['question_id'],
                 session_id=f'daily:{uid}:{today}',
                 transform_idx=0,
-                sgf_transformed=shadow_q.get('content', ''),
-                moves=data.get('moves') if isinstance(data.get('moves'), list) else None,
-                client_correct=bool(data.get('correct')),
-                final_correct=bool(correct),
-                katago_best_move=shadow_q.get('katago_best_move', ''),
-                accepted_moves=_question_accepted_moves(shadow_q),
+                sgf_transformed=question.get('content', ''),
+                moves=data.get('moves'),
+                client_correct=client_correct,
+                final_correct=server_correct,
+                katago_best_move=question.get('katago_best_move', ''),
+                accepted_moves=_question_accepted_moves(question),
             )
     except Exception:
         app.logger.exception('[shadow] observe failed (ignored)')
 
-    defs_map   = {b['id']: b for b in BADGE_DEFS}
-    new_badges = []
-    for bid in new_badge_ids:
-        if bid not in defs_map:
-            continue
-        badge = dict(defs_map[bid])
-        badge_en = _i18n_badge_en(bid)
-        if badge_en:
-            badge['name_en'], badge['desc_en'] = badge_en
-        new_badges.append(badge)
-    new_appear_items = [_APPEAR_MAP[i] for i in new_appear_ids if i in _APPEAR_MAP]
-
-    return jsonify({
-        'ok': True,
-        'stats': {
-            'total':    total_p,
-            'correct':  correct_p,
-            'accuracy': round(correct_p / (total_p or 1) * 100),
-            'rank':     rank,
-        },
-        'xp_awarded':          xp_awarded,
-        'new_badges':          new_badges,
-        'new_appearance_items': new_appear_items,
-    })
+    return jsonify(result_payload)
 
 
 @app.route('/api/daily-challenge/history')

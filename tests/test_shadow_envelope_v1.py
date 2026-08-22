@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -13,8 +14,9 @@ DOC_PATH = Path(__file__).resolve().parents[1] / "docs" / "planning" / "shadow_e
 
 
 class _FakeResult:
-    def __init__(self, row=None):
+    def __init__(self, row=None, rowcount=0):
         self._row = row
+        self.rowcount = rowcount
 
     def fetchone(self):
         return self._row
@@ -32,6 +34,12 @@ class _FakeConn:
 
     def execute(self, sql, params=None):
         self.executed.append((sql, params))
+        if (
+            "INSERT INTO review_log" in sql
+            or "UPDATE review_log" in sql
+            or "INSERT INTO daily_challenge_log" in sql
+        ):
+            return _FakeResult(rowcount=1)
         for needle, result in self.query_map.items():
             if needle in sql:
                 return _FakeResult(result)
@@ -443,10 +451,14 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     monkeypatch.setattr(app_module, "check_and_award_daily", lambda *args, **kwargs: [])
     monkeypatch.setattr(app_module, "get_daily_submit_streak", lambda *args, **kwargs: 0)
     monkeypatch.setattr(app_module, "give_daily_appearance", lambda *args, **kwargs: [])
-    monkeypatch.setattr(
-        app_module,
-        "_load_questions",
-        lambda: [{"id": 301, "content": "(;SZ[19];B[aa])", "accepted_moves": []}],
+    question = {"id": 301, "content": "(;SZ[19];B[aa])", "accepted_moves": []}
+    monkeypatch.setattr(app_module, "_load_questions", lambda: [question])
+    attempt_token = app_module.issue_daily_attempt(
+        app_module.app.secret_key,
+        user_id=7,
+        challenge_date=date.today().isoformat(),
+        question=question,
+        question_context=app_module._map_battle_question_context(question),
     )
 
     with client.session_transaction() as sess:
@@ -461,7 +473,7 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     )
     off_response = client.post(
         "/api/daily-challenge/submit",
-        json={"correct": False},
+        json={"submission_id": "shadow-daily-envelope", "attempt_token": attempt_token, "moves": [{"x": 1, "y": 1}], "correct": False},
     )
 
     on_calls = []
@@ -473,7 +485,7 @@ def test_daily_challenge_route_legacy_response_is_unchanged_with_shadow_hook(
     )
     on_response = client.post(
         "/api/daily-challenge/submit",
-        json={"correct": False},
+        json={"submission_id": "shadow-daily-envelope-2", "attempt_token": attempt_token, "moves": [{"x": 1, "y": 1}], "correct": False},
     )
 
     assert off_response.status_code == 200
