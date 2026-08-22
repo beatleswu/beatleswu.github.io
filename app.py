@@ -2337,11 +2337,18 @@ PURE_COSMETIC_PRESENTATION_REGISTRY = {
 _COSMETIC_FOCAL_DETAILS = {
     'back_pack': {
         'variant': 'back-pack',
-        'label': '背飾特寫',
-        'label_en': 'Back detail',
-        'region': 'upper_back',
-        'note': '放大肩帶、捲毯與布包輪廓，讓背飾在卡片尺寸仍可辨識。',
-        'note_en': 'A focused upper-back detail keeps the straps, roll, and bag silhouette legible.',
+        'label': '背包特寫',
+        'label_en': 'Pack detail',
+        'region': 'side_back_pack',
+        'projection': 'canonical_fullbody_side_rear_pixels',
+        'source_region': {
+            'x': 0.54,
+            'y': 0.14,
+            'width': 0.34,
+            'height': 0.42,
+        },
+        'note': '取自 canonical 全身圖右側真實背包、肩帶與捲毯像素，不使用前胸裁切冒充背面。',
+        'note_en': 'Uses the real side/back pack, straps, and roll pixels from the canonical full-body art; no front-torso crop is relabeled as a rear view.',
     },
     'acc_dragon_pendant': {
         'variant': 'dragon-pendant',
