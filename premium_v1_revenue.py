@@ -316,6 +316,126 @@ def _period_is_in_claim_window(
     return current <= window_end + _datetime.timedelta(days=max(0, annual_grace_days))
 
 
+def _month_start(value: _datetime.date) -> _datetime.date:
+    return value.replace(day=1)
+
+
+def _add_months(value: _datetime.date, months: int) -> _datetime.date:
+    index = value.year * 12 + (value.month - 1) + int(months)
+    return _datetime.date(index // 12, index % 12 + 1, 1)
+
+
+def _month_end(value: _datetime.date) -> _datetime.date:
+    return _add_months(_month_start(value), 1) - _datetime.timedelta(days=1)
+
+
+def build_c013_reward_period(
+    period_start: _datetime.date,
+    *,
+    plan_term: str,
+    created_at: _datetime.datetime | None = None,
+) -> dict[str, Any]:
+    """Build one deterministic monthly period; it never creates a credit."""
+
+    start = _month_start(period_start)
+    end = _month_end(start)
+    claim_end = _month_end(_add_months(start, 2))
+    stamp = _now(created_at).isoformat()
+    return {
+        "period_key": start.strftime("%Y-%m"),
+        "reward_type": RECURRING_REWARD_TYPE,
+        "reward_catalog_key": C013_REWARD_CATALOG_KEY,
+        "period_starts_at": f"{start.isoformat()}T00:00:00+00:00",
+        "period_ends_at": f"{end.isoformat()}T23:59:59+00:00",
+        "claim_window_starts_at": f"{start.isoformat()}T00:00:00+00:00",
+        "claim_window_ends_at": f"{claim_end.isoformat()}T23:59:59+00:00",
+        "annual_grace_days": C013_CLAIM_GRACE_DAYS if str(plan_term).upper() == "ANNUAL" else 0,
+        "eligibility_policy_version": "c013_verified_paid_v1",
+        "created_at": stamp,
+    }
+
+
+def build_c013_annual_vesting_periods(
+    valid_from: _datetime.date,
+    *,
+    created_at: _datetime.datetime | None = None,
+) -> tuple[dict[str, Any], ...]:
+    """Return exactly twelve monthly period rows for an annual grant."""
+
+    start = _month_start(valid_from)
+    return tuple(
+        build_c013_reward_period(
+            _add_months(start, offset),
+            plan_term="ANNUAL",
+            created_at=created_at,
+        )
+        for offset in range(12)
+    )
+
+
+def ensure_c013_reward_periods(
+    conn: Any,
+    periods: Sequence[Mapping[str, Any]],
+) -> int:
+    """Idempotently seed only period definitions; no credits or ownership.
+
+    This helper is a separately callable candidate for a governed entitlement
+    scheduler.  App startup and the default-off claim route never call it.
+    Existing rows with a different C013 contract fail closed instead of being
+    overwritten.
+    """
+
+    inserted = 0
+    for period in periods:
+        required = {
+            "period_key": str(period["period_key"]),
+            "reward_type": str(period["reward_type"]),
+            "reward_catalog_key": str(period["reward_catalog_key"]),
+            "period_starts_at": str(period["period_starts_at"]),
+            "period_ends_at": str(period["period_ends_at"]),
+            "claim_window_starts_at": str(period["claim_window_starts_at"]),
+            "claim_window_ends_at": str(period["claim_window_ends_at"]),
+            "annual_grace_days": int(period["annual_grace_days"]),
+            "eligibility_policy_version": str(period["eligibility_policy_version"]),
+            "created_at": str(period["created_at"]),
+        }
+        cursor = _execute(
+            conn,
+            """INSERT INTO premium_reward_periods(
+                   period_key,reward_type,reward_catalog_key,period_starts_at,
+                   period_ends_at,claim_window_starts_at,claim_window_ends_at,
+                   annual_grace_days,eligibility_policy_version,created_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(period_key) DO NOTHING""",
+            tuple(required.values()),
+        )
+        inserted += int(getattr(cursor, "rowcount", 0) or 0) == 1
+        existing = _fetchone(
+            conn,
+            """SELECT period_key,reward_type,reward_catalog_key,period_starts_at,
+                      period_ends_at,claim_window_starts_at,claim_window_ends_at,
+                      annual_grace_days,eligibility_policy_version
+                 FROM premium_reward_periods WHERE period_key=?""",
+            (required["period_key"],),
+        )
+        if not existing or any(
+            str(existing.get(key)) != str(required[key])
+            for key in (
+                "period_key",
+                "reward_type",
+                "reward_catalog_key",
+                "period_starts_at",
+                "period_ends_at",
+                "claim_window_starts_at",
+                "claim_window_ends_at",
+                "annual_grace_days",
+                "eligibility_policy_version",
+            )
+        ):
+            raise PremiumRewardClaimError("C013 reward period contract conflict")
+    return inserted
+
+
 def select_server_claim_period(
     service: PremiumRewardBundleClaimService,
     *,
@@ -479,9 +599,12 @@ __all__ = [
     "C013_VERSION",
     "C013AppearanceCatalogResolver",
     "build_c013_catalog_resolver",
+    "build_c013_annual_vesting_periods",
     "build_c013_offer_projection",
+    "build_c013_reward_period",
     "c013_claim_route_enabled",
     "c013_result_payload",
+    "ensure_c013_reward_periods",
     "read_c013_claim_evidence",
     "select_server_claim_period",
 ]

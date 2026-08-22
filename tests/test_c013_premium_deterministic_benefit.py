@@ -20,8 +20,10 @@ from premium_v1_revenue import (
     C013_HIDDEN_IDS,
     C013_LAUNCH_COSMETIC_IDS,
     C013_REWARD_CATALOG_KEY,
+    build_c013_annual_vesting_periods,
     build_c013_catalog_resolver,
     build_c013_offer_projection,
+    ensure_c013_reward_periods,
     c013_claim_route_enabled,
     c013_result_payload,
     read_c013_claim_evidence,
@@ -257,6 +259,21 @@ def test_default_off_and_no_runtime_migration_contract():
     assert c013_claim_route_enabled({"GO_REVENUE_V1_PREMIUM_CLAIM_ENABLED": "0"}) is False
     assert c013_claim_route_enabled({"GO_REVENUE_V1_PREMIUM_CLAIM_ENABLED": "1"}) is True
     assert not Path("migrations/c013_premium_v1.py").exists()
+
+
+def test_annual_vesting_creates_period_definitions_not_upfront_credits(db):
+    periods = build_c013_annual_vesting_periods(dt.date(2027, 1, 15), created_at=NOW)
+    assert len(periods) == 12
+    assert len({period["period_key"] for period in periods}) == 12
+    assert all(period["annual_grace_days"] == 90 for period in periods)
+    assert all(period["reward_type"] == "MONTHLY_COLLECTION_CREDIT" for period in periods)
+    assert ensure_c013_reward_periods(db, periods[:2]) == 2
+    assert ensure_c013_reward_periods(db, periods[:2]) == 0
+    db.commit()
+    assert db.execute(
+        "SELECT COUNT(*) FROM premium_reward_periods WHERE period_key LIKE '2027-%'"
+    ).fetchone()[0] == 2
+    assert db.execute("SELECT COUNT(*) FROM premium_reward_credits").fetchone()[0] == 0
 
 
 def test_all_locked_art_assets_exist_and_are_canonical_webp():
