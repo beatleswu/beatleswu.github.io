@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_HEAD = "b16362b232c0a5d4a41b1b72a09783b8d29b0cf3"
 EVIDENCE = ROOT / "docs" / "review" / "a020r2"
 FORMS = EVIDENCE / "clean_forms"
+OWNER_CLEAN_SOURCE = EVIDENCE / "A020R2_OWNER_CLEAN_SOURCE.jpg"
 
 FORM_IDS = [
     "SPIRIT4_STAGE1",
@@ -34,7 +35,9 @@ REVIEW_FILES = [
 
 
 def git(*args: str) -> str:
-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+    # Preserve porcelain status' leading index/worktree columns. Removing
+    # them with str.strip() turns a modified path into a malformed path.
+    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).rstrip("\r\n")
 
 
 def test_source_head_is_a020_r2_ancestor():
@@ -44,6 +47,13 @@ def test_source_head_is_a020_r2_ancestor():
         check=False,
     )
     assert result.returncode == 0
+
+
+def test_owner_clean_source_is_present_and_has_expected_grid_dimensions():
+    assert OWNER_CLEAN_SOURCE.is_file(), OWNER_CLEAN_SOURCE
+    with Image.open(OWNER_CLEAN_SOURCE) as image:
+        assert image.size == (1254, 1254)
+        assert image.mode == "RGB"
 
 
 def test_all_nine_clean_forms_exist_as_rgba_with_alpha_matte():

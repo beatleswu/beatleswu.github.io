@@ -3,9 +3,10 @@
 ## Authority and scope
 
 - Source head: `b16362b232c0a5d4a41b1b72a09783b8d29b0cf3`
-- Visual authority: `docs/review/a020r1/A020R1_OWNER_REFERENCE_PRIMARY.jpg`
-- Source authority: Owner-selected A020-R1 reference image
-- Operation: deterministic crop and alpha-matte cleanup only
+- Visual authority: `docs/review/a020r2/A020R2_OWNER_CLEAN_SOURCE.jpg`
+- Source authority: Owner-corrected clean 3×3 Spirit sheet supplied for A020-R2
+- Historical reference: `docs/review/a020r1/A020R1_OWNER_REFERENCE_PRIMARY.jpg`
+- Operation: deterministic cell extraction and checkerboard-background alpha cleanup only
 - Generation/redesign: none
 - Runtime/catalog promotion: none
 
@@ -20,13 +21,13 @@ The clean form files are review/evidence assets under
 
 ## Cleanup contract
 
-Each form is extracted from its corresponding region of the approved source
-image. The deterministic matte removes the source poster's explanatory copy,
-stage separators, decorative frame corners, and unrelated neighboring forms.
-The source character pixels, pose, palette, markings, effects, and final-form
-silhouettes are not redrawn or regenerated. Alpha transparency is used outside
-the presentation matte; the source-native dark celestial/Go-board atmosphere
-inside the form region is retained where it belongs to the approved design.
+Each form is extracted from its corresponding cell of the Owner-corrected
+3×3 checkerboard-backed clean sheet. The deterministic matte removes only
+the checkerboard pixels connected to the cell edges, while preserving enclosed
+light details that belong to a character. Cell boundaries and neighboring
+forms are removed; the source character pixels, pose, palette, markings,
+effects, and final-form silhouettes are not redrawn or regenerated.
+Alpha transparency is used outside each clean character cut.
 
 ## Review packet
 
