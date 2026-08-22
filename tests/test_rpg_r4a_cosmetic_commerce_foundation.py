@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox
+
 
 TEST_SECRET = "test-only-r4a-cosmetic-commerce-secret"
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -108,6 +110,10 @@ def cosmetic_app(tmp_path, monkeypatch):
             INSERT INTO users(id, plan) VALUES (1, 'free'), (2, 'free');
             INSERT INTO user_stats(user_id, coins) VALUES (1, 500), (2, 0);
         """)
+        # D5C acquisition evidence is caller-transactional and therefore
+        # belongs in the same disposable fixture as the existing ownership
+        # authority. This is a candidate schema setup only, never Production.
+        upgrade_outbox(conn)
 
     app = _load_app(monkeypatch)
     monkeypatch.setattr(app, "get_db", lambda: _DbContext(path))

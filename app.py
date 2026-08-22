@@ -108,6 +108,15 @@ from question_idempotency import (
     insert_review_log_with_identity,
     normalize_identity,
 )
+from item_use_operations import (
+    ItemUseOperationConflict,
+    ItemUseOperationInProgress,
+    canonical_item_use_request,
+    complete_item_use_operation,
+    normalize_operation_identity,
+    operation_result,
+    reserve_item_use_operation,
+)
 from sgf_admin_workbench import (
     WORKBENCH_ACTIONS,
     WORKBENCH_REPORT_REASONS,
@@ -19902,6 +19911,50 @@ def _purchase_cosmetic(conn, uid, product, *, price_override=None,
     return {'status': 'purchased', 'granted': True, 'price': price}
 
 
+def _append_cosmetic_acquisition_event(conn, uid, product):
+    """Record one newly committed wardrobe ownership grant as evidence.
+
+    ``player_wardrobe`` remains the ownership authority.  Its existing
+    unique row identity is the only grant identity used here, so this scoped
+    integration cannot turn a lineage row into a second ownership system.
+    Existing/legacy wardrobe rows are intentionally not backfilled.
+    """
+    row = conn.execute(
+        'SELECT id, item_id, source, obtained_at FROM player_wardrobe '
+        'WHERE user_id=? AND item_id=?',
+        (uid, product['cosmetic_id']),
+    ).fetchone()
+    if not row:
+        raise RuntimeError('cosmetic ownership row missing before acquisition evidence')
+    grant_id = f'player_wardrobe:{row["id"]}'
+    source = 'PREMIUM' if product['unlock_type'] == 'premium' else 'SHOP'
+    payload = {
+        'operation': 'GRANT',
+        'grant_id': grant_id,
+        'item_id': row['item_id'],
+        'content_id': product['product_id'],
+        'acquisition_source': source,
+        'acquisition_currency': 'COINS' if source == 'SHOP' else None,
+        'coin_origin': 'UNKNOWN' if source == 'SHOP' else None,
+        'premium_source': 'UNKNOWN' if source == 'PREMIUM' else None,
+        'source_reference': product['product_id'],
+        'ownership_authority': 'player_wardrobe',
+        'ownership_committed': True,
+        'obtained_at': row['obtained_at'],
+    }
+    return append_event(
+        conn,
+        event_type='ITEM_ACQUISITION',
+        player_id=str(uid),
+        lineage_id=grant_id,
+        source_event_id=grant_id,
+        idempotency_key=f'item-acquisition:{grant_id}',
+        outcome='SUCCESS',
+        payload=payload,
+        occurred_at=row['obtained_at'],
+    )
+
+
 def _cosmetic_payload_for_user(conn, uid, product):
     return _cosmetic_product_payload(
         product,
@@ -19974,6 +20027,11 @@ def cosmetic_commerce_purchase():
                 'error': 'insufficient_coins',
                 'coins': _coin_balance(conn, uid),
             }), 400
+        if result['granted']:
+            # Evidence is written in the same caller-owned transaction as the
+            # existing wardrobe ownership mutation.  The wardrobe row remains
+            # the authority; the event cannot grant ownership by itself.
+            _append_cosmetic_acquisition_event(conn, uid, product)
         payload = _cosmetic_payload_for_user(conn, uid, product)
         return jsonify({
             'ok': True,
@@ -20233,6 +20291,7 @@ def shop_use():
     effect = item.get('effect') or {}
     capacity_delta = _question_capacity_delta(item_key, item)
     operation_id = None
+    item_use_operation_id = None
     if capacity_delta is not None:
         try:
             operation_id, _generated_operation_id = normalize_identity(
@@ -20242,11 +20301,56 @@ def shop_use():
             )
         except IdempotencyIdentityError:
             return jsonify({'error': 'invalid_operation_identity'}), 400
+    elif effect.get('key') == 'xp_potion':
+        try:
+            item_use_operation_id, _generated_operation_id = normalize_operation_identity(
+                body.get('operation_id') or request.headers.get('Idempotency-Key')
+            )
+        except IdempotencyIdentityError:
+            return jsonify({'error': 'invalid_operation_identity'}), 400
 
     with get_db() as conn:
         if usable in ('instant', 'auto'):
             return jsonify({'error': 'auto_use_only',
                             'message': '這個道具不需要手動使用'}), 400
+        if item_use_operation_id:
+            xp_effect_value = float(effect.get('value') or 1.5)
+            xp_effect_minutes = int(effect.get('minutes') or 30)
+            item_use_request = canonical_item_use_request(
+                item_id=item_key,
+                action='USE',
+                quantity=1,
+                effect_key='xp_potion',
+                effect_value=xp_effect_value,
+                effect_minutes=xp_effect_minutes,
+                source='SHOP_USE',
+            )
+            try:
+                item_use_reservation = reserve_item_use_operation(
+                    conn,
+                    player_id=uid,
+                    operation_id=item_use_operation_id,
+                    item_id=item_key,
+                    request_payload=item_use_request,
+                )
+            except ItemUseOperationConflict:
+                return jsonify({
+                    'error': 'idempotency_conflict',
+                    'code': 'idempotency_conflict',
+                    'operation_id': item_use_operation_id,
+                    'message': 'operation_id is already bound to a different item-use request',
+                }), 409
+            except ItemUseOperationInProgress:
+                return jsonify({
+                    'error': 'operation_in_progress',
+                    'code': 'operation_in_progress',
+                    'operation_id': item_use_operation_id,
+                }), 409
+            if item_use_reservation['duplicate']:
+                replay = operation_result(item_use_reservation['operation'])
+                replay['operation_duplicate'] = True
+                response_status = int(replay.pop('_http_status', 200))
+                return jsonify(replay), response_status
         if capacity_delta is not None:
             today = datetime.date.today().isoformat()
             existing_operation = conn.execute(
@@ -20288,6 +20392,25 @@ def shop_use():
                 duplicate_result['remaining'] = (row['qty'] if row else 0) or 0
                 return jsonify(duplicate_result)
         if effect.get('key') == 'xp_potion' and _effect_get(conn, uid, 'xp_potion'):
+            if item_use_operation_id:
+                rejection = {
+                    'ok': False,
+                    'error': 'effect_active',
+                    'message': '已有生效中的 XP 藥水',
+                    'operation_id': item_use_operation_id,
+                    'operation_status': 'REJECTED',
+                    '_http_status': 400,
+                }
+                complete_item_use_operation(
+                    conn,
+                    player_id=uid,
+                    operation_id=item_use_operation_id,
+                    operation_status='REJECTED',
+                    result_payload=rejection,
+                )
+                conn.commit()
+                rejection.pop('_http_status', None)
+                return jsonify(rejection), 400
             return jsonify({'error': 'effect_active', 'message': '已有生效中的 XP 藥水'}), 400
         if effect.get('key') == 'streak_shield' and _effect_get(conn, uid, 'streak_shield'):
             return jsonify({'error': 'effect_active', 'message': '護盾已在身上'}), 400
@@ -20302,6 +20425,24 @@ def shop_use():
                 if capacity_savepoint:
                     conn.execute(f'ROLLBACK TO SAVEPOINT {capacity_savepoint}')
                     conn.execute(f'RELEASE SAVEPOINT {capacity_savepoint}')
+                if item_use_operation_id:
+                    rejection = {
+                        'ok': False,
+                        'error': 'not_owned',
+                        'operation_id': item_use_operation_id,
+                        'operation_status': 'REJECTED',
+                        '_http_status': 400,
+                    }
+                    complete_item_use_operation(
+                        conn,
+                        player_id=uid,
+                        operation_id=item_use_operation_id,
+                        operation_status='REJECTED',
+                        result_payload=rejection,
+                    )
+                    conn.commit()
+                    rejection.pop('_http_status', None)
+                    return jsonify(rejection), 400
                 return jsonify({'error': 'not_owned'}), 400
 
             result = {'ok': True, 'item_key': item_key}
@@ -20444,11 +20585,21 @@ def shop_use():
                 value = float(effect.get('value') or 1.5)
                 minutes = int(effect.get('minutes') or 30)
                 exp = (now + datetime.timedelta(minutes=minutes)).isoformat(timespec='seconds')
-                conn.execute('INSERT INTO active_effects(user_id,effect_key,value,expires_at,created_at) '
-                             'VALUES(?,?,?,?,?)', (uid, 'xp_potion', value, exp, _now_iso()))
+                effect_started_at = _now_iso()
+                effect_row = conn.execute(
+                    'INSERT INTO active_effects(user_id,effect_key,value,expires_at,created_at) '
+                    'VALUES(?,?,?,?,?) RETURNING id',
+                    (uid, 'xp_potion', value, exp, effect_started_at),
+                ).fetchone()
+                if not effect_row:
+                    raise RuntimeError('xp potion effect row was not recoverable')
                 result['effect'] = 'xp_potion'
                 result['value'] = value
                 result['expires_at'] = exp
+                result['effect_id'] = int(effect_row['id'])
+                result['effect_started_at'] = effect_started_at
+                result['operation_id'] = item_use_operation_id
+                result['operation_status'] = 'SUCCESS'
             else:
                 _inv_add(conn, uid, item_key, 1)
                 if capacity_savepoint:
@@ -20456,6 +20607,43 @@ def shop_use():
                     conn.execute(f'RELEASE SAVEPOINT {capacity_savepoint}')
                 return jsonify({'error': 'not_usable',
                                 'message': '這個道具目前沒有可手動使用的效果'}), 400
+
+            if item_use_operation_id:
+                inventory_row = conn.execute(
+                    'SELECT qty FROM shop_inventory WHERE user_id=? AND item_key=?',
+                    (uid, item_key),
+                ).fetchone()
+                result['remaining'] = (inventory_row['qty'] if inventory_row else 0) or 0
+                event = append_event(
+                    conn,
+                    event_type='ITEM_CONSUME_EFFECT',
+                    player_id=str(uid),
+                    lineage_id=item_use_operation_id,
+                    source_event_id=f'item_use_operations:{uid}:{item_use_operation_id}',
+                    idempotency_key=f'item-consume-effect:{item_use_operation_id}',
+                    outcome='SUCCESS',
+                    payload={
+                        'operation': 'CONSUME_EFFECT',
+                        'operation_id': item_use_operation_id,
+                        'item_id': item_key,
+                        'quantity_delta': -1,
+                        'resulting_quantity': result['remaining'],
+                        'effect_id': result['effect_id'],
+                        'effect_type': result['effect'],
+                        'effect_start': result['effect_started_at'],
+                        'effect_expiry': result['expires_at'],
+                        'effect_value': result['value'],
+                        'source': 'SHOP_USE',
+                    },
+                )
+                result['consume_event_id'] = event['event_id']
+                complete_item_use_operation(
+                    conn,
+                    player_id=uid,
+                    operation_id=item_use_operation_id,
+                    operation_status='SUCCESS',
+                    result_payload=result,
+                )
 
             if capacity_savepoint:
                 conn.execute(f'RELEASE SAVEPOINT {capacity_savepoint}')
