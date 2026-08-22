@@ -57,6 +57,17 @@ INTERNAL_DUPLICATE_4_FIELDS: tuple[str, ...] = (
     "question_id",
 )
 
+# Public retry acknowledgement.  It is deliberately separate from the
+# internal MapBattle DUP4 shape so a public duplicate cannot be mistaken for
+# a post-settlement handoff.
+PUBLIC_SUBMISSION_DUPLICATE_FIELDS: tuple[str, ...] = (
+    "ok",
+    "submission_duplicate",
+    "submission_id",
+    "question_id",
+    "grade",
+)
+
 # RPG Wave 1: the only two result keys allowed to ride alongside a legacy
 # shape without tripping the exact-shape compatibility check. Both are
 # presentation/read projections composed by domain authorities named in
@@ -146,6 +157,7 @@ __all__ = [
     "T2_OPTIONAL_FIELDS",
     "FULL_26_FIELDS",
     "INTERNAL_DUPLICATE_4_FIELDS",
+    "PUBLIC_SUBMISSION_DUPLICATE_FIELDS",
     "APPROVED_PRESENTATION_EXTENSION_FIELDS",
     "ReviewCommand",
     "ReviewOutcome",
