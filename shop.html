@@ -529,11 +529,69 @@ h1 {
 .purchase-confirmation a { flex:0 0 auto; min-height:40px; display:inline-flex; align-items:center; padding:0 12px; border-radius:9px; background:var(--teal); color:#fff; font-weight:800; text-decoration:none; }
 .cosmetic-commerce-panel { border-color: rgba(86,214,194,.42); }
 .cosmetic-note { color: var(--muted); font-size: 12px; line-height: 1.6; max-width: 690px; }
+.premium-v1-panel { border-color: rgba(240,191,87,.48); }
+.premium-v1-copy { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 760px; }
+.premium-v1-benefits { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin-top:14px; }
+.premium-v1-benefit { padding:12px; border:1px solid rgba(240,191,87,.26); border-radius:12px; background:rgba(22,19,12,.72); }
+.premium-v1-benefit strong { display:block; color:var(--gold); margin-bottom:4px; }
+.premium-v1-benefit span { color:var(--muted); font-size:12px; line-height:1.45; }
+.premium-v1-pool { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:14px; }
+.premium-v1-reward { display:grid; gap:8px; padding:10px; border:1px solid rgba(86,214,194,.28); border-radius:12px; background:rgba(10,16,15,.68); }
+.premium-v1-reward img { width:100%; height:150px; object-fit:contain; object-position:center bottom; border-radius:9px; background:rgba(5,10,12,.7); }
+.premium-v1-reward button[disabled] { opacity:.55; cursor:not-allowed; }
 .cosmetic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-top:14px; }
-.cosmetic-card { padding:14px; border:1px solid rgba(86,214,194,.28); border-radius:var(--radius); background:rgba(10,16,15,.7); }
+.cosmetic-card { padding:14px; border:1px solid rgba(86,214,194,.28); border-radius:var(--radius); background:rgba(10,16,15,.7); display:grid; grid-template-rows:auto 1fr auto; gap:12px; }
 .cosmetic-card.is-equipped { border-color:var(--gold); box-shadow:0 0 0 1px rgba(240,191,87,.22); }
-.cosmetic-card-top { display:flex; gap:12px; align-items:center; }
-.cosmetic-art { width:64px; height:64px; display:grid; place-items:center; border-radius:12px; font-size:34px; border:1px solid rgba(255,255,255,.18); }
+.cosmetic-card-top { display:grid; grid-template-columns:minmax(132px, 42%) minmax(0, 1fr); gap:14px; align-items:stretch; }
+.cosmetic-art { position:relative; width:100%; min-height:214px; display:grid; place-items:center; overflow:hidden; border-radius:12px; font-size:34px; border:1px solid rgba(240,191,87,.34); background:radial-gradient(circle at 50% 24%, rgba(86,214,194,.2), rgba(5,10,12,.76) 74%); }
+.cosmetic-art--fullbody { aspect-ratio:3 / 4; }
+.cosmetic-art img { width:100%; height:100%; object-fit:contain; object-position:center bottom; filter:drop-shadow(0 8px 10px rgba(0,0,0,.38)); }
+.cosmetic-art-main { position:relative; z-index:1; }
+.cosmetic-art-focus-detail {
+  position:absolute; right:8px; top:8px; z-index:3;
+  width:44%; height:46%; min-width:54px; min-height:72px;
+  display:grid; place-items:center; overflow:hidden;
+  border:2px solid rgba(240,191,87,.9); border-radius:10px;
+  background:linear-gradient(180deg, rgba(15,32,31,.96), rgba(5,12,13,.96));
+  box-shadow:0 5px 14px rgba(0,0,0,.42), 0 0 0 2px rgba(8,18,18,.8);
+}
+.cosmetic-art-focus-detail::after {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  border:1px solid rgba(255,248,218,.24); border-radius:8px;
+}
+.cosmetic-art-focus-detail img { position:absolute; inset:0; transform-origin:50% 30%; }
+.cosmetic-art-focus-detail span {
+  position:absolute; left:4px; right:4px; bottom:4px; z-index:2;
+  padding:2px 3px; border-radius:5px; background:rgba(6,12,13,.78);
+  color:#ffe29a; font-size:9px; font-weight:900; line-height:1.15;
+  text-align:center; text-shadow:0 1px 2px rgba(0,0,0,.8);
+}
+.cosmetic-art--focus-back-pack .cosmetic-art-focus-detail { right:6px; top:6px; width:56%; height:64%; }
+.cosmetic-art--focus-back-pack .cosmetic-art-focus-detail img { transform:scale(3); transform-origin:82% 38%; }
+.cosmetic-art--focus-dragon-pendant .cosmetic-art-focus-detail img { transform:scale(3.15); transform-origin:50% 31%; }
+.cosmetic-card--visual-candidate { border-color:rgba(240,191,87,.54); background:rgba(22,19,12,.78); }
+.cosmetic-card--visual-candidate .cosmetic-visible { color:#f0bf57; }
+.cosmetic-candidate-badge {
+  display:inline-flex; width:max-content; margin-bottom:7px; padding:3px 7px;
+  border:1px solid rgba(240,191,87,.4); border-radius:999px;
+  color:#ffe29a; font-size:10px; font-weight:900; letter-spacing:.04em;
+}
+.cosmetic-candidate-heading {
+  grid-column:1 / -1; margin-top:4px; padding-top:8px;
+  border-top:1px solid rgba(240,191,87,.2);
+  color:#ffe29a; font-size:11px; font-weight:900; letter-spacing:.08em;
+}
+.cosmetic-card--visual-candidate .cosmetic-card-top { align-items:stretch; }
+.cosmetic-art-fallback { display:grid; place-items:center; width:100%; height:100%; }
+.cosmetic-art-fallback[hidden] { display:none; }
+.item-card--cosmetic .item-top--cosmetic { grid-template-columns:minmax(112px, 38%) minmax(0, 1fr); align-items:stretch; }
+.item-card--cosmetic .item-art--fullbody { width:100%; height:148px; }
+.item-card--cosmetic .item-art--fullbody img { width:100%; height:100%; object-position:center bottom; filter:drop-shadow(0 6px 8px rgba(0,0,0,.34)); }
+.item-card--cosmetic .cosmetic-art-focus-detail { right:5px; top:5px; min-width:36px; min-height:48px; border-width:1px; }
+.item-card--cosmetic .cosmetic-art-focus-detail span { font-size:7px; }
+.item-card--cosmetic .cosmetic-art--focus-back-pack .cosmetic-art-focus-detail { right:5px; top:5px; width:56%; height:64%; }
+.item-card--cosmetic .cosmetic-art--focus-back-pack .cosmetic-art-focus-detail img { transform:scale(3); transform-origin:82% 38%; }
+.item-card--cosmetic .cosmetic-art--focus-dragon-pendant .cosmetic-art-focus-detail img { transform:scale(3.15); }
 .cosmetic-name { color:#fff7dd; font-weight:900; }
 .cosmetic-meta { margin-top:4px; color:var(--muted); font-size:11px; }
 .cosmetic-desc { min-height:42px; margin:12px 0; color:var(--muted); font-size:12px; line-height:1.55; }
@@ -544,7 +602,8 @@ h1 {
 .cosmetic-modal { position:fixed; inset:0; z-index:1300; display:grid; place-items:center; padding:18px; background:rgba(0,0,0,.72); }
 .cosmetic-modal[hidden] { display:none; }
 .cosmetic-modal-card { width:min(420px,100%); padding:22px; border:1px solid rgba(240,191,87,.5); border-radius:var(--radius); background:var(--panel-strong); box-shadow:var(--shadow); }
-.cosmetic-modal-art { width:110px; height:110px; margin:0 auto 14px; display:grid; place-items:center; border-radius:20px; font-size:58px; }
+.cosmetic-modal-art { width:170px; height:226px; margin:0 auto 14px; display:grid; place-items:center; border-radius:20px; font-size:58px; }
+.cosmetic-modal-art-frame { width:100%; height:100%; min-height:0; border-radius:20px; }
 .cosmetic-modal-card h2 { margin:0; color:#fff7dd; text-align:center; }
 .cosmetic-modal-card p { margin:10px 0 16px; color:var(--muted); line-height:1.6; text-align:center; }
 .cosmetic-modal-close { display:block; margin:0 auto; }
@@ -572,6 +631,10 @@ h1 {
   .gacha-panel { grid-template-columns: 1fr; }
   .chest-wrap { min-height: 148px; }
   .grid { grid-template-columns: 1fr; }
+  .cosmetic-card-top { grid-template-columns:minmax(112px, 42%) minmax(0, 1fr); gap:10px; }
+  .cosmetic-art { min-height:176px; }
+  .item-card--cosmetic .item-top--cosmetic { grid-template-columns:minmax(104px, 38%) minmax(0, 1fr); }
+  .item-card--cosmetic .item-art--fullbody { height:132px; }
   .section-head { display: block; }
   .section-sub { margin-top: 6px; }
 }
@@ -636,6 +699,28 @@ h1 {
       <div class="cosmetic-grid" id="cosmetic-commerce-grid">
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
+    </div>
+  </section>
+
+  <section class="section panel premium-v1-panel" id="premium-v1-panel" aria-labelledby="premium-v1-title" hidden>
+    <div class="panel-pad">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">PREMIUM · REVENUE V1 CANDIDATE</div>
+          <div class="section-title" id="premium-v1-title">Premium deterministic benefits</div>
+        </div>
+        <div class="section-sub" id="premium-v1-plan-label"></div>
+      </div>
+      <p class="premium-v1-copy" id="premium-v1-copy"></p>
+      <div class="premium-v1-benefits" id="premium-v1-benefits"></div>
+      <div class="section-head" style="margin-top:18px">
+        <div>
+          <div class="section-kicker">MONTHLY COLLECTION CREDIT</div>
+          <div class="section-title" id="premium-v1-pool-title">Choose one released cosmetic</div>
+        </div>
+        <div class="section-sub" id="premium-v1-grace-label"></div>
+      </div>
+      <div class="premium-v1-pool" id="premium-v1-pool"></div>
     </div>
   </section>
 
@@ -1223,6 +1308,92 @@ function cosmeticPriceLabel(product) {
   if (product.unlock_type === 'premium') return isEn() ? 'Premium unlock' : 'Premium 解鎖';
   return `${money(product.price)} ${isEn() ? 'coins' : '金幣'}`;
 }
+function cosmeticPresentationArtHTML(asset = {}, className = 'cosmetic-art') {
+  const canonicalAsset = String(asset.asset || '').trim();
+  const hasCanonicalArt = !!canonicalAsset && asset.canonical_art_available !== false;
+  const fallback = cosmeticEsc(asset.fallback_emoji || asset.emoji || '🎽');
+  const color = cosmeticEsc(asset.fallback_color || asset.color || '#233');
+  const focalDetail = asset.focal_detail && typeof asset.focal_detail === 'object'
+    ? asset.focal_detail : null;
+  const focalVariant = String(focalDetail?.variant || '').trim();
+  const focalClass = {
+    'back-pack': 'cosmetic-art--focus-back-pack',
+    'dragon-pendant': 'cosmetic-art--focus-dragon-pendant',
+  }[focalVariant] || '';
+  const classes = ['cosmetic-art', className, focalClass].filter(Boolean).join(' ')
+    .replace(/\s+/g, ' ').trim();
+  if (!hasCanonicalArt) {
+    return `<div class="${classes}" style="background:${color}" data-cosmetic-art-state="fallback"><span class="cosmetic-art-fallback emoji-fallback">${fallback}</span></div>`;
+  }
+  const detailLabel = isEn()
+    ? (focalDetail?.label_en || 'Item detail')
+    : (focalDetail?.label || '物品特寫');
+  const detail = focalClass
+    ? `<div class="cosmetic-art-focus-detail" aria-label="${cosmeticEsc(detailLabel)}">
+        <img class="cosmetic-art-detail-img" src="${cosmeticEsc(canonicalAsset)}" alt="" loading="lazy" decoding="async">
+        <span>${cosmeticEsc(detailLabel)}</span>
+      </div>`
+    : '';
+  return `<div class="${classes}" style="background:${color}" data-cosmetic-art-state="canonical" data-canonical-cosmetic-art="yes">
+    <img class="cosmetic-art-main" src="${cosmeticEsc(canonicalAsset)}" alt="" loading="lazy" decoding="async">
+    ${detail}
+    <span class="cosmetic-art-fallback emoji-fallback" hidden>${fallback}</span>
+  </div>`;
+}
+function bindCanonicalCosmeticArt(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-canonical-cosmetic-art="yes"] img').forEach(img => {
+    img.addEventListener('error', () => {
+      const frame = img.closest('[data-canonical-cosmetic-art="yes"]');
+      const fallback = frame?.querySelector('.cosmetic-art-fallback');
+      img.hidden = true;
+      if (img.classList.contains('cosmetic-art-main')) {
+        frame?.querySelectorAll('.cosmetic-art-focus-detail img').forEach(detailImg => { detailImg.hidden = true; });
+        if (fallback) fallback.hidden = false;
+        if (frame) frame.dataset.cosmeticArtState = 'fallback';
+      }
+    }, { once: true });
+  });
+}
+function renderVisualReviewCandidate(candidate) {
+  const asset = candidate.preview_asset || {};
+  const id = cosmeticEsc(candidate.cosmetic_id || '');
+  const artClass = asset.mode === 'FULL_BODY_COSMETIC_REFERENCE'
+    ? 'cosmetic-art cosmetic-art--fullbody'
+    : 'cosmetic-art';
+  return `<article class="cosmetic-card cosmetic-card--visual-candidate" data-cosmetic-visual-candidate="${id}">
+    <div class="cosmetic-card-top">
+      ${cosmeticPresentationArtHTML(asset, artClass)}
+      <div>
+        <span class="cosmetic-candidate-badge">${isEn() ? 'V1 visual shortlist' : 'V1 視覺候選'}</span>
+        <div class="cosmetic-name">${cosmeticEsc(isEn() ? (candidate.name_en || candidate.name) : candidate.name)}</div>
+        <div class="cosmetic-meta">${cosmeticEsc(candidate.category)} · ${cosmeticEsc(candidate.rarity)} · ${isEn() ? 'Preview only' : '僅供預覽'}</div>
+      </div>
+    </div>
+    <div class="cosmetic-desc">${cosmeticEsc(candidate.flavor || '')}</div>
+    <div class="card-foot"><div class="price">${isEn() ? 'Preview only' : '預覽，不定價'}</div></div>
+    <div class="cosmetic-actions">
+      <button class="btn secondary" type="button" data-cosmetic-visual-preview="${id}">${isEn() ? 'Preview' : '預覽'}</button>
+    </div>
+    <div class="cosmetic-visible">${isEn() ? 'No purchase or equip mutation in this visual review candidate.' : '本視覺候選不會購買、扣款或改變裝備狀態。'}</div>
+  </article>`;
+}
+function showCosmeticPreview(product) {
+  const asset = product.preview_asset || {};
+  const art = document.getElementById('cosmetic-preview-art');
+  art.innerHTML = cosmeticPresentationArtHTML(asset, 'cosmetic-modal-art-frame');
+  bindCanonicalCosmeticArt(art);
+  document.getElementById('cosmetic-preview-title').textContent = isEn()
+    ? (product.name_en || product.name) : product.name;
+  document.getElementById('cosmetic-preview-copy').textContent = product.preview_only
+    ? (isEn()
+      ? 'Visual review only. No purchase, ownership, equip, or payment mutation.'
+      : '僅供視覺審查，不會購買、取得、裝備或觸發付款變更。')
+    : (isEn()
+      ? `Preview only. No ownership, purchase, or equip mutation. Visible result: ${product.visible_result?.surface || 'Hero'}.`
+      : `純預覽，不會取得、扣款或裝備。可見結果：${product.visible_result?.surface || 'Hero'}。`);
+  document.getElementById('cosmetic-preview-modal').hidden = false;
+}
 function renderCosmeticCommerce(data) {
   cosmeticCatalog = data;
   const grid = document.getElementById('cosmetic-commerce-grid');
@@ -1232,7 +1403,7 @@ function renderCosmeticCommerce(data) {
     grid.innerHTML = `<div class="empty">${isEn() ? 'No Wave 1 cosmetics are available.' : '目前沒有 Wave 1 外觀商品。'}</div>`;
     return;
   }
-  grid.innerHTML = products.map(product => {
+  const productCards = products.map(product => {
     const id = cosmeticEsc(product.product_id);
     const asset = product.preview_asset || {};
     const ownership = product.ownership || {};
@@ -1243,9 +1414,12 @@ function renderCosmeticCommerce(data) {
       : owned
         ? `<button class="btn" type="button" data-cosmetic-equip="${id}">${isEn() ? 'Equip' : '裝備'}</button>`
         : `<button class="btn" type="button" data-cosmetic-purchase="${id}">${product.unlock_type === 'premium' ? (isEn() ? 'Unlock' : '解鎖') : (isEn() ? 'Buy' : '購買')}</button>`;
-    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}">
+    const artClass = asset.mode === 'FULL_BODY_COSMETIC_REFERENCE'
+      ? 'cosmetic-art cosmetic-art--fullbody'
+      : 'cosmetic-art';
+    return `<article class="cosmetic-card${equipped ? ' is-equipped' : ''}" data-cosmetic-product="${id}">
       <div class="cosmetic-card-top">
-        <div class="cosmetic-art" style="background:${cosmeticEsc(asset.color || '#233')}">${cosmeticEsc(asset.emoji || '🎽')}</div>
+        ${cosmeticPresentationArtHTML(asset, artClass)}
         <div><div class="cosmetic-name">${cosmeticEsc(isEn() ? (product.name_en || product.name) : product.name)}</div>
           <div class="cosmetic-meta">${cosmeticEsc(product.category)} · ${cosmeticEsc(product.rarity)} · ${owned ? (isEn() ? 'Owned' : '已擁有') : (isEn() ? 'Not owned' : '未擁有')}</div></div>
       </div>
@@ -1258,6 +1432,13 @@ function renderCosmeticCommerce(data) {
       <div class="cosmetic-visible">${equipped ? (isEn() ? 'Visible on Hero now.' : '目前已在英雄外觀生效。') : (isEn() ? 'Visible result: Hero outfit.' : '裝備後會顯示在英雄外觀。')}</div>
     </article>`;
   }).join('');
+  const visualCandidates = Array.isArray(data.presentation_candidates)
+    ? data.presentation_candidates : [];
+  const candidateCards = visualCandidates.length
+    ? `<div class="cosmetic-candidate-heading">${isEn() ? 'NEXT V1 VISUAL REVIEW' : '下一階段 V1 視覺審查'}</div>${visualCandidates.map(renderVisualReviewCandidate).join('')}`
+    : '';
+  grid.innerHTML = productCards + candidateCards;
+  bindCanonicalCosmeticArt(grid);
   grid.querySelectorAll('[data-cosmetic-preview]').forEach(button => {
     button.addEventListener('click', () => previewCosmetic(button.dataset.cosmeticPreview));
   });
@@ -1266,6 +1447,9 @@ function renderCosmeticCommerce(data) {
   });
   grid.querySelectorAll('[data-cosmetic-equip]').forEach(button => {
     button.addEventListener('click', () => equipCosmetic(button.dataset.cosmeticEquip));
+  });
+  grid.querySelectorAll('[data-cosmetic-visual-preview]').forEach(button => {
+    button.addEventListener('click', () => previewVisualCandidate(button.dataset.cosmeticVisualPreview));
   });
 }
 async function loadCosmeticCommerce() {
@@ -1276,20 +1460,92 @@ async function loadCosmeticCommerce() {
   }
   renderCosmeticCommerce(res);
 }
+function renderPremiumV1(data) {
+  const panel = document.getElementById('premium-v1-panel');
+  if (!panel || !data?.enabled) return;
+  panel.hidden = false;
+  const monthly = data.prices?.newebpay?.monthly || {currency:'TWD', amount:299};
+  const annual = data.prices?.newebpay?.annual || {currency:'TWD', amount:2490};
+  document.getElementById('premium-v1-plan-label').textContent = isEn()
+    ? `Monthly ${monthly.currency} ${monthly.amount} · Annual ${annual.currency} ${annual.amount}`
+    : `月繳 ${monthly.currency} ${monthly.amount} · 年繳 ${annual.currency} ${annual.amount}`;
+  document.getElementById('premium-v1-copy').textContent = data.premium_entitled
+    ? (isEn()
+      ? 'Your Premium status includes one deterministic +5 question-capacity credit and one disclosed pure-cosmetic collection credit per eligible month. Annual credits vest monthly; earned credits have a 90-day grace window.'
+      : '目前 Premium 方案每個符合資格月份提供一次 +5 題數上限額度與一次明確揭露的純外觀收藏額度。年繳按月解鎖，已賺取額度提供 90 天寬限。')
+    : (isEn() ? 'A verified Premium entitlement is required to claim these benefits.' : '需由 server 驗證有效 Premium entitlement 才能領取。');
+  const benefitText = isEn()
+    ? [
+        ['+5 question capacity', 'One per eligible month; applied by the D5B authority.'],
+        ['Cosmetic collection credit', 'Choose one released item from the disclosed five-item pool.'],
+        ['Premium identity', 'Existing Premium status and identity presentation remain active.']
+      ]
+    : [
+        ['+5 題數上限', '每個符合資格月份一次，由 D5B authority 套用。'],
+        ['外觀收藏額度', '從揭露的五件已發售外觀中選一件。'],
+        ['Premium 身份', '沿用既有 Premium 狀態與身份呈現。']
+      ];
+  document.getElementById('premium-v1-benefits').innerHTML = benefitText.map(([title, copy]) =>
+    `<div class="premium-v1-benefit"><strong>${cosmeticEsc(title)}</strong><span>${cosmeticEsc(copy)}</span></div>`
+  ).join('');
+  document.getElementById('premium-v1-grace-label').textContent = isEn()
+    ? `Annual vesting · ${data.annual_policy?.grace_days_for_earned_credits || 90}-day grace`
+    : `年繳按月解鎖 · 已賺取額度 ${data.annual_policy?.grace_days_for_earned_credits || 90} 天寬限`;
+  const pool = document.getElementById('premium-v1-pool');
+  const rewards = Array.isArray(data.cosmetic_pool) ? data.cosmetic_pool : [];
+  const available = rewards.filter(reward => !reward.owned);
+  if (!available.length) {
+    pool.innerHTML = `<div class="empty">${isEn() ? 'No unowned C013 cosmetic is available. The credit is not converted.' : '五件 C013 外觀皆已擁有；額度不會轉換成其他獎勵。'}</div>`;
+    return;
+  }
+  pool.innerHTML = rewards.map(reward => {
+    const asset = reward.preview_asset || {};
+    const owned = !!reward.owned;
+    const disabled = owned || !data.premium_entitled;
+    const name = isEn() ? (reward.display_name_en || reward.display_name) : reward.display_name;
+    return `<article class="premium-v1-reward" data-premium-v1-reward="${cosmeticEsc(reward.item_id)}">
+      ${asset.asset ? `<img src="${cosmeticEsc(asset.asset)}" alt="${cosmeticEsc(name)}" loading="lazy" decoding="async">` : ''}
+      <strong>${cosmeticEsc(name)}</strong>
+      <span class="tile-sub">${owned ? (isEn() ? 'Owned permanently' : '已永久擁有') : (isEn() ? 'Pure cosmetic · no combat authority' : '純外觀 · 無戰鬥權限')}</span>
+      <button class="btn secondary" type="button" data-premium-v1-claim="${cosmeticEsc(reward.item_id)}" ${disabled ? 'disabled' : ''}>${owned ? (isEn() ? 'Owned' : '已擁有') : (isEn() ? 'Choose and claim' : '選擇並領取')}</button>
+    </article>`;
+  }).join('');
+  pool.querySelectorAll('[data-premium-v1-claim]').forEach(button => {
+    button.addEventListener('click', () => claimPremiumV1(button.dataset.premiumV1Claim));
+  });
+}
+async function loadPremiumV1Offer() {
+  const res = await api('/api/premium/v1/offer');
+  if (res.error || !res.enabled) return;
+  renderPremiumV1(res);
+}
+async function claimPremiumV1(cosmeticId) {
+  const operationId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+    ? window.crypto.randomUUID()
+    : `c013-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const res = await api('/api/premium/v1/claim', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ cosmetic_id: cosmeticId, operation_id: operationId })
+  });
+  if (res.error) {
+    showToast(res.reason === 'NO_AVAILABLE_REWARD'
+      ? (isEn() ? 'No unowned cosmetic is available; the credit was not consumed.' : '沒有可領取的未擁有外觀，額度未消耗。')
+      : errorMessage(res.error));
+    return;
+  }
+  showToast(isEn() ? 'Premium benefits claimed.' : 'Premium 本月福利已領取。');
+  await loadPremiumV1Offer();
+}
 async function previewCosmetic(productId) {
   const res = await api(`/api/cosmetic-commerce/preview/${encodeURIComponent(productId)}`);
   if (res.error) { showToast(errorMessage(res.error)); return; }
-  const product = res.product || {};
-  const asset = product.preview_asset || {};
-  const art = document.getElementById('cosmetic-preview-art');
-  art.textContent = asset.emoji || '🎽';
-  art.style.background = asset.color || '#233';
-  document.getElementById('cosmetic-preview-title').textContent = isEn()
-    ? (product.name_en || product.name) : product.name;
-  document.getElementById('cosmetic-preview-copy').textContent = isEn()
-    ? `Preview only. No ownership, purchase, or equip mutation. Visible result: ${product.visible_result?.surface || 'Hero'}.`
-    : `純預覽，不會取得、扣款或裝備。可見結果：${product.visible_result?.surface || 'Hero'}。`;
-  document.getElementById('cosmetic-preview-modal').hidden = false;
+  showCosmeticPreview(res.product || {});
+}
+function previewVisualCandidate(cosmeticId) {
+  const product = (cosmeticCatalog?.presentation_candidates || [])
+    .find(candidate => candidate.cosmetic_id === cosmeticId);
+  if (!product) { showToast(isEn() ? 'Visual candidate unavailable.' : '視覺候選目前不可用。'); return; }
+  showCosmeticPreview(product);
 }
 async function purchaseCosmetic(productId) {
   setMerchant('talk', 'talk');
@@ -1450,12 +1706,16 @@ function itemCard(item, saleOrOptions = false) {
 
 function appearanceCard(slot) {
   const card = document.createElement("article");
-  card.className = "item-card";
+  card.className = "item-card item-card--cosmetic";
+  card.dataset.itemKey = slot.item_key || slot.cosmetic_id || '';
   const rarity = slot.rarity === "uncommon" ? "uncommon" : "common";
+  const appearanceArt = slot.presentation
+    ? cosmeticPresentationArtHTML(slot.presentation, 'item-art item-art--fullbody')
+    : artHtml("", slot.icon);
   card.innerHTML = `
     <span class="tag ${rarity}">${rarity === "uncommon" ? "Uncommon" : "Common"}</span>
-    <div class="item-top">
-      <div class="item-art">${artHtml("", slot.icon)}</div>
+    <div class="item-top item-top--cosmetic">
+      ${appearanceArt}
       <div>
         <div class="item-name">${nameOf(slot)}</div>
         <div class="item-meta">${isEn() ? "Appearance" : "外觀"}</div>
@@ -1464,8 +1724,9 @@ function appearanceCard(slot) {
     <div class="item-desc">${isEn() ? "Today's rotation cosmetic." : "這是今日輪替的外觀商品。"}</div>
     <div class="card-foot">
       <div class="price">${money(slot.price)} ${isEn() ? "coins" : "金幣"}</div>
-      <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
+    <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
     </div>`;
+  bindCanonicalCosmeticArt(card);
   card.querySelector("button").addEventListener("click", () => buyAppearance(slot.item_key));
   return card;
 }
@@ -1614,6 +1875,7 @@ function showGachaResult(res) {
 document.getElementById("btn-gacha").addEventListener("click", doGacha);
 loadCatalog();
 loadCosmeticCommerce();
+loadPremiumV1Offer();
 </script>
 <script src="/sound.js?v=2"></script>
 <script src="/mobile-nav.js?v=20260603mn"></script>

@@ -39,7 +39,11 @@ BASE_SHA = "554a86f5c7083f3d1538e01868a278e3a3313931"
 # Tier 1 -- pure unit tests against review_service.py directly.
 # ---------------------------------------------------------------------------
 
-from review_contracts import ReviewCommand  # noqa: E402
+from review_contracts import (  # noqa: E402
+    APPROVED_PRESENTATION_EXTENSION_FIELDS,
+    ReviewCommand,
+)
+from review_compatibility import adapt_legacy_review_result  # noqa: E402
 from review_service import (  # noqa: E402
     LegacyReviewOperation,
     MapBattleReviewHandoff,
@@ -446,11 +450,10 @@ def test_no_other_route_writes_review_log_independently_of_the_named_exception()
 
 
 # ---------------------------------------------------------------------------
-# Tier 2b -- RUNTIME/TRANSACTION CHARACTERIZATION: _srs_review_operation's
-# own body remains byte-identical to the pre-Wave2 base except for the
-# explicitly authorized Lane B atomic level-HP persistence delta. The
-# durable writer, transaction phases, and commit boundaries remain otherwise
-# characterized against the base.
+# Tier 2b -- D5B REVIEW IDENTITY CONTRACT: the canonical operation owns
+# server-bound submission identity, payload conflict detection, and replay
+# before progression mutation. This replaces the pre-D5B byte-freeze check;
+# the approved D5B identity path is intentionally a runtime change.
 # ---------------------------------------------------------------------------
 
 def _git_show(path: str) -> str:
@@ -473,31 +476,54 @@ def base_app_source():
         pytest.skip(f"base commit {BASE_SHA} not available in this checkout")
 
 
-def test_srs_review_operation_body_only_adds_atomic_level_hp_delta(base_app_source):
-    # Ends at the function's own closing `return jsonify({... **monster_data,
-    # })` -- NOT at "def _run_map_battle_progression", which would also
-    # sweep in this task's own newly-inserted ReviewService/handoff
-    # instantiation lines sitting between the two functions and produce a
-    # false "changed" diff against them, not against the operation itself.
-    end_marker = "**monster_data,\n    })"
+def test_srs_review_operation_owns_d5b_identity_and_response_contract():
+    operation_body = _function_body("_srs_review_operation", "_run_map_battle_progression")
+    for marker in (
+        "normalize_identity(",
+        "canonical_payload_digest(",
+        "insert_review_log_with_identity(",
+        "_review_submission_duplicate_response(",
+        "_review_submission_conflict_response(",
+        "submission_payload_hash",
+    ):
+        assert marker in operation_body, marker
 
-    def _extract(source):
-        start = source.index("def _srs_review_operation")
-        end = source.index(end_marker, start) + len(end_marker)
-        return source[start:end]
-
-    current = _extract(APP_SOURCE)
-    allowed_delta = (
-        ("        existing_player_max_hp = int(s['player_max_hp'] or 0)\n", ""),
-        ("        new_lv = xp_to_lv(xp)\n", ""),
-        ("               player_max_hp=GREATEST(COALESCE(player_max_hp,0),?),\n", ""),
-        ("             _lv_max_hp(new_lv), now, uid))", "             now, uid))"),
-        ("            'player_max_hp': max(existing_player_max_hp, _lv_max_hp(new_lv)),\n", ""),
+    duplicate = {
+        "ok": True,
+        "submission_duplicate": True,
+        "submission_id": "retry-1",
+        "question_id": 101,
+        "grade": 5,
+    }
+    stub = _StubLegacyOperation(_FlaskLikeResponse(duplicate))
+    service = ReviewService(stub)
+    outcome = service.review(
+        user_id=7,
+        command=_command(submission_id="retry-1", question_id=101, grade=5),
     )
-    for fragment, replacement in allowed_delta:
-        assert fragment in current
-        current = current.replace(fragment, replacement, 1)
-    assert current == _extract(base_app_source)
+    assert outcome.status == ReviewServiceStatus.SUCCESS
+    assert outcome.shape == "PUBLIC_SUBMISSION_DUPLICATE"
+    assert outcome.http_status == 200
+    assert outcome.payload == duplicate
+    assert stub.calls[0]["submission_id"] == "retry-1"
+
+
+def test_review_identity_contract_keeps_incident017_extensions_fail_closed():
+    assert set(APPROVED_PRESENTATION_EXTENSION_FIELDS) == {
+        "combat_stats", "level_up_rewards"
+    }
+    approved = _core_payload()
+    approved.update(
+        combat_stats={"attack_bonus": 0.08},
+        level_up_rewards={"hp_gain": 12},
+    )
+    outcome = adapt_legacy_review_result(approved)
+    assert outcome.presentation_extensions == {
+        "combat_stats": {"attack_bonus": 0.08},
+        "level_up_rewards": {"hp_gain": 12},
+    }
+    with pytest.raises(ValueError):
+        adapt_legacy_review_result({**approved, "unknown_extension": True})
 
 
 def test_update_monster_and_quests_body_only_adds_retaliation_mitigation(base_app_source):
