@@ -141,6 +141,15 @@ from item_use_operations import (
     operation_result,
     reserve_item_use_operation,
 )
+from companion_operations import (
+    CompanionMutationRejected,
+    CompanionOperationConflict,
+    CompanionOperationInProgress,
+    CompanionOperationSchemaUnavailable,
+    CompanionOperationValidationError,
+    execute_companion_operation,
+)
+from spirit_lineage import append_spirit_item_use_event, append_spirit_reward_event
 from premium_v1_revenue import (
     C013_HIDDEN_IDS,
     C013_LAUNCH_COSMETIC_IDS,
@@ -3018,6 +3027,42 @@ def warmup_katago():
 def get_db():
     from db import get_db as _get_db
     return _get_db()
+
+
+def _companion_route_error(exc):
+    """Map Companion authority failures without exposing database details."""
+    if isinstance(exc, CompanionOperationConflict):
+        return jsonify({'ok': False, 'error': 'operation_id_conflict',
+                        'code': 'COMPANION_OPERATION_CONFLICT'}), 409
+    if isinstance(exc, CompanionOperationInProgress):
+        return jsonify({'ok': False, 'error': 'operation_in_progress',
+                        'code': 'COMPANION_OPERATION_IN_PROGRESS'}), 409
+    if isinstance(exc, CompanionOperationSchemaUnavailable):
+        return jsonify({'ok': False, 'error': 'companion_operation_unavailable',
+                        'code': 'COMPANION_OPERATION_SCHEMA_UNAVAILABLE'}), 503
+    if isinstance(exc, CompanionOperationValidationError):
+        return jsonify({'ok': False, 'error': str(exc),
+                        'code': 'INVALID_COMPANION_OPERATION'}), 400
+    raise exc
+
+
+def _run_companion_route(conn, **kwargs):
+    try:
+        return execute_companion_operation(conn, **kwargs)
+    except (CompanionOperationConflict, CompanionOperationInProgress,
+            CompanionOperationSchemaUnavailable, CompanionOperationValidationError) as exc:
+        if isinstance(exc, CompanionOperationSchemaUnavailable):
+            # A missing dependency schema must not leave a committed PENDING
+            # reservation behind while the endpoint fails closed.
+            conn.rollback()
+        return _companion_route_error(exc)
+
+
+def _finish_companion_route(conn, result):
+    if isinstance(result, tuple):
+        return result
+    conn.commit()
+    return jsonify(result.body), result.status_code
 
 PET_CATALOG = {
     'star_shell_hatchling': {
@@ -14338,29 +14383,58 @@ def pet_choose():
     uid = session['user_id']
     data = request.get_json(silent=True) or {}
     pet_key = (data.get('pet_key') or '').strip()
-    if pet_key != PET_STARTER_KEY:
-        return jsonify({'ok': False, 'error': '第一隻棋靈固定為墨滴水靈馬'}), 403
-    if pet_key not in PET_CATALOG:
-        return jsonify({'error': '未知的寵物'}), 400
-    now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        existing = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        if existing:
-            return jsonify({'ok': False, 'error': '已選擇寵物', 'pet': _normalize_pet_row(existing)}), 409
-        conn.execute(
-            'INSERT INTO user_pets(user_id,pet_key,nickname,selected_at,updated_at) VALUES(?,?,?,?,?)',
-            (uid, pet_key, PET_CATALOG[pet_key]['name'], now, now)
-        )
-        _grant_pet_food(conn, uid, 'go_spirit_candy', 6)
-        _grant_pet_food(conn, uid, 'starfruit', 1)
-        conn.execute(
-            'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
-            (uid, 'choose', pet_key, now)
-        )
-        _pet_collection_sync_active(conn, uid)   # 同步進收藏表
-        pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        conn.commit()
-    return jsonify({'ok': True, 'pet': _normalize_pet_row(pet_row), 'message': '寵物已加入你的旅程'})
+        def mutate(inner_conn, operation_id):
+            if pet_key != PET_STARTER_KEY:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '第一隻棋靈固定為墨滴水靈馬'},
+                    status_code=403, error_code='STARTER_SPIRIT_FIXED')
+            if pet_key not in PET_CATALOG:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '未知的寵物'},
+                    status_code=400, error_code='UNKNOWN_SPIRIT')
+            now = datetime.datetime.now().isoformat()
+            existing = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            if existing:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '已選擇寵物',
+                     'pet': _normalize_pet_row(existing)},
+                    status_code=409, error_code='SPIRIT_ALREADY_SELECTED')
+            inner_conn.execute(
+                'INSERT INTO user_pets(user_id,pet_key,nickname,selected_at,updated_at) VALUES(?,?,?,?,?)',
+                (uid, pet_key, PET_CATALOG[pet_key]['name'], now, now)
+            )
+            _grant_pet_food(inner_conn, uid, 'go_spirit_candy', 6)
+            _grant_pet_food(inner_conn, uid, 'starfruit', 1)
+            lineage_id = f'companion:{uid}:{operation_id}'
+            append_spirit_reward_event(
+                inner_conn, user_id=uid, operation_id=operation_id,
+                lineage_id=lineage_id, source_type='OTHER_AUTHORITATIVE_SETTLEMENT',
+                source_id=f'spirit_choose:{pet_key}', reward_type='FOOD',
+                reward_key='go_spirit_candy', quantity=6, spirit_id=pet_key)
+            append_spirit_reward_event(
+                inner_conn, user_id=uid, operation_id=operation_id,
+                lineage_id=lineage_id, source_type='OTHER_AUTHORITATIVE_SETTLEMENT',
+                source_id=f'spirit_choose:{pet_key}', reward_type='FOOD',
+                reward_key='starfruit', quantity=1, spirit_id=pet_key)
+            inner_conn.execute(
+                'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
+                (uid, 'choose', pet_key, now)
+            )
+            _pet_collection_sync_active(inner_conn, uid)
+            pet_row = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            return {
+                'ok': True, 'pet': _normalize_pet_row(pet_row),
+                'message': '寵物已加入你的旅程',
+            }, 200
+
+        result = _run_companion_route(
+            conn, user_id=uid, operation_type='SPIRIT_UNLOCK',
+            operation_id=data.get('operation_id'), spirit_id=pet_key,
+            payload={'target_spirit_id': pet_key, 'starter': True}, mutation=mutate)
+        return _finish_companion_route(conn, result)
 
 @app.route('/api/pet/feed', methods=['POST'])
 @login_required
@@ -14368,48 +14442,248 @@ def pet_feed():
     uid = session['user_id']
     data = request.get_json(silent=True) or {}
     item_key = (data.get('item_key') or 'go_spirit_candy').strip()
-    if item_key not in PET_FOOD_CATALOG:
-        return jsonify({'error': '未知的食物'}), 400
-    item = PET_FOOD_CATALOG[item_key]
-    now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        pet = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        if not pet:
-            return jsonify({'error': '尚未選擇寵物'}), 400
-        inv = conn.execute(
-            'SELECT qty FROM pet_inventory WHERE user_id=? AND item_key=?',
-            (uid, item_key)
-        ).fetchone()
-        if not inv or (inv['qty'] or 0) <= 0:
-            return jsonify({'error': '食物不足'}), 400
-        new_fullness = min(100, _decayed_fullness(pet) + item['fullness'])
-        new_affection = min(100, (pet['affection'] or 0) + item['affection'])
-        conn.execute(
-            'UPDATE pet_inventory SET qty=qty-1 WHERE user_id=? AND item_key=?',
-            (uid, item_key)
-        )
-        conn.execute(
-            'UPDATE user_pets SET fullness=?, affection=?, last_fed_at=?, updated_at=? WHERE user_id=?',
-            (new_fullness, new_affection, now, now, uid)
-        )
-        leveled = _add_pet_xp(conn, uid, item['xp'])
-        conn.execute(
-            'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
-            (uid, 'feed', item_key, now)
-        )
-        _pet_collection_sync_active(conn, uid)
-        pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        inv_rows = conn.execute('SELECT item_key, qty FROM pet_inventory WHERE user_id=?', (uid,)).fetchall()
-        conn.commit()
-    inv_map = {r['item_key']: r['qty'] for r in inv_rows}
-    return jsonify({
-        'ok': True,
-        'pet': _normalize_pet_row(pet_row),
-        'inventory': [{**dict(v), 'qty': int(inv_map.get(k, 0) or 0)} for k, v in PET_FOOD_CATALOG.items()],
-        'leveled': (leveled or {}).get('leveled', 0),
-        'milestones': (leveled or {}).get('milestones', []),
-        'message': '寵物吃飽了一點',
-    })
+        requested_spirit = data.get('spirit_id')
+        if requested_spirit is not None:
+            requested_spirit = str(requested_spirit).strip()
+            active_spirit = requested_spirit
+        else:
+            pet = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            if not pet:
+                return jsonify({'error': '尚未選擇寵物'}), 400
+            active_spirit = str(pet['pet_key'])
+        item = PET_FOOD_CATALOG.get(item_key)
+
+        def mutate(inner_conn, operation_id):
+            if not item:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '未知的食物'},
+                    status_code=400, error_code='UNKNOWN_SPIRIT_FOOD')
+            current = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            if not current:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '尚未選擇寵物'},
+                    status_code=400, error_code='NO_ACTIVE_SPIRIT')
+            if current['pet_key'] != active_spirit:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '出戰棋靈已變更，請重新餵食'},
+                    status_code=409, error_code='ACTIVE_SPIRIT_CHANGED')
+            item_use_request = canonical_item_use_request(
+                item_id=item_key, action='FEED', quantity=1, source='PET_FEED')
+            try:
+                item_use = reserve_item_use_operation(
+                    inner_conn, player_id=uid, operation_id=operation_id,
+                    item_id=item_key, request_payload=item_use_request)
+            except (ItemUseOperationConflict, ItemUseOperationInProgress) as exc:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '食物操作已被其他請求占用'},
+                    status_code=409, error_code='ITEM_USE_OPERATION_CONFLICT') from exc
+            except Exception as exc:
+                if 'no such table' in str(exc).lower() or 'does not exist' in str(exc).lower():
+                    raise CompanionOperationSchemaUnavailable(
+                        'D5C item-use schema is not installed') from exc
+                raise
+            if not item_use['inserted']:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '食物操作已完成但棋靈結果無法重建'},
+                    status_code=503, error_code='ITEM_USE_RESULT_UNAVAILABLE')
+            now = datetime.datetime.now().isoformat()
+            inv = inner_conn.execute(
+                'SELECT qty FROM pet_inventory WHERE user_id=? AND item_key=?',
+                (uid, item_key)
+            ).fetchone()
+            quantity_before = int(inv['qty'] or 0) if inv else 0
+            if quantity_before <= 0:
+                complete_item_use_operation(
+                    inner_conn, player_id=uid, operation_id=operation_id,
+                    operation_status='REJECTED',
+                    result_payload={'ok': False, 'error': '食物不足',
+                                    'operation_id': operation_id})
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '食物不足'},
+                    status_code=400, error_code='INSUFFICIENT_SPIRIT_FOOD')
+            new_fullness = min(100, _decayed_fullness(current) + item['fullness'])
+            new_affection = min(100, (current['affection'] or 0) + item['affection'])
+            cursor = inner_conn.execute(
+                'UPDATE pet_inventory SET qty=qty-1 '
+                'WHERE user_id=? AND item_key=? AND qty > 0',
+                (uid, item_key)
+            )
+            if getattr(cursor, 'rowcount', 0) != 1:
+                complete_item_use_operation(
+                    inner_conn, player_id=uid, operation_id=operation_id,
+                    operation_status='REJECTED',
+                    result_payload={'ok': False, 'error': '食物不足',
+                                    'operation_id': operation_id})
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '食物不足'},
+                    status_code=400, error_code='INSUFFICIENT_SPIRIT_FOOD')
+            quantity_after = int(inner_conn.execute(
+                'SELECT qty FROM pet_inventory WHERE user_id=? AND item_key=?',
+                (uid, item_key)).fetchone()['qty'])
+            inner_conn.execute(
+                'UPDATE user_pets SET fullness=?, affection=?, last_fed_at=?, updated_at=? WHERE user_id=?',
+                (new_fullness, new_affection, now, now, uid)
+            )
+            leveled = _add_pet_xp(inner_conn, uid, item['xp'])
+            lineage_id = f'companion:{uid}:{operation_id}'
+            append_spirit_item_use_event(
+                inner_conn, user_id=uid, operation_id=operation_id,
+                lineage_id=lineage_id, spirit_id=active_spirit,
+                item_id=item_key, quantity_before=quantity_before,
+                quantity_delta=-1, quantity_after=quantity_after,
+                effect_applied=True, effect_id='spirit_feed',
+                effect_type='SPIRIT_FEED',
+                effect_result={'fullness': item['fullness'], 'affection': item['affection']})
+            complete_item_use_operation(
+                inner_conn, player_id=uid, operation_id=operation_id,
+                operation_status='SUCCESS',
+                result_payload={'ok': True, 'operation_id': operation_id,
+                                'item_id': item_key, 'remaining': quantity_after})
+            if leveled:
+                for milestone in leveled.get('milestones', []):
+                    append_spirit_reward_event(
+                        inner_conn, user_id=uid, operation_id=operation_id,
+                        lineage_id=lineage_id, source_type='EVOLUTION_MILESTONE',
+                        source_id=f'pet_level:{uid}:{milestone["level"]}',
+                        reward_type='FOOD', reward_key=milestone['reward_item'],
+                        quantity=milestone['reward_qty'], spirit_id=active_spirit)
+            inner_conn.execute(
+                'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
+                (uid, 'feed', item_key, now)
+            )
+            _pet_collection_sync_active(inner_conn, uid)
+            pet_row = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            inv_rows = inner_conn.execute(
+                'SELECT item_key, qty FROM pet_inventory WHERE user_id=?', (uid,)).fetchall()
+            inv_map = {r['item_key']: r['qty'] for r in inv_rows}
+            return {
+                'ok': True,
+                'pet': _normalize_pet_row(pet_row),
+                'inventory': [{**dict(v), 'qty': int(inv_map.get(k, 0) or 0)}
+                              for k, v in PET_FOOD_CATALOG.items()],
+                'leveled': (leveled or {}).get('leveled', 0),
+                'milestones': (leveled or {}).get('milestones', []),
+                'message': '寵物吃飽了一點',
+            }, 200
+
+        result = _run_companion_route(
+            conn, user_id=uid, operation_type='SPIRIT_FEED',
+            operation_id=data.get('operation_id'), spirit_id=active_spirit,
+            item_id=item_key,
+            payload={'item_key': item_key, 'quantity': 1,
+                     'spirit_id': active_spirit}, mutation=mutate)
+        return _finish_companion_route(conn, result)
+
+
+def _pet_train_durable(uid, data, hours):
+    """Run the state-changing training mode through B023 authority."""
+    with get_db() as conn:
+        requested_spirit = data.get('spirit_id')
+        if requested_spirit is not None:
+            active_spirit = str(requested_spirit).strip()
+        else:
+            pet = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            if not pet:
+                return jsonify({'error': '尚未選擇寵物'}), 400
+            active_spirit = str(pet['pet_key'])
+
+        def mutate(inner_conn, operation_id):
+            suffix = '' if getattr(getattr(inner_conn, '_conn', inner_conn),
+                                   '__class__', type(inner_conn)).__module__.startswith('sqlite3') else ' FOR UPDATE'
+            current = inner_conn.execute(
+                f'SELECT * FROM user_pets WHERE user_id=?{suffix}', (uid,)).fetchone()
+            if not current:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '尚未選擇寵物'},
+                    status_code=400, error_code='NO_ACTIVE_SPIRIT')
+            if current['pet_key'] != active_spirit:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '出戰棋靈已變更，請重新修行'},
+                    status_code=409, error_code='ACTIVE_SPIRIT_CHANGED')
+            now = datetime.datetime.now().isoformat()
+            today = _pet_today_key()
+            eff_full = _decayed_fullness(current)
+            bond_today, train_xp_today = _pet_daily_counters(current)
+            bond_room = max(0, PET_DAILY_BOND_CAP - bond_today)
+            if eff_full < 10:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '寵物有點餓，先餵牠再修行'},
+                    status_code=400, error_code='SPIRIT_TOO_HUNGRY')
+            train_cd = _pet_cooldown_remaining(current, 'last_train_at', hours * 3600)
+            if train_cd > 0:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'cooldown': train_cd,
+                     'pet': _normalize_pet_row(current),
+                     'interaction': _pet_interaction_state(current),
+                     'practice': _pet_training_state(current),
+                     'training': _pet_training_state(current),
+                     'expedition': _pet_expedition_state(inner_conn, current),
+                     'message': '修行還在進行中，先等等吧'},
+                    status_code=400, error_code='SPIRIT_TRAIN_COOLDOWN')
+            xp_room = max(0, PET_DAILY_TRAIN_XP_CAP - train_xp_today)
+            if xp_room <= 0:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'capped': True,
+                     'pet': _normalize_pet_row(current),
+                     'interaction': _pet_interaction_state(current),
+                     'practice': _pet_training_state(current),
+                     'training': _pet_training_state(current),
+                     'expedition': _pet_expedition_state(inner_conn, current),
+                     'message': '今天的修行已經很充分了，明天再一起練吧'},
+                    status_code=400, error_code='SPIRIT_TRAIN_DAILY_CAP')
+            mult = 2 if hours >= 8 else 1
+            xp_gain = min(20 * mult, xp_room)
+            bond_gain = min(3 * mult, bond_room)
+            fullness = max(0, eff_full - 10 * mult)
+            affection = min(100, (current['affection'] or 0) + bond_gain)
+            new_bond = bond_today + bond_gain
+            new_train_xp = train_xp_today + xp_gain
+            inner_conn.execute(
+                'UPDATE user_pets SET fullness=?, affection=?, last_interacted_at=?, '
+                'last_train_at=?, daily_key=?, daily_bond=?, daily_train_xp=?, updated_at=? '
+                'WHERE user_id=?',
+                (fullness, affection, now, now, today, new_bond, new_train_xp, now, uid)
+            )
+            leveled = _add_pet_xp(inner_conn, uid, xp_gain)
+            lineage_id = f'companion:{uid}:{operation_id}'
+            if leveled:
+                for milestone in leveled.get('milestones', []):
+                    append_spirit_reward_event(
+                        inner_conn, user_id=uid, operation_id=operation_id,
+                        lineage_id=lineage_id, source_type='EVOLUTION_MILESTONE',
+                        source_id=f'pet_level:{uid}:{milestone["level"]}',
+                        reward_type='FOOD', reward_key=milestone['reward_item'],
+                        quantity=milestone['reward_qty'], spirit_id=active_spirit)
+            inner_conn.execute(
+                'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
+                (uid, 'train', f'{hours}h', now)
+            )
+            _pet_collection_sync_active(inner_conn, uid)
+            pet_row = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            expedition_state = _pet_expedition_state(inner_conn, pet_row)
+            return {
+                'ok': True, 'pet': _normalize_pet_row(pet_row),
+                'leveled': (leveled or {}).get('leveled', 0),
+                'milestones': (leveled or {}).get('milestones', []),
+                'message': f'你們開始了 {hours} 小時修行',
+                'interaction': _pet_interaction_state(pet_row),
+                'practice': _pet_training_state(pet_row),
+                'training': _pet_training_state(pet_row),
+                'expedition': expedition_state,
+                'cooldown': hours * 3600,
+            }, 200
+
+        result = _run_companion_route(
+            conn, user_id=uid, operation_type='SPIRIT_TRAIN',
+            operation_id=data.get('operation_id'), spirit_id=active_spirit,
+            payload={'mode': 'train', 'hours': hours,
+                     'spirit_id': active_spirit}, mutation=mutate)
+        return _finish_companion_route(conn, result)
+
 
 @app.route('/api/pet/interact', methods=['POST'])
 @login_required
@@ -14425,6 +14699,8 @@ def pet_interact():
         hours = PET_EXPEDITION_DEFAULT_HOURS
     if mode not in ('pet', 'train'):
         return jsonify({'error': '未知的互動'}), 400
+    if mode == 'train':
+        return _pet_train_durable(uid, data, hours)
     now = datetime.datetime.now().isoformat()
     today = _pet_today_key()
     with get_db() as conn:
@@ -14540,84 +14816,129 @@ def pet_unlock():
     uid = session['user_id']
     data = request.get_json(silent=True) or {}
     target = (data.get('pet_key') or '').strip()
-    if target not in PET_CATALOG:
-        return jsonify({'error': '未知的寵物'}), 400
-    now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        owned = _pet_owned_keys(conn, uid)
-        if not owned:
-            return jsonify({'error': '請先選擇第一隻棋靈'}), 400
-        if target in owned:
-            return jsonify({'ok': False, 'error': '已擁有此棋靈'}), 409
-        expected = _next_pet_unlock_key(owned)
-        if target != expected:
-            return jsonify({'ok': False, 'error': '請依序解鎖棋靈',
-                            'next_pet_key': expected}), 403
-        max_level = _pet_max_owned_level(conn, uid)
-        allowed = _pet_allowed_count(max_level)
-        if len(owned) >= allowed:
-            need = (PET_UNLOCK_THRESHOLDS[len(owned)]
-                    if len(owned) < len(PET_UNLOCK_THRESHOLDS) else None)
-            return jsonify({'ok': False, 'error': f'養到 LV{need} 才能解鎖下一隻棋靈',
-                            'need_level': need}), 403
-        conn.execute(
-            'INSERT INTO pet_collection(user_id,pet_key,nickname,level,xp,fullness,affection,'
-            'selected_at,daily_bond,daily_train_xp) VALUES(?,?,?,?,?,?,?,?,?,?)',
-            (uid, target, PET_CATALOG[target]['name'], 1, 0, 60, 10, now, 0, 0)
-        )
-        _grant_pet_food(conn, uid, 'go_spirit_candy', 3)   # 新夥伴見面禮
-        conn.execute(
-            'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
-            (uid, 'unlock', target, now)
-        )
-        pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        collection_state = _pet_collection_state(conn, uid, pet_row['pet_key'] if pet_row else None)
-        conn.commit()
-    return jsonify({'ok': True, 'collection': collection_state,
-                    'message': f'{PET_CATALOG[target]["name"]} 加入了你的棋靈收藏'})
+        def mutate(inner_conn, operation_id):
+            if target not in PET_CATALOG:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '未知的寵物'},
+                    status_code=400, error_code='UNKNOWN_SPIRIT')
+            now = datetime.datetime.now().isoformat()
+            owned = _pet_owned_keys(inner_conn, uid)
+            if not owned:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '請先選擇第一隻棋靈'},
+                    status_code=400, error_code='NO_STARTER_SPIRIT')
+            if target in owned:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '已擁有此棋靈'},
+                    status_code=409, error_code='SPIRIT_ALREADY_OWNED')
+            expected = _next_pet_unlock_key(owned)
+            if target != expected:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '請依序解鎖棋靈', 'next_pet_key': expected},
+                    status_code=403, error_code='SPIRIT_UNLOCK_ORDER')
+            max_level = _pet_max_owned_level(inner_conn, uid)
+            allowed = _pet_allowed_count(max_level)
+            if len(owned) >= allowed:
+                need = (PET_UNLOCK_THRESHOLDS[len(owned)]
+                        if len(owned) < len(PET_UNLOCK_THRESHOLDS) else None)
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': f'養到 LV{need} 才能解鎖下一隻棋靈',
+                     'need_level': need},
+                    status_code=403, error_code='SPIRIT_UNLOCK_LEVEL')
+            inner_conn.execute(
+                'INSERT INTO pet_collection(user_id,pet_key,nickname,level,xp,fullness,affection,'
+                'selected_at,daily_bond,daily_train_xp) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                (uid, target, PET_CATALOG[target]['name'], 1, 0, 60, 10, now, 0, 0)
+            )
+            _grant_pet_food(inner_conn, uid, 'go_spirit_candy', 3)
+            lineage_id = f'companion:{uid}:{operation_id}'
+            append_spirit_reward_event(
+                inner_conn, user_id=uid, operation_id=operation_id,
+                lineage_id=lineage_id, source_type='OTHER_AUTHORITATIVE_SETTLEMENT',
+                source_id=f'spirit_unlock:{target}', reward_type='FOOD',
+                reward_key='go_spirit_candy', quantity=3, spirit_id=target)
+            inner_conn.execute(
+                'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
+                (uid, 'unlock', target, now)
+            )
+            pet_row = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            collection_state = _pet_collection_state(
+                inner_conn, uid, pet_row['pet_key'] if pet_row else None)
+            return {
+                'ok': True, 'collection': collection_state,
+                'message': f'{PET_CATALOG[target]["name"]} 加入了你的棋靈收藏',
+            }, 200
+
+        result = _run_companion_route(
+            conn, user_id=uid, operation_type='SPIRIT_UNLOCK',
+            operation_id=data.get('operation_id'), spirit_id=target,
+            payload={'target_spirit_id': target, 'unlock_kind': 'collection'},
+            mutation=mutate)
+        return _finish_companion_route(conn, result)
 
 @app.route('/api/pet/switch', methods=['POST'])
 @login_required
 def pet_switch():
-    """切換出戰棋靈：把目前出戰的快照回收藏，再把目標載入 user_pets。"""
+    """切換出戰棋靈，並以 B023 operation identity 保護結果重播。"""
     uid = session['user_id']
     data = request.get_json(silent=True) or {}
     target = (data.get('pet_key') or '').strip()
-    if target not in PET_CATALOG:
-        return jsonify({'error': '未知的寵物'}), 400
-    now = datetime.datetime.now().isoformat()
     with get_db() as conn:
-        active = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        if not active:
-            return jsonify({'error': '尚未選擇寵物'}), 400
-        if active['pet_key'] == target:
-            return jsonify({'ok': True, 'pet': _normalize_pet_row(active),
-                            'message': '已是出戰中的棋靈'})
-        owned = conn.execute(
-            'SELECT * FROM pet_collection WHERE user_id=? AND pet_key=?', (uid, target)
-        ).fetchone()
-        if not owned:
-            return jsonify({'ok': False, 'error': '尚未擁有此棋靈'}), 403
-        _pet_collection_sync_active(conn, uid)   # 先存回目前出戰的最新數值
-        conn.execute(
-            'UPDATE user_pets SET pet_key=?, nickname=?, level=?, xp=?, fullness=?, affection=?, '
-            'selected_at=?, last_fed_at=?, last_interacted_at=?, last_pet_at=?, last_train_at=?, '
-            'daily_key=?, daily_bond=?, daily_train_xp=?, updated_at=? WHERE user_id=?',
-            (target, owned['nickname'], owned['level'], owned['xp'], owned['fullness'],
-             owned['affection'], owned['selected_at'], owned['last_fed_at'],
-             owned['last_interacted_at'], owned['last_pet_at'], owned['last_train_at'],
-             owned['daily_key'], owned['daily_bond'], owned['daily_train_xp'], now, uid)
-        )
-        conn.execute(
-            'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
-            (uid, 'switch', target, now)
-        )
-        pet_row = conn.execute('SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
-        collection_state = _pet_collection_state(conn, uid, target)
-        conn.commit()
-    return jsonify({'ok': True, 'pet': _normalize_pet_row(pet_row),
-                    'collection': collection_state,
-                    'message': f'{PET_CATALOG[target]["name"]} 出戰！'})
+        def mutate(inner_conn, operation_id):
+            if target not in PET_CATALOG:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '未知的寵物'},
+                    status_code=400, error_code='UNKNOWN_SPIRIT')
+            now = datetime.datetime.now().isoformat()
+            active = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            if not active:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '尚未選擇寵物'},
+                    status_code=400, error_code='NO_ACTIVE_SPIRIT')
+            if active['pet_key'] == target:
+                return {
+                    'ok': True, 'pet': _normalize_pet_row(active),
+                    'message': '已是出戰中的棋靈',
+                }, 200
+            owned = inner_conn.execute(
+                'SELECT * FROM pet_collection WHERE user_id=? AND pet_key=?',
+                (uid, target)
+            ).fetchone()
+            if not owned:
+                raise CompanionMutationRejected(
+                    {'ok': False, 'error': '尚未擁有此棋靈'},
+                    status_code=403, error_code='SPIRIT_NOT_OWNED')
+            _pet_collection_sync_active(inner_conn, uid)
+            inner_conn.execute(
+                'UPDATE user_pets SET pet_key=?, nickname=?, level=?, xp=?, fullness=?, affection=?, '
+                'selected_at=?, last_fed_at=?, last_interacted_at=?, last_pet_at=?, last_train_at=?, '
+                'daily_key=?, daily_bond=?, daily_train_xp=?, updated_at=? WHERE user_id=?',
+                (target, owned['nickname'], owned['level'], owned['xp'], owned['fullness'],
+                 owned['affection'], owned['selected_at'], owned['last_fed_at'],
+                 owned['last_interacted_at'], owned['last_pet_at'], owned['last_train_at'],
+                 owned['daily_key'], owned['daily_bond'], owned['daily_train_xp'], now, uid)
+            )
+            inner_conn.execute(
+                'INSERT INTO pet_action_log(user_id,action,detail,created_at) VALUES(?,?,?,?)',
+                (uid, 'switch', target, now)
+            )
+            pet_row = inner_conn.execute(
+                'SELECT * FROM user_pets WHERE user_id=?', (uid,)).fetchone()
+            collection_state = _pet_collection_state(inner_conn, uid, target)
+            return {
+                'ok': True, 'pet': _normalize_pet_row(pet_row),
+                'collection': collection_state,
+                'message': f'{PET_CATALOG[target]["name"]} 出戰！',
+            }, 200
+
+        result = _run_companion_route(
+            conn, user_id=uid, operation_type='SPIRIT_SWITCH',
+            operation_id=data.get('operation_id'), spirit_id=target,
+            payload={'target_spirit_id': target}, mutation=mutate)
+        return _finish_companion_route(conn, result)
 
 # ══════════════════════════════════════════════════════════════
 # 學習儀表板 API
