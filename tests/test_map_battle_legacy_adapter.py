@@ -648,6 +648,42 @@ def test_legacy_forged_fields_expiry_and_stale_revision_do_not_mutate(api_env):
     assert refreshed.get_json()["battle"]["monster_hp"] == final["monster_hp"]
 
 
+def test_b026_changed_correctness_metadata_replays_authoritative_result(api_env):
+    client, conn = api_env
+    state = _prepare(client, "b026-replay-result-metadata")
+    first_response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert first_response.status_code == 200, first_response.get_json()
+    first = first_response.get_json()
+
+    retry_payload = _answer_payload(state, [{"x": 3, "y": 3}])
+    retry_payload.update({
+        "correct": False,
+        "is_correct": False,
+        "result": "INCORRECT",
+        "reward_xp": 0,
+    })
+    retry_response = client.post(
+        ANSWER_ENDPOINT,
+        json=retry_payload,
+        headers=PROTOCOL,
+    )
+    retry = retry_response.get_json()
+    assert retry_response.status_code == 200, retry
+    assert retry["duplicate"] is True
+    assert retry["result"] == first["result"] == "CORRECT"
+    assert retry["submission_id"] == first["submission_id"]
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT COUNT(*) FROM map_battle_submissions WHERE user_id=101"
+    ).fetchone()[0] == 1
+
+
 def test_legacy_feature_off_and_old_client_fail_closed(api_env, monkeypatch):
     client, conn = api_env
     old_client = client.post(
@@ -1446,6 +1482,7 @@ vm.runInContext(source, vm.createContext({ window, console, Number, String, Arra
         capture_output=True,
         text=True,
         check=False,
+        timeout=30,
     )
     assert result.returncode == 0, result.stderr or result.stdout
 

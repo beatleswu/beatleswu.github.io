@@ -41,6 +41,18 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "grade",
     "correct",
     "correctness",
+    "is_correct",
+    "isCorrect",
+    "result",
+    "success",
+    "passed",
+    "won",
+    "completed",
+    "outcome",
+    "answer_result",
+    "correct_result",
+    "client_correct",
+    "client_result",
     "authoritative_grade",
     "damage_to_monster",
     "damage_to_player",
@@ -51,6 +63,21 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "player_hp",
     "judge_result",
     "reward",
+    "reward_xp",
+    "base_xp",
+    "final_xp",
+    "reward_eligible",
+    "reward_multiplier",
+    "xp",
+    "score",
+    "difficulty",
+    "damage",
+    "mitigation",
+    "monster_defeated",
+    "kill",
+    "drop",
+    "coins",
+    "items",
     "zone_clear",
     "submission_id",
     "submission_nonce_hash",
@@ -986,7 +1013,20 @@ def settle_answer(
         raise RequestRejected("attempt does not exist for owner", status=404)
     if _attempt_expired(attempt, now):
         raise AttemptExpired("map battle attempt has expired")
-    canonical = canonicalize_answer(payload, attempt)
+    # A new request must fail closed when it carries a client result claim.
+    # Once a nonce has a committed result, however, a response-loss retry may
+    # contain a legacy/display-only result claim from a stale browser build.
+    # Canonicalize the answer with those claims removed solely to identify the
+    # existing request, then replay the stored authoritative result.  The
+    # claims never enter the request hash and never reach the judge.
+    forbidden = sorted(set(payload).intersection(_FORBIDDEN_CLIENT_FIELDS))
+    canonical_payload = payload
+    if forbidden:
+        canonical_payload = {
+            key: value for key, value in payload.items()
+            if key not in _FORBIDDEN_CLIENT_FIELDS
+        }
+    canonical = canonicalize_answer(canonical_payload, attempt)
     _validate_submission_nonce(payload, attempt)
     # Validate owner/battle/attempt identity and the issued attempt metadata
     # before looking up a submission, but defer the optimistic-concurrency
@@ -1013,6 +1053,8 @@ def settle_answer(
             ),
         }
         return _response_from_settlement(replay, duplicate=True, attempt=attempt)
+    if forbidden:
+        raise ForbiddenClientAuthority("forbidden client authority field: " + forbidden[0])
     if existing is None:
         try:
             _metadata_matches(payload, attempt)
