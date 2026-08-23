@@ -666,6 +666,117 @@ def test_legacy_feature_off_and_old_client_fail_closed(api_env, monkeypatch):
     assert conn.execute("SELECT COUNT(*) FROM map_battles").fetchone()[0] == 0
 
 
+def test_b025_map_battle_context_suppresses_legacy_combat_settlement(api_env, app_module, monkeypatch):
+    client, conn = api_env
+    legacy_calls = []
+
+    def forbidden_legacy_settlement(*args, **kwargs):
+        legacy_calls.append((args, kwargs))
+        raise AssertionError("Map Battle must not enter the legacy combat writer")
+
+    monkeypatch.setattr(app_module, "_update_monster_and_quests", forbidden_legacy_settlement)
+    state = _prepare(client, "b025-single-settlement")
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 200, response.get_json()
+    result = response.get_json()
+    assert result["result"] == "CORRECT"
+    assert result["progression"]["status"] == "applied"
+    assert result["monster_hp_after"] < result["monster_hp_before"]
+    assert legacy_calls == []
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+
+
+def test_b025_incorrect_map_battle_suppresses_legacy_retaliation(api_env, app_module, monkeypatch):
+    client, conn = api_env
+    legacy_calls = []
+
+    def forbidden_legacy_settlement(*args, **kwargs):
+        legacy_calls.append((args, kwargs))
+        raise AssertionError("Map Battle must not enter the legacy combat writer")
+
+    monkeypatch.setattr(app_module, "_update_monster_and_quests", forbidden_legacy_settlement)
+    state = _prepare(client, "b025-single-retaliation")
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 0, "y": 0}]),
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 200, response.get_json()
+    result = response.get_json()
+    assert result["result"] == "INCORRECT"
+    assert result["damage_to_player"] > 0
+    assert result["monster_hp_after"] == result["monster_hp_before"]
+    assert legacy_calls == []
+    assert conn.execute(
+        "SELECT COUNT(*) FROM review_log WHERE user_id=101"
+    ).fetchone()[0] == 1
+
+
+def test_b025_near_death_map_battle_has_one_kill_and_no_legacy_drop_path(api_env, app_module, monkeypatch):
+    client, conn = api_env
+    legacy_calls = []
+
+    def forbidden_legacy_settlement(*args, **kwargs):
+        legacy_calls.append((args, kwargs))
+        raise AssertionError("Map Battle must not enter the legacy combat writer")
+
+    monkeypatch.setattr(app_module, "_update_monster_and_quests", forbidden_legacy_settlement)
+    state = _prepare(client, "b025-near-death")
+    conn.execute(
+        "UPDATE map_battles SET monster_hp=5, monster_hp_max=5 WHERE id=?",
+        (state["battle_id"],),
+    )
+    conn.commit()
+
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+    assert response.status_code == 200, response.get_json()
+    result = response.get_json()
+    assert result["result"] == "CORRECT"
+    assert result["monster_hp_after"] == 0
+    assert result["next_action"] == "monster_defeated"
+    assert result["progression"]["status"] == "applied"
+    assert legacy_calls == []
+    assert conn.execute(
+        "SELECT monster_hp FROM map_battles WHERE id=?", (state["battle_id"],)
+    ).fetchone()[0] == 0
+
+
+def test_b025_map_battle_preserves_noncombat_quest_projection(api_env, app_module, monkeypatch):
+    client, _ = api_env
+    calls = []
+
+    def quest_projection(*args, **kwargs):
+        calls.append(kwargs)
+        return [{"key": "streak_correct", "progress": 1}]
+
+    monkeypatch.setattr(app_module, "_update_daily_quests", quest_projection)
+    state = _prepare(client, "b025-quest-projection")
+    response = client.post(
+        ANSWER_ENDPOINT,
+        json=_answer_payload(state, [{"x": 3, "y": 3}]),
+        headers=PROTOCOL,
+    )
+
+    assert response.status_code == 200, response.get_json()
+    assert calls and calls[0]["monster_defeated"] is False
+    assert calls[0]["progress_eligible"] is True
+    assert response.get_json()["progression"]["quest_updates"] == [
+        {"key": "streak_correct", "progress": 1}
+    ]
+
+
 def test_admin_mode_uses_authoritative_db_status_for_attempt_and_answer(api_env, monkeypatch):
     client, conn = api_env
     monkeypatch.setenv("E10_MAP_BATTLE_V1_MODE", "admin")
@@ -1128,7 +1239,15 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
         monkeypatch.setattr(app_module, "_get_appearance_effects", lambda *a, **k: {})
         monkeypatch.setattr(app_module, "_pet_player_xp_bonus", lambda *a, **k: 0)
         monkeypatch.setattr(app_module, "_effect_get", lambda *a, **k: None)
-        monkeypatch.setattr(app_module, "_update_monster_and_quests", lambda *a, **k: {})
+        monkeypatch.setattr(app_module, "_get_active_equip_effect", lambda *a, **k: 0)
+        monkeypatch.setattr(app_module, "_update_daily_quests", lambda *a, **k: [])
+        legacy_calls = []
+
+        def forbidden_legacy_settlement(*args, **kwargs):
+            legacy_calls.append((args, kwargs))
+            raise AssertionError("Map Battle entered the legacy combat writer")
+
+        monkeypatch.setattr(app_module, "_update_monster_and_quests", forbidden_legacy_settlement)
 
         thread_state = threading.local()
 
@@ -1235,6 +1354,7 @@ def test_postgres_concurrent_map_battle_progression_is_exactly_once(
         ).fetchone()
         assert tuple(battle_after) == tuple(battle_before)
         assert calls == {"badges": 1, "xp": 1, "streak": 1}
+        assert legacy_calls == []
         verify.close()
 
 
