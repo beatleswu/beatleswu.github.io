@@ -6435,6 +6435,13 @@ def _evaluate_premium_entitlement(plan, premium_until, now=None):
         return False
 
 
+def _premium_live_from_fields(plan, premium_until, *, admin_override=False):
+    """Project one user's live Premium state without changing durable fields."""
+    if admin_override:
+        return True
+    return _evaluate_premium_entitlement(plan, premium_until)
+
+
 def _load_current_premium_entitlement(uid):
     """Read the durable entitlement once per request for one user id."""
     cache = getattr(flask_g, '_premium_entitlement_cache', None)
@@ -8289,7 +8296,6 @@ def auth_me():
         decision = _e9_rollout_decision()
         _e9_rollout_telemetry(decision)
         return jsonify({'logged_in': False, 'e9_rollout': decision})
-    plan = session.get('plan', 'free')
     uid  = session['user_id']
     display_name = _user_display_label(
         nickname=session.get('nickname', ''),
@@ -8300,6 +8306,7 @@ def auth_me():
     tour_done = 0
     newbie_quest_eligible = False
     needs_onboarding_choice = False
+    live_premium = bool(session.get('is_admin', False))
     with get_db() as conn:
         row = conn.execute('SELECT go_rank, tour_done FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         if row:
@@ -8307,7 +8314,7 @@ def auth_me():
             tour_done = row['tour_done'] or 0
         row2 = conn.execute(
             'SELECT elo_rating, elo_provisional, email, email_verified, onboarding_path, '
-            'is_admin, username, '
+            'is_admin, username, plan, premium_until, '
             'onboarding_required '
             'FROM users WHERE id=?',
             (uid,)).fetchone()
@@ -8323,6 +8330,11 @@ def auth_me():
             email_verified = row2['email_verified'] or 0
             authoritative_is_admin = bool(row2['is_admin'])
             authoritative_username = row2['username'] or authoritative_username
+            live_premium = _premium_live_from_fields(
+                row2['plan'] if 'plan' in row2.keys() else 'free',
+                row2['premium_until'] if 'premium_until' in row2.keys() else None,
+                admin_override=bool(session.get('is_admin', False)),
+            )
             needs_onboarding_choice = (
                 bool(row2['onboarding_required'])
                 and not bool(row2['onboarding_path'])
@@ -8343,8 +8355,9 @@ def auth_me():
         'nickname':   session.get('nickname', ''),
         'display_name': display_name,
         'is_admin':   authoritative_is_admin,
-        'plan':       plan,
-        'is_premium': plan == 'premium' or authoritative_is_admin,
+        'plan':       'premium' if live_premium else 'free',
+        'is_premium': live_premium,
+        'is_premium_live': live_premium,
         'go_rank':    go_rank,
         'elo_rating': elo_rating,
         'elo_provisional': bool(elo_provisional),
@@ -8634,7 +8647,14 @@ def admin_list_users():
                LEFT JOIN (SELECT user_id, COUNT(DISTINCT badge_id) AS cnt
                           FROM badges_earned GROUP BY user_id) b ON b.user_id=u.id
                ORDER BY u.created_at''').fetchall()
-    return jsonify([dict(r) for r in rows])
+    projected = []
+    for row in rows:
+        user = dict(row)
+        user['is_premium_live'] = _premium_live_from_fields(
+            user.get('plan'), user.get('premium_until')
+        )
+        projected.append(user)
+    return jsonify(projected)
 
 @app.route('/api/admin/users', methods=['POST'])
 @admin_required
@@ -10307,8 +10327,9 @@ def subscription_status():
             pass
     _limit = FREE_DAILY_LIMIT + _extra
     return jsonify({
-        'plan':          session.get('plan', 'free'),
+        'plan':          'premium' if premium else 'free',
         'is_premium':    premium,
+        'is_premium_live': premium,
         'today_count':   today_cnt,
         'daily_limit':   _limit,
         'extra_today':   _extra,
@@ -22569,10 +22590,20 @@ def pay_subscription_status():
             'created_at, cancelled_at FROM subscriptions '
             "WHERE user_id=? AND status IN ('active','pending') "
             'ORDER BY id DESC LIMIT 1', (uid,)).fetchone()
+    stored_plan = row['plan'] if row else 'free'
+    premium_until = row['premium_until'] if row else None
+    live_premium = _premium_live_from_fields(
+        stored_plan,
+        premium_until,
+        admin_override=bool(session.get('is_admin', False)),
+    )
     return jsonify({
         'ok': True,
-        'plan': row['plan'] if row else 'free',
-        'premium_until': row['premium_until'] if row else None,
+        'plan': 'premium' if live_premium else 'free',
+        'is_premium': live_premium,
+        'is_premium_live': live_premium,
+        'stored_plan': stored_plan,
+        'premium_until': premium_until,
         'subscription': dict(sub) if sub else None,
     })
 
