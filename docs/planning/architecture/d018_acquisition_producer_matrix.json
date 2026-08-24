@@ -1,0 +1,150 @@
+{
+  "contract_version": "CANONICAL_ACQUISITION_RESULT_V1",
+  "ownership_authority_remains_domain_specific": true,
+  "scope": "read-only producer reconciliation; no producer runtime changes",
+  "producers": [
+    {
+      "producer": "MONSTER",
+      "current_result": "app.py monster settlement returns legacy loot and appearance_loot structures",
+      "can_map_directly": false,
+      "missing_fields": ["contract_version", "destination", "ownership_authority", "ownership_reference", "resulting_quantity", "is_new", "replayed", "lineage_event_id", "item_class"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "NO",
+      "replay_available": "PARTIAL",
+      "next_task_required": "scoped Monster reward result adapter"
+    },
+    {
+      "producer": "QUEST",
+      "current_result": "legacy Daily reward maps and D015-style claim results expose components/reward fields, not the shared envelope",
+      "can_map_directly": false,
+      "missing_fields": ["destination", "ownership_reference", "resulting_quantity", "is_new", "item_class"],
+      "source_operation_available": "YES_WHERE_D015_IS_USED",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "PARTIAL",
+      "replay_available": "YES_WHERE_CLAIM_OPERATION_IS_USED",
+      "next_task_required": "Quest reward adapter using committed D5A acquisition evidence"
+    },
+    {
+      "producer": "PREMIUM",
+      "current_result": "premium_reward_claim_runtime.ClaimResult and premium_reward_bundle_runtime.BundleClaimResult with claim/operation/component/event references",
+      "can_map_directly": false,
+      "missing_fields": ["contract_version", "item_class", "normalized destination/capabilities", "resulting_quantity", "is_new"],
+      "source_operation_available": "YES",
+      "ownership_reference_available": "YES_FOR_WARDROBE_COMPONENTS",
+      "is_new_available": "PARTIAL",
+      "replay_available": "YES",
+      "next_task_required": "Premium result-envelope adapter; preserve D5A and entitlement authority"
+    },
+    {
+      "producer": "SHOP_COIN_PURCHASE",
+      "current_result": "accepted C019 CoinPurchaseResult at cb8f7e07350edb873c6300bfae3680819b0329f6 includes operation, item, quantity, destination, ownership_result, capabilities, and lineage_event_id",
+      "can_map_directly": false,
+      "missing_fields": ["contract_version", "source_type normalization", "source_reference normalization", "ownership_authority normalization", "item_class normalization"],
+      "source_operation_available": "YES",
+      "ownership_reference_available": "PARTIAL_IN_OWNERSHIP_RESULT",
+      "is_new_available": "YES",
+      "replay_available": "YES",
+      "next_task_required": "C020/Shop-scoped adapter; do not edit C019 in D018"
+    },
+    {
+      "producer": "STARTER",
+      "current_result": "app.py newbie stage reward path returns reward maps and calls existing coin/shop/wardrobe writers",
+      "can_map_directly": false,
+      "missing_fields": ["source_operation_id", "source_reference", "destination", "ownership_reference", "lineage_event_id", "item_class", "replayed"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "NO",
+      "replay_available": "PARTIAL",
+      "next_task_required": "Starter grant adapter with authoritative operation/lineage evidence"
+    },
+    {
+      "producer": "ADMIN",
+      "current_result": "admin/community reward paths use domain-specific claim/grant payloads and player_wardrobe or coin writers",
+      "can_map_directly": false,
+      "missing_fields": ["contract_version", "source operation identity", "destination", "ownership_reference", "lineage_event_id", "item_class", "is_new"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "PARTIAL",
+      "replay_available": "PARTIAL",
+      "next_task_required": "Admin grant adapter with governed audit identity"
+    },
+    {
+      "producer": "LEGACY",
+      "current_result": "legacy reward and appearance paths expose domain-specific maps or direct authority writes",
+      "can_map_directly": false,
+      "missing_fields": ["canonical source operation", "lineage_event_id", "destination", "ownership_reference", "is_new", "replayed", "item_class"],
+      "source_operation_available": "NO_OR_SOURCE_SPECIFIC",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "NO",
+      "replay_available": "PARTIAL",
+      "next_task_required": "legacy compatibility adapter; no guessed historical identity"
+    },
+    {
+      "producer": "EVENT",
+      "current_result": "no single current Event acquisition result authority was found in the canonical runtime",
+      "can_map_directly": false,
+      "missing_fields": ["authoritative event operation", "item identity", "destination", "ownership_reference", "lineage_event_id", "replay contract"],
+      "source_operation_available": "NOT_RUNTIME_AVAILABLE",
+      "ownership_reference_available": "UNKNOWN",
+      "is_new_available": "UNKNOWN",
+      "replay_available": "UNKNOWN",
+      "next_task_required": "future Event producer contract"
+    },
+    {
+      "producer": "EQUIPMENT",
+      "current_result": "functional equipment ownership is written to player_inventory; result presentation is not a shared envelope",
+      "can_map_directly": false,
+      "missing_fields": ["source_type/operation", "source_reference", "lineage_event_id", "resulting_quantity", "is_new", "replayed"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "YES_WHERE_ROW_ID_IS_RETURNED",
+      "is_new_available": "PARTIAL",
+      "replay_available": "PARTIAL",
+      "next_task_required": "equipment acquisition result adapter"
+    },
+    {
+      "producer": "COSMETIC",
+      "current_result": "pure cosmetic ownership is written to player_wardrobe and current callers return producer-specific payloads",
+      "can_map_directly": false,
+      "missing_fields": ["source operation", "source reference", "lineage_event_id", "resulting_quantity", "normalized is_new/replayed"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "YES_WHERE_WARDROBE_ROW_IS_RETURNED",
+      "is_new_available": "PARTIAL",
+      "replay_available": "PARTIAL",
+      "next_task_required": "cosmetic acquisition result adapter"
+    },
+    {
+      "producer": "CONSUMABLE",
+      "current_result": "shop/pet resource writers return quantity or reward maps; D5C item-use is a separate consume authority",
+      "can_map_directly": false,
+      "missing_fields": ["source operation", "destination", "ownership_reference", "lineage_event_id", "item_class", "is_new", "replayed"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "PARTIAL",
+      "replay_available": "PARTIAL",
+      "next_task_required": "consumable acquisition adapter; never use D5C for acquisition"
+    },
+    {
+      "producer": "TROPHY",
+      "current_result": "go_stone_black is represented by the functional equipment catalog and inventory-only policy, not a shared grant result",
+      "can_map_directly": false,
+      "missing_fields": ["source operation", "source reference", "ownership_reference", "lineage_event_id", "is_new", "replayed"],
+      "source_operation_available": "PARTIAL",
+      "ownership_reference_available": "PARTIAL",
+      "is_new_available": "PARTIAL",
+      "replay_available": "PARTIAL",
+      "next_task_required": "trophy adapter preserving inventory-only/no-combat lock"
+    },
+    {
+      "producer": "CAPACITY_OR_ENTITLEMENT",
+      "current_result": "Premium question capacity and entitlement components have their own D5B/Premium result records",
+      "can_map_directly": false,
+      "missing_fields": ["contract_version", "item_class", "normalized ownership_reference", "is_new semantics"],
+      "source_operation_available": "YES_IN_DOMAIN_COMPONENTS",
+      "ownership_reference_available": "YES_IN_DOMAIN_COMPONENTS",
+      "is_new_available": "NOT_MEANINGFUL_OR_DOMAIN_SPECIFIC",
+      "replay_available": "YES_IN_DOMAIN_COMPONENTS",
+      "next_task_required": "capacity/entitlement result adapter; no new authority"
+    }
+  ]
+}
