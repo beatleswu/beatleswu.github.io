@@ -53,6 +53,7 @@ from monster_combat_profiles import (
     build_map_battle_compatibility_overrides,
     resolve_monster_combat_profile,
 )
+from spirit_combat_runtime import apply_spirit_combat_effect
 from monster_settlement import (
     MonsterSettlementRejected,
     build_monster_defeated_event,
@@ -7224,11 +7225,34 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
 
     player_ko        = False
     player_hp_change = 0   # 正=回血, 負=受傷
+    # Legacy /api/srs/review currently carries a self-reported SRS grade but
+    # no server-judged answer evidence.  Never turn that grade into Spirit
+    # correctness authority.  A future server-owned review adapter may pass
+    # this private, canonical field without changing the public payload.
+    authoritative_answer_correct = q_info.get('_server_authoritative_answer_correct')
+    if not isinstance(authoritative_answer_correct, bool):
+        authoritative_answer_correct = None
+    spirit_effects_excluded = q_info.get('_spirit_effects_excluded') is True
 
     if grade >= 3 and should_grant_progress:
         # The decorated legacy wrapper has already placed the complete
         # server-owned combat profile in the context used by _calc_damage.
         dmg_dealt = _calc_damage(grade, max_hp)
+        if not spirit_effects_excluded:
+            spirit_effect = apply_spirit_combat_effect(
+                conn,
+                uid,
+                answer_correct=authoritative_answer_correct,
+                encounter_class=monster_profile.encounter_class,
+                monster_hp_before=int(monster_hp_before),
+                monster_max_hp=int(max_hp),
+                incoming_damage_after_armor=0,
+                outgoing_damage_after_equipment=int(dmg_dealt),
+                player_hp_before=int(player_hp),
+                player_max_hp=int(stored_max),
+            )
+            if spirit_effect.get('triggered'):
+                dmg_dealt = int(spirit_effect['output_damage'])
         new_hp    = max(0, current_hp - dmg_dealt)
         if new_hp == 0:
             monster_defeated = True
@@ -7303,6 +7327,21 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         if not negate_counter:
             dmg_reduce   = _get_combined_effect(conn, uid, 'player_dmg_reduce')
             player_dmg   = _mitigate_authoritative_retaliation(monster_atk, dmg_reduce)
+            if not spirit_effects_excluded:
+                spirit_effect = apply_spirit_combat_effect(
+                    conn,
+                    uid,
+                    answer_correct=authoritative_answer_correct,
+                    encounter_class=monster_profile.encounter_class,
+                    monster_hp_before=int(monster_hp_before),
+                    monster_max_hp=int(max_hp),
+                    incoming_damage_after_armor=int(player_dmg),
+                    outgoing_damage_after_equipment=0,
+                    player_hp_before=int(player_hp),
+                    player_max_hp=int(stored_max),
+                )
+                if spirit_effect.get('triggered'):
+                    player_dmg = int(spirit_effect['output_damage'])
             player_hp    = player_hp - player_dmg
             player_hp_change = -player_dmg
             if player_hp <= 0:
@@ -13381,6 +13420,7 @@ def map_battle_v1_answers():
                 mode_environ=os.environ,
                 eligibility=eligibility,
                 combat_stats_resolver=_get_authoritative_combat_stats,
+                spirit_projection_resolver=build_b022_active_spirit_projection,
             )
     except MapBattleRuntimeError as error:
         body = {
@@ -14081,8 +14121,14 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     monster_settlement=monster_settlement_result,
                 )
             else:
+                combat_q_info = dict(q_info)
+                if boss_source_context is not None:
+                    # Lord Trial owns its own review/progression contract;
+                    # never let the legacy battlefield Spirit adapter observe
+                    # that review as an ordinary combat encounter.
+                    combat_q_info['_spirit_effects_excluded'] = True
                 monster_data = _update_monster_and_quests(
-                    conn, uid, qid, grade, q_info, combo_streak,
+                    conn, uid, qid, grade, combat_q_info, combo_streak,
                     datetime.date.today().isoformat(),
                     should_grant_progress=should_grant_progress,
                     shadow_events=quest_shadow_events,
