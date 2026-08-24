@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A023 Encounter Presentation Framework V1</title>
+  <link rel="stylesheet" href="/css/e10/encounter_presentation_framework_v1.css?v=a023v1">
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body {
+      color: #f8edcf;
+      background:
+        radial-gradient(circle at 12% 2%, rgba(37, 154, 145, .25), transparent 28rem),
+        radial-gradient(circle at 92% 12%, rgba(214, 170, 81, .16), transparent 26rem),
+        #061b23;
+    }
+    .a023-review-shell { width: min(1500px, calc(100% - 36px)); margin: 0 auto; padding: 28px 0 34px; }
+    .a023-review-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+    .a023-kicker { margin: 0 0 7px; color: #d6aa51; font: 700 11px/1 "DM Mono", monospace; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 0; font: 700 clamp(28px, 4vw, 48px)/.96 Georgia, "Times New Roman", serif; letter-spacing: -.02em; }
+    .a023-subtitle { max-width: 600px; margin: 10px 0 0; color: #b9c9c2; font-size: 14px; line-height: 1.5; }
+    .a023-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 420px; }
+    .a023-legend span { padding: 7px 10px; border: 1px solid rgba(214,170,81,.36); border-radius: 999px; color: #f4e4b9; background: rgba(9,45,53,.76); font: 700 10px/1 "DM Mono", monospace; }
+    .a023-note { margin: 18px 0 0; padding: 11px 13px; border-left: 3px solid #d6aa51; color: #c7d6cf; background: rgba(9,45,53,.62); font-size: 12px; line-height: 1.45; }
+    .encounter-showcase { margin-top: 18px; }
+    .a023-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 18px; color: #9db4ae; font: 10px/1.4 "DM Mono", monospace; }
+    @media (max-width: 700px) {
+      .a023-review-shell { width: min(100% - 24px, 520px); padding-top: 18px; }
+      .a023-review-header { display: block; }
+      .a023-legend { justify-content: flex-start; margin-top: 16px; }
+      .a023-subtitle { font-size: 13px; }
+    }
+  </style>
+</head>
+<body data-a023-presentation-only="true">
+  <main class="a023-review-shell">
+    <header class="a023-review-header">
+      <div>
+        <p class="a023-kicker">Go Odyssey / E10 · A023</p>
+        <h1>Encounter Presentation Framework</h1>
+        <p class="a023-subtitle">One reusable encounter language for Common, Rare, Elite and Battlefield Boss. The four cards below are presentation prototypes only; no roster size, combat value or reward truth is encoded here.</p>
+      </div>
+      <div class="a023-legend" aria-label="Encounter hierarchy">
+        <span>✦ Common</span>
+        <span>◇ Rare</span>
+        <span>✧ Elite</span>
+        <span>✹ Battlefield Boss</span>
+      </div>
+    </header>
+    <p class="a023-note">Hierarchy is readable from the symbol, label, frame geometry, silhouette emphasis and HP treatment together. Color is supporting information only. Lord Trial remains a separate authority and is not shown as a fifth generic Monster tier.</p>
+    <section id="a023-encounter-showcase" class="encounter-showcase" aria-label="Encounter presentation prototypes"></section>
+    <footer class="a023-footer">
+      <span>PRESENTATION_ONLY · SERVER RESULT IN / NO AUTHORITY OUT</span>
+      <span>FAST COMMON ENTRANCE · CONTROLLED BOSS WARNING BEAT</span>
+    </footer>
+  </main>
+  <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
+  <script>
+    window.EncounterPresentationV1.renderPrototypeGrid(document.getElementById('a023-encounter-showcase'), [
+      {
+        presentation_tier: 'common',
+        name: 'Slime Scout',
+        zone: 'Zone 01 · Beginner Village',
+        identityHint: 'Fast, readable baseline encounter',
+        artSrc: '/assets/monsters/slime.svg',
+        hp: 72,
+        max_hp: 100,
+        feedbackState: 'correct_attack',
+        feedbackLabel: 'Committed result · attack feedback',
+      },
+      {
+        presentation_tier: 'rare',
+        name: 'Mistwood Adept',
+        zone: 'Zone 04 · Twilight Forest',
+        identityHint: 'Noticeable accent without boss interruption',
+        artSrc: '/assets/monsters/mist_dryad.svg',
+        hp: 68,
+        max_hp: 100,
+        feedbackState: 'monster_damaged',
+        feedbackLabel: 'Committed result · damage feedback',
+      },
+      {
+        presentation_tier: 'elite',
+        name: 'Royal Knight Commander',
+        zone: 'Zone 06 · Royal Castle',
+        identityHint: 'Stronger ordinary Monster settlement',
+        artSrc: '/assets/monsters/royal_knight.svg',
+        hp: 84,
+        max_hp: 120,
+        feedbackState: 'monster_attack',
+        feedbackLabel: 'Committed result · incoming attack cue',
+      },
+      {
+        presentation_tier: 'battlefield_boss',
+        name: 'Omega Idol',
+        zone: 'Zone 10 · Ancient Doom Temple',
+        identityHint: 'Strongest generic Monster treatment',
+        artSrc: '/assets/monsters/omega_idol.svg',
+        hp: 160,
+        max_hp: 200,
+        feedbackState: 'monster_defeated',
+        feedbackLabel: 'Committed result · defeat presentation',
+      },
+    ]);
+  </script>
+</body>
+</html>

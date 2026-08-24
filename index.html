@@ -82,6 +82,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
 <script src="/i18n.js?v=20260801e10art1"></script>
     <script src="/community_reward_notifications.js?v=20260706b" defer></script>
     <link rel="stylesheet" href="/wgo/wgo.player.css">
+    <link rel="stylesheet" href="/css/e10/encounter_presentation_framework_v1.css?v=a023v1">
     <script src="/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
@@ -94,6 +95,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <script src="/srs.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/lord_trial_controller.js?v=20260815e10archv1a"></script>
     <script src="/js/map_battle_v1_adapter.js?v=20260803e10s2b"></script>
+    <script src="/js/game/encounter_presentation_framework_v1.js?v=a023v1"></script>
     <script src="/monster_trash.js?v=20260622i18n1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -7617,7 +7619,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
             <div id="side-col">
 
                 <!-- ── 戰鬥競技場 ─────────────────────────────── -->
-                <div id="monster-panel">
+                <div id="monster-panel" data-encounter-framework="pending">
                     <div class="battle-adventure-objective hidden" id="battle-adventure-objective"></div>
                     <!-- 標題列 -->
                     <div class="battle-header">
@@ -9914,6 +9916,12 @@ function updateMonsterUI(monster, { onAnimationComplete = null } = {}) {
     hpBar.style.background = pct > 50 ? '#dc2626' : pct > 25 ? '#d97706' : '#16a34a';
     hpText.textContent     = `HP ${monster.hp}/${monster.max_hp}`;
 
+    // A023 decorates the existing encounter DOM only. Server state remains
+    // authoritative for HP, correctness, damage, defeat, and reward.
+    if (window.EncounterPresentationV1) {
+        window.EncounterPresentationV1.decoratePanel(document.getElementById('monster-panel'), monster);
+    }
+
     // 更新 Wave badge
     const waveBadge = document.getElementById('battle-wave-badge');
     if (waveBadge && monster.wave !== undefined)
@@ -9969,6 +9977,10 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
         name: q.monster_name,
         name_en: q.monster_name_en,
         avatar: q.monster_avatar,
+        encounter_type: q.encounter_type,
+        encounter_label: q.encounter_label,
+        boss_level: q.boss_level,
+        presentation_tier: q.presentation_tier,
         hp: Number(state.monsterHp),
         max_hp: Number(state.monsterHpMax || state.monsterHp || 100),
         dmg: damageToMonster,
@@ -10323,6 +10335,10 @@ function renderAdventureZoneMonster(q) {
         name: q.monster_name,
         name_en: q.monster_name_en,
         avatar: q.monster_avatar,
+        encounter_type: q.encounter_type,
+        encounter_label: q.encounter_label,
+        boss_level: q.boss_level,
+        presentation_tier: q.presentation_tier,
         hp: state ? Number(state.monsterHp) : (q.monster_hp || 100),
         max_hp: state ? Number(state.monsterHpMax || state.monsterHp || 100) : (q.monster_hp || 100),
         defeated: state ? state.monsterDefeated === true : false,
@@ -10368,6 +10384,9 @@ function initMonsterForQuestion(q) {
                 hpBar.style.width      = pct + '%';
                 hpBar.style.background = pct > 50 ? '#dc2626' : pct > 25 ? '#d97706' : '#16a34a';
                 hpText.textContent     = `HP ${data.hp}/${data.max_hp}`;
+                if (window.EncounterPresentationV1) {
+                    window.EncounterPresentationV1.decoratePanel(document.getElementById('monster-panel'), data);
+                }
                 // 怪物登場說話
                 if (data.type !== _lastMonsterType) {
                     _lastMonsterType = data.type;
@@ -10405,6 +10424,9 @@ function initMonsterForQuestion(q) {
             hpBar.style.width      = '100%';
             hpBar.style.background = '#dc2626';
             hpText.textContent     = `HP ${mhp}/${mhp}`;
+            if (window.EncounterPresentationV1) {
+                window.EncounterPresentationV1.decoratePanel(document.getElementById('monster-panel'), fallbackMonster);
+            }
         });
 }
 
@@ -10704,6 +10726,9 @@ function showKillAnimation(monster, onComplete = null) {
             if (nameEl) nameEl.textContent = monsterDisplayName(nextMonster);
             if (hpBar)  { hpBar.style.width = '100%'; hpBar.style.background = '#dc2626'; }
             if (hpText) hpText.textContent = `HP ${nextMonster.max_hp}/${nextMonster.max_hp}`;
+            if (window.EncounterPresentationV1) {
+                window.EncounterPresentationV1.decoratePanel(document.getElementById('monster-panel'), nextMonster);
+            }
             // 登場動畫 + 音效
             monsterEl.classList.remove('monster-entering');
             void monsterEl.offsetWidth;

@@ -1,0 +1,348 @@
+/* A023 Encounter Presentation Framework V1.
+ * Presentation only: no battle authority, damage calculation, or reward grant.
+ */
+
+#monster-panel.encounter-framework-v1 {
+    position: relative;
+    border: 2px solid #96733b;
+    background:
+        linear-gradient(135deg, rgba(13, 58, 66, .05), transparent 42%),
+        linear-gradient(180deg, #fffaf0 0%, #f3e8cf 100%);
+    box-shadow: 0 14px 34px rgba(25, 45, 44, .16), inset 0 0 0 1px rgba(255,255,255,.66);
+}
+
+#monster-panel.encounter-framework-v1::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+    border: 1px solid rgba(13, 111, 105, .18);
+    border-radius: 10px;
+}
+
+#monster-panel.encounter-framework-v1 .monster-cell {
+    position: relative;
+    padding: 6px 8px 8px;
+    border-left: 1px solid rgba(150, 115, 59, .18);
+    border-bottom: 1px solid rgba(150, 115, 59, .18);
+    border-radius: 10px 0 10px 10px;
+}
+
+#monster-panel.encounter-framework-v1 .encounter-rarity-badge,
+.encounter-card .encounter-rarity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 24px;
+    padding: 3px 9px;
+    border: 1px solid #96733b;
+    border-radius: 999px;
+    background: #173d43;
+    color: #fff1c7;
+    font: 700 10px/1 'DM Mono', monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(22, 45, 43, .18);
+}
+
+#monster-panel.encounter-framework-v1 .encounter-rarity-badge {
+    align-self: flex-end;
+    margin-bottom: 3px;
+}
+
+#monster-panel.encounter-tier-common .encounter-rarity-badge,
+.encounter-card.encounter-tier-common .encounter-rarity-badge {
+    border-style: solid;
+}
+
+#monster-panel.encounter-tier-rare .encounter-rarity-badge,
+.encounter-card.encounter-tier-rare .encounter-rarity-badge {
+    border-style: double;
+    letter-spacing: .08em;
+}
+
+#monster-panel.encounter-tier-elite .encounter-rarity-badge,
+.encounter-card.encounter-tier-elite .encounter-rarity-badge {
+    border-width: 2px;
+    border-radius: 7px;
+    letter-spacing: .12em;
+}
+
+#monster-panel.encounter-tier-battlefield_boss .encounter-rarity-badge,
+.encounter-card.encounter-tier-battlefield_boss .encounter-rarity-badge {
+    min-height: 28px;
+    border-width: 2px;
+    border-radius: 5px;
+    letter-spacing: .12em;
+    box-shadow: 0 0 0 2px rgba(150, 115, 59, .18), 0 5px 14px rgba(22, 45, 43, .24);
+}
+
+#monster-panel.encounter-tier-rare .monster-cell {
+    border-left-style: double;
+}
+
+#monster-panel.encounter-tier-elite .monster-cell {
+    border-left-width: 2px;
+    border-left-style: double;
+}
+
+#monster-panel.encounter-tier-battlefield_boss .monster-cell {
+    border-left-width: 3px;
+    border-left-style: solid;
+    background: linear-gradient(135deg, rgba(150, 115, 59, .11), transparent 58%);
+}
+
+#monster-panel.encounter-framework-v1 #monster-avatar {
+    transition: transform .2s ease, filter .2s ease;
+}
+
+#monster-panel.encounter-tier-common #monster-avatar { width: 52px; height: 52px; }
+#monster-panel.encounter-tier-rare #monster-avatar { width: 58px; height: 58px; }
+#monster-panel.encounter-tier-elite #monster-avatar { width: 66px; height: 66px; }
+#monster-panel.encounter-tier-battlefield_boss #monster-avatar { width: 74px; height: 74px; }
+
+#monster-panel.encounter-tier-rare #monster-avatar { transform: translateY(-2px); }
+#monster-panel.encounter-tier-elite #monster-avatar { transform: translateY(-4px); }
+#monster-panel.encounter-tier-battlefield_boss #monster-avatar { transform: translateY(-6px); }
+
+#monster-panel.encounter-framework-v1 #monster-name {
+    color: #173d43;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+
+#monster-panel.encounter-tier-battlefield_boss #monster-name {
+    font-size: 21px;
+    letter-spacing: .04em;
+}
+
+#monster-panel.encounter-framework-v1 #monster-hp-row {
+    width: min(100%, 178px);
+}
+
+#monster-panel.encounter-framework-v1 .encounter-hp-framework-v1 #monster-hp-bar-bg {
+    border: 1px solid rgba(23, 61, 67, .28);
+    box-shadow: inset 0 1px 3px rgba(23, 61, 67, .15);
+}
+
+#monster-panel.encounter-tier-elite .encounter-hp-framework-v1 #monster-hp-bar-bg,
+#monster-panel.encounter-tier-battlefield_boss .encounter-hp-framework-v1 #monster-hp-bar-bg {
+    height: 10px;
+    border-radius: 4px;
+}
+
+#monster-panel.encounter-tier-battlefield_boss .encounter-hp-framework-v1 #monster-hp-bar {
+    box-shadow: 0 0 8px rgba(150, 115, 59, .48);
+}
+
+#monster-panel.encounter-framework-v1.is-correct_attack,
+#monster-panel.encounter-framework-v1.is-monster_damaged {
+    animation: a023EncounterPulse .34s ease-out;
+}
+
+#monster-panel.encounter-framework-v1.is-monster_attack {
+    animation: a023EncounterShake .3s ease-out;
+}
+
+#monster-panel.encounter-framework-v1.is-monster_defeated {
+    filter: saturate(.7);
+}
+
+@keyframes a023EncounterPulse {
+    0% { box-shadow: 0 14px 34px rgba(25, 45, 44, .16), inset 0 0 0 1px rgba(255,255,255,.66); }
+    45% { box-shadow: 0 0 0 4px rgba(150, 115, 59, .24), 0 14px 34px rgba(25, 45, 44, .16); }
+    100% { box-shadow: 0 14px 34px rgba(25, 45, 44, .16), inset 0 0 0 1px rgba(255,255,255,.66); }
+}
+
+@keyframes a023EncounterShake {
+    0%, 100% { transform: translateX(0); }
+    30% { transform: translateX(-3px); }
+    70% { transform: translateX(3px); }
+}
+
+/* Review fixture / future reusable card surface. */
+.encounter-showcase {
+    --a023-ink: #f8edcf;
+    --a023-muted: #b9c9c2;
+    --a023-teal: #0d6f69;
+    --a023-teal-deep: #092d35;
+    --a023-gold: #d6aa51;
+    --a023-parchment: #f4ecd8;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.encounter-card {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto minmax(170px, 1fr) auto;
+    min-width: 0;
+    min-height: 390px;
+    overflow: hidden;
+    padding: 14px;
+    border: 1px solid rgba(214, 170, 81, .72);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 90% 4%, rgba(214,170,81,.14), transparent 34%),
+        linear-gradient(180deg, rgba(14, 63, 70, .98), rgba(7, 34, 42, .98));
+    color: var(--a023-ink);
+    box-shadow: 0 18px 32px rgba(2, 17, 22, .32), inset 0 0 0 1px rgba(255,255,255,.04);
+}
+
+.encounter-card::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    pointer-events: none;
+    border: 1px solid rgba(214, 170, 81, .22);
+    border-radius: 10px;
+}
+
+.encounter-card.encounter-tier-common { border-style: solid; }
+.encounter-card.encounter-tier-rare { border-style: double; }
+.encounter-card.encounter-tier-elite { border-width: 2px; border-radius: 11px; }
+.encounter-card.encounter-tier-battlefield_boss {
+    border-width: 3px;
+    border-radius: 9px;
+    background:
+        radial-gradient(circle at 50% 18%, rgba(214,170,81,.16), transparent 34%),
+        linear-gradient(180deg, rgba(27, 63, 66, .99), rgba(6, 29, 37, .99));
+}
+
+.encounter-card__header,
+.encounter-card__identity,
+.encounter-card__footer {
+    position: relative;
+    z-index: 1;
+}
+
+.encounter-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.encounter-card__kicker {
+    color: var(--a023-muted);
+    font: 700 9px/1 'DM Mono', monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.encounter-card__identity { margin-top: 12px; }
+.encounter-card__name { margin: 0; color: var(--a023-ink); font-size: 22px; line-height: 1.05; }
+.encounter-card__subtitle { margin: 5px 0 0; color: var(--a023-muted); font-size: 11px; line-height: 1.35; }
+
+.encounter-card__portrait {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 190px;
+    margin: 10px -3px 9px;
+    border: 1px solid rgba(214,170,81,.23);
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at 50% 54%, rgba(52, 173, 158, .15), transparent 47%),
+        linear-gradient(180deg, rgba(3, 22, 30, .34), rgba(3, 19, 26, .62));
+}
+
+.encounter-card__portrait::after {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    border: 1px solid rgba(214,170,81,.14);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+.encounter-card__art {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: min(100%, 198px);
+    height: 184px;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 12px rgba(0,0,0,.35));
+}
+
+.encounter-card__art--sprite {
+    width: 170px;
+    height: 160px;
+    background-image: url('/assets/monsters/monster_chibi_preview.png');
+    background-repeat: no-repeat;
+    background-size: 500% 500%;
+    background-color: #f4f0e5;
+    background-blend-mode: multiply;
+    border-radius: 10px;
+}
+
+.encounter-art--slime { background-position: 0 0; }
+.encounter-art--mist-dryad { background-position: 50% 25%; }
+.encounter-art--royal-knight { background-position: 0 75%; }
+.encounter-art--omega-idol { background-position: 100% 75%; }
+
+.encounter-card__frame-mark {
+    position: absolute;
+    right: 13px;
+    bottom: 10px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    border: 1px solid rgba(214,170,81,.76);
+    border-radius: 50%;
+    background: rgba(9,45,53,.9);
+    color: #f5d98f;
+    font: 700 14px/1 'DM Mono', monospace;
+}
+
+.encounter-card__hp {
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.encounter-card__hp-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--a023-muted);
+    font: 700 10px/1.2 'DM Mono', monospace;
+}
+
+.encounter-card__hp-value { color: var(--a023-ink); }
+.encounter-card__hp-track { height: 9px; margin-top: 6px; overflow: hidden; border: 1px solid rgba(214,170,81,.48); border-radius: 99px; background: rgba(2,17,22,.72); }
+.encounter-card__hp-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #47c6a4, #d6aa51); }
+.encounter-tier-elite .encounter-card__hp-fill { background: linear-gradient(90deg, #39b1b3, #d6aa51); }
+.encounter-tier-battlefield_boss .encounter-card__hp-fill { background: linear-gradient(90deg, #d6aa51, #f3e1a3); box-shadow: 0 0 10px rgba(214,170,81,.62); }
+
+.encounter-card__feedback {
+    margin-top: 9px;
+    color: var(--a023-gold);
+    font: 700 10px/1.2 'DM Mono', monospace;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+    .encounter-showcase { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+    .encounter-showcase { grid-template-columns: 1fr; gap: 12px; }
+    .encounter-card { min-height: 344px; grid-template-rows: auto auto minmax(145px, 1fr) auto; padding: 12px; }
+    .encounter-card__portrait { min-height: 154px; }
+    .encounter-card__art { height: 150px; }
+    .encounter-card__art--sprite { width: 150px; height: 140px; }
+    .encounter-card__name { font-size: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #monster-panel.encounter-framework-v1,
+    .encounter-card,
+    .encounter-card__art { animation: none !important; transition: none !important; }
+}
