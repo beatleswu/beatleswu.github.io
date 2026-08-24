@@ -70,7 +70,7 @@ The integrated app.py has one Lane E writer and preserves these authorities:
 
 | Domain | Authority |
 |---|---|
-| Question correctness | SGF/server judge; client correct/grade claims are ignored |
+| Question correctness | SGF/server judge where an authoritative handoff exists; public legacy `ReviewCommand.grade` is not a Quest correctness source |
 | Premium live projection | one _evaluate_premium_entitlement; _premium_live_from_fields delegates to it |
 | Monster identity/profile | F003–F008 registries; F010 durable binding when enabled |
 | Combat settlement | map_battle_runtime.settle_answer and one settle_map_battle_submission |
@@ -114,6 +114,72 @@ writer for that path. Quest does not own correctness, Combat, Monster
 settlement, Spirit, World progression, Premium, Inventory, or XP authority.
 Internal Monster/Quest bridge fields are removed before the legacy public
 review response is serialized.
+
+## E023-R1_QUEST_CORRECTNESS_AUTHORITY_CLOSURE_001
+
+R1 closes the Owner-review correctness-authority blocker without changing
+the Review, Combat, Spirit, Quest definitions, or feature-flag defaults.
+
+### Root cause
+
+Before R1, `_apply_quest_v2_review_events()` accepted the legacy review
+`grade` directly and derived `correct = int(grade) >= 3`. Public
+`/api/srs/review` only validates that `grade` is one of `(0, 3, 5)`; that
+field is client self-report, not a server judge result. This made a public
+grade capable of becoming a Quest V2 correctness event.
+
+### Correctness sources and boundaries
+
+* `AUTHORITATIVE_MAP_BATTLE`: `map_battle_runtime.judge_map_battle_answer_v1`
+  produces the server-owned outcome. The durable Map Battle submission is
+  validated before the internal handoff, and R1 derives the Quest boolean
+  from its persisted `judge_result` (`CORRECT`/`INCORRECT`), never from the
+  request body or the `grade` field.
+* `LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE`: public `/api/srs/review` continues
+  its existing legacy review behavior, but supplies
+  `authoritative_answer_correct=None` to the Quest bridge. R1 therefore
+  creates no correctness-dependent Quest event: no streak increment, no
+  streak reset, no forged kill credit, and no forged dragon credit for
+  public grades `5`, `3`, or `0`.
+* Quest bridge authority: `_apply_quest_v2_review_events()` now requires both
+  the trusted Map Battle source marker and a boolean
+  `authoritative_answer_correct`. Any other source or `None` fails closed.
+  Monster defeat events are accepted only from that same authoritative Map
+  Battle result.
+* Legacy Spirit remains fail closed through the existing boolean-only
+  `_server_authoritative_answer_correct` field. A self-reported public grade
+  cannot activate correctness-dependent Spirit effects; Map Battle keeps its
+  existing server-judge Spirit path.
+
+### R1 verification verdict
+
+`PUBLIC_CLIENT_GRADE_IS_QUEST_AUTHORITY=NO`.
+`PUBLIC_NO_AUTHORITY_BEHAVIOR=NO_CORRECTNESS_MUTATION`.
+`MAP_BATTLE_SERVER_JUDGE_IS_QUEST_AUTHORITY=YES`.
+The Quest V2 flag and Monster selector flag remain default-off, and the R1
+tests cover public forged positive/negative grades, Map Battle authoritative
+positive/negative events, replay idempotency, client authority rejection,
+Spirit fail-closed behavior, and Lord Trial Spirit exclusion.
+
+R1 validation evidence:
+
+* D017/Quest runtime focused suite: `19 passed`.
+* B027 Spirit suites: `83 passed`.
+* Map Battle runtime/persistence/legacy-adapter suites: `76 passed`.
+* C017 Premium plus F010 selector suites: `20 passed`.
+* Lord Trial architecture/real-path suites: `16 passed, 13 skipped`.
+* D007/D008/E019 compatibility suites: `68 passed`.
+* Combined E023 boundary suite: `319 passed, 1 pre-existing source-freeze
+  failure, 13 skipped`.
+* PostgreSQL-specific execution: `SKIPPED_ENVIRONMENT_GAP`; no disposable
+  PostgreSQL target was supplied. Local fixture portions reported `2 passed,
+  4 skipped`.
+
+The source-freeze failure compares the integrated E023 `_update_monster_and_quests`
+body with an older historical base and predates R1. A separate protected-file
+scope harness also reports the inherited/untracked `secret_key.txt`; R1 did
+not inspect, modify, stage, or delete it. No R1 test failure was classified as
+task-introduced or unclassified.
 
 ## Feature matrix
 
