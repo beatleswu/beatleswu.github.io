@@ -396,7 +396,7 @@ def _project_equipment(
     slots = {slot: dict(value) for slot, value in empty_slots.items()}
     for slot in EQUIPMENT_SLOTS:
         item_ids = equipped_by_slot[slot]
-        if slot in conflicts or not item_ids:
+        if len(item_ids) != 1:
             continue
         item_id = item_ids[0]
         definition = catalog[item_id]
@@ -414,6 +414,16 @@ def _project_equipment(
             "display": _equipment_display(definition, item_id),
         }
 
+    # Only a slot with exactly one valid candidate has an effective equipped
+    # item.  A conflicted slot is intentionally unresolved; choosing its
+    # first/last/highest-rarity row would turn malformed stored state into
+    # gameplay authority.
+    resolved_equipped_item_ids = {
+        item_ids[0]
+        for item_ids in equipped_by_slot.values()
+        if len(item_ids) == 1
+    }
+
     owned_items = []
     for item_id in sorted(owned_counts):
         definition = catalog[item_id]
@@ -422,11 +432,7 @@ def _project_equipment(
                 "item_id": item_id,
                 "slot": definition.get("slot"),
                 "quantity": owned_counts[item_id],
-                "equipped": item_id in {
-                    item_ids[0]
-                    for item_ids in equipped_by_slot.values()
-                    if item_ids
-                },
+                "equipped": item_id in resolved_equipped_item_ids,
                 "functional_status": _equipment_status(
                     item_id,
                     inventory_only=inventory_only,

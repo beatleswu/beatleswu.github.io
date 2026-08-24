@@ -13,6 +13,7 @@ from player_state_read_model import (
 
 
 EQUIPMENT_DEFINITIONS = [
+    {"id": "wooden_sword", "name": "Wooden Sword", "slot": "weapon", "rarity": "common", "icon": "wood"},
     {"id": "iron_sword", "name": "Iron Sword", "slot": "weapon", "rarity": "common", "icon": "sword"},
     {"id": "leather_armor", "name": "Leather Armor", "slot": "armor", "rarity": "common", "icon": "armor"},
     {"id": "lucky_stone", "name": "Lucky Stone", "slot": "accessory", "rarity": "common", "icon": "stone"},
@@ -202,6 +203,49 @@ def test_equipment_projection_preserves_ownership_and_equipped_state(conn):
     assert conn.total_changes == changes_before
     assert model["equipment"]["slots"]["armor"]["item_id"] == "leather_armor"
     assert model["equipment"]["slots"]["accessory"]["item_id"] == "lucky_stone"
+
+
+def test_conflicted_different_equipped_items_fail_closed_without_effective_item(conn):
+    _insert_inventory(conn, 1, "iron_sword", 1)
+    _insert_inventory(conn, 2, "wooden_sword", 1)
+    before = conn.execute(
+        "SELECT equip_id, equipped FROM player_inventory ORDER BY id"
+    ).fetchall()
+    changes_before = conn.total_changes
+
+    model = _build(conn)
+    equipment = model["equipment"]
+    owned = {item["item_id"]: item for item in equipment["owned_items"]}
+
+    assert equipment["projection_status"] == "INVALID_STORED_STATE"
+    assert "weapon" in equipment["equipped_slot_conflicts"]
+    assert equipment["slots"]["weapon"]["item_id"] is None
+    assert equipment["slots"]["weapon"]["equipped"] is False
+    assert owned["iron_sword"]["equipped"] is False
+    assert owned["wooden_sword"]["equipped"] is False
+    assert conn.total_changes == changes_before
+    after = conn.execute(
+        "SELECT equip_id, equipped FROM player_inventory ORDER BY id"
+    ).fetchall()
+    assert [(row["equip_id"], row["equipped"]) for row in after] == [
+        (row["equip_id"], row["equipped"]) for row in before
+    ]
+
+
+def test_conflicted_duplicate_equipped_item_rows_remain_unresolved(conn):
+    _insert_inventory(conn, 1, "iron_sword", 1)
+    _insert_inventory(conn, 2, "iron_sword", 1)
+
+    model = _build(conn)
+    equipment = model["equipment"]
+    owned = next(item for item in equipment["owned_items"] if item["item_id"] == "iron_sword")
+
+    assert equipment["projection_status"] == "INVALID_STORED_STATE"
+    assert "weapon" in equipment["equipped_slot_conflicts"]
+    assert equipment["slots"]["weapon"]["item_id"] is None
+    assert equipment["slots"]["weapon"]["equipped"] is False
+    assert owned["quantity"] == 2
+    assert owned["equipped"] is False
 
 
 def test_xp_amulet_remains_hold_for_authority(conn):
