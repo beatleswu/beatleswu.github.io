@@ -1,0 +1,388 @@
+{
+  "task": "B031_EQUIPMENT_LOADOUT_COMMAND_AUTHORITY_RECON_001",
+  "repository": "D:\\go-website",
+  "base_sha": "58d9b7047f285751a048fc551c955909c87984ac",
+  "scope": "read_analyze_static_validation_docs_only",
+  "runtime_changes": false,
+  "schema_changes": false,
+  "production_mutation": false,
+  "canonical_authorities": {
+    "ownership": "player_inventory",
+    "equipped_state": "player_inventory.equipped",
+    "equipment_definitions": "app.py:EQUIPMENT_DEFS",
+    "combat_stats": "app.py:_get_authoritative_combat_stats",
+    "read_model_conflict_policy": "B028-R1 player_state_read_model.py at accepted B028 follow-up",
+    "item_use": "item_use_operations.py / D5C ITEM_USE authority",
+    "reward_lineage": "D5A where the current acquisition path uses it"
+  },
+  "equipment_definitions": {
+    "count": 15,
+    "duplicate_ids": 0,
+    "slots": [
+      "weapon",
+      "armor",
+      "accessory"
+    ],
+    "ids": [
+      "wooden_sword",
+      "iron_sword",
+      "fox_fang",
+      "dragon_claw",
+      "celestial_blade",
+      "cloth_robe",
+      "leather_armor",
+      "fox_pelt",
+      "dragon_scale",
+      "void_mantle",
+      "lucky_stone",
+      "xp_amulet",
+      "fox_mask",
+      "dragon_eye",
+      "go_stone_black"
+    ],
+    "special_locks": {
+      "xp_amulet": {
+        "status": "HOLD_FOR_AUTHORITY",
+        "active_functional_effect_keys": []
+      },
+      "go_stone_black": {
+        "status": "TROPHY",
+        "inventory_only": true,
+        "equippable": false,
+        "active_functional_effect_keys": []
+      }
+    }
+  },
+  "commands": [
+    {
+      "command": "acquire_drop",
+      "route": "none; called from _update_monster_and_quests",
+      "function": "app.py:_update_monster_and_quests",
+      "input_fields": [
+        "authenticated user",
+        "server-resolved equip_id",
+        "source"
+      ],
+      "server_resolved_fields": [
+        "EQUIPMENT_DEFS membership",
+        "drop eligibility",
+        "obtained_at",
+        "source"
+      ],
+      "ownership_check": "Counts existing player_inventory rows for the authenticated user and equip_id before inserting.",
+      "slot_check": "Not an equip command; inserts equipped=0.",
+      "current_transaction": "Runs inside the caller's settlement transaction.",
+      "idempotency": "Count-based duplicate suppression for the acquisition path; no caller-owned operation identity.",
+      "writes": [
+        "INSERT player_inventory(user_id,equip_id,equipped=0,obtained_at,source)"
+      ],
+      "combat_effect": "No immediate combat effect; later combat reads player_inventory.equipped.",
+      "callers": [
+        "Map Battle/legacy monster progression path"
+      ],
+      "status": "ACQUISITION_NOT_EQUIP",
+      "gap": "The current functional equipment drop path is a direct player_inventory insert; a D5A append_event call was not visible in this path."
+    },
+    {
+      "command": "admin_grant",
+      "route": "/api/admin/users/<uid>/assets/equipment",
+      "function": "app.py:admin_set_equipment",
+      "input_fields": [
+        "admin-authenticated uid",
+        "equip_id",
+        "action=grant"
+      ],
+      "server_resolved_fields": [
+        "EQUIPMENT_DEFS membership",
+        "authenticated admin permission",
+        "target user"
+      ],
+      "ownership_check": "Writes ownership for the selected target user after admin authorization.",
+      "slot_check": "Definition membership is checked; the row is inserted unequipped.",
+      "current_transaction": "Single route transaction with explicit commit.",
+      "idempotency": "No durable operation identity; repeated grants can create additional ownership rows.",
+      "writes": [
+        "INSERT player_inventory(...,equipped=0,source=admin)"
+      ],
+      "combat_effect": "None until a canonical equip command sets equipped=1.",
+      "callers": [
+        "Admin asset tooling"
+      ],
+      "status": "ADMIN_ACQUISITION",
+      "gap": "Separate administrative writer is not a player loadout command and has no operation replay contract."
+    },
+    {
+      "command": "admin_remove",
+      "route": "/api/admin/users/<uid>/assets/equipment",
+      "function": "app.py:admin_set_equipment",
+      "input_fields": [
+        "admin-authenticated uid",
+        "inv_id",
+        "action=remove"
+      ],
+      "server_resolved_fields": [
+        "target user",
+        "inventory row ownership"
+      ],
+      "ownership_check": "DELETE predicates on id=? AND user_id=? after admin authorization.",
+      "slot_check": "No slot mutation; deleting an equipped row can remove the current loadout row.",
+      "current_transaction": "Single route transaction with explicit commit.",
+      "idempotency": "No durable operation identity; repeating after deletion is a normal missing-row outcome.",
+      "writes": [
+        "DELETE player_inventory WHERE id=? AND user_id=?"
+      ],
+      "combat_effect": "Next combat read sees the remaining canonical equipped rows; no frontend authority.",
+      "callers": [
+        "Admin asset tooling"
+      ],
+      "status": "ADMIN_OWNERSHIP_MUTATION",
+      "gap": "Not a player-facing equip command; no explicit stale-loadout or result-replay contract."
+    },
+    {
+      "command": "equip",
+      "route": "/api/player/inventory/equip",
+      "function": "app.py:equip_item",
+      "input_fields": [
+        "inv_id",
+        "action=equip"
+      ],
+      "server_resolved_fields": [
+        "authenticated user_id",
+        "inventory row",
+        "equip_id",
+        "EQUIPMENT_DEFS entry",
+        "canonical slot",
+        "trophy/inventory-only eligibility"
+      ],
+      "ownership_check": "SELECT player_inventory row WHERE id=? AND user_id=?; unowned id returns 404.",
+      "slot_check": "Server resolves _EQUIP_MAP[equip_id].slot and rejects missing/invalid canonical slots.",
+      "current_transaction": "PostgreSQL path locks the user's inventory rows with SELECT ... FOR UPDATE, clears the same canonical slot, sets the target row, and commits. Wrapper rollback protects exceptions.",
+      "idempotency": "Desired-state idempotent when the same row is equipped again; no operation_id, payload hash, durable original-result replay, or 409 changed-payload contract.",
+      "writes": [
+        "UPDATE player_inventory SET equipped=0 for same server-resolved slot",
+        "UPDATE player_inventory SET equipped=1 WHERE id=?",
+        "COMMIT"
+      ],
+      "combat_effect": "B021 reads player_inventory.equipped and server EQUIPMENT_DEFS on the next settlement; client stat fields are ignored.",
+      "callers": [
+        "inventory.html functional equipment action",
+        "hero.html functional equipment surface"
+      ],
+      "status": "CANONICAL_FUNCTIONAL_EQUIP",
+      "gap": "Route-level replacement is atomic, but the schema has no one-slot unique constraint and other direct writers/admin paths exist."
+    },
+    {
+      "command": "unequip",
+      "route": "/api/player/inventory/equip",
+      "function": "app.py:equip_item",
+      "input_fields": [
+        "inv_id",
+        "action=unequip"
+      ],
+      "server_resolved_fields": [
+        "authenticated user_id",
+        "inventory row",
+        "equip_id",
+        "canonical definition",
+        "inventory-only eligibility"
+      ],
+      "ownership_check": "SELECT player_inventory row WHERE id=? AND user_id=?; unowned id returns 404.",
+      "slot_check": "Server validates the definition before allowing the mutation; no client slot is trusted.",
+      "current_transaction": "UPDATE player_inventory SET equipped=0 WHERE id=? followed by commit; wrapper rollback protects exceptions.",
+      "idempotency": "Desired-state idempotent for a repeated unequip; no durable operation identity or original-result replay.",
+      "writes": [
+        "UPDATE player_inventory SET equipped=0 WHERE id=?",
+        "COMMIT"
+      ],
+      "combat_effect": "Next B021 combat read removes that item's server-resolved functional effects.",
+      "callers": [
+        "inventory.html functional equipment action",
+        "hero.html functional equipment surface"
+      ],
+      "status": "CANONICAL_FUNCTIONAL_UNEQUIP",
+      "gap": "No durable operation identity and no DB-level invariant if malformed rows already exist."
+    },
+    {
+      "command": "replace_same_slot",
+      "route": "/api/player/inventory/equip",
+      "function": "app.py:equip_item action=equip",
+      "input_fields": [
+        "inv_id",
+        "action=equip"
+      ],
+      "server_resolved_fields": [
+        "target equip_id",
+        "target slot",
+        "all server-defined item ids in that slot"
+      ],
+      "ownership_check": "Target inventory row must belong to the authenticated user.",
+      "slot_check": "Target slot comes from EQUIPMENT_DEFS; old rows are selected by server equip_id-to-slot mapping.",
+      "current_transaction": "Same transaction: clear all user's rows whose server definition is in the target slot, then set target row.",
+      "idempotency": "Natural desired-state command; no toggle semantics and no durable operation record.",
+      "writes": [
+        "slot-wide UPDATE equipped=0",
+        "target UPDATE equipped=1"
+      ],
+      "combat_effect": "Exactly one route-level target is effective after a normal successful replacement.",
+      "callers": [
+        "inventory.html",
+        "hero.html"
+      ],
+      "status": "DISTINCT_SEMANTIC_COMMAND_NOT_DISTINCT_ROUTE",
+      "gap": "No database constraint makes the invariant durable against direct/malformed writes; B028-R1 detects conflicts only at read time."
+    },
+    {
+      "command": "legacy_loadout_save",
+      "route": "/api/skills/character",
+      "function": "app.py:skills_character",
+      "input_fields": [
+        "character_key",
+        "combat_armor",
+        "combat_weapon",
+        "combat_cape",
+        "combat_offhand",
+        "combat_hat",
+        "combat_pet",
+        "combat_aura",
+        "combat_acc"
+      ],
+      "server_resolved_fields": [
+        "character_key in VALID_CHARACTER_KEYS",
+        "_gear_unlocked checks for submitted combat_* keys"
+      ],
+      "ownership_check": "No player_inventory ownership check for the submitted combat_* identifiers.",
+      "slot_check": "No EQUIPMENT_DEFS slot validation for the submitted player_appearance combat_* fields.",
+      "current_transaction": "Writes player_appearance fields and commits.",
+      "idempotency": "No operation identity; last-write-wins presentation mutation.",
+      "writes": [
+        "UPDATE player_appearance character_key/combat_*"
+      ],
+      "combat_effect": "Not consumed by B021 _get_authoritative_combat_stats, but _get_appearance_effects can derive legacy XP/drop effects from appearance/combat_* state.",
+      "callers": [
+        "hero.html localStorage-backed visual loadout"
+      ],
+      "status": "LEGACY_SECONDARY_LOADOUT_PROJECTION",
+      "gap": "Client-selected combat_* keys form a separate legacy gameplay-adjacent projection without player_inventory ownership binding. This is LOADOUT_CLIENT_AUTHORITY_VIOLATION and must be resolved or explicitly retired before a unified command service."
+    }
+  ],
+  "client_authority_audit": {
+    "canonical_player_inventory_equip": {
+      "equip_id": "server_resolved_from_owned_inventory_row",
+      "slot": "server_resolved_from_EQUIPMENT_DEFS",
+      "item_class": "server_resolved_from_EQUIPMENT_DEFS",
+      "attack_bonus": "server_resolved_from_EQUIPMENT_DEFS",
+      "damage_reduction": "server_resolved_from_EQUIPMENT_DEFS",
+      "crit_multiplier": "server_resolved_from_EQUIPMENT_DEFS",
+      "effect_key": "server_resolved_from_EQUIPMENT_DEFS_and_functional_effect_allowlist",
+      "effect_value": "server_resolved_from_EQUIPMENT_DEFS",
+      "ownership": "server_verified_by_player_inventory.user_id",
+      "equipped_result": "server_written_and_returned"
+    },
+    "legacy_player_appearance_loadout": {
+      "client_can_submit_combat_keys": true,
+      "player_inventory_ownership_binding": false,
+      "direct_B021_damage_authority": false,
+      "legacy_appearance_effect_path": true,
+      "classification": "LOADOUT_CLIENT_AUTHORITY_VIOLATION"
+    },
+    "overall": "canonical route is server-authoritative; legacy player_appearance combat_* route remains a separate client-selected gameplay-adjacent projection"
+  },
+  "invariants": {
+    "target": "for each authenticated user and canonical slot, effective equipped identity count <= 1",
+    "database_constraint": "ABSENT; player_inventory has no slot column and no unique/partial unique constraint over user plus effective slot",
+    "transaction_logic": "PRESENT for the canonical PostgreSQL equip replacement route via user row lock, slot-wide clear, target set, and one commit",
+    "read_model_fail_closed": "PRESENT in accepted B028-R1: conflicted slots resolve to no effective equipped item and no owned row in that slot is marked equipped",
+    "normal_route_guarantee": "YES for a successful canonical equip request",
+    "global_guarantee": "NO because direct/admin/legacy writers and malformed rows are not covered by a database constraint",
+    "mutation_conflict_prevention_gap": true
+  },
+  "boundaries": {
+    "equip_vs_consume": "Equip and unequip write equipped state only; they do not decrement quantity.",
+    "d5c_used_for_equip": false,
+    "d5c_remains_item_use_authority": true,
+    "d5a_vs_d5c": "Acquisition/reward lineage and item-use consumption remain separate; normal equip is neither.",
+    "xp_amulet": "HOLD_FOR_AUTHORITY; no active functional effect key",
+    "go_stone_black": "TROPHY / inventory-only / no combat power / not equippable",
+    "combat_authority": "app._get_authoritative_combat_stats -> active player_inventory.equipped rows -> server EQUIPMENT_DEFS and functional effect allowlist",
+    "appearance_authority": "player_appearance.character_key and combat_* are a separate legacy/presentation projection, not B021 functional equipment authority",
+    "second_functional_combat_equipment_authority": false
+  },
+  "idempotency": {
+    "current_state": "desired-state idempotence only",
+    "same_equip_retry": "final equipped state remains the same; no second additive effect is created by B021 because combat rereads canonical state",
+    "same_unequip_retry": "final unequipped state remains the same",
+    "durable_operation_id": false,
+    "original_result_replay": false,
+    "changed_payload_conflict": false,
+    "durable_operation_table_required": "NO for the current set-state command semantics; UNKNOWN for a future contract that requires durable exact response replay or an operation-level conflict protocol",
+    "recommendation": "Do not automatically add a generic operation table. First centralize the desired-state command and decide whether exact replay is a product/API requirement."
+  },
+  "ui_callers": {
+    "inventory_html": {
+      "functional_state_source": "/api/player/inventory",
+      "mutation_route": "/api/player/inventory/equip",
+      "request_fields": [
+        "inv_id",
+        "action"
+      ],
+      "post_success_behavior": "reloads functional inventory after server response",
+      "local_state": "in-memory functionalEquipmentItems cache; not durable authority"
+    },
+    "hero_html": {
+      "functional_state_source": "/api/player/inventory",
+      "legacy_visual_state": "localStorage hero_combat_gear_v1",
+      "legacy_mutation_route": "/api/skills/character",
+      "post_success_behavior": "updates local visual loadout and server player_appearance projection",
+      "local_state": "localStorage cache plus in-memory functional equipment list"
+    },
+    "wearable_renderer": {
+      "source": "server-projected equipped data",
+      "authority": "presentation only; no mutation authority"
+    }
+  },
+  "static_validation": {
+    "equipment_defs_count": 15,
+    "equipment_duplicate_ids": 0,
+    "canonical_slots": [
+      "weapon",
+      "armor",
+      "accessory"
+    ],
+    "bad_slots": [],
+    "unknown_active_effect_ids": [],
+    "xp_amulet_active_effect_keys": [],
+    "go_stone_black_active_effect_keys": [],
+    "equip_route_ownership_query": true,
+    "equip_route_server_slot_resolution": true,
+    "equip_route_trophy_rejection": true,
+    "equip_route_postgres_row_lock": true,
+    "equip_route_slot_clear": true,
+    "equip_route_target_set": true,
+    "equip_route_target_unset": true,
+    "equip_route_commit": true,
+    "equip_route_d5c_reference": false,
+    "b028_r1_conflict_policy": "verified from accepted B028-R1 source: unresolved conflicted slot and no effectively equipped owned item"
+  },
+  "test_evidence": {
+    "tests_rpg_wave2_gate2_equipment_backpack": "7 passed",
+    "tests_rpg_b021_equipment_combat_loop": "21 passed",
+    "tests_rpg_wave2_lane_b_functional_equipment_presentation_wiring": "6 passed",
+    "tests_rpg_wave2_gate2_cross_lane_integration": "5 passed",
+    "tests_rpg_wave1_lane_a_combat_equipment": "7 passed, 1 pre-existing failure",
+    "combined_relevant_run": "40 passed, 1 pre-existing failure",
+    "pre_existing_failure": "test_equipped_armor_reduces_retaliation_and_unequip_restores_baseline: expected legacy fixture player_dmg=20 but current result=2",
+    "task_introduced_failures": 0
+  },
+  "decision": {
+    "recommendation": "C",
+    "label": "FIX_DATA_INVARIANT_BEFORE_COMMAND_SERVICE",
+    "reason": "The canonical desired-state route is narrow and server-resolved, but the database cannot enforce one effective item per slot and a legacy player_appearance combat_* writer remains separate and client-selected. Close or explicitly retire that split first; then a route-agnostic loadout command service can safely own the canonical command boundary without creating another ownership authority.",
+    "future_service_must_not_create": [
+      "new inventory table",
+      "new equipped-state authority",
+      "new combat stat calculator",
+      "D5C replacement for equip",
+      "client-authoritative item effects"
+    ]
+  }
+}
