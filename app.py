@@ -42,6 +42,11 @@ from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
 from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
+from monster_identity import (
+    build_battlefield_identity_registry,
+    canonical_battlefield_identity,
+    resolve_monster_identity,
+)
 from rpg_item_registry import (
     BADGE_PROTOTYPE_SELECTION,
     BADGE_VISUAL_SYSTEM_V1,
@@ -6633,6 +6638,31 @@ _BATTLEFIELD_ROSTER = [
     ('dragon',      'LV10 終焉神',              2800, 40, 'boss'),
 ]
 
+# F0 identity metadata is presentation-independent and deliberately derives
+# its legacy type/name binding from this existing server-owned roster.  It does
+# not own HP, ATK, damage, drops, rewards, or persistence.
+_BATTLEFIELD_IDENTITY_REGISTRY = build_battlefield_identity_registry(
+    _BATTLEFIELD_ROSTER
+)
+
+
+def _battlefield_identity_payload(battlefield):
+    """Return canonical identity fields without changing legacy fields."""
+
+    identity = canonical_battlefield_identity(
+        _BATTLEFIELD_IDENTITY_REGISTRY,
+        battlefield.get('monster_idx', 0),
+        legacy_type=battlefield.get('monster_type'),
+        legacy_name=battlefield.get('monster_name'),
+        encounter_kind=battlefield.get('encounter_kind'),
+    )
+    if identity is None:
+        return {
+            'monster_identity_resolved': False,
+            'monster_identity_error': 'unresolved_legacy_identity',
+        }
+    return identity.runtime_fields()
+
 _BATTLEFIELD_NAME_EN = {
     'LV1 史萊姆 / 哥布林': 'LV1 Slime / Goblin',
     'LV1 提子訓練守衛': 'LV1 Capture Training Guard',
@@ -6740,6 +6770,7 @@ def _get_or_create_battlefield(conn, uid, today_str):
                 'UPDATE battlefield_monster SET monster_avatar=? WHERE user_id=? AND bf_date=?',
                 (data['monster_avatar'], uid, today_str)
             )
+        data.update(_battlefield_identity_payload(data))
         return data
     # 初始化第一隻怪物
     m = _BATTLEFIELD_ROSTER[0]
@@ -6749,11 +6780,13 @@ def _get_or_create_battlefield(conn, uid, today_str):
         ' VALUES(?,?,0,?,?,?,?,0,0)',
         (uid, today_str, m[0], m[1], m[2], m[2])
     )
-    return {
+    data = {
         'user_id': uid, 'bf_date': today_str, 'monster_idx': 0,
         'monster_type': m[0], 'monster_name': m[1], 'monster_avatar': _battlefield_avatar(m[0], m[1]),
         'max_hp': m[2], 'current_hp': m[2], 'defeated': 0, 'kill_count': 0,
     }
+    data.update(_battlefield_identity_payload(data))
+    return data
 
 _COMBAT_ATTACK_BONUS_CAP = 0.75
 _COMBAT_DAMAGE_REDUCTION_CAP = 0.99
@@ -7030,10 +7063,17 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             # 立刻準備下一隻（前端會延遲顯示）
             nm = _BATTLEFIELD_ROSTER[new_kill_count % len(_BATTLEFIELD_ROSTER)]
             next_monster = {
+                'monster_idx': new_kill_count % len(_BATTLEFIELD_ROSTER),
                 'type': nm[0], 'name': nm[1], 'name_en': _battlefield_name_en(nm[1]),
                 'avatar': _battlefield_avatar(nm[0], nm[1]),
                 'max_hp': nm[2], 'hp': nm[2],
             }
+            next_monster.update(_battlefield_identity_payload({
+                'monster_idx': next_monster['monster_idx'],
+                'monster_type': nm[0],
+                'monster_name': nm[1],
+                'encounter_kind': nm[4],
+            }))
             # 寫入戰場，等下一次 review 時正式生效
             conn.execute(
                 'UPDATE battlefield_monster SET '
@@ -7196,6 +7236,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             'next_wave_num': kill_count + 2 if monster_defeated else None,
             'next_wave_hp':  next_monster['max_hp'] if next_monster else None,
             'next_monster':  next_monster,
+            **_battlefield_identity_payload(bf),
         },
         'player': {
             'hp':        player_hp,
@@ -7269,6 +7310,7 @@ def monster_status():
         'hp':         bf['current_hp'],
         'stage':      bf_profile['stage'],
         'encounter_kind': bf_profile['encounter_kind'],
+        **_battlefield_identity_payload(bf),
         'retaliation': {
             'attack': bf_profile['attack'],
             'encounter_kind': bf_profile['encounter_kind'],
@@ -12710,8 +12752,24 @@ def _map_battle_question_by_id(question_id):
         question_id = int(question_id)
     except (TypeError, ValueError):
         return None
-    return next((question for question in _load_questions()
-                 if isinstance(question, dict) and question.get('id') == question_id), None)
+    question = next((question for question in _load_questions()
+                     if isinstance(question, dict) and question.get('id') == question_id), None)
+    if question is None:
+        return None
+    # Keep every legacy question field intact while adding a canonical,
+    # server-resolved identity projection.  An unresolved taxonomy value is
+    # explicit; it is never guessed from a display name or art key.
+    question = dict(question)
+    identity = resolve_monster_identity(
+        question,
+        registry=_BATTLEFIELD_IDENTITY_REGISTRY,
+    )
+    if identity is None:
+        question['monster_identity_resolved'] = False
+        question['monster_identity_error'] = 'unresolved_legacy_identity'
+    else:
+        question.update(identity.runtime_fields())
+    return question
 
 
 _MAP_BATTLE_TRANSFORM_VERSION = 'map-battle-v1'
