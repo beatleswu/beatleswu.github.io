@@ -8,6 +8,7 @@ import uuid
 
 import pytest
 
+import coin_purchase_authority as purchase_authority
 from coin_purchase_authority import (
     AcquisitionFailed,
     CoinDebitFailed,
@@ -109,6 +110,17 @@ def _offers() -> StaticShopOfferAuthority:
                 "duplicate_policy": "ALLOW_DUPLICATE",
             },
             {
+                "offer_id": "shop.iron-sword-reject.v1",
+                "item_id": "iron_sword",
+                "quantity": 1,
+                "currency": "COINS",
+                "price": 50,
+                "destination": "player_inventory",
+                "acquisition_class": "WEAPON",
+                "offer_version": "v1",
+                "duplicate_policy": "REJECT_IF_OWNED",
+            },
+            {
                 "offer_id": "shop.robe-plain.v1",
                 "item_id": "robe_plain",
                 "quantity": 1,
@@ -170,6 +182,7 @@ def _purchase(conn: sqlite3.Connection, *, user_id: int = 1, operation_id: str, 
             **kwargs,
         )
         conn.commit()
+        _assert_coin_transition(conn, result, user_id=user_id)
         return result
     except Exception:
         conn.rollback()
@@ -184,6 +197,23 @@ def _balance(conn: sqlite3.Connection, user_id: int = 1) -> int:
 
 def _count(conn: sqlite3.Connection, table: str) -> int:
     return conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"]
+
+
+def _assert_coin_transition(
+    conn: sqlite3.Connection,
+    result,
+    *,
+    user_id: int = 1,
+) -> None:
+    assert result.coins_before - result.coins_spent == result.coins_after
+    assert result.coins_before == result.coins_after + result.coins_spent
+    log = conn.execute(
+        "SELECT balance_after FROM currency_log WHERE user_id=? "
+        "ORDER BY id DESC LIMIT 1",
+        (user_id,),
+    ).fetchone()
+    assert log is not None
+    assert log["balance_after"] == result.coins_after
 
 
 def test_schema_is_additive_and_d5a_is_separate(runtime):
@@ -348,6 +378,38 @@ def test_unknown_offer_is_fail_closed_and_client_price_cannot_change_server_pric
     assert _balance(runtime) == 70
 
 
+def test_successful_result_reconstructs_transition_after_stale_pre_read(runtime, monkeypatch):
+    _seed_user(runtime)
+    real_read_coin_balance = purchase_authority.read_coin_balance
+    read_calls = 0
+
+    def stale_read(conn, *, user_id):
+        nonlocal read_calls
+        read_calls += 1
+        if read_calls == 1:
+            # Simulate another committed debit winning between the pre-read
+            # and this purchase's conditional UPDATE. The returned 100 is
+            # intentionally stale; authoritative state is now 80.
+            conn.execute(
+                "UPDATE user_stats SET coins=80 WHERE user_id=?", (user_id,)
+            )
+            return 100
+        return real_read_coin_balance(conn, user_id=user_id)
+
+    monkeypatch.setattr(purchase_authority, "read_coin_balance", stale_read)
+    result = _purchase(
+        runtime,
+        operation_id="c019-stale-pre-read-1",
+        offer_id="shop.starfruit.bundle.v1",
+    )
+
+    assert read_calls >= 2
+    assert result.coins_before == 80
+    assert result.coins_spent == 30
+    assert result.coins_after == 50
+    _assert_coin_transition(runtime, result)
+
+
 class _FailingAcquisition:
     def acquire(self, conn, *, user_id, offer, purchase_operation_id):
         del conn, user_id, offer, purchase_operation_id
@@ -419,10 +481,57 @@ def test_functional_equipment_routes_to_player_inventory_without_consuming_item(
     assert result.can_equip is True
     assert result.can_use is False
     assert result.can_wear is False
+    assert result.is_new is True
+    assert result.ownership_result["new_quantity"] == 1
     assert runtime.execute(
         "SELECT equip_id,equipped,source FROM player_inventory WHERE user_id=1"
     ).fetchone()[:3] == ("iron_sword", 0, "coin_shop")
     assert _count(runtime, "shop_inventory") == 0
+
+
+def test_allow_duplicate_equipment_repeat_reports_is_new_false_and_count_two(runtime):
+    _seed_user(runtime, coins=120)
+    first = _purchase(
+        runtime,
+        operation_id="c019-equipment-repeat-first",
+        offer_id="shop.iron-sword.v1",
+    )
+    second = _purchase(
+        runtime,
+        operation_id="c019-equipment-repeat-second",
+        offer_id="shop.iron-sword.v1",
+    )
+
+    assert first.is_new is True
+    assert first.ownership_result["new_quantity"] == 1
+    assert second.is_new is False
+    assert second.ownership_result["new_quantity"] == 2
+    assert _balance(runtime) == 20
+    assert _count(runtime, "player_inventory") == 2
+    assert _count(runtime, "currency_log") == 2
+    assert _count(runtime, "domain_event_outbox") == 2
+
+
+def test_reject_if_owned_equipment_rolls_back_without_second_debit(runtime):
+    _seed_user(runtime, coins=120)
+    _purchase(
+        runtime,
+        operation_id="c019-equipment-reject-first",
+        offer_id="shop.iron-sword-reject.v1",
+    )
+
+    with pytest.raises(AcquisitionFailed):
+        _purchase(
+            runtime,
+            operation_id="c019-equipment-reject-second",
+            offer_id="shop.iron-sword-reject.v1",
+        )
+
+    assert _balance(runtime) == 70
+    assert _count(runtime, "player_inventory") == 1
+    assert _count(runtime, "currency_log") == 1
+    assert _count(runtime, "coin_purchase_operations") == 1
+    assert _count(runtime, "domain_event_outbox") == 1
 
 
 def test_cosmetic_routes_to_wardrobe_without_combat_capability(runtime):
@@ -545,6 +654,7 @@ def _concurrent_purchase(uri, *, operation_id: str, offer_id: str, barrier, resu
                     offer_authority=_offers(),
                 )
                 conn.commit()
+                _assert_coin_transition(conn, result)
                 results.append(result)
                 break
             except sqlite3.OperationalError as exc:
