@@ -425,7 +425,11 @@ def spend_coins_in_transaction(
 
     if isinstance(amount, bool) or not isinstance(amount, int) or amount <= 0:
         raise CoinDebitFailed("Coin debit amount must be a positive integer")
-    coins_before = read_coin_balance(conn, user_id=user_id)
+    # This read validates that the authenticated player exists, but it is
+    # intentionally not used as the successful result's canonical
+    # ``coins_before``.  Another committed transaction may win the row update
+    # between this read and the conditional debit.
+    read_coin_balance(conn, user_id=user_id)
     try:
         updated = conn.execute(
             "UPDATE user_stats SET coins=COALESCE(coins,0)-? "
@@ -440,6 +444,10 @@ def spend_coins_in_transaction(
         current = read_coin_balance(conn, user_id=user_id)
         raise InsufficientCoins(balance=current, required=amount)
     coins_after = read_coin_balance(conn, user_id=user_id)
+    # The conditional UPDATE owns the row lock through the caller's commit.
+    # Reconstruct the actual transition from authoritative post-update state
+    # so PostgreSQL READ COMMITTED retries cannot report a stale pre-read.
+    coins_before = coins_after + amount
     try:
         conn.execute(
             "INSERT INTO currency_log(user_id,delta,balance_after,reason,created_at) "
@@ -620,7 +628,7 @@ class SqlAcquisitionAuthority:
             quantity=offer.quantity,
             new_quantity=count,
             ownership_state="TROPHY_OWNED" if offer.acquisition_class == "TROPHY" else "EQUIPMENT_OWNED",
-            is_new=True,
+            is_new=existing_count == 0,
             can_equip=can_equip,
             can_use=False,
             can_wear=False,
