@@ -167,6 +167,8 @@ def test_atomic_success_duplicate_and_single_final_commit(app_with_db, monkeypat
     _assert_success(path, uid, event_key, paid_order)
     first_until = _query(path, "SELECT premium_until FROM users WHERE id=?", (uid,))[0][0]
     assert _query(path, "SELECT premium_until FROM users WHERE id=?", (uid,))[0][0] == first_until
+    if provider == "paypal":
+        assert first_until == "2030-01-04T00:00:00"
     success_context = factory.contexts[0]
     assert success_context.commits == 1
     assert success_context.rollbacks == 0
