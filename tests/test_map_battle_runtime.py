@@ -337,6 +337,96 @@ def test_settled_duplicate_with_stale_client_revision_replays_without_mutation_o
     assert len(judge_calls) == 1
 
 
+def test_client_correctness_aliases_fail_closed_without_reservation(battle_db):
+    payload = _payload(battle_db, moves=[{"x": 0, "y": 0}])
+    forged_values = {
+        "is_correct": True,
+        "isCorrect": True,
+        "result": "CORRECT",
+        "success": True,
+        "passed": True,
+        "won": True,
+        "completed": True,
+        "outcome": "CORRECT",
+        "answer_result": "CORRECT",
+        "correct_result": True,
+        "client_correct": True,
+        "client_result": "CORRECT",
+        "reward_xp": 9999,
+        "final_xp": 9999,
+        "reward_eligible": True,
+    }
+    for field, value in forged_values.items():
+        with pytest.raises(ForbiddenClientAuthority):
+            _settle(battle_db, {**payload, field: value})
+    assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 0
+
+    # Omitting all client result metadata remains the normal server-judged path.
+    result = _settle(battle_db, payload)
+    assert result["result"] == "INCORRECT"
+    assert result["damage_to_monster"] == 0
+
+
+def test_committed_retry_with_changed_correctness_metadata_replays_once(battle_db):
+    payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
+    judge_calls = []
+
+    def counting_judge(*args):
+        judge_calls.append(args)
+        return judge_map_battle_answer_v1(*args)
+
+    first = settle_answer(
+        battle_db,
+        user_id=101,
+        payload=payload,
+        question_loader=lambda question_id: QUESTION,
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        now="2026-08-02T00:01:00+00:00",
+        judge=counting_judge,
+    )
+    battle_db.commit()
+
+    retry_payload = {
+        **payload,
+        "battle_revision": first["battle_revision"],
+        "correct": False,
+        "is_correct": False,
+        "result": "INCORRECT",
+        "reward_xp": 0,
+    }
+
+    def judge_must_not_run(*_args):
+        raise AssertionError("a committed retry must replay the stored result")
+
+    duplicate = settle_answer(
+        battle_db,
+        user_id=101,
+        payload=retry_payload,
+        question_loader=lambda question_id: QUESTION,
+        mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+        now="2026-08-02T00:02:00+00:00",
+        judge=judge_must_not_run,
+    )
+    assert duplicate["duplicate"] is True
+    assert duplicate["result"] == first["result"] == "CORRECT"
+    assert duplicate["submission_id"] == first["submission_id"]
+    assert len(judge_calls) == 1
+
+    changed_answer = {**retry_payload, "moves": [{"x": 0, "y": 0}]}
+    with pytest.raises(RequestRejected, match="different request"):
+        settle_answer(
+            battle_db,
+            user_id=101,
+            payload=changed_answer,
+            question_loader=lambda question_id: QUESTION,
+            mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
+            now="2026-08-02T00:03:00+00:00",
+            judge=judge_must_not_run,
+        )
+    assert len(judge_calls) == 1
+    assert battle_db.execute("SELECT COUNT(*) FROM map_battle_submissions").fetchone()[0] == 1
+
+
 def test_correct_answer_heals_one_below_max_and_duplicate_does_not_repeat(battle_db):
     battle_db.execute("UPDATE map_battles SET player_hp=19 WHERE id='battle-s2'")
     payload = _payload(battle_db, moves=[{"x": 3, "y": 3}])
@@ -537,7 +627,7 @@ def test_submission_lifecycle_postgres_validation_rollback_retry_and_nonce_race(
     with helpers._postgres_container() as database_url:
         import psycopg2
 
-        seed = psycopg2.connect(database_url)
+        seed = psycopg2.connect(database_url, connect_timeout=3)
         seed.autocommit = True
         seed_cursor = seed.cursor()
         seed_cursor.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")

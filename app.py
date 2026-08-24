@@ -107,7 +107,10 @@ from xp_settlement import (
     xp_shadow_error_evidence,
 )
 from sgf_answer_review_queue import ensure_review_queue_tables
-from review_contracts import ReviewCommand
+from review_contracts import (
+    EXTERNAL_AUTHORITATIVE_MAP_BATTLE,
+    ReviewCommand,
+)
 from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
 from event_outbox import DuplicateOutboxEvent, append_event, get_event_by_idempotency_key
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
@@ -7479,6 +7482,39 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
     return results
 
 
+def _map_battle_noncombat_progression(
+    conn, uid, *, grade, q_info, combo_streak, today_str,
+    monster_defeated, progress_eligible=True, shadow_events=None,
+):
+    """Project Map Battle's authoritative result into non-combat progress.
+
+    Map Battle v1 already owns HP, retaliation, kill, drop, and combat
+    reward settlement.  The review handoff still needs the shared daily
+    quest progression, so call only that non-combat helper with the
+    server-owned result and return the legacy-compatible empty combat fields.
+    """
+
+    quest_updates = _update_daily_quests(
+        conn,
+        uid,
+        today_str,
+        grade=grade,
+        monster_defeated=bool(monster_defeated),
+        monster_type=q_info.get('monster_type'),
+        combo_streak=combo_streak,
+        progress_eligible=progress_eligible,
+        shadow_events=shadow_events,
+    )
+    return {
+        'monster': None,
+        'player': None,
+        'quest_updates': quest_updates,
+        'sp': None,
+        'loot': None,
+        'appearance_loot': None,
+    }
+
+
 # ══════════════════════════════════════════════════════════════
 # 認證 API
 # ══════════════════════════════════════════════════════════════
@@ -13135,6 +13171,12 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     grade     = data.get('grade')
     unit      = data.get('unit_name')
     unit_done = data.get('unit_done', False)
+    combat_settlement_context = data.get('combat_settlement_context')
+    if combat_settlement_context is not None and (
+        not internal
+        or combat_settlement_context != EXTERNAL_AUTHORITATIVE_MAP_BATTLE
+    ):
+        return jsonify({'error': 'invalid_combat_settlement_context'}), 400
     try:
         response_ms = max(0, min(600000, int(data.get('response_ms')))) \
             if data.get('response_ms') is not None else None
@@ -13237,6 +13279,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     now = datetime.datetime.now().isoformat()
     review_shadow_input = None
     quest_shadow_inputs = []
+    authoritative_map_battle_monster_defeated = False
 
     qs_map = {q['id']: q for q in _load_questions()}
     q_info = qs_map.get(qid, {})
@@ -13272,6 +13315,9 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 }), 409
             qid = authoritative_qid
             grade = int(authoritative_grade)
+            authoritative_map_battle_monster_defeated = (
+                int(submission['monster_hp_after'] or 0) == 0
+            )
             q_info = qs_map.get(qid, {})
             question_rating_snapshot = rank_to_rating(
                 q_info.get('rank') or q_info.get('difficulty')
@@ -13613,12 +13659,29 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         monster_data = {}
         quest_shadow_events = [] if xp_shadow_enabled() else None
         try:
-            monster_data = _update_monster_and_quests(
-                conn, uid, qid, grade, q_info, combo_streak,
-                datetime.date.today().isoformat(),
-                should_grant_progress=should_grant_progress,
-                shadow_events=quest_shadow_events,
-            )
+            if combat_settlement_context == EXTERNAL_AUTHORITATIVE_MAP_BATTLE:
+                # Map Battle v1 has already committed the authoritative
+                # monster/player HP transition.  Keep the review/learning
+                # transaction and shared daily-quest progression, but never
+                # enter the legacy battlefield combat tail a second time.
+                monster_data = _map_battle_noncombat_progression(
+                    conn,
+                    uid,
+                    grade=grade,
+                    q_info=q_info,
+                    combo_streak=combo_streak,
+                    today_str=datetime.date.today().isoformat(),
+                    monster_defeated=authoritative_map_battle_monster_defeated,
+                    progress_eligible=should_grant_progress,
+                    shadow_events=quest_shadow_events,
+                )
+            else:
+                monster_data = _update_monster_and_quests(
+                    conn, uid, qid, grade, q_info, combo_streak,
+                    datetime.date.today().isoformat(),
+                    should_grant_progress=should_grant_progress,
+                    shadow_events=quest_shadow_events,
+                )
             conn.commit()
             quest_shadow_inputs = monster_data.pop('_xp_shadow_inputs', [])
         except Exception:

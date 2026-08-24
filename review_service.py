@@ -45,7 +45,11 @@ from typing import Any, Mapping, Protocol
 
 from legacy_review_serializer import LegacyReviewSerializer
 from review_compatibility import adapt_legacy_review_result
-from review_contracts import ReviewCommand, ReviewOutcomeKind
+from review_contracts import (
+    EXTERNAL_AUTHORITATIVE_MAP_BATTLE,
+    ReviewCommand,
+    ReviewOutcomeKind,
+)
 
 
 class ReviewServiceStatus(str, Enum):
@@ -213,6 +217,11 @@ class ReviewService:
             "source_context": command.source_context,
             "training_set_id": command.training_set_id,
             "is_scaffolding": command.is_scaffolding,
+            **(
+                {"combat_settlement_context": command.combat_settlement_context}
+                if command.combat_settlement_context is not None
+                else {}
+            ),
         }
 
 
@@ -238,6 +247,7 @@ class MapBattleReviewHandoff:
             grade=settlement.get("authoritative_grade"),
             internal=True,
             submission_id=settlement.get("submission_id"),
+            combat_settlement_context=EXTERNAL_AUTHORITATIVE_MAP_BATTLE,
         )
         return self._service.review(user_id=user_id, command=command)
 
