@@ -134,6 +134,7 @@ def _settle(conn, nonce, moves, projection, *, battle_revision=0):
         mode_environ={"E10_MAP_BATTLE_V1_MODE": "global"},
         now="2026-08-24T00:02:00+00:00",
         combat_stats_resolver=app_module._get_authoritative_combat_stats,
+        monster_profile_resolver=app_module._map_battle_f010_profile,
         spirit_projection_resolver=lambda _conn, _uid: projection,
     )
 

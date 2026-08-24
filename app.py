@@ -14573,6 +14573,13 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     for quest_shadow_input in quest_shadow_inputs:
         _observe_xp_shadow(user_id=uid, **quest_shadow_input)
 
+    # Internal Monster/Quest bridge data is consumed before this legacy
+    # response reaches ReviewService.  Keep the exact historical 20/26-field
+    # envelope stable; these authority records are not client presentation
+    # fields and must not become a second public result contract.
+    monster_data.pop('monster_settlement', None)
+    monster_data.pop('quest_v2', None)
+
     return jsonify({
         'ok': True, 'ease_factor': ef, 'interval': iv, 'due_date': due,
         'new_badges': new_badges, 'stats': stats,
