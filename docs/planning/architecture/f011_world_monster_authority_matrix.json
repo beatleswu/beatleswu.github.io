@@ -1,0 +1,275 @@
+{
+  "task": "F011_BATTLEFIELD_BOSS_LORD_WORLD_ELIGIBILITY_BOUNDARY_RECON_001",
+  "provenance": {
+    "canonical_repository": "D:\\go-website",
+    "recon_worktree": "D:\\go-website-f011-boss-world-boundary-recon",
+    "branch": "codex/f011-battlefield-boss-world-boundary-recon",
+    "start_origin_master": "58d9b7047f285751a048fc551c955909c87984ac",
+    "base_sha": "58d9b7047f285751a048fc551c955909c87984ac",
+    "f007_runtime_activation": false,
+    "f009_f010_status": "accepted candidate contracts used as evidence; not imported into current origin/master runtime"
+  },
+  "classification": {
+    "monster_system_boundary": "Battlefield Boss is generic Monster encounter authority; Lord is separate Adventure/Lord Trial authority",
+    "battlefield_boss_distinct_from_lord": true,
+    "monster_defeated_equals_zone_clear": false,
+    "quest_complete_equals_world_unlock": false,
+    "selected_zone_equals_progression_zone": false,
+    "monster_selector_world_writer": false,
+    "quest_world_writer": false,
+    "lord_trial_spirit_effects": "OFF"
+  },
+  "authority_matrix": [
+    {
+      "domain": "battlefield_boss_eligibility",
+      "current_authority": "Legacy per-user daily Battlefield roster cursor; boss slot is reached by kill_count modulo roster length",
+      "durable_source": "battlefield_monster.monster_idx, bf_date, kill_count; no World eligibility field",
+      "current_writer": "_get_or_create_battlefield and legacy Monster settlement rotation",
+      "current_reader": "Legacy Battlefield status and review surfaces",
+      "target_owner": "World/Progression decides milestone eligibility",
+      "status": "GAP",
+      "gap": "No current World-owned Battlefield Boss eligibility authority",
+      "next_task": "Create narrow World-Monster boundary contract before runtime cutover",
+      "evidence": ["app.py:6609-6630", "app.py:6708-6753", "app.py:7028-7042"]
+    },
+    {
+      "domain": "battlefield_boss_identity_selection",
+      "current_authority": "_BATTLEFIELD_ROSTER plus persisted monster_idx; Map Battle has a separate question-bound identity path",
+      "durable_source": "battlefield_monster and Map Battle battle/attempt state",
+      "current_writer": "Battlefield initialization/settlement and Map Battle initialization",
+      "current_reader": "Monster status and combat settlement",
+      "target_owner": "Monster/Encounter selector after World grants Boss intent",
+      "status": "FRAGMENTED_SERVER_AUTHORITY",
+      "gap": "Legacy ring, accepted F009 selector, and Map Battle identity are not live-reconciled",
+      "next_task": "Adapter with explicit encounter intent",
+      "evidence": ["app.py:6609-6630", "app.py:7218-7271", "monster_encounter_selector.py in accepted F009/F010 candidate"]
+    },
+    {
+      "domain": "battlefield_boss_defeat",
+      "current_authority": "Server Monster HP transition in legacy Battlefield or server Map Battle settlement",
+      "durable_source": "battlefield_monster current_hp/defeated/kill_count; Map Battle state and submission settlement",
+      "current_writer": "_update_monster_and_quests or Map Battle persistence settlement",
+      "current_reader": "Existing reward, daily task, and encounter presentation paths",
+      "target_owner": "Monster settlement emits a committed defeat fact",
+      "status": "PARTIAL",
+      "gap": "No World consumer or durable Battlefield Boss milestone fact",
+      "next_task": "Define BATTLEFIELD_BOSS_DEFEATED after committed settlement",
+      "evidence": ["app.py:6980-7042", "map_battle_runtime.py", "map_battle_persistence.py"]
+    },
+    {
+      "domain": "lord_readiness",
+      "current_authority": "_adventure_state boss_ready projection",
+      "durable_source": "srs_cards, adventure_boss_progress, adventure_zone_unlocks",
+      "current_writer": "SRS/review settlement, placement unlock, Lord finish clear/cooldown state",
+      "current_reader": "Adventure map, primary CTA, /api/adventure/boss/start",
+      "target_owner": "World/Adventure progression",
+      "status": "PASS_CURRENT_INDEPENDENT_OF_BATTLEFIELD_BOSS",
+      "gap": "No Battlefield Boss defeat input; future policy is an Owner decision",
+      "next_task": "Preserve 30 percent rule unless an explicit World policy changes it",
+      "evidence": ["app.py:10323", "app.py:10769-10859", "tests/test_adventure_correct_progress_lord_gate.py"]
+    },
+    {
+      "domain": "lord_trial_eligibility",
+      "current_authority": "/api/adventure/boss/start server gate",
+      "durable_source": "Adventure state plus signed adventure_boss_exam session and review evidence",
+      "current_writer": "/api/adventure/boss/start",
+      "current_reader": "Lord Trial UI and finish route",
+      "target_owner": "Lord Trial/World boundary",
+      "status": "PASS_SERVER_OWNED",
+      "gap": "None found in this boundary recon",
+      "next_task": "Keep client LordTrialController as transition coordinator only",
+      "evidence": ["app.py:11362-11472", "js/game/lord_trial_controller.js"]
+    },
+    {
+      "domain": "lord_clear",
+      "current_authority": "/api/adventure/boss/finish server-derived pass result",
+      "durable_source": "adventure_boss_progress.cleared, score, attempts, timestamps",
+      "current_writer": "/api/adventure/boss/finish",
+      "current_reader": "_adventure_state, map CTA, replay/story presentation",
+      "target_owner": "Lord Trial advancement authority",
+      "status": "PASS",
+      "gap": "No generic Monster clear may write this state",
+      "next_task": "Preserve server score and transaction boundary",
+      "evidence": ["app.py:11566-11667", "tests/test_adventure_boss_finish_server_authoritative.py"]
+    },
+    {
+      "domain": "first_clear",
+      "current_authority": "passed and not already_cleared in boss finish",
+      "durable_source": "adventure_boss_progress cleared/cleared_at and first-clear reward lineage",
+      "current_writer": "/api/adventure/boss/finish transaction",
+      "current_reader": "Finish response, map state, reward presentation",
+      "target_owner": "World progression after authoritative Lord Trial clear",
+      "status": "PASS",
+      "gap": "No Monster or Quest shortcut",
+      "next_task": "Keep first-clear guard and transactional reward grant",
+      "evidence": ["app.py:11608-11653", "tests/test_adventure_first_clear_reward.py"]
+    },
+    {
+      "domain": "replay_clear",
+      "current_authority": "Existing server cleared row; replay is derived at start and finish",
+      "durable_source": "Same adventure_boss_progress row",
+      "current_writer": "/api/adventure/boss/finish increments attempts only for replay",
+      "current_reader": "Replay CTA and story presentation",
+      "target_owner": "Lord Trial replay path",
+      "status": "PASS_NO_DUPLICATE_FIRST_CLEAR",
+      "gap": "Presentation replay remains separate from progression mutation",
+      "next_task": "Retain replay marker and first-clear immutability",
+      "evidence": ["app.py:11380-11465", "app.py:11600-11665", "tests/test_e10_post_clear_authority.py"]
+    },
+    {
+      "domain": "star_grant",
+      "current_authority": "_adventure_state Star projection from clear, distinct correct progress, and stored maximum",
+      "durable_source": "adventure_boss_progress.stars plus srs_cards/question evidence",
+      "current_writer": "Lord finish writes clear/initial Star; SRS evidence changes derived mastery",
+      "current_reader": "Adventure map and star-training CTA",
+      "target_owner": "World/Adventure mastery authority",
+      "status": "MIXED_MODEL",
+      "gap": "No independent Star grant service; current semantics must be preserved until product decision",
+      "next_task": "Owner decision on future Battlefield Boss relationship to Stars",
+      "evidence": ["app.py:10817-10830", "app.py:11614-11626"]
+    },
+    {
+      "domain": "next_zone_unlock",
+      "current_authority": "Ordered Adventure state projection: previous cleared or placement unlocked",
+      "durable_source": "adventure_boss_progress and placement adventure_zone_unlocks",
+      "current_writer": "Placement writer and Lord finish current-zone clear input",
+      "current_reader": "Map state and server-derived nextZone.unlocked presentation",
+      "target_owner": "World progression",
+      "status": "PASS_DERIVED_NO_DIRECT_MONSTER_OR_QUEST_WRITE",
+      "gap": "Battlefield Boss defeat is not an input today",
+      "next_task": "Add only an approved World policy input",
+      "evidence": ["app.py:10529-10548", "app.py:10817-10818", "tests/test_e10_post_clear_authority.py"]
+    },
+    {
+      "domain": "selected_zone",
+      "current_authority": "selected_stage_key request constrained to valid unlocked context",
+      "durable_source": "None for progression; selected map payload only",
+      "current_writer": "Client request context, validated server-side",
+      "current_reader": "Map selected/active payload",
+      "target_owner": "Navigation/presentation",
+      "status": "PASS_NON_AUTHORITATIVE",
+      "gap": "Risk is only if future code confuses active selection with progression",
+      "next_task": "Preserve explicit selected versus current fields",
+      "evidence": ["app.py:11125-11230", "tests/test_e10_map_authority_and_marker.py"]
+    },
+    {
+      "domain": "progression_zone",
+      "current_authority": "_adventure_current_zone_key server-derived current node",
+      "durable_source": "Adventure clear/placement state",
+      "current_writer": "Derived projection; placement and Lord finish provide source facts",
+      "current_reader": "World map marker, CTA, gameplay node",
+      "target_owner": "World progression",
+      "status": "PASS",
+      "gap": "No direct relation to selected_stage_key",
+      "next_task": "Keep server-owned current node invariant",
+      "evidence": ["app.py:11027-11060", "tests/test_e10_world_map_player_avatar_marker.py"]
+    }
+  ],
+  "current_flows": {
+    "legacy_battlefield": [
+      "server answer/judge",
+      "_update_monster_and_quests",
+      "_get_or_create_battlefield",
+      "server Battlefield HP transition",
+      "kill_count increment and modulo-20 next entry",
+      "existing Coins/daily Monster task/drop behavior",
+      "no Adventure World clear/unlock write"
+    ],
+    "map_battle": [
+      "server-issued attempt",
+      "server Map Battle judge",
+      "canonical Map Battle settlement",
+      "ordinary monster_defeated response",
+      "_run_map_battle_progression Adventure/SRS seam",
+      "no Lord finish or next-zone unlock from ordinary defeat"
+    ],
+    "lord_trial": [
+      "_adventure_state boss_ready",
+      "POST /api/adventure/boss/start",
+      "signed server exam and review_log evidence",
+      "POST /api/adventure/boss/finish",
+      "adventure_boss_progress upsert",
+      "first-clear reward only for passed and uncleared row",
+      "map state recomputation"
+    ],
+    "quest": [
+      "Monster defeat may update daily Monster Quest counter",
+      "Quest completion remains Quest-specific",
+      "no Quest writer for adventure_boss_progress or adventure_zone_unlocks"
+    ]
+  },
+  "recommended_target_flow": [
+    "World progression decides Battlefield Boss milestone eligibility",
+    "World requests a zone-scoped BATTLEFIELD_BOSS encounter",
+    "Monster/Encounter resolves canonical identity/profile",
+    "F008 resolves combat stats",
+    "server settlement commits HP transition",
+    "Monster settlement emits one committed BATTLEFIELD_BOSS_DEFEATED fact",
+    "World evaluates Lord-readiness policy without treating defeat as Zone clear",
+    "existing Lord Trial remains Lord advancement authority",
+    "first authoritative Lord clear updates World clear/Star/unlock state",
+    "replay does not duplicate first-clear progression"
+  ],
+  "battlefield_boss_defeat_event_contract": {
+    "implemented_in_f011": false,
+    "event_name": "BATTLEFIELD_BOSS_DEFEATED",
+    "required_fields": [
+      "user_id",
+      "zone_key",
+      "monster_id",
+      "encounter_class=BATTLEFIELD_BOSS",
+      "encounter_operation_id",
+      "settlement_id",
+      "defeated=true",
+      "occurred_at",
+      "source_authority=server_monster_settlement"
+    ],
+    "emission_point": "after committed server settlement, never at selection",
+    "world_side_effect": "event is input for policy evaluation only; not direct Zone clear, Star, Lord clear, or next-zone unlock"
+  },
+  "static_validation": {
+    "regular_selector_excludes_battlefield_boss": "PASS in accepted F009/F010 selector contract; selector not live on current origin/master",
+    "regular_selector_excludes_lord": "PASS in accepted F009/F010 selector contract",
+    "battlefield_boss_distinct_from_lord": "PASS",
+    "f007_full_roster_activation": "PASS_NO; current runtime retains legacy 20-entry roster",
+    "monster_selector_direct_zone_clear_writer": "PASS_NO",
+    "quest_direct_next_zone_writer": "PASS_NO",
+    "selected_zone_used_as_progression_authority": "PASS_NO",
+    "lord_replay_distinguishable_from_first_clear": "PASS",
+    "ordinary_monster_defeat_triggers_zone_clear": "PASS_NO"
+  },
+  "test_evidence": {
+    "map_authority_and_post_clear": "26 passed",
+    "adventure_lord_authority": "77 passed",
+    "combined_map_marker_post_clear": "35 passed, 1 pre-existing baseline failure in test_e10_world_map_player_avatar_marker.py",
+    "map_battle_runtime_persistence_legacy": "68 passed, 1 pre-existing PostgreSQL InFailedSqlTransaction failure in test_map_battle_legacy_adapter.py::test_postgres_concurrent_map_battle_progression_is_exactly_once",
+    "f006_monster_tests_on_origin_master": "not available; candidate files test_monster_settlement.py and test_monster_profiles.py are absent",
+    "f011_changed_tests": 0
+  },
+  "gaps": [
+    "No World-owned Battlefield Boss eligibility state or gate",
+    "No durable World reader for committed Battlefield Boss defeat",
+    "Legacy daily Battlefield ring and accepted F009/F010 zone-local selector are not live-reconciled",
+    "Star semantics are a mixed Adventure projection rather than a dedicated Star authority",
+    "D017 Quest event consumer is not present in current origin/master baseline"
+  ],
+  "owner_decision_packet": {
+    "recommendation": "C",
+    "recommendation_text": "CREATE_NARROW_WORLD_MONSTER_BOUNDARY_CONTRACT_FIRST",
+    "rationale": "Reuse current World/Lord authority, but define the missing World eligibility and committed Battlefield Boss defeat seam before runtime cutover",
+    "next_runtime_task_required": true,
+    "next_app_py_integration_required": true,
+    "next_schema_required": "YES likely for durable Battlefield Boss World milestone; not proven or created by F011",
+    "f007_runtime_activation": false,
+    "lord_trial_spirit_effects": "OFF"
+  },
+  "change_boundary": {
+    "app_py_changed": false,
+    "runtime_changed": false,
+    "schema_changed": false,
+    "feature_enable": false,
+    "production_mutation": false,
+    "deploy": false,
+    "master_merge": false
+  }
+}
