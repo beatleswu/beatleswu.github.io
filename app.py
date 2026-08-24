@@ -47,6 +47,12 @@ from monster_identity import (
     canonical_battlefield_identity,
     resolve_monster_identity,
 )
+from monster_settlement import (
+    MonsterSettlementRejected,
+    build_monster_defeated_event,
+    next_roster_entry,
+    settle_monster_defeat,
+)
 from rpg_item_registry import (
     BADGE_PROTOTYPE_SELECTION,
     BADGE_VISUAL_SYSTEM_V1,
@@ -6983,13 +6989,150 @@ def _gain_sp(conn, uid, amount):
     return new_sp
 
 
+def _settle_monster_defeat_in_tx(
+    conn,
+    uid,
+    *,
+    battlefield,
+    settlement_id,
+    hp_before,
+    hp_after,
+    loot_bonus=0.0,
+):
+    """Close one server-owned Monster defeat inside the caller transaction.
+
+    Combat remains owned by the existing operation.  This adapter only binds
+    the committed HP transition to the F004/F005 profile registries and the
+    existing inventory, wardrobe, Coins, and D5A writers.
+    """
+
+    source = dict(battlefield or {})
+    # The active battlefield row's roster index is server-owned.  Resolve it
+    # first without trusting stale legacy type/name fields; those fields are
+    # retained for response compatibility, never as identity authority.
+    identity = None
+    if source.get('monster_idx') is not None:
+        identity = canonical_battlefield_identity(
+            _BATTLEFIELD_IDENTITY_REGISTRY,
+            source.get('monster_idx'),
+        )
+    if identity is None:
+        identity = resolve_monster_identity(
+            source,
+            registry=_BATTLEFIELD_IDENTITY_REGISTRY,
+        )
+    if identity is None:
+        raise MonsterSettlementRejected(
+            'server Monster identity did not resolve for settlement'
+        )
+    event = build_monster_defeated_event(
+        settlement_id=settlement_id,
+        user_id=uid,
+        monster_id=identity.monster_id,
+        zone_id=identity.zone_id,
+        roster_slot=identity.roster_slot,
+        encounter_class=identity.encounter_class,
+        family_id=identity.family_id,
+        hp_before=hp_before,
+        hp_after=hp_after,
+    )
+
+    def grant_coins(amount, reason):
+        # Preserve the existing Monster-specific 2-Coins / 40-per-day gate;
+        # _grant_coins remains the currency writer and global cap authority.
+        # Legacy contract reference: _coins_earned_today(conn, uid, 'monster_kill') < _COIN_MONSTER_DAILY_CAP
+        # Legacy writer contract: _grant_coins(conn, uid, _COIN_PER_MONSTER, 'monster_kill')
+        if _coins_earned_today(conn, uid, 'monster_kill') >= _COIN_MONSTER_DAILY_CAP:
+            return 0
+        return _grant_coins(conn, uid, amount, reason)
+
+    def grant_functional_item(item_id, quantity, source_name):
+        equip = _EQUIP_MAP.get(item_id)
+        if not equip or int(quantity or 0) <= 0:
+            raise MonsterSettlementRejected(
+                f'unknown functional Monster drop: {item_id!r}'
+            )
+        existing_row = conn.execute(
+            'SELECT COUNT(*) AS item_count FROM player_inventory '
+            'WHERE user_id=? AND equip_id=?',
+            (uid, item_id),
+        ).fetchone()
+        existing_count = int(existing_row['item_count'] or 0) if existing_row else 0
+        obtained_at = datetime.datetime.now().isoformat()
+        for _ in range(int(quantity)):
+            conn.execute(
+                'INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) '
+                'VALUES(?,?,0,?,?)',
+                (uid, item_id, obtained_at, source_name),
+            )
+        inserted_row = conn.execute(
+            'SELECT id FROM player_inventory WHERE user_id=? AND equip_id=? '
+            'AND obtained_at=? ORDER BY id DESC LIMIT 1',
+            (uid, item_id, obtained_at),
+        ).fetchone()
+        equipped_by_slot = _functional_equipped_by_slot(conn, uid)
+        payload = _functional_equipment_payload(
+            equip,
+            inv_id=inserted_row['id'] if inserted_row else None,
+            equipped=False,
+            obtained_at=obtained_at,
+            source=source_name,
+            owned_quantity=existing_count + int(quantity),
+            comparison_summary=_functional_comparison_summary(
+                equip,
+                equipped_by_slot.get(equip.get('slot')),
+            ),
+        )
+        payload['new'] = existing_count == 0
+        payload['duplicate'] = existing_count > 0
+        return {
+            'grant_id': f"player_inventory:{inserted_row['id']}" if inserted_row else '',
+            'payload': payload,
+        }
+
+    def grant_wardrobe_item(item_id, source_name):
+        appearance = _APPEAR_MAP.get(item_id)
+        if not appearance:
+            raise MonsterSettlementRejected(
+                f'unknown appearance Monster drop: {item_id!r}'
+            )
+        obtained_at = datetime.datetime.now().isoformat()
+        inserted = conn.execute(
+            'INSERT OR IGNORE INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+            'VALUES(?,?,?,?)',
+            (uid, item_id, obtained_at, source_name),
+        )
+        if getattr(inserted, 'rowcount', 0) <= 0:
+            return {'new': False, 'payload': None}
+        row = conn.execute(
+            'SELECT id FROM player_wardrobe WHERE user_id=? AND item_id=?',
+            (uid, item_id),
+        ).fetchone()
+        return {
+            'new': True,
+            'grant_id': f"player_wardrobe:{row['id']}" if row else '',
+            'payload': dict(appearance),
+        }
+
+    return settle_monster_defeat(
+        conn,
+        event,
+        loot_bonus=loot_bonus,
+        appearance_roll=_roll_appearance_loot,
+        grant_coins=grant_coins,
+        grant_functional_item=grant_functional_item,
+        grant_wardrobe_item=grant_wardrobe_item,
+    )
+
+
 def _equipment_aware_legacy_combat(operation):
     """Apply Lane A stats around the characterized legacy operation body."""
     from functools import wraps
 
     @wraps(operation)
     def wrapped(conn, uid, qid, grade, q_info, combo_streak, today_str,
-                should_grant_progress=True, shadow_events=None):
+                should_grant_progress=True, shadow_events=None,
+                settlement_id=None):
         row = conn.execute(
             'SELECT monster_type FROM battlefield_monster WHERE user_id=? AND bf_date=?',
             (uid, today_str),
@@ -7002,6 +7145,7 @@ def _equipment_aware_legacy_combat(operation):
                 conn, uid, qid, grade, q_info, combo_streak, today_str,
                 should_grant_progress=should_grant_progress,
                 shadow_events=shadow_events,
+                settlement_id=settlement_id,
             )
             if isinstance(result, dict):
                 result['combat_stats'] = combat_stats
@@ -7015,7 +7159,7 @@ def _equipment_aware_legacy_combat(operation):
 @_equipment_aware_legacy_combat
 def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                                today_str, should_grant_progress=True,
-                               shadow_events=None):
+                               shadow_events=None, settlement_id=None):
     # 從題目取攻擊力（怪物反擊傷害），HP 由戰場系統管理
     monster_atk = q_info.get('monster_atk', 8)
 
@@ -7024,6 +7168,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     monster_name = bf['monster_name']
     max_hp       = bf['max_hp']
     current_hp   = bf['current_hp']
+    monster_hp_before = current_hp
     kill_count   = bf['kill_count']
 
     dmg_dealt        = 0
@@ -7061,9 +7206,14 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             )
             current_hp = 0
             # 立刻準備下一隻（前端會延遲顯示）
-            nm = _BATTLEFIELD_ROSTER[new_kill_count % len(_BATTLEFIELD_ROSTER)]
+            next_index, nm = next_roster_entry(
+                _BATTLEFIELD_ROSTER,
+                bf.get('monster_idx', 0),
+            )
+            if next_index is None or nm is None:
+                raise MonsterSettlementRejected('empty or invalid battlefield roster')
             next_monster = {
-                'monster_idx': new_kill_count % len(_BATTLEFIELD_ROSTER),
+                'monster_idx': next_index,
                 'type': nm[0], 'name': nm[1], 'name_en': _battlefield_name_en(nm[1]),
                 'avatar': _battlefield_avatar(nm[0], nm[1]),
                 'max_hp': nm[2], 'hp': nm[2],
@@ -7080,18 +7230,12 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                 'monster_idx=?, monster_type=?, monster_name=?, '
                 'max_hp=?, current_hp=?, defeated=0 '
                 'WHERE user_id=? AND bf_date=?',
-                (new_kill_count % len(_BATTLEFIELD_ROSTER),
+                (next_index,
                  nm[0], nm[1], nm[2], nm[2], uid, today_str)
             )
             # 擊敗怪物：回復 max_hp 的 20%（至少 15）
             heal = max(15, round(stored_max * 0.20))
             player_hp = min(stored_max, player_hp + heal)
-            # 擊殺掉落金幣（每日怪物金幣上限 _COIN_MONSTER_DAILY_CAP）
-            try:
-                if _coins_earned_today(conn, uid, 'monster_kill') < _COIN_MONSTER_DAILY_CAP:
-                    _grant_coins(conn, uid, _COIN_PER_MONSTER, 'monster_kill')
-            except Exception:
-                pass
             player_hp_change = heal
         else:
             conn.execute(
@@ -7160,53 +7304,34 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     # ── 掉落 ─────────────────────────────────────────────────
     loot_result = None
     appearance_loot = None
+    monster_settlement = None
     if monster_defeated:
         loot_bonus = _get_combined_effect(conn, uid, 'loot_bonus')
-        loot_id    = _roll_loot(monster_type, loot_bonus)
-        if loot_id:
-            existing_row = conn.execute(
-                'SELECT COUNT(*) AS item_count FROM player_inventory '
-                'WHERE user_id=? AND equip_id=?', (uid, loot_id)
-            ).fetchone()
-            existing_count = int(existing_row['item_count'] or 0) if existing_row else 0
-            obtained_at = datetime.datetime.now().isoformat()
-            conn.execute(
-                'INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) VALUES(?,?,0,?,?)',
-                (uid, loot_id, obtained_at, 'drop')
-            )
-            inserted_row = conn.execute(
-                'SELECT id FROM player_inventory WHERE user_id=? AND equip_id=? '
-                'AND obtained_at=? ORDER BY id DESC LIMIT 1',
-                (uid, loot_id, obtained_at),
-            ).fetchone()
-            equip = _EQUIP_MAP.get(loot_id)
-            if equip:
-                equipped_by_slot = _functional_equipped_by_slot(conn, uid)
-                loot_result = _functional_equipment_payload(
-                    equip,
-                    inv_id=inserted_row['id'] if inserted_row else None,
-                    equipped=False,
-                    obtained_at=obtained_at,
-                    source='drop',
-                    owned_quantity=existing_count + 1,
-                    comparison_summary=_functional_comparison_summary(
-                        equip, equipped_by_slot.get(equip.get('slot'))
-                    ),
-                )
-                loot_result['new'] = existing_count == 0
-                loot_result['duplicate'] = existing_count > 0
-
-        # 外觀掉落（獨立判定，與裝備互不干擾）
-        appear_item = _roll_appearance_loot(monster_type)
-        if appear_item:
-            now_str = datetime.datetime.now().isoformat()
-            wardrobe_insert = conn.execute(
-                'INSERT OR IGNORE INTO player_wardrobe(user_id,item_id,obtained_at,source) VALUES(?,?,?,?)',
-                (uid, appear_item['id'], now_str, 'drop')
-            )
-            # 只有真的新入庫才回傳（重複掉落不算新物品）
-            if wardrobe_insert.rowcount > 0:
-                appearance_loot = appear_item
+        # F005 replaces the legacy _roll_loot(monster_type, loot_bonus) lookup
+        # with one canonical monster_id -> drop_profile resolution.
+        settlement_key = settlement_id or (
+            f'legacy-review:{uid}:{today_str}:{qid}:{kill_count}'
+        )
+        settlement = _settle_monster_defeat_in_tx(
+            conn,
+            uid,
+            battlefield=bf,
+            settlement_id=settlement_key,
+            hp_before=monster_hp_before,
+            hp_after=current_hp,
+            loot_bonus=loot_bonus,
+        )
+        monster_settlement = {
+            'event_type': settlement.quest_event['event_type'],
+            'event_id': settlement.quest_event.get('event_id'),
+            'settlement_id': settlement_key,
+            'monster_id': settlement.monster_id,
+            'duplicate': settlement.duplicate,
+            'functional_lineage_count': settlement.functional_lineage_count,
+            'wardrobe_lineage_count': settlement.wardrobe_lineage_count,
+        }
+        loot_result = settlement.functional_payload
+        appearance_loot = settlement.appearance_payload
 
         # 擊殺計數（累計）
         conn.execute(
@@ -7248,6 +7373,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         'sp':              sp_result,
         'loot':            loot_result,
         'appearance_loot': appearance_loot,
+        'monster_settlement': monster_settlement,
         **({'_xp_shadow_inputs': shadow_events} if shadow_events is not None else {}),
     }
 
@@ -7332,7 +7458,7 @@ def monster_status():
 
 def _lane_b_monster_update_with_authoritative_profile(
     conn, uid, qid, grade, q_info, combo_streak, today_str,
-    should_grant_progress=True, shadow_events=None,
+    should_grant_progress=True, shadow_events=None, settlement_id=None,
 ):
     """Route combat retaliation through the server-owned roster profile.
 
@@ -7350,6 +7476,7 @@ def _lane_b_monster_update_with_authoritative_profile(
         conn, uid, qid, grade, server_q_info, combo_streak, today_str,
         should_grant_progress=should_grant_progress,
         shadow_events=shadow_events,
+        settlement_id=settlement_id,
     )
     if isinstance(result, dict) and isinstance(result.get('monster'), dict):
         result['monster']['stage'] = profile['stage']
@@ -7360,14 +7487,15 @@ def _lane_b_monster_update_with_authoritative_profile(
         }
         next_monster = result['monster'].get('next_monster')
         if isinstance(next_monster, dict):
-            next_index = result['monster'].get('kill_count', 0) % len(_BATTLEFIELD_ROSTER)
-            next_profile = battlefield_profile(_BATTLEFIELD_ROSTER, next_index)
-            next_monster['stage'] = next_profile['stage']
-            next_monster['encounter_kind'] = next_profile['encounter_kind']
-            next_monster['retaliation'] = {
-                'attack': next_profile['attack'],
-                'encounter_kind': next_profile['encounter_kind'],
-            }
+            next_index = next_monster.get('monster_idx')
+            if next_index is not None:
+                next_profile = battlefield_profile(_BATTLEFIELD_ROSTER, next_index)
+                next_monster['stage'] = next_profile['stage']
+                next_monster['encounter_kind'] = next_profile['encounter_kind']
+                next_monster['retaliation'] = {
+                    'attack': next_profile['attack'],
+                    'encounter_kind': next_profile['encounter_kind'],
+                }
     return result
 
 
@@ -7527,6 +7655,7 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
 def _map_battle_noncombat_progression(
     conn, uid, *, grade, q_info, combo_streak, today_str,
     monster_defeated, progress_eligible=True, shadow_events=None,
+    monster_settlement=None,
 ):
     """Project Map Battle's authoritative result into non-combat progress.
 
@@ -7547,13 +7676,30 @@ def _map_battle_noncombat_progression(
         progress_eligible=progress_eligible,
         shadow_events=shadow_events,
     )
+    settlement_payload = None
+    loot = None
+    appearance_loot = None
+    if monster_settlement is not None:
+        settlement_payload = {
+            'event_type': monster_settlement.quest_event['event_type'],
+            'event_id': monster_settlement.quest_event.get('event_id'),
+            'settlement_id': monster_settlement.event_record.get('payload', {}).get(
+                'settlement_id'
+            ),
+            'monster_id': monster_settlement.monster_id,
+            'duplicate': monster_settlement.duplicate,
+            'functional_lineage_count': monster_settlement.functional_lineage_count,
+            'wardrobe_lineage_count': monster_settlement.wardrobe_lineage_count,
+        }
+        loot = monster_settlement.functional_payload
+        appearance_loot = monster_settlement.appearance_payload
     return {
         'monster': None,
         'player': None,
         'quest_updates': quest_updates,
         'sp': None,
-        'loot': None,
-        'appearance_loot': None,
+        'loot': loot,
+        'appearance_loot': appearance_loot,
     }
 
 
@@ -13438,6 +13584,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     review_shadow_input = None
     quest_shadow_inputs = []
     authoritative_map_battle_monster_defeated = False
+    authoritative_map_battle_submission = None
 
     qs_map = {q['id']: q for q in _load_questions()}
     q_info = qs_map.get(qid, {})
@@ -13473,10 +13620,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 }), 409
             qid = authoritative_qid
             grade = int(authoritative_grade)
+            authoritative_map_battle_submission = submission
             authoritative_map_battle_monster_defeated = (
                 int(submission['monster_hp_after'] or 0) == 0
             )
-            q_info = qs_map.get(qid, {})
+            q_info = _map_battle_question_by_id(qid) or {}
             question_rating_snapshot = rank_to_rating(
                 q_info.get('rank') or q_info.get('difficulty')
             )
@@ -13822,6 +13970,27 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 # monster/player HP transition.  Keep the review/learning
                 # transaction and shared daily-quest progression, but never
                 # enter the legacy battlefield combat tail a second time.
+                monster_settlement_result = None
+                if authoritative_map_battle_monster_defeated:
+                    if authoritative_map_battle_submission is None:
+                        raise MonsterSettlementRejected(
+                            'Map Battle defeat has no authoritative submission'
+                        )
+                    monster_settlement_result = _settle_monster_defeat_in_tx(
+                        conn,
+                        uid,
+                        battlefield=q_info,
+                        settlement_id=f'map-battle:{submission_id}',
+                        hp_before=int(
+                            authoritative_map_battle_submission['monster_hp_before']
+                            or 0
+                        ),
+                        hp_after=int(
+                            authoritative_map_battle_submission['monster_hp_after']
+                            or 0
+                        ),
+                        loot_bonus=_get_combined_effect(conn, uid, 'loot_bonus'),
+                    )
                 monster_data = _map_battle_noncombat_progression(
                     conn,
                     uid,
@@ -13832,6 +14001,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     monster_defeated=authoritative_map_battle_monster_defeated,
                     progress_eligible=should_grant_progress,
                     shadow_events=quest_shadow_events,
+                    monster_settlement=monster_settlement_result,
                 )
             else:
                 monster_data = _update_monster_and_quests(
@@ -13839,6 +14009,7 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                     datetime.date.today().isoformat(),
                     should_grant_progress=should_grant_progress,
                     shadow_events=quest_shadow_events,
+                    settlement_id=f'review:{submission_id}',
                 )
             conn.commit()
             quest_shadow_inputs = monster_data.pop('_xp_shadow_inputs', [])
