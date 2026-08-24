@@ -36,6 +36,7 @@ from monster_combat_profiles import (
     build_map_battle_compatibility_overrides,
     resolve_monster_combat_profile,
 )
+from spirit_combat_runtime import apply_spirit_combat_effect
 
 
 RUNTIME_SERVICE_ID = "map-battle-v1-runtime"
@@ -1021,6 +1022,7 @@ def settle_answer(
     judge: Callable[[Mapping[str, Any], Mapping[str, Any], CanonicalAnswer], JudgeOutcome] | None = None,
     combat_stats_resolver: Callable[[Any, int, str | None], Mapping[str, Any]] | None = None,
     monster_profile_resolver: Callable[[Any, int, str], MonsterCombatProfile | None] | None = None,
+    spirit_projection_resolver: Callable[[Any, int], Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
 
@@ -1199,6 +1201,24 @@ def settle_answer(
         counter_negated=bool(combat_stats.get('counter_negated', False)),
         monster_profile=monster_profile,
     )
+    spirit_effect = apply_spirit_combat_effect(
+        conn,
+        user_id,
+        answer_correct=outcome.result == "CORRECT",
+        encounter_class=monster_profile.encounter_class,
+        monster_hp_before=int(battle["monster_hp"]),
+        monster_max_hp=int(monster_profile.max_hp),
+        incoming_damage_after_armor=int(damage_to_player),
+        outgoing_damage_after_equipment=int(damage_to_monster),
+        player_hp_before=int(battle["player_hp"]),
+        player_max_hp=int(battle["player_hp_max"]),
+        projection_resolver=spirit_projection_resolver,
+    )
+    if spirit_effect.get("triggered"):
+        if outcome.result == "CORRECT":
+            damage_to_monster = int(spirit_effect["output_damage"])
+        elif outcome.result == "INCORRECT":
+            damage_to_player = int(spirit_effect["output_damage"])
     try:
         settled = settle_map_battle_submission(
             conn,

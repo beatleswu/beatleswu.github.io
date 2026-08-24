@@ -9,7 +9,9 @@ import pytest
 os.environ.setdefault("SECRET_KEY", "rpg-b021-combat-loop-test-secret")
 
 import app as app_module  # noqa: E402
+import monster_settlement as monster_settlement_module  # noqa: E402
 from map_battle_persistence import create_map_battle, ensure_map_battle_tables  # noqa: E402
+from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox  # noqa: E402
 from map_battle_runtime import (  # noqa: E402
     ensure_submission_lifecycle_schema,
     issue_attempt_for_context,
@@ -32,8 +34,17 @@ def _create_legacy_db(path, *, equipment=(), monster_idx=0, monster_type="caterp
                 xp INTEGER NOT NULL DEFAULT 0,
                 rank_level TEXT NOT NULL DEFAULT 'LV1',
                 rank_xp INTEGER NOT NULL DEFAULT 0,
+                coins INTEGER NOT NULL DEFAULT 0,
                 player_hp INTEGER NOT NULL DEFAULT 100,
                 player_max_hp INTEGER NOT NULL DEFAULT 100
+            );
+            CREATE TABLE currency_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                delta INTEGER NOT NULL,
+                balance_after INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL
             );
             CREATE TABLE player_inventory (
                 id INTEGER PRIMARY KEY,
@@ -82,6 +93,7 @@ def _create_legacy_db(path, *, equipment=(), monster_idx=0, monster_type="caterp
         conn.execute(
             "INSERT INTO user_stats(user_id,player_hp,player_max_hp) VALUES(1,100,100)"
         )
+        upgrade_outbox(conn)
         conn.execute(
             """INSERT INTO battlefield_monster(
                  user_id,bf_date,monster_idx,monster_type,monster_name,
@@ -326,20 +338,18 @@ def test_fox_mask_daily_quest_xp_uses_server_equipment_effect(monkeypatch):
 def test_lucky_stone_swap_changes_real_drop_roll_input(tmp_path, monkeypatch):
     seen = []
     monkeypatch.setattr(
-        app_module,
-        "_roll_loot",
-        lambda monster_type, loot_bonus: seen.append(loot_bonus) or None,
+        monster_settlement_module,
+        "roll_functional_drop",
+        lambda profile, loot_bonus=0.0, random_source=None: seen.append(loot_bonus) or (None, 0),
     )
     _legacy_battle(
         tmp_path / "lucky.sqlite", monkeypatch,
         # One grade-five hit is 80 base damage on this deterministic 1000 HP
         # encounter, so start at 80 HP to exercise the real defeat/drop path.
         equipment=((1, "lucky_stone", 1),), current_hp=80,
-        loot_roll=lambda monster_type, loot_bonus: seen.append(loot_bonus) or None,
     )
     _legacy_battle(
         tmp_path / "plain.sqlite", monkeypatch, current_hp=80,
-        loot_roll=lambda monster_type, loot_bonus: seen.append(loot_bonus) or None,
     )
     assert seen == [pytest.approx(0.10), pytest.approx(0.0)]
 
