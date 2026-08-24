@@ -10414,6 +10414,11 @@ def _new_adventure_boss_attempt_id():
 ADVENTURE_FIRST_CLEAR_REWARD_COINS = 200
 
 
+def _adventure_first_clear_operation_id(uid, zone_key):
+    """Return the deterministic logical identity for one zone first clear."""
+    return f'adventure:first_clear:{int(uid)}:{zone_key}'
+
+
 def _adventure_boss_question_is_active(question_id):
     """Return whether *question_id* belongs to the current live boss exam.
 
@@ -11599,6 +11604,126 @@ def _adventure_boss_authoritative_result(conn, uid, exam):
     return evidence['correct_count'], evidence['total']
 
 
+def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
+                                   cooldown_until, now):
+    """Atomically record one boss attempt and identify the first-clear winner.
+
+    ``adventure_boss_progress(user_id, zone_key)`` remains the authoritative
+    first-clear state.  The read-before-write result is never used to decide
+    the winner: a conditional ``cleared=0`` transition does that inside the
+    caller-owned transaction.  This keeps the existing reward and progress
+    authorities together without introducing a second operation ledger.
+    """
+    operation_id = _adventure_first_clear_operation_id(uid, zone_key)
+    existing = conn.execute(
+        'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+        (uid, zone_key)
+    ).fetchone()
+
+    inserted = False
+    first_clear_winner = False
+    if existing is None:
+        inserted_cursor = conn.execute('''
+            INSERT INTO adventure_boss_progress
+                (user_id,zone_key,cleared,stars,attempts,best_score,
+                 cooldown_until_seen,last_attempt_at,cleared_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(user_id,zone_key) DO NOTHING
+        ''', (
+            uid,
+            zone_key,
+            int(bool(passed)),
+            1 if passed else 0,
+            1,
+            correct if passed else 0,
+            0 if passed else cooldown_until,
+            now,
+            now if passed else None,
+            now,
+        ))
+        inserted = inserted_cursor.rowcount == 1
+        first_clear_winner = inserted and bool(passed)
+
+    if not inserted and passed:
+        transition_cursor = conn.execute('''
+            UPDATE adventure_boss_progress
+               SET cleared=1,
+                   stars=GREATEST(stars, 1),
+                   attempts=attempts+1,
+                   best_score=GREATEST(best_score, ?),
+                   cooldown_until_seen=0,
+                   last_attempt_at=?,
+                   cleared_at=COALESCE(cleared_at, ?),
+                   updated_at=?
+             WHERE user_id=? AND zone_key=? AND cleared=0
+        ''', (correct, now, now, now, uid, zone_key))
+        first_clear_winner = transition_cursor.rowcount == 1
+
+    if first_clear_winner:
+        return {
+            'operation_id': operation_id,
+            'is_replay': False,
+            'is_first_clear': True,
+        }
+
+    # A newly inserted failed attempt is already fully accounted for.
+    if inserted:
+        return {
+            'operation_id': operation_id,
+            'is_replay': False,
+            'is_first_clear': False,
+        }
+
+    current = conn.execute(
+        'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+        (uid, zone_key)
+    ).fetchone()
+    if current is None:
+        # The authoritative row cannot disappear during this transaction.
+        # Fail closed rather than recording an attempt without a clear state.
+        raise RuntimeError('adventure progress disappeared during settlement')
+
+    is_replay = bool(current['cleared'])
+    if passed and not is_replay:
+        # A passed attempt that did not win the conditional transition is an
+        # impossible state under the supported database contract.  Rolling
+        # back is safer than silently treating it as a non-clear.
+        raise RuntimeError('first-clear transition was not committed')
+
+    if is_replay:
+        best_score = current['best_score']
+        cleared = current['cleared']
+        stars = current['stars']
+        cooldown = current['cooldown_until_seen']
+        cleared_at = current['cleared_at']
+    else:
+        best_score = max(correct, current['best_score'] or 0)
+        cleared = current['cleared']
+        stars = current['stars']
+        cooldown = cooldown_until
+        cleared_at = current['cleared_at']
+    conn.execute('''
+        UPDATE adventure_boss_progress
+           SET cleared=?,
+               stars=?,
+               attempts=attempts+1,
+               best_score=?,
+               cooldown_until_seen=?,
+               last_attempt_at=?,
+               cleared_at=?,
+               updated_at=?
+         WHERE user_id=? AND zone_key=?
+    ''', (
+        cleared, stars, best_score, cooldown, now, cleared_at, now,
+        uid, zone_key,
+    ))
+    return {
+        'operation_id': operation_id,
+        'is_replay': is_replay,
+        'is_first_clear': False,
+    }
+
+
 @app.route('/api/adventure/boss/finish', methods=['POST'])
 @login_required
 def adventure_boss_finish():
@@ -11644,36 +11769,11 @@ def adventure_boss_finish():
         if attempt_mode == 'replay' and not already_cleared:
             session.pop('adventure_boss_exam', None)
             return jsonify({'ok': False, 'error': 'invalid_replay_attempt'}), 400
-        is_replay = already_cleared
-        is_first_clear = bool(passed and not is_replay)
-        attempts = (existing['attempts'] if existing else 0) + 1
-        if is_replay:
-            # Replay is practice content: preserve the authoritative clear,
-            # stars, best score, cooldown, and first-clear timestamp.
-            best_score = existing['best_score'] if existing else 0
-            cleared = existing['cleared'] if existing else 0
-            stars = existing['stars'] if existing else 0
-            cleared_at = existing['cleared_at'] if existing else None
-            cooldown_until = existing['cooldown_until_seen'] if existing else 0
-        else:
-            best_score = max(correct, existing['best_score'] if existing else 0)
-            cleared = 1 if passed else (existing['cleared'] if existing else 0)
-            stars = max(1 if passed else 0, existing['stars'] if existing else 0)
-            cleared_at = now if is_first_clear else (existing['cleared_at'] if existing else None)
-        conn.execute('''
-            INSERT INTO adventure_boss_progress
-                (user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,last_attempt_at,cleared_at,updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(user_id,zone_key) DO UPDATE SET
-                cleared=excluded.cleared,
-                stars=GREATEST(adventure_boss_progress.stars, excluded.stars),
-                attempts=excluded.attempts,
-                best_score=GREATEST(adventure_boss_progress.best_score, excluded.best_score),
-                cooldown_until_seen=excluded.cooldown_until_seen,
-                last_attempt_at=excluded.last_attempt_at,
-                cleared_at=COALESCE(adventure_boss_progress.cleared_at, excluded.cleared_at),
-                updated_at=excluded.updated_at
-        ''', (uid, zone_key, cleared, stars, attempts, best_score, cooldown_until, now, cleared_at, now))
+        settlement = _adventure_boss_record_attempt(
+            conn, uid, zone_key, passed, correct, cooldown_until, now,
+        )
+        is_replay = settlement['is_replay']
+        is_first_clear = settlement['is_first_clear']
 
         # Same transaction as the clear-progress upsert above: if the reward
         # grant fails, the whole `with` block rolls back (db.py commits on

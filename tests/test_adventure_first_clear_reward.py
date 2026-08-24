@@ -247,6 +247,37 @@ class TestFirstClearGrantsReward:
         assert log[0]['delta'] == 200
         assert log[0]['reason'] == f'adventure_first_clear:{ZONE_KEY}'
 
+    def test_pass_after_failed_attempt_claims_atomic_first_clear_once(
+        self, client, app_module, patched_get_db, stub_adventure_state
+    ):
+        uid = 109
+        patched_get_db.execute(
+            '''INSERT INTO adventure_boss_progress
+               (user_id, zone_key, cleared, stars, attempts, best_score,
+                cooldown_until_seen, last_attempt_at, cleared_at, updated_at)
+               VALUES (?, ?, 0, 0, 1, 8, 0, ?, NULL, ?)''',
+            (uid, ZONE_KEY, within_window(), within_window()),
+        )
+        patched_get_db.commit()
+        qids = list(range(19001, 19021))
+        _seed_full_pass_evidence(patched_get_db, uid, qids)
+        _login(client, uid)
+        _set_exam(client, _exam(qids))
+
+        response = client.post('/api/adventure/boss/finish', json={})
+
+        assert response.status_code == 200
+        assert response.get_json()['reward'] == {'coins': 200, 'first_clear': True}
+        row = patched_get_db.execute(
+            'SELECT cleared, attempts FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+            (uid, ZONE_KEY),
+        ).fetchone()
+        assert row['cleared'] == 1
+        assert row['attempts'] == 2
+        coins, log = _coins_and_log(patched_get_db, uid)
+        assert coins == 200
+        assert len(log) == 1
+
 
 class TestAlreadyClearedGrantsNothing:
     def test_already_cleared_zone_grants_zero_coins(self, client, app_module, patched_get_db, stub_adventure_state):
