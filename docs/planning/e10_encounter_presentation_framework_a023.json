@@ -1,0 +1,149 @@
+{
+  "task": "A023",
+  "title": "ENCOUNTER_PRESENTATION_FRAMEWORK_V1",
+  "version": "a023-v1",
+  "status": "presentation-prototype",
+  "scope": {
+    "player_surface": "existing index.html encounter arena",
+    "roster_size": "UNDECIDED",
+    "presentation_cardinality_agnostic": true,
+    "roster_size_assumption_count": 0,
+    "fully_unique_art_required_per_monster": false,
+    "color_swap_only_variant_acceptable": false,
+    "no_new_monster_roster": true,
+    "no_gameplay_authority": true
+  },
+  "current_encounter_audit": {
+    "surface_count": 4,
+    "presentation_duplication_count": 3,
+    "surfaces": [
+      {
+        "surface_id": "index.encounter_arena",
+        "route": "/",
+        "dom_surface": "#monster-panel",
+        "purpose": "generic question encounter with player/Monster HP, identity, feedback and SP",
+        "authority": "server battle/review result; presentation consumes committed values",
+        "entry_paths": ["normal question", "adventure question", "map battle v1 resume"]
+      },
+      {
+        "surface_id": "index.adventure_boss_summary",
+        "route": "/?adventure=1",
+        "dom_surface": ".adventure-quest-boss-card plus map node",
+        "purpose": "read-only zone/boss readiness and entry CTA",
+        "authority": "adventure bootstrap projection",
+        "presentation_class": "zone context, not a generic Monster combat card"
+      },
+      {
+        "surface_id": "index.lord_trial_cinematic",
+        "route": "/",
+        "dom_surface": "#boss-cinematic",
+        "purpose": "Lord Trial intro, ritual, result and progression context",
+        "authority": "Lord Trial controller",
+        "presentation_class": "separate authority; never mapped to Battlefield Boss"
+      },
+      {
+        "surface_id": "index.encounter_feedback_layers",
+        "route": "/",
+        "dom_surface": "#impact-flash, #monster-speech, victory/KO/result overlays",
+        "purpose": "damage, correctness, attack, defeat and reward/drop presentation slots",
+        "authority": "committed review/battle result only",
+        "presentation_class": "transient feedback, not an independent encounter identity"
+      }
+    ],
+    "duplication_notes": [
+      "Monster identity/HP is rendered by updateMonsterUI for map-battle data.",
+      "Normal /api/monster/status has a separate direct render branch.",
+      "Kill transition writes the next Monster directly instead of using one shared identity renderer. A023 decorates all three paths without changing their settlement flow."
+    ]
+  },
+  "tier_contract": [
+    {
+      "tier": "common",
+      "source_aliases": ["normal", "common"],
+      "visual_hierarchy": ["standard nameplate", "solid frame", "✦ badge", "standard HP", "minimal entrance"],
+      "entrance_max_ms": 420,
+      "defeat_max_ms": 700,
+      "without_color": "visible Common label, star symbol and standard border"
+    },
+    {
+      "tier": "rare",
+      "source_aliases": ["rare", "uncommon"],
+      "visual_hierarchy": ["Rare label", "double frame", "◇ badge", "restrained aura/accent", "slightly longer entrance"],
+      "entrance_max_ms": 620,
+      "defeat_max_ms": 820,
+      "without_color": "visible Rare label, diamond symbol and double border"
+    },
+    {
+      "tier": "elite",
+      "source_aliases": ["elite", "chapter_boss"],
+      "visual_hierarchy": ["Elite label", "reinforced frame", "✧ badge", "stronger silhouette emphasis", "segmented HP treatment"],
+      "entrance_max_ms": 780,
+      "defeat_max_ms": 980,
+      "without_color": "visible Elite label, four-point symbol and reinforced geometry"
+    },
+    {
+      "tier": "battlefield_boss",
+      "source_aliases": ["battlefield_boss", "book_boss", "boss"],
+      "visual_hierarchy": ["Boss label", "heavy frame", "✹ badge", "largest generic emphasis", "warning beat", "boss HP treatment"],
+      "entrance_max_ms": 1200,
+      "defeat_max_ms": 1400,
+      "without_color": "visible Battlefield Boss label, burst symbol and heavy border"
+    }
+  ],
+  "lord_trial_separation": {
+    "lord_trial_visual_authority_separate": true,
+    "framework_behavior": "lord_trial metadata is marked separate and is never downgraded or styled as generic Battlefield Boss",
+    "lord_trial_runtime_unchanged": true
+  },
+  "base_creature_variant_contract": {
+    "model": "base creature family -> variant identity -> encounter presentation",
+    "variant_axes": ["silhouette", "gear", "headgear", "accessory", "size", "posture", "markings", "texture", "aura", "prop", "proportion"],
+    "minimum_identity_difference": "at least one meaningful silhouette/gear/pose/prop/proportion combination; hue-only swaps are rejected",
+    "art_production_rule": "one base family can support multiple controlled identities; final roster cardinality remains undecided",
+    "runtime_catalog_owner": "not created by A023"
+  },
+  "hp_presentation_contract": {
+    "component_count": 1,
+    "component": "EncounterPresentationV1.renderHp / #monster-hp-row decoration",
+    "inputs": ["server-projected current HP", "server-projected max HP", "encounter tier"],
+    "client_calculates_damage": false,
+    "invalid_values": "neutral dash / safe empty state, never fabricated combat value"
+  },
+  "feedback_contract": {
+    "states": ["correct_attack", "monster_damaged", "special_placeholder", "monster_attack", "monster_defeated"],
+    "presentation_can_authorize_damage": false,
+    "presentation_can_authorize_correctness": false,
+    "presentation_can_authorize_reward": false,
+    "input_rule": "feedback is applied only when caller marks the result committed"
+  },
+  "drop_reward_boundary": {
+    "visual_slots": ["coins", "equipment", "appearance/cosmetic", "no-drop"],
+    "source_of_truth": "F006/server settlement",
+    "a023_infers_reward_truth": false,
+    "a023_grants_reward": false
+  },
+  "prototype_set": [
+    {"tier": "common", "prototype_id": "a023_common_slime_scout", "asset": "/assets/monsters/slime.svg", "final_roster": false},
+    {"tier": "rare", "prototype_id": "a023_rare_mistwood_adept", "asset": "/assets/monsters/mist_dryad.svg", "final_roster": false},
+    {"tier": "elite", "prototype_id": "a023_elite_royal_knight_commander", "asset": "/assets/monsters/royal_knight.svg", "final_roster": false},
+    {"tier": "battlefield_boss", "prototype_id": "a023_battlefield_boss_omega_idol", "asset": "/assets/monsters/omega_idol.svg", "final_roster": false}
+  ],
+  "responsive_contract": {
+    "desktop": "four-column showcase / live encounter keeps player and Monster readable",
+    "ipad_landscape": "two-column prototype grid; battle surface retains side-by-side fighter hierarchy",
+    "ipad_portrait": "single-column cards; no horizontal overflow; HP and identity remain above fold",
+    "mobile_390": "single-column compact card with 44px-safe interaction surfaces",
+    "mobile_375": "single-column compact card with no clipped badge/name/HP",
+    "mobile_360": "single-column compact card with bounded art and wrapped supporting copy"
+  },
+  "release_boundary": {
+    "app_py_changed": false,
+    "schema_change_required": false,
+    "production_mutation": false,
+    "combat_changed": false,
+    "monster_roster_changed": false,
+    "drop_changed": false,
+    "reward_changed": false,
+    "review_fixture_is_runtime": false
+  }
+}
