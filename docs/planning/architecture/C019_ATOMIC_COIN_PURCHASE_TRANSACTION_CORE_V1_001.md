@@ -23,7 +23,7 @@ authority.
 | --- | --- | --- |
 | Coin balance | user_stats.coins, read by _coin_balance | Reused directly |
 | Coin grants | _grant_coins | Untouched |
-| Coin spend | _spend_coins conditional update plus currency_log | Mirrored by spend_coins_in_transaction as a transaction-safe adapter over the same row/log; no second balance is created |
+| Coin spend | _spend_coins conditional update plus currency_log | Mirrored by spend_coins_in_transaction as a transaction-safe adapter over the same row/log; successful results derive coins_before from authoritative post-debit coins_after; no second balance is created |
 | Stackable inventory | shop_inventory(user_id,item_key,qty) | C019 adapter writes this table for explicit STACK offers |
 | Functional equipment ownership | player_inventory(user_id,equip_id,equipped,...) | C019 adapter writes an unequipped row; it never equips or consumes it |
 | Cosmetic ownership | player_wardrobe(user_id,item_id) | C019 adapter writes pure cosmetics here; it never writes appearance/effect state |
@@ -156,6 +156,26 @@ acquisition/lineage/debit failure
 replayed is delivery metadata only. The stored canonical result is the same
 authoritative payload returned by the original commit.
 
+## R1 result-truth corrections
+
+Successful Coin debits still use the conditional non-negative update. The
+pre-update balance read is only a player-existence check and is not used as the
+successful result's canonical transition. After the update, the authoritative
+transaction-local balance is read and the result reconstructs:
+
+coins_before = coins_after + coins_spent
+coins_before - coins_spent = coins_after
+currency_log.balance_after = coins_after
+
+This keeps two successful READ COMMITTED purchases truthful even when the
+second transaction's pre-read was stale. Insufficient balance still rolls back
+the temporary operation, debit evidence, acquisition, and D5A lineage.
+
+For player_inventory equipment, is_new is derived from the ownership count
+before insertion. ALLOW_DUPLICATE therefore reports True for the first
+identity acquisition and False for a repeat, while new_quantity remains the
+post-insert count. REJECT_IF_OWNED remains fail-closed and rolls back.
+
 ## Concurrency evidence
 
 SQLite disposable shared-memory tests cover:
@@ -165,22 +185,28 @@ SQLite disposable shared-memory tests cover:
 - two operation identities competing for a balance sufficient for only one:
   one succeeds, one gets INSUFFICIENT_COINS, and the balance never becomes
   negative.
+- a controlled stale-pre-read regression: the pre-read reports an old balance,
+  the conditional debit succeeds against a newer balance, and the returned
+  transition reflects the newer authoritative state;
 
 The test caller retries the whole SQLite transaction after a transient writer
 lock, which is the correct boundary for this caller-owned service. No
 PostgreSQL target was explicitly configured for this task, so PostgreSQL
 transaction/concurrency execution remains SKIPPED_ENVIRONMENT_GAP; the
 PostgreSQL DDL and placeholder path were kept consistent with repository
-migrations but are not claimed as live execution evidence.
+migrations but are not claimed as live execution evidence. SQLite concurrency
+is not PostgreSQL concurrency proof.
 
 ## Test evidence
 
 The focused C019 suite covers schema validation, successful debit and
 acquisition, authoritative server price, replay, conflicting replay,
 insufficient balance, unknown/disabled offers, acquisition rollback, debit
-failure, equipment, cosmetic, trophy/authority locks, unsupported
-destinations, duplicate cosmetic policy, D5A lineage, D5C separation, and
-both concurrency cases.
+failure, Coin transition/log consistency, stale pre-read handling, first and
+repeat ALLOW_DUPLICATE equipment, REJECT_IF_OWNED rollback, cosmetic, trophy/
+authority locks, unsupported destinations, duplicate cosmetic policy, D5A
+lineage, D5C separation, and both concurrency cases. The R1 focused suite
+passes with 19 tests.
 
 Regression suites are run separately and reported with exact pytest counts in
 the task handoff. No application route or UI test is treated as C019 live
