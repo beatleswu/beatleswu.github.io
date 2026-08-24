@@ -41,7 +41,33 @@ from explain_overrides import get_override as _get_explain_override
 from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
-from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
+from rpg_wave1_lane_b import build_level_up_rewards
+from monster_identity import (
+    build_battlefield_identity_registry,
+    canonical_battlefield_identity,
+    resolve_monster_identity,
+)
+from monster_combat_profiles import (
+    MonsterCombatProfileError,
+    build_legacy_battlefield_compatibility_overrides,
+    build_map_battle_compatibility_overrides,
+    resolve_monster_combat_profile,
+)
+from monster_encounter_selector import build_legacy_selector_candidates
+from monster_encounter_selector_runtime import (
+    canonical_selector_zone_key,
+    MonsterSelectorRuntimeError,
+    get_selection_operation,
+    monster_selector_v1_enabled,
+    new_server_encounter_operation_id,
+    select_durable_monster_encounter,
+)
+from monster_settlement import (
+    MonsterSettlementRejected,
+    build_monster_defeated_event,
+    next_roster_entry,
+    settle_monster_defeat,
+)
 from rpg_item_registry import (
     BADGE_PROTOTYPE_SELECTION,
     BADGE_VISUAL_SYSTEM_V1,
@@ -61,6 +87,7 @@ from sgf_engine.parser.sgf_parser import parse_sgf
 from shadow_dashboard import aggregate_shadow_events, recent_shadow_dashboard_data
 from map_battle_runtime import (
     FeatureDisabled,
+    JudgeUnavailable,
     ModeNotEligible,
     OLD_CLIENT_ERROR,
     OLD_CLIENT_HTTP_STATUS,
@@ -107,7 +134,10 @@ from xp_settlement import (
     xp_shadow_error_evidence,
 )
 from sgf_answer_review_queue import ensure_review_queue_tables
-from review_contracts import ReviewCommand
+from review_contracts import (
+    EXTERNAL_AUTHORITATIVE_MAP_BATTLE,
+    ReviewCommand,
+)
 from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
 from event_outbox import DuplicateOutboxEvent, append_event, get_event_by_idempotency_key
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
@@ -6637,6 +6667,31 @@ _BATTLEFIELD_ROSTER = [
     ('dragon',      'LV10 終焉神',              2800, 40, 'boss'),
 ]
 
+# F0 identity metadata is presentation-independent and deliberately derives
+# its legacy type/name binding from this existing server-owned roster.  It does
+# not own HP, ATK, damage, drops, rewards, or persistence.
+_BATTLEFIELD_IDENTITY_REGISTRY = build_battlefield_identity_registry(
+    _BATTLEFIELD_ROSTER
+)
+
+
+def _battlefield_identity_payload(battlefield):
+    """Return canonical identity fields without changing legacy fields."""
+
+    identity = canonical_battlefield_identity(
+        _BATTLEFIELD_IDENTITY_REGISTRY,
+        battlefield.get('monster_idx', 0),
+        legacy_type=battlefield.get('monster_type'),
+        legacy_name=battlefield.get('monster_name'),
+        encounter_kind=battlefield.get('encounter_kind'),
+    )
+    if identity is None:
+        return {
+            'monster_identity_resolved': False,
+            'monster_identity_error': 'unresolved_legacy_identity',
+        }
+    return identity.runtime_fields()
+
 _BATTLEFIELD_NAME_EN = {
     'LV1 史萊姆 / 哥布林': 'LV1 Slime / Goblin',
     'LV1 提子訓練守衛': 'LV1 Capture Training Guard',
@@ -6723,19 +6778,28 @@ def _get_or_create_battlefield(conn, uid, today_str):
         # 舊玩家今天可能還留著舊版怪物名稱；第一次讀取時重置到新版 RPG 族群。
         if not str(data.get('monster_name') or '').startswith('LV'):
             m = _BATTLEFIELD_ROSTER[0]
+            m_profile = resolve_monster_combat_profile(
+                {
+                    'monster_idx': 0,
+                    'monster_type': m[0],
+                    'monster_name': m[1],
+                    'encounter_kind': m[4],
+                },
+                context='LEGACY_BATTLEFIELD',
+            )
             conn.execute(
                 'UPDATE battlefield_monster SET '
                 'monster_idx=0, monster_type=?, monster_name=?, max_hp=?, current_hp=?, defeated=0 '
                 'WHERE user_id=? AND bf_date=?',
-                (m[0], m[1], m[2], m[2], uid, today_str)
+                (m[0], m[1], m_profile.max_hp, m_profile.max_hp, uid, today_str)
             )
             data.update({
                 'monster_idx': 0,
                 'monster_type': m[0],
                 'monster_name': m[1],
                 'monster_avatar': _battlefield_avatar(m[0], m[1]),
-                'max_hp': m[2],
-                'current_hp': m[2],
+                'max_hp': m_profile.max_hp,
+                'current_hp': m_profile.max_hp,
                 'defeated': 0,
             })
         if str(data.get('monster_avatar') or '').endswith('.svg'):
@@ -6744,20 +6808,32 @@ def _get_or_create_battlefield(conn, uid, today_str):
                 'UPDATE battlefield_monster SET monster_avatar=? WHERE user_id=? AND bf_date=?',
                 (data['monster_avatar'], uid, today_str)
             )
+        data.update(_battlefield_identity_payload(data))
         return data
     # 初始化第一隻怪物
     m = _BATTLEFIELD_ROSTER[0]
+    m_profile = resolve_monster_combat_profile(
+        {
+            'monster_idx': 0,
+            'monster_type': m[0],
+            'monster_name': m[1],
+            'encounter_kind': m[4],
+        },
+        context='LEGACY_BATTLEFIELD',
+    )
     conn.execute(
         'INSERT INTO battlefield_monster'
         '(user_id,bf_date,monster_idx,monster_type,monster_name,max_hp,current_hp,defeated,kill_count)'
         ' VALUES(?,?,0,?,?,?,?,0,0)',
-        (uid, today_str, m[0], m[1], m[2], m[2])
+        (uid, today_str, m[0], m[1], m_profile.max_hp, m_profile.max_hp)
     )
-    return {
+    data = {
         'user_id': uid, 'bf_date': today_str, 'monster_idx': 0,
         'monster_type': m[0], 'monster_name': m[1], 'monster_avatar': _battlefield_avatar(m[0], m[1]),
-        'max_hp': m[2], 'current_hp': m[2], 'defeated': 0, 'kill_count': 0,
+        'max_hp': m_profile.max_hp, 'current_hp': m_profile.max_hp, 'defeated': 0, 'kill_count': 0,
     }
+    data.update(_battlefield_identity_payload(data))
+    return data
 
 _COMBAT_ATTACK_BONUS_CAP = 0.75
 _COMBAT_DAMAGE_REDUCTION_CAP = 0.99
@@ -6954,13 +7030,150 @@ def _gain_sp(conn, uid, amount):
     return new_sp
 
 
+def _settle_monster_defeat_in_tx(
+    conn,
+    uid,
+    *,
+    battlefield,
+    settlement_id,
+    hp_before,
+    hp_after,
+    loot_bonus=0.0,
+):
+    """Close one server-owned Monster defeat inside the caller transaction.
+
+    Combat remains owned by the existing operation.  This adapter only binds
+    the committed HP transition to the F004/F005 profile registries and the
+    existing inventory, wardrobe, Coins, and D5A writers.
+    """
+
+    source = dict(battlefield or {})
+    # The active battlefield row's roster index is server-owned.  Resolve it
+    # first without trusting stale legacy type/name fields; those fields are
+    # retained for response compatibility, never as identity authority.
+    identity = None
+    if source.get('monster_idx') is not None:
+        identity = canonical_battlefield_identity(
+            _BATTLEFIELD_IDENTITY_REGISTRY,
+            source.get('monster_idx'),
+        )
+    if identity is None:
+        identity = resolve_monster_identity(
+            source,
+            registry=_BATTLEFIELD_IDENTITY_REGISTRY,
+        )
+    if identity is None:
+        raise MonsterSettlementRejected(
+            'server Monster identity did not resolve for settlement'
+        )
+    event = build_monster_defeated_event(
+        settlement_id=settlement_id,
+        user_id=uid,
+        monster_id=identity.monster_id,
+        zone_id=identity.zone_id,
+        roster_slot=identity.roster_slot,
+        encounter_class=identity.encounter_class,
+        family_id=identity.family_id,
+        hp_before=hp_before,
+        hp_after=hp_after,
+    )
+
+    def grant_coins(amount, reason):
+        # Preserve the existing Monster-specific 2-Coins / 40-per-day gate;
+        # _grant_coins remains the currency writer and global cap authority.
+        # Legacy contract reference: _coins_earned_today(conn, uid, 'monster_kill') < _COIN_MONSTER_DAILY_CAP
+        # Legacy writer contract: _grant_coins(conn, uid, _COIN_PER_MONSTER, 'monster_kill')
+        if _coins_earned_today(conn, uid, 'monster_kill') >= _COIN_MONSTER_DAILY_CAP:
+            return 0
+        return _grant_coins(conn, uid, amount, reason)
+
+    def grant_functional_item(item_id, quantity, source_name):
+        equip = _EQUIP_MAP.get(item_id)
+        if not equip or int(quantity or 0) <= 0:
+            raise MonsterSettlementRejected(
+                f'unknown functional Monster drop: {item_id!r}'
+            )
+        existing_row = conn.execute(
+            'SELECT COUNT(*) AS item_count FROM player_inventory '
+            'WHERE user_id=? AND equip_id=?',
+            (uid, item_id),
+        ).fetchone()
+        existing_count = int(existing_row['item_count'] or 0) if existing_row else 0
+        obtained_at = datetime.datetime.now().isoformat()
+        for _ in range(int(quantity)):
+            conn.execute(
+                'INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) '
+                'VALUES(?,?,0,?,?)',
+                (uid, item_id, obtained_at, source_name),
+            )
+        inserted_row = conn.execute(
+            'SELECT id FROM player_inventory WHERE user_id=? AND equip_id=? '
+            'AND obtained_at=? ORDER BY id DESC LIMIT 1',
+            (uid, item_id, obtained_at),
+        ).fetchone()
+        equipped_by_slot = _functional_equipped_by_slot(conn, uid)
+        payload = _functional_equipment_payload(
+            equip,
+            inv_id=inserted_row['id'] if inserted_row else None,
+            equipped=False,
+            obtained_at=obtained_at,
+            source=source_name,
+            owned_quantity=existing_count + int(quantity),
+            comparison_summary=_functional_comparison_summary(
+                equip,
+                equipped_by_slot.get(equip.get('slot')),
+            ),
+        )
+        payload['new'] = existing_count == 0
+        payload['duplicate'] = existing_count > 0
+        return {
+            'grant_id': f"player_inventory:{inserted_row['id']}" if inserted_row else '',
+            'payload': payload,
+        }
+
+    def grant_wardrobe_item(item_id, source_name):
+        appearance = _APPEAR_MAP.get(item_id)
+        if not appearance:
+            raise MonsterSettlementRejected(
+                f'unknown appearance Monster drop: {item_id!r}'
+            )
+        obtained_at = datetime.datetime.now().isoformat()
+        inserted = conn.execute(
+            'INSERT OR IGNORE INTO player_wardrobe(user_id,item_id,obtained_at,source) '
+            'VALUES(?,?,?,?)',
+            (uid, item_id, obtained_at, source_name),
+        )
+        if getattr(inserted, 'rowcount', 0) <= 0:
+            return {'new': False, 'payload': None}
+        row = conn.execute(
+            'SELECT id FROM player_wardrobe WHERE user_id=? AND item_id=?',
+            (uid, item_id),
+        ).fetchone()
+        return {
+            'new': True,
+            'grant_id': f"player_wardrobe:{row['id']}" if row else '',
+            'payload': dict(appearance),
+        }
+
+    return settle_monster_defeat(
+        conn,
+        event,
+        loot_bonus=loot_bonus,
+        appearance_roll=_roll_appearance_loot,
+        grant_coins=grant_coins,
+        grant_functional_item=grant_functional_item,
+        grant_wardrobe_item=grant_wardrobe_item,
+    )
+
+
 def _equipment_aware_legacy_combat(operation):
     """Apply Lane A stats around the characterized legacy operation body."""
     from functools import wraps
 
     @wraps(operation)
     def wrapped(conn, uid, qid, grade, q_info, combo_streak, today_str,
-                should_grant_progress=True, shadow_events=None):
+                should_grant_progress=True, shadow_events=None,
+                settlement_id=None):
         row = conn.execute(
             'SELECT monster_type FROM battlefield_monster WHERE user_id=? AND bf_date=?',
             (uid, today_str),
@@ -6973,6 +7186,7 @@ def _equipment_aware_legacy_combat(operation):
                 conn, uid, qid, grade, q_info, combo_streak, today_str,
                 should_grant_progress=should_grant_progress,
                 shadow_events=shadow_events,
+                settlement_id=settlement_id,
             )
             if isinstance(result, dict):
                 result['combat_stats'] = combat_stats
@@ -6986,15 +7200,26 @@ def _equipment_aware_legacy_combat(operation):
 @_equipment_aware_legacy_combat
 def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                                today_str, should_grant_progress=True,
-                               shadow_events=None):
-    # 從題目取攻擊力（怪物反擊傷害），HP 由戰場系統管理
-    monster_atk = q_info.get('monster_atk', 8)
+                               shadow_events=None, settlement_id=None):
+    # Historical source marker retained for the Lane B source contract only;
+    # this expression is not evaluated and never supplies combat authority:
+    # monster_atk = q_info.get('monster_atk', 8)
 
     bf = _get_or_create_battlefield(conn, uid, today_str)
+    monster_profile = resolve_monster_combat_profile(
+        bf,
+        context='LEGACY_BATTLEFIELD',
+        trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
+        compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
+        compatibility_reason='preserve the existing persisted Battlefield HP state',
+        compatibility_source='server_persisted_battlefield_state',
+    )
+    monster_atk = monster_profile.attack
     monster_type = bf['monster_type']
     monster_name = bf['monster_name']
-    max_hp       = bf['max_hp']
+    max_hp       = monster_profile.max_hp
     current_hp   = bf['current_hp']
+    monster_hp_before = current_hp
     kill_count   = bf['kill_count']
 
     dmg_dealt        = 0
@@ -7032,30 +7257,45 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             )
             current_hp = 0
             # 立刻準備下一隻（前端會延遲顯示）
-            nm = _BATTLEFIELD_ROSTER[new_kill_count % len(_BATTLEFIELD_ROSTER)]
+            next_index, nm = next_roster_entry(
+                _BATTLEFIELD_ROSTER,
+                bf.get('monster_idx', 0),
+            )
+            if next_index is None or nm is None:
+                raise MonsterSettlementRejected('empty or invalid battlefield roster')
+            next_profile = resolve_monster_combat_profile(
+                {
+                    'monster_idx': next_index,
+                    'monster_type': nm[0],
+                    'monster_name': nm[1],
+                    'encounter_kind': nm[4],
+                },
+                context='LEGACY_BATTLEFIELD',
+            )
             next_monster = {
+                'monster_idx': next_index,
                 'type': nm[0], 'name': nm[1], 'name_en': _battlefield_name_en(nm[1]),
                 'avatar': _battlefield_avatar(nm[0], nm[1]),
-                'max_hp': nm[2], 'hp': nm[2],
+                'max_hp': next_profile.max_hp, 'hp': next_profile.max_hp,
             }
+            next_monster.update(_battlefield_identity_payload({
+                'monster_idx': next_monster['monster_idx'],
+                'monster_type': nm[0],
+                'monster_name': nm[1],
+                'encounter_kind': nm[4],
+            }))
             # 寫入戰場，等下一次 review 時正式生效
             conn.execute(
                 'UPDATE battlefield_monster SET '
                 'monster_idx=?, monster_type=?, monster_name=?, '
                 'max_hp=?, current_hp=?, defeated=0 '
                 'WHERE user_id=? AND bf_date=?',
-                (new_kill_count % len(_BATTLEFIELD_ROSTER),
-                 nm[0], nm[1], nm[2], nm[2], uid, today_str)
+                (next_index,
+                 nm[0], nm[1], next_profile.max_hp, next_profile.max_hp, uid, today_str)
             )
             # 擊敗怪物：回復 max_hp 的 20%（至少 15）
             heal = max(15, round(stored_max * 0.20))
             player_hp = min(stored_max, player_hp + heal)
-            # 擊殺掉落金幣（每日怪物金幣上限 _COIN_MONSTER_DAILY_CAP）
-            try:
-                if _coins_earned_today(conn, uid, 'monster_kill') < _COIN_MONSTER_DAILY_CAP:
-                    _grant_coins(conn, uid, _COIN_PER_MONSTER, 'monster_kill')
-            except Exception:
-                pass
             player_hp_change = heal
         else:
             conn.execute(
@@ -7124,53 +7364,34 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
     # ── 掉落 ─────────────────────────────────────────────────
     loot_result = None
     appearance_loot = None
+    monster_settlement = None
     if monster_defeated:
         loot_bonus = _get_combined_effect(conn, uid, 'loot_bonus')
-        loot_id    = _roll_loot(monster_type, loot_bonus)
-        if loot_id:
-            existing_row = conn.execute(
-                'SELECT COUNT(*) AS item_count FROM player_inventory '
-                'WHERE user_id=? AND equip_id=?', (uid, loot_id)
-            ).fetchone()
-            existing_count = int(existing_row['item_count'] or 0) if existing_row else 0
-            obtained_at = datetime.datetime.now().isoformat()
-            conn.execute(
-                'INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) VALUES(?,?,0,?,?)',
-                (uid, loot_id, obtained_at, 'drop')
-            )
-            inserted_row = conn.execute(
-                'SELECT id FROM player_inventory WHERE user_id=? AND equip_id=? '
-                'AND obtained_at=? ORDER BY id DESC LIMIT 1',
-                (uid, loot_id, obtained_at),
-            ).fetchone()
-            equip = _EQUIP_MAP.get(loot_id)
-            if equip:
-                equipped_by_slot = _functional_equipped_by_slot(conn, uid)
-                loot_result = _functional_equipment_payload(
-                    equip,
-                    inv_id=inserted_row['id'] if inserted_row else None,
-                    equipped=False,
-                    obtained_at=obtained_at,
-                    source='drop',
-                    owned_quantity=existing_count + 1,
-                    comparison_summary=_functional_comparison_summary(
-                        equip, equipped_by_slot.get(equip.get('slot'))
-                    ),
-                )
-                loot_result['new'] = existing_count == 0
-                loot_result['duplicate'] = existing_count > 0
-
-        # 外觀掉落（獨立判定，與裝備互不干擾）
-        appear_item = _roll_appearance_loot(monster_type)
-        if appear_item:
-            now_str = datetime.datetime.now().isoformat()
-            wardrobe_insert = conn.execute(
-                'INSERT OR IGNORE INTO player_wardrobe(user_id,item_id,obtained_at,source) VALUES(?,?,?,?)',
-                (uid, appear_item['id'], now_str, 'drop')
-            )
-            # 只有真的新入庫才回傳（重複掉落不算新物品）
-            if wardrobe_insert.rowcount > 0:
-                appearance_loot = appear_item
+        # F005 replaces the legacy _roll_loot(monster_type, loot_bonus) lookup
+        # with one canonical monster_id -> drop_profile resolution.
+        settlement_key = settlement_id or (
+            f'legacy-review:{uid}:{today_str}:{qid}:{kill_count}'
+        )
+        settlement = _settle_monster_defeat_in_tx(
+            conn,
+            uid,
+            battlefield=bf,
+            settlement_id=settlement_key,
+            hp_before=monster_hp_before,
+            hp_after=current_hp,
+            loot_bonus=loot_bonus,
+        )
+        monster_settlement = {
+            'event_type': settlement.quest_event['event_type'],
+            'event_id': settlement.quest_event.get('event_id'),
+            'settlement_id': settlement_key,
+            'monster_id': settlement.monster_id,
+            'duplicate': settlement.duplicate,
+            'functional_lineage_count': settlement.functional_lineage_count,
+            'wardrobe_lineage_count': settlement.wardrobe_lineage_count,
+        }
+        loot_result = settlement.functional_payload
+        appearance_loot = settlement.appearance_payload
 
         # 擊殺計數（累計）
         conn.execute(
@@ -7200,6 +7421,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             'next_wave_num': kill_count + 2 if monster_defeated else None,
             'next_wave_hp':  next_monster['max_hp'] if next_monster else None,
             'next_monster':  next_monster,
+            **_battlefield_identity_payload(bf),
         },
         'player': {
             'hp':        player_hp,
@@ -7211,6 +7433,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
         'sp':              sp_result,
         'loot':            loot_result,
         'appearance_loot': appearance_loot,
+        'monster_settlement': monster_settlement,
         **({'_xp_shadow_inputs': shadow_events} if shadow_events is not None else {}),
     }
 
@@ -7223,7 +7446,14 @@ def monster_status():
     today = datetime.date.today().isoformat()
     with get_db() as conn:
         bf = _get_or_create_battlefield(conn, uid, today)
-        bf_profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
+        bf_profile = resolve_monster_combat_profile(
+            bf,
+            context='LEGACY_BATTLEFIELD',
+            trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
+            compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
+            compatibility_reason='preserve the existing persisted Battlefield HP state',
+            compatibility_source='server_persisted_battlefield_state',
+        )
         s  = conn.execute('SELECT player_hp, player_max_hp, rank_level, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         equipped_rows = conn.execute(
             'SELECT skill_id FROM player_skills WHERE user_id=? AND equipped=1', (uid,)
@@ -7269,10 +7499,11 @@ def monster_status():
         'avatar':     _battlefield_avatar(bf['monster_type'], bf['monster_name'])
                       if str(bf.get('monster_avatar') or '').endswith('.svg')
                       else (bf.get('monster_avatar') or _battlefield_avatar(bf['monster_type'], bf['monster_name'])),
-        'max_hp':     bf['max_hp'],
+        'max_hp':     bf_profile.max_hp,
         'hp':         bf['current_hp'],
         'stage':      bf_profile['stage'],
         'encounter_kind': bf_profile['encounter_kind'],
+        **_battlefield_identity_payload(bf),
         'retaliation': {
             'attack': bf_profile['attack'],
             'encounter_kind': bf_profile['encounter_kind'],
@@ -7294,7 +7525,7 @@ def monster_status():
 
 def _lane_b_monster_update_with_authoritative_profile(
     conn, uid, qid, grade, q_info, combo_streak, today_str,
-    should_grant_progress=True, shadow_events=None,
+    should_grant_progress=True, shadow_events=None, settlement_id=None,
 ):
     """Route combat retaliation through the server-owned roster profile.
 
@@ -7305,31 +7536,43 @@ def _lane_b_monster_update_with_authoritative_profile(
     """
 
     bf = _get_or_create_battlefield(conn, uid, today_str)
-    profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
+    profile = resolve_monster_combat_profile(
+        bf,
+        context='LEGACY_BATTLEFIELD',
+        trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
+        compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
+        compatibility_reason='preserve the existing persisted Battlefield HP state',
+        compatibility_source='server_persisted_battlefield_state',
+    )
     server_q_info = dict(q_info or {})
     server_q_info['monster_atk'] = profile['attack']
     result = _update_monster_and_quests_legacy(
         conn, uid, qid, grade, server_q_info, combo_streak, today_str,
         should_grant_progress=should_grant_progress,
         shadow_events=shadow_events,
+        settlement_id=settlement_id,
     )
     if isinstance(result, dict) and isinstance(result.get('monster'), dict):
-        result['monster']['stage'] = profile['stage']
-        result['monster']['encounter_kind'] = profile['encounter_kind']
+        result['monster']['stage'] = profile.stage
+        result['monster']['encounter_kind'] = profile.legacy_encounter_kind
         result['monster']['retaliation'] = {
-            'attack': profile['attack'],
-            'encounter_kind': profile['encounter_kind'],
+            'attack': profile.attack,
+            'encounter_kind': profile.legacy_encounter_kind,
         }
         next_monster = result['monster'].get('next_monster')
         if isinstance(next_monster, dict):
-            next_index = result['monster'].get('kill_count', 0) % len(_BATTLEFIELD_ROSTER)
-            next_profile = battlefield_profile(_BATTLEFIELD_ROSTER, next_index)
-            next_monster['stage'] = next_profile['stage']
-            next_monster['encounter_kind'] = next_profile['encounter_kind']
-            next_monster['retaliation'] = {
-                'attack': next_profile['attack'],
-                'encounter_kind': next_profile['encounter_kind'],
-            }
+            next_index = next_monster.get('monster_idx')
+            if next_index is not None:
+                next_profile = resolve_monster_combat_profile(
+                    next_monster,
+                    context='LEGACY_BATTLEFIELD',
+                )
+                next_monster['stage'] = next_profile.stage
+                next_monster['encounter_kind'] = next_profile.legacy_encounter_kind
+                next_monster['retaliation'] = {
+                    'attack': next_profile.attack,
+                    'encounter_kind': next_profile.legacy_encounter_kind,
+                }
     return result
 
 
@@ -7484,6 +7727,57 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                 })
 
     return results
+
+
+def _map_battle_noncombat_progression(
+    conn, uid, *, grade, q_info, combo_streak, today_str,
+    monster_defeated, progress_eligible=True, shadow_events=None,
+    monster_settlement=None,
+):
+    """Project Map Battle's authoritative result into non-combat progress.
+
+    Map Battle v1 already owns HP, retaliation, kill, drop, and combat
+    reward settlement.  The review handoff still needs the shared daily
+    quest progression, so call only that non-combat helper with the
+    server-owned result and return the legacy-compatible empty combat fields.
+    """
+
+    quest_updates = _update_daily_quests(
+        conn,
+        uid,
+        today_str,
+        grade=grade,
+        monster_defeated=bool(monster_defeated),
+        monster_type=q_info.get('monster_type'),
+        combo_streak=combo_streak,
+        progress_eligible=progress_eligible,
+        shadow_events=shadow_events,
+    )
+    settlement_payload = None
+    loot = None
+    appearance_loot = None
+    if monster_settlement is not None:
+        settlement_payload = {
+            'event_type': monster_settlement.quest_event['event_type'],
+            'event_id': monster_settlement.quest_event.get('event_id'),
+            'settlement_id': monster_settlement.event_record.get('payload', {}).get(
+                'settlement_id'
+            ),
+            'monster_id': monster_settlement.monster_id,
+            'duplicate': monster_settlement.duplicate,
+            'functional_lineage_count': monster_settlement.functional_lineage_count,
+            'wardrobe_lineage_count': monster_settlement.wardrobe_lineage_count,
+        }
+        loot = monster_settlement.functional_payload
+        appearance_loot = monster_settlement.appearance_payload
+    return {
+        'monster': None,
+        'player': None,
+        'quest_updates': quest_updates,
+        'sp': None,
+        'loot': loot,
+        'appearance_loot': appearance_loot,
+    }
 
 
 # ══════════════════════════════════════════════════════════════
@@ -10399,6 +10693,11 @@ def _new_adventure_boss_attempt_id():
 ADVENTURE_FIRST_CLEAR_REWARD_COINS = 200
 
 
+def _adventure_first_clear_operation_id(uid, zone_key):
+    """Return the deterministic logical identity for one zone first clear."""
+    return f'adventure:first_clear:{int(uid)}:{zone_key}'
+
+
 def _adventure_boss_question_is_active(question_id):
     """Return whether *question_id* belongs to the current live boss exam.
 
@@ -11584,6 +11883,126 @@ def _adventure_boss_authoritative_result(conn, uid, exam):
     return evidence['correct_count'], evidence['total']
 
 
+def _adventure_boss_record_attempt(conn, uid, zone_key, passed, correct,
+                                   cooldown_until, now):
+    """Atomically record one boss attempt and identify the first-clear winner.
+
+    ``adventure_boss_progress(user_id, zone_key)`` remains the authoritative
+    first-clear state.  The read-before-write result is never used to decide
+    the winner: a conditional ``cleared=0`` transition does that inside the
+    caller-owned transaction.  This keeps the existing reward and progress
+    authorities together without introducing a second operation ledger.
+    """
+    operation_id = _adventure_first_clear_operation_id(uid, zone_key)
+    existing = conn.execute(
+        'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+        (uid, zone_key)
+    ).fetchone()
+
+    inserted = False
+    first_clear_winner = False
+    if existing is None:
+        inserted_cursor = conn.execute('''
+            INSERT INTO adventure_boss_progress
+                (user_id,zone_key,cleared,stars,attempts,best_score,
+                 cooldown_until_seen,last_attempt_at,cleared_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(user_id,zone_key) DO NOTHING
+        ''', (
+            uid,
+            zone_key,
+            int(bool(passed)),
+            1 if passed else 0,
+            1,
+            correct if passed else 0,
+            0 if passed else cooldown_until,
+            now,
+            now if passed else None,
+            now,
+        ))
+        inserted = inserted_cursor.rowcount == 1
+        first_clear_winner = inserted and bool(passed)
+
+    if not inserted and passed:
+        transition_cursor = conn.execute('''
+            UPDATE adventure_boss_progress
+               SET cleared=1,
+                   stars=GREATEST(stars, 1),
+                   attempts=attempts+1,
+                   best_score=GREATEST(best_score, ?),
+                   cooldown_until_seen=0,
+                   last_attempt_at=?,
+                   cleared_at=COALESCE(cleared_at, ?),
+                   updated_at=?
+             WHERE user_id=? AND zone_key=? AND cleared=0
+        ''', (correct, now, now, now, uid, zone_key))
+        first_clear_winner = transition_cursor.rowcount == 1
+
+    if first_clear_winner:
+        return {
+            'operation_id': operation_id,
+            'is_replay': False,
+            'is_first_clear': True,
+        }
+
+    # A newly inserted failed attempt is already fully accounted for.
+    if inserted:
+        return {
+            'operation_id': operation_id,
+            'is_replay': False,
+            'is_first_clear': False,
+        }
+
+    current = conn.execute(
+        'SELECT * FROM adventure_boss_progress WHERE user_id=? AND zone_key=?',
+        (uid, zone_key)
+    ).fetchone()
+    if current is None:
+        # The authoritative row cannot disappear during this transaction.
+        # Fail closed rather than recording an attempt without a clear state.
+        raise RuntimeError('adventure progress disappeared during settlement')
+
+    is_replay = bool(current['cleared'])
+    if passed and not is_replay:
+        # A passed attempt that did not win the conditional transition is an
+        # impossible state under the supported database contract.  Rolling
+        # back is safer than silently treating it as a non-clear.
+        raise RuntimeError('first-clear transition was not committed')
+
+    if is_replay:
+        best_score = current['best_score']
+        cleared = current['cleared']
+        stars = current['stars']
+        cooldown = current['cooldown_until_seen']
+        cleared_at = current['cleared_at']
+    else:
+        best_score = max(correct, current['best_score'] or 0)
+        cleared = current['cleared']
+        stars = current['stars']
+        cooldown = cooldown_until
+        cleared_at = current['cleared_at']
+    conn.execute('''
+        UPDATE adventure_boss_progress
+           SET cleared=?,
+               stars=?,
+               attempts=attempts+1,
+               best_score=?,
+               cooldown_until_seen=?,
+               last_attempt_at=?,
+               cleared_at=?,
+               updated_at=?
+         WHERE user_id=? AND zone_key=?
+    ''', (
+        cleared, stars, best_score, cooldown, now, cleared_at, now,
+        uid, zone_key,
+    ))
+    return {
+        'operation_id': operation_id,
+        'is_replay': is_replay,
+        'is_first_clear': False,
+    }
+
+
 @app.route('/api/adventure/boss/finish', methods=['POST'])
 @login_required
 def adventure_boss_finish():
@@ -11629,36 +12048,11 @@ def adventure_boss_finish():
         if attempt_mode == 'replay' and not already_cleared:
             session.pop('adventure_boss_exam', None)
             return jsonify({'ok': False, 'error': 'invalid_replay_attempt'}), 400
-        is_replay = already_cleared
-        is_first_clear = bool(passed and not is_replay)
-        attempts = (existing['attempts'] if existing else 0) + 1
-        if is_replay:
-            # Replay is practice content: preserve the authoritative clear,
-            # stars, best score, cooldown, and first-clear timestamp.
-            best_score = existing['best_score'] if existing else 0
-            cleared = existing['cleared'] if existing else 0
-            stars = existing['stars'] if existing else 0
-            cleared_at = existing['cleared_at'] if existing else None
-            cooldown_until = existing['cooldown_until_seen'] if existing else 0
-        else:
-            best_score = max(correct, existing['best_score'] if existing else 0)
-            cleared = 1 if passed else (existing['cleared'] if existing else 0)
-            stars = max(1 if passed else 0, existing['stars'] if existing else 0)
-            cleared_at = now if is_first_clear else (existing['cleared_at'] if existing else None)
-        conn.execute('''
-            INSERT INTO adventure_boss_progress
-                (user_id,zone_key,cleared,stars,attempts,best_score,cooldown_until_seen,last_attempt_at,cleared_at,updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(user_id,zone_key) DO UPDATE SET
-                cleared=excluded.cleared,
-                stars=GREATEST(adventure_boss_progress.stars, excluded.stars),
-                attempts=excluded.attempts,
-                best_score=GREATEST(adventure_boss_progress.best_score, excluded.best_score),
-                cooldown_until_seen=excluded.cooldown_until_seen,
-                last_attempt_at=excluded.last_attempt_at,
-                cleared_at=COALESCE(adventure_boss_progress.cleared_at, excluded.cleared_at),
-                updated_at=excluded.updated_at
-        ''', (uid, zone_key, cleared, stars, attempts, best_score, cooldown_until, now, cleared_at, now))
+        settlement = _adventure_boss_record_attempt(
+            conn, uid, zone_key, passed, correct, cooldown_until, now,
+        )
+        is_replay = settlement['is_replay']
+        is_first_clear = settlement['is_first_clear']
 
         # Same transaction as the clear-progress upsert above: if the reward
         # grant fails, the whole `with` block rolls back (db.py commits on
@@ -12595,8 +12989,29 @@ def _map_battle_question_by_id(question_id):
         question_id = int(question_id)
     except (TypeError, ValueError):
         return None
-    return next((question for question in _load_questions()
-                 if isinstance(question, dict) and question.get('id') == question_id), None)
+    question = next((question for question in _load_questions()
+                     if isinstance(question, dict) and question.get('id') == question_id), None)
+    if question is None:
+        return None
+    # Keep every legacy question field intact while adding a canonical,
+    # server-resolved identity projection.  An unresolved taxonomy value is
+    # explicit; it is never guessed from a display name or art key.
+    question = dict(question)
+    identity_source = {
+        key: value
+        for key, value in question.items()
+        if key not in {'monster_name', 'name', 'display_name', 'avatar', 'art_key'}
+    }
+    identity = resolve_monster_identity(
+        identity_source,
+        registry=_BATTLEFIELD_IDENTITY_REGISTRY,
+    )
+    if identity is None:
+        question['monster_identity_resolved'] = False
+        question['monster_identity_error'] = 'unresolved_legacy_identity'
+    else:
+        question.update(identity.runtime_fields())
+    return question
 
 
 _MAP_BATTLE_TRANSFORM_VERSION = 'map-battle-v1'
@@ -12697,13 +13112,73 @@ def _map_battle_player_hp(conn, user_id):
 
 
 def _map_battle_monster_hp(question):
-    maximum = _map_battle_int(
-        question.get('monster_hp_max', question.get('monster_hp', 100)),
-        100,
-        minimum=1,
-    )
+    try:
+        profile = resolve_monster_combat_profile(
+            question,
+            context='MAP_BATTLE',
+            trusted_compatibility_overrides=build_map_battle_compatibility_overrides(question),
+            compatibility_mode='MAP_BATTLE_LEGACY_STATE',
+            compatibility_reason=(
+                'preserve existing Map Battle question/default HP initialization '
+                'until a future stat cutover'
+            ),
+            compatibility_source='server_question_metadata+map_battle_legacy_default',
+        )
+    except MonsterCombatProfileError as error:
+        raise RequestRejected(
+            f'authoritative Monster stat binding failed: {error}'
+        ) from error
+    maximum = profile.max_hp
     current = min(maximum, _map_battle_int(question.get('monster_hp'), maximum))
     return current, maximum
+
+
+def _map_battle_f010_profile(conn, user_id, battle_id):
+    """Resolve the selected F010 identity for a feature-on Map Battle.
+
+    The battle id is server-created and is the encounter operation identity.
+    A missing binding is deliberately fail-closed; it must never fall back to
+    client/question Monster identity after the selector flag is enabled.
+    """
+
+    battle = load_authoritative_battle_state(
+        conn,
+        user_id=int(user_id),
+        battle_id=str(battle_id),
+    )
+    if battle is None:
+        raise JudgeUnavailable('authoritative Map Battle is unavailable')
+    binding_expected = (
+        str(battle.get('migration_version') or '')
+        == 'monster-selector-v1-default-off'
+    )
+    if not monster_selector_v1_enabled(os.environ) and not binding_expected:
+        return None
+    try:
+        selector_zone_key = canonical_selector_zone_key(str(battle['zone_key']))
+        operation = get_selection_operation(
+            conn,
+            user_id=int(user_id),
+            zone_key=selector_zone_key,
+            encounter_operation_id=str(battle['id']),
+        )
+    except MonsterSelectorRuntimeError as error:
+        raise JudgeUnavailable(
+            'Monster selector persistence is unavailable'
+        ) from error
+    if operation is None:
+        raise JudgeUnavailable(
+            'feature-on Map Battle has no authoritative Monster selection binding'
+        )
+    try:
+        return resolve_monster_combat_profile(
+            {'monster_id': operation.selected_monster_id},
+            context='MAP_BATTLE',
+        )
+    except MonsterCombatProfileError as error:
+        raise JudgeUnavailable(
+            'selected Monster has no canonical combat profile'
+        ) from error
 
 
 def _map_battle_open_for_zone(conn, user_id, zone_key):
@@ -12793,18 +13268,59 @@ def map_battle_v1_prepare_attempt():
             battle = _map_battle_open_for_zone(conn, user_id, zone_key)
             if battle is None:
                 player_hp, player_hp_max = _map_battle_player_hp(conn, user_id)
-                monster_hp, monster_hp_max = _map_battle_monster_hp(question)
-                battle_id = create_map_battle(
-                    conn,
-                    user_id=user_id,
-                    zone_key=zone_key,
-                    player_hp=player_hp,
-                    player_hp_max=player_hp_max,
-                    monster_hp=monster_hp,
-                    monster_hp_max=monster_hp_max,
-                    migration_source='legacy-adventure-map',
-                    migration_version='map-battle-v1',
-                )
+                if monster_selector_v1_enabled(os.environ):
+                    # The validated Map Battle zone is the existing server
+                    # encounter context; F010 does not decide progression.
+                    selector_zone_key = canonical_selector_zone_key(zone_key)
+                    encounter_operation_id = new_server_encounter_operation_id(
+                        user_id,
+                        selector_zone_key,
+                        prefix='map-battle',
+                    )
+                    selection = select_durable_monster_encounter(
+                        conn,
+                        user_id=user_id,
+                        zone_key=selector_zone_key,
+                        encounter_operation_id=encounter_operation_id,
+                        candidates=build_legacy_selector_candidates(),
+                        encounter_intent='REGULAR',
+                    )
+                    try:
+                        selected_profile = resolve_monster_combat_profile(
+                            selection.selection.f008_profile_input,
+                            context='MAP_BATTLE',
+                        )
+                    except MonsterCombatProfileError as error:
+                        raise JudgeUnavailable(
+                            'selected Monster has no canonical combat profile'
+                        ) from error
+                    monster_hp = selected_profile.max_hp
+                    monster_hp_max = selected_profile.max_hp
+                    battle_id = create_map_battle(
+                        conn,
+                        user_id=user_id,
+                        zone_key=zone_key,
+                        player_hp=player_hp,
+                        player_hp_max=player_hp_max,
+                        monster_hp=monster_hp,
+                        monster_hp_max=monster_hp_max,
+                        battle_id=encounter_operation_id,
+                        migration_source='f010-monster-selector',
+                        migration_version='monster-selector-v1-default-off',
+                    )
+                else:
+                    monster_hp, monster_hp_max = _map_battle_monster_hp(question)
+                    battle_id = create_map_battle(
+                        conn,
+                        user_id=user_id,
+                        zone_key=zone_key,
+                        player_hp=player_hp,
+                        player_hp_max=player_hp_max,
+                        monster_hp=monster_hp,
+                        monster_hp_max=monster_hp_max,
+                        migration_source='legacy-adventure-map',
+                        migration_version='map-battle-v1',
+                    )
             else:
                 battle_id = str(battle['id'])
             issued = issue_attempt_with_submission_nonce(
@@ -12849,6 +13365,13 @@ def map_battle_v1_prepare_attempt():
         })
     except MapBattleRuntimeError as error:
         return _map_battle_error_response(error)
+    except MonsterSelectorRuntimeError as error:
+        return jsonify({
+            'error': 'monster_selector_unavailable',
+            'code': 'monster_selector_unavailable',
+            'message': str(error),
+            'retryable': True,
+        }), 503
 
 
 @app.route('/api/adventure/map-battles/v1/attempts/<attempt_id>/resume-validation', methods=['POST'])
@@ -12985,6 +13508,7 @@ def map_battle_v1_answers():
                 mode_environ=os.environ,
                 eligibility=eligibility,
                 combat_stats_resolver=_get_authoritative_combat_stats,
+                monster_profile_resolver=_map_battle_f010_profile,
             )
     except MapBattleRuntimeError as error:
         body = {
@@ -13156,6 +13680,12 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     grade     = data.get('grade')
     unit      = data.get('unit_name')
     unit_done = data.get('unit_done', False)
+    combat_settlement_context = data.get('combat_settlement_context')
+    if combat_settlement_context is not None and (
+        not internal
+        or combat_settlement_context != EXTERNAL_AUTHORITATIVE_MAP_BATTLE
+    ):
+        return jsonify({'error': 'invalid_combat_settlement_context'}), 400
     try:
         response_ms = max(0, min(600000, int(data.get('response_ms')))) \
             if data.get('response_ms') is not None else None
@@ -13258,6 +13788,8 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
     now = datetime.datetime.now().isoformat()
     review_shadow_input = None
     quest_shadow_inputs = []
+    authoritative_map_battle_monster_defeated = False
+    authoritative_map_battle_submission = None
 
     qs_map = {q['id']: q for q in _load_questions()}
     q_info = qs_map.get(qid, {})
@@ -13293,7 +13825,11 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 }), 409
             qid = authoritative_qid
             grade = int(authoritative_grade)
-            q_info = qs_map.get(qid, {})
+            authoritative_map_battle_submission = submission
+            authoritative_map_battle_monster_defeated = (
+                int(submission['monster_hp_after'] or 0) == 0
+            )
+            q_info = _map_battle_question_by_id(qid) or {}
             question_rating_snapshot = rank_to_rating(
                 q_info.get('rank') or q_info.get('difficulty')
             )
@@ -13634,12 +14170,52 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
         monster_data = {}
         quest_shadow_events = [] if xp_shadow_enabled() else None
         try:
-            monster_data = _update_monster_and_quests(
-                conn, uid, qid, grade, q_info, combo_streak,
-                datetime.date.today().isoformat(),
-                should_grant_progress=should_grant_progress,
-                shadow_events=quest_shadow_events,
-            )
+            if combat_settlement_context == EXTERNAL_AUTHORITATIVE_MAP_BATTLE:
+                # Map Battle v1 has already committed the authoritative
+                # monster/player HP transition.  Keep the review/learning
+                # transaction and shared daily-quest progression, but never
+                # enter the legacy battlefield combat tail a second time.
+                monster_settlement_result = None
+                if authoritative_map_battle_monster_defeated:
+                    if authoritative_map_battle_submission is None:
+                        raise MonsterSettlementRejected(
+                            'Map Battle defeat has no authoritative submission'
+                        )
+                    monster_settlement_result = _settle_monster_defeat_in_tx(
+                        conn,
+                        uid,
+                        battlefield=q_info,
+                        settlement_id=f'map-battle:{submission_id}',
+                        hp_before=int(
+                            authoritative_map_battle_submission['monster_hp_before']
+                            or 0
+                        ),
+                        hp_after=int(
+                            authoritative_map_battle_submission['monster_hp_after']
+                            or 0
+                        ),
+                        loot_bonus=_get_combined_effect(conn, uid, 'loot_bonus'),
+                    )
+                monster_data = _map_battle_noncombat_progression(
+                    conn,
+                    uid,
+                    grade=grade,
+                    q_info=q_info,
+                    combo_streak=combo_streak,
+                    today_str=datetime.date.today().isoformat(),
+                    monster_defeated=authoritative_map_battle_monster_defeated,
+                    progress_eligible=should_grant_progress,
+                    shadow_events=quest_shadow_events,
+                    monster_settlement=monster_settlement_result,
+                )
+            else:
+                monster_data = _update_monster_and_quests(
+                    conn, uid, qid, grade, q_info, combo_streak,
+                    datetime.date.today().isoformat(),
+                    should_grant_progress=should_grant_progress,
+                    shadow_events=quest_shadow_events,
+                    settlement_id=f'review:{submission_id}',
+                )
             conn.commit()
             quest_shadow_inputs = monster_data.pop('_xp_shadow_inputs', [])
         except Exception:
