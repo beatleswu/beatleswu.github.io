@@ -132,6 +132,29 @@ from question_capacity_authority import (
     QuestionCapacityNotOwned,
     apply_question_capacity_in_transaction,
 )
+from quest_runtime_config import (
+    QUEST_V2_FEATURE_FLAG,
+    quest_v2_runtime_enabled,
+)
+from quest_runtime import (
+    QuestRuntimeError,
+    apply_quest_runtime_event,
+    build_monster_defeat_event,
+    build_review_settlement_event,
+)
+from quest_runtime_api import (
+    QuestRuntimeReadError,
+    QuestRuntimeSchemaUnavailable,
+    build_quest_v2_read_state,
+)
+from quest_period_authority import QUEST_PERIOD_RESOLVER
+from quest_claim_authority import QuestClaimService
+from quest_identity import UnknownQuestIdentity, get_quest_definition
+from quest_reward_adapters import CallableQuestRewardAuthorities, QuestRewardSettlementError
+from login_journey_authority import (
+    LoginAuthorityError,
+    record_authenticated_login,
+)
 from item_use_operations import (
     ItemUseOperationConflict,
     ItemUseOperationInProgress,
@@ -3035,6 +3058,130 @@ def warmup_katago():
 def get_db():
     from db import get_db as _get_db
     return _get_db()
+
+
+def _quest_v2_server_now():
+    """Return one server-owned UTC timestamp for a runtime transaction."""
+
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def _apply_quest_v2_review_events(
+    conn,
+    *,
+    uid,
+    submission_id,
+    grade,
+    monster_data,
+    occurred_at,
+    should_grant_progress,
+):
+    """Bridge one committed review/combat result into D013/D014 once.
+
+    The review submission identity is already server-bound by D5B.  Monster
+    type, defeat, and encounter class come from the server-owned combat
+    result; no request-body field is consulted here.
+    """
+
+    if not quest_v2_runtime_enabled():
+        return ()
+    # An incorrect authoritative answer must still reach D013's RESET
+    # semantics; anti-farming only suppresses repeated positive credit.
+    if int(grade) >= 3 and not should_grant_progress:
+        return ()
+    if not isinstance(occurred_at, datetime.datetime) or occurred_at.tzinfo is None:
+        raise QuestRuntimeError('quest_event_timestamp_must_be_server_aware')
+    monster = (monster_data or {}).get('monster') or {}
+    monster_family = str(monster.get('type') or '').strip() or None
+    answer_event = build_review_settlement_event(
+        user_id=int(uid),
+        submission_id=submission_id,
+        occurred_at=occurred_at.isoformat(),
+        correct=int(grade) >= 3,
+        monster_family=monster_family,
+        source_scope='daily_battlefield',
+    )
+    applied = [
+        apply_quest_runtime_event(
+            conn,
+            event=answer_event,
+            server_now=occurred_at,
+        )
+    ]
+    if bool(monster.get('defeated')) and monster_family and should_grant_progress:
+        defeat_event = build_monster_defeat_event(
+            user_id=int(uid),
+            submission_id=submission_id,
+            occurred_at=occurred_at.isoformat(),
+            monster_family=monster_family,
+            monster_id=monster_family,
+            encounter_class=monster.get('encounter_kind'),
+            source_scope='daily_battlefield',
+        )
+        applied.append(
+            apply_quest_runtime_event(
+                conn,
+                event=defeat_event,
+                server_now=occurred_at,
+            )
+        )
+    return tuple(applied)
+
+
+def _quest_v2_reward_authorities():
+    """Bind D015 to existing app authorities; no Quest-specific ledger."""
+
+    def grant_xp(conn, uid, amount, reason, reward_profile_id):
+        return _grant_quest_xp(conn, int(uid), int(amount), reason)
+
+    def grant_coins(conn, uid, amount, reason, reward_profile_id):
+        return int(_grant_coins(conn, int(uid), int(amount), reason))
+
+    def grant_item(conn, uid, item_id, quantity, reason, reward_profile_id):
+        if item_id not in PET_FOOD_CATALOG:
+            raise QuestRewardSettlementError('quest_item_authority_unavailable')
+        _grant_pet_food(conn, int(uid), item_id, int(quantity))
+        row = conn.execute(
+            'SELECT qty FROM pet_inventory WHERE user_id=? AND item_key=?',
+            (int(uid), item_id),
+        ).fetchone()
+        return {
+            'item_id': item_id,
+            'granted_quantity': int(quantity),
+            'resulting_quantity': int(row['qty'] or 0) if row else int(quantity),
+            'ownership_authority': 'pet_inventory',
+            'ownership_reference': f'pet_inventory:{int(uid)}:{item_id}',
+        }
+
+    return CallableQuestRewardAuthorities(
+        grant_xp=grant_xp,
+        grant_coins=grant_coins,
+        grant_item=grant_item,
+    )
+
+
+def _quest_v2_disabled_response():
+    return jsonify({
+        'ok': False,
+        'enabled': False,
+        'feature_flag': QUEST_V2_FEATURE_FLAG,
+        'error': 'quest_v2_disabled',
+    }), 404
+
+
+def _record_login_day_if_enabled(conn, *, user_id, method, occurred_at):
+    """Call D016 only after a server-authenticated session is established."""
+
+    if not quest_v2_runtime_enabled():
+        return None
+    return record_authenticated_login(
+        conn,
+        user_id=int(user_id),
+        occurred_at=occurred_at,
+        source_authority=f'auth:{method}',
+        source_operation_id=f'auth:{method}:{int(user_id)}:{uuid.uuid4().hex}',
+        server_now=occurred_at,
+    )
 
 
 def _companion_route_error(exc):
@@ -6755,6 +6902,7 @@ def _get_or_create_battlefield(conn, uid, today_str):
 _COMBAT_ATTACK_BONUS_CAP = 0.75
 _COMBAT_DAMAGE_REDUCTION_CAP = 0.99
 _COMBAT_STATS_CONTEXT = ContextVar('combat_stats_context', default=None)
+_QUEST_LEGACY_DAILY_ENABLED = ContextVar('quest_legacy_daily_enabled', default=True)
 
 
 def _nonnegative_effect(value):
@@ -6953,7 +7101,8 @@ def _equipment_aware_legacy_combat(operation):
 
     @wraps(operation)
     def wrapped(conn, uid, qid, grade, q_info, combo_streak, today_str,
-                should_grant_progress=True, shadow_events=None):
+                should_grant_progress=True, shadow_events=None,
+                legacy_daily_enabled=True):
         row = conn.execute(
             'SELECT monster_type FROM battlefield_monster WHERE user_id=? AND bf_date=?',
             (uid, today_str),
@@ -6961,6 +7110,7 @@ def _equipment_aware_legacy_combat(operation):
         monster_type = row['monster_type'] if row else _BATTLEFIELD_ROSTER[0][0]
         combat_stats = _get_authoritative_combat_stats(conn, uid, monster_type)
         token = _COMBAT_STATS_CONTEXT.set(combat_stats)
+        daily_token = _QUEST_LEGACY_DAILY_ENABLED.set(bool(legacy_daily_enabled))
         try:
             result = operation(
                 conn, uid, qid, grade, q_info, combo_streak, today_str,
@@ -6971,6 +7121,7 @@ def _equipment_aware_legacy_combat(operation):
                 result['combat_stats'] = combat_stats
             return result
         finally:
+            _QUEST_LEGACY_DAILY_ENABLED.reset(daily_token)
             _COMBAT_STATS_CONTEXT.reset(token)
 
     return wrapped
@@ -7287,7 +7438,7 @@ def monster_status():
 
 def _lane_b_monster_update_with_authoritative_profile(
     conn, uid, qid, grade, q_info, combo_streak, today_str,
-    should_grant_progress=True, shadow_events=None,
+    should_grant_progress=True, shadow_events=None, legacy_daily_enabled=True,
 ):
     """Route combat retaliation through the server-owned roster profile.
 
@@ -7305,6 +7456,7 @@ def _lane_b_monster_update_with_authoritative_profile(
         conn, uid, qid, grade, server_q_info, combo_streak, today_str,
         should_grant_progress=should_grant_progress,
         shadow_events=shadow_events,
+        legacy_daily_enabled=legacy_daily_enabled,
     )
     if isinstance(result, dict) and isinstance(result.get('monster'), dict):
         result['monster']['stage'] = profile['stage']
@@ -7332,9 +7484,23 @@ _update_monster_and_quests_legacy = _update_monster_and_quests
 _update_monster_and_quests = _lane_b_monster_update_with_authoritative_profile
 
 
+def _grant_quest_xp(conn, uid, base_amount, reason):
+    """One server-owned Quest/Daily XP writer used by legacy and D015."""
+
+    bonus = _safe_active_equipment_effect(conn, int(uid), 'quest_xp_bonus')
+    granted = int(int(base_amount) * (1 + bonus))
+    conn.execute(
+        'UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+? WHERE user_id=?',
+        (granted, granted, int(uid)),
+    )
+    return granted
+
+
 def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
                          monster_type, combo_streak, progress_eligible=True,
                          shadow_events=None):
+    if not _QUEST_LEGACY_DAILY_ENABLED.get():
+        return []
     results          = []
     non_bonus_done   = 0
     quest_xp_bonus   = _safe_active_equipment_effect(conn, uid, 'quest_xp_bonus')
@@ -7385,11 +7551,7 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
             just_completed = (prog >= target)
             xp_awarded = 0
             if just_completed and not completed:
-                quest_xp = int(q['xp'] * (1 + quest_xp_bonus))
-                conn.execute(
-                    'UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+? WHERE user_id=?',
-                    (quest_xp, quest_xp, uid)
-                )
+                quest_xp = _grant_quest_xp(conn, uid, q['xp'], f'daily_quest:{key}')
                 _grant_pet_food(conn, uid, 'go_spirit_candy', 1)
                 pet_reward = _pet_food_reward('go_spirit_candy', 1)
                 xp_awarded = quest_xp
@@ -7442,11 +7604,7 @@ def _update_daily_quests(conn, uid, today_str, *, grade, monster_defeated,
         if non_bonus_done >= 3:
             bonus['completed'] = True
             base_bxp = next(d['xp'] for d in DAILY_QUEST_DEFS if d['key'] == 'all_complete')
-            bxp = int(base_bxp * (1 + quest_xp_bonus))
-            conn.execute(
-                'UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+? WHERE user_id=?',
-                (bxp, bxp, uid)
-            )
+            bxp = _grant_quest_xp(conn, uid, base_bxp, 'daily_quest:all_complete')
             _grant_pet_food(conn, uid, 'starfruit', 1)
             bonus['pet_reward'] = _pet_food_reward('starfruit', 1)
             bonus['coins'] = _COIN_ALL_QUESTS_BONUS
@@ -7814,6 +7972,18 @@ def auth_login():
         conn.execute('UPDATE users SET last_login=? WHERE id=?',
                      (datetime.datetime.now().isoformat(), row['id']))
         conn.execute('INSERT OR IGNORE INTO user_stats(user_id) VALUES(?)', (row['id'],))
+        login_occurred_at = _quest_v2_server_now()
+        try:
+            _record_login_day_if_enabled(
+                conn,
+                user_id=row['id'],
+                method='password',
+                occurred_at=login_occurred_at,
+            )
+        except LoginAuthorityError:
+            conn.rollback()
+            app.logger.exception('D016 login-day hook failed for password login')
+            return jsonify({'error': 'login_day_runtime_unavailable', 'retryable': True}), 503
         conn.commit()
 
         plan = row['plan'] if 'plan' in row.keys() else 'free'
@@ -7852,6 +8022,7 @@ def auth_google_login():
     email = profile['email']
     nickname = (profile.get('name') or profile.get('given_name') or '').strip()
     now = datetime.datetime.now().isoformat()
+    login_occurred_at = _quest_v2_server_now()
     _new_google_user = None
 
     with get_db() as conn:
@@ -7893,6 +8064,17 @@ def auth_google_login():
                     'email_verified': True, 'ip': _client_ip(),
                     'user_agent': request.headers.get('User-Agent', ''),
                 }
+        try:
+            _record_login_day_if_enabled(
+                conn,
+                user_id=uid,
+                method='google',
+                occurred_at=login_occurred_at,
+            )
+        except LoginAuthorityError:
+            conn.rollback()
+            app.logger.exception('D016 login-day hook failed for Google login')
+            return jsonify({'error': 'login_day_runtime_unavailable', 'retryable': True}), 503
         conn.commit()
 
         row = conn.execute(
@@ -13618,13 +13800,37 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
                 datetime.date.today().isoformat(),
                 should_grant_progress=should_grant_progress,
                 shadow_events=quest_shadow_events,
+                legacy_daily_enabled=not quest_v2_runtime_enabled(),
             )
+            if quest_v2_runtime_enabled():
+                quest_runtime_results = _apply_quest_v2_review_events(
+                    conn,
+                    uid=uid,
+                    submission_id=submission_id,
+                    grade=grade,
+                    monster_data=monster_data,
+                    occurred_at=_quest_v2_server_now(),
+                    should_grant_progress=should_grant_progress,
+                )
+                monster_data['quest_v2'] = {
+                    'event_count': len(quest_runtime_results),
+                    'application_count': sum(
+                        len(result.all_applications) for result in quest_runtime_results
+                    ),
+                }
             conn.commit()
             quest_shadow_inputs = monster_data.pop('_xp_shadow_inputs', [])
         except Exception:
             conn.rollback()
             quest_shadow_inputs = []
             app.logger.exception('optional monster/quest update failed after answer %s for user %s', qid, uid)
+            if quest_v2_runtime_enabled():
+                return jsonify({
+                    'error': 'quest_runtime_pending',
+                    'code': 'quest_runtime_pending',
+                    'message': 'Answer settlement committed; Quest V2 progress retry required',
+                    'retryable': True,
+                }), 503
 
         # ── 同步法典純淨度 (grimoire_api 系統) ─────────────────────
         grimoire_id = q_info.get('grimoire_id')
@@ -14469,6 +14675,109 @@ def quests_reset():
         )
         conn.commit()
     return jsonify({'ok': True, 'message': f'已重置 {today} 任務'})
+
+
+@app.route('/api/quests/v2', methods=['GET'])
+@login_required
+def quest_v2_state():
+    """Return server-owned Quest V2 state plus separate Login Journey state."""
+
+    if not quest_v2_runtime_enabled():
+        return _quest_v2_disabled_response()
+    try:
+        with get_db() as conn:
+            state = build_quest_v2_read_state(
+                conn,
+                user_id=session['user_id'],
+                now=_quest_v2_server_now(),
+            )
+    except QuestRuntimeSchemaUnavailable:
+        app.logger.error('Quest V2 read schema is unavailable')
+        return jsonify({'ok': False, 'error': 'quest_v2_schema_unavailable', 'retryable': True}), 503
+    except QuestRuntimeReadError as exc:
+        app.logger.warning('Quest V2 read denied: %s', type(exc).__name__)
+        return jsonify({'ok': False, 'error': 'quest_v2_read_unavailable'}), 503
+    return jsonify({'ok': True, **state})
+
+
+@app.route('/api/quests/v2/claim', methods=['POST'])
+@login_required
+def quest_v2_claim():
+    """Settle one exact Quest period through the D015 claim authority."""
+
+    if not quest_v2_runtime_enabled():
+        return _quest_v2_disabled_response()
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({'ok': False, 'error': 'invalid_claim_request'}), 400
+    allowed = {'quest_id', 'period_key', 'claim_operation_id'}
+    forbidden = {
+        'user_id', 'target', 'progress', 'completed', 'claimable',
+        'reward_profile_id', 'reward', 'coins', 'xp', 'item', 'definition_version',
+    }
+    if set(data).difference(allowed) or forbidden.intersection(data):
+        return jsonify({'ok': False, 'error': 'client_authority_field_rejected'}), 400
+    raw_quest_id = data.get('quest_id')
+    operation_id = data.get('claim_operation_id')
+    if not isinstance(raw_quest_id, str) or not raw_quest_id.strip():
+        return jsonify({'ok': False, 'error': 'quest_id_required'}), 400
+    try:
+        operation_id, _generated = normalize_identity(
+            operation_id,
+            field='claim_operation_id',
+            generate_if_missing=False,
+        )
+        definition = get_quest_definition(raw_quest_id)
+    except (IdempotencyIdentityError, UnknownQuestIdentity, ValueError) as exc:
+        return jsonify({'ok': False, 'error': str(exc) or 'invalid_claim_identity'}), 400
+
+    now = _quest_v2_server_now()
+    period_key = data.get('period_key')
+    if period_key is None:
+        try:
+            resolved = QUEST_PERIOD_RESOLVER.resolve_definition(
+                definition,
+                now,
+                server_now=now,
+            )
+            if resolved is None:
+                return jsonify({'ok': False, 'error': 'quest_period_unavailable'}), 409
+            period_key = resolved.period_key
+        except Exception:
+            return jsonify({'ok': False, 'error': 'quest_period_unavailable'}), 409
+    elif not isinstance(period_key, str) or not period_key.strip() or len(period_key.strip()) > 128:
+        return jsonify({'ok': False, 'error': 'period_key_invalid'}), 400
+    else:
+        period_key = period_key.strip()
+
+    try:
+        with get_db() as conn:
+            service = QuestClaimService(
+                conn,
+                reward_authorities=_quest_v2_reward_authorities(),
+            )
+            result = service.claim(
+                int(session['user_id']),
+                raw_quest_id,
+                period_key,
+                claim_operation_id=operation_id,
+                now=now,
+            )
+    except QuestRuntimeSchemaUnavailable:
+        app.logger.error('Quest V2 claim schema is unavailable')
+        return jsonify({'ok': False, 'error': 'quest_v2_schema_unavailable', 'retryable': True}), 503
+    except Exception as exc:
+        app.logger.exception('Quest V2 claim failed: %s', type(exc).__name__)
+        return jsonify({'ok': False, 'error': 'quest_claim_unavailable', 'retryable': True}), 503
+
+    status_code = 200
+    if result.status == 'CONFLICT':
+        status_code = 409
+    elif result.status == 'DENIED':
+        status_code = 403
+    elif result.status == 'IN_PROGRESS':
+        status_code = 409
+    return jsonify({'ok': result.status in {'GRANTED', 'SETTLED'}, **result.as_dict()}), status_code
 
 @app.route('/api/pet/status')
 @login_required
