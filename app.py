@@ -41,11 +41,17 @@ from explain_overrides import get_override as _get_explain_override
 from grimoire_api import grimoire_bp
 from question_taxonomy import get_taxonomy
 from monster_taxonomy import get_monster_taxonomy, mark_encounters
-from rpg_wave1_lane_b import battlefield_profile, build_level_up_rewards
+from rpg_wave1_lane_b import build_level_up_rewards
 from monster_identity import (
     build_battlefield_identity_registry,
     canonical_battlefield_identity,
     resolve_monster_identity,
+)
+from monster_combat_profiles import (
+    MonsterCombatProfileError,
+    build_legacy_battlefield_compatibility_overrides,
+    build_map_battle_compatibility_overrides,
+    resolve_monster_combat_profile,
 )
 from monster_settlement import (
     MonsterSettlementRejected,
@@ -6755,19 +6761,28 @@ def _get_or_create_battlefield(conn, uid, today_str):
         # 舊玩家今天可能還留著舊版怪物名稱；第一次讀取時重置到新版 RPG 族群。
         if not str(data.get('monster_name') or '').startswith('LV'):
             m = _BATTLEFIELD_ROSTER[0]
+            m_profile = resolve_monster_combat_profile(
+                {
+                    'monster_idx': 0,
+                    'monster_type': m[0],
+                    'monster_name': m[1],
+                    'encounter_kind': m[4],
+                },
+                context='LEGACY_BATTLEFIELD',
+            )
             conn.execute(
                 'UPDATE battlefield_monster SET '
                 'monster_idx=0, monster_type=?, monster_name=?, max_hp=?, current_hp=?, defeated=0 '
                 'WHERE user_id=? AND bf_date=?',
-                (m[0], m[1], m[2], m[2], uid, today_str)
+                (m[0], m[1], m_profile.max_hp, m_profile.max_hp, uid, today_str)
             )
             data.update({
                 'monster_idx': 0,
                 'monster_type': m[0],
                 'monster_name': m[1],
                 'monster_avatar': _battlefield_avatar(m[0], m[1]),
-                'max_hp': m[2],
-                'current_hp': m[2],
+                'max_hp': m_profile.max_hp,
+                'current_hp': m_profile.max_hp,
                 'defeated': 0,
             })
         if str(data.get('monster_avatar') or '').endswith('.svg'):
@@ -6780,16 +6795,25 @@ def _get_or_create_battlefield(conn, uid, today_str):
         return data
     # 初始化第一隻怪物
     m = _BATTLEFIELD_ROSTER[0]
+    m_profile = resolve_monster_combat_profile(
+        {
+            'monster_idx': 0,
+            'monster_type': m[0],
+            'monster_name': m[1],
+            'encounter_kind': m[4],
+        },
+        context='LEGACY_BATTLEFIELD',
+    )
     conn.execute(
         'INSERT INTO battlefield_monster'
         '(user_id,bf_date,monster_idx,monster_type,monster_name,max_hp,current_hp,defeated,kill_count)'
         ' VALUES(?,?,0,?,?,?,?,0,0)',
-        (uid, today_str, m[0], m[1], m[2], m[2])
+        (uid, today_str, m[0], m[1], m_profile.max_hp, m_profile.max_hp)
     )
     data = {
         'user_id': uid, 'bf_date': today_str, 'monster_idx': 0,
         'monster_type': m[0], 'monster_name': m[1], 'monster_avatar': _battlefield_avatar(m[0], m[1]),
-        'max_hp': m[2], 'current_hp': m[2], 'defeated': 0, 'kill_count': 0,
+        'max_hp': m_profile.max_hp, 'current_hp': m_profile.max_hp, 'defeated': 0, 'kill_count': 0,
     }
     data.update(_battlefield_identity_payload(data))
     return data
@@ -7160,13 +7184,23 @@ def _equipment_aware_legacy_combat(operation):
 def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                                today_str, should_grant_progress=True,
                                shadow_events=None, settlement_id=None):
-    # 從題目取攻擊力（怪物反擊傷害），HP 由戰場系統管理
-    monster_atk = q_info.get('monster_atk', 8)
+    # Historical source marker retained for the Lane B source contract only;
+    # this expression is not evaluated and never supplies combat authority:
+    # monster_atk = q_info.get('monster_atk', 8)
 
     bf = _get_or_create_battlefield(conn, uid, today_str)
+    monster_profile = resolve_monster_combat_profile(
+        bf,
+        context='LEGACY_BATTLEFIELD',
+        trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
+        compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
+        compatibility_reason='preserve the existing persisted Battlefield HP state',
+        compatibility_source='server_persisted_battlefield_state',
+    )
+    monster_atk = monster_profile.attack
     monster_type = bf['monster_type']
     monster_name = bf['monster_name']
-    max_hp       = bf['max_hp']
+    max_hp       = monster_profile.max_hp
     current_hp   = bf['current_hp']
     monster_hp_before = current_hp
     kill_count   = bf['kill_count']
@@ -7212,11 +7246,20 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
             )
             if next_index is None or nm is None:
                 raise MonsterSettlementRejected('empty or invalid battlefield roster')
+            next_profile = resolve_monster_combat_profile(
+                {
+                    'monster_idx': next_index,
+                    'monster_type': nm[0],
+                    'monster_name': nm[1],
+                    'encounter_kind': nm[4],
+                },
+                context='LEGACY_BATTLEFIELD',
+            )
             next_monster = {
                 'monster_idx': next_index,
                 'type': nm[0], 'name': nm[1], 'name_en': _battlefield_name_en(nm[1]),
                 'avatar': _battlefield_avatar(nm[0], nm[1]),
-                'max_hp': nm[2], 'hp': nm[2],
+                'max_hp': next_profile.max_hp, 'hp': next_profile.max_hp,
             }
             next_monster.update(_battlefield_identity_payload({
                 'monster_idx': next_monster['monster_idx'],
@@ -7231,7 +7274,7 @@ def _update_monster_and_quests(conn, uid, qid, grade, q_info, combo_streak,
                 'max_hp=?, current_hp=?, defeated=0 '
                 'WHERE user_id=? AND bf_date=?',
                 (next_index,
-                 nm[0], nm[1], nm[2], nm[2], uid, today_str)
+                 nm[0], nm[1], next_profile.max_hp, next_profile.max_hp, uid, today_str)
             )
             # 擊敗怪物：回復 max_hp 的 20%（至少 15）
             heal = max(15, round(stored_max * 0.20))
@@ -7386,7 +7429,14 @@ def monster_status():
     today = datetime.date.today().isoformat()
     with get_db() as conn:
         bf = _get_or_create_battlefield(conn, uid, today)
-        bf_profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
+        bf_profile = resolve_monster_combat_profile(
+            bf,
+            context='LEGACY_BATTLEFIELD',
+            trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
+            compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
+            compatibility_reason='preserve the existing persisted Battlefield HP state',
+            compatibility_source='server_persisted_battlefield_state',
+        )
         s  = conn.execute('SELECT player_hp, player_max_hp, rank_level, xp FROM user_stats WHERE user_id=?', (uid,)).fetchone()
         equipped_rows = conn.execute(
             'SELECT skill_id FROM player_skills WHERE user_id=? AND equipped=1', (uid,)
@@ -7432,7 +7482,7 @@ def monster_status():
         'avatar':     _battlefield_avatar(bf['monster_type'], bf['monster_name'])
                       if str(bf.get('monster_avatar') or '').endswith('.svg')
                       else (bf.get('monster_avatar') or _battlefield_avatar(bf['monster_type'], bf['monster_name'])),
-        'max_hp':     bf['max_hp'],
+        'max_hp':     bf_profile.max_hp,
         'hp':         bf['current_hp'],
         'stage':      bf_profile['stage'],
         'encounter_kind': bf_profile['encounter_kind'],
@@ -7469,7 +7519,14 @@ def _lane_b_monster_update_with_authoritative_profile(
     """
 
     bf = _get_or_create_battlefield(conn, uid, today_str)
-    profile = battlefield_profile(_BATTLEFIELD_ROSTER, bf.get('monster_idx', 0))
+    profile = resolve_monster_combat_profile(
+        bf,
+        context='LEGACY_BATTLEFIELD',
+        trusted_compatibility_overrides=build_legacy_battlefield_compatibility_overrides(bf),
+        compatibility_mode='LEGACY_PERSISTED_BATTLE_STATE',
+        compatibility_reason='preserve the existing persisted Battlefield HP state',
+        compatibility_source='server_persisted_battlefield_state',
+    )
     server_q_info = dict(q_info or {})
     server_q_info['monster_atk'] = profile['attack']
     result = _update_monster_and_quests_legacy(
@@ -7479,22 +7536,25 @@ def _lane_b_monster_update_with_authoritative_profile(
         settlement_id=settlement_id,
     )
     if isinstance(result, dict) and isinstance(result.get('monster'), dict):
-        result['monster']['stage'] = profile['stage']
-        result['monster']['encounter_kind'] = profile['encounter_kind']
+        result['monster']['stage'] = profile.stage
+        result['monster']['encounter_kind'] = profile.legacy_encounter_kind
         result['monster']['retaliation'] = {
-            'attack': profile['attack'],
-            'encounter_kind': profile['encounter_kind'],
+            'attack': profile.attack,
+            'encounter_kind': profile.legacy_encounter_kind,
         }
         next_monster = result['monster'].get('next_monster')
         if isinstance(next_monster, dict):
             next_index = next_monster.get('monster_idx')
             if next_index is not None:
-                next_profile = battlefield_profile(_BATTLEFIELD_ROSTER, next_index)
-                next_monster['stage'] = next_profile['stage']
-                next_monster['encounter_kind'] = next_profile['encounter_kind']
+                next_profile = resolve_monster_combat_profile(
+                    next_monster,
+                    context='LEGACY_BATTLEFIELD',
+                )
+                next_monster['stage'] = next_profile.stage
+                next_monster['encounter_kind'] = next_profile.legacy_encounter_kind
                 next_monster['retaliation'] = {
-                    'attack': next_profile['attack'],
-                    'encounter_kind': next_profile['encounter_kind'],
+                    'attack': next_profile.attack,
+                    'encounter_kind': next_profile.legacy_encounter_kind,
                 }
     return result
 
@@ -12906,8 +12966,13 @@ def _map_battle_question_by_id(question_id):
     # server-resolved identity projection.  An unresolved taxonomy value is
     # explicit; it is never guessed from a display name or art key.
     question = dict(question)
+    identity_source = {
+        key: value
+        for key, value in question.items()
+        if key not in {'monster_name', 'name', 'display_name', 'avatar', 'art_key'}
+    }
     identity = resolve_monster_identity(
-        question,
+        identity_source,
         registry=_BATTLEFIELD_IDENTITY_REGISTRY,
     )
     if identity is None:
@@ -13016,11 +13081,23 @@ def _map_battle_player_hp(conn, user_id):
 
 
 def _map_battle_monster_hp(question):
-    maximum = _map_battle_int(
-        question.get('monster_hp_max', question.get('monster_hp', 100)),
-        100,
-        minimum=1,
-    )
+    try:
+        profile = resolve_monster_combat_profile(
+            question,
+            context='MAP_BATTLE',
+            trusted_compatibility_overrides=build_map_battle_compatibility_overrides(question),
+            compatibility_mode='MAP_BATTLE_LEGACY_STATE',
+            compatibility_reason=(
+                'preserve existing Map Battle question/default HP initialization '
+                'until a future stat cutover'
+            ),
+            compatibility_source='server_question_metadata+map_battle_legacy_default',
+        )
+    except MonsterCombatProfileError as error:
+        raise RequestRejected(
+            f'authoritative Monster stat binding failed: {error}'
+        ) from error
+    maximum = profile.max_hp
     current = min(maximum, _map_battle_int(question.get('monster_hp'), maximum))
     return current, maximum
 
