@@ -1020,6 +1020,7 @@ def settle_answer(
     eligibility: Mapping[str, Any] | None = None,
     judge: Callable[[Mapping[str, Any], Mapping[str, Any], CanonicalAnswer], JudgeOutcome] | None = None,
     combat_stats_resolver: Callable[[Any, int, str | None], Mapping[str, Any]] | None = None,
+    monster_profile_resolver: Callable[[Any, int, str], MonsterCombatProfile | None] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
 
@@ -1158,27 +1159,35 @@ def settle_answer(
     )
     if battle is None:
         raise RequestRejected("battle does not exist for owner", status=404)
-    try:
-        monster_profile = resolve_monster_combat_profile(
-            question,
-            context="MAP_BATTLE",
-            trusted_compatibility_overrides=build_map_battle_compatibility_overrides(
-                question,
-                persisted_max_hp=battle.get("monster_hp_max"),
-            ),
-            compatibility_mode="MAP_BATTLE_LEGACY_STATE",
-            compatibility_reason=(
-                "preserve existing Map Battle persisted HP and question-retaliation "
-                "compatibility until a future stat cutover"
-            ),
-            compatibility_source=(
-                "server_persisted_map_battle_state+server_question_metadata"
-            ),
+    monster_profile = None
+    if monster_profile_resolver is not None:
+        monster_profile = monster_profile_resolver(
+            conn,
+            user_id,
+            str(attempt["battle_id"]),
         )
-    except MonsterCombatProfileError as error:
-        raise JudgeUnavailable(
-            "authoritative Monster stat binding is unavailable"
-        ) from error
+    if monster_profile is None:
+        try:
+            monster_profile = resolve_monster_combat_profile(
+                question,
+                context="MAP_BATTLE",
+                trusted_compatibility_overrides=build_map_battle_compatibility_overrides(
+                    question,
+                    persisted_max_hp=battle.get("monster_hp_max"),
+                ),
+                compatibility_mode="MAP_BATTLE_LEGACY_STATE",
+                compatibility_reason=(
+                    "preserve existing Map Battle question/persisted-state "
+                    "compatibility while the selector is off"
+                ),
+                compatibility_source=(
+                    "server_persisted_map_battle_state+server_question_metadata"
+                ),
+            )
+        except MonsterCombatProfileError as error:
+            raise JudgeUnavailable(
+                "authoritative Monster stat binding is unavailable"
+            ) from error
     damage_to_monster, damage_to_player, heal_to_player = calculate_combat_effects(
         outcome.result,
         outcome.authoritative_grade,

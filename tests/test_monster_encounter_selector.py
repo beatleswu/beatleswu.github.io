@@ -334,9 +334,10 @@ def test_seen_state_is_scoped_by_explicit_zone_and_user_inputs():
     assert user_a.seen_state_scope == user_b.seen_state_scope == "USER_AND_ZONE"
 
 
-def test_selector_is_not_live_wired_and_does_not_change_app_source():
+def test_selector_is_only_wired_through_f010_default_off_adapter():
     app_source = Path(__file__).resolve().parents[1].joinpath("app.py").read_text(
         encoding="utf-8"
     )
-    assert "monster_encounter_selector" not in app_source
-    assert "select_monster_encounter" not in app_source
+    assert "monster_encounter_selector_runtime" in app_source
+    assert "monster_selector_v1_enabled" in app_source
+    assert "select_monster_encounter(" not in app_source
