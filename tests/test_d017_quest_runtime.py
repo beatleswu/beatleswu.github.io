@@ -317,13 +317,184 @@ def test_runtime_review_bridge_preserves_incorrect_answer_reset(monkeypatch):
             conn,
             uid=7,
             submission_id="d017-bridge-wrong",
-            grade=0,
+            authoritative_answer_correct=False,
+            correctness_source=app_module.QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE,
             monster_data={"monster": {"type": "dragon", "defeated": False}},
             occurred_at=SERVER_NOW,
             should_grant_progress=False,
         )
         assert len(results) == 1
         assert results[0].applications[0].operation == "RESET"
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("self_reported_grade", [5, 3, 0])
+def test_runtime_review_bridge_rejects_public_grade_without_server_judge(
+    monkeypatch, self_reported_grade
+):
+    """A public SRS grade is input validation, never Quest correctness."""
+
+    monkeypatch.setenv(QUEST_V2_FEATURE_FLAG, "true")
+    monkeypatch.setenv("SECRET_KEY", "d017-api-test-secret")
+    import app as app_module
+
+    conn = _db(login=False, rewards=False)
+    try:
+        # ``self_reported_grade`` models the public request value.  It is
+        # intentionally not accepted by the bridge; no authority evidence
+        # means neither positive progress nor an incorrect-answer reset.
+        results = app_module._apply_quest_v2_review_events(
+            conn,
+            uid=7,
+            submission_id=f"e023-r1-public-grade-{self_reported_grade}",
+            authoritative_answer_correct=None,
+            correctness_source=(
+                app_module.QUEST_CORRECTNESS_SOURCE_LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE
+            ),
+            monster_data={
+                "monster": {"type": "dragon", "defeated": True},
+                "monster_settlement": {
+                    "monster_type": "dragon",
+                    "monster_id": "dragon",
+                    "encounter_kind": "BATTLEFIELD_BOSS",
+                    "defeated": True,
+                },
+            },
+            occurred_at=SERVER_NOW,
+            should_grant_progress=True,
+        )
+        assert results == ()
+        assert conn.execute(
+            f"SELECT COUNT(*) FROM {PROGRESS_TABLE_NAME}"
+        ).fetchone()[0] == 0
+        assert conn.execute(
+            f"SELECT COUNT(*) FROM {APPLICATION_TABLE_NAME}"
+        ).fetchone()[0] == 0
+    finally:
+        conn.close()
+
+
+def test_runtime_public_grade_zero_does_not_reset_authoritative_streak(monkeypatch):
+    monkeypatch.setenv(QUEST_V2_FEATURE_FLAG, "true")
+    monkeypatch.setenv("SECRET_KEY", "d017-api-test-secret")
+    import app as app_module
+
+    conn = _db(login=False, rewards=False)
+    try:
+        apply_quest_runtime_event(
+            conn,
+            event=_review(
+                "e023-r1-existing-correct",
+                "2026-08-24T03:00:00Z",
+                correct=True,
+            ),
+            server_now=SERVER_NOW,
+        )
+        conn.commit()
+        before = conn.execute(
+            f"SELECT progress FROM {PROGRESS_TABLE_NAME} "
+            "WHERE quest_id='daily:streak_correct'"
+        ).fetchone()[0]
+
+        results = app_module._apply_quest_v2_review_events(
+            conn,
+            uid=7,
+            submission_id="e023-r1-public-grade-zero",
+            authoritative_answer_correct=None,
+            correctness_source=(
+                app_module.QUEST_CORRECTNESS_SOURCE_LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE
+            ),
+            monster_data={"monster": {"type": "dragon", "defeated": False}},
+            occurred_at=SERVER_NOW,
+            should_grant_progress=True,
+        )
+        after = conn.execute(
+            f"SELECT progress FROM {PROGRESS_TABLE_NAME} "
+            "WHERE quest_id='daily:streak_correct'"
+        ).fetchone()[0]
+        assert results == ()
+        assert before == after == 1
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize(
+    ("authoritative_answer_correct", "expected_operation"),
+    [(True, "INCREMENT"), (False, "RESET")],
+)
+def test_runtime_review_bridge_accepts_only_map_battle_server_judgement(
+    monkeypatch, authoritative_answer_correct, expected_operation
+):
+    monkeypatch.setenv(QUEST_V2_FEATURE_FLAG, "true")
+    monkeypatch.setenv("SECRET_KEY", "d017-api-test-secret")
+    import app as app_module
+
+    conn = _db(login=False, rewards=False)
+    try:
+        results = app_module._apply_quest_v2_review_events(
+            conn,
+            uid=7,
+            submission_id=(
+                f"e023-r1-map-battle-"
+                f"{'correct' if authoritative_answer_correct else 'incorrect'}"
+            ),
+            authoritative_answer_correct=authoritative_answer_correct,
+            correctness_source=(
+                app_module.QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE
+            ),
+            monster_data={
+                "monster": None,
+                "monster_settlement": {
+                    "monster_type": "dragon",
+                    "monster_id": "dragon",
+                    "encounter_kind": "BATTLEFIELD_BOSS",
+                    "defeated": False,
+                },
+            },
+            occurred_at=SERVER_NOW,
+            should_grant_progress=True,
+        )
+        assert len(results) == 1
+        assert results[0].applications[0].operation == expected_operation
+    finally:
+        conn.close()
+
+
+def test_runtime_review_bridge_replay_is_idempotent_for_authoritative_map_battle(
+    monkeypatch,
+):
+    monkeypatch.setenv(QUEST_V2_FEATURE_FLAG, "true")
+    monkeypatch.setenv("SECRET_KEY", "d017-api-test-secret")
+    import app as app_module
+
+    conn = _db(login=False, rewards=False)
+    try:
+        kwargs = {
+            "conn": conn,
+            "uid": 7,
+            "submission_id": "e023-r1-map-battle-replay",
+            "authoritative_answer_correct": True,
+            "correctness_source": (
+                app_module.QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE
+            ),
+            "monster_data": {
+                "monster": None,
+                "monster_settlement": {
+                    "monster_type": "dragon",
+                    "monster_id": "dragon",
+                    "encounter_kind": "BATTLEFIELD_BOSS",
+                    "defeated": True,
+                },
+            },
+            "occurred_at": SERVER_NOW,
+            "should_grant_progress": True,
+        }
+        first = app_module._apply_quest_v2_review_events(**kwargs)
+        replay = app_module._apply_quest_v2_review_events(**kwargs)
+        assert len(first) == 2
+        assert all(application.duplicate is False for result in first for application in result.applications)
+        assert all(application.duplicate is True for result in replay for application in result.applications)
     finally:
         conn.close()
 

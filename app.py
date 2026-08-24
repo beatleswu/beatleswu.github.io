@@ -3097,28 +3097,43 @@ def _quest_v2_server_now():
     return datetime.datetime.now(datetime.timezone.utc)
 
 
+QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE = EXTERNAL_AUTHORITATIVE_MAP_BATTLE
+QUEST_CORRECTNESS_SOURCE_LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE = (
+    'LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE'
+)
+
+
 def _apply_quest_v2_review_events(
     conn,
     *,
     uid,
     submission_id,
-    grade,
+    authoritative_answer_correct,
+    correctness_source,
     monster_data,
     occurred_at,
     should_grant_progress,
 ):
-    """Bridge one committed review/combat result into D013/D014 once.
+    """Bridge one authoritative review/combat result into D013/D014 once.
 
-    The review submission identity is already server-bound by D5B.  Monster
-    type, defeat, and encounter class come from the server-owned combat
-    result; no request-body field is consulted here.
+    ``correctness_source`` is a trusted internal handoff marker, never a
+    request field.  The public legacy review path deliberately supplies
+    ``LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE`` and ``None`` here: its accepted
+    SRS grade is client self-report, so it cannot mutate correctness-driven
+    Quest state.  Map Battle supplies the server judge result through the
+    ``EXTERNAL_AUTHORITATIVE_MAP_BATTLE`` handoff.  Monster type, defeat, and
+    encounter class are accepted only from that same server-owned result.
     """
 
     if not quest_v2_runtime_enabled():
         return ()
+    if correctness_source != QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE:
+        return ()
+    if not isinstance(authoritative_answer_correct, bool):
+        return ()
     # An incorrect authoritative answer must still reach D013's RESET
     # semantics; anti-farming only suppresses repeated positive credit.
-    if int(grade) >= 3 and not should_grant_progress:
+    if authoritative_answer_correct and not should_grant_progress:
         return ()
     if not isinstance(occurred_at, datetime.datetime) or occurred_at.tzinfo is None:
         raise QuestRuntimeError('quest_event_timestamp_must_be_server_aware')
@@ -3134,7 +3149,7 @@ def _apply_quest_v2_review_events(
         user_id=int(uid),
         submission_id=submission_id,
         occurred_at=occurred_at.isoformat(),
-        correct=int(grade) >= 3,
+        correct=authoritative_answer_correct,
         monster_family=monster_family,
         source_scope='daily_battlefield',
     )
@@ -14466,11 +14481,23 @@ def _srs_review_operation(uid, data, *, internal=False, submission_id=None):
             finally:
                 _QUEST_LEGACY_DAILY_ENABLED.reset(legacy_daily_token)
             if quest_v2_runtime_enabled():
+                quest_correctness_source = (
+                    QUEST_CORRECTNESS_SOURCE_AUTHORITATIVE_MAP_BATTLE
+                    if combat_settlement_context == EXTERNAL_AUTHORITATIVE_MAP_BATTLE
+                    else QUEST_CORRECTNESS_SOURCE_LEGACY_PUBLIC_REVIEW_NO_SERVER_JUDGE
+                )
+                authoritative_answer_correct = (
+                    authoritative_map_battle_submission['judge_result'] == 'CORRECT'
+                    if combat_settlement_context == EXTERNAL_AUTHORITATIVE_MAP_BATTLE
+                    and authoritative_map_battle_submission is not None
+                    else None
+                )
                 quest_runtime_results = _apply_quest_v2_review_events(
                     conn,
                     uid=uid,
                     submission_id=submission_id,
-                    grade=grade,
+                    authoritative_answer_correct=authoritative_answer_correct,
+                    correctness_source=quest_correctness_source,
                     monster_data=monster_data,
                     occurred_at=_quest_v2_server_now(),
                     should_grant_progress=should_grant_progress,
