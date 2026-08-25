@@ -1,0 +1,687 @@
+{
+  "task": "A027_PLAYER_PRESENTATION_SURFACE_WIRING_RECON_V1_001",
+  "source_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "scope": [
+    "HERO_OVERVIEW",
+    "ADVENTURE_PLAYER_IDENTITY",
+    "BACKPACK_EQUIPMENT_PRESENTATION",
+    "WARDROBE_PURE_COSMETIC_PRESENTATION"
+  ],
+  "route_assumption": "PLAYER_PRESENTATION_API_V1_ENDPOINT_PENDING_E026",
+  "route_assumption_note": "E026 is in progress. No future route is assumed to exist or to be merged by this recon.",
+  "a026_input": {
+    "accepted_adapter_sha": "a3808a095054856d23db5f0168c6c359976a210d",
+    "view_model": "PLAYER_PRESENTATION_VIEW_MODEL_V1",
+    "safe_groups": [
+      "hero identity",
+      "XP / level / rank",
+      "persistent HP",
+      "equipment display state",
+      "one active Spirit presentation",
+      "pure cosmetic display state"
+    ],
+    "excluded_groups": [
+      "World progression",
+      "selected/progression Zone",
+      "encounter HP",
+      "Quest",
+      "Shop",
+      "Premium",
+      "battle/reward state",
+      "combat stats/effects",
+      "Learning/SRS/streak state"
+    ]
+  },
+  "surfaces": [
+    {
+      "surface_id": "HERO_OVERVIEW",
+      "exact_file": "hero.html",
+      "exact_route": [
+        "/hero",
+        "/skills",
+        "/hero?tab=overview"
+      ],
+      "auth_required": true,
+      "dom_containers": [
+        "#char-avatar / #char-fullbody-avatar-img",
+        "#char-name / #char-auto-title / #char-sub-title",
+        "#badge-lv / #badge-go",
+        "#char-xp / #char-xp-bar / #char-xp-pct",
+        "#hero-overview-name / #hero-overview-rank / #hero-overview-archetype",
+        "#hero-overview-premium / #hero-overview-title / #hero-overview-spirit",
+        "#hero-overview-equipment / #hero-overview-xp / #hero-overview-bonus",
+        "#hero-functional-projection-list / #hero-style-projection-list"
+      ],
+      "render_helpers": [
+        "renderHeroOverview()",
+        "hydrateAuthoritativeHeroPresentation()",
+        "renderFunctionalEquipmentProjection()",
+        "renderCosmeticProjection()",
+        "renderCombatGearControls()",
+        "renderWardrobeSlots()",
+        "loadPetStatus()",
+        "loadNavAvatar()"
+      ],
+      "current_data_sources": [
+        {
+          "source": "/api/skills/profile",
+          "evidence": "hero.html:4864-4870, 4872-4955; app.py:17273-17481",
+          "facts": [
+            "display_name / username / nickname",
+            "auto_title / equipped_title",
+            "rank_level / level / go_rank",
+            "xp / xp_next / total_xp",
+            "wardrobe owned/equipped projection",
+            "stone_skin / board_skin",
+            "is_premium",
+            "legacy combat_stats / active_effects / milestones payload"
+          ],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE",
+            "LEGACY_COMPATIBILITY"
+          ]
+        },
+        {
+          "source": "/api/player/appearance",
+          "evidence": "hero.html:4819-4859, 5057-5076; app.py:16941-16999",
+          "facts": [
+            "character_key",
+            "equipped appearance slot IDs",
+            "server wardrobe rows",
+            "character_key_source",
+            "legacy combat appearance columns"
+          ],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE"
+          ]
+        },
+        {
+          "source": "/api/player/inventory",
+          "evidence": "hero.html:4827-4848; app.py:16856-16885",
+          "facts": [
+            "functional equipment owned rows",
+            "functional equipment equipped state",
+            "slot and effect display metadata"
+          ],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "SEPARATE_DOMAIN_AUTHORITY"
+          ]
+        },
+        {
+          "source": "/api/pet/status",
+          "evidence": "hero.html:2824-2828; hero.html:4803-4815; app.py:15479-15516",
+          "facts": [
+            "active Spirit/pet display",
+            "Spirit projection",
+            "b022_active_spirit",
+            "progression and effect payloads also present in the response"
+          ],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "SEPARATE_DOMAIN_AUTHORITY",
+            "DUPLICATED_PRESENTATION_SOURCE"
+          ]
+        },
+        {
+          "source": "/api/auth/me",
+          "evidence": "hero.html:5057-5066; app.py:8837-8910",
+          "facts": [
+            "nav display identity",
+            "go_rank/elo/premium context used by shared chrome"
+          ],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE"
+          ]
+        }
+      ],
+      "mutations_not_part_of_a026": [
+        "/api/skills/equip",
+        "/api/player/appearance/unequip",
+        "/api/skills/character",
+        "/api/skills/stone_skin",
+        "/api/skills/board_skin",
+        "/api/pet/choose",
+        "/api/pet/switch",
+        "/api/pet/feed",
+        "/api/pet/interact",
+        "/api/pet/rename"
+      ],
+      "local_storage": [
+        {
+          "key": "hero_combat_gear_v1",
+          "evidence": "hero.html:3692, 3757-3769, 4262-4282; index.html:7975-7979, 8030-8044, 8151-8162",
+          "overlap": ["character visual selection", "legacy gear visual selection"],
+          "classification": "SERVER_AUTHORITY_WITH_LOCAL_CACHE",
+          "adoption_disposition": "RETIRE_AFTER_SERVER_ROUTE_ADOPTION",
+          "note": "Current code explicitly treats it as a legacy style-control cache; server appearance/inventory hydration precedes authoritative rendering."
+        },
+        {
+          "key": "prem_welcomed",
+          "evidence": "hero.html:4973-4977",
+          "overlap": ["none"],
+          "classification": "NOT_A026_SCOPE",
+          "adoption_disposition": "KEEP_PRESENTATION_CACHE"
+        },
+        {
+          "key": "last_session_uid_v1",
+          "evidence": "hero.html:5100-5108",
+          "overlap": ["none"],
+          "classification": "NOT_A026_SCOPE",
+          "adoption_disposition": "KEEP_PRESENTATION_CACHE"
+        }
+      ],
+      "session_storage": [],
+      "global_js_state": [
+        "_profileData",
+        "_combatGear",
+        "_wardrobeItems",
+        "_petState",
+        "_functionalEquipmentItems",
+        "_characterAuthorityState",
+        "_functionalEquipmentState"
+      ],
+      "legacy_fallbacks": [
+        "CHARACTER_FALLBACK_ART / neutral apprentice fallback when server presentation is unavailable",
+        "legacy localStorage loadout remains readable during strangler migration",
+        "legacy /skills route alias remains active"
+      ],
+      "a026_replacement_fit": {
+        "hero_identity": "THIN_SURFACE_ADAPTER",
+        "character_key": "DIRECT_FROM_A026",
+        "xp_level_rank": "DIRECT_FROM_A026",
+        "persistent_hp": "NOT_CURRENTLY_CONSUMED_BY_THIS_SURFACE",
+        "equipment_owned_equipped_display": "THIN_SURFACE_ADAPTER",
+        "active_spirit_identity": "THIN_SURFACE_ADAPTER",
+        "pure_cosmetics": "THIN_SURFACE_ADAPTER",
+        "combat_stats_and_effect_bonus_summary": "DO_NOT_MIGRATE",
+        "premium_status": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "milestones_learning_or_streak_facts": "DO_NOT_MIGRATE",
+        "Elo_rating": "MUST_REMAIN_SEPARATE_AUTHORITY"
+      },
+      "gap": "The overview is the highest-value duplicated read surface, but it currently mixes A026-safe identity/progression with local gear catalogs, effect arithmetic, premium, milestone and Spirit-bonus presentation. Adoption must target only the safe fragment."
+    },
+    {
+      "surface_id": "ADVENTURE_PLAYER_IDENTITY",
+      "exact_file": "index.html",
+      "exact_route": [
+        "/",
+        "/?e9=1",
+        "/?zone=<zone>&adventure=1&resume=1"
+      ],
+      "auth_required": true,
+      "dom_containers": [
+        ".home-player-card",
+        "#home-player-figure",
+        "#home-player-base",
+        "#home-player-pet-layer",
+        "#home-player-name / #home-player-title / #home-player-handle",
+        "#home-player-lv / #home-player-rank / #home-player-elo / #home-player-xp",
+        "#adventure-map-nodes / #adventure-map-panel (World context; not A026 authority)"
+      ],
+      "render_helpers": [
+        "loadPlayerAvatar()",
+        "applyHeroCombatAvatarToIndex()",
+        "getPetStatus()",
+        "renderAdventureMap()",
+        "renderAdventureInfoPanel()",
+        "updateMapProgress()",
+        "loadMapProgressStatus()",
+        "primeInitialE9ShellOwnership()"
+      ],
+      "current_data_sources": [
+        {
+          "source": "/api/auth/me",
+          "evidence": "index.html:11932-11940, 8171-8174, 8186-8225; app.py:8837-8910",
+          "facts": ["username/display identity", "fallback go_rank/elo", "auth/rollout context"],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE"
+          ]
+        },
+        {
+          "source": "/api/skills/profile",
+          "evidence": "index.html:8165-8187; app.py:17273-17481",
+          "facts": ["display identity", "title", "rank/level", "xp/xp_next"],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE",
+            "LEGACY_COMPATIBILITY"
+          ]
+        },
+        {
+          "source": "/api/player/appearance",
+          "evidence": "index.html:8171-8184; app.py:16941-16999",
+          "facts": ["character_key", "equipped appearance IDs", "wardrobe lookup for title"],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE"
+          ]
+        },
+        {
+          "source": "/api/pet/status",
+          "evidence": "index.html:8089-8097, 8175-8178; app.py:15479-15516",
+          "facts": ["active Spirit image used in the home player card"],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "SEPARATE_DOMAIN_AUTHORITY",
+            "DUPLICATED_PRESENTATION_SOURCE"
+          ]
+        },
+        {
+          "source": "/api/adventure/bootstrap",
+          "evidence": "index.html:14274-14288, 12855-12870; app.py:11869-11887",
+          "facts": ["zones", "selected/progression zone", "stars", "zone status", "quest/boss readiness"],
+          "classification": ["SEPARATE_DOMAIN_AUTHORITY"]
+        }
+      ],
+      "mutations_not_part_of_a026": [
+        "zone selection and adventure entry",
+        "question/SRS resume",
+        "boss/adventure actions",
+        "E9/E10 shell ownership and rollout state"
+      ],
+      "local_storage": [
+        {
+          "key": "hero_combat_gear_v1",
+          "evidence": "index.html:7979, 8030-8044, 8151-8162, 20257-20270",
+          "overlap": ["character and gear visual layers"],
+          "classification": "SERVER_AUTHORITY_WITH_LOCAL_CACHE",
+          "adoption_disposition": "RETIRE_AFTER_SERVER_ROUTE_ADOPTION",
+          "note": "Appearance response synchronizes character_key into this cache, but the cache still drives hero layer selection."
+        },
+        {
+          "key": "adventure_selected_stage_v1",
+          "evidence": "index.html:12582, 13130-13142, 14274-14286",
+          "overlap": ["none; selected Zone is World authority"],
+          "classification": "SEPARATE_DOMAIN_AUTHORITY",
+          "adoption_disposition": "NOT_A026_SCOPE",
+          "note": "Must not be moved into Player Presentation."
+        },
+        {
+          "key": "last_session_uid_v1",
+          "evidence": "index.html:12083-12093, 20257-20270",
+          "overlap": ["none"],
+          "classification": "NOT_A026_SCOPE",
+          "adoption_disposition": "KEEP_PRESENTATION_CACHE"
+        }
+      ],
+      "session_storage": [
+        {
+          "keys": [
+            "placement_ritual_pending_v1",
+            "placement_ritual_seen_v1",
+            "map_battle_v1_resume_v1"
+          ],
+          "evidence": "index.html:9020-9047, 13307-13309, 14329-14333",
+          "classification": "SEPARATE_DOMAIN_AUTHORITY",
+          "adoption_disposition": "NOT_A026_SCOPE"
+        }
+      ],
+      "global_js_state": [
+        "_homeSpiritPet",
+        "_petStatusPromise",
+        "_adventureProgress",
+        "_activeBossZone",
+        "_legacyAdventureMapReady",
+        "window.__GO_WORLD_PRESENTATION_STATE__",
+        "window.__GO_ADVENTURE_SHELL_OWNER__",
+        "window.__GO_E9_ACTIVE_SHELL__",
+        "window.__GO_E9_SERVER_FLAGS__"
+      ],
+      "legacy_fallbacks": [
+        "ensureLegacyAdventureMapReady() / E9AdventureState adapter",
+        "loadMapProgressStatus() legacy bootstrap path",
+        "emoji/avatar fallback in _adventureAvatarMarkup() when hero art is unavailable",
+        "legacy practice renderer remains active for immediate practice/resume paths"
+      ],
+      "a026_replacement_fit": {
+        "player_or_hero_identity": "THIN_SURFACE_ADAPTER",
+        "character_key_and_portrait": "THIN_SURFACE_ADAPTER",
+        "xp_level_rank": "DIRECT_FROM_A026",
+        "active_spirit_identity": "THIN_SURFACE_ADAPTER",
+        "persistent_hp": "NOT_CURRENTLY_CONSUMED_BY_THIS_FRAGMENT",
+        "selected_zone": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "progression_zone_unlock_stars_lord_readiness": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "encounter_or_battle_state": "DO_NOT_MIGRATE",
+        "E9_E10_shell_state": "DO_NOT_MIGRATE"
+      },
+      "gap": "The identity card can adopt a snapshot fragment, but it is embedded in a large World/Adventure document. A026 must replace only the identity read; the map, Zone, Quest, battle, shell and replay state remain untouched."
+    },
+    {
+      "surface_id": "BACKPACK_EQUIPMENT_PRESENTATION",
+      "exact_file": "inventory.html",
+      "exact_route": [
+        "/inventory",
+        "/inventory?e10=1",
+        "/inventory?equipment=<inv_id>&e10=1"
+      ],
+      "auth_required": true,
+      "dom_containers": [
+        "#functional-equipment-filters",
+        "#functional-equipment-grid",
+        "#functional-equipment-detail",
+        "#functional-wearable-preview",
+        "#backpack-filters",
+        "#backpack-grid",
+        "#e10-backpack-dialog / #e10-backpack-dialog-*"
+      ],
+      "render_helpers": [
+        "loadFunctionalEquipment()",
+        "renderFunctionalEquipmentFilters()",
+        "renderFunctionalEquipmentGrid()",
+        "renderFunctionalEquipmentDetail()",
+        "renderFunctionalWearablePreview()",
+        "loadBackpack()",
+        "renderBackpackFilters()",
+        "renderBackpackGrid()",
+        "openBackpackDetails()",
+        "useBackpackItem()"
+      ],
+      "current_data_sources": [
+        {
+          "source": "/api/player/inventory",
+          "evidence": "inventory.html:816-842; app.py:16856-16885",
+          "facts": [
+            "functional equipment rows",
+            "inv_id/item_id",
+            "owned_quantity",
+            "equipped",
+            "slot/rarity/icon",
+            "effect details",
+            "comparison summary"
+          ],
+          "classification": ["SERVER_AUTHORITATIVE_PRESENTATION", "SEPARATE_DOMAIN_AUTHORITY"]
+        },
+        {
+          "source": "/api/skills/profile",
+          "evidence": "inventory.html:820-829; app.py:17273-17481",
+          "facts": ["character_key used only by functional wearable preview"],
+          "classification": ["DUPLICATED_PRESENTATION_SOURCE", "LEGACY_COMPATIBILITY"]
+        },
+        {
+          "source": "/api/shop/catalog",
+          "evidence": "inventory.html:1114-1133; app.py:22232-22261",
+          "facts": ["shop item definitions", "shop_inventory quantities", "categories", "usable/capability metadata"],
+          "classification": ["SEPARATE_DOMAIN_AUTHORITY", "LEGACY_COMPATIBILITY"]
+        },
+        {
+          "source": "/api/pet/status",
+          "evidence": "inventory.html:1114-1145; app.py:15479-15516",
+          "facts": ["pet_inventory material/feeding items"],
+          "classification": ["SEPARATE_DOMAIN_AUTHORITY"]
+        },
+        {
+          "source": "/api/auth/me",
+          "evidence": "inventory.html:1117-1151; app.py:8837-8910",
+          "facts": ["backpack display username"],
+          "classification": ["SERVER_AUTHORITATIVE_PRESENTATION", "DUPLICATED_PRESENTATION_SOURCE"]
+        }
+      ],
+      "mutations_not_part_of_a026": [
+        "/api/player/inventory/equip with inv_id/action",
+        "/api/shop/use with item_key",
+        "functional equipment comparison and effect display",
+        "consumables, training, growth, guard, quest, material, chest and exchange item authority",
+        "pet feeding/material authority"
+      ],
+      "local_storage": [],
+      "session_storage": [
+        {
+          "key": "functional_equipment_new_ids",
+          "evidence": "inventory.html:656-667; index.html:8315-8323",
+          "overlap": ["equipment presentation new badge only"],
+          "classification": "LOCAL_PRESENTATION_CACHE_ONLY",
+          "adoption_disposition": "KEEP_PRESENTATION_CACHE",
+          "note": "Not ownership; the A026 snapshot does not currently supply a new/badge fact."
+        }
+      ],
+      "global_js_state": [
+        "window.__GO_E10_BACKPACK_MODE__",
+        "window.__GO_ADVENTURE_SHELL_OWNER__",
+        "functionalEquipmentItems",
+        "functionalPreviewProfile",
+        "backpackItems",
+        "activeFunctionalEquipmentFilter",
+        "activeBackpackCategory"
+      ],
+      "legacy_fallbacks": [
+        "FUNCTIONAL_PREVIEW_FALLBACK_ART when wearable renderer/art is unavailable",
+        "shop catalog fallback item with generic bag icon for unknown definitions",
+        "non-E10 legacy Backpack page mode when __GO_E10_BACKPACK_MODE__ is false",
+        "legacy /inventory route remains canonical during strangler migration"
+      ],
+      "a026_replacement_fit": {
+        "owned_equipment_display": "THIN_SURFACE_ADAPTER",
+        "equipped_equipment_display": "THIN_SURFACE_ADAPTER",
+        "equipment_slot_state": "THIN_SURFACE_ADAPTER",
+        "combat_effect_details": "DO_NOT_MIGRATE",
+        "combat_stats_and_comparison": "DO_NOT_MIGRATE",
+        "consumables_and_materials": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "item_use_actions": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "shop_inventory_quantities": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "active_spirit_materials": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "player_display_name": "DIRECT_FROM_A026"
+      },
+      "gap": "A026 can replace only the functional equipment presentation slice. It cannot become the Backpack authority or carry item-use, shop inventory, consumable, material, pet inventory or combat-effect state."
+    },
+    {
+      "surface_id": "WARDROBE_PURE_COSMETIC_PRESENTATION",
+      "exact_file": "hero.html",
+      "exact_route": [
+        "/hero#appearance",
+        "/skills#appearance",
+        "/hero?tab=appearance"
+      ],
+      "auth_required": true,
+      "dom_containers": [
+        "#tab-appearance",
+        "#combat-character-grid",
+        "#stone-skin-grid / #board-skin-grid",
+        "#slot-outfit / #slot-hat / #slot-back / #slot-accessory / #slot-aura / #slot-pet / #slot-title",
+        "#wardrobe-effect-equipment-grid",
+        "#hero-style-projection-list / #pv-style-projection-list"
+      ],
+      "render_helpers": [
+        "renderWardrobeSlots()",
+        "renderInvSlot()",
+        "renderWardrobeEquipmentProjections()",
+        "renderCosmeticProjection()",
+        "wardrobeHasGameplayEffect()",
+        "handleInvClick()",
+        "applyEquippedVisuals()",
+        "syncFullBodyAvatar()"
+      ],
+      "current_data_sources": [
+        {
+          "source": "/api/skills/profile",
+          "evidence": "hero.html:4938-4955; app.py:17312-17385, 17449-17477",
+          "facts": [
+            "wardrobe definitions with owned/equipped",
+            "pure presentation metadata",
+            "effects",
+            "stone_skin/board_skin",
+            "milestones used for cosmetic unlocking"
+          ],
+          "classification": [
+            "SERVER_AUTHORITATIVE_PRESENTATION",
+            "DUPLICATED_PRESENTATION_SOURCE",
+            "LEGACY_COMPATIBILITY"
+          ]
+        },
+        {
+          "source": "/api/player/appearance",
+          "evidence": "hero.html:4827-4839; app.py:16941-16999",
+          "facts": ["character presentation key", "equipped slot IDs", "server wardrobe rows"],
+          "classification": ["SERVER_AUTHORITATIVE_PRESENTATION", "DUPLICATED_PRESENTATION_SOURCE"]
+        },
+        {
+          "source": "local COMBAT_GEAR catalog + hero_combat_gear_v1",
+          "evidence": "hero.html:3670-3694, 3757-3769, 4513-4549",
+          "facts": ["character/visual slot catalog", "legacy rendered gear layers"],
+          "classification": ["SERVER_AUTHORITY_WITH_LOCAL_CACHE", "LEGACY_COMPATIBILITY", "DUPLICATED_PRESENTATION_SOURCE"]
+        }
+      ],
+      "mutations_not_part_of_a026": [
+        "/api/skills/equip with item id",
+        "/api/player/appearance/unequip with slot",
+        "/api/skills/stone_skin",
+        "/api/skills/board_skin",
+        "cosmetic unlock/milestone evaluation",
+        "effect-bearing appearance presentation"
+      ],
+      "local_storage": [
+        {
+          "key": "hero_combat_gear_v1",
+          "evidence": "hero.html:3692, 3757-3769, 4262-4282",
+          "overlap": ["character and visual gear selection"],
+          "classification": "SERVER_AUTHORITY_WITH_LOCAL_CACHE",
+          "adoption_disposition": "RETIRE_AFTER_SERVER_ROUTE_ADOPTION"
+        }
+      ],
+      "session_storage": [],
+      "global_js_state": [
+        "_wardrobeItems",
+        "_stoneSkin",
+        "_boardSkin",
+        "_milestones",
+        "_isPremium",
+        "_unlockTier",
+        "_combatGear"
+      ],
+      "legacy_fallbacks": [
+        "PLACEHOLDERS per wardrobe slot when sourceItems is empty",
+        "legacy effect-bearing wardrobe grid remains in Equipment tab",
+        "local COMBAT_GEAR art catalog remains the visual compatibility layer"
+      ],
+      "a026_replacement_fit": {
+        "pure_cosmetic_owned_selected_state_for_outfit_hat_back_accessory_pet_aura_title": "THIN_SURFACE_ADAPTER",
+        "character_key": "DIRECT_FROM_A026",
+        "stone_skin_and_board_skin": "DO_NOT_MIGRATE",
+        "effect_bearing_appearance": "DO_NOT_MIGRATE",
+        "cosmetic_milestones_and_unlock_rules": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "cosmetic_equip_mutation": "MUST_REMAIN_SEPARATE_AUTHORITY",
+        "premium_unlock_status": "MUST_REMAIN_SEPARATE_AUTHORITY"
+      },
+      "gap": "The current renderer already separates pure cosmetics from effect-bearing appearances, but both are delivered by the broad skills profile. A026 adoption must narrow the seven pure appearance slots and never promote legacy effects to pure cosmetics.",
+      "classifier_caveat": "wardrobeHasGameplayEffect() returns false for pet and title before inspecting effects (hero.html:4320-4327); those rows are not automatically safe pure cosmetics."
+    }
+  ],
+  "cross_surface_source_groups": [
+    {
+      "group_id": "PROFILE_FRAGMENT",
+      "source": "/api/skills/profile",
+      "consumers": ["HERO_OVERVIEW", "ADVENTURE_PLAYER_IDENTITY", "BACKPACK_EQUIPMENT_PRESENTATION", "WARDROBE_PURE_COSMETIC_PRESENTATION"],
+      "problem": "Broad legacy aggregate includes safe presentation facts plus learning/milestone/combat/effect fields; each consumer narrows it differently."
+    },
+    {
+      "group_id": "APPEARANCE_FRAGMENT",
+      "source": "/api/player/appearance",
+      "consumers": ["HERO_OVERVIEW", "ADVENTURE_PLAYER_IDENTITY", "WARDROBE_PURE_COSMETIC_PRESENTATION"],
+      "problem": "Character and equipped appearance are re-read independently from skills profile wardrobe data."
+    },
+    {
+      "group_id": "FUNCTIONAL_INVENTORY_FRAGMENT",
+      "source": "/api/player/inventory",
+      "consumers": ["HERO_OVERVIEW", "BACKPACK_EQUIPMENT_PRESENTATION"],
+      "problem": "Hero summary and Backpack independently consume functional equipment; Backpack also owns mutation entry points."
+    },
+    {
+      "group_id": "SPIRIT_FRAGMENT",
+      "source": "/api/pet/status",
+      "consumers": ["HERO_OVERVIEW", "ADVENTURE_PLAYER_IDENTITY", "BACKPACK_EQUIPMENT_PRESENTATION"],
+      "problem": "Same broad Spirit response is used for active identity, Spirit inventory/materials and effect/training fields."
+    },
+    {
+      "group_id": "LOCAL_HERO_LOADOUT",
+      "source": "localStorage:hero_combat_gear_v1",
+      "consumers": ["HERO_OVERVIEW", "ADVENTURE_PLAYER_IDENTITY", "WARDROBE_PURE_COSMETIC_PRESENTATION"],
+      "problem": "A local visual cache still feeds layer selection even though server hydration is the intended authority."
+    }
+  ],
+  "local_state_audit": [
+    {
+      "key": "hero_combat_gear_v1",
+      "storage": "localStorage",
+      "surfaces": ["HERO_OVERVIEW", "ADVENTURE_PLAYER_IDENTITY", "WARDROBE_PURE_COSMETIC_PRESENTATION"],
+      "classification": "SERVER_AUTHORITY_WITH_LOCAL_CACHE",
+      "disposition": "RETIRE_AFTER_SERVER_ROUTE_ADOPTION",
+      "reason": "Overlaps character/visual equipment display but is explicitly non-authoritative after server appearance/inventory hydration."
+    },
+    {
+      "key": "functional_equipment_new_ids",
+      "storage": "sessionStorage",
+      "surfaces": ["BACKPACK_EQUIPMENT_PRESENTATION"],
+      "classification": "LOCAL_PRESENTATION_CACHE_ONLY",
+      "disposition": "KEEP_PRESENTATION_CACHE",
+      "reason": "Only supplies a transient New badge; it does not claim ownership or equipped state, and A026 does not include this optional UI fact."
+    },
+    {
+      "key": "adventure_selected_stage_v1",
+      "storage": "localStorage",
+      "surfaces": ["ADVENTURE_PLAYER_IDENTITY"],
+      "classification": "SEPARATE_DOMAIN_AUTHORITY",
+      "disposition": "NOT_A026_SCOPE",
+      "reason": "Selected Zone is World authority and must not move into Player Presentation."
+    },
+    {
+      "key": "map_battle_v1_resume_v1 / placement_ritual_*",
+      "storage": "sessionStorage",
+      "surfaces": ["ADVENTURE_PLAYER_IDENTITY"],
+      "classification": "SEPARATE_DOMAIN_AUTHORITY",
+      "disposition": "NOT_A026_SCOPE",
+      "reason": "Battle/replay/ritual flow state; no identity or Hero presentation ownership."
+    },
+    {
+      "key": "last_session_uid_v1",
+      "storage": "localStorage",
+      "surfaces": ["HERO_OVERVIEW", "ADVENTURE_PLAYER_IDENTITY"],
+      "classification": "LOCAL_PRESENTATION_CACHE_ONLY",
+      "disposition": "KEEP_PRESENTATION_CACHE",
+      "reason": "Account-switch hygiene only; not a Player presentation field."
+    }
+  ],
+  "global_state_audit": [
+    {
+      "key": "window.__GO_WORLD_PRESENTATION_STATE__",
+      "surface": "ADVENTURE_PLAYER_IDENTITY",
+      "classification": "SEPARATE_DOMAIN_AUTHORITY",
+      "disposition": "NOT_A026_SCOPE",
+      "evidence": "index.html:20083-20101"
+    },
+    {
+      "key": "window.__GO_ADVENTURE_SHELL_OWNER__ / window.__GO_E9_ACTIVE_SHELL__ / window.__GO_E9_SERVER_FLAGS__",
+      "surface": "ADVENTURE_PLAYER_IDENTITY",
+      "classification": "LEGACY_COMPATIBILITY",
+      "disposition": "NOT_A026_SCOPE",
+      "evidence": "index.html:20112-20225"
+    },
+    {
+      "key": "window.__GO_E10_BACKPACK_MODE__",
+      "surface": "BACKPACK_EQUIPMENT_PRESENTATION",
+      "classification": "SEPARATE_DOMAIN_AUTHORITY",
+      "disposition": "NOT_A026_SCOPE",
+      "evidence": "inventory.html:876-925"
+    }
+  ],
+  "classification_counts": {
+    "surfaces_audited": 4,
+    "duplicated_presentation_source_relationships": 5,
+    "local_presentation_caches_overlapping_or_adjacent_to_target_fields": 2,
+    "legacy_compatibility_source_groups": 4,
+    "count_definition": "Duplicated counts are source groups that feed two or more audited surfaces. Local cache count includes hero_combat_gear_v1 and functional_equipment_new_ids; World/battle caches are reported separately. Legacy count includes broad profile compatibility, E9/adventure fallback, Backpack legacy mode/catalog fallback, and local COMBAT_GEAR compatibility."
+  },
+  "authority_invariants": {
+    "world_authority_moved_to_a026": false,
+    "inventory_authority_moved_to_a026": false,
+    "quest_authority_moved_to_a026": false,
+    "shop_authority_moved_to_a026": false,
+    "persistent_hp_is_encounter_hp": false,
+    "effect_bearing_appearance_promoted_to_pure_cosmetic": false,
+    "hero_functional_authority_created": false,
+    "a026_route_implemented": false
+  }
+}

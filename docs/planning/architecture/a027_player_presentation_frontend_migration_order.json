@@ -1,0 +1,203 @@
+{
+  "task": "A027_PLAYER_PRESENTATION_SURFACE_WIRING_RECON_V1_001",
+  "route_assumption": "PLAYER_PRESENTATION_API_V1_ENDPOINT_PENDING_E026",
+  "owner_gate": "Do not wire until E026 Owner PASS and the endpoint contract is available.",
+  "recommended_first_surface": "HERO_OVERVIEW_READ_ONLY_OVERVIEW_FRAGMENT",
+  "principles": [
+    "Adopt only the safe A026 view-model groups.",
+    "Keep current mutation endpoints and domain authorities unchanged.",
+    "Do not use A026 to source World, Quest, Shop, Premium, encounter, battle or reward state.",
+    "Keep a bounded legacy fallback while the new snapshot is unavailable.",
+    "Do not let local presentation caches become authority during fallback."
+  ],
+  "steps": [
+    {
+      "order": 1,
+      "surface_id": "HERO_OVERVIEW",
+      "scope": "Read-only overview header/summary fragment only; do not migrate equipment controls or effect summary in the first slice.",
+      "existing_source_retired_or_retained": {
+        "retire_for_safe_facts": ["duplicated /api/skills/profile identity/xp/rank reads in renderHeroOverview()"],
+        "retain": ["/api/player/appearance for character authority until snapshot adoption is proven", "/api/player/inventory for equipment domain", "/api/pet/status for Spirit domain", "current mutation endpoints", "neutral art fallback"]
+      },
+      "a026_fields_consumed": [
+        "hero.hero_id / identity metadata",
+        "progression.xp",
+        "progression.level / rank_level / go_rank",
+        "projection_status"
+      ],
+      "separate_authorities_retained": [
+        "player_appearance.character_key",
+        "player_inventory ownership/equipped state",
+        "active Spirit state",
+        "premium entitlement",
+        "effect/combat summary",
+        "milestone/unlock state"
+      ],
+      "fallback_behavior": "If the pending presentation snapshot is absent, retain current server reads and render the existing neutral unavailable state; never promote hero_combat_gear_v1 into authority.",
+      "rollback_path": "Disable the surface adapter at the overview-fragment boundary and restore renderHeroOverview() to its existing source calls; no route or state mutation rollback is needed.",
+      "test_requirement": [
+        "snapshot identity/xp/rank renders into existing Hero DOM",
+        "unknown/forbidden progression fields are not rendered",
+        "no combat bonus or premium state is inferred",
+        "server-unavailable fallback remains usable",
+        "hero_combat_gear_v1 cannot override server character identity"
+      ],
+      "collision_risk": "HIGH",
+      "reason_for_order": "Contained read-only summary with direct A026 fit, but current helper mixes safe and unsafe fields; isolating the fragment limits risk."
+    },
+    {
+      "order": 2,
+      "surface_id": "ADVENTURE_PLAYER_IDENTITY",
+      "scope": "Replace only the .home-player-card identity/progression/active-Spirit display; leave World map and Adventure state untouched.",
+      "existing_source_retired_or_retained": {
+        "retire_for_safe_facts": ["duplicate /api/auth/me + /api/skills/profile identity/xp/rank reads in loadPlayerAvatar()"],
+        "retain": ["/api/adventure/bootstrap and all Zone/Quest/Star/Boss reads", "E9/E10 shell globals and fallback", "local selected-stage key", "battle/SRS/replay state", "current player art fallback"]
+      },
+      "a026_fields_consumed": [
+        "hero identity/character presentation",
+        "progression.xp / level / rank",
+        "spirit.active presentation",
+        "projection_status"
+      ],
+      "separate_authorities_retained": [
+        "selected Zone",
+        "progression Zone/unlock",
+        "stars and Lord readiness",
+        "Adventure bootstrap",
+        "encounter/battle/SRS state",
+        "E9/E10 shell ownership"
+      ],
+      "fallback_behavior": "If snapshot load fails, preserve current loadPlayerAvatar() path for the identity card only; map bootstrap and shell paths continue independently.",
+      "rollback_path": "Restore the identity-card render helper while leaving World state and URL/history unchanged.",
+      "test_requirement": [
+        "identity snapshot does not alter selectedZone",
+        "World bootstrap remains authoritative",
+        "E9 fallback remains available",
+        "active Spirit display is presentation-only",
+        "mobile/iPad identity card remains readable"
+      ],
+      "collision_risk": "VERY_HIGH",
+      "reason_for_order": "The identity fragment is safe, but index.html also owns World, Adventure and legacy shell initialization."
+    },
+    {
+      "order": 3,
+      "surface_id": "WARDROBE_PURE_COSMETIC_PRESENTATION",
+      "scope": "Adopt A026 only for owned/selected pure cosmetics in the seven supported appearance slots.",
+      "existing_source_retired_or_retained": {
+        "retire_for_safe_facts": ["profile.wardrobe reads used only for pure cosmetic owned/selected display after parity proof"],
+        "retain": ["player_appearance mutation authority", "cosmetic unlock/milestone authority", "effect-bearing wardrobe projection", "stone/board skin paths", "legacy local visual catalog", "fallback placeholders"]
+      },
+      "a026_fields_consumed": [
+        "cosmetics.selected for outfit/hat/back/accessory/pet/aura/title",
+        "cosmetics.owned_items",
+        "presentation_only",
+        "display metadata",
+        "projection_status"
+      ],
+      "separate_authorities_retained": [
+        "player_wardrobe ownership writer",
+        "player_appearance equipped slots and mutations",
+        "effect-bearing appearance IDs",
+        "milestone/Premium unlock rules",
+        "stone_skin/board_skin"
+      ],
+      "fallback_behavior": "Keep current profile wardrobe projection if the new snapshot is unavailable; classify any item with gameplay effects through wardrobeHasGameplayEffect() and keep it in the functional Equipment projection.",
+      "rollback_path": "Turn off pure-cosmetic adapter at renderCosmeticProjection()/renderInvSlot() boundary; leave mutation endpoints and server selection unchanged.",
+      "test_requirement": [
+        "owned/equipped parity for all seven supported slots",
+        "effect-bearing appearance never enters pure cosmetic view",
+        "hidden/unreleased IDs remain absent",
+        "selected/owned/unavailable states remain truthful",
+        "no duplicate ownership writer"
+      ],
+      "collision_risk": "HIGH",
+      "reason_for_order": "Read-only visual state is adoptable, but the current broad wardrobe payload and effect-bearing split require fail-closed classification."
+    },
+    {
+      "order": 4,
+      "surface_id": "BACKPACK_EQUIPMENT_PRESENTATION",
+      "scope": "Adopt only the functional Equipment grid/detail read projection; do not migrate the general Backpack or actions.",
+      "existing_source_retired_or_retained": {
+        "retire_for_safe_facts": ["duplicated equipment display reads after snapshot parity is proven"],
+        "retain": ["player_inventory authority", "/api/player/inventory/equip mutation", "/api/shop/catalog", "/api/shop/use", "/api/pet/status inventory", "sessionStorage new badge", "E10 Backpack shell mode"]
+      },
+      "a026_fields_consumed": [
+        "equipment.slots",
+        "equipment.owned_items",
+        "owned/equipped/quantity/display",
+        "projection_status"
+      ],
+      "separate_authorities_retained": [
+        "functional equipment effect details/comparison",
+        "equip/unequip mutation",
+        "consumable/material/pet inventory",
+        "shop catalog and quantities",
+        "item use and reward settlement"
+      ],
+      "fallback_behavior": "Keep current /api/player/inventory loader and detail/action behavior if the pending snapshot is unavailable; never synthesize ownership from shop catalog or local cache.",
+      "rollback_path": "Remove the equipment read adapter at the grid/detail boundary and return to loadFunctionalEquipment(); leave general Backpack untouched.",
+      "test_requirement": [
+        "owned/equipped rows match player_inventory",
+        "no combat stats are calculated in the adapter",
+        "equip/unequip continues to use current server endpoint",
+        "consumables/materials remain visible and functional",
+        "equipment deep links remain usable"
+      ],
+      "collision_risk": "HIGH",
+      "reason_for_order": "This surface has the largest number of separate authorities and write actions; it is safest after read-only identity/cosmetic adoption patterns are proven."
+    }
+  ],
+  "global_rollback_contract": {
+    "route_behavior_changed_by_a027": false,
+    "mutation_replay_allowed": false,
+    "local_cache_becomes_authority": false,
+    "world_state_moved_to_player_snapshot": false,
+    "fallback_must_remain": true
+  },
+  "future_file_collision_map": [
+    {
+      "file": "hero.html",
+      "surfaces": ["HERO_OVERVIEW", "WARDROBE_PURE_COSMETIC_PRESENTATION"],
+      "risk": "HIGH",
+      "reason": "Inline render helpers, mutation wiring, local cache and effect-bearing split share one document."
+    },
+    {
+      "file": "index.html",
+      "surfaces": ["ADVENTURE_PLAYER_IDENTITY"],
+      "risk": "VERY_HIGH",
+      "reason": "Identity card shares a large Adventure/World/E9/E10 runtime and many separate authorities."
+    },
+    {
+      "file": "inventory.html",
+      "surfaces": ["BACKPACK_EQUIPMENT_PRESENTATION"],
+      "risk": "HIGH",
+      "reason": "Functional Equipment and general Backpack are co-located but have different authorities and mutations."
+    },
+    {
+      "file": "player_presentation_consumer_adapter.py",
+      "surfaces": ["all four"],
+      "risk": "MEDIUM",
+      "reason": "A026 consumer contract input; no current frontend wiring exists."
+    },
+    {
+      "file": "app.py",
+      "surfaces": ["future route only"],
+      "risk": "OWNER_GATED",
+      "reason": "E026 may propose a route, but A027 does not assume or modify it."
+    },
+    {
+      "file": "components/adventure/*.html and static/js/e9/*",
+      "surfaces": ["ADVENTURE_PLAYER_IDENTITY"],
+      "risk": "MEDIUM",
+      "reason": "Served E9 compatibility components and adapters may remain fallback dependencies; they are not current identity source helpers in index.html."
+    }
+  ],
+  "not_implemented": [
+    "No API fetch",
+    "No route wiring",
+    "No frontend source change",
+    "No localStorage deletion",
+    "No authority migration",
+    "No UI redesign"
+  ]
+}
