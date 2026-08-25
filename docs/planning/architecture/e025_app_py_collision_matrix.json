@@ -1,0 +1,101 @@
+{
+  "task": "E025_RPG_CORE_CANDIDATE_INTEGRATION_TOPOLOGY_AND_MERGE_ORDER_RECON_001",
+  "current_candidate_direct_app_py_touch_count": 0,
+  "current_candidate_direct_app_py_touch": [],
+  "direct_changed_file_overlap_count": 0,
+  "direct_changed_file_overlap": [],
+  "same_file_multiwriter_forbidden": true,
+  "prospective_app_py_collision_groups": [
+    {
+      "group": "PLAYER_PRESENTATION_ROUTE",
+      "candidates": ["A024", "B028", "B030", "A025-R1"],
+      "status": "A025-R1_PENDING_OWNER_REVIEW",
+      "likely_functions_or_routes": ["new authenticated Player Presentation API route", "auth/session identity handoff", "route registration"],
+      "collision_class": "SHARED_ROUTE",
+      "semantic_owner": "B028 read model -> B030 read service -> A025 transport; E owns route integration",
+      "pure_module_first": true,
+      "requires_schema_first": false,
+      "requires_merged_dependency_first": ["B028", "B030", "A025-R1 Owner PASS"],
+      "recommended_lane": "E",
+      "risk": "MEDIUM",
+      "guard": "Route is read-only; do not reassemble Player state, World progression, Quest, Shop, Premium, or combat fields in app.py."
+    },
+    {
+      "group": "EQUIPMENT_LEGACY_RETIREMENT",
+      "candidates": ["B031", "B032-R1"],
+      "status": "B032-R1_PENDING_OWNER_REVIEW",
+      "likely_functions_or_routes": ["app.py:skills_character", "app.py:_get_appearance_effects", "/api/skills/character", "hero.html legacy loadout handoff"],
+      "collision_class": "SHARED_HELPER",
+      "semantic_owner": "server EQUIPMENT_DEFS plus player_inventory; legacy player_appearance combat_* is a separate projection to retire or quarantine",
+      "pure_module_first": true,
+      "requires_schema_first": "CONDITIONAL",
+      "requires_merged_dependency_first": ["B031", "B032-R1 Owner PASS"],
+      "recommended_lane": "E",
+      "risk": "HIGH",
+      "guard": "Do not remove legacy behavior until all readers/writers and visual compatibility paths are inventoried; never promote player_appearance combat_* to B021 authority."
+    },
+    {
+      "group": "EQUIPMENT_SLOT_WRITER_INTEGRATION",
+      "candidates": ["B028", "B031", "B032-R1"],
+      "status": "B032-R1_PENDING_OWNER_REVIEW",
+      "likely_functions_or_routes": ["app.py:equip_item", "/api/player/inventory/equip", "app.py:admin_set_equipment", "monster/drop player_inventory writers"],
+      "collision_class": "SHARED_TRANSACTION",
+      "semantic_owner": "player_inventory.equipped with server-resolved EQUIPMENT_DEFS slot",
+      "pure_module_first": true,
+      "requires_schema_first": "YES_FOR_HARD_INVARIANT",
+      "requires_merged_dependency_first": ["B031", "B032-R1 Owner PASS"],
+      "recommended_lane": "E",
+      "risk": "HIGH",
+      "guard": "Strategy A needs canonical_slot backfill, malformed-row detection, validity constraint, and partial unique index before claiming a durable one-slot invariant."
+    },
+    {
+      "group": "SHOP_CATALOG_ADAPTER_WIRING",
+      "candidates": ["C019", "C020", "C021-R1"],
+      "status": "C021-R1_PENDING_OWNER_REVIEW",
+      "likely_functions_or_routes": ["app.py:shop_catalog", "app.py:shop_buy", "app.py:shop_buy_appearance", "app.py:shop_gacha", "user_stats.coins spend boundary"],
+      "collision_class": "SHARED_TRANSACTION",
+      "semantic_owner": "server offer authority -> C019 operation -> existing Coin/acquisition authorities",
+      "pure_module_first": true,
+      "requires_schema_first": "YES_FOR_C019_ROUTE_CUTOVER",
+      "requires_merged_dependency_first": ["C019", "C020", "C021-R1 Owner PASS", "coin_purchase_operations_v1 migration review"],
+      "recommended_lane": "E",
+      "risk": "HIGH",
+      "guard": "Keep user_stats.coins and currency_log as the only Coin authority; do not route gacha, cash, Premium, or zero-price grants into C019."
+    },
+    {
+      "group": "ACQUISITION_PRODUCER_WIRING",
+      "candidates": ["D018", "D019-R1"],
+      "status": "D019-R1_PENDING_OWNER_REVIEW",
+      "likely_functions_or_routes": ["monster settlement result", "Quest claim/reward result", "Premium reward result", "Shop purchase result", "D5A acquisition event handoff"],
+      "collision_class": "SHARED_HELPER",
+      "semantic_owner": "producer-specific ownership authority plus D018 canonical acquisition result; D5A is lineage evidence and D5C remains item-use authority",
+      "pure_module_first": true,
+      "requires_schema_first": false,
+      "requires_merged_dependency_first": ["D018", "D019-R1 Owner PASS", "producer settlement evidence"],
+      "recommended_lane": "E",
+      "risk": "MEDIUM",
+      "guard": "Adapters may only translate committed producer facts; they cannot grant, retry, infer ownership, or create a second inventory authority."
+    },
+    {
+      "group": "WORLD_BATTLEFIELD_BOSS_WIRING",
+      "candidates": ["F012-R1", "F013"],
+      "status": "F013_PENDING_OWNER_REVIEW",
+      "likely_functions_or_routes": ["app.py:adventure_boss_start", "app.py:adventure_boss_finish", "app.py:_adventure_boss_authoritative_result", "Map Battle Monster settlement handoff"],
+      "collision_class": "SEMANTIC_ORDERING_CONFLICT",
+      "semantic_owner": "World authorizes Battlefield Boss intent; Monster settlement emits committed defeated fact; World alone decides progression milestones",
+      "pure_module_first": true,
+      "requires_schema_first": "OWNER_DECISION_REQUIRED_FOR_MILESTONE_STORAGE",
+      "requires_merged_dependency_first": ["F012-R1", "F013 Owner PASS", "F010 selector boundary"],
+      "recommended_lane": "E",
+      "risk": "HIGH",
+      "guard": "Battlefield Boss != Lord; Monster defeated != Zone clear; no World milestone fields may be smuggled through Monster or Quest payloads."
+    }
+  ],
+  "integration_policy": {
+    "app_py_owner_count": 1,
+    "owner": "LANE_E",
+    "worktree": "one fresh current-master-based integration worktree",
+    "sequence": "pure modules/contracts first, then one app.py wiring boundary at a time, with tests after each boundary",
+    "forbidden": ["parallel app.py writers", "route-local duplicate authorities", "schema claims without migration evidence", "feature enable during topology recon"]
+  }
+}

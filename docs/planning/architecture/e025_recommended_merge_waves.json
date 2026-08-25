@@ -1,0 +1,88 @@
+{
+  "task": "E025_RPG_CORE_CANDIDATE_INTEGRATION_TOPOLOGY_AND_MERGE_ORDER_RECON_001",
+  "go_merge_granted": false,
+  "recommended_wave_count": 6,
+  "waves": [
+    {
+      "wave": 1,
+      "name": "PLAYER_READ_FOUNDATION",
+      "candidate_ids": ["A024", "B028", "B029", "B030"],
+      "pending_inputs": ["A025-R1"],
+      "why_here": "Lowest-risk read-only Player/Hero projection; no schema prerequisite and highest value for a coherent authenticated player surface.",
+      "collision_risk": "MEDIUM at future route wiring; no direct candidate app.py collision.",
+      "stack_policy": "Import B028 before B030; do not cherry-pick B030 alone. Import A024/B029 documentation independently.",
+      "owner_gate": "GO_MERGE required for the future integration candidate; A025-R1 requires a separate Owner PASS before transport/route adoption.",
+      "post_merge_verification": ["B028/B030 tests", "projection authority tests", "no World/Quest/Shop fields in Player API", "authenticated route read-only smoke"]
+    },
+    {
+      "wave": 2,
+      "name": "CANONICAL_ACQUISITION_FOUNDATION",
+      "candidate_ids": ["D018"],
+      "pending_inputs": ["D019-R1"],
+      "why_here": "Creates the common committed-acquisition envelope before producer and Shop wiring, without adding a new persistence authority.",
+      "collision_risk": "LOW for contract import; MEDIUM when producer adapters enter app.py.",
+      "stack_policy": "Import D018 first; import D019 only after its Owner review and exact D018 lineage are included.",
+      "owner_gate": "GO_MERGE required; D019-R1 remains pending.",
+      "post_merge_verification": ["D018 contract tests", "D5A lineage evidence checks", "D5C remains item-use-only", "adapter fail-closed checks after D019 acceptance"]
+    },
+    {
+      "wave": 3,
+      "name": "EQUIPMENT_INVARIANT_PREPARATION",
+      "candidate_ids": ["B031"],
+      "pending_inputs": ["B032-R1"],
+      "why_here": "Equipment is the product-loop bridge from acquisition to combat, but route centralization must wait for truthful invariant evidence.",
+      "collision_risk": "HIGH because legacy player_appearance writers and player_inventory equip writers coexist.",
+      "stack_policy": "Import B031 evidence first; hold B032 design until Owner review, then implement its schema and writer gates as a separate authorized task.",
+      "owner_gate": "GO_MERGE for evidence; a separate schema/runtime Owner gate before enforcing canonical_slot.",
+      "post_merge_verification": ["B021 equipment authority", "B028 conflict fail-closed", "legacy writer inventory", "PostgreSQL constraint/backfill preflight"]
+    },
+    {
+      "wave": 4,
+      "name": "COMMERCE_OFFER_AND_PURCHASE_FOUNDATION",
+      "candidate_ids": ["C019", "C020"],
+      "pending_inputs": ["C021-R1"],
+      "why_here": "Shop purchase exactly-once semantics are required for the Coins -> item loop, but C019 has a candidate-only operation schema and no route wiring.",
+      "collision_risk": "HIGH at shop_buy/coins/acquisition transaction boundaries.",
+      "stack_policy": "Reconcile C019's exact behavior and operation migration onto current master; use C020 as offer evidence; import C021 only after Owner review.",
+      "owner_gate": "GO_MERGE plus explicit migration review; no Production migration is implied.",
+      "post_merge_verification": ["C019 focused tests", "offer server-authority tests", "same-operation replay", "changed-payload conflict", "schema validation", "no route cutover until operation migration is governed"]
+    },
+    {
+      "wave": 5,
+      "name": "WORLD_MONSTER_BOUNDARY",
+      "candidate_ids": ["F012-R1"],
+      "pending_inputs": ["F013"],
+      "why_here": "The boundary contract is current-master-based and prevents Battlefield Boss, Lord, Monster, and World progression authority from collapsing.",
+      "collision_risk": "HIGH because future wiring crosses adventure_boss, Map Battle, Monster settlement, and World progression.",
+      "stack_policy": "Import the complete F012 boundary series, not the R1 commit in isolation; hold F013 until Owner review.",
+      "owner_gate": "GO_MERGE for the pure contract; Owner decision required before any World milestone storage/runtime cutover.",
+      "post_merge_verification": ["F012 contract tests", "Battlefield Boss != Lord", "Monster defeated != Zone clear", "no milestone mutation from boundary transport"]
+    },
+    {
+      "wave": 6,
+      "name": "SINGLE_OWNER_APP_PY_RUNTIME_WIRING_AND_COMBINED_ACCEPTANCE",
+      "candidate_ids": [],
+      "pending_inputs": ["A025-R1", "B032-R1", "C021-R1", "D019-R1", "F013"],
+      "why_here": "The listed candidates are mostly pure modules/docs; coherent product behavior requires one Lane E executor to wire them into existing app.py boundaries after prerequisites are accepted.",
+      "collision_risk": "VERY_HIGH; this is the only wave allowed to modify overlapping app.py regions, and it must be staged internally.",
+      "subsequence": ["Player Presentation route", "Acquisition producer adapters", "Equipment writer/invariant cutover", "Shop adapter/purchase route", "World/Battlefield Boss adapter"],
+      "owner_gate": "A new explicit GO_MERGE for each authorized implementation candidate; GO_DEPLOY and feature enable remain separate.",
+      "post_merge_verification": ["authority matrix", "transaction/idempotency", "PostgreSQL where disposable target exists", "browser/device presentation", "full RPG loop", "Production remains untouched until separately gated"]
+    }
+  ],
+  "stacked_candidate_policy": {
+    "B028_B030": "A: integrate B028 foundation first, then transplant B030 read service onto current master.",
+    "A025_R1": "C: keep pending; after Owner PASS, rebuild the transport/API candidate on current master using B028/B030 outputs rather than importing the old-base chain blindly.",
+    "D018_D019_R1": "A: integrate D018 first, then import/reconcile D019 adapter commits against the current producer result shape.",
+    "F012_R1": "B: import the reviewed F012 base plus R1 as one controlled pure-contract unit; the R1 commit alone is not self-contained.",
+    "B032_R1": "A: documentation can follow its design base, but schema/runtime implementation must be a new current-master task.",
+    "C021_R1": "C: after Owner PASS, transplant the adapter onto current C019/C020 contracts; do not treat its old-base stack as a merge source.",
+    "D019_R1": "A: include D018 before the producer adapter; do not merge the child alone."
+  },
+  "next_app_py_integration": {
+    "choice": "PLAYER_PRESENTATION",
+    "reason": "B028 and B030 are accepted read-only foundations, A024 is documentation-only, no schema is required, and the route can be kept read-only. This has lower collision risk than Equipment, Shop, Acquisition, or World/Monster mutation wiring and gives the largest immediate player-facing coherence gain.",
+    "preconditions": ["B028 and B030 exact behavior reconciled on current master", "A025-R1 Owner PASS or an explicit replacement route contract", "one Lane E app.py writer", "no World/Quest/Shop/Premium authority added to the read route"],
+    "not_authorized_by_e025": ["implementation", "GO_MERGE", "GO_DEPLOY", "feature enable", "Production migration"]
+  }
+}
