@@ -1,0 +1,202 @@
+{
+  "schema_id": "c024.c020_catalog_drift_matrix.v1",
+  "artifact_type": "C020_HISTORICAL_TO_CURRENT_MASTER_DRIFT_MATRIX",
+  "task": "C024_R1_PUBLICATION_ARTIFACT_COMPLETION_AND_CURRENT_MASTER_OVERLAY_001",
+  "provenance": {
+    "c020_accepted_reference": "2d2d20afad69fe7b7e0b00f2c78c74f9b9d7694c",
+    "original_c024_head": "0c166440a9894bcd07bcea6b0dbeea8372bdb32b",
+    "original_recon_start_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+    "current_reconciled_master": "a1ad78154858b9369e90c748f842401c40fb18cd",
+    "c020_is_historical_only": true,
+    "source_drift_invalidates_c024": false,
+    "b035_used_in_initial_recon": false
+  },
+  "comparison_status_enum": ["SAME", "DRIFTED", "NOT_DIRECTLY_COMPARABLE", "CURRENTLY_ABSENT", "CURRENTLY_PRESENT"],
+  "historical_c020": {
+    "total_shop_product_definitions": 29,
+    "total_active_purchasable_offers": 34,
+    "coin_item_purchase_offers": 29,
+    "premium_cash_subscription_offers": 4,
+    "legacy_non_coin_offers": 0,
+    "disabled_or_display_only": 2,
+    "unresolved": 1,
+    "price_authority_duplicated": true,
+    "stable_server_offer_ids": 0,
+    "missing_stable_offer_ids": 34,
+    "ready_for_c019_wiring": 15,
+    "needs_destination_adapter": 4,
+    "needs_eligibility_authority": 0,
+    "needs_catalog_normalization": 22,
+    "unsupported_by_v1_policy": 5,
+    "owner_decision_required": 1
+  },
+  "current_master": {
+    "declared_server_definitions": 28,
+    "static_shop_items": 21,
+    "distinct_coin_purchasable_identities": 43,
+    "daily_appearance_identities": 22,
+    "premium_cash_entries": 4,
+    "gacha_reward_identities": 41,
+    "legacy_fallback_appearance_entries": 20,
+    "visible_effect_bearing_daily_appearances": 4,
+    "ready_for_c021_c019": 14,
+    "needs_destination_adapter": 4,
+    "needs_multi_grant_profile": 5,
+    "needs_catalog_normalization": 16,
+    "legacy_effect_excluded": 4,
+    "unclassified_sources": 0,
+    "price_authority_duplicated": true,
+    "stable_offer_id_facts_available": false,
+    "client_price_authority_exists": false,
+    "c019_exactly_once_route_wired": false,
+    "c019_current_master_runtime": false,
+    "c021_current_master_runtime": false,
+    "c023_current_master_runtime": false
+  },
+  "drift": [
+    {
+      "fact": "TOTAL_SHOP_PRODUCT_DEFINITIONS",
+      "c020_value": 29,
+      "current_value": 28,
+      "status": "DRIFTED",
+      "meaning": "Current declared server definitions are 21 SHOP_ITEMS + 3 cosmetic products + 4 cash plans; C020's denominator is historical and not reused."
+    },
+    {
+      "fact": "TOTAL_ACTIVE_PURCHASABLE_OFFERS",
+      "c020_value": 34,
+      "current_value": 43,
+      "status": "DRIFTED",
+      "meaning": "Current distinct Coin identity denominator is 21 static Shop identities plus 22 daily appearance identities."
+    },
+    {
+      "fact": "COIN_ITEM_PURCHASE_OFFERS",
+      "c020_value": 29,
+      "current_value": 43,
+      "status": "DRIFTED",
+      "meaning": "C020's current-at-that-time offer count is not current runtime truth."
+    },
+    {
+      "fact": "PREMIUM_CASH_SUBSCRIPTION_OFFERS",
+      "c020_value": 4,
+      "current_value": 4,
+      "status": "SAME",
+      "meaning": "Two NewebPay plans and two PayPal plans remain separate from C019."
+    },
+    {
+      "fact": "LEGACY_NON_COIN_OFFERS",
+      "c020_value": 0,
+      "current_value": 20,
+      "status": "NOT_DIRECTLY_COMPARABLE",
+      "meaning": "The current 20 are Coin-route daily appearance fallback identities lacking explicit product mapping; they are not non-Coin offers."
+    },
+    {
+      "fact": "DISABLED_OR_DISPLAY_ONLY",
+      "c020_value": 2,
+      "current_value": 5,
+      "status": "NOT_DIRECTLY_COMPARABLE",
+      "meaning": "Current source has five hidden/unreleased APPEARANCE_DEFS identities; C020's bucket used a different source/definition scope."
+    },
+    {
+      "fact": "UNRESOLVED_SOURCES",
+      "c020_value": 1,
+      "current_value": 0,
+      "status": "DRIFTED",
+      "meaning": "All current discovered sources have a classification, while 20 identities remain explicit normalization blockers rather than unknown sources."
+    },
+    {
+      "fact": "PRICE_AUTHORITY_DUPLICATED",
+      "c020_value": true,
+      "current_value": true,
+      "status": "SAME",
+      "meaning": "Static/daily server price sources and parallel Premium cash price representations remain; client price is not trusted."
+    },
+    {
+      "fact": "STABLE_SERVER_OFFER_IDS",
+      "c020_value": 0,
+      "current_value": 0,
+      "status": "SAME",
+      "meaning": "Current routes expose item/product business identities but no live C021 offer_id/version contract."
+    },
+    {
+      "fact": "READY_FOR_C019_WIRING",
+      "c020_value": 15,
+      "current_value": 14,
+      "status": "DRIFTED",
+      "meaning": "Current source-fact-ready set is 12 direct shop_inventory products plus 2 explicit Coin cosmetics."
+    },
+    {
+      "fact": "NEEDS_DESTINATION_ADAPTER",
+      "c020_value": 4,
+      "current_value": 4,
+      "status": "SAME",
+      "meaning": "Pet-food grants still need the pet_inventory destination adapter; pet_feast_box also has bundle semantics."
+    },
+    {
+      "fact": "NEEDS_ELIGIBILITY_AUTHORITY",
+      "c020_value": 0,
+      "current_value": 0,
+      "status": "SAME",
+      "meaning": "No separate missing eligibility authority was counted; daily/product eligibility remains route-local and must be normalized at wiring."
+    },
+    {
+      "fact": "NEEDS_CATALOG_NORMALIZATION",
+      "c020_value": 22,
+      "current_value": 16,
+      "status": "DRIFTED",
+      "meaning": "Current primary count isolates 16 pure-cosmetic fallback identities; four effect-bearing fallbacks are classified separately."
+    },
+    {
+      "fact": "UNSUPPORTED_BY_V1_POLICY",
+      "c020_value": 5,
+      "current_value": 4,
+      "status": "DRIFTED",
+      "meaning": "Current primary Coin identity exclusion is the four effect-bearing daily appearances; gacha and Premium are separate route families."
+    },
+    {
+      "fact": "OWNER_DECISION_REQUIRED",
+      "c020_value": 1,
+      "current_value": 5,
+      "status": "DRIFTED",
+      "meaning": "Current overlay identifies product identity, legacy-effect policy, daily version, destination/multi-grant, and integration sequencing decisions."
+    },
+    {
+      "fact": "XP_AMULET_HOLD",
+      "c020_value": true,
+      "current_value": true,
+      "status": "SAME",
+      "meaning": "PR401 reinforces the Hold guard; it does not create a Coin Shop offer."
+    },
+    {
+      "fact": "GO_STONE_BLACK_TROPHY",
+      "c020_value": true,
+      "current_value": true,
+      "status": "SAME",
+      "meaning": "No current Shop source promotes it to functional Equipment."
+    },
+    {
+      "fact": "PREMIUM_CASH_SEPARATION",
+      "c020_value": true,
+      "current_value": true,
+      "status": "SAME",
+      "meaning": "Cash Premium remains outside Coin purchase normalization."
+    }
+  ],
+  "overlay_assertions": {
+    "pr400_changes_shop_catalog": false,
+    "pr400_changes_coin_purchase_routes": false,
+    "pr400_changes_server_price_authority": false,
+    "pr400_changes_daily_offer_generation": false,
+    "pr400_changes_premium_cash_products": false,
+    "pr400_changes_gacha_routes": false,
+    "pr401_changes_shop_catalog": false,
+    "pr401_changes_coin_purchase_authority": false,
+    "source_drift_invalidates_c024": false
+  },
+  "conclusion": {
+    "c020_historical_only": true,
+    "final_recommendation": "THIN_ADAPTER_OVER_EXISTING_SERVER_CATALOG",
+    "next_app_py_wiring_required": true,
+    "next_schema_required_for_c024": false,
+    "ready_for_owner_c024_r1_review": true
+  }
+}
