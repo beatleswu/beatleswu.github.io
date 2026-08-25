@@ -1,0 +1,208 @@
+{
+  "task": "B035_EQUIPMENT_CANONICAL_SLOT_WRITER_COVERAGE_AND_CUTOVER_RECON_001",
+  "current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "status": "DESIGN_ONLY_NO_CUTOVER",
+  "hard_invariant": {
+    "equipped_true_requires_canonical_slot": true,
+    "max_one_effective_equipped_identity_per_user_slot": true,
+    "unequipped_null_slot_allowed": true
+  },
+  "gate_status": [
+    {
+      "gate": "SCHEMA_CODE_EXISTS",
+      "status": "YES_ACCEPTED_CANDIDATE",
+      "evidence": "B033 accepted input 15f665f656418ab189d32aa809c163f3e27fa92c; not present in current-master tree"
+    },
+    {
+      "gate": "SCHEMA_MERGED",
+      "status": "NO",
+      "evidence": "current origin/master remains b75308d44806bb7c2e2b131a73ba06a71c188b3c"
+    },
+    {
+      "gate": "READ_ONLY_PRODUCTION_PREFLIGHT",
+      "status": "REQUIRED_NOT_RUN",
+      "evidence": "B035 is forbidden from Production access"
+    },
+    {
+      "gate": "PRODUCTION_MIGRATION_GRANTED",
+      "status": "NO",
+      "evidence": "no B035 owner migration grant"
+    },
+    {
+      "gate": "PRODUCTION_MIGRATED",
+      "status": "NO"
+    },
+    {
+      "gate": "WRITER_CUTOVER_COMPLETE",
+      "status": "NO",
+      "evidence": "current /api/player/inventory/equip remains legacy route"
+    }
+  ],
+  "malformed_preflight": {
+    "required": true,
+    "production_query_executed": false,
+    "detectors": [
+      "DUPLICATE_EQUIPPED_EFFECTIVE_SLOT",
+      "UNKNOWN_EQUIPPED_EQUIP_ID",
+      "EQUIPPED_WITH_NULL_CANONICAL_SLOT",
+      "CANONICAL_SLOT_PROJECTION_DISAGREEMENT",
+      "GO_STONE_BLACK_EQUIPPED",
+      "XP_AMULET_EQUIPPED_HOLD_FOR_AUTHORITY"
+    ],
+    "remediation": "FAIL_CLOSED + EXPLICIT_REPAIR",
+    "automatic_destructive_repair": false,
+    "winner_selection": "FORBIDDEN",
+    "constraint_activation_rule": "do not activate final constraints while hard blockers remain",
+    "legal_exception": "equipped=false with canonical_slot=NULL is legal and is not a hard blocker"
+  },
+  "writer_timing": {
+    "overall": "PER_WRITER_DEPENDENT",
+    "equipped_true_route": {
+      "timing": "BEFORE_MIGRATION_OR_AT_SAME_RELEASE",
+      "reason": "the current route can set equipped=true without writing canonical_slot and must not remain able to bypass B034 when the validity constraint is active"
+    },
+    "monster_and_admin_ownership_only_inserts": {
+      "timing": "AFTER_MIGRATION_ALLOWED_FOR_HARD_CONSTRAINT",
+      "reason": "they write equipped=0, so NULL canonical_slot is constraint-safe; slot-aware writes are still required before projection completeness is claimed"
+    },
+    "C022_C023_acquisition": {
+      "timing": "PER_ACCEPTED_CANDIDATE_GATE",
+      "reason": "C022 is accepted input; C023 is unaccepted and cannot be assumed"
+    },
+    "legacy_player_appearance": {
+      "timing": "SEPARATE_RETIREMENT_RELEASE",
+      "reason": "legacy combat fields have a live XP/drop reader and compatibility consumers; no automatic mapping is authorized"
+    }
+  },
+  "b034_route_cutover_prerequisites": [
+    {
+      "id": "schema_available",
+      "required": true,
+      "result": "B033 canonical_slot column and final invariant candidate integrated and tested"
+    },
+    {
+      "id": "preflight_clean",
+      "required": true,
+      "result": "read-only malformed inventory preflight has no unresolved hard blocker"
+    },
+    {
+      "id": "service_available",
+      "required": true,
+      "result": "accepted B034 service is present on the integration base"
+    },
+    {
+      "id": "auth_identity",
+      "required": true,
+      "result": "adapter uses authenticated session user_id and does not accept client user_id"
+    },
+    {
+      "id": "transaction_boundary",
+      "required": true,
+      "result": "caller owns BEGIN/COMMIT/ROLLBACK; B034 performs no commit"
+    },
+    {
+      "id": "http_parity",
+      "required": true,
+      "result": "preserve inv_id/action request compatibility or explicitly version the API; map B034 detached result to current response"
+    },
+    {
+      "id": "duplicate_row_semantics",
+      "required": true,
+      "result": "prove behavior when one user owns duplicate rows for the same equip_id; do not silently claim row-id parity"
+    },
+    {
+      "id": "locked_items",
+      "required": true,
+      "result": "go_stone_black rejected; xp_amulet remains HOLD_FOR_AUTHORITY"
+    },
+    {
+      "id": "regression",
+      "required": true,
+      "result": "same-slot replacement, cross-slot preservation, rollback, malformed fail-closed, and B033 invariant tests pass"
+    }
+  ],
+  "http_adapter_contract": {
+    "route": "POST /api/player/inventory/equip",
+    "authentication": "login_required/session user_id",
+    "client_intent": ["inv_id", "action"],
+    "server_resolves": ["owned equip_id", "canonical_slot", "locked-item policy", "effective result"],
+    "service": "B034 equip_owned_item / unequip_owned_item",
+    "service_commit": false,
+    "current_route_commit": true,
+    "required_error_mapping": ["not found", "unknown/non-functional", "locked item", "malformed state", "invariant conflict", "transaction failure"]
+  },
+  "release_sequence": [
+    {
+      "step": 1,
+      "name": "writer_recon",
+      "status": "B035_COMPLETE",
+      "mutation": false
+    },
+    {
+      "step": 2,
+      "name": "owner_approved_writer_compatibility_changes",
+      "status": "FUTURE",
+      "required": "equip=true route and any other equipped=true writer must derive canonical_slot or use B034"
+    },
+    {
+      "step": 3,
+      "name": "read_only_malformed_preflight",
+      "status": "FUTURE_OWNER_GATE",
+      "production_access": false
+    },
+    {
+      "step": 4,
+      "name": "integrate_B033_schema_candidate",
+      "status": "FUTURE",
+      "production_migration": false
+    },
+    {
+      "step": 5,
+      "name": "cutover_equip_and_unequip_to_B034",
+      "status": "FUTURE",
+      "ordering": "before or at same controlled release as final constraint enforcement"
+    },
+    {
+      "step": 6,
+      "name": "make ownership_only_writers_slot_aware",
+      "status": "FUTURE_PER_WRITER",
+      "hard_constraint_note": "not all are migration blockers because equipped=0 NULL-slot ownership is legal"
+    },
+    {
+      "step": 7,
+      "name": "owner_granted_production_migration",
+      "status": "NOT_GRANTED_BY_B035",
+      "production_mutation": false
+    },
+    {
+      "step": 8,
+      "name": "post_cutover_regression_and_projection_audit",
+      "status": "FUTURE"
+    }
+  ],
+  "boundaries": {
+    "B033": "schema and invariant candidate; no Production migration here",
+    "B034": "single loadout command authority; no app.py cutover here",
+    "C022": "accepted acquisition foundation; current candidate writer is projection-incomplete",
+    "C023": "unaccepted concurrent acquisition compatibility candidate; do not assume",
+    "D5A": "acquisition/reward lineage remains separate",
+    "D5C": "item-use authority; not normal equip/unequip",
+    "legacy_combat_fields": "compatibility read-only disposition; separate gameplay-effect retirement"
+  },
+  "decisions": {
+    "current_equip_route_recommendation": "CUTOVER_TO_B034",
+    "schema_change_in_B035": "NO",
+    "production_migration_in_B035": "NO",
+    "production_query_in_B035": "NO",
+    "next_equipment_integration": "Fresh current-master implementation task for B033/B034 integration, malformed preflight, thin route adapter, and per-writer canonical-slot compatibility; no C023 assumption."
+  },
+  "validation": {
+    "json_documents": "2/2 valid",
+    "matrix_assertions": "PASS",
+    "documentation_source_assertions": "PASS",
+    "git_diff_check": "PASS",
+    "focused_existing_equipment_tests": "22 passed",
+    "production_query": "NO",
+    "production_mutation": "NO"
+  }
+}

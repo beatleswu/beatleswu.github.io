@@ -1,0 +1,226 @@
+{
+  "task": "B035_EQUIPMENT_CANONICAL_SLOT_WRITER_COVERAGE_AND_CUTOVER_RECON_001",
+  "current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "accepted_inputs": {
+    "B031": "9f2f86f4478c243c04c344e16805e5f17f99774e",
+    "B033": "15f665f656418ab189d32aa809c163f3e27fa92c",
+    "B034": "e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74",
+    "C022": "b08c822573051635c92070d696ca43fcb49020f1"
+  },
+  "concurrent_candidates": {
+    "C023": {
+      "status": "IN_PROGRESS_UNACCEPTED",
+      "remote_head": "ab588aa28cbae92a8c29bffe575b67b1f3207793",
+      "used_as_current_truth": false,
+      "intended_scope": "make the C022 acquisition writer derive and persist canonical_slot when the column exists"
+    }
+  },
+  "authority": {
+    "ownership": "player_inventory",
+    "equipped_state": "player_inventory.equipped",
+    "slot_definition": "server EQUIPMENT_DEFS / _EQUIP_MAP",
+    "combat_stats": "_get_authoritative_combat_stats -> functional player_inventory rows and EQUIPMENT_DEFS",
+    "legacy_player_appearance_combat_fields": "compatibility/presentation storage with a still-live gameplay-adjacent effect reader; not B021 combat-stat authority"
+  },
+  "classification_definitions": {
+    "BLOCKS_B033_ENFORCEMENT": "can produce or preserve equipped=true without a valid canonical slot or multiple effective same-slot state",
+    "SAFE_FOR_B033_CONSTRAINT_BUT_PROJECTION_INCOMPLETE": "only creates equipped=false ownership rows with NULL canonical_slot; hard constraint safe but not projection-complete",
+    "FULLY_B033_COMPATIBLE": "server-derived slot plus malformed-state and uniqueness behavior are enforced",
+    "RETIRED_OR_HISTORICAL": "not a current writer and retained only as evidence",
+    "NOT_FUNCTIONAL_EQUIPMENT_WRITER": "does not create functional equipped/owned state",
+    "UNKNOWN_NEEDS_FOLLOWUP": "insufficient evidence"
+  },
+  "current_master_writers": [
+    {
+      "writer_id": "current.loadout.equip_item",
+      "family": "LOADOUT_EQUIP_LOADOUT_UNEQUIP",
+      "exact_file": "app.py",
+      "exact_function": "equip_item",
+      "route_or_event": "POST /api/player/inventory/equip",
+      "operation_types": ["UPDATE"],
+      "input_fields": ["inv_id", "action"],
+      "server_resolved_fields": ["user_id from session", "equip_id from owned row", "legacy slot from EQUIPMENT_DEFS"],
+      "can_create_functional_equipment": "NO",
+      "can_set_equipped_true": "YES",
+      "canonical_slot_behavior": "COLUMN_UNAWARE",
+      "slot_authority_used": "EQUIPMENT_DEFS",
+      "ownership_validation": "SELECT player_inventory by id and authenticated user_id",
+      "transaction_owner": "route/get_db; route calls conn.commit()",
+      "current_master_status": "CURRENT_MASTER",
+      "b033_compatibility": "BLOCKS_B033_ENFORCEMENT",
+      "b034_cutover_relevance": "DIRECT_REPLACEMENT",
+      "evidence": ["app.py:16888-16934", "app.py:4720-4728"],
+      "notes": "Clears same legacy slot then sets equipped=1 but never writes canonical_slot, has no malformed preflight, and currently does not reject xp_amulet. Unequip is the same function's equipped=0 branch."
+    },
+    {
+      "writer_id": "current.monster.grant_functional_item",
+      "family": "MONSTER_DROP",
+      "exact_file": "app.py",
+      "exact_function": "_settle_monster_defeat_in_tx.grant_functional_item",
+      "route_or_event": "Monster defeat settlement callback from legacy review and Map Battle settlement paths",
+      "operation_types": ["INSERT"],
+      "input_fields": ["item_id", "quantity", "source_name"],
+      "server_resolved_fields": ["item definition from _EQUIP_MAP", "user_id from settlement"],
+      "can_create_functional_equipment": "YES",
+      "can_set_equipped_true": "NO",
+      "canonical_slot_behavior": "WRITES_NULL",
+      "slot_authority_used": "none for persisted slot; _EQUIP_MAP validates item identity",
+      "ownership_validation": "settlement user_id; item must resolve in _EQUIP_MAP",
+      "transaction_owner": "enclosing review/Monster settlement operation; callback does not commit",
+      "current_master_status": "CURRENT_MASTER",
+      "b033_compatibility": "SAFE_FOR_B033_CONSTRAINT_BUT_PROJECTION_INCOMPLETE",
+      "b034_cutover_relevance": "UPSTREAM_WRITER_FOLLOWUP; not loadout command core",
+      "evidence": ["app.py:7207-7340", "app.py:7270-7282", "monster_settlement.py:285-330"],
+      "notes": "Always inserts equipped=0 and omits canonical_slot. NULL slot is legal for this hard constraint state, but known functional rows are projection-incomplete."
+    },
+    {
+      "writer_id": "current.admin.grant_equipment",
+      "family": "ADMIN_GRANT",
+      "exact_file": "app.py",
+      "exact_function": "admin_set_equipment grant branch",
+      "route_or_event": "POST /api/admin/users/<uid>/assets/equipment?action=grant",
+      "operation_types": ["INSERT"],
+      "input_fields": ["uid route parameter", "equip_id"],
+      "server_resolved_fields": ["definition membership in EQUIPMENT_DEFS"],
+      "can_create_functional_equipment": "YES",
+      "can_set_equipped_true": "NO",
+      "canonical_slot_behavior": "WRITES_NULL",
+      "slot_authority_used": "EQUIPMENT_DEFS for identity validation; slot not persisted",
+      "ownership_validation": "admin authorization and server definition membership; target ownership is created",
+      "transaction_owner": "admin_set_equipment/get_db; route calls conn.commit()",
+      "current_master_status": "CURRENT_MASTER",
+      "b033_compatibility": "SAFE_FOR_B033_CONSTRAINT_BUT_PROJECTION_INCOMPLETE",
+      "b034_cutover_relevance": "SEPARATE_ADMIN_WRITER_COMPATIBILITY_FOLLOWUP",
+      "evidence": ["app.py:9971-9984"],
+      "notes": "Grant is equipped=0, so it cannot create the B033 hard violation. It still omits a derivable slot. Current definition membership also admits special ownership; ownership existence is not functional equip."
+    },
+    {
+      "writer_id": "current.admin.remove_equipment",
+      "family": "ADMIN_GRANT",
+      "exact_file": "app.py",
+      "exact_function": "admin_set_equipment remove branch",
+      "route_or_event": "POST /api/admin/users/<uid>/assets/equipment?action=remove",
+      "operation_types": ["DELETE"],
+      "input_fields": ["uid route parameter", "inv_id"],
+      "server_resolved_fields": ["target row by id and user_id"],
+      "can_create_functional_equipment": "NO",
+      "can_set_equipped_true": "NO",
+      "canonical_slot_behavior": "NOT_APPLICABLE",
+      "slot_authority_used": "none",
+      "ownership_validation": "admin authorization and id/user_id predicate",
+      "transaction_owner": "admin_set_equipment/get_db; route calls conn.commit()",
+      "current_master_status": "CURRENT_MASTER",
+      "b033_compatibility": "NOT_FUNCTIONAL_EQUIPMENT_WRITER",
+      "b034_cutover_relevance": "OUTSIDE_LOADOUT_COMMAND_CORE",
+      "evidence": ["app.py:9985-9990"],
+      "notes": "Deletion cannot create an equipped or ownership state; it remains a separate administrative lifecycle operation."
+    }
+  ],
+  "indirect_current_master_seams": [
+    {
+      "seam": "monster_settlement.settle_monster_defeat",
+      "file": "monster_settlement.py",
+      "role": "calls the grant_functional_item callback supplied by app.py",
+      "is_additional_sql_writer": false,
+      "classification": "NOT_FUNCTIONAL_EQUIPMENT_WRITER",
+      "evidence": ["app.py:7332-7340", "monster_settlement.py:285-330"]
+    }
+  ],
+  "accepted_candidate_writers_not_in_current_master": [
+    {
+      "writer_id": "accepted.B033.backfill_known_functional_equipment",
+      "source_commit": "15f665f656418ab189d32aa809c163f3e27fa92c",
+      "operation_types": ["UPDATE"],
+      "can_set_equipped_true": "NO",
+      "canonical_slot_behavior": "DERIVES_SERVER_SLOT",
+      "b033_compatibility": "FULLY_B033_COMPATIBLE",
+      "status": "ACCEPTED_CANDIDATE_NOT_CURRENT_MASTER"
+    },
+    {
+      "writer_id": "accepted.B034.equip_owned_item",
+      "source_commit": "e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74",
+      "operation_types": ["UPDATE"],
+      "can_set_equipped_true": "YES",
+      "canonical_slot_behavior": "DERIVES_SERVER_SLOT",
+      "b033_compatibility": "FULLY_B033_COMPATIBLE",
+      "status": "ACCEPTED_CANDIDATE_NOT_CURRENT_MASTER",
+      "notes": "Caller-owned transaction; locks/preflights malformed state; desired-state idempotency; rejects go_stone_black and xp_amulet."
+    },
+    {
+      "writer_id": "accepted.B034.unequip_owned_item",
+      "source_commit": "e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74",
+      "operation_types": ["UPDATE"],
+      "can_set_equipped_true": "NO",
+      "canonical_slot_behavior": "PRESERVES_EXISTING",
+      "b033_compatibility": "FULLY_B033_COMPATIBLE",
+      "status": "ACCEPTED_CANDIDATE_NOT_CURRENT_MASTER"
+    },
+    {
+      "writer_id": "accepted.C022.SqlAcquisitionAuthority._acquire_equipment_inventory",
+      "source_commit": "b08c822573051635c92070d696ca43fcb49020f1",
+      "operation_types": ["INSERT"],
+      "can_set_equipped_true": "NO",
+      "canonical_slot_behavior": "WRITES_NULL",
+      "b033_compatibility": "SAFE_FOR_B033_CONSTRAINT_BUT_PROJECTION_INCOMPLETE",
+      "status": "ACCEPTED_CANDIDATE_NOT_CURRENT_MASTER",
+      "notes": "C022 remains accepted input but its candidate writer omits canonical_slot; C023 proposes the follow-up and remains unaccepted."
+    }
+  ],
+  "legacy_player_appearance_combat_fields": {
+    "field_count": 8,
+    "fields": [
+      "combat_weapon",
+      "combat_armor",
+      "combat_cape",
+      "combat_offhand",
+      "combat_hat",
+      "combat_pet",
+      "combat_aura",
+      "combat_acc"
+    ],
+    "live_writer": "app.py:17508-17559 skills_character via POST /api/skills/character",
+    "frontend_writer": "hero.html:4250-4303; index.html sends character-only selection",
+    "ownership_validation": "NO player_inventory ownership check; only _gear_unlocked progression gate",
+    "slot_validation": "NO EQUIPMENT_DEFS canonical-slot validation",
+    "gameplay_reader": "app.py:2756-2801 _get_appearance_effects; consumed by SRS review at app.py:14224",
+    "combat_stat_reader": "not used by _get_authoritative_combat_stats",
+    "disposition": "COMPATIBILITY_READ_ONLY",
+    "safe_to_retire_now": false,
+    "needs_compatibility_bridge": true,
+    "automatic_player_inventory_backfill": false,
+    "retirement_note": "The writer and XP/drop effect reader require a separate owner-approved retirement/governance task."
+  },
+  "counts_current_master": {
+    "total_player_inventory_writers": 4,
+    "equipped_true_writers": 1,
+    "unequipped_ownership_only_writers": 2,
+    "non_ownership_delete_records": 1,
+    "b033_blocking_writers": 1,
+    "b033_safe_but_projection_incomplete_writers": 2,
+    "fully_b033_compatible_writers": 0,
+    "legacy_combat_write_paths": 1
+  },
+  "special_item_results": {
+    "go_stone_black_functional_equip_writer_exists": false,
+    "xp_amulet_functional_equip_writer_exists": true,
+    "xp_amulet_reason": "current equip route accepts the accessory slot; B034 HOLD_FOR_AUTHORITY must close it",
+    "go_stone_black_reason": "current equip route rejects INVENTORY_ONLY_EQUIPMENT_IDS; ownership-only grant/drop may still exist"
+  },
+  "decisions": {
+    "current_equip_route_recommendation": "CUTOVER_TO_B034",
+    "writer_cutover_timing": "PER_WRITER_DEPENDENT",
+    "schema_change_in_b035": "NO",
+    "production_query": "NO",
+    "production_mutation": "NO",
+    "next_equipment_integration": "Integrate B033 schema and B034 command on a fresh current-master branch; preflight malformed state; cut the equip/unequip route to B034 before or at enforcement; update ownership-only writers separately; keep C023 unaccepted; retire legacy combat effects separately."
+  },
+  "validation": {
+    "json_documents": "2/2 valid",
+    "matrix_assertions": "PASS",
+    "documentation_source_assertions": "PASS",
+    "git_diff_check": "PASS",
+    "focused_existing_equipment_tests": "22 passed",
+    "production_query": "NO",
+    "production_mutation": "NO"
+  }
+}
