@@ -107,6 +107,64 @@ def test_dispatcher_has_one_core_path_for_all_supported_families():
     assert adapters.adapt_acquisition_result("SHOP_COIN_PURCHASE", _shop()).is_ready
 
 
+def test_quest_success_status_alone_is_not_commit_evidence():
+    payload = _quest(claim_status="SUCCESS")
+    payload.pop("committed")
+
+    result = adapters.adapt_quest_reward(payload)
+
+    assert result.status == adapters.INSUFFICIENT_AUTHORITY_EVIDENCE
+    assert result.reason_code == "COMMITTED_RESULT_EVIDENCE_REQUIRED"
+
+
+def test_quest_success_status_with_separate_commit_marker_is_ready():
+    payload = _quest(claim_status="SUCCESS", committed=True)
+
+    result = adapters.adapt_quest_reward(payload)
+
+    assert result.is_ready
+
+
+def test_quest_settled_status_is_commit_evidence():
+    payload = _quest(claim_status="SETTLED")
+    payload.pop("committed")
+
+    result = adapters.adapt_quest_reward(payload)
+
+    assert result.is_ready
+
+
+def test_premium_success_status_alone_is_not_commit_evidence():
+    payload = _premium(claim_status="SUCCESS")
+    payload.pop("committed")
+
+    result = adapters.adapt_premium_reward(payload)
+
+    assert result.status == adapters.INSUFFICIENT_AUTHORITY_EVIDENCE
+    assert result.reason_code == "COMMITTED_RESULT_EVIDENCE_REQUIRED"
+
+
+def test_premium_success_status_with_separate_commit_marker_is_ready():
+    payload = _premium(claim_status="SUCCESS")
+    payload.pop("committed")
+    payload["reward_committed"] = True
+
+    result = adapters.adapt_premium_reward(payload)
+
+    assert result.is_ready
+
+
+def test_premium_settled_status_is_commit_evidence():
+    payload = _premium()
+    payload.pop("committed")
+    payload.pop("claim_status")
+    payload["reward_status"] = "SETTLED"
+
+    result = adapters.adapt_premium_reward(payload)
+
+    assert result.is_ready
+
+
 @pytest.mark.parametrize("adapter,payload", [(adapters.adapt_monster_drop, _monster()), (adapters.adapt_quest_reward, _quest()), (adapters.adapt_premium_reward, _premium()), (adapters.adapt_shop_coin_purchase, _shop())])
 def test_missing_operation_id_fails_closed(adapter, payload):
     payload = dict(payload)
