@@ -1,0 +1,238 @@
+{
+  "task": "D021_ACQUISITION_PRODUCER_RUNTIME_READINESS_RECON_V2_001",
+  "origin_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "accepted_inputs": {
+    "D020": "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+    "C022": "b08c822573051635c92070d696ca43fcb49020f1",
+    "F013": "becea9efb54679526ebdfda842da5b798c691392"
+  },
+  "current_master_vs_accepted_candidate_boundary": "PASS",
+  "success_status_alone_is_commit_evidence": false,
+  "d5a_d5c_boundary": "PASS",
+  "required_envelope_facts": [
+    "item_id",
+    "quantity",
+    "source_operation_id",
+    "source_reference",
+    "destination",
+    "ownership_authority",
+    "ownership_reference",
+    "resulting_quantity",
+    "can_equip",
+    "can_use",
+    "can_wear",
+    "replayed",
+    "lineage_event_id",
+    "item_class",
+    "is_new"
+  ],
+  "nullable_facts": ["resulting_quantity", "is_new"],
+  "producers": [
+    {
+      "family": "MONSTER_DROP",
+      "status": "NEEDS_PRODUCER_PAYLOAD_EXTENSION",
+      "current_master_runtime": "SETTLEMENT_AND_D5A_ITEM_EVENT_PRESENT",
+      "accepted_candidate_runtime": "F013_DESIGN_ONLY",
+      "evidence": [
+        "monster_settlement.settle_monster_defeat",
+        "domain_event_outbox.MONSTER_DEFEATED",
+        "domain_event_outbox.ITEM_ACQUISITION",
+        "app._settle_monster_defeat_in_tx"
+      ],
+      "fact_matrix": {
+        "item_id": "PRESENT",
+        "quantity": "PRESENT",
+        "source_operation_id": "MISSING_UNIFORM_OPERATION_BINDING",
+        "source_reference": "PRESENT_AS_SETTLEMENT_ID",
+        "destination": "MISSING",
+        "ownership_authority": "PRESENT",
+        "ownership_reference": "NORMALIZE_GRANT_ID",
+        "resulting_quantity": "MISSING_FROM_COMMITTED_EVENT",
+        "can_equip": "MISSING_FROM_COMMITTED_EVENT",
+        "can_use": "MISSING_FROM_COMMITTED_EVENT",
+        "can_wear": "MISSING_FROM_COMMITTED_EVENT",
+        "replayed": "MISSING_FROM_COMMITTED_EVENT",
+        "lineage_event_id": "PRESENT_AS_EVENT_ROW_ID",
+        "item_class": "MISSING_FROM_COMMITTED_EVENT",
+        "is_new": "NULL_ALLOWED_NOT_PERSISTED"
+      },
+      "missing_fact_count": 8,
+      "missing_facts": [
+        "source_operation_id",
+        "destination",
+        "resulting_quantity",
+        "can_equip",
+        "can_use",
+        "can_wear",
+        "replayed",
+        "item_class"
+      ],
+      "commit_evidence": "D5A_COMMITTED_ROW_AND_OWNERSHIP_COMMITTED_MARKER_NEED_NORMALIZATION",
+      "special_item_lock_risk": ["go_stone_black", "xp_amulet"]
+    },
+    {
+      "family": "QUEST_REWARD",
+      "status": "NEEDS_PRODUCER_PAYLOAD_EXTENSION",
+      "current_master_runtime": "D015_CLAIM_AND_D5A_ITEM_EVENT_PRESENT",
+      "accepted_candidate_runtime": "D020_ADAPTER_IS_UNMERGED",
+      "evidence": [
+        "quest_claim_authority.QuestClaimService",
+        "quest_claims_v2.claim_status=SETTLED",
+        "domain_event_outbox.ITEM_ACQUISITION",
+        "quest_reward_adapters.CallableQuestRewardAuthorities"
+      ],
+      "fact_matrix": {
+        "item_id": "PRESENT",
+        "quantity": "PRESENT",
+        "source_operation_id": "PRESENT_AS_CLAIM_OPERATION_ID",
+        "source_reference": "PRESENT_AS_QUEST_CLAIM_REFERENCE",
+        "destination": "NORMALIZE_FROM_OWNERSHIP_AUTHORITY",
+        "ownership_authority": "PRESENT",
+        "ownership_reference": "PRESENT",
+        "resulting_quantity": "MISSING_FROM_COMMITTED_EVENT",
+        "can_equip": "MISSING",
+        "can_use": "MISSING",
+        "can_wear": "MISSING",
+        "replayed": "NORMALIZE_FROM_TRUSTED_DUPLICATE_RESULT",
+        "lineage_event_id": "PRESENT",
+        "item_class": "MISSING",
+        "is_new": "NULL_ALLOWED"
+      },
+      "missing_fact_count": 5,
+      "missing_facts": [
+        "resulting_quantity",
+        "can_equip",
+        "can_use",
+        "can_wear",
+        "item_class"
+      ],
+      "commit_evidence": "CLAIM_SETTLED_AND_D5A_OWNERSHIP_COMMITTED",
+      "non_item_components": ["XP", "COINS"]
+    },
+    {
+      "family": "PREMIUM_REWARD",
+      "status": "NEEDS_PRODUCER_PAYLOAD_EXTENSION",
+      "current_master_runtime": "D5E_D5F_CLAIM_AND_COMPONENT_LINEAGE_PRESENT",
+      "accepted_candidate_runtime": "D020_ADAPTER_IS_UNMERGED",
+      "evidence": [
+        "premium_reward_claim_runtime.PremiumRewardClaimService",
+        "premium_reward_bundle_runtime.PremiumRewardBundleClaimService",
+        "premium_reward_claims",
+        "premium_reward_bundle_components",
+        "domain_event_outbox.PREMIUM_CLAIM",
+        "domain_event_outbox.ITEM_ACQUISITION",
+        "domain_event_outbox.QUESTION_CAPACITY"
+      ],
+      "component_matrix": {
+        "PURE_COSMETIC": {
+          "available": [
+            "item_id",
+            "claim_operation_id",
+            "ownership_authority",
+            "ownership_reference",
+            "item_acquisition_event_id",
+            "ownership_created"
+          ],
+          "normalizable": [
+            "quantity=1",
+            "destination=PLAYER_WARDROBE",
+            "item_class=COSMETIC",
+            "can_equip=false",
+            "can_use=false",
+            "can_wear=true",
+            "resulting_quantity=null",
+            "replayed=trusted_operation_delivery_metadata"
+          ]
+        },
+        "QUESTION_CAPACITY": {
+          "available": [
+            "item_id",
+            "capacity_delta",
+            "operation_id",
+            "capacity_event_id",
+            "effective_capacity_after"
+          ],
+          "missing_or_unresolved": [
+            "ownership_reference",
+            "D018_item_class"
+          ],
+          "normalizable": [
+            "destination=QUESTION_CAPACITY",
+            "can_equip=false",
+            "can_use=false",
+            "can_wear=false",
+            "is_new=null",
+            "replayed=trusted_operation_delivery_metadata"
+          ]
+        }
+      },
+      "missing_fact_count": 2,
+      "missing_facts": ["ownership_reference", "item_class"],
+      "commit_evidence": "AVAILABLE_FROM_COMMITTED_COMPONENT_AND_OUTBOX_ROWS;_RAW_SUCCESS_OR_GRANTED_STATUS_IS_NOT_ENOUGH"
+    },
+    {
+      "family": "SHOP_COIN_PURCHASE",
+      "status": "NEEDS_DESTINATION_ADAPTER",
+      "current_master_runtime": "C022_FILES_ABSENT",
+      "accepted_candidate_runtime": "C022_COMMITTED_C019_RESULT_PRESENT_BUT_UNMERGED",
+      "evidence": [
+        "coin_purchase_authority.CoinPurchaseResult",
+        "coin_purchase_operations.operation_status=COMMITTED",
+        "coin_purchase_authority.SqlAcquisitionAuthority",
+        "domain_event_outbox.ITEM_ACQUISITION",
+        "coin_purchase_authority.append_shop_acquisition_lineage"
+      ],
+      "fact_matrix": {
+        "item_id": "PRESENT",
+        "quantity": "PRESENT",
+        "source_operation_id": "PRESENT",
+        "source_reference": "NORMALIZE_FROM_OFFER_ID_OR_PURCHASE_ID",
+        "destination": "PRESENT_RAW_C019_DESTINATION",
+        "ownership_authority": "PRESENT_IN_D5A_LINEAGE",
+        "ownership_reference": "MISSING",
+        "resulting_quantity": "PRESENT_AS_OWNERSHIP_RESULT_NEW_QUANTITY",
+        "can_equip": "PRESENT",
+        "can_use": "PRESENT",
+        "can_wear": "PRESENT",
+        "replayed": "PRESENT",
+        "lineage_event_id": "PRESENT",
+        "item_class": "PRESENT_AS_SERVER_OFFER_ACQUISITION_CLASS",
+        "is_new": "PRESENT"
+      },
+      "missing_fact_count": 1,
+      "missing_facts": ["ownership_reference"],
+      "commit_evidence": "PURCHASE_OPERATION_COMMITTED_AND_D5A_LINEAGE_PRESENT",
+      "special_item_lock": "C022_REJECTS_GO_STONE_BLACK_AND_XP_AMULET"
+    }
+  ],
+  "special_item_locks": {
+    "go_stone_black": {
+      "contract": "TROPHY_INVENTORY_ONLY_NO_COMBAT_POWER",
+      "status": "FAIL_CURRENT_MONSTER_OUTPUT_UNTYPED",
+      "shop_candidate_status": "PASS_REJECTED_BY_C022"
+    },
+    "xp_amulet": {
+      "contract": "HOLD_FOR_AUTHORITY",
+      "status": "FAIL_CURRENT_MONSTER_OUTPUT_HAS_NO_HOLD_MARKER",
+      "shop_candidate_status": "PASS_REJECTED_BY_C022"
+    }
+  },
+  "next_integration": {
+    "recommendation": "SHOP_RESULT_BRIDGE",
+    "reason": "C022 has the most complete committed operation/result/capability/D5A shape; the remaining gap is a narrow destination-specific ownership reference and normalization boundary."
+  },
+  "validation": {
+    "current_master_characterization": "42 passed, 3 skipped",
+    "current_master_test_files": [
+      "tests/test_monster_drop_profiles.py",
+      "tests/test_monster_settlement.py",
+      "tests/test_d015_quest_claim_reward.py",
+      "tests/test_d5e_premium_claim_lineage.py",
+      "tests/test_d5f_premium_reward_bundle.py"
+    ],
+    "production_query": false,
+    "production_mutation": false,
+    "runtime_changed": false,
+    "schema_changed": false
+  }
+}

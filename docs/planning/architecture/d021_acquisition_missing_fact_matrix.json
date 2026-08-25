@@ -1,0 +1,97 @@
+{
+  "task": "D021_ACQUISITION_PRODUCER_RUNTIME_READINESS_RECON_V2_001",
+  "counting_rule": "missing_fact_count counts D020 envelope fields unavailable after joining the producer's already-committed lineage and applying only deterministic field-name/destination normalization. Nullable resulting_quantity and is_new are not counted when null is truthful.",
+  "commit_evidence_is_separate": true,
+  "families": {
+    "MONSTER_DROP": {
+      "status": "NEEDS_PRODUCER_PAYLOAD_EXTENSION",
+      "missing_fact_count": 8,
+      "missing_facts": [
+        "source_operation_id",
+        "destination",
+        "resulting_quantity",
+        "can_equip",
+        "can_use",
+        "can_wear",
+        "replayed",
+        "item_class"
+      ],
+      "normalization_only": ["grant_id_to_ownership_reference"],
+      "commit_evidence": {
+        "present": true,
+        "source": ["domain_event_outbox.ITEM_ACQUISITION", "ownership_committed=true"],
+        "d019_adapter_normalization_required": true,
+        "success_alone_accepted": false
+      }
+    },
+    "QUEST_REWARD": {
+      "status": "NEEDS_PRODUCER_PAYLOAD_EXTENSION",
+      "missing_fact_count": 5,
+      "missing_facts": [
+        "resulting_quantity",
+        "can_equip",
+        "can_use",
+        "can_wear",
+        "item_class"
+      ],
+      "normalization_only": [
+        "ownership_authority_to_D018_destination",
+        "duplicate_to_replayed_delivery_metadata"
+      ],
+      "commit_evidence": {
+        "present": true,
+        "source": ["quest_claims_v2.claim_status=SETTLED", "domain_event_outbox.ITEM_ACQUISITION", "ownership_committed=true"],
+        "success_alone_accepted": false
+      }
+    },
+    "PREMIUM_REWARD": {
+      "status": "NEEDS_PRODUCER_PAYLOAD_EXTENSION",
+      "missing_fact_count": 2,
+      "missing_facts": ["ownership_reference", "item_class"],
+      "component_scope": "QUESTION_CAPACITY and optional PURE_COSMETIC bundle components",
+      "normalization_only": [
+        "component_type_to_destination",
+        "pure_cosmetic_quantity=1",
+        "pure_cosmetic_capabilities",
+        "operation_delivery_to_replayed"
+      ],
+      "commit_evidence": {
+        "present_only_in_committed_rows": true,
+        "raw_result_statuses": ["SUCCESS", "GRANTED"],
+        "raw_status_alone_accepted": false,
+        "required_bridge_action": "join claim/component/outbox evidence and emit explicit committed marker"
+      }
+    },
+    "SHOP_COIN_PURCHASE": {
+      "status": "NEEDS_DESTINATION_ADAPTER",
+      "missing_fact_count": 1,
+      "missing_facts": ["ownership_reference"],
+      "normalization_only": [
+        "shop_inventory_to_STACK_INVENTORY",
+        "player_inventory_to_PLAYER_INVENTORY",
+        "player_wardrobe_to_PLAYER_WARDROBE",
+        "offer_id_to_source_reference",
+        "acquisition_class_to_item_class"
+      ],
+      "commit_evidence": {
+        "present": true,
+        "source": ["coin_purchase_operations.operation_status=COMMITTED", "domain_event_outbox.ITEM_ACQUISITION"],
+        "success_alone_accepted": false
+      }
+    }
+  },
+  "special_item_lock_risks": [
+    {
+      "item_id": "go_stone_black",
+      "risk_source": "current master monster_drop_profiles.py and generic Monster functional grant path",
+      "required_result": "TROPHY, inventory-only, can_equip=false, can_use=false, can_wear=false",
+      "current_result": "class/capability/special status not persisted in Monster ITEM_ACQUISITION payload"
+    },
+    {
+      "item_id": "xp_amulet",
+      "risk_source": "current master monster_drop_profiles.py and generic Monster functional grant path",
+      "required_result": "HOLD_FOR_AUTHORITY with no activated capability",
+      "current_result": "HOLD marker/capability proof not persisted in Monster ITEM_ACQUISITION payload"
+    }
+  ]
+}
