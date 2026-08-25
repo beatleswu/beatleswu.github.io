@@ -1,0 +1,525 @@
+{
+  "task": "B032_EQUIPMENT_LEGACY_LOADOUT_RETIREMENT_AND_SLOT_INVARIANT_DESIGN_V1_001",
+  "canonical_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "authoritative_reference": {
+    "b031_accepted": "9f2f86f4478c243c04c344e16805e5f17f99774e",
+    "b031_conclusion": "player_inventory is the canonical functional Equipment authority; player_appearance.combat_* is a legacy loadout-like projection"
+  },
+  "scope": {
+    "mode": [
+      "read",
+      "analyze",
+      "data_invariant_design",
+      "legacy_retirement_design",
+      "docs_only"
+    ],
+    "app_py_changed": false,
+    "runtime_changed": false,
+    "frontend_changed": false,
+    "schema_changed": false,
+    "migration_executed": false,
+    "production_mutation": false,
+    "deploy": false,
+    "master_merge": false
+  },
+  "locked_authorities": {
+    "ownership": "player_inventory",
+    "equipped_state": "player_inventory.equipped",
+    "combat_stats": "app.py:_get_authoritative_combat_stats -> player_inventory.equipped -> server EQUIPMENT_DEFS",
+    "second_functional_combat_equipment_authority": false,
+    "d5a": "acquisition/reward lineage where explicitly used",
+    "d5c": "item_use_operations.py ITEM_USE authority",
+    "equip_is_consume": false,
+    "equip_is_acquisition": false,
+    "xp_amulet": "HOLD_FOR_AUTHORITY",
+    "go_stone_black": "TROPHY / INVENTORY_ONLY / NO_COMBAT_POWER / NOT_EQUIPPABLE"
+  },
+  "legacy_field_count": 8,
+  "legacy_server_writer_count": 1,
+  "legacy_frontend_field_writer_count": 1,
+  "legacy_server_read_surface_count": 10,
+  "legacy_fields": [
+    {
+      "field": "combat_weapon",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:get_appearance response",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout",
+        "bot.html appearance fallback"
+      ],
+      "frontend_callers": [
+        "hero.html",
+        "bot.html",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout",
+        "get_appearance"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes XP bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero gear layer and community/message avatar overlay.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "Do not translate weapon_tN to a functional weapon automatically."
+    },
+    {
+      "field": "combat_armor",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:get_appearance response",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout",
+        "bot.html appearance fallback"
+      ],
+      "frontend_callers": [
+        "hero.html",
+        "bot.html",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout",
+        "get_appearance"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes drop bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero armor layer and community/message avatar overlay.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "B021 armor mitigation does not consume this field."
+    },
+    {
+      "field": "combat_cape",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:get_appearance response",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout",
+        "bot.html appearance fallback"
+      ],
+      "frontend_callers": [
+        "hero.html",
+        "bot.html",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout",
+        "get_appearance"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes XP bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero cape layer and community/message avatar overlay.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "There is no canonical functional cape slot in player_inventory."
+    },
+    {
+      "field": "combat_offhand",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:get_appearance response",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout",
+        "bot.html appearance fallback"
+      ],
+      "frontend_callers": [
+        "hero.html",
+        "bot.html",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout",
+        "get_appearance"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes drop bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero offhand layer and community/message avatar overlay.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "There is no canonical functional offhand slot in player_inventory."
+    },
+    {
+      "field": "combat_hat",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout"
+      ],
+      "frontend_callers": [
+        "hero.html",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes XP bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero localStorage layer and community/message avatar overlay; get_appearance does not return this raw field.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "Keep distinct from cosmetic hat_id."
+    },
+    {
+      "field": "combat_pet",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer currently sends none"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout"
+      ],
+      "frontend_callers": [
+        "hero.html localStorage forces pet=none",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes drop bonus through _get_appearance_effects.",
+      "visual_only_effect": "Community/message avatar overlay; hero current visual state forces this legacy field to none.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; separate from user_pets and cosmetic pet_id.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "Do not conflate with Spirit or user_pets authority."
+    },
+    {
+      "field": "combat_aura",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects",
+        "app.py:community_leaderboard via _row_loadout",
+        "app.py:friend_requests via _row_loadout",
+        "app.py:friend_list/feed via _row_loadout",
+        "app.py:dm_threads_list via _row_loadout",
+        "app.py:dm_thread_meta via _row_loadout"
+      ],
+      "frontend_callers": [
+        "hero.html",
+        "community.html",
+        "messages.html"
+      ],
+      "server_helper": [
+        "_get_appearance_effects",
+        "_row_loadout"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes XP bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero localStorage layer and community/message avatar overlay.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "Do not conflate with cosmetic aura_id."
+    },
+    {
+      "field": "combat_acc",
+      "writers": [
+        "app.py:skills_character via POST /api/skills/character",
+        "hero.html:saveLoadoutToServer client caller"
+      ],
+      "readers": [
+        "app.py:_get_appearance_effects"
+      ],
+      "frontend_callers": [
+        "hero.html localStorage and POST payload"
+      ],
+      "server_helper": [
+        "_get_appearance_effects"
+      ],
+      "gameplay_adjacent_effect": "Legacy _tN tier contributes drop bonus through _get_appearance_effects.",
+      "visual_only_effect": "Hero localStorage may render the acc layer; no current server social projection includes combat_acc.",
+      "ownership_validation": "_gear_unlocked checks rank/total_correct only; no player_inventory ownership.",
+      "slot_validation": "No EQUIPMENT_DEFS slot validation; key is a legacy visual gear key.",
+      "safe_to_retire_now": false,
+      "needs_compatibility_bridge": true,
+      "needs_data_backfill": false,
+      "recommended_disposition": "COMPATIBILITY_READ_ONLY",
+      "notes": "Written and gameplay-adjacent but not returned by get_appearance or _row_loadout."
+    }
+  ],
+  "legacy_runtime_consumers": {
+    "writers": [
+      {
+        "source": "app.py:skills_character",
+        "route": "POST /api/skills/character",
+        "writes": "Only fields supplied in combat_in after _clean and _gear_unlocked filtering.",
+        "validation": "Authenticated user; rank/total_correct unlock check only; no player_inventory ownership or EQUIPMENT_DEFS slot binding.",
+        "transaction": "player_appearance UPDATE or INSERT followed by get_db context commit.",
+        "status": "SINGLE_SERVER_WRITER"
+      }
+    ],
+    "readers": [
+      {
+        "source": "app.py:_get_appearance_effects",
+        "kind": "gameplay_adjacent",
+        "effect": "XP and drop bonus calculation used by review settlement and skills_profile."
+      },
+      {
+        "source": "app.py:get_appearance",
+        "route": "GET /api/player/appearance",
+        "kind": "API projection",
+        "fields": "combat_armor, combat_cape, combat_weapon, combat_offhand; not combat_hat/pet/aura/acc"
+      },
+      {
+        "source": "app.py:skills_profile",
+        "route": "GET /api/skills/profile",
+        "kind": "indirect gameplay/display projection",
+        "fields": "calls _get_appearance_effects and returns active_effects; raw combat_* are not returned"
+      },
+      {
+        "source": "app.py:_row_loadout",
+        "kind": "social serialization helper",
+        "fields": "character_key, combat_armor, combat_weapon, combat_cape, combat_offhand, combat_hat, combat_pet, combat_aura"
+      },
+      {
+        "source": "app.py:community_leaderboard",
+        "kind": "social API query and loadout projection"
+      },
+      {
+        "source": "app.py:friend_requests",
+        "kind": "social API query and loadout projection"
+      },
+      {
+        "source": "app.py:friend_list",
+        "kind": "social API query and feed loadout projection"
+      },
+      {
+        "source": "app.py:dm_threads_list",
+        "kind": "private-message thread avatar projection"
+      },
+      {
+        "source": "app.py:dm_thread_meta",
+        "kind": "private-message avatar projection"
+      },
+      {
+        "source": "bot.html, community.html, messages.html",
+        "kind": "frontend visual consumers",
+        "authority": "presentation only; no functional combat authority"
+      }
+    ],
+    "non_consumers": [
+      "app.py:_get_authoritative_combat_stats intentionally does not read player_appearance.combat_*.",
+      "B021 functional equipment uses player_inventory.equipped and EQUIPMENT_DEFS.",
+      "B028/B028-R1 canonical read-model contract must not promote these fields.",
+      "cosmetic outfit_id/hat_id/pet_id/aura_id are separate appearance or pet authorities."
+    ]
+  },
+  "slot_invariant": {
+    "target": "For one user and one canonical functional slot, effective equipped identity count <= 1.",
+    "current_schema": {
+      "table": "player_inventory",
+      "columns": [
+        "id",
+        "user_id",
+        "equip_id",
+        "equipped",
+        "obtained_at",
+        "source"
+      ],
+      "slot_column": false,
+      "unique_effective_slot_constraint": false,
+      "user_index": "idx_inv_user(user_id)"
+    },
+    "current_route_logic": {
+      "canonical_route": "POST /api/player/inventory/equip -> app.py:equip_item",
+      "postgres_lock": "SELECT id FROM player_inventory WHERE user_id=? FOR UPDATE",
+      "replacement": "Server resolves target slot from EQUIPMENT_DEFS, clears all same-slot definition IDs, then sets target row in one transaction.",
+      "route_level_result": "PASS for ordinary canonical route requests",
+      "global_result": "NO guarantee against direct/admin/malformed state",
+      "read_model_behavior": "B028-R1 fails closed for conflicted slots; it does not prevent storage of malformed rows"
+    },
+    "options": [
+      {
+        "id": "A",
+        "name": "normalized_slot_column_plus_partial_unique_constraint",
+        "shape": "Add a non-authoritative canonical_slot projection to player_inventory, backfill from the server definition registry, then create a unique partial index on (user_id, canonical_slot) WHERE equipped=1 AND canonical_slot IS NOT NULL.",
+        "migration_complexity": "MEDIUM",
+        "backfill_required": true,
+        "rollback": "Drop the unique index and projection column only after application code no longer depends on the projection; retain original equip_id/equipped authority.",
+        "direct_writer_coverage": "All application INSERT/UPDATE writers must populate or preserve canonical_slot; admin grant must insert it; equip replacement must continue resolving slot server-side.",
+        "admin_writer_behavior": "Grant inserts equipped=0 with the resolved projection; remove does not create a duplicate; direct admin equip is not allowed.",
+        "malformed_historical_data": "Detect and repair/owner-review conflicts before index creation; migration must not choose latest/lowest/highest rarity automatically.",
+        "performance": "Indexed enforcement is O(log n) for writes and makes per-user slot reads cheaper; backfill is one bounded maintenance operation.",
+        "postgresql_compatibility": "Good; PostgreSQL partial unique indexes are native. SQLite test support needs a dialect/version check or equivalent unique-index path.",
+        "risk": "Projection drift if definitions or direct SQL change without updating the projection; requires explicit writer inventory and repair telemetry.",
+        "assessment": "RECOMMENDED"
+      },
+      {
+        "id": "B",
+        "name": "derived_or_generated_slot_representation_plus_constraint",
+        "shape": "Use a generated expression or functional index that maps equip_id to a slot and enforce uniqueness only for equipped rows.",
+        "migration_complexity": "HIGH",
+        "backfill_required": "Generated expression can avoid a data backfill but existing unknown/trophy rows still need validation before enforcement.",
+        "rollback": "Remove generated expression/index before old app compatibility is restored.",
+        "direct_writer_coverage": "Database expression sees equip_id but cannot consult Python EQUIPMENT_DEFS; every future catalog change requires synchronized database expression updates.",
+        "admin_writer_behavior": "Works only while the duplicated database mapping is complete and current.",
+        "malformed_historical_data": "Unknown IDs map to null or fail; duplicate known slots still block index creation.",
+        "performance": "Good after index creation; expression evaluation and catalog duplication add maintenance cost.",
+        "postgresql_compatibility": "PostgreSQL supports generated columns/expressions, but generated expressions cannot query the application registry; SQLite portability is weaker.",
+        "risk": "Creates a second slot-definition representation and can silently drift from EQUIPMENT_DEFS.",
+        "assessment": "REJECTED_FOR_CURRENT_ARCHITECTURE"
+      },
+      {
+        "id": "C",
+        "name": "single_command_writer_plus_reconciliation_guard",
+        "shape": "Keep schema unchanged, centralize all equip mutations in one service, lock per user, reject malformed state, and run periodic/read-time reconciliation.",
+        "migration_complexity": "LOW",
+        "backfill_required": false,
+        "rollback": "Revert the command-service release; no schema rollback.",
+        "direct_writer_coverage": "Only safe if every application/admin/import writer is removed or forced through the same command boundary; current direct acquisition/admin writers remain a coverage gap.",
+        "admin_writer_behavior": "Must use the same service or remain strictly unequipped ownership mutation.",
+        "malformed_historical_data": "Detection and fail-closed read behavior remain; storage can remain malformed until explicit repair.",
+        "performance": "Low migration cost; per-command user lock and reconciliation queries add runtime work.",
+        "postgresql_compatibility": "Good, but correctness depends on application discipline rather than the database.",
+        "risk": "Cannot guarantee the target invariant against an unreviewed direct writer or race outside the service.",
+        "assessment": "INSUFFICIENT_AS_HARD_INVARIANT"
+      }
+    ],
+    "recommended_strategy": "A",
+    "schema_migration_recommended": true,
+    "backfill_required": true,
+    "constraint_precondition": "No unique index is created until the read-only detector reports zero unresolved duplicate effective slots, or an owner-approved repair plan has made every conflict explicit."
+  },
+  "malformed_data_plan": {
+    "detection_mode": "read_only",
+    "source_of_slot_truth": "Server EQUIPMENT_DEFS exported into a deterministic migration/audit mapping; not client fields.",
+    "duplicate_equipped_query_shape": "Join equipped player_inventory rows to an explicit equip_id-to-slot mapping, group by user_id and slot, and HAVING COUNT(*) > 1.",
+    "unknown_equip_query_shape": "LEFT JOIN equipped player_inventory to the canonical definition mapping and select rows where the mapping is null.",
+    "go_stone_black_query_shape": "Select equipped rows where equip_id='go_stone_black'.",
+    "xp_amulet_query_shape": "Select equipped rows where equip_id='xp_amulet'; classify as HOLD_FOR_AUTHORITY review state, not automatic gameplay activation.",
+    "categories": [
+      "duplicate equipped weapon",
+      "duplicate equipped armor",
+      "duplicate equipped accessory",
+      "unknown equip_id",
+      "go_stone_black equipped",
+      "xp_amulet equipped despite HOLD_FOR_AUTHORITY"
+    ],
+    "remediation": {
+      "default": "FAIL_CLOSED + EXPLICIT_REPAIR",
+      "auto_destructive_repair": false,
+      "auto_unequip": false,
+      "latest_wins": false,
+      "lowest_id_wins": false,
+      "highest_rarity_wins": false,
+      "owner_review": true,
+      "repair_shape": "Owner-approved maintenance command selects an explicit winner or clears the slot in one audited transaction; preserve ownership rows unless separately authorized.",
+      "release_gate": "Do not add the unique index or enable a strict writer until unresolved conflicts are zero or explicitly quarantined."
+    }
+  },
+  "ordering_decisions": {
+    "loadout_command_service_before_invariant": "NO",
+    "legacy_combat_fields_retired_before_service": "YES for writes and gameplay-adjacent effects; NO for compatibility reads until the visual bridge is complete",
+    "schema_migration_precede_route_centralization": "CONDITIONAL",
+    "safe_sequence": [
+      "freeze or quarantine new legacy combat_* writes and decide legacy XP/drop effect disposition",
+      "run read-only inventory and legacy-field detection",
+      "apply additive nullable canonical_slot projection/backfill",
+      "repair or owner-review malformed historical equipped rows",
+      "update every application writer to preserve canonical_slot",
+      "centralize equip/unequip/replace command behavior",
+      "add the partial unique constraint after a clean precondition",
+      "retain compatibility reads only until visual consumers are bridged, then retire legacy fields"
+    ],
+    "reason": "A command service without a database invariant still permits an uncovered direct writer to recreate malformed state; a hard constraint cannot be added safely until historical data and all writers are understood."
+  },
+  "validation_evidence": {
+    "equipment_definition_registry": "Current app.py contains 15 unique EQUIPMENT_DEFS IDs across weapon, armor, accessory; go_stone_black is inventory-only and xp_amulet has no active functional effect key.",
+    "player_inventory_writers": [
+      "app.py:_settle_monster_defeat_in_tx inserts equipped=0 acquisition rows",
+      "app.py:admin_set_equipment grants/removes ownership",
+      "app.py:equip_item performs equip/unequip/replacement"
+    ],
+    "canonical_combat_reader": "app.py:_get_authoritative_combat_stats reads player_inventory.equipped and does not consult player_appearance.combat_*.",
+    "legacy_writer": "app.py:skills_character is the only production writer found for the eight combat_* columns.",
+    "schema_constraint": "No player_inventory slot column and no effective-slot unique constraint found.",
+    "d5c_equip_reference": "No normal equip/unequip reference to item_use_operations.py or ITEM_USE found.",
+    "read_model_policy": "B028-R1 accepted behavior is fail-closed for conflicted slots; no arbitrary first-row winner."
+  },
+  "recommendation": {
+    "legacy_disposition": "COMPATIBILITY_READ_ONLY",
+    "slot_invariant_strategy": "A",
+    "schema_migration_recommended": true,
+    "backfill_required": true,
+    "owner_decision_still_required": [
+      "whether legacy combat_* XP/drop bonuses are retired or deliberately preserved under another server-owned rule",
+      "which visual legacy values may be bridged to future presentation-only fields",
+      "which explicit repair winner policy an owner is willing to authorize for existing conflicts"
+    ]
+  }
+}

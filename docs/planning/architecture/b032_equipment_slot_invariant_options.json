@@ -1,0 +1,82 @@
+{
+  "task": "B032_EQUIPMENT_LEGACY_LOADOUT_RETIREMENT_AND_SLOT_INVARIANT_DESIGN_V1_001",
+  "target_invariant": "For one user and one canonical functional slot, effective equipped identity count <= 1.",
+  "current_state": {
+    "table": "player_inventory",
+    "slot_column": false,
+    "effective_slot_unique_constraint": false,
+    "canonical_route_replacement": "app.py:equip_item clears server-resolved same-slot rows and sets the requested row under a PostgreSQL user-row lock.",
+    "read_model_guard": "B028-R1 fails closed for conflicted slots but does not prevent malformed storage.",
+    "malformed_data_precondition": "Read-only detection and explicit repair/owner review are required before strict constraint creation."
+  },
+  "options": [
+    {
+      "id": "A",
+      "name": "NORMALIZED_SLOT_COLUMN_PLUS_PARTIAL_UNIQUE_CONSTRAINT",
+      "recommended": true,
+      "schema_shape": {
+        "projection_column": "canonical_slot",
+        "projection_authority": "Derived from server EQUIPMENT_DEFS; not a new item-definition authority.",
+        "unique_index": "UNIQUE(user_id, canonical_slot) WHERE equipped=1 AND canonical_slot IS NOT NULL"
+      },
+      "migration_complexity": "MEDIUM",
+      "backfill_requirement": "YES",
+      "rollback": "Drop the partial unique index and projection column only after application code no longer depends on the projection; original equip_id/equipped fields remain the state authority.",
+      "direct_writer_coverage": "Update monster settlement acquisition, admin grant, and equip replacement writers to populate/preserve canonical_slot.",
+      "admin_writer_behavior": "Admin grant inserts equipped=0 with a server-derived projection; admin remove remains ownership deletion; admin does not directly equip.",
+      "malformed_historical_data": "Detect duplicates, unknown IDs, go_stone_black, and xp_amulet HOLD state. Stop before index creation until conflicts are repaired or explicitly quarantined.",
+      "performance": "Indexed per-user slot enforcement and lookup; one bounded backfill.",
+      "postgresql_compatibility": "Native partial unique index support.",
+      "sqlite_compatibility": "Requires explicit dialect/version handling in future implementation and tests.",
+      "risk": "Projection drift if a writer or catalog changes without synchronized update; mitigated by one registry, writer coverage, and audit checks.",
+      "assessment": "RECOMMENDED"
+    },
+    {
+      "id": "B",
+      "name": "DERIVED_OR_GENERATED_SLOT_REPRESENTATION",
+      "recommended": false,
+      "schema_shape": {
+        "projection": "Generated expression or functional index mapping equip_id to slot.",
+        "constraint": "Unique user plus derived slot for equipped rows."
+      },
+      "migration_complexity": "HIGH",
+      "backfill_requirement": "Generated expression may avoid projection backfill, but unknown and malformed existing rows still require validation.",
+      "rollback": "Drop generated object and index before restoring old application compatibility.",
+      "direct_writer_coverage": "Database expression sees equip_id but cannot query the Python EQUIPMENT_DEFS registry.",
+      "admin_writer_behavior": "Works only while a duplicated database mapping remains complete.",
+      "malformed_historical_data": "Unknown IDs must map to null or fail; known-slot duplicates still block index creation.",
+      "performance": "Good after index creation, with expression evaluation cost.",
+      "postgresql_compatibility": "PostgreSQL generated expressions exist, but the application registry cannot be consulted; SQLite portability is weaker.",
+      "risk": "Creates a second slot-definition representation and can drift from EQUIPMENT_DEFS.",
+      "assessment": "REJECTED_FOR_CURRENT_ARCHITECTURE"
+    },
+    {
+      "id": "C",
+      "name": "SINGLE_COMMAND_WRITER_PLUS_RECONCILIATION_GUARD",
+      "recommended": false,
+      "schema_shape": {
+        "projection_column": "none",
+        "constraint": "none"
+      },
+      "migration_complexity": "LOW",
+      "backfill_requirement": "NO",
+      "rollback": "Revert the command-service release; no schema rollback.",
+      "direct_writer_coverage": "Safe only if every application/admin/import writer is removed or forced through the command boundary.",
+      "admin_writer_behavior": "Must use the command service or remain an unequipped ownership mutation.",
+      "malformed_historical_data": "Detection and fail-closed reads remain; storage can stay malformed until explicit repair.",
+      "performance": "No migration cost; per-command locks and reconciliation queries.",
+      "postgresql_compatibility": "Good, but correctness relies on application discipline.",
+      "risk": "Cannot provide a hard invariant against an uncovered direct writer or out-of-band write.",
+      "assessment": "INSUFFICIENT_AS_HARD_INVARIANT"
+    }
+  ],
+  "recommendation": {
+    "strategy": "A",
+    "schema_migration_recommended": true,
+    "backfill_required": true,
+    "loadout_command_service_before_invariant": "NO",
+    "schema_migration_before_route_centralization": "CONDITIONAL",
+    "repair_policy": "FAIL_CLOSED + EXPLICIT_REPAIR",
+    "auto_destructive_repair": false
+  }
+}
