@@ -1,0 +1,56 @@
+{
+  "adapter_version": "ACQUISITION_PRODUCER_ADAPTER_CORE_V1",
+  "d018_contract_version": "CANONICAL_ACQUISITION_RESULT_V1",
+  "database_writes": 0,
+  "mutation_capability": "NO",
+  "families": [
+    {
+      "source_type": "MONSTER_DROP",
+      "adapter": "adapt_monster_drop",
+      "core_status": "READY_FOR_COMPLETE_COMMITTED_FACTS",
+      "current_runtime_readiness": "INSUFFICIENT_AUTHORITY_EVIDENCE",
+      "required_commit_evidence": ["settlement_status=COMMITTED|SETTLED", "or committed=true", "or settlement_committed=true"],
+      "accepted_source_operation_fields": ["source_operation_id", "operation_id", "settlement_operation_id"],
+      "accepted_source_reference_fields": ["source_reference", "settlement_id", "source_id"],
+      "current_gap": "legacy loot/appearance result does not itself prove committed acquisition, ownership reference, capabilities, or D5A lineage",
+      "preview_rejected": true,
+      "next_task": "Monster committed-settlement result adapter integration"
+    },
+    {
+      "source_type": "QUEST_REWARD",
+      "adapter": "adapt_quest_reward",
+      "core_status": "READY_FOR_COMPLETE_COMMITTED_FACTS",
+      "current_runtime_readiness": "INSUFFICIENT_AUTHORITY_EVIDENCE",
+      "required_commit_evidence": ["claim_status=SETTLED|SUCCESS", "or committed=true", "or claim_committed=true"],
+      "accepted_source_operation_fields": ["source_operation_id", "operation_id", "claim_operation_id"],
+      "accepted_source_reference_fields": ["source_reference", "claim_idempotency_key", "claim_id", "period_key"],
+      "current_gap": "completion/claimable state is not a committed reward result; D015 reward components need explicit D018 acquisition facts",
+      "completed_without_claim_rejected": true,
+      "next_task": "Quest D015 committed-component adapter integration"
+    },
+    {
+      "source_type": "PREMIUM_REWARD",
+      "adapter": "adapt_premium_reward",
+      "core_status": "READY_FOR_COMPLETE_COMMITTED_FACTS",
+      "current_runtime_readiness": "INSUFFICIENT_AUTHORITY_EVIDENCE",
+      "required_commit_evidence": ["claim_status=SUCCESS|SETTLED", "or committed=true", "or claim_committed=true", "or reward_committed=true"],
+      "accepted_source_operation_fields": ["source_operation_id", "operation_id", "claim_operation_id"],
+      "accepted_source_reference_fields": ["source_reference", "claim_idempotency_key", "claim_id", "period_key"],
+      "current_gap": "entitlement_active is not a reward result; Premium component payload must preserve ownership reference and acquisition lineage",
+      "entitlement_only_rejected": true,
+      "next_task": "Premium deterministic component adapter integration"
+    },
+    {
+      "source_type": "SHOP_COIN_PURCHASE",
+      "adapter": "adapt_shop_coin_purchase",
+      "core_status": "READY_FOR_COMPLETE_COMMITTED_FACTS",
+      "current_runtime_readiness": "INSUFFICIENT_AUTHORITY_EVIDENCE",
+      "required_commit_evidence": ["purchase_status=COMMITTED|SETTLED", "or operation_status=COMMITTED", "or committed=true", "or purchase_committed=true"],
+      "accepted_source_operation_fields": ["source_operation_id", "operation_id", "purchase_operation_id"],
+      "accepted_source_reference_fields": ["source_reference", "offer_id", "purchase_id"],
+      "current_gap": "C019 remains purchase authority; offer/catalog is not a committed result and ownership evidence may require the C019 adapter boundary",
+      "offer_only_rejected": true,
+      "next_task": "C019 purchase-result normalization integration"
+    }
+  ]
+}
