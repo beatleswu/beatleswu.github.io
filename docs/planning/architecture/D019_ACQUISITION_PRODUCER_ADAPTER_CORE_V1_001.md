@@ -36,9 +36,22 @@ The accepted markers are:
 | Family | Accepted committed evidence | Rejected evidence |
 | --- | --- | --- |
 | Monster | `committed=true`, `settlement_committed=true`, or `settlement_status=COMMITTED/SETTLED` | defeat UI, animation, `preview=true`, uncommitted drop preview |
-| Quest | `committed=true`, `claim_committed=true`, or a settled claim status | completed/claimable state without a settled claim |
-| Premium | `committed=true`, `claim_committed=true`, `reward_committed=true`, or settled reward status | `entitlement_active=true` without a committed reward |
+| Quest | `committed=true`, `claim_committed=true`, `claim_status=SETTLED`, `transaction_status=COMMITTED/SETTLED`, or `status=COMMITTED/SETTLED` | `claim_status=SUCCESS`/`status=SUCCESS` without a separate marker; completed/claimable state without a settled claim |
+| Premium | `committed=true`, `claim_committed=true`, `reward_committed=true`, `claim_status=SETTLED`, `reward_status=SETTLED`, `transaction_status=COMMITTED/SETTLED`, or `status=COMMITTED/SETTLED` | `claim_status=SUCCESS`/`reward_status=SUCCESS`/`status=SUCCESS` without a separate marker; entitlement-only state |
 | Shop | `committed=true`, `purchase_committed=true`, or `purchase/operation/transaction_status=COMMITTED/SETTLED` | Shop offer/catalog alone |
+
+Machine-readable status split:
+
+```text
+SUCCESS_STATUS_IS_COMMIT_EVIDENCE=NO
+COMMITTED_OR_SETTLED_STATUS_IS_COMMIT_EVIDENCE=YES
+VALID_RESULT_STATUSES=SUCCESS,COMMITTED,SETTLED
+COMMITTED_EVIDENCE_STATUSES=COMMITTED,SETTLED
+```
+
+`SUCCESS` remains a valid producer-result vocabulary value, but it becomes
+commit evidence only when a separate boolean commit marker is present. The
+adapter never treats a generic `SUCCESS` field as persistence proof.
 
 Source-specific aliases (`claim_operation_id`, `purchase_operation_id`,
 `item_acquisition_event_id`, and similar) only select a value that is already
