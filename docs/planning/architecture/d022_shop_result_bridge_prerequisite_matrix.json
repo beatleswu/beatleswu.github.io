@@ -1,0 +1,92 @@
+{
+  "task": "D022_SHOP_ACQUISITION_OWNERSHIP_REFERENCE_CONTRACT_RECON_V1_001",
+  "d021_locked_gap": {
+    "family": "SHOP_COIN_PURCHASE",
+    "missing_fact": "ownership_reference",
+    "missing_fact_count": 1,
+    "success_status_alone_is_commit_evidence": false
+  },
+  "bridge_prerequisites": [
+    {
+      "destination": "shop_inventory",
+      "classification": "NEEDS_DESTINATION_READ_ADAPTER",
+      "bridge_inputs": [
+        "committed coin_purchase_operations row",
+        "trusted user_id from operation row/authenticated context",
+        "CoinPurchaseResult.item_id",
+        "CoinPurchaseResult.destination",
+        "CoinPurchaseResult.ownership_result.new_quantity",
+        "committed D5A ITEM_ACQUISITION evidence"
+      ],
+      "reference": "shop_inventory:{user_id}:{item_key}",
+      "verification": "Read committed shop_inventory row by user_id and item_key after commit; do not recompute stored resulting_quantity from a later balance",
+      "same_operation_replay": "Reuse the persisted result and the same composite reference",
+      "new_operation": "Reuse the aggregate reference and report the new committed resulting_quantity",
+      "producer_field_change": false,
+      "schema_change": false
+    },
+    {
+      "destination": "player_inventory",
+      "classification": "NEEDS_PRODUCER_RESULT_EXTENSION",
+      "bridge_inputs_currently_available": [
+        "committed coin_purchase_operations row",
+        "CoinPurchaseResult.item_id",
+        "CoinPurchaseResult.ownership_result.new_quantity",
+        "committed D5A ITEM_ACQUISITION evidence"
+      ],
+      "missing_authoritative_binding": [
+        "exact inserted player_inventory.id bound to this purchase operation"
+      ],
+      "required_producer_change": "Capture the INSERT-returned row primary key in AcquisitionOutcome, persist it in result_payload, and include it in the committed D5A acquisition payload",
+      "reference": "player_inventory:{row_id}",
+      "verification": "After extension, verify row_id belongs to the operation user and item; replay the stored row_id, never select a latest row",
+      "allow_duplicate_policy": "Requires row identity because C023 permits multiple rows for the same user and equip_id",
+      "same_operation_replay": "Blocked until exact row reference is persisted",
+      "new_operation": "New row reference under ALLOW_DUPLICATE; rejected before acquisition under REJECT_IF_OWNED",
+      "producer_field_change": true,
+      "schema_change": false
+    },
+    {
+      "destination": "player_wardrobe",
+      "classification": "NEEDS_DESTINATION_READ_ADAPTER",
+      "bridge_inputs": [
+        "committed coin_purchase_operations row",
+        "trusted user_id from operation row/authenticated context",
+        "CoinPurchaseResult.item_id",
+        "CoinPurchaseResult.destination",
+        "committed D5A ITEM_ACQUISITION evidence"
+      ],
+      "reference": "player_wardrobe:{user_id}:{item_id}",
+      "verification": "Read the unique player_wardrobe membership row by user_id and item_id after commit",
+      "same_operation_replay": "Reuse the same set-membership reference and persisted result",
+      "new_operation": "C023 REJECT_IF_OWNED fails closed and does not create a second result",
+      "producer_field_change": false,
+      "schema_change": false
+    }
+  ],
+  "forbidden_fallbacks": [
+    "D5A event_id as ownership_reference",
+    "D5A lineage_id as ownership_reference",
+    "purchase_operation_id as ownership_reference without explicit authority binding",
+    "canonical_slot as ownership_reference",
+    "item_id alone for player_wardrobe",
+    "user_id plus equip_id for ALLOW_DUPLICATE player_inventory",
+    "MAX(id)",
+    "ORDER BY id DESC LIMIT 1",
+    "timestamp-only row selection",
+    "client-supplied ownership identity"
+  ],
+  "excluded_destinations": {
+    "pet_inventory": "UNSUPPORTED_DESTINATION",
+    "capacity": "UNSUPPORTED_DESTINATION",
+    "entitlement": "UNSUPPORTED_DESTINATION",
+    "credit": "UNSUPPORTED_DESTINATION"
+  },
+  "decision": "PARTIAL_BRIDGE_READY_SOME_DESTINATIONS_BLOCKED",
+  "implementation_order": [
+    "Define read-only post-commit normalization for shop_inventory composite aggregate references",
+    "Define read-only post-commit normalization for player_wardrobe unique membership references",
+    "Extend C019/C023 player_inventory result persistence with exact inserted row identity",
+    "Only then expose one generic D020 Shop bridge across all supported destinations"
+  ]
+}

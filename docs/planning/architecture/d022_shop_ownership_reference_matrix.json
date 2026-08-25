@@ -1,0 +1,148 @@
+{
+  "task": "D022_SHOP_ACQUISITION_OWNERSHIP_REFERENCE_CONTRACT_RECON_V1_001",
+  "current_canonical_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "origin_master_at_start": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "origin_master_at_publication": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+  "master_advanced_during_task": true,
+  "drift_files": [
+    "app.py",
+    "docs/planning/architecture/a025_player_presentation_surface_adapter_matrix.json",
+    "player_presentation_api_contract.py",
+    "player_presentation_read_service.py",
+    "player_state_read_model.py",
+    "tests/test_a025_player_presentation_api_contract.py",
+    "tests/test_b028_player_state_read_model.py",
+    "tests/test_b030_player_presentation_read_service.py",
+    "tests/test_e026_player_presentation_route.py",
+    "tests/test_e027_player_presentation_real_path.py"
+  ],
+  "semantic_collision_with_d022": false,
+  "accepted_inputs": {
+    "D020": "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+    "D021": "3e764df5dbc1aefb487f770d7f2ac673362978b3",
+    "C023": "ab588aa28cbae92a8c29bffe575b67b1f3207793"
+  },
+  "concurrent_input": {
+    "C024": "IN_PROGRESS",
+    "used_as_current_catalog_or_runtime": false
+  },
+  "current_master_vs_accepted_candidate_boundary": "PASS",
+  "d018_ownership_reference_is_authority_identity": true,
+  "d5a_event_id_is_ownership_reference": false,
+  "purchase_operation_id_is_automatic_ownership_reference": false,
+  "canonical_slot_is_ownership_reference": false,
+  "supported_destination_count": 3,
+  "destinations": [
+    {
+      "c019_destination": "shop_inventory",
+      "d018_destination": "STACK_INVENTORY",
+      "ownership_authority": "shop_inventory",
+      "authority_key": ["user_id", "item_key"],
+      "authority_key_constraint": "PRIMARY_KEY",
+      "reference_form": "shop_inventory:{user_id}:{item_key}",
+      "reference_kind": "COMPOSITE_OWNERSHIP_KEY",
+      "current_result_contains_reference": false,
+      "current_result_recovery": "COMMITTED_OPERATION_ROW_USER_ID_PLUS_ITEM_ID",
+      "resulting_quantity_available": true,
+      "duplicate_policy": "STACK",
+      "allow_duplicate_reference_safe": "NOT_APPLICABLE",
+      "replay_reference_stable": true,
+      "post_commit_reference_timing": "POST_COMMIT_READ_ONLY",
+      "read_adapter_required": true,
+      "producer_result_extension_required": false,
+      "classification": "NEEDS_DESTINATION_READ_ADAPTER",
+      "unsafe_reference_sources": ["lineage_event_id", "purchase_operation_id", "latest_quantity"]
+    },
+    {
+      "c019_destination": "player_inventory",
+      "d018_destination": "PLAYER_INVENTORY",
+      "ownership_authority": "player_inventory",
+      "authority_key": ["id"],
+      "authority_key_constraint": "ROW_PRIMARY_KEY",
+      "reference_form": "player_inventory:{row_id}",
+      "reference_kind": "ROW_PRIMARY_KEY",
+      "current_result_contains_reference": false,
+      "current_result_recovery": "NOT_SAFE;_WRITER_RETURNS_COUNT_ONLY_AND_ALLOW_DUPLICATE_CREATES_MULTIPLE_ROWS",
+      "resulting_quantity_available": true,
+      "duplicate_policy": ["ALLOW_DUPLICATE", "REJECT_IF_OWNED"],
+      "allow_duplicate_reference_safe": "NO",
+      "replay_reference_stable": false,
+      "post_commit_reference_timing": "IN_TRANSACTION_WITH_EXPLICIT_COMMIT_EVIDENCE",
+      "read_adapter_required": false,
+      "producer_result_extension_required": true,
+      "classification": "NEEDS_PRODUCER_RESULT_EXTENSION",
+      "required_extension": "Capture_exact_inserted_player_inventory_row_id_and_persist_it_in_result_payload_and_D5A_payload",
+      "unsafe_reference_sources": ["user_id_plus_equip_id", "MAX_id", "ORDER_BY_id_DESC", "obtained_at", "lineage_event_id", "purchase_operation_id", "canonical_slot"]
+    },
+    {
+      "c019_destination": "player_wardrobe",
+      "d018_destination": "PLAYER_WARDROBE",
+      "ownership_authority": "player_wardrobe",
+      "authority_key": ["user_id", "item_id"],
+      "authority_key_constraint": "UNIQUE_SET_MEMBERSHIP",
+      "reference_form": "player_wardrobe:{user_id}:{item_id}",
+      "reference_kind": "SET_MEMBERSHIP_REFERENCE",
+      "current_result_contains_reference": false,
+      "current_result_recovery": "COMMITTED_OPERATION_ROW_USER_ID_PLUS_ITEM_ID",
+      "resulting_quantity_available": true,
+      "duplicate_policy": "REJECT_IF_OWNED",
+      "allow_duplicate_reference_safe": "NOT_APPLICABLE",
+      "replay_reference_stable": true,
+      "post_commit_reference_timing": "POST_COMMIT_READ_ONLY",
+      "read_adapter_required": true,
+      "producer_result_extension_required": false,
+      "classification": "NEEDS_DESTINATION_READ_ADAPTER",
+      "unsafe_reference_sources": ["lineage_event_id", "purchase_operation_id", "item_id_alone"]
+    }
+  ],
+  "declared_but_not_writer_supported_destinations": [
+    {
+      "destination": "pet_inventory",
+      "classification": "UNSUPPORTED_DESTINATION",
+      "reason": "Not in C023 SqlAcquisitionAuthority dispatch"
+    },
+    {
+      "destination": "capacity",
+      "classification": "UNSUPPORTED_DESTINATION",
+      "reason": "C023 offer vocabulary names it, but the accepted writer raises OwnershipAuthorityUnavailable"
+    },
+    {
+      "destination": "entitlement",
+      "classification": "UNSUPPORTED_DESTINATION",
+      "reason": "No C023 acquisition writer"
+    },
+    {
+      "destination": "credit",
+      "classification": "UNSUPPORTED_DESTINATION",
+      "reason": "No C023 acquisition writer"
+    }
+  ],
+  "other_destination_count": 0,
+  "overall_duplicate_reference_safe": "NO",
+  "replay_reference_stable": "PER_DESTINATION",
+  "post_commit_reference_timing": "shop_inventory_and_player_wardrobe=POST_COMMIT_READ_ONLY; player_inventory=IN_TRANSACTION_WITH_EXPLICIT_COMMIT_EVIDENCE_then_post_commit_replay",
+  "d5a_d5c_boundary": "PASS",
+  "special_item_locks": {
+    "go_stone_black": {
+      "status": "PASS",
+      "required": "TROPHY_INVENTORY_ONLY_NO_COMBAT_POWER",
+      "C023_behavior": "Rejected as a Coin Shop product"
+    },
+    "xp_amulet": {
+      "status": "PASS",
+      "required": "HOLD_FOR_AUTHORITY",
+      "C023_behavior": "Rejected as a Coin Shop product"
+    }
+  },
+  "bridge_decision": "PARTIAL_BRIDGE_READY_SOME_DESTINATIONS_BLOCKED",
+  "next_implementation": "SHOP_RESULT_BRIDGE_READ_ADAPTER_FOR_STACK_AND_WARDROBE_PLUS_PLAYER_INVENTORY_RESULT_EXTENSION",
+  "validation": {
+    "accepted_C023_focused_tests": "31 passed",
+    "database_writes_by_D022": 0,
+    "production_query": false,
+    "production_mutation": false,
+    "runtime_changed": false,
+    "schema_changed": false,
+    "frontend_changed": false
+  }
+}
