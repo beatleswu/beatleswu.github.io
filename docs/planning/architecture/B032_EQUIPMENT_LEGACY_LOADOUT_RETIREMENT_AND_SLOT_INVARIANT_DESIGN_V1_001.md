@@ -50,10 +50,20 @@ translate legacy visual keys into functional Equipment IDs.
 
 SLOT_INVARIANT_STRATEGY=A
 
-Use an additive canonical_slot projection plus a PostgreSQL partial unique
-constraint for equipped rows, after read-only detection and explicit repair of
-malformed historical data. The projection is not a second definition
-authority; EQUIPMENT_DEFS remains the server definition authority.
+Use an additive nullable canonical_slot projection plus both database gates:
+
+1. a partial unique constraint for equipped rows:
+   UNIQUE(user_id, canonical_slot) WHERE equipped=true AND
+   canonical_slot IS NOT NULL;
+2. an equipped-row validity constraint equivalent to:
+   equipped=false OR canonical_slot IS NOT NULL.
+
+The projection is not a second definition authority; EQUIPMENT_DEFS remains
+the server definition authority. The validity constraint is required because
+the partial unique constraint alone does not reject an equipped row whose
+canonical_slot is NULL.
+
+EQUIPPED_TRUE_REQUIRES_CANONICAL_SLOT=YES
 
 ## Exact current source map
 
@@ -216,7 +226,21 @@ backfills it from the server-controlled EQUIPMENT_DEFS mapping. Non-equippable
 or unknown IDs remain outside the effective equipped set and are detected
 separately.
 
-Then add the equivalent of:
+canonical_slot may remain NULL for an unequipped non-functional ownership row,
+an unknown historical row awaiting repair, or another non-equippable item.
+It must never remain NULL when equipped=true. In particular,
+go_stone_black is canonical_slot=NULL and inventory-only, so equipped=true is
+forbidden. xp_amulet remains HOLD_FOR_AUTHORITY; until an effect authority is
+approved it is not functionally equippable, and equipped=true is malformed and
+must fail closed.
+
+Strategy A has two independent storage gates. First, add an equipped-row
+validity constraint equivalent to:
+
+equipped = false OR canonical_slot IS NOT NULL;
+
+The second gate is the effective-slot uniqueness constraint. Add the
+equivalent of:
 
 CREATE UNIQUE INDEX player_inventory_one_equipped_slot
 ON player_inventory(user_id, canonical_slot)
@@ -229,6 +253,7 @@ owner-approved repair record.
 Advantages:
 
 - the database enforces the target invariant;
+- an equipped row cannot silently persist without a canonical slot;
 - the user/slot lookup is indexable;
 - all known app writers can populate the projection;
 - B028-R1 remains a read-time fail-closed safety net.
@@ -238,6 +263,8 @@ Risks:
 - canonical_slot must stay synchronized with EQUIPMENT_DEFS;
 - every insert/update writer must be audited;
 - malformed historical rows must be handled before index creation;
+- the validity constraint and unique index must be added only after the
+  equipped-null detector and explicit repair/quarantine gate pass;
 - SQLite test support needs an explicit compatibility path.
 
 This is the recommended design.
@@ -276,8 +303,12 @@ EQUIPMENT_DEFS and run these classes:
 3. Duplicate equipped accessory: same query with slot=accessory.
 4. Unknown equip_id: equipped player_inventory LEFT JOIN mapping where the
    mapping is null.
-5. go_stone_black equipped: equipped rows with equip_id=go_stone_black.
-6. xp_amulet equipped: equipped rows with equip_id=xp_amulet, classified as
+5. EQUIPPED_WITH_NULL_CANONICAL_SLOT: equipped rows whose server-derived
+   canonical_slot projection is NULL. This is a migration preflight blocker
+   for the equipped-row validity constraint and is classified as FAIL_CLOSED
+   + EXPLICIT_REPAIR.
+6. go_stone_black equipped: equipped rows with equip_id=go_stone_black.
+7. xp_amulet equipped: equipped rows with equip_id=xp_amulet, classified as
    HOLD_FOR_AUTHORITY review state rather than activated effect.
 
 Default remediation:
@@ -290,8 +321,10 @@ approved maintenance command may later choose a winner or clear a slot in one
 audited transaction, but that is a separate implementation and authorization
 gate.
 
-The unique index is the final gate, not the detector. A migration must stop
-before index creation when unresolved duplicate effective slots remain.
+The detector is a preflight gate for both constraints. A migration must stop
+before constraint creation when unresolved duplicate effective slots,
+EQUIPPED_WITH_NULL_CANONICAL_SLOT rows, unknown equipped IDs, or the locked
+go_stone_black/xp_amulet states remain. No repair may auto-select a winner.
 
 ## Command-service ordering
 
@@ -310,18 +343,24 @@ SHOULD_SCHEMA_MIGRATION_PRECEDE_ROUTE_CENTRALIZATION=CONDITIONAL
 
 Safe order:
 
-1. freeze legacy gameplay writes and decide legacy bonus retirement;
+1. freeze legacy gameplay writes/effects and decide legacy bonus retirement;
 2. detect malformed player_inventory state;
-3. add/backfill a nullable canonical_slot projection;
-4. update all app writers and the future command boundary;
-5. explicitly repair or quarantine malformed rows;
-6. add the partial unique constraint;
-7. keep read compatibility until visual migration is complete;
-8. retire the legacy columns in a later migration.
+3. add a nullable canonical_slot projection;
+4. backfill known functional Equipment from EQUIPMENT_DEFS;
+5. update all app writers and the future command boundary;
+6. explicitly repair or quarantine duplicate same-slot equipped rows, unknown
+   equip_id rows, equipped rows with NULL canonical_slot, go_stone_black
+   equipped rows, and xp_amulet equipped rows;
+7. prove that no equipped row has canonical_slot NULL;
+8. add the equipped-row validity constraint;
+9. add the partial unique user plus canonical-slot constraint;
+10. centralize the command service and continue the rollout; keep read
+    compatibility until visual migration is complete, then retire legacy
+    columns in a later migration.
 
 An additive projection can precede route centralization only while the
-constraint is not yet enforcing. The final constraint must follow writer
-coverage and clean-data proof.
+constraints are not yet enforcing. Both final constraints must follow writer
+coverage, malformed-state repair/quarantine, and clean-data proof.
 
 ## Locked boundaries
 
@@ -333,6 +372,8 @@ The following remain unchanged:
 - xp_amulet remains HOLD_FOR_AUTHORITY.
 - go_stone_black remains TROPHY, inventory-only, no combat power, and not
   equippable.
+- equipped=true requires canonical_slot IS NOT NULL; an equipped NULL-slot
+  row is invalid storage and must fail closed.
 - B021 combat continues to use player_inventory.equipped and EQUIPMENT_DEFS.
 - B028-R1 conflict reads continue to fail closed.
 - No second functional combat Equipment authority is created.
@@ -370,6 +411,16 @@ SECOND_FUNCTIONAL_COMBAT_AUTHORITY=NO
 RECOMMENDED_LEGACY_DISPOSITION=COMPATIBILITY_READ_ONLY
 
 SLOT_INVARIANT_STRATEGY=A
+
+EQUIPPED_TRUE_REQUIRES_CANONICAL_SLOT=YES
+
+PARTIAL_UNIQUE_SLOT_CONSTRAINT=YES
+
+EQUIPPED_SLOT_VALIDITY_CONSTRAINT=YES
+
+EQUIPPED_NULL_SLOT_DETECTOR=YES
+
+AUTO_DESTRUCTIVE_REPAIR=NO
 
 SCHEMA_MIGRATION_RECOMMENDED=YES
 

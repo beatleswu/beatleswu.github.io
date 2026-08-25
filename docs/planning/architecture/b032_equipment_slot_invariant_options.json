@@ -17,18 +17,26 @@
       "schema_shape": {
         "projection_column": "canonical_slot",
         "projection_authority": "Derived from server EQUIPMENT_DEFS; not a new item-definition authority.",
-        "unique_index": "UNIQUE(user_id, canonical_slot) WHERE equipped=1 AND canonical_slot IS NOT NULL"
+        "equipped_true_requires_canonical_slot": true,
+        "validity_constraint": "equipped=false OR canonical_slot IS NOT NULL",
+        "unique_index": "UNIQUE(user_id, canonical_slot) WHERE equipped=true AND canonical_slot IS NOT NULL",
+        "null_slot_allowed_when": [
+          "unequipped non-functional ownership row",
+          "unknown historical row awaiting explicit repair",
+          "non-equippable item"
+        ],
+        "null_slot_forbidden_when": "equipped=true"
       },
       "migration_complexity": "MEDIUM",
       "backfill_requirement": "YES",
       "rollback": "Drop the partial unique index and projection column only after application code no longer depends on the projection; original equip_id/equipped fields remain the state authority.",
       "direct_writer_coverage": "Update monster settlement acquisition, admin grant, and equip replacement writers to populate/preserve canonical_slot.",
       "admin_writer_behavior": "Admin grant inserts equipped=0 with a server-derived projection; admin remove remains ownership deletion; admin does not directly equip.",
-      "malformed_historical_data": "Detect duplicates, unknown IDs, go_stone_black, and xp_amulet HOLD state. Stop before index creation until conflicts are repaired or explicitly quarantined.",
+      "malformed_historical_data": "Detect duplicates, unknown IDs, EQUIPPED_WITH_NULL_CANONICAL_SLOT, go_stone_black, and xp_amulet HOLD state. Stop before either constraint is created until conflicts are repaired or explicitly quarantined.",
       "performance": "Indexed per-user slot enforcement and lookup; one bounded backfill.",
       "postgresql_compatibility": "Native partial unique index support.",
       "sqlite_compatibility": "Requires explicit dialect/version handling in future implementation and tests.",
-      "risk": "Projection drift if a writer or catalog changes without synchronized update; mitigated by one registry, writer coverage, and audit checks.",
+      "risk": "Projection drift if a writer or catalog changes without synchronized update; before final constraints this requires detector and repair gating. Once the equipped-row validity constraint and partial unique index are active, projection drift cannot silently create an equipped NULL-slot row or a second effective equipped item in one user slot.",
       "assessment": "RECOMMENDED"
     },
     {
@@ -77,6 +85,31 @@
     "loadout_command_service_before_invariant": "NO",
     "schema_migration_before_route_centralization": "CONDITIONAL",
     "repair_policy": "FAIL_CLOSED + EXPLICIT_REPAIR",
-    "auto_destructive_repair": false
+    "auto_destructive_repair": false,
+    "equipped_true_requires_canonical_slot": true,
+    "equipped_null_slot_detector": "EQUIPPED_WITH_NULL_CANONICAL_SLOT",
+    "validity_constraint_required": true,
+    "migration_order": [
+      "freeze legacy gameplay writes/effects",
+      "detect malformed state",
+      "add nullable canonical_slot",
+      "backfill known functional Equipment from EQUIPMENT_DEFS",
+      "update all writers",
+      "repair or quarantine duplicate same-slot, unknown equip_id, equipped NULL-slot, go_stone_black, and xp_amulet rows",
+      "prove no equipped row has canonical_slot NULL",
+      "add equipped-row validity constraint",
+      "add partial unique user plus canonical-slot constraint",
+      "centralize command service and continue rollout"
+    ],
+    "special_cases": {
+      "go_stone_black": {
+        "canonical_slot": null,
+        "equipped_true": "FORBIDDEN"
+      },
+      "xp_amulet": {
+        "status": "HOLD_FOR_AUTHORITY",
+        "equipped_true": "MALFORMED_FAIL_CLOSED"
+      }
+    }
   }
 }
