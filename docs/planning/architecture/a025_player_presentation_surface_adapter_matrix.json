@@ -1,0 +1,244 @@
+{
+  "schema": "go_odyssey.player_presentation_surface_adapter_matrix",
+  "schema_version": "a025.v1",
+  "task": "A025_PLAYER_PRESENTATION_API_CONTRACT_AND_SURFACE_ADAPTER_SPEC_V1_001",
+  "contract_version": "PLAYER_PRESENTATION_API_V1",
+  "source_contract": "PLAYER_PRESENTATION_READ_CONTRACT_V1",
+  "canonical_aggregator": "B028 player_hero_state",
+  "read_service": "B030 player presentation read service",
+  "provenance": {
+    "current_canonical_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+    "a024_accepted": "4c99bd36261c24b8be9cdd82ca3840a768dc19c5",
+    "b028_accepted": "2c8b879a8667c0247c23e560475ee29fafad508d",
+    "b030_accepted": "ade769b9a3ae8267ca06a4cd0327b45eb7ac5627",
+    "a024_ancestor_of_current_master": false,
+    "b028_ancestor_of_current_master": false,
+    "b030_ancestor_of_current_master": false
+  },
+  "total_surfaces": 14,
+  "classification_counts": {
+    "snapshot_adapter": 5,
+    "separate_authority": 6,
+    "legacy_compatibility": 2,
+    "owner_decision_required": 1
+  },
+  "transport_snapshot_fields": [
+    "player_id",
+    "display_identity",
+    "hero",
+    "progression",
+    "persistent_hp",
+    "equipment",
+    "spirit",
+    "cosmetics",
+    "provenance"
+  ],
+  "progression_transport_fields": [
+    "xp",
+    "rank_level",
+    "level",
+    "rank_xp",
+    "go_rank"
+  ],
+  "progression_excluded_fields": [
+    "total_correct",
+    "current_streak",
+    "max_streak"
+  ],
+  "progression_scope": {
+    "player_presentation_learning_stats": "EXCLUDED",
+    "player_presentation_streak_state": "EXCLUDED",
+    "source_broader_facts_are_narrowed": true,
+    "equivalent_aliases": "REJECTED"
+  },
+  "transport_top_level_exclusions": [
+    "world",
+    "encounter",
+    "quest",
+    "shop",
+    "premium",
+    "battle",
+    "reward",
+    "badges",
+    "analytics",
+    "public_profile"
+  ],
+  "authority_boundaries": {
+    "hero": "presentation_only; player_appearance.character_key",
+    "persistent_hp": "user_stats.player_hp/player_max_hp",
+    "encounter_hp": "encounter_local_battle_state; not in transport",
+    "equipment": "player_inventory ownership/equipped plus server EQUIPMENT_DEFS",
+    "spirit": "one active server B022/D008 projection; no combat effects",
+    "cosmetics": "player_wardrobe/player_appearance; presentation-only",
+    "world": "world progression system; excluded",
+    "shop": "Shop/commerce system; excluded",
+    "premium": "Premium entitlement/payment system; excluded",
+    "public_profile": "Owner decision required; excluded"
+  },
+  "surfaces": [
+    {
+      "surface_id": "hero_overview",
+      "player_snapshot_fields_used": ["player_id", "display_identity", "hero", "progression", "equipment", "spirit", "cosmetics"],
+      "separate_authority_required": ["notifications", "badges", "legacy effect summary if retained"],
+      "legacy_endpoint_dependency": ["/api/skills/profile", "/api/player/appearance", "/api/player/inventory", "/api/pet/status", "/api/user/coins"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Replace overview read fragments for identity, level/XP, presentation Hero, equipment summary, active Spirit, and cosmetic summary.",
+      "forbidden_replacement_scope": ["functional Hero authority", "combat stats", "effect calculation", "mutation endpoints"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "server-committed mutation only", "replays_mutation": false},
+      "notes": "B028/B030 snapshot is a read source, not a replacement for Hero mutation or legacy effect authority."
+    },
+    {
+      "surface_id": "hero_appearance_wardrobe",
+      "player_snapshot_fields_used": ["player_id", "hero", "cosmetics"],
+      "separate_authority_required": ["player_wardrobe mutation", "player_appearance selection mutation", "release/hidden policy"],
+      "legacy_endpoint_dependency": ["/api/player/appearance", "/api/skills/profile", "/api/player/appearance/equip", "/api/player/appearance/unequip"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Render owned/selected/presentation-only cosmetics and Hero identity from the snapshot.",
+      "forbidden_replacement_scope": ["cosmetic ownership writes", "equip/unequip writes", "effect-bearing appearance as pure cosmetic", "hidden item release"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "appearance mutation response is committed", "replays_mutation": false},
+      "notes": "The adapter must preserve pure-cosmetic versus legacy-effect taxonomy and fail closed for unreleased records."
+    },
+    {
+      "surface_id": "hero_equipment_loadout",
+      "player_snapshot_fields_used": ["player_id", "hero", "equipment"],
+      "separate_authority_required": ["player_inventory equip/unequip mutation", "combat effect settlement"],
+      "legacy_endpoint_dependency": ["/api/player/inventory", "/api/player/inventory/equip", "/api/skills/profile", "/api/skills/character"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Render owned items, resolved slots, equipped state, quantities, rarity, and functional status.",
+      "forbidden_replacement_scope": ["combat stat recalculation", "legacy player_appearance combat_* promotion", "equip-as-consume behavior"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "server inventory mutation is committed", "replays_mutation": false},
+      "notes": "Conflicted equipped slots remain unresolved; the adapter must not select a first/last item."
+    },
+    {
+      "surface_id": "hero_spirit_panel",
+      "player_snapshot_fields_used": ["player_id", "spirit"],
+      "separate_authority_required": ["Spirit ownership", "Spirit selection", "feed/train/interact mutations", "combat effect settlement"],
+      "legacy_endpoint_dependency": ["/api/pet/status", "/api/pet/choose", "/api/pet/switch", "/api/pet/feed", "/api/pet/interact"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Render one active Spirit, ownership validation, progression level, evolution stage, and presentation asset reference.",
+      "forbidden_replacement_scope": ["Spirit combat effects", "client active-Spirit selection", "second Spirit state"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "server Spirit mutation is committed", "replays_mutation": false},
+      "notes": "LORD_TRIAL_SPIRIT_EFFECTS=OFF; use B022/D008 projection only."
+    },
+    {
+      "surface_id": "hero_achievement_badges",
+      "player_snapshot_fields_used": ["player_id", "display_identity", "progression.go_rank"],
+      "separate_authority_required": ["badge definitions", "earned records", "achievement progress", "title collection"],
+      "legacy_endpoint_dependency": ["/api/badges/definitions", "/api/badges/earned", "/api/skills/profile"],
+      "adapter_required": false,
+      "safe_replacement_scope": "Use snapshot only for a shared player header or context label.",
+      "forbidden_replacement_scope": ["badge collection", "achievement progress", "title unlock/equip authority"],
+      "post_mutation_refresh_allowed": {"allowed": false, "reason": "No B028-owned mutation on this surface", "replays_mutation": false},
+      "notes": "Journey/Achievement remains a separate authority domain."
+    },
+    {
+      "surface_id": "adventure_world_identity",
+      "player_snapshot_fields_used": ["player_id", "display_identity", "hero", "progression", "spirit"],
+      "separate_authority_required": ["World zones", "selected zone", "stars", "completion", "Lord readiness", "next unlock"],
+      "legacy_endpoint_dependency": ["/api/adventure/bootstrap", "/api/adventure/map-state", "/api/adventure/progress", "/api/skills/profile", "/api/player/appearance"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Replace only player identity, Hero marker, level/XP summary, and active Spirit presentation fragments.",
+      "forbidden_replacement_scope": ["World progression", "zone selection", "player location authority", "Adventure gate logic"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "World or Spirit server result is committed", "replays_mutation": false},
+      "notes": "One Player snapshot does not become a World endpoint."
+    },
+    {
+      "surface_id": "adventure_encounter_result",
+      "player_snapshot_fields_used": ["player_id", "hero", "progression", "persistent_hp", "equipment", "spirit", "cosmetics"],
+      "separate_authority_required": ["encounter HP", "Monster battle state", "correctness", "damage", "defeat", "reward settlement"],
+      "legacy_endpoint_dependency": ["/api/question", "/api/monster/status", "/api/monster/battle", "/api/adventure/map-battles/v1/*"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Refresh the Player snapshot after a committed encounter result; render battle state from the battle result.",
+      "forbidden_replacement_scope": ["encounter HP in Player payload", "damage/correctness inference", "reward inference", "battle mutation"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "committed settlement response", "replays_mutation": false},
+      "notes": "Persistent HP and encounter HP are separate. A025 is not a battle adapter."
+    },
+    {
+      "surface_id": "backpack_inventory",
+      "player_snapshot_fields_used": ["player_id", "hero", "equipment"],
+      "separate_authority_required": ["shop_inventory", "pet_inventory", "consumables", "materials", "item use mutation"],
+      "legacy_endpoint_dependency": ["/api/player/inventory", "/api/shop/catalog", "/api/shop/use", "/api/pet/status"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Replace the functional-equipment section and its owned/equipped display with the snapshot.",
+      "forbidden_replacement_scope": ["non-equipment ownership", "item use", "Shop catalog ownership", "second inventory authority"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "server item/equipment mutation is committed", "replays_mutation": false},
+      "notes": "Backpack remains a composite surface; only its equipment slice is B028-compatible."
+    },
+    {
+      "surface_id": "item_journal",
+      "player_snapshot_fields_used": ["player_id"],
+      "separate_authority_required": ["item registry", "shop_inventory", "pet_inventory", "journal taxonomy"],
+      "legacy_endpoint_dependency": ["/api/item-journal"],
+      "adapter_required": false,
+      "safe_replacement_scope": "Optional shared player header only.",
+      "forbidden_replacement_scope": ["functional equipment registry", "cosmetic ownership registry", "journal ownership mutation"],
+      "post_mutation_refresh_allowed": {"allowed": false, "reason": "Journal is read-only in this contract", "replays_mutation": false},
+      "notes": "The existing Item Journal explicitly excludes B028 equipment and cosmetics."
+    },
+    {
+      "surface_id": "shop_cosmetic_and_item_preview",
+      "player_snapshot_fields_used": ["player_id", "display_identity", "hero", "equipment", "cosmetics"],
+      "separate_authority_required": ["catalog", "price", "purchase", "Coins", "Gacha", "Premium entitlement", "payment"],
+      "legacy_endpoint_dependency": ["/api/cosmetic-commerce/catalog", "/api/cosmetic-commerce/preview", "/api/shop/catalog", "/api/premium/v1/offer"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Overlay owned/selected presentation context on a commerce preview.",
+      "forbidden_replacement_scope": ["purchase state", "pricing", "claim eligibility", "Shop ownership authority", "payment flow"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "commerce server result is committed", "replays_mutation": false},
+      "notes": "The Player snapshot never replaces Shop or Premium APIs."
+    },
+    {
+      "surface_id": "public_profile",
+      "player_snapshot_fields_used": [],
+      "separate_authority_required": ["public privacy/redaction policy", "public profile projection"],
+      "legacy_endpoint_dependency": ["/api/profile/<username>", "/api/profile/<username>/games"],
+      "adapter_required": false,
+      "safe_replacement_scope": "None until Owner defines the public profile contract.",
+      "forbidden_replacement_scope": ["authenticated Player snapshot exposure", "private inventory", "persistent HP", "private Spirit state"],
+      "post_mutation_refresh_allowed": {"allowed": false, "reason": "Owner decision required", "replays_mutation": false},
+      "notes": "PUBLIC_PROFILE_PRIVACY_DECISION_DEFERRED=YES."
+    },
+    {
+      "surface_id": "stats_dashboard",
+      "player_snapshot_fields_used": ["player_id", "display_identity", "progression"],
+      "separate_authority_required": ["historical analytics", "daily stats", "quest/Monster charts"],
+      "legacy_endpoint_dependency": ["/api/stats/dashboard", "/api/quests/today", "/api/stats/today-monsters", "/api/auth/me"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Replace only current identity and XP/level header values.",
+      "forbidden_replacement_scope": ["history reconstruction", "analytics aggregation", "quest authority"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "server result is committed", "replays_mutation": false},
+      "notes": "B028 is a current snapshot, not an analytics history store."
+    },
+    {
+      "surface_id": "premium_account_display",
+      "player_snapshot_fields_used": ["player_id", "display_identity"],
+      "separate_authority_required": ["Premium offer", "subscription status", "expiry", "claim", "payment", "grace"],
+      "legacy_endpoint_dependency": ["/api/subscription/status", "/api/premium/v1/offer", "/api/premium/v1/claim", "/api/auth/me"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Shared player identity header only.",
+      "forbidden_replacement_scope": ["Premium entitlement", "claim eligibility", "payment status", "Premium benefit authority"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "Premium server result is committed", "replays_mutation": false},
+      "notes": "No Premium authority is added to Player Presentation."
+    },
+    {
+      "surface_id": "quest_reward_result",
+      "player_snapshot_fields_used": ["player_id", "display_identity", "progression", "persistent_hp", "equipment", "spirit", "cosmetics"],
+      "separate_authority_required": ["quest state", "reward settlement", "claim result", "mutation idempotency"],
+      "legacy_endpoint_dependency": ["/api/question", "/api/quests/today", "/api/newbie_quest", "/api/shop/use", "/api/premium/weekly/training"],
+      "adapter_required": true,
+      "safe_replacement_scope": "Refresh the Player snapshot after the committed result and render the result payload supplied by the authority.",
+      "forbidden_replacement_scope": ["quest progress inference", "reward inference", "claim mutation", "XP mutation"],
+      "post_mutation_refresh_allowed": {"allowed": true, "after": "committed result payload", "replays_mutation": false},
+      "notes": "The Player snapshot is a post-settlement refresh source only."
+    }
+  ],
+  "adapter_rules": {
+    "one_snapshot_per_read": true,
+    "no_sql": true,
+    "no_route_wiring": true,
+    "no_frontend_wiring": true,
+    "no_client_authority": true,
+    "post_mutation_refresh_never_replays_mutation": true,
+    "lord_trial_spirit_effects": "OFF",
+    "public_profile_privacy_decision_deferred": true
+  }
+}

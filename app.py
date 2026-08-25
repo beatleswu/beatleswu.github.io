@@ -225,6 +225,14 @@ from premium_v1_revenue import (
 )
 from premium_reward_bundle_runtime import PremiumRewardBundleClaimService
 from premium_reward_claim_runtime import PremiumRewardClaimError
+from player_presentation_read_service import (
+    PlayerPresentationReadServiceError,
+    build_player_presentation_state,
+)
+from player_presentation_api_contract import (
+    PlayerPresentationApiContractError,
+    build_player_presentation_api_v1,
+)
 from sgf_admin_workbench import (
     WORKBENCH_ACTIONS,
     WORKBENCH_REPORT_REASONS,
@@ -16777,6 +16785,34 @@ def dc_admin_set():
 # ══════════════════════════════════════════════════════════════
 # 技能 / 裝備 / SP API
 # ══════════════════════════════════════════════════════════════
+
+@app.route('/api/player/presentation', methods=['GET'])
+@login_required
+def get_player_presentation():
+    """Return the authenticated user's read-only Player Presentation V1."""
+
+    uid = session['user_id']
+    try:
+        with get_db() as conn:
+            service_result = build_player_presentation_state(conn, user_id=uid)
+        envelope = build_player_presentation_api_v1(service_result)
+    except PlayerPresentationReadServiceError as exc:
+        http_status = 422 if exc.status == 'INVALID_STATE' else 503
+        return jsonify({'error': exc.code, 'status': exc.status}), http_status
+    except PlayerPresentationApiContractError:
+        return jsonify({
+            'error': 'PLAYER_PRESENTATION_CONTRACT_INVALID',
+            'status': 'INVALID_STATE',
+        }), 422
+    except Exception:
+        # The route is a read surface: connection/projection failures fail
+        # closed without exposing driver or internal exception details.
+        return jsonify({
+            'error': 'PLAYER_PRESENTATION_UNAVAILABLE',
+            'status': 'UNAVAILABLE',
+        }), 503
+    return jsonify(envelope.to_dict())
+
 
 @app.route('/api/player/sp')
 @login_required
