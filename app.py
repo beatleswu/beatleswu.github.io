@@ -16939,6 +16939,8 @@ def equip_item():
         slot  = equip.get('slot')
         if not slot:
             return jsonify({'error': '無效的功能裝備'}), 400
+        if act == 'equip' and row['equip_id'] == 'xp_amulet':
+            return jsonify({'error': 'XP_AMULET_HOLD_FOR_AUTHORITY'}), 400
         if row['equip_id'] in INVENTORY_ONLY_EQUIPMENT_IDS:
             return jsonify({'error': '此物品僅供收藏，不能裝備'}), 400
         if act == 'equip':
