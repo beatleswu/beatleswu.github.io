@@ -147,7 +147,10 @@ def test_monster_hp_progression_and_reward_drop_paths_remain_server_side():
     assert "_calc_damage(grade, max_hp)" in APP_SOURCE
     assert "UPDATE battlefield_monster SET current_hp=?" in APP_SOURCE
     assert "_roll_loot(monster_type, loot_bonus)" in APP_SOURCE
-    assert "INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source)" in APP_SOURCE
+    settlement = _function_source("_settle_monster_defeat_in_tx")
+    assert "grant_equipment_ownership(" in settlement
+    assert "equipment_defs=EQUIPMENT_DEFS" in settlement
+    assert "inserted_rows[-1].row_id" in settlement
     assert "INSERT INTO monster_kill_history" in APP_SOURCE
     assert "UPDATE user_stats SET xp=xp+?, rank_xp=rank_xp+?" in APP_SOURCE
 
