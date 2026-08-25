@@ -92,6 +92,31 @@ passives, combat modifiers, or a Hero-specific XP curve.
 ### Progression and persistent HP
 
 Progression is the evidence-backed `user_stats` XP/level/rank projection.
+The A025 transport narrows broader B028 source facts to the following
+presentation fields only:
+
+```text
+xp
+rank_level
+level
+rank_xp
+go_rank
+```
+
+Learning/SRS and engagement-adjacent facts are intentionally excluded even
+when B028 source input contains them:
+
+```text
+PLAYER_PRESENTATION_LEARNING_STATS=EXCLUDED
+PLAYER_PRESENTATION_STREAK_STATE=EXCLUDED
+excluded: total_correct, current_streak, max_streak
+```
+
+The narrowing step drops these known broader fields rather than requiring a
+B028 read-model rewrite. Equivalent aliases are rejected as unknown input.
+This endpoint is not a Learning stats API, SRS stats API, Quest progress API,
+engagement streak API, or analytics API.
+
 `persistent_hp` contains only persistent player HP and max HP from the B028
 `user_stats` projection.
 

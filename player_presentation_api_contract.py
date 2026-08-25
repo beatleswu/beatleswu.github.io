@@ -15,8 +15,8 @@ Topology::
 
 The contract removes the B028 ``world`` payload from the transport body and
 keeps only explicit exclusion metadata in ``provenance``.  Encounter HP,
-combat/effect values, quests, commerce, Premium, badges, analytics, and
-public-profile policy are not transport fields.
+combat/effect values, learning/SRS statistics, quests, commerce, Premium,
+badges, analytics, and public-profile policy are not transport fields.
 """
 
 from __future__ import annotations
@@ -79,6 +79,27 @@ _STATUS_FROM_B028 = {
     "AUTHORITY_AMBIGUOUS": "INVALID_STATE",
     "AUTHORITY_UNAVAILABLE": "UNAVAILABLE",
 }
+_PROGRESSION_TRANSPORT_FIELDS = frozenset(
+    {
+        "projection_status",
+        "authority",
+        "source_version",
+        "xp",
+        "rank_level",
+        "level",
+        "rank_xp",
+        "go_rank",
+        "invalid_fields",
+        "reason",
+    }
+)
+_PROGRESSION_NARROWED_FIELDS = frozenset(
+    {
+        "total_correct",
+        "current_streak",
+        "max_streak",
+    }
+)
 
 _APPEARANCE_SLOTS = ("outfit", "hat", "back", "title", "accessory", "pet", "aura")
 _EQUIPMENT_SLOTS = ("weapon", "armor", "accessory")
@@ -240,26 +261,19 @@ def _validate_hero(value: Any) -> dict[str, Any]:
 
 def _validate_progression(value: Any) -> dict[str, Any]:
     data = _mapping(value, "player_state.progression")
-    allowed = {
-        "projection_status",
-        "authority",
-        "source_version",
-        "xp",
-        "rank_level",
-        "level",
-        "rank_xp",
-        "go_rank",
-        "total_correct",
-        "current_streak",
-        "max_streak",
-        "invalid_fields",
-        "reason",
-    }
-    _reject_unknown(data, allowed, "player_state.progression")
+    # B028 may carry broader user_stats facts. Accept only these three known
+    # Learning/SRS-adjacent fields as source input so the A025 narrowing step
+    # can drop them without requiring a B028 rewrite. They are never output.
+    allowed_input = _PROGRESSION_TRANSPORT_FIELDS | _PROGRESSION_NARROWED_FIELDS
+    _reject_unknown(data, allowed_input, "player_state.progression")
     if data.get("authority") != "user_stats":
         _fail("AUTHORITY_BOUNDARY", "Progression authority must be user_stats")
-    result = dict(data)
-    for key in ("xp", "rank_xp", "total_correct", "current_streak", "max_streak", "level"):
+    result = {
+        key: item
+        for key, item in data.items()
+        if key not in _PROGRESSION_NARROWED_FIELDS
+    }
+    for key in ("xp", "rank_xp", "level"):
         if key in result:
             result[key] = _nonnegative_or_none(result[key], f"player_state.progression.{key}")
     for key in ("rank_level", "go_rank"):

@@ -143,6 +143,29 @@ def test_valid_b028_b030_projection_is_accepted() -> None:
     assert envelope.persistent_hp["persistent_player_hp"] == 80
 
 
+def test_progression_narrows_learning_and_streak_facts_from_b028_input() -> None:
+    source_progression = _service_result()["player_state"]["progression"]
+    assert {"total_correct", "current_streak", "max_streak"}.issubset(source_progression)
+
+    transport_progression = _build().to_dict()["progression"]
+    assert transport_progression["xp"] == 120
+    assert transport_progression["level"] == 3
+    assert transport_progression["rank_level"] == "LV3"
+    assert transport_progression["rank_xp"] == 20
+    assert transport_progression["go_rank"] == "30k"
+    assert "total_correct" not in transport_progression
+    assert "current_streak" not in transport_progression
+    assert "max_streak" not in transport_progression
+
+
+@pytest.mark.parametrize("field", ["learning_stats", "engagement_streak", "correct_count"])
+def test_progression_equivalent_learning_aliases_fail_closed(field: str) -> None:
+    service = _service_result()
+    service["player_state"]["progression"][field] = 1
+    with pytest.raises(PlayerPresentationApiContractError):
+        build_player_presentation_api_v1(service)
+
+
 def test_transport_envelope_is_immutable() -> None:
     envelope = _build()
     with pytest.raises(TypeError):
@@ -292,6 +315,18 @@ def test_surface_matrix_is_complete_and_matches_a024() -> None:
         "quest_reward_result",
     }
     assert matrix["total_surfaces"] == 14
+    assert matrix["progression_transport_fields"] == [
+        "xp",
+        "rank_level",
+        "level",
+        "rank_xp",
+        "go_rank",
+    ]
+    assert matrix["progression_excluded_fields"] == [
+        "total_correct",
+        "current_streak",
+        "max_streak",
+    ]
     assert {row["surface_id"] for row in matrix["surfaces"]} == expected
     assert len(matrix["surfaces"]) == 14
     assert all(row["adapter_required"] in (True, False) for row in matrix["surfaces"])

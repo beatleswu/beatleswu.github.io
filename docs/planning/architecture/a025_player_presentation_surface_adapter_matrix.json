@@ -33,6 +33,24 @@
     "cosmetics",
     "provenance"
   ],
+  "progression_transport_fields": [
+    "xp",
+    "rank_level",
+    "level",
+    "rank_xp",
+    "go_rank"
+  ],
+  "progression_excluded_fields": [
+    "total_correct",
+    "current_streak",
+    "max_streak"
+  ],
+  "progression_scope": {
+    "player_presentation_learning_stats": "EXCLUDED",
+    "player_presentation_streak_state": "EXCLUDED",
+    "source_broader_facts_are_narrowed": true,
+    "equivalent_aliases": "REJECTED"
+  },
   "transport_top_level_exclusions": [
     "world",
     "encounter",
