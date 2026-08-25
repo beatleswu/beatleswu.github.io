@@ -11,7 +11,8 @@ Trophy rows.
 
 | Fact | Value |
 |---|---|
-| Current implementation base | `7d876fdb6fc9ac506f6bebfa622a62e51187d442` |
+| Original C026 implementation base | `7d876fdb6fc9ac506f6bebfa622a62e51187d442` |
+| Current candidate base after F016 overlay | `1566888b2327e39789381c5fb4f59d33fb73d732` |
 | C019 accepted semantics | `cb8f7e07350edb873c6300bfae3680819b0329f6` |
 | C023 accepted semantics | `ab588aa28cbae92a8c29bffe575b67b1f3207793` |
 | C021-R1 reference | `8af8e69cd22b1fddb2dab8e9b769067091d51d90` |
