@@ -1,0 +1,214 @@
+{
+  "task": "E029_R1_POST_PR401_CURRENT_STATE_AND_MERGE_WAVE_OVERLAY_001",
+  "current_origin_master": "a1ad78154858b9369e90c748f842401c40fb18cd",
+  "already_merged_excluded": [
+    "PR400_PLAYER_PRESENTATION_BACKEND",
+    "PR401_B036_XP_AMULET_HOLD_GUARD"
+  ],
+  "single_writer_policy": {
+    "app_py_serial_integration_required": true,
+    "owner": "LANE_E",
+    "same_file_multiwriter_forbidden": true
+  },
+  "waves": [
+    {
+      "wave": 1,
+      "name": "A028_CURRENT_MASTER_REFRESH_AND_A029_ACCEPTANCE",
+      "inputs": [
+        "A028:9ae3cedcf4902bc792c17db4757c478d41d636a2",
+        "A029:ACTIVE_UNREVIEWED"
+      ],
+      "state": "OWNER_ACCEPTED_INPUT_REQUIRES_CURRENT_MASTER_REFRESH",
+      "dependencies": [
+        "PR400_PLAYER_PRESENTATION_BACKEND",
+        "PR401_B036_XP_AMULET_HOLD_GUARD"
+      ],
+      "app_py_collision": "NONE",
+      "schema_prerequisite": "NONE",
+      "why_now": "A028 consumes only the merged Player Presentation Hero identity/XP/level/rank read contract and is independent of Equipment, Commerce, and World/Monster foundations.",
+      "required_actions": [
+        "recreate or refresh A028 from current master",
+        "run A029 browser acceptance",
+        "preserve PR401 sw/runtime state"
+      ],
+      "owner_gate": "GO_MERGE_REQUIRED_FOR_FRESH_A028_CANDIDATE",
+      "production_effect": "NONE_UNTIL_SEPARATE_DEPLOY"
+    },
+    {
+      "wave": 2,
+      "name": "B033_SCHEMA_AND_B034_EQUIPMENT_SERVICE_RECONCILIATION",
+      "inputs": [
+        "B033:15f665f656418ab189d32aa809c163f3e27fa92c",
+        "B034:e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74",
+        "B035:9361f7de31c0f1a189b19202ce20dd21c6cd690b"
+      ],
+      "state": "OWNER_ACCEPTED_BUT_BLOCKED_BY_B036_SEMANTIC_GAP",
+      "dependencies": [
+        "PR401_B036_XP_AMULET_HOLD_GUARD"
+      ],
+      "app_py_collision": "SAME_FUNCTION_REPLACEMENT",
+      "schema_prerequisite": "B033_SCHEMA_CODE_EXISTS_NOT_MERGED_NOT_PRODUCTION_MIGRATED",
+      "why_now": "Equipment slot projection must be canonical before Shop acquisition can persist functional ownership truth, but B034 cannot replace the legacy route until B036 legacy unequip semantics are preserved.",
+      "blockers": [
+        "B034_SERVICE_HOLD_SEMANTICS_COMPATIBLE_WITH_B036=NO"
+      ],
+      "required_actions": [
+        "current-master B034 integration candidate",
+        "preserve new xp_amulet equip rejection",
+        "preserve legacy-equipped xp_amulet unequip",
+        "run disposable schema and command tests"
+      ],
+      "owner_gate": "NEW_GO_MERGE_REQUIRED_AFTER_BLOCKER_CLOSURE",
+      "production_effect": "SCHEMA_MIGRATION_AND_ROUTE_CUTOVER_SEPARATE"
+    },
+    {
+      "wave": 3,
+      "name": "D020_ACQUISITION_FOUNDATION_AND_D022_CONTRACT",
+      "inputs": [
+        "D020:d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+        "D022:7ab57ee78c74aa4526bfa29b6a8a0aa998604882"
+      ],
+      "state": "OWNER_ACCEPTED_UNMERGED",
+      "dependencies": [
+        "D018_CANONICAL_ACQUISITION_CONTRACT"
+      ],
+      "app_py_collision": "SAME_FILE_NON_OVERLAPPING_SEAM",
+      "schema_prerequisite": "NONE_IDENTIFIED_IN_D020_D022",
+      "why_now": "Committed-result and ownership-reference validation must exist before Shop or producer bridges are wired.",
+      "required_actions": [
+        "reconcile D020 from current master",
+        "retain D022 exact player_inventory row identity rule",
+        "run pure adapter tests"
+      ],
+      "owner_gate": "GO_MERGE_REQUIRED_FOR_CURRENT_MASTER_CANDIDATE",
+      "production_effect": "NONE"
+    },
+    {
+      "wave": 4,
+      "name": "C023_COMMERCE_WRITER_AND_C024_R1_RUNTIME_REVIEW",
+      "inputs": [
+        "C023:ab588aa28cbae92a8c29bffe575b67b1f3207793",
+        "C024-R1:ACTIVE_UNREVIEWED"
+      ],
+      "state": "C023_OWNER_ACCEPTED_C024_R1_UNREVIEWED",
+      "dependencies": [
+        "B033_IS_CANONICAL_SLOT_SCHEMA_OWNER",
+        "D020_ACQUISITION_FOUNDATION",
+        "D022_OWNERSHIP_REFERENCE_CONTRACT"
+      ],
+      "app_py_collision": "SAME_FILE_NON_OVERLAPPING_SEAM",
+      "schema_prerequisite": "B033_SCHEMA_REQUIRED_FOR_POST_B033_SLOT_PROJECTION",
+      "why_now": "Commerce must emit server-owned acquisition facts, including exact functional ownership identity, before a generic Shop result bridge can support Equipment.",
+      "blockers": [
+        "C024_R1_RESULT_NOT_VISIBLE",
+        "C023_CURRENT_MASTER_REFRESH_REQUIRED",
+        "player_inventory_inserted_row_identity_extension_required"
+      ],
+      "required_actions": [
+        "obtain actual C024-R1 result",
+        "current-master reconcile C023",
+        "extend/persist exact player_inventory row identity in committed result",
+        "do not wire Shop route until contract passes"
+      ],
+      "owner_gate": "NEW_GO_MERGE_REQUIRED",
+      "production_effect": "NO_REVENUE_ENABLE_OR_PRODUCTION_MIGRATION"
+    },
+    {
+      "wave": 5,
+      "name": "D023_READ_ONLY_SHOP_ACQUISITION_BRIDGE",
+      "inputs": [
+        "D023:ed8580efa2623bc2a43e585faa8af416648663ba"
+      ],
+      "state": "ACTIVE_UNREVIEWED_CURRENT_MASTER_BASED",
+      "dependencies": [
+        "D020_ACQUISITION_FOUNDATION",
+        "D022_OWNERSHIP_REFERENCE_CONTRACT",
+        "C023_COMMERCE_WRITER",
+        "C024_R1_REVIEW"
+      ],
+      "app_py_collision": "SAME_FILE_NON_OVERLAPPING_SEAM",
+      "schema_prerequisite": "NO_NEW_SCHEMA_IN_D023; COMMERCE_ROW_IDENTITY_PREREQUISITE_REQUIRED",
+      "why_now": "D023 is a read-only bridge and can consume committed Shop/wardrobe results after producer identity is truthful; it must not become a player_inventory writer.",
+      "blockers": [
+        "D023_OWNER_REVIEW",
+        "remote_visibility_not_proven",
+        "player_inventory_writer_extension_outside_D023"
+      ],
+      "required_actions": [
+        "review exact current-master candidate",
+        "verify shop_inventory and player_wardrobe references",
+        "reject unsupported player_inventory result until C023 extension exists"
+      ],
+      "owner_gate": "NEW_GO_MERGE_REQUIRED",
+      "production_effect": "NONE"
+    },
+    {
+      "wave": 6,
+      "name": "F014_BOUNDARY_AND_F015_MILESTONE_DECISION",
+      "inputs": [
+        "F014:9dda188a7a52b02d680cd6ff7aedaf891169bb12",
+        "F015:e0a28dedcac1b4cfddfde32e0474de26a1be4b02"
+      ],
+      "state": "F014_OWNER_ACCEPTED_F015_PENDING",
+      "dependencies": [
+        "F008_MONSTER_SETTLEMENT_BOUNDARY",
+        "WORLD_PROGRESSION_AUTHORITY"
+      ],
+      "app_py_collision": "SAME_FILE_NON_OVERLAPPING_SEAM",
+      "schema_prerequisite": "F015_MILESTONE_SCHEMA_CANDIDATE_NOT_MERGED_NOT_PRODUCTION_MIGRATED",
+      "why_now": "World/Boss adapter can be kept separate from presentation and acquisition, but F015 cannot become accepted input until its Owner state and milestone storage policy are settled.",
+      "blockers": [
+        "F015_OWNER_STATUS",
+        "future_world_milestone_storage_owner_decision"
+      ],
+      "required_actions": [
+        "current-master reconcile F014",
+        "do not activate F015 without Owner PASS",
+        "retain Boss != Lord and Monster defeated != World progression"
+      ],
+      "owner_gate": "NEW_GO_MERGE_REQUIRED_FOR_EACH_ACCEPTED_RUNTIME_CANDIDATE",
+      "production_effect": "NO_WORLD_FEATURE_ENABLE"
+    },
+    {
+      "wave": 7,
+      "name": "FINAL_SERIAL_APP_PY_CUTOVERS_AND_COMBINED_ACCEPTANCE",
+      "inputs": [
+        "B034",
+        "Commerce Shop cutover",
+        "Acquisition producer bridge",
+        "World/Boss binding"
+      ],
+      "state": "FUTURE_INTEGRATION_NOT_STARTED",
+      "dependencies": [
+        "WAVE_2",
+        "WAVE_3",
+        "WAVE_4",
+        "WAVE_5",
+        "WAVE_6"
+      ],
+      "app_py_collision": "REQUIRES_SERIAL_APP_PY_INTEGRATION",
+      "schema_prerequisite": "ALL_REQUIRED_SCHEMA_CANDIDATES_REVIEWED_AND_SEPARATELY_MIGRATION_GATED",
+      "why_now": "Only after pure modules, ownership contracts, and World boundaries are stable should Lane E wire the shared app.py route seams under one executor.",
+      "required_actions": [
+        "one integration worktree",
+        "one Lane E app.py writer",
+        "test after each seam",
+        "verify no duplicate authority or route writer"
+      ],
+      "owner_gate": "GO_MERGE_REQUIRED_AFTER_FULL_COMBINED_ACCEPTANCE",
+      "production_effect": "MERGE_DEPLOY_ENABLE_AND_SCHEMA_GATES_REMAIN_SEPARATE"
+    }
+  ],
+  "recommended_wave_order": [
+    "A028_CURRENT_MASTER_REFRESH_AND_A029_ACCEPTANCE",
+    "B033_SCHEMA_AND_B034_EQUIPMENT_SERVICE_RECONCILIATION",
+    "D020_ACQUISITION_FOUNDATION_AND_D022_CONTRACT",
+    "C023_COMMERCE_WRITER_AND_C024_R1_RUNTIME_REVIEW",
+    "D023_READ_ONLY_SHOP_ACQUISITION_BRIDGE",
+    "F014_BOUNDARY_AND_F015_MILESTONE_DECISION",
+    "FINAL_SERIAL_APP_PY_CUTOVERS_AND_COMBINED_ACCEPTANCE"
+  ],
+  "next_integration_owner": "LANE_E",
+  "no_go_merge_granted": true,
+  "no_production_mutation": true
+}

@@ -1,0 +1,553 @@
+{
+  "task": "E029_R1_POST_PR401_CURRENT_STATE_AND_MERGE_WAVE_OVERLAY_001",
+  "current_origin_master": "a1ad78154858b9369e90c748f842401c40fb18cd",
+  "original_e029": "e25db25994a7aba2e94241d6d0ca89e36893ffce",
+  "original_e029_master": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+  "pr401_merge": "a1ad78154858b9369e90c748f842401c40fb18cd",
+  "retained_locks": {
+    "PR400_CORE_COLLISION_B": "NONE",
+    "PR400_CORE_COLLISION_C": "NONE",
+    "PR400_CORE_COLLISION_D": "NONE",
+    "PR400_CORE_COLLISION_F": "NONE",
+    "APP_PY_SERIAL_INTEGRATION_REQUIRED": "YES",
+    "LANE_E_SINGLE_APP_PY_WRITER": "YES",
+    "RETAINED_FROM_E029": "YES"
+  },
+  "candidates": [
+    {
+      "id": "A028",
+      "lane": "A",
+      "task": "Hero overview Player Presentation adoption",
+      "exact_sha": "9ae3cedcf4902bc792c17db4757c478d41d636a2",
+      "owner_status": "OWNER_PASS",
+      "state": "OWNER_ACCEPTED_UNMERGED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 1,
+      "behind_by": 2,
+      "merge_base": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+      "parent": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+      "refs": [
+        "refs/heads/codex/a028-hero-overview-player-presentation-adoption",
+        "refs/remotes/origin/codex/a028-hero-overview-player-presentation-adoption"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "hero.html",
+        "sw.js",
+        "tests/e9_node_tests/run_a028_hero_overview_player_presentation_tests.js"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": false,
+      "tests_changed": true,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [
+        "dc0246dfe3c64f6690cb7be046d5ab3f312ca563"
+      ],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "same_file_collision_set": [],
+      "integration_strategy": "REIMPLEMENT_ON_CURRENT_MASTER",
+      "notes": "Narrow Hero identity/XP/level/rank adoption; current-master refresh required after PR401; A029 browser gate required."
+    },
+    {
+      "id": "B033",
+      "lane": "B",
+      "task": "Equipment canonical slot schema candidate",
+      "exact_sha": "15f665f656418ab189d32aa809c163f3e27fa92c",
+      "owner_status": "OWNER_PASS",
+      "state": "SCHEMA_CANDIDATE_UNMIGRATED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 1,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "refs": [
+        "refs/heads/codex/b033-equipment-canonical-slot-schema-candidate",
+        "refs/remotes/origin/codex/b033-equipment-canonical-slot-schema-candidate"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "migrations/equipment_canonical_slot_v1.py",
+        "tests/test_b033_equipment_canonical_slot_schema.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": true,
+      "runtime_module_changed": false,
+      "tests_changed": true,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NO",
+      "same_file_collision_set": [
+        "C023"
+      ],
+      "integration_strategy": "EXACT_IMPORT",
+      "notes": "Canonical slot schema owner; code exists only as candidate and has not been Production migrated."
+    },
+    {
+      "id": "B034",
+      "lane": "B",
+      "task": "Equipment loadout command service core",
+      "exact_sha": "e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74",
+      "owner_status": "OWNER_PASS",
+      "state": "OWNER_ACCEPTED_UNMERGED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 2,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "15f665f656418ab189d32aa809c163f3e27fa92c",
+      "refs": [
+        "refs/heads/codex/b034-equipment-loadout-command-service-core",
+        "refs/remotes/origin/codex/b034-equipment-loadout-command-service-core"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "equipment_loadout_service.py",
+        "tests/test_b034_equipment_loadout_service.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [
+        "15f665f656418ab189d32aa809c163f3e27fa92c"
+      ],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "NO",
+      "same_file_collision_set": [
+        "B036",
+        "C023"
+      ],
+      "integration_strategy": "REIMPLEMENT_ON_CURRENT_MASTER",
+      "app_py_collision": "SAME_FUNCTION_REPLACEMENT",
+      "notes": "New xp_amulet equip is rejected, but legacy-equipped xp_amulet unequip is rejected; this is incompatible with B036 until reconciled."
+    },
+    {
+      "id": "B035",
+      "lane": "B",
+      "task": "Equipment canonical slot writer coverage and cutover recon",
+      "exact_sha": "9361f7de31c0f1a189b19202ce20dd21c6cd690b",
+      "owner_status": "OWNER_PASS",
+      "state": "DOCS_ONLY_ACCEPTED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 1,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "refs": [
+        "refs/heads/codex/b035-equipment-canonical-slot-writer-recon",
+        "refs/remotes/origin/codex/b035-equipment-canonical-slot-writer-recon"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "docs/planning/architecture/B035_EQUIPMENT_CANONICAL_SLOT_WRITER_COVERAGE_AND_CUTOVER_RECON_001.md",
+        "docs/planning/architecture/b035_equipment_cutover_prerequisite_matrix.json",
+        "docs/planning/architecture/b035_player_inventory_writer_matrix.json"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": false,
+      "tests_changed": false,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "15f665f656418ab189d32aa809c163f3e27fa92c"
+      ],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "same_file_collision_set": [
+        "B034",
+        "B036"
+      ],
+      "integration_strategy": "SELECTIVE_IMPORT",
+      "notes": "Evidence only; one equipped=true writer; ownership-only writers are not B033 hard blockers; legacy player_appearance combat fields remain a separate retirement item."
+    },
+    {
+      "id": "B036",
+      "lane": "B",
+      "task": "xp_amulet current equip guard",
+      "exact_sha": "b5f7738b806d6ed521c140754f18fa1053c5d9e1",
+      "owner_status": "MERGED_VIA_PR401",
+      "state": "MERGED_CURRENT_RUNTIME",
+      "merged_into_current_master": true,
+      "candidate_is_ancestor_of_current_master": true,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 0,
+      "behind_by": 1,
+      "merge_base": "b5f7738b806d6ed521c140754f18fa1053c5d9e1",
+      "parent": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+      "refs": [
+        "refs/heads/codex/b036-xp-amulet-hold-current-equip-guard",
+        "refs/remotes/origin/codex/b036-xp-amulet-hold-current-equip-guard"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "app.py",
+        "tests/test_b036_xp_amulet_hold_guard.py"
+      ],
+      "app_py_changed": true,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NOT_APPLICABLE_MERGED",
+      "same_file_collision_set": [
+        "B034"
+      ],
+      "integration_strategy": "MERGED_CURRENT_RUNTIME",
+      "notes": "New xp_amulet equip rejected; legacy already-equipped xp_amulet unequip remains allowed."
+    },
+    {
+      "id": "C023",
+      "lane": "C",
+      "task": "Coin Shop equipment canonical slot writer",
+      "exact_sha": "ab588aa28cbae92a8c29bffe575b67b1f3207793",
+      "owner_status": "OWNER_PASS",
+      "state": "OWNER_ACCEPTED_UNMERGED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 8,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "f3ee9a6f13f69bbc2add0b709109048e2ef22036",
+      "refs": [
+        "refs/heads/codex/c023-coin-shop-equipment-canonical-slot-writer",
+        "refs/remotes/origin/codex/c023-coin-shop-equipment-canonical-slot-writer"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "coin_purchase_authority.py",
+        "tests/test_c019_atomic_coin_purchase_transaction_core.py",
+        "tests/test_c023_coin_shop_equipment_canonical_slot_writer.py",
+        "docs/planning/architecture/C023_COIN_SHOP_EQUIPMENT_CANONICAL_SLOT_WRITER_COMPATIBILITY_001.md"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "15f665f656418ab189d32aa809c163f3e27fa92c"
+      ],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "same_file_collision_set": [
+        "B033",
+        "C024-R1",
+        "D022",
+        "D023"
+      ],
+      "integration_strategy": "SELECTIVE_IMPORT",
+      "notes": "Pure Commerce writer; exact player_inventory row identity is still required for a generic Shop acquisition bridge."
+    },
+    {
+      "id": "C024-R1",
+      "lane": "C",
+      "task": "Current Shop runtime offer reconciliation R1",
+      "exact_sha": "a1ad78154858b9369e90c748f842401c40fb18cd",
+      "owner_status": "ACTIVE_DO_NOT_ASSUME_RESULT",
+      "state": "ACTIVE_UNREVIEWED_NO_RESULT_VISIBLE",
+      "merged_into_current_master": true,
+      "candidate_is_ancestor_of_current_master": true,
+      "current_master_is_ancestor_of_candidate": true,
+      "ahead_by": 0,
+      "behind_by": 0,
+      "merge_base": "a1ad78154858b9369e90c748f842401c40fb18cd",
+      "parent": "CURRENT_MASTER_REF",
+      "refs": [
+        "refs/heads/codex/c024-r1-current-shop-runtime-offer-recon"
+      ],
+      "remote_visible": false,
+      "changed_files": [],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": false,
+      "tests_changed": false,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [
+        "ab588aa28cbae92a8c29bffe575b67b1f3207793"
+      ],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NOT_APPLICABLE_NO_VISIBLE_DELTA",
+      "same_file_collision_set": [
+        "C023",
+        "D023"
+      ],
+      "integration_strategy": "REIMPLEMENT_ON_CURRENT_MASTER",
+      "notes": "Observed active ref points at current master and supplies no result-bearing R1 delta; acceptance remains open."
+    },
+    {
+      "id": "D020",
+      "lane": "D",
+      "task": "Acquisition foundation current-master candidate",
+      "exact_sha": "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+      "owner_status": "OWNER_PASS",
+      "state": "OWNER_ACCEPTED_UNMERGED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 3,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "200fe5411cb0ea7772ee1784de6f7edcabbfe03c",
+      "refs": [
+        "refs/heads/codex/d020-acquisition-foundation-current-master",
+        "refs/remotes/origin/codex/d020-acquisition-foundation-current-master"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "acquisition_result_adapters.py",
+        "docs/planning/architecture/D019_ACQUISITION_PRODUCER_ADAPTER_CORE_V1_001.md",
+        "docs/planning/architecture/d019_producer_adapter_readiness_matrix.json",
+        "tests/test_d019_acquisition_result_adapters.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NO",
+      "same_file_collision_set": [
+        "D022",
+        "D023",
+        "C023"
+      ],
+      "integration_strategy": "REIMPLEMENT_ON_CURRENT_MASTER",
+      "notes": "Pure committed-result adapter; no writes or Shop/Equipment ownership authority."
+    },
+    {
+      "id": "D022",
+      "lane": "D",
+      "task": "Shop acquisition ownership reference contract",
+      "exact_sha": "7ab57ee78c74aa4526bfa29b6a8a0aa998604882",
+      "owner_status": "OWNER_PASS",
+      "state": "DOCS_ONLY_ACCEPTED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 1,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "refs": [
+        "refs/heads/codex/d022-shop-acquisition-ownership-reference-contract-v1",
+        "refs/remotes/origin/codex/d022-shop-acquisition-ownership-reference-contract-v1"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "docs/planning/architecture/D022_SHOP_ACQUISITION_OWNERSHIP_REFERENCE_CONTRACT_RECON_V1_001.md",
+        "docs/planning/architecture/d022_shop_ownership_reference_matrix.json",
+        "docs/planning/architecture/d022_shop_result_bridge_prerequisite_matrix.json"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": false,
+      "tests_changed": false,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+        "ab588aa28cbae92a8c29bffe575b67b1f3207793"
+      ],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "same_file_collision_set": [
+        "C023",
+        "D023"
+      ],
+      "integration_strategy": "SELECTIVE_IMPORT",
+      "notes": "Exact player_inventory inserted-row identity required; D022 adds no writer or route."
+    },
+    {
+      "id": "D023",
+      "lane": "D",
+      "task": "Shop acquisition result bridge",
+      "exact_sha": "ed8580efa2623bc2a43e585faa8af416648663ba",
+      "owner_status": "ACTIVE_DO_NOT_ASSUME_RESULT",
+      "state": "ACTIVE_UNREVIEWED_CURRENT_MASTER_BASED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": true,
+      "ahead_by": 3,
+      "behind_by": 0,
+      "merge_base": "a1ad78154858b9369e90c748f842401c40fb18cd",
+      "parent": "1aeaa59d0e590d7abcd212e6738e8c37e6e6a8ac",
+      "refs": [
+        "refs/heads/codex/d023-shop-acquisition-result-bridge"
+      ],
+      "remote_visible": false,
+      "changed_files": [
+        "acquisition_result_adapters.py",
+        "docs/planning/architecture/D019_ACQUISITION_PRODUCER_ADAPTER_CORE_V1_001.md",
+        "docs/planning/architecture/d019_producer_adapter_readiness_matrix.json",
+        "tests/test_d019_acquisition_result_adapters.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+        "7ab57ee78c74aa4526bfa29b6a8a0aa998604882",
+        "ab588aa28cbae92a8c29bffe575b67b1f3207793"
+      ],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "same_file_collision_set": [
+        "C023",
+        "D020",
+        "D022"
+      ],
+      "integration_strategy": "REIMPLEMENT_ON_CURRENT_MASTER",
+      "notes": "Read-only Shop/wardrobe result bridge; no player_inventory writer; active and unreviewed."
+    },
+    {
+      "id": "F014",
+      "lane": "F",
+      "task": "World Battlefield Boss thin adapter",
+      "exact_sha": "9dda188a7a52b02d680cd6ff7aedaf891169bb12",
+      "owner_status": "OWNER_PASS",
+      "state": "OWNER_ACCEPTED_UNMERGED",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 1,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "refs": [
+        "refs/heads/codex/f014-world-battlefield-boss-thin-adapter",
+        "refs/remotes/origin/codex/f014-world-battlefield-boss-thin-adapter"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "world_monster_boss_adapter.py",
+        "world_monster_boundary_contract.py",
+        "tests/test_f012_world_monster_boundary_contract.py",
+        "tests/test_f014_world_battlefield_boss_thin_adapter.py",
+        "docs/planning/architecture/F012_WORLD_MONSTER_BATTLEFIELD_BOSS_BOUNDARY_CONTRACT_V1_001.md",
+        "docs/planning/architecture/f012_world_monster_boundary_contract_matrix.json"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NO",
+      "same_file_collision_set": [
+        "F015"
+      ],
+      "integration_strategy": "EXACT_IMPORT",
+      "notes": "Pure boundary/adapter; no Zone clear, Star, Lord readiness, or next-Zone authority."
+    },
+    {
+      "id": "F015",
+      "lane": "F",
+      "task": "World Battlefield Boss milestone projection",
+      "exact_sha": "e0a28dedcac1b4cfddfde32e0474de26a1be4b02",
+      "owner_status": "PENDING_OWNER_REVIEW_OR_ACTIVE_CURRENT_STATE",
+      "state": "PENDING_OWNER_REVIEW_OR_ACTIVE_CURRENT_STATE",
+      "merged_into_current_master": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "current_master_is_ancestor_of_candidate": false,
+      "ahead_by": 1,
+      "behind_by": 6,
+      "merge_base": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "refs": [
+        "refs/heads/codex/f015-world-battlefield-boss-milestone-projection",
+        "refs/remotes/origin/codex/f015-world-battlefield-boss-milestone-projection"
+      ],
+      "remote_visible": true,
+      "changed_files": [
+        "world_battlefield_boss_milestone.py",
+        "migrations/world_battlefield_boss_milestone_v1.py",
+        "tests/test_f015_world_battlefield_boss_milestone.py",
+        "tests/test_f015_world_battlefield_boss_milestone_postgres.py",
+        "world_monster_boss_adapter.py",
+        "world_monster_boundary_contract.py",
+        "tests/test_f012_world_monster_boundary_contract.py",
+        "tests/test_f014_world_battlefield_boss_thin_adapter.py",
+        "docs/planning/architecture/F012_WORLD_MONSTER_BATTLEFIELD_BOSS_BOUNDARY_CONTRACT_V1_001.md",
+        "docs/planning/architecture/f012_world_monster_boundary_contract_matrix.json"
+      ],
+      "app_py_changed": false,
+      "schema_changed": true,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "9dda188a7a52b02d680cd6ff7aedaf891169bb12"
+      ],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "NO",
+      "same_file_collision_set": [
+        "F014"
+      ],
+      "integration_strategy": "REIMPLEMENT_ON_CURRENT_MASTER",
+      "schema_status": "SCHEMA_CODE_EXISTS_NOT_MERGED_NOT_PRODUCTION_MIGRATED",
+      "notes": "Not accepted input until Owner status is confirmed; milestone storage remains separate from Monster defeat and World progression."
+    }
+  ],
+  "active_overlays": {
+    "A029": {
+      "status": "ACTIVE_UNREVIEWED",
+      "exact_ref_visible": false,
+      "result_assumed": false,
+      "required_gate": "A029_BROWSER_ACCEPTANCE"
+    },
+    "C024-R1": {
+      "status": "ACTIVE_UNREVIEWED_NO_RESULT_VISIBLE",
+      "observed_ref": "codex/c024-r1-current-shop-runtime-offer-recon",
+      "observed_head": "a1ad78154858b9369e90c748f842401c40fb18cd",
+      "delta_from_current_master": 0,
+      "result_assumed": false
+    },
+    "D023": {
+      "status": "ACTIVE_UNREVIEWED_CURRENT_MASTER_BASED",
+      "head": "ed8580efa2623bc2a43e585faa8af416648663ba",
+      "current_master_is_ancestor": true,
+      "remote_visible": false,
+      "result_assumed": false
+    },
+    "F015": {
+      "status": "PENDING_OWNER_REVIEW_OR_ACTIVE_CURRENT_STATE",
+      "head": "e0a28dedcac1b4cfddfde32e0474de26a1be4b02",
+      "owner_accepted": false,
+      "result_assumed": false
+    }
+  },
+  "collision_map": {
+    "B034": "SAME_FUNCTION_REPLACEMENT",
+    "C_SHOP": "SAME_FILE_NON_OVERLAPPING_SEAM",
+    "D_ACQUISITION": "SAME_FILE_NON_OVERLAPPING_SEAM",
+    "F_WORLD_BOSS": "SAME_FILE_NON_OVERLAPPING_SEAM",
+    "APP_PY_SERIAL_INTEGRATION_REQUIRED": "YES",
+    "LANE_E_SINGLE_APP_PY_WRITER": "YES"
+  },
+  "schema_owner": "B033_IS_CANONICAL_SLOT_SCHEMA_OWNER",
+  "status_semantics": [
+    "MERGED_CURRENT_RUNTIME",
+    "OWNER_ACCEPTED_UNMERGED",
+    "ACTIVE_UNREVIEWED",
+    "DOCS_ONLY_ACCEPTED",
+    "SCHEMA_CANDIDATE_UNMIGRATED",
+    "PENDING_OWNER_REVIEW_OR_ACTIVE_CURRENT_STATE"
+  ]
+}
