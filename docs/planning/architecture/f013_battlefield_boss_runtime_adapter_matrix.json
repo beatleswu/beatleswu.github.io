@@ -1,0 +1,146 @@
+{
+  "task": "F013_BATTLEFIELD_BOSS_RUNTIME_ADAPTER_AND_SETTLEMENT_LINEAGE_RECON_001",
+  "mode": "READ_ONLY_RECON",
+  "repository": "D:\\go-website",
+  "origin_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "accepted_f012_r1_reference": "91701324d57649c1f1376f09fbb8c44114b96a73",
+  "accepted_f012_r1_merged_into_current_master": false,
+  "f007_runtime_activation": false,
+  "f010_boss_intent_seam": "THIN_ADAPTER_REQUIRED",
+  "selector": {
+    "pure_function": "monster_encounter_selector.select_monster_encounter",
+    "durable_function": "monster_encounter_selector_runtime.select_durable_monster_encounter",
+    "regular_excludes_battlefield_boss": true,
+    "regular_excludes_lord": true,
+    "boss_requires_explicit_intent": true,
+    "boss_eligibility_owned_by_selector": false,
+    "live_app_intents": ["REGULAR"],
+    "default_enabled": false,
+    "selector_state_key": ["user_id", "zone_key"],
+    "operation_key": ["user_id", "zone_key", "encounter_operation_id"],
+    "f007_catalog_imported": false
+  },
+  "intent_adapter_field_mapping": [
+    {
+      "f012_field": "user_id",
+      "f010_field": "user_id",
+      "classification": "DIRECTLY_COMPATIBLE"
+    },
+    {
+      "f012_field": "zone_key",
+      "f010_field": "zone_key",
+      "classification": "THIN_ADAPTER_REQUIRED",
+      "rule": "canonical_selector_zone_key"
+    },
+    {
+      "f012_field": "intent_operation_id",
+      "f010_field": "encounter_operation_id",
+      "classification": "DIRECTLY_COMPATIBLE"
+    },
+    {
+      "f012_field": "encounter_class",
+      "f010_field": "encounter_intent",
+      "classification": "DIRECTLY_COMPATIBLE",
+      "value": "BATTLEFIELD_BOSS"
+    },
+    {
+      "f012_field": "eligibility_authority",
+      "f010_field": "battlefield_boss_authorized",
+      "classification": "THIN_AUTHORITY_ADAPTER_REQUIRED",
+      "value": "WORLD_PROGRESSION -> true after contract validation"
+    },
+    {
+      "f012_field": "eligibility_reference",
+      "f010_field": null,
+      "classification": "MISSING_F010_PERSISTENCE_FIELD",
+      "rule": "retain in World-owned evidence; do not discard"
+    },
+    {
+      "f012_field": "replayed",
+      "f010_field": "DurableSelectionResult.replayed",
+      "classification": "DIRECTLY_COMPATIBLE"
+    }
+  ],
+  "identity": {
+    "canonical_identity_resolver": "monster_identity.resolve_monster_identity",
+    "combat_profile_resolver": "monster_combat_profiles.resolve_monster_combat_profile",
+    "selector_returns": "monster_id",
+    "selector_owns_stats": false,
+    "display_name_is_authority": false,
+    "art_key_is_authority": false,
+    "current_generic_identity_count": 20,
+    "lord_in_generic_selector": false
+  },
+  "world_boundaries": {
+    "world_owns_boss_eligibility": true,
+    "monster_owns_boss_identity_and_settlement": true,
+    "monster_defeated_equals_zone_clear": false,
+    "quest_world_writer": false,
+    "selected_zone_is_progression_authority": false,
+    "boss_unlock_pct_changed": false,
+    "lord_trial_is_generic_monster_combat": false
+  },
+  "current_adventure_authority": {
+    "lord_readiness_source": "app._adventure_state",
+    "lord_readiness_storage": "adventure_boss_progress + review_log/srs_cards + adventure_zone_unlocks",
+    "lord_readiness_rule": "unlocked AND distinct_correct_pct >= 30 AND not cleared AND cooldown_left == 0",
+    "lord_trial_start": "app.adventure_boss_start",
+    "lord_trial_finish": "app.adventure_boss_finish",
+    "lord_clear_transition": "app._adventure_boss_record_attempt conditional cleared=0 transition",
+    "first_clear_star": "adventure_boss_progress.stars >= 1 on first passed clear",
+    "next_zone_projection": "app._adventure_state ordered previous_cleared / placement unlock projection",
+    "battlefield_boss_current_input": false
+  },
+  "future_fact": {
+    "contract": "BATTLEFIELD_BOSS_DEFEATED_FACT_V1",
+    "emission_point": "after caller transaction commits the MONSTER_DEFEATED outbox event",
+    "source_authority": "SERVER_MONSTER_SETTLEMENT",
+    "requires": [
+      "server-bound monster identity",
+      "server-bound encounter operation",
+      "authoritative hp_before > 0",
+      "authoritative hp_after == 0",
+      "committed settlement"
+    ],
+    "world_decisions_in_fact": false,
+    "current_fact_emitter": null
+  },
+  "storage": {
+    "new_monster_operation_table_required": false,
+    "existing_history": "domain_event_outbox MONSTER_DEFEATED payload",
+    "settlement_id_field": "monster_settlement.MonsterDefeatedEvent.settlement_id",
+    "settlement_id_scope": "PER_USER",
+    "settlement_id_global_uniqueness_proven": false,
+    "f012_composite_dedupe_sufficient": true,
+    "f012_dedupe_key": ["user_id", "settlement_id"],
+    "zone_binding_available": true,
+    "zone_binding_field": "MonsterDefeatedEvent.zone_id",
+    "zone_binding_normalization_required": true,
+    "uniform_encounter_operation_id_in_monster_event": false,
+    "world_milestone_storage_recommendation": "ADD_WORLD_MILESTONE_PROJECTION",
+    "new_world_schema_required": "CONDITIONAL"
+  },
+  "validation": {
+    "selector_and_runtime_tests": {
+      "command": "pytest -q tests/test_monster_encounter_selector.py tests/test_f010_monster_selector_runtime.py",
+      "result": "27 passed"
+    },
+    "settlement_and_outbox_tests": {
+      "command": "pytest -q tests/test_monster_settlement.py tests/test_domain_event_outbox_foundation.py",
+      "result": "20 passed, 1 skipped"
+    },
+    "map_battle_tests": {
+      "command": "pytest -q tests/test_map_battle_runtime.py tests/test_map_battle_persistence.py",
+      "result": "37 passed"
+    },
+    "f008_and_adventure_authority_tests": {
+      "command": "pytest -q tests/test_f008_monster_stat_authority.py tests/test_adventure_correct_progress_lord_gate.py tests/test_adventure_first_clear_reward.py tests/test_adventure_boss_finish_server_authoritative.py",
+      "result": "72 passed"
+    },
+    "f012_module_in_current_master": false,
+    "app_py_changed": false,
+    "runtime_changed": false,
+    "schema_changed": false,
+    "production_mutation": false
+  }
+}

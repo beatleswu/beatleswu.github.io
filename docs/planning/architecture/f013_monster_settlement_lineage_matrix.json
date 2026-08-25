@@ -1,0 +1,138 @@
+{
+  "task": "F013_BATTLEFIELD_BOSS_RUNTIME_ADAPTER_AND_SETTLEMENT_LINEAGE_RECON_001",
+  "origin_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+  "lineage_authority": {
+    "adapter": "app._settle_monster_defeat_in_tx",
+    "event_builder": "monster_settlement.build_monster_defeated_event",
+    "settlement_function": "monster_settlement.settle_monster_defeat",
+    "event_type": "MONSTER_DEFEATED",
+    "event_outbox": "domain_event_outbox",
+    "d5a_event_writer": "event_outbox.append_event",
+    "caller_owns_transaction": true,
+    "f012_fact_not_currently_emitted": true
+  },
+  "authoritative_order": [
+    "server-bound encounter and Monster identity",
+    "F008 immutable Monster combat profile",
+    "server judge / combat state transition",
+    "hp_before > 0 and hp_after == 0",
+    "build MonsterDefeatedEvent",
+    "append durable MONSTER_DEFEATED event",
+    "grant supported drops and D5A acquisition lineage",
+    "caller commits transaction",
+    "future adapter may emit BATTLEFIELD_BOSS_DEFEATED_FACT_V1"
+  ],
+  "event_fields": {
+    "settlement_id": {
+      "source": "caller-provided MonsterDefeatedEvent.settlement_id",
+      "required": true,
+      "server_generated_by_event_outbox": false,
+      "global_uniqueness_proven": false,
+      "current_consumer_scope": "PER_USER"
+    },
+    "user_id": {
+      "source": "authenticated/server-owned caller",
+      "stored_as": "domain_event_outbox.player_id",
+      "part_of_d5a_unique_contract": true
+    },
+    "monster_id": {
+      "source": "canonical server identity resolver",
+      "stored_in": "MONSTER_DEFEATED.payload.monster_id",
+      "client_authority": false
+    },
+    "zone_id": {
+      "source": "CanonicalMonsterIdentity.zone_id",
+      "stored_in": "MONSTER_DEFEATED.payload.zone_id",
+      "f012_zone_key_field_name": "zone_key",
+      "normalization_required": true
+    },
+    "encounter_class": {
+      "source": "canonical identity/profile",
+      "stored_in": "MONSTER_DEFEATED.payload.encounter_class",
+      "boss_fact_requires": "BATTLEFIELD_BOSS",
+      "lord_allowed": false
+    },
+    "encounter_operation_id": {
+      "current_monster_event_field": false,
+      "map_battle_candidate": "map_battles.id / F010 encounter operation ID",
+      "legacy_review_candidate": "review submission identity / source context",
+      "uniform_binding_proven": false,
+      "future_adapter_action": "require authoritative binding and fail closed on absence or mismatch"
+    },
+    "hp_before_after": {
+      "source": "server combat settlement",
+      "defeat_condition": "hp_before > 0 AND hp_after == 0",
+      "client_authority": false
+    }
+  },
+  "idempotency": {
+    "monster_event_key": "monster-defeated:<settlement_id>",
+    "lookup_function": "event_outbox.get_event_by_idempotency_key",
+    "append_function": "event_outbox.append_event",
+    "d5a_unique_contract": ["player_id", "event_type", "idempotency_key"],
+    "replay_predicate": ["player_id", "event_type", "idempotency_key"],
+    "safe_f012_world_key": ["user_id", "settlement_id"],
+    "bare_settlement_id_safe": false,
+    "same_settlement_cross_user_collision": "isolated by player_id in current D5A contract"
+  },
+  "lineage": {
+    "monster_defeated_lineage_id": "monster-settlement:<settlement_id>",
+    "monster_event_source_event_id": "settlement_id",
+    "functional_item_lineage_event_type": "ITEM_ACQUISITION",
+    "functional_item_source_event_id": "MONSTER_DEFEATED.event_id",
+    "functional_item_idempotency": "item-acquisition:<grant_id>",
+    "wardrobe_lineage": "conditional on existing wardrobe grant path",
+    "d5c_used_for_acquisition": false,
+    "world_progression_written": false,
+    "quest_progress_written_by_settlement_module": false
+  },
+  "runtime_paths": [
+    {
+      "path": "legacy_battlefield",
+      "settlement_id_shape": "review:<submission_id> or legacy-review:<user>:<date>:<question>:<kill_count>",
+      "identity_source": "server battlefield_monster roster index",
+      "zone_source": "CanonicalMonsterIdentity.zone_id",
+      "operation_id_explicit_in_event": false,
+      "f012_ready": "requires thin adapter binding"
+    },
+    {
+      "path": "map_battle",
+      "settlement_id_shape": "map-battle:<map_battle_submission_id>",
+      "identity_source": "current shared lineage call receives server-loaded question identity",
+      "zone_source": "question identity zone_id plus authoritative map_battles.zone_key",
+      "operation_id_candidate": "map_battles.id / F010 operation ID",
+      "operation_identity_to_lineage_explicit": false,
+      "f012_ready": "requires selected-operation/settlement cross-check"
+    }
+  ],
+  "future_fact_gate": {
+    "contract": "BATTLEFIELD_BOSS_DEFEATED_FACT_V1",
+    "must_be_after_commit": true,
+    "must_have": [
+      "user_id",
+      "zone_key",
+      "monster_id",
+      "encounter_class=BATTLEFIELD_BOSS",
+      "encounter_operation_id",
+      "settlement_id",
+      "defeated=true",
+      "source_authority=SERVER_MONSTER_SETTLEMENT",
+      "committed MONSTER_DEFEATED outbox evidence"
+    ],
+    "must_reject": [
+      "client monster_defeated claim",
+      "pre-commit result object",
+      "Lord encounter class",
+      "missing operation binding",
+      "Zone mismatch",
+      "World clear/star/next-zone decisions"
+    ]
+  },
+  "storage_assessment": {
+    "new_monster_operation_table_required": false,
+    "existing_history_sufficient_for_read_reconciliation": "PARTIAL",
+    "recommended_world_storage": "ADD_WORLD_MILESTONE_PROJECTION",
+    "new_world_schema": "CONDITIONAL",
+    "f013_schema_change": false
+  }
+}
