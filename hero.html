@@ -4775,10 +4775,166 @@ function renderSkillTree(treeData, discCounts) {
   }).join('');
 }
 
+// ── A028 Player Presentation read-only adoption ───────────────────────────────
+// This block is deliberately narrower than the transport envelope.  It reads
+// no equipment, Spirit, cosmetic, HP, World, Quest, Shop, Premium, learning,
+// encounter, reward, or combat fields.  Those authorities stay on their
+// existing domain-specific paths.
+const A028_PLAYER_PRESENTATION_CONTRACT = 'PLAYER_PRESENTATION_API_V1';
+let _a028PlayerPresentationSnapshotPromise = null;
+let _a028PlayerPresentationSnapshot = null;
+let _a028PlayerPresentationState = 'fallback';
+
+function a028NormalizePlayerPresentationSnapshot(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('player presentation payload is not an object');
+  }
+  if (payload.contract_version !== A028_PLAYER_PRESENTATION_CONTRACT) {
+    throw new Error('player presentation contract version is unsupported');
+  }
+  // HTTP 200 + INVALID_STATE/PARTIAL is not a healthy snapshot.  The legacy
+  // profile path remains the bounded presentation fallback in that case.
+  if (payload.projection_status !== 'OK') {
+    throw new Error('player presentation projection is not healthy');
+  }
+  const hero = payload.hero;
+  const progression = payload.progression;
+  if (!hero || typeof hero !== 'object' || Array.isArray(hero) || typeof hero.hero_id !== 'string' || !hero.hero_id) {
+    throw new Error('player presentation hero identity is unavailable');
+  }
+  if (!progression || typeof progression !== 'object' || Array.isArray(progression)) {
+    throw new Error('player presentation progression is unavailable');
+  }
+  for (const key of ['xp', 'level', 'rank_level', 'go_rank']) {
+    if (!Object.prototype.hasOwnProperty.call(progression, key)) {
+      throw new Error(`player presentation progression.${key} is missing`);
+    }
+  }
+  if (typeof progression.xp !== 'number' || !Number.isFinite(progression.xp) || progression.xp < 0) {
+    throw new Error('player presentation XP is invalid');
+  }
+  if (typeof progression.level !== 'number' || !Number.isFinite(progression.level) || progression.level < 0) {
+    throw new Error('player presentation level is invalid');
+  }
+  for (const key of ['rank_level', 'go_rank']) {
+    if (progression[key] !== null && typeof progression[key] !== 'string') {
+      throw new Error(`player presentation ${key} is invalid`);
+    }
+  }
+  let displayIdentity = null;
+  if (payload.display_identity && typeof payload.display_identity === 'object' && !Array.isArray(payload.display_identity)) {
+    displayIdentity = {};
+    for (const key of ['display_name', 'username']) {
+      if (typeof payload.display_identity[key] === 'string' && payload.display_identity[key]) {
+        displayIdentity[key] = payload.display_identity[key];
+      }
+    }
+    if (!Object.keys(displayIdentity).length) displayIdentity = null;
+  }
+  return Object.freeze({
+    contract_version: A028_PLAYER_PRESENTATION_CONTRACT,
+    projection_status: 'OK',
+    hero: Object.freeze({ hero_id: hero.hero_id }),
+    progression: Object.freeze({
+      xp: progression.xp,
+      level: progression.level,
+      rank_level: progression.rank_level,
+      go_rank: progression.go_rank,
+    }),
+    display_identity: displayIdentity ? Object.freeze(displayIdentity) : null,
+  });
+}
+
+async function loadPlayerPresentationSnapshot() {
+  if (_a028PlayerPresentationSnapshotPromise) return _a028PlayerPresentationSnapshotPromise;
+  _a028PlayerPresentationSnapshotPromise = (async () => {
+    try {
+      const response = await fetch('/api/player/presentation', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(`player presentation HTTP ${response.status}`);
+      const snapshot = a028NormalizePlayerPresentationSnapshot(await response.json());
+      _a028PlayerPresentationSnapshot = snapshot;
+      _a028PlayerPresentationState = 'ready';
+      return snapshot;
+    } catch (error) {
+      _a028PlayerPresentationSnapshot = null;
+      _a028PlayerPresentationState = 'fallback';
+      console.warn('player presentation unavailable; using existing Hero read path', error);
+      return null;
+    }
+  })();
+  return _a028PlayerPresentationSnapshotPromise;
+}
+
+function a028LegacyXpNext(profile) {
+  const value = Number(profile?.xp_next ?? profile?.lv_xp_next);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function a028HeroOverviewView(legacyProfile = {}) {
+  if (_a028PlayerPresentationState === 'ready' && _a028PlayerPresentationSnapshot) {
+    const snapshot = _a028PlayerPresentationSnapshot;
+    const progression = snapshot.progression;
+    return {
+      source: 'player_presentation',
+      heroId: snapshot.hero.hero_id,
+      displayName: snapshot.display_identity?.display_name || snapshot.display_identity?.username || null,
+      level: progression.level,
+      rankLevel: progression.rank_level,
+      goRank: progression.go_rank,
+      xp: progression.xp,
+      // The current profile denominator is retained only as display scale;
+      // the A028 numerator and all displayed identity/rank facts come from
+      // the Player Presentation snapshot.
+      xpNext: a028LegacyXpNext(legacyProfile),
+    };
+  }
+  return {
+    source: 'legacy_profile_fallback',
+    heroId: legacyProfile.character_key || null,
+    displayName: legacyProfile.display_name || legacyProfile.username || null,
+    level: legacyProfile.level,
+    rankLevel: legacyProfile.rank_level ?? legacyProfile.rank,
+    goRank: legacyProfile.go_rank,
+    xp: legacyProfile.xp ?? legacyProfile.lv_xp,
+    xpNext: a028LegacyXpNext(legacyProfile),
+  };
+}
+
+function a028ApplyPlayerPresentationSafeFields(snapshot, legacyProfile = {}) {
+  if (!snapshot) return false;
+  const view = a028HeroOverviewView(legacyProfile);
+  const set = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+  const xp = Number(view.xp);
+  const xpNext = view.xpNext;
+  const xpText = xpNext ? `${xp.toLocaleString()} / ${xpNext.toLocaleString()} XP` : `${xp.toLocaleString()} XP`;
+  const xpPct = xpNext ? Math.max(0, Math.min(100, Math.round(xp / xpNext * 100))) : null;
+  if (view.displayName) {
+    set('char-name', view.displayName);
+    set('hero-overview-name', view.displayName);
+  }
+  set('badge-lv', Number.isFinite(view.level) ? `LV${view.level}` : (view.rankLevel || 'LV—'));
+  set('badge-go', `${view.goRank || '—'}${typeof I18n !== 'undefined' && I18n.t ? I18n.t('hero.rank.suffix') : ''}`);
+  set('char-xp', xpText);
+  set('hero-overview-rank', `${view.rankLevel || '—'} · ${view.goRank || '—'}`);
+  set('hero-overview-xp', xpText);
+  const bar = document.getElementById('char-xp-bar');
+  if (bar) bar.style.width = (xpPct === null ? '0%' : `${xpPct}%`);
+  set('char-xp-pct', xpPct === null ? '—' : `${xpPct}%`);
+  return true;
+}
+
+// ── End A028 Player Presentation read-only adoption ──────────────────────────
 // ── Profile init ──────────────────────────────────────────────────────────────
 let _profileData = null;
 function renderHeroOverview() {
   const res = _profileData || {};
+  const presentationView = a028HeroOverviewView(res);
   const set = (id, value) => {
     const element = document.getElementById(id);
     if (element) element.textContent = value || '—';
@@ -4806,14 +4962,19 @@ function renderHeroOverview() {
     ? (res.equipped_title_en || res.equipped_title || res.auto_title_en || res.auto_title)
     : (res.equipped_title || res.auto_title);
   const pet = _petState?.pet;
-  set('hero-overview-name', res.display_name || res.username);
-  set('hero-overview-rank', `${res.rank_level || res.rank || '—'} · ${res.go_rank || '—'}`);
-  set('hero-overview-archetype', dispName(character));
+  const presentationCharacter = COMBAT_GEAR.character.find(item => item.key === presentationView.heroId);
+  set('hero-overview-name', presentationView.displayName || res.display_name || res.username);
+  set('hero-overview-rank', `${presentationView.rankLevel || '—'} · ${presentationView.goRank || '—'}`);
+  set('hero-overview-archetype', dispName(presentationCharacter || character));
   set('hero-overview-premium', res.is_premium ? (isEn() ? 'Active' : '啟用') : (isEn() ? 'Standard' : '一般'));
   set('hero-overview-title', title);
   set('hero-overview-spirit', pet ? (pet.nickname || petLocal(pet, 'name', 'name_en')) : (isEn() ? 'Not selected' : '尚未選擇'));
   set('hero-overview-equipment', equipmentNames.length ? equipmentNames.join(' · ') : (isEn() ? 'No stat equipment equipped' : '尚未裝備數值裝備'));
-  set('hero-overview-xp', `${Number(res.xp ?? res.lv_xp ?? 0).toLocaleString()} / ${Number(res.xp_next ?? res.lv_xp_next ?? 0).toLocaleString()} XP`);
+  const overviewXp = Number(presentationView.xp ?? 0);
+  const overviewXpNext = presentationView.xpNext;
+  set('hero-overview-xp', overviewXpNext
+    ? `${overviewXp.toLocaleString()} / ${overviewXpNext.toLocaleString()} XP`
+    : `${overviewXp.toLocaleString()} XP`);
   set('hero-overview-bonus', bonusLabels.length ? bonusLabels.join(' · ') : (isEn() ? 'No active bonus' : '目前沒有加成'));
 }
 async function hydrateAuthoritativeHeroPresentation() {
@@ -4863,11 +5024,16 @@ async function hydrateAuthoritativeHeroPresentation() {
 
 async function initPage() {
   try {
+    // Start exactly one bounded snapshot read for this page hydration.  It is
+    // intentionally resolved before the final overview render so a healthy
+    // Player Presentation response cannot be overwritten by /api/skills/profile.
+    const playerPresentationPromise = loadPlayerPresentationSnapshot();
     const profileResponse = await fetch('/api/skills/profile', { credentials: 'include', cache: 'no-store' });
     if (!profileResponse.ok) throw new Error(`profile HTTP ${profileResponse.status}`);
     const res = await profileResponse.json();
     _profileData = res;
     await hydrateAuthoritativeHeroPresentation();
+    const playerPresentation = await playerPresentationPromise;
 
     const displayName = res.display_name ?? res.username ?? '—';
     document.getElementById('char-name').textContent = displayName;
@@ -4953,6 +5119,11 @@ async function initPage() {
     initInvFilterTabs();
     renderWardrobeSlots('all');
     renderHeroOverview();
+    if (playerPresentation) {
+      // Final A028 authority order: healthy Player Presentation wins for the
+      // safe Hero overview fields; all other profile fields remain untouched.
+      a028ApplyPlayerPresentationSafeFields(playerPresentation, res);
+    }
 
     if (res.new_unlock) showToast(t('sk_toast_unlocked'));
 
