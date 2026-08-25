@@ -259,7 +259,7 @@
       "exact_sha": "a1ad78154858b9369e90c748f842401c40fb18cd",
       "owner_status": "ACTIVE_DO_NOT_ASSUME_RESULT",
       "state": "ACTIVE_UNREVIEWED_NO_RESULT_VISIBLE",
-      "merged_into_current_master": true,
+      "merged_into_current_master": false,
       "candidate_is_ancestor_of_current_master": true,
       "current_master_is_ancestor_of_candidate": true,
       "ahead_by": 0,
