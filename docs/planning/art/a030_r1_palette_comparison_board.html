@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go Odyssey — A030-R1 Palette Direction</title>
+  <style>
+    :root {
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      --display: Georgia, "Noto Serif TC", serif;
+      --ink: #173653;
+      --muted: #59738A;
+      --canvas: #EAF7FF;
+      --world: #DDF2FF;
+      --surface: #F8FCFF;
+      --surface-alt: #EAF6F3;
+      --warm: #FFF4D8;
+      --chrome: #173653;
+      --chrome-alt: #245B7E;
+      --blue: #1E6FC7;
+      --teal: #39C9B6;
+      --yellow: #F6C957;
+      --orange: #F29B52;
+      --green: #72C96B;
+      --purple: #8968D8;
+      --frame: #7AB8D3;
+      --shadow: 0 16px 34px rgba(23, 54, 83, .16);
+    }
+    * { box-sizing: border-box; }
+    html { background: #dceef7; }
+    body { margin: 0; color: var(--ink); background: linear-gradient(180deg, #eefaff 0, var(--canvas) 50%, #fff7e7 100%); font-family: var(--font); }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1, h2, h3 { font-family: var(--display); }
+    .page { width: min(1480px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 60px; }
+    .eyebrow { color: var(--teal); font: 900 10px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .16em; text-transform: uppercase; }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 18px 20px; border: 2px solid var(--chrome); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
+    .page-head h1 { margin-top: 8px; font-size: clamp(30px, 4.5vw, 58px); line-height: .98; color: var(--chrome); }
+    .page-head h1 span { color: var(--blue); }
+    .page-head p { max-width: 520px; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: right; }
+    .notice { margin-top: 14px; padding: 12px 16px; border: 1px solid var(--frame); border-radius: 12px; color: var(--chrome); background: rgba(255,255,255,.72); font-size: 12px; line-height: 1.5; }
+    .section { margin-top: 22px; padding: 18px; border: 1px solid var(--frame); border-radius: 20px; background: rgba(255,255,255,.58); box-shadow: var(--shadow); }
+    .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .section-head h2 { margin-top: 6px; color: var(--chrome); font-size: clamp(24px, 3vw, 38px); line-height: 1; }
+    .section-head p { max-width: 560px; color: var(--muted); font-size: 12px; line-height: 1.45; text-align: right; }
+    .comparison-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .palette-card { --ink: #173653; --muted: #59738A; --canvas: #EAF7FF; --world: #DDF2FF; --surface: #F8FCFF; --surface-alt: #EAF6F3; --warm: #FFF4D8; --chrome: #173653; --chrome-alt: #245B7E; --blue: #1E6FC7; --teal: #39C9B6; --yellow: #F6C957; --orange: #F29B52; --green: #72C96B; --purple: #8968D8; --frame: #7AB8D3; color: var(--ink); padding: 12px; border: 2px solid var(--frame); border-radius: 16px; background: var(--canvas); }
+    .palette-card[data-palette="b"] { --ink: #24345B; --muted: #65708B; --canvas: #F2F0FF; --world: #E6F3FF; --surface: #FFFBF2; --surface-alt: #E6F7F3; --warm: #FFF2DD; --chrome: #24345B; --chrome-alt: #405A91; --blue: #3F75D7; --teal: #36C5B3; --yellow: #F3C85B; --orange: #EA7B6C; --green: #68B77A; --purple: #8764D6; --frame: #8C8BD0; }
+    .palette-card[data-palette="c"] { --ink: #294658; --muted: #6D7B76; --canvas: #FFF7E7; --world: #DDF1F6; --surface: #FFFDF5; --surface-alt: #EEF6E7; --warm: #FFF0D0; --chrome: #294658; --chrome-alt: #477489; --blue: #397DB8; --teal: #4AABA4; --yellow: #E6B84D; --orange: #ED9461; --green: #78B56B; --purple: #9A83C7; --frame: #91BFC5; }
+    .palette-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .palette-name h3 { color: var(--chrome); font-size: 24px; }
+    .palette-name .mark { padding: 5px 8px; border-radius: 999px; color: var(--chrome); background: var(--yellow); font: 900 10px/1 ui-monospace, monospace; }
+    .palette-name .mark.alt { color: var(--surface); background: var(--purple); }
+    .mini-shell { overflow: hidden; border: 1px solid var(--chrome); border-radius: 12px; background: var(--surface); }
+    .mini-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; color: var(--surface); background: var(--chrome); font-size: 11px; font-weight: 900; }
+    .mini-top span { color: var(--yellow); font: 900 9px/1 ui-monospace, monospace; }
+    .mini-body { display: grid; grid-template-columns: .85fr 1.15fr; gap: 8px; padding: 9px; background: var(--world); }
+    .mini-hero, .mini-loadout, .mini-detail, .mini-backpack { border: 1px solid var(--frame); border-radius: 10px; }
+    .mini-hero { display: grid; place-items: center; min-height: 215px; padding: 7px; background: linear-gradient(180deg, var(--surface-alt), var(--world)); }
+    .mini-hero img { width: 82%; height: 136px; object-fit: contain; filter: drop-shadow(0 8px 6px rgba(23,54,83,.18)); }
+    .mini-hero strong { display: block; color: var(--chrome); font-size: 12px; text-align: center; }
+    .mini-hero small { color: var(--blue); font-size: 9px; }
+    .mini-right { display: grid; gap: 8px; }
+    .mini-loadout { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 7px; background: var(--surface); }
+    .mini-loadout > strong { grid-column: 1 / -1; color: var(--chrome); font-size: 10px; }
+    .mini-slot { display: grid; place-items: center; min-height: 74px; padding: 4px; border: 1px solid var(--frame); border-radius: 8px; color: var(--chrome); background: var(--surface-alt); text-align: center; }
+    .mini-slot.selected { border: 2px solid var(--blue); box-shadow: 0 0 0 2px color-mix(in srgb, var(--blue) 22%, transparent); }
+    .mini-slot b { color: var(--blue); font-size: 20px; line-height: 1; }
+    .mini-slot span { margin-top: 3px; font-size: 8px; font-weight: 900; }
+    .mini-detail { padding: 9px; background: var(--warm); }
+    .mini-detail strong { display: block; color: var(--chrome); font-size: 13px; }
+    .mini-detail p { margin-top: 4px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+    .mini-detail .cta { display: block; margin-top: 7px; padding: 7px; border-radius: 7px; color: var(--chrome); background: var(--teal); font-size: 9px; font-weight: 900; text-align: center; }
+    .mini-backpack { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 6px; background: var(--surface); }
+    .mini-item { display: grid; place-items: center; min-height: 48px; border: 1px solid color-mix(in srgb, var(--frame) 76%, transparent); border-radius: 6px; color: var(--blue); background: var(--surface-alt); font-size: 18px; }
+    .mini-item.new { position: relative; border-color: var(--yellow); }
+    .mini-item.new::after { content: "NEW"; position: absolute; top: 2px; right: 2px; padding: 2px 3px; border-radius: 3px; color: var(--chrome); background: var(--yellow); font: 900 6px/1 ui-monospace, monospace; }
+    .palette-note { margin-top: 8px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+    .reference { overflow: hidden; padding: 0; }
+    .reference .section-head { padding: 18px 18px 0; }
+    .surface-shell { margin: 0 18px 18px; overflow: hidden; border: 1px solid var(--frame); border-radius: 16px; background: var(--world); }
+    .surface-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; color: var(--surface); background: var(--chrome); }
+    .surface-top strong { font-size: 15px; }
+    .surface-top span { color: var(--yellow); font: 900 9px/1 ui-monospace, monospace; letter-spacing: .1em; }
+    .surface-body { padding: 14px; }
+    .full-equipment { display: grid; grid-template-columns: .86fr 1.14fr 1fr; gap: 10px; }
+    .full-hero, .full-loadout, .full-detail { min-height: 280px; padding: 13px; border: 1px solid var(--frame); border-radius: 12px; }
+    .full-hero { display: grid; place-items: center; background: linear-gradient(180deg, var(--surface-alt), var(--world)); text-align: center; }
+    .full-hero img { width: min(210px, 90%); height: 205px; object-fit: contain; filter: drop-shadow(0 12px 9px rgba(23,54,83,.18)); }
+    .full-hero h3 { color: var(--chrome); font-size: 24px; }
+    .full-hero p { color: var(--blue); font-size: 11px; }
+    .full-loadout { display: grid; grid-template-columns: repeat(3, 1fr); align-content: start; gap: 8px; background: var(--surface); }
+    .full-loadout > h3 { grid-column: 1 / -1; color: var(--chrome); font-family: var(--font); font-size: 16px; }
+    .slot-card { display: grid; place-items: center; min-height: 142px; padding: 8px; border: 1px solid var(--frame); border-radius: 10px; color: var(--chrome); background: var(--surface-alt); text-align: center; }
+    .slot-card.selected { border: 2px solid var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent); }
+    .slot-card .glyph { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--blue); border-radius: 13px; color: var(--blue); background: var(--world); font-size: 27px; }
+    .slot-card strong { margin-top: 7px; font-size: 12px; }
+    .slot-card small { margin-top: 3px; color: var(--green); font-size: 10px; }
+    .full-detail { display: grid; align-content: start; gap: 10px; background: var(--warm); }
+    .full-detail h3 { color: var(--chrome); font-size: 22px; }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .badge { padding: 5px 7px; border-radius: 999px; color: var(--chrome); background: color-mix(in srgb, var(--blue) 16%, var(--warm)); font-size: 9px; font-weight: 900; }
+    .badge.new { background: var(--yellow); }
+    .full-detail p { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .stat-pair { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+    .stat-pair div { padding: 8px; border: 1px solid color-mix(in srgb, var(--chrome) 18%, transparent); border-radius: 8px; background: rgba(255,255,255,.38); }
+    .stat-pair b { display: block; color: var(--muted); font-size: 9px; }
+    .stat-pair strong { display: block; margin-top: 3px; color: var(--green); font: 900 14px/1 ui-monospace, monospace; }
+    .full-detail .cta { margin-top: auto; padding: 11px; border-radius: 8px; color: var(--chrome); background: var(--teal); font-size: 12px; font-weight: 900; text-align: center; }
+    .full-backpack { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; padding: 10px; border: 1px solid var(--frame); border-radius: 12px; background: var(--surface); }
+    .full-item { display: grid; place-items: center; min-height: 75px; border: 1px solid var(--frame); border-radius: 8px; color: var(--blue); background: var(--surface-alt); text-align: center; }
+    .full-item b { font-size: 28px; }
+    .full-item span { margin-top: 4px; color: var(--chrome); font-size: 9px; font-weight: 900; }
+    .combat-scene { display: grid; grid-template-columns: .74fr 1.55fr .74fr; gap: 12px; padding: 14px; background: var(--world); }
+    .fighter { display: grid; align-content: start; gap: 7px; min-height: 380px; padding: 13px; border: 2px solid var(--frame); border-radius: 13px; background: var(--surface-alt); text-align: center; }
+    .fighter.boss { border: 3px double var(--orange); background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--orange) 15%, var(--surface))); }
+    .fighter label { color: var(--blue); font: 900 9px/1.2 ui-monospace, monospace; letter-spacing: .12em; }
+    .fighter.boss label { color: var(--orange); }
+    .fighter img { width: 100%; height: 158px; object-fit: contain; filter: drop-shadow(0 10px 8px rgba(23,54,83,.2)); }
+    .fighter h3 { color: var(--chrome); font-size: 22px; }
+    .fighter p { color: var(--muted); font-size: 10px; line-height: 1.35; }
+    .hp-head { display: flex; justify-content: space-between; color: var(--chrome); font: 900 9px/1.2 ui-monospace, monospace; }
+    .hp { height: 10px; margin-top: 4px; overflow: hidden; border: 1px solid var(--chrome-alt); border-radius: 5px; background: var(--surface); }
+    .hp i { display: block; width: 82%; height: 100%; background: linear-gradient(90deg, var(--green), var(--teal)); }
+    .boss .hp i { width: 54%; background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+    .go-board { display: grid; grid-template-rows: auto minmax(250px, 1fr) auto; gap: 10px; min-height: 380px; padding: 13px; border: 2px solid var(--blue); border-radius: 13px; background: var(--warm); }
+    .go-board-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--chrome); }
+    .go-board-head strong { font-family: var(--display); font-size: 21px; }
+    .go-board-head span { color: var(--muted); font: 900 9px/1.2 ui-monospace, monospace; }
+    .go-grid { position: relative; display: grid; place-items: center; overflow: hidden; min-height: 250px; border: 11px solid #775027; border-radius: 8px; background-color: #DDB06C; background-image: linear-gradient(rgba(68,42,16,.58) 1px, transparent 1px), linear-gradient(90deg, rgba(68,42,16,.58) 1px, transparent 1px); background-size: 9.09% 9.09%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.42), 0 8px 16px rgba(41,31,13,.2); }
+    .stones { position: relative; width: 86%; height: 86%; }
+    .stone { position: absolute; width: 28px; height: 28px; border-radius: 50%; box-shadow: inset -4px -5px 7px rgba(0,0,0,.25), 0 3px 5px rgba(41,31,13,.25); }
+    .stone.black { background: radial-gradient(circle at 32% 25%, #667883, #172332 57%, #07101A); }
+    .stone.white { background: radial-gradient(circle at 32% 25%, #fff, #F0E3C7 60%, #AD9868); }
+    .stone.s1 { left: 15%; top: 15%; } .stone.s2 { left: 45%; top: 24%; } .stone.s3 { left: 69%; top: 34%; } .stone.s4 { left: 30%; top: 52%; } .stone.s5 { left: 53%; top: 67%; } .stone.s6 { left: 78%; top: 72%; } .stone.s7 { left: 8%; top: 73%; }
+    .question { padding: 10px; color: var(--chrome); border-radius: 8px; background: rgba(255,255,255,.48); font-size: 11px; line-height: 1.35; text-align: center; }
+    .feedback { padding: 8px 10px; border: 1px solid var(--teal); border-radius: 8px; color: var(--chrome); background: color-mix(in srgb, var(--teal) 20%, var(--surface)); font-size: 10px; font-weight: 900; }
+    .reward-scene { padding: 16px; background: linear-gradient(180deg, var(--world), var(--surface-alt)); }
+    .victory { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 2px solid var(--yellow); border-radius: 12px; background: var(--surface); }
+    .victory h3 { color: var(--blue); font-size: 25px; }
+    .victory p { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .seal { display: grid; place-items: center; width: 54px; height: 54px; border: 2px solid var(--yellow); border-radius: 50%; color: var(--orange); font-size: 26px; }
+    .reward-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+    .reward-card { position: relative; min-height: 145px; padding: 11px; border: 1px solid var(--frame); border-radius: 11px; background: var(--warm); }
+    .reward-card.new { border: 2px solid var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 16%, transparent); }
+    .reward-card.new::before { content: "NEW"; position: absolute; top: 7px; right: 7px; padding: 4px; border-radius: 4px; color: var(--chrome); background: var(--yellow); font: 900 7px/1 ui-monospace, monospace; }
+    .reward-card .icon { display: grid; place-items: center; height: 62px; color: var(--blue); font-size: 35px; }
+    .reward-card strong { display: block; color: var(--chrome); font-size: 12px; }
+    .reward-card span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+    .shop-scene { padding: 16px; background: linear-gradient(90deg, rgba(23,54,83,.92), rgba(36,91,126,.72)), url('/assets/shop/shop_bg.webp') center/cover; }
+    .shop-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 15px; border: 1px solid var(--frame); border-radius: 11px; color: var(--surface); background: rgba(23,54,83,.88); }
+    .shop-banner h3 { font-size: 24px; }
+    .shop-banner p { margin-top: 3px; color: #DDF2FF; font-size: 10px; }
+    .coin-count { padding: 7px 9px; border-radius: 999px; color: var(--chrome); background: var(--yellow); font: 900 9px/1 ui-monospace, monospace; }
+    .offer-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
+    .offer-card { display: grid; align-content: start; gap: 6px; min-height: 215px; padding: 10px; border: 1px solid var(--frame); border-radius: 11px; background: var(--surface); }
+    .offer-card.cosmetic { border: 2px solid var(--teal); }
+    .offer-card.unavailable { opacity: .7; border-style: dashed; }
+    .offer-art { display: grid; place-items: center; height: 76px; border-radius: 8px; color: var(--blue); background: linear-gradient(180deg, var(--world), var(--surface-alt)); font-size: 42px; }
+    .offer-card h4 { color: var(--chrome); font-size: 13px; }
+    .offer-card p { min-height: 31px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+    .offer-card .cta { margin-top: auto; padding: 9px 7px; border-radius: 7px; color: var(--chrome); background: var(--teal); font-size: 10px; font-weight: 900; text-align: center; }
+    .contact-grid { display: grid; grid-template-columns: 1.15fr .85fr 1fr; gap: 12px; }
+    .token-panel { padding: 14px; border: 1px solid var(--frame); border-radius: 13px; background: var(--surface); }
+    .token-panel h3 { color: var(--chrome); font-family: var(--font); font-size: 16px; }
+    .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 10px; }
+    .swatch { min-height: 56px; padding: 7px; border-radius: 8px; color: var(--chrome); background: var(--world); font: 900 8px/1.2 ui-monospace, monospace; }
+    .swatch.blue { background: var(--blue); color: white; } .swatch.teal { background: var(--teal); } .swatch.yellow { background: var(--yellow); } .swatch.orange { background: var(--orange); } .swatch.purple { background: var(--purple); color: white; } .swatch.cream { background: var(--warm); }
+    .rarity-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
+    .rarity { padding: 10px 4px; border: 1px solid var(--frame); border-radius: 8px; color: var(--chrome); background: var(--surface-alt); font-size: 9px; font-weight: 900; text-align: center; }
+    .rarity.common { border-color: #9DAEC1; } .rarity.uncommon { border-color: var(--green); } .rarity.rare { border: 2px double var(--blue); } .rarity.epic { border-color: var(--purple); } .rarity.legendary { border: 2px solid var(--yellow); }
+    .token-note { margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    @media (max-width: 960px) {
+      .comparison-grid { grid-template-columns: 1fr; }
+      .full-equipment { grid-template-columns: .9fr 1.1fr; }
+      .full-detail { grid-column: 1 / -1; min-height: 0; }
+      .contact-grid { grid-template-columns: 1fr 1fr; }
+      .token-panel:first-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 700px) {
+      .page { width: min(100% - 16px, 620px); padding-top: 8px; }
+      .page-head, .section-head { display: block; }
+      .page-head p, .section-head p { margin-top: 10px; text-align: left; }
+      .section { padding: 10px; border-radius: 14px; }
+      .section-head { margin-bottom: 10px; }
+      .section-head h2 { font-size: 27px; }
+      .surface-shell { margin: 0 10px 10px; }
+      .surface-body { padding: 8px; }
+      .full-equipment, .combat-scene { grid-template-columns: 1fr; }
+      .full-detail { grid-column: auto; }
+      .full-backpack { grid-template-columns: repeat(3, 1fr); }
+      .combat-scene { padding: 8px; }
+      .fighter, .go-board { min-height: 0; }
+      .go-grid { min-height: 250px; }
+      .reward-grid { grid-template-columns: repeat(2, 1fr); }
+      .reward-card:last-child { grid-column: 1 / -1; }
+      .offer-grid { grid-template-columns: repeat(2, 1fr); }
+      .contact-grid { grid-template-columns: 1fr; }
+      .token-panel:first-child { grid-column: auto; }
+      .swatches { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page" data-structure-source="A030 accepted renderable board; color variables only">
+    <header class="page-head">
+      <div>
+        <div class="eyebrow">A030-R1 / COLOR DIRECTION ONLY</div>
+        <h1>Go Odyssey <span>Palette Review</span></h1>
+      </div>
+      <p>同一套 Equipment / Backpack、Combat、Reward、Shop 結構，以三種兒童向冒險色彩方向比較。版面、資訊階層與互動語意保持 A030 不變。</p>
+    </header>
+    <div class="notice">Owner decision focus：Bright Adventure、Colorful Fantasy、Warm Storybook。Light / world / colorful surfaces target 65–75%；dark structural chrome target 25–35%；Gold reserved for Legendary、milestone、Boss accent、special reward and important selection.</div>
+
+    <section id="equipment-comparison" data-view="equipment-comparison" class="section">
+      <div class="section-head">
+        <div><div class="eyebrow">PRIMARY OWNER DECISION</div><h2>Equipment + Backpack / palette comparison</h2></div>
+        <p>完全相同的 Hero / Loadout / Selected Item / Backpack composition；只有 palette roles、surface balance、selection and rarity accents 變更。</p>
+      </div>
+      <div class="comparison-grid">
+        <article class="palette-card" data-palette="a">
+          <div class="palette-name"><h3>A · Bright Adventure</h3><span class="mark">RECOMMENDED</span></div>
+          <div class="mini-shell"><div class="mini-top">英雄殿堂 / Hero Loadout <span>OPEN SKY</span></div><div class="mini-body"><div class="mini-hero"><img src="/assets/hero/characters/chibi_apprentice_normalized.webp" alt="Hero"><strong>探路學徒</strong><small>Lv.12 · XP 62%</small></div><div class="mini-right"><div class="mini-loadout"><strong>Equipped Loadout</strong><div class="mini-slot selected"><b>⚔</b><span>WEAPON</span></div><div class="mini-slot"><b>♢</b><span>ARMOR</span></div><div class="mini-slot"><b>◇</b><span>ACCESSORY</span></div></div><div class="mini-detail"><strong>木製長劍</strong><p>RARE · functional weapon · selected detail uses a cream reading surface.</p><div class="cta">裝備 / Equip</div></div></div><div class="mini-backpack"><div class="mini-item new">⚔</div><div class="mini-item">♢</div><div class="mini-item">◇</div><div class="mini-item">♜</div><div class="mini-item">✦</div><div class="mini-item">◉</div></div></div></div>
+          <p class="palette-note">Light sky surfaces lead. Navy only frames. Blue selects. Teal acts. Yellow marks NEW. Gold is not the default outline.</p>
+        </article>
+        <article class="palette-card" data-palette="b">
+          <div class="palette-name"><h3>B · Colorful Fantasy</h3><span class="mark alt">ALTERNATIVE</span></div>
+          <div class="mini-shell"><div class="mini-top">英雄殿堂 / Hero Loadout <span>SPIRIT MAGIC</span></div><div class="mini-body"><div class="mini-hero"><img src="/assets/hero/characters/chibi_apprentice_normalized.webp" alt="Hero"><strong>探路學徒</strong><small>Lv.12 · XP 62%</small></div><div class="mini-right"><div class="mini-loadout"><strong>Equipped Loadout</strong><div class="mini-slot selected"><b>⚔</b><span>WEAPON</span></div><div class="mini-slot"><b>♢</b><span>ARMOR</span></div><div class="mini-slot"><b>◇</b><span>ACCESSORY</span></div></div><div class="mini-detail"><strong>木製長劍</strong><p>RARE · functional weapon · selected detail uses a cream reading surface.</p><div class="cta">裝備 / Equip</div></div></div><div class="mini-backpack"><div class="mini-item new">⚔</div><div class="mini-item">♢</div><div class="mini-item">◇</div><div class="mini-item">♜</div><div class="mini-item">✦</div><div class="mini-item">◉</div></div></div></div>
+          <p class="palette-note">Violet and coral add Spirit/magic energy while keeping the content surfaces light and readable.</p>
+        </article>
+        <article class="palette-card" data-palette="c">
+          <div class="palette-name"><h3>C · Warm Storybook</h3><span class="mark alt">ALTERNATIVE</span></div>
+          <div class="mini-shell"><div class="mini-top">英雄殿堂 / Hero Loadout <span>STORY ADVENTURE</span></div><div class="mini-body"><div class="mini-hero"><img src="/assets/hero/characters/chibi_apprentice_normalized.webp" alt="Hero"><strong>探路學徒</strong><small>Lv.12 · XP 62%</small></div><div class="mini-right"><div class="mini-loadout"><strong>Equipped Loadout</strong><div class="mini-slot selected"><b>⚔</b><span>WEAPON</span></div><div class="mini-slot"><b>♢</b><span>ARMOR</span></div><div class="mini-slot"><b>◇</b><span>ACCESSORY</span></div></div><div class="mini-detail"><strong>木製長劍</strong><p>RARE · functional weapon · selected detail uses a cream reading surface.</p><div class="cta">裝備 / Equip</div></div></div><div class="mini-backpack"><div class="mini-item new">⚔</div><div class="mini-item">♢</div><div class="mini-item">◇</div><div class="mini-item">♜</div><div class="mini-item">✦</div><div class="mini-item">◉</div></div></div></div>
+          <p class="palette-note">Cream and sky dominate; green and orange make the adventure feel warmer without becoming preschool.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="candidate-a-equipment" data-view="candidate-a-equipment" class="section reference" style="--ink:#173653;--muted:#59738A;--canvas:#EAF7FF;--world:#DDF2FF;--surface:#F8FCFF;--surface-alt:#EAF6F3;--warm:#FFF4D8;--chrome:#173653;--chrome-alt:#245B7E;--blue:#1E6FC7;--teal:#39C9B6;--yellow:#F6C957;--orange:#F29B52;--green:#72C96B;--purple:#8968D8;--frame:#7AB8D3;">
+      <div class="section-head"><div><div class="eyebrow">CANDIDATE A / P1</div><h2>Equipment + Backpack</h2></div><p>Hero stays prominent; functional slots, selected detail, rarity and NEW state are readable on light adventure surfaces.</p></div>
+      <div class="surface-shell"><div class="surface-top"><strong>英雄殿堂 / Hero Loadout + Backpack</strong><span>BRIGHT ADVENTURE</span></div><div class="surface-body"><div class="full-equipment"><div class="full-hero"><img src="/assets/hero/characters/chibi_apprentice_normalized.webp" alt="Hero"><h3>探路學徒</h3><p>Lv.12 · 1d · XP 62%</p></div><div class="full-loadout"><h3>目前裝備 / Equipped Loadout</h3><div class="slot-card selected"><div class="glyph">⚔</div><strong>木製長劍</strong><small>WEAPON · Equipped</small></div><div class="slot-card"><div class="glyph">♢</div><strong>旅行皮甲</strong><small>ARMOR · Equipped</small></div><div class="slot-card"><div class="glyph">◇</div><strong>青玉墜飾</strong><small>ACCESSORY · Equipped</small></div></div><div class="full-detail"><h3>木製長劍</h3><div class="badge-row"><span class="badge">RARE · WEAPON</span><span class="badge new">NEW</span></div><p>Functional Equipment · slot identity and server-projected values remain visible without turning the screen into a spreadsheet.</p><div class="stat-pair"><div><b>Slot</b><strong>WEAPON</strong></div><div><b>Action</b><strong>Equip</strong></div></div><div class="cta">裝備 / Equip</div></div><div class="full-backpack"><div class="full-item"><b>⚔</b><span>木製長劍</span></div><div class="full-item"><b>♢</b><span>旅行皮甲</span></div><div class="full-item"><b>◇</b><span>青玉墜飾</span></div><div class="full-item"><b>♜</b><span>棋盤徽章</span></div><div class="full-item"><b>✦</b><span>星紋外套</span></div><div class="full-item"><b>◉</b><span>補給藥水</span></div></div></div></div></div>
+    </section>
+
+    <section id="candidate-a-combat" data-view="candidate-a-combat" class="section reference">
+      <div class="section-head"><div><div class="eyebrow">CANDIDATE A / P2</div><h2>Go Combat</h2></div><p>Warm wood remains the Go interaction core. Brighter Hero framing contrasts with a heavier Battlefield Boss treatment.</p></div>
+      <div class="surface-shell"><div class="surface-top"><strong>對局戰鬥 / Go Combat</strong><span>GO BOARD FIRST</span></div><div class="combat-scene"><article class="fighter"><label>PLAYER / HERO</label><img src="/assets/hero/characters/chibi_apprentice_normalized.webp" alt="Hero"><h3>探路學徒</h3><p>Active Spirit · 星徑靈羚 / companion frame</p><div><div class="hp-head"><span>HP / persistent boundary</span><span>— / —</span></div><div class="hp"><i></i></div></div></article><div class="go-board"><div class="go-board-head"><strong>棋局問題 / Go Problem</strong><span>READ → CHOOSE → SETTLE</span></div><div class="go-grid"><div class="stones"><i class="stone black s1"></i><i class="stone white s2"></i><i class="stone black s3"></i><i class="stone white s4"></i><i class="stone black s5"></i><i class="stone white s6"></i><i class="stone black s7"></i></div></div><div><div class="question">黑棋下一手的目的？ / What is Black's next best purpose?</div><div class="feedback">✓ 正確結果由伺服器結算 / committed result</div></div></div><article class="fighter boss"><label>BATTLEFIELD BOSS</label><img src="/assets/monsters/omega_idol_chibi.png" alt="Battlefield Boss"><h3>遠古棋像</h3><p>Generic Boss frame · not Lord Trial ritual</p><div><div class="hp-head"><span>BOSS HP</span><span>54 / 100</span></div><div class="hp"><i></i></div></div></article></div></div></div>
+    </section>
+
+    <section id="candidate-a-reward" data-view="candidate-a-reward" class="section reference">
+      <div class="section-head"><div><div class="eyebrow">CANDIDATE A / P3</div><h2>Reward Drop</h2></div><p>Light surfaces, sky color and sun yellow make victory and discovery feel positive; the rare equipment card carries the focal weight.</p></div>
+      <div class="surface-shell"><div class="surface-top"><strong>戰利品 / Reward Drop</strong><span>DETERMINISTIC RESULT</span></div><div class="reward-scene"><div class="victory"><div><h3>魔物已擊退 / Monster defeated</h3><p>你的 Go 判斷打開了一個冒險節點。</p></div><div class="seal">✓</div></div><div class="reward-grid"><div class="reward-card"><div class="icon">◇</div><strong>+ Coins</strong><span>金幣 / currency · settlement result</span></div><div class="reward-card"><div class="icon">✦</div><strong>+ XP</strong><span>經驗 / progression · server-projected</span></div><div class="reward-card new"><div class="icon">⚔</div><strong>木製長劍</strong><span>NEW · RARE · functional weapon</span></div><div class="reward-card"><div class="icon">◉</div><strong>補給藥水</strong><span>CONSUMABLE · use when allowed</span></div><div class="reward-card new"><div class="icon">✧</div><strong>星紋外套</strong><span>NEW · COSMETIC · collection only</span></div></div></div></div></div>
+    </section>
+
+    <section id="candidate-a-shop" data-view="candidate-a-shop" class="section reference">
+      <div class="section-head"><div><div class="eyebrow">CANDIDATE A / P4</div><h2>Star Market / Shop</h2></div><p>Merchant/world environment remains present. Offer type leads; utility, cosmetic, Premium and unavailable do not collapse into one catalog style.</p></div>
+      <div class="surface-shell"><div class="surface-top"><strong>星界市集 / Star Market</strong><span>OFFER TYPE FIRST</span></div><div class="shop-scene"><div class="shop-banner"><div><h3>今天想帶什麼上路？</h3><p>Utility helps the journey; cosmetics change appearance; access offers state their boundary.</p></div><span class="coin-count">COINS 3,280</span></div><div class="offer-grid"><article class="offer-card"><div class="offer-art">◉</div><h4>小型補給藥水</h4><p>Coin utility · use only when the item capability allows it.</p><div class="cta">購買 / Buy</div></article><article class="offer-card cosmetic"><div class="offer-art">✦</div><h4>星紋外套</h4><p>Pure cosmetic · appearance and collection. No Attack/Defense/XP claim.</p><div class="cta">查看外觀 / View</div></article><article class="offer-card"><div class="offer-art">✧</div><h4>旅程通行證</h4><p>Premium access · benefit copy belongs to Premium authority, not item stats.</p><div class="cta">查看方案 / View</div></article><article class="offer-card unavailable"><div class="offer-art">◇</div><h4>鎖定的收藏品</h4><p>Unavailable · reason is visible and no misleading purchase action appears.</p><div class="cta">尚未開放 / Unavailable</div></article></div></div></div>
+    </section>
+
+    <section id="palette-contact-sheet" data-view="palette-contact-sheet" class="section">
+      <div class="section-head"><div><div class="eyebrow">TOKEN FAMILIES / A-B-C</div><h2>Palette contact sheet</h2></div><p>All three candidates preserve rarity geometry and semantic labels; the candidate changes mood and surface balance, not meaning.</p></div>
+      <div class="contact-grid">
+        <article class="token-panel"><h3>Candidate A / Bright Adventure</h3><div class="swatches"><div class="swatch blue">ADVENTURE BLUE<br>#1E6FC7</div><div class="swatch teal">GO TEAL<br>#39C9B6</div><div class="swatch yellow">SUN YELLOW<br>#F6C957</div><div class="swatch orange">ADVENTURE ORANGE<br>#F29B52</div><div class="swatch cream">CREAM<br>#FFF4D8</div><div class="swatch">SKY<br>#DDF2FF</div><div class="swatch" style="background:#173653;color:#fff">DEEP NAVY<br>#173653</div><div class="swatch purple">MAGIC PURPLE<br>#8968D8</div></div><p class="token-note">Recommended: open sky, clear adventure, light surfaces first. Dark chrome is reserved for structure and contrast.</p></article>
+        <article class="token-panel"><h3>Candidate B / Fantasy</h3><div class="swatches"><div class="swatch blue" style="background:#3F75D7">BLUE<br>#3F75D7</div><div class="swatch teal" style="background:#36C5B3">TEAL<br>#36C5B3</div><div class="swatch yellow" style="background:#F3C85B">YELLOW<br>#F3C85B</div><div class="swatch orange" style="background:#EA7B6C">CORAL<br>#EA7B6C</div><div class="swatch" style="background:#E6F3FF">LIGHT BLUE<br>#E6F3FF</div><div class="swatch purple">VIOLET<br>#8764D6</div></div><p class="token-note">Magic-forward Spirit identity, with restrained saturation and neutral reading surfaces.</p></article>
+        <article class="token-panel"><h3>Candidate C / Storybook</h3><div class="swatches"><div class="swatch" style="background:#DDF1F6">SKY<br>#DDF1F6</div><div class="swatch teal" style="background:#4AABA4">TEAL<br>#4AABA4</div><div class="swatch yellow" style="background:#E6B84D">SOFT GOLD<br>#E6B84D</div><div class="swatch orange" style="background:#ED9461">ORANGE<br>#ED9461</div><div class="swatch" style="background:#EEF6E7">GRASS<br>#EEF6E7</div><div class="swatch" style="background:#FFF0D0">CREAM<br>#FFF0D0</div></div><p class="token-note">Warm illustrated adventure book. Friendly without using preschool shapes or candy-neon saturation.</p></article>
+      </div>
+      <div class="rarity-row"><div class="rarity common">○ COMMON<br><small>neutral</small></div><div class="rarity uncommon">◆ UNCOMMON<br><small>growth</small></div><div class="rarity rare">◇ RARE<br><small>blue edge</small></div><div class="rarity epic">✦ EPIC<br><small>violet crest</small></div><div class="rarity legendary">✹ LEGENDARY<br><small>gold reserved</small></div></div>
+    </section>
+  </main>
+</body>
+</html>
