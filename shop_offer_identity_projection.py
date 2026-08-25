@@ -58,9 +58,15 @@ CANONICAL_ITEM_CLASSES = frozenset(
     }
 )
 READY_DESTINATIONS = frozenset({"shop_inventory", "player_wardrobe"})
+PLAYER_INVENTORY_EQUIPMENT_CLASSES = frozenset(
+    {"WEAPON", "ARMOR", "ACCESSORY"}
+)
+PLAYER_INVENTORY_EQUIPMENT_DUPLICATE_POLICIES = frozenset(
+    {"REJECT_IF_OWNED", "ALLOW_DUPLICATE"}
+)
 ADAPTER_DESTINATIONS = frozenset({"pet_inventory"})
 KNOWN_NON_C025_DESTINATIONS = frozenset(
-    {"player_inventory", "entitlement", "capacity", "credit"}
+    {"entitlement", "capacity", "credit"}
 )
 DUPLICATE_POLICIES = frozenset(
     {"STACK", "REJECT_IF_OWNED", "ALLOW_DUPLICATE"}
@@ -82,6 +88,7 @@ _CLIENT_AUTHORED_KEYS = frozenset(
         "requested_quantity",
         "qty_requested",
         "purchase_operation_id",
+        "canonical_slot",
     }
 )
 
@@ -609,6 +616,11 @@ def project_shop_offer(
             "multi-grant destinations require an explicit grant profile",
             blockers=(NEEDS_MULTI_GRANT_PROFILE,),
         )
+    elif destination == "player_inventory":
+        # C029 extends C025 only for the explicitly validated functional
+        # Equipment matrix below.  This is deliberately not a generic
+        # player_inventory readiness flag.
+        destination_blocker = None
     elif destination in READY_DESTINATIONS:
         destination_blocker = None
     elif destination in KNOWN_NON_C025_DESTINATIONS:
@@ -725,14 +737,38 @@ def project_shop_offer(
                 NEEDS_CATALOG_NORMALIZATION,
                 "static item facts require an authoritative item_key",
             )
-        if destination != "shop_inventory" or acquisition_class == "COSMETIC":
-            raise UnsupportedServerOffer(
-                "C025 first slice only projects direct stackable Shop items"
-            )
-        if duplicate_policy != "STACK":
-            raise UnsupportedServerOffer(
-                "C025 first slice requires STACK for direct Shop items"
-            )
+        if destination == "player_inventory":
+            if daily:
+                raise UnsupportedServerOffer(
+                    "daily functional Equipment is outside the C029 projection"
+                )
+            if acquisition_class not in PLAYER_INVENTORY_EQUIPMENT_CLASSES:
+                raise UnsupportedServerOffer(
+                    "player_inventory readiness is limited to functional Equipment"
+                )
+            if quantity != 1:
+                raise UnsupportedServerOffer(
+                    "player_inventory functional Equipment requires quantity=1"
+                )
+            if duplicate_policy not in PLAYER_INVENTORY_EQUIPMENT_DUPLICATE_POLICIES:
+                raise UnsupportedServerOffer(
+                    "player_inventory functional Equipment requires an explicit "
+                    "REJECT_IF_OWNED or ALLOW_DUPLICATE policy"
+                )
+            if grant["destination"] != destination:
+                raise UnsupportedServerOffer(
+                    "player_inventory Equipment grant destination must match "
+                    "the acquisition destination"
+                )
+        else:
+            if destination != "shop_inventory" or acquisition_class == "COSMETIC":
+                raise UnsupportedServerOffer(
+                    "C025 first slice only projects direct stackable Shop items"
+                )
+            if duplicate_policy != "STACK":
+                raise UnsupportedServerOffer(
+                    "C025 first slice requires STACK for direct Shop items"
+                )
         offer_id = f"shop.static.{item_key}"
     else:
         if destination != "player_wardrobe" or acquisition_class != "COSMETIC":
@@ -832,6 +868,8 @@ __all__ = [
     "CANONICAL_ITEM_CLASSES",
     "COINS",
     "DUPLICATE_POLICIES",
+    "PLAYER_INVENTORY_EQUIPMENT_CLASSES",
+    "PLAYER_INVENTORY_EQUIPMENT_DUPLICATE_POLICIES",
     "ClientAuthoredInput",
     "GrantFact",
     "GACHA_EXCLUDED",
