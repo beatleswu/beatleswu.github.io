@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "task": "A030_RPG_ART_SYSTEM_V1_PREPRODUCTION_001",
+  "version": "rpg-art-system-v1-preproduction",
+  "status": "design-proposal",
+  "visual_thesis": "A colorful Go adventure world first, with compact game UI that frames the Go problem instead of competing with it.",
+  "palette": {
+    "world_night": "#081E27",
+    "world_teal": "#0D5E63",
+    "world_teal_deep": "#092D35",
+    "teal_accent": "#56D6C2",
+    "antique_gold": "#D6AA51",
+    "gold_highlight": "#F0BF57",
+    "parchment": "#F4ECD8",
+    "parchment_deep": "#DCC78F",
+    "ink": "#1C1409",
+    "ink_soft": "#715324",
+    "ivory": "#FFF3D1",
+    "positive": "#7BD37A",
+    "negative": "#D65B4B",
+    "warning": "#F0A84A",
+    "disabled": "#7D8D8C"
+  },
+  "color_roles": {
+    "background": "world_night with a low-contrast teal-to-ink vignette",
+    "surface_panel": "parchment for readable content or world_teal_deep for immersive overlays",
+    "inset_panel": "parchment_deep or rgba(8,30,39,.72), one step darker than its parent",
+    "primary_frame": "antique_gold with a thin inner ivory highlight",
+    "secondary_frame": "rgba(214,170,81,.46) with restrained teal edge accent",
+    "hero_frame": "teal_deep body, antique_gold crest, parchment identity plate",
+    "monster_frame": "tier geometry first; teal_deep body and tier-specific material accent",
+    "boss_frame": "reinforced gold geometry, warning notch and wider HP rail; never Lord ritual chrome",
+    "primary_cta": "teal_accent on world_teal_deep, with gold focus ring",
+    "secondary_cta": "parchment on dark chrome or transparent teal outline",
+    "utility_cta": "low-contrast dark chrome with an icon and readable label",
+    "disabled_cta": "muted text and dashed border; no misleading glow"
+  },
+  "surface_roles": {
+    "background": {"texture": "subtle painted grain or existing E10 world art", "opacity_limit": 0.24},
+    "surface_panel": {"radius": "panel", "padding": "space_4", "max_opacity_over_world": 0.94},
+    "inset_panel": {"radius": "inset", "padding": "space_3", "max_opacity_over_world": 0.86},
+    "primary_frame": {"border": "gold_1", "inner_line": true, "corner_ornament": "one per major panel"},
+    "item_card": {"minimum_height": 132, "visual_ratio": "1:1 icon area plus name/status rail", "metadata_limit": 3},
+    "item_slot": {"minimum_touch_target": 52, "empty_state": "engraved silhouette, not a question mark"},
+    "equipment_slot": {"minimum_touch_target": 60, "slot_mark": "weapon|armor|accessory", "equipped_state": "gold ring plus label"},
+    "reward_card": {"minimum_height": 150, "new_state": "NEW ribbon plus gold pulse", "action_limit": 2},
+    "shop_card": {"minimum_height": 176, "offer_type_visible": true, "cosmetic_power_claim": false},
+    "quest_card": {"purpose": "next action and context", "max_primary_actions": 1},
+    "spirit_frame": {"material": "deep teal with constellation/Go-stone motif", "active_state": "gold orbit plus ACTIVE label"}
+  },
+  "border_roles": {
+    "gold_1": "1px solid #D6AA51",
+    "gold_2": "2px solid #F0BF57",
+    "teal_1": "1px solid rgba(86,214,194,.56)",
+    "quiet": "1px solid rgba(244,236,216,.16)",
+    "locked": "1px dashed rgba(244,236,216,.38)",
+    "boss": "3px double #D6AA51"
+  },
+  "radius_roles": {
+    "chip": "999px",
+    "control": "10px",
+    "inset": "12px",
+    "panel": "16px",
+    "card": "14px",
+    "boss": "10px"
+  },
+  "shadow_roles": {
+    "rest": "0 8px 22px rgba(2,17,22,.24)",
+    "raised": "0 18px 42px rgba(2,17,22,.38)",
+    "focus": "0 0 0 3px rgba(240,191,87,.52), 0 12px 26px rgba(2,17,22,.26)",
+    "item_glow": "0 0 18px rgba(86,214,194,.24)",
+    "boss_glow": "0 0 24px rgba(214,170,81,.28)"
+  },
+  "glow_roles": {
+    "active": "teal_accent, one soft halo",
+    "new_item": "gold_highlight, short reveal only",
+    "rare": "small teal halo",
+    "elite": "teal plus gold edge pulse",
+    "legendary": "gold halo with no full-screen bloom",
+    "boss": "gold warning beat, not a Lord ritual"
+  },
+  "spacing_scale_px": {
+    "space_1": 4,
+    "space_2": 8,
+    "space_3": 12,
+    "space_4": 16,
+    "space_5": 20,
+    "space_6": 24,
+    "space_7": 32,
+    "space_8": 40
+  },
+  "type_scale": {
+    "display": {"desktop_px": 42, "mobile_px": 30, "weight": 800, "line_height": 1.05},
+    "screen_title": {"desktop_px": 28, "mobile_px": 23, "weight": 800, "line_height": 1.12},
+    "section_title": {"desktop_px": 18, "mobile_px": 16, "weight": 800, "line_height": 1.2},
+    "item_name": {"desktop_px": 15, "mobile_px": 14, "weight": 800, "line_height": 1.25},
+    "body": {"desktop_px": 14, "mobile_px": 14, "weight": 500, "line_height": 1.55},
+    "helper": {"desktop_px": 12, "mobile_px": 12, "weight": 500, "line_height": 1.45},
+    "badge": {"desktop_px": 10, "mobile_px": 10, "weight": 800, "letter_spacing": "0.08em"},
+    "button": {"desktop_px": 14, "mobile_px": 14, "weight": 800, "line_height": 1.1},
+    "number_stat": {"desktop_px": 24, "mobile_px": 20, "weight": 900, "font_family": "monospace"}
+  },
+  "icon_scale": {
+    "utility": 18,
+    "status": 22,
+    "item_grid": 42,
+    "item_detail": 76,
+    "spirit_portrait": 88,
+    "hero_portrait": 128,
+    "monster_regular": 118,
+    "monster_boss": 172
+  },
+  "button_hierarchy": {
+    "primary": {"min_height": 48, "min_width": 132, "label_rule": "verb first"},
+    "secondary": {"min_height": 44, "min_width": 112, "label_rule": "supporting action"},
+    "utility": {"min_height": 40, "min_width": 44, "label_rule": "icon may lead, text remains for critical actions"},
+    "focus": "visible gold outline and offset, never color-only",
+    "disabled": "reduced contrast plus explanation when actionable context matters"
+  },
+  "rarity_presentation": {
+    "common": {"label": "COMMON", "symbol": "·", "frame": "solid quiet", "effect": "none"},
+    "uncommon": {"label": "UNCOMMON", "symbol": "+", "frame": "single teal edge", "effect": "small teal accent"},
+    "rare": {"label": "RARE", "symbol": "◇", "frame": "double edge", "effect": "restrained aura"},
+    "epic": {"label": "EPIC", "symbol": "✦", "frame": "reinforced corner", "effect": "teal-gold pulse"},
+    "legendary": {"label": "LEGENDARY", "symbol": "✹", "frame": "gold crest", "effect": "short gold reveal"}
+  },
+  "slot_presentation": {
+    "weapon": {"label_zh": "武器", "label_en": "WEAPON", "mark": "blade silhouette", "equipable": true},
+    "armor": {"label_zh": "防具", "label_en": "ARMOR", "mark": "chest silhouette", "equipable": true},
+    "accessory": {"label_zh": "飾品", "label_en": "ACCESSORY", "mark": "ring/pendant silhouette", "equipable": true},
+    "trophy": {"label_zh": "戰利品", "label_en": "TROPHY", "mark": "medallion silhouette", "equipable": false},
+    "cosmetic": {"label_zh": "純外觀", "label_en": "COSMETIC", "mark": "wardrobe silhouette", "equipable": false, "combat_power": false},
+    "consumable": {"label_zh": "消耗品", "label_en": "CONSUMABLE", "mark": "vial/scroll silhouette", "equipable": false}
+  },
+  "status_presentation": {
+    "selected": "gold outline + Selected label + elevated surface",
+    "locked": "lock icon + dashed frame + reason text",
+    "new_item": "NEW ribbon + one-time reveal motion",
+    "equipped": "gold ring + Equipped/已裝備 label + slot mark",
+    "owned": "Owned/已持有 label, no purchase CTA",
+    "unavailable": "muted art + unavailable reason, no false action",
+    "loading": "stable skeleton with no layout jump",
+    "error": "bounded notice and retry/return action",
+    "empty": "friendly illustration/shape and next useful action"
+  },
+  "combat_feedback": {
+    "correct": "brief teal-gold board-edge pulse and readable SUCCESS label",
+    "incorrect": "brief warm-red edge shake and coaching copy; do not shame",
+    "damage": "server-settled number/popover near Monster, never client-calculated",
+    "defense": "shield-shaped neutral/teal cue near Hero, only when committed result says so",
+    "spirit_trigger": "small companion orbit cue; no combat effect implied by presentation",
+    "defeat": "Monster silhouette fade/knockdown followed by reward transition",
+    "reduced_motion": "instant state change with persistent icon/label and no flash"
+  },
+  "reward_feedback": {
+    "reveal_order": ["result_header", "coins_xp", "item_cards", "where_it_went", "next_action"],
+    "new_item": "NEW label plus rarity frame",
+    "equipable": "Equip / 裝備 primary action only when server capability says so",
+    "consumable": "Use / 使用 only when canonical capability says so",
+    "cosmetic": "View / 查看 or Collection / 收藏; never fake power delta",
+    "no_drop": "brief settlement acknowledgement, no empty roulette state",
+    "max_primary_actions": 1,
+    "max_secondary_actions": 1
+  },
+  "responsive_contract": {
+    "desktop_1440x900": "world/context and one dominant interaction surface remain visible together",
+    "tablet_landscape": "two-column composition; primary surface and contextual identity remain visible",
+    "mobile_390": "single-column order: identity -> main interaction -> result/action; 44px targets",
+    "mobile_375": "same hierarchy with wrapped labels and no side-by-side micro-panels",
+    "mobile_360": "one dominant CTA, compact metadata, no horizontal scroll",
+    "reorder_rule": "reorder by player decision, not by shrinking desktop coordinates"
+  },
+  "accessibility": {
+    "body_text_min_px": 14,
+    "helper_text_min_px": 12,
+    "touch_target_min_px": 44,
+    "focus_visible": true,
+    "selected_not_color_only": true,
+    "rarity_not_color_only": true,
+    "contrast_target": "WCAG AA for text and critical controls",
+    "reduced_motion_supported": true,
+    "traditional_chinese_readability": "avoid decorative typeface for body and helper copy"
+  },
+  "boundaries": {
+    "functional_equipment_is_server_projected": true,
+    "pure_cosmetic_has_no_implied_combat_power": true,
+    "encounter_presentation_authorizes_damage": false,
+    "presentation_authorizes_reward": false,
+    "lord_trial_visual_authority_separate": true,
+    "runtime_asset_generation_in_a030": false
+  }
+}
