@@ -233,6 +233,50 @@ from player_presentation_api_contract import (
     PlayerPresentationApiContractError,
     build_player_presentation_api_v1,
 )
+from equipment_ownership_service import (
+    EquipmentOwnershipError,
+    grant_equipment_ownership,
+)
+from equipment_loadout_service import (
+    EquipmentLoadoutError,
+    equip_owned_item,
+    unequip_owned_item,
+)
+from shop_offer_identity_projection import (
+    OFFER_FAMILY_DAILY_COSMETIC,
+    OFFER_FAMILY_DAILY_ITEM,
+    OFFER_FAMILY_EXPLICIT_COSMETIC,
+    OFFER_FAMILY_STATIC_ITEM,
+    OfferNotReady,
+    ServerShopOfferFacts,
+    ShopOfferIdentityError,
+    normalize_shop_offer,
+)
+from shop_offer_authority import (
+    ShopOfferContractError,
+    StaticShopOfferAuthority,
+)
+from coin_purchase_authority import (
+    AcquisitionFailed,
+    CoinPurchaseError,
+    CoinDebitFailed,
+    InsufficientCoins,
+    OfferNotEligible,
+    OwnershipAuthorityUnavailable,
+    PurchaseOperationConflict,
+    PurchaseOperationInProgress,
+    SchemaUnavailable,
+    SqlAcquisitionAuthority,
+    UnknownOffer,
+    purchase_with_coins,
+)
+from shop_acquisition_result_bridge import (
+    ShopAcquisitionBridgeError,
+    adapt_committed_shop_purchase,
+)
+from migrations.coin_purchase_operations_v1 import (
+    TABLE_NAME as COIN_PURCHASE_OPERATIONS_TABLE,
+)
 from sgf_admin_workbench import (
     WORKBENCH_ACTIONS,
     WORKBENCH_REPORT_REASONS,
@@ -7281,22 +7325,36 @@ def _settle_monster_defeat_in_tx(
             (uid, item_id),
         ).fetchone()
         existing_count = int(existing_row['item_count'] or 0) if existing_row else 0
-        obtained_at = datetime.datetime.now().isoformat()
+        inserted_rows = []
         for _ in range(int(quantity)):
-            conn.execute(
-                'INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) '
-                'VALUES(?,?,0,?,?)',
-                (uid, item_id, obtained_at, source_name),
-            )
+            try:
+                inserted_rows.append(
+                    grant_equipment_ownership(
+                        conn,
+                        uid,
+                        item_id,
+                        source_name,
+                        equipment_defs=EQUIPMENT_DEFS,
+                    )
+                )
+            except EquipmentOwnershipError as exc:
+                raise MonsterSettlementRejected(
+                    f'functional Monster ownership grant failed: {exc.code}'
+                ) from exc
         inserted_row = conn.execute(
-            'SELECT id FROM player_inventory WHERE user_id=? AND equip_id=? '
-            'AND obtained_at=? ORDER BY id DESC LIMIT 1',
-            (uid, item_id, obtained_at),
+            'SELECT id, obtained_at FROM player_inventory '
+            'WHERE id=? AND user_id=?',
+            (inserted_rows[-1].row_id, uid),
         ).fetchone()
+        if not inserted_row:
+            raise MonsterSettlementRejected(
+                'functional Monster ownership grant row was not recoverable'
+            )
+        obtained_at = inserted_row['obtained_at']
         equipped_by_slot = _functional_equipped_by_slot(conn, uid)
         payload = _functional_equipment_payload(
             equip,
-            inv_id=inserted_row['id'] if inserted_row else None,
+            inv_id=inserted_row['id'],
             equipped=False,
             obtained_at=obtained_at,
             source=source_name,
@@ -7309,7 +7367,7 @@ def _settle_monster_defeat_in_tx(
         payload['new'] = existing_count == 0
         payload['duplicate'] = existing_count > 0
         return {
-            'grant_id': f"player_inventory:{inserted_row['id']}" if inserted_row else '',
+            'grant_id': f"player_inventory:{inserted_row['id']}",
             'payload': payload,
         }
 
@@ -9986,9 +10044,23 @@ def admin_set_equipment(uid):
         if not any(e['id'] == equip_id for e in EQUIPMENT_DEFS):
             return jsonify({'error': 'unknown_equip'}), 400
         with get_db() as conn:
-            conn.execute('INSERT INTO player_inventory(user_id,equip_id,equipped,obtained_at,source) '
-                         'VALUES(?,?,0,?,?)', (uid, equip_id, _now_iso(), 'admin'))
-            conn.commit()
+            try:
+                grant_equipment_ownership(
+                    conn,
+                    uid,
+                    equip_id,
+                    'admin',
+                    equipment_defs=EQUIPMENT_DEFS,
+                )
+                conn.commit()
+            except EquipmentOwnershipError as exc:
+                conn.rollback()
+                status = 503 if exc.code in {
+                    'SCHEMA_UNAVAILABLE',
+                    'B033_MALFORMED_SCHEMA',
+                    'LEGACY_SCHEMA_UNAVAILABLE',
+                } else 400
+                return jsonify({'error': exc.code}), status
         _admin_audit('equipment', uid, f'grant {equip_id}')
     elif action == 'remove':
         inv_id = int(body.get('inv_id') or 0)
@@ -16935,6 +17007,45 @@ def equip_item():
                            (inv_id, uid)).fetchone()
         if not row:
             return jsonify({'error': '找不到物品'}), 404
+        if _equipment_canonical_loadout_enabled():
+            try:
+                if act == 'equip':
+                    loadout_result = equip_owned_item(
+                        conn,
+                        uid,
+                        row['equip_id'],
+                        equipment_defs=EQUIPMENT_DEFS,
+                    )
+                else:
+                    loadout_result = unequip_owned_item(
+                        conn,
+                        uid,
+                        row['equip_id'],
+                        equipment_defs=EQUIPMENT_DEFS,
+                    )
+                conn.commit()
+            except EquipmentLoadoutError as exc:
+                conn.rollback()
+                if exc.code == 'EQUIPMENT_NOT_OWNED':
+                    status = 404
+                elif exc.code in {
+                    'SCHEMA_INVARIANT_UNAVAILABLE',
+                    'FINAL_LOADOUT_INVARIANT_FAILED',
+                }:
+                    status = 503
+                elif exc.code == 'MALFORMED_EQUIPPED_STATE':
+                    status = 409
+                else:
+                    status = 400
+                return jsonify({'error': exc.code}), status
+            return jsonify({
+                'ok': True,
+                'item_id': row['equip_id'],
+                'inv_id': row['id'],
+                'equipped': act == 'equip',
+                'canonical_slot': loadout_result.get('canonical_slot'),
+                'changed': loadout_result.get('changed'),
+            })
         equip = _EQUIP_MAP.get(row['equip_id'], {})
         slot  = equip.get('slot')
         if not slot:
@@ -21680,6 +21791,354 @@ def _grant_shop_purchase(conn, uid, item, qty=1):
         granted_items.append({'item_key': item['key'], 'qty': qty})
     return granted_items, granted_food
 
+
+# E030 keeps both new runtime seams explicitly default-off.  The flags are
+# evaluated at request time so disposable test environments can opt in without
+# changing repository or Production defaults.
+CANONICAL_COIN_SHOP_PURCHASE_FLAG = 'CANONICAL_COIN_SHOP_PURCHASE_ENABLED'
+EQUIPMENT_CANONICAL_LOADOUT_FLAG = 'EQUIPMENT_CANONICAL_LOADOUT_ENABLED'
+
+
+def _canonical_coin_shop_purchase_enabled():
+    return _env_flag_enabled(CANONICAL_COIN_SHOP_PURCHASE_FLAG, default=False)
+
+
+def _equipment_canonical_loadout_enabled():
+    return _env_flag_enabled(EQUIPMENT_CANONICAL_LOADOUT_FLAG, default=False)
+
+
+def _canonical_equipment_slot_source():
+    """Bind C026 to the existing server Equipment definition authority."""
+
+    return {
+        str(definition['id']): str(definition['slot'])
+        for definition in EQUIPMENT_DEFS
+        if definition.get('slot') in {'weapon', 'armor', 'accessory'}
+    }
+
+
+def _canonical_shop_offer_facts(conn, *, appearance_only=False):
+    """Resolve current server Shop facts without trusting request fields.
+
+    Only already-supported single-grant Coin products enter this adapter.
+    Legacy bundles/effects/pet grants remain on the existing route until a
+    separate approved destination/grant adapter exists.  No functional
+    Equipment is added to ``SHOP_ITEMS`` here; tests may inject a synthetic
+    server-owned fact through this helper.
+    """
+
+    today = datetime.date.today().isoformat()
+    slots = _daily_shop_slots(conn)
+    daily_item_prices = {
+        str(slot.get('item_key')): int(slot['price'])
+        for slot in slots
+        if slot.get('type') == 'item'
+        and isinstance(slot.get('price'), int)
+        and not isinstance(slot.get('price'), bool)
+    }
+    daily_appearance_products = {}
+    for slot in slots:
+        if slot.get('type') != 'appearance':
+            continue
+        item_id = str(slot.get('item_key') or slot.get('cosmetic_id') or '')
+        product = _COSMETIC_PRODUCT_BY_COSMETIC_ID.get(item_id)
+        if product and product.get('unlock_type') == 'coins':
+            daily_appearance_products[product['product_id']] = (
+                product,
+                int(slot['price']),
+            )
+
+    facts = []
+    if not appearance_only:
+        for item_key, item in SHOP_ITEMS.items():
+            # Bundles, pet grants, and effect-bearing items retain their
+            # existing route until an explicit canonical adapter exists.
+            if item.get('grants_items') or item.get('grants_food') or item.get('effect'):
+                continue
+            price = item.get('price')
+            if isinstance(price, bool) or not isinstance(price, int) or price <= 0:
+                continue
+            daily = item_key in daily_item_prices
+            equipment = _EQUIP_MAP.get(item_key)
+            is_functional_equipment = bool(
+                equipment
+                and item_key not in {'xp_amulet', 'go_stone_black'}
+            )
+            if is_functional_equipment and daily:
+                # C029 intentionally does not project daily functional
+                # Equipment; a later catalog task must provide a static,
+                # server-owned Equipment offer instead.
+                continue
+            if is_functional_equipment:
+                destination = 'player_inventory'
+                acquisition_class = {
+                    'weapon': 'WEAPON',
+                    'armor': 'ARMOR',
+                    'accessory': 'ACCESSORY',
+                }.get(equipment.get('slot'))
+                if acquisition_class is None:
+                    continue
+                duplicate_policy = str(
+                    item.get('duplicate_policy') or 'REJECT_IF_OWNED'
+                ).upper()
+            else:
+                destination = 'shop_inventory'
+                acquisition_class = 'CONSUMABLE'
+                duplicate_policy = 'STACK'
+            facts.append(
+                ServerShopOfferFacts(
+                    offer_family=(
+                        OFFER_FAMILY_DAILY_ITEM if daily else OFFER_FAMILY_STATIC_ITEM
+                    ),
+                    item_key=item_key,
+                    item_id=item_key,
+                    server_price=daily_item_prices.get(item_key, price),
+                    quantity=1,
+                    destination=destination,
+                    acquisition_class=acquisition_class,
+                    duplicate_policy=duplicate_policy,
+                    eligibility_reference='authenticated_shop_player',
+                    price_reference=(
+                        f'daily_shop:{today}' if daily else f'SHOP_ITEMS:{item_key}'
+                    ),
+                    catalog_reference='app.SHOP_ITEMS',
+                    daily=daily,
+                    shop_date=today if daily else None,
+                    metadata={
+                        'name': item.get('name_en') or item.get('name') or item_key,
+                        'category': item.get('category'),
+                    },
+                )
+            )
+
+        # C023's pure Coin cosmetics are already server-owned products.  A
+        # daily mapped product uses the current rotation price; otherwise its
+        # product price remains the authoritative static price.
+        for product in COSMETIC_COMMERCE_PRODUCTS:
+            if product.get('unlock_type') != 'coins':
+                continue
+            product_id = str(product.get('product_id') or '')
+            price = product.get('price')
+            if not product_id or isinstance(price, bool) or not isinstance(price, int) or price <= 0:
+                continue
+            daily_entry = daily_appearance_products.get(product_id)
+            daily = daily_entry is not None
+            server_price = daily_entry[1] if daily else price
+            facts.append(
+                ServerShopOfferFacts(
+                    offer_family=(
+                        OFFER_FAMILY_DAILY_COSMETIC if daily
+                        else OFFER_FAMILY_EXPLICIT_COSMETIC
+                    ),
+                    item_key=product['cosmetic_id'],
+                    item_id=product['cosmetic_id'],
+                    product_id=product_id,
+                    server_price=server_price,
+                    quantity=1,
+                    destination='player_wardrobe',
+                    acquisition_class='COSMETIC',
+                    duplicate_policy='REJECT_IF_OWNED',
+                    eligibility_reference='authenticated_shop_player',
+                    price_reference=(
+                        f'daily_shop:{today}' if daily else f'COSMETIC_COMMERCE_PRODUCTS:{product_id}'
+                    ),
+                    catalog_reference='app.COSMETIC_COMMERCE_PRODUCTS',
+                    daily=daily,
+                    shop_date=today if daily else None,
+                    metadata={
+                        'category': product.get('category'),
+                        'ownership_source': product.get('ownership_source'),
+                    },
+                )
+            )
+    else:
+        for product, price in daily_appearance_products.values():
+            facts.append(
+                ServerShopOfferFacts(
+                    offer_family=OFFER_FAMILY_DAILY_COSMETIC,
+                    item_key=product['cosmetic_id'],
+                    item_id=product['cosmetic_id'],
+                    product_id=product['product_id'],
+                    server_price=price,
+                    quantity=1,
+                    destination='player_wardrobe',
+                    acquisition_class='COSMETIC',
+                    duplicate_policy='REJECT_IF_OWNED',
+                    eligibility_reference='authenticated_shop_player',
+                    price_reference=f'daily_shop:{today}',
+                    catalog_reference='app.COSMETIC_COMMERCE_PRODUCTS',
+                    daily=True,
+                    shop_date=today,
+                    metadata={
+                        'category': product.get('category'),
+                        'ownership_source': product.get('ownership_source'),
+                    },
+                )
+            )
+    return facts
+
+
+def _canonical_shop_offer_for_request(conn, body, *, appearance_only=False):
+    facts = _canonical_shop_offer_facts(conn, appearance_only=appearance_only)
+    requested_offer_id = str(body.get('offer_id') or '').strip() or None
+    selectors = [
+        str(body.get(key) or '').strip()
+        for key in ('item_key', 'product_id', 'item_id')
+        if str(body.get(key) or '').strip()
+    ]
+    requested_selector = selectors[0] if selectors else None
+    if not requested_offer_id and not requested_selector:
+        raise UnknownOffer('a server-known item_key, product_id, item_id, or offer_id is required')
+
+    matches = []
+    for server_facts in facts:
+        offer = normalize_shop_offer(server_facts)
+        if requested_offer_id and offer.offer_id != requested_offer_id:
+            continue
+        if requested_selector and requested_selector not in {
+            str(server_facts.item_key or ''),
+            str(server_facts.item_id or ''),
+            str(server_facts.product_id or ''),
+            offer.offer_id,
+        }:
+            continue
+        matches.append(offer)
+    if len(matches) != 1:
+        raise UnknownOffer('active server Shop offer was not uniquely resolved')
+    return matches[0]
+
+
+def _canonical_shop_operation_record(conn, uid, operation_id):
+    row = conn.execute(
+        f'SELECT * FROM {COIN_PURCHASE_OPERATIONS_TABLE} '
+        'WHERE user_id=? AND purchase_operation_id=?',
+        (uid, operation_id),
+    ).fetchone()
+    if not row:
+        raise ShopAcquisitionBridgeError(
+            'COMMITTED_RESULT_EVIDENCE_REQUIRED',
+            'committed purchase operation row is unavailable',
+        )
+    if hasattr(row, 'keys'):
+        return {key: row[key] for key in row.keys()}
+    return dict(row)
+
+
+def _canonical_shop_error_response(error):
+    if isinstance(error, UnknownOffer):
+        return {'error': 'invalid_offer', 'code': 'UNKNOWN_OFFER'}, 400
+    if isinstance(error, OfferNotEligible):
+        return {'error': 'offer_not_ready', 'code': 'OFFER_NOT_ELIGIBLE'}, 409
+    if isinstance(error, InsufficientCoins):
+        return {
+            'error': 'insufficient_coins',
+            'code': 'INSUFFICIENT_COINS',
+            'coins': error.balance,
+        }, 400
+    if isinstance(error, PurchaseOperationConflict):
+        return {'error': 'purchase_operation_conflict', 'code': 'PURCHASE_OPERATION_CONFLICT'}, 409
+    if isinstance(error, PurchaseOperationInProgress):
+        return {'error': 'purchase_operation_in_progress', 'code': 'PURCHASE_OPERATION_IN_PROGRESS'}, 409
+    if isinstance(error, OwnershipAuthorityUnavailable):
+        return {'error': 'ownership_authority_unavailable', 'code': 'OWNERSHIP_AUTHORITY_UNAVAILABLE'}, 503
+    if isinstance(error, SchemaUnavailable):
+        return {'error': 'schema_unavailable', 'code': 'SCHEMA_UNAVAILABLE'}, 503
+    if isinstance(error, AcquisitionFailed):
+        return {'error': 'acquisition_failed', 'code': 'ACQUISITION_FAILED'}, 422
+    if isinstance(error, CoinDebitFailed):
+        return {'error': 'acquisition_failed', 'code': 'COIN_DEBIT_FAILED'}, 422
+    if isinstance(error, OfferNotReady):
+        return {
+            'error': 'offer_not_ready',
+            'code': getattr(error, 'status', 'OFFER_NOT_READY'),
+        }, 409
+    if isinstance(error, ShopOfferIdentityError):
+        return {'error': 'invalid_offer', 'code': 'INVALID_SERVER_OFFER'}, 422
+    if isinstance(error, ShopOfferContractError):
+        return {'error': 'offer_not_ready', 'code': 'SHOP_OFFER_CONTRACT_ERROR'}, 503
+    if isinstance(error, ShopAcquisitionBridgeError):
+        return {'error': 'canonical_result_unavailable', 'code': error.code}, 503
+    if isinstance(error, CoinPurchaseError):
+        return {'error': 'acquisition_failed', 'code': 'CANONICAL_PURCHASE_FAILED'}, 422
+    return {'error': 'canonical_result_unavailable', 'code': 'CANONICAL_RESULT_UNAVAILABLE'}, 503
+
+
+def _canonical_shop_purchase_response(uid, body, *, appearance_only=False):
+    try:
+        operation_id, _generated = normalize_identity(
+            body.get('purchase_operation_id')
+            or body.get('operation_id')
+            or request.headers.get('Idempotency-Key'),
+            field='purchase_operation_id',
+            generate_if_missing=False,
+        )
+    except IdempotencyIdentityError:
+        return jsonify({'error': 'invalid_operation_identity'}), 400
+
+    with get_db() as conn:
+        try:
+            normalized_offer = _canonical_shop_offer_for_request(
+                conn,
+                body,
+                appearance_only=appearance_only,
+            )
+            authority = StaticShopOfferAuthority.from_mappings([
+                normalized_offer.as_c019_mapping()
+            ])
+            result = purchase_with_coins(
+                conn,
+                int(uid),
+                operation_id,
+                normalized_offer.offer_id,
+                offer_authority=authority,
+                acquisition_authority=SqlAcquisitionAuthority(
+                    equipment_slot_source=_canonical_equipment_slot_source()
+                ),
+                # C026 accepts this only as a compatibility probe; it never
+                # becomes the resolved server price.
+                client_price=body.get('price', body.get('client_price')),
+            )
+            # C026 and D5A are one caller-owned mutation transaction.  No
+            # response is returned until this commit succeeds.
+            conn.commit()
+        except (
+            CoinPurchaseError,
+            ShopOfferIdentityError,
+            ShopOfferContractError,
+        ) as error:
+            conn.rollback()
+            payload, status = _canonical_shop_error_response(error)
+            return jsonify(payload), status
+        except Exception as error:
+            conn.rollback()
+            payload, status = _canonical_shop_error_response(error)
+            return jsonify(payload), status
+
+        # D024 is intentionally after commit.  A presentation/adaptation
+        # failure must not re-run C026; the same operation identity will
+        # deterministically replay the committed result on the next request.
+        try:
+            operation_record = _canonical_shop_operation_record(conn, uid, operation_id)
+            lineage_evidence = get_event_by_idempotency_key(
+                conn,
+                player_id=str(uid),
+                event_type='ITEM_ACQUISITION',
+                idempotency_key=f'coin-purchase-acquisition:{operation_id}',
+            )
+            canonical_result = adapt_committed_shop_purchase(
+                conn,
+                result,
+                operation_record,
+                lineage_evidence,
+            )
+        except Exception as error:
+            payload, status = _canonical_shop_error_response(error)
+            return jsonify(payload), status
+
+        response = result.as_dict()
+        response['canonical_acquisition_result'] = canonical_result.to_dict()
+        return jsonify(response)
+
 def grant_community_reward_badge(conn, *, user_id, badge_key, claim_id=None, context=None):
     """Award a community-leaderboard-reward badge. Thin wrapper over the
     existing badges_earned(user_id, badge_id, earned_at, seen) one-time-
@@ -22303,6 +22762,8 @@ def shop_catalog():
 def shop_buy():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
+    if _canonical_coin_shop_purchase_enabled():
+        return _canonical_shop_purchase_response(uid, body)
     item_key = str(body.get('item_key') or '')
     qty      = max(1, min(10, int(body.get('qty') or 1)))
     item = SHOP_ITEMS.get(item_key)
@@ -22859,6 +23320,8 @@ def shop_buy_appearance():
     """購買每日輪換中的外觀（只能買今日輪換出現的）。"""
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
+    if _canonical_coin_shop_purchase_enabled():
+        return _canonical_shop_purchase_response(uid, body, appearance_only=True)
     item_id = str(body.get('item_id') or '')
     with get_db() as conn:
         slot = next((s for s in _daily_shop_slots(conn)
