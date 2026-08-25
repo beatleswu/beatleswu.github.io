@@ -436,7 +436,7 @@ main {
   .backpack-grid { grid-template-columns:1fr; padding-bottom:calc(78px + env(safe-area-inset-bottom)); }
 }
 </style>
-<link rel="stylesheet" href="/css/e10/backpack.css?v=20260806e10backpack1">
+<link rel="stylesheet" href="/css/e10/backpack.css?v=20260826a031-equipment-backpack">
 </head>
 <body>
 
@@ -479,63 +479,103 @@ main {
   <section class="section-wrap functional-equipment-shell" data-functional-equipment-backpack aria-labelledby="functional-equipment-title">
     <div class="backpack-heading">
       <div>
-        <p class="functional-equipment-kicker">FUNCTIONAL EQUIPMENT</p>
-        <h1 id="functional-equipment-title">戰鬥裝備 / Functional Equipment</h1>
-        <p class="functional-equipment-note">由伺服器保存的戰鬥裝備背包。這裡的裝備會影響已支援的遊戲效果；外觀裝備請到 Hero Style Gear 管理。</p>
+        <p class="functional-equipment-kicker" data-a031-zh="戰鬥裝備" data-a031-en="FUNCTIONAL EQUIPMENT">戰鬥裝備</p>
+        <h1 id="functional-equipment-title" data-a031-legacy-label="戰鬥裝備 / Functional Equipment" data-a031-zh="戰鬥裝備" data-a031-en="Functional Equipment">戰鬥裝備</h1>
+        <p class="functional-equipment-note" data-a031-zh="由伺服器保存的戰鬥裝備背包。這裡的裝備會影響已支援的遊戲效果；外觀裝備請到 Hero Style Gear 管理。" data-a031-en="Server-owned functional equipment. Supported items may affect game effects; manage appearance items in Hero Style Gear.">由伺服器保存的戰鬥裝備背包。這裡的裝備會影響已支援的遊戲效果；外觀裝備請到 Hero Style Gear 管理。</p>
       </div>
-      <a class="functional-equipment-link" href="/hero?tab=equipment">外觀裝備 / Hero Style Gear</a>
+      <a class="functional-equipment-link" href="/hero?tab=equipment" data-a031-zh="外觀裝備" data-a031-en="Hero Style Gear">外觀裝備</a>
     </div>
-    <div id="functional-equipment-status" class="functional-equipment-status" role="status" aria-live="polite" data-state="loading">正在載入戰鬥裝備…</div>
+    <div id="functional-equipment-status" class="functional-equipment-status" role="status" aria-live="polite" data-state="loading" data-a031-zh="正在載入戰鬥裝備…" data-a031-en="Loading functional equipment…">正在載入戰鬥裝備…</div>
     <div class="functional-equipment-filters" id="functional-equipment-filters" role="tablist" aria-label="戰鬥裝備分類">
-      <button type="button" class="functional-equipment-filter" data-functional-filter="all" aria-selected="true">全部 / All</button>
-      <button type="button" class="functional-equipment-filter" data-functional-filter="weapon" aria-selected="false">武器 / Weapon</button>
-      <button type="button" class="functional-equipment-filter" data-functional-filter="armor" aria-selected="false">防具 / Armor</button>
-      <button type="button" class="functional-equipment-filter" data-functional-filter="accessory" aria-selected="false">飾品 / Accessory</button>
-      <button type="button" class="functional-equipment-filter" data-functional-filter="equipped" aria-selected="false">已裝備 / Equipped</button>
-      <button type="button" class="functional-equipment-filter" data-functional-filter="new" aria-selected="false">新取得 / New</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="all" aria-selected="true">全部</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="weapon" aria-selected="false">武器</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="armor" aria-selected="false">防具</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="accessory" aria-selected="false">飾品</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="equipped" aria-selected="false">已裝備</button>
+      <button type="button" class="functional-equipment-filter" data-functional-filter="new" aria-selected="false">新取得</button>
     </div>
-    <div class="functional-equipment-layout">
-      <div class="functional-equipment-grid" id="functional-equipment-grid" data-functional-equipment-grid aria-live="polite"></div>
+    <div class="functional-equipment-layout a031-equipment-board" data-a031-equipment-board>
+      <section class="a031-hero-pane" aria-labelledby="a031-hero-pane-title">
+        <div class="a031-pane-kicker" data-a031-zh="玩家 / Hero" data-a031-en="PLAYER / HERO">玩家 / Hero</div>
+        <div class="a031-hero-heading">
+          <div>
+            <h2 id="a031-hero-pane-title">探路學徒</h2>
+            <p id="a031-hero-role" data-a031-zh="角色呈現" data-a031-en="Hero presentation">角色呈現</p>
+          </div>
+          <span class="a031-hero-state" id="a031-hero-state" data-a031-zh="伺服器投影" data-a031-en="Server projection">伺服器投影</span>
+        </div>
+        <div class="a031-hero-art-scene">
+          <div class="a031-hero-art-glow" aria-hidden="true"></div>
+          <div class="functional-wearable-preview a031-hero-preview" aria-live="polite">
+            <div class="functional-wearable-preview-title" data-a031-zh="目前外觀" data-a031-en="Equipped appearance">目前外觀</div>
+            <div class="functional-wearable-preview-host rpg-wearable-host" id="functional-wearable-preview-host">
+              <img id="functional-wearable-preview-fallback" src="/assets/hero/characters/wave2_p1/apprentice_p1.png" alt="character preview">
+              <div class="rpg-wearable-stage" id="functional-wearable-preview" hidden aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+        <div class="a031-hero-meta" aria-live="polite">
+          <span id="a031-hero-rank">—</span>
+          <span id="a031-hero-level">—</span>
+          <span id="a031-hero-equipment-state" data-a031-zh="伺服器裝備投影" data-a031-en="Server-equipped projection">伺服器裝備投影</span>
+        </div>
+      </section>
+
+      <section class="a031-loadout-pane" aria-labelledby="a031-loadout-title">
+        <div class="a031-pane-heading">
+          <div>
+            <div class="a031-pane-kicker" data-a031-zh="裝備配置" data-a031-en="LOADOUT">裝備配置</div>
+            <h2 id="a031-loadout-title" data-a031-zh="目前裝備" data-a031-en="Equipped Loadout">目前裝備</h2>
+          </div>
+          <span class="a031-truth-badge" data-a031-zh="3 個欄位" data-a031-en="3 slots">3 個欄位</span>
+        </div>
+        <div class="a031-loadout-grid" id="a031-loadout-grid" aria-live="polite"></div>
+        <p class="a031-pane-note" data-a031-zh="裝備狀態來自 player_inventory；外觀、收藏品與消耗品維持各自的既有 authority。" data-a031-en="Equipment state comes from player_inventory; cosmetics, collections and consumables keep their existing authorities.">裝備狀態來自 player_inventory；外觀、收藏品與消耗品維持各自的既有 authority。</p>
+      </section>
+
       <aside class="functional-equipment-detail" id="functional-equipment-detail" data-empty="true" aria-live="polite">
-        <div id="functional-equipment-detail-empty">選取一件戰鬥裝備以查看效果、來源與同槽比較。<br>Select an item to compare and equip.</div>
+        <div id="functional-equipment-detail-empty" data-a031-zh="選取一件戰鬥裝備以查看效果、來源與同槽比較。" data-a031-en="Select an item to compare and equip.">選取一件戰鬥裝備以查看效果、來源與同槽比較。</div>
         <div id="functional-equipment-detail-content" hidden>
           <div class="functional-detail-identity">
             <div class="functional-detail-icon"><img id="functional-detail-icon" alt=""></div>
             <div>
               <div class="functional-detail-name" id="functional-detail-name"></div>
               <div class="functional-detail-meta" id="functional-detail-meta"></div>
-              <div class="functional-detail-badge">戰鬥裝備 / Functional Equipment</div>
-            </div>
-          </div>
-          <div class="functional-wearable-preview" aria-live="polite">
-            <div class="functional-wearable-preview-title">Equipped wearable preview</div>
-            <div class="functional-wearable-preview-host rpg-wearable-host" id="functional-wearable-preview-host">
-              <img id="functional-wearable-preview-fallback" src="/assets/hero/characters/chibi_apprentice_normalized.webp" alt="character preview">
-              <div class="rpg-wearable-stage" id="functional-wearable-preview" hidden aria-hidden="true"></div>
+              <div class="functional-detail-badge" data-a031-zh="戰鬥裝備" data-a031-en="Functional Equipment">戰鬥裝備</div>
             </div>
           </div>
           <div class="functional-detail-section">
-            <h3>持有狀態 / Ownership</h3>
+            <h3 data-a031-zh="持有狀態" data-a031-en="Ownership">持有狀態</h3>
             <div class="functional-detail-list" id="functional-detail-ownership"></div>
           </div>
           <div class="functional-detail-section">
-            <h3>效果 / Effects</h3>
+            <h3 data-a031-zh="效果" data-a031-en="Effects">效果</h3>
             <div class="functional-detail-list" id="functional-detail-effects"></div>
           </div>
           <div class="functional-detail-section">
-            <h3>比較 / Compare</h3>
+            <h3 data-a031-zh="比較" data-a031-en="Compare">比較</h3>
             <div class="functional-detail-list" id="functional-detail-comparison"></div>
           </div>
           <div class="functional-detail-section">
-            <h3>來源 / Source</h3>
+            <h3 data-a031-zh="來源" data-a031-en="Source">來源</h3>
             <div class="functional-detail-source" id="functional-detail-source"></div>
           </div>
           <div class="functional-detail-actions">
             <button type="button" class="functional-detail-action" id="functional-detail-action"></button>
-            <button type="button" class="functional-detail-action secondary" id="functional-detail-refresh">重新整理 / Refresh</button>
+            <button type="button" class="functional-detail-action secondary" id="functional-detail-refresh" data-a031-zh="重新整理" data-a031-en="Refresh">重新整理</button>
           </div>
         </div>
       </aside>
+    </div>
+    <div class="a031-functional-collection">
+      <div class="a031-collection-heading">
+        <div>
+          <div class="a031-pane-kicker" data-a031-zh="裝備收藏" data-a031-en="EQUIPMENT COLLECTION">裝備收藏</div>
+          <h2 data-a031-zh="可用裝備" data-a031-en="Functional Equipment">可用裝備</h2>
+        </div>
+        <span class="a031-collection-note" data-a031-zh="真實物品圖 · 伺服器效果" data-a031-en="Real item art · server-owned effects">真實物品圖 · 伺服器效果</span>
+      </div>
+      <div class="functional-equipment-grid" id="functional-equipment-grid" data-functional-equipment-grid aria-live="polite"></div>
     </div>
   </section>
 
@@ -587,29 +627,33 @@ main {
 
 <script>
 const FUNCTIONAL_EQUIPMENT_FILTERS = [
-  { key:'all', label:'全部 / All' },
-  { key:'weapon', label:'武器 / Weapon' },
-  { key:'armor', label:'防具 / Armor' },
-  { key:'accessory', label:'飾品 / Accessory' },
-  { key:'equipped', label:'已裝備 / Equipped' },
-  { key:'new', label:'新取得 / New' },
+  { key:'all', label:{ zh:'全部', en:'All' } },
+  { key:'weapon', label:{ zh:'武器', en:'Weapon' } },
+  { key:'armor', label:{ zh:'防具', en:'Armor' } },
+  { key:'accessory', label:{ zh:'飾品', en:'Accessory' } },
+  { key:'equipped', label:{ zh:'已裝備', en:'Equipped' } },
+  { key:'new', label:{ zh:'新取得', en:'New' } },
 ];
 const FUNCTIONAL_RARITY_LABELS = {
-  common:'普通 / Common', uncommon:'非凡 / Uncommon', rare:'稀有 / Rare',
-  epic:'史詩 / Epic', legendary:'傳說 / Legendary',
+  common:{ zh:'普通', en:'Common' }, uncommon:{ zh:'非凡', en:'Uncommon' }, rare:{ zh:'稀有', en:'Rare' },
+  epic:{ zh:'史詩', en:'Epic' }, legendary:{ zh:'傳說', en:'Legendary' },
 };
 const FUNCTIONAL_SLOT_LABELS = {
-  weapon:'武器 / Weapon', armor:'防具 / Armor', accessory:'飾品 / Accessory',
+  weapon:{ zh:'武器', en:'Weapon' }, armor:{ zh:'防具', en:'Armor' }, accessory:{ zh:'飾品', en:'Accessory' },
 };
+const A031_SLOT_ORDER = ['weapon', 'armor', 'accessory'];
 let functionalEquipmentItems = [];
 let activeFunctionalEquipmentFilter = 'all';
 let selectedFunctionalInventoryId = null;
 let functionalEquipmentLoadToken = 0;
 let functionalPreviewProfile = null;
 const FUNCTIONAL_PREVIEW_FALLBACK_ART = {
-  apprentice: 'chibi_apprentice_normalized.webp',
-  mage: 'chibi_mage_normalized.webp',
-  paladin: 'chibi_paladin_normalized.webp',
+  apprentice: 'wave2_p1/apprentice_p1.png',
+  mage: 'wave2_p1/mage_p1.png',
+  paladin: 'wave2_p1/paladin_p1.png',
+  trail_apprentice: 'wave2_p1/trail_apprentice_p1.png',
+  night_runner: 'wave2_p1/night_runner_p1.png',
+  constellation_apprentice: 'wave2_p1/constellation_apprentice_p1.png',
 };
 
 function renderFunctionalWearablePreview() {
@@ -633,6 +677,59 @@ function functionalEquipmentEscape(value) {
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
   }[character]));
 }
+function renderA031Copy() {
+  const isEn = functionalEquipmentIsEn();
+  document.querySelectorAll('[data-a031-zh][data-a031-en]').forEach(node => {
+    node.textContent = isEn ? node.dataset.a031En : node.dataset.a031Zh;
+  });
+  const filters = document.getElementById('functional-equipment-filters');
+  if (filters) filters.setAttribute('aria-label', isEn ? 'Functional equipment categories' : '戰鬥裝備分類');
+}
+function renderA031HeroMeta() {
+  const me = window.__A031_PLAYER_ME__ || {};
+  const profile = functionalPreviewProfile || {};
+  const name = me.display_name || me.nickname || me.username || profile.display_name || profile.nickname || (functionalEquipmentIsEn() ? 'Hero' : '玩家');
+  const rank = me.go_rank || me.rank || profile.go_rank || profile.rank || '—';
+  const level = me.rank_level || me.level || profile.rank_level || profile.level || '—';
+  const equippedCount = functionalEquipmentItems.filter(item => item.equipped).length;
+  const nameNode = document.getElementById('a031-hero-pane-title');
+  const rankNode = document.getElementById('a031-hero-rank');
+  const levelNode = document.getElementById('a031-hero-level');
+  const stateNode = document.getElementById('a031-hero-state');
+  if (nameNode) nameNode.textContent = name;
+  if (rankNode) rankNode.textContent = `${functionalEquipmentIsEn() ? 'Go rank' : '段位'}: ${rank}`;
+  if (levelNode) levelNode.textContent = `${functionalEquipmentIsEn() ? 'Level' : '等級'}: ${level}`;
+  if (stateNode) stateNode.textContent = `${equippedCount}/3 ${functionalEquipmentIsEn() ? 'slots equipped' : '欄位已裝備'}`;
+}
+function renderA031Loadout() {
+  const root = document.getElementById('a031-loadout-grid');
+  if (!root) return;
+  const isEn = functionalEquipmentIsEn();
+  root.innerHTML = A031_SLOT_ORDER.map(slot => {
+    const item = functionalEquipmentItems.find(entry => entry.slot === slot && entry.equipped);
+    const slotName = functionalEquipmentSlot({ slot });
+    const itemName = item ? functionalEquipmentEscape(functionalEquipmentName(item)) : (isEn ? 'Empty slot' : '尚未裝備');
+    const icon = item?.icon
+      ? `<img src="${functionalEquipmentEscape(item.icon)}" alt="${functionalEquipmentEscape(itemName)}" loading="lazy" decoding="async">`
+      : '<span class="a031-loadout-empty-mark" aria-hidden="true">—</span>';
+    const actionState = item
+      ? (isEn ? 'Equipped' : '已裝備')
+      : (isEn ? 'Open slot' : '空欄位');
+    return `<button type="button" class="a031-loadout-slot" data-a031-slot="${slot}"${item ? ` data-functional-inv-id="${functionalEquipmentEscape(item.inv_id)}" aria-pressed="${String(String(item.inv_id) === String(selectedFunctionalInventoryId))}"` : ' disabled'}>
+      <span class="a031-loadout-slot-label">${functionalEquipmentEscape(slotName)}</span>
+      <span class="a031-loadout-slot-art" data-slot="${slot}">${icon}</span>
+      <span class="a031-loadout-slot-name">${itemName}</span>
+      <span class="a031-loadout-slot-state">${functionalEquipmentEscape(actionState)}</span>
+    </button>`;
+  }).join('');
+  root.querySelectorAll('[data-functional-inv-id]').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedFunctionalInventoryId = button.dataset.functionalInvId;
+      renderFunctionalEquipmentGrid();
+    });
+  });
+  renderA031HeroMeta();
+}
 function functionalEquipmentIsEn() {
   return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en';
 }
@@ -642,10 +739,22 @@ function functionalEquipmentName(item) {
     : (item.display_name || item.name || item.name_en || item.item_id);
 }
 function functionalEquipmentRarity(item) {
-  return FUNCTIONAL_RARITY_LABELS[item.rarity] || item.rarity || 'Common';
+  const entry = FUNCTIONAL_RARITY_LABELS[item.rarity];
+  return entry ? entry[functionalEquipmentIsEn() ? 'en' : 'zh'] : (item.rarity || (functionalEquipmentIsEn() ? 'Common' : '普通'));
 }
 function functionalEquipmentSlot(item) {
-  return FUNCTIONAL_SLOT_LABELS[item.slot] || item.slot || 'Equipment';
+  const entry = FUNCTIONAL_SLOT_LABELS[item.slot];
+  return entry ? entry[functionalEquipmentIsEn() ? 'en' : 'zh'] : (item.slot || (functionalEquipmentIsEn() ? 'Equipment' : '裝備'));
+}
+function functionalEquipmentCanEquip(item) {
+  if (!item || item.item_id === 'go_stone_black') return false;
+  if (item.item_id === 'xp_amulet') return !!item.equipped;
+  return true;
+}
+function functionalEquipmentKindLabel(item) {
+  if (item?.item_id === 'go_stone_black') return functionalEquipmentIsEn() ? 'Trophy / Collection' : '收藏品';
+  if (item?.item_id === 'xp_amulet' && !item.equipped) return functionalEquipmentIsEn() ? 'Hold · Equip blocked' : '保留中 · 暫不可裝備';
+  return functionalEquipmentIsEn() ? 'Functional Equipment' : '戰鬥裝備';
 }
 function functionalEquipmentStatusMessage(state, message) {
   const status = document.getElementById('functional-equipment-status');
@@ -700,7 +809,7 @@ function functionalEquipmentCardHTML(item) {
       <div class="functional-equipment-icon"><img src="${functionalEquipmentEscape(item.icon)}" alt="${functionalEquipmentEscape(item.icon_alt || functionalEquipmentName(item))}" loading="lazy" decoding="async"></div>
       <div><div class="functional-equipment-card-name">${functionalEquipmentEscape(functionalEquipmentName(item))}</div><div class="functional-equipment-card-meta">${functionalEquipmentEscape(functionalEquipmentRarity(item))} · ${functionalEquipmentEscape(functionalEquipmentSlot(item))}</div></div>
     </div>
-    <span class="functional-equipment-badge">戰鬥裝備 / Functional</span>
+    <span class="functional-equipment-badge">${functionalEquipmentEscape(functionalEquipmentKindLabel(item))}</span>
     <div class="functional-equipment-card-effects">${effects}</div>
   </button>`;
 }
@@ -719,7 +828,9 @@ function renderFunctionalEquipmentFilters() {
       return item.slot === key;
     }).length;
     button.setAttribute('aria-selected', String(key === activeFunctionalEquipmentFilter));
-    button.textContent = `${FUNCTIONAL_EQUIPMENT_FILTERS.find(filter => filter.key === key)?.label || key} ${count}`;
+    const filter = FUNCTIONAL_EQUIPMENT_FILTERS.find(entry => entry.key === key);
+    const label = filter?.label?.[functionalEquipmentIsEn() ? 'en' : 'zh'] || key;
+    button.textContent = `${label} ${count}`;
   });
 }
 function renderFunctionalEquipmentGrid() {
@@ -729,6 +840,7 @@ function renderFunctionalEquipmentGrid() {
   if (!visible.length) {
     grid.innerHTML = `<div class="functional-equipment-empty">${functionalEquipmentIsEn() ? 'No functional equipment in this filter.' : '此分類目前沒有戰鬥裝備。'}</div>`;
     renderFunctionalEquipmentDetail(null);
+    renderA031Loadout();
     return;
   }
   grid.innerHTML = visible.map(functionalEquipmentCardHTML).join('');
@@ -748,6 +860,7 @@ function renderFunctionalEquipmentGrid() {
   if (focusItem) selectedFunctionalInventoryId = String(focusItem.inv_id);
   const selectedItem = functionalEquipmentItems.find(item => String(item.inv_id) === String(selectedFunctionalInventoryId));
   renderFunctionalEquipmentDetail(selectedItem || visible[0]);
+  renderA031Loadout();
   const selectedCard = Array.from(grid.querySelectorAll('[data-functional-inv-id]')).find(card => String(card.dataset.functionalInvId) === String(selectedFunctionalInventoryId));
   selectedCard?.scrollIntoView({ block:'nearest' });
 }
@@ -766,6 +879,8 @@ function renderFunctionalEquipmentDetail(item) {
   icon.alt = item.icon_alt || name;
   document.getElementById('functional-detail-name').textContent = name;
   document.getElementById('functional-detail-meta').textContent = `${functionalEquipmentRarity(item)} · ${functionalEquipmentSlot(item)} · ${item.item_id}`;
+  const detailBadge = document.querySelector('#functional-equipment-detail .functional-detail-badge');
+  if (detailBadge) detailBadge.textContent = functionalEquipmentKindLabel(item);
   const ownership = document.getElementById('functional-detail-ownership');
   ownership.innerHTML = `
     <div class="functional-detail-row"><span>${functionalEquipmentIsEn() ? 'Owned quantity' : '持有數量'}</span><strong>×${Number(item.owned_quantity || 1)}</strong></div>
@@ -792,9 +907,20 @@ function renderFunctionalEquipmentDetail(item) {
   comparison.innerHTML = comparisonHTML || `<div class="functional-detail-row muted"><span>—</span><strong>—</strong></div>`;
   document.getElementById('functional-detail-source').textContent = `${functionalEquipmentIsEn() ? (item.where_to_obtain_en || 'Monster drop') : (item.where_to_obtain || '怪物掉落')} · ${functionalEquipmentIsEn() ? 'Source' : '來源'}: ${item.source || 'drop'}`;
   const action = document.getElementById('functional-detail-action');
-  action.textContent = item.equipped ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下') : (functionalEquipmentIsEn() ? 'Equip' : '裝備');
-  action.disabled = false;
-  action.onclick = () => performFunctionalEquipmentAction(item, item.equipped ? 'unequip' : 'equip', action);
+  const canEquip = functionalEquipmentCanEquip(item);
+  if (!canEquip) {
+    action.textContent = item.item_id === 'xp_amulet'
+      ? (functionalEquipmentIsEn() ? 'Held · Equip blocked' : '保留中 · 暫不可裝備')
+      : (functionalEquipmentIsEn() ? 'Collection only' : '僅供收藏');
+    action.disabled = true;
+    action.dataset.state = 'blocked';
+    action.onclick = null;
+  } else {
+    action.textContent = item.equipped ? (functionalEquipmentIsEn() ? 'Unequip' : '卸下') : (functionalEquipmentIsEn() ? 'Equip' : '裝備');
+    action.disabled = false;
+    action.dataset.state = 'ready';
+    action.onclick = () => performFunctionalEquipmentAction(item, item.equipped ? 'unequip' : 'equip', action);
+  }
 }
 async function performFunctionalEquipmentAction(item, action, button) {
   if (!item || item.inv_id == null) return;
@@ -833,12 +959,14 @@ async function loadFunctionalEquipment(focusId = selectedFunctionalInventoryId) 
     renderFunctionalEquipmentFilters();
     renderFunctionalEquipmentGrid();
     renderFunctionalWearablePreview();
+    renderA031HeroMeta();
   } catch (error) {
     functionalEquipmentItems = [];
     functionalEquipmentStatusMessage('error', `${functionalEquipmentIsEn() ? 'Functional equipment failed to load: ' : '戰鬥裝備載入失敗：'}${error.message}`);
     renderFunctionalEquipmentFilters();
     renderFunctionalEquipmentGrid();
     renderFunctionalWearablePreview();
+    renderA031HeroMeta();
   }
 }
 document.querySelectorAll('[data-functional-filter]').forEach(button => {
@@ -874,6 +1002,50 @@ let backpackToastTimer = null;
 let e10BackpackDialogTrigger = null;
 
 const E10_BACKPACK_MODE = window.__GO_E10_BACKPACK_MODE__ === true;
+
+/* A031 maps the existing server-owned inventory keys to approved art that
+ * already exists in the repository. This is presentation metadata only; the
+ * catalog and inventory endpoints remain the authority for ownership/use. */
+const A031_BACKPACK_ART = Object.freeze({
+  hint_ticket:'/assets/shop/small_hint_scroll.webp',
+  premium_hint_bundle:'/assets/shop/premium_hint_bundle.webp',
+  ai_explain_ticket:'/assets/shop/icon_ai_ticket.webp',
+  ai_explain_ticket_bundle:'/assets/shop/ai_explain_ticket_bundle.webp',
+  extra_questions_small:'/assets/shop/small_training_pass.webp',
+  extra_questions:'/assets/shop/small_training_pass.webp',
+  grand_training_pass:'/assets/shop/grand_training_pass.webp',
+  small_xp_potion:'/assets/shop/small_xp_potion.webp',
+  xp_potion:'/assets/shop/icon_xp_potion.webp',
+  grand_xp_potion:'/assets/shop/grand_xp_potion.webp',
+  streak_shield:'/assets/shop/icon_shield.webp',
+  double_streak_shield:'/assets/shop/double_streak_shield.webp',
+  pet_snack:'/assets/shop/pet_candy_pouch.webp',
+  starfruit_basket:'/assets/shop/star_fruit_basket.webp',
+  moon_dew_vial:'/assets/shop/moon_dew_vial.webp',
+  pet_feast_box:'/assets/shop/pet_feast_box.webp',
+  rare_appearance_fragment:'/assets/items/rare_appearance_fragment.svg',
+  pet_evolution_core:'/assets/items/pet_evolution_core.svg',
+  ai_analysis_pack:'/assets/items/ai_analysis_pack.svg',
+  collector_archive_crate:'/assets/items/collector_archive_crate.svg',
+  growth_vault:'/assets/items/growth_vault.svg',
+  go_spirit_candy:'/assets/items/go_spirit_candy.svg',
+  starfruit:'/assets/items/starfruit.svg',
+  moon_drop:'/assets/items/moon_drop.svg',
+});
+function backpackArt(item) {
+  const mapped = A031_BACKPACK_ART[item?.key];
+  if (mapped) return { src:mapped, status:'EXISTING_APPROVED' };
+  const serverAsset = String(item?.icon || '');
+  if (serverAsset.startsWith('/assets/')) return { src:serverAsset, status:'EXISTING_APPROVED' };
+  return { src:'', status:'MISSING_FINAL_ART' };
+}
+function backpackArtHTML(item, sizeClass = '') {
+  const art = backpackArt(item);
+  if (!art.src) {
+    return `<span class="a031-art-placeholder ${sizeClass}" data-art-status="${art.status}">${backpackText('待補正式圖','Final art pending')}</span>`;
+  }
+  return `<img class="${sizeClass}" src="${functionalEquipmentEscape(art.src)}" alt="${functionalEquipmentEscape(backpackName(item))}" loading="lazy" decoding="async">`;
+}
 
 function backpackIsEn() { return typeof I18n !== 'undefined' && I18n.getLang && I18n.getLang() === 'en'; }
 function backpackText(zh, en) { return backpackIsEn() ? en : zh; }
@@ -957,7 +1129,7 @@ function openBackpackDetails(item, trigger) {
   const rarity = backpackRarity(item);
   e10BackpackDialogTrigger = trigger || null;
   document.getElementById('e10-backpack-dialog-title').textContent = backpackName(item);
-  document.getElementById('e10-backpack-dialog-icon').textContent = item.icon || '🎒';
+  document.getElementById('e10-backpack-dialog-icon').innerHTML = backpackArtHTML(item, 'a031-dialog-art');
   document.getElementById('e10-backpack-dialog-rarity').textContent = rarity.label;
   document.getElementById('e10-backpack-dialog-meta').textContent = `${backpackText('持有','Owned')}: ${item.quantity} · ${backpackIsEn() ? backpackCategory(item).label.en : backpackCategory(item).label.zh}`;
   document.getElementById('e10-backpack-dialog-description').textContent = backpackDescription(item);
@@ -1075,7 +1247,7 @@ function renderBackpackGrid() {
     if (E10_BACKPACK_MODE) card.dataset.itemRarity = rarity.key;
     card.innerHTML = `
       <div class="backpack-card-head">
-        <div class="backpack-card-icon" aria-hidden="true">${item.icon || '🎒'}</div>
+        <div class="backpack-card-icon" data-art-status="${backpackArt(item).status}" aria-hidden="true">${backpackArtHTML(item, 'a031-backpack-art')}</div>
         ${E10_BACKPACK_MODE ? `<span class="e10-backpack-rarity">${rarity.label}</span>` : ''}
         <div><div class="backpack-card-name">${backpackName(item)}</div>
         <div class="backpack-card-meta">${backpackText('持有','Owned')}: ${item.quantity} · ${backpackIsEn() ? backpackCategory(item).label.en : backpackCategory(item).label.zh}</div></div>
@@ -1124,6 +1296,7 @@ async function loadBackpack() {
     const catalog = await catalogResponse.json();
     const me = meResponse.ok ? await meResponse.json() : {};
     const petStatus = await petResponse.json();
+    window.__A031_PLAYER_ME__ = me;
     const definitions = new Map((catalog.items || []).map(item => [item.key, item]));
     backpackItems = Object.entries(catalog.inventory || {}).filter(([, quantity]) => Number(quantity) > 0).map(([key, quantity]) => ({
       ...(definitions.get(key) || { key, name:key, name_en:key, category:'other', usable:null, icon:'🎒', desc:'', desc_en:'' }),
@@ -1148,6 +1321,7 @@ async function loadBackpack() {
     document.getElementById('username-display').textContent = me.display_name || me.nickname || me.username || 'Player';
     const e10User = document.querySelector('[data-e10-backpack-user]');
     if (e10User) e10User.textContent = me.display_name || me.nickname || me.username || 'Player';
+    renderA031HeroMeta();
     document.getElementById('backpack-total-qty').textContent = backpackItems.reduce((total, item) => total + item.quantity, 0).toLocaleString();
     document.getElementById('backpack-item-kinds').textContent = backpackItems.length.toLocaleString();
     document.getElementById('backpack-manual-count').textContent = backpackItems.filter(item => backpackCapability(item).kind === 'manual').length.toLocaleString();
@@ -1170,6 +1344,8 @@ window.addEventListener('popstate', () => {
 });
 window.onLangChange = () => {
   if (typeof I18n !== 'undefined') I18n.apply();
+  renderA031Copy();
+  renderA031HeroMeta();
   renderBackpackFilters();
   renderBackpackGrid();
   renderFunctionalEquipmentFilters();
@@ -1177,6 +1353,7 @@ window.onLangChange = () => {
 };
 initE10BackpackShell();
 if (typeof I18n !== 'undefined') I18n.apply();
+renderA031Copy();
 loadFunctionalEquipment(new URLSearchParams(location.search).get('equipment'));
 loadBackpack();
 </script>
