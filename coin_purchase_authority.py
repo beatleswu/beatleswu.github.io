@@ -25,6 +25,10 @@ from migrations.coin_purchase_operations_v1 import (
     OPERATION_STATUSES,
     TABLE_NAME,
 )
+from migrations.equipment_canonical_slot_v1 import (
+    CANONICAL_SLOT_COLUMN,
+    CANONICAL_SLOTS,
+)
 from shop_offer_authority import (
     CoinShopOffer,
     ShopOfferAuthority,
@@ -42,6 +46,7 @@ CONSUMABLE_CLASSES = frozenset(
     {"CONSUMABLE", "SPIRIT_CONSUMABLE", "XP_CONSUMABLE"}
 )
 FUNCTIONAL_EQUIPMENT_CLASSES = frozenset({"WEAPON", "ARMOR", "ACCESSORY"})
+EquipmentSlotSource = Callable[[str], str | None] | Mapping[str, str]
 
 
 class CoinPurchaseError(RuntimeError):
@@ -471,6 +476,36 @@ def spend_coins_in_transaction(
     )
 
 
+def _player_inventory_has_column(conn: Any, column: str) -> bool:
+    """Detect the additive projection column without changing the schema."""
+
+    try:
+        if _is_sqlite(conn):
+            rows = conn.execute("PRAGMA table_info(player_inventory)").fetchall()
+            return any(
+                str(row["name"] if hasattr(row, "keys") else row[1]) == column
+                for row in rows
+            )
+        rows = conn.execute(
+            """SELECT column_name
+                 FROM information_schema.columns
+                WHERE table_schema='public' AND table_name=?""",
+            ("player_inventory",),
+        ).fetchall()
+        return any(
+            str(row["column_name"] if hasattr(row, "keys") else row[0]) == column
+            for row in rows
+        )
+    except Exception as exc:
+        if _is_missing_schema_error(exc):
+            raise OwnershipAuthorityUnavailable(
+                "player_inventory schema authority is unavailable"
+            ) from exc
+        raise AcquisitionFailed(
+            "player_inventory schema inspection failed"
+        ) from exc
+
+
 class SqlAcquisitionAuthority:
     """Scoped adapter for the repository's existing ownership tables.
 
@@ -480,6 +515,22 @@ class SqlAcquisitionAuthority:
     inventory-only equipment records, and ``player_wardrobe`` for pure
     cosmetic ownership.
     """
+
+    def __init__(
+        self,
+        *,
+        equipment_slot_source: EquipmentSlotSource | None = None,
+    ) -> None:
+        """Bind the server-owned Equipment slot projection at this boundary.
+
+        Commerce deliberately does not import ``app.EQUIPMENT_DEFS`` or copy
+        that registry.  The caller supplies either a resolver or a projection
+        built from that server authority.  Functional Equipment therefore
+        fails closed when the authority is not bound, while non-functional
+        inventory records remain slotless.
+        """
+
+        self._equipment_slot_source = equipment_slot_source
 
     def acquire(
         self,
@@ -592,17 +643,35 @@ class SqlAcquisitionAuthority:
                 raise AcquisitionFailed(
                     "equipment offer duplicate policy is unsupported"
                 )
-            conn.execute(
-                "INSERT INTO player_inventory"
-                "(user_id,equip_id,equipped,obtained_at,source) "
-                "VALUES(?,?,0,?,?)",
-                (
-                    user_id,
-                    offer.item_id,
-                    _timestamp(conn),
-                    "coin_shop",
-                ),
-            )
+            canonical_slot = self._functional_equipment_slot(offer)
+            if _player_inventory_has_column(conn, CANONICAL_SLOT_COLUMN):
+                conn.execute(
+                    "INSERT INTO player_inventory"
+                    "(user_id,equip_id,equipped,canonical_slot,obtained_at,source) "
+                    "VALUES(?,?,0,?,?,?)",
+                    (
+                        user_id,
+                        offer.item_id,
+                        canonical_slot,
+                        _timestamp(conn),
+                        "coin_shop",
+                    ),
+                )
+            else:
+                # Pre-B033 installations have no projection column.  Keep
+                # their existing insert shape; the injected server resolver
+                # is still validated above for functional Equipment.
+                conn.execute(
+                    "INSERT INTO player_inventory"
+                    "(user_id,equip_id,equipped,obtained_at,source) "
+                    "VALUES(?,?,0,?,?)",
+                    (
+                        user_id,
+                        offer.item_id,
+                        _timestamp(conn),
+                        "coin_shop",
+                    ),
+                )
             row = conn.execute(
                 "SELECT COUNT(*) AS item_count FROM player_inventory "
                 "WHERE user_id=? AND equip_id=?",
@@ -634,6 +703,35 @@ class SqlAcquisitionAuthority:
             can_wear=False,
             presentation_metadata=offer.presentation_metadata,
         )
+
+    def _functional_equipment_slot(self, offer: CoinShopOffer) -> str | None:
+        if offer.acquisition_class not in FUNCTIONAL_EQUIPMENT_CLASSES:
+            # Trophy and other inventory-only records intentionally remain
+            # slotless; their collection state is not equipment.
+            return None
+        source = self._equipment_slot_source
+        if source is None:
+            raise OwnershipAuthorityUnavailable(
+                "functional Equipment slot authority is not bound"
+            )
+        try:
+            raw_slot = (
+                source.get(offer.item_id)
+                if isinstance(source, Mapping)
+                else source(offer.item_id)
+            )
+        except CoinPurchaseError:
+            raise
+        except Exception as exc:
+            raise OwnershipAuthorityUnavailable(
+                "functional Equipment slot authority failed"
+            ) from exc
+        if not isinstance(raw_slot, str) or raw_slot.strip().lower() not in CANONICAL_SLOTS:
+            raise AcquisitionFailed(
+                "functional Equipment item has no authoritative canonical slot",
+                details={"item_id": offer.item_id},
+            )
+        return raw_slot.strip().lower()
 
     def _acquire_wardrobe(
         self,
@@ -981,6 +1079,7 @@ __all__ = [
     "CoinDebitFailed",
     "CoinPurchaseError",
     "CoinPurchaseResult",
+    "EquipmentSlotSource",
     "InsufficientCoins",
     "INVENTORY_ONLY_ITEM_IDS",
     "OfferNotEligible",

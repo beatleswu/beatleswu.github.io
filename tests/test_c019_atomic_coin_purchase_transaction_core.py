@@ -171,8 +171,18 @@ def _seed_user(conn: sqlite3.Connection, *, user_id: int = 1, coins: int = 100) 
     conn.commit()
 
 
+def _equipment_slot_source(item_id: str) -> str | None:
+    # Disposable server-authority fixture.  Production wiring will build this
+    # projection from app.EQUIPMENT_DEFS and inject it into Commerce.
+    return {"iron_sword": "weapon"}.get(item_id)
+
+
 def _purchase(conn: sqlite3.Connection, *, user_id: int = 1, operation_id: str, offer_id: str, **kwargs):
     try:
+        kwargs.setdefault(
+            "acquisition_authority",
+            SqlAcquisitionAuthority(equipment_slot_source=_equipment_slot_source),
+        )
         result = purchase_with_coins(
             conn,
             user_id,
@@ -652,6 +662,9 @@ def _concurrent_purchase(uri, *, operation_id: str, offer_id: str, barrier, resu
                     operation_id,
                     offer_id,
                     offer_authority=_offers(),
+                    acquisition_authority=SqlAcquisitionAuthority(
+                        equipment_slot_source=_equipment_slot_source
+                    ),
                 )
                 conn.commit()
                 _assert_coin_transition(conn, result)
