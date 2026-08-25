@@ -68,7 +68,8 @@
         "next_zone_unlocked",
         "quest_completed"
       ],
-      "dedupe_key": "settlement_id",
+      "dedupe_key": ["user_id", "settlement_id"],
+      "settlement_id_global_uniqueness_required": false,
       "replay_ignored_delivery_fields": ["occurred_at", "replayed"]
     }
   ],

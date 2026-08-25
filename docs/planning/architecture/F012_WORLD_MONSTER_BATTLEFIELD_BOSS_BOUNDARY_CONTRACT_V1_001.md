@@ -109,7 +109,7 @@ BATTLEFIELD_BOSS_DEFEATED_FACT_V1
 | `monster_id` | Non-empty canonical Monster identity. |
 | `encounter_class` | Exactly `BATTLEFIELD_BOSS`. Lord is rejected. |
 | `encounter_operation_id` | Non-empty server encounter operation ID. |
-| `settlement_id` | Non-empty stable server settlement identifier. Future World dedupe should use this identity. |
+| `settlement_id` | Non-empty server settlement identifier. V1 scopes World dedupe with `user_id` because global uniqueness is not proven. |
 | `defeated` | Exactly boolean `true`. |
 | `source_authority` | Exactly `SERVER_MONSTER_SETTLEMENT`. |
 | `occurred_at` | Non-empty committed-event timestamp/string. |
@@ -163,16 +163,18 @@ The contract does not persist state and does not itself grant anything.
 For an intent, the same `(user_id, intent_operation_id)` must have the same
 authoritative replay fingerprint. A changed payload fails closed.
 
-For a defeated fact, `settlement_id` is the canonical future dedupe key:
+For a defeated fact, the F012 V1 canonical future dedupe key is the composite:
 
 ```text
-defeated_fact_dedupe_key(fact) == fact.settlement_id
+defeated_fact_dedupe_key(fact) == (fact.user_id, fact.settlement_id)
 ```
 
 `assert_defeated_fact_replay_compatible` allows delivery timestamp and replay
-marker changes, but rejects a changed settlement identity or changed
+marker changes, but rejects a changed user, settlement identity, or changed
 authoritative fact payload. A future World consumer must treat a replay of the
-same settlement as the same defeat, not a second milestone.
+same user-scoped settlement as the same defeat, not a second milestone.
+Simplifying the key to a bare `settlement_id` requires a later proof that
+Monster settlement IDs are globally unique.
 
 ## 7. Authority ownership
 
@@ -223,8 +225,9 @@ CAN_EXISTING_DURABLE_SETTLEMENT_ID_SUPPORT_WORLD_DEDUPE=UNKNOWN
 The current `origin/master` baseline contains durable settlement IDs in the
 XP settlement lineage, but the current baseline does not contain the accepted
 F006 Monster settlement module proving that every Monster defeat path exposes
-the same stable `settlement_id`. F012 therefore carries the required field
-without claiming an existing Monster storage guarantee.
+the same globally unique `settlement_id`. F012 R1 therefore uses
+`(user_id, settlement_id)` without claiming an existing global uniqueness
+guarantee.
 
 ```text
 FUTURE_WORLD_MILESTONE_STORAGE_REQUIRED=OWNER_DECISION_REQUIRED

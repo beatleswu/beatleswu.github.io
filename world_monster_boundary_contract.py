@@ -413,14 +413,16 @@ def intent_operation_key(intent: BattlefieldBossEncounterIntent) -> tuple[int, s
     return intent.user_id, intent.intent_operation_id
 
 
-def defeated_fact_dedupe_key(fact: BattlefieldBossDefeatedFact) -> str:
+def defeated_fact_dedupe_key(
+    fact: BattlefieldBossDefeatedFact,
+) -> tuple[int, str]:
     """Return the canonical future consumer dedupe key.
 
-    F012 does not persist it.  The settlement authority must guarantee that a
-    committed ``settlement_id`` is stable for the same committed settlement.
+    F012 does not persist it.  Global uniqueness of ``settlement_id`` is not
+    proven, so V1 scopes the stable settlement identity to its user.
     """
 
-    return fact.settlement_id
+    return fact.user_id, fact.settlement_id
 
 
 def assert_intent_replay_compatible(

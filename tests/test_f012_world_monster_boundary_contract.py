@@ -76,7 +76,7 @@ def test_valid_battlefield_boss_defeated_fact_round_trips_as_json_safe_data():
     assert fact.defeated is True
     assert fact.source_authority == SERVER_MONSTER_SETTLEMENT_AUTHORITY
     assert json.loads(fact.canonical_json()) == fact.to_dict()
-    assert defeated_fact_dedupe_key(fact) == "settlement-001"
+    assert defeated_fact_dedupe_key(fact) == (7, "settlement-001")
 
 
 def test_contract_objects_and_nested_metadata_are_immutable():
@@ -212,7 +212,7 @@ def test_defeated_fact_replay_uses_settlement_id_and_rejects_changed_payload():
         assert_defeated_fact_replay_compatible(original, changed)
 
 
-def test_fact_dedupe_identity_cannot_change():
+def test_fact_dedupe_identity_cannot_change_for_same_user():
     original = BattlefieldBossDefeatedFact.from_mapping(_fact())
     changed = BattlefieldBossDefeatedFact.from_mapping(
         _fact(settlement_id="settlement-002", replayed=True)
@@ -220,6 +220,35 @@ def test_fact_dedupe_identity_cannot_change():
 
     with pytest.raises(BoundaryReplayMismatchError, match="settlement_id_mismatch"):
         assert_defeated_fact_replay_compatible(original, changed)
+
+
+def test_same_user_and_same_settlement_id_is_the_same_dedupe_identity():
+    original = BattlefieldBossDefeatedFact.from_mapping(_fact())
+    replay = BattlefieldBossDefeatedFact.from_mapping(_fact(replayed=True))
+
+    assert defeated_fact_dedupe_key(original) == defeated_fact_dedupe_key(replay)
+
+
+def test_different_user_and_same_settlement_id_have_different_dedupe_keys():
+    original = BattlefieldBossDefeatedFact.from_mapping(_fact())
+    other_user = BattlefieldBossDefeatedFact.from_mapping(
+        _fact(user_id=8, replayed=True)
+    )
+
+    assert defeated_fact_dedupe_key(original) != defeated_fact_dedupe_key(other_user)
+    with pytest.raises(BoundaryReplayMismatchError):
+        assert_defeated_fact_replay_compatible(original, other_user)
+
+
+def test_same_user_and_different_settlement_id_have_different_dedupe_keys():
+    original = BattlefieldBossDefeatedFact.from_mapping(_fact())
+    other_settlement = BattlefieldBossDefeatedFact.from_mapping(
+        _fact(settlement_id="settlement-002", replayed=True)
+    )
+
+    assert defeated_fact_dedupe_key(original) != defeated_fact_dedupe_key(other_settlement)
+    with pytest.raises(BoundaryReplayMismatchError):
+        assert_defeated_fact_replay_compatible(original, other_settlement)
 
 
 def test_serialized_contracts_contain_no_world_decision_fields():
