@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "task": "A030_RPG_ART_SYSTEM_V1_PREPRODUCTION_001",
+  "status": "taxonomy-proposal",
+  "asset_root": "assets/",
+  "runtime_move_in_a030": false,
+  "categories": {
+    "hero": {"purpose": "player identity and full-body presentation", "runtime_examples": ["assets/hero/characters/", "assets/hero/avatars/"]},
+    "equipment": {
+      "purpose": "functional item presentation; not an ownership authority",
+      "subcategories": {
+        "weapon": "equipment/weapon/",
+        "armor": "equipment/armor/",
+        "accessory": "equipment/accessory/"
+      }
+    },
+    "items": {
+      "purpose": "inventory and reward objects",
+      "subcategories": {
+        "consumable": "items/consumable/",
+        "material": "items/material/",
+        "trophy": "items/trophy/"
+      }
+    },
+    "cosmetics": {"purpose": "pure appearance and collection; never implied combat power", "path": "cosmetics/"},
+    "spirits": {"purpose": "one six-Spirit companion system", "path": "spirits/", "current_compatibility": "assets/pets/"},
+    "monsters": {"purpose": "base creature families and controlled variants", "path": "monsters/"},
+    "bosses": {"purpose": "Battlefield Boss presentation assets, separate from Lord Trial", "path": "bosses/"},
+    "world": {"purpose": "E10 map, zones, landmarks and world atmosphere", "current_compatibility": "assets/maps/ and assets/e10/"},
+    "ui": {
+      "purpose": "reusable RPG chrome",
+      "subcategories": {
+        "frames": "ui/frames/",
+        "icons": "ui/icons/",
+        "buttons": "ui/buttons/",
+        "status": "ui/status/"
+      }
+    },
+    "fx": {
+      "purpose": "short feedback motion/visual assets",
+      "subcategories": {
+        "combat": "fx/combat/",
+        "reward": "fx/reward/",
+        "unlock": "fx/unlock/"
+      }
+    },
+    "shop": {"purpose": "merchant, offer and shop backdrop assets", "current_compatibility": "assets/shop/"},
+    "quest": {"purpose": "objective cards, scrolls and quest landmarks", "current_compatibility": "assets/guild_ui/ and assets/go_rpg_assets/"}
+  },
+  "naming_convention": {
+    "machine_id": "lower_snake_case, stable and never a display label",
+    "item": "<category>_<family>_<variant>.<ext>",
+    "spirit": "spirit_<machine_id>_stage<1|2|3>.<ext>",
+    "monster_base": "monster_<family>_<pose>.<ext>",
+    "monster_variant": "monster_<family>_<variant>_<tier>.<ext>",
+    "boss": "boss_<zone_or_family>_<identity>.<ext>",
+    "ui": "ui_<role>_<state>.<ext>",
+    "fx": "fx_<event>_<intensity>.<ext>",
+    "localized_art": "avoid baked text; use separate locale variants only when art cannot remain text-free"
+  },
+  "delivery_rules": {
+    "review_evidence_is_runtime_dependency": false,
+    "transparent_character_asset": "RGBA, no baked checkerboard/card/text",
+    "small_icon": "single primary silhouette, readable at 40-48px",
+    "source_vs_runtime": "keep source/review art outside runtime package; promote only optimized deterministic assets",
+    "hash_manifest": "required when an asset package is promoted",
+    "missing_asset": "fail closed to neutral presentation placeholder; never change ownership, stage or identity"
+  },
+  "authority_notes": {
+    "equipment_ownership": "player_inventory",
+    "cosmetic_ownership": "player_wardrobe",
+    "spirit_state": "server Spirit projection",
+    "monster_settlement": "server/F006 settlement authority",
+    "shop_purchase": "Shop/acquisition authority",
+    "lord_trial": "separate Lord Trial presentation authority"
+  }
+}
