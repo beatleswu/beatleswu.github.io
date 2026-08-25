@@ -3,6 +3,10 @@
   "d018_contract_version": "CANONICAL_ACQUISITION_RESULT_V1",
   "database_writes": 0,
   "mutation_capability": "NO",
+  "success_status_is_commit_evidence": false,
+  "committed_or_settled_status_is_commit_evidence": true,
+  "valid_result_statuses": ["SUCCESS", "COMMITTED", "SETTLED"],
+  "committed_evidence_statuses": ["COMMITTED", "SETTLED"],
   "families": [
     {
       "source_type": "MONSTER_DROP",
@@ -21,7 +25,7 @@
       "adapter": "adapt_quest_reward",
       "core_status": "READY_FOR_COMPLETE_COMMITTED_FACTS",
       "current_runtime_readiness": "INSUFFICIENT_AUTHORITY_EVIDENCE",
-      "required_commit_evidence": ["claim_status=SETTLED|SUCCESS", "or committed=true", "or claim_committed=true"],
+      "required_commit_evidence": ["claim_status=SETTLED", "or transaction_status=COMMITTED|SETTLED", "or status=COMMITTED|SETTLED", "or committed=true", "or claim_committed=true"],
       "accepted_source_operation_fields": ["source_operation_id", "operation_id", "claim_operation_id"],
       "accepted_source_reference_fields": ["source_reference", "claim_idempotency_key", "claim_id", "period_key"],
       "current_gap": "completion/claimable state is not a committed reward result; D015 reward components need explicit D018 acquisition facts",
@@ -33,7 +37,7 @@
       "adapter": "adapt_premium_reward",
       "core_status": "READY_FOR_COMPLETE_COMMITTED_FACTS",
       "current_runtime_readiness": "INSUFFICIENT_AUTHORITY_EVIDENCE",
-      "required_commit_evidence": ["claim_status=SUCCESS|SETTLED", "or committed=true", "or claim_committed=true", "or reward_committed=true"],
+      "required_commit_evidence": ["claim_status=SETTLED", "or reward_status=SETTLED", "or transaction_status=COMMITTED|SETTLED", "or status=COMMITTED|SETTLED", "or committed=true", "or claim_committed=true", "or reward_committed=true"],
       "accepted_source_operation_fields": ["source_operation_id", "operation_id", "claim_operation_id"],
       "accepted_source_reference_fields": ["source_reference", "claim_idempotency_key", "claim_id", "period_key"],
       "current_gap": "entitlement_active is not a reward result; Premium component payload must preserve ownership reference and acquisition lineage",

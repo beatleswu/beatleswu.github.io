@@ -39,8 +39,8 @@ SUPPORTED_ADAPTER_FAMILIES = (
 )
 
 _MISSING = object()
-_COMMITTED_STATUSES = frozenset({"COMMITTED", "SETTLED"})
-_SUCCESS_STATUSES = frozenset({"SUCCESS", "COMMITTED", "SETTLED"})
+_VALID_RESULT_STATUSES = frozenset({"SUCCESS", "COMMITTED", "SETTLED"})
+_COMMITTED_EVIDENCE_STATUSES = frozenset({"COMMITTED", "SETTLED"})
 _REJECTED_PREVIEW_VALUES = frozenset({"PREVIEW", "UNCOMMITTED", "UNSETTLED"})
 
 
@@ -128,14 +128,14 @@ def _has_explicit_commit_marker(
     *,
     marker_names: tuple[str, ...],
     status_names: tuple[str, ...],
-    accepted_statuses: frozenset[str],
+    committed_statuses: frozenset[str],
 ) -> bool:
     for name in marker_names:
         if payload.get(name) is True:
             return True
     for name in status_names:
         value = payload.get(name)
-        if isinstance(value, str) and value.strip().upper() in accepted_statuses:
+        if isinstance(value, str) and value.strip().upper() in committed_statuses:
             return True
     return False
 
@@ -154,7 +154,7 @@ def _source_status_rejected(
     payload: Mapping[str, Any],
     *,
     status_names: tuple[str, ...],
-    accepted_statuses: frozenset[str],
+    valid_statuses: frozenset[str],
 ) -> bool:
     """Reject an explicit terminal status that is not a committed success."""
 
@@ -167,7 +167,7 @@ def _source_status_rejected(
         normalized = value.strip().upper()
         if normalized in _REJECTED_PREVIEW_VALUES:
             return True
-        if normalized not in accepted_statuses and normalized not in {"SUCCESS"}:
+        if normalized not in valid_statuses:
             return True
     return False
 
@@ -256,7 +256,7 @@ def _adapt(
     *,
     marker_names: tuple[str, ...],
     status_names: tuple[str, ...],
-    accepted_statuses: frozenset[str],
+    valid_statuses: frozenset[str],
     source_operation_names: tuple[str, ...],
     source_reference_names: tuple[str, ...],
     precondition: Callable[[Mapping[str, Any]], AcquisitionAdapterResult | None] | None = None,
@@ -272,14 +272,14 @@ def _adapt(
     if _source_status_rejected(
         payload,
         status_names=status_names,
-        accepted_statuses=accepted_statuses,
+        valid_statuses=valid_statuses,
     ):
         return _insufficient(family, "SOURCE_STATUS_NOT_COMMITTED")
     if not _has_explicit_commit_marker(
         payload,
         marker_names=marker_names,
         status_names=status_names,
-        accepted_statuses=accepted_statuses,
+        committed_statuses=_COMMITTED_EVIDENCE_STATUSES,
     ):
         return _insufficient(family, "COMMITTED_RESULT_EVIDENCE_REQUIRED")
     return _build_result(
@@ -293,7 +293,7 @@ def _adapt(
 def _quest_precondition(payload: Mapping[str, Any]) -> AcquisitionAdapterResult | None:
     claim_status = payload.get("claim_status")
     if claim_status is not None:
-        if not isinstance(claim_status, str) or claim_status.strip().upper() not in _SUCCESS_STATUSES:
+        if not isinstance(claim_status, str) or claim_status.strip().upper() not in _VALID_RESULT_STATUSES:
             return _insufficient(QUEST_REWARD, "QUEST_CLAIM_NOT_SETTLED")
     if payload.get("claimed") is False or payload.get("claimable") is True and payload.get("claimed") is not True:
         return _insufficient(QUEST_REWARD, "QUEST_CLAIM_NOT_SETTLED")
@@ -307,7 +307,7 @@ def _quest_precondition(payload: Mapping[str, Any]) -> AcquisitionAdapterResult 
 def _premium_precondition(payload: Mapping[str, Any]) -> AcquisitionAdapterResult | None:
     status = payload.get("claim_status", payload.get("reward_status"))
     if status is not None:
-        if not isinstance(status, str) or status.strip().upper() not in _SUCCESS_STATUSES:
+        if not isinstance(status, str) or status.strip().upper() not in _VALID_RESULT_STATUSES:
             return _insufficient(PREMIUM_REWARD, "PREMIUM_REWARD_NOT_SETTLED")
     if payload.get("entitlement_active") is True and status is None and payload.get("committed") is not True:
         return _insufficient(PREMIUM_REWARD, "PREMIUM_ENTITLEMENT_IS_NOT_A_REWARD_RESULT")
@@ -322,7 +322,7 @@ def adapt_monster_drop(payload: Mapping[str, Any]) -> AcquisitionAdapterResult:
         payload,
         marker_names=("committed", "settlement_committed"),
         status_names=("settlement_status", "transaction_status", "status"),
-        accepted_statuses=_COMMITTED_STATUSES,
+        valid_statuses=_VALID_RESULT_STATUSES,
         source_operation_names=("source_operation_id", "operation_id", "settlement_operation_id"),
         source_reference_names=("source_reference", "settlement_id", "source_id"),
     )
@@ -336,7 +336,7 @@ def adapt_quest_reward(payload: Mapping[str, Any]) -> AcquisitionAdapterResult:
         payload,
         marker_names=("committed", "claim_committed"),
         status_names=("claim_status", "transaction_status", "status"),
-        accepted_statuses=_SUCCESS_STATUSES,
+        valid_statuses=_VALID_RESULT_STATUSES,
         source_operation_names=("source_operation_id", "operation_id", "claim_operation_id"),
         source_reference_names=("source_reference", "claim_idempotency_key", "claim_id", "period_key"),
         precondition=_quest_precondition,
@@ -351,7 +351,7 @@ def adapt_premium_reward(payload: Mapping[str, Any]) -> AcquisitionAdapterResult
         payload,
         marker_names=("committed", "claim_committed", "reward_committed"),
         status_names=("claim_status", "reward_status", "transaction_status", "status"),
-        accepted_statuses=_SUCCESS_STATUSES,
+        valid_statuses=_VALID_RESULT_STATUSES,
         source_operation_names=("source_operation_id", "operation_id", "claim_operation_id"),
         source_reference_names=("source_reference", "claim_idempotency_key", "claim_id", "period_key"),
         precondition=_premium_precondition,
@@ -366,7 +366,7 @@ def adapt_shop_coin_purchase(payload: Mapping[str, Any]) -> AcquisitionAdapterRe
         payload,
         marker_names=("committed", "purchase_committed"),
         status_names=("purchase_status", "operation_status", "transaction_status", "status"),
-        accepted_statuses=_COMMITTED_STATUSES,
+        valid_statuses=_VALID_RESULT_STATUSES,
         source_operation_names=("source_operation_id", "operation_id", "purchase_operation_id"),
         source_reference_names=("source_reference", "offer_id", "purchase_id"),
     )
