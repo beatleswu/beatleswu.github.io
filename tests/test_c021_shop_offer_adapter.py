@@ -100,6 +100,20 @@ def test_daily_discount_uses_server_price_and_date_bound_version():
     assert offer.server_price == 80
     assert offer.metadata["business_date"] == "2026-08-25"
 
+    next_day = normalize_shop_offer(
+        _facts(
+            product_id="extra_questions",
+            item_id="extra_questions",
+            server_price=90,
+            offer_kind="DAILY_ITEM",
+            business_date="2026-08-26",
+            price_reference="app.py:_daily_shop_slots:extra_questions:2026-08-26",
+        )
+    )
+    assert next_day.offer_id == offer.offer_id
+    assert next_day.offer_version == "v1@2026-08-26"
+    assert next_day.offer_version != offer.offer_version
+
 
 def test_wardrobe_offer_uses_player_wardrobe_and_rejects_gameplay_power():
     offer = normalize_shop_offer(
@@ -309,6 +323,8 @@ def test_unknown_duplicate_policy_fails_closed():
     [
         (-1, InvalidOfferFacts),
         (1.5, InvalidOfferFacts),
+        (True, InvalidOfferFacts),
+        (None, InvalidOfferFacts),
         (0, InvalidOfferFacts),
     ],
 )
@@ -317,18 +333,51 @@ def test_invalid_server_price_fails_closed(server_price, expected_type):
         normalize_shop_offer(_facts(server_price=server_price))
 
 
-def test_zero_price_requires_explicit_approved_free_offer_class():
-    offer = normalize_shop_offer(
-        _facts(
-            product_id="free.training_pass",
-            item_id="training_pass",
-            server_price=0,
-            offer_kind="FREE_OFFER",
-            metadata={"free_offer_approved": True},
+def test_zero_price_free_offer_is_rejected_from_c019():
+    with pytest.raises(UnsupportedCoinOffer) as exc_info:
+        normalize_shop_offer(
+            _facts(
+                product_id="free.training_pass",
+                item_id="training_pass",
+                server_price=0,
+                offer_kind="FREE_OFFER",
+                metadata={"free_offer_approved": True},
+            )
         )
-    )
-    assert offer.offer_id == "shop.free.free.training_pass.v1"
-    assert offer.server_price == 0
+    assert "separate free-grant authority" in str(exc_info.value)
+    assert exc_info.value.details["status"] == "NEEDS_FREE_GRANT_AUTHORITY"
+
+
+def test_ready_offer_mapping_keeps_c019_positive_price_contract():
+    ready_offers = [
+        normalize_shop_offer(_facts()),
+        normalize_shop_offer(
+            _facts(
+                product_id="extra_questions",
+                item_id="extra_questions",
+                server_price=80,
+                offer_kind="DAILY_ITEM",
+                business_date="2026-08-25",
+            )
+        ),
+        normalize_shop_offer(
+            _facts(
+                product_id="cosmetic.outfit.robe_plain",
+                item_id="robe_plain",
+                server_price=200,
+                destination="player_wardrobe",
+                acquisition_class="COSMETIC",
+                duplicate_policy="REJECT_IF_OWNED",
+                offer_kind="WARDROBE",
+            )
+        ),
+    ]
+    for offer in ready_offers:
+        c019 = offer.as_c019_mapping()
+        assert c019["currency_type"] == "COINS"
+        assert isinstance(c019["price"], int)
+        assert not isinstance(c019["price"], bool)
+        assert c019["price"] > 0
 
 
 def test_single_grant_must_match_normalized_item_and_quantity():
