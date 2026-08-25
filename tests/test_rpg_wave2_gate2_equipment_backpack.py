@@ -13,6 +13,8 @@ import pytest
 
 os.environ.setdefault("SECRET_KEY", "rpg-wave2-gate2-equipment-test-secret")
 import app as app_module  # noqa: E402
+from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox  # noqa: E402
+import monster_settlement  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,7 +98,8 @@ def _create_settlement_db(path, *, existing_drop=False):
                 xp INTEGER NOT NULL DEFAULT 0,
                 rank_level TEXT NOT NULL DEFAULT 'LV1',
                 player_hp INTEGER NOT NULL DEFAULT 100,
-                player_max_hp INTEGER NOT NULL DEFAULT 100
+                player_max_hp INTEGER NOT NULL DEFAULT 100,
+                coins INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE player_inventory(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,15 +142,24 @@ def _create_settlement_db(path, *, existing_drop=False):
                 killed_at TEXT NOT NULL,
                 bf_date TEXT NOT NULL
             );
+            CREATE TABLE currency_log(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                delta INTEGER NOT NULL,
+                balance_after INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
             INSERT INTO user_stats(
                 user_id,total_correct,go_rank,xp,rank_level,player_hp,player_max_hp
             ) VALUES(1,2000,'5k',0,'LV1',100,100);
             INSERT INTO battlefield_monster(
                 user_id,bf_date,monster_idx,monster_type,monster_name,
                 monster_avatar,max_hp,current_hp,defeated,kill_count
-            ) VALUES(1,'2026-08-14',0,'goblin','LV1 Goblin','goblin.webp',1000,80,0,0);
+            ) VALUES(1,'2026-08-14',0,'goblin','LV1 Goblin','goblin.webp',1000,1,0,0);
             """
         )
+        upgrade_outbox(conn)
         if existing_drop:
             conn.execute(
                 """
@@ -161,7 +173,11 @@ def _create_settlement_db(path, *, existing_drop=False):
 def _run_settlement(path, monkeypatch, *, q_info=None, grade=5):
     monkeypatch.setattr(app_module, "_update_daily_quests", lambda *a, **k: [])
     monkeypatch.setattr(app_module, "_gain_sp", lambda conn, uid, amount: amount)
-    monkeypatch.setattr(app_module, "_roll_loot", lambda monster_type, loot_bonus: "iron_sword")
+    monkeypatch.setattr(
+        monster_settlement,
+        "roll_functional_drop",
+        lambda profile, **_kwargs: ("iron_sword", 1),
+    )
     monkeypatch.setattr(app_module, "_roll_appearance_loot", lambda monster_type: None)
     with sqlite3.connect(path) as conn:
         conn.row_factory = sqlite3.Row

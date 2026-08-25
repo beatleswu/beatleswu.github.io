@@ -83,6 +83,11 @@ APPROVED_PRESENTATION_EXTENSION_FIELDS: tuple[str, ...] = (
     "level_up_rewards",
 )
 
+# This is an internal, server-owned execution policy.  It is deliberately
+# separate from ``source_context``: the latter is part of the legacy review
+# payload, while this value is only constructed by a trusted domain handoff.
+EXTERNAL_AUTHORITATIVE_MAP_BATTLE = "EXTERNAL_AUTHORITATIVE_MAP_BATTLE"
+
 
 class ReviewOutcomeKind(str, Enum):
     """The legacy-compatible result shape represented by an outcome."""
@@ -113,6 +118,7 @@ class ReviewCommand:
     is_scaffolding: bool = False
     internal: bool = False
     submission_id: str | None = None
+    combat_settlement_context: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,6 +167,7 @@ __all__ = [
     "INTERNAL_DUPLICATE_4_FIELDS",
     "PUBLIC_SUBMISSION_DUPLICATE_FIELDS",
     "APPROVED_PRESENTATION_EXTENSION_FIELDS",
+    "EXTERNAL_AUTHORITATIVE_MAP_BATTLE",
     "ReviewCommand",
     "ReviewOutcome",
     "ReviewOutcomeKind",

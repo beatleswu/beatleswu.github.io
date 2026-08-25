@@ -38,6 +38,10 @@ from map_battle_persistence import (
 )
 
 
+_DOCKER_COMMAND_TIMEOUT = 60
+_POSTGRES_CONNECT_TIMEOUT = 3
+
+
 @pytest.fixture()
 def sqlite_db():
     conn = sqlite3.connect(":memory:")
@@ -383,11 +387,15 @@ def test_invalid_settlement_payload_never_writes_damage(sqlite_db):
 def _docker_available():
     if shutil.which("docker") is None:
         return False
-    result = subprocess.run(
-        ["docker", "version", "--format", "{{.Server.Version}}"],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["docker", "version", "--format", "{{.Server.Version}}"],
+            capture_output=True,
+            text=True,
+            timeout=_DOCKER_COMMAND_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return False
     return result.returncode == 0 and bool(result.stdout.strip())
 
 
@@ -409,7 +417,7 @@ def _wait_for_postgres(database_url, timeout=30.0):
     last_error = None
     while time.time() < deadline:
         try:
-            conn = psycopg2.connect(database_url)
+            conn = psycopg2.connect(database_url, connect_timeout=_POSTGRES_CONNECT_TIMEOUT)
             conn.close()
             return
         except Exception as exc:
@@ -423,17 +431,28 @@ def _postgres_container():
     if not _docker_available():
         pytest.skip("docker server unavailable for disposable Map Battle PostgreSQL test")
     container_name = f"go-odyssey-map-battle-test-{uuid.uuid4().hex[:10]}"
-    run = subprocess.run(
-        [
-            "docker", "run", "--rm", "-d", "--name", container_name,
-            "-e", "POSTGRES_PASSWORD=go", "-e", "POSTGRES_USER=go",
-            "-e", "POSTGRES_DB=go_odyssey", "-p", "127.0.0.1::5432",
-            "postgres:16-alpine",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        run = subprocess.run(
+            [
+                "docker", "run", "--rm", "-d", "--name", container_name,
+                "-e", "POSTGRES_PASSWORD=go", "-e", "POSTGRES_USER=go",
+                "-e", "POSTGRES_DB=go_odyssey", "-p", "127.0.0.1::5432",
+                "postgres:16-alpine",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=_DOCKER_COMMAND_TIMEOUT,
+        )
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        subprocess.run(
+            ["docker", "rm", "-f", container_name],
+            capture_output=True,
+            text=True,
+            timeout=_DOCKER_COMMAND_TIMEOUT,
+            check=False,
+        )
+        raise
     container_id = run.stdout.strip()
     try:
         port_result = subprocess.run(
@@ -441,6 +460,7 @@ def _postgres_container():
             capture_output=True,
             text=True,
             check=True,
+            timeout=_DOCKER_COMMAND_TIMEOUT,
         )
         host, port_text = port_result.stdout.strip().rsplit(":", 1)
         port = int(port_text)
@@ -449,7 +469,16 @@ def _postgres_container():
         _wait_for_postgres(database_url)
         yield database_url
     finally:
-        subprocess.run(["docker", "rm", "-f", container_id], capture_output=True, text=True)
+        try:
+            subprocess.run(
+                ["docker", "rm", "-f", container_id],
+                capture_output=True,
+                text=True,
+                timeout=_DOCKER_COMMAND_TIMEOUT,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def _postgres_wrapper(database_url):
@@ -457,7 +486,7 @@ def _postgres_wrapper(database_url):
     from psycopg2.extras import DictCursor
     from db import PostgresConnectionWrapper
 
-    raw = psycopg2.connect(database_url)
+    raw = psycopg2.connect(database_url, connect_timeout=_POSTGRES_CONNECT_TIMEOUT)
     raw.cursor_factory = DictCursor
     return PostgresConnectionWrapper(raw)
 
@@ -472,7 +501,7 @@ def test_disposable_postgres_concurrency_lock_cas_and_duplicate_winner():
     with _postgres_container() as database_url:
         import psycopg2
 
-        seed = psycopg2.connect(database_url)
+        seed = psycopg2.connect(database_url, connect_timeout=_POSTGRES_CONNECT_TIMEOUT)
         seed.autocommit = True
         seed_cursor = seed.cursor()
         seed_cursor.execute("CREATE TABLE users (id INTEGER PRIMARY KEY)")

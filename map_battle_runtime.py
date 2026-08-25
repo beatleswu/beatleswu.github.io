@@ -30,6 +30,13 @@ from map_battle_persistence import (
     reserve_submission_nonce,
     settle_map_battle_submission,
 )
+from monster_combat_profiles import (
+    MonsterCombatProfile,
+    MonsterCombatProfileError,
+    build_map_battle_compatibility_overrides,
+    resolve_monster_combat_profile,
+)
+from spirit_combat_runtime import apply_spirit_combat_effect
 
 
 RUNTIME_SERVICE_ID = "map-battle-v1-runtime"
@@ -41,6 +48,18 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "grade",
     "correct",
     "correctness",
+    "is_correct",
+    "isCorrect",
+    "result",
+    "success",
+    "passed",
+    "won",
+    "completed",
+    "outcome",
+    "answer_result",
+    "correct_result",
+    "client_correct",
+    "client_result",
     "authoritative_grade",
     "damage_to_monster",
     "damage_to_player",
@@ -48,9 +67,38 @@ _FORBIDDEN_CLIENT_FIELDS = frozenset({
     "player_heal",
     "player_heal_applied",
     "monster_hp",
+    "monster_hp_max",
+    "monster_atk",
+    "monster_attack",
+    "attack",
+    "monster_id",
+    "monster_type",
+    "battle_monster_type",
+    "monster_family",
+    "encounter_class",
+    "encounter_kind",
+    "encounter_type",
+    "is_boss",
+    "drop_profile_id",
+    "reward_profile_id",
     "player_hp",
     "judge_result",
     "reward",
+    "reward_xp",
+    "base_xp",
+    "final_xp",
+    "reward_eligible",
+    "reward_multiplier",
+    "xp",
+    "score",
+    "difficulty",
+    "damage",
+    "mitigation",
+    "monster_defeated",
+    "kill",
+    "drop",
+    "coins",
+    "items",
     "zone_clear",
     "submission_id",
     "submission_nonce_hash",
@@ -528,11 +576,30 @@ def calculate_damage(
     damage_reduction: float = 0.0,
     crit_multiplier: float = 1.0,
     counter_negated: bool = False,
+    monster_profile: MonsterCombatProfile | None = None,
 ) -> tuple[int, int]:
     """Return existing game-balance damage as (monster damage, player damage)."""
 
     if result == "INVALID":
         return 0, 0
+    if monster_profile is None:
+        monster_profile = resolve_monster_combat_profile(
+            question,
+            context="MAP_BATTLE",
+            trusted_compatibility_overrides=build_map_battle_compatibility_overrides(
+                question,
+                persisted_max_hp=monster_hp_max,
+            ),
+            compatibility_mode="MAP_BATTLE_LEGACY_STATE",
+            compatibility_reason=(
+                "preserve existing Map Battle persisted HP and question-retaliation "
+                "compatibility until a future stat cutover"
+            ),
+            compatibility_source=(
+                "server_persisted_map_battle_state+server_question_metadata"
+            ),
+        )
+    resolved_max_hp = monster_profile.max_hp
     if result == "CORRECT":
         grade = authoritative_grade or 0
         if grade < 3:
@@ -543,22 +610,16 @@ def calculate_damage(
         import math
 
         attack_bonus = _bounded_combat_modifier(attack_bonus, 0.75)
-        damage = monster_hp_max * percentage * (1.0 + attack_bonus)
+        damage = resolved_max_hp * percentage * (1.0 + attack_bonus)
         if grade == 5:
             damage *= max(1.0, _bounded_combat_modifier(crit_multiplier, 3.0))
         damage = max(5, math.ceil(damage))
-        return min(max(0, int(monster_hp_max)), damage), 0
+        return min(max(0, int(resolved_max_hp)), damage), 0
     if result == "INCORRECT":
         if counter_negated:
             return 0, 0
-        monster_attack = 8
-        if question is not None:
-            try:
-                monster_attack = max(0, int(question.get("monster_atk", 8)))
-            except (TypeError, ValueError):
-                monster_attack = 8
         damage_reduction = _bounded_combat_modifier(damage_reduction, 0.99)
-        return 0, max(1, round(monster_attack * (1.0 - damage_reduction)))
+        return 0, max(1, round(monster_profile.attack * (1.0 - damage_reduction)))
     raise RequestRejected("unknown judge result")
 
 
@@ -572,6 +633,7 @@ def calculate_combat_effects(
     damage_reduction: float = 0.0,
     crit_multiplier: float = 1.0,
     counter_negated: bool = False,
+    monster_profile: MonsterCombatProfile | None = None,
 ) -> tuple[int, int, int]:
     """Return authoritative damage and healing for one verdict settlement."""
 
@@ -584,6 +646,7 @@ def calculate_combat_effects(
         damage_reduction=damage_reduction,
         crit_multiplier=crit_multiplier,
         counter_negated=counter_negated,
+        monster_profile=monster_profile,
     )
     return monster_damage, player_damage, 1 if result == "CORRECT" else 0
 
@@ -958,6 +1021,8 @@ def settle_answer(
     eligibility: Mapping[str, Any] | None = None,
     judge: Callable[[Mapping[str, Any], Mapping[str, Any], CanonicalAnswer], JudgeOutcome] | None = None,
     combat_stats_resolver: Callable[[Any, int, str | None], Mapping[str, Any]] | None = None,
+    monster_profile_resolver: Callable[[Any, int, str], MonsterCombatProfile | None] | None = None,
+    spirit_projection_resolver: Callable[[Any, int], Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Handle one answer inside the caller's transaction."""
 
@@ -986,7 +1051,20 @@ def settle_answer(
         raise RequestRejected("attempt does not exist for owner", status=404)
     if _attempt_expired(attempt, now):
         raise AttemptExpired("map battle attempt has expired")
-    canonical = canonicalize_answer(payload, attempt)
+    # A new request must fail closed when it carries a client result claim.
+    # Once a nonce has a committed result, however, a response-loss retry may
+    # contain a legacy/display-only result claim from a stale browser build.
+    # Canonicalize the answer with those claims removed solely to identify the
+    # existing request, then replay the stored authoritative result.  The
+    # claims never enter the request hash and never reach the judge.
+    forbidden = sorted(set(payload).intersection(_FORBIDDEN_CLIENT_FIELDS))
+    canonical_payload = payload
+    if forbidden:
+        canonical_payload = {
+            key: value for key, value in payload.items()
+            if key not in _FORBIDDEN_CLIENT_FIELDS
+        }
+    canonical = canonicalize_answer(canonical_payload, attempt)
     _validate_submission_nonce(payload, attempt)
     # Validate owner/battle/attempt identity and the issued attempt metadata
     # before looking up a submission, but defer the optimistic-concurrency
@@ -1013,6 +1091,8 @@ def settle_answer(
             ),
         }
         return _response_from_settlement(replay, duplicate=True, attempt=attempt)
+    if forbidden:
+        raise ForbiddenClientAuthority("forbidden client authority field: " + forbidden[0])
     if existing is None:
         try:
             _metadata_matches(payload, attempt)
@@ -1074,16 +1154,71 @@ def settle_answer(
         )
         if combat_stats_resolver else {}
     )
+    battle = load_authoritative_battle_state(
+        conn,
+        user_id=user_id,
+        battle_id=str(attempt["battle_id"]),
+    )
+    if battle is None:
+        raise RequestRejected("battle does not exist for owner", status=404)
+    monster_profile = None
+    if monster_profile_resolver is not None:
+        monster_profile = monster_profile_resolver(
+            conn,
+            user_id,
+            str(attempt["battle_id"]),
+        )
+    if monster_profile is None:
+        try:
+            monster_profile = resolve_monster_combat_profile(
+                question,
+                context="MAP_BATTLE",
+                trusted_compatibility_overrides=build_map_battle_compatibility_overrides(
+                    question,
+                    persisted_max_hp=battle.get("monster_hp_max"),
+                ),
+                compatibility_mode="MAP_BATTLE_LEGACY_STATE",
+                compatibility_reason=(
+                    "preserve existing Map Battle question/persisted-state "
+                    "compatibility while the selector is off"
+                ),
+                compatibility_source=(
+                    "server_persisted_map_battle_state+server_question_metadata"
+                ),
+            )
+        except MonsterCombatProfileError as error:
+            raise JudgeUnavailable(
+                "authoritative Monster stat binding is unavailable"
+            ) from error
     damage_to_monster, damage_to_player, heal_to_player = calculate_combat_effects(
         outcome.result,
         outcome.authoritative_grade,
-        int((load_authoritative_battle_state(conn, user_id=user_id, battle_id=str(attempt["battle_id"])) or {}).get("monster_hp_max") or 0),
+        monster_profile.max_hp,
         question,
         attack_bonus=combat_stats.get('attack_bonus', 0.0),
         damage_reduction=combat_stats.get('damage_reduction', 0.0),
         crit_multiplier=combat_stats.get('crit_multiplier', 1.0),
         counter_negated=bool(combat_stats.get('counter_negated', False)),
+        monster_profile=monster_profile,
     )
+    spirit_effect = apply_spirit_combat_effect(
+        conn,
+        user_id,
+        answer_correct=outcome.result == "CORRECT",
+        encounter_class=monster_profile.encounter_class,
+        monster_hp_before=int(battle["monster_hp"]),
+        monster_max_hp=int(monster_profile.max_hp),
+        incoming_damage_after_armor=int(damage_to_player),
+        outgoing_damage_after_equipment=int(damage_to_monster),
+        player_hp_before=int(battle["player_hp"]),
+        player_max_hp=int(battle["player_hp_max"]),
+        projection_resolver=spirit_projection_resolver,
+    )
+    if spirit_effect.get("triggered"):
+        if outcome.result == "CORRECT":
+            damage_to_monster = int(spirit_effect["output_damage"])
+        elif outcome.result == "INCORRECT":
+            damage_to_player = int(spirit_effect["output_damage"])
     try:
         settled = settle_map_battle_submission(
             conn,

@@ -16,6 +16,11 @@ from typing import Any
 from migrations.domain_event_outbox_v1 import EVENT_TYPES, OUTCOMES, TABLE_NAME
 
 
+# F006 adds a domain event to the existing D5A envelope without changing the
+# foundation schema or migration contract.
+SUPPORTED_EVENT_TYPES = (*EVENT_TYPES, "MONSTER_DEFEATED")
+
+
 _FORBIDDEN_PAYLOAD_KEYS = frozenset(
     {
         "card_number",
@@ -184,7 +189,7 @@ def append_event(
     transaction.  A duplicate logical event raises ``DuplicateOutboxEvent``
     after recovering the original row through a savepoint.
     """
-    if event_type not in EVENT_TYPES:
+    if event_type not in SUPPORTED_EVENT_TYPES:
         raise OutboxValidationError(f"unsupported event_type: {event_type!r}")
     if outcome not in OUTCOMES:
         raise OutboxValidationError(f"unsupported outcome: {outcome!r}")
@@ -269,7 +274,7 @@ def get_event_by_idempotency_key(
     """Read the original event without mutating or committing the transaction."""
     player_id = _normalize_required_text(player_id, "player_id")
     idempotency_key = _normalize_required_text(idempotency_key, "idempotency_key")
-    if event_type not in EVENT_TYPES:
+    if event_type not in SUPPORTED_EVENT_TYPES:
         raise OutboxValidationError(f"unsupported event_type: {event_type!r}")
     return _find_existing(
         conn,
