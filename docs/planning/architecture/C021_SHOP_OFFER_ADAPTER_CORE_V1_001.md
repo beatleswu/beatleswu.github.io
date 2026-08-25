@@ -2,6 +2,11 @@
 
 Status: implementation candidate; Owner review required.
 
+R1 closure: zero-price `FREE_OFFER` facts are now rejected before
+normalization. The R1 commit is a focused descendant of the original C021
+head `f8124b4d77cf04f2b9fb09fd5e8a5f14faeb93fe`; it does not expand the C019
+positive-price contract.
+
 C021 is a pure server-domain normalization layer. It turns caller-supplied
 facts already resolved from an existing server catalog into a deterministic,
 server-owned Coin offer shape that can later be passed to the accepted C019
@@ -54,7 +59,7 @@ accepted input. The adapter derives `offer_id`; it never trusts an incoming
 | `item_id` | one canonical item identity for a ready single-result offer |
 | `quantity` | positive server-resolved integer |
 | `currency` | always `COINS` |
-| `server_price` | positive server-resolved integer; approved free offers may be zero |
+| `server_price` | positive server-resolved integer; no zero-price exception |
 | `destination` | ready shapes are `shop_inventory` or `player_wardrobe` |
 | `acquisition_class` | existing V1 item taxonomy |
 | `duplicate_policy` | `STACK`, `REJECT_IF_OWNED`, or `ALLOW_DUPLICATE` |
@@ -87,7 +92,6 @@ Offer IDs are derived from the server product identity and a version token:
 | fixed wardrobe | `shop.cosmetic.<product_id>.v1` |
 | daily item | `shop.daily.item.<product_id>.v1` |
 | daily wardrobe | `shop.daily.appearance.<product_id>.v1` |
-| explicitly approved free offer | `shop.free.<product_id>.v1` |
 
 The product/business identity is date-independent. For a daily offer, the
 server-supplied `business_date` participates in both:
@@ -137,13 +141,31 @@ The adapter rejects, rather than silently normalizing:
 - unknown destinations;
 - unknown duplicate policies;
 - client-authored `offer_id`, `price`, price override, or requested quantity;
-- negative, floating-point, missing, or unapproved zero Coin prices;
+- negative, zero, floating-point, bool, or missing Coin prices;
+- `FREE_OFFER`, including `free_offer_approved=true`, because a free grant is
+  not a zero-Coin C019 purchase;
 - `xp_amulet`, which remains `HOLD_FOR_AUTHORITY`;
 - `go_stone_black`, which remains `TROPHY / INVENTORY_ONLY / NO_COMBAT_POWER`.
 
 Direct cash Revenue V1 remains Premium-only. C021 introduces no Coin packs,
 cash equipment, cash consumables, paid PvE power, gacha, or random paid
 rewards.
+
+### Free-grant boundary
+
+`FREE_OFFER` is retained only as an explicit rejected input classification.
+It never produces a `NormalizedCoinShopOffer`, never receives a `shop.free.*`
+ID, and never reaches `as_c019_mapping()`. The future topology is:
+
+```text
+server promotional/free-grant eligibility
+    -> separately approved free-grant authority
+    -> acquisition result / D5A as applicable
+```
+
+It is not a zero-Coin debit, a special C019 purchase, or a C019-owned free
+item authority. The current rejection carries the precise status
+`NEEDS_FREE_GRANT_AUTHORITY` in its typed error details.
 
 ## Grant handling
 
@@ -186,7 +208,7 @@ The focused suite covers:
 - `pet_inventory` destination classification;
 - single- and multi-grant handling;
 - unknown destination and duplicate-policy fail-closed behavior;
-- price type/range and approved-free-offer rules;
+- positive-price C019 compatibility and zero-price/free-grant rejection;
 - batch duplicate-ID detection.
 
 No database was opened or mutated. No Shop route, UI, payment provider,

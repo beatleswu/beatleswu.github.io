@@ -428,6 +428,11 @@ def _reject_policy_facts(facts: ServerCatalogFacts, *, kind: str, currency: str)
     product_id = str(facts.product_id or "").strip()
     item_id = str(facts.item_id or "").strip()
 
+    if kind == OFFER_KIND_FREE:
+        raise UnsupportedCoinOffer(
+            "FREE_OFFER requires a separate free-grant authority and cannot enter C019",
+            details={"status": "NEEDS_FREE_GRANT_AUTHORITY"},
+        )
     if kind in {"PREMIUM_CASH_SUBSCRIPTION", "PREMIUM_ENTITLEMENT"}:
         raise UnsupportedCoinOffer(
             "Premium cash or entitlement offers are outside C019 Coin commerce",
@@ -486,7 +491,6 @@ def _version(value: Any) -> str:
 def _offer_id(kind: str, product_id: str, version: str) -> str:
     prefixes = {
         OFFER_KIND_FIXED_ITEM: "shop.item",
-        OFFER_KIND_FREE: "shop.free",
         OFFER_KIND_DAILY_ITEM: "shop.daily.item",
         OFFER_KIND_WARDROBE: "shop.cosmetic",
         OFFER_KIND_DAILY_WARDROBE: "shop.daily.appearance",
@@ -547,15 +551,14 @@ def adapt_shop_offer(
         # Kept after the policy gate for an explicit, stable error even when
         # the destination is absent on a cash-plan fact.
         raise UnsupportedCoinOffer("C019 only accepts COINS offers")
-    if not isinstance(facts.server_price, int) or isinstance(facts.server_price, bool):
-        raise InvalidOfferFacts("server_price must be an integer resolved by the server")
-    if facts.server_price == 0:
-        if kind != OFFER_KIND_FREE or facts.metadata.get("free_offer_approved") is not True:
-            raise InvalidOfferFacts(
-                "zero Coin price requires the explicit approved FREE_OFFER class"
-            )
-    elif facts.server_price < 0:
-        raise InvalidOfferFacts("server_price must not be negative")
+    if (
+        isinstance(facts.server_price, bool)
+        or not isinstance(facts.server_price, int)
+        or facts.server_price <= 0
+    ):
+        raise InvalidOfferFacts(
+            "server_price must be a positive integer for every READY C019 Coin offer"
+        )
 
     quantity = _positive_int(facts.quantity, "quantity")
     eligibility_reference = _text(
