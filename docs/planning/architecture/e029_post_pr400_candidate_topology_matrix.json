@@ -1,0 +1,495 @@
+{
+  "task": "E029_POST_PR400_MULTI_LANE_CURRENT_MASTER_RECONCILIATION_001",
+  "current_origin_master": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+  "previous_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3",
+  "pr400_merge": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+  "pr400_accepted_head": "709d052cc773036468908f41c963c0d46d64c2ab",
+  "pr400_changed_files": [
+    "app.py",
+    "player_state_read_model.py",
+    "player_presentation_read_service.py",
+    "player_presentation_api_contract.py",
+    "docs/planning/architecture/a025_player_presentation_surface_adapter_matrix.json",
+    "tests/test_a025_player_presentation_api_contract.py",
+    "tests/test_b028_player_state_read_model.py",
+    "tests/test_b030_player_presentation_read_service.py",
+    "tests/test_e026_player_presentation_route.py",
+    "tests/test_e027_player_presentation_real_path.py"
+  ],
+  "accepted_candidates": [
+    {
+      "lane": "A",
+      "task": "A027",
+      "sha": "605ada21d2e179a8b2c7292da40a8333d00738d2",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/codex/a027-player-presentation-surface-wiring-recon",
+        "refs/remotes/origin/codex/a027-player-presentation-surface-wiring-recon"
+      ],
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 1,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "docs/planning/architecture/A027_PLAYER_PRESENTATION_SURFACE_WIRING_RECON_V1_001.md",
+          "kind": "documentation"
+        },
+        {
+          "path": "docs/planning/architecture/a027_player_presentation_frontend_migration_order.json",
+          "kind": "documentation"
+        },
+        {
+          "path": "docs/planning/architecture/a027_player_presentation_surface_source_matrix.json",
+          "kind": "documentation"
+        }
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": false,
+      "tests_changed": false,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NO",
+      "recommended_integration_strategy": "RECONCILE_DOCUMENTATION_ON_CURRENT_MASTER",
+      "same_file_collision_set": [],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "A027 is a b753-based surface recon. The active frontend implementation branch A028 was created from e266; do not use A027 as an implementation base."
+    },
+    {
+      "lane": "B",
+      "task": "B033",
+      "sha": "15f665f656418ab189d32aa809c163f3e27fa92c",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/codex/b033-equipment-canonical-slot-schema-candidate",
+        "refs/remotes/origin/codex/b033-equipment-canonical-slot-schema-candidate"
+      ],
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 1,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "migrations/equipment_canonical_slot_v1.py",
+          "kind": "migration"
+        },
+        {
+          "path": "tests/test_b033_equipment_canonical_slot_schema.py",
+          "kind": "test"
+        }
+      ],
+      "app_py_changed": false,
+      "schema_changed": true,
+      "runtime_module_changed": false,
+      "tests_changed": true,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "recommended_integration_strategy": "CURRENT_MASTER_SCHEMA_RECONCILIATION",
+      "same_file_collision_set": [
+        "B034 equipment_loadout_service.py requires this schema",
+        "C023 contains the same equipment schema/test blobs through f3ee9a6f, not this SHA"
+      ],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "Current master still has no canonical_slot slot schema. The candidate is additive and has no Player Presentation file overlap."
+    },
+    {
+      "lane": "B",
+      "task": "B034",
+      "sha": "e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/codex/b034-equipment-loadout-command-service-core",
+        "refs/remotes/origin/codex/b034-equipment-loadout-command-service-core"
+      ],
+      "parent": "15f665f656418ab189d32aa809c163f3e27fa92c",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 2,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "equipment_loadout_service.py",
+          "kind": "runtime_module"
+        },
+        {
+          "path": "tests/test_b034_equipment_loadout_service.py",
+          "kind": "test"
+        }
+      ],
+      "stacked_tree_files": [
+        "migrations/equipment_canonical_slot_v1.py",
+        "tests/test_b033_equipment_canonical_slot_schema.py",
+        "equipment_loadout_service.py",
+        "tests/test_b034_equipment_loadout_service.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": false,
+      "depends_on_candidate_shas": [
+        "15f665f656418ab189d32aa809c163f3e27fa92c"
+      ],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "NO",
+      "recommended_integration_strategy": "SELECTIVE_IMPORT_ON_CURRENT_MASTER",
+      "same_file_collision_set": [
+        "B033 equipment_canonical_slot_v1 migration",
+        "future app.py Equipment route/cutover seam",
+        "C023 equipment-slot writer compatibility"
+      ],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "B034 changes only the equipment service and its tests in its own commit. It still requires a serial future app.py route cutover; PR400's presentation route is a different seam."
+    },
+    {
+      "lane": "C",
+      "task": "C023",
+      "sha": "ab588aa28cbae92a8c29bffe575b67b1f3207793",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/c023-coin-shop-equipment-canonical-slot-writer",
+        "refs/remotes/origin/c023-coin-shop-equipment-canonical-slot-writer"
+      ],
+      "parent": "f3ee9a6f13f69bbc2add0b709109048e2ef22036",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 8,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "coin_purchase_authority.py",
+          "kind": "runtime_module"
+        },
+        {
+          "path": "docs/planning/architecture/C023_COIN_SHOP_EQUIPMENT_CANONICAL_SLOT_WRITER_COMPATIBILITY_001.md",
+          "kind": "documentation"
+        },
+        {
+          "path": "tests/test_c019_atomic_coin_purchase_transaction_core.py",
+          "kind": "test"
+        },
+        {
+          "path": "tests/test_c023_coin_shop_equipment_canonical_slot_writer.py",
+          "kind": "test"
+        }
+      ],
+      "stacked_tree_files": [
+        "coin_purchase_authority.py",
+        "migrations/coin_purchase_operations_v1.py",
+        "shop_offer_authority.py",
+        "shop_offer_adapter.py",
+        "migrations/equipment_canonical_slot_v1.py",
+        "tests/test_c019_atomic_coin_purchase_transaction_core.py",
+        "tests/test_c021_shop_offer_adapter.py",
+        "tests/test_b033_equipment_canonical_slot_schema.py",
+        "tests/test_c023_coin_shop_equipment_canonical_slot_writer.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": true,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "365a601e1f29b33e0b028f5efb9f9b7a7538d0d6",
+        "16d86b006e8a87c897edaedcecd1a9b77fcd2742",
+        "a8c8c41b4d95b0534573b68f911d973a37c59658",
+        "2aab903f3edcdb1262fa089f8d1e5263673d4c19",
+        "711da28f1a3da44e87b1097e9e5a43e5c792b843",
+        "c61d928a121da01b6b209b34a3d96ddd04514b2b",
+        "f3ee9a6f13f69bbc2add0b709109048e2ef22036"
+      ],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "NO",
+      "recommended_integration_strategy": "SELECTIVE_IMPORT_ON_CURRENT_MASTER",
+      "same_file_collision_set": [
+        "B033/B034 canonical equipment slot schema and writer",
+        "future app.py Shop route/cutover seam",
+        "D020 canonical acquisition producer boundary"
+      ],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "C023 is a commerce stack with a duplicate-equivalent equipment schema commit. Its equipment migration/test blobs exactly match B033, but the Git commit is distinct and does not contain B034."
+    },
+    {
+      "lane": "D",
+      "task": "D020",
+      "sha": "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/codex/d020-acquisition-foundation-current-master",
+        "refs/remotes/origin/codex/d020-acquisition-foundation-current-master"
+      ],
+      "parent": "200fe5411cb0ea7772ee1784de6f7edcabbfe03c",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 3,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "acquisition_result_adapters.py",
+          "kind": "runtime_module"
+        },
+        {
+          "path": "docs/planning/architecture/D019_ACQUISITION_PRODUCER_ADAPTER_CORE_V1_001.md",
+          "kind": "documentation"
+        },
+        {
+          "path": "docs/planning/architecture/d019_producer_adapter_readiness_matrix.json",
+          "kind": "documentation"
+        },
+        {
+          "path": "tests/test_d019_acquisition_result_adapters.py",
+          "kind": "test"
+        }
+      ],
+      "stacked_tree_files": [
+        "canonical_acquisition_result.py",
+        "acquisition_result_adapters.py",
+        "tests/test_d018_canonical_acquisition_result.py",
+        "tests/test_d019_acquisition_result_adapters.py"
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "0571ec05e1acdb13595d46a00404e11fddb58292",
+        "200fe5411cb0ea7772ee1784de6f7edcabbfe03c"
+      ],
+      "stacked_candidate": true,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "recommended_integration_strategy": "SELECTIVE_IMPORT_ON_CURRENT_MASTER",
+      "same_file_collision_set": [
+        "future app.py acquisition producer/event bridge",
+        "C023 Shop acquisition destination wiring"
+      ],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "The exact D020 commit changes the adapter evidence layer and tests; it does not modify Player Presentation modules or app.py. Its eventual producer bridge remains a serial integration seam."
+    },
+    {
+      "lane": "D",
+      "task": "D021",
+      "sha": "3e764df5dbc1aefb487f770d7f2ac673362978b3",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/codex/d021-acquisition-producer-runtime-readiness-recon-v2",
+        "refs/remotes/origin/codex/d021-acquisition-producer-runtime-readiness-recon-v2"
+      ],
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 1,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "docs/planning/architecture/D021_ACQUISITION_PRODUCER_RUNTIME_READINESS_RECON_V2_001.md",
+          "kind": "documentation"
+        },
+        {
+          "path": "docs/planning/architecture/d021_acquisition_missing_fact_matrix.json",
+          "kind": "documentation"
+        },
+        {
+          "path": "docs/planning/architecture/d021_acquisition_producer_runtime_readiness_matrix.json",
+          "kind": "documentation"
+        }
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": false,
+      "tests_changed": false,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [
+        "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6"
+      ],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "NO",
+      "recommended_integration_strategy": "RECONCILE_DOCUMENTATION_ON_CURRENT_MASTER",
+      "same_file_collision_set": [],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "D021 is documentation-only and may remain reviewable after an explicit e266 source reconciliation. It is not merged and cannot certify D020 production readiness."
+    },
+    {
+      "lane": "F",
+      "task": "F014",
+      "sha": "9dda188a7a52b02d680cd6ff7aedaf891169bb12",
+      "owner_status": "OWNER_ACCEPTED_REFERENCE",
+      "branch_refs": [
+        "refs/heads/codex/f014-world-battlefield-boss-thin-adapter",
+        "refs/remotes/origin/codex/f014-world-battlefield-boss-thin-adapter"
+      ],
+      "parent": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "merge_base_current_master_verified": "b75308d44806bb7c2e2b131a73ba06a71c188b3c",
+      "current_master_is_ancestor": false,
+      "candidate_is_ancestor_of_current_master": false,
+      "ahead_by": 1,
+      "behind_by": 4,
+      "merged_into_current_master": false,
+      "changed_files": [
+        {
+          "path": "docs/planning/architecture/F012_WORLD_MONSTER_BATTLEFIELD_BOSS_BOUNDARY_CONTRACT_V1_001.md",
+          "kind": "documentation"
+        },
+        {
+          "path": "docs/planning/architecture/f012_world_monster_boundary_contract_matrix.json",
+          "kind": "documentation"
+        },
+        {
+          "path": "tests/test_f012_world_monster_boundary_contract.py",
+          "kind": "test"
+        },
+        {
+          "path": "tests/test_f014_world_battlefield_boss_thin_adapter.py",
+          "kind": "test"
+        },
+        {
+          "path": "world_monster_boss_adapter.py",
+          "kind": "runtime_module"
+        },
+        {
+          "path": "world_monster_boundary_contract.py",
+          "kind": "runtime_module"
+        }
+      ],
+      "app_py_changed": false,
+      "schema_changed": false,
+      "runtime_module_changed": true,
+      "tests_changed": true,
+      "docs_changed": true,
+      "depends_on_candidate_shas": [],
+      "stacked_candidate": false,
+      "clean_cherry_pick_likely": "UNKNOWN",
+      "recommended_integration_strategy": "SELECTIVE_IMPORT_ON_CURRENT_MASTER",
+      "same_file_collision_set": [
+        "future app.py World/Battlefield Boss adapter seam",
+        "F015 duplicate-equivalent F014 blobs and milestone storage"
+      ],
+      "pr400_core_collision": "NONE",
+      "evidence_note": "F014 deliberately keeps Battlefield Boss separate from Lord and World progression. Its current module/test files do not overlap PR400."
+    }
+  ],
+  "active_task_overlay": [
+    {
+      "task": "A028",
+      "lane": "A",
+      "head": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+      "branch": "codex/a028-hero-overview-player-presentation-adoption",
+      "remote_visible": false,
+      "remote_ref": null,
+      "task_start_master": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+      "current_master_changed_after_start": false,
+      "current_master_is_ancestor": true,
+      "implementation_commit_visible": false,
+      "docs_only": false,
+      "pr400_core_collision": "NONE",
+      "final_reconciliation_required": "NO_FOR_CURRENT_HEAD; YES_FOR_ANY_NEW_RUNTIME_COMMIT",
+      "note": "The local branch was created from origin/master after PR400. No A028-specific delta is visible at the audited ref; the route exists only because it is already in e266."
+    },
+    {
+      "task": "B035",
+      "lane": "B",
+      "head": "9361f7de31c0f1a189b19202ce20dd21c6cd690b",
+      "branch": "codex/b035-equipment-canonical-slot-writer-recon",
+      "remote_visible": true,
+      "remote_ref": "refs/remotes/origin/codex/b035-equipment-canonical-slot-writer-recon",
+      "task_start_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3",
+      "current_master_changed_after_start": true,
+      "current_master_is_ancestor": false,
+      "implementation_commit_visible": false,
+      "docs_only": true,
+      "pr400_core_collision": "NONE",
+      "final_reconciliation_required": "YES",
+      "note": "Three docs-only commits/files are old-baseline evidence; no PR400 file is touched."
+    },
+    {
+      "task": "C024",
+      "lane": "C",
+      "head": "0c166440a9894bcd07bcea6b0dbeea8372bdb32b",
+      "branch": "codex/c024-current-shop-runtime-offer-recon",
+      "remote_visible": false,
+      "remote_ref": null,
+      "task_start_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3",
+      "current_master_changed_after_start": true,
+      "current_master_is_ancestor": false,
+      "implementation_commit_visible": false,
+      "docs_only": true,
+      "pr400_core_collision": "NONE",
+      "final_reconciliation_required": "YES",
+      "note": "The recon is source-stable for commerce modules but its recorded current master is stale; the local-only branch is not a canonical merge source."
+    },
+    {
+      "task": "D022",
+      "lane": "D",
+      "head": "7ab57ee78c74aa4526bfa29b6a8a0aa998604882",
+      "branch": "codex/d022-shop-acquisition-ownership-reference-contract-v1",
+      "remote_visible": true,
+      "remote_ref": "refs/remotes/origin/codex/d022-shop-acquisition-ownership-reference-contract-v1",
+      "task_start_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3",
+      "current_master_changed_after_start": true,
+      "current_master_is_ancestor": false,
+      "implementation_commit_visible": false,
+      "docs_only": true,
+      "pr400_core_collision": "NONE",
+      "final_reconciliation_required": "YES_BUT_DOC_ALREADY_RECORDS_E266_PUBLICATION_DRIFT",
+      "note": "D022 explicitly records that publication observed e266 and that the three docs were not touched by PR400, but its original baseline fields remain b753."
+    },
+    {
+      "task": "F015",
+      "lane": "F",
+      "head": "e0a28dedcac1b4cfddfde32e0474de26a1be4b02",
+      "branch": "codex/f015-world-battlefield-boss-milestone-projection",
+      "remote_visible": true,
+      "remote_ref": "refs/remotes/origin/codex/f015-world-battlefield-boss-milestone-projection",
+      "task_start_master": "b75308d44806bb7c2e2b131a73ba06a71c188b3",
+      "current_master_changed_after_start": true,
+      "current_master_is_ancestor": false,
+      "implementation_commit_visible": true,
+      "docs_only": false,
+      "pr400_core_collision": "NONE",
+      "final_reconciliation_required": "YES_CURRENT_MASTER_CANDIDATE_REQUIRED",
+      "note": "F015 is Git-independent of F014 but carries byte-identical F014 files plus a new milestone migration/runtime. It must not be treated as an F014 descendant or merged blindly."
+    }
+  ],
+  "active_task_remote_visibility_summary": {
+    "A028": "LOCAL_ONLY",
+    "B035": "REMOTE_VISIBLE",
+    "C024": "LOCAL_ONLY",
+    "D022": "REMOTE_VISIBLE",
+    "F015": "REMOTE_VISIBLE"
+  },
+  "counts": {
+    "accepted_candidates_audited": 7,
+    "active_tasks_audited": 5,
+    "accepted_unmerged_against_current_master": 7,
+    "accepted_direct_forward_integratable": 0,
+    "active_runtime_candidates_requiring_current_master_reconciliation": 1,
+    "docs_only_active_tasks_requiring_explicit_reconciliation": 3,
+    "pr400_direct_core_file_intersections": 0
+  },
+  "provenance_caveat": "All ahead/behind counts and ancestry values are recomputed against e2669bfa8582239dd001dbb41b2cd134923e9e27. No candidate was rebased, rewritten, merged, or modified by E029."
+}

@@ -1,0 +1,153 @@
+{
+  "task": "E029_POST_PR400_MULTI_LANE_CURRENT_MASTER_RECONCILIATION_001",
+  "current_master": "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+  "same_file_multiwriter_forbidden": true,
+  "integration_owner": "LANE_E",
+  "waves": [
+    {
+      "wave": 0,
+      "name": "PR400_PLAYER_PRESENTATION_READ_FOUNDATION",
+      "status": "MERGED",
+      "inputs": [
+        "e2669bfa8582239dd001dbb41b2cd134923e9e27",
+        "709d052cc773036468908f41c963c0d46d64c2ab"
+      ],
+      "purpose": "Current-master authenticated Player Presentation read route and B028/B030/A025 read/transport stack.",
+      "app_py_collision": "NONE_FOR_FOUNDATION",
+      "required_action": "Preserve the /api/player/presentation route and its read-only authority boundary."
+    },
+    {
+      "wave": 1,
+      "name": "EQUIPMENT_SCHEMA_AND_LOADOUT_SERVICE",
+      "candidate_inputs": [
+        "15f665f656418ab189d32aa809c163f3e27fa92c",
+        "e7235ef74bcf2a31c190e3a6ce320bc8ee6c3e74"
+      ],
+      "why_ordered_here": "B034 requires B033 canonical_slot schema. The slot schema is also duplicated by C023, so one canonical schema decision must precede commerce import.",
+      "integration_strategy": "Create a new current-master candidate; selectively import B033 migration/test and B034 service/test, then add an explicit future app.py cutover only under the Lane E writer.",
+      "file_collision_risk": "LOW_CORE_HIGH_SERIAL_APP_PY",
+      "schema_prerequisite": "equipment_canonical_slot_v1 code exists only in candidates; production migration not executed.",
+      "required_owner_gate": "GO_MERGE for the current-master equipment candidate; separate schema/production migration gate later.",
+      "post_merge_verification": [
+        "B033 schema tests",
+        "B034 service tests",
+        "malformed/conflicting slot fail-closed tests",
+        "Player Presentation equipment projection regression"
+      ],
+      "feature_enable": "NO"
+    },
+    {
+      "wave": 2,
+      "name": "ACQUISITION_RESULT_AND_PRODUCER_ADAPTER_FOUNDATION",
+      "candidate_inputs": [
+        "d251ed92c46ebf6e7806ba4258ba6ba6b032e4a6",
+        "3e764df5dbc1aefb487f770d7f2ac673362978b3"
+      ],
+      "why_ordered_here": "Future Shop and Monster/Quest producers need one canonical result/lineage boundary before route wiring. D020 has no new migration in its exact commit.",
+      "integration_strategy": "Selective import D018/D019/D020 modules and tests on e266; reconcile D021 docs; do not wire producers in app.py in parallel.",
+      "file_collision_risk": "LOW_CORE_MEDIUM_SERIAL_APP_PY",
+      "schema_prerequisite": "No new database schema is introduced by exact D020; existing D5 lineage authorities remain prerequisites where a producer is later activated.",
+      "required_owner_gate": "GO_MERGE for a current-master acquisition candidate; no Production migration implied.",
+      "post_merge_verification": [
+        "canonical acquisition result validation",
+        "producer adapter readiness",
+        "lineage and replay contract tests"
+      ],
+      "feature_enable": "NO"
+    },
+    {
+      "wave": 3,
+      "name": "COMMERCE_CORE_SELECTIVE_IMPORT",
+      "candidate_inputs": [
+        "ab588aa28cbae92a8c29bffe575b67b1f3207793"
+      ],
+      "why_ordered_here": "Commerce needs the equipment slot authority decision and should converge on the acquisition result boundary before a Shop route is wired.",
+      "integration_strategy": "Selectively import C019/C020/C021/C023 commerce modules, coin_purchase_operations_v1, tests, and docs. Do not import the duplicate f3ee equipment migration/test when Wave 1 already owns the canonical slot schema.",
+      "file_collision_risk": "MEDIUM_CORE_HIGH_SERIAL_APP_PY",
+      "schema_prerequisite": "coin_purchase_operations_v1 code is candidate-only; canonical_slot migration must have one owner; neither is Production migrated.",
+      "required_owner_gate": "GO_MERGE for the reconciled commerce candidate; separate production migration and revenue/feature gates remain.",
+      "post_merge_verification": [
+        "offer normalization",
+        "server price and eligibility authority",
+        "coin debit/purchase operation idempotency",
+        "canonical equipment destination writer",
+        "D5 acquisition lineage"
+      ],
+      "feature_enable": "NO"
+    },
+    {
+      "wave": 4,
+      "name": "WORLD_MONSTER_BATTLEFIELD_BOSS_BOUNDARY",
+      "candidate_inputs": [
+        "9dda188a7a52b02d680cd6ff7aedaf891169bb12"
+      ],
+      "pending_inputs_not_accepted": [
+        "e0a28dedcac1b4cfddfde32e0474de26a1be4b02"
+      ],
+      "why_ordered_here": "The boundary adapter is independent of Player Presentation and must remain separate from Lord and generic World progression. F015 adds a new milestone schema and is not an F014 Git descendant.",
+      "integration_strategy": "Current-master selective import F014 boundary/adapter modules and tests. Reconcile F015 separately only after its Owner status and milestone storage decision are closed.",
+      "file_collision_risk": "LOW_CORE_HIGH_SERIAL_APP_PY",
+      "schema_prerequisite": "F014 has no schema; F015's world_battlefield_boss_milestone_v1 is candidate-only and not implied by F014.",
+      "required_owner_gate": "GO_MERGE for F014 current-master candidate; separate gate for F015 milestone storage.",
+      "post_merge_verification": [
+        "Boss != Lord",
+        "Monster defeated != World progression",
+        "boundary replay/dedupe",
+        "no generic selector or Player Presentation authority leakage"
+      ],
+      "feature_enable": "NO"
+    },
+    {
+      "wave": 5,
+      "name": "PLAYER_PRESENTATION_FRONTEND_ADOPTION",
+      "candidate_inputs": [
+        "A028 active branch when an implementation commit is available",
+        "A027 documentation as reconciled evidence only"
+      ],
+      "why_ordered_here": "PR400 already provides the backend/read foundation. The frontend should consume the current API contract after backend equipment and authority changes stabilize.",
+      "integration_strategy": "Use the A028 branch created from e266; do not use old A027 documentation as an implementation base. No concurrent hero.html writer.",
+      "file_collision_risk": "NONE_WITH_PR400_BACKEND; SERIAL_FRONTEND_OWNERSHIP",
+      "schema_prerequisite": "None for read adoption; equipment display must honor invalid-state/provenance contracts.",
+      "required_owner_gate": "GO_MERGE for the A028 candidate after responsive/device acceptance.",
+      "post_merge_verification": [
+        "Player Presentation API contract",
+        "desktop/iPad/mobile layout",
+        "session identity",
+        "equipment invalid-state display"
+      ],
+      "feature_enable": "NO"
+    },
+    {
+      "wave": 6,
+      "name": "SINGLE_OWNER_APP_PY_CUTOVERS_AND_COMBINED_ACCEPTANCE",
+      "candidate_inputs": [
+        "current-master equipment route cutover",
+        "future acquisition producer bridges",
+        "future Shop route cutover",
+        "future World/Boss route or event binding"
+      ],
+      "why_ordered_here": "The accepted foundations are pure modules/docs and do not modify app.py. Their public route/event wiring is the highest collision surface and must be reconciled by one Lane E executor.",
+      "integration_strategy": "One fresh e266-or-later integration worktree, one app.py owner, one serial sequence. Run a boundary test after each route cutover and combined acceptance last.",
+      "file_collision_risk": "HIGH_SERIAL_APP_PY",
+      "schema_prerequisite": "Each route cutover waits for its domain schema/evidence gate; no Production migration is part of this plan.",
+      "required_owner_gate": "New GO_MERGE for each reviewed integration candidate; GO_DEPLOY and feature enable remain separate.",
+      "post_merge_verification": [
+        "route authority",
+        "no duplicate writers",
+        "Player Presentation exclusion contract",
+        "equipment/acquisition/commerce/world cross-system acceptance"
+      ],
+      "feature_enable": "NO"
+    }
+  ],
+  "stale_master_policy": {
+    "docs_only_recon": "May remain reviewable when findings are source-stable and no overlapping files changed, but the final report must state the new current master and any changed-domain reconciliation.",
+    "runtime_implementation": "Must prove current origin/master is an ancestor, or produce a new current-master integration candidate before GO_MERGE readiness. Being behind is not itself a rejection; silently treating it as current is prohibited.",
+    "frontend_implementation": "Must use the current Player Presentation API contract and a current-master-based candidate; no concurrent hero.html writer.",
+    "schema_candidate": "Schema code existence, schema merge, Production migration, and feature enable are separate gates."
+  },
+  "recommended_remaining_merge_waves": 6,
+  "next_integration_owner": "LANE_E",
+  "next_app_py_policy": "Serial current-master cutover only; pure modules, tests, migrations, contracts, and docs may be prepared independently, but overlapping app.py edits are forbidden.",
+  "production_policy": "E029 performs no Production query, schema migration, feature enable, deploy, or master merge."
+}
