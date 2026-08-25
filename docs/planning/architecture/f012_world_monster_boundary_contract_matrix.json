@@ -1,0 +1,158 @@
+{
+  "task": "F012_WORLD_MONSTER_BATTLEFIELD_BOSS_BOUNDARY_CONTRACT_V1_001",
+  "provenance": {
+    "origin_master": "58d9b7047f285751a048fc551c955909c87984ac",
+    "parent_reference": "4ed81b717f751f899410a44871f5126c352b0127",
+    "branch": "codex/f012-world-monster-battlefield-boss-boundary-v1",
+    "f007_runtime_activation": false
+  },
+  "contracts": [
+    {
+      "name": "BATTLEFIELD_BOSS_ENCOUNTER_INTENT_V1",
+      "direction": "WORLD_TO_MONSTER",
+      "fixed_values": {
+        "encounter_class": "BATTLEFIELD_BOSS",
+        "eligibility_authority": "WORLD_PROGRESSION"
+      },
+      "required_fields": [
+        "contract_version",
+        "user_id",
+        "zone_key",
+        "intent_operation_id",
+        "encounter_class",
+        "eligibility_authority",
+        "eligibility_reference",
+        "requested_at",
+        "replayed",
+        "metadata"
+      ],
+      "meaning": "World authorized creation/resolution of one Battlefield Boss milestone encounter",
+      "does_not_mean": [
+        "monster_selected",
+        "monster_defeated",
+        "lord_ready",
+        "zone_clear",
+        "star_granted",
+        "next_zone_unlocked"
+      ],
+      "replay_key": ["user_id", "intent_operation_id"],
+      "replay_ignored_delivery_fields": ["requested_at", "replayed"]
+    },
+    {
+      "name": "BATTLEFIELD_BOSS_DEFEATED_FACT_V1",
+      "direction": "MONSTER_SETTLEMENT_TO_WORLD",
+      "fixed_values": {
+        "encounter_class": "BATTLEFIELD_BOSS",
+        "defeated": true,
+        "source_authority": "SERVER_MONSTER_SETTLEMENT"
+      },
+      "required_fields": [
+        "contract_version",
+        "user_id",
+        "zone_key",
+        "monster_id",
+        "encounter_class",
+        "encounter_operation_id",
+        "settlement_id",
+        "defeated",
+        "source_authority",
+        "occurred_at",
+        "replayed",
+        "metadata"
+      ],
+      "meaning": "A server-authoritative Battlefield Boss encounter was committed as defeated",
+      "does_not_mean": [
+        "lord_ready",
+        "zone_clear",
+        "star_granted",
+        "next_zone_unlocked",
+        "quest_completed"
+      ],
+      "dedupe_key": "settlement_id",
+      "replay_ignored_delivery_fields": ["occurred_at", "replayed"]
+    }
+  ],
+  "forbidden_authoritative_fields": [
+    "boss_ready",
+    "lord_ready",
+    "lord_unlocked",
+    "zone_clear",
+    "zone_cleared",
+    "star_granted",
+    "stars",
+    "next_zone",
+    "next_zone_unlock",
+    "next_zone_unlocked",
+    "world_progressed",
+    "quest_completed",
+    "correct_answer",
+    "mastery_pct",
+    "attack",
+    "drop",
+    "max_hp",
+    "monster_attack",
+    "monster_hp_max",
+    "reward",
+    "stats"
+  ],
+  "authority_matrix": {
+    "world": [
+      "battlefield_boss_eligibility",
+      "lord_readiness_policy",
+      "zone_clear_policy",
+      "star_policy",
+      "next_zone_progression"
+    ],
+    "monster": [
+      "monster_identity",
+      "monster_profile",
+      "encounter_binding",
+      "monster_hp",
+      "server_defeat_settlement",
+      "settlement_lineage"
+    ],
+    "excluded": [
+      "lord_trial_authority",
+      "quest_progress",
+      "monster_identity_rng",
+      "combat_settlement_calculation"
+    ]
+  },
+  "f010_adapter": {
+    "future_input": "BATTLEFIELD_BOSS_ENCOUNTER_INTENT_V1",
+    "future_selector_intent": "BATTLEFIELD_BOSS",
+    "selector_eligibility_owner": "WORLD_PROGRESSION",
+    "selector_resolves_identity": true,
+    "f012_edits_f010": false,
+    "regular_pool_excludes": ["BATTLEFIELD_BOSS", "LORD"]
+  },
+  "storage_answers": {
+    "can_existing_durable_settlement_id_support_world_dedupe": "UNKNOWN",
+    "future_world_milestone_storage_required": "OWNER_DECISION_REQUIRED",
+    "f012_creates_storage": false,
+    "f012_creates_migration": false
+  },
+  "validation": {
+    "strict_unknown_top_level_fields": true,
+    "unknown_authoritative_metadata_fields_fail_closed": true,
+    "intent_immutability": true,
+    "fact_immutability": true,
+    "lord_fact_rejected": true,
+    "regular_fact_rejected": true,
+    "client_source_rejected": true,
+    "defeated_false_rejected": true,
+    "same_operation_replay_supported": true,
+    "changed_payload_rejected": true,
+    "focused_tests": "32 passed",
+    "py_compile": "PASS"
+  },
+  "change_boundary": {
+    "app_py_changed": false,
+    "runtime_wiring_changed": false,
+    "schema_changed": false,
+    "production_mutation": false,
+    "feature_enable": false,
+    "deploy": false,
+    "merge": false
+  }
+}
