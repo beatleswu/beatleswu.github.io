@@ -1,0 +1,185 @@
+{
+  "task": "A030_R1_RPG_ART_SYSTEM_COLOR_DIRECTION_CLOSURE_001",
+  "source_structure_head": "b20ed61f5ca3bce5d6a98b5ce046bdfe5b0d4e51",
+  "current_canonical_master": "7c30a44867501ef936f84a41f2b25032c186f367",
+  "structure_policy": {
+    "layout_changed": false,
+    "information_architecture_changed": false,
+    "runtime_changed": false,
+    "palette_candidates": 3
+  },
+  "surface_balance_target": {
+    "light_world_colorful_surfaces_percent": {
+      "min": 65,
+      "max": 75
+    },
+    "dark_structural_chrome_percent": {
+      "min": 25,
+      "max": 35
+    }
+  },
+  "gold_policy": {
+    "default_panel_outline": false,
+    "reserved_for": [
+      "LEGENDARY",
+      "major_milestone",
+      "boss_accent",
+      "special_reward",
+      "important_selected_moment"
+    ]
+  },
+  "rarity_language": {
+    "COMMON": {
+      "color_role": "neutral",
+      "accent": "#9DAEC1",
+      "symbol": "○",
+      "geometry": "single quiet frame"
+    },
+    "UNCOMMON": {
+      "color_role": "growth",
+      "accent": "#68B77A",
+      "symbol": "◆",
+      "geometry": "green inset marker"
+    },
+    "RARE": {
+      "color_role": "adventure_blue",
+      "accent": "#287AD4",
+      "symbol": "◇",
+      "geometry": "double blue edge"
+    },
+    "EPIC": {
+      "color_role": "magic_purple",
+      "accent": "#8968D8",
+      "symbol": "✦",
+      "geometry": "violet crest"
+    },
+    "LEGENDARY": {
+      "color_role": "special_gold",
+      "accent": "#E5AE3E",
+      "symbol": "✹",
+      "geometry": "gold crest and reveal rim"
+    }
+  },
+  "palette_candidates": {
+    "A": {
+      "name": "BRIGHT_ADVENTURE",
+      "mood": [
+        "open sky",
+        "world exploration",
+        "friendly RPG",
+        "energetic",
+        "clear"
+      ],
+      "roles": {
+        "canvas": "#EAF7FF",
+        "world_surface": "#DDF2FF",
+        "surface": "#F8FCFF",
+        "surface_alt": "#EAF6F3",
+        "surface_warm": "#FFF4D8",
+        "structural_chrome": "#173653",
+        "structural_chrome_alt": "#245B7E",
+        "adventure_blue": "#1E6FC7",
+        "go_odyssey_teal": "#39C9B6",
+        "warm_sun_yellow": "#F6C957",
+        "adventure_orange": "#F29B52",
+        "growth_green": "#72C96B",
+        "magic_purple": "#8968D8",
+        "body_text": "#173653",
+        "muted_text": "#59738A",
+        "frame": "#7AB8D3",
+        "selection": "#1E6FC7",
+        "new_state": "#F6C957"
+      },
+      "recommended": true
+    },
+    "B": {
+      "name": "COLORFUL_FANTASY",
+      "mood": [
+        "magical",
+        "spirit-forward",
+        "playful",
+        "fantastical",
+        "controlled saturation"
+      ],
+      "roles": {
+        "canvas": "#F2F0FF",
+        "world_surface": "#E6F3FF",
+        "surface": "#FFFBF2",
+        "surface_alt": "#E6F7F3",
+        "surface_warm": "#FFF2DD",
+        "structural_chrome": "#24345B",
+        "structural_chrome_alt": "#405A91",
+        "adventure_blue": "#3F75D7",
+        "go_odyssey_teal": "#36C5B3",
+        "warm_sun_yellow": "#F3C85B",
+        "adventure_orange": "#EA7B6C",
+        "growth_green": "#68B77A",
+        "magic_purple": "#8764D6",
+        "body_text": "#24345B",
+        "muted_text": "#65708B",
+        "frame": "#8C8BD0",
+        "selection": "#3F75D7",
+        "new_state": "#F3C85B"
+      },
+      "recommended": false
+    },
+    "C": {
+      "name": "WARM_STORYBOOK",
+      "mood": [
+        "friendly",
+        "illustrated adventure book",
+        "warm",
+        "approachable",
+        "younger-child friendly"
+      ],
+      "roles": {
+        "canvas": "#FFF7E7",
+        "world_surface": "#DDF1F6",
+        "surface": "#FFFDF5",
+        "surface_alt": "#EEF6E7",
+        "surface_warm": "#FFF0D0",
+        "structural_chrome": "#294658",
+        "structural_chrome_alt": "#477489",
+        "adventure_blue": "#397DB8",
+        "go_odyssey_teal": "#4AABA4",
+        "warm_sun_yellow": "#E6B84D",
+        "adventure_orange": "#ED9461",
+        "growth_green": "#78B56B",
+        "magic_purple": "#9A83C7",
+        "body_text": "#294658",
+        "muted_text": "#6D7B76",
+        "frame": "#91BFC5",
+        "selection": "#397DB8",
+        "new_state": "#E6B84D"
+      },
+      "recommended": false
+    }
+  },
+  "surface_rules": {
+    "equipment_backpack": [
+      "Hero area uses a light or sky-toned surface",
+      "Selected detail uses a cream reading surface",
+      "Functional slots use a distinct slot marker and blue selection edge",
+      "Primary CTA uses teal",
+      "NEW uses warm yellow",
+      "Gold is not the default border"
+    ],
+    "combat": [
+      "Go board remains warm wood and dominant",
+      "Hero side is brighter and friendly",
+      "Monster side inherits environment color",
+      "Battlefield Boss may become darker/heavier as contrast"
+    ],
+    "reward": [
+      "Victory uses light, sky and sun-yellow energy",
+      "Rare Equipment carries more visual weight than Coins or XP",
+      "Reward remains a deterministic result, not a gacha reveal"
+    ],
+    "shop": [
+      "Merchant/world environment remains visible",
+      "Offer type is visible before price and metadata",
+      "Utility, cosmetic, Premium and unavailable remain distinct",
+      "Cosmetic never receives functional power language"
+    ]
+  }
+}
