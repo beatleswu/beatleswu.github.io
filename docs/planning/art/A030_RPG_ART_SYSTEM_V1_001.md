@@ -1,8 +1,29 @@
 # A030 — RPG Art System V1 Preproduction
 
-Status: design proposal for Owner visual review  
+Status: canonical design system locked by A030-R2 Owner palette decision
 Scope: art direction, reusable visual tokens, surface contracts, renderable mockups and evidence only  
 Runtime boundary: no production gameplay, authority, route, schema, asset-package or service-worker change
+
+## Canonical palette lock — A030-R2
+
+`BRIGHT_ADVENTURE` is the single canonical palette for RPG Art System V1.
+Candidate B (`COLORFUL_FANTASY`) and Candidate C (`WARM_STORYBOOK`) remain
+historical comparison evidence only; they are not implementation choices.
+
+The canonical roles are Adventure Blue `#1E6FC7`, Go Odyssey Teal
+`#39C9B6`, Sun Yellow `#F6C957`, Adventure Orange `#F29B52`, Cream
+`#FFF4D8`, Sky `#DDF2FF`, Growth Green `#72C96B`, Magic Purple `#8968D8`
+and Deep Navy `#173653`. Light, world and colorful surfaces target roughly
+65–75%; dark structural chrome targets roughly 25–35%.
+
+`GAME_WORLD_FIRST=YES`: light UI frames the existing E10 world, Zone art,
+Hero, Spirit, Monster art and material/FX. It does not replace them with
+plain white panels. `WHITE_DASHBOARD_DIRECTION=REJECTED`.
+
+Gold is special rather than default chrome: reserve it for Legendary,
+milestones, special rewards, Boss accents and important high-value selected
+moments. Blue selection, teal action and yellow `NEW` states carry ordinary
+interaction meaning.
 
 ## Product visual thesis
 
@@ -35,19 +56,23 @@ The read-only master inspection found:
 
 - `assets/maps/e10_world_stage_v2_clean.webp` is the canonical current-world map asset. A030 treats the map as the broad fantasy layer and does not redraw it.
 - The Adventure world component keeps map, zone nodes, player marker and selected-zone details as separate presentation surfaces. A030 keeps World progression authority outside the art system.
-- `hero.html` already uses deep wood, parchment, teal and antique-gold material language, with Hero identity, XP, functional Equipment and Spirit projections visible in distinct areas.
+- `hero.html` already provides deep wood, readable content surfaces, Hero identity, XP, functional Equipment and Spirit projections in distinct areas. A030 keeps that structure while the canonical future color balance is Bright Adventure.
 - `inventory.html` already distinguishes functional Equipment from general Backpack items, uses rarity states, equipped state and server-backed item detail. A030 makes that distinction the cross-surface contract rather than creating a second inventory model.
-- `shop.html` already has a dark merchant/world presentation with teal-gold offer framing. A030 keeps offer type visible and prevents pure cosmetics from implying power.
+- `shop.html` already has a merchant/world presentation. A030 keeps the environment visible, makes offer type visible and prevents pure cosmetics from implying power.
 - A023 provides a reusable Common/Rare/Elite/Battlefield Boss encounter hierarchy, a one-framework HP presentation and explicit separation from Lord Trial. A030 consumes that direction; it does not redesign the encounter authority.
 - A021A provides the canonical six-Spirit runtime asset package. A030 uses one Spirit frame language and does not create another pet system.
 
-The accepted E10 visual family is therefore: **deep teal world chrome + antique gold structure + warm parchment content + readable child-friendly typography + strong character/item silhouettes**.
+The canonical A030 visual family is therefore: **Bright Adventure light/world
+surfaces + Deep Navy structural chrome + Adventure Blue selection + Go Odyssey
+Teal actions + Sun Yellow `NEW`/milestone accents + strong character/item
+silhouettes**. Existing E10 art, materials and environment color remain part
+of the world layer.
 
 ## Core visual principles
 
 ### 1. Game world first
 
-World art should remain visible around major actions. A panel can be rich, but should not become an opaque document over the map. Contextual panels use dark teal chrome and parchment insets so they feel like game surfaces attached to the world.
+World art should remain visible around major actions. A panel can be rich, but should not become an opaque document over the map. Bright Adventure surfaces frame the world; Deep Navy is reserved for navigation, headers, HUD rails, contrast and high-stakes moments.
 
 ### 2. Hero is repeatedly present
 
@@ -83,10 +108,13 @@ The machine-readable source is `a030_rpg_visual_tokens.json`. The central roles 
 
 | Role | Proposal |
 | --- | --- |
-| World background | `#081E27` / deep teal vignette over the existing E10 map |
-| Primary chrome | `#092D35` and `#0D5E63` |
-| Accent | `#56D6C2` teal and `#D6AA51` antique gold |
-| Content | `#F4ECD8` parchment, `#DCC78F` inset parchment |
+| World/background layer | Existing E10 world art plus Sky `#DDF2FF` and environment color; do not replace the map with a white dashboard |
+| Primary chrome | Deep Navy `#173653` |
+| Selection/action | Adventure Blue `#1E6FC7`; Go Odyssey Teal `#39C9B6` |
+| Positive/new | Growth Green `#72C96B`; Sun Yellow `#F6C957` |
+| Content | Cream `#FFF4D8` and light Sky `#DDF2FF` |
+| Magic/rare accents | Magic Purple `#8968D8`; Adventure Orange `#F29B52` |
+| Special gold | Sun Yellow/gold treatment reserved for Legendary and high-value moments |
 | Positive | `#7BD37A`, always paired with icon/label |
 | Warning | `#F0A84A`, always paired with warning geometry |
 | Failure | `#D65B4B`, never the only correctness signal |
@@ -101,11 +129,11 @@ The same roles must be reused across Hero, Backpack, Combat, Reward, Shop, Spiri
 
 | Role | Behavior |
 | --- | --- |
-| `BACKGROUND` | Existing E10 world art, dark world chrome or painted texture; low contrast behind interaction |
-| `SURFACE_PANEL` | Primary content surface; parchment for reading or deep teal for immersive panels |
-| `INSET_PANEL` | One step darker/lighter than parent; carries detail and comparison |
-| `PRIMARY_FRAME` | Thin gold structure with a single restrained corner ornament |
-| `SECONDARY_FRAME` | Quiet teal/gold edge for supporting content |
+| `BACKGROUND` | Existing E10 world art, environment color or a light/sky scene; low contrast behind interaction |
+| `SURFACE_PANEL` | Light Sky/Cream or illustrated world surface; dark chrome is not the default card fill |
+| `INSET_PANEL` | One step lighter/darker than parent; carries detail and comparison without becoming a web table |
+| `PRIMARY_FRAME` | Blue/teal structural edge; gold only for special/high-value moments |
+| `SECONDARY_FRAME` | Quiet Sky/Teal edge for supporting content |
 | `HERO_FRAME` | Character focal area, identity plate and progression rail |
 | `MONSTER_FRAME` | Base creature/tier frame, HP and nameplate |
 | `ITEM_CARD` | One object silhouette, name, rarity/type and state |
@@ -226,7 +254,7 @@ Existing Zone 1 audio/SFX remains untouched. The visual system only names timing
 
 ## Typography and accessibility
 
-Traditional Chinese and English must remain readable at Desktop, iPad and Mobile widths. Body/helper text is never below 14/12px respectively in the proposed system. Critical controls are at least 44px, with 48px preferred for primary CTA. Focus uses a visible gold outline and offset. Selected, rarity, locked and success/failure states are not color-only; each has icon, label or geometry.
+Traditional Chinese and English must remain readable at Desktop, iPad and Mobile widths. Body/helper text is never below 14/12px respectively in the proposed system. Critical controls are at least 44px, with 48px preferred for primary CTA. Focus uses a visible high-contrast blue/navy outline and offset; gold remains available for important selected moments. Selected, rarity, locked and success/failure states are not color-only; each has icon, label or geometry.
 
 The board and future runtime UI should be tested at 1440×900, iPad landscape, 390px, 375px and 360px. Mobile changes order instead of just scaling down. No horizontal scroll is allowed for primary decisions.
 
@@ -235,6 +263,14 @@ The board and future runtime UI should be tested at 1440×900, iPad landscape, 3
 `a030_rpg_asset_taxonomy.json` defines future categories: `hero/`, `equipment/weapon|armor|accessory/`, `items/consumable|material|trophy/`, `cosmetics/`, `spirits/`, `monsters/`, `bosses/`, `world/`, `ui/frames|icons|buttons|status/`, `fx/combat|reward|unlock/`, `shop/` and `quest/`.
 
 Machine IDs use lower snake case. Spirit runtime forms use `spirit_<machine_id>_stage<1|2|3>.<ext>`. Monster variants use base family plus meaningful variant/tier tokens. Text should not be baked into art where a locale-neutral asset is possible. A030 does not move or promote any assets.
+
+### Final art production note
+
+A030-R2 locks color direction only; it does not create final item icons. The
+current weapon, armor, accessory, consumable, Trophy, cosmetic, Coins and XP
+glyph placeholders are temporary presentation stand-ins. Future Art
+Production must replace them with one coherent Go Odyssey icon family while
+preserving the locked slot, rarity and authority semantics.
 
 ## Renderable mockup board
 

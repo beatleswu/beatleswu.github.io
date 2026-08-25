@@ -2,6 +2,13 @@
   "task": "A030_R1_RPG_ART_SYSTEM_COLOR_DIRECTION_CLOSURE_001",
   "source_structure_head": "b20ed61f5ca3bce5d6a98b5ce046bdfe5b0d4e51",
   "current_canonical_master": "7c30a44867501ef936f84a41f2b25032c186f367",
+  "decision_status": "SUPERSEDED_BY_A030_R2_OWNER_PALETTE_LOCK",
+  "owner_selected_palette": "A",
+  "candidate_status": {
+    "A": "OWNER_SELECTED",
+    "B": "NOT_SELECTED",
+    "C": "NOT_SELECTED"
+  },
   "structure_policy": {
     "layout_changed": false,
     "information_architecture_changed": false,

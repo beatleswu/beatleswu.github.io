@@ -1,4 +1,17 @@
-# A030-R1 RPG Art System Color Direction Closure
+# A030-R1 RPG Art System Color Direction Closure (Historical Decision Evidence)
+
+## A030-R2 final Owner decision
+
+`A030_R2_BRIGHT_ADVENTURE_CANONICAL_PALETTE_LOCK_001` supersedes the
+comparison state in this historical packet. The final decision is:
+
+- **A / BRIGHT_ADVENTURE — OWNER_SELECTED / CANONICAL**
+- **B / COLORFUL_FANTASY — NOT_SELECTED**
+- **C / WARM_STORYBOOK — NOT_SELECTED**
+
+Downstream implementation must consume Candidate A only. This file remains
+for provenance and comparison context; it is not an invitation to reopen
+palette exploration.
 
 ## Decision scope
 
@@ -30,19 +43,19 @@ milestones, Boss accents, special rewards and important selected moments.
 
 ## Three candidates
 
-### A — Bright Adventure (recommended)
+### A — Bright Adventure (OWNER_SELECTED / CANONICAL)
 
 Open sky, adventure blue, Go Odyssey teal, sun yellow and cream create a
 clear entry point for children. Deep navy remains a structural anchor rather
 than a full-card default. Candidate A is the primary owner-decision evidence.
 
-### B — Colorful Fantasy
+### B — Colorful Fantasy (NOT_SELECTED)
 
 Blue, violet, teal, coral and warm yellow emphasize Spirit/magic identity.
 The palette remains light and controlled rather than neon. It is a credible
 alternative if the Owner wants more overt magical flavor.
 
-### C — Warm Storybook
+### C — Warm Storybook (NOT_SELECTED)
 
 Cream, sky, grass green, warm orange and soft gold create a friendly
 illustrated-adventure-book mood. It is younger and warmer, but still uses
@@ -118,8 +131,8 @@ authority, Boss/Lord authority or Production. It does not produce final item
 icons or final art. Existing glyph placeholders remain allowed for this
 palette-only decision.
 
-## Recommendation
+## Historical recommendation replaced by A030-R2 lock
 
-Use Candidate A as the default direction for the next visual pass, subject to
-Owner selection. Do not promote a palette to runtime until the Owner selects
-one candidate and a separate implementation task authorizes the change.
+Candidate A is now the Owner-selected canonical direction. Candidate B and C
+are not canonical. A separate runtime implementation task is still required
+before any palette token is promoted into shipped runtime UI.

@@ -1,60 +1,76 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "task": "A030_RPG_ART_SYSTEM_V1_PREPRODUCTION_001",
-  "version": "rpg-art-system-v1-preproduction",
-  "status": "design-proposal",
+  "version": "rpg-art-system-v1-canonical-bright-adventure",
+  "status": "canonical",
   "visual_thesis": "A colorful Go adventure world first, with compact game UI that frames the Go problem instead of competing with it.",
+  "palette_lock": {
+    "selected": "BRIGHT_ADVENTURE",
+    "candidate_a_status": "OWNER_SELECTED",
+    "candidate_b_status": "NOT_SELECTED",
+    "candidate_c_status": "NOT_SELECTED",
+    "game_world_first": true,
+    "white_dashboard_direction": "REJECTED",
+    "light_world_colorful_surfaces_percent": {"min": 65, "max": 75},
+    "dark_structural_chrome_percent": {"min": 25, "max": 35},
+    "gold_reserved_for": ["LEGENDARY", "major_milestone", "special_reward", "boss_accent", "important_selected_moment"]
+  },
   "palette": {
-    "world_night": "#081E27",
-    "world_teal": "#0D5E63",
-    "world_teal_deep": "#092D35",
-    "teal_accent": "#56D6C2",
-    "antique_gold": "#D6AA51",
-    "gold_highlight": "#F0BF57",
-    "parchment": "#F4ECD8",
-    "parchment_deep": "#DCC78F",
-    "ink": "#1C1409",
-    "ink_soft": "#715324",
-    "ivory": "#FFF3D1",
-    "positive": "#7BD37A",
+    "canvas": "#EAF7FF",
+    "sky": "#DDF2FF",
+    "surface": "#F8FCFF",
+    "surface_alt": "#EAF6F3",
+    "cream": "#FFF4D8",
+    "deep_navy": "#173653",
+    "adventure_blue": "#1E6FC7",
+    "go_odyssey_teal": "#39C9B6",
+    "sun_yellow": "#F6C957",
+    "adventure_orange": "#F29B52",
+    "growth_green": "#72C96B",
+    "magic_purple": "#8968D8",
+    "muted_text": "#59738A",
+    "frame": "#7AB8D3",
+    "positive": "#72C96B",
     "negative": "#D65B4B",
-    "warning": "#F0A84A",
-    "disabled": "#7D8D8C"
+    "warning": "#F29B52",
+    "disabled": "#7D8D8C",
+    "white": "#FFFFFF"
   },
   "color_roles": {
-    "background": "world_night with a low-contrast teal-to-ink vignette",
-    "surface_panel": "parchment for readable content or world_teal_deep for immersive overlays",
-    "inset_panel": "parchment_deep or rgba(8,30,39,.72), one step darker than its parent",
-    "primary_frame": "antique_gold with a thin inner ivory highlight",
-    "secondary_frame": "rgba(214,170,81,.46) with restrained teal edge accent",
-    "hero_frame": "teal_deep body, antique_gold crest, parchment identity plate",
-    "monster_frame": "tier geometry first; teal_deep body and tier-specific material accent",
-    "boss_frame": "reinforced gold geometry, warning notch and wider HP rail; never Lord ritual chrome",
-    "primary_cta": "teal_accent on world_teal_deep, with gold focus ring",
-    "secondary_cta": "parchment on dark chrome or transparent teal outline",
-    "utility_cta": "low-contrast dark chrome with an icon and readable label",
+    "background": "existing E10 world art, sky/environment color and painted texture; never a plain white replacement",
+    "surface_panel": "sky, cream or illustrated world surface; Deep Navy is structural chrome, not the default card fill",
+    "inset_panel": "light surface step or controlled environmental contrast for detail and comparison",
+    "primary_frame": "Adventure Blue or Go Odyssey Teal edge; Sun Yellow/gold only for special moments",
+    "secondary_frame": "quiet Sky/Teal edge for supporting content",
+    "hero_frame": "bright sky/cream Hero focal surface with Deep Navy identity rail and blue selection",
+    "monster_frame": "tier geometry first; environment color and Deep Navy contrast keep identity readable",
+    "boss_frame": "reinforced darker generic-Boss geometry, warning notch and wider HP rail; never Lord ritual chrome",
+    "primary_cta": "Go Odyssey Teal action surface with Deep Navy text and visible focus treatment",
+    "secondary_cta": "Sky/Cream supporting surface with Adventure Blue edge",
+    "utility_cta": "Deep Navy structural control with an icon and readable label",
     "disabled_cta": "muted text and dashed border; no misleading glow"
   },
   "surface_roles": {
-    "background": {"texture": "subtle painted grain or existing E10 world art", "opacity_limit": 0.24},
-    "surface_panel": {"radius": "panel", "padding": "space_4", "max_opacity_over_world": 0.94},
-    "inset_panel": {"radius": "inset", "padding": "space_3", "max_opacity_over_world": 0.86},
-    "primary_frame": {"border": "gold_1", "inner_line": true, "corner_ornament": "one per major panel"},
-    "item_card": {"minimum_height": 132, "visual_ratio": "1:1 icon area plus name/status rail", "metadata_limit": 3},
+    "background": {"texture": "subtle painted grain or existing E10 world art", "opacity_limit": 0.24, "game_world_first": true},
+    "surface_panel": {"radius": "panel", "padding": "space_4", "max_opacity_over_world": 0.94, "default_fill": "sky_or_cream"},
+    "inset_panel": {"radius": "inset", "padding": "space_3", "max_opacity_over_world": 0.86, "default_fill": "light_surface_step"},
+    "primary_frame": {"border": "blue_or_teal_1", "inner_line": true, "corner_ornament": "one per major panel", "gold_default": false},
+    "item_card": {"minimum_height": 132, "visual_ratio": "1:1 icon area plus name/status rail", "metadata_limit": 3, "surface": "light_world_colorful"},
     "item_slot": {"minimum_touch_target": 52, "empty_state": "engraved silhouette, not a question mark"},
-    "equipment_slot": {"minimum_touch_target": 60, "slot_mark": "weapon|armor|accessory", "equipped_state": "gold ring plus label"},
-    "reward_card": {"minimum_height": 150, "new_state": "NEW ribbon plus gold pulse", "action_limit": 2},
+    "equipment_slot": {"minimum_touch_target": 60, "slot_mark": "weapon|armor|accessory", "equipped_state": "teal ring plus label", "selected_state": "blue edge plus label"},
+    "reward_card": {"minimum_height": 150, "new_state": "NEW ribbon plus short sun-yellow reveal", "action_limit": 2},
     "shop_card": {"minimum_height": 176, "offer_type_visible": true, "cosmetic_power_claim": false},
     "quest_card": {"purpose": "next action and context", "max_primary_actions": 1},
-    "spirit_frame": {"material": "deep teal with constellation/Go-stone motif", "active_state": "gold orbit plus ACTIVE label"}
+    "spirit_frame": {"material": "bright companion surface with constellation/Go-stone motif", "active_state": "blue/teal orbit plus ACTIVE label"}
   },
   "border_roles": {
-    "gold_1": "1px solid #D6AA51",
-    "gold_2": "2px solid #F0BF57",
-    "teal_1": "1px solid rgba(86,214,194,.56)",
-    "quiet": "1px solid rgba(244,236,216,.16)",
-    "locked": "1px dashed rgba(244,236,216,.38)",
-    "boss": "3px double #D6AA51"
+    "blue_1": "1px solid #1E6FC7",
+    "teal_1": "1px solid #39C9B6",
+    "sun_1": "1px solid #F6C957 for NEW/selected-high-value moments",
+    "quiet": "1px solid rgba(23,54,83,.18)",
+    "locked": "1px dashed rgba(23,54,83,.38)",
+    "boss": "3px double #173653 with tier accent",
+    "gold_default": false
   },
   "radius_roles": {
     "chip": "999px",
@@ -65,19 +81,19 @@
     "boss": "10px"
   },
   "shadow_roles": {
-    "rest": "0 8px 22px rgba(2,17,22,.24)",
-    "raised": "0 18px 42px rgba(2,17,22,.38)",
-    "focus": "0 0 0 3px rgba(240,191,87,.52), 0 12px 26px rgba(2,17,22,.26)",
-    "item_glow": "0 0 18px rgba(86,214,194,.24)",
-    "boss_glow": "0 0 24px rgba(214,170,81,.28)"
+    "rest": "0 8px 22px rgba(23,54,83,.16)",
+    "raised": "0 18px 42px rgba(23,54,83,.24)",
+    "focus": "0 0 0 3px rgba(30,111,199,.42), 0 12px 26px rgba(23,54,83,.20)",
+    "item_glow": "0 0 18px rgba(57,201,182,.24)",
+    "boss_glow": "0 0 24px rgba(242,155,82,.28)"
   },
   "glow_roles": {
-    "active": "teal_accent, one soft halo",
-    "new_item": "gold_highlight, short reveal only",
-    "rare": "small teal halo",
-    "elite": "teal plus gold edge pulse",
-    "legendary": "gold halo with no full-screen bloom",
-    "boss": "gold warning beat, not a Lord ritual"
+    "active": "Go Odyssey Teal, one soft halo",
+    "new_item": "Sun Yellow, short reveal only",
+    "rare": "small Adventure Blue halo",
+    "elite": "Adventure Blue plus orange edge pulse",
+    "legendary": "special gold halo with no full-screen bloom",
+    "boss": "orange/navy warning beat, not a Lord ritual"
   },
   "spacing_scale_px": {
     "space_1": 4,
@@ -118,11 +134,11 @@
     "disabled": "reduced contrast plus explanation when actionable context matters"
   },
   "rarity_presentation": {
-    "common": {"label": "COMMON", "symbol": "·", "frame": "solid quiet", "effect": "none"},
-    "uncommon": {"label": "UNCOMMON", "symbol": "+", "frame": "single teal edge", "effect": "small teal accent"},
-    "rare": {"label": "RARE", "symbol": "◇", "frame": "double edge", "effect": "restrained aura"},
-    "epic": {"label": "EPIC", "symbol": "✦", "frame": "reinforced corner", "effect": "teal-gold pulse"},
-    "legendary": {"label": "LEGENDARY", "symbol": "✹", "frame": "gold crest", "effect": "short gold reveal"}
+    "common": {"label": "COMMON", "color_role": "neutral", "accent": "#9DAEC1", "symbol": "○", "frame": "single quiet frame", "effect": "none"},
+    "uncommon": {"label": "UNCOMMON", "color_role": "growth_green", "accent": "#72C96B", "symbol": "◆", "frame": "green inset marker", "effect": "small growth accent"},
+    "rare": {"label": "RARE", "color_role": "adventure_blue", "accent": "#1E6FC7", "symbol": "◇", "frame": "double blue edge", "effect": "restrained blue aura"},
+    "epic": {"label": "EPIC", "color_role": "magic_purple", "accent": "#8968D8", "symbol": "✦", "frame": "violet crest", "effect": "short purple pulse"},
+    "legendary": {"label": "LEGENDARY", "color_role": "special_gold", "accent": "#F6C957", "symbol": "✹", "frame": "special gold crest", "effect": "short gold reveal"}
   },
   "slot_presentation": {
     "weapon": {"label_zh": "武器", "label_en": "WEAPON", "mark": "blade silhouette", "equipable": true},
@@ -133,10 +149,10 @@
     "consumable": {"label_zh": "消耗品", "label_en": "CONSUMABLE", "mark": "vial/scroll silhouette", "equipable": false}
   },
   "status_presentation": {
-    "selected": "gold outline + Selected label + elevated surface",
+    "selected": "blue outline + Selected label + elevated surface; gold only for high-value selection",
     "locked": "lock icon + dashed frame + reason text",
-    "new_item": "NEW ribbon + one-time reveal motion",
-    "equipped": "gold ring + Equipped/已裝備 label + slot mark",
+    "new_item": "NEW ribbon + sun-yellow accent + one-time reveal motion",
+    "equipped": "teal ring + Equipped/已裝備 label + slot mark",
     "owned": "Owned/已持有 label, no purchase CTA",
     "unavailable": "muted art + unavailable reason, no false action",
     "loading": "stable skeleton with no layout jump",
@@ -182,11 +198,20 @@
     "traditional_chinese_readability": "avoid decorative typeface for body and helper copy"
   },
   "boundaries": {
+    "game_world_first": true,
+    "white_dashboard_direction_rejected": true,
+    "bright_adventure_is_not_plain_white": true,
     "functional_equipment_is_server_projected": true,
     "pure_cosmetic_has_no_implied_combat_power": true,
     "encounter_presentation_authorizes_damage": false,
     "presentation_authorizes_reward": false,
     "lord_trial_visual_authority_separate": true,
-    "runtime_asset_generation_in_a030": false
+    "runtime_asset_generation_in_a030": false,
+    "placeholder_icon_replacement_deferred_to_art_production": true
+  },
+  "asset_production_note": {
+    "final_item_icons_in_a030_r2": false,
+    "placeholder_families": ["weapon", "armor", "accessory", "consumable", "trophy", "cosmetic", "coins", "xp"],
+    "replacement_requirement": "one coherent Go Odyssey icon family preserving slot, rarity and authority semantics"
   }
 }

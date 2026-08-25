@@ -2,6 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "task": "A030_RPG_ART_SYSTEM_V1_PREPRODUCTION_001",
   "cardinality_agnostic": true,
+  "palette_lock": {
+    "selected": "BRIGHT_ADVENTURE",
+    "candidate_a_status": "OWNER_SELECTED",
+    "candidate_b_status": "NOT_SELECTED",
+    "candidate_c_status": "NOT_SELECTED",
+    "game_world_first": true,
+    "white_dashboard_direction": "REJECTED",
+    "light_world_colorful_surfaces_percent": {"min": 65, "max": 75},
+    "dark_structural_chrome_percent": {"min": 25, "max": 35},
+    "gold_reserved_for": ["LEGENDARY", "major_milestone", "special_reward", "boss_accent", "important_selected_moment"]
+  },
   "surfaces": [
     {
       "surface_id": "ADVENTURE_WORLD",
