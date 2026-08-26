@@ -685,7 +685,7 @@ button:focus-visible {
     <div class="hero-copy">
       <div class="eyebrow" data-i18n="shop.eyebrow">棋魂廣場</div>
       <h1 id="shop-title" data-i18n="shop.h1">商城</h1>
-      <p class="lead" data-i18n="shop.lead">用每天做題掙來的金幣，換取強化修煉的道具與外觀。Premium 會員享折扣優惠，每日輪替不容錯過。</p>
+      <p class="lead" data-a034-copy="hero-lead">用解題獲得的金幣兌換道具與外觀；請先查看目前商品與畫面顯示的價格，再決定。</p>
       <div class="wallet-row">
         <div class="wallet-tile">
           <div class="tile-label" data-i18n="shop.coin.label">持有金幣</div>
@@ -767,7 +767,7 @@ button:focus-visible {
             <div class="section-kicker">DAILY ROTATION</div>
             <div class="section-title" id="daily-title" data-i18n="shop.daily.title">每日輪替</div>
           </div>
-          <div class="section-sub" data-i18n="shop.daily.sub">每日輪替商品，今天不買明天就換。Premium 會員享有折扣優惠。</div>
+          <div class="section-sub" data-a034-copy="daily-sub">每日輪替商品會依系統更新；實際可購買狀態與價格以目前商品資料為準。</div>
         </div>
         <div class="grid" id="daily-grid">
           <div class="skeleton"></div><div class="skeleton"></div>
@@ -1236,6 +1236,34 @@ function englishKeyName(key) {
 }
 function isEn() {
   try { return window.I18n && I18n.getLang && I18n.getLang() === "en"; } catch (_) { return false; }
+}
+const A034_VISIBLE_COPY = Object.freeze({
+  "hero-lead": Object.freeze({
+    zh: "用解題獲得的金幣兌換道具與外觀；請先查看目前商品與畫面顯示的價格，再決定。",
+    en: "Use the coins you earn from problems to browse tools and appearances. Check the current catalog and displayed prices before choosing."
+  }),
+  "daily-sub": Object.freeze({
+    zh: "每日輪替商品會依系統更新；實際可購買狀態與價格以目前商品資料為準。",
+    en: "Daily rotation items are updated by the system; availability and price follow the current catalog."
+  }),
+  dailyItemDescription: Object.freeze({
+    zh: "這是目前商品資料中的每日輪替商品。",
+    en: "A daily rotation item from the current catalog."
+  }),
+  dailyRotationBadge: Object.freeze({ zh: "每日輪替", en: "Daily Rotation" }),
+  dailyEmpty: Object.freeze({
+    zh: "目前沒有可顯示的每日輪替商品。",
+    en: "No daily rotation items are available right now."
+  })
+});
+function visibleShopCopy(key) {
+  const copy = A034_VISIBLE_COPY[key];
+  return copy ? (isEn() ? copy.en : copy.zh) : "";
+}
+function applyA034VisibleCopy() {
+  document.querySelectorAll("[data-a034-copy]").forEach(el => {
+    el.textContent = visibleShopCopy(el.dataset.a034Copy);
+  });
 }
 function uiText(key, english, chinese) {
   try {
@@ -2013,14 +2041,14 @@ function renderDaily(res) {
   const visible = Number(res.daily_slots_visible || 3);
   const slots = (res.daily_slots || []).slice(0, visible);
   if (!slots.length) {
-    grid.innerHTML = `<div class="empty">${isEn() ? "No daily deals available today." : "今日沒有可顯示的每日商品。"}</div>`;
+    grid.innerHTML = `<div class="empty">${visibleShopCopy("dailyEmpty")}</div>`;
     return;
   }
   slots.forEach(slot => grid.appendChild(slot.type === "appearance" ? appearanceCard(slot) : itemCard({
     ...slot,
     key: slot.item_key,
-    desc: isEn() ? "Limited daily deal — gone tomorrow if you miss it." : "每日限定商品，錯過就要等下次輪替。"
-  }, { sale: true, badge: isEn() ? "Daily Deal" : "每日特價" })));
+    desc: visibleShopCopy("dailyItemDescription")
+  }, { badge: visibleShopCopy("dailyRotationBadge") })));
 }
 function renderItems(res) {
   renderCatalogSection("items-grid", res.daily_items || [], isEn()
@@ -2029,8 +2057,8 @@ function renderItems(res) {
 }
 function renderWeekly(res) {
   renderCatalogSection("weekly-grid", res.weekly_items || [], isEn()
-    ? "No weekly stock this week."
-    : "本週沒有週商店商品。", isEn() ? "Weekly Shop" : "週商店");
+    ? "No weekly shop items are available right now."
+    : "目前沒有可顯示的週商店商品。", isEn() ? "Weekly Shop" : "週商店");
 }
 function renderMonthly(res) {
   renderCatalogSection("monthly-grid", res.monthly_items || [], isEn()
@@ -2069,9 +2097,8 @@ function itemCard(item, saleOrOptions = false) {
   const key = item.key || item.item_key;
   card.dataset.itemKey = key;
   const owned = Number(catalog?.inventory?.[key] || 0);
-  const opts = typeof saleOrOptions === "object" ? saleOrOptions : { sale: !!saleOrOptions };
-  const sale = !!opts.sale;
-  const badge = opts.badge ?? (sale ? (isEn() ? "Daily Deal" : "每日特價") : "");
+  const opts = saleOrOptions && typeof saleOrOptions === "object" ? saleOrOptions : {};
+  const badge = opts.badge || "";
   card.innerHTML = `
     ${badge ? `<span class="tag">${badge}</span>` : ""}
     <div class="item-top">
@@ -2084,7 +2111,7 @@ function itemCard(item, saleOrOptions = false) {
     <div class="item-desc">${descOf({ ...item, key }) || (isEn() ? "A purchasable tool from the shop." : "這是一個可在商店購買的道具。")}</div>
     ${containsCopy({ ...item, key })}
     <div class="card-foot">
-      <div class="price">${sale && item.orig_price ? `<small>${money(item.orig_price)}</small>` : ""}${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
+      <div class="price">${money(item.price)} ${isEn() ? "coins" : "金幣"}</div>
       <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
     </div>`;
   card.querySelector("button").addEventListener("click", () => buyItem(key));
@@ -2267,6 +2294,7 @@ function showGachaResult(res) {
 }
 document.getElementById("btn-gacha").addEventListener("click", doGacha);
 window.onLangChange = () => {
+  applyA034VisibleCopy();
   if (catalog && !catalog.error) {
     renderDaily(catalog);
     renderWeekly(catalog);
@@ -2278,6 +2306,7 @@ window.onLangChange = () => {
   if (premiumV1Offer?.error) renderPremiumV1Error();
   else if (premiumV1Offer) renderPremiumV1(premiumV1Offer);
 };
+applyA034VisibleCopy();
 loadCatalog();
 loadCosmeticCommerce();
 loadPremiumV1Offer();
