@@ -18,11 +18,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import re
 from typing import Any, Mapping
 from uuid import uuid4
 
-from event_outbox import append_event
+from event_outbox import DuplicateOutboxEvent, append_event
 
 
 KNOWN_SPIRIT_IDS = (
@@ -70,6 +71,34 @@ COMPANION_OPERATION_TYPES = frozenset(
 OUTCOMES = frozenset({"SUCCESS", "FAILED", "UNKNOWN", "UNVERIFIED"})
 TERMINAL_OPERATION_STATUSES = frozenset(
     {"SUCCESS", "FAILED", "UNKNOWN", "UNVERIFIED"}
+)
+
+SPIRIT_EFFECT_EVENT_TYPE = "SPIRIT_EFFECT_TRIGGERED"
+SPIRIT_EFFECT_EVENT_CONTRACT_VERSION = "SPIRIT_EFFECT_EVENT_V1"
+SPIRIT_EFFECT_SOURCE_AUTHORITY = "server_combat_settlement"
+SPIRIT_EFFECT_TRIGGER_PHASE = "POST_JUDGE"
+SPIRIT_EFFECT_STAGE_VALUES = frozenset({"STAGE_I", "STAGE_II", "STAGE_III"})
+_SPIRIT_EFFECT_LEGACY_TRIGGER_PHASES = frozenset({"AFTER_SETTLEMENT", "POST_JUDGE"})
+_SPIRIT_EFFECT_NUMERIC_FIELDS = frozenset(
+    {
+        "damage_before_spirit",
+        "damage_after_spirit",
+        "modifier_delta",
+        "player_hp_before",
+        "monster_hp_before",
+    }
+)
+_SPIRIT_EFFECT_FORBIDDEN_KEYS = frozenset(
+    {
+        "answer_correct",
+        "correct",
+        "correctness",
+        "grade",
+        "is_correct",
+        "player_answer",
+        "score",
+        "success",
+    }
 )
 
 REWARD_SOURCE_TYPES = frozenset(
@@ -694,15 +723,353 @@ def validate_evolution_event(event: Mapping[str, Any]) -> bool:
     return bool(event.get("operation_id")) and event.get("from_level") < event.get("to_level")
 
 
-def validate_spirit_effect_event(event: Mapping[str, Any]) -> bool:
-    trigger_phase = str(event.get("trigger_phase", "")).upper()
-    return (
-        bool(event.get("effect_id"))
-        and bool(event.get("spirit_id"))
-        and bool(event.get("source_settlement_id"))
-        and event.get("before_judge") is False
-        and trigger_phase not in {"BEFORE_JUDGE", "JUDGE_INPUT"}
+def _contains_forbidden_spirit_effect_key(value: Any) -> bool:
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            normalized_key = str(key).strip().lower()
+            if normalized_key.startswith("client_") or normalized_key in _SPIRIT_EFFECT_FORBIDDEN_KEYS:
+                return True
+            if _contains_forbidden_spirit_effect_key(child):
+                return True
+    elif isinstance(value, (list, tuple)):
+        return any(_contains_forbidden_spirit_effect_key(child) for child in value)
+    return False
+
+
+def _optional_effect_number(value: Any, field: str, *, allow_negative: bool = False) -> int | float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise SpiritContractError(f"{field} must be a finite number when supplied")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise SpiritContractError(f"{field} must be a finite number when supplied")
+    if not allow_negative and value < 0:
+        raise SpiritContractError(f"{field} must be non-negative")
+    return value
+
+
+def _optional_effect_context(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise SpiritContractError("encounter_context must be a mapping when supplied")
+    if _contains_forbidden_spirit_effect_key(value):
+        raise SpiritContractError("encounter_context contains client/correctness authority")
+    result = _canonicalize(value, path="encounter_context")
+    if not isinstance(result, dict):  # pragma: no cover - guarded above
+        raise SpiritContractError("encounter_context must be a mapping")
+    return result
+
+
+def _spirit_effect_payload_fingerprint(value: Mapping[str, Any]) -> str:
+    encoded = json.dumps(
+        _canonicalize(value, path="spirit_effect_payload"),
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _spirit_effect_idempotency_key(
+    *, user_id: int, source_settlement_id: str, spirit_id: str, effect_id: str
+) -> str:
+    identity = {
+        "user_id": user_id,
+        "source_settlement_id": source_settlement_id,
+        "spirit_id": spirit_id,
+        "effect_id": effect_id,
+    }
+    return f"spirit-effect:{_spirit_effect_payload_fingerprint(identity)}"
+
+
+def build_spirit_effect_payload(
+    *,
+    user_id: int,
+    spirit_id: str,
+    source_settlement_id: str | None,
+    effect_id: str | None,
+    effect_policy_version: str | None = None,
+    evolution_stage: str | None = None,
+    encounter_class: str | None = None,
+    encounter_context: Mapping[str, Any] | None = None,
+    trigger_phase: str = SPIRIT_EFFECT_TRIGGER_PHASE,
+    before_judge: bool = False,
+    triggered: bool = True,
+    ownership_validated: bool = True,
+    enabled: bool = True,
+    active: bool = True,
+    effect_result: Mapping[str, Any] | None = None,
+    damage_before_spirit: int | float | None = None,
+    damage_after_spirit: int | float | None = None,
+    modifier_delta: int | float | None = None,
+    player_hp_before: int | float | None = None,
+    monster_hp_before: int | float | None = None,
+) -> dict[str, Any] | None:
+    """Build one server-authored, post-judge Spirit effect fact.
+
+    ``None`` is returned for a policy no-op, a non-owned/disabled/inactive
+    projection, or a Lord encounter.  This helper never checks or mutates
+    ownership and never decides the combat result; those facts must already
+    have been established by the caller.
+    """
+
+    user_id = _require_user_id(user_id)
+    if not isinstance(triggered, bool):
+        raise SpiritContractError("triggered must be boolean")
+    if not isinstance(ownership_validated, bool):
+        raise SpiritContractError("ownership_validated must be boolean")
+    if not isinstance(enabled, bool):
+        raise SpiritContractError("enabled must be boolean")
+    if not isinstance(active, bool):
+        raise SpiritContractError("active must be boolean")
+    if not triggered or not ownership_validated or not enabled or not active:
+        return None
+
+    spirit_id = validate_functional_spirit_id(spirit_id)
+    if effect_result is not None:
+        if not isinstance(effect_result, Mapping):
+            raise SpiritContractError("effect_result must be a mapping when supplied")
+        if _contains_forbidden_spirit_effect_key(effect_result):
+            raise SpiritContractError("effect_result contains client/correctness authority")
+        result_triggered = effect_result.get("triggered")
+        if result_triggered is False:
+            return None
+        if result_triggered is not True:
+            raise SpiritContractError("effect_result must prove triggered=true")
+        result_spirit_id = effect_result.get("spirit_id")
+        if result_spirit_id is not None and validate_functional_spirit_id(result_spirit_id) != spirit_id:
+            raise SpiritContractError("effect_result Spirit identity does not match the request")
+    source_settlement_id = _require_text(source_settlement_id, "source_settlement_id")
+    effect_id = _require_text(effect_id, "effect_id")
+    phase = _require_text(trigger_phase, "trigger_phase").upper()
+    if phase in {"BEFORE_JUDGE", "JUDGE_INPUT"} or phase != SPIRIT_EFFECT_TRIGGER_PHASE:
+        raise SpiritContractError("Spirit effect lineage must be POST_JUDGE")
+    if before_judge is not False:
+        raise SpiritContractError("Spirit effect lineage must set before_judge=false")
+
+    normalized_encounter_class = (
+        _require_text(encounter_class, "encounter_class").upper()
+        if encounter_class is not None
+        else None
     )
+    if normalized_encounter_class == "LORD":
+        return None
+
+    if effect_policy_version is not None:
+        effect_policy_version = _require_text(effect_policy_version, "effect_policy_version")
+    if evolution_stage is not None:
+        evolution_stage = _require_text(evolution_stage, "evolution_stage").upper()
+        if evolution_stage not in SPIRIT_EFFECT_STAGE_VALUES:
+            raise SpiritContractError("evolution_stage is not a canonical Spirit stage")
+    context = _optional_effect_context(encounter_context)
+    numeric_values = {
+        "damage_before_spirit": _optional_effect_number(damage_before_spirit, "damage_before_spirit"),
+        "damage_after_spirit": _optional_effect_number(damage_after_spirit, "damage_after_spirit"),
+        "modifier_delta": _optional_effect_number(
+            modifier_delta, "modifier_delta", allow_negative=True
+        ),
+        "player_hp_before": _optional_effect_number(player_hp_before, "player_hp_before"),
+        "monster_hp_before": _optional_effect_number(monster_hp_before, "monster_hp_before"),
+    }
+
+    payload: dict[str, Any] = {
+        "contract_version": SPIRIT_EFFECT_EVENT_CONTRACT_VERSION,
+        "server_authored": True,
+        "source_authority": SPIRIT_EFFECT_SOURCE_AUTHORITY,
+        "user_id": user_id,
+        "spirit_id": spirit_id,
+        "effect_id": effect_id,
+        "effect_policy_version": effect_policy_version,
+        "evolution_stage": evolution_stage,
+        "source_settlement_id": source_settlement_id,
+        "encounter_class": normalized_encounter_class,
+        "encounter_context": context,
+        "trigger_phase": SPIRIT_EFFECT_TRIGGER_PHASE,
+        "before_judge": False,
+    }
+    payload.update({key: value for key, value in numeric_values.items() if value is not None})
+    if not validate_spirit_effect_event(payload):
+        raise SpiritContractError("constructed Spirit effect event failed validation")
+    return payload
+
+
+def _same_spirit_effect_payload(existing: Mapping[str, Any], requested: Mapping[str, Any]) -> bool:
+    existing_payload = existing.get("payload")
+    if isinstance(existing_payload, str):
+        try:
+            existing_payload = json.loads(existing_payload)
+        except (TypeError, ValueError):
+            return False
+    if not isinstance(existing_payload, Mapping):
+        return False
+    try:
+        return _spirit_effect_payload_fingerprint(existing_payload) == _spirit_effect_payload_fingerprint(
+            requested
+        )
+    except (SpiritContractError, TypeError, ValueError):
+        return False
+
+
+def append_spirit_effect_event(
+    conn: Any,
+    *,
+    user_id: int,
+    spirit_id: str,
+    source_settlement_id: str | None,
+    effect_id: str | None,
+    effect_policy_version: str | None = None,
+    evolution_stage: str | None = None,
+    encounter_class: str | None = None,
+    encounter_context: Mapping[str, Any] | None = None,
+    trigger_phase: str = SPIRIT_EFFECT_TRIGGER_PHASE,
+    before_judge: bool = False,
+    triggered: bool = True,
+    ownership_validated: bool = True,
+    enabled: bool = True,
+    active: bool = True,
+    effect_result: Mapping[str, Any] | None = None,
+    damage_before_spirit: int | float | None = None,
+    damage_after_spirit: int | float | None = None,
+    modifier_delta: int | float | None = None,
+    player_hp_before: int | float | None = None,
+    monster_hp_before: int | float | None = None,
+    occurred_at: Any = None,
+) -> dict[str, Any] | None:
+    """Append one effect fact through the caller's open outbox transaction.
+
+    The helper does not open a connection and never commits or rolls back.
+    Duplicate logical events return the stored event as a replay.  A changed
+    payload under the same logical identity raises ``SpiritOperationConflict``.
+    """
+
+    payload = build_spirit_effect_payload(
+        user_id=user_id,
+        spirit_id=spirit_id,
+        source_settlement_id=source_settlement_id,
+        effect_id=effect_id,
+        effect_policy_version=effect_policy_version,
+        evolution_stage=evolution_stage,
+        encounter_class=encounter_class,
+        encounter_context=encounter_context,
+        trigger_phase=trigger_phase,
+        before_judge=before_judge,
+        triggered=triggered,
+        ownership_validated=ownership_validated,
+        enabled=enabled,
+        active=active,
+        effect_result=effect_result,
+        damage_before_spirit=damage_before_spirit,
+        damage_after_spirit=damage_after_spirit,
+        modifier_delta=modifier_delta,
+        player_hp_before=player_hp_before,
+        monster_hp_before=monster_hp_before,
+    )
+    if payload is None:
+        return None
+
+    source_settlement_id = payload["source_settlement_id"]
+    spirit_id = payload["spirit_id"]
+    effect_id = payload["effect_id"]
+    idempotency_key = _spirit_effect_idempotency_key(
+        user_id=payload["user_id"],
+        source_settlement_id=source_settlement_id,
+        spirit_id=spirit_id,
+        effect_id=effect_id,
+    )
+    try:
+        result = append_event(
+            conn,
+            event_type=SPIRIT_EFFECT_EVENT_TYPE,
+            player_id=str(payload["user_id"]),
+            lineage_id=source_settlement_id,
+            source_event_id=source_settlement_id,
+            idempotency_key=idempotency_key,
+            outcome="SUCCESS",
+            payload=payload,
+            occurred_at=occurred_at,
+        )
+    except DuplicateOutboxEvent as duplicate:
+        existing = duplicate.existing_event
+        if not _same_spirit_effect_payload(existing, payload):
+            raise SpiritOperationConflict(
+                "same Spirit effect identity has a different committed payload"
+            ) from duplicate
+        replay = dict(existing)
+        replay["duplicate"] = True
+        replay["replayed"] = True
+        return replay
+    result["replayed"] = False
+    return result
+
+
+def validate_spirit_effect_event(event: Mapping[str, Any]) -> bool:
+    if not isinstance(event, Mapping):
+        return False
+    if _contains_forbidden_spirit_effect_key(event):
+        return False
+    try:
+        spirit_id = validate_functional_spirit_id(event.get("spirit_id"))
+        if not _require_text(event.get("effect_id"), "effect_id"):
+            return False
+        if not _require_text(event.get("source_settlement_id"), "source_settlement_id"):
+            return False
+        if event.get("before_judge") is not False:
+            return False
+        trigger_phase = _require_text(event.get("trigger_phase"), "trigger_phase").upper()
+        if trigger_phase not in _SPIRIT_EFFECT_LEGACY_TRIGGER_PHASES:
+            return False
+        if trigger_phase in {"BEFORE_JUDGE", "JUDGE_INPUT"}:
+            return False
+        if event.get("triggered", True) is not True:
+            return False
+        if event.get("server_authored", True) is not True:
+            return False
+        for projection_field in ("ownership_validated", "enabled", "active"):
+            if projection_field in event and event[projection_field] is not True:
+                return False
+        if event.get("contract_version") == SPIRIT_EFFECT_EVENT_CONTRACT_VERSION:
+            if event.get("server_authored") is not True:
+                return False
+            if event.get("source_authority") != SPIRIT_EFFECT_SOURCE_AUTHORITY:
+                return False
+            if trigger_phase != SPIRIT_EFFECT_TRIGGER_PHASE:
+                return False
+        # D007's unversioned five-field contract remains readable for
+        # compatibility.  Every D028-built event uses the versioned branch
+        # above and therefore requires an explicit server-authored marker.
+        elif "source_authority" in event and not _require_text(
+            event.get("source_authority"), "source_authority"
+        ):
+            return False
+
+        if event.get("user_id") is not None:
+            _require_user_id(event["user_id"])
+        if event.get("effect_policy_version") is not None:
+            _require_text(event["effect_policy_version"], "effect_policy_version")
+        if event.get("evolution_stage") is not None:
+            stage = _require_text(event["evolution_stage"], "evolution_stage").upper()
+            if stage not in SPIRIT_EFFECT_STAGE_VALUES:
+                return False
+        encounter_class = event.get("encounter_class")
+        if encounter_class is not None:
+            encounter_class = _require_text(encounter_class, "encounter_class").upper()
+            if encounter_class == "LORD":
+                return False
+        if event.get("encounter_context") is not None:
+            _optional_effect_context(event["encounter_context"])
+        for field in _SPIRIT_EFFECT_NUMERIC_FIELDS:
+            if field in event:
+                _optional_effect_number(
+                    event[field], field, allow_negative=field == "modifier_delta"
+                )
+        # Keep the local binding explicit for static analyzers and reviewers.
+        if spirit_id not in KNOWN_SPIRIT_IDS:
+            return False
+        return True
+    except (SpiritContractError, TypeError, ValueError):
+        return False
 
 
 def replay_creates_no_functional_reward(source_type: str) -> bool:
@@ -725,6 +1092,11 @@ __all__ = [
     "NON_REWARD_SOURCES",
     "OUTCOMES",
     "REWARD_SOURCE_TYPES",
+    "SPIRIT_EFFECT_EVENT_CONTRACT_VERSION",
+    "SPIRIT_EFFECT_EVENT_TYPE",
+    "SPIRIT_EFFECT_SOURCE_AUTHORITY",
+    "SPIRIT_EFFECT_TRIGGER_PHASE",
+    "SPIRIT_EFFECT_STAGE_VALUES",
     "SPIRIT_SLOT_ORDER",
     "SPIRIT_UNLOCK_LEVEL_THRESHOLDS",
     "SpiritContractError",
@@ -732,10 +1104,12 @@ __all__ = [
     "SpiritWrongUser",
     "TRANSACTIONAL_EVENT_CONTRACTS",
     "append_spirit_item_use_event",
+    "append_spirit_effect_event",
     "append_spirit_reward_event",
     "build_companion_operation_identity",
     "build_evolution_transitions",
     "build_spirit_item_use_payload",
+    "build_spirit_effect_payload",
     "build_spirit_reward_payload",
     "canonical_companion_payload",
     "classify_operation_replay",
