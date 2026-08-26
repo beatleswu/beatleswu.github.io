@@ -40,6 +40,55 @@ COPY community_leaderboard_rewards_scheduler.py ./
 COPY katago_explain.py ./
 COPY explain_overrides.py ./
 COPY xp_settlement.py ./
+# B043: close the complete module-scope application dependency graph with
+# explicit per-file copies.  These modules are reachable from app.py (or a
+# module-scope dependency of app.py); keep the curated image boundary and do
+# not replace this list with a Python wildcard or broad root copy.
+COPY canonical_acquisition_result.py ./
+COPY coin_purchase_authority.py ./
+COPY companion_operations.py ./
+COPY daily_challenge_authority.py ./
+COPY daily_challenge_d5b.py ./
+COPY equipment_loadout_service.py ./
+COPY equipment_ownership_service.py ./
+COPY event_outbox.py ./
+COPY item_use_operations.py ./
+COPY login_journey_authority.py ./
+COPY monster_combat_profiles.py ./
+COPY monster_drop_profiles.py ./
+COPY monster_encounter_selector.py ./
+COPY monster_encounter_selector_runtime.py ./
+COPY monster_identity.py ./
+COPY monster_profiles.py ./
+COPY monster_reward_profiles.py ./
+COPY monster_settlement.py ./
+COPY player_presentation_api_contract.py ./
+COPY player_presentation_read_service.py ./
+COPY player_state_read_model.py ./
+COPY premium_claim_operations.py ./
+COPY premium_reward_bundle_runtime.py ./
+COPY premium_reward_catalog_adapter.py ./
+COPY premium_reward_claim_runtime.py ./
+COPY premium_v1_revenue.py ./
+COPY quest_catalog.py ./
+COPY quest_claim_authority.py ./
+COPY quest_identity.py ./
+COPY quest_period_authority.py ./
+COPY quest_progress_authority.py ./
+COPY quest_progress_evaluator.py ./
+COPY quest_reward_adapters.py ./
+COPY quest_runtime.py ./
+COPY quest_runtime_api.py ./
+COPY quest_runtime_config.py ./
+COPY question_capacity_authority.py ./
+COPY question_idempotency.py ./
+COPY shop_acquisition_result_bridge.py ./
+COPY shop_offer_authority.py ./
+COPY shop_offer_identity_projection.py ./
+COPY spirit_combat_policy.py ./
+COPY spirit_combat_runtime.py ./
+COPY spirit_lineage.py ./
+COPY spirit_runtime.py ./
 # Backend Architecture V1 Wave2 (V1A2 ReviewService / V1A3 transaction and
 # MapBattle-handoff boundaries): app.py now imports review_service.py and
 # review_contracts.py at startup; review_service.py itself imports
@@ -80,6 +129,22 @@ COPY sgf_workbench_v2a_routes.py ./
 COPY migrations/__init__.py ./migrations/__init__.py
 COPY migrations/sgf_admin_workbench_v1.py ./migrations/sgf_admin_workbench_v1.py
 COPY migrations/sgf_human_review_v2a.py ./migrations/sgf_human_review_v2a.py
+# B043: runtime-imported migration helpers are application dependencies, not
+# migration execution.  Keep each file explicit; do not copy migrations/.
+COPY migrations/coin_purchase_operations_v1.py ./migrations/coin_purchase_operations_v1.py
+COPY migrations/companion_operations_v1.py ./migrations/companion_operations_v1.py
+COPY migrations/domain_event_outbox_v1.py ./migrations/domain_event_outbox_v1.py
+COPY migrations/equipment_canonical_slot_v1.py ./migrations/equipment_canonical_slot_v1.py
+COPY migrations/item_use_operations_v1.py ./migrations/item_use_operations_v1.py
+COPY migrations/login_journey_v1.py ./migrations/login_journey_v1.py
+COPY migrations/monster_encounter_selector_state_v1.py ./migrations/monster_encounter_selector_state_v1.py
+COPY migrations/premium_claim_lineage_v1.py ./migrations/premium_claim_lineage_v1.py
+COPY migrations/premium_reward_bundle_v1.py ./migrations/premium_reward_bundle_v1.py
+COPY migrations/quest_claim_v1.py ./migrations/quest_claim_v1.py
+COPY migrations/quest_progress_v2.py ./migrations/quest_progress_v2.py
+COPY migrations/question_capacity_lineage_v1.py ./migrations/question_capacity_lineage_v1.py
+COPY migrations/review_log_submission_idempotency_v1.py ./migrations/review_log_submission_idempotency_v1.py
+COPY migrations/spirit_evolution_events_v1.py ./migrations/spirit_evolution_events_v1.py
 # PAY-PLANS-500 hotfix: lazily imported inside _newebpay()/_paypal() (only on
 # first payment-route access, not at app startup) -- restored after being
 # absent from this explicit COPY list despite app.py already depending on
