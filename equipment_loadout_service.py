@@ -103,6 +103,19 @@ def _validate_equip_id(equip_id: Any) -> str:
     return equip_id.strip()
 
 
+def _validate_ownership_row_id(ownership_row_id: Any) -> int:
+    if (
+        isinstance(ownership_row_id, bool)
+        or not isinstance(ownership_row_id, int)
+        or ownership_row_id <= 0
+    ):
+        raise EquipmentLoadoutError(
+            "INVALID_OWNERSHIP_ROW_ID",
+            "ownership_row_id must be a positive integer",
+        )
+    return ownership_row_id
+
+
 def _require_b033_schema(conn: Any) -> None:
     status = validate_schema(conn)
     columns = _column_names(conn)
@@ -132,6 +145,26 @@ def _locked_inventory_rows(conn: Any, user_id: int) -> list[dict[str, Any]]:
         {column: _value(row, index, column) for index, column in enumerate(columns)}
         for row in cursor.fetchall()
     ]
+
+
+def _locked_inventory_row_by_id(
+    conn: Any,
+    ownership_row_id: int,
+) -> dict[str, Any] | None:
+    sql = (
+        f"SELECT id, user_id, equip_id, equipped, {CANONICAL_SLOT_COLUMN} "
+        f"FROM {_table_name(conn)} WHERE id=?"
+    )
+    if not _is_sqlite(conn):
+        sql += " FOR UPDATE"
+    row = conn.execute(sql, (ownership_row_id,)).fetchone()
+    if row is None:
+        return None
+    columns = ("id", "user_id", "equip_id", "equipped", CANONICAL_SLOT_COLUMN)
+    return {
+        column: _value(row, index, column)
+        for index, column in enumerate(columns)
+    }
 
 
 def _compact_row(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -245,8 +278,10 @@ def _result(
     changed: bool,
     previous_equipped_item_id: str | None,
     equipped_item_id: str | None,
+    target_ownership_row_id: int | None = None,
+    equipped_ownership_row_id: int | None = None,
 ) -> dict[str, Any]:
-    return {
+    result = {
         "user_id": user_id,
         "target_equip_id": equip_id,
         "canonical_slot": canonical_slot,
@@ -254,6 +289,60 @@ def _result(
         "previous_equipped_item_id": previous_equipped_item_id,
         "equipped_item_id": equipped_item_id,
     }
+    # Preserve the exact B034 result shape for legacy item-identity callers.
+    # Exact ownership-row callers receive the additional identity proof.
+    if target_ownership_row_id is not None:
+        result["target_ownership_row_id"] = target_ownership_row_id
+        result["equipped_ownership_row_id"] = equipped_ownership_row_id
+    return result
+
+
+def _resolve_target_row(
+    conn: Any,
+    rows: list[dict[str, Any]],
+    user_id: int,
+    equip_id: str,
+    ownership_row_id: int | None,
+) -> dict[str, Any]:
+    owned_rows = [row for row in rows if str(row["equip_id"]) == equip_id]
+    if ownership_row_id is None:
+        if not owned_rows:
+            raise EquipmentLoadoutError(
+                "EQUIPMENT_NOT_OWNED",
+                "target Equipment is not owned",
+                equip_id=equip_id,
+            )
+        return min(
+            owned_rows,
+            key=lambda row: (not bool(row["equipped"]), int(row["id"])),
+        )
+
+    target_row = next(
+        (row for row in rows if int(row["id"]) == ownership_row_id),
+        None,
+    )
+    if target_row is None:
+        target_row = _locked_inventory_row_by_id(conn, ownership_row_id)
+        if target_row is None:
+            raise EquipmentLoadoutError(
+                "EQUIPMENT_OWNERSHIP_ROW_NOT_FOUND",
+                "requested Equipment ownership row was not found",
+                ownership_row_id=ownership_row_id,
+            )
+        if int(target_row["user_id"]) != user_id:
+            raise EquipmentLoadoutError(
+                "EQUIPMENT_OWNERSHIP_IDENTITY_MISMATCH",
+                "requested Equipment ownership row belongs to another user",
+                ownership_row_id=ownership_row_id,
+            )
+
+    if int(target_row["user_id"]) != user_id or str(target_row["equip_id"]) != equip_id:
+        raise EquipmentLoadoutError(
+            "EQUIPMENT_OWNERSHIP_IDENTITY_MISMATCH",
+            "requested ownership row does not match the requested Equipment",
+            ownership_row_id=ownership_row_id,
+        )
+    return target_row
 
 
 def _prove_final_state(
@@ -283,17 +372,25 @@ def equip_owned_item(
     user_id: int,
     equip_id: str,
     *,
+    ownership_row_id: int | None = None,
     equipment_defs: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Equip an owned server-defined item using desired-state semantics.
 
     The caller must already own the transaction.  This function performs no
     commit or rollback.  A repeated request for the currently equipped target
-    returns ``changed=False`` without writing a second transition.
+    returns ``changed=False`` without writing a second transition.  When
+    ``ownership_row_id`` is supplied, the exact ``player_inventory.id`` is
+    targeted and identity proof is included in the detached result.
     """
 
     user_id = _validate_user_id(user_id)
     equip_id = _validate_equip_id(equip_id)
+    exact_target_id = (
+        None
+        if ownership_row_id is None
+        else _validate_ownership_row_id(ownership_row_id)
+    )
     _require_b033_schema(conn)
     all_defs, functional_slots = _catalog(equipment_defs)
 
@@ -310,14 +407,13 @@ def equip_owned_item(
         raise EquipmentLoadoutError(code, "Equipment is not functionally equippable", equip_id=equip_id)
 
     rows = _locked_inventory_rows(conn, user_id)
-    owned_rows = [row for row in rows if str(row["equip_id"]) == equip_id]
-    if not owned_rows:
-        raise EquipmentLoadoutError("EQUIPMENT_NOT_OWNED", "target Equipment is not owned", equip_id=equip_id)
     _raise_for_malformed_state(_state_report(rows, all_defs, functional_slots))
-
-    target_row = min(
-        owned_rows,
-        key=lambda row: (not bool(row["equipped"]), int(row["id"])),
+    target_row = _resolve_target_row(
+        conn,
+        rows,
+        user_id,
+        equip_id,
+        exact_target_id,
     )
     previous = [
         row
@@ -334,6 +430,10 @@ def equip_owned_item(
             changed=False,
             previous_equipped_item_id=previous_id,
             equipped_item_id=equip_id,
+            target_ownership_row_id=exact_target_id,
+            equipped_ownership_row_id=(
+                int(target_row["id"]) if exact_target_id is not None else None
+            ),
         )
 
     table = _table_name(conn)
@@ -363,6 +463,10 @@ def equip_owned_item(
         changed=True,
         previous_equipped_item_id=previous_id,
         equipped_item_id=equip_id,
+        target_ownership_row_id=exact_target_id,
+        equipped_ownership_row_id=(
+            int(target_row["id"]) if exact_target_id is not None else None
+        ),
     )
 
 
@@ -371,12 +475,22 @@ def unequip_owned_item(
     user_id: int,
     equip_id: str,
     *,
+    ownership_row_id: int | None = None,
     equipment_defs: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Unequip an owned functional item without consuming ownership."""
+    """Unequip an owned functional item without consuming ownership.
+
+    If ``ownership_row_id`` is supplied, only that exact ownership row may be
+    changed; an already-unequipped duplicate is an idempotent no-op.
+    """
 
     user_id = _validate_user_id(user_id)
     equip_id = _validate_equip_id(equip_id)
+    exact_target_id = (
+        None
+        if ownership_row_id is None
+        else _validate_ownership_row_id(ownership_row_id)
+    )
     _require_b033_schema(conn)
     all_defs, functional_slots = _catalog(equipment_defs)
     if equip_id not in all_defs:
@@ -390,13 +504,13 @@ def unequip_owned_item(
         )
 
     rows = _locked_inventory_rows(conn, user_id)
-    owned_rows = [row for row in rows if str(row["equip_id"]) == equip_id]
-    if not owned_rows:
-        raise EquipmentLoadoutError("EQUIPMENT_NOT_OWNED", "target Equipment is not owned", equip_id=equip_id)
     _raise_for_malformed_state(_state_report(rows, all_defs, functional_slots))
-    target_row = min(
-        owned_rows,
-        key=lambda row: (not bool(row["equipped"]), int(row["id"])),
+    target_row = _resolve_target_row(
+        conn,
+        rows,
+        user_id,
+        equip_id,
+        exact_target_id,
     )
     was_equipped = bool(target_row["equipped"])
     if was_equipped:
@@ -414,6 +528,8 @@ def unequip_owned_item(
         changed=was_equipped,
         previous_equipped_item_id=equip_id if was_equipped else None,
         equipped_item_id=None,
+        target_ownership_row_id=exact_target_id,
+        equipped_ownership_row_id=None,
     )
 
 
