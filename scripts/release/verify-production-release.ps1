@@ -122,21 +122,41 @@ function Wait-ForRemoteReleaseConvergence {
     } while ($true)
 }
 
-function Get-RemoteContainerEnvMap {
+function Get-RemoteQuestionsJsonPath {
+    <#
+    Read only the allow-listed QUESTIONS_JSON_PATH key for the legacy
+    readiness fallback. Docker stores environment entries as an array, so
+    the template ranges that array but emits only an exact key match; it
+    never serializes or returns the full container environment.
+    #>
     param([Parameter(Mandatory = $true)][string]$ContainerName)
-    $raw = Invoke-RemoteText "docker inspect $ContainerName --format '{{json .Config.Env}}'"
-    if ([string]::IsNullOrWhiteSpace($raw) -or $raw -eq 'null') {
-        return @{}
+    $template = '{{range .Config.Env}}{{if or (eq . "QUESTIONS_JSON_PATH") (hasPrefix . "QUESTIONS_JSON_PATH=")}}{{println .}}{{end}}{{end}}'
+    $raw = Invoke-RemoteText "docker inspect $(Quote-PosixShellArgument $ContainerName) --format '$template'"
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $null
     }
-    $env = $raw | ConvertFrom-Json
-    $map = @{}
-    foreach ($entry in $env) {
-        $pair = $entry -split '=', 2
-        if ($pair.Count -ge 1 -and -not [string]::IsNullOrWhiteSpace($pair[0])) {
-            $map[$pair[0]] = if ($pair.Count -gt 1) { $pair[1] } else { '' }
-        }
+
+    $entries = @(
+        $raw -split "`r?`n" |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if ($entries.Count -eq 0) {
+        throw 'QUESTIONS_JSON_PATH exact-key probe returned unexpected output.'
     }
-    return $map
+    if ($entries.Count -ne 1) {
+        throw 'QUESTIONS_JSON_PATH exact-key probe was duplicated or ambiguous.'
+    }
+
+    $entry = [string]$entries[0]
+    $prefix = 'QUESTIONS_JSON_PATH='
+    if (-not $entry.StartsWith($prefix, [System.StringComparison]::Ordinal)) {
+        throw 'QUESTIONS_JSON_PATH exact-key probe returned a malformed entry.'
+    }
+    $path = $entry.Substring($prefix.Length)
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        throw 'QUESTIONS_JSON_PATH exact-key probe returned an empty value.'
+    }
+    return $path
 }
 
 function Test-HelperUnavailableOutput {
@@ -238,6 +258,40 @@ print(json.dumps(report, ensure_ascii=False))
     return ((Get-RemoteStandardOutput -Result $result) | ConvertFrom-Json)
 }
 
+function Resolve-RemoteQuestionsReadiness {
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)]$ReadinessMode,
+        [Parameter(Mandatory = $true)][string]$ExpectedQuestionsPath
+    )
+
+    if ($ReadinessMode.mode -eq 'helper') {
+        $questions = $ReadinessMode.report.questions
+        $questionsPath = $null
+        if ($questions -and $questions.PSObject.Properties.Name -contains 'configured_path') {
+            $questionsPath = [string]$questions.configured_path
+        }
+        if ([string]::IsNullOrWhiteSpace($questionsPath)) {
+            $questionsPath = $ExpectedQuestionsPath
+        }
+        return [ordered]@{
+            path = $questionsPath
+            report = $questions
+        }
+    }
+
+    $configuredQuestionsPath = Get-RemoteQuestionsJsonPath -ContainerName $ContainerName
+    $questionsPath = if ([string]::IsNullOrWhiteSpace($configuredQuestionsPath)) {
+        $ExpectedQuestionsPath
+    } else {
+        $configuredQuestionsPath
+    }
+    return [ordered]@{
+        path = $questionsPath
+        report = Get-RemoteQuestionsReport -ContainerName $ContainerName -QuestionsPath $questionsPath
+    }
+}
+
 function Get-RemoteImageLabels {
     param([Parameter(Mandatory = $true)][string]$ImageTag)
     $raw = Invoke-RemoteText "docker image inspect $(Quote-PosixShellArgument $ImageTag) --format '{{json .Config.Labels}}'"
@@ -308,10 +362,13 @@ $null = Wait-RemoteReleaseOperationLock -SshAlias $layout.ssh_alias -LockPath $r
 $convergence = Wait-ForRemoteReleaseConvergence -TimeoutSeconds 300 -RequiredConsecutiveSamples 3
 
 $readinessMode = Try-Get-RemoteReadinessReport -ContainerName $layout.app_service_name
-$appEnv = Get-RemoteContainerEnvMap -ContainerName $layout.app_service_name
 $expectedQuestionsPath = ($layout.questions_content_mount_destination.TrimEnd('/','\') + '/questions.json')
-$questionsPath = if (-not [string]::IsNullOrWhiteSpace($appEnv['QUESTIONS_JSON_PATH'])) { $appEnv['QUESTIONS_JSON_PATH'] } else { $expectedQuestionsPath }
-$questionsReport = if ($readinessMode.mode -eq 'helper') { $readinessMode.report.questions } else { Get-RemoteQuestionsReport -ContainerName $layout.app_service_name -QuestionsPath $questionsPath }
+$questionsReadiness = Resolve-RemoteQuestionsReadiness `
+    -ContainerName $layout.app_service_name `
+    -ReadinessMode $readinessMode `
+    -ExpectedQuestionsPath $expectedQuestionsPath
+$questionsPath = $questionsReadiness.path
+$questionsReport = $questionsReadiness.report
 $appImage = (Invoke-RemoteText "docker inspect $($layout.app_service_name) --format '{{.Config.Image}}'").Trim()
 $schedulerImage = (Invoke-RemoteText "docker inspect $($layout.scheduler_service_name) --format '{{.Config.Image}}'").Trim()
 $appImageId = (Invoke-RemoteText "docker inspect $($layout.app_service_name) --format '{{.Image}}'").Trim()
