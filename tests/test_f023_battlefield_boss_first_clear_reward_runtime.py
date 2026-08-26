@@ -491,9 +491,16 @@ def _postgres_container_and_wrapper():
     return _postgres_container, _postgres_wrapper
 
 
-def _postgres_prepare(database_url):
+def _postgres_prepare(database_url, *, reset=False):
     _container, wrapper = _postgres_container_and_wrapper()
     conn = wrapper(database_url)
+    if reset:
+        for table in (
+            "player_wardrobe",
+            "domain_event_outbox",
+            ENTITLEMENT_TABLE,
+        ):
+            conn.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
     upgrade_outbox(conn)
     upgrade_entitlement(conn)
     conn.execute(
@@ -546,7 +553,7 @@ def _postgres_worker(
 def test_postgres_16_concurrent_same_zone_has_one_reward_winner():
     _postgres_container, _postgres_wrapper = _postgres_container_and_wrapper()
     with _postgres_container() as database_url:
-        setup = _postgres_prepare(database_url)
+        setup = _postgres_prepare(database_url, reset=True)
         try:
             version = setup.execute("SELECT version() AS version").fetchone()["version"]
             assert str(version).startswith("PostgreSQL 16.")
@@ -576,8 +583,12 @@ def test_postgres_16_concurrent_same_zone_has_one_reward_winner():
             assert not thread.is_alive()
         assert not any(isinstance(result, Exception) for result in results), results
         assert sorted(result.status for result in results) == [
-            "ALREADY_CLAIMED",
             "FIRST_CLEAR_NEW_COSMETIC",
+            "NOT_FIRST_CLEAR",
+        ]
+        assert sorted(result.entitlement_status for result in results) == [
+            "ALREADY_CLAIMED",
+            "RECORDED",
         ]
 
         inspect = _postgres_prepare(database_url)
