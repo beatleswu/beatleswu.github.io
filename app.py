@@ -17014,6 +17014,7 @@ def equip_item():
                         conn,
                         uid,
                         row['equip_id'],
+                        ownership_row_id=row['id'],
                         equipment_defs=EQUIPMENT_DEFS,
                     )
                 else:
@@ -17021,13 +17022,20 @@ def equip_item():
                         conn,
                         uid,
                         row['equip_id'],
+                        ownership_row_id=row['id'],
                         equipment_defs=EQUIPMENT_DEFS,
                     )
                 conn.commit()
             except EquipmentLoadoutError as exc:
                 conn.rollback()
-                if exc.code == 'EQUIPMENT_NOT_OWNED':
+                if exc.code in {
+                    'EQUIPMENT_NOT_OWNED',
+                    'EQUIPMENT_OWNERSHIP_ROW_NOT_FOUND',
+                    'EQUIPMENT_OWNERSHIP_IDENTITY_MISMATCH',
+                }:
                     status = 404
+                elif exc.code == 'INVALID_OWNERSHIP_ROW_ID':
+                    status = 400
                 elif exc.code in {
                     'SCHEMA_INVARIANT_UNAVAILABLE',
                     'FINAL_LOADOUT_INVARIANT_FAILED',
@@ -17045,6 +17053,9 @@ def equip_item():
                 'equipped': act == 'equip',
                 'canonical_slot': loadout_result.get('canonical_slot'),
                 'changed': loadout_result.get('changed'),
+                'target_ownership_row_id': loadout_result.get(
+                    'target_ownership_row_id', row['id']
+                ),
             })
         equip = _EQUIP_MAP.get(row['equip_id'], {})
         slot  = equip.get('slot')
@@ -21828,7 +21839,10 @@ def _canonical_shop_offer_facts(conn, *, appearance_only=False):
     """
 
     today = datetime.date.today().isoformat()
-    slots = _daily_shop_slots(conn)
+    # Classification and canonical execution must not create a daily-shop
+    # row as a side effect.  The legacy route keeps the default persistence
+    # behavior, while this read path only resolves the deterministic facts.
+    slots = _daily_shop_slots(conn, persist=False)
     daily_item_prices = {
         str(slot.get('item_key')): int(slot['price'])
         for slot in slots
@@ -21976,6 +21990,169 @@ def _canonical_shop_offer_facts(conn, *, appearance_only=False):
                 )
             )
     return facts
+
+
+CANONICAL_SHOP_DISPATCH = 'CANONICAL_READY'
+LEGACY_SHOP_DISPATCH = 'LEGACY_ONLY'
+INVALID_SHOP_DISPATCH = 'INVALID'
+
+
+def _shop_request_selectors(body):
+    """Return non-empty product selectors without treating them as facts."""
+
+    body = body if isinstance(body, dict) else {}
+    selectors = {}
+    for field in ('offer_id', 'item_key', 'product_id', 'item_id'):
+        value = body.get(field)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            selectors[field] = text
+    return selectors
+
+
+def _shop_offer_identifiers(server_facts, offer):
+    return {
+        str(value).strip()
+        for value in (
+            offer.offer_id,
+            offer.item_id,
+            offer.product_id,
+            server_facts.item_key,
+            server_facts.item_id,
+            server_facts.product_id,
+        )
+        if value is not None and str(value).strip()
+    }
+
+
+def _classify_shop_request(conn, body, *, appearance_only=False):
+    """Classify a Shop request before any purchase or legacy mutation.
+
+    The result is deliberately based on server catalog/rotation facts.  A
+    known legacy product is allowed to retain its existing route, but a
+    request that partially identifies a canonical offer or supplies
+    conflicting selectors is invalid rather than being tried twice.
+    """
+
+    selectors = _shop_request_selectors(body)
+    if not selectors:
+        return {
+            'classification': INVALID_SHOP_DISPATCH,
+            'error_code': 'UNKNOWN_OFFER',
+        }
+
+    try:
+        server_facts_list = _canonical_shop_offer_facts(
+            conn,
+            appearance_only=appearance_only,
+        )
+    except Exception:
+        # A dispatch lookup failure must not open the legacy mutation path.
+        return {
+            'classification': INVALID_SHOP_DISPATCH,
+            'error_code': 'SHOP_DISPATCH_UNAVAILABLE',
+        }
+
+    canonical_identifier_seen = False
+    canonical_matches = []
+    locked_canonical_match = False
+    locked_shop_ids = {'xp_amulet', 'go_stone_black'}
+    offer_id_requested = 'offer_id' in selectors
+    for server_facts in server_facts_list:
+        # We first match against the raw server-fact identifiers so a
+        # malformed canonical fact cannot be silently reclassified as a
+        # legacy product.
+        raw_identifiers = {
+            str(value).strip()
+            for value in (
+                server_facts.item_key,
+                server_facts.item_id,
+                server_facts.product_id,
+            )
+            if value is not None and str(value).strip()
+        }
+        raw_selector_match = any(
+            value in raw_identifiers for value in selectors.values()
+        )
+        # ``offer_id`` is derived by C025/C029, so it is not available in
+        # the raw fact fields.  Normalize otherwise-unmatched facts only
+        # when the request actually uses that derived server identifier.
+        if not raw_selector_match and not offer_id_requested:
+            continue
+        if raw_selector_match:
+            canonical_identifier_seen = True
+        try:
+            offer = normalize_shop_offer(server_facts)
+        except OfferNotReady:
+            # These server-owned identities are intentionally represented by
+            # the canonical path so C026 can preserve their stable locked
+            # error contract.  They must never be reclassified as legacy.
+            if (
+                any(value in locked_shop_ids for value in raw_identifiers)
+                and all(value in raw_identifiers for value in selectors.values())
+            ):
+                locked_canonical_match = True
+                continue
+            if not raw_selector_match:
+                continue
+            return {
+                'classification': INVALID_SHOP_DISPATCH,
+                'error_code': 'INVALID_SERVER_OFFER',
+            }
+        except ShopOfferIdentityError:
+            if not raw_selector_match:
+                continue
+            return {
+                'classification': INVALID_SHOP_DISPATCH,
+                'error_code': 'INVALID_SERVER_OFFER',
+            }
+        identifiers = _shop_offer_identifiers(server_facts, offer)
+        if all(value in identifiers for value in selectors.values()):
+            canonical_matches.append(offer)
+
+    if locked_canonical_match and not canonical_matches:
+        return {
+            'classification': CANONICAL_SHOP_DISPATCH,
+            'offer': None,
+        }
+    if len(canonical_matches) == 1:
+        return {
+            'classification': CANONICAL_SHOP_DISPATCH,
+            'offer': canonical_matches[0],
+        }
+    if len(canonical_matches) > 1 or canonical_identifier_seen:
+        return {
+            'classification': INVALID_SHOP_DISPATCH,
+            'error_code': 'AMBIGUOUS_OFFER',
+        }
+
+    # Legacy compatibility is intentionally narrow.  Unsupported selector
+    # fields are rejected instead of being ignored by the old endpoint.
+    if appearance_only:
+        item_id = selectors.get('item_id')
+        if (
+            set(selectors) == {'item_id'}
+            and item_id in _APPEAR_MAP
+            and not _is_hidden_unreleased_appearance(item_id)
+        ):
+            return {
+                'classification': LEGACY_SHOP_DISPATCH,
+                'legacy_selector': item_id,
+            }
+    else:
+        item_key = selectors.get('item_key')
+        if set(selectors) == {'item_key'} and item_key in SHOP_ITEMS:
+            return {
+                'classification': LEGACY_SHOP_DISPATCH,
+                'legacy_selector': item_key,
+            }
+
+    return {
+        'classification': INVALID_SHOP_DISPATCH,
+        'error_code': 'UNKNOWN_OFFER',
+    }
 
 
 def _canonical_shop_offer_for_request(conn, body, *, appearance_only=False):
@@ -22763,7 +22940,19 @@ def shop_buy():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
     if _canonical_coin_shop_purchase_enabled():
-        return _canonical_shop_purchase_response(uid, body)
+        with get_db() as conn:
+            dispatch = _classify_shop_request(conn, body)
+        if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
+            return _canonical_shop_purchase_response(uid, body)
+        if dispatch['classification'] == INVALID_SHOP_DISPATCH:
+            status = 503 if dispatch.get('error_code') == 'SHOP_DISPATCH_UNAVAILABLE' else 400
+            return jsonify({
+                'error': 'shop_offer_unavailable',
+                'code': dispatch.get('error_code', 'UNKNOWN_OFFER'),
+            }), status
+        # LEGACY_ONLY intentionally falls through to the unchanged legacy
+        # mutation implementation below.  This branch was selected before
+        # any canonical operation reservation or Coin/ownership mutation.
     item_key = str(body.get('item_key') or '')
     qty      = max(1, min(10, int(body.get('qty') or 1)))
     item = SHOP_ITEMS.get(item_key)
@@ -23271,9 +23460,14 @@ def shop_status():
 
 # ── 每日輪換商店 ─────────────────────────────────────────────
 
-def _daily_shop_slots(conn):
+def _daily_shop_slots(conn, *, persist=True):
     """取得今日輪換 5 格（前 3 格人人可見，4-5 格 Premium）。
-    內容：隨機 3 件道具打 8 折 + 2 件 Common/Uncommon 外觀（金幣直購）。"""
+    內容：隨機 3 件道具打 8 折 + 2 件 Common/Uncommon 外觀（金幣直購）。
+
+    ``persist=False`` is the read-only form used by E030's pre-mutation
+    Shop dispatch classifier.  It resolves the same deterministic facts
+    without creating the daily-shop cache row.
+    """
     today = datetime.date.today().isoformat()
     row = conn.execute('SELECT slots FROM daily_shop WHERE shop_date=?', (today,)).fetchone()
     if row:
@@ -23307,11 +23501,12 @@ def _daily_shop_slots(conn):
                 'name_en': a.get('name_en', a['name']),
                 'rarity': a['rarity'], 'price': price,
             }])[0])
-    try:
-        conn.execute('INSERT INTO daily_shop(shop_date,slots) VALUES(?,?) '
-                     'ON CONFLICT(shop_date) DO NOTHING', (today, json.dumps(slots, ensure_ascii=False)))
-    except Exception:
-        pass
+    if persist:
+        try:
+            conn.execute('INSERT INTO daily_shop(shop_date,slots) VALUES(?,?) '
+                         'ON CONFLICT(shop_date) DO NOTHING', (today, json.dumps(slots, ensure_ascii=False)))
+        except Exception:
+            pass
     return slots
 
 @app.route('/api/shop/buy_appearance', methods=['POST'])
@@ -23321,7 +23516,25 @@ def shop_buy_appearance():
     uid  = session['user_id']
     body = request.get_json(silent=True) or {}
     if _canonical_coin_shop_purchase_enabled():
-        return _canonical_shop_purchase_response(uid, body, appearance_only=True)
+        with get_db() as conn:
+            dispatch = _classify_shop_request(
+                conn,
+                body,
+                appearance_only=True,
+            )
+        if dispatch['classification'] == CANONICAL_SHOP_DISPATCH:
+            return _canonical_shop_purchase_response(
+                uid,
+                body,
+                appearance_only=True,
+            )
+        if dispatch['classification'] == INVALID_SHOP_DISPATCH:
+            status = 503 if dispatch.get('error_code') == 'SHOP_DISPATCH_UNAVAILABLE' else 400
+            return jsonify({
+                'error': 'shop_offer_unavailable',
+                'code': dispatch.get('error_code', 'UNKNOWN_OFFER'),
+            }), status
+        # LEGACY_ONLY falls through to the existing daily-rotation route.
     item_id = str(body.get('item_id') or '')
     with get_db() as conn:
         slot = next((s for s in _daily_shop_slots(conn)
