@@ -172,7 +172,7 @@ HTML is handled by the existing network-first service-worker path. Therefore
 
 ## Validation evidence
 
-The focused Python E030 + E030-R1 suite passes: **37 passed**. It includes
+The focused Python E030 + E030-R1 suite passes: **45 passed**. It includes
 pre/post-B033
 B040 grants, default-off behavior, canonical stackable/wardrobe purchases,
 dispatch classification, schema fail-closed behavior, D024 recovery,
@@ -182,7 +182,7 @@ The real-client Node contract passes with **9 requests** covering success, new-i
 canonical-result 503 retry, in-progress retry, terminal clear, and
 new-intent-after-completion cases.
 
-The broad relevant Python matrix is **375 passed, 2 failed, 8 skipped**. The
+The broad relevant Python matrix is **383 passed, 2 failed, 8 skipped**. The
 two failures reproduce on the exact current-master parent and are not
 introduced by E030-R1:
 

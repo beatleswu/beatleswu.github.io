@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from types import SimpleNamespace
 
 import pytest
 
@@ -85,6 +86,131 @@ def test_known_legacy_only_appearance_uses_existing_route(tmp_path, monkeypatch)
             "SELECT COUNT(*) FROM player_wardrobe "
             "WHERE user_id=1 AND item_id='hat_cloth'"
         ).fetchone()[0] == 1
+
+
+@pytest.mark.parametrize(
+    ("equip_id", "canonical_slot"),
+    [
+        ("iron_sword", "weapon"),
+        ("cloth_robe", "armor"),
+        ("lucky_stone", "accessory"),
+    ],
+)
+def test_post_b033_monster_grant_projects_each_functional_slot(
+    tmp_path, monkeypatch, equip_id, canonical_slot
+):
+    path = tmp_path / f"monster-post-{equip_id}.sqlite"
+    _create_db(path, post_b033=True, include_shop_inventory=False, include_wardrobe=False)
+    raw = sqlite3.connect(path)
+    raw.row_factory = sqlite3.Row
+    identity = SimpleNamespace(
+        monster_id="zone_01_monster_01",
+        zone_id="zone_01",
+        roster_slot=1,
+        encounter_class="MONSTER",
+        family_id="family_01",
+    )
+    monkeypatch.setattr(app_module, "canonical_battlefield_identity", lambda *args: identity)
+    monkeypatch.setattr(app_module, "build_monster_defeated_event", lambda **kwargs: kwargs)
+
+    def fake_settlement(conn, event, **kwargs):
+        return kwargs["grant_functional_item"](equip_id, 1, "drop")
+
+    monkeypatch.setattr(app_module, "settle_monster_defeat", fake_settlement)
+    app_module._settle_monster_defeat_in_tx(
+        raw,
+        1,
+        battlefield={"monster_idx": 1},
+        settlement_id=f"e030-r1-monster-{equip_id}",
+        hp_before=10,
+        hp_after=0,
+    )
+    raw.commit()
+    row = raw.execute(
+        "SELECT equip_id,equipped,canonical_slot,source FROM player_inventory"
+    ).fetchone()
+    raw.close()
+    assert tuple(row) == (equip_id, 0, canonical_slot, "drop")
+
+
+@pytest.mark.parametrize(
+    ("equip_id", "canonical_slot"),
+    [
+        ("iron_sword", "weapon"),
+        ("cloth_robe", "armor"),
+        ("lucky_stone", "accessory"),
+    ],
+)
+def test_post_b033_admin_grant_projects_each_functional_slot(
+    tmp_path, monkeypatch, equip_id, canonical_slot
+):
+    path = tmp_path / f"admin-post-{equip_id}.sqlite"
+    _create_db(path, post_b033=True, include_shop_inventory=False, include_wardrobe=False)
+    client = _client(path, monkeypatch, admin=True)
+    response = client.post(
+        "/api/admin/users/1/assets/equipment",
+        json={"action": "grant", "equip_id": equip_id, "canonical_slot": "armor"},
+    )
+    assert response.status_code == 200
+    with sqlite3.connect(path) as conn:
+        row = conn.execute(
+            "SELECT equip_id,equipped,canonical_slot,source FROM player_inventory"
+        ).fetchone()
+    assert row == (equip_id, 0, canonical_slot, "admin")
+
+
+def test_admin_equipment_grant_still_requires_admin_authority(tmp_path, monkeypatch):
+    path = tmp_path / "admin-unauthorized.sqlite"
+    _create_db(path, include_shop_inventory=False, include_wardrobe=False)
+    client = _client(path, monkeypatch, admin=False)
+
+    response = client.post(
+        "/api/admin/users/1/assets/equipment",
+        json={"action": "grant", "equip_id": "iron_sword"},
+    )
+
+    assert response.status_code == 403
+    assert _inventory(path) == []
+
+
+def test_monster_b040_failure_rolls_back_the_caller_transaction(tmp_path, monkeypatch):
+    path = tmp_path / "monster-rollback.sqlite"
+    _create_db(path, post_b033=True, include_shop_inventory=False, include_wardrobe=False)
+    raw = sqlite3.connect(path)
+    raw.row_factory = sqlite3.Row
+    identity = SimpleNamespace(
+        monster_id="zone_01_monster_01",
+        zone_id="zone_01",
+        roster_slot=1,
+        encounter_class="MONSTER",
+        family_id="family_01",
+    )
+    monkeypatch.setattr(app_module, "canonical_battlefield_identity", lambda *args: identity)
+    monkeypatch.setattr(app_module, "build_monster_defeated_event", lambda **kwargs: kwargs)
+    monkeypatch.setattr(
+        app_module,
+        "grant_equipment_ownership",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            app_module.EquipmentOwnershipError("B033_MALFORMED_SCHEMA", "forced test failure")
+        ),
+    )
+
+    def fake_settlement(conn, event, **kwargs):
+        return kwargs["grant_functional_item"]("iron_sword", 1, "drop")
+
+    monkeypatch.setattr(app_module, "settle_monster_defeat", fake_settlement)
+    with pytest.raises(app_module.MonsterSettlementRejected):
+        app_module._settle_monster_defeat_in_tx(
+            raw,
+            1,
+            battlefield={"monster_idx": 1},
+            settlement_id="e030-r1-monster-rollback",
+            hp_before=10,
+            hp_after=0,
+        )
+    raw.rollback()
+    assert raw.execute("SELECT COUNT(*) FROM player_inventory").fetchone()[0] == 0
+    raw.close()
 
 
 def test_unknown_shop_offer_fails_closed_before_legacy_mutation(tmp_path, monkeypatch):
