@@ -7,6 +7,7 @@ They do not exercise or replace Shop/Commerce mutation authorities.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 
@@ -18,6 +19,47 @@ ADAPTER = (ROOT / "js" / "game" / "shop_presentation_v1.js").read_text(
 STYLES = (ROOT / "css" / "e10" / "shop_presentation_v1.css").read_text(
     encoding="utf-8",
 )
+MERCHANT_COPY = SHOP.split("const MERCHANT_LINES = {", 1)[1].split(
+    "const ZH_ITEM =", 1
+)[0]
+INITIAL_MERCHANT_COPY = re.search(
+    r'id="merchant-line">([^<]*)</span>', SHOP
+).group(1)
+MERCHANT_VISIBLE_COPY = MERCHANT_COPY + "\n" + INITIAL_MERCHANT_COPY
+
+
+# These are semantic groups rather than a single list of exact phrases.  The
+# scan is intentionally limited to MERCHANT_LINES so legacy gacha mechanics
+# and truthful product descriptions remain governed by their existing owners.
+MERCHANT_FORBIDDEN_SEMANTICS = {
+    "discount_or_sale": re.compile(
+        r"discount|sale|deal|best value|折扣|特賣|優惠|划算|性價比|不虧|超值",
+        re.IGNORECASE,
+    ),
+    "stock_or_scarcity": re.compile(
+        r"stock|runs out|moves fast|fresh batch|庫存|售罄|賣得很快|剛進|新進",
+        re.IGNORECASE,
+    ),
+    "pity_or_guarantee": re.compile(
+        r"pity|guarantee|guaranteed|odds|pull|chest|保底|保證|機率|開箱|抽",
+        re.IGNORECASE,
+    ),
+    "countdown_or_expiry": re.compile(
+        r"until midnight|won't last|today|tomorrow|expires?|expiry|countdown|"
+        r"今天|今日|明天|午夜|到期|倒數|輪替不等人",
+        re.IGNORECASE,
+    ),
+    "unsupported_power_recommendation": re.compile(
+        r"recommend|right pick|current (?:level|progress|stage)|skill level|"
+        r"best effect|twice as strong|pair .* shield|quality|value|"
+        r"推薦|段位|等級|適合|效果|搭配|組合|品質|用得上|最有效率|絕對",
+        re.IGNORECASE,
+    ),
+    "refund_or_exchange_promise": re.compile(
+        r"refund|exchange|wrong one|wrong item|換貨|退款|退貨|買錯",
+        re.IGNORECASE,
+    ),
+}
 
 
 def test_a034_mount_is_narrow_and_uses_expected_files_only():
@@ -106,3 +148,27 @@ def test_a034_adapter_source_has_no_transport_or_storage_side_effect_contract():
     assert "XMLHttpRequest" not in ADAPTER
     assert "document.cookie" not in ADAPTER
     assert json.loads(json.dumps({"contract": "A034_SHOP_PRESENTATION_V1"}))
+
+
+def test_a034_final_merchant_copy_has_no_unsupported_commerce_semantics():
+    violations = {
+        name: sorted(
+            set(match.group(0) for match in pattern.finditer(MERCHANT_VISIBLE_COPY))
+        )
+        for name, pattern in MERCHANT_FORBIDDEN_SEMANTICS.items()
+    }
+    violations = {name: hits for name, hits in violations.items() if hits}
+    assert violations == {}
+
+
+def test_a034_merchant_semantic_guard_covers_required_fixture_groups():
+    fixtures = {
+        "discount_or_sale": "Today's discount is the best deal.",
+        "stock_or_scarcity": "Grab it before stock runs out.",
+        "pity_or_guarantee": "The next pull is guaranteed by pity.",
+        "countdown_or_expiry": "Today's rotation expires at midnight.",
+        "unsupported_power_recommendation": "At your current level, I recommend this effect.",
+        "refund_or_exchange_promise": "If you pick the wrong item, I can refund or exchange it.",
+    }
+    for name, fixture in fixtures.items():
+        assert MERCHANT_FORBIDDEN_SEMANTICS[name].search(fixture), name
