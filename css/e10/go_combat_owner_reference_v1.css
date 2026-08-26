@@ -1,0 +1,497 @@
+/*
+ * A032 — Go Combat Owner-reference-faithful presentation layer.
+ *
+ * This file is deliberately presentation-only.  The WGo board, question
+ * lifecycle, answer controls and server settlement remain in index.html and
+ * the existing game modules.  All selectors are scoped to the active
+ * #main-row marker so the welcome shell keeps its established presentation.
+ */
+
+:root {
+    --a032-navy: #173653;
+    --a032-navy-soft: #244d70;
+    --a032-blue: #1e6fc7;
+    --a032-teal: #39c9b6;
+    --a032-cream: #fff4d8;
+    --a032-sky: #ddf2ff;
+    --a032-sun: #f6c957;
+    --a032-orange: #f29b52;
+    --a032-ink: #203d56;
+    --a032-line: rgba(23, 54, 83, .22);
+    --a032-shadow: 0 18px 46px rgba(15, 47, 71, .22);
+}
+
+/* The active practice scene is a bright world-framed battlefield. */
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) {
+    background:
+        linear-gradient(180deg, rgba(221, 242, 255, .76), rgba(255, 244, 216, .88)),
+        url('/assets/maps/e10_world_stage_v1_base.webp') center / cover fixed;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .practice {
+    padding-top: 12px;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .q-header {
+    width: min(100%, 1180px);
+    padding: 9px 16px;
+    border: 1px solid rgba(23, 54, 83, .22);
+    border-radius: 14px;
+    background: rgba(255, 244, 216, .86);
+    box-shadow: 0 8px 22px rgba(15, 47, 71, .10);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #srs-progress {
+    width: min(100%, 620px);
+    padding: 7px 13px;
+    border: 1px solid rgba(23, 54, 83, .18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .62);
+    box-shadow: 0 5px 16px rgba(15, 47, 71, .08);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
+    position: relative;
+    isolation: isolate;
+    grid-template-columns: minmax(0, 1.48fr) minmax(350px, .86fr);
+    gap: clamp(14px, 1.8vw, 24px);
+    width: 100%;
+    max-width: 1400px;
+    padding: clamp(12px, 1.6vw, 22px);
+    overflow: hidden;
+    border: 1px solid rgba(23, 54, 83, .34);
+    border-radius: 26px;
+    background:
+        linear-gradient(125deg, rgba(255, 244, 216, .88), rgba(221, 242, 255, .74) 54%, rgba(57, 201, 182, .28)),
+        url('/assets/maps/e10_world_stage_v1_base.webp') center / cover;
+    box-shadow: var(--a032-shadow);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 13% 14%, rgba(246, 201, 87, .44), transparent 22%),
+        radial-gradient(circle at 86% 22%, rgba(57, 201, 182, .27), transparent 28%),
+        linear-gradient(90deg, rgba(23, 54, 83, .04) 1px, transparent 1px),
+        linear-gradient(rgba(23, 54, 83, .04) 1px, transparent 1px);
+    background-size: auto, auto, 28px 28px, 28px 28px;
+    mix-blend-mode: multiply;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row > * {
+    position: relative;
+    z-index: 1;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-left {
+    min-width: 0;
+    padding-left: 0 !important;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-layout,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-col {
+    width: 100%;
+    min-width: 0;
+    background: transparent;
+}
+
+/* The board remains the primary interactive object; no pseudo-element is
+   placed on the board wrapper itself. */
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .quiz-board-anchor {
+    width: 100%;
+    max-width: min(100%, calc(100vh - 285px));
+    padding: clamp(8px, 1.1vw, 14px);
+    border: 1px solid rgba(23, 54, 83, .26);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(255, 244, 216, .82), rgba(221, 242, 255, .64));
+    box-shadow: 0 13px 30px rgba(15, 47, 71, .15);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-canvas-wrap {
+    position: relative;
+    z-index: 1;
+    border: 5px solid var(--a032-navy) !important;
+    border-radius: 17px;
+    outline: 2px solid rgba(246, 201, 87, .88);
+    outline-offset: -9px;
+    box-shadow: 0 16px 30px rgba(15, 47, 71, .28), 0 0 0 1px rgba(255, 255, 255, .48) inset;
+    background: #e8c57b;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #msg-box {
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid rgba(23, 54, 83, .18);
+    border-radius: 12px;
+    background: rgba(255, 244, 216, .9);
+    color: var(--a032-ink);
+    box-shadow: 0 5px 14px rgba(15, 47, 71, .10);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #quiz-pet-speech.a032-board-safe {
+    position: static !important;
+    inset: auto !important;
+    width: min(100%, 420px);
+    max-width: calc(100% - 16px);
+    margin: 8px auto 0;
+    box-sizing: border-box;
+    text-align: center;
+    z-index: 2;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #side-col {
+    position: sticky;
+    top: 10px;
+    max-height: calc(100vh - 20px);
+    padding: 0;
+    min-width: 0;
+    z-index: 2;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-panel {
+    position: relative;
+    padding: 14px 14px 16px;
+    overflow: hidden;
+    border: 1px solid rgba(23, 54, 83, .32);
+    border-radius: 22px;
+    background:
+        linear-gradient(150deg, rgba(255, 244, 216, .97), rgba(221, 242, 255, .93)),
+        url('/assets/hero/hero_bg.webp') center / cover;
+    box-shadow: 0 15px 32px rgba(15, 47, 71, .18);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 7px;
+    background: linear-gradient(90deg, var(--a032-blue), var(--a032-teal), var(--a032-orange));
+    pointer-events: none;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-header {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr);
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 4px 4px 10px;
+    border-bottom: 1px solid rgba(23, 54, 83, .18);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-wave-badge {
+    color: var(--a032-navy);
+    background: rgba(246, 201, 87, .35);
+    border-color: rgba(204, 145, 22, .62);
+    box-shadow: 0 3px 8px rgba(171, 116, 17, .14);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-status {
+    color: var(--a032-navy-soft);
+    font-weight: 700;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #battle-arena {
+    grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr);
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 12px;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .fighter-cell {
+    min-height: 206px;
+    padding: 10px 6px 9px;
+    border: 1px solid rgba(23, 54, 83, .18);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .55);
+    box-shadow: 0 7px 16px rgba(15, 47, 71, .09);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .fighter-cell.player-cell {
+    border-color: rgba(57, 201, 182, .62);
+    background: linear-gradient(160deg, rgba(221, 242, 255, .76), rgba(255, 255, 255, .54));
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .fighter-cell.monster-cell {
+    border-color: rgba(242, 155, 82, .58);
+    background: linear-gradient(160deg, rgba(255, 244, 216, .78), rgba(255, 255, 255, .54));
+}
+
+/* Scale the existing images, but do not replace their sources or crop their
+   limbs.  The broad legacy layer rules are intentionally reset here so the
+   full-body overlay stack keeps its intrinsic composition. */
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-figure.hero-fullbody {
+    width: clamp(82px, 8vw, 116px) !important;
+    height: clamp(104px, 10vw, 146px) !important;
+    margin-bottom: 18px;
+    zoom: 1 !important;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-figure.hero-fullbody #player-avatar-base {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .fighter-cell.monster-cell > div:first-child {
+    zoom: 1 !important;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-avatar {
+    width: clamp(86px, 8vw, 122px) !important;
+    height: clamp(86px, 8vw, 122px) !important;
+    flex: 0 0 auto;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-name,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-name {
+    max-width: 100%;
+    color: var(--a032-navy);
+    font-weight: 800;
+    text-shadow: 0 1px rgba(255, 255, 255, .72);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-name {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-title {
+    color: var(--a032-blue);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-vs {
+    align-self: center;
+    color: var(--a032-navy);
+    font-weight: 800;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-vs::before,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-vs::after {
+    content: "";
+    width: 1px;
+    height: 34px;
+    background: linear-gradient(180deg, transparent, rgba(23, 54, 83, .45), transparent);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .fighter-hp-bar-bg,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-hp-bar-bg {
+    width: 100%;
+    max-width: 150px;
+    height: 10px;
+    border: 1px solid rgba(23, 54, 83, .25);
+    border-radius: 999px;
+    background: rgba(23, 54, 83, .14);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #ba-player-hp-bar {
+    background: linear-gradient(90deg, var(--a032-teal), var(--a032-growth, #72c96b)) !important;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-hp-bar {
+    border-radius: inherit;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #sp-section,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #attack-hint {
+    border-color: rgba(23, 54, 83, .18);
+    background: rgba(255, 244, 216, .68);
+    color: var(--a032-ink);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #skill-slots {
+    gap: 7px;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .btn-row {
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(23, 54, 83, .16);
+    border-radius: 14px;
+    background: rgba(255, 244, 216, .7);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .btn-nav {
+    min-height: 44px;
+    border-radius: 10px;
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #explanation-panel,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #today-mini {
+    border-color: rgba(23, 54, 83, .18);
+    background: rgba(255, 244, 216, .82);
+}
+
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-canvas-wrap:focus-within,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) button:focus-visible,
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) a:focus-visible {
+    outline: 3px solid var(--a032-sun);
+    outline-offset: 3px;
+}
+
+/* R1: stacked layouts are board-first. The question and real board remain
+   the first interaction block; encounter context follows in normal flow. */
+@media (max-width: 1024px) {
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "board" "battle" !important;
+        max-width: 900px;
+        height: auto !important;
+        min-height: 0;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-left {
+        grid-area: board;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #side-col {
+        grid-area: battle;
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .quiz-board-anchor {
+        max-width: min(100%, calc(100vw - 34px), calc(100vh - 360px));
+    }
+
+    /* Prompt, feedback and the report control stay in the board column's
+       normal flow. This reserves real space instead of relying on z-index. */
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #msg-box {
+        position: relative !important;
+        inset: auto !important;
+        z-index: 2;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .sgf-report-widget {
+        position: static !important;
+        inset: auto !important;
+        width: min(100%, 360px);
+        margin: 10px auto 0;
+        z-index: 2;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-name {
+        max-width: 100% !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        overflow-wrap: anywhere;
+        line-height: 1.2;
+    }
+}
+
+@media (max-width: 600px) {
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .practice {
+        padding: 8px 8px 14px;
+        gap: 9px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
+        gap: 10px;
+        padding: 9px;
+        border-radius: 18px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-panel {
+        padding: 10px 9px 11px;
+        border-radius: 17px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-header {
+        grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr);
+        gap: 4px;
+        margin-bottom: 7px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #battle-arena {
+        grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr);
+        gap: 5px;
+        margin-bottom: 8px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .fighter-cell {
+        min-height: 170px;
+        padding: 7px 4px 7px;
+        border-radius: 13px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-figure.hero-fullbody {
+        width: 70px !important;
+        height: 88px !important;
+        margin-bottom: 10px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-avatar {
+        width: 76px !important;
+        height: 76px !important;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-name,
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-name {
+        font-size: 16px !important;
+        line-height: 1.15;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-title {
+        font-size: 12px !important;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #ba-player-hp-text,
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-hp-text {
+        font-size: 14px !important;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-vs {
+        font-size: 10px !important;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-vs::before,
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .battle-vs::after {
+        height: 22px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .quiz-board-anchor {
+        width: 100%;
+        max-width: min(100%, calc(100vw - 36px), calc(100vh - 360px)) !important;
+        padding: 6px;
+        border-radius: 16px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #board-canvas-wrap {
+        border-width: 4px !important;
+        border-radius: 13px;
+        outline-offset: -7px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #srs-progress {
+        border-radius: 12px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .sgf-report-widget {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .sgf-report-trigger {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) *,
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) *::before,
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

@@ -83,6 +83,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <script src="/community_reward_notifications.js?v=20260706b" defer></script>
     <link rel="stylesheet" href="/wgo/wgo.player.css">
     <link rel="stylesheet" href="/css/e10/encounter_presentation_framework_v1.css?v=a023v1">
+    <link rel="stylesheet" href="/css/e10/go_combat_owner_reference_v1.css?v=a032r1">
     <script src="/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
@@ -7317,7 +7318,7 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
         </div>
 
         <!-- ══ 主內容區：左（歡迎/棋盤切換）+ 右（側欄常駐） ══ -->
-        <div id="main-row">
+        <div id="main-row" data-a032-combat-surface="v1">
         <div id="main-left">
 
         <!-- ── 道場歡迎畫面 ───────────────────────────── -->
@@ -9754,6 +9755,23 @@ function showPetSpeech(text, mood='cheer') {
     el.className = mood;
     el.textContent = text;
     el.style.opacity = '0';
+    const a032BoardColumn = document.querySelector('#main-row[data-a032-combat-surface="v1"] #board-col');
+    if (a032BoardColumn) {
+        // In the A032 combat surface, the companion speech is feedback, not a
+        // floating control. Put it between the board frame and answer actions
+        // so it occupies real layout space and can never cover intersections.
+        el.classList.add('a032-board-safe');
+        const actionRow = a032BoardColumn.querySelector('.btn-row');
+        if (actionRow) a032BoardColumn.insertBefore(el, actionRow);
+        else a032BoardColumn.appendChild(el);
+        el.style.opacity = '1';
+        const dur = 1800 + Math.min(text.length * 55, 2200);
+        window._quizPetSpeechTimer = setTimeout(() => {
+            el.style.transition = 'opacity .35s'; el.style.opacity = '0';
+            setTimeout(() => el.remove(), 380);
+        }, dur);
+        return;
+    }
     document.body.appendChild(el);
     const rect = anchor.getBoundingClientRect();
     const bw = el.offsetWidth || 160, bh = el.offsetHeight || 36;
@@ -9909,6 +9927,9 @@ function updateMonsterUI(monster, { onAnimationComplete = null } = {}) {
 
     setMonsterAvatar(avatarEl, monster, monster.defeated);
     nameEl.textContent   = monsterDisplayName(monster);
+    if (document.getElementById('main-row')?.dataset.a032CombatSurface === 'v1') {
+        nameEl.removeAttribute('data-i18n');
+    }
     hpRow.style.display  = 'flex';
 
     const pct = Math.max(0, Math.round(monster.hp / monster.max_hp * 100));
@@ -10323,6 +10344,9 @@ function renderAdventureZoneMonster(q) {
         contextLabel.textContent = isNewbieVillage
             ? `${I18n.t('adventure.newbie.encounter_title')} · ${I18n.t('index.battle.adventure_encounter')}`
             : I18n.t('index.battle.adventure_encounter');
+        if (document.getElementById('main-row')?.dataset.a032CombatSurface === 'v1') {
+            contextLabel.removeAttribute('data-i18n');
+        }
         const objective = document.getElementById('battle-adventure-objective');
         if (objective) {
             objective.textContent = isNewbieVillage ? I18n.t('adventure.newbie.encounter_objective') : '';
@@ -11475,8 +11499,12 @@ async function _loadQuestionImplementation(q, loadContext = {}){
         _injectAcceptedAnswerNodes(currentProblem.tree,q);
         currentNode=currentProblem.tree;
         if(!_challengeId){
-            const label=[I18n.localized(q,'topic'),I18n.localized(q,'level')].filter(v=>v&&v!=='Unknown').join(' · ')||'未命名';
-            const t=document.getElementById('q-title');t.innerText=label;t.classList.add('active');
+            const t=document.getElementById('q-title');
+            t.innerText=_a032QuestionTitle(q);
+            if (document.getElementById('main-row')?.dataset.a032CombatSurface === 'v1') {
+                t.removeAttribute('data-i18n');
+            }
+            t.classList.add('active');
         }
         // ── 已達每日上限：顯示棋盤但鎖住互動（挑戰模式跳過）──
         if(_dailyLimitBlocksCurrentFlow()){ _applyDailyLimit(); return; }
@@ -11802,8 +11830,55 @@ function prevQuestion(){
 
 function setMsg(text,type){
     const el=document.getElementById('msg-box');el.innerText=text;
+    if (document.getElementById('main-row')?.dataset.a032CombatSurface === 'v1') {
+        el.removeAttribute('data-i18n');
+    }
     el.className='';el.id='msg-box';if(type)el.classList.add(type);
 }
+
+function _a032QuestionTitle(q) {
+    const zoneKey = new URLSearchParams(location.search).get('zone') || '';
+    const topic = _zoneEn() && typeof _zoneName === 'function'
+        ? (_zoneName(_ZONE_BY_KEY[zoneKey]) || I18n.localized(q, 'topic'))
+        : I18n.localized(q, 'topic');
+    return [topic, I18n.localized(q, 'level')]
+        .filter(value => value && value !== 'Unknown')
+        .join(' · ') || I18n.t('index.select');
+}
+
+function _a032RefreshCombatLocale() {
+    const active = document.querySelector('#main-row[data-a032-combat-surface="v1"]');
+    if (!active || !currentQ) return;
+    const title = document.getElementById('q-title');
+    if (title && !_challengeId) {
+        title.textContent = _a032QuestionTitle(currentQ);
+        title.removeAttribute('data-i18n');
+        title.classList.add('active');
+    }
+    const monsterName = document.getElementById('monster-name');
+    if (monsterName && (currentQ.monster_name || currentQ.monster_name_en)) {
+        monsterName.textContent = monsterDisplayName({
+            name: currentQ.monster_name,
+            name_en: currentQ.monster_name_en,
+        });
+        monsterName.removeAttribute('data-i18n');
+    }
+    const battleStatus = document.getElementById('battle-status');
+    if (battleStatus) {
+        const isNewbieVillage = new URLSearchParams(location.search).get('zone') === 'k26_30';
+        battleStatus.textContent = isNewbieVillage
+            ? `${I18n.t('adventure.newbie.encounter_title')} · ${I18n.t('index.battle.adventure_encounter')}`
+            : I18n.t('index.battle.fighting');
+        battleStatus.removeAttribute('data-i18n');
+    }
+    if (!solved && currentProblem && !_bossMode) {
+        setMsg((playerColor === 'B' ? I18n.t('index.black_first') : I18n.t('index.white_first')) + I18n.t('index.place_stone'), 'info');
+    }
+}
+
+document.addEventListener('e9:i18n-changed', () => {
+    window.setTimeout(_a032RefreshCombatLocale, 0);
+});
 
 function _setAlternativeAnswerReportVisible(visible, statusText='') {
     const panel = document.getElementById('alt-answer-report-panel');
@@ -21548,6 +21623,6 @@ window.addEventListener('appinstalled', () => {
 <script src="/js/e9/bottom_dock.js?v=20260801e10art1"></script>
 <script src="/js/e9/world_stage.js?v=20260821e10xsurface002"></script>
 <script src="/js/e9/shell.js?v=20260804e10navcache1"></script>
-<script src="/sgf_report_widget.js" defer></script>
+<script src="/sgf_report_widget.js?v=a032r1" defer></script>
 </body>
 </html>
