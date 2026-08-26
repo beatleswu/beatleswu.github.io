@@ -165,8 +165,12 @@ def test_equipped_armor_reduces_retaliation_and_unequip_restores_baseline(tmp_pa
         monster_atk=20,
     )
 
-    assert baseline["monster"]["player_dmg"] == 20
-    assert equipped["monster"]["player_dmg"] == 18
+    # The current F004 profile for legacy roster slot 0 is attack=2.  The
+    # q_info monster_atk=20 compatibility value is intentionally not a
+    # Combat authority on this real path.  Armor still consumes the
+    # authoritative retaliation and reduces 2 -> 1.
+    assert baseline["monster"]["player_dmg"] == 2
+    assert equipped["monster"]["player_dmg"] == 1
     assert unequipped["monster"]["player_dmg"] == baseline["monster"]["player_dmg"]
     assert equipped["combat_stats"]["damage_reduction_pct"] == 8.0
 
