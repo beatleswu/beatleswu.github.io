@@ -16,6 +16,7 @@ from map_battle_runtime import (
     issue_submission_nonce_for_attempt,
     settle_answer,
 )
+from migrations.domain_event_outbox_v1 import upgrade as upgrade_outbox
 from spirit_combat_runtime import apply_spirit_combat_effect
 
 
@@ -70,6 +71,7 @@ def _battle_db(*, monster_hp=1000, player_hp=100):
     )
     ensure_map_battle_tables(conn)
     ensure_submission_lifecycle_schema(conn)
+    upgrade_outbox(conn)
     create_map_battle(
         conn,
         battle_id="b027-battle",
@@ -444,6 +446,7 @@ def test_postgres_map_battle_spirit_effect_and_committed_retry():
         )
         ensure_map_battle_tables(seed)
         ensure_submission_lifecycle_schema(seed)
+        upgrade_outbox(seed)
         create_map_battle(
             seed,
             battle_id="b027-pg-battle",
