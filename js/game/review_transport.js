@@ -119,6 +119,36 @@
         return core;
     }
 
+    // LC004: the attempt block carries FACTS ONLY -- the move sequence the
+    // player made, the player colour, the transform needed to interpret the
+    // displayed move, and the board size. The server (canonical_learning_judge)
+    // determines correctness. This transport must never forward a client
+    // grade / correct / accepted / verdict as authority; those keys are
+    // stripped here even if a caller mistakenly supplies them.
+    const ATTEMPT_FACT_KEYS = ['moves', 'player_color', 'transform', 'board_size'];
+    const ATTEMPT_FORBIDDEN_KEYS = [
+        'grade', 'correct', 'is_correct', 'result', 'verdict',
+        'judge_result', 'accepted', 'server_correct'
+    ];
+
+    function sanitizeAttempt(attempt) {
+        if (!isObjectPayload(attempt)) return null;
+        for (let i = 0; i < ATTEMPT_FORBIDDEN_KEYS.length; i += 1) {
+            if (Object.prototype.hasOwnProperty.call(attempt, ATTEMPT_FORBIDDEN_KEYS[i])) {
+                // a caller tried to smuggle an authority field -> drop the
+                // whole attempt rather than send a tainted fact set
+                return null;
+            }
+        }
+        if (!Array.isArray(attempt.moves)) return null;
+        const clean = new Object();
+        for (let i = 0; i < ATTEMPT_FACT_KEYS.length; i += 1) {
+            const key = ATTEMPT_FACT_KEYS[i];
+            if (attempt[key] !== undefined) clean[key] = attempt[key];
+        }
+        return clean;
+    }
+
     function buildRequest(command) {
         const value = command || {};
         const request = new Object();
@@ -136,6 +166,8 @@
         if (value.internal !== true && typeof value.submission_id === 'string' && value.submission_id) {
             request.submission_id = value.submission_id;
         }
+        const attempt = sanitizeAttempt(value.attempt);
+        if (attempt) request.attempt = attempt;
         return request;
     }
 
@@ -221,7 +253,10 @@
             source_context: value.source_context,
             training_set_id: value.training_set_id,
             is_scaffolding: value.is_scaffolding,
-            submission_id: value.submission_id
+            submission_id: value.submission_id,
+            // LC004: forwarded only when the caller supplied factual attempt
+            // data; buildRequest sanitizes and omits it otherwise.
+            attempt: value.attempt
         };
 
         try {

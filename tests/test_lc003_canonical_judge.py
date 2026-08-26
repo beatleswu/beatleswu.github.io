@@ -226,10 +226,13 @@ class TestLeafFailClosed:
 
 class TestPlayerColour:
     def test_correct_coord_wrong_colour_is_rejected(self):
-        # SGF authored B[pd]; client claims to be White playing pd
+        # SGF authored B[pd]; client claims to be White playing pd.
+        # LC004 made the expected colour server-authored, so this is now
+        # rejected because the server independently determined B-to-play,
+        # not merely because the move missed. Either way: INCORRECT, not a pass.
         r = judge_answer(question_content=SGF_LEAF_RE_OK, attempt=mk([xy("pd")], colour="W"))
         assert r.status is JudgeStatus.INCORRECT
-        assert r.reason_code == "off_answer_tree"
+        assert r.reason_code in ("off_answer_tree", "player_color_contradicts_server")
         assert not r.is_correct
 
     def test_correct_coord_correct_colour_passes(self):

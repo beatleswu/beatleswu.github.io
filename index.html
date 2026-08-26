@@ -8852,18 +8852,47 @@ function _e10MeasureElementRect(el, attemptNumber) {
     return { width: rect.width || 0, height: rect.height || 0 };
 }
 
+// LC004 attempt transport. onBoardClick already un-transforms the display
+// click to canonical SGF coords via _ox/_oy, so the recorded move sequence
+// is the FACTUAL player line in canonical space (transform 'identity').
+// This carries facts only -- never a client grade / correct / verdict.
+// Populated into the review body only when window.__LC004_ATTEMPT_TRANSPORT
+// is switched on; the server default ignores it (SRS_REVIEW_NO_ATTEMPT_POLICY
+// 'legacy'), and the cutover is BLOCKED on corpus terminal-verdict coverage.
+let _lc004Attempt=null;
+function _lc004RecordAttemptMove(qid,x,y){
+    if(qid==null)return;
+    if(!_lc004Attempt||_lc004Attempt.qid!==qid){
+        _lc004Attempt={qid,moves:[]};
+    }
+    _lc004Attempt.moves.push({x,y});
+}
+function _lc004AttemptFacts(){
+    if(typeof window==='undefined'||!window.__LC004_ATTEMPT_TRANSPORT)return undefined;
+    if(!currentQ||!_lc004Attempt||_lc004Attempt.qid!==currentQ.id||!_lc004Attempt.moves.length)return undefined;
+    return {
+        moves:_lc004Attempt.moves.map(m=>({x:m.x,y:m.y})),
+        player_color:playerColor,
+        transform:'identity',
+        board_size:(currentProblem&&currentProblem.size)||boardSize||19
+    };
+}
+
 function _currentReviewMetadata(){
     const params=new URLSearchParams(location.search);
     const setId=params.get('premium_set');
     const bossSourceContext = _bossMode && _bossAttemptId
         ? `boss_trial:${_bossAttemptId}`
         : null;
-    return {
+    const meta={
         response_ms:_questionStartedAt?Math.round(performance.now()-_questionStartedAt):null,
         source_context:bossSourceContext || (setId?'premium_weekly':(_guildQuestMode?'guild_quest':'practice')),
         training_set_id:setId?Number(setId):null,
         is_scaffolding:params.get('scaffold')==='1'||!!_premiumWeeklyMode?.rescue
     };
+    const attempt=_lc004AttemptFacts();
+    if(attempt)meta.attempt=attempt;
+    return meta;
 }
 let playerColor='B',solved=false,answering=false,currentIndex=-1;
 let allQuestions=[],logicBoard=[],boardSize=19;
@@ -10022,6 +10051,7 @@ async function _prepareMapBattleV1ForQuestion(q, { generation = _mapBattleV1Life
     _resetE10BattleRevealState();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _lc004Attempt = null;  // LC004: reset the factual attempt on every new/retried question
     _mapBattleV1Context = null;
     _publishMapBattleV1Lifecycle();
     if (_bossMode) {
@@ -11342,6 +11372,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _clearMapBattleV1Resume();
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _lc004Attempt = null;  // LC004: reset the factual attempt on every new/retried question
     _mapBattleV1Context = null;
     _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _publishMapBattleV1Lifecycle();
@@ -11379,6 +11410,7 @@ async function _loadQuestionImplementation(q, loadContext = {}){
     _e10AcceptanceTrace('CURRENT_Q_ASSIGNED', { qid: questionId, generation });
     _mapBattleV1State = null;
     _mapBattleV1Moves = [];
+    _lc004Attempt = null;  // LC004: reset the factual attempt on every new/retried question
     _mapBattleV1Context = null;
     _mapBattleV1Mode = (!_bossMode && _isAdventureZonePractice()) ? 'pending' : 'disabled';
     _questionStartedAt=performance.now();
@@ -11585,6 +11617,9 @@ function onBoardClick(bx,by){
     }
 
     if(solved)return;
+    // LC004: record the factual player move (canonical coords) before the
+    // client-side walk. Facts only -- the server judges.
+    if(currentQ)_lc004RecordAttemptMove(currentQ.id,x,y);
     const matched=currentNode.children.find(c=>c.move&&c.move.x===x&&c.move.y===y);
     if(!matched){
         playWrong();const opp=playerColor==='B'?'W':'B';playStone(x,y,playerColor);
@@ -11663,6 +11698,7 @@ function resetProblem(){
     _gameBootstrap.invalidate('reset');
     _altAnswerReportMode = false;
     _mapBattleV1Moves = [];
+    _lc004Attempt = null;  // LC004: reset the factual attempt on every new/retried question
     _boardRenderer.clear();initLogicBoard(currentProblem.size);
     currentProblem.black.forEach(s=>{placeStone(s.x,s.y,'B');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.B});});
     currentProblem.white.forEach(s=>{placeStone(s.x,s.y,'W');_boardRenderer.addObject({x:_bx(s.x),y:_by(s.y),c:WGo.W});});

@@ -36,6 +36,7 @@ No Flask, no DB, no network. Pure and unit-testable.
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -177,6 +178,20 @@ def _sgf_board_size(content: str) -> int:
     return int(match.group(1)) if match else 19
 
 
+def _server_expected_player_color(root: SGFNode) -> str | None:
+    """LC004: the expected player colour is SERVER-AUTHORED from the question
+    SGF -- the root ``PL[...]`` if present, else the colour of the first
+    authored move. Returns None only when the SGF carries neither signal."""
+    meta = root.metadata or {}
+    declared = str(meta.get("player_to_move") or "").strip().upper()
+    if declared in ("B", "W"):
+        return declared
+    for child in root.children:
+        if child.move is not None and child.move.color in ("B", "W"):
+            return child.move.color
+    return None
+
+
 def _xy_to_sgf_coord(x: int, y: int, size: int) -> str | None:
     if not (0 <= x < size and 0 <= y < size and size <= 26):
         return None
@@ -284,7 +299,16 @@ def judge_answer(
     if not attempt.moves:
         return JudgeResult(JudgeStatus.UNVERIFIABLE, "no_moves_submitted", transform_index=t)
 
-    colour = attempt.player_color
+    # LC004: the colour the judge enforces is server-authored from the SGF.
+    # A client-transported colour is only a fact to validate; if it
+    # contradicts the server's, the attempt is for the wrong side -> INCORRECT.
+    server_colour = _server_expected_player_color(root)
+    if server_colour is not None and attempt.player_color != server_colour:
+        return JudgeResult(
+            JudgeStatus.INCORRECT, "player_color_contradicts_server",
+            transform_index=t, player_color=server_colour,
+        )
+    colour = server_colour or attempt.player_color
     opponent = opponent_of(colour)
 
     # 3. accepted-alternative fast path — compared in display space, exactly
@@ -395,6 +419,23 @@ def judge_answer(
 _SERVER_GRADE_CORRECT = 3
 _SERVER_GRADE_NOT_CORRECT = 0
 
+# LC004 no-attempt policy. Default 'legacy' preserves the LC003 behaviour
+# exactly (a no-attempt request passes the client's self-reported grade
+# through, explicitly labelled non-authoritative). 'fail_closed' is the
+# cutover: a no-attempt request gets an explicit compatibility error and
+# records no review -- the client self-report can no longer drive
+# scheduling or progress. The cutover is BLOCKED on corpus terminal-verdict
+# coverage (see docs/planning/lc004_*) and must stay 'legacy' until the
+# corpus carries explicit terminal verdicts.
+_NO_ATTEMPT_POLICY_ENV = "SRS_REVIEW_NO_ATTEMPT_POLICY"
+_NO_ATTEMPT_POLICY_LEGACY = "legacy"
+_NO_ATTEMPT_POLICY_FAIL_CLOSED = "fail_closed"
+
+
+def no_attempt_policy() -> str:
+    value = str(os.environ.get(_NO_ATTEMPT_POLICY_ENV, _NO_ATTEMPT_POLICY_LEGACY)).strip().lower()
+    return value if value in (_NO_ATTEMPT_POLICY_LEGACY, _NO_ATTEMPT_POLICY_FAIL_CLOSED) else _NO_ATTEMPT_POLICY_LEGACY
+
 
 class GradeBasis(str, Enum):
     SERVER_JUDGE_CORRECT = "SERVER_JUDGE_CORRECT"
@@ -446,9 +487,13 @@ def resolve_srs_review_authority(
 ) -> AuthorityResolution:
     """Decide the correctness basis for one public /api/srs/review call.
 
-    * No ``attempt`` block  -> the client grade is a labelled scheduling
-      self-report; it is NOT a server correctness verdict and cannot reach
-      any authoritative-handoff consumer (``server_authoritative`` is False).
+    * No ``attempt`` block  -> policy-dependent (LC004):
+        - ``legacy`` (default): the client grade is a labelled scheduling
+          self-report; NOT a server correctness verdict and cannot reach any
+          authoritative-handoff consumer (``server_authoritative`` is False).
+        - ``fail_closed`` (cutover, BLOCKED on corpus coverage): an explicit
+          HTTP 409 compatibility error; no review is recorded; the client
+          self-report drives nothing.
     * ``attempt`` block present -> the canonical judge is authoritative. The
       client's grade / correctness fields are ignored. AMBIGUOUS /
       UNVERIFIABLE / MALFORMED fail closed (the review is not recorded and
@@ -456,6 +501,19 @@ def resolve_srs_review_authority(
     """
     attempt_payload = data.get("attempt")
     if not isinstance(attempt_payload, Mapping):
+        if no_attempt_policy() == _NO_ATTEMPT_POLICY_FAIL_CLOSED:
+            # LC004 cutover: no factual attempt -> no authoritative progress,
+            # no server correctness claim, no client-grade fallback.
+            return AuthorityResolution(
+                fail_closed_status=409,
+                fail_closed_body={
+                    "error": "attempt_required",
+                    "code": "srs_attempt_required",
+                    "message": "client refresh required: send an attempt payload",
+                    "retryable": False,
+                    "refresh_required": True,
+                },
+            )
         # legacy no-attempt path: pass the client's self-reported grade
         # through unchanged, explicitly labelled as non-authoritative.
         return AuthorityResolution(
