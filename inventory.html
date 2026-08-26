@@ -467,7 +467,7 @@ main {
   </div>
 </header>
 
-<div class="stats-strip" aria-label="背包摘要" data-i18n-aria-label="backpack.summary">
+<div class="stats-strip" data-a031-context-rail aria-label="背包摘要" data-i18n-aria-label="backpack.summary">
   <div class="strip-stat"><div class="s-val amber" id="backpack-total-qty">—</div><div class="s-lbl" data-i18n="backpack.totalQty">持有總數</div></div>
   <div class="strip-stat"><div class="s-val teal" id="backpack-item-kinds">—</div><div class="s-lbl" data-i18n="backpack.itemKinds">物品種類</div></div>
   <div class="strip-stat"><div class="s-val gold" id="backpack-manual-count">—</div><div class="s-lbl" data-i18n="backpack.manualKinds">可手動使用</div></div>
@@ -476,8 +476,8 @@ main {
 
 <main>
 
-  <section class="section-wrap functional-equipment-shell" data-functional-equipment-backpack aria-labelledby="functional-equipment-title">
-    <div class="backpack-heading">
+  <section class="section-wrap functional-equipment-shell" data-functional-equipment-backpack data-a031-scene-shell aria-labelledby="functional-equipment-title">
+    <div class="backpack-heading" data-a031-scene-heading>
       <div>
         <p class="functional-equipment-kicker" data-a031-zh="戰鬥裝備" data-a031-en="FUNCTIONAL EQUIPMENT">戰鬥裝備</p>
         <h1 id="functional-equipment-title" data-a031-legacy-label="戰鬥裝備 / Functional Equipment" data-a031-zh="戰鬥裝備" data-a031-en="Functional Equipment">戰鬥裝備</h1>
@@ -486,7 +486,7 @@ main {
       <a class="functional-equipment-link" href="/hero?tab=equipment" data-a031-zh="外觀裝備" data-a031-en="Hero Style Gear">外觀裝備</a>
     </div>
     <div id="functional-equipment-status" class="functional-equipment-status" role="status" aria-live="polite" data-state="loading" data-a031-zh="正在載入戰鬥裝備…" data-a031-en="Loading functional equipment…">正在載入戰鬥裝備…</div>
-    <div class="functional-equipment-filters" id="functional-equipment-filters" role="tablist" aria-label="戰鬥裝備分類">
+    <div class="functional-equipment-filters" id="functional-equipment-filters" data-a031-equipment-window-filters role="tablist" aria-label="戰鬥裝備分類">
       <button type="button" class="functional-equipment-filter" data-functional-filter="all" aria-selected="true">全部</button>
       <button type="button" class="functional-equipment-filter" data-functional-filter="weapon" aria-selected="false">武器</button>
       <button type="button" class="functional-equipment-filter" data-functional-filter="armor" aria-selected="false">防具</button>
@@ -567,7 +567,7 @@ main {
         </div>
       </aside>
     </div>
-    <div class="a031-functional-collection">
+    <div class="a031-functional-collection" data-a031-equipment-window>
       <div class="a031-collection-heading">
         <div>
           <div class="a031-pane-kicker" data-a031-zh="裝備收藏" data-a031-en="EQUIPMENT COLLECTION">裝備收藏</div>
@@ -579,20 +579,20 @@ main {
     </div>
   </section>
 
-  <section class="section-wrap backpack-shell" data-backpack-destination aria-labelledby="backpack-title">
-    <div class="backpack-heading">
+  <section class="section-wrap backpack-shell" data-backpack-destination data-a031-backpack-window aria-labelledby="backpack-title">
+    <div class="backpack-heading" data-a031-backpack-heading>
       <div>
         <p class="backpack-kicker">BACKPACK</p>
         <h1 id="backpack-title" data-i18n="backpack.title">我的背包</h1>
         <p data-i18n="backpack.subtitle">查看真實持有量、分類與可用狀態；商品價格與購買行為只在商店顯示。</p>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end">
-        <a class="backpack-shop-link" href="/item-journal">物品圖鑑 / Item Journal</a>
+        <a class="backpack-shop-link" href="/item-journal" data-a031-zh="物品圖鑑" data-a031-en="Item Journal">物品圖鑑</a>
         <a class="backpack-shop-link" href="/shop" data-i18n="backpack.goShop">前往商店</a>
       </div>
     </div>
     <div id="backpack-status" class="backpack-status" role="status" aria-live="polite" data-state="loading" data-i18n="backpack.loading">正在載入背包…</div>
-    <div class="backpack-filters" id="backpack-filters" role="tablist" aria-label="背包分類" data-i18n-aria-label="backpack.categories"></div>
+    <div class="backpack-filters" id="backpack-filters" data-a031-backpack-filters role="tablist" aria-label="背包分類" data-i18n-aria-label="backpack.categories"></div>
     <div class="backpack-grid" id="backpack-grid" data-authoritative-backpack-grid aria-live="polite"></div>
   </section>
 

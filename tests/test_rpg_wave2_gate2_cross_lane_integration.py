@@ -43,7 +43,8 @@ def test_inventory_information_architecture_keeps_authorities_separate():
     assert "fetch('/api/player/inventory'" in inventory
     assert "fetch('/api/player/inventory/equip'" in inventory
     assert 'href="/item-journal"' in inventory
-    assert "物品圖鑑 / Item Journal" in inventory
+    assert 'data-a031-zh="物品圖鑑"' in inventory
+    assert 'data-a031-en="Item Journal"' in inventory
     assert inventory.index("data-functional-equipment-backpack") < inventory.index(
         'href="/item-journal"'
     )

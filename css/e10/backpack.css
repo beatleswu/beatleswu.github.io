@@ -1206,3 +1206,397 @@ html[data-e10-backpack-shell="true"] .e10-backpack-dialog-icon img { width: 100%
 @media (prefers-reduced-motion: reduce) {
   html[data-e10-backpack-shell="true"] .a031-loadout-slot:not(:disabled):hover { transform: none; }
 }
+
+/* A031-R1 Owner composition closure.
+ * Keep the existing DOM, server-owned data and actions, but make the first
+ * read one RPG scene: Hero, three loadout slots, selected object, then
+ * compact horizontally browsable equipment/backpack windows. */
+html[data-e10-backpack-shell="true"] body {
+  overflow-x: hidden;
+  background:
+    linear-gradient(180deg, rgba(221, 242, 255, .72), rgba(255, 244, 216, .78) 48%, rgba(217, 239, 223, .88)),
+    url("/assets/hero/hero_bg.webp") center top / cover fixed no-repeat;
+}
+
+html[data-e10-backpack-shell="true"] body::before {
+  opacity: .12;
+  background-size: 72px 72px;
+}
+
+html[data-e10-backpack-shell="true"] main {
+  width: 100%;
+  max-width: 1480px;
+  padding: 18px clamp(18px, 3vw, 44px) 64px;
+}
+
+html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] {
+  width: min(1180px, calc(100% - 36px));
+  margin: 10px auto 0;
+  padding: 7px 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid rgba(23, 54, 83, .48);
+  border-radius: 14px;
+  background: linear-gradient(110deg, rgba(23, 54, 83, .96), rgba(30, 111, 199, .88));
+  box-shadow: 0 9px 24px rgba(23, 54, 83, .18);
+}
+
+html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .strip-stat {
+  min-width: 0;
+  padding: 2px 14px;
+  border-right: 1px solid rgba(221, 242, 255, .22);
+}
+
+html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .strip-stat:last-child { border-right: 0; }
+html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .s-val { font-size: 23px; }
+html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .s-lbl { font-size: 9px; }
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell,
+html[data-e10-backpack-shell="true"] .backpack-shell {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  border: 2px solid rgba(23, 54, 83, .46);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(23, 54, 83, .78), rgba(30, 111, 199, .24) 32%, rgba(255, 244, 216, .9) 74%),
+    url("/assets/hero/hero_bg.webp") center / cover no-repeat;
+  box-shadow: 0 20px 48px rgba(23, 54, 83, .22);
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell::before,
+html[data-e10-backpack-shell="true"] .backpack-shell::before {
+  z-index: 0;
+  opacity: .52;
+  border: 1px solid rgba(255, 244, 216, .44);
+  border-radius: 18px;
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell > *,
+html[data-e10-backpack-shell="true"] .backpack-shell > * { position: relative; z-index: 1; }
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell {
+  padding: clamp(16px, 2.2vw, 30px);
+  margin-bottom: 18px;
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell .backpack-heading[data-a031-scene-heading] {
+  min-height: 0;
+  margin: 0 0 14px;
+  padding: 13px 17px;
+  border: 1px solid rgba(255, 244, 216, .32);
+  border-radius: 14px;
+  background: linear-gradient(105deg, rgba(23, 54, 83, .96), rgba(30, 111, 199, .86));
+  box-shadow: 0 8px 18px rgba(23, 54, 83, .18);
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell .backpack-heading[data-a031-scene-heading] h1 {
+  color: #fffdf0;
+  font-size: clamp(22px, 2.5vw, 32px);
+  letter-spacing: .02em;
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell .backpack-heading[data-a031-scene-heading] p:not(.functional-equipment-kicker) {
+  color: #d8f4f5;
+  font-size: 11px;
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell .functional-equipment-kicker {
+  color: #bff7ed !important;
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-shell .functional-equipment-link {
+  border-color: rgba(255, 244, 216, .42);
+  color: var(--a031-navy);
+  background: var(--a031-teal);
+  box-shadow: 0 5px 12px rgba(23, 54, 83, .18);
+}
+
+html[data-e10-backpack-shell="true"] .functional-equipment-filters[data-a031-equipment-window-filters] {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 3px 2px 11px;
+  scrollbar-width: thin;
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board {
+  grid-template-columns: minmax(300px, .98fr) minmax(350px, 1.08fr) minmax(390px, 1.18fr) !important;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-hero-pane {
+  min-height: 510px;
+  padding: 18px;
+  border: 2px solid rgba(255, 244, 216, .62);
+  background:
+    linear-gradient(180deg, rgba(23, 54, 83, .08), rgba(23, 54, 83, .72)),
+    url("/assets/hero/hero_bg.webp") center / cover no-repeat;
+  box-shadow: inset 0 -72px 90px rgba(23, 54, 83, .28), 0 14px 28px rgba(23, 54, 83, .16);
+}
+
+html[data-e10-backpack-shell="true"] .a031-hero-art-scene { min-height: 372px; }
+
+html[data-e10-backpack-shell="true"] .a031-hero-preview .functional-wearable-preview-host {
+  width: min(100%, 320px);
+  height: 352px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-loadout-pane {
+  min-width: 0;
+  padding: 20px;
+  border: 2px solid rgba(30, 111, 199, .28);
+  background: linear-gradient(155deg, rgba(255, 244, 216, .98), rgba(221, 242, 255, .94));
+}
+
+html[data-e10-backpack-shell="true"] .a031-loadout-grid {
+  gap: 11px;
+  margin-top: 16px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-loadout-slot {
+  min-height: 270px;
+  padding: 11px;
+  border-width: 2px;
+  border-color: rgba(30, 111, 199, .32);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .72);
+}
+
+html[data-e10-backpack-shell="true"] .a031-loadout-slot-art {
+  min-height: 150px;
+  background: radial-gradient(circle at 50% 45%, #fffdf3 0%, #e2f4fb 76%);
+}
+
+html[data-e10-backpack-shell="true"] .a031-loadout-slot-art img { height: 146px; }
+html[data-e10-backpack-shell="true"] .a031-loadout-slot-name { font-size: 13px; }
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board > .functional-equipment-detail {
+  min-height: 510px;
+  padding: 20px;
+  border: 2px solid rgba(30, 111, 199, .26);
+  background: linear-gradient(155deg, rgba(255, 244, 216, .99), rgba(255, 253, 243, .96));
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board > .functional-equipment-detail[data-empty="true"] {
+  min-height: 510px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-identity {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.08fr) minmax(150px, .92fr);
+  align-items: center;
+  gap: 16px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-icon {
+  width: 100%;
+  height: 232px;
+  border: 1px solid rgba(30, 111, 199, .2);
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 42%, #fffdf3 0%, #dff3fb 72%);
+  box-shadow: inset 0 0 0 5px rgba(255, 244, 216, .72), 0 10px 24px rgba(23, 54, 83, .08);
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-name {
+  font-size: clamp(22px, 2.1vw, 30px);
+  line-height: 1.08;
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-meta {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-section {
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-actions { margin-top: 13px; }
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection[data-a031-equipment-window] {
+  padding: 13px 14px 8px;
+  border: 1px solid rgba(23, 54, 83, .28);
+  border-radius: 16px;
+  background: rgba(255, 244, 216, .88);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .52);
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .a031-collection-heading {
+  margin-bottom: 5px;
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .a031-collection-heading h2 {
+  font-size: clamp(17px, 1.8vw, 23px);
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-grid,
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-grid {
+  display: flex !important;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 0;
+  gap: 11px;
+  padding: 5px 3px 13px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30, 111, 199, .5) rgba(221, 242, 255, .7);
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-card {
+  flex: 0 0 clamp(174px, 14vw, 216px);
+  min-height: 218px;
+  padding: 10px;
+  border: 1px solid rgba(30, 111, 199, .28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .76);
+  scroll-snap-align: start;
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-icon {
+  height: 126px;
+  border-radius: 11px;
+  background: radial-gradient(circle at 50% 42%, #fffdf3 0%, #dff3fb 74%);
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-card-effects,
+html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-badge {
+  display: none;
+}
+
+html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-card-name {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell {
+  padding: clamp(16px, 2.2vw, 26px);
+  background:
+    linear-gradient(145deg, rgba(255, 244, 216, .94), rgba(221, 242, 255, .82)),
+    url("/assets/hero/hero_bg.webp") center / cover no-repeat;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-heading[data-a031-backpack-heading] {
+  min-height: 0;
+  margin-bottom: 8px;
+  padding: 4px 2px 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-heading[data-a031-backpack-heading] h1 {
+  color: var(--a031-navy);
+  font-size: clamp(23px, 2.7vw, 32px);
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-heading[data-a031-backpack-heading] p:not(.backpack-kicker) {
+  max-width: 720px;
+  color: #46637b;
+  font-size: 11px;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-filters[data-a031-backpack-filters] {
+  padding: 7px 0 7px;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card {
+  flex: 0 0 clamp(174px, 14vw, 216px);
+  min-height: 214px;
+  padding: 10px;
+  border: 1px solid rgba(30, 111, 199, .24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .82);
+  scroll-snap-align: start;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-head { display: block; }
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-icon {
+  width: 100%;
+  height: 126px;
+  border-radius: 11px;
+  background: radial-gradient(circle at 50% 42%, #fffdf3 0%, #dff3fb 74%);
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-name {
+  margin-top: 8px;
+  color: var(--a031-navy);
+  font-size: 12px;
+}
+
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-desc { display: none; }
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-foot { margin-top: auto; }
+html[data-e10-backpack-shell="true"] .backpack-shell .backpack-action-state { font-size: 10px; }
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  html[data-e10-backpack-shell="true"] main { max-width: 1100px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board {
+    grid-template-columns: minmax(300px, .95fr) minmax(390px, 1.05fr) !important;
+  }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board > .functional-equipment-detail { grid-column: 1 / -1; min-height: 430px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board > .functional-equipment-detail[data-empty="true"] { min-height: 430px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-pane { min-height: 470px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-art-scene { min-height: 330px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-preview .functional-wearable-preview-host { height: 310px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-icon { height: 190px; }
+}
+
+@media (max-width: 767px) {
+  html[data-e10-backpack-shell="true"] main { padding: 11px 12px 48px; }
+  html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] {
+    width: calc(100% - 24px);
+    padding: 6px 4px;
+    border-radius: 12px;
+  }
+  html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .strip-stat { padding: 2px 3px; }
+  html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .s-val { font-size: 18px; }
+  html[data-e10-backpack-shell="true"] .stats-strip[data-a031-context-rail] .s-lbl { font-size: 8px; letter-spacing: 0; }
+  html[data-e10-backpack-shell="true"] .functional-equipment-shell,
+  html[data-e10-backpack-shell="true"] .backpack-shell { padding: 12px; border-radius: 18px; }
+  html[data-e10-backpack-shell="true"] .functional-equipment-shell .backpack-heading[data-a031-scene-heading] { padding: 11px 12px; }
+  html[data-e10-backpack-shell="true"] .functional-equipment-shell .backpack-heading[data-a031-scene-heading] h1 { font-size: 22px; }
+  html[data-e10-backpack-shell="true"] .functional-equipment-shell .functional-equipment-note { display: none; }
+  html[data-e10-backpack-shell="true"] .functional-equipment-shell .functional-equipment-link { min-height: 42px; padding-inline: 11px; font-size: 11px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board { grid-template-columns: 1fr !important; gap: 10px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-pane { min-height: 420px; padding: 13px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-art-scene { min-height: 286px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-preview .functional-wearable-preview-host { width: min(100%, 270px); height: 270px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-pane { padding: 13px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-grid { gap: 6px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot { min-height: 184px; padding: 7px; border-radius: 12px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-label { font-size: 9px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-art { min-height: 96px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-art img { height: 92px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-name { min-height: 28px; font-size: 10px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-state { font-size: 9px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board > .functional-equipment-detail,
+  html[data-e10-backpack-shell="true"] .a031-equipment-board > .functional-equipment-detail[data-empty="true"] { min-height: 0; padding: 13px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-identity { grid-template-columns: minmax(128px, .95fr) minmax(0, 1.05fr); gap: 11px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-icon { height: 170px; border-radius: 14px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-name { font-size: 20px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-section { margin-top: 9px; padding-top: 8px; }
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-detail-row,
+  html[data-e10-backpack-shell="true"] .a031-equipment-board .functional-compare-row { font-size: 11px; }
+  html[data-e10-backpack-shell="true"] .a031-functional-collection[data-a031-equipment-window] { padding: 11px 10px 4px; }
+  html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-card { flex-basis: 166px; min-height: 196px; }
+  html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-icon { height: 108px; }
+  html[data-e10-backpack-shell="true"] .a031-functional-collection .functional-equipment-card-name { font-size: 11px; }
+  html[data-e10-backpack-shell="true"] .backpack-shell .backpack-heading[data-a031-backpack-heading] { flex-direction: column; gap: 7px; }
+  html[data-e10-backpack-shell="true"] .backpack-shell .backpack-heading[data-a031-backpack-heading] > div:last-child { justify-content: flex-start !important; }
+  html[data-e10-backpack-shell="true"] .backpack-shell .backpack-heading[data-a031-backpack-heading] .backpack-shop-link { min-height: 40px; width: auto; }
+  html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card { flex-basis: 166px; min-height: 192px; }
+  html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-icon { height: 108px; }
+  html[data-e10-backpack-shell="true"] .backpack-shell .backpack-card-name { font-size: 11px; }
+}
+
+@media (max-width: 380px) {
+  html[data-e10-backpack-shell="true"] .a031-hero-pane { min-height: 390px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-art-scene { min-height: 256px; }
+  html[data-e10-backpack-shell="true"] .a031-hero-preview .functional-wearable-preview-host { height: 238px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot { min-height: 174px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-art { min-height: 86px; }
+  html[data-e10-backpack-shell="true"] .a031-loadout-slot-art img { height: 82px; }
+}
