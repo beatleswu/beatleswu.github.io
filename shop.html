@@ -1412,6 +1412,132 @@ async function api(path, options) {
   return data;
 }
 
+// E030-R1-SHOP-PURCHASE-INTENT-START
+// E030-R1: one browser purchase intent owns one stable operation identity.
+// The server remains the purchase authority; this state only makes a
+// network/recovery retry address the same server operation.
+const SHOP_PURCHASE_INTENT_TTL_MS = 30 * 60 * 1000;
+const shopPurchaseIntentMemory = new Map();
+
+function shopPurchaseIntentStorageKey(route, selector) {
+  return `go-odyssey:shop-purchase:v1:${encodeURIComponent(route)}:${encodeURIComponent(selector)}`;
+}
+
+function shopPurchaseIntentStorage() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function shopPurchaseIntentIsUsable(intent, route, selector) {
+  if (!intent || intent.route !== route || intent.selector !== selector
+      || typeof intent.operationId !== 'string' || !intent.operationId) {
+    return false;
+  }
+  const createdAt = Number(intent.createdAt);
+  return Number.isFinite(createdAt)
+    && Date.now() - createdAt <= SHOP_PURCHASE_INTENT_TTL_MS;
+}
+
+function readShopPurchaseIntent(route, selector) {
+  const storageKey = shopPurchaseIntentStorageKey(route, selector);
+  const inMemory = shopPurchaseIntentMemory.get(storageKey);
+  if (shopPurchaseIntentIsUsable(inMemory, route, selector)) return inMemory;
+  if (inMemory) shopPurchaseIntentMemory.delete(storageKey);
+
+  const storage = shopPurchaseIntentStorage();
+  if (!storage) return null;
+  try {
+    const stored = JSON.parse(storage.getItem(storageKey) || 'null');
+    if (shopPurchaseIntentIsUsable(stored, route, selector)) {
+      shopPurchaseIntentMemory.set(storageKey, stored);
+      return stored;
+    }
+    if (stored) storage.removeItem(storageKey);
+  } catch {
+    // Storage can be unavailable or corrupted; the next intent will use
+    // fresh in-memory state rather than trusting malformed persisted data.
+  }
+  return null;
+}
+
+function newShopPurchaseOperationId() {
+  const secureCrypto = globalThis.crypto;
+  if (secureCrypto && typeof secureCrypto.randomUUID === 'function') {
+    return secureCrypto.randomUUID();
+  }
+  if (secureCrypto && typeof secureCrypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    secureCrypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  throw new Error('secure purchase operation identity unavailable');
+}
+
+function beginShopPurchaseIntent(route, selector) {
+  const existing = readShopPurchaseIntent(route, selector);
+  if (existing) return existing;
+  const intent = {
+    route,
+    selector,
+    operationId: newShopPurchaseOperationId(),
+    createdAt: Date.now(),
+  };
+  const storageKey = shopPurchaseIntentStorageKey(route, selector);
+  shopPurchaseIntentMemory.set(storageKey, intent);
+  const storage = shopPurchaseIntentStorage();
+  if (storage) {
+    try {
+      storage.setItem(storageKey, JSON.stringify(intent));
+    } catch {
+      // In-memory state still protects retries during this page session.
+    }
+  }
+  return intent;
+}
+
+function clearShopPurchaseIntent(route, selector) {
+  const storageKey = shopPurchaseIntentStorageKey(route, selector);
+  shopPurchaseIntentMemory.delete(storageKey);
+  const storage = shopPurchaseIntentStorage();
+  if (storage) {
+    try { storage.removeItem(storageKey); } catch { /* best effort cleanup */ }
+  }
+}
+
+function shopPurchaseResponseIsRetryable(response) {
+  const error = String(response?.error || '').toLowerCase();
+  const code = String(response?.code || '').toUpperCase();
+  return error === 'canonical_result_unavailable'
+    || error === 'purchase_operation_in_progress'
+    || code === 'PURCHASE_OPERATION_IN_PROGRESS'
+    || /^HTTP 5\d\d$/.test(String(response?.error || '').toUpperCase());
+}
+
+async function requestShopPurchase(route, selector, payload) {
+  const intent = beginShopPurchaseIntent(route, selector);
+  try {
+    const response = await api(route, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, purchase_operation_id: intent.operationId }),
+    });
+    if (!response?.error || !shopPurchaseResponseIsRetryable(response)) {
+      clearShopPurchaseIntent(route, selector);
+    }
+    return response;
+  } catch (error) {
+    // A missing response is retryable: preserve the same operation identity.
+    throw error;
+  }
+}
+// E030-R1-SHOP-PURCHASE-INTENT-END
+
 function cosmeticEsc(value) {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -2038,11 +2164,14 @@ async function showPurchaseConfirmation(res, purchasedKey) {
 }
 async function buyItem(key) {
   setMerchant("talk", "talk");
-  const res = await api("/api/shop/buy", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ item_key: key })
-  });
+  let res;
+  try {
+    res = await requestShopPurchase("/api/shop/buy", key, { item_key: key });
+  } catch {
+    setMerchant("idle", "idle");
+    showToast(isEn() ? "Network error. Retry the same purchase." : "網路連線異常，請重試同一筆購買。");
+    return;
+  }
   if (res.error) {
     setMerchant("idle", "idle");
     showToast(errorMessage(res.error, res.message));
@@ -2057,11 +2186,14 @@ async function buyItem(key) {
 
 async function buyAppearance(itemId) {
   setMerchant("talk", "talk");
-  const res = await api("/api/shop/buy_appearance", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ item_id: itemId })
-  });
+  let res;
+  try {
+    res = await requestShopPurchase("/api/shop/buy_appearance", itemId, { item_id: itemId });
+  } catch {
+    setMerchant("idle", "idle");
+    showToast(isEn() ? "Network error. Retry the same purchase." : "網路連線異常，請重試同一筆購買。");
+    return;
+  }
   if (res.error) {
     setMerchant("idle", "idle");
     showToast(errorMessage(res.error, res.message));
