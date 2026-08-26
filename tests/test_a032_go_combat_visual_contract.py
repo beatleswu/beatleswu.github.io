@@ -62,6 +62,46 @@ def test_a032_responsive_board_priority_and_no_horizontal_overflow_contract():
     assert "prefers-reduced-motion: reduce" in css
 
 
+def test_a032_r1_stacked_layout_is_board_first_and_prompt_stays_in_flow():
+    css = CSS.read_text(encoding="utf-8")
+    html = INDEX.read_text(encoding="utf-8")
+    assert 'grid-template-areas: "board" "battle" !important' in css
+    assert "#msg-box" in css
+    assert "position: relative !important" in css
+    assert "inset: auto !important" in css
+    assert ".sgf-report-widget" in css
+    assert "position: static !important" in css
+    assert "a032-board-safe" in html
+    assert "insertBefore(el, actionRow)" in html
+
+
+def test_a032_r1_prevents_narrow_monster_identity_ellipsis():
+    css = CSS.read_text(encoding="utf-8")
+    assert "#monster-name" in css
+    assert "white-space: normal !important" in css
+    assert "text-overflow: clip !important" in css
+    assert "overflow-wrap: anywhere" in css
+
+
+def test_a032_r1_localizes_combat_question_and_report_surface_without_new_authority():
+    html = INDEX.read_text(encoding="utf-8")
+    widget = (ROOT / "sgf_report_widget.js").read_text(encoding="utf-8")
+    assert "function _a032QuestionTitle(q)" in html
+    assert "_zoneName(_ZONE_BY_KEY[zoneKey])" in html
+    assert "mk.problemReport.trigger" in widget
+    assert "mk.problemReport.reason.display_glitch" in widget
+    assert "data-sgf-report-surface=\"main_practice\"" in widget
+    assert "document.body.appendChild(host)" not in widget
+    assert "_a032RefreshCombatLocale" in html
+    assert "removeAttribute('data-i18n')" in html
+
+
+def test_a032_r1_static_urls_use_existing_cache_busting_policy():
+    html = INDEX.read_text(encoding="utf-8")
+    assert "/css/e10/go_combat_owner_reference_v1.css?v=a032r1" in html
+    assert "/sgf_report_widget.js?v=a032r1" in html
+
+
 def test_a032_runtime_boundary_is_frontend_only():
     html = INDEX.read_text(encoding="utf-8")
     css = CSS.read_text(encoding="utf-8")

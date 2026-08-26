@@ -132,6 +132,17 @@ body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden
     box-shadow: 0 5px 14px rgba(15, 47, 71, .10);
 }
 
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #quiz-pet-speech.a032-board-safe {
+    position: static !important;
+    inset: auto !important;
+    width: min(100%, 420px);
+    max-width: calc(100% - 16px);
+    margin: 8px auto 0;
+    box-sizing: border-box;
+    text-align: center;
+    z-index: 2;
+}
+
 body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #side-col {
     position: sticky;
     top: 10px;
@@ -242,6 +253,14 @@ body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden
     text-shadow: 0 1px rgba(255, 255, 255, .72);
 }
 
+body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-name {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+}
+
 body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #player-avatar-title {
     color: var(--a032-blue);
 }
@@ -315,12 +334,12 @@ body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden
     outline-offset: 3px;
 }
 
-/* Tablet keeps the encounter scene grouped above the board, without forcing
-   a dense three-column squeeze. */
+/* R1: stacked layouts are board-first. The question and real board remain
+   the first interaction block; encounter context follows in normal flow. */
 @media (max-width: 1024px) {
     body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #main-row {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-areas: "battle" "board";
+        grid-template-areas: "board" "battle" !important;
         max-width: 900px;
         height: auto !important;
         min-height: 0;
@@ -341,6 +360,31 @@ body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden
 
     body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .quiz-board-anchor {
         max-width: min(100%, calc(100vw - 34px), calc(100vh - 360px));
+    }
+
+    /* Prompt, feedback and the report control stay in the board column's
+       normal flow. This reserves real space instead of relying on z-index. */
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #msg-box {
+        position: relative !important;
+        inset: auto !important;
+        z-index: 2;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .sgf-report-widget {
+        position: static !important;
+        inset: auto !important;
+        width: min(100%, 360px);
+        margin: 10px auto 0;
+        z-index: 2;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #monster-name {
+        max-width: 100% !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        overflow-wrap: anywhere;
+        line-height: 1.2;
     }
 }
 
@@ -429,6 +473,15 @@ body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden
 
     body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) #srs-progress {
         border-radius: 12px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .sgf-report-widget {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    body:has(#main-row[data-a032-combat-surface="v1"] #board-canvas-wrap:not(.hidden)) .sgf-report-trigger {
+        width: 100%;
     }
 }
 
