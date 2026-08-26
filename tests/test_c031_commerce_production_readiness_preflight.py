@@ -60,6 +60,7 @@ def _source_kwargs() -> dict[str, object]:
             "canonical_equipment_loadout": False,
         },
         "legacy_writer_compatibility": PASS,
+        "target_environment": "disposable",
     }
 
 
@@ -162,6 +163,7 @@ def pg_connection(disposable_postgres: dict[str, str]):
     try:
         _create_ready_schema(conn)
         conn.commit()
+        conn._conn.set_session(readonly=True)
         yield conn
     finally:
         conn.rollback()
@@ -284,7 +286,11 @@ def test_source_contract_and_migration_hashes_pass_without_importing_app():
     assert checks["equipment_definition_source_contract"]["status"] == PASS
     assert checks["canonical_shop_feature_gate"]["status"] == PASS
     assert checks["canonical_equipment_loadout_feature_gate"]["status"] == PASS
-    assert checks["legacy_writer_compatibility"]["status"] == PASS
+    assert checks["legacy_text_timestamp_compatibility"]["status"] == PASS
+    assert checks["runtime_writer_compatibility"]["status"] == FAIL
+    assert checks["runtime_writer_compatibility"]["details"][
+        "caller_evidence_role"
+    ] == "secondary_only_ignored_for_readiness"
     assert checks["migration_manifest"]["status"] == PASS
     assert checks["no_revenue_enablement_implied"]["status"] == PASS
 
@@ -295,19 +301,22 @@ def test_source_identity_mismatch_fails_closed():
     result = run_preflight(**kwargs, conn=None)
     assert result["status"] == BLOCKED
     assert result["checks"]["application_source_sha"]["status"] == BLOCKED
-    assert result["mutation_guard"] == {
-        "writes": 0,
-        "commits": 0,
-        "rollbacks": 0,
-        "migration_execution": 0,
-    }
+    assert result["mutation_guard"]["writes"] == 0
+    assert result["mutation_guard"]["commits"] == 0
+    assert result["mutation_guard"]["rollbacks"] == 0
+    assert result["mutation_guard"]["migration_execution"] == 0
+    assert result["mutation_guard"]["database_queries"] == 0
+    assert result["DATABASE_QUERY_PERFORMED_BY_C031"] == "NO"
+    assert result["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "NO"
 
 
 def test_missing_connection_is_blocked_without_attempting_database_query():
     result = run_preflight(**_source_kwargs(), conn=None)
     assert result["status"] == BLOCKED
     assert result["checks"]["postgres_version"]["status"] == BLOCKED
-    assert result["policy"]["production_query_performed_by_c031"] is False
+    assert result["DATABASE_QUERY_PERFORMED_BY_C031"] == "NO"
+    assert result["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "NO"
+    assert result["checks"]["target_environment"]["status"] == PASS
 
 
 def test_equipment_source_contract_is_read_without_executing_app():
@@ -329,11 +338,12 @@ def test_disposable_postgres_ready_report_is_select_only(
     result = run_preflight(
         **_source_kwargs(),
         conn=probe,
+        database_read_only_enforced=True,
         equipment_definitions=definitions,
         expected_postgres_version="PostgreSQL 16.14",
     )
 
-    assert result["status"] == READY_FOR_OPTION_C_MAINTENANCE
+    assert result["status"] == NOT_READY
     checks = result["checks"]
     for name in (
         "postgres_version",
@@ -364,8 +374,22 @@ def test_disposable_postgres_ready_report_is_select_only(
     assert probe.statements
     assert set(probe.statements) <= {"SELECT", "WITH"}
     assert result["mutation_guard"]["writes"] == 0
+    assert result["DATABASE_QUERY_PERFORMED_BY_C031"] == "YES"
+    assert result["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "NO"
+    assert result["mutation_guard"]["database_queries"] > 0
+    assert result["checks"]["database_read_only_enforcement"]["status"] == PASS
     assert "16.14" in checks["postgres_version"]["observed"]
     assert disposable_postgres["server_version"].startswith("PostgreSQL 16.14")
+
+    production_label_only = run_preflight(
+        **{**_source_kwargs(), "target_environment": "production"},
+        conn=probe,
+        database_read_only_enforced=True,
+        equipment_definitions=definitions,
+        expected_postgres_version="PostgreSQL 16.14",
+    )
+    assert production_label_only["DATABASE_QUERY_PERFORMED_BY_C031"] == "YES"
+    assert production_label_only["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "YES"
 
 
 def test_incompatible_database_status_is_not_ready():
@@ -385,6 +409,79 @@ def test_incompatible_database_status_is_not_ready():
     assert result["status"] == NOT_READY
     assert result["checks"]["coin_purchase_operations_schema"]["status"] == FAIL
     assert result["checks"]["player_inventory_canonical_slot"]["status"] == FAIL
+
+
+def test_query_metadata_other_target_is_unknown_without_hostname_inference():
+    class QueryingFixture:
+        def execute(self, sql: str, parameters=None):
+            return _Rows([("PostgreSQL 16.14 disposable",)])
+
+    result = run_preflight(
+        **{**_source_kwargs(), "target_environment": "other"},
+        conn=QueryingFixture(),
+    )
+    assert result["DATABASE_QUERY_PERFORMED_BY_C031"] == "YES"
+    assert result["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "UNKNOWN"
+
+
+def _future_ready_source_fixture() -> dict[str, str]:
+    return {
+        "monster_runtime.py": (
+            "from equipment_ownership_service import grant_equipment_ownership\n"
+            "def settle_drop(conn, user_id, equip_id):\n"
+            "    return grant_equipment_ownership(conn, user_id, equip_id, source='drop')\n"
+        ),
+        "admin_runtime.py": (
+            "from equipment_ownership_service import grant_equipment_ownership\n"
+            "def grant_admin(conn, user_id, equip_id):\n"
+            "    return grant_equipment_ownership(conn, user_id, equip_id, source='admin')\n"
+        ),
+        "equipment_routes.py": (
+            "from equipment_loadout_service import equip_owned_item, unequip_owned_item\n"
+            "CANONICAL_EQUIPMENT_LOADOUT_ENABLED = False\n"
+            "def equip(conn, user_id, equip_id, inv_id):\n"
+            "    return equip_owned_item(conn, user_id, equip_id, ownership_row_id=inv_id)\n"
+            "def unequip(conn, user_id, equip_id, inv_id):\n"
+            "    return unequip_owned_item(conn, user_id, equip_id, ownership_row_id=inv_id)\n"
+        ),
+        "shop_routes.py": (
+            "from shop_offer_identity_projection import project_shop_offer\n"
+            "from coin_purchase_authority import purchase_with_coins\n"
+            "from shop_acquisition_result_bridge import adapt_committed_shop_purchase\n"
+            "CANONICAL_SHOP_RUNTIME_ENABLED = False\n"
+            "def buy(facts, conn, user_id, operation_id):\n"
+            "    offer = project_shop_offer(facts)\n"
+            "    result = purchase_with_coins(conn, user_id=user_id, purchase_operation_id=operation_id, offer=offer)\n"
+            "    return adapt_committed_shop_purchase(conn, result)\n"
+        ),
+    }
+
+
+def test_future_ready_source_fixture_passes_without_modifying_app():
+    checks = audit_source_contract(
+        **_source_kwargs(),
+        source_contract_fixture=_future_ready_source_fixture(),
+    )
+    for key in (
+        "monster_equipment_writer_source_compatibility",
+        "admin_equipment_writer_source_compatibility",
+        "equipment_route_source_compatibility",
+        "canonical_shop_runtime_source_compatibility",
+        "runtime_writer_compatibility",
+    ):
+        assert checks[key]["status"] == PASS, key
+
+
+def test_caller_pass_cannot_override_unsafe_current_source():
+    checks = audit_source_contract(**_source_kwargs())
+    assert checks["runtime_writer_compatibility"]["status"] == FAIL
+    assert checks["runtime_writer_compatibility"]["details"][
+        "caller_legacy_writer_compatibility"
+    ] == PASS
+
+    result = run_preflight(**_source_kwargs(), conn=None)
+    assert result["status"] != READY_FOR_OPTION_C_MAINTENANCE
+    assert result["checks"]["runtime_writer_compatibility"]["status"] == FAIL
 
 
 class _Rows:
