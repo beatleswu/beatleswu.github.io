@@ -95,14 +95,21 @@ _SHOP_GATE_NAMES = frozenset(
         "CANONICAL_SHOP_RUNTIME_ENABLED",
         "CANONICAL_SHOP_ENABLED",
         "SHOP_CANONICAL_RUNTIME_ENABLED",
+        "CANONICAL_COIN_SHOP_PURCHASE_FLAG",
     }
 )
+_SHOP_GATE_VALUES = frozenset({"CANONICAL_COIN_SHOP_PURCHASE_ENABLED"})
 _EQUIPMENT_GATE_NAMES = frozenset(
     {
         "CANONICAL_EQUIPMENT_LOADOUT_ENABLED",
         "CANONICAL_EQUIPMENT_LOADOUT_RUNTIME_ENABLED",
         "EQUIPMENT_LOADOUT_CANONICAL_ENABLED",
+        "EQUIPMENT_CANONICAL_LOADOUT_FLAG",
     }
+)
+_EQUIPMENT_GATE_VALUES = frozenset({"EQUIPMENT_CANONICAL_LOADOUT_ENABLED"})
+_OWNERSHIP_ROW_OBJECT_NAMES = frozenset(
+    {"row", "ownership_row", "ownership_record", "inventory_row"}
 )
 
 
@@ -379,8 +386,16 @@ def _candidate_units(
 def _module_import_aliases(
     tree: ast.Module,
     module_name: str,
+    function_name: str | None = None,
 ) -> tuple[set[str], set[str]]:
-    """Return aliases for ``import module`` and ``from module import ...``."""
+    """Return module aliases and only aliases for the requested function.
+
+    A broad ``from module import ...`` alias set is unsafe for source
+    contracts: ``from x import foo, bar`` must not make a call to ``foo``
+    satisfy a check for ``bar``.  Keeping the requested name at import
+    resolution time also handles ``as`` aliases without relying on text
+    matching.
+    """
 
     module_aliases: set[str] = set()
     function_aliases: set[str] = set()
@@ -391,7 +406,9 @@ def _module_import_aliases(
                     module_aliases.add(alias.asname or module_name.rsplit(".", 1)[-1])
         elif isinstance(node, ast.ImportFrom) and node.module == module_name:
             for alias in node.names:
-                if alias.name == "*":
+                if alias.name == "*" or (
+                    function_name is not None and alias.name != function_name
+                ):
                     continue
                 function_aliases.add(alias.asname or alias.name)
     return module_aliases, function_aliases
@@ -403,7 +420,11 @@ def _call_targets(
     module_name: str,
     function_name: str,
 ) -> list[ast.Call]:
-    module_aliases, function_aliases = _module_import_aliases(tree, module_name)
+    module_aliases, function_aliases = _module_import_aliases(
+        tree,
+        module_name,
+        function_name,
+    )
     calls: list[ast.Call] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
@@ -422,6 +443,89 @@ def _call_targets(
     return calls
 
 
+def _call_target_contexts(
+    tree: ast.Module,
+    *,
+    module_name: str,
+    function_name: str,
+) -> list[tuple[ast.Call, tuple[str, ...], ast.FunctionDef | ast.AsyncFunctionDef | None]]:
+    """Return target calls with their enclosing function scope.
+
+    The scope is part of the evidence so a matching helper call in an
+    unrelated function cannot satisfy a Monster/Admin/Shop route contract.
+    """
+
+    call_scopes: dict[int, tuple[str, ...]] = {}
+    function_nodes: dict[tuple[str, ...], ast.FunctionDef | ast.AsyncFunctionDef] = {}
+
+    class _ScopeVisitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.scope: list[str] = []
+
+        def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+            self.scope.append(node.name)
+            scope = tuple(self.scope)
+            function_nodes[scope] = node
+            self.generic_visit(node)
+            self.scope.pop()
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+            self._visit_function(node)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802
+            self._visit_function(node)
+
+        def visit_Call(self, node: ast.Call) -> None:  # noqa: N802
+            call_scopes[id(node)] = tuple(self.scope)
+            self.generic_visit(node)
+
+    _ScopeVisitor().visit(tree)
+    return [
+        (
+            call,
+            call_scopes.get(id(call), ()),
+            function_nodes.get(call_scopes.get(id(call), ())),
+        )
+        for call in _call_targets(
+            tree,
+            module_name=module_name,
+            function_name=function_name,
+        )
+    ]
+
+
+def _function_parameter_names(
+    function: ast.FunctionDef | ast.AsyncFunctionDef | None,
+) -> set[str]:
+    if function is None:
+        return set()
+    arguments = function.args
+    names = {
+        argument.arg
+        for argument in (*arguments.posonlyargs, *arguments.args, *arguments.kwonlyargs)
+    }
+    if arguments.vararg:
+        names.add(arguments.vararg.arg)
+    if arguments.kwarg:
+        names.add(arguments.kwarg.arg)
+    return names
+
+
+def _has_named_decorator(
+    function: ast.FunctionDef | ast.AsyncFunctionDef | None,
+    decorator_name: str,
+) -> bool:
+    if function is None:
+        return False
+    for decorator in function.decorator_list:
+        expression = decorator.func if isinstance(decorator, ast.Call) else decorator
+        if isinstance(expression, ast.Name) and expression.id == decorator_name:
+            return True
+        if isinstance(expression, ast.Attribute) and expression.attr == decorator_name:
+            return True
+    return False
+
+
 def _literal_keyword(call: ast.Call, keyword: str) -> Any:
     for argument in call.keywords:
         if argument.arg == keyword:
@@ -432,16 +536,76 @@ def _literal_keyword(call: ast.Call, keyword: str) -> Any:
     return None
 
 
-def _ownership_id_forwarded(call: ast.Call) -> bool:
+def _is_exact_ownership_row_expression(
+    expression: ast.expr,
+    safe_names: set[str],
+) -> bool:
+    if isinstance(expression, ast.Name):
+        return (
+            expression.id in safe_names
+            and expression.id not in _OWNERSHIP_ROW_OBJECT_NAMES
+        )
+    if isinstance(expression, ast.Attribute):
+        return expression.attr == "id" and isinstance(expression.value, ast.Name) and expression.value.id in safe_names
+    if isinstance(expression, ast.Subscript) and isinstance(expression.value, ast.Name):
+        if expression.value.id not in safe_names:
+            return False
+        try:
+            key = ast.literal_eval(expression.slice)
+        except (ValueError, TypeError):
+            return False
+        return key == "id"
+    return False
+
+
+def _server_owned_inventory_names(
+    function: ast.FunctionDef | ast.AsyncFunctionDef | None,
+) -> tuple[set[str], bool]:
+    """Find names that can safely represent an authenticated inventory row."""
+
+    if function is None:
+        return set(), False
+    source_literals = [
+        node.value
+        for node in ast.walk(function)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    ]
+    normalized = [" ".join(value.upper().split()) for value in source_literals]
+    has_authenticated_lookup = any(
+        "PLAYER_INVENTORY" in value
+        and "WHERE" in value
+        and re.search(r"\bID\b", value)
+        and "USER_ID" in value
+        for value in normalized
+    )
+    safe_names = {"row", "ownership_row", "ownership_record", "inventory_row"}
+    if has_authenticated_lookup:
+        safe_names.update({"inv_id", "row_id", "ownership_id", "ownership_row_id"})
+
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(function):
+            if not isinstance(node, ast.Assign):
+                continue
+            if not _is_exact_ownership_row_expression(node.value, safe_names):
+                continue
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id not in safe_names:
+                    safe_names.add(target.id)
+                    changed = True
+    return safe_names, has_authenticated_lookup
+
+
+def _ownership_id_forwarded(
+    call: ast.Call,
+    *,
+    safe_names: set[str],
+) -> bool:
     for argument in call.keywords:
         if argument.arg != "ownership_row_id":
             continue
-        names = {
-            node.id
-            for node in ast.walk(argument.value)
-            if isinstance(node, ast.Name)
-        }
-        if names & {"ownership_row_id", "ownership_id", "inv_id", "row_id"}:
+        if _is_exact_ownership_row_expression(argument.value, safe_names):
             return True
     return False
 
@@ -449,8 +613,11 @@ def _ownership_id_forwarded(call: ast.Call) -> bool:
 def _gate_default_off(
     units: Mapping[str, ast.Module],
     gate_names: Iterable[str],
+    gate_values: Iterable[str] = (),
 ) -> tuple[bool, str | None]:
     names = set(gate_names)
+    values = {str(value).strip().upper() for value in gate_values}
+    flag_aliases: set[str] = set()
     for relative_path, tree in units.items():
         for node in ast.walk(tree):
             targets: list[ast.expr] = []
@@ -458,16 +625,53 @@ def _gate_default_off(
                 targets.extend(node.targets)
             elif isinstance(node, ast.AnnAssign):
                 targets.append(node.target)
-            if not any(isinstance(target, ast.Name) and target.id in names for target in targets):
+            else:
                 continue
             try:
                 value = ast.literal_eval(node.value)
             except (ValueError, TypeError):
                 continue
-            if value is False or (isinstance(value, int) and not isinstance(value, bool) and value == 0):
+            for target in targets:
+                if not isinstance(target, ast.Name):
+                    continue
+                if target.id in names:
+                    if isinstance(value, str) and value.strip().upper() in values:
+                        flag_aliases.add(target.id)
+                    if value is False or (
+                        isinstance(value, int)
+                        and not isinstance(value, bool)
+                        and value == 0
+                    ):
+                        return True, relative_path
+                    if isinstance(value, str) and value.strip().upper() == "OFF":
+                        return True, relative_path
+                elif isinstance(value, str) and value.strip().upper() in values:
+                    flag_aliases.add(target.id)
+
+    for relative_path, tree in units.items():
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            function = node.func
+            is_env_helper = (
+                isinstance(function, ast.Name) and function.id == "_env_flag_enabled"
+            ) or (
+                isinstance(function, ast.Attribute)
+                and function.attr == "_env_flag_enabled"
+            )
+            if not is_env_helper or not node.args:
+                continue
+            default = _literal_keyword(node, "default")
+            if default is not False:
+                continue
+            flag = node.args[0]
+            if isinstance(flag, ast.Name) and flag.id in flag_aliases:
                 return True, relative_path
-            if isinstance(value, str) and value.strip().upper() == "OFF":
-                return True, relative_path
+            try:
+                if isinstance(flag, ast.Constant) and str(flag.value).strip().upper() in values:
+                    return True, relative_path
+            except (AttributeError, TypeError):
+                pass
     return False, None
 
 
@@ -498,18 +702,97 @@ def _delegation_check(
 
     evidence: list[dict[str, Any]] = []
     for relative_path, tree in units.items():
-        for call in _call_targets(
+        for call, scope, function in _call_target_contexts(
             tree,
             module_name="equipment_ownership_service",
             function_name="grant_equipment_ownership",
         ):
-            if _literal_keyword(call, "source") == source_value:
+            scope_names = set(scope)
+            if source_value == "drop":
+                in_expected_path = any(
+                    name == "grant_functional_item"
+                    or "monster" in name.lower()
+                    or "settle" in name.lower()
+                    for name in scope_names
+                )
+            else:
+                in_expected_path = any(
+                    name == "admin_set_equipment"
+                    or name.lower().startswith("admin")
+                    for name in scope_names
+                )
+            if not in_expected_path:
+                continue
+
+            source_argument: ast.expr | None = None
+            for keyword in call.keywords:
+                if keyword.arg == "source":
+                    source_argument = keyword.value
+                    break
+            if source_argument is None and len(call.args) > 3:
+                source_argument = call.args[3]
+            parameter_names = _function_parameter_names(function)
+            source_matches = False
+            if source_argument is not None:
+                try:
+                    source_matches = ast.literal_eval(source_argument) == source_value
+                except (ValueError, TypeError):
+                    source_matches = (
+                        isinstance(source_argument, ast.Name)
+                        and source_argument.id in parameter_names
+                    )
+            unsafe_direct_writer = False
+            if function is not None:
+                for node in ast.walk(function):
+                    if not isinstance(node, ast.Constant) or not isinstance(node.value, str):
+                        continue
+                    normalized = " ".join(node.value.upper().split())
+                    if re.search(r"\bINSERT\s+INTO\s+PLAYER_INVENTORY\b", normalized):
+                        unsafe_direct_writer = True
+                        break
+            client_authority_keywords = {
+                "canonical_slot",
+                "slot",
+                "equipped",
+                "damage",
+                "mitigation",
+                "stat",
+                "effect",
+            }
+            client_authority_present = any(
+                keyword.arg in client_authority_keywords for keyword in call.keywords
+            )
+            admin_authentication_present = (
+                source_value != "admin"
+                or _has_named_decorator(function, "admin_required")
+            )
+            if (
+                source_matches
+                and not unsafe_direct_writer
+                and not client_authority_present
+                and admin_authentication_present
+            ):
                 evidence.append(
-                    {"path": relative_path, "line": getattr(call, "lineno", None)}
+                    {
+                        "path": relative_path,
+                        "line": getattr(call, "lineno", None),
+                        "scope": list(scope),
+                        "source_argument": (
+                            "positional_parameter"
+                            if isinstance(source_argument, ast.Name)
+                            else "literal"
+                        ),
+                        "admin_authentication": admin_authentication_present,
+                    }
                 )
     return _check(
         PASS if evidence else FAIL,
-        expected=f"B040 grant_equipment_ownership(..., source={source_value!r})",
+        expected={
+            "service": "B040 grant_equipment_ownership",
+            "source_semantics": source_value,
+            "function_scoped": True,
+            "direct_player_inventory_writer": False,
+        },
         observed=evidence,
         details={
             "reason": None
@@ -549,16 +832,30 @@ def _equipment_route_check(
     }
     for relative_path, tree in units.items():
         for function_name in calls_by_function:
-            for call in _call_targets(
+            for call, scope, function in _call_target_contexts(
                 tree,
                 module_name="equipment_loadout_service",
                 function_name=function_name,
             ):
-                if _ownership_id_forwarded(call):
+                if not any("equip" in name.lower() for name in scope):
+                    continue
+                safe_names, authenticated_lookup = _server_owned_inventory_names(function)
+                if authenticated_lookup and _ownership_id_forwarded(
+                    call,
+                    safe_names=safe_names,
+                ):
                     calls_by_function[function_name].append(
-                        {"path": relative_path, "line": getattr(call, "lineno", None)}
+                        {
+                            "path": relative_path,
+                            "line": getattr(call, "lineno", None),
+                            "scope": list(scope),
+                        }
                     )
-    gate_off, gate_path = _gate_default_off(units, _EQUIPMENT_GATE_NAMES)
+    gate_off, gate_path = _gate_default_off(
+        units,
+        _EQUIPMENT_GATE_NAMES,
+        _EQUIPMENT_GATE_VALUES,
+    )
     missing = [name for name, evidence in calls_by_function.items() if not evidence]
     status = PASS if not missing and gate_off else FAIL
     return _check(
@@ -607,35 +904,66 @@ def _shop_runtime_check(
         )
 
     required_calls = {
-        "c025_projection": ("shop_offer_identity_projection", "project_shop_offer"),
+        "c025_projection": ("shop_offer_identity_projection", "normalize_shop_offer"),
         "c026_purchase": ("coin_purchase_authority", "purchase_with_coins"),
         "d024_result": ("shop_acquisition_result_bridge", "adapt_committed_shop_purchase"),
     }
     evidence: dict[str, list[dict[str, Any]]] = {name: [] for name in required_calls}
     for relative_path, tree in units.items():
         for evidence_name, (module_name, function_name) in required_calls.items():
-            for call in _call_targets(
+            for call, scope, _function in _call_target_contexts(
                 tree,
                 module_name=module_name,
                 function_name=function_name,
             ):
+                expected_scope_markers = {
+                    "c025_projection": ("classify_shop_request", "canonical_shop_offer"),
+                    "c026_purchase": ("canonical_shop_purchase_response",),
+                    "d024_result": ("canonical_shop_purchase_response",),
+                }[evidence_name]
+                if not any(
+                    marker in scope_name.lower()
+                    for scope_name in scope
+                    for marker in expected_scope_markers
+                ):
+                    continue
                 evidence[evidence_name].append(
-                    {"path": relative_path, "line": getattr(call, "lineno", None)}
+                    {
+                        "path": relative_path,
+                        "line": getattr(call, "lineno", None),
+                        "scope": list(scope),
+                    }
                 )
-    gate_off, gate_path = _gate_default_off(units, _SHOP_GATE_NAMES)
+    gate_off, gate_path = _gate_default_off(
+        units,
+        _SHOP_GATE_NAMES,
+        _SHOP_GATE_VALUES,
+    )
+    pre_mutation_dispatch = _shop_pre_mutation_dispatch_check(units)
     missing = [name for name, call_sites in evidence.items() if not call_sites]
+    if not pre_mutation_dispatch["pass"]:
+        missing.append("pre_mutation_dispatch")
     status = PASS if not missing and gate_off else FAIL
     return _check(
         status,
         expected={
             "calls": {
-                "c025_projection": "project_shop_offer",
+                "c025_projection": "normalize_shop_offer",
                 "c026_purchase": "purchase_with_coins",
                 "d024_result": "adapt_committed_shop_purchase",
             },
+            "pre_mutation_dispatch": {
+                "routes": ["shop_buy", "shop_buy_appearance"],
+                "classifier": "_classify_shop_request",
+            },
             "default_gate": "OFF",
         },
-        observed={"calls": evidence, "gate_off": gate_off, "gate_source": gate_path},
+        observed={
+            "calls": evidence,
+            "gate_off": gate_off,
+            "gate_source": gate_path,
+            "pre_mutation_dispatch": pre_mutation_dispatch,
+        },
         details={
             "missing_contracts": missing,
             "reason": None
@@ -643,6 +971,82 @@ def _shop_runtime_check(
             else "canonical Shop route is not source-verifiably C025/C026/D024 compatible",
         },
     )
+
+
+def _shop_pre_mutation_dispatch_check(
+    units: Mapping[str, ast.Module],
+) -> dict[str, Any]:
+    required_routes = ("shop_buy", "shop_buy_appearance")
+    evidence: dict[str, dict[str, bool]] = {}
+    for _relative_path, tree in units.items():
+        _calls, functions = _function_contexts(tree)
+        for route_name in required_routes:
+            for scope, function in functions.items():
+                if scope[-1:] != (route_name,):
+                    continue
+                called_names = {
+                    call_name
+                    for call in ast.walk(function)
+                    if isinstance(call, ast.Call)
+                    for call_name in (_called_name(call),)
+                    if call_name
+                }
+                evidence[route_name] = {
+                    "gate": "_canonical_coin_shop_purchase_enabled" in called_names,
+                    "classifier": "_classify_shop_request" in called_names,
+                    "canonical_dispatch": "_canonical_shop_purchase_response" in called_names,
+                }
+    complete = all(
+        evidence.get(route) == {
+            "gate": True,
+            "classifier": True,
+            "canonical_dispatch": True,
+        }
+        for route in required_routes
+    )
+    return {"pass": complete, "routes": evidence}
+
+
+def _called_name(call: ast.Call) -> str | None:
+    if isinstance(call.func, ast.Name):
+        return call.func.id
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr
+    return None
+
+
+def _function_contexts(
+    tree: ast.Module,
+) -> tuple[
+    dict[int, tuple[str, ...]],
+    dict[tuple[str, ...], ast.FunctionDef | ast.AsyncFunctionDef],
+]:
+    call_scopes: dict[int, tuple[str, ...]] = {}
+    function_nodes: dict[tuple[str, ...], ast.FunctionDef | ast.AsyncFunctionDef] = {}
+
+    class _Visitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.scope: list[str] = []
+
+        def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+            self.scope.append(node.name)
+            scope = tuple(self.scope)
+            function_nodes[scope] = node
+            self.generic_visit(node)
+            self.scope.pop()
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # noqa: N802
+            self._visit_function(node)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # noqa: N802
+            self._visit_function(node)
+
+        def visit_Call(self, node: ast.Call) -> None:  # noqa: N802
+            call_scopes[id(node)] = tuple(self.scope)
+            self.generic_visit(node)
+
+    _Visitor().visit(tree)
+    return call_scopes, function_nodes
 
 
 def _audit_runtime_source_contract(

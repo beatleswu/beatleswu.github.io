@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ from scripts.release.commerce_production_readiness_preflight import (
     NOT_READY,
     PASS,
     READY_FOR_OPTION_C_MAINTENANCE,
+    _call_targets,
     audit_database,
     audit_source_contract,
     load_equipment_definitions_from_source,
@@ -30,7 +32,7 @@ from scripts.release.commerce_production_readiness_preflight import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_MASTER_AT_TASK_START = "e10735cf580fb5074e07811f76ab60445562760c"
+EXPECTED_MASTER_AT_TASK_START = "95e8156d87540d4d027bd215e5db5dfc6ab70b44"
 POSTGRES_IMAGE = "postgres:16.14-alpine"
 POSTGRES_USER = "c031_disposable"
 POSTGRES_PASSWORD = "c031_disposable_password"
@@ -161,6 +163,7 @@ def pg_connection(disposable_postgres: dict[str, str]):
     )
     conn = PostgresConnectionWrapper(raw, pooled=False)
     try:
+        _reset_disposable_schema(conn)
         _create_ready_schema(conn)
         conn.commit()
         conn._conn.set_session(readonly=True)
@@ -168,6 +171,32 @@ def pg_connection(disposable_postgres: dict[str, str]):
     finally:
         conn.rollback()
         conn.close()
+
+
+@pytest.fixture()
+def legacy_pg_connection(disposable_postgres: dict[str, str]):
+    import psycopg2
+    from psycopg2.extras import DictCursor
+
+    raw = psycopg2.connect(
+        disposable_postgres["database_url"],
+        cursor_factory=DictCursor,
+    )
+    conn = PostgresConnectionWrapper(raw, pooled=False)
+    try:
+        _reset_disposable_schema(conn)
+        _create_legacy_schema(conn)
+        conn.commit()
+        conn._conn.set_session(readonly=True)
+        yield conn
+    finally:
+        conn.rollback()
+        conn.close()
+
+
+def _reset_disposable_schema(conn: PostgresConnectionWrapper) -> None:
+    conn.execute("DROP SCHEMA IF EXISTS public CASCADE")
+    conn.execute("CREATE SCHEMA public")
 
 
 def _create_ready_schema(conn: PostgresConnectionWrapper) -> None:
@@ -226,6 +255,54 @@ def _create_ready_schema(conn: PostgresConnectionWrapper) -> None:
     )
     upgrade_purchase_operations(conn)
     upgrade_event_outbox(conn)
+
+
+def _create_legacy_schema(conn: PostgresConnectionWrapper) -> None:
+    """Production-like pre-Option-C shape: no B033 or Commerce tables."""
+
+    conn.execute(
+        """CREATE TABLE public.user_stats (
+            user_id INTEGER PRIMARY KEY,
+            coins INTEGER NOT NULL
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE public.currency_log (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            delta INTEGER NOT NULL,
+            balance_after INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE public.player_inventory (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            equip_id TEXT NOT NULL,
+            equipped INTEGER NOT NULL DEFAULT 0,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'drop'
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE public.shop_inventory (
+            user_id INTEGER NOT NULL,
+            item_key TEXT NOT NULL,
+            qty INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, item_key)
+        )"""
+    )
+    conn.execute(
+        """CREATE TABLE public.player_wardrobe (
+            user_id INTEGER NOT NULL,
+            item_id TEXT NOT NULL,
+            obtained_at TEXT NOT NULL,
+            source TEXT NOT NULL,
+            PRIMARY KEY (user_id, item_id)
+        )"""
+    )
 
 
 class ReadOnlyConnectionProbe:
@@ -287,12 +364,28 @@ def test_source_contract_and_migration_hashes_pass_without_importing_app():
     assert checks["canonical_shop_feature_gate"]["status"] == PASS
     assert checks["canonical_equipment_loadout_feature_gate"]["status"] == PASS
     assert checks["legacy_text_timestamp_compatibility"]["status"] == PASS
-    assert checks["runtime_writer_compatibility"]["status"] == FAIL
+    for key in (
+        "monster_equipment_writer_source_compatibility",
+        "admin_equipment_writer_source_compatibility",
+        "equipment_route_source_compatibility",
+        "canonical_shop_runtime_source_compatibility",
+        "runtime_writer_compatibility",
+    ):
+        assert checks[key]["status"] == PASS, key
     assert checks["runtime_writer_compatibility"]["details"][
         "caller_evidence_role"
     ] == "secondary_only_ignored_for_readiness"
     assert checks["migration_manifest"]["status"] == PASS
     assert checks["no_revenue_enablement_implied"]["status"] == PASS
+
+
+def test_real_current_master_e030_r1_source_contract_is_ready():
+    checks = audit_source_contract(**_source_kwargs())
+    assert checks["monster_equipment_writer_source_compatibility"]["status"] == PASS
+    assert checks["admin_equipment_writer_source_compatibility"]["status"] == PASS
+    assert checks["equipment_route_source_compatibility"]["status"] == PASS
+    assert checks["canonical_shop_runtime_source_compatibility"]["status"] == PASS
+    assert checks["runtime_writer_compatibility"]["status"] == PASS
 
 
 def test_source_identity_mismatch_fails_closed():
@@ -343,7 +436,7 @@ def test_disposable_postgres_ready_report_is_select_only(
         expected_postgres_version="PostgreSQL 16.14",
     )
 
-    assert result["status"] == NOT_READY
+    assert result["status"] == READY_FOR_OPTION_C_MAINTENANCE
     checks = result["checks"]
     for name in (
         "postgres_version",
@@ -392,6 +485,25 @@ def test_disposable_postgres_ready_report_is_select_only(
     assert production_label_only["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "YES"
 
 
+def test_production_like_legacy_schema_is_not_ready_for_db_reasons(
+    legacy_pg_connection: PostgresConnectionWrapper,
+):
+    definitions = load_equipment_definitions_from_source(ROOT)
+    result = run_preflight(
+        **_source_kwargs(),
+        conn=ReadOnlyConnectionProbe(legacy_pg_connection),
+        database_read_only_enforced=True,
+        equipment_definitions=definitions,
+        expected_postgres_version="PostgreSQL 16.14",
+    )
+
+    assert result["status"] == NOT_READY
+    assert result["checks"]["runtime_writer_compatibility"]["status"] == PASS
+    assert result["checks"]["coin_purchase_operations_schema"]["status"] == FAIL
+    assert result["checks"]["player_inventory_canonical_slot"]["status"] == FAIL
+    assert result["PRODUCTION_QUERY_PERFORMED_BY_C031"] == "NO"
+
+
 def test_incompatible_database_status_is_not_ready():
     class MissingSchemaConnection:
         def execute(self, sql: str, parameters=None):
@@ -428,33 +540,72 @@ def _future_ready_source_fixture() -> dict[str, str]:
     return {
         "monster_runtime.py": (
             "from equipment_ownership_service import grant_equipment_ownership\n"
-            "def settle_drop(conn, user_id, equip_id):\n"
-            "    return grant_equipment_ownership(conn, user_id, equip_id, source='drop')\n"
+            "def settle_monster(conn, user_id, equip_id, source_name):\n"
+            "    return grant_equipment_ownership(conn, user_id, equip_id, source_name)\n"
         ),
         "admin_runtime.py": (
             "from equipment_ownership_service import grant_equipment_ownership\n"
-            "def grant_admin(conn, user_id, equip_id):\n"
-            "    return grant_equipment_ownership(conn, user_id, equip_id, source='admin')\n"
+            "@admin_required\n"
+            "def admin_set_equipment(conn, user_id, equip_id):\n"
+            "    return grant_equipment_ownership(conn, user_id, equip_id, 'admin')\n"
         ),
         "equipment_routes.py": (
             "from equipment_loadout_service import equip_owned_item, unequip_owned_item\n"
             "CANONICAL_EQUIPMENT_LOADOUT_ENABLED = False\n"
             "def equip(conn, user_id, equip_id, inv_id):\n"
-            "    return equip_owned_item(conn, user_id, equip_id, ownership_row_id=inv_id)\n"
+            "    row = conn.execute('SELECT * FROM player_inventory WHERE id=? AND user_id=?', (inv_id, user_id)).fetchone()\n"
+            "    return equip_owned_item(conn, user_id, equip_id, ownership_row_id=row['id'])\n"
             "def unequip(conn, user_id, equip_id, inv_id):\n"
-            "    return unequip_owned_item(conn, user_id, equip_id, ownership_row_id=inv_id)\n"
+            "    row = conn.execute('SELECT * FROM player_inventory WHERE id=? AND user_id=?', (inv_id, user_id)).fetchone()\n"
+            "    return unequip_owned_item(conn, user_id, equip_id, ownership_row_id=row['id'])\n"
         ),
         "shop_routes.py": (
-            "from shop_offer_identity_projection import project_shop_offer\n"
+            "from shop_offer_identity_projection import normalize_shop_offer\n"
             "from coin_purchase_authority import purchase_with_coins\n"
             "from shop_acquisition_result_bridge import adapt_committed_shop_purchase\n"
-            "CANONICAL_SHOP_RUNTIME_ENABLED = False\n"
-            "def buy(facts, conn, user_id, operation_id):\n"
-            "    offer = project_shop_offer(facts)\n"
+            "CANONICAL_COIN_SHOP_PURCHASE_FLAG = 'CANONICAL_COIN_SHOP_PURCHASE_ENABLED'\n"
+            "def _env_flag_enabled(name, default=False):\n"
+            "    return default\n"
+            "def _canonical_coin_shop_purchase_enabled():\n"
+            "    return _env_flag_enabled(CANONICAL_COIN_SHOP_PURCHASE_FLAG, default=False)\n"
+            "def _classify_shop_request(facts):\n"
+            "    return normalize_shop_offer(facts)\n"
+            "def _canonical_shop_purchase_response(facts, conn, user_id, operation_id):\n"
+            "    offer = normalize_shop_offer(facts)\n"
             "    result = purchase_with_coins(conn, user_id=user_id, purchase_operation_id=operation_id, offer=offer)\n"
             "    return adapt_committed_shop_purchase(conn, result)\n"
+            "def shop_buy(facts, conn, user_id, operation_id):\n"
+            "    if _canonical_coin_shop_purchase_enabled():\n"
+            "        dispatch = _classify_shop_request(facts)\n"
+            "        return _canonical_shop_purchase_response(facts, conn, user_id, operation_id)\n"
+            "def shop_buy_appearance(facts, conn, user_id, operation_id):\n"
+            "    if _canonical_coin_shop_purchase_enabled():\n"
+            "        dispatch = _classify_shop_request(facts)\n"
+            "        return _canonical_shop_purchase_response(facts, conn, user_id, operation_id)\n"
         ),
     }
+
+
+def test_call_target_resolution_is_function_specific_and_alias_safe():
+    tree = ast.parse(
+        "from authority import foo, bar as local_bar\n"
+        "import authority as authority_alias\n"
+        "foo()\n"
+        "local_bar()\n"
+        "authority_alias.foo()\n"
+        "authority_alias.bar()\n"
+    )
+
+    foo_calls = _call_targets(tree, module_name="authority", function_name="foo")
+    bar_calls = _call_targets(tree, module_name="authority", function_name="bar")
+    assert [ast.unparse(call.func) for call in foo_calls] == [
+        "foo",
+        "authority_alias.foo",
+    ]
+    assert [ast.unparse(call.func) for call in bar_calls] == [
+        "local_bar",
+        "authority_alias.bar",
+    ]
 
 
 def test_future_ready_source_fixture_passes_without_modifying_app():
@@ -472,14 +623,105 @@ def test_future_ready_source_fixture_passes_without_modifying_app():
         assert checks[key]["status"] == PASS, key
 
 
+def test_call_target_negative_contracts_fail_without_cross_function_false_positives():
+    fixture = _future_ready_source_fixture()
+    fixture["equipment_routes.py"] = fixture["equipment_routes.py"].replace(
+        "return unequip_owned_item(conn, user_id, equip_id, ownership_row_id=row['id'])",
+        "return None",
+    )
+    checks = audit_source_contract(**_source_kwargs(), source_contract_fixture=fixture)
+    assert checks["equipment_route_source_compatibility"]["status"] == FAIL
+    assert checks["runtime_writer_compatibility"]["status"] == FAIL
+
+
+@pytest.mark.parametrize(
+    ("file_name", "old", "new", "failed_check"),
+    (
+        (
+            "equipment_routes.py",
+            "ownership_row_id=row['id']",
+            "ownership_row_id=1",
+            "equipment_route_source_compatibility",
+        ),
+        (
+            "shop_routes.py",
+            "result = purchase_with_coins(",
+            "result = other_purchase(",
+            "canonical_shop_runtime_source_compatibility",
+        ),
+        (
+            "shop_routes.py",
+            "return adapt_committed_shop_purchase(conn, result)",
+            "return result",
+            "canonical_shop_runtime_source_compatibility",
+        ),
+        (
+            "shop_routes.py",
+            "normalize_shop_offer",
+            "wrong_projection",
+            "canonical_shop_runtime_source_compatibility",
+        ),
+        (
+            "shop_routes.py",
+            "default=False",
+            "default=True",
+            "canonical_shop_runtime_source_compatibility",
+        ),
+        (
+            "shop_routes.py",
+            "_classify_shop_request",
+            "wrong_dispatch_classifier",
+            "canonical_shop_runtime_source_compatibility",
+        ),
+        (
+            "equipment_routes.py",
+            "CANONICAL_EQUIPMENT_LOADOUT_ENABLED = False",
+            "CANONICAL_EQUIPMENT_LOADOUT_ENABLED = True",
+            "equipment_route_source_compatibility",
+        ),
+        (
+            "monster_runtime.py",
+            "return grant_equipment_ownership(conn, user_id, equip_id, source_name)",
+            "return conn.execute('INSERT INTO player_inventory(user_id,equip_id) VALUES(?,?)', (user_id, equip_id))",
+            "monster_equipment_writer_source_compatibility",
+        ),
+        (
+            "admin_runtime.py",
+            "return grant_equipment_ownership(conn, user_id, equip_id, 'admin')",
+            "return conn.execute('INSERT INTO player_inventory(user_id,equip_id) VALUES(?,?)', (user_id, equip_id))",
+            "admin_equipment_writer_source_compatibility",
+        ),
+    ),
+)
+def test_source_contract_negative_fixtures_fail_closed(
+    file_name: str,
+    old: str,
+    new: str,
+    failed_check: str,
+):
+    fixture = _future_ready_source_fixture()
+    fixture[file_name] = fixture[file_name].replace(old, new)
+    checks = audit_source_contract(**_source_kwargs(), source_contract_fixture=fixture)
+    assert checks[failed_check]["status"] in {FAIL, BLOCKED}
+
+
 def test_caller_pass_cannot_override_unsafe_current_source():
-    checks = audit_source_contract(**_source_kwargs())
+    unsafe = _future_ready_source_fixture()
+    unsafe["monster_runtime.py"] = (
+        "def settle_monster(conn, user_id, equip_id, source_name):\n"
+        "    return conn.execute('INSERT INTO player_inventory(user_id,equip_id) VALUES(?,?)', (user_id, equip_id))\n"
+    )
+    checks = audit_source_contract(**_source_kwargs(), source_contract_fixture=unsafe)
     assert checks["runtime_writer_compatibility"]["status"] == FAIL
     assert checks["runtime_writer_compatibility"]["details"][
         "caller_legacy_writer_compatibility"
     ] == PASS
 
-    result = run_preflight(**_source_kwargs(), conn=None)
+    result = run_preflight(
+        **_source_kwargs(),
+        conn=None,
+        source_contract_fixture=unsafe,
+    )
     assert result["status"] != READY_FOR_OPTION_C_MAINTENANCE
     assert result["checks"]["runtime_writer_compatibility"]["status"] == FAIL
 

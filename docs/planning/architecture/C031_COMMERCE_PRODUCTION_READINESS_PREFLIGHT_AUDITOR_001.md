@@ -1,21 +1,23 @@
-# C031-R1 Commerce Production Readiness Preflight Auditor
+# C031-R2 Commerce Production Readiness Preflight Auditor
 
-Task: `C031_R1_RUNTIME_COMPATIBILITY_AND_AUDIT_HONESTY_CLOSURE_001`
+Task: `C031_R2_EXACT_CURRENT_MASTER_RUNTIME_SOURCE_CONTRACT_CLOSURE_001`
 
-This candidate adds one repeatable, read-only auditor for the future
-Option-C Equipment plus canonical Coin Shop maintenance gate. It reports
-source identity, migration-file integrity, PostgreSQL schema state, B033
-equipped-row safety, explicit feature-gate facts, and the legacy-writer
-compatibility contract. It does not perform a migration, enable a feature,
-debit Coins, grant ownership, or decide whether an Owner may authorize a
-Production database operation.
+This candidate preserves the C031-R1 read-only auditor and makes its runtime
+source contract exact against the current E030-R1 master. It reports source
+identity, migration-file integrity, PostgreSQL schema state, B033 equipped-row
+safety, explicit feature-gate facts, and function-scoped evidence for the
+Monster/Admin B040 writers, Equipment B034/B041 route, and canonical Shop
+C025/C029 -> C026 -> D024 route. It does not perform a migration, enable a
+feature, debit Coins, grant ownership, or decide whether an Owner may
+authorize a Production database operation.
 
 ## Provenance and boundaries
 
 | Field | Value |
 | --- | --- |
-| Current canonical origin/master at task start | `e10735cf580fb5074e07811f76ab60445562760c` |
-| C031 source head | `c71c55f4812c070d4d5dc871f367f2f33f7284b2` |
+| Current canonical origin/master at R2 start | `95e8156d87540d4d027bd215e5db5dfc6ab70b44` |
+| C031-R1 source head | `933247735de3d6484979dfbbf3b8a6a42fa14bda` |
+| R2 base | `95e8156d87540d4d027bd215e5db5dfc6ab70b44` |
 | Tool | `scripts/release/commerce_production_readiness_preflight.py` |
 | Test | `tests/test_c031_commerce_production_readiness_preflight.py` |
 | Output | JSON on stdout, human summary on stderr and in `human_summary` |
@@ -49,10 +51,11 @@ The source contract requires:
   `legacy_text_timestamp_compatibility`; it is not used as Equipment/Shop
   runtime-writer evidence.
 
-The current application line does not expose a dedicated canonical C-lane
-feature-gate constant. Requiring the gate facts as explicit inputs keeps the
-auditor from inferring that a route is off merely because a symbol is absent.
-The future release caller must provide the observed source/runtime gate facts.
+The current E030-R1 application line exposes source-verifiable default-off
+helpers using `CANONICAL_COIN_SHOP_PURCHASE_ENABLED` and
+`EQUIPMENT_CANONICAL_LOADOUT_ENABLED`. The auditor recognizes those exact
+flag-value contracts as well as the explicit caller gate facts; it does not
+infer that a route is off merely because an unrelated symbol is absent.
 
 Example shape (the URL is deliberately not recorded in output):
 
@@ -104,9 +107,15 @@ The auditor checks:
 * canonical Equipment loadout gate `OFF`;
 * C030 legacy TEXT timestamp evidence separately from runtime-writer
   compatibility;
-* AST/source-contract evidence for Monster -> B040, Admin -> B040,
-  Equipment route -> B034/B041 exact ownership-row semantics, and canonical
-  Shop -> C025/C029 -> C026 -> D024;
+* function-scoped AST/source-contract evidence for Monster -> B040 and
+  Admin -> B040, including positional source arguments and rejection of a
+  direct legacy `player_inventory` writer;
+* independent `equip_owned_item` and `unequip_owned_item` calls that forward
+  an authenticated server-owned exact row (`row['id']` in the current source)
+  through B034/B041;
+* canonical Shop -> C025/C029 (`normalize_shop_offer`) -> C026
+  (`purchase_with_coins`) -> D024 (`adapt_committed_shop_purchase`), plus
+  both real POST routes' pre-mutation classifier/dispatch boundary;
 * default-OFF source gates for canonical Shop and canonical Equipment loadout;
 * SHA-256 equality of these current-master migration files:
   `migrations/equipment_canonical_slot_v1.py`,
@@ -158,26 +167,34 @@ retain the separate database-migration gate.
 2. application identity mismatch fail-closed behavior;
 3. missing connection blocked behavior with no database query;
 4. AST-only Equipment definition loading without executing `app.py`;
-5. current-master legacy routes remaining `NOT_READY` despite caller-supplied
-   `legacy_writer_compatibility=PASS`;
-6. a future-ready in-memory source fixture proving all four runtime seams and
-   default-OFF gates without changing `app.py`;
-7. a disposable PostgreSQL 16.14 schema fixture with all accepted migrations,
+5. the real current-master E030-R1 source proving all four runtime seams and
+   aggregate runtime compatibility `PASS` without importing or executing
+   `app.py`;
+6. exact import-name resolution, positional B040 source semantics, exact-row
+   Equipment forwarding, pre-mutation Shop dispatch, and negative fixtures for
+   unsafe writers, missing calls, wrong projections, gate-ON states, and
+   caller-pass override;
+7. a future-ready in-memory source fixture proving the same contract without
+   changing `app.py`;
+8. a disposable PostgreSQL 16.14 schema fixture with all accepted migrations,
    legacy `TEXT` timestamp columns, B033 constraints/indexes, and an explicit
    SELECT-only connection probe;
-8. truthful no-query, disposable-query, production-label-only, and `other`
+9. a production-like legacy schema fixture classified `NOT_READY` for missing
+   database readiness while the current source contract remains `PASS`;
+10. truthful no-query, disposable-query, production-label-only, and `other`
    target metadata;
-9. an incompatible empty-schema fixture classified as `NOT_READY`.
+11. an incompatible empty-schema fixture classified as `NOT_READY`.
 
 The disposable fixture is synthetic and is removed in fixture teardown. No
 Production hostname, database, credentials, or user data is used.
 
 ## Future release interpretation
 
-`READY_FOR_OPTION_C_MAINTENANCE` means that the inspected state and
-source-verified runtime seams satisfy this auditor's read-only contract. The
-pre-E030 current master is expected to be `NOT_READY` because the route seams
-are not yet integrated. It does not mean:
+`READY_FOR_OPTION_C_MAINTENANCE` means that the inspected disposable/schema
+state and source-verified runtime seams satisfy this auditor's read-only
+contract. The exact current master now proves source compatibility, while a
+legacy Production-like schema remains `NOT_READY` until the Owner-approved
+Commerce/B033 schema sequence is executed. It does not mean:
 
 * the Shop route is wired;
 * the canonical Coin purchase feature is enabled;
