@@ -27,7 +27,7 @@ import sys
 from typing import Any
 
 
-SCHEMA_VERSION = "C031_COMMERCE_PRODUCTION_READINESS_PREFLIGHT_V1"
+SCHEMA_VERSION = "C031_COMMERCE_PRODUCTION_READINESS_PREFLIGHT_V2"
 
 READY_FOR_OPTION_C_MAINTENANCE = "READY_FOR_OPTION_C_MAINTENANCE"
 NOT_READY = "NOT_READY"
@@ -61,6 +61,49 @@ REQUIRED_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
 _SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 _CANONICAL_SLOTS = frozenset({"weapon", "armor", "accessory"})
 _LOCKED_EQUIPMENT = frozenset({"xp_amulet", "go_stone_black"})
+_TARGET_ENVIRONMENTS = frozenset({"disposable", "production", "other"})
+
+_RUNTIME_SOURCE_CANDIDATES: dict[str, tuple[str, ...]] = {
+    "monster": (
+        "app.py",
+        "monster_settlement.py",
+        "monster_reward_runtime.py",
+        "monster_runtime.py",
+    ),
+    "admin": (
+        "app.py",
+        "admin_equipment.py",
+        "admin_grants.py",
+        "admin_runtime.py",
+    ),
+    "equipment_route": (
+        "app.py",
+        "equipment_routes.py",
+        "equipment_loadout_runtime.py",
+        "routes/equipment.py",
+    ),
+    "shop": (
+        "app.py",
+        "shop_routes.py",
+        "commerce_routes.py",
+        "shop_runtime.py",
+    ),
+}
+
+_SHOP_GATE_NAMES = frozenset(
+    {
+        "CANONICAL_SHOP_RUNTIME_ENABLED",
+        "CANONICAL_SHOP_ENABLED",
+        "SHOP_CANONICAL_RUNTIME_ENABLED",
+    }
+)
+_EQUIPMENT_GATE_NAMES = frozenset(
+    {
+        "CANONICAL_EQUIPMENT_LOADOUT_ENABLED",
+        "CANONICAL_EQUIPMENT_LOADOUT_RUNTIME_ENABLED",
+        "EQUIPMENT_LOADOUT_CANONICAL_ENABLED",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -267,49 +310,458 @@ def _verify_migration_manifest(
     )
 
 
-def _verify_legacy_writer_contract(
+def _source_texts(
     repo_root: Path,
-    supplied_status: str | None,
+    source_fixture: Mapping[str, str] | None,
+) -> dict[str, str]:
+    """Return source text for static contract inspection only.
+
+    ``source_fixture`` is intentionally an in-memory mapping.  It lets tests
+    prove the future E030-ready contract without changing or importing
+    ``app.py``.  The production auditor path reads only known Python source
+    files and never executes them.
+    """
+
+    if source_fixture is not None:
+        return {
+            str(relative_path).replace("\\", "/"): str(source)
+            for relative_path, source in source_fixture.items()
+        }
+
+    paths: set[str] = set()
+    for candidates in _RUNTIME_SOURCE_CANDIDATES.values():
+        paths.update(candidates)
+    paths.update(
+        {
+            "coin_purchase_authority.py",
+            "equipment_ownership_service.py",
+            "equipment_loadout_service.py",
+            "shop_offer_identity_projection.py",
+            "shop_acquisition_result_bridge.py",
+            "canonical_acquisition_result.py",
+        }
+    )
+    result: dict[str, str] = {}
+    for relative_path in sorted(paths):
+        path = repo_root / Path(relative_path)
+        if path.is_file() and path.suffix == ".py":
+            result[relative_path] = path.read_text(encoding="utf-8")
+    return result
+
+
+def _parsed_source_units(
+    source_texts: Mapping[str, str],
+) -> tuple[dict[str, ast.Module], dict[str, str]]:
+    trees: dict[str, ast.Module] = {}
+    errors: dict[str, str] = {}
+    for relative_path, source in source_texts.items():
+        if not relative_path.endswith(".py"):
+            continue
+        try:
+            trees[relative_path] = ast.parse(source, filename=relative_path)
+        except (SyntaxError, ValueError) as exc:
+            errors[relative_path] = str(exc)
+    return trees, errors
+
+
+def _candidate_units(
+    trees: Mapping[str, ast.Module],
+    candidates: Iterable[str],
+) -> dict[str, ast.Module]:
+    candidate_set = {str(path).replace("\\", "/") for path in candidates}
+    return {
+        relative_path: tree
+        for relative_path, tree in trees.items()
+        if relative_path in candidate_set
+    }
+
+
+def _module_import_aliases(
+    tree: ast.Module,
+    module_name: str,
+) -> tuple[set[str], set[str]]:
+    """Return aliases for ``import module`` and ``from module import ...``."""
+
+    module_aliases: set[str] = set()
+    function_aliases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == module_name:
+                    module_aliases.add(alias.asname or module_name.rsplit(".", 1)[-1])
+        elif isinstance(node, ast.ImportFrom) and node.module == module_name:
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                function_aliases.add(alias.asname or alias.name)
+    return module_aliases, function_aliases
+
+
+def _call_targets(
+    tree: ast.Module,
+    *,
+    module_name: str,
+    function_name: str,
+) -> list[ast.Call]:
+    module_aliases, function_aliases = _module_import_aliases(tree, module_name)
+    calls: list[ast.Call] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        function = node.func
+        matches = False
+        if isinstance(function, ast.Name):
+            matches = function.id in function_aliases
+        elif isinstance(function, ast.Attribute) and isinstance(function.value, ast.Name):
+            matches = (
+                function.attr == function_name
+                and function.value.id in module_aliases
+            )
+        if matches:
+            calls.append(node)
+    return calls
+
+
+def _literal_keyword(call: ast.Call, keyword: str) -> Any:
+    for argument in call.keywords:
+        if argument.arg == keyword:
+            try:
+                return ast.literal_eval(argument.value)
+            except (ValueError, TypeError):
+                return None
+    return None
+
+
+def _ownership_id_forwarded(call: ast.Call) -> bool:
+    for argument in call.keywords:
+        if argument.arg != "ownership_row_id":
+            continue
+        names = {
+            node.id
+            for node in ast.walk(argument.value)
+            if isinstance(node, ast.Name)
+        }
+        if names & {"ownership_row_id", "ownership_id", "inv_id", "row_id"}:
+            return True
+    return False
+
+
+def _gate_default_off(
+    units: Mapping[str, ast.Module],
+    gate_names: Iterable[str],
+) -> tuple[bool, str | None]:
+    names = set(gate_names)
+    for relative_path, tree in units.items():
+        for node in ast.walk(tree):
+            targets: list[ast.expr] = []
+            if isinstance(node, ast.Assign):
+                targets.extend(node.targets)
+            elif isinstance(node, ast.AnnAssign):
+                targets.append(node.target)
+            if not any(isinstance(target, ast.Name) and target.id in names for target in targets):
+                continue
+            try:
+                value = ast.literal_eval(node.value)
+            except (ValueError, TypeError):
+                continue
+            if value is False or (isinstance(value, int) and not isinstance(value, bool) and value == 0):
+                return True, relative_path
+            if isinstance(value, str) and value.strip().upper() == "OFF":
+                return True, relative_path
+    return False, None
+
+
+def _delegation_check(
+    *,
+    trees: Mapping[str, ast.Module],
+    parse_errors: Mapping[str, str],
+    source_candidates: Iterable[str],
+    source_value: str,
 ) -> dict[str, Any]:
-    if not isinstance(supplied_status, str) or not supplied_status.strip():
+    units = _candidate_units(trees, source_candidates)
+    candidate_paths = tuple(str(path).replace("\\", "/") for path in source_candidates)
+    candidate_errors = {
+        path: parse_errors[path] for path in candidate_paths if path in parse_errors
+    }
+    if candidate_errors:
         return _check(
             CHECK_BLOCKED,
-            expected="PASS supplied from the legacy-writer source contract",
-            details={"reason": "legacy writer compatibility status was not supplied"},
+            expected=f"B040 grant_equipment_ownership(..., source={source_value!r})",
+            details={"source_parse_errors": candidate_errors},
         )
-    normalized = supplied_status.strip().upper()
-    if normalized != PASS:
+    if not units:
         return _check(
-            FAIL if normalized in {FAIL, "FAILED"} else CHECK_BLOCKED,
-            expected=PASS,
-            observed=normalized,
-            details={"reason": "legacy writer compatibility is not approved"},
+            CHECK_BLOCKED,
+            expected="source file for the runtime writer",
+            details={"reason": "no candidate source file was available"},
         )
 
-    path = repo_root / "coin_purchase_authority.py"
-    if not path.is_file():
+    evidence: list[dict[str, Any]] = []
+    for relative_path, tree in units.items():
+        for call in _call_targets(
+            tree,
+            module_name="equipment_ownership_service",
+            function_name="grant_equipment_ownership",
+        ):
+            if _literal_keyword(call, "source") == source_value:
+                evidence.append(
+                    {"path": relative_path, "line": getattr(call, "lineno", None)}
+                )
+    return _check(
+        PASS if evidence else FAIL,
+        expected=f"B040 grant_equipment_ownership(..., source={source_value!r})",
+        observed=evidence,
+        details={
+            "reason": None
+            if evidence
+            else "runtime writer does not source-verify delegation to B040",
+            "candidate_paths": list(candidate_paths),
+        },
+    )
+
+
+def _equipment_route_check(
+    *,
+    trees: Mapping[str, ast.Module],
+    parse_errors: Mapping[str, str],
+) -> dict[str, Any]:
+    units = _candidate_units(trees, _RUNTIME_SOURCE_CANDIDATES["equipment_route"])
+    candidate_paths = _RUNTIME_SOURCE_CANDIDATES["equipment_route"]
+    candidate_errors = {
+        path: parse_errors[path] for path in candidate_paths if path in parse_errors
+    }
+    if candidate_errors:
         return _check(
             CHECK_BLOCKED,
-            expected="coin_purchase_authority.py",
-            details={"reason": "legacy writer source contract is missing"},
+            expected="B034/B041 equip_owned_item and unequip_owned_item with exact ownership_row_id",
+            details={"source_parse_errors": candidate_errors},
         )
-    text = path.read_text(encoding="utf-8")
-    required_markers = (
+    if not units:
+        return _check(
+            CHECK_BLOCKED,
+            expected="canonical Equipment route source",
+            details={"reason": "no candidate source file was available"},
+        )
+
+    calls_by_function: dict[str, list[dict[str, Any]]] = {
+        "equip_owned_item": [],
+        "unequip_owned_item": [],
+    }
+    for relative_path, tree in units.items():
+        for function_name in calls_by_function:
+            for call in _call_targets(
+                tree,
+                module_name="equipment_loadout_service",
+                function_name=function_name,
+            ):
+                if _ownership_id_forwarded(call):
+                    calls_by_function[function_name].append(
+                        {"path": relative_path, "line": getattr(call, "lineno", None)}
+                    )
+    gate_off, gate_path = _gate_default_off(units, _EQUIPMENT_GATE_NAMES)
+    missing = [name for name, evidence in calls_by_function.items() if not evidence]
+    status = PASS if not missing and gate_off else FAIL
+    return _check(
+        status,
+        expected={
+            "delegation": "B034/B041",
+            "functions": list(calls_by_function),
+            "exact_ownership_row_id_forwarding": True,
+            "default_gate": "OFF",
+        },
+        observed={
+            "calls": calls_by_function,
+            "gate_off": gate_off,
+            "gate_source": gate_path,
+        },
+        details={
+            "missing_contracts": missing,
+            "reason": None
+            if status == PASS
+            else "canonical Equipment route is not source-verifiably B034/B041 compatible",
+        },
+    )
+
+
+def _shop_runtime_check(
+    *,
+    trees: Mapping[str, ast.Module],
+    parse_errors: Mapping[str, str],
+) -> dict[str, Any]:
+    units = _candidate_units(trees, _RUNTIME_SOURCE_CANDIDATES["shop"])
+    candidate_paths = _RUNTIME_SOURCE_CANDIDATES["shop"]
+    candidate_errors = {
+        path: parse_errors[path] for path in candidate_paths if path in parse_errors
+    }
+    if candidate_errors:
+        return _check(
+            CHECK_BLOCKED,
+            expected="C025/C029 -> C026 -> D024 canonical Shop route with default gate OFF",
+            details={"source_parse_errors": candidate_errors},
+        )
+    if not units:
+        return _check(
+            CHECK_BLOCKED,
+            expected="canonical Shop route source",
+            details={"reason": "no candidate source file was available"},
+        )
+
+    required_calls = {
+        "c025_projection": ("shop_offer_identity_projection", "project_shop_offer"),
+        "c026_purchase": ("coin_purchase_authority", "purchase_with_coins"),
+        "d024_result": ("shop_acquisition_result_bridge", "adapt_committed_shop_purchase"),
+    }
+    evidence: dict[str, list[dict[str, Any]]] = {name: [] for name in required_calls}
+    for relative_path, tree in units.items():
+        for evidence_name, (module_name, function_name) in required_calls.items():
+            for call in _call_targets(
+                tree,
+                module_name=module_name,
+                function_name=function_name,
+            ):
+                evidence[evidence_name].append(
+                    {"path": relative_path, "line": getattr(call, "lineno", None)}
+                )
+    gate_off, gate_path = _gate_default_off(units, _SHOP_GATE_NAMES)
+    missing = [name for name, call_sites in evidence.items() if not call_sites]
+    status = PASS if not missing and gate_off else FAIL
+    return _check(
+        status,
+        expected={
+            "calls": {
+                "c025_projection": "project_shop_offer",
+                "c026_purchase": "purchase_with_coins",
+                "d024_result": "adapt_committed_shop_purchase",
+            },
+            "default_gate": "OFF",
+        },
+        observed={"calls": evidence, "gate_off": gate_off, "gate_source": gate_path},
+        details={
+            "missing_contracts": missing,
+            "reason": None
+            if status == PASS
+            else "canonical Shop route is not source-verifiably C025/C026/D024 compatible",
+        },
+    )
+
+
+def _audit_runtime_source_contract(
+    repo_root: Path,
+    *,
+    source_fixture: Mapping[str, str] | None = None,
+) -> dict[str, dict[str, Any]]:
+    try:
+        source_texts = _source_texts(repo_root, source_fixture)
+        trees, parse_errors = _parsed_source_units(source_texts)
+    except Exception as exc:
+        blocked = _check(
+            CHECK_BLOCKED,
+            expected="readable Python source contract",
+            details={"error": str(exc)},
+        )
+        return {
+            "monster_equipment_writer_source_compatibility": blocked,
+            "admin_equipment_writer_source_compatibility": blocked,
+            "equipment_route_source_compatibility": blocked,
+            "canonical_shop_runtime_source_compatibility": blocked,
+            "runtime_writer_compatibility": blocked,
+        }
+
+    checks = {
+        "monster_equipment_writer_source_compatibility": _delegation_check(
+            trees=trees,
+            parse_errors=parse_errors,
+            source_candidates=_RUNTIME_SOURCE_CANDIDATES["monster"],
+            source_value="drop",
+        ),
+        "admin_equipment_writer_source_compatibility": _delegation_check(
+            trees=trees,
+            parse_errors=parse_errors,
+            source_candidates=_RUNTIME_SOURCE_CANDIDATES["admin"],
+            source_value="admin",
+        ),
+        "equipment_route_source_compatibility": _equipment_route_check(
+            trees=trees,
+            parse_errors=parse_errors,
+        ),
+        "canonical_shop_runtime_source_compatibility": _shop_runtime_check(
+            trees=trees,
+            parse_errors=parse_errors,
+        ),
+    }
+    statuses = [str(check.get("status")) for check in checks.values()]
+    if CHECK_BLOCKED in statuses:
+        runtime_status = CHECK_BLOCKED
+    elif FAIL in statuses:
+        runtime_status = FAIL
+    else:
+        runtime_status = PASS
+    checks["runtime_writer_compatibility"] = _check(
+        runtime_status,
+        expected="all four Option-C runtime seams source-verifiably compatible",
+        observed={name: check["status"] for name, check in checks.items()},
+        details={
+            "caller_evidence_can_override_source_failure": False,
+            "source_fixture_used": source_fixture is not None,
+        },
+    )
+    return checks
+
+
+def _verify_legacy_text_timestamp_contract(repo_root: Path) -> dict[str, Any]:
+    """Report the independent C030 timestamp proof, never writer readiness."""
+
+    source_path = repo_root / "coin_purchase_authority.py"
+    test_path = repo_root / "tests/test_c030_c026_postgres_legacy_text_timestamp_compatibility.py"
+    doc_path = repo_root / (
+        "docs/planning/architecture/"
+        "C030_C026_POSTGRES_LEGACY_TEXT_TIMESTAMP_COMPATIBILITY_PROOF_001.md"
+    )
+    missing_paths = [
+        str(path.relative_to(repo_root)).replace("\\", "/")
+        for path in (source_path, test_path, doc_path)
+        if not path.is_file()
+    ]
+    if missing_paths:
+        return _check(
+            CHECK_BLOCKED,
+            expected="C030 timestamp proof artifacts and current timestamp adapter",
+            details={"missing_paths": missing_paths},
+        )
+    source_text = source_path.read_text(encoding="utf-8")
+    test_text = test_path.read_text(encoding="utf-8")
+    doc_text = doc_path.read_text(encoding="utf-8")
+    required_source_markers = (
         "def _timestamp",
         "value.tzinfo",
         "value.isoformat()",
-        "else value",
         "currency_log",
         "obtained_at",
         "player_wardrobe",
     )
-    missing = [marker for marker in required_markers if marker not in text]
-    status = PASS if not missing else FAIL
+    required_proof_markers = (
+        "TEXT NOT NULL",
+        "timezone-aware Python value",
+        "Legacy TEXT timestamp compatibility is now proven",
+    )
+    missing = [marker for marker in required_source_markers if marker not in source_text]
+    missing.extend(marker for marker in required_proof_markers if marker not in test_text + doc_text)
     return _check(
-        status,
-        expected={"supplied_status": PASS, "source_markers": list(required_markers)},
-        observed={"supplied_status": normalized, "source_path": "coin_purchase_authority.py"},
-        details={"missing_source_markers": missing},
+        PASS if not missing else FAIL,
+        expected={
+            "task": "C030_C026_POSTGRES_LEGACY_TEXT_TIMESTAMP_COMPATIBILITY_PROOF_001",
+            "runtime_writer_compatibility": "not inferred",
+        },
+        observed={
+            "source_path": "coin_purchase_authority.py",
+            "test_path": str(test_path.relative_to(repo_root)).replace("\\", "/"),
+            "doc_path": str(doc_path.relative_to(repo_root)).replace("\\", "/"),
+            "proof_status": "PASS" if not missing else "INCOMPLETE",
+        },
+        details={
+            "missing_markers": missing,
+            "reported_separately_from_runtime_writer_compatibility": True,
+        },
     )
 
 
@@ -321,6 +773,8 @@ def audit_source_contract(
     current_master_sha: str | None,
     feature_gate_facts: Mapping[str, Any] | None,
     legacy_writer_compatibility: str | None,
+    target_environment: str | None = None,
+    source_contract_fixture: Mapping[str, str] | None = None,
     migration_paths: Iterable[str] = DEFAULT_MIGRATION_PATHS,
 ) -> dict[str, dict[str, Any]]:
     """Audit source identity and explicit release facts without executing app.py."""
@@ -400,6 +854,20 @@ def audit_source_contract(
             details={"gate": key},
         )
 
+    runtime_checks = _audit_runtime_source_contract(
+        repo_root,
+        source_fixture=source_contract_fixture,
+    )
+    caller_evidence = (
+        legacy_writer_compatibility.strip().upper()
+        if isinstance(legacy_writer_compatibility, str)
+        else None
+    )
+    runtime_checks["runtime_writer_compatibility"]["details"] = {
+        **dict(runtime_checks["runtime_writer_compatibility"].get("details", {})),
+        "caller_legacy_writer_compatibility": caller_evidence,
+        "caller_evidence_role": "secondary_only_ignored_for_readiness",
+    }
     return {
         "application_source_sha": source_sha_check,
         "equipment_definition_source_contract": equipment_contract,
@@ -409,8 +877,8 @@ def audit_source_contract(
         "canonical_equipment_loadout_feature_gate": gate_check(
             "canonical_equipment_loadout", "canonical Equipment loadout"
         ),
-        "legacy_writer_compatibility": _verify_legacy_writer_contract(
-            repo_root, legacy_writer_compatibility
+        "legacy_text_timestamp_compatibility": _verify_legacy_text_timestamp_contract(
+            repo_root
         ),
         "migration_manifest": _verify_migration_manifest(
             repo_root,
@@ -423,6 +891,7 @@ def audit_source_contract(
             observed=False,
             details={"revenue_policy": "PREMIUM_ONLY_SEPARATE", "mutation_path": None},
         ),
+        **runtime_checks,
     }
 
 
@@ -599,6 +1068,126 @@ def _audit_equipped_state(
             details={"rows": malformed},
         ),
     }
+
+
+class _CountingCursor:
+    def __init__(self, owner: "_CountingConnection", cursor: Any):
+        self._owner = owner
+        self._cursor = cursor
+
+    def execute(self, sql: str, parameters: Any = None) -> Any:
+        self._owner.database_queries += 1
+        return self._cursor.execute(sql, parameters)
+
+    def executemany(self, sql: str, parameters: Any) -> Any:
+        self._owner.database_queries += 1
+        return self._cursor.executemany(sql, parameters)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._cursor, name)
+
+    def __enter__(self) -> "_CountingCursor":
+        self._cursor.__enter__()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
+        return self._cursor.__exit__(exc_type, exc_val, exc_tb)
+
+
+class _CountingConnection:
+    """Transparent query accounting without changing the caller connection."""
+
+    def __init__(self, connection: Any):
+        self._connection = connection
+        self.database_queries = 0
+
+    def execute(self, sql: str, parameters: Any = None) -> Any:
+        self.database_queries += 1
+        return self._connection.execute(sql, parameters)
+
+    def cursor(self, *args: Any, **kwargs: Any) -> _CountingCursor:
+        return _CountingCursor(self, self._connection.cursor(*args, **kwargs))
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._connection, name)
+
+
+def _target_environment_check(target_environment: str | None) -> dict[str, Any]:
+    if target_environment is None:
+        return _check(
+            CHECK_BLOCKED,
+            expected=sorted(_TARGET_ENVIRONMENTS),
+            details={"reason": "target environment must be caller-supplied"},
+        )
+    normalized = target_environment.strip().lower() if isinstance(target_environment, str) else None
+    if normalized not in _TARGET_ENVIRONMENTS:
+        return _check(
+            CHECK_BLOCKED,
+            expected=sorted(_TARGET_ENVIRONMENTS),
+            observed=target_environment,
+            details={"reason": "target environment is not an allowed explicit classification"},
+        )
+    return _check(
+        PASS,
+        expected=sorted(_TARGET_ENVIRONMENTS),
+        observed=normalized,
+        details={"caller_supplied": True, "hostname_inference": False},
+    )
+
+
+def _database_read_only_check(
+    *,
+    conn: Any | None,
+    enforced: bool | None,
+    error: str | None,
+) -> dict[str, Any]:
+    if conn is None:
+        return _check(
+            "NOT_APPLICABLE",
+            expected="driver-level read-only session when a database connection is supplied",
+            observed="no connection",
+            details={"select_only_probe_still_required": True},
+        )
+    if enforced is True:
+        return _check(
+            PASS,
+            expected="driver-level read-only session",
+            observed="enforced",
+            details={"select_only_probe_still_required": True},
+        )
+    if enforced is False:
+        return _check(
+            FAIL,
+            expected="driver-level read-only session",
+            observed="not enforced",
+            details={
+                "error": error,
+                "select_only_probe_still_required": True,
+            },
+        )
+    return _check(
+        "NOT_APPLICABLE",
+        expected="driver-level read-only session when a database connection is supplied",
+        observed="caller-managed connection",
+        details={
+            "reason": "run_preflight did not create the connection; SELECT-only source probe remains enforced",
+            "select_only_probe_still_required": True,
+        },
+    )
+
+
+def _production_query_status(
+    *,
+    target_environment: str | None,
+    database_queries: int,
+) -> str:
+    if database_queries == 0:
+        return "NO"
+    if target_environment == "production":
+        return "YES"
+    if target_environment == "disposable":
+        return "NO"
+    return "UNKNOWN"
 
 
 def audit_database(
@@ -795,6 +1384,10 @@ def run_preflight(
     conn: Any | None,
     equipment_definitions: Iterable[EquipmentDefinition] | None = None,
     expected_postgres_version: str | None = None,
+    target_environment: str | None = None,
+    database_read_only_enforced: bool | None = None,
+    database_read_only_error: str | None = None,
+    source_contract_fixture: Mapping[str, str] | None = None,
     migration_paths: Iterable[str] = DEFAULT_MIGRATION_PATHS,
 ) -> dict[str, Any]:
     source_checks = audit_source_contract(
@@ -804,6 +1397,7 @@ def run_preflight(
         current_master_sha=current_master_sha,
         feature_gate_facts=feature_gate_facts,
         legacy_writer_compatibility=legacy_writer_compatibility,
+        source_contract_fixture=source_contract_fixture,
         migration_paths=migration_paths,
     )
 
@@ -814,6 +1408,7 @@ def run_preflight(
         except Exception:
             definitions = None
 
+    database_query_count = 0
     if conn is None:
         database_checks = {
             key: _check(
@@ -837,9 +1432,10 @@ def run_preflight(
             )
         }
     else:
+        counted_conn = _CountingConnection(conn)
         try:
             database_checks = audit_database(
-                conn,
+                counted_conn,
                 equipment_definitions=definitions,
                 expected_postgres_version=expected_postgres_version,
             )
@@ -850,32 +1446,62 @@ def run_preflight(
                     details={"reason": "database audit failed before completion", "error": str(exc)},
                 )
             }
+        database_query_count = counted_conn.database_queries
 
-    checks = {**source_checks, **database_checks}
+    normalized_target_environment = (
+        target_environment.strip().lower()
+        if isinstance(target_environment, str)
+        else target_environment
+    )
+    database_checks["database_read_only_enforcement"] = _database_read_only_check(
+        conn=conn,
+        enforced=database_read_only_enforced,
+        error=database_read_only_error,
+    )
+    checks = {
+        "target_environment": _target_environment_check(target_environment),
+        **source_checks,
+        **database_checks,
+    }
     status = _overall_status(checks)
+    database_query_observed = "YES" if database_query_count else "NO"
+    production_query_observed = _production_query_status(
+        target_environment=normalized_target_environment
+        if normalized_target_environment in _TARGET_ENVIRONMENTS
+        else None,
+        database_queries=database_query_count,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "status": status,
         "checks": checks,
+        "TARGET_ENVIRONMENT": normalized_target_environment,
+        "DATABASE_QUERY_PERFORMED_BY_C031": database_query_observed,
+        "PRODUCTION_QUERY_PERFORMED_BY_C031": production_query_observed,
         "provenance": {
             "expected_application_source_sha": expected_application_source_sha,
             "observed_application_source_sha": observed_application_source_sha,
             "current_master_sha": current_master_sha,
             "repository_root": str(repo_root),
-            "database_target": "caller_supplied; not serialized",
+            "database_target": normalized_target_environment,
         },
         "policy": {
             "go_production_db_migration": "DEFERRED_TO_OWNER_COORDINATOR",
             "revenue_enablement_implied": False,
-            "production_query_performed_by_c031": False,
-            "production_mutation_performed_by_c031": False,
+            "target_environment": normalized_target_environment,
+            "database_query_performed_by_c031": database_query_observed,
+            "production_query_performed_by_c031": production_query_observed,
+            "production_mutation_performed_by_c031": "NO",
             "feature_enablement_performed_by_c031": False,
         },
         "mutation_guard": {
+            "database_queries": database_query_count,
+            "database_query_performed": database_query_observed,
             "writes": 0,
             "commits": 0,
             "rollbacks": 0,
             "migration_execution": 0,
+            "read_only_session_enforced": database_read_only_enforced,
         },
         "human_summary": _human_summary(status, checks),
     }
@@ -901,9 +1527,19 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expected-application-source-sha", required=True)
     parser.add_argument("--observed-application-source-sha", required=True)
     parser.add_argument("--current-master-sha", required=True)
+    parser.add_argument(
+        "--target-environment",
+        choices=tuple(sorted(_TARGET_ENVIRONMENTS)),
+        required=True,
+        help="Explicit target classification; C031 never infers Production from a hostname",
+    )
     parser.add_argument("--canonical-shop-gate", choices=("OFF", "ON"))
     parser.add_argument("--canonical-equipment-loadout-gate", choices=("OFF", "ON"))
-    parser.add_argument("--legacy-writer-compatibility", choices=("PASS", "FAIL"))
+    parser.add_argument(
+        "--legacy-writer-compatibility",
+        choices=("PASS", "FAIL"),
+        help="Deprecated secondary caller evidence; it cannot override source compatibility",
+    )
     parser.add_argument("--expected-postgres-version")
     return parser
 
@@ -913,6 +1549,8 @@ def main(argv: list[str] | None = None) -> int:
     conn: Any | None = None
     raw: Any | None = None
     connection_error: str | None = None
+    database_read_only_enforced: bool | None = None
+    database_read_only_error: str | None = None
     if args.database_url:
         try:
             import psycopg2
@@ -921,6 +1559,12 @@ def main(argv: list[str] | None = None) -> int:
             from db import PostgresConnectionWrapper
 
             raw = psycopg2.connect(args.database_url, cursor_factory=DictCursor)
+            try:
+                raw.set_session(readonly=True)
+                database_read_only_enforced = True
+            except Exception as exc:
+                database_read_only_enforced = False
+                database_read_only_error = str(exc)
             conn = PostgresConnectionWrapper(raw, pooled=False)
         except Exception as exc:
             connection_error = str(exc)
@@ -929,6 +1573,7 @@ def main(argv: list[str] | None = None) -> int:
         expected_application_source_sha=args.expected_application_source_sha,
         observed_application_source_sha=args.observed_application_source_sha,
         current_master_sha=args.current_master_sha,
+        target_environment=args.target_environment,
         feature_gate_facts={
             "canonical_shop": _parse_gate(args.canonical_shop_gate),
             "canonical_equipment_loadout": _parse_gate(
@@ -937,6 +1582,8 @@ def main(argv: list[str] | None = None) -> int:
         },
         legacy_writer_compatibility=args.legacy_writer_compatibility,
         conn=conn,
+        database_read_only_enforced=database_read_only_enforced,
+        database_read_only_error=database_read_only_error,
         expected_postgres_version=args.expected_postgres_version,
     )
     if connection_error:
