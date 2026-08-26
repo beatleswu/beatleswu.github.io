@@ -140,6 +140,7 @@ from review_contracts import (
     ReviewCommand,
 )
 from review_service import MapBattleReviewHandoff, ReviewService, ReviewServiceStatus
+from canonical_learning_judge import resolve_srs_review_authority
 from event_outbox import DuplicateOutboxEvent, append_event, get_event_by_idempotency_key
 from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
 from migrations.question_capacity_lineage_v1 import (
@@ -13959,9 +13960,26 @@ def srs_review():
     durable operation directly; ReviewService does, exactly once.
     """
     data = request.get_json(silent=True) or {}
+    # LC003 canonical correctness authority. When the client supplies an
+    # ``attempt`` block the canonical judge owns the grade; the client's
+    # grade/correctness fields are ignored. AMBIGUOUS / UNVERIFIABLE /
+    # MALFORMED fail closed right here -- the review is not recorded and no
+    # client value is consulted. With no ``attempt`` block the legacy
+    # self-report path is unchanged: ``grade`` is a scheduling hint, never a
+    # server correctness verdict (see canonical_learning_judge.GradeBasis).
+    authority = resolve_srs_review_authority(
+        data,
+        load_questions=_load_questions,
+        accepted_moves_reader=_question_accepted_moves,
+    )
+    if authority.is_fail_closed:
+        return jsonify(dict(authority.fail_closed_body)), authority.fail_closed_status
+    review_grade = (
+        authority.grade if authority.server_authoritative else data.get('grade')
+    )
     command = ReviewCommand(
         question_id=data.get('question_id'),
-        grade=data.get('grade'),
+        grade=review_grade,
         unit_name=data.get('unit_name'),
         unit_done=data.get('unit_done', False),
         response_ms=data.get('response_ms'),
