@@ -16,9 +16,9 @@ from typing import Any
 from migrations.domain_event_outbox_v1 import EVENT_TYPES, OUTCOMES, TABLE_NAME
 
 
-# F006 adds a domain event to the existing D5A envelope without changing the
-# foundation schema or migration contract.
-SUPPORTED_EVENT_TYPES = (*EVENT_TYPES, "MONSTER_DEFEATED")
+# F006 and D028 add domain facts to the existing D5A envelope without changing
+# the foundation schema or migration contract.
+SUPPORTED_EVENT_TYPES = (*EVENT_TYPES, "MONSTER_DEFEATED", "SPIRIT_EFFECT_TRIGGERED")
 
 
 _FORBIDDEN_PAYLOAD_KEYS = frozenset(
