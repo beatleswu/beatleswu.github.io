@@ -37,6 +37,7 @@ from monster_combat_profiles import (
     resolve_monster_combat_profile,
 )
 from spirit_combat_runtime import apply_spirit_combat_effect
+from spirit_lineage import append_spirit_effect_event
 
 
 RUNTIME_SERVICE_ID = "map-battle-v1-runtime"
@@ -986,6 +987,108 @@ def _validated_request_hash(payload: Mapping[str, Any], canonical: CanonicalAnsw
     return expected_hash
 
 
+def _spirit_effect_lineage_id(spirit_effect: Mapping[str, Any]) -> str | None:
+    """Derive the stable lineage identity from the server policy result.
+
+    The current policy result exposes a governed effect type rather than a
+    separate effect registry ID.  Combining that server-selected type with
+    the validated Spirit ID gives D028 one deterministic identity without
+    accepting an effect ID from the request or creating another policy.
+    """
+
+    spirit_id = spirit_effect.get("spirit_id")
+    if not isinstance(spirit_id, str) or not spirit_id.strip():
+        return None
+    explicit_effect_id = spirit_effect.get("effect_id")
+    if isinstance(explicit_effect_id, str) and explicit_effect_id.strip():
+        if explicit_effect_id.strip().upper() == "NONE":
+            return None
+        return explicit_effect_id.strip()
+    effect_type = spirit_effect.get("effect_type")
+    if (
+        not isinstance(effect_type, str)
+        or not effect_type.strip()
+        or effect_type.strip().upper() == "NONE"
+    ):
+        return None
+    return f"spirit_combat:{spirit_id.strip()}:{effect_type.strip()}"
+
+
+def _append_spirit_effect_lineage(
+    conn: Any,
+    *,
+    user_id: int,
+    settlement: Mapping[str, Any],
+    spirit_effect: Mapping[str, Any],
+    battle: Mapping[str, Any],
+    encounter_class: str | None,
+    occurred_at: Any = None,
+) -> dict[str, Any] | None:
+    """Append D028 evidence for one newly committed Map Battle settlement.
+
+    ``settlement`` is the result returned by the authoritative persistence
+    caller.  The helper deliberately accepts no request-owned combat facts;
+    it only forwards the already-evaluated server policy result and the
+    settlement/battle rows written in this caller-owned transaction.
+    """
+
+    if settlement.get("duplicate") is True:
+        return None
+    submission = settlement.get("submission")
+    if not isinstance(submission, Mapping):
+        return None
+    if submission.get("settlement_state") != "SETTLED":
+        return None
+    if spirit_effect.get("triggered") is not True:
+        return None
+
+    source_settlement_id = submission.get("id")
+    effect_id = _spirit_effect_lineage_id(spirit_effect)
+    if not isinstance(source_settlement_id, str) or not source_settlement_id.strip():
+        return None
+    if effect_id is None:
+        return None
+
+    encounter_context: dict[str, Any] = {}
+    if battle.get("id") is not None:
+        encounter_context["battle_id"] = str(battle["id"])
+    if battle.get("zone_key") is not None:
+        encounter_context["zone_key"] = str(battle["zone_key"])
+
+    input_damage = spirit_effect.get("input_damage")
+    output_damage = spirit_effect.get("output_damage")
+    modifier_delta = None
+    if (
+        isinstance(input_damage, (int, float))
+        and not isinstance(input_damage, bool)
+        and isinstance(output_damage, (int, float))
+        and not isinstance(output_damage, bool)
+    ):
+        modifier_delta = output_damage - input_damage
+
+    # map_battle_submissions.id is the server-generated identity of the
+    # authoritative settlement.  It is not the client nonce or a new event
+    # identity, and it remains available for response-loss replay handling.
+    return append_spirit_effect_event(
+        conn,
+        user_id=user_id,
+        spirit_id=spirit_effect.get("spirit_id"),
+        source_settlement_id=source_settlement_id,
+        effect_id=effect_id,
+        effect_policy_version=spirit_effect.get("policy_version"),
+        evolution_stage=spirit_effect.get("stage"),
+        encounter_class=encounter_class,
+        encounter_context=encounter_context or None,
+        effect_result=spirit_effect,
+        damage_before_spirit=input_damage,
+        damage_after_spirit=output_damage,
+        modifier_delta=modifier_delta,
+        player_hp_before=battle.get("player_hp"),
+        monster_hp_before=battle.get("monster_hp"),
+        occurred_at=submission.get("settled_at") or occurred_at,
+    )
+
+
 def _existing_submission_for_nonce(
     conn: Any,
     *,
@@ -1236,6 +1339,15 @@ def settle_answer(
         )
     except (StaleBattleRevision, SubmissionConflict) as error:
         raise RequestRejected(str(error), status=409) from error
+    _append_spirit_effect_lineage(
+        conn,
+        user_id=user_id,
+        settlement=settled,
+        spirit_effect=spirit_effect,
+        battle=battle,
+        encounter_class=monster_profile.encounter_class,
+        occurred_at=now,
+    )
     return _response_from_settlement(
         settled,
         duplicate=bool(settled.get("duplicate")),
