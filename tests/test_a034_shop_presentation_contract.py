@@ -34,8 +34,18 @@ VISIBLE_COPY_MARKUP = "\n".join(
 DAILY_RENDER_COPY = SHOP.split("function renderDaily(res) {", 1)[1].split(
     "function renderItems", 1
 )[0]
+APPEARANCE_RENDER_COPY = SHOP.split("function appearanceCard(slot) {", 1)[1].split(
+    "async function resolvePurchaseGrants", 1
+)[0]
 MERCHANT_VISIBLE_COPY = "\n".join(
-    (MERCHANT_COPY, INITIAL_MERCHANT_COPY, A034_VISIBLE_COPY, VISIBLE_COPY_MARKUP, DAILY_RENDER_COPY)
+    (
+        MERCHANT_COPY,
+        INITIAL_MERCHANT_COPY,
+        A034_VISIBLE_COPY,
+        VISIBLE_COPY_MARKUP,
+        DAILY_RENDER_COPY,
+        APPEARANCE_RENDER_COPY,
+    )
 )
 
 
@@ -184,6 +194,7 @@ def test_a034_rendered_shop_copy_is_not_overwritten_by_legacy_i18n_keys():
 
 def test_a034_daily_rotation_copy_has_no_sale_price_or_urgency_render_path():
     assert 'visibleShopCopy("dailyItemDescription")' in DAILY_RENDER_COPY
+    assert 'visibleShopCopy("dailyAppearanceDescription")' in APPEARANCE_RENDER_COPY
     assert 'visibleShopCopy("dailyRotationBadge")' in DAILY_RENDER_COPY
     assert "sale: true" not in DAILY_RENDER_COPY
     assert "Daily Deal" not in SHOP

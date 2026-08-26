@@ -1250,6 +1250,10 @@ const A034_VISIBLE_COPY = Object.freeze({
     zh: "這是目前商品資料中的每日輪替商品。",
     en: "A daily rotation item from the current catalog."
   }),
+  dailyAppearanceDescription: Object.freeze({
+    zh: "這是目前商品資料中的每日輪替外觀商品。",
+    en: "A daily rotation appearance from the current catalog."
+  }),
   dailyRotationBadge: Object.freeze({ zh: "每日輪替", en: "Daily Rotation" }),
   dailyEmpty: Object.freeze({
     zh: "目前沒有可顯示的每日輪替商品。",
@@ -2135,7 +2139,7 @@ function appearanceCard(slot) {
         <div class="item-meta">${isEn() ? "Appearance" : "外觀"}</div>
       </div>
     </div>
-    <div class="item-desc">${isEn() ? "Today's rotation cosmetic." : "這是今日輪替的外觀商品。"}</div>
+    <div class="item-desc">${visibleShopCopy("dailyAppearanceDescription")}</div>
     <div class="card-foot">
       <div class="price">${money(slot.price)} ${isEn() ? "coins" : "金幣"}</div>
     <button class="btn" type="button" data-sfx="purchase">${isEn() ? "Buy" : "購買"}</button>
