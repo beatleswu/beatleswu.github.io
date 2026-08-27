@@ -29,6 +29,9 @@ from pathlib import Path
 
 import pytest
 
+from migrations.companion_operations_v1 import upgrade as upgrade_companion_schema
+from migrations.domain_event_outbox_v1 import upgrade as upgrade_domain_event_outbox
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -134,6 +137,52 @@ def sqlite_conn():
         reason TEXT NOT NULL,
         created_at TEXT NOT NULL
     )''')
+    conn.execute('''CREATE TABLE user_pets (
+        user_id INTEGER PRIMARY KEY,
+        pet_key TEXT NOT NULL,
+        nickname TEXT,
+        level INTEGER NOT NULL DEFAULT 1,
+        xp INTEGER NOT NULL DEFAULT 0,
+        fullness INTEGER NOT NULL DEFAULT 60,
+        affection INTEGER NOT NULL DEFAULT 10,
+        selected_at TEXT NOT NULL,
+        last_fed_at TEXT,
+        last_interacted_at TEXT,
+        updated_at TEXT
+    )''')
+    conn.execute('''CREATE TABLE pet_inventory (
+        user_id INTEGER NOT NULL,
+        item_key TEXT NOT NULL,
+        qty INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, item_key)
+    )''')
+    conn.execute('''CREATE TABLE pet_action_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        detail TEXT,
+        created_at TEXT NOT NULL
+    )''')
+    conn.execute('''CREATE TABLE pet_collection (
+        user_id INTEGER NOT NULL,
+        pet_key TEXT NOT NULL,
+        nickname TEXT,
+        level INTEGER NOT NULL DEFAULT 1,
+        xp INTEGER NOT NULL DEFAULT 0,
+        fullness INTEGER NOT NULL DEFAULT 60,
+        affection INTEGER NOT NULL DEFAULT 10,
+        selected_at TEXT NOT NULL,
+        last_fed_at TEXT,
+        last_interacted_at TEXT,
+        last_pet_at TEXT,
+        last_train_at TEXT,
+        daily_key TEXT,
+        daily_bond INTEGER NOT NULL DEFAULT 0,
+        daily_train_xp INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, pet_key)
+    )''')
+    upgrade_companion_schema(conn)
+    upgrade_domain_event_outbox(conn)
     conn.commit()
     yield conn
     conn.close()
