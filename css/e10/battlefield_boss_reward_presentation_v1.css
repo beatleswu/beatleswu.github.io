@@ -101,15 +101,29 @@
     background: rgba(255, 255, 255, .54);
 }
 
-.battlefield-boss-reward-card__reward-mark {
+.battlefield-boss-reward-card__cosmetic-art {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    grid-row: 1 / span 4;
+    width: 68px;
+    min-height: 78px;
+    overflow: hidden;
+    border: 1px solid rgba(13, 111, 105, .3);
     border-radius: 8px;
     color: #fff1c7;
     background: #0d6f69;
-    font-size: 19px;
+}
+
+.battlefield-boss-reward-card__cosmetic-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 78px;
+    object-fit: cover;
+}
+
+.battlefield-boss-reward-card__cosmetic-fallback {
+    font-size: 22px;
 }
 
 .battlefield-boss-reward-card__reward-kind {
@@ -117,6 +131,19 @@
     font: 700 9px/1.2 'DM Mono', monospace;
     letter-spacing: .08em;
     white-space: nowrap;
+}
+
+.battlefield-boss-reward-card__reward-category {
+    color: #806b55;
+    font: 700 9px/1.2 'DM Mono', monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.battlefield-boss-reward-card__display-name {
+    grid-column: 2 / -1;
+    color: #173d43;
+    font-size: 14px;
 }
 
 .battlefield-boss-reward-card__reward-id {
@@ -158,9 +185,13 @@
     .battlefield-boss-reward-card__header { align-items: flex-start; flex-direction: column; }
     .battlefield-boss-reward-card__state { white-space: normal; }
     .battlefield-boss-reward-card__reward { grid-template-columns: auto minmax(0, 1fr); }
+    .battlefield-boss-reward-card__cosmetic-art { grid-column: 1; grid-row: 1 / span 4; width: 58px; min-height: 72px; }
+    .battlefield-boss-reward-card__cosmetic-image { min-height: 72px; }
     .battlefield-boss-reward-card__reward-kind { grid-column: 2; grid-row: 1; }
-    .battlefield-boss-reward-card__reward-id { grid-column: 2; grid-row: 2; }
-    .battlefield-boss-reward-card__reward-note { grid-column: 2; grid-row: 3; }
+    .battlefield-boss-reward-card__reward-category { grid-column: 2; grid-row: 2; }
+    .battlefield-boss-reward-card__display-name { grid-column: 2; grid-row: 3; }
+    .battlefield-boss-reward-card__reward-id { grid-column: 2; grid-row: 4; }
+    .battlefield-boss-reward-card__reward-note { grid-column: 2; grid-row: 5; }
 }
 
 @media (prefers-reduced-motion: reduce) {

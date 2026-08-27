@@ -1,9 +1,9 @@
 (function (root, factory) {
     'use strict';
     if (typeof module === 'object' && module.exports) {
-        module.exports = factory();
+        module.exports = factory(null);
     } else {
-        root.BattlefieldBossRewardPresentationV1 = factory();
+        root.BattlefieldBossRewardPresentationV1 = factory(root);
         root.showBattlefieldBossRewardResult = function (payload) {
             var target = document.getElementById('battlefield-boss-reward-result');
             return root.BattlefieldBossRewardPresentationV1.renderResult(target, payload);
@@ -13,7 +13,7 @@
             return root.BattlefieldBossRewardPresentationV1.clearResult(target);
         };
     }
-}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
     'use strict';
 
     // F025 is a presentation adapter only. The typed F023 result remains the
@@ -127,6 +127,50 @@
         return node;
     }
 
+    function resolveCosmeticDisplay(model) {
+        var resolver = root && root.BattlefieldBossCosmeticDisplayV1;
+        if (resolver && typeof resolver.resolve === 'function') {
+            var display = resolver.resolve(model.mapped_cosmetic_id);
+            if (!display) {
+                throw failure('unknown_cosmetic', 'canonical cosmetic display metadata is unavailable');
+            }
+            return display;
+        }
+        // F025 standalone consumers remain compatible until the F026 display
+        // projection is loaded; the live index loads it before this module.
+        return {
+            canonical_cosmetic_id: model.mapped_cosmetic_id,
+            display_name: model.mapped_cosmetic_id,
+            display_asset: '',
+            display_category: 'appearance',
+        };
+    }
+
+    function cosmeticArt(documentRef, display) {
+        var art = text(documentRef, 'div', 'battlefield-boss-reward-card__cosmetic-art', '');
+        art.dataset.canonicalCosmeticId = display.canonical_cosmetic_id;
+        art.dataset.canonicalCosmeticAsset = display.display_asset || '';
+        art.dataset.assetState = display.display_asset ? 'canonical' : 'fallback';
+        var fallback = text(documentRef, 'span', 'battlefield-boss-reward-card__cosmetic-fallback', '◇');
+        fallback.setAttribute('aria-hidden', 'true');
+        art.appendChild(fallback);
+        if (!display.display_asset) return art;
+        var image = documentRef.createElement('img');
+        image.className = 'battlefield-boss-reward-card__cosmetic-image';
+        image.src = display.display_asset;
+        image.alt = display.display_name;
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        fallback.hidden = true;
+        image.addEventListener('error', function () {
+            image.hidden = true;
+            fallback.hidden = false;
+            art.dataset.assetState = 'fallback';
+        }, { once: true });
+        art.appendChild(image);
+        return art;
+    }
+
     function isEnglish(documentRef, locale) {
         if (locale) return String(locale).toLowerCase().indexOf('en') === 0;
         var lang = documentRef && documentRef.documentElement
@@ -211,6 +255,16 @@
         var documentRef = container.ownerDocument;
         var english = isEnglish(documentRef, options && options.locale);
         var copy = copyFor(model, english);
+        var display = null;
+        try {
+            display = model.status === STATUS.NOT_FIRST_CLEAR
+                ? null
+                : resolveCosmeticDisplay(model);
+        } catch (error) {
+            clearResult(container);
+            container.dataset.f025Error = error.code || 'invalid_result';
+            return { ok: false, error: error.code || 'invalid_result' };
+        }
         var card = text(documentRef, 'article', 'battlefield-boss-reward-card', '');
         card.setAttribute('aria-live', 'polite');
         card.dataset.f025Status = model.status;
@@ -233,8 +287,10 @@
         if (model.status !== STATUS.NOT_FIRST_CLEAR) {
             var reward = text(documentRef, 'div', 'battlefield-boss-reward-card__reward', '');
             reward.append(
-                text(documentRef, 'span', 'battlefield-boss-reward-card__reward-mark', '◇'),
+                cosmeticArt(documentRef, display),
                 text(documentRef, 'span', 'battlefield-boss-reward-card__reward-kind', english ? 'PURE COSMETIC' : '純外觀'),
+                text(documentRef, 'span', 'battlefield-boss-reward-card__reward-category', display.display_category),
+                text(documentRef, 'strong', 'battlefield-boss-reward-card__display-name', display.display_name),
                 text(documentRef, 'code', 'battlefield-boss-reward-card__reward-id', model.mapped_cosmetic_id),
                 text(documentRef, 'span', 'battlefield-boss-reward-card__reward-note', copy.entitlement)
             );
