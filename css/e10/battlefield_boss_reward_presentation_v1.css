@@ -1,0 +1,169 @@
+/* F025 Battlefield Boss reward result. Presentation only: the typed F024
+ * result is authoritative; this surface never grants or computes rewards. */
+
+#battlefield-boss-reward-result[hidden] { display: none; }
+
+#battlefield-boss-reward-result {
+    width: 100%;
+    margin: 0;
+}
+
+.battlefield-boss-reward-card {
+    position: relative;
+    overflow: hidden;
+    padding: 20px 22px 18px;
+    border: 1px solid rgba(150, 115, 59, .62);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 100% 0, rgba(214, 170, 81, .17), transparent 34%),
+        linear-gradient(145deg, #fffaf0, #f1e4c1);
+    color: #2a1708;
+    box-shadow: 0 12px 28px rgba(25, 45, 44, .13), inset 0 0 0 1px rgba(255,255,255,.58);
+}
+
+.battlefield-boss-reward-card::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+    border: 1px solid rgba(13, 111, 105, .18);
+    border-radius: 10px;
+}
+
+.battlefield-boss-reward-card__header,
+.battlefield-boss-reward-card__title,
+.battlefield-boss-reward-card__body,
+.battlefield-boss-reward-card__reward,
+.battlefield-boss-reward-card__facts,
+.battlefield-boss-reward-card__power-note {
+    position: relative;
+    z-index: 1;
+}
+
+.battlefield-boss-reward-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 9px;
+}
+
+.battlefield-boss-reward-card__eyebrow,
+.battlefield-boss-reward-card__state {
+    font: 700 10px/1.2 'DM Mono', monospace;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+}
+
+.battlefield-boss-reward-card__eyebrow { color: #806b55; }
+
+.battlefield-boss-reward-card__state {
+    padding: 5px 8px;
+    border: 1px solid #96733b;
+    border-radius: 999px;
+    color: #fff1c7;
+    background: #173d43;
+    white-space: nowrap;
+}
+
+.battlefield-boss-reward-card[data-f025-status="FIRST_CLEAR_ALREADY_OWNED_NO_OP"] .battlefield-boss-reward-card__state {
+    background: #806b55;
+}
+
+.battlefield-boss-reward-card[data-f025-status="NOT_FIRST_CLEAR"] .battlefield-boss-reward-card__state {
+    color: #573f21;
+    background: #ead9b0;
+}
+
+.battlefield-boss-reward-card__title {
+    margin: 0;
+    color: #173d43;
+    font: 700 clamp(25px, 3vw, 35px)/1.06 'Cormorant Garamond', 'Noto Serif TC', serif;
+}
+
+.battlefield-boss-reward-card__body {
+    max-width: 48em;
+    margin: 9px 0 14px;
+    color: #715324;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.battlefield-boss-reward-card__reward {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px 9px;
+    margin: 12px 0 14px;
+    padding: 11px 12px;
+    border: 1px solid rgba(150, 115, 59, .42);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .54);
+}
+
+.battlefield-boss-reward-card__reward-mark {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: #fff1c7;
+    background: #0d6f69;
+    font-size: 19px;
+}
+
+.battlefield-boss-reward-card__reward-kind {
+    color: #806b55;
+    font: 700 9px/1.2 'DM Mono', monospace;
+    letter-spacing: .08em;
+    white-space: nowrap;
+}
+
+.battlefield-boss-reward-card__reward-id {
+    min-width: 0;
+    overflow: hidden;
+    color: #173d43;
+    font: 700 13px/1.35 'DM Mono', monospace;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.battlefield-boss-reward-card__reward-note {
+    grid-column: 2 / -1;
+    color: #715324;
+    font-size: 11px;
+}
+
+.battlefield-boss-reward-card__facts {
+    display: grid;
+    grid-template-columns: minmax(90px, .5fr) minmax(0, 1fr);
+    gap: 4px 10px;
+    margin: 0;
+    color: #715324;
+    font: 11px/1.45 'DM Mono', monospace;
+}
+
+.battlefield-boss-reward-card__facts dt { color: #9a805d; }
+.battlefield-boss-reward-card__facts dd { min-width: 0; overflow-wrap: anywhere; color: #4a3115; }
+
+.battlefield-boss-reward-card__power-note {
+    margin: 14px 0 0;
+    color: #806b55;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+    .battlefield-boss-reward-card { padding: 17px 16px 15px; }
+    .battlefield-boss-reward-card__header { align-items: flex-start; flex-direction: column; }
+    .battlefield-boss-reward-card__state { white-space: normal; }
+    .battlefield-boss-reward-card__reward { grid-template-columns: auto minmax(0, 1fr); }
+    .battlefield-boss-reward-card__reward-kind { grid-column: 2; grid-row: 1; }
+    .battlefield-boss-reward-card__reward-id { grid-column: 2; grid-row: 2; }
+    .battlefield-boss-reward-card__reward-note { grid-column: 2; grid-row: 3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .battlefield-boss-reward-card,
+    .battlefield-boss-reward-card * { animation: none !important; transition: none !important; }
+}

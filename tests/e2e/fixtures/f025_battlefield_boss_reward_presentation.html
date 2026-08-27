@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F025 Battlefield Boss reward presentation fixture</title>
+  <link rel="stylesheet" href="/css/e10/battlefield_boss_reward_presentation_v1.css">
+  <style>
+    :root { color-scheme: light; font-family: 'DM Sans', system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; background: #173d43; color: #f1e4c1; }
+    main { width: min(760px, calc(100vw - 28px)); margin: 0 auto; padding: 28px 0; }
+    .fixture-header { margin-bottom: 18px; }
+    .fixture-header p { margin: 5px 0 0; color: rgba(241,228,193,.72); line-height: 1.5; }
+    .fixture-kicker { font: 700 10px/1.2 'DM Mono', monospace; letter-spacing: .14em; }
+    .fixture-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    button { border: 1px solid #d6aa51; border-radius: 999px; padding: 9px 12px; color: #173d43; background: #f1e4c1; font-weight: 700; cursor: pointer; }
+    button[aria-pressed="true"] { color: #fff1c7; background: #0d6f69; }
+    #battlefield-boss-reward-result { min-height: 10px; }
+    @media (max-width: 700px) { main { padding-top: 18px; } .fixture-controls { gap: 6px; } button { flex: 1 1 150px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="fixture-header">
+      <div class="fixture-kicker">F025 · PRESENTATION-ONLY FIXTURE</div>
+      <h1>Battlefield Boss result</h1>
+      <p>These are synthetic server-authored F024 transport payloads for visual contract validation.</p>
+    </header>
+    <nav class="fixture-controls" aria-label="Result states">
+      <button type="button" data-case="new" aria-pressed="true">New cosmetic</button>
+      <button type="button" data-case="owned" aria-pressed="false">Already owned</button>
+      <button type="button" data-case="not-first" aria-pressed="false">Not first clear</button>
+    </nav>
+    <section id="battlefield-boss-reward-result" data-presentation-only="true" aria-label="Battlefield Boss reward result"></section>
+  </main>
+  <script src="/js/game/battlefield_boss_reward_presentation_v1.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var base = {
+        contract_version: 'F024_BATTLEFIELD_BOSS_REWARD_RESULT_TRANSPORT_V1',
+        zone_key: 'zone_06_dragon_valley',
+        reward_policy_version: 'F022_BATTLEFIELD_BOSS_MAPPING_A_V1',
+        mapped_cosmetic_id: 'robe_dragon',
+      };
+      var payloads = {
+        new: Object.assign({}, base, {
+          status: 'FIRST_CLEAR_NEW_COSMETIC',
+          first_clear_entitlement_consumed: true,
+          cosmetic_newly_owned: true,
+          already_owned_no_op: false,
+          entitlement_replayed: false,
+        }),
+        owned: Object.assign({}, base, {
+          status: 'FIRST_CLEAR_ALREADY_OWNED_NO_OP',
+          first_clear_entitlement_consumed: true,
+          cosmetic_newly_owned: false,
+          already_owned_no_op: true,
+          entitlement_replayed: false,
+        }),
+        'not-first': Object.assign({}, base, {
+          status: 'NOT_FIRST_CLEAR',
+          first_clear_entitlement_consumed: false,
+          cosmetic_newly_owned: false,
+          already_owned_no_op: false,
+          entitlement_replayed: true,
+        }),
+      };
+      var target = document.getElementById('battlefield-boss-reward-result');
+      function render(name) {
+        var result = window.BattlefieldBossRewardPresentationV1.renderResult(target, payloads[name], { locale: 'en' });
+        if (!result.ok) throw new Error('fixture render failed: ' + result.error);
+        document.querySelectorAll('[data-case]').forEach(function (button) {
+          button.setAttribute('aria-pressed', String(button.dataset.case === name));
+        });
+        target.dataset.fixtureCase = name;
+      }
+      document.querySelectorAll('[data-case]').forEach(function (button) {
+        button.addEventListener('click', function () { render(button.dataset.case); });
+      });
+      window.__F025_FIXTURE__ = { render: render, payloads: payloads, target: target };
+      render('new');
+    }());
+  </script>
+</body>
+</html>
