@@ -84,6 +84,8 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     <link rel="stylesheet" href="/wgo/wgo.player.css">
     <link rel="stylesheet" href="/css/e10/encounter_presentation_framework_v1.css?v=a023v1">
     <link rel="stylesheet" href="/css/e10/go_combat_owner_reference_v1.css?v=a032r1">
+    <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033v2">
+    <script src="/js/game/reward_drop_presentation_v1.js?v=a033v2"></script>
     <script src="/js/game/presentation_dispatcher.js?v=20260816e10v1bb1"></script>
     <script src="/js/game/presentation_effects_b2.js?v=20260817e10v1bb2"></script>
     <script src="/js/game/review_transport.js?v=20260817e10v1bb3"></script>
@@ -7916,6 +7918,25 @@ html:not([data-world-presentation-state="pending"]) #world-presentation-pending 
     </div>
 </div>
 
+<!-- Generic Monster V1 reward result: server-authored facts only. -->
+<section id="reward-drop-v1" hidden aria-live="polite" aria-atomic="true">
+    <div class="reward-drop-v1__card" role="status">
+        <div class="reward-drop-v1__art-wrap">
+            <div id="reward-drop-v1-art" aria-label="Reward item art"></div>
+        </div>
+        <div class="reward-drop-v1__body">
+            <div class="reward-drop-v1__eyebrow" id="reward-drop-v1-title"></div>
+            <div class="reward-drop-v1__name" id="reward-drop-v1-name"></div>
+            <div class="reward-drop-v1__meta" id="reward-drop-v1-meta"></div>
+            <div class="reward-drop-v1__state" id="reward-drop-v1-state"></div>
+            <div class="reward-drop-v1__actions">
+                <a id="reward-drop-v1-backpack" hidden href="/inventory"></a>
+                <button id="reward-drop-v1-close" type="button"></button>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- 寵物食物 Toast -->
 <div id="pet-toast" class="item-toast">
     <div class="t-icon" id="pet-toast-icon">🍬</div>
@@ -8273,6 +8294,9 @@ function avatarVictoryAnim() {
 let _toastTimer = null;
 
 function showItemToast(toastId, icon, name, rarity) {
+    if (toastId === 'pet-toast' && window.RewardDropPresentationV1) {
+        window.RewardDropPresentationV1.hide();
+    }
     // 先把兩個 toast 都藏掉
     ['loot-toast','appear-toast','pet-toast'].forEach(id => {
         const el = document.getElementById(id);
@@ -8312,7 +8336,12 @@ function showItemToast(toastId, icon, name, rarity) {
 
 function showLootToast(loot) {
     if (!loot) return;
-    showItemToast('loot-toast', loot.icon, loot.name, loot.rarity);
+    if (window.RewardDropPresentationV1
+        && typeof window.RewardDropPresentationV1.showFunctional === 'function') {
+        window.RewardDropPresentationV1.showFunctional(loot);
+    } else {
+        showItemToast('loot-toast', loot.icon, loot.name, loot.rarity);
+    }
     const backpackLink = document.getElementById('loot-toast-backpack');
     if (backpackLink && loot.inv_id != null) {
         backpackLink.href = '/inventory?equipment=' + encodeURIComponent(String(loot.inv_id));
@@ -8322,6 +8351,16 @@ function showLootToast(loot) {
             ids.add(String(loot.inv_id));
             sessionStorage.setItem('functional_equipment_new_ids', JSON.stringify([...ids].slice(-50)));
         } catch (_) {}
+    }
+}
+
+function showMonsterAppearanceToast(item) {
+    if (!item) return;
+    if (window.RewardDropPresentationV1
+        && typeof window.RewardDropPresentationV1.showCosmetic === 'function') {
+        window.RewardDropPresentationV1.showCosmetic(item);
+    } else {
+        showItemToast('appear-toast', item.emoji, item.name, item.rarity);
     }
 }
 
@@ -9197,6 +9236,7 @@ function _createB2PresentationScope(data, lordController = null) {
         lordIndex: snapshot.lordIndex ?? (lordController ? _bossIndex : null),
         answerLifecycleGeneration: snapshot.lifecycleGeneration ?? null,
         lifecycleGeneration: generation,
+        rewardData: data,
         invalidate: () => { active = false; },
         isCurrent: () => active
             && _gameSession.isCurrent(identity, {
@@ -9234,7 +9274,11 @@ function _createB2PresentationDependencies(scope) {
         updateSPUI,
         showItemToast,
         showLootToast,
-        showAppearToast,
+        showAppearToast: item => (
+            scope?.rewardData?.appearance_loot === item
+                ? showMonsterAppearanceToast(item)
+                : showAppearToast(item)
+        ),
         updateQuestPanel,
         setTimeout,
         clearTimeout,
@@ -9250,6 +9294,13 @@ function _dispatchCommittedReviewPresentation(data, grade, lordController = null
         SRS.dispatchReviewPresentation(data, {
             onError: failure => reportFailure(failure.stage, failure),
         });
+    }
+    if (window.RewardDropPresentationV1
+        && typeof window.RewardDropPresentationV1.showNoDropFromCommittedResult === 'function'
+        && data?.monster_settlement
+        && !data.loot
+        && !data.appearance_loot) {
+        window.RewardDropPresentationV1.showNoDropFromCommittedResult(data);
     }
     const b2Dispatcher = window.PresentationDispatcher;
     const b2Effects = window.GoOdysseyPresentationEffectsB2;
@@ -9331,7 +9382,7 @@ function _dispatchCommittedReviewPresentation(data, grade, lordController = null
     if (data.sp) updateSPUI(data.sp.current);
     if (data.loot) showLootToast(data.loot);
     if (data.appearance_loot) {
-        dispatchLater('appearance_loot', () => showAppearToast(data.appearance_loot), data.loot ? 1800 : 0);
+        dispatchLater('appearance_loot', () => showMonsterAppearanceToast(data.appearance_loot), data.loot ? 1800 : 0);
     }
     if (data.new_appearance_items && data.new_appearance_items.length) {
         const delay = (data.loot ? 1800 : 0) + (data.appearance_loot ? 1800 : 0);
@@ -9985,6 +10036,14 @@ function _mapBattleV1RenderAuthoritative(q, response, { onAnimationComplete = nu
     if (!state || !q) return;
     if (response && typeof response === 'object') {
         _recordE10BattleAnswerResult(response);
+    }
+    const rewardProgression = response?.progression;
+    if (rewardProgression && window.RewardDropPresentationV1
+        && typeof window.RewardDropPresentationV1.renderCommittedResult === 'function'
+        && (rewardProgression.monster_settlement
+            || rewardProgression.loot
+            || rewardProgression.appearance_loot)) {
+        window.RewardDropPresentationV1.renderCommittedResult(rewardProgression);
     }
     const renderSettlementDelta = response?.duplicate !== true;
     const damageToMonster = renderSettlementDelta && response && Number.isFinite(Number(response.damage_to_monster))
