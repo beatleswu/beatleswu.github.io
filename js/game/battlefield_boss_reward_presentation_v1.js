@@ -275,6 +275,13 @@
         card.dataset.alreadyOwnedNoOp = String(model.already_owned_no_op);
         card.dataset.replayed = String(model.entitlement_replayed);
 
+        var brandline = text(documentRef, 'div', 'battlefield-boss-reward-card__brandline', '');
+        brandline.append(
+            text(documentRef, 'span', 'battlefield-boss-reward-card__brand-mark', '✦'),
+            text(documentRef, 'span', '', 'GO ODYSSEY')
+        );
+        card.appendChild(brandline);
+
         var header = text(documentRef, 'header', 'battlefield-boss-reward-card__header', '');
         header.append(
             text(documentRef, 'span', 'battlefield-boss-reward-card__eyebrow', copy.eyebrow),
@@ -286,15 +293,24 @@
 
         if (model.status !== STATUS.NOT_FIRST_CLEAR) {
             var reward = text(documentRef, 'div', 'battlefield-boss-reward-card__reward', '');
-            reward.append(
-                cosmeticArt(documentRef, display),
+            var rewardCopy = text(documentRef, 'div', 'battlefield-boss-reward-card__reward-copy', '');
+            rewardCopy.append(
                 text(documentRef, 'span', 'battlefield-boss-reward-card__reward-kind', english ? 'PURE COSMETIC' : '純外觀'),
                 text(documentRef, 'span', 'battlefield-boss-reward-card__reward-category', display.display_category),
                 text(documentRef, 'strong', 'battlefield-boss-reward-card__display-name', display.display_name),
                 text(documentRef, 'code', 'battlefield-boss-reward-card__reward-id', model.mapped_cosmetic_id),
+                text(documentRef, 'span', 'battlefield-boss-reward-card__reward-divider', ''),
                 text(documentRef, 'span', 'battlefield-boss-reward-card__reward-note', copy.entitlement)
             );
+            reward.append(cosmeticArt(documentRef, display), rewardCopy);
             card.appendChild(reward);
+        } else {
+            var neutralResult = text(documentRef, 'div', 'battlefield-boss-reward-card__neutral-result', '');
+            var neutralEmblem = text(documentRef, 'span', 'battlefield-boss-reward-card__neutral-emblem', '');
+            neutralEmblem.append(text(documentRef, 'span', '', '✦'));
+            neutralEmblem.setAttribute('aria-hidden', 'true');
+            neutralResult.appendChild(neutralEmblem);
+            card.appendChild(neutralResult);
         }
 
         var facts = text(documentRef, 'dl', 'battlefield-boss-reward-card__facts', '');
@@ -305,7 +321,6 @@
             );
         }
         addFact(english ? 'Zone' : '區域', model.zone_key);
-        addFact(english ? 'Reward policy' : '獎勵版本', model.reward_policy_version);
         if (model.entitlement_replayed) {
             addFact(english ? 'Delivery' : '傳遞狀態', english ? 'Committed result replay' : '已提交結果重播');
         }

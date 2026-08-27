@@ -62,6 +62,7 @@ try {
 
     async function checkCase(name, expectedStatus, expectedId, expectedZone, shouldShowReward, screenshot) {
       await page.locator(`[data-case="${name}"]`).click();
+      await page.waitForTimeout(700);
       const state = await page.locator('#battlefield-boss-reward-result').evaluate((node) => {
         const card = node.querySelector('.battlefield-boss-reward-card');
         return ({

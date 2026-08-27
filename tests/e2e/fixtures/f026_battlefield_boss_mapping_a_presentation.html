@@ -6,26 +6,54 @@
   <title>F026 Battlefield Boss Mapping A presentation fixture</title>
   <link rel="stylesheet" href="/css/e10/battlefield_boss_reward_presentation_v1.css">
   <style>
-    :root { color-scheme: light; font-family: 'DM Sans', system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; background: #173d43; color: #f1e4c1; }
-    main { width: min(760px, calc(100vw - 28px)); margin: 0 auto; padding: 28px 0; }
-    .fixture-header { margin-bottom: 18px; }
-    .fixture-header p { margin: 5px 0 0; color: rgba(241,228,193,.72); line-height: 1.5; }
-    .fixture-kicker { font: 700 10px/1.2 'DM Mono', monospace; letter-spacing: .14em; }
-    .fixture-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
-    button { border: 1px solid #d6aa51; border-radius: 999px; padding: 9px 12px; color: #173d43; background: #f1e4c1; font-weight: 700; cursor: pointer; }
-    button[aria-pressed="true"] { color: #fff1c7; background: #0d6f69; }
+    :root { color-scheme: dark; font-family: 'DM Sans', system-ui, sans-serif; }
+    body {
+      position: relative;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: #f6ead0;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(64, 110, 167, .22), transparent 32%),
+        radial-gradient(circle at 86% 18%, rgba(217, 181, 108, .08), transparent 28%),
+        linear-gradient(160deg, #081526, #030812 58%, #0b192c);
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .28;
+      background-image: radial-gradient(circle, rgba(217,181,108,.6) 0 1px, transparent 1.5px);
+      background-size: 190px 150px;
+    }
+    main { width: min(1180px, calc(100vw - 28px)); margin: 0 auto; padding: 34px 0 54px; }
+    .fixture-header { margin-bottom: 12px; text-align: center; }
+    .fixture-header h1 {
+      margin: 10px 0 4px;
+      color: #f6ead0;
+      font: 700 clamp(42px, 6vw, 70px)/.95 'Cormorant Garamond', 'Noto Serif TC', serif;
+      letter-spacing: -.02em;
+      text-shadow: 0 4px 24px rgba(0,0,0,.4);
+    }
+    .fixture-header p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .fixture-kicker { color: #d9b56c; font: 700 10px/1.2 'DM Mono', monospace; letter-spacing: .28em; }
+    .fixture-controls-label { color: #91a1b5; font: 700 9px/1.2 'DM Mono', monospace; letter-spacing: .2em; text-align: center; text-transform: uppercase; }
+    .fixture-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 12px 0 18px; border-bottom: 1px solid rgba(217,181,108,.22); }
+    button { border: 1px solid rgba(217,181,108,.55); border-radius: 999px; padding: 8px 12px; color: #d7c49c; background: rgba(8,20,36,.75); font: 500 11px/1 'DM Mono', monospace; cursor: pointer; }
+    button[aria-pressed="true"] { color: #081321; background: linear-gradient(180deg, #f3d58d, #b88742); box-shadow: 0 0 14px rgba(217,181,108,.22); }
     #battlefield-boss-reward-result { min-height: 10px; }
-    @media (max-width: 700px) { main { padding-top: 18px; } .fixture-controls { gap: 6px; } button { flex: 1 1 145px; } }
+    @media (max-width: 700px) { main { padding-top: 22px; } .fixture-controls { gap: 6px; } button { flex: 1 1 145px; } }
   </style>
 </head>
 <body>
   <main>
     <header class="fixture-header">
-      <div class="fixture-kicker">F026 · MAPPING A COVERAGE FIXTURE</div>
-      <h1>Battlefield Boss cosmetics</h1>
+      <div class="fixture-kicker">GO ODYSSEY · BATTLEFIELD BOSS</div>
+      <h1>Reward Result</h1>
       <p>These are synthetic server-authored F024 transport payloads. Mapping A remains owned by F022; this fixture checks presentation coverage only.</p>
     </header>
+    <div class="fixture-controls-label">Preview states · test-only controls</div>
     <nav id="f026-controls" class="fixture-controls" aria-label="Mapping A presentation states"></nav>
     <section id="battlefield-boss-reward-result" data-presentation-only="true" aria-label="Battlefield Boss reward result"></section>
   </main>

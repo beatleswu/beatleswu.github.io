@@ -112,3 +112,19 @@ def test_f026_fixture_covers_exact_ten_ids_and_fail_closed_states():
         assert item_id in fixture
     assert "synthetic server-authored F024 transport payloads" in fixture
     assert "F022; this fixture checks presentation coverage only" in fixture
+
+
+def test_r1_visual_system_uses_dark_rpg_materials_and_state_specific_shells():
+    style = STYLE.read_text(encoding="utf-8").lower()
+    script = SCRIPT.read_text(encoding="utf-8").lower()
+    fixture = FIXTURE.read_text(encoding="utf-8").lower()
+    assert "#071322" in style
+    assert "battlefield-boss-reward-card__brandline" in style
+    assert "battlefield-boss-reward-card__cosmetic-fallback" in style
+    assert "battlefield-boss-reward-card__neutral-emblem" in style
+    assert "@media (prefers-reduced-motion: reduce)" in style
+    assert "__brandline" in script
+    assert "__neutral-result" in script
+    assert "#0d6f69" not in style
+    assert "#173d43" not in style
+    assert "background: #0d6f69" not in fixture
