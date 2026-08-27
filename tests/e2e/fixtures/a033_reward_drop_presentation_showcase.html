@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>A033 Reward Drop Presentation Showcase</title>
-  <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033r2">
+  <link rel="stylesheet" href="/css/e10/reward_drop_presentation_v1.css?v=a033r3">
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; }
     * { box-sizing: border-box; }
@@ -35,7 +35,7 @@
     const params = new URLSearchParams(location.search);
     window.I18n = { getLang: () => params.get('lang') === 'en' ? 'en' : 'zh' };
   </script>
-  <script src="/js/game/reward_drop_presentation_v1.js?v=a033r2"></script>
+  <script src="/js/game/reward_drop_presentation_v1.js?v=a033r3"></script>
 </head>
 <body>
   <main class="showcase" id="fixture-debug" hidden>
@@ -96,6 +96,20 @@
           duplicate: false,
           functional_lineage_count: 0,
           wardrobe_lineage_count: 0,
+        },
+      },
+      already_owned: {
+        ok: true,
+        reward_result: {
+          status: 'ALREADY_OWNED',
+          reward_status: 'ALREADY_OWNED',
+        },
+      },
+      not_first_clear: {
+        ok: true,
+        reward_result: {
+          status: 'NOT_FIRST_CLEAR',
+          reward_status: 'NOT_FIRST_CLEAR',
         },
       },
     };

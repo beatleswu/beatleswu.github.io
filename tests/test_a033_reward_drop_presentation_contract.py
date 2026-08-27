@@ -13,8 +13,8 @@ def test_a033_files_and_mount_are_present():
     assert STYLES.is_file()
     assert FIXTURE.is_file()
     source = INDEX.read_text(encoding="utf-8")
-    assert "/js/game/reward_drop_presentation_v1.js?v=a033r2" in source
-    assert "/css/e10/reward_drop_presentation_v1.css?v=a033r2" in source
+    assert "/js/game/reward_drop_presentation_v1.js?v=a033r3" in source
+    assert "/css/e10/reward_drop_presentation_v1.css?v=a033r3" in source
     assert 'id="reward-drop-v1"' in source
     assert 'id="reward-drop-v1-brand"' in source
 
@@ -25,6 +25,8 @@ def test_a033_presentation_contract_is_fail_closed_and_authority_free():
     assert "FUNCTIONAL_EQUIPMENT" in source
     assert "PURE_COSMETIC" in source
     assert "NO_DROP" in source
+    assert "ALREADY_OWNED" in source
+    assert "NOT_FIRST_CLEAR" in source
     assert "unsupported_reward_type" in source
     assert "malformed_or_missing_reward" in source
     assert "VIEW_BACKPACK" in source
@@ -35,6 +37,7 @@ def test_a033_presentation_contract_is_fail_closed_and_authority_free():
     assert "probability" not in source
     assert "coins_granted" not in source
     assert "fallback_emoji" not in source
+    assert "conflicting_reward_status" in source
 
 
 def test_a033_adapter_has_no_writer_or_browser_state_authority():
@@ -68,6 +71,8 @@ def test_a033_r2_uses_rpg_result_layer_without_fixture_copy_in_evidence():
     assert "@media (max-width: 720px)" in styles
     assert ".reward-drop-v1__state {\n    display: block;" in styles
     assert '<main class="showcase" id="fixture-debug" hidden>' in fixture
-    assert "/js/game/reward_drop_presentation_v1.js?v=a033r2" in fixture
-    assert "/css/e10/reward_drop_presentation_v1.css?v=a033r2" in fixture
+    assert "/js/game/reward_drop_presentation_v1.js?v=a033r3" in fixture
+    assert "/css/e10/reward_drop_presentation_v1.css?v=a033r3" in fixture
     assert 'id="reward-drop-v1-brand"' in fixture
+    assert "already_owned" in fixture
+    assert "not_first_clear" in fixture

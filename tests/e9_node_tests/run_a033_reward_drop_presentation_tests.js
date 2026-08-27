@@ -76,6 +76,36 @@ function main() {
   assert.equal(noDrop.item_id, null);
   assert.equal(noDrop.name, '', 'no-drop state has no fabricated item name');
 
+  const alreadyOwned = api.normalize({
+    ok: true,
+    reward_result: { status: 'ALREADY_OWNED' },
+  });
+  assert.equal(alreadyOwned.status, api.ALREADY_OWNED);
+  assert.equal(alreadyOwned.action, 'NONE');
+  assert.equal(alreadyOwned.item_id, null);
+
+  const notFirstClear = api.normalize({
+    ok: true,
+    reward_result: { reward_status: 'NOT_FIRST_CLEAR' },
+  });
+  assert.equal(notFirstClear.status, api.NOT_FIRST_CLEAR);
+  assert.equal(notFirstClear.action, 'NONE');
+  assert.equal(notFirstClear.item_id, null);
+
+  assert.equal(
+    api.normalize({
+      ok: true,
+      reward_result: {
+        status: 'ALREADY_OWNED',
+        item_id: 'forged-item',
+        name: 'Forged item',
+        name_en: 'Forged item',
+      },
+    }).status,
+    api.UNAVAILABLE,
+    'explicit no-op plus item content must fail closed',
+  );
+
   assert.equal(
     api.normalize({ ok: true, reward_type: 'COINS', coins: 2 }).status,
     api.UNAVAILABLE,
@@ -97,7 +127,7 @@ function main() {
     'duplicate settlement must not render a fabricated no-drop',
   );
 
-console.log('A033 reward drop presentation tests: 8 passed');
+  console.log('A033 reward drop presentation tests: 11 passed');
 }
 
 main();

@@ -311,6 +311,8 @@
 }
 
 #reward-drop-v1[data-reward-status='NO_DROP'] .reward-drop-v1__body,
+#reward-drop-v1[data-reward-status='ALREADY_OWNED'] .reward-drop-v1__body,
+#reward-drop-v1[data-reward-status='NOT_FIRST_CLEAR'] .reward-drop-v1__body,
 #reward-drop-v1[data-reward-status='UNAVAILABLE'] .reward-drop-v1__body {
     color: var(--reward-ink);
     border-color: rgba(125, 145, 162, .62);
@@ -320,19 +322,27 @@
 }
 
 #reward-drop-v1[data-reward-status='NO_DROP'] .reward-drop-v1__eyebrow,
+#reward-drop-v1[data-reward-status='ALREADY_OWNED'] .reward-drop-v1__eyebrow,
+#reward-drop-v1[data-reward-status='NOT_FIRST_CLEAR'] .reward-drop-v1__eyebrow,
 #reward-drop-v1[data-reward-status='UNAVAILABLE'] .reward-drop-v1__eyebrow,
 #reward-drop-v1[data-reward-status='NO_DROP'] .reward-drop-v1__name,
+#reward-drop-v1[data-reward-status='ALREADY_OWNED'] .reward-drop-v1__name,
+#reward-drop-v1[data-reward-status='NOT_FIRST_CLEAR'] .reward-drop-v1__name,
 #reward-drop-v1[data-reward-status='UNAVAILABLE'] .reward-drop-v1__name {
     color: var(--reward-gold-bright);
 }
 
 #reward-drop-v1[data-reward-status='NO_DROP'] .reward-drop-v1__meta,
+#reward-drop-v1[data-reward-status='ALREADY_OWNED'] .reward-drop-v1__meta,
+#reward-drop-v1[data-reward-status='NOT_FIRST_CLEAR'] .reward-drop-v1__meta,
 #reward-drop-v1[data-reward-status='UNAVAILABLE'] .reward-drop-v1__meta {
     color: #d6e0e7;
     background: linear-gradient(135deg, #253747, #142432);
 }
 
 #reward-drop-v1[data-reward-status='NO_DROP'] .reward-drop-v1__state,
+#reward-drop-v1[data-reward-status='ALREADY_OWNED'] .reward-drop-v1__state,
+#reward-drop-v1[data-reward-status='NOT_FIRST_CLEAR'] .reward-drop-v1__state,
 #reward-drop-v1[data-reward-status='UNAVAILABLE'] .reward-drop-v1__state {
     color: #becbd4;
     border-top-color: rgba(154, 170, 182, .3);

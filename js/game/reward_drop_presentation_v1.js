@@ -14,9 +14,20 @@
     const FUNCTIONAL_EQUIPMENT = 'FUNCTIONAL_EQUIPMENT';
     const PURE_COSMETIC = 'PURE_COSMETIC';
     const NO_DROP = 'NO_DROP';
+    const ALREADY_OWNED = 'ALREADY_OWNED';
+    const NOT_FIRST_CLEAR = 'NOT_FIRST_CLEAR';
     const UNAVAILABLE = 'UNAVAILABLE';
     const SKIPPED = 'SKIPPED';
     const COMMITTED_STATUSES = new Set(['COMMITTED', 'SETTLED', 'SUCCESS', 'APPLIED']);
+    const PRESENTATION_STATUS_ALIASES = Object.freeze({
+        ALREADY_OWNED,
+        NO_OP: ALREADY_OWNED,
+        NO_NEW_OWNERSHIP: ALREADY_OWNED,
+        REPLAY_NO_REWARD: ALREADY_OWNED,
+        NOT_FIRST_CLEAR,
+        NO_NEW_ENTITLEMENT: NOT_FIRST_CLEAR,
+        FIRST_CLEAR_ALREADY_CLAIMED: NOT_FIRST_CLEAR,
+    });
     let hideTimer = null;
 
     function isObject(value) {
@@ -42,7 +53,7 @@
         }
         return [...COMMITTED_STATUSES].some(status => (
             typeof payload.status === 'string' && payload.status.trim().toUpperCase() === status
-        ));
+        )) || Boolean(PRESENTATION_STATUS_ALIASES[normalizedStatus(payload.status)]);
     }
 
     function settlementFor(payload) {
@@ -90,6 +101,30 @@
             if (normalized) return normalized;
         }
         return '';
+    }
+
+    function normalizedStatus(value) {
+        return cleanString(value).toUpperCase().replace(/[ -]+/g, '_');
+    }
+
+    function explicitPresentationStatus(payload) {
+        if (!isObject(payload)) return null;
+        const containers = [
+            payload,
+            payload.reward_result,
+            payload.progression?.reward_result,
+            payload.monster_settlement,
+            payload.progression?.monster_settlement,
+        ];
+        for (const container of containers) {
+            if (!isObject(container)) continue;
+            for (const key of ['presentation_status', 'reward_status', 'outcome', 'status']) {
+                const normalized = normalizedStatus(container[key]);
+                const mapped = PRESENTATION_STATUS_ALIASES[normalized];
+                if (mapped) return { status: mapped, reason: normalized.toLowerCase() };
+            }
+        }
+        return null;
     }
 
     function iconValue(item) {
@@ -180,12 +215,47 @@
         });
     }
 
+    function noNewReward(status, reason) {
+        return Object.freeze({
+            contract_version: CONTRACT_VERSION,
+            status,
+            reason: cleanString(reason) || 'no_new_reward',
+            item_id: null,
+            name: '',
+            name_en: '',
+            category: '',
+            image: '',
+            inventory_id: null,
+            action: 'NONE',
+            pure_cosmetic_no_power: false,
+        });
+    }
+
     function normalize(payload) {
         if (!isCommittedEnvelope(payload)) return unavailable('uncommitted_result');
         if (payload.contract_version && payload.contract_version !== CONTRACT_VERSION) {
             // A producer contract version is optional in the legacy result,
             // but a present, wrong version must fail closed.
             return unavailable('wrong_contract_version');
+        }
+
+        const presentationStatus = explicitPresentationStatus(payload);
+        if (presentationStatus) {
+            const rewards = rewardContainer(payload);
+            const hasConflictingReward = rewards && (
+                rewards.loot || rewards.appearance_loot
+                || rewards.functional_equipment || rewards.pure_cosmetic
+                || firstString(
+                    rewards.item_id,
+                    rewards.cosmetic_id,
+                    rewards.id,
+                    rewards.display_name,
+                    rewards.name,
+                    rewards.icon,
+                )
+            );
+            if (hasConflictingReward) return unavailable('conflicting_reward_status');
+            return noNewReward(presentationStatus.status, presentationStatus.reason);
         }
 
         const rewardType = explicitRewardType(payload);
@@ -303,6 +373,10 @@
                 ? textFor('獲得外觀', 'Cosmetic Acquired')
                 : model.status === NO_DROP
                     ? textFor('本次沒有掉落', 'No Drop This Time')
+                    : model.status === ALREADY_OWNED
+                        ? textFor('獎勵已擁有', 'Reward Already Owned')
+                        : model.status === NOT_FIRST_CLEAR
+                            ? textFor('非首次通關', 'Not a First Clear')
                     : textFor('獎勵資訊暫不可用', 'Reward Unavailable');
         const name = model.status === FUNCTIONAL_EQUIPMENT
             ? textFor(model.name, model.name_en)
@@ -310,6 +384,10 @@
                 ? textFor(model.name, model.name_en)
                 : model.status === NO_DROP
                     ? ''
+                    : model.status === ALREADY_OWNED
+                        ? textFor('本次未新增所有權', 'No new ownership added')
+                        : model.status === NOT_FIRST_CLEAR
+                            ? textFor('未產生新首通獎勵', 'No new first-clear reward')
                     : textFor('未提供可顯示的物品。', 'No item was provided.');
         const meta = model.status === FUNCTIONAL_EQUIPMENT
             ? textFor('功能型裝備 · 已取得', 'Functional Equipment · Acquired')
@@ -317,6 +395,10 @@
                 ? textFor('純外觀 · 不提供戰鬥力', 'Pure Cosmetic · No combat power')
                 : model.status === NO_DROP
                     ? textFor('沒有伺服器授權的獎勵', 'No server-authored reward')
+                    : model.status === ALREADY_OWNED
+                        ? textFor('既有獎勵 · 本次不新增所有權', 'Existing reward · No-op')
+                        : model.status === NOT_FIRST_CLEAR
+                            ? textFor('非首次通關 · 無新首通獎勵', 'Not first clear · No new entitlement')
                     : textFor('已安全關閉顯示', 'Presentation closed safely');
         const stateCopy = model.status === FUNCTIONAL_EQUIPMENT
             ? textFor('獎勵結果已確認，可在背包查看。', 'Reward confirmed. View it in your Backpack.')
@@ -324,7 +406,11 @@
                 ? textFor('此獎勵僅供外觀展示。', 'This reward is cosmetic only.')
                 : model.status === NO_DROP
                     ? textFor('本次不補發其他物品。', 'No replacement item is granted.')
-                    : textFor('未提供可安全顯示的內容。', 'No safe presentation content was provided.');
+                    : model.status === ALREADY_OWNED
+                        ? textFor('伺服器結果已確認，本次不重複發放獎勵。', 'Server result confirmed. No duplicate reward is granted.')
+                        : model.status === NOT_FIRST_CLEAR
+                            ? textFor('伺服器結果已確認，本次不產生新的首通獎勵。', 'Server result confirmed. No new first-clear reward is created.')
+                : textFor('未提供可安全顯示的內容。', 'No safe presentation content was provided.');
         setText('reward-drop-v1-title', title);
         setText('reward-drop-v1-name', name);
         setText('reward-drop-v1-meta', meta);
@@ -401,6 +487,8 @@
         FUNCTIONAL_EQUIPMENT,
         PURE_COSMETIC,
         NO_DROP,
+        ALREADY_OWNED,
+        NOT_FIRST_CLEAR,
         UNAVAILABLE,
         normalize,
         render,
