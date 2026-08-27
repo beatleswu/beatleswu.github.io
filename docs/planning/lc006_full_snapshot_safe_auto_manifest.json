@@ -1,0 +1,69 @@
+{
+  "authority": "LC006_FULL_SNAPSHOT_SAFE_AUTO_TERMINAL_VERDICT_DRY_RUN_001",
+  "canonicality": "DRY_RUN__NO_MUTATION__NOT_APPLIED",
+  "safe_auto_candidates": [],
+  "safe_auto_rule": "ROOT_RE_PROPAGATION (LC005, unchanged)",
+  "schema_version": "1.0",
+  "summary": {
+    "classification_accounting_pass": true,
+    "classification_total": 42804,
+    "corpus_mutation": false,
+    "corpus_record_count": 42804,
+    "counts": {
+      "ALREADY_EXPLICIT": 1,
+      "AMBIGUOUS_AUTOREPLY": 731,
+      "COLOR_AUTHORITY_INCOMPLETE": 0,
+      "DUPLICATE_IDENTITY_BLOCKED": 13,
+      "EMPTY_OR_UNANSWERABLE": 66,
+      "MALFORMED_SOURCE": 163,
+      "MANUAL_SEMANTIC_REVIEW": 41830,
+      "OTHER_BLOCKED": 0,
+      "SAFE_AUTO_CANDIDATE": 0
+    },
+    "current_explicit_success_records": 1,
+    "current_explicit_verdict_coverage_pct": 0.002349,
+    "duplicate_legacy_id_groups": 11,
+    "duplicate_record_count": 22,
+    "expected_record_count": 42804,
+    "expected_snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "lc006_tool_version": "lc006-full-snapshot-safe-auto-dry-run-v1",
+    "manual_review_remaining": 41830,
+    "owner_marker_decision_required": true,
+    "projected_after_safe_auto_pct": 0.002349,
+    "record_count_match": true,
+    "safe_auto_before_reclassification": 0,
+    "safe_auto_exact_count": 0,
+    "safe_auto_projected_judge_pass": 0,
+    "safe_auto_projected_judge_pass_rate_pct": 100.0,
+    "safe_auto_reclassified_manual": 0,
+    "snapshot_basename": "questions.json",
+    "snapshot_hash_match": true,
+    "snapshot_location_note": "byte-verified immutable canonical snapshot; lives untracked at the main-checkout root, absent from this worktree's git tree",
+    "snapshot_sha256": "88da3e43b41f46380a2c0534fa2fc892b69eb99df4055dd635333b7153f654ff",
+    "source_level_blocked_remaining": 973,
+    "subtags": {
+      "ALREADY_EXPLICIT": {
+        "TERMINAL_SUCCESS_MARKER": 1
+      },
+      "AMBIGUOUS_AUTOREPLY": {
+        "OTHER_BRANCHING_SHAPE": 28,
+        "TRUE_AMBIGUOUS_REPLY": 703
+      },
+      "COLOR_AUTHORITY_INCOMPLETE": {},
+      "DUPLICATE_IDENTITY_BLOCKED": {},
+      "EMPTY_OR_UNANSWERABLE": {
+        "EMPTY_TREE": 60,
+        "MISSING_ANSWER_TREE": 6
+      },
+      "MALFORMED_SOURCE": {
+        "MALFORMED_SGF": 158,
+        "OTHER_PARSE_FAILURE": 2,
+        "TRUNCATED_SGF": 3
+      },
+      "MANUAL_SEMANTIC_REVIEW": {},
+      "OTHER_BLOCKED": {},
+      "SAFE_AUTO_CANDIDATE": {}
+    },
+    "terminal_answer_records": 42575
+  }
+}
