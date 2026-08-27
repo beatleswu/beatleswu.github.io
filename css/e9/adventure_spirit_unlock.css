@@ -1,0 +1,354 @@
+/* D031 — presentation only.  The result is rendered only from an explicit
+   server-authored Adventure milestone payload; this stylesheet owns no game
+   state and contains no unlock controls. */
+
+.d031-spirit-result {
+  position: fixed;
+  z-index: 10080;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 46px);
+  color: #f7f1dc;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(79, 155, 177, .18), transparent 34%),
+    rgba(4, 10, 22, .80);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.d031-spirit-result[hidden] {
+  display: none;
+}
+
+.d031-spirit-result__card {
+  position: relative;
+  width: min(100%, 720px);
+  overflow: hidden;
+  border: 1px solid rgba(236, 205, 122, .65);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .075), transparent 28%),
+    radial-gradient(circle at 85% 0%, rgba(128, 82, 204, .32), transparent 42%),
+    linear-gradient(145deg, #142741, #0a172a 58%, #111124);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, .56),
+    inset 0 1px 0 rgba(255, 255, 255, .13),
+    inset 0 0 0 1px rgba(31, 74, 113, .35);
+}
+
+.d031-spirit-result__card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  content: "";
+  background: linear-gradient(90deg, #54c9c7, #e9c76e 48%, #bf8ff2);
+}
+
+.d031-spirit-result__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 26px 0;
+}
+
+.d031-spirit-result__eyebrow {
+  color: #9de1db;
+  font: 700 10px/1.2 "DM Mono", "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .16em;
+}
+
+.d031-spirit-result__close {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(235, 216, 157, .32);
+  border-radius: 50%;
+  color: #f7f1dc;
+  background: rgba(255, 255, 255, .06);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.d031-spirit-result__close:hover,
+.d031-spirit-result__close:focus-visible {
+  border-color: #ecd07a;
+  background: rgba(236, 205, 122, .16);
+  outline: 2px solid rgba(236, 205, 122, .38);
+  outline-offset: 2px;
+}
+
+.d031-spirit-result__body {
+  display: grid;
+  grid-template-columns: 192px minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  padding: 24px 26px 28px;
+}
+
+.d031-spirit-result__art {
+  position: relative;
+  display: grid;
+  min-height: 192px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(141, 209, 213, .36);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(126, 234, 221, .24), transparent 45%),
+    linear-gradient(155deg, rgba(57, 123, 151, .52), rgba(18, 31, 62, .94));
+  box-shadow: inset 0 0 36px rgba(87, 207, 204, .11), 0 12px 28px rgba(0, 0, 0, .25);
+}
+
+.d031-spirit-result__art::after {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(236, 205, 122, .30);
+  border-radius: 12px;
+  content: "";
+  pointer-events: none;
+}
+
+.d031-spirit-result__image {
+  position: relative;
+  z-index: 1;
+  width: 164px;
+  height: 164px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 12px rgba(0, 0, 0, .34));
+}
+
+.d031-spirit-result__image[data-d031-asset-fallback="true"] {
+  width: 88px;
+  height: 88px;
+  border: 1px dashed rgba(236, 205, 122, .45);
+  border-radius: 50%;
+}
+
+.d031-spirit-result__empty-mark {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 78px;
+  height: 78px;
+  place-items: center;
+  border: 1px solid rgba(202, 214, 232, .48);
+  border-radius: 50%;
+  color: #b7c4d5;
+  background: rgba(15, 28, 50, .48);
+  box-shadow: inset 0 0 0 9px rgba(151, 165, 195, .06);
+  font: 400 40px/1 Georgia, "Times New Roman", serif;
+}
+
+.d031-spirit-result__zone-mark {
+  position: absolute;
+  z-index: 2;
+  bottom: 14px;
+  left: 16px;
+  color: #f5dda0;
+  font: 700 10px/1 "DM Mono", "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .12em;
+}
+
+.d031-spirit-result__copy {
+  min-width: 0;
+}
+
+.d031-spirit-result__title {
+  max-width: 520px;
+  margin: 0;
+  color: #fff7dc;
+  font: 700 clamp(26px, 3vw, 40px)/1.04 Georgia, "Times New Roman", serif;
+  letter-spacing: -.025em;
+}
+
+.d031-spirit-result__location {
+  margin: 12px 0 0;
+  color: #9ed8d0;
+  font: 700 12px/1.35 "DM Mono", "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .04em;
+}
+
+.d031-spirit-result__spirit-name {
+  margin: 20px 0 0;
+  color: #ecd07a;
+  font: 700 clamp(21px, 2.3vw, 29px)/1.1 Georgia, "Times New Roman", serif;
+}
+
+.d031-spirit-result__message {
+  max-width: 460px;
+  margin: 9px 0 0;
+  color: #d4ded9;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.d031-spirit-result__provenance {
+  margin: 18px 0 0;
+  color: #829eaa;
+  font: 600 11px/1.4 "DM Mono", "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .03em;
+}
+
+.d031-spirit-result__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 26px 26px;
+}
+
+.d031-spirit-result__continue {
+  min-width: 132px;
+  padding: 12px 18px;
+  border: 1px solid #e8c66e;
+  border-radius: 9px;
+  color: #192339;
+  background: linear-gradient(180deg, #ffe69a, #d6a94e);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .26), inset 0 1px 0 rgba(255, 255, 255, .46);
+  font: 800 12px/1 "DM Mono", "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.d031-spirit-result__continue:hover,
+.d031-spirit-result__continue:focus-visible {
+  background: linear-gradient(180deg, #fff0ba, #e3b95b);
+  outline: 2px solid rgba(236, 205, 122, .55);
+  outline-offset: 3px;
+}
+
+.d031-spirit-result__card--already_owned_no_op {
+  border-color: rgba(141, 209, 213, .53);
+}
+
+.d031-spirit-result__card--no_milestone_unlock {
+  border-color: rgba(151, 165, 195, .45);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .05), transparent 28%),
+    linear-gradient(145deg, #1b2a40, #111b2e 58%, #171827);
+}
+
+.d031-spirit-result__card--no_milestone_unlock .d031-spirit-result__art {
+  background: linear-gradient(155deg, rgba(69, 91, 119, .52), rgba(18, 26, 46, .95));
+}
+
+@media (max-width: 900px) {
+  .d031-spirit-result {
+    padding: 24px;
+  }
+
+  .d031-spirit-result__card {
+    width: min(100%, 640px);
+  }
+
+  .d031-spirit-result__body {
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 22px;
+    padding-inline: 22px;
+  }
+
+  .d031-spirit-result__header {
+    padding-inline: 22px;
+  }
+
+  .d031-spirit-result__actions {
+    padding-inline: 22px;
+  }
+
+  .d031-spirit-result__art {
+    min-height: 160px;
+  }
+
+  .d031-spirit-result__image {
+    width: 138px;
+    height: 138px;
+  }
+}
+
+@media (max-width: 600px) {
+  .d031-spirit-result {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .d031-spirit-result__card {
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    border-radius: 18px;
+  }
+
+  .d031-spirit-result__header {
+    padding: 17px 17px 0;
+  }
+
+  .d031-spirit-result__eyebrow {
+    max-width: 240px;
+    font-size: 9px;
+  }
+
+  .d031-spirit-result__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px 17px 20px;
+  }
+
+  .d031-spirit-result__art {
+    min-height: 126px;
+    border-radius: 14px;
+  }
+
+  .d031-spirit-result__image {
+    width: 112px;
+    height: 112px;
+  }
+
+  .d031-spirit-result__art::after {
+    inset: 9px;
+    border-radius: 9px;
+  }
+
+  .d031-spirit-result__zone-mark {
+    bottom: 10px;
+    left: 12px;
+    font-size: 9px;
+  }
+
+  .d031-spirit-result__title {
+    font-size: clamp(26px, 8vw, 34px);
+  }
+
+  .d031-spirit-result__spirit-name {
+    margin-top: 15px;
+    font-size: 24px;
+  }
+
+  .d031-spirit-result__message {
+    font-size: 14px;
+  }
+
+  .d031-spirit-result__provenance {
+    margin-top: 14px;
+    font-size: 10px;
+  }
+
+  .d031-spirit-result__actions {
+    padding: 0 17px 17px;
+  }
+
+  .d031-spirit-result__continue {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .d031-spirit-result,
+  .d031-spirit-result * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
